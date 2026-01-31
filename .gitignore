@@ -1,45 +1,34 @@
-# =========================
-# Python / Virtual Envs
-# =========================
+# Python venv
 .venv/
 venv/
 env/
+
+# Python cache
 __pycache__/
 *.py[cod]
-*.pyo
-*.egg-info/
 
-# =========================
-# Build / Distribution
-# =========================
+# Build artifacts
 build/
 dist/
+*.egg-info/
 
-# =========================
-# OS / Editor junk
-# =========================
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# =========================
-# Secrets / local config
-# =========================
+# Secrets
 .env
 .env.*
 *.key
 *.pem
 
-# =========================
-# Project-local state (NOT SOURCE)
-# =========================
+# Local state (adjust later if needed)
 data/
 dev/
 legacy/
 
-# =========================
-# Caches / logs
-# =========================
+# Logs / caches
 *.log
 .cache/
