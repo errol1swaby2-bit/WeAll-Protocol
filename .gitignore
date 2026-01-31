@@ -1,1 +1,45 @@
-read only
+# =========================
+# Python / Virtual Envs
+# =========================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Secrets / local config
+# =========================
+.env
+.env.*
+*.key
+*.pem
+
+# =========================
+# Project-local state (NOT SOURCE)
+# =========================
+data/
+dev/
+legacy/
+
+# =========================
+# Caches / logs
+# =========================
+*.log
+.cache/
