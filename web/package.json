@@ -1,0 +1,32 @@
+{
+  "name": "weall-webfront",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "npm run guard:src && npm run guard:single-api && npm run guard:single-node && tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 3000",
+    "guard:src": "bash scripts/guard-no-src-js.sh",
+    "guard:single-api": "bash scripts/guard-single-api-client.sh",
+    "guard:single-node": "bash scripts/guard-single-node-select.sh",
+    "dev:lan": "vite --host 0.0.0.0 --port 5173"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^3.0.0",
+    "@noble/hashes": "^2.0.1",
+    "@scure/base": "^1.1.9",
+    "@scure/bip39": "^1.6.0",
+    "bip39": "^3.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.1.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

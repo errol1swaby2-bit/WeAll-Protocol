@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  ipfs:
+    # Pin to a specific Kubo version for reproducible production deployments.
+    # Update intentionally (and together across the fleet).
+    image: ipfs/kubo:v0.29.0
+    container_name: weall-ipfs
+    restart: unless-stopped
+
+    # Persist IPFS repo state so pinned CIDs survive restarts.
+    volumes:
+      - weall_ipfs_data:/data/ipfs
+
+    # Kubo ports:
+    #  - 4001: swarm
+    #  - 5001: API
+    #  - 8080: gateway
+    ports:
+      # Swarm must be reachable for the IPFS network.
+      - "4001:4001"
+      - "4001:4001/udp"
+
+      # Do NOT expose the API or gateway publicly by default.
+      # Keep them local to the host (or place behind a reverse proxy you control).
+      - "127.0.0.1:5001:5001"
+      - "127.0.0.1:8080:8080"
+
+    # Keep it simple + safe by default.
+    environment:
+      # Disable the "public gateway" behavior that can be abused in some deployments.
+      # We are running a local gateway for our node/web, not an internet gateway service.
+      - IPFS_PROFILE=server
+
+      # Conservative defaults (override as needed per operator):
+      # NOTE: Keep CORS locked down if you ever allow browser access.
+      # - IPFS_API_HTTPHeaders_Access-Control-Allow-Origin=["https://your-web-origin"]
+      # - IPFS_API_HTTPHeaders_Access-Control-Allow-Methods=["PUT", "POST"]
+
+    # Optional: reduce resource footprint (uncomment if needed)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1g
+
+volumes:
+  weall_ipfs_data:

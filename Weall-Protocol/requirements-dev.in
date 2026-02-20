@@ -1,0 +1,11 @@
+# Development + test dependencies.
+#
+# Generate lockfile:
+#   pip install -e '.[lock]'
+#   pip-compile --resolver=backtracking -o requirements-dev.lock requirements-dev.in
+#
+-r requirements.in
+
+pytest>=8.0
+httpx>=0.27
+pip-tools>=7.4

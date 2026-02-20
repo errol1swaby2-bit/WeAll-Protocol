@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!--
+      Production CSP notes:
+      - Turnstile requires loading script + rendering an iframe from challenges.cloudflare.com
+      - This UI supports selecting a remote API base URL (node), so connect-src must allow http/https + ws/wss.
+      - If you later reverse-proxy the UI and API under same origin, you can tighten connect-src to 'self'.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        base-uri 'self';
+        frame-ancestors 'none';
+        object-src 'none';
+        script-src 'self' https://challenges.cloudflare.com;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data:;
+        font-src 'self' data:;
+        connect-src 'self' https: http: ws: wss:;
+        frame-src https://challenges.cloudflare.com;
+      "
+    />
+
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WeAll</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

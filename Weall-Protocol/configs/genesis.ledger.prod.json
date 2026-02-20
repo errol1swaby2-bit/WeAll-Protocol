@@ -1,0 +1,59 @@
+{
+  "chain_id": "weall-prod",
+  "height": 0,
+  "tip": "",
+  "time": 1700000000,
+  "last_block_ts_ms": 0,
+
+  "accounts": {
+    "SYSTEM": {
+      "nonce": 0,
+      "poh_tier": 0,
+      "banned": false,
+      "locked": false,
+      "balance": 0,
+      "reputation": 0.0,
+      "keys": []
+    },
+
+    "FOUNDING_NODE_ID": {
+      "nonce": 0,
+      "poh_tier": 3,
+      "banned": false,
+      "locked": false,
+      "balance": 0,
+      "reputation": 0.0,
+      "keys": []
+    }
+  },
+
+  "roles": {
+    "validators": {
+      "active_set": ["FOUNDING_NODE_ID"],
+      "pending_set": [],
+      "banned_set": []
+    }
+  },
+
+  "finalized": {
+    "block_id": null,
+    "height": 0
+  },
+
+  "economics": {
+    "fee_policy": {
+      "transfer_fee_int": 0,
+      "post_fee_int": 0,
+      "comment_fee_int": 0,
+      "like_fee_int": 0
+    }
+  },
+
+  "params": {
+    "economics_enabled": false,
+    "genesis_time": 1700000000,
+    "economic_unlock_time": 1707776000
+  },
+
+  "blocks": {}
+}

@@ -1,0 +1,21 @@
+# cloudflared/config.yml
+#
+# This config is used ONLY when CLOUDFLARE_TUNNEL_TOKEN is NOT set.
+#
+# For token-based tunnels, you can ignore this file entirely and just set:
+#   CLOUDFLARE_TUNNEL_TOKEN=...
+
+tunnel: YOUR_TUNNEL_NAME_OR_UUID
+
+# Option B credentials:
+#  - If you use a named tunnel (not token), place the tunnel credentials JSON here:
+#      cloudflared/<tunnel-uuid>.json
+#  - Then set credentials-file to match.
+credentials-file: /etc/cloudflared/YOUR_TUNNEL_UUID.json
+
+# Route: public hostname -> internal service in docker network
+ingress:
+  - hostname: weall.yourdomain.com
+    service: http://weall-node:8000
+  # Optional health / fallback
+  - service: http_status:404

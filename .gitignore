@@ -1,0 +1,39 @@
+# Root ignores for multi-repo bundle
+
+# Secrets / env
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Common build artifacts
+dist/
+build/
+coverage/
+.vite/
+*.log
+.cache/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+
+# Node deps
+node_modules/
+
+# Python virtualenvs
+.venv/
+venv/
+env/
+
+# Local state / runtime data
+data/
+tmp/
+dev/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

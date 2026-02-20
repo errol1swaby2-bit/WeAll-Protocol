@@ -1,0 +1,32 @@
+# web/.gitignore
+
+# deps / builds
+node_modules/
+dist/
+.vite/
+coverage/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# misc
+*.tsbuildinfo
+
+# TypeScript build info (generated)
+tsconfig.tsbuildinfo
+*.tsbuildinfo

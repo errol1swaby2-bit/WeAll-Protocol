@@ -1,0 +1,65 @@
+# Root ignores for multi-repo bundle
+
+# Secrets / env
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Common build artifacts
+dist/
+build/
+coverage/
+.vite/
+*.log
+.cache/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+
+# Python tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
+
+# Node deps
+node_modules/
+
+# Python virtualenvs
+.venv/
+venv/
+env/
+
+# Local state / runtime data
+data/
+tmp/
+dev/
+
+# SQLite runtime files (safety net if someone points WEALL_DB_PATH outside data/)
+*.db
+*.db-wal
+*.db-shm
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# WeAll local/runtime artifacts
+.weall/
+src/weall_protocol.egg-info/
+*.egg-info/
+
+# Compose backups
+docker-compose.yml.bak*
+*.bak
+*.bak2
+
+# Local configs that may contain secrets
+configs/local/

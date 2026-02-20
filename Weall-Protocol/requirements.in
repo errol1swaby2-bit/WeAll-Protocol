@@ -1,0 +1,14 @@
+# Primary runtime dependencies for WeAll Protocol.
+#
+# Lock strategy:
+#   - For development: `pip install -e '.[test]'`
+#   - For reproducible installs: generate lockfiles with pip-tools
+#       pip install -e '.[lock]'
+#       pip-compile --resolver=backtracking -o requirements.lock requirements.in
+#
+fastapi>=0.110
+python-multipart>=0.0.9
+uvicorn[standard]>=0.27
+gunicorn>=21.2
+cryptography>=41
+pyyaml>=6.0

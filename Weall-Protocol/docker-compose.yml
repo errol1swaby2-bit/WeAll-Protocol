@@ -1,0 +1,87 @@
+services:
+  weall-api:
+    build:
+      context: .
+      args:
+        # Dev/testnet compose may build without pinned lockfiles.
+        # Production images should build with fully pinned lockfiles.
+        ALLOW_UNLOCKED: "1"
+    container_name: weall_api
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+
+    # Hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    environment:
+      - WEALL_MODE=testnet
+      - WEALL_ALLOW_UNSIGNED_TXS=1
+      - WEALL_DB_PATH=./data/weall.db
+      - WEALL_CHAIN_ID=weall-testnet-0
+      - WEALL_NODE_ID=genesis-api
+      - WEALL_TX_INDEX_PATH=./generated/tx_index.json
+
+      # Gunicorn tuning (override as needed)
+      - GUNICORN_WORKERS=2
+      - GUNICORN_TIMEOUT=60
+      - GUNICORN_GRACEFUL_TIMEOUT=30
+      - GUNICORN_KEEPALIVE=5
+
+    volumes:
+      - ./data:/app/data
+
+    ports:
+      - "8000:8000"
+
+    healthcheck:
+      test: ["CMD", "sh", "-c", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  weall-producer:
+    build:
+      context: .
+      args:
+        ALLOW_UNLOCKED: "1"
+    container_name: weall_producer
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+
+    depends_on:
+      weall-api:
+        condition: service_healthy
+
+    # Hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    environment:
+      - WEALL_MODE=testnet
+      - WEALL_ALLOW_UNSIGNED_TXS=1
+      - WEALL_DB_PATH=./data/weall.db
+      - WEALL_CHAIN_ID=weall-testnet-0
+      - WEALL_NODE_ID=genesis-producer
+      - WEALL_TX_INDEX_PATH=./generated/tx_index.json
+      - WEALL_PRODUCER_INTERVAL_MS=20000
+      - WEALL_PRODUCER_MAX_TXS=1000
+      - WEALL_PRODUCER_ALLOW_EMPTY=0
+
+    volumes:
+      - ./data:/app/data
+
+    # Correct module (your repo has weall/services/block_producer.py)
+    command: ["python", "-m", "weall.services.block_producer"]

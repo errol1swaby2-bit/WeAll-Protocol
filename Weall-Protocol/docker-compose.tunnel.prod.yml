@@ -1,0 +1,128 @@
+version: "3.9"
+
+services:
+  weall-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weall-node
+    restart: unless-stopped
+
+    # IMPORTANT: No public port exposure.
+    # The node is only reachable via the internal docker network (from cloudflared and kubo).
+    expose:
+      - "8000"
+
+    environment:
+      WEALL_MODE: "prod"
+      WEALL_UNSAFE_DEV: "0"
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+
+      WEALL_SQLITE_SYNCHRONOUS: "FULL"
+      WEALL_ENABLE_PUBLIC_DEBUG: "0"
+
+      WEALL_MAX_REQUEST_BYTES: "1000000"
+
+      # ---- Proxy header trust (required for correct client IP behind Cloudflare Tunnel) ----
+      #
+      # cloudflared will sit in front of the backend and forward requests.
+      # If you want rate limiting keyed to real client IP, enable proxy headers.
+      #
+      # Fail-closed behavior:
+      #   - security.py requires an allowlist in prod before it will trust headers.
+      #
+      # Allowlist choice:
+      #   - We allow the *docker bridge CIDR* because the immediate peer is the cloudflared
+      #     container, and its IP is in the docker subnet (dynamic).
+      #
+      # Security note:
+      #   - This is safe as long as your backend is NOT reachable directly from the internet
+      #     (it isn't; no published port) and only internal containers can connect.
+      WEALL_TRUST_PROXY_HEADERS: "1"
+      WEALL_TRUSTED_PROXY_IPS: "172.16.0.0/12,10.0.0.0/8,192.168.0.0/16"
+
+      # ---- IPFS integration ----
+      WEALL_IPFS_ENABLED: "1"
+      WEALL_IPFS_API_BASE: "http://kubo:5001"
+      WEALL_IPFS_GATEWAY_BASE: "http://kubo:8080"
+      WEALL_IPFS_MAX_UPLOAD_BYTES: "10485760"
+
+      # ---- Optional CORS (default fail-closed) ----
+      # WEALL_CORS_ORIGINS: "https://your-frontend.example"
+
+    volumes:
+      - weall_data:/app/data
+
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    networks:
+      - weall_net
+
+    depends_on:
+      - kubo
+
+  kubo:
+    image: ipfs/kubo:latest
+    container_name: weall-kubo
+    restart: unless-stopped
+
+    environment:
+      IPFS_LOGGING: "info"
+
+    volumes:
+      - ipfs_staging:/export
+      - ipfs_data:/data/ipfs
+
+    # Keep internal only; no public ports.
+    expose:
+      - "5001"
+      - "8080"
+
+    networks:
+      - weall_net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: weall-cloudflared
+    restart: unless-stopped
+
+    # Option A (recommended): token-based tunnel
+    #   - Set CLOUDFLARE_TUNNEL_TOKEN in your environment (or .env file).
+    #   - cloudflared will ignore config.yml routing and use the token's settings.
+    #
+    # Option B: config-based named tunnel (credentials file)
+    #   - Mount cloudflared config + credentials JSON and run "tunnel run".
+    #
+    # This compose supports BOTH. If token is set, it will run with the token.
+    environment:
+      CLOUDFLARE_TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:-}"
+
+    command: >
+      sh -c '
+        if [ -n "$${CLOUDFLARE_TUNNEL_TOKEN}" ]; then
+          exec cloudflared tunnel --no-autoupdate run --token "$${CLOUDFLARE_TUNNEL_TOKEN}";
+        else
+          exec cloudflared tunnel --no-autoupdate run --config /etc/cloudflared/config.yml;
+        fi
+      '
+
+    volumes:
+      # Config-based routing (used when no token is provided)
+      - ./cloudflared:/etc/cloudflared:ro
+
+    networks:
+      - weall_net
+
+    depends_on:
+      - weall-node
+
+networks:
+  weall_net:
+    driver: bridge
+
+volumes:
+  weall_data:
+  ipfs_data:
+  ipfs_staging:

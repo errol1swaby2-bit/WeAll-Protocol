@@ -1,0 +1,14 @@
+name = "weall-node-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-02-17"
+workers_dev = true
+
+[durable_objects]
+bindings = [
+  { name = "NODE_DIRECTORY", class_name = "NodeDirectoryDO" }
+]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["NodeDirectoryDO"]
+
