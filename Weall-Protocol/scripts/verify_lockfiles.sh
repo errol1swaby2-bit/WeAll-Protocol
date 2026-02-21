@@ -17,9 +17,14 @@ check_one() {
   if ! grep -qE '^[a-zA-Z0-9_.-]+==[0-9]' "$f"; then
     fail "$f does not appear to contain pinned requirements (name==version)."
   fi
+
+  # If we ever enforce --require-hashes in prod, lockfiles must include hashes.
+  if ! grep -qE '^\s*--hash=sha256:' "$f"; then
+    fail "$f does not contain package hashes (--hash=sha256:...). Re-generate with ./scripts/lock_deps.sh"
+  fi
 }
 
 check_one "requirements.lock"
 check_one "requirements-dev.lock"
 
-echo "OK: lockfiles are present and pinned."
+echo "OK: lockfiles are present, pinned, and hashed."

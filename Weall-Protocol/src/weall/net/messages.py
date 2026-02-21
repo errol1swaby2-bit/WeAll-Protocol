@@ -32,6 +32,10 @@ class MsgType(str, Enum):
     STATE_SYNC_REQUEST = "STATE_SYNC_REQUEST"
     STATE_SYNC_RESPONSE = "STATE_SYNC_RESPONSE"
 
+    # Keepalive / liveness
+    PING = "PING"
+    PONG = "PONG"
+
 
 @dataclass(frozen=True, slots=True)
 class WireHeader:
@@ -145,3 +149,17 @@ class StateSyncResponseMsg(WireMessage):
 
     # delta mode
     blocks: Tuple[JsonObject, ...] = field(default_factory=tuple)
+
+
+# ----------------------------
+# Keepalive / liveness
+# ----------------------------
+
+@dataclass(frozen=True, slots=True)
+class PingMsg(WireMessage):
+    ping_id: Optional[str] = None
+
+
+@dataclass(frozen=True, slots=True)
+class PongMsg(WireMessage):
+    ping_id: Optional[str] = None

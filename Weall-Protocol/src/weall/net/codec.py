@@ -20,6 +20,8 @@ from weall.net.messages import (
     BftTimeoutMsg,
     StateSyncRequestMsg,
     StateSyncResponseMsg,
+    PingMsg,
+    PongMsg,
 )
 
 Json = Dict[str, Any]
@@ -51,6 +53,8 @@ AnyWireMsg = Union[
     BftTimeoutMsg,
     StateSyncRequestMsg,
     StateSyncResponseMsg,
+    PingMsg,
+    PongMsg,
 ]
 
 
@@ -78,14 +82,14 @@ _MSG_REGISTRY: Dict[MsgType, Type[AnyWireMsg]] = {
     MsgType.TX_ENVELOPE: TxEnvelopeMsg,
     MsgType.BLOCK_PROPOSAL: BlockProposalMsg,
     MsgType.BLOCK_VOTE: BlockVoteMsg,
-
     MsgType.BFT_PROPOSAL: BftProposalMsg,
     MsgType.BFT_VOTE: BftVoteMsg,
     MsgType.BFT_QC: BftQcMsg,
     MsgType.BFT_TIMEOUT: BftTimeoutMsg,
-
     MsgType.STATE_SYNC_REQUEST: StateSyncRequestMsg,
     MsgType.STATE_SYNC_RESPONSE: StateSyncResponseMsg,
+    MsgType.PING: PingMsg,
+    MsgType.PONG: PongMsg,
 }
 
 

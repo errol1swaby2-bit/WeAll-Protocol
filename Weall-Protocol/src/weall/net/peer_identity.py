@@ -20,14 +20,18 @@ Node device definition (consistent with apply/identity.py):
   OR device_id begins with "node:"
   OR label begins with "node" (legacy convenience)
 
+Signing:
+  - Outbound peers may include `hello.identity = {"pubkey":..., "sig":...}` where
+    `sig` is an Ed25519 signature over canonical hello fields.
+
 We do NOT return secrets. We do not log. We return:
   (ok, reason, account_id, pubkey)
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
-from weall.crypto.ed25519 import verify_ed25519_sig  # expects (pubkey_str, message_bytes, sig_str)
-from weall.net.messages import PeerHello
+from weall.crypto.ed25519 import sign_ed25519, verify_ed25519_sig
+from weall.net.messages import PeerHello, WireHeader
 
 Json = Dict[str, Any]
 
@@ -89,51 +93,73 @@ def _get_active_keys(acct: Json) -> set[str]:
     return out
 
 
-def _canonical_hello_sign_bytes(hello: PeerHello, *, pubkey: str) -> bytes:
-    """
-    Canonical bytes that must be signed by the peer for identity proof.
+def _canonical_hello_sign_bytes(
+    *,
+    header: WireHeader,
+    peer_id: str,
+    pubkey: str,
+    agent: str,
+    nonce: str,
+) -> bytes:
+    """Canonical bytes that must be signed by the peer for identity proof.
 
     IMPORTANT:
-      - Must be stable and deterministic
-      - Must bind the peer_id (account_id) and key usage
-      - Must include chain_id + schema_version + tx_index_hash so signatures can't
+      - Stable and deterministic
+      - Binds peer_id (account_id) and key usage
+      - Includes chain_id + schema_version + tx_index_hash so signatures can't
         be replayed cross-chain or across incompatible schema indexes
     """
-    # Keep it simple: deterministic string fields joined with "|"
-    # Avoid JSON here to reduce ambiguity.
-    chain_id = hello.header.chain_id
-    schema_version = hello.header.schema_version
-    tx_index_hash = hello.header.tx_index_hash
 
-    peer_id = _as_str(getattr(hello, "peer_id", "")).strip()
-    agent = _as_str(getattr(hello, "agent", "")).strip()
-    nonce = _as_str(getattr(hello, "nonce", "")).strip()
-
-    # identity object may contain other fields; proof binds these canonical ones.
     parts = [
         "WEALL_PEER_HELLO_V1",
-        chain_id,
-        schema_version,
-        tx_index_hash,
-        peer_id,
-        pubkey,
-        agent,
-        nonce,
+        str(header.chain_id),
+        str(header.schema_version),
+        str(header.tx_index_hash),
+        str(peer_id).strip(),
+        str(pubkey).strip(),
+        str(agent or "").strip(),
+        str(nonce or "").strip(),
     ]
     return ("|".join(parts)).encode("utf-8")
 
 
-def verify_peer_hello_identity(
+def sign_peer_hello_identity(
     *,
-    hello: PeerHello,
-    ledger: Json,
-) -> Tuple[bool, str, str, str]:
+    header: WireHeader,
+    peer_id: str,
+    pubkey: str,
+    privkey: str,
+    agent: str = "",
+    nonce: str = "",
+) -> Json:
+    """Return the `identity` object for a PEER_HELLO.
+
+    Shape:
+      {"pubkey": <hex/b64 pubkey>, "sig": <hex signature>, "sig_alg": "ed25519"}
+
+    Notes:
+      - `privkey` is the 32-byte Ed25519 seed encoded as hex or base64/base64url.
+      - The signature binds the canonical hello fields.
     """
-    Verify peer identity proof for inbound PEER_HELLO.
+
+    pid = str(peer_id or "").strip()
+    pk = str(pubkey or "").strip()
+    sk = str(privkey or "").strip()
+    if not pid or not pk or not sk:
+        return {}
+
+    msg_bytes = _canonical_hello_sign_bytes(header=header, peer_id=pid, pubkey=pk, agent=agent, nonce=nonce)
+    sig = sign_ed25519(message_bytes=msg_bytes, privkey_str=sk, encoding="hex")
+    return {"pubkey": pk, "sig": sig, "sig_alg": "ed25519"}
+
+
+def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> Tuple[bool, str, str, str]:
+    """Verify peer identity proof for inbound PEER_HELLO.
 
     Returns:
       (ok, reason, account_id, pubkey)
     """
+
     # --- Basic shape ---
     peer_id = _as_str(getattr(hello, "peer_id", "")).strip()
     if not peer_id:
@@ -174,7 +200,16 @@ def verify_peer_hello_identity(
         return (False, "pubkey_not_active_for_account", account_id, pubkey)
 
     # --- Signature verification ---
-    msg_bytes = _canonical_hello_sign_bytes(hello, pubkey=pubkey)
+    agent = _as_str(getattr(hello, "agent", "")).strip()
+    nonce = _as_str(getattr(hello, "nonce", "")).strip()
+    msg_bytes = _canonical_hello_sign_bytes(
+        header=hello.header,
+        peer_id=peer_id,
+        pubkey=pubkey,
+        agent=agent,
+        nonce=nonce,
+    )
+
     try:
         ok = bool(verify_ed25519_sig(pubkey, msg_bytes, sig))
     except Exception:

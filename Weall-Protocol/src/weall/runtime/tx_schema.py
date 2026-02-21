@@ -200,27 +200,182 @@ class AccountGuardianRemovePayload(_StrictModel):
     guardian: str = Field(..., min_length=1)
 
 
-class AccountRecoveryConfigSetPayload(_StrictModel):
-    enabled: Optional[bool] = None
-    threshold: Optional[int] = Field(default=None, ge=0)
+# ---------------------------------------------------------------------------
+# USER mempool: Profile / graph edges
+# ---------------------------------------------------------------------------
 
 
-class AccountRecoveryRequestPayload(_StrictModel):
+class ProfileUpdatePayload(_ObjectOnlyModel):
+    # Forward compatible; UI evolves.
+    pass
+
+
+class EdgeSetPayload(_StrictModel):
     target: str = Field(..., min_length=1)
-    request_id: Optional[str] = None
-    new_pubkey: Optional[str] = None
+    enabled: bool = Field(default=True)
 
 
-class AccountRecoveryCancelPayload(_StrictModel):
-    request_id: str = Field(..., min_length=1)
+# ---------------------------------------------------------------------------
+# USER mempool: Social/content
+# ---------------------------------------------------------------------------
 
 
-class AccountRecoveryApprovePayload(_StrictModel):
-    request_id: str = Field(..., min_length=1)
+class ContentPostCreatePayload(_ObjectOnlyModel):
+    # Forward compatible. Common keys:
+    # - text, tags, visibility, media_ids, reply_to, group_id, etc.
+    pass
 
 
-class AccountSecurityPolicySetPayload(_ObjectOnlyModel):
-    """Forward-compatible policy blob."""
+class ContentPostEditPayload(_ObjectOnlyModel):
+    # Forward compatible edit payload.
+    pass
+
+
+class ContentPostDeletePayload(_StrictModel):
+    post_id: str = Field(..., min_length=1)
+
+
+class ContentCommentCreatePayload(_ObjectOnlyModel):
+    pass
+
+
+class ContentCommentDeletePayload(_StrictModel):
+    comment_id: str = Field(..., min_length=1)
+
+
+class ContentReactionSetPayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+    reaction: str = Field(..., min_length=1)
+    enabled: bool = Field(default=True)
+
+
+class ContentFlagPayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+    reason: str = Field(..., min_length=1)
+
+
+class ContentShareCreatePayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+
+
+class ContentShareDeletePayload(_StrictModel):
+    share_id: str = Field(..., min_length=1)
+
+
+class ContentMediaAttachPayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+    media_id: str = Field(..., min_length=1)
+
+
+class ContentMediaDetachPayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+    media_id: str = Field(..., min_length=1)
+
+
+class ContentTagSetPayload(_StrictModel):
+    target_id: str = Field(..., min_length=1)
+    tag: str = Field(..., min_length=1)
+    enabled: bool = Field(default=True)
+
+
+# ---------------------------------------------------------------------------
+# USER mempool: Groups
+# ---------------------------------------------------------------------------
+
+
+class GroupCreatePayload(_ObjectOnlyModel):
+    pass
+
+
+class GroupUpdatePayload(_ObjectOnlyModel):
+    pass
+
+
+class GroupDeletePayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+
+
+class GroupJoinRequestPayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+    message: Optional[str] = Field(default=None)
+
+
+class GroupJoinApprovePayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+    user: str = Field(..., min_length=1)
+
+
+class GroupJoinRejectPayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+    user: str = Field(..., min_length=1)
+    reason: Optional[str] = Field(default=None)
+
+
+class GroupLeavePayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+
+
+class GroupRoleGrantPayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+    user: str = Field(..., min_length=1)
+    role: str = Field(..., min_length=1)
+
+
+class GroupRoleRevokePayload(_StrictModel):
+    group_id: str = Field(..., min_length=1)
+    user: str = Field(..., min_length=1)
+    role: str = Field(..., min_length=1)
+
+
+# ---------------------------------------------------------------------------
+# USER mempool: Disputes
+# ---------------------------------------------------------------------------
+
+
+class DisputeOpenPayload(_ObjectOnlyModel):
+    pass
+
+
+class DisputeEvidenceAddPayload(_ObjectOnlyModel):
+    pass
+
+
+class DisputeVoteCastPayload(_StrictModel):
+    dispute_id: str = Field(..., min_length=1)
+    option: str = Field(..., min_length=1)
+
+
+class DisputeResolvePayload(_StrictModel):
+    dispute_id: str = Field(..., min_length=1)
+    outcome: str = Field(..., min_length=1)
+
+
+# ---------------------------------------------------------------------------
+# USER mempool: PoH
+# ---------------------------------------------------------------------------
+
+
+class PoHTier2RequestPayload(_StrictModel):
+    # Minimal request; details may evolve.
+    account_id: Optional[str] = Field(default=None, min_length=1)
+    target: Optional[str] = Field(default=None, min_length=1)
+
+    if _PYDANTIC_V2:  # pragma: no cover
+        @model_validator(mode="after")
+        def _one_of(self) -> "PoHTier2RequestPayload":
+            if not any(str(v or "").strip() for v in [self.account_id, self.target]):
+                raise ValueError("missing_account_id")
+            return self
+    else:  # pragma: no cover
+        @root_validator
+        def _one_of(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+            if not any(str(values.get(k) or "").strip() for k in ["account_id", "target"]):
+                raise ValueError("missing_account_id")
+            return values
+
+
+class PoHTier3VideoSubmitPayload(_StrictModel):
+    video_cid: str = Field(..., min_length=1)
 
 
 # ---------------------------------------------------------------------------
@@ -233,358 +388,111 @@ class BalanceTransferPayload(_StrictModel):
     amount: int = Field(..., ge=0)
 
 
-class FeePayPayload(_ObjectOnlyModel):
-    """Forward-compatible fee payment blob."""
+class FeePayPayload(_StrictModel):
+    # Internal system charging could evolve; keep strict.
+    amount: int = Field(..., ge=0)
 
 
 # ---------------------------------------------------------------------------
-# USER mempool: Social / Content
-# ---------------------------------------------------------------------------
-
-
-class ProfileUpdatePayload(_StrictModel):
-    display_name: Optional[str] = None
-    bio: Optional[str] = None
-    avatar_cid: Optional[str] = None
-    banner_cid: Optional[str] = None
-    website: Optional[str] = None
-    location: Optional[str] = None
-    tags: Optional[List[str]] = None
-
-
-class EdgeSetPayload(_StrictModel):
-    # Used for FOLLOW_SET / BLOCK_SET / MUTE_SET
-    target: Optional[str] = None
-    account_id: Optional[str] = None
-    active: Optional[bool] = True
-
-
-class ContentPostCreatePayload(_StrictModel):
-    post_id: str = Field(..., min_length=1)
-    body: str = Field(..., min_length=1)
-
-
-class ContentPostEditPayload(_StrictModel):
-    post_id: str = Field(..., min_length=1)
-    body: Optional[str] = None
-    cid: Optional[str] = None
-
-
-class ContentPostDeletePayload(_StrictModel):
-    post_id: str = Field(..., min_length=1)
-
-
-class ContentCommentCreatePayload(_StrictModel):
-    comment_id: str = Field(..., min_length=1)
-    post_id: str = Field(..., min_length=1)
-    body: str = Field(..., min_length=1)
-
-
-class ContentCommentDeletePayload(_StrictModel):
-    comment_id: str = Field(..., min_length=1)
-
-
-class ContentReactionSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1)
-    reaction: str = Field(..., min_length=1)
-
-
-class ContentFlagPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1)
-    flag_id: Optional[str] = None
-    reason: Optional[str] = None
-
-
-class ContentShareCreatePayload(_StrictModel):
-    share_id: str = Field(..., min_length=1)
-    target_id: str = Field(..., min_length=1)
-
-
-class ContentShareDeletePayload(_StrictModel):
-    share_id: str = Field(..., min_length=1)
-
-
-class ContentMediaAttachPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1)
-    cid: str = Field(..., min_length=1)
-    mime: Optional[str] = None
-    bytes: Optional[int] = Field(default=None, ge=0)
-
-
-class ContentMediaDetachPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1)
-    cid: str = Field(..., min_length=1)
-
-
-class ContentTagSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1)
-    tags: List[str] = Field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# USER mempool: Groups / Communities
-# ---------------------------------------------------------------------------
-
-
-class GroupCreatePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    name: str = Field(..., min_length=1)
-    private: Optional[bool] = False
-
-
-class GroupUpdatePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    name: Optional[str] = None
-    private: Optional[bool] = None
-    rules: Optional[Dict[str, Any]] = None
-
-
-class GroupDeletePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-
-
-class GroupJoinRequestPayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    request_id: Optional[str] = None
-    message: Optional[str] = None
-
-
-class GroupJoinApprovePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    request_id: str = Field(..., min_length=1)
-
-
-class GroupJoinRejectPayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    request_id: str = Field(..., min_length=1)
-
-
-class GroupLeavePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-
-
-class GroupRoleGrantPayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    target: str = Field(..., min_length=1)
-    role: str = Field(..., min_length=1)
-
-
-class GroupRoleRevokePayload(_StrictModel):
-    group_id: str = Field(..., min_length=1)
-    target: str = Field(..., min_length=1)
-    role: str = Field(..., min_length=1)
-
-
-# ---------------------------------------------------------------------------
-# USER mempool: Disputes / Moderation
-# ---------------------------------------------------------------------------
-
-
-class DisputeOpenPayload(_StrictModel):
-    dispute_id: str = Field(..., min_length=1)
-    target_id: str = Field(..., min_length=1)
-    reason: Optional[str] = None
-
-
-class DisputeEvidenceAddPayload(_StrictModel):
-    dispute_id: str = Field(..., min_length=1)
-    evidence_cid: str = Field(..., min_length=1)
-
-
-class DisputeVoteCastPayload(_StrictModel):
-    dispute_id: str = Field(..., min_length=1)
-    vote: str = Field(..., min_length=1)
-
-
-class DisputeResolvePayload(_StrictModel):
-    dispute_id: str = Field(..., min_length=1)
-    outcome: Optional[str] = None
-
-
-# ---------------------------------------------------------------------------
-# USER mempool: PoH user actions
-# ---------------------------------------------------------------------------
-
-
-class PoHTier2RequestPayload(_StrictModel):
-    request_id: str = Field(..., min_length=1)
-    email: Optional[str] = None
-    email_hash: Optional[str] = None
-
-
-class PoHTier3VideoSubmitPayload(_StrictModel):
-    request_id: str = Field(..., min_length=1)
-    cid: str = Field(..., min_length=1)
-    bytes: Optional[int] = Field(default=None, ge=0)
-
-
-# ---------------------------------------------------------------------------
-# VALIDATOR mempool: liveness + consensus signals
+# VALIDATOR mempool
 # ---------------------------------------------------------------------------
 
 
 class ValidatorHeartbeatPayload(_StrictModel):
-    node_id: str = Field(..., min_length=1)
+    height: int = Field(..., ge=0)
     ts_ms: int = Field(..., ge=0)
 
 
-class ValidatorPerfReportPayload(_StrictModel):
-    node_id: str = Field(..., min_length=1)
-    epoch: int = Field(..., ge=0)
-    blocks_produced: Optional[int] = Field(default=None, ge=0)
-    attestations_signed: Optional[int] = Field(default=None, ge=0)
+class ValidatorPerfReportPayload(_ObjectOnlyModel):
+    pass
 
 
 class BlockAttestPayload(_StrictModel):
     block_id: str = Field(..., min_length=1)
-    block_hash: str = Field(..., min_length=1)
     height: int = Field(..., ge=0)
-    signer: Optional[str] = None
-    sig: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
-# SYSTEM receipts: minimum object-only
+# SYSTEM receipts (consensus-critical where enforced)
 # ---------------------------------------------------------------------------
 
 
 class ReceiptOkPayload(_ObjectOnlyModel):
-    ok: Optional[bool] = True
-    code: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
-
-
-# ---------------------------------------------------------------------------
-# SYSTEM receipts: strict for consensus-critical txs
-# ---------------------------------------------------------------------------
+    # Default receipt blob; forward compatible.
+    pass
 
 
 class EconomicsActivationPayload(_StrictModel):
-    enable: Optional[bool] = None
-    enabled: Optional[bool] = None
+    activated: bool = Field(...)
 
 
 class FeePolicySetPayload(_ObjectOnlyModel):
-    """Policy blob; ints are normalized in apply layer."""
+    pass
 
 
 class RateLimitPolicySetPayload(_ObjectOnlyModel):
-    """Anti-spam policy; forward-compatible."""
+    pass
 
 
 class AccountLockPayload(_StrictModel):
-    target: str = Field(..., min_length=1)
+    account_id: str = Field(..., min_length=1)
+    locked: bool = Field(...)
 
 
-class AccountRecoveryReceiptPayload(_StrictModel):
-    request_id: str = Field(..., min_length=1)
-    ok: bool = True
-    code: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
+class AccountRecoveryReceiptPayload(_ObjectOnlyModel):
+    pass
 
 
-class ReputationDeltaApplyPayload(_AccountPickerModel):
-    delta: Union[int, float, str]
-    delta_id: Optional[str] = None
-    id: Optional[str] = None
-    reason: Optional[str] = None
+class ReputationDeltaApplyPayload(_ObjectOnlyModel):
+    pass
 
 
-class ReputationThresholdCrossPayload(_AccountPickerModel):
-    threshold: Optional[str] = None
-    threshold_id: Optional[str] = None
-    direction: Optional[str] = None
-    cross_id: Optional[str] = None
-    id: Optional[str] = None
-
-    if _PYDANTIC_V2:  # pragma: no cover
-        @model_validator(mode="after")
-        def _need_threshold(self) -> "ReputationThresholdCrossPayload":
-            th = str(self.threshold or self.threshold_id or "").strip()
-            if not th:
-                raise ValueError("missing_threshold")
-            if self.direction is not None:
-                d = str(self.direction).strip().lower()
-                if d and d not in {"up", "down", "above", "below", "cross"}:
-                    raise ValueError("bad_direction")
-            return self
-    else:  # pragma: no cover
-        @root_validator
-        def _need_threshold(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-            th = str(values.get("threshold") or values.get("threshold_id") or "").strip()
-            if not th:
-                raise ValueError("missing_threshold")
-            direction = values.get("direction")
-            if direction is not None:
-                d = str(direction).strip().lower()
-                if d and d not in {"up", "down", "above", "below", "cross"}:
-                    raise ValueError("bad_direction")
-            return values
+class ReputationThresholdCrossPayload(_ObjectOnlyModel):
+    pass
 
 
-class AccountBanPayload(_AccountPickerModel):
-    reason: Optional[str] = None
+class AccountBanPayload(_ObjectOnlyModel):
+    pass
 
 
 class GovProposalIdPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
-    _parent_ref: Optional[str] = None
 
 
-class GovStageSetPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    stage: Optional[str] = None
-    _parent_ref: Optional[str] = None
+class GovStageSetPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovQuorumSetPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    quorum: Optional[Union[int, float, str]] = None
-    _parent_ref: Optional[str] = None
+class GovQuorumSetPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovRulesSetPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    rules: Optional[Dict[str, Any]] = None
-    _parent_ref: Optional[str] = None
+class GovRulesSetPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovExecutionReceiptPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    ok: bool = True
-    code: Optional[str] = None
-    _parent_ref: Optional[str] = None
+class GovExecutionReceiptPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovVoteCastPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    vote: str = Field(..., min_length=1)
-    _parent_ref: Optional[str] = None
+class GovVoteCastPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovFinalizeReceiptPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    ok: bool = True
-    code: Optional[str] = None
-    _parent_ref: Optional[str] = None
+class GovFinalizeReceiptPayload(_ObjectOnlyModel):
+    pass
 
 
-class GovParamChangeReceiptPayload(_StrictModel):
-    proposal_id: str = Field(..., min_length=1)
-    ok: bool = True
-    code: Optional[str] = None
-    _parent_ref: Optional[str] = None
+class GovParamChangeReceiptPayload(_ObjectOnlyModel):
+    pass
 
 
-class ConsensusEquivocationSlashReceiptPayload(_StrictModel):
-    offender: str = Field(..., min_length=1)
-    ok: bool = True
-    code: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
+class ConsensusEquivocationSlashReceiptPayload(_ObjectOnlyModel):
+    pass
 
 
 # ---------------------------------------------------------------------------
-# Tx type -> schema mapping
+# Schema map
 # ---------------------------------------------------------------------------
 
 Schema = Type[BaseModel]
@@ -600,11 +508,6 @@ _SCHEMA_BY_TX_TYPE: Dict[str, Schema] = {
     "ACCOUNT_SESSION_KEY_REVOKE": AccountSessionKeyRevokePayload,
     "ACCOUNT_GUARDIAN_ADD": AccountGuardianAddPayload,
     "ACCOUNT_GUARDIAN_REMOVE": AccountGuardianRemovePayload,
-    "ACCOUNT_RECOVERY_CONFIG_SET": AccountRecoveryConfigSetPayload,
-    "ACCOUNT_RECOVERY_REQUEST": AccountRecoveryRequestPayload,
-    "ACCOUNT_RECOVERY_CANCEL": AccountRecoveryCancelPayload,
-    "ACCOUNT_RECOVERY_APPROVE": AccountRecoveryApprovePayload,
-    "ACCOUNT_SECURITY_POLICY_SET": AccountSecurityPolicySetPayload,
     # Economics
     "BALANCE_TRANSFER": BalanceTransferPayload,
     "FEE_PAY": FeePayPayload,
@@ -684,6 +587,16 @@ def _schema_for(tx_type: str) -> Optional[Schema]:
         return _DEFAULT_RECEIPT_SCHEMA
 
     return None
+
+
+def has_schema(tx_type: str) -> bool:
+    """Return True if this tx_type has a schema.
+
+    Receipt-only canon tx types are treated as having a schema because they are
+    validated against the default receipt schema.
+    """
+
+    return _schema_for(tx_type) is not None
 
 
 def validate_payload(

@@ -193,9 +193,9 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
             identity = sign_peer_hello_identity(
                 header=hdr,
                 peer_id=peer_id,
-                account=peer_id,
                 pubkey=pubkey,
                 privkey=privkey,
+                agent=cfg.agent or _default_agent(),
             )
         except Exception:
             # Fail-open: if signing fails, still send a valid HELLO without identity.

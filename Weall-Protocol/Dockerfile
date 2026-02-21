@@ -9,7 +9,7 @@
 FROM python:3.12-slim
 
 # Set to 1 ONLY for local/dev builds.
-# Production images should be built from fully pinned lockfiles.
+# Production images should be built from fully pinned + hashed lockfiles.
 ARG ALLOW_UNLOCKED=0
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -35,6 +35,7 @@ COPY requirements.lock requirements-dev.lock /app/
 # Copy project code
 COPY src /app/src
 COPY generated /app/generated
+COPY scripts /app/scripts
 
 # Install deps (prefer lockfiles when present) + package
 RUN pip install --no-cache-dir -U pip setuptools wheel \
@@ -49,14 +50,25 @@ RUN pip install --no-cache-dir -U pip setuptools wheel \
           exit 2; \
         fi; \
       else \
-        pip install --no-cache-dir -r requirements.lock; \
+        if grep -qE '^\s*--hash=sha256:' requirements.lock; then \
+          pip install --no-cache-dir --require-hashes -r requirements.lock; \
+        else \
+          if [ "$ALLOW_UNLOCKED" = "1" ]; then \
+            echo "WARNING: requirements.lock is pinned but not hashed; installing without --require-hashes (ALLOW_UNLOCKED=1)."; \
+            echo "  Re-generate with ./scripts/lock_deps.sh for production-grade hash locking."; \
+            pip install --no-cache-dir -r requirements.lock; \
+          else \
+            echo "ERROR: requirements.lock is pinned but missing hashes. Re-generate with ./scripts/lock_deps.sh"; \
+            exit 2; \
+          fi; \
+        fi; \
       fi; \
     else \
       if [ "$ALLOW_UNLOCKED" = "1" ]; then \
         echo "WARNING: requirements.lock missing; building with unlocked deps (ALLOW_UNLOCKED=1)."; \
         pip install --no-cache-dir -r requirements.in; \
       else \
-        echo "ERROR: requirements.lock missing. Generate a pinned lockfile before building."; \
+        echo "ERROR: requirements.lock missing. Generate a pinned + hashed lockfile before building."; \
         echo "  See scripts/lock_deps.sh"; \
         exit 2; \
       fi; \
@@ -65,15 +77,14 @@ RUN pip install --no-cache-dir -U pip setuptools wheel \
 
 # Ensure runtime dirs exist (data is typically mounted)
 RUN mkdir -p /app/data /tmp \
+ && chmod +x /app/scripts/run_node.sh \
  && chown -R appuser:appuser /app /tmp
 
 USER appuser
 
 EXPOSE 8000
 
-# Env-tunable gunicorn defaults (override via docker-compose env)
-# - Workers: generally 2-4 for small nodes; start conservative
-# - Timeout: allow some headroom for block/attestation operations
+# Default remains the same, but compose will override to run scripts/run_node.sh
 CMD ["sh", "-c", "gunicorn weall.api.app:app \
   -k uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8000 \

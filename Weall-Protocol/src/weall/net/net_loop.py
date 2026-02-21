@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 from weall.ledger.state import LedgerView
 from weall.net.node import NetConfig, NetNode
+from weall.net.peer_store import PeerSecurityStore
 from weall.net.state_sync import StateSyncService
 from weall.net.messages import (
     MsgType,
@@ -123,6 +124,11 @@ class NetMeshLoop:
 
         self.node: Optional[NetNode] = None
 
+        # Dial management
+        self._peers: list[str] = []
+        self._dial_next_ms: dict[str, int] = {}
+        self._dial_backoff_ms: dict[str, int] = {}
+
         try:
             tx_index_path = getattr(self._executor, "tx_index_path", None) or os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json")
             self._canon = TxIndex.load_from_file(str(tx_index_path))
@@ -183,6 +189,14 @@ class NetMeshLoop:
             identity_privkey=(os.environ.get("WEALL_NODE_PRIVKEY") or "").strip() or None,
         )
 
+        peer_store = None
+        try:
+            db = getattr(self._executor, "_db", None)
+            if db is not None:
+                peer_store = PeerSecurityStore(db=db)
+        except Exception:
+            peer_store = None
+
         self.node = NetNode(
             cfg=nc,
             on_tx=self._on_tx,
@@ -192,8 +206,13 @@ class NetMeshLoop:
             on_bft_timeout=self._on_bft_timeout,
             sync_service=sync,
             ledger_provider=self._state_provider,
+            peer_store=peer_store,
         )
         self.node.bind(self._cfg.bind_host, self._cfg.bind_port)
+
+        # Load peers and attempt initial dial.
+        self._peers = self._load_peers_from_env()
+        self._dial_peers(now_ms=int(time.time() * 1000), force=True)
 
         self._t = threading.Thread(target=self._run, name="weall-net-mesh", daemon=True)
         self._t.start()
@@ -219,6 +238,9 @@ class NetMeshLoop:
         assert self.node is not None
         tick_s = float(self._cfg.tick_ms) / 1000.0
 
+        dial_interval_ms = max(250, _env_int("WEALL_NET_DIAL_INTERVAL_MS", 1000))
+        last_dial = int(time.time() * 1000)
+
         # Leader proposal tick
         bft_tick_ms = max(250, _env_int("WEALL_BFT_TICK_MS", 1000))
         last_bft = int(time.time() * 1000)
@@ -228,6 +250,16 @@ class NetMeshLoop:
                 self.node.tick()
             except Exception:
                 pass
+
+            # Maintain outbound peer dials / reconnections.
+            now = int(time.time() * 1000)
+            if now - last_dial >= dial_interval_ms:
+                last_dial = now
+                try:
+                    self._peers = self._load_peers_from_env()
+                    self._dial_peers(now_ms=now, force=False)
+                except Exception:
+                    pass
 
             if _env_bool("WEALL_BFT_ENABLED", False):
                 # timeouts are lightweight — we can check every loop
@@ -239,6 +271,75 @@ class NetMeshLoop:
                     self._bft_drive()
 
             time.sleep(tick_s)
+
+    # -------------------------
+    # Peer dialing
+    # -------------------------
+
+    def _load_peers_from_env(self) -> list[str]:
+        """Load WEALL_PEERS into a stable list of URIs.
+
+        Format:
+          WEALL_PEERS="tcp://1.2.3.4:30303,tls://node.example:30303"
+        """
+        raw = (os.environ.get("WEALL_PEERS") or "").strip()
+        if not raw:
+            return []
+        out: list[str] = []
+        for part in raw.split(","):
+            uri = (part or "").strip()
+            if not uri:
+                continue
+            # Accept tcp:// and tls:// only for now.
+            if not (uri.startswith("tcp://") or uri.startswith("tls://")):
+                continue
+            out.append(uri)
+        # de-dupe while preserving order
+        seen: set[str] = set()
+        uniq: list[str] = []
+        for u in out:
+            if u in seen:
+                continue
+            seen.add(u)
+            uniq.append(u)
+        return uniq
+
+    def _dial_peers(self, *, now_ms: int, force: bool) -> None:
+        if self.node is None:
+            return
+        if not self._peers:
+            return
+
+        # Conservative backoff range.
+        backoff_min = max(250, _env_int("WEALL_NET_DIAL_BACKOFF_MIN_MS", 1000))
+        backoff_max = max(backoff_min, _env_int("WEALL_NET_DIAL_BACKOFF_MAX_MS", 30_000))
+
+        # Determine which peers are already connected at the transport layer.
+        connected = set(self.node.peer_ids())
+
+        for uri in self._peers:
+            if uri in connected:
+                # reset backoff on success
+                self._dial_backoff_ms.pop(uri, None)
+                self._dial_next_ms[uri] = now_ms
+                continue
+
+            due = int(self._dial_next_ms.get(uri, 0) or 0)
+            if not force and now_ms < due:
+                continue
+
+            ok = self.node.connect(uri)
+            if ok:
+                # next check soon to allow handshake to complete
+                self._dial_next_ms[uri] = now_ms + 250
+                self._dial_backoff_ms.pop(uri, None)
+                continue
+
+            # failure: exponential backoff
+            cur = int(self._dial_backoff_ms.get(uri, backoff_min) or backoff_min)
+            cur = min(backoff_max, max(backoff_min, cur * 2))
+            self._dial_backoff_ms[uri] = cur
+            self._dial_next_ms[uri] = now_ms + cur
 
     # -------------------------
     # TX handler

@@ -1,3 +1,5 @@
+# src/weall/runtime/executor.py
+
 from __future__ import annotations
 
 import copy
@@ -23,9 +25,9 @@ from weall.runtime.bft_hotstuff import (
     verify_qc,
 )
 from weall.runtime.block_admission import admit_block_txs
-from weall.runtime.block_hash import ensure_block_hash, make_block_header
+from weall.runtime.block_hash import compute_receipts_root, ensure_block_hash, make_block_header
 from weall.runtime.chain_config import load_chain_config
-from weall.runtime.domain_apply import ApplyError, apply_tx
+from weall.runtime.domain_apply import ApplyError, apply_tx_atomic
 from weall.runtime.mempool import PersistentMempool
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.tier3_scheduler import schedule_poh_tier3_system_txs
@@ -302,12 +304,13 @@ class WeAllExecutor:
         applied_ids: List[str] = []
         invalid_ids: List[str] = []
         applied_envs: List[Json] = []
+        receipts: List[Json] = []
 
         next_height = int(height) + 1
 
         def _apply_system_env(env: TxEnvelope) -> None:
             try:
-                meta = apply_tx(working, env)
+                meta = apply_tx_atomic(working, env, consume_nonce_on_fail=False)
             except ApplyError:
                 j = env.to_json()
                 tx_id2 = compute_tx_id_from_dict(self.chain_id, j)
@@ -322,12 +325,24 @@ class WeAllExecutor:
             applied_envs.append(j)
             applied_ids.append(tx_id2)
 
+            receipts.append(
+                {
+                    "tx_id": tx_id2,
+                    "tx_type": str(getattr(env, "tx_type", "") or ""),
+                    "signer": str(getattr(env, "signer", "") or ""),
+                    "nonce": int(getattr(env, "nonce", 0) or 0),
+                    "ok": True,
+                }
+            )
+
+        # Phase: schedule PoH system txs (best-effort)
         try:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_tier3_system_txs(working, next_height=next_height)
         except Exception:
             pass
 
+        # Phase: system emitter pre
         try:
             sys_pre = system_tx_emitter(working, self.tx_index, next_height=next_height, phase="pre")
             for env in sys_pre:
@@ -335,6 +350,7 @@ class WeAllExecutor:
         except Exception:
             pass
 
+        # Parse envelopes
         env_objs: List[TxEnvelope] = []
         tx_ids: List[str] = []
 
@@ -352,11 +368,13 @@ class WeAllExecutor:
             except Exception:
                 env_objs.append(TxEnvelope.from_json({}))
 
+        # Block-level + per-tx admission for inclusion
         ledger_for_block = LedgerView.from_ledger(working)
         ok, block_reject, per_tx = admit_block_txs(env_objs, ledger_for_block, self.tx_index)
         if (not ok) and block_reject is not None:
             return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
+        # Apply txs (fail-atomic) and always emit deterministic receipts
         for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
             if not tx_id:
                 invalid_ids.append(tx_id)
@@ -367,32 +385,47 @@ class WeAllExecutor:
                 continue
 
             applied_ok = False
-            try:
-                meta = apply_tx(working, env)
-                applied_ok = meta is not None
-            except ApplyError:
-                applied_ok = False
+            err_code = ""
+            err_reason = ""
+            err_details: Any = None
 
             try:
-                if not bool(getattr(env_obj, "system", False)):
-                    acct = working.get("accounts", {}).get(str(env_obj.signer))
-                    if isinstance(acct, dict):
-                        acct["nonce"] = int(env_obj.nonce)
-            except Exception:
-                pass
+                meta = apply_tx_atomic(working, env, consume_nonce_on_fail=True)
+                applied_ok = meta is not None
+            except ApplyError as e:
+                applied_ok = False
+                err_code = str(getattr(e, "code", "") or "")
+                err_reason = str(getattr(e, "reason", "") or "")
+                err_details = getattr(e, "details", None)
 
             applied_envs.append(env)
             applied_ids.append(tx_id)
 
+            receipt: Json = {
+                "tx_id": str(tx_id),
+                "tx_type": str(getattr(env_obj, "tx_type", "") or ""),
+                "signer": str(getattr(env_obj, "signer", "") or ""),
+                "nonce": int(getattr(env_obj, "nonce", 0) or 0),
+                "ok": bool(applied_ok),
+            }
+            if not applied_ok:
+                receipt["code"] = err_code or "apply_error"
+                receipt["reason"] = err_reason or "rejected"
+                if err_details is not None:
+                    receipt["details"] = err_details
+            receipts.append(receipt)
+
             if not applied_ok:
                 invalid_ids.append(tx_id)
 
+        # Phase: schedule PoH system txs (best-effort)
         try:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_tier3_system_txs(working, next_height=next_height)
         except Exception:
             pass
 
+        # Phase: system emitter post
         try:
             sys_post = system_tx_emitter(working, self.tx_index, next_height=next_height, phase="post")
             for env in sys_post:
@@ -406,14 +439,17 @@ class WeAllExecutor:
         new_height = next_height
         block_id = f"{new_height}:{ts_ms}:{len(applied_envs)}"
 
+        receipts_root = compute_receipts_root(receipts=receipts)
+
         header = make_block_header(
             chain_id=self.chain_id,
             height=new_height,
             prev_block_hash=tip_hash,
             block_ts_ms=ts_ms,
             tx_ids=applied_ids,
+            receipts_root=receipts_root,
         )
-        block = {
+        block: Json = {
             "block_id": block_id,
             "height": new_height,
             "prev_block_id": tip,
@@ -421,6 +457,7 @@ class WeAllExecutor:
             "block_ts_ms": ts_ms,
             "header": header,
             "txs": applied_envs,
+            "receipts": receipts,
         }
 
         blocks_map = working.get("blocks")
@@ -525,6 +562,7 @@ class WeAllExecutor:
                 )
 
             self.state = new_state
+            self._bft.load_from_state(self.state)
 
             return ExecutorMeta(
                 ok=True,

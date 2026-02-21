@@ -23,6 +23,18 @@ services:
       WEALL_UNSAFE_DEV: "0"
       WEALL_ALLOW_UNSIGNED_TXS: "0"
 
+      # -------------------- Networking / BFT --------------------
+      # If you set either to "1", scripts/run_node.sh will require identity keys.
+      WEALL_NET_ENABLED: "1"
+      WEALL_BFT_ENABLED: "1"
+
+      # Optional: validator account identity used by BFT (recommended)
+      WEALL_VALIDATOR_ACCOUNT_FILE: "/run/secrets/weall_validator_account"
+
+      # Node identity keys are loaded from docker secrets files
+      WEALL_NODE_PUBKEY_FILE: "/run/secrets/weall_node_pubkey"
+      WEALL_NODE_PRIVKEY_FILE: "/run/secrets/weall_node_privkey"
+
       # -------------------- SQLite durability --------------------
       # Allowed: OFF | NORMAL | FULL | EXTRA
       # Default for prod is FULL (see sqlite_db.py), but set explicitly anyway.
@@ -61,9 +73,17 @@ services:
       # GUNICORN_WORKERS: "2"
       # GUNICORN_TIMEOUT: "60"
 
+    secrets:
+      - weall_node_privkey
+      - weall_node_pubkey
+      - weall_validator_account
+
     volumes:
       # Persistent node data (ledger snapshot, blocks, mempool/attestations)
       - weall_data:/app/data
+
+    # Launch via wrapper that loads secrets into env at runtime
+    command: ["sh", "-c", "/app/scripts/run_node.sh"]
 
     # Basic liveness. (Assumes /health exists and is fast.)
     healthcheck:
@@ -86,7 +106,8 @@ services:
       - kubo
 
   kubo:
-    image: ipfs/kubo:latest
+    image: ipfs/kubo:v0.26.0
+    # Pin this intentionally. Avoid :latest in production for reproducibility.
     container_name: weall-kubo
     restart: unless-stopped
 
@@ -116,3 +137,15 @@ volumes:
   weall_data:
   ipfs_data:
   ipfs_staging:
+
+secrets:
+  # Create these files on the host (NOT committed), e.g.:
+  #   ./secrets/weall_node_privkey
+  #   ./secrets/weall_node_pubkey
+  #   ./secrets/weall_validator_account
+  weall_node_privkey:
+    file: ./secrets/weall_node_privkey
+  weall_node_pubkey:
+    file: ./secrets/weall_node_pubkey
+  weall_validator_account:
+    file: ./secrets/weall_validator_account

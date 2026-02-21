@@ -218,6 +218,23 @@ class SqliteDB:
                 """
             )
             con.execute("CREATE INDEX IF NOT EXISTS idx_atts_block_id ON attestations(block_id);")
+
+            # Persisted peer security state (mesh hardening).
+            #
+            # NOTE: we intentionally do NOT bump SCHEMA_VERSION for this additive table.
+            # Existing nodes can safely create it on startup via init_schema().
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS peer_security (
+                  peer_id TEXT PRIMARY KEY,
+                  strikes INTEGER NOT NULL,
+                  banned_until_ms INTEGER NOT NULL,
+                  score REAL NOT NULL,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_peer_security_banned_until ON peer_security(banned_until_ms);")
             con.execute("CREATE INDEX IF NOT EXISTS idx_atts_received ON attestations(received_ms);")
 
             con.execute(
@@ -234,6 +251,57 @@ class SqliteDB:
                 );
                 """
             )
+
+            # -----------------------------
+            # BFT ephemeral persistence
+            # -----------------------------
+            # These tables persist consensus-critical *ephemeral* objects so a node can
+            # recover liveness after restart (votes/timeouts/candidates).
+            #
+            # They are not the canonical chain history (that's in `blocks`).
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_votes (
+                  msg_id TEXT PRIMARY KEY,
+                  view INTEGER NOT NULL,
+                  block_id TEXT NOT NULL,
+                  signer TEXT NOT NULL,
+                  vote_json TEXT NOT NULL,
+                  received_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_votes_view ON bft_votes(view);")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_votes_block ON bft_votes(block_id);")
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_timeouts (
+                  msg_id TEXT PRIMARY KEY,
+                  view INTEGER NOT NULL,
+                  signer TEXT NOT NULL,
+                  timeout_json TEXT NOT NULL,
+                  received_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_timeouts_view ON bft_timeouts(view);")
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_candidates (
+                  block_id TEXT PRIMARY KEY,
+                  height INTEGER NOT NULL,
+                  block_json TEXT NOT NULL,
+                  state_json TEXT NOT NULL,
+                  applied_ids_json TEXT NOT NULL,
+                  invalid_ids_json TEXT NOT NULL,
+                  created_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_candidates_height ON bft_candidates(height);")
 
             con.execute(
                 """

@@ -15,6 +15,8 @@ from weall.net.messages import (
     BftTimeoutMsg,
     StateSyncRequestMsg,
     StateSyncResponseMsg,
+    PingMsg,
+    PongMsg,
 )
 from weall.net.handshake import (
     HandshakeState,
@@ -47,6 +49,8 @@ BlockHandler = Callable[[BlockProposalMsg], None]
 VoteHandler = Callable[[BlockVoteMsg], None]
 SyncRequestHandler = Callable[[StateSyncRequestMsg], Optional[StateSyncResponseMsg]]
 
+PingHandler = Callable[[PingMsg], Optional[PongMsg]]
+
 BftProposalHandler = Callable[[BftProposalMsg], None]
 BftVoteHandler = Callable[[BftVoteMsg], None]
 BftQcHandler = Callable[[BftQcMsg], None]
@@ -61,6 +65,7 @@ class Router:
     on_block: Optional[BlockHandler] = None
     on_vote: Optional[VoteHandler] = None
     on_sync_request: Optional[SyncRequestHandler] = None
+    on_ping: Optional[PingHandler] = None
 
     # BFT
     on_bft_proposal: Optional[BftProposalHandler] = None
@@ -143,6 +148,15 @@ class Router:
             return self.on_sync_request(msg)  # type: ignore[arg-type]
 
         if mtype == MsgType.STATE_SYNC_RESPONSE:
+            return None
+
+        # Keepalive
+        if mtype == MsgType.PING:
+            if self.on_ping:
+                return self.on_ping(msg)  # type: ignore[arg-type]
+            return None
+
+        if mtype == MsgType.PONG:
             return None
 
         raise UnknownMessageType(f"Unhandled message type: {mtype}")

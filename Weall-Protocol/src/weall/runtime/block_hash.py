@@ -24,6 +24,19 @@ def compute_block_hash(*, header: Json) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def compute_receipts_root(*, receipts: List[Json]) -> str:
+    """Compute a deterministic receipts root.
+
+    We commit execution results into the block hash so all nodes, indexers,
+    and light clients have a canonical record of tx success/failure.
+
+    Defined as sha256(canonical_json(receipts)).
+    """
+
+    payload = _canon_json(receipts).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def make_block_header(
     *,
     chain_id: str,
@@ -31,6 +44,7 @@ def make_block_header(
     prev_block_hash: str,
     block_ts_ms: int,
     tx_ids: List[str],
+    receipts_root: str,
 ) -> Json:
     """Create the canonical header structure used for hashing."""
 
@@ -40,6 +54,7 @@ def make_block_header(
         "prev_block_hash": str(prev_block_hash or ""),
         "block_ts_ms": int(block_ts_ms),
         "tx_ids": list(map(str, tx_ids)),
+        "receipts_root": str(receipts_root or ""),
     }
 
 
@@ -77,12 +92,18 @@ def ensure_block_hash(block: Json) -> Tuple[Json, str]:
             if isinstance(tid, str) and tid:
                 tx_ids.append(tid)
 
+    receipts_root = ""
+    receipts = block.get("receipts")
+    if isinstance(receipts, list):
+        receipts_root = compute_receipts_root(receipts=receipts)
+
     hdr = make_block_header(
         chain_id=chain_id,
         height=height,
         prev_block_hash=prev_bh,
         block_ts_ms=ts_ms,
         tx_ids=tx_ids,
+        receipts_root=receipts_root,
     )
     bh = compute_block_hash(header=hdr)
 

@@ -13,7 +13,8 @@ set -euo pipefail
 # Notes:
 # - Uses pip-tools (pip-compile).
 # - Pins ALL transitive dependencies.
-# - Keeps separate dev lockfile for tests/tooling.
+# - Emits hashes so installs can be enforced with --require-hashes.
+# - Keeps a separate dev lockfile for tests/tooling.
 #
 # If pip-compile isn't installed:
 #   pip install pip-tools
@@ -30,10 +31,15 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
 echo "Using python: $($PYTHON_BIN --version)"
+
 echo "Generating requirements.lock from requirements.in ..."
+# --allow-unsafe includes pip/setuptools/wheel when needed for full reproducibility
+# --generate-hashes enables pip --require-hashes installs
 pip-compile \
   --resolver=backtracking \
   --strip-extras \
+  --allow-unsafe \
+  --generate-hashes \
   --no-emit-index-url \
   --no-emit-trusted-host \
   --output-file requirements.lock \
@@ -43,6 +49,8 @@ echo "Generating requirements-dev.lock from requirements-dev.in ..."
 pip-compile \
   --resolver=backtracking \
   --strip-extras \
+  --allow-unsafe \
+  --generate-hashes \
   --no-emit-index-url \
   --no-emit-trusted-host \
   --output-file requirements-dev.lock \
