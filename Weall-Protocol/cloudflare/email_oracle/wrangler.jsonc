@@ -1,0 +1,38 @@
+{
+  "name": "weall-email-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-12",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "weall-email-relay",
+      "database_id": "4965419d-44f3-4247-879d-2f5517f3000d",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "vars": {
+    "EMAIL_FROM": "WeAll <no-reply@weallprotocol.xyz>",
+    "EMAIL_ORACLE_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
+    "REQUIRE_TURNSTILE_ON_START": "false",
+    "ALLOW_TURNSTILE_BYPASS": "true",
+    "TURNSTILE_BYPASS_TOKEN": "local-dev-bypass",
+    "CHALLENGE_TTL_SECONDS": "600",
+    "MAX_VERIFY_ATTEMPTS": "8"
+  },
+
+  "env": {
+    "production": {
+      "vars": {
+        "EMAIL_FROM": "WeAll <no-reply@weallprotocol.xyz>",
+        "EMAIL_ORACLE_ALLOWED_ORIGINS": "https://app.weallprotocol.xyz,https://weallprotocol.xyz",
+        "REQUIRE_TURNSTILE_ON_START": "true",
+        "ALLOW_TURNSTILE_BYPASS": "false",
+        "TURNSTILE_BYPASS_TOKEN": "",
+        "CHALLENGE_TTL_SECONDS": "600",
+        "MAX_VERIFY_ATTEMPTS": "8"
+      }
+    }
+  }
+}

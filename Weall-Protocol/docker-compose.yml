@@ -1,0 +1,113 @@
+services:
+  kubo:
+    image: ipfs/kubo:v0.40.1
+    restart: unless-stopped
+    init: true
+    environment:
+      IPFS_PROFILE: server
+    volumes:
+      - ./data/ipfs:/data/ipfs
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "wget -q -O - --post-data='' http://127.0.0.1:5001/api/v0/version >/dev/null 2>&1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  weall_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ALLOW_UNLOCKED: "1"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      kubo:
+        condition: service_healthy
+    environment:
+      WEALL_MODE: dev
+      WEALL_CHAIN_ID: weall-dev
+      WEALL_NODE_ID: genesis-api
+      WEALL_DB_PATH: ./data/weall.db
+      WEALL_TX_INDEX_PATH: ./generated/tx_index.json
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: "1"
+      WEALL_IPFS_API_BASE: http://kubo:5001
+      PYTHONPATH: /app/src
+      GUNICORN_WORKERS: "2"
+      GUNICORN_TIMEOUT: "60"
+      GUNICORN_GRACEFUL_TIMEOUT: "30"
+      GUNICORN_KEEPALIVE: "5"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    command:
+      [
+        "gunicorn",
+        "-k",
+        "uvicorn.workers.UvicornWorker",
+        "-w",
+        "2",
+        "-b",
+        "0.0.0.0:8000",
+        "--timeout",
+        "60",
+        "--graceful-timeout",
+        "30",
+        "--keep-alive",
+        "5",
+        "weall.api.app:app"
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/readyz', timeout=3).read()"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  weall_producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ALLOW_UNLOCKED: "1"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      weall_api:
+        condition: service_healthy
+    environment:
+      WEALL_MODE: dev
+      WEALL_CHAIN_ID: weall-dev
+      WEALL_NODE_ID: genesis-producer
+      WEALL_DB_PATH: ./data/weall.db
+      WEALL_TX_INDEX_PATH: ./generated/tx_index.json
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: "1"
+      WEALL_PRODUCER_INTERVAL_MS: "20000"
+      WEALL_PRODUCER_MAX_TXS: "1000"
+      WEALL_PRODUCER_ALLOW_EMPTY: "0"
+      PYTHONPATH: /app/src
+    volumes:
+      - ./data:/app/data
+    command: ["python", "-m", "weall.services.block_producer"]

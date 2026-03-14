@@ -1,0 +1,480 @@
+"""Transaction admission (mempool / system queue).
+
+This is the *front door* for transactions before they enter the mempool.
+It must be deterministic and cheap.
+
+Unit tests in this repo expect:
+  - `admit_tx(...)` can be unpacked as `(ok, rejection)`
+  - `ok` is a bool
+  - `rejection` exposes `.code` and `.reason` (and optionally `.meta`)
+  - `verdict = admit_tx(...)` also supports `.ok`, `.code`, `.reason`, `.details`
+
+The canon/TxIndex used in tests is a lightweight dict-based spec (not the
+full YAML tx_canon). This module follows that MVP spec.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+import os
+from typing import Any, Dict, Iterable, Optional, Tuple
+
+from pydantic import ValidationError
+
+from weall.ledger.state import LedgerView
+from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
+from weall.runtime.gate_expr import eval_gate
+from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
+from weall.tx.canon import TxIndex
+
+Json = Dict[str, Any]
+
+
+def _env_int(name: str, default: int) -> int:
+    v = os.environ.get(name)
+    if v is None:
+        return int(default)
+    try:
+        return int(str(v).strip())
+    except Exception:
+        return int(default)
+
+
+def _json_bytes(obj: Any) -> int:
+    """Deterministic, best-effort size estimate for JSON-like objects."""
+    try:
+        s = json.dumps(obj, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    except Exception:
+        try:
+            s = repr(obj)
+        except Exception:
+            s = "<unserializable>"
+    try:
+        return len(s.encode("utf-8"))
+    except Exception:
+        return len(s)
+
+
+def _walk_limits(
+    obj: Any,
+    *,
+    max_depth: int,
+    max_list_len: int,
+    max_dict_keys: int,
+    max_str_len: int,
+    max_nodes: int,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Validate structure limits (depth, list length, dict keys, string length, nodes).
+
+    Returns (reason, meta) if a limit is exceeded.
+    """
+    stack: list[tuple[Any, int]] = [(obj, 0)]
+    nodes = 0
+
+    while stack:
+        cur, depth = stack.pop()
+        nodes += 1
+        if nodes > max_nodes:
+            return "payload_nodes_exceeded", {"have": nodes, "limit": max_nodes}
+
+        if depth > max_depth:
+            return "payload_depth_exceeded", {"have": depth, "limit": max_depth}
+
+        if cur is None or isinstance(cur, (bool, int, float)):
+            continue
+
+        if isinstance(cur, str):
+            if len(cur) > max_str_len:
+                return "payload_string_too_long", {"have": len(cur), "limit": max_str_len}
+            continue
+
+        if isinstance(cur, (bytes, bytearray)):
+            if len(cur) > max_str_len:
+                return "payload_bytes_too_long", {"have": len(cur), "limit": max_str_len}
+            continue
+
+        if isinstance(cur, list):
+            if len(cur) > max_list_len:
+                return "payload_list_too_long", {"have": len(cur), "limit": max_list_len}
+            for it in cur:
+                stack.append((it, depth + 1))
+            continue
+
+        if isinstance(cur, dict):
+            if len(cur) > max_dict_keys:
+                return "payload_object_too_many_keys", {"have": len(cur), "limit": max_dict_keys}
+            for k, v in cur.items():
+                if isinstance(k, str) and len(k) > max_str_len:
+                    return "payload_key_too_long", {"have": len(k), "limit": max_str_len}
+                stack.append((v, depth + 1))
+            continue
+
+        return "payload_non_json_type", {"type": type(cur).__name__}
+
+    return None
+
+
+def _payload_limits_ok(env: TxEnvelope, spec: Json) -> Optional["AdmissionVerdict"]:
+    """Cheap structural + size caps for payload hardening."""
+    payload = env.payload or {}
+
+    max_payload_bytes = int(spec.get("max_payload_bytes") or _env_int("WEALL_MAX_TX_PAYLOAD_BYTES", 64 * 1024))
+    max_payload_bytes = max(1024, max_payload_bytes)
+
+    max_depth = int(spec.get("max_payload_depth") or _env_int("WEALL_MAX_TX_PAYLOAD_DEPTH", 20))
+    max_depth = max(4, max_depth)
+
+    max_list_len = int(spec.get("max_payload_list_len") or _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", 2000))
+    max_list_len = max(16, max_list_len)
+
+    max_dict_keys = int(spec.get("max_payload_dict_keys") or _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", 2000))
+    max_dict_keys = max(16, max_dict_keys)
+
+    max_str_len = int(spec.get("max_payload_str_len") or _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", 64 * 1024))
+    max_str_len = max(256, max_str_len)
+
+    max_nodes = int(spec.get("max_payload_nodes") or _env_int("WEALL_MAX_TX_PAYLOAD_NODES", 50_000))
+    max_nodes = max(1_000, max_nodes)
+
+    wl = _walk_limits(
+        payload,
+        max_depth=max_depth,
+        max_list_len=max_list_len,
+        max_dict_keys=max_dict_keys,
+        max_str_len=max_str_len,
+        max_nodes=max_nodes,
+    )
+    if wl is not None:
+        reason, meta = wl
+        return _rej("invalid_payload", reason, **meta)
+
+    size = _json_bytes(payload)
+    if size > max_payload_bytes:
+        return _rej("payload_too_large", "payload_bytes_exceeded", have=size, limit=max_payload_bytes)
+
+    return None
+
+
+@dataclass(frozen=True)
+class AdmissionRejection:
+    code: str
+    reason: str = ""
+    meta: Json = None  # type: ignore[assignment]
+
+    def to_json(self) -> Json:
+        out: Json = {"code": self.code}
+        if self.reason:
+            out["reason"] = self.reason
+        if self.meta:
+            out["meta"] = self.meta
+        return out
+
+
+@dataclass(frozen=True)
+class AdmissionVerdict:
+    ok: bool
+    rejection: Optional[AdmissionRejection] = None
+
+    def __iter__(self) -> Iterable[Any]:
+        yield self.ok
+        yield self.rejection
+
+    @property
+    def code(self) -> str:
+        return "" if self.ok or not self.rejection else self.rejection.code
+
+    @property
+    def reason(self) -> str:
+        return "" if self.ok or not self.rejection else self.rejection.reason
+
+    @property
+    def details(self) -> Json:
+        return {} if self.ok or not self.rejection or not self.rejection.meta else self.rejection.meta
+
+
+def _rej(code: str, reason: str = "", **meta: Any) -> AdmissionVerdict:
+    return AdmissionVerdict(False, AdmissionRejection(code=code, reason=reason, meta=meta or {}))
+
+
+def _as_ledgerview(ledger: Any) -> LedgerView:
+    if isinstance(ledger, LedgerView):
+        return ledger
+    if isinstance(ledger, dict):
+        return LedgerView.from_ledger(ledger)
+    raise TypeError(f"ledger must be LedgerView|dict, got {type(ledger).__name__}")
+
+
+def _required(payload: Json, fields: Tuple[str, ...]) -> Optional[str]:
+    for f in fields:
+        if payload.get(f) in (None, "", [], {}):
+            return f
+    return None
+
+
+def _mvp_payload_checks(env: TxEnvelope) -> Optional[AdmissionVerdict]:
+    p = env.payload or {}
+    t = env.tx_type.upper()
+
+    if t == "PEER_ADVERTISE":
+        miss = _required(p, ("endpoint",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "PEER_RENDEZVOUS_TICKET_CREATE":
+        miss = _required(p, ("target_peer",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "PEER_RENDEZVOUS_TICKET_REVOKE":
+        miss = _required(p, ("ticket_id",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "PEER_REQUEST_CONNECT":
+        if not p.get("peer_id") and not p.get("ticket_id"):
+            return _rej("invalid_payload", "missing:peer_id_or_ticket_id", field="peer_id_or_ticket_id")
+
+    if t == "PEER_BAN_SET":
+        miss = _required(p, ("peer_id",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "PEER_REPUTATION_SIGNAL":
+        miss = _required(p, ("peer_id",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_REGISTER":
+        miss = _required(p, ("endpoint",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_HEARTBEAT":
+        miss = _required(p, ("node_id",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_SET_UPDATE":
+        miss = _required(p, ("active_set",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_SET":
+        miss = _required(p, ("validators",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_BAN_SET":
+        miss = _required(p, ("validator",))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    return None
+
+
+def _should_apply_account_semantics(signer: str) -> bool:
+    s = str(signer or "").strip()
+    if not s:
+        return False
+
+    if strict_account_ids_enabled():
+        return is_valid_account_id(s)
+
+    return s.startswith("@")
+
+
+def _nonce_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]:
+    signer = env.signer or ""
+    if not _should_apply_account_semantics(signer):
+        return None
+
+    acct = (ledger.accounts or {}).get(signer) or {}
+    current = int(acct.get("nonce") or 0)
+    expected = current + 1
+
+    if int(env.nonce) != expected:
+        return _rej("bad_nonce", f"expected:{expected}", expected=expected, got=int(env.nonce))
+    return None
+
+
+def _reputation_and_flags_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[AdmissionVerdict]:
+    signer = env.signer or ""
+    if not _should_apply_account_semantics(signer):
+        return None
+
+    acct = (ledger.accounts or {}).get(signer) or {}
+
+    if acct.get("banned") is True:
+        return _rej("gate_denied", "banned")
+
+    if acct.get("locked") is True:
+        return _rej("gate_denied", "locked")
+
+    min_rep = spec.get("min_reputation")
+    if min_rep is not None:
+        try:
+            min_rep_f = float(min_rep)
+        except Exception:
+            min_rep_f = 0.0
+
+        rep = float(acct.get("reputation") or 0.0)
+        req = (min_rep_f / 100.0) if (1.0 <= min_rep_f <= 100.0) else min_rep_f
+
+        if rep < req:
+            return _rej("gate_denied", "min_reputation", min_reputation=req, reputation=rep)
+
+    return None
+
+
+def _bootstrap_open_gate_bypass(env: TxEnvelope, spec: Json) -> bool:
+    """
+    Dev/testnet escape hatch for POH bootstrap.
+
+    Canon marks POH_BOOTSTRAP_TIER3_GRANT with a Validator subject gate and
+    SYSTEM origin. In dev/testnet, when WEALL_POH_BOOTSTRAP_OPEN=1, we
+    intentionally allow a freshly registered user account to submit this tx so
+    local operators can run the full golden path without pre-seeding a validator
+    identity or system signer plumbing.
+
+    Apply-time system-only bypass already exists in domain_dispatch.py; this
+    mirrors that behavior at admission-time for the subject gate only.
+    """
+    tx_type = str(env.tx_type or "").strip().upper()
+    gate = str(spec.get("subject_gate") or "").strip()
+    if tx_type != "POH_BOOTSTRAP_TIER3_GRANT":
+        return False
+    if gate != "Validator":
+        return False
+    if str(os.environ.get("WEALL_POH_BOOTSTRAP_OPEN") or "").strip() != "1":
+        return False
+    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
+    return mode in {"dev", "testnet"}
+
+
+def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[AdmissionVerdict]:
+    gate = str(spec.get("subject_gate") or "").strip()
+    if not gate:
+        return None
+
+    if _bootstrap_open_gate_bypass(env, spec):
+        return None
+
+    ok, meta = eval_gate(signer=env.signer or "", state=ledger, expr=gate, payload=env.payload or {})
+    if not ok:
+        return _rej("gate_denied", f"gate:{gate}", gate=gate, gate_meta=meta)
+    return None
+
+
+def _sig_ok(env: TxEnvelope, *, context: str) -> Optional[AdmissionVerdict]:
+    """Enforce *presence* of a signature for untrusted ingress contexts.
+
+    IMPORTANT: `context="block"` is treated as a local/deterministic pathway.
+    Blocks may include envelopes that were admitted locally (or produced in tests)
+    without signatures when sig verification is disabled at the HTTP boundary.
+
+    Policy:
+      - context in {mempool, local, block}: signature presence is NOT enforced.
+      - context in {gossip, peer, http}: required when WEALL_SIGVERIFY=1 (or default-prod behavior).
+    """
+    ctx = (context or "").strip().lower() or "mempool"
+
+    # Local/deterministic paths: do not require signatures to be present.
+    if ctx in {"mempool", "local", "block"}:
+        return None
+
+    # If a signature is present, let it through.
+    if str(env.sig or "").strip():
+        return None
+
+    mode = (os.environ.get("WEALL_MODE") or "testnet").strip().lower()
+    override = os.environ.get("WEALL_SIGVERIFY")
+
+    if override is None:
+        enforce = bool(mode == "prod")
+    else:
+        enforce = bool(str(override).strip() == "1")
+
+    if not enforce:
+        return None
+
+    return _rej("missing_sig", "sig_required")
+
+
+def admit_tx(
+    tx: Json | TxEnvelope,
+    ledger: LedgerView | Json,
+    canon: Optional[TxIndex] = None,
+    context: str = "mempool",
+) -> AdmissionVerdict:
+    lv = _as_ledgerview(ledger)
+    env = TxEnvelope.from_json(tx)
+
+    if not env.tx_type:
+        return _rej("invalid_tx", "missing_tx_type")
+    if not env.signer:
+        return _rej("invalid_tx", "missing_signer")
+
+    ctx = str(context or "").strip().lower() or "mempool"
+
+    # Keep SYSTEM txs out of public ingress.
+    if ctx in {"mempool", "gossip", "peer"}:
+        if str(env.signer).strip() == "SYSTEM" or bool(getattr(env, "system", False)):
+            return _rej(
+                "system_tx_forbidden",
+                "system_only_tx_not_allowed_in_public_ingress",
+                tx_type=str(env.tx_type),
+                signer=str(env.signer),
+            )
+
+    # Strict schema validation for modeled tx types (public-ish ingress + block validation).
+    if ctx in {"mempool", "gossip", "peer", "block"}:
+        try:
+            if model_for_tx_type(env.tx_type.upper()) is not None:
+                raw = tx if isinstance(tx, dict) else env.to_json()
+                validate_tx_envelope(raw)
+        except ValidationError as ve:
+            return _rej("invalid_payload", "schema_validation_failed", errors=ve.errors())
+        except Exception:
+            return _rej("invalid_payload", "schema_validation_error")
+
+    if strict_account_ids_enabled() and not is_valid_account_id(env.signer):
+        return _rej("invalid_tx", "bad_signer_format", signer=str(env.signer))
+
+    if canon is None:
+        spec = {}
+    else:
+        try:
+            spec = canon.get(env.tx_type.upper(), {})
+        except Exception:
+            spec = {}
+
+    bad = _payload_limits_ok(env, spec)
+    if bad is not None:
+        return bad
+
+    bad = _mvp_payload_checks(env)
+    if bad is not None:
+        return bad
+
+    bad = _sig_ok(env, context=ctx)
+    if bad is not None:
+        return bad
+
+    bad = _nonce_ok(env, lv)
+    if bad is not None:
+        return bad
+
+    bad = _reputation_and_flags_ok(env, lv, spec)
+    if bad is not None:
+        return bad
+
+    bad = _gate_ok(env, lv, spec)
+    if bad is not None:
+        return bad
+
+    return AdmissionVerdict(True, None)
+
+
+TxVerdict = AdmissionVerdict
+TxRejection = AdmissionRejection
+
+__all__ = [
+    "TxEnvelope",
+    "TxVerdict",
+    "TxRejection",
+    "AdmissionVerdict",
+    "AdmissionRejection",
+    "admit_tx",
+]

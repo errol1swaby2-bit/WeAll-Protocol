@@ -1,0 +1,13 @@
+name = "weall-email-oracle"
+main = "src/index.ts"
+compatibility_date = "2026-02-17"
+workers_dev = true
+
+[durable_objects]
+bindings = [
+  { name = "EMAIL_ORACLE", class_name = "EmailOracleDO" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["EmailOracleDO"]

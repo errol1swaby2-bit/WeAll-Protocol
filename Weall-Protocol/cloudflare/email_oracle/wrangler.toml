@@ -1,0 +1,18 @@
+name = "weall-email-oracle"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# CORS: "*" for dev; in prod set to comma-separated origins
+[vars]
+EMAIL_ORACLE_ALLOWED_ORIGINS = "*"
+EMAIL_ORACLE_ALLOW_WILDCARD = "true"
+
+# Secrets (set via wrangler secret put ...)
+# RESEND_API_KEY
+# TURNSTILE_SECRET
+
+# KV for short-lived verification challenges
+[[kv_namespaces]]
+binding = "EMAIL_ORACLE_KV"
+id = "e59f1426496d4fa6937c184706d531a5"
+preview_id = "606578055a5c461290d5e58c2289df27"

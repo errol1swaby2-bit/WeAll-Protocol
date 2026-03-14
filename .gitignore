@@ -1,0 +1,72 @@
+# Secrets / env
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.tox/
+.nox/
+
+# Node
+node_modules/
+.vite/
+*.tsbuildinfo
+dist/
+build/
+coverage/
+
+# Runtime / local data
+data/
+tmp/
+generated/
+*.db
+*.db-wal
+*.db-shm
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Repo-specific local artifacts
+.dev_backend.log
+.dev_web.log
+web/.env.local
+web/playwright-report/
+web/test-results/
+web/node_modules/
+web/dist/
+Weall-Protocol/.env
+Weall-Protocol/.venv/
+Weall-Protocol/.venv-*/
+Weall-Protocol/.venv-tools/
+Weall-Protocol/data/
+Weall-Protocol/data_local/
+Weall-Protocol/data.backup.test/
+Weall-Protocol/data.before-restore/
+Weall-Protocol/generated/
+Weall-Protocol/weall.db
+Weall-Protocol/.pytest_cache/
+Weall-Protocol/.ruff_cache/
+Weall-Protocol/.mypy_cache/
+Weall-Protocol/cloudflare/email_oracle/.dev.vars
+Weall-Protocol/secrets/*
+!Weall-Protocol/secrets/.gitignore
+!Weall-Protocol/secrets/README.md

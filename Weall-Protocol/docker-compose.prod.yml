@@ -1,0 +1,156 @@
+version: "3.9"
+
+services:
+  weall-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weall-node
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+
+    # HTTP API: internal only (proxy/tunnel reaches it on the docker network)
+    expose:
+      - "8000"
+
+    # P2P mesh: must be reachable by other nodes
+    ports:
+      - "30303:30303"
+
+    environment:
+      WEALL_MODE: "prod"
+      WEALL_UNSAFE_DEV: "0"
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+
+      # Mesh + BFT
+      WEALL_NET_ENABLED: "1"
+      WEALL_BFT_ENABLED: "1"
+      WEALL_NET_TRANSPORT: "tls"
+      WEALL_NET_BIND_HOST: "0.0.0.0"
+      WEALL_NET_BIND_PORT: "30303"
+
+      # TLS transport material (mounted via Docker secrets)
+      WEALL_NET_TLS_CERT: "/run/secrets/weall_net_tls_cert"
+      WEALL_NET_TLS_KEY: "/run/secrets/weall_net_tls_key"
+      WEALL_NET_TLS_CA: "/run/secrets/weall_net_tls_ca"
+      WEALL_NET_TLS_SERVER_NAME: "${WEALL_NET_TLS_SERVER_NAME:-}"
+
+      WEALL_PEERS: "${WEALL_PEERS:-}"
+
+      WEALL_PEERS_FILE: "./data/peers.txt"
+      WEALL_PEERS_PERSIST: "1"
+      WEALL_PEERS_MAX: "1000"
+      WEALL_PEERS_PRUNE_INTERVAL_MS: "30000"
+
+      WEALL_VALIDATOR_ACCOUNT_FILE: "/run/secrets/weall_validator_account"
+      WEALL_NODE_PUBKEY_FILE: "/run/secrets/weall_node_pubkey"
+      WEALL_NODE_PRIVKEY_FILE: "/run/secrets/weall_node_privkey"
+
+      WEALL_SQLITE_SYNCHRONOUS: "FULL"
+      WEALL_ENABLE_PUBLIC_DEBUG: "0"
+      WEALL_MAX_REQUEST_BYTES: "1000000"
+
+      WEALL_TRUST_PROXY_HEADERS: "0"
+      WEALL_TRUSTED_PROXY_IPS: ""
+
+      # IPFS integration
+      WEALL_IPFS_ENABLED: "1"
+      WEALL_IPFS_API_BASE: "http://kubo:5001"
+      WEALL_IPFS_GATEWAY_BASE: "http://kubo:8080"
+      WEALL_IPFS_MAX_UPLOAD_BYTES: "10485760"
+
+      # Local IPFS partition enforcement (mounted path you control).
+      # These are read by:
+      #  - /v1/media/upload (upload admission)
+      #  - ipfs_pin_worker (replication pin admission)
+      #
+      # IMPORTANT: must match the mount path inside this container (below).
+      WEALL_IPFS_PARTITION_PATH: "/mnt/weall-ipfs"
+      WEALL_IPFS_PARTITION_CAP_BYTES: "${WEALL_IPFS_PARTITION_CAP_BYTES:-0}"
+      WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES: "${WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES:-536870912}"
+
+      # Optional:
+      # WEALL_MEDIA_AUTO_PIN_REQUEST: "1"
+      # WEALL_IPFS_PIN_ON_UPLOAD: "0"
+
+    secrets:
+      - weall_node_privkey
+      - weall_node_pubkey
+      - weall_validator_account
+      - weall_net_tls_cert
+      - weall_net_tls_key
+      - weall_net_tls_ca
+
+    volumes:
+      - weall_data:/app/data
+
+      # Mount the same host path used by Kubo, so the backend quota check
+      # reflects real storage usage.
+      - ${WEALL_IPFS_PARTITION_PATH:-./data/ipfs_partition}:/mnt/weall-ipfs
+
+    command: ["sh", "-c", "/app/scripts/run_node.sh"]
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/readyz').read(); print('ok')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+    # Hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+
+    networks:
+      - weall_net
+
+    depends_on:
+      - kubo
+
+  kubo:
+    image: ipfs/kubo:v0.26.0
+    container_name: weall-kubo
+    restart: unless-stopped
+    environment:
+      IPFS_LOGGING: "info"
+
+      # Store the repo inside the mounted partition.
+      IPFS_PATH: "/mnt/weall-ipfs/ipfs-repo"
+
+    volumes:
+      # Mounted partition for repo
+      - ${WEALL_IPFS_PARTITION_PATH:-./data/ipfs_partition}:/mnt/weall-ipfs
+
+      # Optional staging area (leave as docker volume unless you want it
+      # on the same partition too)
+      - ipfs_staging:/export
+
+    networks:
+      - weall_net
+
+networks:
+  weall_net:
+    driver: bridge
+
+volumes:
+  weall_data:
+  ipfs_staging:
+
+secrets:
+  weall_node_privkey:
+    file: ./secrets/weall_node_privkey
+  weall_node_pubkey:
+    file: ./secrets/weall_node_pubkey
+  weall_validator_account:
+    file: ./secrets/weall_validator_account
+  weall_net_tls_cert:
+    file: ./secrets/weall_net_tls_cert.pem
+  weall_net_tls_key:
+    file: ./secrets/weall_net_tls_key.pem
+  weall_net_tls_ca:
+    file: ./secrets/weall_net_tls_ca.pem

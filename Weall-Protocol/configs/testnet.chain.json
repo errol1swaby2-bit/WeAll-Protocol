@@ -1,0 +1,16 @@
+{
+  "chain_id": "weall-testnet-0",
+  "node_id": "genesis-producer",
+  "mode": "testnet",
+  "ledger_path": "./data/ledger.json",
+  "mempool_path": "./data/mempool.json",
+  "attestation_pool_path": "./data/attestations.json",
+  "tx_index_path": "./generated/tx_index.json",
+  "block_interval_ms": 20000,
+  "max_txs_per_block": 1000,
+  "block_reward": 0,
+  "api_host": "0.0.0.0",
+  "api_port": 8000,
+  "allow_unsigned_txs": false,
+  "log_level": "INFO"
+}
