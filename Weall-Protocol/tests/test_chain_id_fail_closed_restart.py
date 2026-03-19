@@ -27,14 +27,17 @@ def test_restart_with_different_chain_id_fails_closed(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     with pytest.raises(ExecutorError):

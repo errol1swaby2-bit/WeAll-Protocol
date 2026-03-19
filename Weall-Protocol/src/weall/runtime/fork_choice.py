@@ -23,9 +23,9 @@ NOTE: This module only *selects* a best head. Full BFT production readiness
 also requires block admission rules that enforce the locked rule and QC validity.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -59,7 +59,9 @@ def _att_count(state: Json, block_id: str) -> int:
     return len(per) if isinstance(per, dict) else 0
 
 
-def _is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000) -> bool:
+def _is_descendant(
+    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000
+) -> bool:
     """Return True if candidate descends from ancestor.
 
     max_hops prevents infinite loops if state is corrupted.
@@ -87,7 +89,7 @@ def _is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max
     return False
 
 
-def _bft_choose_head(state: Json, blocks: Dict[str, Any]) -> Optional[str]:
+def _bft_choose_head(state: Json, blocks: dict[str, Any]) -> str | None:
     bft = state.get("bft")
     if not isinstance(bft, dict):
         return None
@@ -111,7 +113,7 @@ def _bft_choose_head(state: Json, blocks: Dict[str, Any]) -> Optional[str]:
     if not finalized_block_id:
         return None
 
-    best: Optional[Tuple[int, int, str]] = None
+    best: tuple[int, int, str] | None = None
     for bid, rec in blocks.items():
         bid_s = _as_str(bid)
         if not bid_s:
@@ -137,7 +139,7 @@ def _bft_choose_head(state: Json, blocks: Dict[str, Any]) -> Optional[str]:
     return best[2] if best is not None else None
 
 
-def choose_head(state: Json) -> Optional[str]:
+def choose_head(state: Json) -> str | None:
     """Choose the best head block_id from a ledger state snapshot."""
     blocks = state.get("blocks")
     if not isinstance(blocks, dict) or not blocks:
@@ -160,7 +162,7 @@ def choose_head(state: Json) -> Optional[str]:
         f_height = _as_int(finalized.get("height"), 0)
         f_block = _as_str(finalized.get("block_id") or "")
 
-    best: Optional[Tuple[int, int, str]] = None  # (height, att_count, block_id)
+    best: tuple[int, int, str] | None = None  # (height, att_count, block_id)
     for bid, rec in blocks.items():
         bid_s = _as_str(bid)
         if not bid_s:

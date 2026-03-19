@@ -29,12 +29,12 @@ We do NOT return secrets. We do not log. We return:
   (ok, reason, account_id, pubkey)
 """
 
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from weall.crypto.ed25519 import sign_ed25519, verify_ed25519_sig
 from weall.net.messages import PeerHello, WireHeader
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_dict(x: Any) -> Json:
@@ -47,7 +47,9 @@ def _as_str(x: Any) -> str:
 
 def _is_node_device(device_id: str, rec: Json) -> bool:
     did = (device_id or "").strip()
-    device_type = _as_str(rec.get("device_type") or rec.get("kind") or rec.get("type")).strip().lower()
+    device_type = (
+        _as_str(rec.get("device_type") or rec.get("kind") or rec.get("type")).strip().lower()
+    )
     label = _as_str(rec.get("label")).strip()
 
     return (
@@ -226,12 +228,14 @@ def sign_peer_hello_identity(
     if not pid or not pk or not sk:
         return {}
 
-    msg_bytes = _canonical_hello_sign_bytes_v2(header=header, peer_id=pid, pubkey=pk, agent=agent, nonce=nonce)
+    msg_bytes = _canonical_hello_sign_bytes_v2(
+        header=header, peer_id=pid, pubkey=pk, agent=agent, nonce=nonce
+    )
     sig = sign_ed25519(message_bytes=msg_bytes, privkey_str=sk, encoding="hex")
     return {"pubkey": pk, "sig": sig, "sig_alg": "ed25519"}
 
 
-def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> Tuple[bool, str, str, str]:
+def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool, str, str, str]:
     """Verify peer identity proof for inbound PEER_HELLO.
 
     Returns:

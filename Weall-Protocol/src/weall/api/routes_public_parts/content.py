@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-
 router = APIRouter()
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -66,8 +65,8 @@ def _post_visible(post: Json) -> bool:
     return vis in {"public", ""}
 
 
-def _sort_by_nonce_desc(items: List[Json], *, key: str) -> List[Json]:
-    def k(obj: Json) -> Tuple[int, str]:
+def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
+    def k(obj: Json) -> tuple[int, str]:
         return (_safe_int(obj.get(key), 0), str(obj.get("post_id") or obj.get("comment_id") or ""))
 
     return sorted(items, key=k, reverse=True)
@@ -87,7 +86,7 @@ def feed(request: Request) -> dict[str, object]:
     st = _snapshot(request)
     posts = _posts(st)
 
-    out: List[Json] = []
+    out: list[Json] = []
     for _pid, p in posts.items():
         post = _as_dict(p)
         if not _post_visible(post):
@@ -115,23 +114,31 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
 
     pid = str(content_id or "").strip()
     if not pid:
-        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content not found"}
+        )
 
     posts = _posts(st)
     if pid in posts:
         post = _as_dict(posts.get(pid))
         if bool(post.get("deleted", False)):
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+            raise HTTPException(
+                status_code=404, detail={"code": "not_found", "message": "content not found"}
+            )
         return {"ok": True, "type": "post", "content": post}
 
     comments = _comments(st)
     if pid in comments:
         com = _as_dict(comments.get(pid))
         if bool(com.get("deleted", False)):
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+            raise HTTPException(
+                status_code=404, detail={"code": "not_found", "message": "content not found"}
+            )
         return {"ok": True, "type": "comment", "content": com}
 
-    raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+    raise HTTPException(
+        status_code=404, detail={"code": "not_found", "message": "content not found"}
+    )
 
 
 @router.get("/thread/{thread_id}")
@@ -147,14 +154,18 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
     posts = _posts(st)
     root = _as_dict(posts.get(tid))
     if not root or bool(root.get("deleted", False)):
-        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "thread not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "thread not found"}
+        )
 
     # Public endpoint: hide non-public roots.
     if not _post_visible(root):
-        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "thread not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "thread not found"}
+        )
 
     comments = _comments(st)
-    out_comments: List[Json] = []
+    out_comments: list[Json] = []
     for _cid, c in comments.items():
         com = _as_dict(c)
         if bool(com.get("deleted", False)):

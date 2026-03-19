@@ -5,7 +5,9 @@ import importlib
 import pytest
 
 
-def test_common_invalid_http_json_limit_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_common_invalid_http_json_limit_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MAX_HTTP_TX_BYTES", "NaN")
     mod = importlib.import_module("weall.api.routes_public_parts.common")
@@ -21,7 +23,9 @@ def test_common_invalid_http_json_limit_falls_back_in_test(monkeypatch: pytest.M
     assert mod._env_int("WEALL_MAX_HTTP_TX_BYTES", 256 * 1024) == 256 * 1024
 
 
-def test_media_invalid_explicit_max_upload_bytes_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_media_invalid_explicit_max_upload_bytes_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_MAX_UPLOAD_BYTES", "NaN")
     mod = importlib.import_module("weall.api.routes_public_parts.media")
@@ -37,7 +41,9 @@ def test_media_invalid_boolean_env_fails_closed_in_prod(monkeypatch: pytest.Monk
         mod._env_bool("WEALL_MEDIA_AUTO_PIN_REQUEST", False)
 
 
-def test_storage_ops_invalid_replication_factor_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_storage_ops_invalid_replication_factor_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_REPLICATION_FACTOR", "NaN")
     mod = importlib.import_module("weall.api.routes_public_parts.storage_ops")
@@ -45,7 +51,9 @@ def test_storage_ops_invalid_replication_factor_fails_closed_in_prod(monkeypatch
         mod._env_int("WEALL_IPFS_REPLICATION_FACTOR", 0)
 
 
-def test_partition_config_invalid_cap_env_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_partition_config_invalid_cap_env_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_PARTITION_CAP_BYTES", "NaN")
     mod = importlib.import_module("weall.storage.ipfs_partition")

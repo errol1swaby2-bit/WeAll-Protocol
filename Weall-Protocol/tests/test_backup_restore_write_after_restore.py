@@ -28,14 +28,17 @@ def test_restored_db_remains_writable(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     shutil.copy2(original_db, restored_db)
@@ -50,14 +53,17 @@ def test_restored_db_remains_writable(tmp_path: Path) -> None:
     st = ex2.read_state()
     assert int(st["height"]) == 1
 
-    assert ex2.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@bob",
-            "nonce": 1,
-            "payload": {"pubkey": "k:bob"},
-        }
-    )["ok"] is True
+    assert (
+        ex2.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@bob",
+                "nonce": 1,
+                "payload": {"pubkey": "k:bob"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex2.produce_block(max_txs=1).ok is True
 
     st2 = ex2.read_state()

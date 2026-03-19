@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _json_canonical(obj: Any) -> bytes:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def _sha256_hex(data: bytes) -> str:
@@ -21,10 +23,10 @@ def compute_block_id(
     *,
     chain_id: str,
     height: int,
-    prev_block_id: Optional[str],
+    prev_block_id: str | None,
     ts_ms: int,
     node_id: str = "",
-    tx_ids: Optional[List[str]] = None,
+    tx_ids: list[str] | None = None,
     prev_block_hash: str = "",
     receipts_root: str = "",
 ) -> str:

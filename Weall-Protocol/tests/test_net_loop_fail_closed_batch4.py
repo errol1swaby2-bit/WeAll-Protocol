@@ -4,13 +4,22 @@ from types import SimpleNamespace
 
 import pytest
 
-from weall.net.messages import BftProposalMsg, BftQcMsg, BftTimeoutMsg, BftVoteMsg, MsgType, WireHeader
+from weall.net.messages import (
+    BftProposalMsg,
+    BftQcMsg,
+    BftTimeoutMsg,
+    BftVoteMsg,
+    MsgType,
+    WireHeader,
+)
 from weall.net.net_loop import BftInboundProcessingError, NetLoopConfig, NetMeshLoop
 
 
 class _FakeNode:
     def __init__(self, *, fail_broadcast: bool = False) -> None:
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        )
         self.calls = []
         self._fail_broadcast = bool(fail_broadcast)
 
@@ -70,22 +79,27 @@ class _VoteExecutorQc:
         }
 
 
-
 def _mk_loop(executor, *, fail_broadcast: bool = False) -> NetMeshLoop:
     loop = NetMeshLoop(
         executor=executor,
         mempool=_FakeMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode(fail_broadcast=fail_broadcast)
     loop._bft_enabled = True
     return loop
 
 
-
 def _proposal_msg() -> BftProposalMsg:
     return BftProposalMsg(
-        header=WireHeader(type=MsgType.BFT_PROPOSAL, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_PROPOSAL,
+            chain_id="chain-A",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+        ),
         view=7,
         proposer="peer-a",
         block={
@@ -107,10 +121,11 @@ def _proposal_msg() -> BftProposalMsg:
     )
 
 
-
 def _vote_msg() -> BftVoteMsg:
     return BftVoteMsg(
-        header=WireHeader(type=MsgType.BFT_VOTE, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_VOTE, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        ),
         view=7,
         vote={
             "t": "VOTE",
@@ -125,10 +140,11 @@ def _vote_msg() -> BftVoteMsg:
     )
 
 
-
 def _qc_msg() -> BftQcMsg:
     return BftQcMsg(
-        header=WireHeader(type=MsgType.BFT_QC, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_QC, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        ),
         qc={
             "chain_id": "chain-A",
             "view": 7,
@@ -139,10 +155,14 @@ def _qc_msg() -> BftQcMsg:
     )
 
 
-
 def _timeout_msg() -> BftTimeoutMsg:
     return BftTimeoutMsg(
-        header=WireHeader(type=MsgType.BFT_TIMEOUT, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_TIMEOUT,
+            chain_id="chain-A",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+        ),
         view=7,
         timeout={
             "t": "TIMEOUT",
@@ -156,13 +176,11 @@ def _timeout_msg() -> BftTimeoutMsg:
     )
 
 
-
 def test_on_bft_proposal_prod_fails_closed_on_executor_error(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = _mk_loop(_ProposalExecutorBoom())
     with pytest.raises(BftInboundProcessingError, match="proposal_executor_failed"):
         loop._on_bft_proposal("peer-a", _proposal_msg())
-
 
 
 def test_on_bft_vote_prod_fails_closed_on_executor_error(monkeypatch) -> None:
@@ -172,13 +190,11 @@ def test_on_bft_vote_prod_fails_closed_on_executor_error(monkeypatch) -> None:
         loop._on_bft_vote("peer-a", _vote_msg())
 
 
-
 def test_on_bft_qc_prod_fails_closed_on_executor_error(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = _mk_loop(_QcExecutorBoom())
     with pytest.raises(BftInboundProcessingError, match="qc_executor_failed"):
         loop._on_bft_qc("peer-a", _qc_msg())
-
 
 
 def test_on_bft_timeout_prod_fails_closed_on_executor_error(monkeypatch) -> None:
@@ -188,13 +204,11 @@ def test_on_bft_timeout_prod_fails_closed_on_executor_error(monkeypatch) -> None
         loop._on_bft_timeout("peer-a", _timeout_msg())
 
 
-
 def test_on_bft_vote_prod_fails_closed_on_qc_broadcast_error(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = _mk_loop(_VoteExecutorQc(), fail_broadcast=True)
     with pytest.raises(BftInboundProcessingError, match="vote_qc_broadcast_failed"):
         loop._on_bft_vote("peer-a", _vote_msg())
-
 
 
 def test_on_bft_timeout_prod_fails_closed_on_timeout_broadcast_error(monkeypatch) -> None:

@@ -7,7 +7,6 @@ from pathlib import Path
 
 from weall.runtime.fault_injection import run_bft_fault_injection_soak
 
-
 SCENARIOS = {
     "partition_restart_rejoin": dict(
         rounds=12,
@@ -49,10 +48,19 @@ SCENARIOS = {
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run a matrix of adversarial local multi-node BFT scenarios.")
-    ap.add_argument("--work-dir", default="", help="Base directory for scenario state. Defaults to a temp dir.")
+    ap = argparse.ArgumentParser(
+        description="Run a matrix of adversarial local multi-node BFT scenarios."
+    )
+    ap.add_argument(
+        "--work-dir", default="", help="Base directory for scenario state. Defaults to a temp dir."
+    )
     ap.add_argument("--chain-id-prefix", default="bft-matrix")
-    ap.add_argument("--scenario", action="append", default=[], help="Scenario name to run. Repeatable. Defaults to all scenarios.")
+    ap.add_argument(
+        "--scenario",
+        action="append",
+        default=[],
+        help="Scenario name to run. Repeatable. Defaults to all scenarios.",
+    )
     args = ap.parse_args()
 
     requested = [s.strip() for s in args.scenario if str(s).strip()] or list(SCENARIOS.keys())

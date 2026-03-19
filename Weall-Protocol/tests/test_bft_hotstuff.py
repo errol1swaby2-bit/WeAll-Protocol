@@ -23,7 +23,9 @@ def test_locked_rule_descendant_enforced() -> None:
         "X": {"prev_block_id": ""},  # unrelated branch
     }
 
-    bft.locked_qc = QuorumCert(chain_id="weall:test", view=1, block_id="B", block_hash="B-h", parent_id="A", votes=tuple())
+    bft.locked_qc = QuorumCert(
+        chain_id="weall:test", view=1, block_id="B", block_hash="B-h", parent_id="A", votes=tuple()
+    )
 
     assert bft.can_vote_for(blocks=blocks, block_id="C") is True
     assert bft.can_vote_for(blocks=blocks, block_id="B") is True
@@ -42,7 +44,14 @@ def test_hotstuff_3chain_commit_advances_finality() -> None:
         "B3": {"prev_block_id": "B2"},
     }
 
-    qc = QuorumCert(chain_id="weall:test", view=10, block_id="B3", block_hash="B3-h", parent_id="B2", votes=tuple())
+    qc = QuorumCert(
+        chain_id="weall:test",
+        view=10,
+        block_id="B3",
+        block_hash="B3-h",
+        parent_id="B2",
+        votes=tuple(),
+    )
 
     finalized = bft.observe_qc(blocks=blocks, qc=qc)
     assert finalized == "B1"

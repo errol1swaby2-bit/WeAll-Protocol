@@ -17,7 +17,9 @@ def _mk_executor(tmp_path: Path) -> WeAllExecutor:
     )
 
 
-def test_prod_build_block_candidate_fails_closed_on_poh_scheduler_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_build_block_candidate_fails_closed_on_poh_scheduler_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path)
 
@@ -26,7 +28,9 @@ def test_prod_build_block_candidate_fails_closed_on_poh_scheduler_error(tmp_path
 
     monkeypatch.setattr(executor_mod, "schedule_poh_tier2_system_txs", boom)
 
-    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True)
+    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
 
     assert block is None
     assert new_state is None
@@ -35,7 +39,9 @@ def test_prod_build_block_candidate_fails_closed_on_poh_scheduler_error(tmp_path
     assert err == "poh_schedule_failed:RuntimeError"
 
 
-def test_prod_build_block_candidate_fails_closed_on_system_emitter_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_build_block_candidate_fails_closed_on_system_emitter_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path)
 
@@ -44,7 +50,9 @@ def test_prod_build_block_candidate_fails_closed_on_system_emitter_error(tmp_pat
 
     monkeypatch.setattr(executor_mod, "system_tx_emitter", boom)
 
-    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True)
+    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
 
     assert block is None
     assert new_state is None
@@ -53,8 +61,9 @@ def test_prod_build_block_candidate_fails_closed_on_system_emitter_error(tmp_pat
     assert err == "system_emitter_post_failed:RuntimeError"
 
 
-
-def test_prod_apply_block_fails_closed_on_poh_scheduler_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_apply_block_fails_closed_on_poh_scheduler_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path)
 
@@ -63,18 +72,20 @@ def test_prod_apply_block_fails_closed_on_poh_scheduler_error(tmp_path: Path, mo
 
     monkeypatch.setattr(executor_mod, "schedule_poh_tier2_system_txs", boom)
 
-    meta = ex.apply_block({
-        "header": {
-            "chain_id": "weall-test",
+    meta = ex.apply_block(
+        {
+            "header": {
+                "chain_id": "weall-test",
+                "height": 1,
+                "prev_block_hash": "",
+                "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+                "receipts_root": "0" * 64,
+            },
             "height": 1,
-            "prev_block_hash": "",
             "block_ts_ms": max(1, ex.chain_time_floor_ms()),
-            "receipts_root": "0" * 64,
-        },
-        "height": 1,
-        "block_ts_ms": max(1, ex.chain_time_floor_ms()),
-        "txs": [],
-    })
+            "txs": [],
+        }
+    )
 
     assert meta.ok is False
     assert meta.error == "bad_block:poh_schedule_failed:RuntimeError"
@@ -84,18 +95,20 @@ def test_prod_apply_block_fails_closed_on_corrupt_system_queue(tmp_path: Path) -
     ex = _mk_executor(tmp_path)
     ex.state["system_queue"] = ["corrupt"]
 
-    meta = ex.apply_block({
-        "header": {
-            "chain_id": "weall-test",
+    meta = ex.apply_block(
+        {
+            "header": {
+                "chain_id": "weall-test",
+                "height": 1,
+                "prev_block_hash": "",
+                "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+                "receipts_root": "0" * 64,
+            },
             "height": 1,
-            "prev_block_hash": "",
             "block_ts_ms": max(1, ex.chain_time_floor_ms()),
-            "receipts_root": "0" * 64,
-        },
-        "height": 1,
-        "block_ts_ms": max(1, ex.chain_time_floor_ms()),
-        "txs": [],
-    })
+            "txs": [],
+        }
+    )
 
     assert meta.ok is False
     assert meta.error == "bad_block:system_emitter_pre_failed:SystemQueueCorruptionError"

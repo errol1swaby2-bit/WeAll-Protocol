@@ -57,34 +57,40 @@ def test_feed_persists_order_after_restart_api(tmp_path: Path) -> None:
     # Persist through the executor's ledger-store alias used in this repo.
     ex1._store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
-    assert ex1.submit_tx(
-        {
-            "tx_type": "CONTENT_POST_CREATE",
-            "signer": "@alice",
-            "nonce": 2,
-            "payload": {
-                "body": "first post",
-                "visibility": "public",
-                "tags": ["one"],
-                "media": [],
-            },
-        }
-    )["ok"] is True
+    assert (
+        ex1.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 2,
+                "payload": {
+                    "body": "first post",
+                    "visibility": "public",
+                    "tags": ["one"],
+                    "media": [],
+                },
+            }
+        )["ok"]
+        is True
+    )
     assert ex1.produce_block(max_txs=1).ok is True
 
-    assert ex1.submit_tx(
-        {
-            "tx_type": "CONTENT_POST_CREATE",
-            "signer": "@alice",
-            "nonce": 3,
-            "payload": {
-                "body": "second post",
-                "visibility": "public",
-                "tags": ["two"],
-                "media": [],
-            },
-        }
-    )["ok"] is True
+    assert (
+        ex1.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 3,
+                "payload": {
+                    "body": "second post",
+                    "visibility": "public",
+                    "tags": ["two"],
+                    "media": [],
+                },
+            }
+        )["ok"]
+        is True
+    )
     assert ex1.produce_block(max_txs=1).ok is True
 
     ex2 = WeAllExecutor(

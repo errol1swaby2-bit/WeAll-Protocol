@@ -12,7 +12,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Run the longer priority-1 adversarial soak batch: BFT rejoin/partition plus SQLite writer pressure and mempool spam."
     )
-    ap.add_argument("--work-dir", default="", help="Base directory for outputs. Defaults to a temp dir.")
+    ap.add_argument(
+        "--work-dir", default="", help="Base directory for outputs. Defaults to a temp dir."
+    )
     ap.add_argument("--chain-id-prefix", default="priority1-heavy")
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()

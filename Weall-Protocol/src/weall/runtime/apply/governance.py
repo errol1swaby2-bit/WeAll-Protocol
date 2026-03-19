@@ -1,22 +1,22 @@
 # src/weall/runtime/apply/governance.py
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from weall.runtime.errors import ApplyError
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
+from weall.runtime.errors import ApplyError
 from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
-def _d(x: Any) -> Dict[str, Any]:
+def _d(x: Any) -> dict[str, Any]:
     return x if isinstance(x, dict) else {}
 
 
-def _l(x: Any) -> List[Any]:
+def _l(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -31,8 +31,8 @@ def _i(x: Any, default: int = 0) -> int:
         return int(default)
 
 
-def _sorted_dict(d: Dict[str, Any]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
+def _sorted_dict(d: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     for k in sorted(d.keys(), key=lambda x: str(x)):
         out[str(k)] = d[k]
     return out
@@ -46,7 +46,7 @@ def _height_hint(state: Json, env: TxEnvelope) -> int:
     return int(_i(state.get("height"), 0) + 1)
 
 
-def _ensure_root(state: Json) -> Dict[str, Any]:
+def _ensure_root(state: Json) -> dict[str, Any]:
     root = state.get("gov_proposals_by_id")
     if not isinstance(root, dict):
         root = {}
@@ -68,20 +68,20 @@ def _ensure_root(state: Json) -> Dict[str, Any]:
     return root
 
 
-def _proposal(root: Dict[str, Any], proposal_id: str) -> Dict[str, Any]:
+def _proposal(root: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     pr = root.get(proposal_id)
     if not isinstance(pr, dict):
         raise ApplyError("not_found", "proposal_not_found", {"proposal_id": proposal_id})
     return pr
 
 
-def _stage(pr: Dict[str, Any]) -> str:
+def _stage(pr: dict[str, Any]) -> str:
     return _s(pr.get("stage")).strip().lower() or "draft"
 
 
-def _extract_actions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_actions(payload: dict[str, Any]) -> list[dict[str, Any]]:
     raw = _l(payload.get("actions"))
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for a in raw:
         if not isinstance(a, dict):
             continue
@@ -92,7 +92,7 @@ def _extract_actions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
-def _enforce_genesis_econ_lock(state: Json, actions: List[Dict[str, Any]]) -> None:
+def _enforce_genesis_econ_lock(state: Json, actions: list[dict[str, Any]]) -> None:
     if is_econ_unlocked(state, now_s=_i(state.get("time"), 0)):
         return
     for a in actions:
@@ -104,14 +104,17 @@ def _enforce_genesis_econ_lock(state: Json, actions: List[Dict[str, Any]]) -> No
                 {"tx_type": tx_type, "reason": "genesis_economic_lock"},
             )
 
-DEFAULT_GOV_ACTION_ALLOWLIST = frozenset({
-    "ECONOMICS_ACTIVATION",
-    "FEE_POLICY_SET",
-    "GOV_QUORUM_SET",
-    "GOV_RULES_SET",
-    "TREASURY_PARAMS_SET",
-    "VALIDATOR_SET_UPDATE",
-})
+
+DEFAULT_GOV_ACTION_ALLOWLIST = frozenset(
+    {
+        "ECONOMICS_ACTIVATION",
+        "FEE_POLICY_SET",
+        "GOV_QUORUM_SET",
+        "GOV_RULES_SET",
+        "TREASURY_PARAMS_SET",
+        "VALIDATOR_SET_UPDATE",
+    }
+)
 
 _ALLOWED_GOV_QUORUM_KEYS = frozenset({"quorum_percent", "quorum_bps"})
 _ALLOWED_GOV_RULES_ROOTS = frozenset({"params", "treasury"})
@@ -121,23 +124,19 @@ def _allowed_gov_action_types(state: Json) -> frozenset[str]:
     params = _d(state.get("params"))
     raw = params.get("gov_action_allowlist")
     if isinstance(raw, list) and raw:
-        out = {
-            _s(item).strip().upper()
-            for item in raw
-            if _s(item).strip()
-        }
+        out = {_s(item).strip().upper() for item in raw if _s(item).strip()}
         if out:
             return frozenset(sorted(out))
     return DEFAULT_GOV_ACTION_ALLOWLIST
 
 
-def _validate_gov_quorum_payload(payload: Dict[str, Any]) -> None:
+def _validate_gov_quorum_payload(payload: dict[str, Any]) -> None:
     extras = sorted(str(k) for k in payload.keys() if str(k) not in _ALLOWED_GOV_QUORUM_KEYS)
     if extras:
         raise ApplyError("forbidden", "governance_quorum_field_not_allowed", {"fields": extras})
 
 
-def _validate_gov_rules_payload(payload: Dict[str, Any]) -> None:
+def _validate_gov_rules_payload(payload: dict[str, Any]) -> None:
     extras = sorted(str(k) for k in payload.keys() if str(k) not in _ALLOWED_GOV_RULES_ROOTS)
     if extras:
         raise ApplyError("forbidden", "governance_rules_root_not_allowed", {"fields": extras})
@@ -157,7 +156,7 @@ def _validate_gov_rules_payload(payload: Dict[str, Any]) -> None:
             raise ApplyError("forbidden", str(e), {"path": "treasury"}) from e
 
 
-def _validate_governance_action_payload(tx_type: str, payload: Dict[str, Any]) -> None:
+def _validate_governance_action_payload(tx_type: str, payload: dict[str, Any]) -> None:
     t = _s(tx_type).strip().upper()
     if t == "GOV_QUORUM_SET":
         _validate_gov_quorum_payload(payload)
@@ -165,7 +164,7 @@ def _validate_governance_action_payload(tx_type: str, payload: Dict[str, Any]) -
         _validate_gov_rules_payload(payload)
 
 
-def _assert_governance_actions_allowed(state: Json, actions: List[Dict[str, Any]]) -> None:
+def _assert_governance_actions_allowed(state: Json, actions: list[dict[str, Any]]) -> None:
     allowed = _allowed_gov_action_types(state)
     for action in actions:
         tx_type = _s(action.get("tx_type")).strip().upper()
@@ -176,8 +175,7 @@ def _assert_governance_actions_allowed(state: Json, actions: List[Dict[str, Any]
         _validate_governance_action_payload(tx_type, _d(action.get("payload")))
 
 
-
-def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -195,7 +193,9 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> Dict[str, Any]:
 
     # Spec lifecycle: Draft → Poll → Revision → Validation → Vote → Execution.
     # Backward compatibility: allow rules.start_stage="voting" to preserve older flows.
-    start_stage = _s(rules.get("start_stage") if isinstance(rules, dict) else "").strip().lower() or "draft"
+    start_stage = (
+        _s(rules.get("start_stage") if isinstance(rules, dict) else "").strip().lower() or "draft"
+    )
     if start_stage not in {"draft", "poll", "revision", "validation", "voting", "vote"}:
         start_stage = "draft"
 
@@ -229,7 +229,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """
     Minimal claimable implementation:
       - only creator may edit
@@ -250,7 +250,9 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     # Creator may edit in Draft and Revision. We also keep "voting" editable for
     # legacy proposals that started in voting (older tests / deployments).
     if stg not in {"draft", "revision", "voting"}:
-        raise ApplyError("forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg})
+        raise ApplyError(
+            "forbidden", "proposal_not_editable", {"proposal_id": proposal_id, "stage": stg}
+        )
 
     # Apply optional fields
     if "rules" in p:
@@ -272,7 +274,7 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """
     Minimal claimable implementation:
       - only creator may withdraw
@@ -299,7 +301,7 @@ def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> Dict[str, Any]
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -316,7 +318,9 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     stg = _stage(pr)
     # GOV_VOTE_CAST is used for both poll and final vote depending on stage.
     if stg not in {"poll", "voting", "vote"}:
-        raise ApplyError("forbidden", "proposal_not_voteable", {"proposal_id": proposal_id, "stage": stg})
+        raise ApplyError(
+            "forbidden", "proposal_not_voteable", {"proposal_id": proposal_id, "stage": stg}
+        )
 
     key = "poll_votes" if stg == "poll" else "votes"
     votes = pr.get(key)
@@ -330,7 +334,7 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """
     Minimal claimable implementation:
       - removes signer vote if present
@@ -359,7 +363,7 @@ def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_voting_close(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_voting_close(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -374,7 +378,7 @@ def _apply_gov_voting_close(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -396,7 +400,7 @@ def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_execute(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -413,7 +417,12 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> Dict[str, Any]:
             actions = []
             for a in snap:
                 if isinstance(a, dict):
-                    actions.append({"tx_type": _s(a.get("tx_type")).strip().upper(), "payload": _d(a.get("payload"))})
+                    actions.append(
+                        {
+                            "tx_type": _s(a.get("tx_type")).strip().upper(),
+                            "payload": _d(a.get("payload")),
+                        }
+                    )
 
     _assert_governance_actions_allowed(state, actions)
 
@@ -450,7 +459,9 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     enqueue_system_tx(
         state,
         tx_type="GOV_EXECUTION_RECEIPT",
-        payload={"proposal_id": proposal_id, "ok": True, "_parent_ref": parent_ref} if parent_ref else {"proposal_id": proposal_id, "ok": True},
+        payload={"proposal_id": proposal_id, "ok": True, "_parent_ref": parent_ref}
+        if parent_ref
+        else {"proposal_id": proposal_id, "ok": True},
         due_height=int(h + 1),
         signer="SYSTEM",
         parent=parent_ref,
@@ -461,7 +472,7 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _ensure_root(state)
     p = _d(env.payload)
     lst = state.get("gov_execution_receipts")
@@ -472,7 +483,7 @@ def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> Dict[str, Any]
     return {"applied": True}
 
 
-def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
@@ -489,7 +500,9 @@ def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> Dict[str, Any]
     enqueue_system_tx(
         state,
         tx_type="GOV_PROPOSAL_RECEIPT",
-        payload={"proposal_id": proposal_id, "finalized": True, "_parent_ref": parent_ref} if parent_ref else {"proposal_id": proposal_id, "finalized": True},
+        payload={"proposal_id": proposal_id, "finalized": True, "_parent_ref": parent_ref}
+        if parent_ref
+        else {"proposal_id": proposal_id, "finalized": True},
         due_height=int(h + 1),
         signer="SYSTEM",
         parent=parent_ref,
@@ -500,7 +513,7 @@ def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> Dict[str, Any]
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _ensure_root(state)
     p = _d(env.payload)
     lst = state.get("gov_proposal_receipts")
@@ -511,7 +524,7 @@ def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True}
 
 
-def _apply_gov_delegation_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_delegation_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _ensure_root(state)
     p = _d(env.payload)
     delegatee = _s(p.get("delegatee")).strip()
@@ -526,7 +539,7 @@ def _apply_gov_delegation_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True}
 
 
-def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """Apply GOV_STAGE_SET (receipt-only, SYSTEM origin).
 
     Canon: receipt_only parent=GOV_PROPOSAL_CREATE.
@@ -587,12 +600,16 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     # Also store last stage change in gov_config (useful for diagnostics)
     cfg = state.get("gov_config")
     if isinstance(cfg, dict):
-        cfg["last_stage_set"] = {"proposal_id": proposal_id, "stage": stage or None, "height": int(rec["_height"])}
+        cfg["last_stage_set"] = {
+            "proposal_id": proposal_id,
+            "stage": stage or None,
+            "height": int(rec["_height"]),
+        }
 
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """Apply GOV_QUORUM_SET (receipt-only, SYSTEM origin).
 
     Canon: receipt_only parent=GOV_EXECUTE.
@@ -632,7 +649,7 @@ def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     return {"applied": True}
 
 
-def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
+def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """Apply GOV_RULES_SET (receipt-only, SYSTEM origin).
 
     Canon: receipt_only parent=GOV_EXECUTE.
@@ -681,7 +698,7 @@ _GOV_HANDLERS = {
 }
 
 
-def apply_governance(state: Json, env: TxEnvelope) -> Optional[Dict[str, Any]]:
+def apply_governance(state: Json, env: TxEnvelope) -> dict[str, Any] | None:
     t = _s(env.tx_type).strip().upper()
     fn = _GOV_HANDLERS.get(t)
     if fn is None:

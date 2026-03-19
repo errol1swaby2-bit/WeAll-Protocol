@@ -4,11 +4,17 @@ from __future__ import annotations
 import os
 import time
 from collections import OrderedDict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
 from weall.net.codec import decode_message, encode_message
-from weall.net.handshake import HandshakeConfig, HandshakeRejected, HandshakeState, begin_outbound_handshake
+from weall.net.handshake import (
+    HandshakeConfig,
+    HandshakeRejected,
+    HandshakeState,
+    begin_outbound_handshake,
+)
 from weall.net.messages import (
     BftProposalMsg,
     BftQcMsg,
@@ -16,7 +22,6 @@ from weall.net.messages import (
     BftVoteMsg,
     MsgType,
     PeerHello,
-    PeerHelloAck,
     PongMsg,
     StateSyncRequestMsg,
     StateSyncResponseMsg,
@@ -26,14 +31,18 @@ from weall.net.messages import (
 from weall.net.peer_identity import verify_peer_hello_identity
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
-from weall.runtime.protocol_profile import active_consensus_profile, runtime_protocol_profile_hash, runtime_protocol_version
-from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
+from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.protocol_profile import (
+    active_consensus_profile,
+    runtime_protocol_profile_hash,
+    runtime_protocol_version,
+)
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _env_str(key: str, default: str = "") -> str:
@@ -67,7 +76,7 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def _make_header(cfg: "NetConfig", mtype: str) -> WireHeader:
+def _make_header(cfg: NetConfig, mtype: str) -> WireHeader:
     return WireHeader(
         type=mtype,
         chain_id=cfg.chain_id,
@@ -106,15 +115,15 @@ class NetConfig:
 
     peer_id: str = "local"
     agent: str = "weall-node"
-    caps: Tuple[str, ...] = ()
+    caps: tuple[str, ...] = ()
 
     # Optional node identity material (hex strings)
-    identity_pubkey: Optional[str] = None
-    identity_privkey: Optional[str] = None
+    identity_pubkey: str | None = None
+    identity_privkey: str | None = None
 
     # Optional TLS server material (paths or PEM strings). Used when WEALL_NET_TRANSPORT=tls.
-    server_cert: Optional[str] = None
-    server_key: Optional[str] = None
+    server_cert: str | None = None
+    server_key: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,7 +195,9 @@ def _make_transport(cfg: NetConfig) -> Transport:
                 "TLS transport selected but server cert/key not configured "
                 "(cfg.server_cert/server_key or WEALL_NET_TLS_CERT/WEALL_NET_TLS_KEY)."
             )
-        return TlsTransport(server_cert=cert, server_key=key, ca_file=ca_file, server_name=server_name)
+        return TlsTransport(
+            server_cert=cert, server_key=key, ca_file=ca_file, server_name=server_name
+        )
 
     mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
     if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
@@ -211,15 +222,15 @@ class NetNode:
         self,
         *,
         cfg: NetConfig,
-        peer_policy: Optional[PeerPolicy] = None,
-        on_tx: Optional[Callable[[str, WireMessage], None]] = None,
-        on_bft_proposal: Optional[Callable[[str, BftProposalMsg], None]] = None,
-        on_bft_vote: Optional[Callable[[str, BftVoteMsg], None]] = None,
-        on_bft_qc: Optional[Callable[[str, BftQcMsg], None]] = None,
-        on_bft_timeout: Optional[Callable[[str, BftTimeoutMsg], None]] = None,
-        ledger_provider: Optional[Callable[[], Json]] = None,
-        sync_service: Optional[StateSyncService] = None,
-        transport: Optional[Transport] = None,
+        peer_policy: PeerPolicy | None = None,
+        on_tx: Callable[[str, WireMessage], None] | None = None,
+        on_bft_proposal: Callable[[str, BftProposalMsg], None] | None = None,
+        on_bft_vote: Callable[[str, BftVoteMsg], None] | None = None,
+        on_bft_qc: Callable[[str, BftQcMsg], None] | None = None,
+        on_bft_timeout: Callable[[str, BftTimeoutMsg], None] | None = None,
+        ledger_provider: Callable[[], Json] | None = None,
+        sync_service: StateSyncService | None = None,
+        transport: Transport | None = None,
     ) -> None:
         self.cfg = cfg
         self.peer_policy = peer_policy or PeerPolicy()
@@ -234,11 +245,13 @@ class NetNode:
 
         self.transport: Transport = transport or _make_transport(cfg)
 
-        self._conns: Dict[str, Connection] = {}
-        self._peers: Dict[str, _PeerRec] = {}
+        self._conns: dict[str, Connection] = {}
+        self._peers: dict[str, _PeerRec] = {}
         self._sync_response_cap: int = max(1, _env_int("WEALL_NET_SYNC_RESPONSE_CACHE", 256))
-        self._sync_request_timeout_ms: int = max(50, _env_int("WEALL_NET_SYNC_REQUEST_TIMEOUT_MS", 1_500))
-        self._sync_responses: "OrderedDict[str, StateSyncResponseMsg]" = OrderedDict()
+        self._sync_request_timeout_ms: int = max(
+            50, _env_int("WEALL_NET_SYNC_REQUEST_TIMEOUT_MS", 1_500)
+        )
+        self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
 
     # ----------------------------
     # Peer state + rate limiting
@@ -250,7 +263,7 @@ class NetNode:
             return False
         return rec.banned_until_ms > _now_ms()
 
-    def _ban(self, rec: _PeerRec, *, cooldown_ms: Optional[int] = None) -> None:
+    def _ban(self, rec: _PeerRec, *, cooldown_ms: int | None = None) -> None:
         cd = int(cooldown_ms if cooldown_ms is not None else self.peer_policy.ban_cooldown_ms)
         rec.banned_until_ms = max(rec.banned_until_ms, _now_ms() + cd)
 
@@ -292,7 +305,7 @@ class NetNode:
     # Identity / BFT gates
     # ----------------------------
 
-    def _get_ledger(self) -> Optional[Json]:
+    def _get_ledger(self) -> Json | None:
         if not self.ledger_provider:
             return None
         try:
@@ -376,7 +389,9 @@ class NetNode:
         rec.identity_pubkey = pubkey
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
-        if not (self._bft_enabled() and self._identity_required() and self._identity_required_for_bft()):
+        if not (
+            self._bft_enabled() and self._identity_required() and self._identity_required_for_bft()
+        ):
             return
 
         if not rec.identity_ok:
@@ -418,7 +433,7 @@ class NetNode:
         except Exception:
             return
 
-    def pop_sync_response(self, corr_id: str) -> Optional[StateSyncResponseMsg]:
+    def pop_sync_response(self, corr_id: str) -> StateSyncResponseMsg | None:
         cid = str(corr_id or "").strip()
         if not cid:
             return None
@@ -452,8 +467,12 @@ class NetNode:
                 validator_epoch=self._handshake_validator_epoch(),
                 validator_set_hash=self._handshake_validator_set_hash(),
                 bft_enabled=self._bft_enabled(),
-                require_protocol_profile_match=bool(active_consensus_profile().handshake_requires_profile_match),
-                require_validator_epoch_match_for_bft=bool(active_consensus_profile().handshake_requires_validator_epoch_match_for_bft),
+                require_protocol_profile_match=bool(
+                    active_consensus_profile().handshake_requires_profile_match
+                ),
+                require_validator_epoch_match_for_bft=bool(
+                    active_consensus_profile().handshake_requires_validator_epoch_match_for_bft
+                ),
             )
         )
 
@@ -477,7 +496,7 @@ class NetNode:
             if self.on_bft_timeout:
                 self.on_bft_timeout(peer_id, msg)
 
-        def _on_sync_request(msg: WireMessage) -> Optional[WireMessage]:
+        def _on_sync_request(msg: WireMessage) -> WireMessage | None:
             if not self.sync_service:
                 return None
             return self.sync_service.handle_request(msg)  # type: ignore[arg-type]
@@ -598,7 +617,9 @@ class NetNode:
             # SessionRequired is expected and tested indirectly through strikes
             self._strike(rec, int(self.peer_policy.strike_handshake_rejected))
             s = str(getattr(e, "reason", e))
-            if int(self.peer_policy.fast_ban_mismatch_ms) > 0 and ("mismatch" in s or "protocol" in s):
+            if int(self.peer_policy.fast_ban_mismatch_ms) > 0 and (
+                "mismatch" in s or "protocol" in s
+            ):
                 self._ban(rec, cooldown_ms=int(self.peer_policy.fast_ban_mismatch_ms))
             return
         except Exception as e:
@@ -706,11 +727,11 @@ class NetNode:
         peer_id: str,
         req: StateSyncRequestMsg,
         *,
-        timeout_ms: Optional[int] = None,
+        timeout_ms: int | None = None,
         max_packets: int = 250,
-        pump: Optional[Callable[[], None]] = None,
+        pump: Callable[[], None] | None = None,
         sleep_ms: int = 10,
-    ) -> Optional[StateSyncResponseMsg]:
+    ) -> StateSyncResponseMsg | None:
         pid = str(peer_id or "").strip()
         if not pid or not isinstance(req, StateSyncRequestMsg):
             return None
@@ -725,7 +746,9 @@ class NetNode:
         self.pop_sync_response(corr_id)
         self.send_message(pid, req)
 
-        deadline = _now_ms() + int(timeout_ms if timeout_ms is not None else self._sync_request_timeout_ms)
+        deadline = _now_ms() + int(
+            timeout_ms if timeout_ms is not None else self._sync_request_timeout_ms
+        )
         while _now_ms() <= deadline:
             if pump is not None:
                 try:
@@ -756,8 +779,8 @@ class NetNode:
 
         for peer_id, rec in sorted(self._peers.items(), key=lambda kv: str(kv[0])):
             router = rec.router
-            hs = getattr(router, 'handshake', None)
-            is_established = bool(getattr(hs, 'is_established', lambda: False)())
+            hs = getattr(router, "handshake", None)
+            is_established = bool(getattr(hs, "is_established", lambda: False)())
             hs_state = hs
             if is_established:
                 established += 1
@@ -766,37 +789,41 @@ class NetNode:
             if self.is_banned(peer_id):
                 banned += 1
 
-            last_error = ''
+            last_error = ""
             try:
-                last_error = str(getattr(hs_state, 'last_error', '') or getattr(router, 'last_error', '') or '').strip()
+                last_error = str(
+                    getattr(hs_state, "last_error", "") or getattr(router, "last_error", "") or ""
+                ).strip()
             except Exception:
-                last_error = ''
+                last_error = ""
 
-            peers.append({
-                'peer_id': str(peer_id),
-                'established': is_established,
-                'identity_verified': bool(rec.identity_ok),
-                'account_id': str(rec.identity_account or ''),
-                'pubkey': str(rec.identity_pubkey or ''),
-                'strikes': int(rec.strikes),
-                'banned': self.is_banned(peer_id),
-                'banned_until_ms': int(rec.banned_until_ms),
-                'last_error': last_error,
-                'msg_tokens': int(rec.msg_tokens),
-                'byte_tokens': int(rec.byte_tokens),
-                'connected': bool(peer_id in self._conns),
-            })
+            peers.append(
+                {
+                    "peer_id": str(peer_id),
+                    "established": is_established,
+                    "identity_verified": bool(rec.identity_ok),
+                    "account_id": str(rec.identity_account or ""),
+                    "pubkey": str(rec.identity_pubkey or ""),
+                    "strikes": int(rec.strikes),
+                    "banned": self.is_banned(peer_id),
+                    "banned_until_ms": int(rec.banned_until_ms),
+                    "last_error": last_error,
+                    "msg_tokens": int(rec.msg_tokens),
+                    "byte_tokens": int(rec.byte_tokens),
+                    "connected": bool(peer_id in self._conns),
+                }
+            )
 
         return {
-            'ok': True,
-            'enabled': True,
-            'counts': {
-                'peers_total': int(len(self._peers)),
-                'peers_established': int(established),
-                'peers_identity_verified': int(identity_verified),
-                'peers_banned': int(banned),
+            "ok": True,
+            "enabled": True,
+            "counts": {
+                "peers_total": int(len(self._peers)),
+                "peers_established": int(established),
+                "peers_identity_verified": int(identity_verified),
+                "peers_banned": int(banned),
             },
-            'peers': peers,
+            "peers": peers,
         }
 
     def report_peer_fault(self, peer_id: str, *, strikes: int = 1, reason: str = "") -> None:

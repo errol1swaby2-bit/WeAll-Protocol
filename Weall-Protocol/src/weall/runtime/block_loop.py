@@ -5,11 +5,9 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
-
 
 log = logging.getLogger("weall.block_loop")
 
@@ -70,7 +68,9 @@ def block_loop_config_from_env() -> BlockLoopConfig:
     # Reliability controls
     fail_fast_after = max(3, _env_int("WEALL_BLOCK_LOOP_FAIL_FAST_AFTER", 10))
     error_backoff_min_ms = max(50, _env_int("WEALL_BLOCK_LOOP_ERROR_BACKOFF_MIN_MS", 250))
-    error_backoff_max_ms = max(error_backoff_min_ms, _env_int("WEALL_BLOCK_LOOP_ERROR_BACKOFF_MAX_MS", 10_000))
+    error_backoff_max_ms = max(
+        error_backoff_min_ms, _env_int("WEALL_BLOCK_LOOP_ERROR_BACKOFF_MAX_MS", 10_000)
+    )
 
     # BFT controls
     bft_enabled = _env_bool("WEALL_BFT_ENABLED", False)
@@ -212,7 +212,7 @@ class BlockProducerLoop:
         executor,
         mempool,
         attestation_pool,
-        cfg: Optional[BlockLoopConfig] = None,
+        cfg: BlockLoopConfig | None = None,
     ) -> None:
         self._executor = executor
         self._mempool = mempool
@@ -220,7 +220,7 @@ class BlockProducerLoop:
         self._cfg = cfg or block_loop_config_from_env()
 
         self._lock = _FileLock(self._cfg.lock_path)
-        self._t: Optional[threading.Thread] = None
+        self._t: threading.Thread | None = None
         self._stop = threading.Event()
         self._started = False
 
@@ -231,10 +231,10 @@ class BlockProducerLoop:
 
         # Expose status for health probes (best-effort; never relied on for safety)
         try:
-            setattr(self._executor, "block_loop_running", False)
-            setattr(self._executor, "block_loop_unhealthy", False)
-            setattr(self._executor, "block_loop_last_error", "")
-            setattr(self._executor, "block_loop_consecutive_failures", 0)
+            self._executor.block_loop_running = False
+            self._executor.block_loop_unhealthy = False
+            self._executor.block_loop_last_error = ""
+            self._executor.block_loop_consecutive_failures = 0
         except Exception:
             pass
 
@@ -253,7 +253,7 @@ class BlockProducerLoop:
         self._t.start()
         self._started = True
         try:
-            setattr(self._executor, "block_loop_running", True)
+            self._executor.block_loop_running = True
         except Exception:
             pass
         inc_counter("block_loop_start_total", 1)
@@ -269,7 +269,7 @@ class BlockProducerLoop:
                 pass
         self._lock.release()
         try:
-            setattr(self._executor, "block_loop_running", False)
+            self._executor.block_loop_running = False
         except Exception:
             pass
         inc_counter("block_loop_stop_total", 1)
@@ -284,8 +284,8 @@ class BlockProducerLoop:
 
         # Health hooks
         try:
-            setattr(self._executor, "block_loop_last_error", self._last_error)
-            setattr(self._executor, "block_loop_consecutive_failures", self._consecutive_failures)
+            self._executor.block_loop_last_error = self._last_error
+            self._executor.block_loop_consecutive_failures = self._consecutive_failures
         except Exception:
             pass
 
@@ -299,8 +299,8 @@ class BlockProducerLoop:
         self._last_error = ""
         set_gauge("block_loop_consecutive_failures", 0)
         try:
-            setattr(self._executor, "block_loop_last_error", "")
-            setattr(self._executor, "block_loop_consecutive_failures", 0)
+            self._executor.block_loop_last_error = ""
+            self._executor.block_loop_consecutive_failures = 0
         except Exception:
             pass
 
@@ -315,8 +315,8 @@ class BlockProducerLoop:
     def _trip_unhealthy_and_stop(self) -> None:
         # Mark unhealthy and stop loop.
         try:
-            setattr(self._executor, "block_loop_unhealthy", True)
-            setattr(self._executor, "block_loop_running", False)
+            self._executor.block_loop_unhealthy = True
+            self._executor.block_loop_running = False
         except Exception:
             pass
         set_gauge("block_loop_unhealthy", 1)
@@ -403,7 +403,9 @@ class BlockProducerLoop:
 
             try:
                 if hasattr(self._executor, "produce_block_from_pools"):
-                    self._executor.produce_block_from_pools(mempool=self._mempool, attestation_pool=self._att_pool)
+                    self._executor.produce_block_from_pools(
+                        mempool=self._mempool, attestation_pool=self._att_pool
+                    )
                 else:
                     self._executor.produce_block(max_txs=int(self._cfg.max_block_txs))
                 inc_counter("block_loop_produce_ok_total", 1)

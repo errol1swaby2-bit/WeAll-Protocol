@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from weall.runtime.domain_dispatch import apply_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _stable(obj: Any) -> str:
@@ -38,8 +38,8 @@ def _stable_state_without_time(state: Json) -> str:
     return _stable(_drop_keys(state, {"time"}))
 
 
-def _run(state: Json, seq: List[Json]) -> Tuple[Json, List[Json]]:
-    receipts: List[Json] = []
+def _run(state: Json, seq: list[Json]) -> tuple[Json, list[Json]]:
+    receipts: list[Json] = []
     for env in seq:
         receipts.append(apply_tx(state, env))
     return state, receipts
@@ -109,7 +109,9 @@ def test_apply_determinism_vote_order_equivalence_same_vote_set(base_state, txf)
     out_vote_a1 = apply_tx(st_a, txf.gov_vote_cast("alice", proposal_id, "yes", nonce=2))
     out_vote_a2 = apply_tx(st_a, txf.gov_vote_cast("bob", proposal_id, "yes", nonce=1))
     out_close_a = apply_tx(st_a, txf.gov_voting_close(proposal_id, nonce=100))
-    out_tally_a = apply_tx(st_a, txf.gov_tally_publish(proposal_id, nonce=101, tally={"yes": 2, "no": 0}))
+    out_tally_a = apply_tx(
+        st_a, txf.gov_tally_publish(proposal_id, nonce=101, tally={"yes": 2, "no": 0})
+    )
 
     # Path B: bob votes then alice
     st_b = _clone(base_state)
@@ -118,7 +120,9 @@ def test_apply_determinism_vote_order_equivalence_same_vote_set(base_state, txf)
     out_vote_b1 = apply_tx(st_b, txf.gov_vote_cast("bob", proposal_id, "yes", nonce=1))
     out_vote_b2 = apply_tx(st_b, txf.gov_vote_cast("alice", proposal_id, "yes", nonce=2))
     out_close_b = apply_tx(st_b, txf.gov_voting_close(proposal_id, nonce=100))
-    out_tally_b = apply_tx(st_b, txf.gov_tally_publish(proposal_id, nonce=101, tally={"yes": 2, "no": 0}))
+    out_tally_b = apply_tx(
+        st_b, txf.gov_tally_publish(proposal_id, nonce=101, tally={"yes": 2, "no": 0})
+    )
 
     # Proposal object must be identical across both paths.
     assert "gov_proposals_by_id" in st_a and proposal_id in st_a["gov_proposals_by_id"]

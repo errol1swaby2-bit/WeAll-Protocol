@@ -51,7 +51,9 @@ def test_bft_vote_requires_identity_and_validator(monkeypatch) -> None:
     )
 
     # Handshake hello (with identity)
-    hdr = WireHeader(type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     ident = sign_peer_hello_identity(
         header=hdr,
         peer_id="alice",
@@ -60,11 +62,15 @@ def test_bft_vote_requires_identity_and_validator(monkeypatch) -> None:
         agent="weall-node",
         nonce="",
     )
-    hello = PeerHello(header=hdr, peer_id="alice", agent="weall-node", nonce="", caps=(), identity=ident)
+    hello = PeerHello(
+        header=hdr, peer_id="alice", agent="weall-node", nonce="", caps=(), identity=ident
+    )
     node._handle_packet(_pkt("tcp://9.9.9.9:7777", hello))
 
     # Now a BFT vote should be accepted (gating passes).
-    vh = WireHeader(type=MsgType.BFT_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    vh = WireHeader(
+        type=MsgType.BFT_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     vote = {
         "t": "VOTE",
         "chain_id": "test",
@@ -96,7 +102,9 @@ def test_bft_vote_signer_mismatch_bans_fast(monkeypatch) -> None:
     )
 
     # Handshake hello (with identity)
-    hdr = WireHeader(type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     ident = sign_peer_hello_identity(
         header=hdr,
         peer_id="alice",
@@ -105,11 +113,15 @@ def test_bft_vote_signer_mismatch_bans_fast(monkeypatch) -> None:
         agent="weall-node",
         nonce="",
     )
-    hello = PeerHello(header=hdr, peer_id="alice", agent="weall-node", nonce="", caps=(), identity=ident)
+    hello = PeerHello(
+        header=hdr, peer_id="alice", agent="weall-node", nonce="", caps=(), identity=ident
+    )
     node._handle_packet(_pkt("tcp://9.9.9.9:7777", hello))
 
     # Send a vote with wrong signer.
-    vh = WireHeader(type=MsgType.BFT_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    vh = WireHeader(
+        type=MsgType.BFT_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     vote = {
         "t": "VOTE",
         "chain_id": "test",

@@ -12,7 +12,6 @@ NOT a full BFT consensus implementation.
 """
 
 import hashlib
-from typing import List, Optional
 
 
 def _sha256_hex(data: bytes) -> str:
@@ -26,8 +25,8 @@ def _as_int(v: object, default: int = 0) -> int:
         return int(default)
 
 
-def _norm_set(active_set: List[str]) -> List[str]:
-    out: List[str] = []
+def _norm_set(active_set: list[str]) -> list[str]:
+    out: list[str] = []
     seen = set()
     for x in active_set or []:
         s = str(x).strip()
@@ -40,12 +39,12 @@ def _norm_set(active_set: List[str]) -> List[str]:
 
 def select_proposer(
     *,
-    active_set: List[str],
+    active_set: list[str],
     chain_id: str,
     height: int,
     round_n: int = 0,
-    seed: Optional[str] = None,
-) -> Optional[str]:
+    seed: str | None = None,
+) -> str | None:
     """Return the deterministic proposer account for (height, round).
 
     - active_set: ordered list of active validator accounts.
@@ -63,7 +62,7 @@ def select_proposer(
     r = max(0, _as_int(round_n, 0))
     seed_s = str(seed or "").strip()
 
-    material = f"weall:proposer:{chain_id}:{h}:{r}:{seed_s}".encode("utf-8")
+    material = f"weall:proposer:{chain_id}:{h}:{r}:{seed_s}".encode()
     digest = _sha256_hex(material)
     # Use the first 16 hex chars as an integer for stable mapping.
     idx = int(digest[:16], 16) % len(aset)

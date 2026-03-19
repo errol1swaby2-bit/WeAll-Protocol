@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def evaluate_incident_actions(report: Json) -> Json:

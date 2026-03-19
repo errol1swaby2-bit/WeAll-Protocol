@@ -4,7 +4,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.net.messages import BftTimeoutMsg, BftVoteMsg
 from weall.net.net_loop import NetMeshLoop, net_loop_config_from_env
@@ -23,7 +28,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -54,7 +61,9 @@ def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[s
 class _FakeNode:
     def __init__(self) -> None:
         self.calls: list[tuple[object, str]] = []
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        )
 
     def broadcast_message(self, msg, exclude_peer_id: str = "") -> int:
         self.calls.append((msg, exclude_peer_id))
@@ -86,7 +95,9 @@ def test_vote_replayed_after_restart_when_persisted_but_unsent(tmp_path: Path, m
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
 
     db_path = str(tmp_path / "node.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=pub)
 
     ex.bft_set_view(1)
@@ -95,7 +106,9 @@ def test_vote_replayed_after_restart_when_persisted_but_unsent(tmp_path: Path, m
     vote = ex.bft_on_proposal({"view": 1, "proposer": "@v2", "block": proposal})
     assert isinstance(vote, dict)
 
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex2, validators=validators, pub=pub)
     cfg = net_loop_config_from_env()
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)
@@ -134,12 +147,16 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
 
     db_path = str(tmp_path / "node.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=pub)
     timeoutj = ex.bft_make_timeout(view=2)
     assert isinstance(timeoutj, dict)
 
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex2, validators=validators, pub=pub)
     cfg = net_loop_config_from_env()
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)

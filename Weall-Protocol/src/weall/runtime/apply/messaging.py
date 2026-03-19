@@ -61,16 +61,17 @@ Payload expectations (runtime enforced, since canon does not define schemas):
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MessagingApplyError(RuntimeError):
@@ -86,11 +87,12 @@ class MessagingApplyError(RuntimeError):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -139,8 +141,8 @@ def _pick(payload: Json, *keys: str) -> str:
     return ""
 
 
-def _sorted_unique_strs(items: List[Any]) -> List[str]:
-    out: List[str] = []
+def _sorted_unique_strs(items: list[Any]) -> list[str]:
+    out: list[str] = []
     for it in items:
         if isinstance(it, str) and it.strip():
             out.append(it.strip())
@@ -168,7 +170,7 @@ def _ensure_inbox(m: Json, acct: str) -> Json:
     return inbox
 
 
-def _ensure_thread(m: Json, thread_id: str, members: List[str], at_nonce: int) -> Json:
+def _ensure_thread(m: Json, thread_id: str, members: list[str], at_nonce: int) -> Json:
     threads = m["threads_by_id"]
     rec = threads.get(thread_id)
     if not isinstance(rec, dict):
@@ -195,6 +197,7 @@ def _ensure_thread(m: Json, thread_id: str, members: List[str], at_nonce: int) -
 # DIRECT_MESSAGE_SEND
 # ---------------------------------------------------------------------------
 
+
 def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
     m = _ensure_messaging(state)
     payload = _as_dict(env.payload)
@@ -207,7 +210,9 @@ def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
     body = _as_str(payload.get("body"))
     cid = _pick(payload, "cid", "content_cid", "ipfs_cid")
     if not body and not cid:
-        raise MessagingApplyError("invalid_payload", "missing_body_or_cid", {"tx_type": env.tx_type})
+        raise MessagingApplyError(
+            "invalid_payload", "missing_body_or_cid", {"tx_type": env.tx_type}
+        )
 
     # thread_id is optional; deterministic default for 1:1
     thread_id = _pick(payload, "thread_id")
@@ -281,6 +286,7 @@ def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
 # DIRECT_MESSAGE_REDACT
 # ---------------------------------------------------------------------------
 
+
 def _apply_direct_message_redact(state: Json, env: TxEnvelope) -> Json:
     m = _ensure_messaging(state)
     payload = _as_dict(env.payload)
@@ -297,7 +303,9 @@ def _apply_direct_message_redact(state: Json, env: TxEnvelope) -> Json:
     if _as_str(rec.get("sender")) != env.signer:
         raise MessagingApplyError("forbidden", "only_sender_can_redact", {"message_id": message_id})
 
-    already = bool(rec.get("redacted")) and _as_int(rec.get("redacted_at_nonce"), 0) == int(env.nonce)
+    already = bool(rec.get("redacted")) and _as_int(rec.get("redacted_at_nonce"), 0) == int(
+        env.nonce
+    )
 
     rec["redacted"] = True
     rec["redacted_at_nonce"] = int(env.nonce)
@@ -320,13 +328,13 @@ def _apply_direct_message_redact(state: Json, env: TxEnvelope) -> Json:
 # Router
 # ---------------------------------------------------------------------------
 
-MESSAGING_TX_TYPES: Set[str] = {
+MESSAGING_TX_TYPES: set[str] = {
     "DIRECT_MESSAGE_SEND",
     "DIRECT_MESSAGE_REDACT",
 }
 
 
-def apply_messaging(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_messaging(state: Json, env: TxEnvelope) -> Json | None:
     """Apply Messaging txs. Returns meta dict if handled; otherwise None."""
     t = str(env.tx_type or "").strip()
     if t not in MESSAGING_TX_TYPES:

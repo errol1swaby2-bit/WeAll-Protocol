@@ -29,13 +29,12 @@ import selectors
 import socket
 import struct
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
 
 from weall.net.net_logging import log_event
 from weall.net.transport import Connection, PeerAddr, WirePacket
 from weall.runtime.metrics import inc_counter
-
 
 _LOG = logging.getLogger("weall.net.transport.tcp")
 
@@ -43,6 +42,7 @@ _LOG = logging.getLogger("weall.net.transport.tcp")
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
+
 
 def tcp_addr(host: str, port: int) -> PeerAddr:
     return PeerAddr(f"tcp://{host}:{int(port)}")
@@ -79,7 +79,7 @@ def _mode() -> str:
     # Mirror node.py: tests default to a non-prod posture unless explicitly set.
     if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
         return "test"
-    return (str(os.environ.get("WEALL_MODE", "prod")).strip().lower() or "prod")
+    return str(os.environ.get("WEALL_MODE", "prod")).strip().lower() or "prod"
 
 
 def _peer_id_for(addr: PeerAddr) -> str:
@@ -207,16 +207,20 @@ class TcpTransport:
         self.max_connections_per_ip = max(0, _env_int("WEALL_NET_MAX_PER_IP", default_per_ip))
 
         # Allow opting out of caps entirely (useful for controlled lab networks)
-        self._caps_enabled = _env_bool("WEALL_NET_ENABLE_CONN_CAPS", True if md == "prod" else False)
+        self._caps_enabled = _env_bool(
+            "WEALL_NET_ENABLE_CONN_CAPS", True if md == "prod" else False
+        )
 
         # Outbound backpressure (bound per-connection send queue)
         default_out_q = 0 if md == "test" else 8_000_000
-        self.max_outbound_buffer_bytes = max(0, _env_int("WEALL_NET_MAX_OUTBOUND_BUFFER_BYTES", default_out_q))
+        self.max_outbound_buffer_bytes = max(
+            0, _env_int("WEALL_NET_MAX_OUTBOUND_BUFFER_BYTES", default_out_q)
+        )
         self.close_on_outbound_overflow = _env_bool("WEALL_NET_CLOSE_ON_OUTBOUND_OVERFLOW", True)
 
         self._sel = selectors.DefaultSelector()
-        self._listener: Optional[socket.socket] = None
-        self._conns: Dict[str, _TcpConn] = {}
+        self._listener: socket.socket | None = None
+        self._conns: dict[str, _TcpConn] = {}
 
     # -------------------------
     # lifecycle
@@ -235,7 +239,11 @@ class TcpTransport:
         _safe_event("net_tcp_bound", addr=str(addr.uri))
 
     def connect(self, addr: PeerAddr) -> _TcpConn:
-        if self._caps_enabled and self.max_connections_total and len(self._conns) >= self.max_connections_total:
+        if (
+            self._caps_enabled
+            and self.max_connections_total
+            and len(self._conns) >= self.max_connections_total
+        ):
             raise RuntimeError("max_connections_exceeded")
 
         host, port = _parse_tcp_uri(addr.uri)
@@ -302,7 +310,7 @@ class TcpTransport:
     # -------------------------
 
     def poll(self, *, max_packets: int = 250) -> Iterable[WirePacket]:
-        out: List[WirePacket] = []
+        out: list[WirePacket] = []
         if max_packets <= 0:
             return out
 
@@ -379,7 +387,9 @@ class TcpTransport:
                     continue
 
                 if self.max_inbound_connections:
-                    inbound_count = sum(1 for c in self._conns.values() if getattr(c, "inbound", False))
+                    inbound_count = sum(
+                        1 for c in self._conns.values() if getattr(c, "inbound", False)
+                    )
                     if inbound_count >= self.max_inbound_connections:
                         _safe_count("net_tcp_conn_refused_total", 1)
                         try:
@@ -389,7 +399,9 @@ class TcpTransport:
                         continue
 
                 if self.max_connections_per_ip:
-                    ip_count = sum(1 for c in self._conns.values() if getattr(c, "remote_ip", "") == str(ip))
+                    ip_count = sum(
+                        1 for c in self._conns.values() if getattr(c, "remote_ip", "") == str(ip)
+                    )
                     if ip_count >= self.max_connections_per_ip:
                         _safe_count("net_tcp_conn_refused_total", 1)
                         try:
@@ -411,7 +423,9 @@ class TcpTransport:
             self._conns[pid] = conn
 
             try:
-                self._sel.register(client, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid))
+                self._sel.register(
+                    client, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid)
+                )
             except Exception as e:
                 _safe_count("net_tcp_register_error_total", 1)
                 _safe_event("net_tcp_register_error", peer=str(pid), err=repr(e))
@@ -454,8 +468,8 @@ class TcpTransport:
             return False
         return True
 
-    def _drain_frames(self, conn: _TcpConn, *, max_packets: int) -> List[WirePacket]:
-        out: List[WirePacket] = []
+    def _drain_frames(self, conn: _TcpConn, *, max_packets: int) -> list[WirePacket]:
+        out: list[WirePacket] = []
         buf = conn.rbuf
 
         while max_packets > 0:
@@ -476,7 +490,9 @@ class TcpTransport:
                             meta={
                                 "transport": "tcp",
                                 "addr": conn.peer_addr.uri,
-                                "frame_error": "oversize" if n > self.max_frame_bytes else "invalid_length",
+                                "frame_error": "oversize"
+                                if n > self.max_frame_bytes
+                                else "invalid_length",
                                 "declared_len": str(int(n)),
                                 "max_frame_bytes": str(int(self.max_frame_bytes)),
                             },

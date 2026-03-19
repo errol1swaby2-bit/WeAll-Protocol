@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, Final
+from typing import Any, Final
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 # Consensus-critical contract.
 #
@@ -13,18 +13,20 @@ Json = Dict[str, Any]
 # tip-tracking metadata rather than durable ledger semantics.
 #
 # Keep this set synchronized with the authoritative protocol specification.
-_EPHEMERAL_KEYS: Final[frozenset[str]] = frozenset({
-    "created_ms",
-    "bft",
-    "meta",
-    "tip_hash",
-    "tip_ts_ms",
-})
+_EPHEMERAL_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "created_ms",
+        "bft",
+        "meta",
+        "tip_hash",
+        "tip_ts_ms",
+    }
+)
 
 
 def _strip_ephemeral(obj: Any) -> Any:
     if isinstance(obj, dict):
-        out: Dict[str, Any] = {}
+        out: dict[str, Any] = {}
         for k, v in obj.items():
             ks = str(k)
             if ks in _EPHEMERAL_KEYS:

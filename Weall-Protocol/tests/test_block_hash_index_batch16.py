@@ -20,11 +20,15 @@ def _make_executor(tmp_path: Path, name: str, *, chain_id: str = "batch16") -> W
 
 
 def _commit_empty_block(ex: WeAllExecutor, *, ts_ms: int = 1000) -> dict:
-    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=ts_ms)
+    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True, force_ts_ms=ts_ms
+    )
     assert err == ""
     assert isinstance(blk, dict)
     assert isinstance(st2, dict)
-    meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = ex.commit_block_candidate(
+        block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
     assert meta.ok is True
     return blk
 
@@ -48,7 +52,9 @@ def test_block_hash_sidecar_index_persists_across_restart(tmp_path: Path) -> Non
     assert int(row["height"] or 0) == 1
 
 
-def test_block_identity_conflict_uses_sidecar_index_without_block_scan(tmp_path: Path, monkeypatch) -> None:
+def test_block_identity_conflict_uses_sidecar_index_without_block_scan(
+    tmp_path: Path, monkeypatch
+) -> None:
     ex = _make_executor(tmp_path, "node", chain_id="batch16-conflict")
     blk = _commit_empty_block(ex, ts_ms=1000)
     bid = str(blk["block_id"])

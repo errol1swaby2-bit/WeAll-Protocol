@@ -31,7 +31,10 @@ def _state() -> dict[str, object]:
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
 
@@ -99,7 +102,13 @@ def test_public_validator_preflight_passes_with_bundle(tmp_path: Path) -> None:
     assert build.returncode == 0, build.stdout + build.stderr
 
     proc = subprocess.run(
-        [sys.executable, "scripts/public_validator_preflight.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/public_validator_preflight.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=root,
         env=env,
         capture_output=True,
@@ -143,7 +152,9 @@ def test_public_validator_preflight_fails_without_required_bundle(tmp_path: Path
 
 
 def test_bootstrap_prod_node_uses_single_preflight() -> None:
-    text = (Path(__file__).resolve().parents[1] / "scripts" / "bootstrap_prod_node.sh").read_text(encoding="utf-8")
+    text = (Path(__file__).resolve().parents[1] / "scripts" / "bootstrap_prod_node.sh").read_text(
+        encoding="utf-8"
+    )
     assert "public_validator_preflight.py" in text
     assert 'verify_validator_bootstrap.py --bundle "$BUNDLE_OUT"' not in text
 
@@ -175,7 +186,13 @@ def test_public_validator_preflight_surfaces_compatibility_drift(tmp_path: Path)
     bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
 
     proc = subprocess.run(
-        [sys.executable, "scripts/public_validator_preflight.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/public_validator_preflight.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=root,
         env=env,
         capture_output=True,

@@ -23,16 +23,15 @@ For production correctness, a receipt MUST mutate canonical state deterministica
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
-
-from weall.runtime.system_tx_engine import enqueue_system_tx
-from weall.runtime.tx_admission import TxEnvelope
+from typing import Any
 
 # We import the dispute opener directly to avoid duplicating dispute schema.
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open  # type: ignore
+from weall.runtime.system_tx_engine import enqueue_system_tx
+from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -49,7 +48,7 @@ def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -88,7 +87,9 @@ def _ensure_root(state: Json) -> Json:
     mod = content["moderation"]
     if isinstance(mod, dict):
         mod.setdefault("receipts", [])
-        mod.setdefault("targets", {})  # target_id -> {visibility, locked, labels, dispute_id, last_action}
+        mod.setdefault(
+            "targets", {}
+        )  # target_id -> {visibility, locked, labels, dispute_id, last_action}
 
     return content
 
@@ -120,12 +121,18 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
     accounts = state.get("accounts")
     acct = accounts.get(signer) if isinstance(accounts, dict) else None
     if not isinstance(acct, dict):
-        raise ContentApplyError("forbidden", "account_not_registered", {"account": signer, "action": action})
+        raise ContentApplyError(
+            "forbidden", "account_not_registered", {"account": signer, "action": action}
+        )
 
     if bool(acct.get("banned", False)):
-        raise ContentApplyError("forbidden", "account_banned", {"account": signer, "action": action})
+        raise ContentApplyError(
+            "forbidden", "account_banned", {"account": signer, "action": action}
+        )
     if bool(acct.get("locked", False)):
-        raise ContentApplyError("forbidden", "account_locked", {"account": signer, "action": action})
+        raise ContentApplyError(
+            "forbidden", "account_locked", {"account": signer, "action": action}
+        )
 
     tier = int(acct.get("poh_tier", 0) or 0)
     if tier < int(min_tier):
@@ -208,7 +215,11 @@ def _apply_mod_to_target(state: Json, *, target_id: str, changes: Json) -> None:
             post["deleted"] = bool(rec.get("deleted"))
 
     comments = content.get("comments")
-    if isinstance(comments, dict) and target_id in comments and isinstance(comments[target_id], dict):
+    if (
+        isinstance(comments, dict)
+        and target_id in comments
+        and isinstance(comments[target_id], dict)
+    ):
         c = comments[target_id]
         if "visibility" in rec:
             c["visibility"] = rec.get("visibility")
@@ -329,7 +340,11 @@ def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
         raise ContentApplyError("invalid_payload", "missing_post_id", {})
 
     posts = content.get("posts")
-    if not isinstance(posts, dict) or parent_post not in posts or not isinstance(posts[parent_post], dict):
+    if (
+        not isinstance(posts, dict)
+        or parent_post not in posts
+        or not isinstance(posts[parent_post], dict)
+    ):
         raise ContentApplyError("not_found", "post_not_found", {"post_id": parent_post})
 
     p = posts[parent_post]
@@ -443,7 +458,10 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     content = _ensure_root(state)
     media = content["media"]
 
-    media_id = _as_str(payload.get("media_id") or payload.get("id")).strip() or f"media:{env.signer}:{env.nonce}"
+    media_id = (
+        _as_str(payload.get("media_id") or payload.get("id")).strip()
+        or f"media:{env.signer}:{env.nonce}"
+    )
     # Back-compat with older/web clients that used `upload_ref`.
     # In the current design `upload_ref` is simply the CID returned by /v1/media/upload.
     cid = _as_str(
@@ -484,7 +502,9 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
     media_id = _as_str(payload.get("media_id")).strip()
     target_id = _as_str(payload.get("target_id")).strip()
     if not media_id or not target_id:
-        raise ContentApplyError("invalid_payload", "missing_media_or_target", {"tx_type": env.tx_type})
+        raise ContentApplyError(
+            "invalid_payload", "missing_media_or_target", {"tx_type": env.tx_type}
+        )
 
     if media_id not in media:
         raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
@@ -510,7 +530,11 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
         post["media"] = cur
 
     comments = content.get("comments")
-    if isinstance(comments, dict) and target_id in comments and isinstance(comments[target_id], dict):
+    if (
+        isinstance(comments, dict)
+        and target_id in comments
+        and isinstance(comments[target_id], dict)
+    ):
         c = comments[target_id]
         cur = c.get("media")
         if not isinstance(cur, list):
@@ -557,7 +581,11 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
             post["media"] = [x for x in cur if x != media_id]
 
     comments = content.get("comments")
-    if isinstance(comments, dict) and target_id in comments and isinstance(comments[target_id], dict):
+    if (
+        isinstance(comments, dict)
+        and target_id in comments
+        and isinstance(comments[target_id], dict)
+    ):
         c = comments[target_id]
         cur = c.get("media")
         if isinstance(cur, list) and media_id:
@@ -604,11 +632,17 @@ def _apply_content_label_set(state: Json, env: TxEnvelope) -> Json:
     target_id = _as_str(payload.get("target_id") or payload.get("id")).strip()
     labels = payload.get("labels") or []
     if not target_id or not isinstance(labels, list):
-        raise ContentApplyError("invalid_payload", "missing_target_or_labels", {"tx_type": env.tx_type})
+        raise ContentApplyError(
+            "invalid_payload", "missing_target_or_labels", {"tx_type": env.tx_type}
+        )
 
     # Record the receipt for auditability.
     _touch_receipt(state, env)
-    _apply_mod_to_target(state, target_id=target_id, changes={"labels": labels, "labels_set_at_nonce": int(env.nonce)})
+    _apply_mod_to_target(
+        state,
+        target_id=target_id,
+        changes={"labels": labels, "labels_set_at_nonce": int(env.nonce)},
+    )
     return {"applied": "CONTENT_LABEL_SET", "target_id": target_id, "labels": labels}
 
 
@@ -646,7 +680,9 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
       - locked: bool
     """
     payload = _as_dict(env.payload)
-    target_id = _as_str(payload.get("target_id") or payload.get("post_id") or payload.get("id")).strip()
+    target_id = _as_str(
+        payload.get("target_id") or payload.get("post_id") or payload.get("id")
+    ).strip()
     locked = bool(payload.get("locked"))
 
     if not target_id:
@@ -654,7 +690,9 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
 
     # Enforce author-only + Tier3 for user-initiated locks.
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_thread_lock_set")
+        _require_min_poh_tier(
+            state, signer=env.signer, min_tier=3, action="content_thread_lock_set"
+        )
 
         content = _ensure_root(state)
         posts = content.get("posts")
@@ -666,7 +704,9 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
             raise ContentApplyError("forbidden", "post_deleted", {"post_id": target_id})
 
         if _as_str(post.get("author")).strip() != env.signer:
-            raise ContentApplyError("forbidden", "not_author", {"post_id": target_id, "account": env.signer})
+            raise ContentApplyError(
+                "forbidden", "not_author", {"post_id": target_id, "account": env.signer}
+            )
 
     _touch_receipt(state, env)
     _apply_mod_to_target(
@@ -696,7 +736,10 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
       - This is safe to call multiple times; it will dedupe on existing dispute_id mapping.
     """
     payload = _as_dict(env.payload)
-    target_type = _as_str(payload.get("target_type") or payload.get("kind") or "content").strip().lower() or "content"
+    target_type = (
+        _as_str(payload.get("target_type") or payload.get("kind") or "content").strip().lower()
+        or "content"
+    )
     target_id = _as_str(payload.get("target_id") or payload.get("id")).strip()
     reason = _as_str(payload.get("reason") or "").strip()
     dispute_id = _as_str(payload.get("dispute_id") or "").strip()
@@ -710,7 +753,12 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     if isinstance(existing, dict) and _as_str(existing.get("dispute_id") or "").strip():
         did = _as_str(existing.get("dispute_id") or "").strip()
         _touch_receipt(state, env)
-        return {"applied": "CONTENT_ESCALATE_TO_DISPUTE", "target_id": target_id, "dispute_id": did, "deduped": True}
+        return {
+            "applied": "CONTENT_ESCALATE_TO_DISPUTE",
+            "target_id": target_id,
+            "dispute_id": did,
+            "deduped": True,
+        }
 
     # Open dispute (uses same TxEnvelope shape)
     d_env = TxEnvelope(
@@ -731,7 +779,11 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     did = _as_str(meta.get("dispute_id") or "").strip()
 
     _touch_receipt(state, env)
-    _apply_mod_to_target(state, target_id=target_id, changes={"dispute_id": did, "escalated_at_nonce": int(env.nonce)})
+    _apply_mod_to_target(
+        state,
+        target_id=target_id,
+        changes={"dispute_id": did, "escalated_at_nonce": int(env.nonce)},
+    )
 
     # Enqueue a receipt-only audit record (system-emitted) for downstream tooling.
     try:
@@ -750,7 +802,12 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         # fail-soft here; the escalation itself is the authoritative state transition.
         pass
 
-    return {"applied": "CONTENT_ESCALATE_TO_DISPUTE", "target_id": target_id, "dispute_id": did, "deduped": False}
+    return {
+        "applied": "CONTENT_ESCALATE_TO_DISPUTE",
+        "target_id": target_id,
+        "dispute_id": did,
+        "deduped": False,
+    }
 
 
 def _apply_flag_escalation_receipt(state: Json, env: TxEnvelope) -> Json:
@@ -767,7 +824,12 @@ def _apply_flag_escalation_receipt(state: Json, env: TxEnvelope) -> Json:
             changes={"dispute_id": dispute_id, "flag_escalation_receipt_at_nonce": int(env.nonce)},
         )
 
-    return {"applied": "FLAG_ESCALATION_RECEIPT", "receipt": True, "target_id": target_id, "dispute_id": dispute_id}
+    return {
+        "applied": "FLAG_ESCALATION_RECEIPT",
+        "receipt": True,
+        "target_id": target_id,
+        "dispute_id": dispute_id,
+    }
 
 
 def _apply_mod_action_receipt(state: Json, env: TxEnvelope) -> Json:
@@ -818,7 +880,12 @@ def _apply_mod_action_receipt(state: Json, env: TxEnvelope) -> Json:
     _touch_receipt(state, env)
     _apply_mod_to_target(state, target_id=target_id, changes=changes)
 
-    return {"applied": "MOD_ACTION_RECEIPT", "receipt": True, "target_id": target_id, "action": action}
+    return {
+        "applied": "MOD_ACTION_RECEIPT",
+        "receipt": True,
+        "target_id": target_id,
+        "action": action,
+    }
 
 
 # ---------------------------
@@ -826,7 +893,7 @@ def _apply_mod_action_receipt(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------
 
 
-CONTENT_TX_TYPES: Set[str] = {
+CONTENT_TX_TYPES: set[str] = {
     # Canon names
     "CONTENT_POST_CREATE",
     "CONTENT_POST_EDIT",
@@ -853,7 +920,7 @@ CONTENT_TX_TYPES: Set[str] = {
 }
 
 
-def apply_content(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_content(state: Json, env: TxEnvelope) -> Json | None:
     """Apply content txs. Returns meta if handled, else None."""
     t = str(env.tx_type or "").strip()
     if t not in CONTENT_TX_TYPES:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
@@ -36,7 +35,7 @@ def boot_config_from_env() -> ExecutorBootConfig:
     )
 
 
-def build_executor(cfg: Optional[ExecutorBootConfig] = None) -> WeAllExecutor:
+def build_executor(cfg: ExecutorBootConfig | None = None) -> WeAllExecutor:
     """
     Build a WeAllExecutor from an explicit boot config or, if omitted,
     from environment variables.

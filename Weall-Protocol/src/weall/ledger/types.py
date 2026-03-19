@@ -10,14 +10,14 @@ This module defines:
 
 from __future__ import annotations
 
+from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, MutableMapping, Optional
+from typing import Any
 
 from weall.ledger.migrations import CURRENT_STATE_VERSION
-
 from weall.runtime.reputation_units import sync_account_reputation
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _coerce_int(v: Any, *, field: str) -> int:
@@ -27,23 +27,29 @@ def _coerce_int(v: Any, *, field: str) -> int:
             raise ValueError("bool is not a valid int")
         return int(v)
     except Exception as e:
-        raise ValueError(f"LedgerState schema error: field '{field}' must be int-coercible (got {type(v).__name__})") from e
+        raise ValueError(
+            f"LedgerState schema error: field '{field}' must be int-coercible (got {type(v).__name__})"
+        ) from e
 
 
 def _coerce_str(v: Any, *, field: str) -> str:
     try:
         return str(v) if v is not None else ""
     except Exception as e:
-        raise ValueError(f"LedgerState schema error: field '{field}' must be str-coercible (got {type(v).__name__})") from e
+        raise ValueError(
+            f"LedgerState schema error: field '{field}' must be str-coercible (got {type(v).__name__})"
+        ) from e
 
 
-def _require_dict(v: Any, *, field: str, strict: bool) -> Dict[str, Any]:
+def _require_dict(v: Any, *, field: str, strict: bool) -> dict[str, Any]:
     if isinstance(v, dict):
         return v
     if v is None:
         return {}
     if strict:
-        raise ValueError(f"LedgerState schema error: field '{field}' must be dict (got {type(v).__name__})")
+        raise ValueError(
+            f"LedgerState schema error: field '{field}' must be dict (got {type(v).__name__})"
+        )
     return {}
 
 
@@ -58,12 +64,15 @@ def _require_boolish(v: Any, *, field: str) -> bool:
             return True
         if s in {"0", "false", "no", "n", "off"}:
             return False
-    raise ValueError(f"LedgerState schema error: field '{field}' must be bool-ish (got {type(v).__name__})")
+    raise ValueError(
+        f"LedgerState schema error: field '{field}' must be bool-ish (got {type(v).__name__})"
+    )
 
 
 @dataclass
 class LedgerState(MutableMapping[str, Any]):
     """Mutable ledger state with a stable, JSON-backed schema."""
+
     _data: Json = field(default_factory=dict)
 
     # ---- Mapping protocol (back-compat) ----
@@ -92,7 +101,7 @@ class LedgerState(MutableMapping[str, Any]):
         return dict(self._data)
 
     @classmethod
-    def from_dict(cls, d: Any) -> "LedgerState":
+    def from_dict(cls, d: Any) -> LedgerState:
         return cls(_data=d if isinstance(d, dict) else {})
 
     # ---- Convenience roots ----
@@ -180,7 +189,7 @@ class LedgerState(MutableMapping[str, Any]):
     def ensure_minimal_schema(
         self,
         *,
-        ensure_producer: Optional[str] = None,
+        ensure_producer: str | None = None,
         strict: bool = True,
     ) -> None:
         """
@@ -200,7 +209,11 @@ class LedgerState(MutableMapping[str, Any]):
                 )
             self._data["state_version"] = CURRENT_STATE_VERSION
         else:
-            v = _coerce_int(self._data.get("state_version"), field="state_version") if strict else int(self._data.get("state_version") or 0)
+            v = (
+                _coerce_int(self._data.get("state_version"), field="state_version")
+                if strict
+                else int(self._data.get("state_version") or 0)
+            )
             if strict and v != CURRENT_STATE_VERSION:
                 raise ValueError(
                     f"LedgerState schema error: state_version={v} != CURRENT_STATE_VERSION={CURRENT_STATE_VERSION} "
@@ -215,18 +228,32 @@ class LedgerState(MutableMapping[str, Any]):
         if "height" not in self._data:
             self._data["height"] = 0
         else:
-            self._data["height"] = _coerce_int(self._data.get("height"), field="height") if strict else int(self._data.get("height") or 0)
+            self._data["height"] = (
+                _coerce_int(self._data.get("height"), field="height")
+                if strict
+                else int(self._data.get("height") or 0)
+            )
 
         if "tip" not in self._data:
             self._data["tip"] = ""
         else:
-            self._data["tip"] = _coerce_str(self._data.get("tip"), field="tip") if strict else str(self._data.get("tip") or "")
+            self._data["tip"] = (
+                _coerce_str(self._data.get("tip"), field="tip")
+                if strict
+                else str(self._data.get("tip") or "")
+            )
 
         # roots
-        self._data["accounts"] = _require_dict(self._data.get("accounts"), field="accounts", strict=strict)
+        self._data["accounts"] = _require_dict(
+            self._data.get("accounts"), field="accounts", strict=strict
+        )
         self._data["roles"] = _require_dict(self._data.get("roles"), field="roles", strict=strict)
-        self._data["blocks"] = _require_dict(self._data.get("blocks"), field="blocks", strict=strict)
-        self._data["params"] = _require_dict(self._data.get("params"), field="params", strict=strict)
+        self._data["blocks"] = _require_dict(
+            self._data.get("blocks"), field="blocks", strict=strict
+        )
+        self._data["params"] = _require_dict(
+            self._data.get("params"), field="params", strict=strict
+        )
         self._data["block_attestations"] = _require_dict(
             self._data.get("block_attestations"), field="block_attestations", strict=strict
         )
@@ -243,12 +270,20 @@ class LedgerState(MutableMapping[str, Any]):
         if "height" not in fin:
             fin["height"] = 0
         else:
-            fin["height"] = _coerce_int(fin.get("height"), field="finalized.height") if strict else int(fin.get("height") or 0)
+            fin["height"] = (
+                _coerce_int(fin.get("height"), field="finalized.height")
+                if strict
+                else int(fin.get("height") or 0)
+            )
 
         if "block_id" not in fin:
             fin["block_id"] = ""
         else:
-            fin["block_id"] = _coerce_str(fin.get("block_id"), field="finalized.block_id") if strict else str(fin.get("block_id") or "")
+            fin["block_id"] = (
+                _coerce_str(fin.get("block_id"), field="finalized.block_id")
+                if strict
+                else str(fin.get("block_id") or "")
+            )
 
         # validate accounts entries (minimal)
         accounts = self._data["accounts"]
@@ -265,12 +300,24 @@ class LedgerState(MutableMapping[str, Any]):
                     acct_raw = accounts[aid]
 
                 acct = acct_raw
-                acct["nonce"] = _coerce_int(acct.get("nonce", 0), field=f"accounts['{aid}'].nonce") if strict else int(acct.get("nonce") or 0)
-                acct["poh_tier"] = _coerce_int(acct.get("poh_tier", 0), field=f"accounts['{aid}'].poh_tier") if strict else int(acct.get("poh_tier") or 0)
+                acct["nonce"] = (
+                    _coerce_int(acct.get("nonce", 0), field=f"accounts['{aid}'].nonce")
+                    if strict
+                    else int(acct.get("nonce") or 0)
+                )
+                acct["poh_tier"] = (
+                    _coerce_int(acct.get("poh_tier", 0), field=f"accounts['{aid}'].poh_tier")
+                    if strict
+                    else int(acct.get("poh_tier") or 0)
+                )
 
                 if strict:
-                    acct["banned"] = _require_boolish(acct.get("banned", False), field=f"accounts['{aid}'].banned")
-                    acct["locked"] = _require_boolish(acct.get("locked", False), field=f"accounts['{aid}'].locked")
+                    acct["banned"] = _require_boolish(
+                        acct.get("banned", False), field=f"accounts['{aid}'].banned"
+                    )
+                    acct["locked"] = _require_boolish(
+                        acct.get("locked", False), field=f"accounts['{aid}'].locked"
+                    )
                 else:
                     acct["banned"] = bool(acct.get("banned", False))
                     acct["locked"] = bool(acct.get("locked", False))

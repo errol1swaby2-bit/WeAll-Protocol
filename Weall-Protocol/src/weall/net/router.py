@@ -1,30 +1,30 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
 
+from weall.net.handshake import (
+    HandshakeRejected,
+    HandshakeState,
+    begin_outbound_handshake,
+    process_inbound_ack,
+    process_inbound_hello,
+    require_established,
+)
 from weall.net.messages import (
-    MsgType,
-    WireMessage,
-    TxEnvelopeMsg,
-    BlockProposalMsg,
-    BlockVoteMsg,
     BftProposalMsg,
-    BftVoteMsg,
     BftQcMsg,
     BftTimeoutMsg,
-    StateSyncRequestMsg,
-    StateSyncResponseMsg,
+    BftVoteMsg,
+    BlockProposalMsg,
+    BlockVoteMsg,
+    MsgType,
     PingMsg,
     PongMsg,
-)
-from weall.net.handshake import (
-    HandshakeState,
-    HandshakeRejected,
-    begin_outbound_handshake,
-    process_inbound_hello,
-    process_inbound_ack,
-    require_established,
+    StateSyncRequestMsg,
+    StateSyncResponseMsg,
+    TxEnvelopeMsg,
+    WireMessage,
 )
 
 
@@ -47,10 +47,10 @@ class SessionRequiredInternal(RuntimeError):
 TxHandler = Callable[[TxEnvelopeMsg], None]
 BlockHandler = Callable[[BlockProposalMsg], None]
 VoteHandler = Callable[[BlockVoteMsg], None]
-SyncRequestHandler = Callable[[StateSyncRequestMsg], Optional[StateSyncResponseMsg]]
+SyncRequestHandler = Callable[[StateSyncRequestMsg], StateSyncResponseMsg | None]
 SyncResponseHandler = Callable[[StateSyncResponseMsg], None]
 
-PingHandler = Callable[[PingMsg], Optional[PongMsg]]
+PingHandler = Callable[[PingMsg], PongMsg | None]
 
 BftProposalHandler = Callable[[BftProposalMsg], None]
 BftVoteHandler = Callable[[BftVoteMsg], None]
@@ -62,22 +62,22 @@ BftTimeoutHandler = Callable[[BftTimeoutMsg], None]
 class Router:
     handshake: HandshakeState
 
-    on_tx: Optional[TxHandler] = None
-    on_block: Optional[BlockHandler] = None
-    on_vote: Optional[VoteHandler] = None
-    on_sync_request: Optional[SyncRequestHandler] = None
-    on_sync_response: Optional[SyncResponseHandler] = None
-    on_ping: Optional[PingHandler] = None
+    on_tx: TxHandler | None = None
+    on_block: BlockHandler | None = None
+    on_vote: VoteHandler | None = None
+    on_sync_request: SyncRequestHandler | None = None
+    on_sync_response: SyncResponseHandler | None = None
+    on_ping: PingHandler | None = None
 
     # BFT
-    on_bft_proposal: Optional[BftProposalHandler] = None
-    on_bft_vote: Optional[BftVoteHandler] = None
-    on_bft_qc: Optional[BftQcHandler] = None
-    on_bft_timeout: Optional[BftTimeoutHandler] = None
+    on_bft_proposal: BftProposalHandler | None = None
+    on_bft_vote: BftVoteHandler | None = None
+    on_bft_qc: BftQcHandler | None = None
+    on_bft_timeout: BftTimeoutHandler | None = None
 
-    last_error: Optional[str] = None
+    last_error: str | None = None
 
-    def handle_message(self, msg: WireMessage) -> Optional[WireMessage]:
+    def handle_message(self, msg: WireMessage) -> WireMessage | None:
         try:
             mtype = msg.header.type
         except Exception:

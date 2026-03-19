@@ -38,14 +38,17 @@ def test_readyz_empty_chain_and_restored_chain(tmp_path: Path) -> None:
     assert b1["ok"] is True
     assert b1["chain_id"] == "readyz-restart-shape"
 
-    assert fresh.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@user1",
-            "nonce": 1,
-            "payload": {"pubkey": "k:user1"},
-        }
-    )["ok"] is True
+    assert (
+        fresh.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@user1",
+                "nonce": 1,
+                "payload": {"pubkey": "k:user1"},
+            }
+        )["ok"]
+        is True
+    )
     assert fresh.produce_block(max_txs=1).ok is True
 
     restored = WeAllExecutor(

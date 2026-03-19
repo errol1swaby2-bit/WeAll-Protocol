@@ -26,13 +26,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from nacl.signing import SigningKey
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,9 @@ def _env(name: str, default: str) -> str:
     return v if v is not None and v != "" else default
 
 
-def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: float = 10.0) -> Tuple[int, Json]:
+def _http_json(
+    method: str, url: str, body: Json | None = None, timeout_s: float = 10.0
+) -> tuple[int, Json]:
     data = None
     headers = {"Content-Type": "application/json"}
     if body is not None:
@@ -127,7 +129,9 @@ def _has_any_keys(body: Json) -> bool:
     return False
 
 
-def _wait_for_registration_applied(cfg: Cfg, account: str, *, timeout_s: float = 90.0, poll_s: float = 0.5) -> Json:
+def _wait_for_registration_applied(
+    cfg: Cfg, account: str, *, timeout_s: float = 90.0, poll_s: float = 0.5
+) -> Json:
     deadline = time.time() + float(timeout_s)
     last = None
     while time.time() < deadline:
@@ -139,7 +143,9 @@ def _wait_for_registration_applied(cfg: Cfg, account: str, *, timeout_s: float =
     raise RuntimeError(f"account registration not applied within timeout; last={last}")
 
 
-def _wait_for_poh_tier(cfg: Cfg, account: str, *, want_tier: int, timeout_s: float = 90.0, poll_s: float = 0.5) -> Json:
+def _wait_for_poh_tier(
+    cfg: Cfg, account: str, *, want_tier: int, timeout_s: float = 90.0, poll_s: float = 0.5
+) -> Json:
     deadline = time.time() + float(timeout_s)
     last = None
     while time.time() < deadline:
@@ -151,7 +157,9 @@ def _wait_for_poh_tier(cfg: Cfg, account: str, *, want_tier: int, timeout_s: flo
     raise RuntimeError(f"poh tier not reached; want={want_tier} last={last}")
 
 
-def _submit_tx(cfg: Cfg, priv_hex: str, tx_type: str, signer: str, nonce: int, payload: Json) -> Json:
+def _submit_tx(
+    cfg: Cfg, priv_hex: str, tx_type: str, signer: str, nonce: int, payload: Json
+) -> Json:
     tx: Json = {
         "chain_id": cfg.chain_id,
         "tx_type": tx_type,
@@ -176,7 +184,9 @@ def _tx_status(cfg: Cfg, tx_id: str) -> Json:
     return body
 
 
-def _wait_tx_confirmed_best_effort(cfg: Cfg, tx_id: str, *, timeout_s: float = 10.0, poll_s: float = 0.5) -> str:
+def _wait_tx_confirmed_best_effort(
+    cfg: Cfg, tx_id: str, *, timeout_s: float = 10.0, poll_s: float = 0.5
+) -> str:
     deadline = time.time() + float(timeout_s)
     last_status = "unknown"
     while time.time() < deadline:
@@ -189,7 +199,7 @@ def _wait_tx_confirmed_best_effort(cfg: Cfg, tx_id: str, *, timeout_s: float = 1
     return last_status
 
 
-def _gen_keypair() -> Tuple[str, str]:
+def _gen_keypair() -> tuple[str, str]:
     sk = SigningKey.generate()
     pk = sk.verify_key
     return sk.encode().hex(), pk.encode().hex()
@@ -230,10 +240,14 @@ def main() -> int:
 
     print("[1b] wait for account registration to apply (keys present)")
     acct_body = _wait_for_registration_applied(cfg, acct, timeout_s=90.0, poll_s=0.5)
-    print(f"     applied; current_nonce={_account_nonce(acct_body)} next_nonce={_next_nonce(acct_body)}")
+    print(
+        f"     applied; current_nonce={_account_nonce(acct_body)} next_nonce={_next_nonce(acct_body)}"
+    )
     print()
 
-    print("[2] POH_BOOTSTRAP_TIER3_GRANT (optional; requires WEALL_POH_BOOTSTRAP_OPEN=1 server-side)")
+    print(
+        "[2] POH_BOOTSTRAP_TIER3_GRANT (optional; requires WEALL_POH_BOOTSTRAP_OPEN=1 server-side)"
+    )
     try:
         res = _submit_tx(
             cfg,

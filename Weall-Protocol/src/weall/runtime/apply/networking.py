@@ -20,16 +20,17 @@ Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class NetworkingApplyError(RuntimeError):
@@ -44,6 +45,7 @@ class NetworkingApplyError(RuntimeError):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
@@ -106,6 +108,7 @@ def _ensure_peers(state: Json) -> Json:
 # PEER_ADVERTISE
 # ---------------------------------------------------------------------------
 
+
 def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
     peers = _ensure_peers(state)
     payload = _as_dict(env.payload)
@@ -119,7 +122,9 @@ def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
 
     ads = peers["ads"]
     rec = ads.get(env.signer)
-    deduped = isinstance(rec, dict) and rec.get("endpoint") == endpoint and rec.get("peer_id") == peer_id
+    deduped = (
+        isinstance(rec, dict) and rec.get("endpoint") == endpoint and rec.get("peer_id") == peer_id
+    )
 
     rec = {
         "account_id": env.signer,
@@ -129,12 +134,18 @@ def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
         "payload": payload,
     }
     ads[env.signer] = rec
-    return {"applied": "PEER_ADVERTISE", "account_id": env.signer, "peer_id": peer_id, "deduped": deduped}
+    return {
+        "applied": "PEER_ADVERTISE",
+        "account_id": env.signer,
+        "peer_id": peer_id,
+        "deduped": deduped,
+    }
 
 
 # ---------------------------------------------------------------------------
 # PEER_RENDEZVOUS_TICKET_CREATE / REVOKE
 # ---------------------------------------------------------------------------
+
 
 def _apply_peer_rendezvous_ticket_create(state: Json, env: TxEnvelope) -> Json:
     peers = _ensure_peers(state)
@@ -186,6 +197,7 @@ def _apply_peer_rendezvous_ticket_revoke(state: Json, env: TxEnvelope) -> Json:
 # PEER_REQUEST_CONNECT
 # ---------------------------------------------------------------------------
 
+
 def _apply_peer_request_connect(state: Json, env: TxEnvelope) -> Json:
     peers = _ensure_peers(state)
     payload = _as_dict(env.payload)
@@ -211,6 +223,7 @@ def _apply_peer_request_connect(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # PEER_BAN_SET (system)
 # ---------------------------------------------------------------------------
+
 
 def _apply_peer_ban_set(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -239,6 +252,7 @@ def _apply_peer_ban_set(state: Json, env: TxEnvelope) -> Json:
 # PEER_REPUTATION_SIGNAL (system)
 # ---------------------------------------------------------------------------
 
+
 def _apply_peer_reputation_signal(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     peers = _ensure_peers(state)
@@ -264,7 +278,8 @@ def _apply_peer_reputation_signal(state: Json, env: TxEnvelope) -> Json:
 # Router
 # ---------------------------------------------------------------------------
 
-def apply_networking(state: Json, env: TxEnvelope) -> Optional[Json]:
+
+def apply_networking(state: Json, env: TxEnvelope) -> Json | None:
     t = str(getattr(env, "tx_type", "") or "").strip()
 
     if t == "PEER_ADVERTISE":

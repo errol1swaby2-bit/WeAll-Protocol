@@ -19,7 +19,9 @@ def _handshake(a: NetNode, b: NetNode) -> None:
         b.tick()
 
 
-def _req(corr_id: str, *, mode: str, from_height: int = 0, to_height: int | None = None, selector=None) -> StateSyncRequestMsg:
+def _req(
+    corr_id: str, *, mode: str, from_height: int = 0, to_height: int | None = None, selector=None
+) -> StateSyncRequestMsg:
     return StateSyncRequestMsg(
         header=WireHeader(
             type=MsgType.STATE_SYNC_REQUEST,
@@ -42,19 +44,25 @@ def test_request_state_sync_snapshot_roundtrip_over_transport() -> None:
     b = NetNode(
         cfg=_cfg("peer-b"),
         transport=InMemoryTransport(),
-        sync_service=StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st),
+        sync_service=StateSyncService(
+            chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+        ),
     )
     a.bind(PeerAddr("mem://a"))
     b.bind(PeerAddr("mem://b"))
     _handshake(a, b)
 
     req = _req("snap-1", mode="snapshot")
-    resp = a.request_state_sync("mem://b", req, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0)
+    resp = a.request_state_sync(
+        "mem://b", req, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0
+    )
     assert resp is not None
     assert resp.ok is True
     assert resp.snapshot == st
 
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     svc.verify_response(resp)
 
     a.close()
@@ -85,13 +93,19 @@ def test_request_state_sync_delta_roundtrip_over_transport() -> None:
     _handshake(a, b)
 
     anchor = build_snapshot_anchor(st)
-    req = _req("delta-1", mode="delta", from_height=1, to_height=3, selector={"trusted_anchor": anchor})
-    resp = a.request_state_sync("mem://b", req, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0)
+    req = _req(
+        "delta-1", mode="delta", from_height=1, to_height=3, selector={"trusted_anchor": anchor}
+    )
+    resp = a.request_state_sync(
+        "mem://b", req, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0
+    )
     assert resp is not None
     assert resp.ok is True
     assert tuple(resp.blocks) == (blocks[2], blocks[3])
 
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     svc.verify_response(resp, trusted_anchor=anchor)
 
     a.close()
@@ -105,7 +119,9 @@ def test_request_state_sync_partition_then_rejoin_retry_succeeds() -> None:
     b = NetNode(
         cfg=_cfg("peer-b"),
         transport=InMemoryTransport(),
-        sync_service=StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st),
+        sync_service=StateSyncService(
+            chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+        ),
     )
     a.bind(PeerAddr("mem://a"))
     b.bind(PeerAddr("mem://b"))
@@ -116,7 +132,9 @@ def test_request_state_sync_partition_then_rejoin_retry_succeeds() -> None:
     assert resp1 is None
 
     req2 = _req("snap-rejoin", mode="snapshot")
-    resp2 = a.request_state_sync("mem://b", req2, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0)
+    resp2 = a.request_state_sync(
+        "mem://b", req2, timeout_ms=500, pump=lambda: (b.tick(), a.tick()), sleep_ms=0
+    )
     assert resp2 is not None
     assert resp2.ok is True
     assert resp2.snapshot == st

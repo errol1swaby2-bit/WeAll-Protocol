@@ -23,11 +23,15 @@ def _cfg() -> ChainConfig:
     )
 
 
-def test_production_bootstrap_reports_trusted_anchor_alias_conflict(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_production_bootstrap_reports_trusted_anchor_alias_conflict(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     txi = tmp_path / "tx_index.json"
     txi.write_text("{}", encoding="utf-8")
     cfg = _cfg()
-    cfg = ChainConfig(**{**cfg.__dict__, "tx_index_path": str(txi), "db_path": str(tmp_path / 'test.db')})
+    cfg = ChainConfig(
+        **{**cfg.__dict__, "tx_index_path": str(txi), "db_path": str(tmp_path / "test.db")}
+    )
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR", "1")
     monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "0")
@@ -35,7 +39,9 @@ def test_production_bootstrap_reports_trusted_anchor_alias_conflict(monkeypatch:
     assert any("trusted-anchor env aliases conflict" in issue for issue in issues)
 
 
-def test_enforce_prod_runtime_topology_rejects_bft_plus_block_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enforce_prod_runtime_topology_rejects_bft_plus_block_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "1")
@@ -43,7 +49,9 @@ def test_enforce_prod_runtime_topology_rejects_bft_plus_block_loop(monkeypatch: 
         _enforce_prod_runtime_topology()
 
 
-def test_enforce_prod_runtime_topology_requires_single_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enforce_prod_runtime_topology_requires_single_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("GUNICORN_WORKERS", "2")

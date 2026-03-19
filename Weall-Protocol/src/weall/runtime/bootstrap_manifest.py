@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from weall.crypto.sig import sign_ed25519, verify_ed25519_signature
 from weall.runtime.bft_hotstuff import normalize_validators, validator_set_hash
@@ -17,7 +17,7 @@ from weall.runtime.chain_config import (
 )
 from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE, runtime_startup_fingerprint
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def canon_json(obj: Any) -> str:
@@ -42,8 +42,8 @@ def compute_manifest_hash(manifest: Json) -> str:
     return hashlib.sha256(canon_json(payload).encode("utf-8")).hexdigest()
 
 
-def verify_manifest_integrity(manifest: Json) -> List[str]:
-    issues: List[str] = []
+def verify_manifest_integrity(manifest: Json) -> list[str]:
+    issues: list[str] = []
     expected = str(manifest.get("manifest_hash") or "").strip()
     if not expected:
         issues.append("manifest_hash missing")
@@ -100,13 +100,13 @@ def load_json_object(path: Path | None, *, kind: str) -> Json | None:
     return payload
 
 
-def read_db_state(db_path: Path) -> Tuple[Json, Dict[str, str]]:
+def read_db_state(db_path: Path) -> tuple[Json, dict[str, str]]:
     if not db_path.is_file():
         raise FileNotFoundError(f"db file not found: {db_path}")
     con = sqlite3.connect(str(db_path))
     try:
         meta_rows = con.execute("SELECT key, value FROM meta").fetchall()
-        meta: Dict[str, str] = {}
+        meta: dict[str, str] = {}
         for key, value in meta_rows:
             meta[str(key)] = str(value)
         row = con.execute("SELECT state_json FROM ledger_state WHERE id = 1").fetchone()
@@ -133,7 +133,7 @@ def build_anchor_from_state(state: Json) -> Json:
     }
 
 
-def validator_epoch_and_hash(state: Json) -> Tuple[int, str, List[str]]:
+def validator_epoch_and_hash(state: Json) -> tuple[int, str, list[str]]:
     consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
     roles = state.get("roles") if isinstance(state.get("roles"), dict) else {}
     validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else {}
@@ -188,7 +188,7 @@ def expected_startup_fingerprint(
 
 def build_manifest(cfg: ChainConfig, *, db_path: Path, tx_index_path: Path) -> Json:
     state: Json = {}
-    state_meta: Dict[str, str] = {}
+    state_meta: dict[str, str] = {}
     if db_path.is_file():
         state, state_meta = read_db_state(db_path)
     tx_index_hash = sha256_file(tx_index_path) if tx_index_path.is_file() else ""
@@ -201,7 +201,13 @@ def build_manifest(cfg: ChainConfig, *, db_path: Path, tx_index_path: Path) -> J
         cfg_chain_id=str(cfg.chain_id or ""),
         cfg_node_id=str(cfg.node_id or ""),
         tx_index_hash=tx_index_hash,
-        schema_version=str(state_meta.get("schema_version") or ((state.get("meta") or {}) if isinstance(state.get("meta"), dict) else {}).get("schema_version") or "1"),
+        schema_version=str(
+            state_meta.get("schema_version")
+            or ((state.get("meta") or {}) if isinstance(state.get("meta"), dict) else {}).get(
+                "schema_version"
+            )
+            or "1"
+        ),
         validator_epoch=validator_epoch,
         validator_set_hash_value=validator_set_hash_value,
     )
@@ -224,7 +230,7 @@ def build_manifest(cfg: ChainConfig, *, db_path: Path, tx_index_path: Path) -> J
     return manifest
 
 
-def sign_manifest(manifest: Json, *, privkey: str, signer_pubkey: Optional[str] = None) -> Json:
+def sign_manifest(manifest: Json, *, privkey: str, signer_pubkey: str | None = None) -> Json:
     payload = dict(manifest)
     payload.pop("signature", None)
     message = canon_json(payload).encode("utf-8")
@@ -238,8 +244,8 @@ def sign_manifest(manifest: Json, *, privkey: str, signer_pubkey: Optional[str] 
     return signed
 
 
-def verify_manifest_signature(manifest: Json, *, expected_pubkey: str) -> List[str]:
-    issues: List[str] = []
+def verify_manifest_signature(manifest: Json, *, expected_pubkey: str) -> list[str]:
+    issues: list[str] = []
     sig_block = manifest.get("signature") if isinstance(manifest.get("signature"), dict) else {}
     alg = str(sig_block.get("alg") or "").strip().lower()
     pubkey = str(sig_block.get("pubkey") or "").strip()
@@ -264,11 +270,18 @@ def verify_manifest_signature(manifest: Json, *, expected_pubkey: str) -> List[s
     return issues
 
 
-def verify_anchor(*, expected: Json | None, observed: Json) -> List[str]:
-    issues: List[str] = []
+def verify_anchor(*, expected: Json | None, observed: Json) -> list[str]:
+    issues: list[str] = []
     if expected is None:
         return issues
-    for key in ("height", "tip_block_id", "tip_hash", "state_root", "finalized_height", "finalized_block_id"):
+    for key in (
+        "height",
+        "tip_block_id",
+        "tip_hash",
+        "state_root",
+        "finalized_height",
+        "finalized_block_id",
+    ):
         want = expected.get(key)
         if want in (None, ""):
             continue
@@ -278,29 +291,57 @@ def verify_anchor(*, expected: Json | None, observed: Json) -> List[str]:
     return issues
 
 
-
-
-def summarize_manifest_compatibility(*, cfg: ChainConfig, manifest: Json, tx_index_hash: str, schema_version: str, expected_anchor: Json, expected_fp: Json) -> Json:
+def summarize_manifest_compatibility(
+    *,
+    cfg: ChainConfig,
+    manifest: Json,
+    tx_index_hash: str,
+    schema_version: str,
+    expected_anchor: Json,
+    expected_fp: Json,
+) -> Json:
     local_cfg_payload = chain_config_compatibility_payload(cfg)
     local_cfg_hash = chain_config_compatibility_hash(cfg)
-    manifest_cfg_payload = manifest.get("chain_config_compatibility") if isinstance(manifest.get("chain_config_compatibility"), dict) else {}
+    manifest_cfg_payload = (
+        manifest.get("chain_config_compatibility")
+        if isinstance(manifest.get("chain_config_compatibility"), dict)
+        else {}
+    )
     manifest_cfg_hash = str(manifest.get("chain_config_compatibility_hash") or "").strip()
     manifest_profile_hash = str(manifest.get("protocol_profile_hash") or "").strip()
     local_profile_hash = PRODUCTION_CONSENSUS_PROFILE.profile_hash()
     manifest_chain_id = str(manifest.get("chain_id") or "").strip()
     local_chain_id = str(cfg.chain_id or "").strip()
     manifest_tx_index_hash = str(manifest.get("tx_index_hash") or "").strip()
-    manifest_fp = manifest.get("startup_fingerprint") if isinstance(manifest.get("startup_fingerprint"), dict) else {}
-    manifest_anchor = manifest.get("trusted_anchor") if isinstance(manifest.get("trusted_anchor"), dict) else {}
+    manifest_fp = (
+        manifest.get("startup_fingerprint")
+        if isinstance(manifest.get("startup_fingerprint"), dict)
+        else {}
+    )
+    manifest_anchor = (
+        manifest.get("trusted_anchor") if isinstance(manifest.get("trusted_anchor"), dict) else {}
+    )
 
     mismatches: list[str] = []
     field_status: Json = {
         "chain_id": manifest_chain_id == local_chain_id if manifest_chain_id else True,
-        "protocol_profile_hash": manifest_profile_hash == local_profile_hash if manifest_profile_hash else True,
-        "tx_index_hash": manifest_tx_index_hash == tx_index_hash if manifest_tx_index_hash and tx_index_hash else True,
-        "chain_config_compatibility_hash": manifest_cfg_hash == local_cfg_hash if manifest_cfg_hash else True,
-        "chain_config_compatibility_payload": canon_json(manifest_cfg_payload) == canon_json(local_cfg_payload) if manifest_cfg_payload else True,
-        "startup_fingerprint": str(manifest_fp.get("fingerprint") or "") == str(expected_fp.get("fingerprint") or "") if manifest_fp else True,
+        "protocol_profile_hash": manifest_profile_hash == local_profile_hash
+        if manifest_profile_hash
+        else True,
+        "tx_index_hash": manifest_tx_index_hash == tx_index_hash
+        if manifest_tx_index_hash and tx_index_hash
+        else True,
+        "chain_config_compatibility_hash": manifest_cfg_hash == local_cfg_hash
+        if manifest_cfg_hash
+        else True,
+        "chain_config_compatibility_payload": canon_json(manifest_cfg_payload)
+        == canon_json(local_cfg_payload)
+        if manifest_cfg_payload
+        else True,
+        "startup_fingerprint": str(manifest_fp.get("fingerprint") or "")
+        == str(expected_fp.get("fingerprint") or "")
+        if manifest_fp
+        else True,
     }
     if not field_status["chain_id"]:
         mismatches.append("chain_id")
@@ -316,7 +357,14 @@ def summarize_manifest_compatibility(*, cfg: ChainConfig, manifest: Json, tx_ind
         mismatches.append("startup_fingerprint")
 
     anchor_mismatches: list[str] = []
-    for key in ("height", "tip_block_id", "tip_hash", "state_root", "finalized_height", "finalized_block_id"):
+    for key in (
+        "height",
+        "tip_block_id",
+        "tip_hash",
+        "state_root",
+        "finalized_height",
+        "finalized_block_id",
+    ):
         want = manifest_anchor.get(key)
         if want in (None, ""):
             continue
@@ -352,8 +400,9 @@ def summarize_manifest_compatibility(*, cfg: ChainConfig, manifest: Json, tx_ind
         "trusted_anchor_mismatches": anchor_mismatches,
     }
 
+
 def verify_local_manifest(*, cfg: ChainConfig, manifest_path: Path, expected_pubkey: str) -> Json:
-    issues: List[str] = []
+    issues: list[str] = []
     try:
         manifest = load_json_object(manifest_path, kind="release manifest") or {}
     except Exception as exc:
@@ -385,8 +434,16 @@ def verify_local_manifest(*, cfg: ChainConfig, manifest_path: Path, expected_pub
     else:
         tx_index_hash = sha256_file(tx_index_path)
 
-    schema_version = str(meta.get("schema_version") or ((state.get("meta") or {}) if isinstance(state.get("meta"), dict) else {}).get("schema_version") or "1")
-    validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(state)
+    schema_version = str(
+        meta.get("schema_version")
+        or ((state.get("meta") or {}) if isinstance(state.get("meta"), dict) else {}).get(
+            "schema_version"
+        )
+        or "1"
+    )
+    validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
+        state
+    )
     observed_anchor = build_anchor_from_state(state)
     expected_fp = expected_startup_fingerprint(
         cfg_chain_id=str(cfg.chain_id or ""),
@@ -400,16 +457,26 @@ def verify_local_manifest(*, cfg: ChainConfig, manifest_path: Path, expected_pub
     expected_profile_hash = PRODUCTION_CONSENSUS_PROFILE.profile_hash()
     bundle_profile_hash = str(manifest.get("protocol_profile_hash") or "")
     if bundle_profile_hash and bundle_profile_hash != expected_profile_hash:
-        issues.append(f"manifest protocol_profile_hash mismatch: binary={expected_profile_hash!r} manifest={bundle_profile_hash!r}")
+        issues.append(
+            f"manifest protocol_profile_hash mismatch: binary={expected_profile_hash!r} manifest={bundle_profile_hash!r}"
+        )
     bundle_tx_index_hash = str(manifest.get("tx_index_hash") or "")
     if bundle_tx_index_hash and tx_index_hash and bundle_tx_index_hash != tx_index_hash:
-        issues.append(f"manifest tx_index_hash mismatch: local={tx_index_hash!r} manifest={bundle_tx_index_hash!r}")
+        issues.append(
+            f"manifest tx_index_hash mismatch: local={tx_index_hash!r} manifest={bundle_tx_index_hash!r}"
+        )
     bundle_chain_id = str(manifest.get("chain_id") or "")
     if bundle_chain_id and bundle_chain_id != str(cfg.chain_id or ""):
-        issues.append(f"manifest chain_id mismatch: config={str(cfg.chain_id or '')!r} manifest={bundle_chain_id!r}")
+        issues.append(
+            f"manifest chain_id mismatch: config={str(cfg.chain_id or '')!r} manifest={bundle_chain_id!r}"
+        )
     local_cfg_hash = chain_config_compatibility_hash(cfg)
     bundle_cfg_hash = str(manifest.get("chain_config_compatibility_hash") or "").strip()
-    bundle_cfg_payload = manifest.get("chain_config_compatibility") if isinstance(manifest.get("chain_config_compatibility"), dict) else None
+    bundle_cfg_payload = (
+        manifest.get("chain_config_compatibility")
+        if isinstance(manifest.get("chain_config_compatibility"), dict)
+        else None
+    )
     if bundle_cfg_payload is not None:
         expected_cfg_payload = chain_config_compatibility_payload(cfg)
         if canon_json(bundle_cfg_payload) != canon_json(expected_cfg_payload):
@@ -417,12 +484,27 @@ def verify_local_manifest(*, cfg: ChainConfig, manifest_path: Path, expected_pub
                 f"manifest chain_config_compatibility mismatch: local={canon_json(expected_cfg_payload)!r} manifest={canon_json(bundle_cfg_payload)!r}"
             )
     if bundle_cfg_hash and bundle_cfg_hash != local_cfg_hash:
-        issues.append(f"manifest chain_config_compatibility_hash mismatch: local={local_cfg_hash!r} manifest={bundle_cfg_hash!r}")
-    issues.extend(verify_anchor(expected=manifest.get("trusted_anchor") if isinstance(manifest.get("trusted_anchor"), dict) else None, observed=observed_anchor))
-    bundle_fp = manifest.get("startup_fingerprint") if isinstance(manifest.get("startup_fingerprint"), dict) else {}
+        issues.append(
+            f"manifest chain_config_compatibility_hash mismatch: local={local_cfg_hash!r} manifest={bundle_cfg_hash!r}"
+        )
+    issues.extend(
+        verify_anchor(
+            expected=manifest.get("trusted_anchor")
+            if isinstance(manifest.get("trusted_anchor"), dict)
+            else None,
+            observed=observed_anchor,
+        )
+    )
+    bundle_fp = (
+        manifest.get("startup_fingerprint")
+        if isinstance(manifest.get("startup_fingerprint"), dict)
+        else {}
+    )
     bundle_hash = str(bundle_fp.get("fingerprint") or "")
     if bundle_hash and bundle_hash != str(expected_fp.get("fingerprint") or ""):
-        issues.append(f"manifest startup_fingerprint mismatch: local={expected_fp.get('fingerprint')!r} manifest={bundle_hash!r}")
+        issues.append(
+            f"manifest startup_fingerprint mismatch: local={expected_fp.get('fingerprint')!r} manifest={bundle_hash!r}"
+        )
 
     compatibility_contract = summarize_manifest_compatibility(
         cfg=cfg,

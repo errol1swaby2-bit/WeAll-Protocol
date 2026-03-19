@@ -21,7 +21,7 @@ DOMAIN_APPLY = REPO_ROOT / "src" / "weall" / "runtime" / "domain_apply.py"
 BEGIN = "# BEGIN WEALL REMAINING CANON TXS BATCH2 (AUTO-GENERATED)\n"
 END = "# END WEALL REMAINING CANON TXS BATCH2 (AUTO-GENERATED)\n"
 
-INSERT_BLOCK = r'''# BEGIN WEALL REMAINING CANON TXS BATCH2 (AUTO-GENERATED)
+INSERT_BLOCK = r"""# BEGIN WEALL REMAINING CANON TXS BATCH2 (AUTO-GENERATED)
 # Deterministic MVP semantics for txs that previously routed to _apply_canon_missing(...).
 # Goals:
 # - Always deterministic
@@ -1027,7 +1027,7 @@ def _apply_case_outcome_receipt(state: Json, env: TxEnvelope) -> Json:
 
 
 # END WEALL REMAINING CANON TXS BATCH2 (AUTO-GENERATED)
-'''
+"""
 
 REWIRES = {
     "EPOCH_OPEN": "_apply_epoch_open",
@@ -1125,4 +1125,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

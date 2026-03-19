@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from weall.runtime.reputation_units import account_reputation_units, threshold_to_units
 from weall.runtime.vrf_sig import state_vrf_output
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _entropy_hex(*, state: Json) -> str:
@@ -22,7 +22,7 @@ def _entropy_hex(*, state: Json) -> str:
 
     tip = _as_str(state.get("tip")).strip()
     height = _as_int(state.get("height"), 0)
-    return hashlib.sha256(f"fallback|{tip}|{height}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"fallback|{tip}|{height}".encode()).hexdigest()
 
 
 def _score(seed_hex: str, *parts: str) -> str:
@@ -65,13 +65,13 @@ def eligible_tier3_jurors(
     state: Json,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
-) -> List[str]:
+) -> list[str]:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
         return []
 
     required_units = _min_rep_units(min_rep_units=min_rep_units, min_rep=min_rep)
-    out: List[str] = []
+    out: list[str] = []
     for account_id, rec_any in accounts.items():
         rec = _as_dict(rec_any)
         if bool(rec.get("banned", False)) or bool(rec.get("locked", False)):
@@ -96,7 +96,7 @@ def eligible_tier2_jurors(
     state: Json,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
-) -> List[str]:
+) -> list[str]:
     """Eligible jurors for Tier 2 reviews.
 
     MVP policy: require Tier 3 accounts (stronger trust baseline) and reputation >= threshold.
@@ -106,7 +106,7 @@ def eligible_tier2_jurors(
         return []
 
     required_units = _min_rep_units(min_rep_units=min_rep_units, min_rep=min_rep)
-    out: List[str] = []
+    out: list[str] = []
     for account_id, rec_any in accounts.items():
         rec = _as_dict(rec_any)
         if bool(rec.get("banned", False)) or bool(rec.get("locked", False)):
@@ -133,7 +133,7 @@ def pick_tier2_jurors(
     n_jurors: int = 3,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
-) -> List[str]:
+) -> list[str]:
     """Deterministically pick Tier 2 jurors.
 
     Entropy source:
@@ -173,7 +173,7 @@ def pick_tier3_jurors(
     n_observing: int = 7,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
-) -> Tuple[List[str], List[str]]:
+) -> tuple[list[str], list[str]]:
     """
     Deterministically pick jurors from eligible Tier 3 accounts.
 
@@ -196,9 +196,7 @@ def pick_tier3_jurors(
 
     need = int(n_interacting) + int(n_observing)
     if len(pool) < need:
-        raise ValueError(
-            f"insufficient_eligible_jurors: need {need}, have {len(pool)}"
-        )
+        raise ValueError(f"insufficient_eligible_jurors: need {need}, have {len(pool)}")
 
     scored = [(_score(entropy, "poh3", str(case_id), a), a) for a in pool]
     scored.sort(key=lambda t: t[0])

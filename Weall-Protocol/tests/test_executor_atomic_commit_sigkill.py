@@ -34,7 +34,7 @@ def test_executor_atomic_commit_survives_sigkill_mid_commit(tmp_path: Path) -> N
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    child_code = r'''
+    child_code = r"""
 import os
 from pathlib import Path
 from weall.runtime.executor import WeAllExecutor
@@ -54,7 +54,7 @@ assert err == ""
 meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
 # If we didn't get killed, we should have succeeded.
 assert meta.ok is True
-'''
+"""
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(root / "src")
@@ -77,7 +77,9 @@ assert meta.ok is True
     p.wait(timeout=5)
 
     # Restart and verify atomic rollback.
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="sigkill", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="sigkill", tx_index_path=tx_index_path
+    )
     st = ex.read_state()
     assert int(st.get("height", 0)) == 0
 

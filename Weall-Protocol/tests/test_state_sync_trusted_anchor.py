@@ -18,8 +18,15 @@ def _hdr() -> WireHeader:
 
 
 def test_snapshot_response_contains_authenticated_anchor() -> None:
-    st = {"height": 7, "tip_hash": "abc123", "accounts": {"a": {"nonce": 1}}, "finalized": {"height": 6, "block_id": "b6"}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    st = {
+        "height": 7,
+        "tip_hash": "abc123",
+        "accounts": {"a": {"nonce": 1}},
+        "finalized": {"height": 6, "block_id": "b6"},
+    }
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     req = StateSyncRequestMsg(header=_hdr(), mode="snapshot", selector=None)
     resp = svc.handle_request(req)
 
@@ -32,8 +39,15 @@ def test_snapshot_response_contains_authenticated_anchor() -> None:
 
 
 def test_snapshot_request_can_pin_trusted_anchor() -> None:
-    st = {"height": 11, "tip_hash": "tip11", "accounts": {"a": {"nonce": 2}}, "finalized": {"height": 10, "block_id": "b10"}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    st = {
+        "height": 11,
+        "tip_hash": "tip11",
+        "accounts": {"a": {"nonce": 2}},
+        "finalized": {"height": 10, "block_id": "b10"},
+    }
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     anchor = build_snapshot_anchor(st)
     req = StateSyncRequestMsg(header=_hdr(), mode="snapshot", selector={"trusted_anchor": anchor})
     resp = svc.handle_request(req)
@@ -42,18 +56,34 @@ def test_snapshot_request_can_pin_trusted_anchor() -> None:
 
 
 def test_snapshot_request_rejects_mismatched_trusted_anchor() -> None:
-    st = {"height": 11, "tip_hash": "tip11", "accounts": {"a": {"nonce": 2}}, "finalized": {"height": 10, "block_id": "b10"}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    st = {
+        "height": 11,
+        "tip_hash": "tip11",
+        "accounts": {"a": {"nonce": 2}},
+        "finalized": {"height": 10, "block_id": "b10"},
+    }
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     bad_anchor = {"height": 11, "tip_hash": "evil-tip"}
-    req = StateSyncRequestMsg(header=_hdr(), mode="snapshot", selector={"trusted_anchor": bad_anchor})
+    req = StateSyncRequestMsg(
+        header=_hdr(), mode="snapshot", selector={"trusted_anchor": bad_anchor}
+    )
     resp = svc.handle_request(req)
     assert resp.ok is False
     assert resp.reason == "trusted_anchor_mismatch"
 
 
 def test_verify_response_rejects_tampered_snapshot_anchor() -> None:
-    st = {"height": 7, "tip_hash": "abc123", "accounts": {"a": {"nonce": 1}}, "finalized": {"height": 6, "block_id": "b6"}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    st = {
+        "height": 7,
+        "tip_hash": "abc123",
+        "accounts": {"a": {"nonce": 1}},
+        "finalized": {"height": 6, "block_id": "b6"},
+    }
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     req = StateSyncRequestMsg(header=_hdr(), mode="snapshot", selector=None)
     resp = svc.handle_request(req)
     assert resp.snapshot_anchor is not None

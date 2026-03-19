@@ -5,9 +5,7 @@ from weall.runtime.system_tx_engine import enqueue_system_tx, system_tx_emitter
 
 def _canon_stub(*tx_types: str):
     # Minimal shape compatible with system_tx_engine._canon_context()
-    return {
-        "by_name": {t: {"context": "block", "receipt_only": False} for t in tx_types}
-    }
+    return {"by_name": {t: {"context": "block", "receipt_only": False} for t in tx_types}}
 
 
 def test_system_tx_emitter_phase_does_not_consume_other_phase() -> None:

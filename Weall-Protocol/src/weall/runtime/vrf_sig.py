@@ -19,11 +19,11 @@ Security notes:
 """
 
 import hashlib
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-from weall.crypto.sig import verify_ed25519_signature, sign_ed25519
+from weall.crypto.sig import sign_ed25519, verify_ed25519_signature
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 SCHEME = "ed25519_sig_v1"
 DOMAIN = "weall-vrf"
@@ -79,7 +79,7 @@ def verify_vrf_record(
     height: int,
     prev_block_hash: str,
     block_ts_ms: int,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Verify VRF record and return (ok, reason)."""
 
     if not isinstance(vrf, dict):
@@ -111,7 +111,7 @@ def verify_vrf_record(
     return True, ""
 
 
-def state_vrf_output(state: Json) -> Optional[str]:
+def state_vrf_output(state: Json) -> str | None:
     """Best-effort helper to fetch the latest VRF output stored in state."""
     r = state.get("rand")
     if not isinstance(r, dict):

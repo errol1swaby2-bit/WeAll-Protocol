@@ -36,7 +36,9 @@ class _FakeNetLoop:
         return None
 
 
-def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -48,12 +50,16 @@ def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(monkeyp
     monkeypatch.setattr(api_app, "BlockProducerLoop", _FakeBlockLoop)
 
     app = api_app.create_app(boot_runtime=True)
-    with pytest.raises(api_app.ApiRuntimeLifecycleError, match="api_block_loop_start_failed:start_returned_false"):
+    with pytest.raises(
+        api_app.ApiRuntimeLifecycleError, match="api_block_loop_start_failed:start_returned_false"
+    ):
         with TestClient(app):
             pass
 
 
-def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -65,12 +71,16 @@ def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(monkeypat
     monkeypatch.setattr(api_app, "NetMeshLoop", _FakeNetLoop)
 
     app = api_app.create_app(boot_runtime=True)
-    with pytest.raises(api_app.ApiRuntimeLifecycleError, match="api_net_loop_start_failed:start_returned_false"):
+    with pytest.raises(
+        api_app.ApiRuntimeLifecycleError, match="api_net_loop_start_failed:start_returned_false"
+    ):
         with TestClient(app):
             pass
 
 
-def test_dev_block_loop_autostart_still_degrades_open_for_testability(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dev_block_loop_autostart_still_degrades_open_for_testability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -86,7 +96,9 @@ def test_dev_block_loop_autostart_still_degrades_open_for_testability(monkeypatc
         assert client.app.state.block_loop is None
 
 
-def test_prod_block_loop_autostart_fails_closed_when_runtime_dependencies_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_block_loop_autostart_fails_closed_when_runtime_dependencies_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -97,6 +109,9 @@ def test_prod_block_loop_autostart_fails_closed_when_runtime_dependencies_missin
     monkeypatch.setattr(api_app, "build_executor", lambda: ex)
 
     app = api_app.create_app(boot_runtime=True)
-    with pytest.raises(api_app.ApiRuntimeLifecycleError, match="api_block_loop_start_failed:missing_runtime_dependencies"):
+    with pytest.raises(
+        api_app.ApiRuntimeLifecycleError,
+        match="api_block_loop_start_failed:missing_runtime_dependencies",
+    ):
         with TestClient(app):
             pass

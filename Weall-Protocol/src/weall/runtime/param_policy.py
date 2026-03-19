@@ -10,16 +10,16 @@ Production safety: governance-controlled parameter updates must be:
 This module is used by apply modules that accept parameter blobs.
 """
 
-from typing import Any, Dict, Iterable, Tuple
-
+from collections.abc import Iterable
+from typing import Any
 
 # (min, max) bounds for numeric params.
-Bounds = Tuple[int, int]
+Bounds = tuple[int, int]
 
 
 # Whitelist + bounds.
 # Keys not present here MUST be rejected when set via governance/system tx.
-ALLOWED: Dict[str, Any] = {
+ALLOWED: dict[str, Any] = {
     "params": {
         "poh": {
             "tier2_n_jurors": (3, 100),
@@ -59,7 +59,7 @@ def _as_int(v: Any) -> int:
         raise ValueError("param_must_be_int") from e
 
 
-def _walk(policy: Dict[str, Any], path: Iterable[str]) -> Any:
+def _walk(policy: dict[str, Any], path: Iterable[str]) -> Any:
     node: Any = policy
     for p in path:
         if not isinstance(node, dict) or p not in node:
@@ -89,14 +89,14 @@ def validate_param(path: Iterable[str], value: Any) -> None:
     raise ValueError("param_not_allowed")
 
 
-def validate_param_blob(*, base_path: Iterable[str], blob: Dict[str, Any]) -> None:
+def validate_param_blob(*, base_path: Iterable[str], blob: dict[str, Any]) -> None:
     """Validate a dict of leaf params under base_path.
 
     Only leaf numeric values are permitted. Nested dicts are permitted if they are
     explicitly present in ALLOWED.
     """
 
-    def _recurse(cur_path: Tuple[str, ...], obj: Any) -> None:
+    def _recurse(cur_path: tuple[str, ...], obj: Any) -> None:
         if isinstance(obj, dict):
             for k in sorted(obj.keys(), key=lambda x: str(x)):
                 _recurse(cur_path + (str(k),), obj[k])

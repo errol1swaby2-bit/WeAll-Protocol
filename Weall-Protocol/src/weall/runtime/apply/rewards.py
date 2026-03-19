@@ -16,13 +16,13 @@ missing preconditions.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -39,7 +39,7 @@ def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -74,7 +74,7 @@ def _ensure_root_dict(state: Json, key: str) -> Json:
     return cur
 
 
-def _ensure_root_list(state: Json, key: str) -> List[Any]:
+def _ensure_root_list(state: Json, key: str) -> list[Any]:
     cur = state.get(key)
     if not isinstance(cur, list):
         cur = []
@@ -93,7 +93,15 @@ def _ensure_account(state: Json, account_id: str) -> Json:
     accounts = _ensure_root_dict(state, "accounts")
     acct = accounts.get(account_id)
     if not isinstance(acct, dict):
-        acct = {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0.0, "balance": 0, "keys": []}
+        acct = {
+            "nonce": 0,
+            "poh_tier": 0,
+            "banned": False,
+            "locked": False,
+            "reputation": 0.0,
+            "balance": 0,
+            "keys": [],
+        }
         accounts[account_id] = acct
     return acct
 
@@ -111,7 +119,14 @@ def _ensure_rewards(state: Json) -> Json:
     if not isinstance(r.get("forfeitures_by_id"), dict):
         r["forfeitures_by_id"] = {}
     if not isinstance(r.get("stats"), dict):
-        r["stats"] = {"minted_total": 0, "distributed_total": 0, "creator_alloc_total": 0, "treasury_alloc_total": 0, "forfeited_total": 0, "last_nonce": 0}
+        r["stats"] = {
+            "minted_total": 0,
+            "distributed_total": 0,
+            "creator_alloc_total": 0,
+            "treasury_alloc_total": 0,
+            "forfeited_total": 0,
+            "last_nonce": 0,
+        }
     return r
 
 
@@ -195,11 +210,18 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
             raise RewardsApplyError(
                 "forbidden",
                 "mint_exceeds_max_supply",
-                {"block_id": block_id, "issued": int(issued), "amount": int(amt), "max_supply": int(max_supply)},
+                {
+                    "block_id": block_id,
+                    "issued": int(issued),
+                    "amount": int(amt),
+                    "max_supply": int(max_supply),
+                },
             )
         mp["issued"] = int(issued + amt)
         try:
-            mp["last_reward_height"] = max(_as_int(mp.get("last_reward_height"), 0), _as_int(payload.get("height"), 0))
+            mp["last_reward_height"] = max(
+                _as_int(mp.get("last_reward_height"), 0), _as_int(payload.get("height"), 0)
+            )
         except Exception:
             pass
 
@@ -210,7 +232,12 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
             pool["balance"] = _as_int(pool.get("balance"), 0) + int(amt)
 
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
-    return {"applied": "BLOCK_REWARD_MINT", "block_id": block_id, "amount": int(amount), "deduped": already}
+    return {
+        "applied": "BLOCK_REWARD_MINT",
+        "block_id": block_id,
+        "amount": int(amount),
+        "deduped": already,
+    }
 
 
 def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
@@ -232,12 +259,18 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         transfers = _as_list(payload.get("transfers"))
         debits = _as_list(payload.get("debits"))
 
-        credited_total, debited_total = _apply_transfers_and_debits(state, payload, strict_debits=True)
+        credited_total, debited_total = _apply_transfers_and_debits(
+            state, payload, strict_debits=True
+        )
         if int(credited_total) != int(debited_total):
             raise RewardsApplyError(
                 "invalid_payload",
                 "credits_must_equal_debits",
-                {"block_id": block_id, "credited_total": int(credited_total), "debited_total": int(debited_total)},
+                {
+                    "block_id": block_id,
+                    "credited_total": int(credited_total),
+                    "debited_total": int(debited_total),
+                },
             )
         distributed_total = int(credited_total)
 
@@ -250,13 +283,24 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
             "credited_total": int(credited_total),
             "debited_total": int(debited_total),
         }
-        r["stats"]["distributed_total"] = _as_int(r["stats"].get("distributed_total"), 0) + int(distributed_total)
+        r["stats"]["distributed_total"] = _as_int(r["stats"].get("distributed_total"), 0) + int(
+            distributed_total
+        )
 
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
-    return {"applied": "BLOCK_REWARD_DISTRIBUTE", "block_id": block_id, "distributed_total": int(distributed_total) if not already else _as_int(existing.get("credited_total"), 0), "deduped": already}
+    return {
+        "applied": "BLOCK_REWARD_DISTRIBUTE",
+        "block_id": block_id,
+        "distributed_total": int(distributed_total)
+        if not already
+        else _as_int(existing.get("credited_total"), 0),
+        "deduped": already,
+    }
 
 
-def _apply_transfers_and_debits(state: Json, payload: Json, *, strict_debits: bool = True) -> Tuple[int, int]:
+def _apply_transfers_and_debits(
+    state: Json, payload: Json, *, strict_debits: bool = True
+) -> tuple[int, int]:
     transfers = payload.get("transfers")
     debits = payload.get("debits")
     if not isinstance(transfers, list):
@@ -323,12 +367,18 @@ def _apply_creator_reward_allocate(state: Json, env: TxEnvelope) -> Json:
 
     credited_total, debited_total = (0, 0)
     if not already:
-        credited_total, debited_total = _apply_transfers_and_debits(state, payload, strict_debits=True)
+        credited_total, debited_total = _apply_transfers_and_debits(
+            state, payload, strict_debits=True
+        )
         if int(credited_total) != int(debited_total):
             raise RewardsApplyError(
                 "invalid_payload",
                 "credits_must_equal_debits",
-                {"alloc_id": alloc_id, "credited_total": int(credited_total), "debited_total": int(debited_total)},
+                {
+                    "alloc_id": alloc_id,
+                    "credited_total": int(credited_total),
+                    "debited_total": int(debited_total),
+                },
             )
 
         allocs[alloc_id] = {
@@ -341,10 +391,20 @@ def _apply_creator_reward_allocate(state: Json, env: TxEnvelope) -> Json:
             "credited_total": int(credited_total),
             "debited_total": int(debited_total),
         }
-        r["stats"]["creator_alloc_total"] = _as_int(r["stats"].get("creator_alloc_total"), 0) + int(credited_total)
+        r["stats"]["creator_alloc_total"] = _as_int(r["stats"].get("creator_alloc_total"), 0) + int(
+            credited_total
+        )
 
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
-    return {"applied": "CREATOR_REWARD_ALLOCATE", "alloc_id": alloc_id, "block_id": block_id, "credited_total": int(credited_total) if not already else _as_int(existing.get("credited_total"), 0), "deduped": already}
+    return {
+        "applied": "CREATOR_REWARD_ALLOCATE",
+        "alloc_id": alloc_id,
+        "block_id": block_id,
+        "credited_total": int(credited_total)
+        if not already
+        else _as_int(existing.get("credited_total"), 0),
+        "deduped": already,
+    }
 
 
 def _apply_treasury_reward_allocate(state: Json, env: TxEnvelope) -> Json:
@@ -357,19 +417,27 @@ def _apply_treasury_reward_allocate(state: Json, env: TxEnvelope) -> Json:
     if not block_id:
         raise RewardsApplyError("invalid_payload", "missing_block_id", {"tx_type": env.tx_type})
 
-    alloc_id = _mk_id("treasuryalloc", env, payload.get("alloc_id") or payload.get("id") or block_id)
+    alloc_id = _mk_id(
+        "treasuryalloc", env, payload.get("alloc_id") or payload.get("id") or block_id
+    )
     allocs = r["treasury_allocations_by_id"]
     existing = allocs.get(alloc_id)
     already = isinstance(existing, dict)
 
     credited_total, debited_total = (0, 0)
     if not already:
-        credited_total, debited_total = _apply_transfers_and_debits(state, payload, strict_debits=True)
+        credited_total, debited_total = _apply_transfers_and_debits(
+            state, payload, strict_debits=True
+        )
         if int(credited_total) != int(debited_total):
             raise RewardsApplyError(
                 "invalid_payload",
                 "credits_must_equal_debits",
-                {"alloc_id": alloc_id, "credited_total": int(credited_total), "debited_total": int(debited_total)},
+                {
+                    "alloc_id": alloc_id,
+                    "credited_total": int(credited_total),
+                    "debited_total": int(debited_total),
+                },
             )
 
         allocs[alloc_id] = {
@@ -382,10 +450,20 @@ def _apply_treasury_reward_allocate(state: Json, env: TxEnvelope) -> Json:
             "credited_total": int(credited_total),
             "debited_total": int(debited_total),
         }
-        r["stats"]["treasury_alloc_total"] = _as_int(r["stats"].get("treasury_alloc_total"), 0) + int(credited_total)
+        r["stats"]["treasury_alloc_total"] = _as_int(
+            r["stats"].get("treasury_alloc_total"), 0
+        ) + int(credited_total)
 
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
-    return {"applied": "TREASURY_REWARD_ALLOCATE", "alloc_id": alloc_id, "block_id": block_id, "credited_total": int(credited_total) if not already else _as_int(existing.get("credited_total"), 0), "deduped": already}
+    return {
+        "applied": "TREASURY_REWARD_ALLOCATE",
+        "alloc_id": alloc_id,
+        "block_id": block_id,
+        "credited_total": int(credited_total)
+        if not already
+        else _as_int(existing.get("credited_total"), 0),
+        "deduped": already,
+    }
 
 
 def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
@@ -415,16 +493,29 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
             new_bal = 0
         acct["balance"] = int(new_bal)
 
-        forfeits[forfeit_id] = {"forfeit_id": forfeit_id, "account_id": account_id, "amount": int(amount), "at_nonce": int(env.nonce), "payload": payload}
+        forfeits[forfeit_id] = {
+            "forfeit_id": forfeit_id,
+            "account_id": account_id,
+            "amount": int(amount),
+            "at_nonce": int(env.nonce),
+            "payload": payload,
+        }
         r["stats"]["forfeited_total"] = _as_int(r["stats"].get("forfeited_total"), 0) + int(amount)
 
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
-    return {"applied": "FORFEITURE_APPLY", "forfeit_id": forfeit_id, "account_id": account_id, "amount": int(amount), "deduped": already}
+    return {
+        "applied": "FORFEITURE_APPLY",
+        "forfeit_id": forfeit_id,
+        "account_id": account_id,
+        "amount": int(amount),
+        "deduped": already,
+    }
 
 
 # ---------------------------------------------------------------------------
 # Performance (canon Performance domain)
 # ---------------------------------------------------------------------------
+
 
 def _ensure_performance(state: Json) -> Json:
     perf = state.get("performance")
@@ -458,7 +549,15 @@ def _apply_performance_report(state: Json, env: TxEnvelope) -> Json:
         return {"applied": kind, "report_id": report_id, "deduped": True}
 
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
-    reports[report_id] = {"report_id": report_id, "kind": kind, "subject": subject, "reported_by": env.signer, "at_nonce": int(env.nonce), "metrics": metrics, "payload": payload}
+    reports[report_id] = {
+        "report_id": report_id,
+        "kind": kind,
+        "subject": subject,
+        "reported_by": env.signer,
+        "at_nonce": int(env.nonce),
+        "metrics": metrics,
+        "payload": payload,
+    }
     return {"applied": kind, "report_id": report_id, "deduped": False}
 
 
@@ -477,7 +576,7 @@ def _apply_performance_receipt(state: Json, env: TxEnvelope) -> Json:
     return {"applied": kind, "receipt": True}
 
 
-REWARDS_TX_TYPES: Set[str] = {
+REWARDS_TX_TYPES: set[str] = {
     "REWARD_POOL_OPT_IN_SET",
     "BLOCK_REWARD_MINT",
     "BLOCK_REWARD_DISTRIBUTE",
@@ -492,7 +591,7 @@ REWARDS_TX_TYPES: Set[str] = {
 }
 
 
-def apply_rewards(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_rewards(state: Json, env: TxEnvelope) -> Json | None:
     """Apply Rewards txs. Returns meta dict if handled; otherwise None."""
     t = str(env.tx_type or "").strip()
     if t not in REWARDS_TX_TYPES:

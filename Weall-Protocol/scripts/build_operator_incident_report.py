@@ -33,10 +33,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build an operator incident report from local node state and optional remote consensus forensics."
     )
-    parser.add_argument("--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path.")
-    parser.add_argument("--tx-index-path", default=None, help="Path to generated tx index. Defaults to chain config tx_index_path.")
-    parser.add_argument("--remote-forensics", default=None, help="Optional path to previously captured consensus forensics JSON.")
-    parser.add_argument("--out", default=None, help="Optional output path. Prints to stdout when omitted.")
+    parser.add_argument(
+        "--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path."
+    )
+    parser.add_argument(
+        "--tx-index-path",
+        default=None,
+        help="Path to generated tx index. Defaults to chain config tx_index_path.",
+    )
+    parser.add_argument(
+        "--remote-forensics",
+        default=None,
+        help="Optional path to previously captured consensus forensics JSON.",
+    )
+    parser.add_argument(
+        "--out", default=None, help="Optional output path. Prints to stdout when omitted."
+    )
     parser.add_argument(
         "--lane-out",
         default=None,

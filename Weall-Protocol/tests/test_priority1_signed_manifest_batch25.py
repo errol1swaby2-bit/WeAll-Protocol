@@ -8,9 +8,13 @@ import sys
 from pathlib import Path
 
 import pytest
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
 
-from weall.runtime.chain_config import ChainConfig, production_bootstrap_report, production_bootstrap_issues
+from weall.runtime.chain_config import (
+    ChainConfig,
+    production_bootstrap_issues,
+    production_bootstrap_report,
+)
 from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
@@ -80,12 +84,17 @@ def _make_state() -> dict[str, object]:
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
 
 
-def test_production_bootstrap_requires_signed_release_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_requires_signed_release_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_env(monkeypatch)
     _write_db(Path(_cfg(tmp_path).db_path), _make_state())
     issues = production_bootstrap_issues(_cfg(tmp_path))
@@ -93,7 +102,9 @@ def test_production_bootstrap_requires_signed_release_manifest(tmp_path: Path, m
     assert any("missing release manifest signer pubkey" in issue for issue in issues)
 
 
-def test_signed_manifest_round_trip_and_report(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_signed_manifest_round_trip_and_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_env(monkeypatch)
     cfg = _cfg(tmp_path)
     cfg_path = tmp_path / "prod.chain.json"
@@ -136,7 +147,15 @@ def test_signed_manifest_round_trip_and_report(tmp_path: Path, monkeypatch: pyte
     )
     assert str(bundle_path) in build.stdout
     verify = subprocess.run(
-        [sys.executable, "scripts/verify_validator_bootstrap.py", "--bundle", str(bundle_path), "--release-pubkey", pubkey, "--json"],
+        [
+            sys.executable,
+            "scripts/verify_validator_bootstrap.py",
+            "--bundle",
+            str(bundle_path),
+            "--release-pubkey",
+            pubkey,
+            "--json",
+        ],
         cwd=Path(__file__).resolve().parents[1],
         env=cmd_env,
         check=False,
@@ -175,4 +194,7 @@ def test_signed_manifest_detects_tamper(tmp_path: Path, monkeypatch: pytest.Monk
     bundle_path.write_text(json.dumps(manifest), encoding="utf-8")
     monkeypatch.setenv("WEALL_RELEASE_MANIFEST_PATH", str(bundle_path))
     issues = production_bootstrap_issues(cfg)
-    assert any("manifest signature verification failed" in issue or "manifest chain_id mismatch" in issue for issue in issues)
+    assert any(
+        "manifest signature verification failed" in issue or "manifest chain_id mismatch" in issue
+        for issue in issues
+    )

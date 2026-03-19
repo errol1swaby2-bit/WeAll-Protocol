@@ -44,11 +44,11 @@ Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -103,7 +103,9 @@ def _height_now(state: Json) -> int:
 
 
 def _infer_upgrade_id(payload: Json, env: TxEnvelope) -> str:
-    uid = _as_str(payload.get("upgrade_id") or payload.get("id") or payload.get("proposal_id")).strip()
+    uid = _as_str(
+        payload.get("upgrade_id") or payload.get("id") or payload.get("proposal_id")
+    ).strip()
     if uid:
         return uid
     # Deterministic fallback.
@@ -115,7 +117,11 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     uid = _infer_upgrade_id(payload, env)
 
-    version = _as_str(payload.get("version")).strip() or _as_str(payload.get("target_version")).strip() or None
+    version = (
+        _as_str(payload.get("version")).strip()
+        or _as_str(payload.get("target_version")).strip()
+        or None
+    )
     hsh = _as_str(payload.get("hash")).strip() or _as_str(payload.get("commit")).strip() or None
 
     proto = _ensure_protocol(state)
@@ -141,7 +147,12 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "payload": payload,
     }
 
-    return {"applied": "PROTOCOL_UPGRADE_DECLARE", "upgrade_id": uid, "version": version, "hash": hsh}
+    return {
+        "applied": "PROTOCOL_UPGRADE_DECLARE",
+        "upgrade_id": uid,
+        "version": version,
+        "hash": hsh,
+    }
 
 
 def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
@@ -177,13 +188,19 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "activated_at_nonce": int(env.nonce),
     }
 
-    return {"applied": "PROTOCOL_UPGRADE_ACTIVATE", "upgrade_id": uid, "version": version, "hash": hsh, "deduped": False}
+    return {
+        "applied": "PROTOCOL_UPGRADE_ACTIVATE",
+        "upgrade_id": uid,
+        "version": version,
+        "hash": hsh,
+        "deduped": False,
+    }
 
 
 PROTOCOL_TX_TYPES = {"PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE"}
 
 
-def apply_protocol(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_protocol(state: Json, env: TxEnvelope) -> Json | None:
     t = _as_str(env.tx_type).strip().upper()
     if t not in PROTOCOL_TX_TYPES:
         return None

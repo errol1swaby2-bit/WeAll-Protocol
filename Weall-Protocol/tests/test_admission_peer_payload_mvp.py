@@ -17,7 +17,13 @@ def _load_index():
 def _ledger(nonce: int) -> LedgerView:
     return LedgerView(
         accounts={
-            "@alice": {"nonce": nonce, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
+            "@alice": {
+                "nonce": nonce,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
         },
         roles={},
     )

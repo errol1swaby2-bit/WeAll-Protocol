@@ -16,7 +16,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_sqlite_writer_pressure_cross_process_soak_completes_without_counter_loss(tmp_path: Path) -> None:
+def test_sqlite_writer_pressure_cross_process_soak_completes_without_counter_loss(
+    tmp_path: Path,
+) -> None:
     summary = run_sqlite_writer_pressure_cross_process_soak(
         work_dir=str(tmp_path / "sqlite-proc"),
         process_count=3,
@@ -85,8 +87,18 @@ def test_priority2_adversarial_soak_direct_runner_is_green(tmp_path: Path) -> No
     payload = summary.to_json()
     assert payload["ok"] is True
     assert payload["bft"]["rounds_built"] == 18
-    assert payload["consensus_resilience_matrix"]["scenarios"]["delayed_qc_after_leader_turnover"]["ok"] is True
-    assert payload["consensus_resilience_matrix"]["scenarios"]["epoch_boundary_rejoin_turnover_cycles"]["ok"] is True
+    assert (
+        payload["consensus_resilience_matrix"]["scenarios"]["delayed_qc_after_leader_turnover"][
+            "ok"
+        ]
+        is True
+    )
+    assert (
+        payload["consensus_resilience_matrix"]["scenarios"][
+            "epoch_boundary_rejoin_turnover_cycles"
+        ]["ok"]
+        is True
+    )
     assert payload["sqlite_writer_pressure"]["successes"] == 120
     assert payload["sqlite_writer_pressure_cross_process"]["successes"] == 42
     assert payload["timeout_epoch_storm"]["epoch_replay_rejections"] == 1

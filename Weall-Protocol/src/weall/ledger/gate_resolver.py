@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from weall.ledger.state import LedgerView
 
@@ -11,14 +11,14 @@ from weall.ledger.state import LedgerView
 class AuthzVerdict:
     ok: bool
     reason: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
     @staticmethod
-    def allow(reason: str = "ok", details: Optional[Dict[str, Any]] = None) -> "AuthzVerdict":
+    def allow(reason: str = "ok", details: dict[str, Any] | None = None) -> AuthzVerdict:
         return AuthzVerdict(True, reason, details or {})
 
     @staticmethod
-    def deny(reason: str, details: Optional[Dict[str, Any]] = None) -> "AuthzVerdict":
+    def deny(reason: str, details: dict[str, Any] | None = None) -> AuthzVerdict:
         return AuthzVerdict(False, reason, details or {})
 
 
@@ -30,7 +30,7 @@ def _lower(s: str) -> str:
     return (s or "").strip().lower()
 
 
-def _parse_tier_gate(g: str) -> Optional[Tuple[int, bool]]:
+def _parse_tier_gate(g: str) -> tuple[int, bool] | None:
     """
     Parses tier gates like:
       - "Tier0+"
@@ -62,7 +62,7 @@ def _parse_tier_gate(g: str) -> Optional[Tuple[int, bool]]:
     return (t, plus)
 
 
-def _parse_role_gate(g: str) -> Optional[str]:
+def _parse_role_gate(g: str) -> str | None:
     """
     Parses role gates like:
       - "juror"
@@ -94,7 +94,7 @@ def _split_top_level(expr: str, sep: str) -> list[str]:
     return [p for p in parts if p]
 
 
-def _extract_ids(payload: Optional[Dict[str, Any]]) -> Tuple[Optional[str], Optional[str]]:
+def _extract_ids(payload: dict[str, Any] | None) -> tuple[str | None, str | None]:
     """
     Best-effort deterministic extraction of (group_id, treasury_id) from payload.
 
@@ -107,14 +107,14 @@ def _extract_ids(payload: Optional[Dict[str, Any]]) -> Tuple[Optional[str], Opti
     if not isinstance(payload, dict) or not payload:
         return None, None
 
-    def _s(x: Any) -> Optional[str]:
+    def _s(x: Any) -> str | None:
         if isinstance(x, str) and x.strip():
             return x.strip()
         if isinstance(x, int):
             return str(x)
         return None
 
-    def _from_obj(obj: Any) -> Optional[str]:
+    def _from_obj(obj: Any) -> str | None:
         if isinstance(obj, dict):
             for k in ("id", "group_id", "treasury_id", "groupId", "treasuryId"):
                 v = obj.get(k)
@@ -123,8 +123,8 @@ def _extract_ids(payload: Optional[Dict[str, Any]]) -> Tuple[Optional[str], Opti
                     return sv
         return _s(obj)
 
-    group_id: Optional[str] = None
-    treasury_id: Optional[str] = None
+    group_id: str | None = None
+    treasury_id: str | None = None
 
     for k in ("group_id", "groupId", "groupID", "gid", "group"):
         if k in payload:
@@ -146,8 +146,8 @@ def _eval_atom(
     account_id: str,
     atom: str,
     *,
-    tx_type: Optional[str] = None,
-    payload: Optional[Dict[str, Any]] = None,
+    tx_type: str | None = None,
+    payload: dict[str, Any] | None = None,
 ) -> AuthzVerdict:
     """
     Evaluate a single gate atom (no AND/OR).
@@ -212,7 +212,9 @@ def _eval_atom(
         ok = ledger.is_group_signer(account_id, group_id)
         if ok:
             return AuthzVerdict.allow("group_signer_ok", {"group_id": group_id})
-        return AuthzVerdict.deny("group_signer_required", {"group_id": group_id, "tx_type": tx_type or ""})
+        return AuthzVerdict.deny(
+            "group_signer_required", {"group_id": group_id, "tx_type": tx_type or ""}
+        )
 
     if gate_l == "groupmoderator":
         if not group_id:
@@ -223,7 +225,9 @@ def _eval_atom(
         ok = ledger.is_group_moderator(account_id, group_id)
         if ok:
             return AuthzVerdict.allow("group_moderator_ok", {"group_id": group_id})
-        return AuthzVerdict.deny("group_moderator_required", {"group_id": group_id, "tx_type": tx_type or ""})
+        return AuthzVerdict.deny(
+            "group_moderator_required", {"group_id": group_id, "tx_type": tx_type or ""}
+        )
 
     # Role gate (global)
     role_key = _parse_role_gate(gate)
@@ -257,11 +261,11 @@ def resolve_signer_authz(
     signer: str,
     gate: str = "",
     *,
-    tx_type: Optional[str] = None,
-    payload: Optional[Dict[str, Any]] = None,
+    tx_type: str | None = None,
+    payload: dict[str, Any] | None = None,
     # Back-compat: newer admission code passes these names.
-    gate_expr: Optional[str] = None,
-    subject_gate_expr: Optional[str] = None,
+    gate_expr: str | None = None,
+    subject_gate_expr: str | None = None,
 ) -> AuthzVerdict:
     """Evaluate authorization for a signer.
 
@@ -298,7 +302,7 @@ def resolve_signer_authz(
     if not or_groups:
         return AuthzVerdict.deny("bad_gate_expr", {"gate": expr})
 
-    last_denial: Optional[AuthzVerdict] = None
+    last_denial: AuthzVerdict | None = None
 
     for group in or_groups:
         and_atoms = _split_top_level(group, "&")
@@ -306,7 +310,7 @@ def resolve_signer_authz(
             continue
 
         group_ok = True
-        group_denial: Optional[AuthzVerdict] = None
+        group_denial: AuthzVerdict | None = None
 
         for atom in and_atoms:
             v = _eval_atom(ledger, signer, atom, tx_type=tx_type, payload=payload)

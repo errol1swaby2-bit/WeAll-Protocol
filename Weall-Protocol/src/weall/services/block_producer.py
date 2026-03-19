@@ -20,7 +20,6 @@ import signal
 import sys
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 from weall.runtime.executor_boot import build_executor
 
@@ -143,7 +142,7 @@ def run_forever() -> None:
 
     stop = {"flag": False}
 
-    def _handle(sig: int, _frame: Optional[object]) -> None:
+    def _handle(sig: int, _frame: object | None) -> None:
         stop["flag"] = True
         _log(f"weall-producer received signal {sig}; shutting down...")
 

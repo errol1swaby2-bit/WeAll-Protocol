@@ -61,9 +61,15 @@ def _mk_executor(
     return ex, pubs, privs
 
 
-def test_bootstrap_phase_rejects_remote_proposal_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    leader, pubs, privs = _mk_executor(tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP)
-    follower, _, _ = _mk_executor(tmp_path, monkeypatch, node_id="v2", phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP)
+def test_bootstrap_phase_rejects_remote_proposal_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leader, pubs, privs = _mk_executor(
+        tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP
+    )
+    follower, _, _ = _mk_executor(
+        tmp_path, monkeypatch, node_id="v2", phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP
+    )
 
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v1"])
@@ -80,9 +86,15 @@ def test_bootstrap_phase_rejects_remote_proposal_artifacts(tmp_path: Path, monke
     assert list(follower._pending_missing_qc_entries().keys()) == []
 
 
-def test_bft_active_rejects_stale_bootstrap_phase_proposal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    leader, pubs, privs = _mk_executor(tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_BFT_ACTIVE)
-    follower, _, _ = _mk_executor(tmp_path, monkeypatch, node_id="v2", phase=CONSENSUS_PHASE_BFT_ACTIVE)
+def test_bft_active_rejects_stale_bootstrap_phase_proposal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leader, pubs, privs = _mk_executor(
+        tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_BFT_ACTIVE
+    )
+    follower, _, _ = _mk_executor(
+        tmp_path, monkeypatch, node_id="v2", phase=CONSENSUS_PHASE_BFT_ACTIVE
+    )
 
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v1"])
@@ -100,8 +112,12 @@ def test_bft_active_rejects_stale_bootstrap_phase_proposal(tmp_path: Path, monke
     assert list(follower._pending_remote_blocks.keys()) == []
 
 
-def test_phase_prune_drops_bootstrap_artifacts_after_activation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    ex, pubs, privs = _mk_executor(tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_BFT_ACTIVE)
+def test_phase_prune_drops_bootstrap_artifacts_after_activation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ex, pubs, privs = _mk_executor(
+        tmp_path, monkeypatch, node_id="v1", phase=CONSENSUS_PHASE_BFT_ACTIVE
+    )
 
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v1"])

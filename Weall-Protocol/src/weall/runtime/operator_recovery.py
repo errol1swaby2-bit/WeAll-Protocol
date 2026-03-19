@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
-def evaluate_recovery_readiness(*, peer_reports: Iterable[Json], min_agreeing_peers: int = 2) -> Json:
-    reports: List[Json] = [r for r in peer_reports if isinstance(r, dict)]
+def evaluate_recovery_readiness(
+    *, peer_reports: Iterable[Json], min_agreeing_peers: int = 2
+) -> Json:
+    reports: list[Json] = [r for r in peer_reports if isinstance(r, dict)]
     healthy = 0
     agreeing = 0
 
@@ -15,7 +18,11 @@ def evaluate_recovery_readiness(*, peer_reports: Iterable[Json], min_agreeing_pe
         summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
         severity = str(summary.get("severity") or "ok").strip().lower()
         snapshot = report.get("snapshot") if isinstance(report.get("snapshot"), dict) else {}
-        fingerprint = report.get("startup_fingerprint") if isinstance(report.get("startup_fingerprint"), dict) else {}
+        fingerprint = (
+            report.get("startup_fingerprint")
+            if isinstance(report.get("startup_fingerprint"), dict)
+            else {}
+        )
         key = (
             str(snapshot.get("height") or ""),
             str(snapshot.get("tip_hash") or ""),
@@ -38,7 +45,9 @@ def evaluate_recovery_readiness(*, peer_reports: Iterable[Json], min_agreeing_pe
     }
 
 
-def network_resume_decision(*, local_report: Json, peer_reports: Iterable[Json], min_agreeing_peers: int = 2) -> Json:
+def network_resume_decision(
+    *, local_report: Json, peer_reports: Iterable[Json], min_agreeing_peers: int = 2
+) -> Json:
     summary = local_report.get("summary") if isinstance(local_report.get("summary"), dict) else {}
     local_severity = str(summary.get("severity") or "ok").strip().lower()
 

@@ -19,8 +19,8 @@ def _find_rate_limit_instance(app: FastAPI):
 def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     """TTL eviction prevents unbounded key growth under churn."""
 
-    from weall.api.security import RateLimitMiddleware
     import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware
 
     # Force proxy header trust so we can fake per-request IPs.
     monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
@@ -67,12 +67,11 @@ def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
         assert after <= 5
 
 
-
 def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     """Size-cap eviction drops oldest keys when max_keys is exceeded."""
 
-    from weall.api.security import RateLimitMiddleware
     import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware
 
     monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
     monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
@@ -105,10 +104,9 @@ def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
         assert len(rl._buckets) == 3
 
 
-
 def test_rate_limit_refill_uses_monotonic_integer_time(monkeypatch: pytest.MonkeyPatch) -> None:
-    from weall.api.security import RateLimitMiddleware, TokenBucket
     import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware, TokenBucket
 
     monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
     monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)

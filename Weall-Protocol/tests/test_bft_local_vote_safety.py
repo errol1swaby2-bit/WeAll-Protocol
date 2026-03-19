@@ -33,10 +33,14 @@ def test_locked_qc_does_not_move_to_conflicting_branch() -> None:
     }
 
     # Start locked on B.
-    bft.locked_qc = QuorumCert(chain_id="weall:test", view=1, block_id="B", block_hash="B-h", parent_id="A", votes=tuple())
+    bft.locked_qc = QuorumCert(
+        chain_id="weall:test", view=1, block_id="B", block_hash="B-h", parent_id="A", votes=tuple()
+    )
 
     # Observe a QC on the conflicting branch X at a higher view.
-    qc_x = QuorumCert(chain_id="weall:test", view=9, block_id="X", block_hash="X-h", parent_id="A", votes=tuple())
+    qc_x = QuorumCert(
+        chain_id="weall:test", view=9, block_id="X", block_hash="X-h", parent_id="A", votes=tuple()
+    )
     bft.observe_qc(blocks=blocks, qc=qc_x)
 
     # Lock must not move to X because it doesn't extend B.
@@ -44,7 +48,9 @@ def test_locked_qc_does_not_move_to_conflicting_branch() -> None:
     assert bft.locked_qc.block_id == "B"
 
     # Observe a QC on C which extends B.
-    qc_c = QuorumCert(chain_id="weall:test", view=10, block_id="C", block_hash="C-h", parent_id="B", votes=tuple())
+    qc_c = QuorumCert(
+        chain_id="weall:test", view=10, block_id="C", block_hash="C-h", parent_id="B", votes=tuple()
+    )
     bft.observe_qc(blocks=blocks, qc=qc_c)
     assert bft.locked_qc is not None
     assert bft.locked_qc.block_id == "C"

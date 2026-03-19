@@ -10,12 +10,16 @@ from weall.api import config as api_config
 from weall.runtime.block_loop import block_loop_config_from_env
 
 
-def test_read_nodes_registry_returns_empty_when_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_nodes_registry_returns_empty_when_unconfigured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     assert api_config.read_nodes_registry(None) == {"version": 1, "nodes": []}
 
 
-def test_read_nodes_registry_prod_fails_closed_on_bad_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_nodes_registry_prod_fails_closed_on_bad_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     reg = tmp_path / "nodes_registry.json"
     reg.write_text("{bad json", encoding="utf-8")
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -24,7 +28,9 @@ def test_read_nodes_registry_prod_fails_closed_on_bad_json(tmp_path: Path, monke
         api_config.read_nodes_registry(str(reg))
 
 
-def test_read_nodes_registry_dev_degrades_on_bad_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_nodes_registry_dev_degrades_on_bad_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     reg = tmp_path / "nodes_registry.json"
     reg.write_text("{bad json", encoding="utf-8")
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -32,7 +38,9 @@ def test_read_nodes_registry_dev_degrades_on_bad_json(tmp_path: Path, monkeypatc
     assert api_config.read_nodes_registry(str(reg)) == {"version": 1, "nodes": []}
 
 
-def test_read_nodes_registry_prod_fails_closed_on_bad_node_entry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_nodes_registry_prod_fails_closed_on_bad_node_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     reg = tmp_path / "nodes_registry.json"
     reg.write_text(json.dumps({"version": 1, "nodes": ["not-a-dict"]}), encoding="utf-8")
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -41,7 +49,9 @@ def test_read_nodes_registry_prod_fails_closed_on_bad_node_entry(tmp_path: Path,
         api_config.read_nodes_registry(str(reg))
 
 
-def test_load_api_config_prod_rejects_empty_explicit_registry_path(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_api_config_prod_rejects_empty_explicit_registry_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODES_REGISTRY_PATH", "   ")
 
@@ -49,7 +59,9 @@ def test_load_api_config_prod_rejects_empty_explicit_registry_path(monkeypatch: 
         api_config.load_api_config()
 
 
-def test_block_loop_config_prod_rejects_invalid_integer_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_loop_config_prod_rejects_invalid_integer_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BLOCK_INTERVAL_MS", "nope")
 
@@ -57,7 +69,9 @@ def test_block_loop_config_prod_rejects_invalid_integer_env(monkeypatch: pytest.
         block_loop_config_from_env()
 
 
-def test_block_loop_config_dev_defaults_invalid_integer_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_loop_config_dev_defaults_invalid_integer_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_BLOCK_INTERVAL_MS", "nope")
 
@@ -65,7 +79,9 @@ def test_block_loop_config_dev_defaults_invalid_integer_env(monkeypatch: pytest.
     assert cfg.interval_ms == 20_000
 
 
-def test_load_dotenv_if_present_prod_fails_closed_for_missing_explicit_path(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_dotenv_if_present_prod_fails_closed_for_missing_explicit_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import weall.env as env_mod
 
     env_mod = importlib.reload(env_mod)
@@ -76,7 +92,9 @@ def test_load_dotenv_if_present_prod_fails_closed_for_missing_explicit_path(monk
         env_mod.load_dotenv_if_present()
 
 
-def test_load_dotenv_if_present_default_missing_is_noop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_load_dotenv_if_present_default_missing_is_noop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     import weall.env as env_mod
 
     env_mod = importlib.reload(env_mod)

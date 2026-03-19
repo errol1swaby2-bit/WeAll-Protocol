@@ -26,7 +26,9 @@ def _cfg(tmp_path: Path) -> ChainConfig:
     )
 
 
-def test_prod_bootstrap_requires_keys_when_network_enabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_requires_keys_when_network_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.delenv("WEALL_NODE_PUBKEY", raising=False)
     monkeypatch.delenv("WEALL_NODE_PRIVKEY", raising=False)
@@ -35,7 +37,9 @@ def test_prod_bootstrap_requires_keys_when_network_enabled(tmp_path: Path, monke
     assert any("private key" in x for x in issues)
 
 
-def test_prod_bootstrap_requires_validator_account_when_bft_enabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_requires_validator_account_when_bft_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", "priv")
@@ -44,7 +48,9 @@ def test_prod_bootstrap_requires_validator_account_when_bft_enabled(tmp_path: Pa
     assert any("validator account" in x for x in issues)
 
 
-def test_prod_bootstrap_rejects_disabled_trusted_anchor_in_network_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_rejects_disabled_trusted_anchor_in_network_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", "priv")
@@ -72,7 +78,9 @@ def test_prod_bootstrap_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert production_bootstrap_issues(_cfg(tmp_path)) == []
 
 
-def test_prod_bootstrap_rejects_disabled_handshake_identity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_rejects_disabled_handshake_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", "priv")
@@ -81,7 +89,9 @@ def test_prod_bootstrap_rejects_disabled_handshake_identity(tmp_path: Path, monk
     assert any("NET_REQUIRE_IDENTITY" in x for x in issues)
 
 
-def test_prod_bootstrap_rejects_disabled_bft_identity_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_rejects_disabled_bft_identity_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
@@ -100,7 +110,9 @@ def test_prod_bootstrap_rejects_disabled_bft_identity_gate(tmp_path: Path, monke
     assert any("IDENTITY_FOR_BFT" in x for x in issues)
 
 
-def test_prod_bootstrap_rejects_disabled_strict_epoch_binding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_bootstrap_rejects_disabled_strict_epoch_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", "priv")

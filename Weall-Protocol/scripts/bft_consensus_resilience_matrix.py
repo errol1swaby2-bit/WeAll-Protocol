@@ -16,7 +16,9 @@ def main() -> int:
             "partition-heal restart-under-load convergence, and epoch-boundary rejoin cycles."
         )
     )
-    ap.add_argument("--work-dir", default="", help="Base directory for scenario state. Defaults to a temp dir.")
+    ap.add_argument(
+        "--work-dir", default="", help="Base directory for scenario state. Defaults to a temp dir."
+    )
     ap.add_argument("--chain-id-prefix", default="consensus-resilience")
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()

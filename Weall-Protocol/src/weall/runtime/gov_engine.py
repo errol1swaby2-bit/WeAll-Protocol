@@ -1,11 +1,11 @@
 # src/weall/runtime/gov_engine.py
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -15,15 +15,15 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(default)
 
 
-def _as_dict(v: Any) -> Dict[str, Any]:
+def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
 
 
-def _as_list(v: Any) -> List[Any]:
+def _as_list(v: Any) -> list[Any]:
     return v if isinstance(v, list) else []
 
 
-def _count_votes(prop: Json) -> Dict[str, int]:
+def _count_votes(prop: Json) -> dict[str, int]:
     votes = prop.get("votes")
     if not isinstance(votes, dict):
         return {"yes": 0, "no": 0, "abstain": 0}
@@ -45,9 +45,9 @@ def _count_votes(prop: Json) -> Dict[str, int]:
 def _count_votes_with_delegation(
     prop: Json,
     *,
-    delegations: Optional[Dict[str, Any]] = None,
+    delegations: dict[str, Any] | None = None,
     votes_key: str = "votes",
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Count votes for a proposal, applying delegation in a deterministic way.
 
     Rules:
@@ -68,7 +68,7 @@ def _count_votes_with_delegation(
     delmap = delegations if isinstance(delegations, dict) else {}
 
     # Normalize choices for direct voters.
-    direct_choice: Dict[str, str] = {}
+    direct_choice: dict[str, str] = {}
     for signer, v in votes.items():
         if not isinstance(v, dict):
             continue
@@ -109,7 +109,7 @@ def _count_votes_with_delegation(
     return {"yes": yes, "no": no, "abstain": abstain}
 
 
-def _proposal_rules(prop: Json) -> Dict[str, Any]:
+def _proposal_rules(prop: Json) -> dict[str, Any]:
     """
     Strict mode:
       Governance lifecycle rules MUST come from the stored proposal record
@@ -123,11 +123,11 @@ def _proposal_rules(prop: Json) -> Dict[str, Any]:
     return rules if isinstance(rules, dict) else {}
 
 
-def _proposal_actions(prop: Json) -> List[Dict[str, Any]]:
+def _proposal_actions(prop: Json) -> list[dict[str, Any]]:
     # Legacy note: apply_governance stores actions at proposal root.
     # Older snapshots may store proposal payload under prop["payload"].
     if isinstance(prop.get("actions"), list):
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for a in _as_list(prop.get("actions")):
             if isinstance(a, dict):
                 out.append(a)
@@ -268,7 +268,9 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
             poll_period = _poll_period_blocks(pr)
             poll_close_h = int(poll_h) + int(poll_period)
             if int(next_height) >= int(poll_close_h):
-                tally = _count_votes_with_delegation(pr, delegations=delegations_dict, votes_key="poll_votes")
+                tally = _count_votes_with_delegation(
+                    pr, delegations=delegations_dict, votes_key="poll_votes"
+                )
                 yes = int(tally["yes"])
                 no = int(tally["no"])
                 abstain = int(tally["abstain"])
@@ -362,7 +364,9 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
                 )
                 enq += 1
 
-                tally = _count_votes_with_delegation(pr, delegations=delegations_dict, votes_key="votes")
+                tally = _count_votes_with_delegation(
+                    pr, delegations=delegations_dict, votes_key="votes"
+                )
                 yes = int(tally["yes"])
                 no = int(tally["no"])
                 abstain = int(tally["abstain"])

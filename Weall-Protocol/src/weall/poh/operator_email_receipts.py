@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from weall.crypto.sig import verify_ed25519_signature
 from weall.runtime.reputation_units import account_reputation_units
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 RECEIPT_VERSION = 1
 RECEIPT_KIND = "poh_email_tier1"
@@ -85,7 +85,11 @@ def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
         by_id = keys.get("by_id")
         if isinstance(by_id, dict):
             for rec in by_id.values():
-                if isinstance(rec, dict) and str(rec.get("pubkey") or "").strip() == pk and rec.get("revoked") is not True:
+                if (
+                    isinstance(rec, dict)
+                    and str(rec.get("pubkey") or "").strip() == pk
+                    and rec.get("revoked") is not True
+                ):
                     return True
     if isinstance(keys, list):
         return any(str(it or "").strip() == pk for it in keys)
@@ -100,7 +104,9 @@ def _is_active_operator(state: Json, account_id: str) -> bool:
     if not isinstance(ops, dict):
         return False
     active_set = ops.get("active_set")
-    if isinstance(active_set, list) and account_id in [str(x).strip() for x in active_set if str(x).strip()]:
+    if isinstance(active_set, list) and account_id in [
+        str(x).strip() for x in active_set if str(x).strip()
+    ]:
         return True
     by_id = ops.get("by_id")
     if isinstance(by_id, dict):
@@ -124,8 +130,8 @@ def validate_relay_completion_token(
     account_id: str,
     operator_account_id: str,
     max_ttl_ms: int = 15 * 60 * 1000,
-    now_ms: Optional[int] = None,
-) -> Tuple[bool, str, Optional[Json]]:
+    now_ms: int | None = None,
+) -> tuple[bool, str, Json | None]:
     if not isinstance(relay_token, dict):
         return False, "relay_token_not_object", None
     payload_any = relay_token.get("payload")
@@ -173,7 +179,9 @@ def validate_relay_completion_token(
         return False, "relay_account_not_allowed", None
     if relay_pubkey != cfg_pubkey:
         return False, "relay_pubkey_not_allowed", None
-    if not verify_ed25519_signature(message=canonical_relay_token_message(payload), sig=signature, pubkey=cfg_pubkey):
+    if not verify_ed25519_signature(
+        message=canonical_relay_token_message(payload), sig=signature, pubkey=cfg_pubkey
+    ):
         return False, "bad_relay_signature", None
     return True, "ok", payload
 
@@ -184,8 +192,8 @@ def validate_operator_email_receipt(
     subject_account_id: str,
     receipt: Json,
     max_ttl_ms: int = 15 * 60 * 1000,
-    now_ms: Optional[int] = None,
-) -> Tuple[bool, str, Optional[Json]]:
+    now_ms: int | None = None,
+) -> tuple[bool, str, Json | None]:
     if not isinstance(receipt, dict):
         return False, "receipt_not_object", None
     payload = canonical_receipt_payload(receipt)
@@ -267,6 +275,8 @@ def validate_operator_email_receipt(
         return False, "worker_pubkey_not_registered", None
     if not _is_active_operator(state, worker_account_id):
         return False, "worker_not_active_operator", None
-    if not verify_ed25519_signature(message=canonical_receipt_message(receipt), sig=sig, pubkey=worker_pubkey):
+    if not verify_ed25519_signature(
+        message=canonical_receipt_message(receipt), sig=sig, pubkey=worker_pubkey
+    ):
         return False, "bad_signature", None
     return True, "ok", payload

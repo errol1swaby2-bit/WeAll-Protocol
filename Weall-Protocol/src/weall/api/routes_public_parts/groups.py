@@ -1,14 +1,12 @@
 # src/weall/api/routes_public_parts/groups.py
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from weall.api.errors import ApiError
-from weall.api.security import require_account_session
-
 from weall.api.routes_public_parts.common import (
     _cursor_pack,
     _cursor_unpack,
@@ -19,6 +17,7 @@ from weall.api.routes_public_parts.common import (
     _snapshot,
     _str_param,
 )
+from weall.api.security import require_account_session
 
 router = APIRouter()
 
@@ -26,8 +25,8 @@ router = APIRouter()
 class TxSkeleton(BaseModel):
     tx_type: str
     signer_hint: str
-    parent: Optional[str]
-    payload: Dict[str, Any]
+    parent: str | None
+    payload: dict[str, Any]
 
 
 class TxSkeletonResponse(BaseModel):
@@ -38,10 +37,10 @@ class TxSkeletonResponse(BaseModel):
 class GroupJoinLeaveRequest(BaseModel):
     group_id: str = Field(..., min_length=1)
     # Optional UX metadata (ignored by apply). Kept for client convenience.
-    message: Optional[str] = Field(default=None, max_length=500)
+    message: str | None = Field(default=None, max_length=500)
 
 
-def _group_is_private(g: Dict[str, Any]) -> bool:
+def _group_is_private(g: dict[str, Any]) -> bool:
     if bool(g.get("is_private", False)):
         return True
     vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
@@ -57,7 +56,7 @@ def _group_is_private(g: Dict[str, Any]) -> bool:
     return False
 
 
-def _tags_list(obj: Dict[str, Any]) -> List[str]:
+def _tags_list(obj: dict[str, Any]) -> list[str]:
     raw = obj.get("tags")
     if isinstance(raw, str):
         return [t.strip() for t in raw.split(",") if t.strip()]
@@ -66,7 +65,7 @@ def _tags_list(obj: Dict[str, Any]) -> List[str]:
     return []
 
 
-def _iter_group_posts(st: Dict[str, Any], *, group_id: str) -> List[Dict[str, Any]]:
+def _iter_group_posts(st: dict[str, Any], *, group_id: str) -> list[dict[str, Any]]:
     content = st.get("content")
     if not isinstance(content, dict):
         return []
@@ -74,7 +73,7 @@ def _iter_group_posts(st: Dict[str, Any], *, group_id: str) -> List[Dict[str, An
     if not isinstance(posts, dict):
         return []
 
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for pid, obj in posts.items():
         if not isinstance(obj, dict):
             continue
@@ -97,7 +96,9 @@ def _iter_group_posts(st: Dict[str, Any], *, group_id: str) -> List[Dict[str, An
     return out
 
 
-def _require_group_access(request: Request, st: Dict[str, Any], *, group_id: str, group_meta: Dict[str, Any]) -> str:
+def _require_group_access(
+    request: Request, st: dict[str, Any], *, group_id: str, group_meta: dict[str, Any]
+) -> str:
     if not _group_is_private(group_meta):
         return ""
 
@@ -122,7 +123,9 @@ def _require_group_access(request: Request, st: Dict[str, Any], *, group_id: str
         if isinstance(members2, dict) and acct in members2:
             return acct
 
-    raise ApiError.forbidden("forbidden", "Not a group member", {"group_id": group_id, "account": acct})
+    raise ApiError.forbidden(
+        "forbidden", "Not a group member", {"group_id": group_id, "account": acct}
+    )
 
     return acct
 
@@ -137,7 +140,7 @@ def v1_groups_list(request: Request):
     by_state = _groups_by_id(st)
     by_roles = _group_roles_by_id(st)
 
-    out: List[dict] = []
+    out: list[dict] = []
     seen: set[str] = set()
 
     for gid, g in by_state.items():
@@ -159,7 +162,9 @@ def v1_groups_list(request: Request):
         obj = {"id": str(gid), "roles": g}
         out.append(obj)
 
-    out.sort(key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True)
+    out.sort(
+        key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
+    )
     return {"ok": True, "items": out[:limit]}
 
 
@@ -202,7 +207,7 @@ def v1_group_members(group_id: str, request: Request):
     if not isinstance(members, dict):
         return {"ok": True, "group_id": group_id, "members": []}
 
-    out: List[dict] = []
+    out: list[dict] = []
     for acct, info in members.items():
         row = dict(info) if isinstance(info, dict) else {}
         row["account"] = str(acct)
@@ -231,13 +236,15 @@ def v1_group_join(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRes
     if group_id not in by_state:
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
 
-    payload: Dict[str, Any] = {"group_id": group_id}
+    payload: dict[str, Any] = {"group_id": group_id}
     if req.message is not None and str(req.message).strip():
         payload["message"] = str(req.message).strip()
 
     return TxSkeletonResponse(
         ok=True,
-        tx=TxSkeleton(tx_type="GROUP_MEMBERSHIP_REQUEST", signer_hint=acct, parent=None, payload=payload),
+        tx=TxSkeleton(
+            tx_type="GROUP_MEMBERSHIP_REQUEST", signer_hint=acct, parent=None, payload=payload
+        ),
     )
 
 
@@ -260,10 +267,12 @@ def v1_group_leave(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRe
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
 
     # GROUP_MEMBERSHIP_REMOVE requires the account being removed.
-    payload: Dict[str, Any] = {"group_id": group_id, "account": acct}
+    payload: dict[str, Any] = {"group_id": group_id, "account": acct}
     return TxSkeletonResponse(
         ok=True,
-        tx=TxSkeleton(tx_type="GROUP_MEMBERSHIP_REMOVE", signer_hint=acct, parent=None, payload=payload),
+        tx=TxSkeleton(
+            tx_type="GROUP_MEMBERSHIP_REMOVE", signer_hint=acct, parent=None, payload=payload
+        ),
     )
 
 
@@ -275,7 +284,9 @@ def v1_group_content(group_id: str, request: Request):
     limit = max(1, min(100, limit))
 
     posts = _iter_group_posts(st, group_id=group_id)
-    posts.sort(key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True)
+    posts.sort(
+        key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
+    )
     return {"ok": True, "group_id": group_id, "items": posts[:limit]}
 
 
@@ -305,7 +316,7 @@ def v1_group_feed(group_id: str, request: Request):
 
     posts = _iter_group_posts(st, group_id=group_id)
 
-    filtered: List[dict] = []
+    filtered: list[dict] = []
     for obj in posts:
         obj_id = _str_param(obj.get("id") or obj.get("post_id") or "").strip()
         created_at_nonce = int(obj.get("created_at_nonce", 0) or 0)
@@ -329,7 +340,9 @@ def v1_group_feed(group_id: str, request: Request):
 
         filtered.append(obj)
 
-    filtered.sort(key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True)
+    filtered.sort(
+        key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
+    )
     page = filtered[:limit]
     next_cursor = None
     if len(page) == limit:

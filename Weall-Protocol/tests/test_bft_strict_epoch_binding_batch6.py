@@ -8,7 +8,9 @@ from weall.runtime.executor import WeAllExecutor
 from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
-def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str, str], *, epoch: int = 7) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, validators: list[str], pubs: dict[str, str], *, epoch: int = 7
+) -> None:
     st = ex.state
     st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(validators)
     c = st.setdefault("consensus", {})
@@ -22,8 +24,15 @@ def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str
     ex.state = ex._ledger_store.read()
 
 
-def _mk_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[WeAllExecutor, dict[str, str], dict[str, str]]:
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="v1", chain_id="bft-prod", tx_index_path=str(Path("generated/tx_index.json")))
+def _mk_executor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[WeAllExecutor, dict[str, str], dict[str, str]]:
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="v1",
+        chain_id="bft-prod",
+        tx_index_path=str(Path("generated/tx_index.json")),
+    )
     pubs: dict[str, str] = {}
     privs: dict[str, str] = {}
     for vid in ("v1", "v2", "v3", "v4"):
@@ -39,7 +48,9 @@ def _mk_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[WeAll
     return ex, pubs, privs
 
 
-def test_prod_rejects_proposal_missing_epoch_binding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_rejects_proposal_missing_epoch_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
     ex.bft_set_view(0)
     proposal = ex.bft_leader_propose(max_txs=0)
@@ -54,7 +65,9 @@ def test_prod_rejects_proposal_missing_epoch_binding(tmp_path: Path, monkeypatch
     assert ex.bft_on_proposal(missing_set_hash) is None
 
 
-def test_prod_rejects_vote_missing_epoch_binding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_rejects_vote_missing_epoch_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
     vote = ex.bft_make_vote_for_block(view=3, block_id="b3", block_hash="bh3", parent_id="b2")
     assert isinstance(vote, dict)
@@ -66,7 +79,9 @@ def test_prod_rejects_vote_missing_epoch_binding(tmp_path: Path, monkeypatch: py
     assert ex.bft_handle_vote(bad2) is None
 
 
-def test_prod_rejects_timeout_missing_epoch_binding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_rejects_timeout_missing_epoch_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex, _pubs, _privs = _mk_executor(tmp_path, monkeypatch)
     tmo = ex.bft_make_timeout(view=4)
     assert isinstance(tmo, dict)
@@ -78,7 +93,9 @@ def test_prod_rejects_timeout_missing_epoch_binding(tmp_path: Path, monkeypatch:
     assert ex.bft_handle_timeout(bad2) is None
 
 
-def test_prod_rejects_qc_missing_epoch_binding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_rejects_qc_missing_epoch_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex, pubs, privs = _mk_executor(tmp_path, monkeypatch)
 
     proposal = {
@@ -103,7 +120,12 @@ def test_prod_rejects_qc_missing_epoch_binding(tmp_path: Path, monkeypatch: pyte
         monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", signer)
         monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs[signer])
         monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs[signer])
-        vx = ex.bft_make_vote_for_block(view=0, block_id=bid, block_hash=str(proposal.get("block_hash") or ""), parent_id=parent_id)
+        vx = ex.bft_make_vote_for_block(
+            view=0,
+            block_id=bid,
+            block_hash=str(proposal.get("block_hash") or ""),
+            parent_id=parent_id,
+        )
         assert isinstance(vx, dict)
         votes.append(vx)
 

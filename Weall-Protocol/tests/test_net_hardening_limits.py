@@ -34,9 +34,13 @@ def test_rate_limit_strikes_and_can_ban() -> None:
     )
     node = NetNode(cfg=_cfg(), peer_policy=pol)
 
-    hdr = WireHeader(type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     hello = PeerHello(header=hdr, peer_id="tcp://9.9.9.9:7777", agent="t", nonce="n", caps=())
-    pkt = WirePacket(peer_id="tcp://9.9.9.9:7777", payload=encode_message(hello), received_at_ms=0, meta=None)
+    pkt = WirePacket(
+        peer_id="tcp://9.9.9.9:7777", payload=encode_message(hello), received_at_ms=0, meta=None
+    )
 
     # First passes.
     node._handle_packet(pkt)

@@ -41,7 +41,9 @@ def _produce_register_block(ex: WeAllExecutor, signer: str, nonce: int) -> dict:
     return blk
 
 
-def test_votecheck_per_proposer_budget_window_is_enforced(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_votecheck_per_proposer_budget_window_is_enforced(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_BFT_VOTECHECK_PEER_MAX_PER_WINDOW", "1")
@@ -67,7 +69,9 @@ def test_votecheck_per_proposer_budget_window_is_enforced(tmp_path: Path, monkey
     assert diag["votecheck_peer_budget_entries"] >= 1
 
 
-def test_votecheck_global_limiter_fails_closed_when_all_slots_busy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_votecheck_global_limiter_fails_closed_when_all_slots_busy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_BFT_VOTECHECK_MAX_CONCURRENT", "1")
@@ -89,7 +93,9 @@ def test_votecheck_global_limiter_fails_closed_when_all_slots_busy(tmp_path: Pat
     assert diag["votecheck_concurrency_limit"] == 1
 
 
-def test_votecheck_reuses_spec_exec_pool_slots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_votecheck_reuses_spec_exec_pool_slots(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_BFT_VOTECHECK_MAX_CONCURRENT", "2")

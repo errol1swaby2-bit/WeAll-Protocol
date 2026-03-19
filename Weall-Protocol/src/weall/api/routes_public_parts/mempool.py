@@ -3,17 +3,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.ledger.state import LedgerView
-from weall.runtime.sigverify import verify_tx_signature
-from weall.crypto.sig import strict_tx_sig_domain_enabled
-
 from weall.api.routes_public_parts.common import (
     _executor,
     _mempool,
-    _snapshot,
-    _require_registered_signer_for_user_tx,
     _read_json_limited,
+    _require_registered_signer_for_user_tx,
+    _snapshot,
 )
+from weall.crypto.sig import strict_tx_sig_domain_enabled
+from weall.ledger.state import LedgerView
+from weall.runtime.sigverify import verify_tx_signature
 
 router = APIRouter()
 
@@ -59,7 +58,9 @@ async def mempool_submit(request: Request):
     ex = _executor(request)
     mp = _mempool(request)
 
-    body = await _read_json_limited(request, max_bytes_env="WEALL_MAX_HTTP_TX_BYTES", default_max_bytes=256 * 1024)
+    body = await _read_json_limited(
+        request, max_bytes_env="WEALL_MAX_HTTP_TX_BYTES", default_max_bytes=256 * 1024
+    )
     if not isinstance(body, dict):
         raise ApiError.bad_request("bad_request", "Body must be a tx envelope object", {})
 
@@ -68,7 +69,9 @@ async def mempool_submit(request: Request):
 
     tx_type = str(body.get("tx_type") or "").strip()
     signer = str(body.get("signer") or "").strip()
-    _validate_public_tx_chain_id(body=body, expected_chain_id=str(getattr(ex, "chain_id", "") or ""))
+    _validate_public_tx_chain_id(
+        body=body, expected_chain_id=str(getattr(ex, "chain_id", "") or "")
+    )
 
     if signer == "SYSTEM" or bool(body.get("system", False)):
         raise ApiError.forbidden(

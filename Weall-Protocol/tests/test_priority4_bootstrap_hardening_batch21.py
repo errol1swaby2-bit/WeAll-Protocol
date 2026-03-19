@@ -11,7 +11,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
-from weall.runtime.chain_config import ChainConfig, production_bootstrap_report, production_bootstrap_issues
+from weall.runtime.chain_config import (
+    ChainConfig,
+    production_bootstrap_issues,
+    production_bootstrap_report,
+)
 
 
 class _FakePool:
@@ -100,7 +104,9 @@ def _set_prod_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("WEALL_SIGVERIFY", raising=False)
 
 
-def test_production_bootstrap_report_has_observer_first_guidance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_report_has_observer_first_guidance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_env(monkeypatch)
     report = production_bootstrap_report(_cfg(tmp_path))
     assert report["ok"] is True
@@ -109,9 +115,13 @@ def test_production_bootstrap_report_has_observer_first_guidance(tmp_path: Path,
     assert report["fetch_sources_unique"] is True
 
 
-def test_production_bootstrap_rejects_duplicate_fetch_sources(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_rejects_duplicate_fetch_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_env(monkeypatch)
-    monkeypatch.setenv("WEALL_BFT_FETCH_BASE_URLS", "https://peer-a.example,https://peer-a.example/")
+    monkeypatch.setenv(
+        "WEALL_BFT_FETCH_BASE_URLS", "https://peer-a.example,https://peer-a.example/"
+    )
     issues = production_bootstrap_issues(_cfg(tmp_path))
     assert any("duplicate base URLs" in issue for issue in issues)
 
@@ -129,7 +139,9 @@ def _write_db(db_path: Path, state: dict[str, object]) -> None:
         con.close()
 
 
-def test_bootstrap_bundle_builder_and_verifier_round_trip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bootstrap_bundle_builder_and_verifier_round_trip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_env(monkeypatch)
     cfg_path = tmp_path / "prod.chain.json"
     db_path = tmp_path / "data" / "weall.db"
@@ -163,7 +175,10 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(tmp_path: Path, monkey
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
     _write_db(db_path, state)
@@ -198,7 +213,13 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(tmp_path: Path, monkey
     )
     assert str(bundle_path) in build.stdout
     verify = subprocess.run(
-        [sys.executable, "scripts/verify_validator_bootstrap.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/verify_validator_bootstrap.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=Path(__file__).resolve().parents[1],
         env=cmd_env,
         check=False,
@@ -209,10 +230,15 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(tmp_path: Path, monkey
     payload = json.loads(verify.stdout)
     assert payload["ok"] is True
     assert payload["bootstrap_report"]["ok"] is True
-    assert payload["startup_fingerprint"]["expected"]["fingerprint"] == payload["startup_fingerprint"]["bundle"]["fingerprint"]
+    assert (
+        payload["startup_fingerprint"]["expected"]["fingerprint"]
+        == payload["startup_fingerprint"]["bundle"]["fingerprint"]
+    )
 
 
-def test_status_operator_exposes_bootstrap_report(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_status_operator_exposes_bootstrap_report(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     _set_prod_env(monkeypatch)
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text("{}", encoding="utf-8")
@@ -244,4 +270,7 @@ def test_status_operator_exposes_bootstrap_report(monkeypatch: pytest.MonkeyPatc
     body = client.get("/v1/status/operator").json()
     assert body["bootstrap"]["ok"] is True
     assert body["bootstrap"]["observer_first_recommended"] is True
-    assert body["bootstrap"]["recommended_join_mode"] == "observer_first_then_verify_then_enable_bft_signing"
+    assert (
+        body["bootstrap"]["recommended_join_mode"]
+        == "observer_first_then_verify_then_enable_bft_signing"
+    )

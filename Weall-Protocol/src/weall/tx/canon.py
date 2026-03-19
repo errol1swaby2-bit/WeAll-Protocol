@@ -4,9 +4,9 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class CanonError(Exception):
@@ -24,8 +24,8 @@ class CanonRule:
     """
 
     tx_type: str
-    payload_required: Tuple[str, ...] = ()
-    payload_account_id_fields: Tuple[str, ...] = ()
+    payload_required: tuple[str, ...] = ()
+    payload_account_id_fields: tuple[str, ...] = ()
     requires_parent: bool = False
     receipt_only: bool = False
     meta: Json = field(default_factory=dict)
@@ -39,7 +39,7 @@ def _s(x: Any) -> str:
     return "" if x is None else str(x)
 
 
-def _as_tuple_str(xs: Any) -> Tuple[str, ...]:
+def _as_tuple_str(xs: Any) -> tuple[str, ...]:
     if not xs:
         return ()
     if isinstance(xs, (list, tuple)):
@@ -93,7 +93,7 @@ def load_tx_index_json_raw(path: str | Path) -> Json:
     return idx
 
 
-def load_tx_index_json(path: str | Path) -> "TxIndex":
+def load_tx_index_json(path: str | Path) -> TxIndex:
     return TxIndex.load_from_file(path)
 
 
@@ -126,7 +126,11 @@ def _tx_rules_dict(canon: Any) -> Json:
             continue
 
         if isinstance(ident, int):
-            rec = tx_types[ident] if 0 <= ident < len(tx_types) and isinstance(tx_types[ident], dict) else {}
+            rec = (
+                tx_types[ident]
+                if 0 <= ident < len(tx_types) and isinstance(tx_types[ident], dict)
+                else {}
+            )
             out[name] = rec
             continue
 
@@ -146,26 +150,26 @@ class TxIndex:
     IMPORTANT: tests construct TxIndex directly; keep defaults permissive.
     """
 
-    tx_types: List[Json] = field(default_factory=list)
-    by_name: Dict[str, Json] = field(default_factory=dict)
-    by_id: Dict[int, Json] = field(default_factory=dict)
-    by_id_str: Dict[str, Json] = field(default_factory=dict)
+    tx_types: list[Json] = field(default_factory=list)
+    by_name: dict[str, Json] = field(default_factory=dict)
+    by_id: dict[int, Json] = field(default_factory=dict)
+    by_id_str: dict[str, Json] = field(default_factory=dict)
     meta: Json = field(default_factory=dict)
     source_sha256: str = ""
     raw: Json = field(default_factory=dict)
 
     @classmethod
-    def from_raw(cls, raw: Json, *, source_sha256: str = "") -> "TxIndex":
+    def from_raw(cls, raw: Json, *, source_sha256: str = "") -> TxIndex:
         if not isinstance(raw, dict):
             raise CanonError("tx index must be a dict")
 
         # current generated format
         tx_types0 = raw.get("tx_types")
         if isinstance(tx_types0, list) and tx_types0:
-            tx_types: List[Json] = [t if isinstance(t, dict) else {} for t in tx_types0]
-            by_name: Dict[str, Json] = {}
-            by_id_str: Dict[str, Json] = {}
-            by_id: Dict[int, Json] = {}
+            tx_types: list[Json] = [t if isinstance(t, dict) else {} for t in tx_types0]
+            by_name: dict[str, Json] = {}
+            by_id_str: dict[str, Json] = {}
+            by_id: dict[int, Json] = {}
 
             for seq, t in enumerate(tx_types, start=1):
                 name = _s(t.get("name")).upper()
@@ -227,7 +231,7 @@ class TxIndex:
         return cls(meta=_d(raw.get("meta")), source_sha256=_s(source_sha256), raw=raw)
 
     @classmethod
-    def load_from_file(cls, path: str | Path) -> "TxIndex":
+    def load_from_file(cls, path: str | Path) -> TxIndex:
         try:
             raw = load_tx_index_json_raw(path)
         except Exception as e:
@@ -241,7 +245,7 @@ class TxIndex:
     def is_known(self, tx_type: str) -> bool:
         return bool(self.get(tx_type) is not None)
 
-    def list_types(self) -> List[str]:
+    def list_types(self) -> list[str]:
         return sorted(self.by_name.keys())
 
 
@@ -261,7 +265,7 @@ def get_canon_rule(canon: Json, tx_type: str) -> CanonRule:
     return base
 
 
-def list_tx_types(canon: Json) -> List[str]:
+def list_tx_types(canon: Json) -> list[str]:
     tx = _tx_rules_dict(canon)
     return sorted([k for k in tx.keys() if isinstance(k, str)])
 
@@ -271,7 +275,7 @@ def is_tx_type_known(canon: Json, tx_type: str) -> bool:
     return str(tx_type) in tx
 
 
-_DEFAULT_TX_INDEX_CANDIDATES: Tuple[str, ...] = (
+_DEFAULT_TX_INDEX_CANDIDATES: tuple[str, ...] = (
     "generated/tx_index.json",
     "generated/tx_canon_index.json",
     "generated/tx_canon.json",
@@ -279,7 +283,7 @@ _DEFAULT_TX_INDEX_CANDIDATES: Tuple[str, ...] = (
 )
 
 
-def load_tx_canon_index(path: Optional[str] = None) -> Json:
+def load_tx_canon_index(path: str | None = None) -> Json:
     if path:
         return load_tx_index_json_raw(path)
 
@@ -294,7 +298,7 @@ def load_tx_canon_index(path: Optional[str] = None) -> Json:
     if len(here.parents) >= 3:
         roots.append(here.parents[2])
 
-    tried: List[Path] = []
+    tried: list[Path] = []
     for root in roots:
         for rel in _DEFAULT_TX_INDEX_CANDIDATES:
             candidate = (root / rel).resolve()
@@ -308,7 +312,7 @@ def load_tx_canon_index(path: Optional[str] = None) -> Json:
     )
 
 
-def load_tx_index_auto(path: Optional[str] = None) -> TxIndex:
+def load_tx_index_auto(path: str | None = None) -> TxIndex:
     return TxIndex.from_raw(load_tx_canon_index(path=path))
 
 

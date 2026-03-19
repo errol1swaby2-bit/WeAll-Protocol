@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 
@@ -101,9 +100,7 @@ def test_tx_index_ordering(tmp_path: Path) -> None:
         assert meta.ok
 
     con = sqlite3.connect(db_path)
-    rows = con.execute(
-        "SELECT height FROM tx_index ORDER BY height DESC"
-    ).fetchall()
+    rows = con.execute("SELECT height FROM tx_index ORDER BY height DESC").fetchall()
 
     heights = [r[0] for r in rows]
 

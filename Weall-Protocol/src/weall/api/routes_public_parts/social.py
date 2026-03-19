@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Request
+
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _snapshot
 from weall.api.security import require_account_session
 
 router = APIRouter()
+
 
 @router.get("/social/{account}/following")
 def following(account: str, request: Request):
@@ -15,6 +17,7 @@ def following(account: str, request: Request):
         if obj.get("from") == account and obj.get("active", True):
             out.append(obj)
     return {"ok": True, "following": out}
+
 
 @router.get("/social/me")
 def me(request: Request):

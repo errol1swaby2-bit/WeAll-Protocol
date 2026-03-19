@@ -10,13 +10,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json, derive_aux_db_path
 from weall.runtime.system_tx_engine import enqueue_system_tx
-from weall.storage.ipfs_partition import read_partition_config, can_accept_bytes
+from weall.storage.ipfs_partition import can_accept_bytes, read_partition_config
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _now_ms() -> int:
@@ -146,18 +146,32 @@ class IpfsPinWorkerConfig:
     ipfs_enabled: bool = field(default_factory=lambda: _env_bool("WEALL_IPFS_ENABLED", False))
 
     # IPFS/Kubo API
-    ipfs_api_url: str = field(default_factory=lambda: _env_url("WEALL_IPFS_API_URL", "http://127.0.0.1:5001"))
+    ipfs_api_url: str = field(
+        default_factory=lambda: _env_url("WEALL_IPFS_API_URL", "http://127.0.0.1:5001")
+    )
     ipfs_timeout_s: float = field(default_factory=lambda: _env_float("WEALL_IPFS_TIMEOUT_S", 10.0))
 
     # Retry / backoff
     max_attempts: int = field(default_factory=lambda: _env_int("WEALL_IPFS_MAX_ATTEMPTS", 12))
-    backoff_base_ms: int = field(default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_BASE_MS", 750))
-    backoff_cap_ms: int = field(default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_CAP_MS", 60000))
+    backoff_base_ms: int = field(
+        default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_BASE_MS", 750)
+    )
+    backoff_cap_ms: int = field(
+        default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_CAP_MS", 60000)
+    )
 
     # Local partition enforcement (mounted path you control)
-    ipfs_partition_path: str = field(default_factory=lambda: str(os.environ.get("WEALL_IPFS_PARTITION_PATH", "") or "").strip())
-    ipfs_partition_cap_bytes: int = field(default_factory=lambda: _env_int("WEALL_IPFS_PARTITION_CAP_BYTES", 0))
-    ipfs_partition_free_reserve_bytes: int = field(default_factory=lambda: _env_int("WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES", 512 * 1024 * 1024))
+    ipfs_partition_path: str = field(
+        default_factory=lambda: str(os.environ.get("WEALL_IPFS_PARTITION_PATH", "") or "").strip()
+    )
+    ipfs_partition_cap_bytes: int = field(
+        default_factory=lambda: _env_int("WEALL_IPFS_PARTITION_CAP_BYTES", 0)
+    )
+    ipfs_partition_free_reserve_bytes: int = field(
+        default_factory=lambda: _env_int(
+            "WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES", 512 * 1024 * 1024
+        )
+    )
 
 
 class IpfsPinWorker:
@@ -170,7 +184,7 @@ class IpfsPinWorker:
         self.db = SqliteDB(path=db_path)
         self.db.init_schema()
 
-    def _read_job(self, cid: str) -> Optional[Json]:
+    def _read_job(self, cid: str) -> Json | None:
         c = str(cid or "").strip()
         if not c:
             return None
@@ -205,14 +219,16 @@ class IpfsPinWorker:
             )
         return {"ok": True, "cid": c}
 
-    def _pin_confirms_any(self, state: Json) -> List[Json]:
+    def _pin_confirms_any(self, state: Json) -> list[Json]:
         storage = state.get("storage")
         if not isinstance(storage, dict):
             return []
         confirms = storage.get("pin_confirms")
         return confirms if isinstance(confirms, list) else []
 
-    def _operator_already_confirmed_ok(self, confirms: List[Json], *, pin_id: str, cid: str) -> bool:
+    def _operator_already_confirmed_ok(
+        self, confirms: list[Json], *, pin_id: str, cid: str
+    ) -> bool:
         want_pin = str(pin_id or "").strip()
         want_cid = str(cid or "").strip()
         op = str(self.cfg.operator_account or "").strip()
@@ -234,7 +250,9 @@ class IpfsPinWorker:
     def _sync_chain_pin_requests(self) -> Json:
         try:
             with self.db.connection() as con:
-                row = con.execute("SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;").fetchone()
+                row = con.execute(
+                    "SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;"
+                ).fetchone()
         except Exception as e:
             return {"ok": False, "error": f"ledger_state_read_failed:{e}"}
 
@@ -259,7 +277,7 @@ class IpfsPinWorker:
 
         confirms = self._pin_confirms_any(state)
 
-        grouped: Dict[str, Json] = {}
+        grouped: dict[str, Json] = {}
         seen = 0
         for pin_id, rec_any in pins.items():
             if not isinstance(rec_any, dict):
@@ -269,7 +287,11 @@ class IpfsPinWorker:
             if not cid:
                 continue
             targets_any = rec.get("targets")
-            targets = [str(x).strip() for x in targets_any if str(x).strip()] if isinstance(targets_any, list) else []
+            targets = (
+                [str(x).strip() for x in targets_any if str(x).strip()]
+                if isinstance(targets_any, list)
+                else []
+            )
             if targets and str(self.cfg.operator_account) not in targets:
                 continue
             if self._operator_already_confirmed_ok(confirms, pin_id=str(pin_id), cid=cid):
@@ -305,7 +327,9 @@ class IpfsPinWorker:
                     if str(x).strip()
                 }
             )
-            cur["size_bytes"] = max(_safe_int(cur.get("size_bytes"), 0), _safe_int(rec.get("size_bytes"), 0))
+            cur["size_bytes"] = max(
+                _safe_int(cur.get("size_bytes"), 0), _safe_int(rec.get("size_bytes"), 0)
+            )
             cur["replication_factor"] = max(
                 _safe_int(cur.get("replication_factor"), 0),
                 _safe_int(rec.get("replication_factor"), 0),
@@ -359,16 +383,24 @@ class IpfsPinWorker:
                     if str(x).strip()
                 }
             )
-            merged_job["size_bytes"] = max(_safe_int(existing.get("size_bytes"), 0), _safe_int(job.get("size_bytes"), 0))
+            merged_job["size_bytes"] = max(
+                _safe_int(existing.get("size_bytes"), 0), _safe_int(job.get("size_bytes"), 0)
+            )
             merged_job["replication_factor"] = max(
                 _safe_int(existing.get("replication_factor"), 0),
                 _safe_int(job.get("replication_factor"), 0),
             )
             if not str(merged_job.get("requested_by") or "").strip():
                 merged_job["requested_by"] = str(job.get("requested_by") or "").strip()
-            if _safe_int(merged_job.get("requested_at_nonce"), 0) <= 0 and _safe_int(job.get("requested_at_nonce"), 0) > 0:
+            if (
+                _safe_int(merged_job.get("requested_at_nonce"), 0) <= 0
+                and _safe_int(job.get("requested_at_nonce"), 0) > 0
+            ):
                 merged_job["requested_at_nonce"] = _safe_int(job.get("requested_at_nonce"), 0)
-            if _safe_int(merged_job.get("requested_at_height"), 0) <= 0 and _safe_int(job.get("requested_at_height"), 0) > 0:
+            if (
+                _safe_int(merged_job.get("requested_at_height"), 0) <= 0
+                and _safe_int(job.get("requested_at_height"), 0) > 0
+            ):
                 merged_job["requested_at_height"] = _safe_int(job.get("requested_at_height"), 0)
 
             if _job_for_id(existing) != _job_for_id(merged_job):
@@ -408,7 +440,9 @@ class IpfsPinWorker:
 
         try:
             with self.db.write_tx() as con:
-                row = con.execute("SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;").fetchone()
+                row = con.execute(
+                    "SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;"
+                ).fetchone()
                 if row is None:
                     return False
                 state = json.loads(str(row["state_json"]))
@@ -428,7 +462,7 @@ class IpfsPinWorker:
         except Exception:
             return False
 
-    def _list_jobs(self) -> List[Json]:
+    def _list_jobs(self) -> list[Json]:
         with self.db.connection() as con:
             rows = con.execute(
                 """
@@ -440,7 +474,7 @@ class IpfsPinWorker:
                 (int(self.cfg.max_jobs),),
             ).fetchall()
 
-        out: List[Json] = []
+        out: list[Json] = []
         for r in rows:
             try:
                 j = json.loads(str(r["job_json"]))
@@ -534,7 +568,7 @@ class IpfsPinWorker:
             con.execute("DELETE FROM ipfs_replication_jobs WHERE cid=?;", (c,))
         return {"ok": True, "cid": c}
 
-    def enqueue_job(self, cid: str, *, targets: Optional[List[str]] = None) -> Json:
+    def enqueue_job(self, cid: str, *, targets: list[str] | None = None) -> Json:
         c = str(cid).strip()
         if not c:
             return {"ok": False, "error": "missing_cid"}
@@ -551,7 +585,9 @@ class IpfsPinWorker:
             base = "http://127.0.0.1:5001"
         return base.rstrip("/")
 
-    def _ipfs_call(self, path: str, query: Dict[str, str], *, timeout_s: float) -> Tuple[bool, str, int]:
+    def _ipfs_call(
+        self, path: str, query: dict[str, str], *, timeout_s: float
+    ) -> tuple[bool, str, int]:
         base = self._ipfs_api_base()
         qs = urllib.parse.urlencode(query)
         url = f"{base}{path}?{qs}" if qs else f"{base}{path}"
@@ -574,7 +610,7 @@ class IpfsPinWorker:
         except Exception as e:
             return False, str(e), 0
 
-    def _ipfs_pin(self, cid: str) -> Tuple[bool, str]:
+    def _ipfs_pin(self, cid: str) -> tuple[bool, str]:
         c = str(cid).strip()
         if not c:
             return False, "missing_cid"
@@ -602,7 +638,9 @@ class IpfsPinWorker:
 
         try:
             with self.db.connection() as con:
-                row = con.execute("SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;").fetchone()
+                row = con.execute(
+                    "SELECT state_json FROM ledger_state WHERE id=1 LIMIT 1;"
+                ).fetchone()
             if row is None:
                 return 0
             st = json.loads(str(row["state_json"]))
@@ -632,7 +670,7 @@ class IpfsPinWorker:
                 best = sz
         return int(best)
 
-    def _enforce_partition_budget(self, *, cid: str, need_bytes: int) -> Tuple[bool, str]:
+    def _enforce_partition_budget(self, *, cid: str, need_bytes: int) -> tuple[bool, str]:
         part_path = str(self.cfg.ipfs_partition_path or "").strip()
         cap = int(self.cfg.ipfs_partition_cap_bytes or 0)
         reserve = int(self.cfg.ipfs_partition_free_reserve_bytes or 0)
@@ -715,7 +753,9 @@ class IpfsPinWorker:
             # Only enforce real disk/partition budget when live IPFS pinning is enabled.
             if bool(self.cfg.ipfs_enabled):
                 cid_size = self._lookup_cid_size_bytes(cid)
-                ok_budget, budget_err = self._enforce_partition_budget(cid=cid, need_bytes=int(cid_size))
+                ok_budget, budget_err = self._enforce_partition_budget(
+                    cid=cid, need_bytes=int(cid_size)
+                )
                 if not ok_budget:
                     processed += 1
                     failed += 1
@@ -791,18 +831,22 @@ class IpfsPinWorker:
         }
 
 
-def _parse_args(argv: List[str]) -> argparse.Namespace:
+def _parse_args(argv: list[str]) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="WeAll IPFS pin/replication worker (SQLite-backed)")
     ap.add_argument("--db-path", required=True, help="Path to WeAll SQLite DB")
-    ap.add_argument("--operator-account", required=True, help="Operator account id for target filtering")
+    ap.add_argument(
+        "--operator-account", required=True, help="Operator account id for target filtering"
+    )
     ap.add_argument("--dry-run", action="store_true", help="Do not actually pin; only touch rows")
     ap.add_argument("--once", action="store_true", help="Run a single pass and exit")
-    ap.add_argument("--poll-ms", type=int, default=1000, help="Polling interval when not using --once")
+    ap.add_argument(
+        "--poll-ms", type=int, default=1000, help="Polling interval when not using --once"
+    )
     ap.add_argument("--max-jobs", type=int, default=200, help="Max jobs to scan per pass")
     return ap.parse_args(argv)
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     ns = _parse_args(argv)
     cfg = IpfsPinWorkerConfig(
         db_path=str(ns.db_path),

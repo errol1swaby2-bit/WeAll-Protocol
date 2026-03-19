@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -10,7 +10,7 @@ from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def clone_state(state: Json) -> Json:
@@ -19,7 +19,7 @@ def clone_state(state: Json) -> Json:
 
 def env(
     tx_type: str,
-    payload: Dict[str, Any] | None = None,
+    payload: dict[str, Any] | None = None,
     *,
     signer: str = "SYSTEM",
     nonce: int = 1,
@@ -45,7 +45,7 @@ def apply_err(state: Json, envelope: Json) -> ApplyError:
     return ei.value
 
 
-def apply_ok(state: Json, envelope: Json) -> Dict[str, Any]:
+def apply_ok(state: Json, envelope: Json) -> dict[str, Any]:
     out = apply_tx(state, envelope)
     assert isinstance(out, dict)
     applied = out.get("applied")
@@ -53,7 +53,7 @@ def apply_ok(state: Json, envelope: Json) -> Dict[str, Any]:
     return out
 
 
-def _queue(state: Json) -> List[Dict[str, Any]]:
+def _queue(state: Json) -> list[dict[str, Any]]:
     q = state.get("system_queue")
     if not isinstance(q, list):
         return []

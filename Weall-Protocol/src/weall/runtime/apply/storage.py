@@ -15,12 +15,12 @@ Key invariants:
 
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -197,7 +197,7 @@ def _replication_factor(state: Json) -> int:
     return 1
 
 
-def _enabled_operator_ids(state: Json) -> List[str]:
+def _enabled_operator_ids(state: Json) -> list[str]:
     """
     Deterministic list of enabled operator account IDs.
 
@@ -209,7 +209,7 @@ def _enabled_operator_ids(state: Json) -> List[str]:
     if not isinstance(ops_any, dict):
         return []
 
-    out: List[str] = []
+    out: list[str] = []
     for k, rec_any in ops_any.items():
         acc = _as_str(k).strip()
         if not acc:
@@ -222,7 +222,7 @@ def _enabled_operator_ids(state: Json) -> List[str]:
     return out
 
 
-def _eligible_operator_ids_for_size(state: Json, size_bytes: int) -> List[str]:
+def _eligible_operator_ids_for_size(state: Json, size_bytes: int) -> list[str]:
     """Enabled operators that also pass capacity gating."""
     base = _enabled_operator_ids(state)
     if size_bytes <= 0:
@@ -230,7 +230,7 @@ def _eligible_operator_ids_for_size(state: Json, size_bytes: int) -> List[str]:
     return [op for op in base if _operator_has_capacity(state, op, int(size_bytes))]
 
 
-def _select_targets_for_cid(cid: str, operator_ids: List[str], n: int) -> List[str]:
+def _select_targets_for_cid(cid: str, operator_ids: list[str], n: int) -> list[str]:
     """
     Deterministic ring selection:
       start = sha256(cid) % len(ops)
@@ -246,7 +246,7 @@ def _select_targets_for_cid(cid: str, operator_ids: List[str], n: int) -> List[s
     seed = int.from_bytes(h[:8], "big", signed=False)
     start = seed % len(operator_ids)
 
-    targets: List[str] = []
+    targets: list[str] = []
     for i in range(n):
         targets.append(operator_ids[(start + i) % len(operator_ids)])
     return targets
@@ -255,6 +255,7 @@ def _select_targets_for_cid(cid: str, operator_ids: List[str], n: int) -> List[s
 # ---------------------------------------------------------------------------
 # Offers / Leases / Proofs / Challenges
 # ---------------------------------------------------------------------------
+
 
 def _apply_storage_offer_create(state: Json, env: TxEnvelope) -> Json:
     s = _ensure_storage(state)
@@ -307,7 +308,9 @@ def _apply_storage_offer_withdraw(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(rec.get("operator_id") or rec.get("operator") or "").strip()
     if operator_id != env.signer:
-        raise StorageApplyError("forbidden", "only_operator_account_can_withdraw", {"offer_id": offer_id})
+        raise StorageApplyError(
+            "forbidden", "only_operator_account_can_withdraw", {"offer_id": offer_id}
+        )
 
     already = rec.get("status") == "withdrawn"
     rec["status"] = "withdrawn"
@@ -335,7 +338,9 @@ def _apply_storage_lease_create(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(offer.get("operator_id") or offer.get("operator") or "").strip()
     if not operator_id:
-        raise StorageApplyError("invalid_state", "offer_missing_operator_id", {"offer_id": offer_id})
+        raise StorageApplyError(
+            "invalid_state", "offer_missing_operator_id", {"offer_id": offer_id}
+        )
 
     leases = s["leases"]
     if lease_id in leases:
@@ -412,7 +417,9 @@ def _apply_storage_lease_revoke(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(rec.get("operator_id") or rec.get("operator") or "").strip()
     if not bool(getattr(env, "system", False)) and operator_id != env.signer:
-        raise StorageApplyError("forbidden", "only_operator_account_can_revoke", {"lease_id": lease_id})
+        raise StorageApplyError(
+            "forbidden", "only_operator_account_can_revoke", {"lease_id": lease_id}
+        )
 
     already = rec.get("status") == "revoked"
     rec["status"] = "revoked"
@@ -438,7 +445,9 @@ def _apply_storage_proof_submit(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(rec.get("operator_id") or rec.get("operator") or "").strip()
     if operator_id != env.signer:
-        raise StorageApplyError("forbidden", "only_operator_account_can_submit_proof", {"lease_id": lease_id})
+        raise StorageApplyError(
+            "forbidden", "only_operator_account_can_submit_proof", {"lease_id": lease_id}
+        )
 
     proofs = s["proofs"]
     if lease_id not in proofs:
@@ -473,7 +482,9 @@ def _apply_storage_challenge_issue(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(lease.get("operator_id") or lease.get("operator") or "").strip()
     if not operator_id:
-        raise StorageApplyError("invalid_state", "lease_missing_operator_id", {"lease_id": lease_id})
+        raise StorageApplyError(
+            "invalid_state", "lease_missing_operator_id", {"lease_id": lease_id}
+        )
 
     hinted_op = _as_str(_pick(payload, "operator_id", "operator") or "").strip()
     if hinted_op and hinted_op != operator_id:
@@ -483,7 +494,10 @@ def _apply_storage_challenge_issue(state: Json, env: TxEnvelope) -> Json:
             {"operator_id": hinted_op, "lease_operator_id": operator_id, "lease_id": lease_id},
         )
 
-    account_id = _as_str(_pick(payload, "account_id", "lessee") or "").strip() or _as_str(lease.get("lessee")).strip()
+    account_id = (
+        _as_str(_pick(payload, "account_id", "lessee") or "").strip()
+        or _as_str(lease.get("lessee")).strip()
+    )
 
     challenges = s["challenges"]
     if challenge_id in challenges:
@@ -517,7 +531,9 @@ def _apply_storage_challenge_respond(state: Json, env: TxEnvelope) -> Json:
 
     operator_id = _as_str(rec.get("operator_id") or "").strip()
     if not bool(getattr(env, "system", False)) and operator_id and operator_id != env.signer:
-        raise StorageApplyError("forbidden", "only_operator_account_can_respond", {"challenge_id": challenge_id})
+        raise StorageApplyError(
+            "forbidden", "only_operator_account_can_respond", {"challenge_id": challenge_id}
+        )
 
     already = rec.get("status") == "responded"
     rec["status"] = "responded"
@@ -525,12 +541,17 @@ def _apply_storage_challenge_respond(state: Json, env: TxEnvelope) -> Json:
     rec["responded_at_height"] = int(_height(state))
     rec["response_payload"] = payload
     challenges[challenge_id] = rec
-    return {"applied": "STORAGE_CHALLENGE_RESPOND", "challenge_id": challenge_id, "deduped": already}
+    return {
+        "applied": "STORAGE_CHALLENGE_RESPOND",
+        "challenge_id": challenge_id,
+        "deduped": already,
+    }
 
 
 # ---------------------------------------------------------------------------
 # System-only receipts
 # ---------------------------------------------------------------------------
+
 
 def _apply_storage_payout_execute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -576,6 +597,7 @@ def _apply_storage_report_anchor(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # IPFS pinning (canon Storage)
 # ---------------------------------------------------------------------------
+
 
 def _apply_ipfs_pin_request(state: Json, env: TxEnvelope) -> Json:
     """
@@ -687,7 +709,11 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
                     ops_any = s.get("operators")
                     if isinstance(ops_any, dict):
                         op_rec_any = ops_any.get(operator_id)
-                        op_rec = op_rec_any if isinstance(op_rec_any, dict) else {"account_id": operator_id}
+                        op_rec = (
+                            op_rec_any
+                            if isinstance(op_rec_any, dict)
+                            else {"account_id": operator_id}
+                        )
                         used = _as_int(op_rec.get("used_bytes"), 0)
                         op_rec["used_bytes"] = int(max(0, used + int(size_bytes)))
                         if "capacity_bytes" not in op_rec:
@@ -720,7 +746,8 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
 # Dispatcher entrypoint
 # ---------------------------------------------------------------------------
 
-def apply_storage(state: Json, env: TxEnvelope) -> Optional[Json]:
+
+def apply_storage(state: Json, env: TxEnvelope) -> Json | None:
     t = str(getattr(env, "tx_type", "") or "").strip()
 
     if t == "STORAGE_OFFER_CREATE":

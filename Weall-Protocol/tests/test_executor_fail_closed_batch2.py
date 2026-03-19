@@ -8,7 +8,11 @@ import weall.runtime.executor as executor_mod
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.domain_apply import NonceSideEffectError
 from weall.runtime.executor import WeAllExecutor
-from weall.runtime.system_tx_engine import SystemQueueCorruptionError, prune_emitted_system_queue, system_queue_phase_for_id
+from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
+    prune_emitted_system_queue,
+    system_queue_phase_for_id,
+)
 from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
@@ -35,7 +39,9 @@ def _submit_register(ex: WeAllExecutor, signer: str = "@user000") -> None:
     assert sub["ok"] is True
 
 
-def test_prod_build_block_candidate_fails_closed_on_nonce_side_effect_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_build_block_candidate_fails_closed_on_nonce_side_effect_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path, "leader")
     _submit_register(ex)
@@ -45,7 +51,9 @@ def test_prod_build_block_candidate_fails_closed_on_nonce_side_effect_error(tmp_
 
     monkeypatch.setattr(executor_mod, "apply_tx_atomic_meta", boom)
 
-    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=10, allow_empty=False)
+    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=10, allow_empty=False
+    )
 
     assert block is None
     assert new_state is None
@@ -54,12 +62,15 @@ def test_prod_build_block_candidate_fails_closed_on_nonce_side_effect_error(tmp_
     assert err == "tx_apply_failed:NonceSideEffectError"
 
 
-
-def test_prod_apply_block_fails_closed_on_nonce_side_effect_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_apply_block_fails_closed_on_nonce_side_effect_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     leader = _mk_executor(tmp_path, "leader")
     _submit_register(leader)
-    block, _new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(max_txs=10, allow_empty=False)
+    block, _new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(
+        max_txs=10, allow_empty=False
+    )
     assert err == ""
     assert isinstance(block, dict)
 
@@ -76,22 +87,26 @@ def test_prod_apply_block_fails_closed_on_nonce_side_effect_error(tmp_path: Path
     assert meta.error == "bad_block:tx_apply_failed:NonceSideEffectError"
 
 
-
-def test_prod_commit_block_candidate_fails_closed_on_corrupt_system_queue_prune(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_commit_block_candidate_fails_closed_on_corrupt_system_queue_prune(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path, "leader")
 
-    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True)
+    block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True
+    )
     assert err == ""
     assert isinstance(block, dict)
     assert isinstance(new_state, dict)
 
     new_state["system_queue"] = ["corrupt"]
-    meta = ex.commit_block_candidate(block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = ex.commit_block_candidate(
+        block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
 
     assert meta.ok is False
     assert meta.error == "system_queue_prune_failed:SystemQueueCorruptionError"
-
 
 
 def test_system_queue_helpers_fail_closed_on_corrupt_entries() -> None:

@@ -3,12 +3,10 @@ from __future__ import annotations
 import os
 import threading
 import time
-from typing import Dict
-
 
 _lock = threading.Lock()
-_counters: Dict[str, int] = {}
-_gauges: Dict[str, int] = {}
+_counters: dict[str, int] = {}
+_gauges: dict[str, int] = {}
 _started_ms = int(time.time() * 1000)
 
 

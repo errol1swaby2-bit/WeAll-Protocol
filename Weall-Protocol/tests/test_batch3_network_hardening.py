@@ -29,7 +29,10 @@ class _Exec:
 
     def bft_on_proposal(self, proposal: dict):
         self.proposals.append(dict(proposal))
-        return {"view": int(proposal.get("view") or 0), "block_id": str((proposal.get("block") or {}).get("block_id") or "b1")}
+        return {
+            "view": int(proposal.get("view") or 0),
+            "block_id": str((proposal.get("block") or {}).get("block_id") or "b1"),
+        }
 
     def bft_diagnostics(self):
         return dict(self._diag)
@@ -49,12 +52,13 @@ class _Peers:
 
 class _Node:
     def __init__(self) -> None:
-        self.cfg = SimpleNamespace(chain_id="weall-dev", schema_version="1", tx_index_hash="0", peer_id="n1")
+        self.cfg = SimpleNamespace(
+            chain_id="weall-dev", schema_version="1", tx_index_hash="0", peer_id="n1"
+        )
         self.broadcasts = []
 
     def broadcast_message(self, msg, exclude_peer_id: str = "") -> None:
         self.broadcasts.append((msg, exclude_peer_id))
-
 
 
 def _reset_metrics() -> None:
@@ -62,12 +66,13 @@ def _reset_metrics() -> None:
     metrics_mod._gauges.clear()
 
 
-
 def _loop() -> NetMeshLoop:
     loop = NetMeshLoop(
         executor=_Exec(),
         mempool=_Mempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _Node()
     loop._bft_enabled = True
@@ -75,16 +80,16 @@ def _loop() -> NetMeshLoop:
     return loop
 
 
-
 def _proposal_msg(*, block: dict, proposer: str = "n2", view: int = 1) -> BftProposalMsg:
     return BftProposalMsg(
-        header=WireHeader(type=MsgType.BFT_PROPOSAL, chain_id="weall-dev", schema_version="1", tx_index_hash="0"),
+        header=WireHeader(
+            type=MsgType.BFT_PROPOSAL, chain_id="weall-dev", schema_version="1", tx_index_hash="0"
+        ),
         view=view,
         proposer=proposer,
         block=block,
         justify_qc=None,
     )
-
 
 
 def test_oversize_bft_proposal_is_rejected_before_executor() -> None:
@@ -101,7 +106,6 @@ def test_oversize_bft_proposal_is_rejected_before_executor() -> None:
     assert int(snap["counters"].get("net_bft_proposal_reject_oversize", 0)) >= 1
 
 
-
 def test_duplicate_bft_proposal_is_deduped_and_counted() -> None:
     _reset_metrics()
     loop = _loop()
@@ -113,7 +117,6 @@ def test_duplicate_bft_proposal_is_deduped_and_counted() -> None:
     assert len(loop._executor.proposals) == 1
     snap = metrics_mod.snapshot()
     assert int(snap["counters"].get("net_bft_proposal_duplicate", 0)) >= 1
-
 
 
 def test_network_metric_gauges_reflect_executor_backlog() -> None:
@@ -128,7 +131,6 @@ def test_network_metric_gauges_reflect_executor_backlog() -> None:
     assert int(gauges.get("net_bft_pending_missing_qcs", 0)) == 1
     assert int(gauges.get("net_bft_pending_fetch_requests", 0)) == 3
     assert int(gauges.get("net_peers_configured", 0)) == 3
-
 
 
 def test_bft_fetch_sources_are_deduped_and_capped() -> None:

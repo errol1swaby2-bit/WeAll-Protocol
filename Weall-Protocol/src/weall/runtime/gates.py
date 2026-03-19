@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _ensure_root(state: Any) -> Json:
@@ -28,12 +28,12 @@ def resolve_signer_authz(
     signer: str,
     state: Any | None = None,
     ledger: Any | None = None,
-    required: Optional[str] = None,
-    gate_expr: Optional[str] = None,
+    required: str | None = None,
+    gate_expr: str | None = None,
     tx_type: str = "",
-    payload: Optional[Json] = None,
-    root: Optional[Json] = None,
-) -> Tuple[bool, Json]:
+    payload: Json | None = None,
+    root: Json | None = None,
+) -> tuple[bool, Json]:
     """
     Compatibility layer:
       - accept state=

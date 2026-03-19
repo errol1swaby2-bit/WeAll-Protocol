@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
-from weall.runtime.errors import ApplyError
 from weall.poh.operator_email_receipts import validate_operator_email_receipt
+from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_str(v: Any) -> str:
@@ -97,7 +97,7 @@ def _chain_id(state: Json) -> str:
 
 
 def _deterministic_poh_token_id(*, state: Json, owner: str, tier: int, source_id: str) -> str:
-    payload = f"{_chain_id(state)}|POH_GATE|{owner}|{int(tier)}|{source_id}".encode("utf-8")
+    payload = f"{_chain_id(state)}|POH_GATE|{owner}|{int(tier)}|{source_id}".encode()
     return _sha256_hex(payload)
 
 
@@ -106,7 +106,9 @@ def _mint_poh_nft(state: Json, *, owner: str, tier: int, source_id: str, ts_ms: 
     by_id = root["by_id"]
     by_owner = root["by_owner"]
 
-    token_id = _deterministic_poh_token_id(state=state, owner=owner, tier=int(tier), source_id=source_id)
+    token_id = _deterministic_poh_token_id(
+        state=state, owner=owner, tier=int(tier), source_id=source_id
+    )
 
     if token_id in by_id:
         bucket = by_owner.get(owner)
@@ -142,7 +144,9 @@ def _require_prod_no_auto_create(state: Json, account_id: str) -> None:
             raise ApplyError("invalid_tx", "account_not_registered", {"account_id": account_id})
 
 
-def _require_account_exists(state: Json, account_id: str, *, code: str = "invalid_tx", reason: str = "account_not_found") -> Json:
+def _require_account_exists(
+    state: Json, account_id: str, *, code: str = "invalid_tx", reason: str = "account_not_found"
+) -> Json:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
         raise ApplyError("invalid_tx", "accounts_missing", {})
@@ -150,6 +154,7 @@ def _require_account_exists(state: Json, account_id: str, *, code: str = "invali
     if not isinstance(acct, dict):
         raise ApplyError(code, reason, {"account_id": account_id})
     return acct
+
 
 def _truthy_env(name: str) -> bool:
     v = (os.environ.get(name) or "").strip().lower()
@@ -190,16 +195,19 @@ def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
     return False
 
 
-
 def _require_active_tier3(state: Json, account_id: str, *, case_id: str = "") -> Json:
-    acct = _require_account_exists(state, account_id, code="invalid_tx", reason="juror_account_not_found")
+    acct = _require_account_exists(
+        state, account_id, code="invalid_tx", reason="juror_account_not_found"
+    )
     if bool(acct.get("banned", False)):
         raise ApplyError("invalid_tx", "juror_banned", {"case_id": case_id, "juror": account_id})
     if bool(acct.get("locked", False)):
         raise ApplyError("invalid_tx", "juror_locked", {"case_id": case_id, "juror": account_id})
     tier = _as_int(acct.get("poh_tier") or 0, 0)
     if tier < 3:
-        raise ApplyError("invalid_tx", "juror_not_tier3", {"case_id": case_id, "juror": account_id, "tier": tier})
+        raise ApplyError(
+            "invalid_tx", "juror_not_tier3", {"case_id": case_id, "juror": account_id, "tier": tier}
+        )
     return acct
 
 
@@ -226,8 +234,6 @@ def _case_id(prefix: str, *, account_id: str, nonce: int) -> str:
     return f"{prefix}:{account_id}:{max(0, int(nonce))}"
 
 
-
-
 def _email_receipts(state: Json) -> Json:
     poh = _poh_root(state)
     receipts = poh.get("email_receipts")
@@ -245,12 +251,14 @@ def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
     acct = _require_account_exists(state, account_id)
-    ok, code, payload = validate_operator_email_receipt(state, subject_account_id=account_id, receipt=receipt if isinstance(receipt, dict) else {})
+    ok, code, payload = validate_operator_email_receipt(
+        state, subject_account_id=account_id, receipt=receipt if isinstance(receipt, dict) else {}
+    )
     if not ok or not isinstance(payload, dict):
         raise ApplyError("invalid_tx", code, {"account_id": account_id})
 
     receipts = _email_receipts(state)
-    receipt_key = _as_str(payload.get('request_id') or '')
+    receipt_key = _as_str(payload.get("request_id") or "")
     if receipt_key in receipts:
         raise ApplyError("invalid_tx", "receipt_replayed", {"receipt_key": receipt_key})
 
@@ -283,6 +291,7 @@ def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
         "receipt_key": receipt_key,
         "token_id": token_id,
     }
+
 
 def apply_poh_tier_set(state: Json, tx: Json) -> None:
     payload = tx.get("payload") or {}
@@ -327,12 +336,16 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     # Optional global ceiling for any bootstrap mechanism (dev or allowlist).
     max_h = int(params.get("poh_bootstrap_max_height") or 0)
     if max_h > 0 and current_height > max_h:
-        raise ApplyError("forbidden", "bootstrap_expired", {"height": current_height, "expires_height": max_h})
+        raise ApplyError(
+            "forbidden", "bootstrap_expired", {"height": current_height, "expires_height": max_h}
+        )
 
     # --- Dev/testnet open bootstrap (explicit opt-in) ---
     if _truthy_env("WEALL_POH_BOOTSTRAP_OPEN") and _mode() in {"dev", "testnet"}:
         if signer != account_id:
-            raise ApplyError("forbidden", "bootstrap_self_only", {"signer": signer, "account_id": account_id})
+            raise ApplyError(
+                "forbidden", "bootstrap_self_only", {"signer": signer, "account_id": account_id}
+            )
 
         accounts = state.get("accounts") or {}
         acct = accounts.get(account_id)
@@ -361,7 +374,11 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         raise ApplyError("forbidden", "not_bootstrap_account", {"account_id": account_id})
 
     if current_height > expires_height:
-        raise ApplyError("forbidden", "bootstrap_expired", {"height": current_height, "expires_height": expires_height})
+        raise ApplyError(
+            "forbidden",
+            "bootstrap_expired",
+            {"height": current_height, "expires_height": expires_height},
+        )
 
     entry = allowlist.get(account_id) or {}
     expected_pubkey = str(entry.get("pubkey") or "").strip()
@@ -380,6 +397,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     except Exception:
         acct["nonce"] = int(nonce)
     _mint_poh_nft(state, owner=account_id, tier=3, source_id="bootstrap", ts_ms=0)
+
 
 def _challenge_id(*, account_id: str, nonce: int) -> str:
     return f"pohc:{account_id}:{max(0, int(nonce))}"
@@ -623,7 +641,13 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
         tier = _as_int(case.get("tier_awarded") or 0)
         outcome = _as_str(case.get("outcome") or "")
         token_id = _as_str(case.get("poh_nft_token_id") or "").strip()
-        return {"applied": "POH_TIER2_FINALIZE", "case_id": case_id, "outcome": outcome, "tier_awarded": tier, "token_id": token_id}
+        return {
+            "applied": "POH_TIER2_FINALIZE",
+            "case_id": case_id,
+            "outcome": outcome,
+            "tier_awarded": tier,
+            "token_id": token_id,
+        }
 
     jm = case.get("jurors")
     if not isinstance(jm, dict):
@@ -660,7 +684,9 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
             accounts = state.setdefault("accounts", {})
             acct = accounts.setdefault(acct_id, {})
             acct["poh_tier"] = max(_as_int(acct.get("poh_tier") or 0), 2)
-            token_id = _mint_poh_nft(state, owner=acct_id, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0))
+            token_id = _mint_poh_nft(
+                state, owner=acct_id, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
+            )
 
     case["status"] = "awarded" if outcome == "pass" else "rejected"
     case["outcome"] = outcome
@@ -669,7 +695,13 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
     if token_id:
         case["poh_nft_token_id"] = token_id
 
-    return {"applied": "POH_TIER2_FINALIZE", "case_id": case_id, "outcome": outcome, "tier_awarded": tier_awarded, "token_id": token_id}
+    return {
+        "applied": "POH_TIER2_FINALIZE",
+        "case_id": case_id,
+        "outcome": outcome,
+        "tier_awarded": tier_awarded,
+        "token_id": token_id,
+    }
 
 
 def apply_poh_tier2_receipt(state: Json, env: Any) -> Json:
@@ -707,7 +739,7 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_account_id", {})
 
     if not session_commitment:
-        seed = f"{_chain_id(state)}|POH3_SESSION|{case_id}|{account_id}|{int(state.get('height') or 0)}".encode("utf-8")
+        seed = f"{_chain_id(state)}|POH3_SESSION|{case_id}|{account_id}|{int(state.get('height') or 0)}".encode()
         session_commitment = _sha256_hex(seed)
 
     cases = _tier3_cases(state)
@@ -722,7 +754,11 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
     case["init_ts_ms"] = _as_int(p.get("ts_ms") or 0)
     case["session_commitment"] = session_commitment
 
-    return {"applied": "POH_TIER3_INIT", "case_id": case_id, "session_commitment": session_commitment}
+    return {
+        "applied": "POH_TIER3_INIT",
+        "case_id": case_id,
+        "session_commitment": session_commitment,
+    }
 
 
 def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
@@ -759,7 +795,9 @@ def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
         if jid in seen:
             raise ApplyError("invalid_tx", "duplicate_jurors", {"case_id": case_id})
         if jid == subject:
-            raise ApplyError("invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": jid})
+            raise ApplyError(
+                "invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": jid}
+            )
         seen.add(jid)
         _require_active_tier3(state, jid, case_id=case_id)
         cleaned.append(jid)
@@ -866,21 +904,29 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
     case = _get_tier3_case(state, case_id)
     subject = _as_str(case.get("account_id") or "").strip()
     if subject and new_id == subject:
-        raise ApplyError("invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": new_id})
+        raise ApplyError(
+            "invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": new_id}
+        )
 
     jm = case.get("jurors")
     if not isinstance(jm, dict):
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
     if old_id not in jm:
-        raise ApplyError("invalid_tx", "juror_not_assigned", {"case_id": case_id, "juror_id": old_id})
+        raise ApplyError(
+            "invalid_tx", "juror_not_assigned", {"case_id": case_id, "juror_id": old_id}
+        )
     if new_id in jm:
-        raise ApplyError("invalid_tx", "juror_already_assigned", {"case_id": case_id, "juror_id": new_id})
+        raise ApplyError(
+            "invalid_tx", "juror_already_assigned", {"case_id": case_id, "juror_id": new_id}
+        )
 
     old_rec_any = jm.get(old_id)
     old_rec = old_rec_any if isinstance(old_rec_any, dict) else {}
 
     if old_rec.get("accepted") is not False and old_rec.get("attended") is True:
-        raise ApplyError("invalid_tx", "juror_not_replaceable", {"case_id": case_id, "juror": old_id})
+        raise ApplyError(
+            "invalid_tx", "juror_not_replaceable", {"case_id": case_id, "juror": old_id}
+        )
 
     _require_active_tier3(state, new_id, case_id=case_id)
 
@@ -896,7 +942,13 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
 
     case["status"] = _as_str(case.get("status") or "init")
 
-    return {"applied": "POH_TIER3_JUROR_REPLACE", "case_id": case_id, "old_juror_id": old_id, "new_juror_id": new_id, "role": role}
+    return {
+        "applied": "POH_TIER3_JUROR_REPLACE",
+        "case_id": case_id,
+        "old_juror_id": old_id,
+        "new_juror_id": new_id,
+        "role": role,
+    }
 
 
 def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
@@ -912,7 +964,11 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
 
     signer = _signer(env)
     if signer != juror_id:
-        raise ApplyError("forbidden", "juror_signer_mismatch", {"case_id": case_id, "juror_id": juror_id, "signer": signer})
+        raise ApplyError(
+            "forbidden",
+            "juror_signer_mismatch",
+            {"case_id": case_id, "juror_id": juror_id, "signer": signer},
+        )
 
     _require_active_tier3(state, signer, case_id=case_id)
 
@@ -925,7 +981,9 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
 
     jm = case.get("jurors")
     if not isinstance(jm, dict) or juror_id not in jm:
-        raise ApplyError("invalid_tx", "juror_not_assigned", {"case_id": case_id, "juror_id": juror_id})
+        raise ApplyError(
+            "invalid_tx", "juror_not_assigned", {"case_id": case_id, "juror_id": juror_id}
+        )
     jrec = jm.get(juror_id)
     if not isinstance(jrec, dict):
         jrec = {}
@@ -935,12 +993,19 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
         raise ApplyError("forbidden", "accept_required", {"case_id": case_id, "juror": juror_id})
 
     if attended is False:
-        raise ApplyError("forbidden", "cannot_self_mark_absent", {"case_id": case_id, "juror": juror_id})
+        raise ApplyError(
+            "forbidden", "cannot_self_mark_absent", {"case_id": case_id, "juror": juror_id}
+        )
 
     jrec["attended"] = True
     jrec["attended_ts_ms"] = _as_int(p.get("ts_ms") or 0)
 
-    return {"applied": "POH_TIER3_ATTENDANCE_MARK", "case_id": case_id, "juror_id": juror_id, "attended": True}
+    return {
+        "applied": "POH_TIER3_ATTENDANCE_MARK",
+        "case_id": case_id,
+        "juror_id": juror_id,
+        "attended": True,
+    }
 
 
 def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
@@ -999,7 +1064,13 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
         tier = _as_int(case.get("tier_awarded") or 0)
         outcome = _as_str(case.get("outcome") or "")
         token_id = _as_str(case.get("poh_nft_token_id") or "").strip()
-        return {"applied": "POH_TIER3_FINALIZE", "case_id": case_id, "outcome": outcome, "tier_awarded": tier, "token_id": token_id}
+        return {
+            "applied": "POH_TIER3_FINALIZE",
+            "case_id": case_id,
+            "outcome": outcome,
+            "tier_awarded": tier,
+            "token_id": token_id,
+        }
 
     jm = case.get("jurors")
     if not isinstance(jm, dict):
@@ -1046,7 +1117,9 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
             accounts = state.setdefault("accounts", {})
             acct = accounts.setdefault(acct_id, {})
             acct["poh_tier"] = max(_as_int(acct.get("poh_tier") or 0), 3)
-            token_id = _mint_poh_nft(state, owner=acct_id, tier=3, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0))
+            token_id = _mint_poh_nft(
+                state, owner=acct_id, tier=3, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
+            )
 
     case["status"] = "awarded" if outcome == "pass" else "rejected"
     case["outcome"] = outcome
@@ -1055,7 +1128,13 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
     if token_id:
         case["poh_nft_token_id"] = token_id
 
-    return {"applied": "POH_TIER3_FINALIZE", "case_id": case_id, "outcome": outcome, "tier_awarded": tier_awarded, "token_id": token_id}
+    return {
+        "applied": "POH_TIER3_FINALIZE",
+        "case_id": case_id,
+        "outcome": outcome,
+        "tier_awarded": tier_awarded,
+        "token_id": token_id,
+    }
 
 
 def apply_poh_tier3_receipt(state: Json, env: Any) -> Json:
@@ -1073,7 +1152,7 @@ def apply_poh_tier3_receipt(state: Json, env: Any) -> Json:
     return {"applied": "POH_TIER3_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
 
 
-def apply_poh(state: Json, env: Any) -> Optional[Json]:
+def apply_poh(state: Json, env: Any) -> Json | None:
     t = _tx_type(env)
 
     if t in {"POH_APPLICATION_SUBMIT", "POH_EVIDENCE_DECLARE", "POH_EVIDENCE_BIND"}:
@@ -1087,11 +1166,18 @@ def apply_poh(state: Json, env: Any) -> Optional[Json]:
             app_id = _as_str(p.get("application_id") or "").strip() or _case_id(
                 "pohapp", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0))
             )
-            poh["applications"][app_id] = {"application_id": app_id, "account_id": account_id, "payload": p}
+            poh["applications"][app_id] = {
+                "application_id": app_id,
+                "account_id": account_id,
+                "payload": p,
+            }
             return {"applied": t, "application_id": app_id}
 
         if t == "POH_EVIDENCE_DECLARE":
-            evidence_id = _as_str(p.get("evidence_id") or "").strip() or _as_str(p.get("cid") or p.get("video_cid") or "").strip()
+            evidence_id = (
+                _as_str(p.get("evidence_id") or "").strip()
+                or _as_str(p.get("cid") or p.get("video_cid") or "").strip()
+            )
             if not evidence_id:
                 evidence_id = f"evi:{_signer(env)}:{_as_int(_get_env(env, 'nonce', 0))}"
             poh["evidence"][evidence_id] = {"evidence_id": evidence_id, "payload": p}

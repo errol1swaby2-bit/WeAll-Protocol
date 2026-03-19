@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from weall.runtime.chain_config import ChainConfig, production_bootstrap_issues, production_bootstrap_report
+from weall.runtime.chain_config import (
+    ChainConfig,
+    production_bootstrap_issues,
+    production_bootstrap_report,
+)
 
 
 def _cfg(tmp_path: Path) -> ChainConfig:
@@ -44,7 +48,9 @@ def _set_prod_network_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("WEALL_SIGVERIFY", raising=False)
 
 
-def test_production_bootstrap_rejects_invalid_boolean_envs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_rejects_invalid_boolean_envs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_network_env(monkeypatch)
     monkeypatch.setenv("WEALL_NET_REQUIRE_IDENTITY", "maybe")
     monkeypatch.setenv("WEALL_BFT_FETCH_ENABLED", "sometimes")
@@ -53,14 +59,21 @@ def test_production_bootstrap_rejects_invalid_boolean_envs(tmp_path: Path, monke
     assert "invalid_boolean_env:WEALL_BFT_FETCH_ENABLED" in issues
 
 
-def test_production_bootstrap_rejects_invalid_trusted_anchor_alias_bool(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_rejects_invalid_trusted_anchor_alias_bool(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_network_env(monkeypatch)
     monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "definitely")
     issues = production_bootstrap_issues(_cfg(tmp_path))
-    assert "invalid_boolean_env:WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR" in issues
+    assert (
+        "invalid_boolean_env:WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR"
+        in issues
+    )
 
 
-def test_production_bootstrap_rejects_invalid_gunicorn_workers_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_rejects_invalid_gunicorn_workers_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_network_env(monkeypatch)
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("GUNICORN_WORKERS", "many")
@@ -68,7 +81,9 @@ def test_production_bootstrap_rejects_invalid_gunicorn_workers_env(tmp_path: Pat
     assert "invalid_integer_env:GUNICORN_WORKERS" in issues
 
 
-def test_production_bootstrap_report_exposes_invalid_env_flags(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_report_exposes_invalid_env_flags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _set_prod_network_env(monkeypatch)
     monkeypatch.setenv("WEALL_NET_ENABLED", "bogus")
     monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "bogus")

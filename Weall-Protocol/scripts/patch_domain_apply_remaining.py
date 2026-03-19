@@ -13,7 +13,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOMAIN_APPLY = REPO_ROOT / "src" / "weall" / "runtime" / "domain_apply.py"
 
@@ -22,7 +21,7 @@ INSERT_MARKER_BEGIN = "# BEGIN WEALL REMAINING CANON TXS (AUTO-GENERATED)\n"
 INSERT_MARKER_END = "# END WEALL REMAINING CANON TXS (AUTO-GENERATED)\n"
 
 
-INSERT_BLOCK = r'''# BEGIN WEALL REMAINING CANON TXS (AUTO-GENERATED)
+INSERT_BLOCK = r"""# BEGIN WEALL REMAINING CANON TXS (AUTO-GENERATED)
 # These tx apply semantics are deterministic MVP implementations for canon txs
 # that previously routed to _apply_canon_missing(...). They are intentionally
 # conservative: never delete history, always prefer stable ids, and store data
@@ -1095,7 +1094,7 @@ def _apply_reward_pool_opt_in_set(state: Json, env: TxEnvelope) -> Json:
 
 
 # END WEALL REMAINING CANON TXS (AUTO-GENERATED)
-'''
+"""
 
 
 def main() -> None:
@@ -1121,7 +1120,6 @@ def main() -> None:
         # Identity
         "ACCOUNT_BAN": "_apply_account_ban",
         "ACCOUNT_REINSTATE": "_apply_account_reinstate",
-
         # Dispute
         "DISPUTE_OPEN": "_apply_dispute_open",
         "DISPUTE_STAGE_SET": "_apply_dispute_stage_set",
@@ -1135,14 +1133,12 @@ def main() -> None:
         "DISPUTE_RESOLVE": "_apply_dispute_resolve",
         "DISPUTE_APPEAL": "_apply_dispute_appeal",
         "DISPUTE_FINAL_RECEIPT": "_apply_dispute_final_receipt",
-
         # Content moderation knobs
         "CONTENT_LABEL_SET": "_apply_content_label_set",
         "CONTENT_VISIBILITY_SET": "_apply_content_visibility_set",
         "CONTENT_THREAD_LOCK_SET": "_apply_content_thread_lock_set",
         "CONTENT_ESCALATE_TO_DISPUTE": "_apply_content_escalate_to_dispute",
         "CONTENT_SHARE_CREATE": "_apply_content_share_create",
-
         # Governance
         "GOV_PROPOSAL_CREATE": "_apply_gov_proposal_create",
         "GOV_PROPOSAL_EDIT": "_apply_gov_proposal_edit",
@@ -1155,11 +1151,9 @@ def main() -> None:
         "GOV_RULES_SET": "_apply_gov_rules_set",
         "GOV_EXECUTE": "_apply_gov_execute",
         "GOV_EXECUTION_RECEIPT": "_apply_gov_execution_receipt",
-
         # Protocol upgrades
         "PROTOCOL_UPGRADE_DECLARE": "_apply_protocol_upgrade_declare",
         "PROTOCOL_UPGRADE_ACTIVATE": "_apply_protocol_upgrade_activate",
-
         # Treasury
         "TREASURY_WALLET_CREATE": "_apply_treasury_wallet_create",
         "TREASURY_SIGNER_ADD": "_apply_treasury_signer_add",
@@ -1174,25 +1168,20 @@ def main() -> None:
         "TREASURY_PROGRAM_UPDATE": "_apply_treasury_program_update",
         "TREASURY_PROGRAM_CLOSE": "_apply_treasury_program_close",
         "TREASURY_AUDIT_ANCHOR_SET": "_apply_treasury_audit_anchor_set",
-
         # Stake / Slash
         "STAKE_BOND": "_apply_stake_bond",
         "STAKE_UNBOND_REQUEST": "_apply_stake_unbond_request",
         "SLASH_PROPOSE": "_apply_slash_propose",
         "SLASH_VOTE": "_apply_slash_vote",
-
         # Reward opt-in
         "REWARD_POOL_OPT_IN_SET": "_apply_reward_pool_opt_in_set",
-
         # Profile/social
         "PROFILE_UPDATE": "_apply_profile_update",
         "FOLLOW_SET": "_apply_follow_set",
         "MUTE_SET": "_apply_mute_set",
-
         # Direct messages
         "DIRECT_MESSAGE_SEND": "_apply_direct_message_send",
         "DIRECT_MESSAGE_REDACT": "_apply_direct_message_redact",
-
         # Existing implementations that were incorrectly wired to canon_missing:
         "INDEX_ANCHOR_SET": "_apply_index_anchor_set",
         "INDEX_TOPIC_REGISTER": "_apply_index_topic_register",
@@ -1207,7 +1196,7 @@ def main() -> None:
             rf'(if t == "{re.escape(tx_type)}":\s*\n\s*)return _apply_canon_missing\(([^)]*)\)',
             re.M,
         )
-        return pat.sub(rf'\1return {fn}(\2)', text)
+        return pat.sub(rf"\1return {fn}(\2)", text)
 
     out = patched
     for tx, fn in rewires.items():

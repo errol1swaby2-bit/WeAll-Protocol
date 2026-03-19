@@ -77,12 +77,14 @@ def test_gov_rules_set_rejects_non_whitelisted_param_roots() -> None:
 
 def test_gov_rules_set_accepts_whitelisted_param_paths() -> None:
     st = _mk_state()
-    env = _env_proposal([
-        {
-            "tx_type": "GOV_RULES_SET",
-            "payload": {"params": {"poh": {"tier2_n_jurors": 7}}},
-        }
-    ])
+    env = _env_proposal(
+        [
+            {
+                "tx_type": "GOV_RULES_SET",
+                "payload": {"params": {"poh": {"tier2_n_jurors": 7}}},
+            }
+        ]
+    )
 
     meta = apply_tx(st, env)
     assert meta and meta["applied"] is True

@@ -15,8 +15,18 @@ def test_nodes_seeds_merges_registry_and_env(tmp_path, monkeypatch):
             {
                 "version": 7,
                 "nodes": [
-                    {"base_url": "https://alpha.example.com/", "role": "public", "region": "us", "weight": 5},
-                    {"base_url": "https://beta.example.com", "role": "public", "region": "eu", "weight": 1},
+                    {
+                        "base_url": "https://alpha.example.com/",
+                        "role": "public",
+                        "region": "us",
+                        "weight": 5,
+                    },
+                    {
+                        "base_url": "https://beta.example.com",
+                        "role": "public",
+                        "region": "eu",
+                        "weight": 1,
+                    },
                     {"base_url": "http://evil.example.com", "role": "public"},  # rejected
                     {"base_url": "", "role": "public"},  # rejected
                 ],

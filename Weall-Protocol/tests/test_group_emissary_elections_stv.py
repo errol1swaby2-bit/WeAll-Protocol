@@ -63,7 +63,12 @@ def test_group_emissary_election_stv_min_five_and_sets_treasury_signers() -> Non
 
     n = 10
     for voter, ranking in ballots.items():
-        meta = apply_groups(state, _mk_env("GROUP_EMISSARY_BALLOT_CAST", voter, n, {"election_id": "e1", "ranking": ranking}))
+        meta = apply_groups(
+            state,
+            _mk_env(
+                "GROUP_EMISSARY_BALLOT_CAST", voter, n, {"election_id": "e1", "ranking": ranking}
+            ),
+        )
         assert meta and meta["applied"] == "GROUP_EMISSARY_BALLOT_CAST"
         n += 1
 
@@ -72,7 +77,9 @@ def test_group_emissary_election_stv_min_five_and_sets_treasury_signers() -> Non
     state["height"] = 102
 
     # Finalize
-    meta = apply_groups(state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e1"}))
+    meta = apply_groups(
+        state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e1"})
+    )
     assert meta and meta["applied"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
 
     winners = state["roles"]["groups_by_id"]["g1"].get("emissaries")
@@ -119,22 +126,36 @@ def test_gate_emissary_accepts_group_emissary_after_election() -> None:
     )
 
     for i, voter in enumerate(["@alice", "@bob", "@carl", "@dana", "@erin"], start=10):
-        apply_groups(state, _mk_env("GROUP_EMISSARY_BALLOT_CAST", voter, i, {"election_id": "e2", "ranking": ["@alice", "@bob", "@carl", "@dana", "@erin"]}))
+        apply_groups(
+            state,
+            _mk_env(
+                "GROUP_EMISSARY_BALLOT_CAST",
+                voter,
+                i,
+                {"election_id": "e2", "ranking": ["@alice", "@bob", "@carl", "@dana", "@erin"]},
+            ),
+        )
 
     # Advance to end_height (now_h = state.height + 1)
     state["height"] = 202
 
-    apply_groups(state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e2"}))
+    apply_groups(
+        state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e2"})
+    )
 
     winners = state["roles"]["groups_by_id"]["g2"]["emissaries"]
     assert winners
     signer = winners[0]
 
     lv = LedgerView.from_ledger(state)
-    ok, meta = resolve_signer_authz(ledger=lv, signer=signer, gate_expr="Emissary", payload={"group_id": "g2"})
+    ok, meta = resolve_signer_authz(
+        ledger=lv, signer=signer, gate_expr="Emissary", payload={"group_id": "g2"}
+    )
     assert ok is True
     assert meta == {}
 
-    ok2, meta2 = resolve_signer_authz(ledger=lv, signer="@notemissary", gate_expr="Emissary", payload={"group_id": "g2"})
+    ok2, meta2 = resolve_signer_authz(
+        ledger=lv, signer="@notemissary", gate_expr="Emissary", payload={"group_id": "g2"}
+    )
     assert ok2 is False
     assert isinstance(meta2, dict)

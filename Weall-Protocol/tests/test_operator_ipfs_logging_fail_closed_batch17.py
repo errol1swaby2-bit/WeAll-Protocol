@@ -14,7 +14,9 @@ def test_api_main_invalid_port_fails_closed_in_prod(monkeypatch: pytest.MonkeyPa
         mod._env_int("WEALL_API_PORT", 8080)
 
 
-def test_structured_logging_invalid_log_level_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_structured_logging_invalid_log_level_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_LOG_LEVEL", "LOUD")
     mod = importlib.import_module("weall.api.structured_logging")
@@ -22,7 +24,9 @@ def test_structured_logging_invalid_log_level_fails_closed_in_prod(monkeypatch: 
         mod.configure_structured_logging()
 
 
-def test_structured_logging_invalid_request_flag_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_structured_logging_invalid_request_flag_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_LOG_REQUESTS", "maybe")
     mod = importlib.import_module("weall.api.structured_logging")
@@ -30,7 +34,9 @@ def test_structured_logging_invalid_request_flag_fails_closed_in_prod(monkeypatc
         mod.RequestLogMiddleware(FastAPI())
 
 
-def test_structured_logging_invalid_request_flag_falls_back_in_test(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_structured_logging_invalid_request_flag_falls_back_in_test(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("WEALL_MODE", raising=False)
     monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
     monkeypatch.setenv("WEALL_LOG_REQUESTS", "maybe")
@@ -39,7 +45,9 @@ def test_structured_logging_invalid_request_flag_falls_back_in_test(monkeypatch:
     assert mw._enabled is True
 
 
-def test_ipfs_cfg_invalid_explicit_api_base_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ipfs_cfg_invalid_explicit_api_base_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_API_BASE", "not-a-url")
     mod = importlib.import_module("weall.api.ipfs")
@@ -47,7 +55,9 @@ def test_ipfs_cfg_invalid_explicit_api_base_fails_closed_in_prod(monkeypatch: py
         mod._cfg()
 
 
-def test_ipfs_cfg_invalid_explicit_gateway_base_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ipfs_cfg_invalid_explicit_gateway_base_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_GATEWAY_BASE", "ftp://gateway.local")
     mod = importlib.import_module("weall.api.ipfs")
@@ -55,7 +65,9 @@ def test_ipfs_cfg_invalid_explicit_gateway_base_fails_closed_in_prod(monkeypatch
         mod._cfg()
 
 
-def test_ipfs_pin_worker_invalid_bool_env_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_ipfs_pin_worker_invalid_bool_env_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_ENABLED", "maybe")
     mod = importlib.import_module("weall.storage.ipfs_pin_worker")
@@ -63,7 +75,9 @@ def test_ipfs_pin_worker_invalid_bool_env_fails_closed_in_prod(monkeypatch: pyte
         mod.IpfsPinWorkerConfig(db_path=str(tmp_path / "x.db"), operator_account="op1")
 
 
-def test_ipfs_pin_worker_invalid_int_env_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_ipfs_pin_worker_invalid_int_env_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_MAX_ATTEMPTS", "NaN")
     mod = importlib.import_module("weall.storage.ipfs_pin_worker")
@@ -71,7 +85,9 @@ def test_ipfs_pin_worker_invalid_int_env_fails_closed_in_prod(monkeypatch: pytes
         mod.IpfsPinWorkerConfig(db_path=str(tmp_path / "x.db"), operator_account="op1")
 
 
-def test_ipfs_pin_worker_invalid_url_env_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_ipfs_pin_worker_invalid_url_env_fails_closed_in_prod(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_IPFS_API_URL", "kubo:5001")
     mod = importlib.import_module("weall.storage.ipfs_pin_worker")
@@ -79,7 +95,9 @@ def test_ipfs_pin_worker_invalid_url_env_fails_closed_in_prod(monkeypatch: pytes
         mod.IpfsPinWorkerConfig(db_path=str(tmp_path / "x.db"), operator_account="op1")
 
 
-def test_ipfs_pin_worker_invalid_envs_fall_back_in_test(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_ipfs_pin_worker_invalid_envs_fall_back_in_test(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.delenv("WEALL_MODE", raising=False)
     monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
     monkeypatch.setenv("WEALL_IPFS_ENABLED", "maybe")

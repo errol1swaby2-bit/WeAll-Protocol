@@ -9,7 +9,9 @@ from weall.net.net_loop import BftOutboundBridgeError, NetLoopConfig, NetMeshLoo
 
 class _FakeNode:
     def __init__(self, *, fail_broadcast: bool = False) -> None:
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        )
         self.calls = []
         self._fail_broadcast = bool(fail_broadcast)
 
@@ -65,7 +67,9 @@ def _mk_loop(executor, *, fail_broadcast: bool = False) -> NetMeshLoop:
     loop = NetMeshLoop(
         executor=executor,
         mempool=_FakeMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode(fail_broadcast=fail_broadcast)
     loop._bft_enabled = True

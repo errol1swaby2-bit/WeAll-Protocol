@@ -15,25 +15,30 @@ full YAML tx_canon). This module follows that MVP spec.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from decimal import Decimal
 import json
 import os
-from typing import Any, Dict, Iterable, Optional, Tuple
+from collections.abc import Iterable
+from dataclasses import dataclass
+from decimal import Decimal
+from typing import Any
 
 from pydantic import ValidationError
 
+from weall.crypto.sig import strict_tx_sig_domain_enabled
 from weall.ledger.state import LedgerView
-from weall.runtime.reputation_units import account_reputation_units, threshold_to_units, units_to_reputation
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
 from weall.runtime.gate_expr import eval_gate
+from weall.runtime.reputation_units import (
+    account_reputation_units,
+    threshold_to_units,
+    units_to_reputation,
+)
+from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
-from weall.crypto.sig import strict_tx_sig_domain_enabled
-from weall.runtime.sigverify import verify_tx_signature
 from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _mode() -> str:
@@ -78,7 +83,7 @@ def _walk_limits(
     max_dict_keys: int,
     max_str_len: int,
     max_nodes: int,
-) -> Optional[Tuple[str, Dict[str, Any]]]:
+) -> tuple[str, dict[str, Any]] | None:
     """Validate structure limits (depth, list length, dict keys, string length, nodes).
 
     Returns (reason, meta) if a limit is exceeded.
@@ -132,23 +137,31 @@ def _walk_limits(
     return None
 
 
-def _payload_limits_ok(env: TxEnvelope, spec: Json) -> Optional["AdmissionVerdict"]:
+def _payload_limits_ok(env: TxEnvelope, spec: Json) -> AdmissionVerdict | None:
     """Cheap structural + size caps for payload hardening."""
     payload = env.payload or {}
 
-    max_payload_bytes = int(spec.get("max_payload_bytes") or _env_int("WEALL_MAX_TX_PAYLOAD_BYTES", 64 * 1024))
+    max_payload_bytes = int(
+        spec.get("max_payload_bytes") or _env_int("WEALL_MAX_TX_PAYLOAD_BYTES", 64 * 1024)
+    )
     max_payload_bytes = max(1024, max_payload_bytes)
 
     max_depth = int(spec.get("max_payload_depth") or _env_int("WEALL_MAX_TX_PAYLOAD_DEPTH", 20))
     max_depth = max(4, max_depth)
 
-    max_list_len = int(spec.get("max_payload_list_len") or _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", 2000))
+    max_list_len = int(
+        spec.get("max_payload_list_len") or _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", 2000)
+    )
     max_list_len = max(16, max_list_len)
 
-    max_dict_keys = int(spec.get("max_payload_dict_keys") or _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", 2000))
+    max_dict_keys = int(
+        spec.get("max_payload_dict_keys") or _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", 2000)
+    )
     max_dict_keys = max(16, max_dict_keys)
 
-    max_str_len = int(spec.get("max_payload_str_len") or _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", 64 * 1024))
+    max_str_len = int(
+        spec.get("max_payload_str_len") or _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", 64 * 1024)
+    )
     max_str_len = max(256, max_str_len)
 
     max_nodes = int(spec.get("max_payload_nodes") or _env_int("WEALL_MAX_TX_PAYLOAD_NODES", 50_000))
@@ -168,7 +181,9 @@ def _payload_limits_ok(env: TxEnvelope, spec: Json) -> Optional["AdmissionVerdic
 
     size = _json_bytes(payload)
     if size > max_payload_bytes:
-        return _rej("payload_too_large", "payload_bytes_exceeded", have=size, limit=max_payload_bytes)
+        return _rej(
+            "payload_too_large", "payload_bytes_exceeded", have=size, limit=max_payload_bytes
+        )
 
     return None
 
@@ -191,7 +206,7 @@ class AdmissionRejection:
 @dataclass(frozen=True)
 class AdmissionVerdict:
     ok: bool
-    rejection: Optional[AdmissionRejection] = None
+    rejection: AdmissionRejection | None = None
 
     def __iter__(self) -> Iterable[Any]:
         yield self.ok
@@ -207,7 +222,9 @@ class AdmissionVerdict:
 
     @property
     def details(self) -> Json:
-        return {} if self.ok or not self.rejection or not self.rejection.meta else self.rejection.meta
+        return (
+            {} if self.ok or not self.rejection or not self.rejection.meta else self.rejection.meta
+        )
 
 
 def _rej(code: str, reason: str = "", **meta: Any) -> AdmissionVerdict:
@@ -222,14 +239,14 @@ def _as_ledgerview(ledger: Any) -> LedgerView:
     raise TypeError(f"ledger must be LedgerView|dict, got {type(ledger).__name__}")
 
 
-def _required(payload: Json, fields: Tuple[str, ...]) -> Optional[str]:
+def _required(payload: Json, fields: tuple[str, ...]) -> str | None:
     for f in fields:
         if payload.get(f) in (None, "", [], {}):
             return f
     return None
 
 
-def _mvp_payload_checks(env: TxEnvelope) -> Optional[AdmissionVerdict]:
+def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
     p = env.payload or {}
     t = env.tx_type.upper()
 
@@ -247,7 +264,9 @@ def _mvp_payload_checks(env: TxEnvelope) -> Optional[AdmissionVerdict]:
 
     if t == "PEER_REQUEST_CONNECT":
         if not p.get("peer_id") and not p.get("ticket_id"):
-            return _rej("invalid_payload", "missing:peer_id_or_ticket_id", field="peer_id_or_ticket_id")
+            return _rej(
+                "invalid_payload", "missing:peer_id_or_ticket_id", field="peer_id_or_ticket_id"
+            )
 
     if t == "PEER_BAN_SET":
         miss = _required(p, ("peer_id",))
@@ -291,7 +310,7 @@ def _should_apply_account_semantics(signer: str) -> bool:
     return s.startswith("@")
 
 
-def _nonce_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]:
+def _nonce_ok(env: TxEnvelope, ledger: LedgerView) -> AdmissionVerdict | None:
     signer = env.signer or ""
     if not _should_apply_account_semantics(signer):
         return None
@@ -305,7 +324,7 @@ def _nonce_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]
     return None
 
 
-def _min_reputation_units(spec: Json) -> Optional[int]:
+def _min_reputation_units(spec: Json) -> int | None:
     raw_units = spec.get("min_reputation_milli")
     if raw_units is not None:
         try:
@@ -329,7 +348,9 @@ def _min_reputation_units(spec: Json) -> Optional[int]:
     return max(0, threshold_to_units(str(normalized), default=0))
 
 
-def _reputation_and_flags_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[AdmissionVerdict]:
+def _reputation_and_flags_ok(
+    env: TxEnvelope, ledger: LedgerView, spec: Json
+) -> AdmissionVerdict | None:
     signer = env.signer or ""
     if not _should_apply_account_semantics(signer):
         return None
@@ -383,7 +404,7 @@ def _bootstrap_open_gate_bypass(env: TxEnvelope, spec: Json) -> bool:
     return mode in {"dev", "testnet"}
 
 
-def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[AdmissionVerdict]:
+def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdict | None:
     gate = str(spec.get("subject_gate") or "").strip()
     if not gate:
         return None
@@ -391,7 +412,9 @@ def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[Admiss
     if _bootstrap_open_gate_bypass(env, spec):
         return None
 
-    ok, meta = eval_gate(signer=env.signer or "", state=ledger, expr=gate, payload=env.payload or {})
+    ok, meta = eval_gate(
+        signer=env.signer or "", state=ledger, expr=gate, payload=env.payload or {}
+    )
     if not ok:
         return _rej("gate_denied", f"gate:{gate}", gate=gate, gate_meta=meta)
     return None
@@ -408,7 +431,7 @@ def _tx_sigverify_enforced() -> bool:
     return bool(str(override).strip() == "1")
 
 
-def _sig_ok(env: TxEnvelope, *, context: str) -> Optional[AdmissionVerdict]:
+def _sig_ok(env: TxEnvelope, *, context: str) -> AdmissionVerdict | None:
     """Enforce *presence* of a signature for untrusted ingress contexts.
 
     Policy:
@@ -434,7 +457,7 @@ def _sig_ok(env: TxEnvelope, *, context: str) -> Optional[AdmissionVerdict]:
     return _rej("missing_sig", "sig_required")
 
 
-def _block_sig_verify_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]:
+def _block_sig_verify_ok(env: TxEnvelope, ledger: LedgerView) -> AdmissionVerdict | None:
     """Verify non-system tx signatures during block validation.
 
     Block validity must not depend on local mempool/HTTP ingress assumptions.
@@ -473,7 +496,7 @@ def _block_sig_verify_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[Admiss
 def admit_tx(
     tx: Json | TxEnvelope,
     ledger: LedgerView | Json,
-    canon: Optional[TxIndex] = None,
+    canon: TxIndex | None = None,
     context: str = "mempool",
 ) -> AdmissionVerdict:
     lv = _as_ledgerview(ledger)

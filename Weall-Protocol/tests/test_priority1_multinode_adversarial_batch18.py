@@ -12,7 +12,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_fault_injection_soak_converges_after_stall_partition_restart_and_rejoin(tmp_path: Path) -> None:
+def test_fault_injection_soak_converges_after_stall_partition_restart_and_rejoin(
+    tmp_path: Path,
+) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path),
         rounds=14,

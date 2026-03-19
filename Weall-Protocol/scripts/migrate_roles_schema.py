@@ -26,13 +26,15 @@ def main() -> int:
     ensure_roles_schema(data)
     changes, notes = migrate_legacy_role_shapes(data)
 
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     print(f"ok: roles schema ensured. changes={changes}")
     for n in notes[:50]:
         print(f" - {n}")
     if len(notes) > 50:
-        print(f" - ... {len(notes)-50} more")
+        print(f" - ... {len(notes) - 50} more")
 
     return 0
 

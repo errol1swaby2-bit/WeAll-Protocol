@@ -10,7 +10,9 @@ from weall.net.net_loop import BftInboundProcessingError, NetLoopConfig, NetMesh
 
 class _FakeNode:
     def __init__(self) -> None:
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        )
         self.calls = []
 
     def broadcast_message(self, msg, exclude_peer_id: str = "") -> int:
@@ -73,7 +75,9 @@ def _mk_loop(executor) -> NetMeshLoop:
     loop = NetMeshLoop(
         executor=executor,
         mempool=_FakeMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode()
     loop._bft_enabled = True
@@ -82,7 +86,9 @@ def _mk_loop(executor) -> NetMeshLoop:
 
 def _vote_msg() -> BftVoteMsg:
     return BftVoteMsg(
-        header=WireHeader(type=MsgType.BFT_VOTE, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_VOTE, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        ),
         view=7,
         vote={
             "t": "VOTE",
@@ -99,7 +105,12 @@ def _vote_msg() -> BftVoteMsg:
 
 def _timeout_msg() -> BftTimeoutMsg:
     return BftTimeoutMsg(
-        header=WireHeader(type=MsgType.BFT_TIMEOUT, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"),
+        header=WireHeader(
+            type=MsgType.BFT_TIMEOUT,
+            chain_id="chain-A",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+        ),
         view=7,
         timeout={
             "t": "TIMEOUT",

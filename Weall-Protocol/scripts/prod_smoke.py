@@ -54,7 +54,9 @@ def main() -> int:
         # Make it easy for the loop to produce a block.
         os.environ.setdefault("WEALL_BLOCK_LOOP_ENABLED", "1")
         os.environ.setdefault("WEALL_PRODUCE_EMPTY_BLOCKS", "1")
-        os.environ.setdefault("WEALL_BLOCK_INTERVAL_MS", str(_env_int("WEALL_BLOCK_INTERVAL_MS", 500)))
+        os.environ.setdefault(
+            "WEALL_BLOCK_INTERVAL_MS", str(_env_int("WEALL_BLOCK_INTERVAL_MS", 500))
+        )
 
         app = create_app(boot_runtime=True)
         ex = app.state.executor
@@ -75,7 +77,9 @@ def main() -> int:
             validator_account=(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or "").strip(),
         )
 
-        loop = BlockProducerLoop(executor=ex, mempool=ex.mempool, attestation_pool=ex.attestation_pool, cfg=cfg)
+        loop = BlockProducerLoop(
+            executor=ex, mempool=ex.mempool, attestation_pool=ex.attestation_pool, cfg=cfg
+        )
         if not loop.start():
             raise RuntimeError("failed to start block loop")
 
@@ -107,7 +111,10 @@ def main() -> int:
         if end_h < start_h + 1:
             raise RuntimeError(f"block height did not advance: start={start_h} end={end_h}")
 
-        print("OK: health/ready + produced empty block", {"start_height": start_h, "end_height": end_h})
+        print(
+            "OK: health/ready + produced empty block",
+            {"start_height": start_h, "end_height": end_h},
+        )
         return 0
 
 

@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Request
 
 from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
-from weall.runtime.protocol_profile import runtime_clock_skew_warn_ms, runtime_max_block_future_drift_ms, runtime_protocol_profile_hash
+from weall.runtime.protocol_profile import (
+    runtime_clock_skew_warn_ms,
+    runtime_max_block_future_drift_ms,
+    runtime_protocol_profile_hash,
+)
 
 router = APIRouter()
 
@@ -71,7 +75,7 @@ def _safe_str(v: Any, default: str = "") -> str:
         return str(default)
 
 
-def _try_executor_snapshot(ex: Any) -> Optional[dict[str, Any]]:
+def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
     snap = getattr(ex, "snapshot", None)
@@ -84,7 +88,7 @@ def _try_executor_snapshot(ex: Any) -> Optional[dict[str, Any]]:
         return None
 
 
-def _try_tx_index_hash(ex: Any) -> Optional[str]:
+def _try_tx_index_hash(ex: Any) -> str | None:
     if ex is None:
         return None
     fn = getattr(ex, "tx_index_hash", None)
@@ -98,8 +102,6 @@ def _try_tx_index_hash(ex: Any) -> Optional[str]:
     if isinstance(v, str) and v:
         return v
     return None
-
-
 
 
 def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
@@ -131,18 +133,28 @@ def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
                 return {
                     "stalled": bool(out.get("stalled", False)),
                     "stall_reason": _safe_str(out.get("stall_reason"), "unknown"),
-                    "pending_remote_blocks_count": _safe_int(out.get("pending_remote_blocks_count"), 0),
+                    "pending_remote_blocks_count": _safe_int(
+                        out.get("pending_remote_blocks_count"), 0
+                    ),
                     "pending_candidates_count": _safe_int(out.get("pending_candidates_count"), 0),
                     "pending_missing_qcs_count": _safe_int(out.get("pending_missing_qcs_count"), 0),
-                    "pending_fetch_requests_count": _safe_int(out.get("pending_fetch_requests_count"), 0),
+                    "pending_fetch_requests_count": _safe_int(
+                        out.get("pending_fetch_requests_count"), 0
+                    ),
                     "pending_artifacts_pruned": bool(out.get("pending_artifacts_pruned", False)),
                     "pacemaker_timeout_ms": _safe_int(out.get("pacemaker_timeout_ms"), 0),
                     "clock_skew_warning": bool(out.get("clock_skew_warning", False)),
                     "clock_skew_ahead_ms": _safe_int(out.get("clock_skew_ahead_ms"), 0),
-                    "protocol_profile_hash": _safe_str(out.get("protocol_profile_hash"), runtime_protocol_profile_hash()),
+                    "protocol_profile_hash": _safe_str(
+                        out.get("protocol_profile_hash"), runtime_protocol_profile_hash()
+                    ),
                     "reputation_scale": _safe_int(out.get("reputation_scale"), 0),
-                    "max_block_future_drift_ms": _safe_int(out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()),
-                    "clock_skew_warn_ms": _safe_int(out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()),
+                    "max_block_future_drift_ms": _safe_int(
+                        out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
+                    ),
+                    "clock_skew_warn_ms": _safe_int(
+                        out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
+                    ),
                 }
         except Exception:
             if _is_prod():
@@ -163,7 +175,8 @@ def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
         "clock_skew_warn_ms": runtime_clock_skew_warn_ms(),
     }
 
-def _try_executor_running_flag(ex: Any) -> Optional[bool]:
+
+def _try_executor_running_flag(ex: Any) -> bool | None:
     """
     Best-effort: many executors keep a boolean like:
       - _running
@@ -198,7 +211,12 @@ def _try_block_loop_status(ex: Any) -> dict[str, object]:
     Populated by runtime.block_loop.BlockProducerLoop if used.
     """
     if ex is None:
-        return {"running": None, "unhealthy": None, "last_error": None, "consecutive_failures": None}
+        return {
+            "running": None,
+            "unhealthy": None,
+            "last_error": None,
+            "consecutive_failures": None,
+        }
 
     def _get(name: str):
         try:
@@ -219,14 +237,14 @@ def _try_block_loop_status(ex: Any) -> dict[str, object]:
     }
 
 
-def _try_peer_counts(app_state: Any) -> dict[str, Optional[int]]:
+def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     """
     Best-effort: if the node has a net layer attached to app.state, expose:
       - connected_peers
       - established_sessions (handshake done)
     """
-    connected_peers: Optional[int] = None
-    established_sessions: Optional[int] = None
+    connected_peers: int | None = None
+    established_sessions: int | None = None
 
     net = getattr(app_state, "net_node", None)
     if net is None:
@@ -272,14 +290,12 @@ def _health_payload(request: Request) -> dict[str, object]:
 
     if isinstance(st, dict):
         chain_id = _safe_str(
-            st.get("chain_id")
-            or st.get("params", {}).get("chain_id")
+            st.get("chain_id") or st.get("params", {}).get("chain_id")
             if isinstance(st.get("params"), dict)
             else st.get("chain_id")
         )
         node_id = _safe_str(
-            st.get("node_id")
-            or st.get("params", {}).get("node_id")
+            st.get("node_id") or st.get("params", {}).get("node_id")
             if isinstance(st.get("params"), dict)
             else st.get("node_id")
         )
@@ -361,8 +377,7 @@ def _ready_payload(request: Request) -> dict[str, object]:
     tip = None
     if isinstance(st, dict):
         chain_id = _safe_str(
-            st.get("chain_id")
-            or st.get("params", {}).get("chain_id")
+            st.get("chain_id") or st.get("params", {}).get("chain_id")
             if isinstance(st.get("params"), dict)
             else st.get("chain_id")
         )

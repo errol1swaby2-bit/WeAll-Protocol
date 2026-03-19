@@ -17,22 +17,27 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
-from pathlib import Path
 import urllib.error
 import urllib.parse
 import urllib.request
-import re
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from pathlib import Path
+from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -46,7 +51,7 @@ class Cfg:
     post_body: str
 
 
-def _env(name: str, default: Optional[str] = None) -> Optional[str]:
+def _env(name: str, default: str | None = None) -> str | None:
     v = os.getenv(name)
     return v if v not in (None, "") else default
 
@@ -100,11 +105,13 @@ class FlowError(RuntimeError):
     pass
 
 
-def _write_demo_summary(account: str, post_body: str, media_name: str, extra: Dict[str, Any]) -> str:
+def _write_demo_summary(
+    account: str, post_body: str, media_name: str, extra: dict[str, Any]
+) -> str:
     out_dir = Path(__file__).resolve().parent.parent / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "demo_bootstrap_result.json"
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "account": account,
         "post_body": post_body,
         "media_name": media_name,
@@ -117,12 +124,12 @@ def _write_demo_summary(account: str, post_body: str, media_name: str, extra: Di
 def _http_json(
     method: str,
     url: str,
-    body: Optional[Json] = None,
-    headers: Optional[Dict[str, str]] = None,
+    body: Json | None = None,
+    headers: dict[str, str] | None = None,
     timeout: float = 20.0,
-) -> Tuple[int, Any]:
+) -> tuple[int, Any]:
     data = None
-    req_headers: Dict[str, str] = {"Accept": "application/json"}
+    req_headers: dict[str, str] = {"Accept": "application/json"}
     if headers:
         req_headers.update(headers)
     if body is not None:
@@ -156,9 +163,9 @@ def _http_bytes(
     method: str,
     url: str,
     data: bytes,
-    headers: Dict[str, str],
+    headers: dict[str, str],
     timeout: float = 30.0,
-) -> Tuple[int, Any]:
+) -> tuple[int, Any]:
     req_headers = {"Accept": "application/json", **headers}
     req = urllib.request.Request(url, data=data, method=method, headers=req_headers)
     try:
@@ -183,14 +190,14 @@ def _http_bytes(
         raise FlowError(f"HTTP {method} {url} failed: {type(e).__name__}: {e}") from e
 
 
-def _get(cfg: Cfg, path: str, headers: Optional[Dict[str, str]] = None) -> Any:
+def _get(cfg: Cfg, path: str, headers: dict[str, str] | None = None) -> Any:
     status, body = _http_json("GET", f"{cfg.api}{path}", headers=headers)
     if status >= 400:
         raise FlowError(f"GET {path} failed status={status} body={body}")
     return body
 
 
-def _post(cfg: Cfg, path: str, payload: Json, headers: Optional[Dict[str, str]] = None) -> Any:
+def _post(cfg: Cfg, path: str, payload: Json, headers: dict[str, str] | None = None) -> Any:
     status, body = _http_json("POST", f"{cfg.api}{path}", body=payload, headers=headers)
     if status >= 400:
         raise FlowError(f"POST {path} failed status={status} body={body}")
@@ -218,7 +225,11 @@ def _snapshot(cfg: Cfg) -> Json:
 def _snapshot_account_exists(cfg: Cfg, account: str) -> bool:
     snap = _snapshot(cfg)
     accounts = snap.get("accounts")
-    return isinstance(accounts, dict) and account in accounts and isinstance(accounts.get(account), dict)
+    return (
+        isinstance(accounts, dict)
+        and account in accounts
+        and isinstance(accounts.get(account), dict)
+    )
 
 
 def _account_registered(cfg: Cfg, account: str) -> bool:
@@ -255,8 +266,8 @@ def _wait_account(
     cfg: Cfg,
     account: str,
     *,
-    nonce_at_least: Optional[int] = None,
-    tier_at_least: Optional[int] = None,
+    nonce_at_least: int | None = None,
+    tier_at_least: int | None = None,
 ) -> Json:
     deadline = time.time() + cfg.wait_apply_s
     last: Json = {}
@@ -270,14 +281,18 @@ def _wait_account(
             continue
 
         nonce_ok = nonce_at_least is None or int(last.get("nonce") or 0) >= int(nonce_at_least)
-        tier_ok = tier_at_least is None or int(last.get("poh_tier") or last.get("tier") or 0) >= int(tier_at_least)
+        tier_ok = tier_at_least is None or int(
+            last.get("poh_tier") or last.get("tier") or 0
+        ) >= int(tier_at_least)
 
         if nonce_ok and tier_ok:
             return last
 
         time.sleep(cfg.poll_s)
 
-    raise FlowError(f"account state did not reach requested threshold: account={account} last={last}")
+    raise FlowError(
+        f"account state did not reach requested threshold: account={account} last={last}"
+    )
 
 
 def _wait_registered(cfg: Cfg, account: str) -> Json:
@@ -295,7 +310,9 @@ def _wait_registered(cfg: Cfg, account: str) -> Json:
 
         time.sleep(cfg.poll_s)
 
-    raise FlowError(f"account did not become registered within timeout: account={account} last={last}")
+    raise FlowError(
+        f"account did not become registered within timeout: account={account} last={last}"
+    )
 
 
 def _tx_status(cfg: Cfg, tx_id: str) -> Json:
@@ -316,7 +333,7 @@ def _wait_tx_confirmed(cfg: Cfg, tx_id: str) -> Json:
     raise FlowError(f"tx did not confirm within timeout: tx_id={tx_id} last={last}")
 
 
-def _make_keypair() -> Tuple[str, str]:
+def _make_keypair() -> tuple[str, str]:
     sk = Ed25519PrivateKey.generate()
     priv_hex = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
     pub_hex = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
@@ -360,10 +377,15 @@ def _issue_session(cfg: Cfg, *, account: str, priv_hex: str) -> str:
 def _upload_media(cfg: Cfg, *, account: str, session_key: str) -> Json:
     boundary = f"----weall-{uuid.uuid4().hex}"
     payload = (
-        f"--{boundary}\r\n"
-        f"Content-Disposition: form-data; name=\"file\"; filename=\"{cfg.media_name}\"\r\n"
-        f"Content-Type: text/plain\r\n\r\n"
-    ).encode("utf-8") + cfg.media_bytes + b"\r\n" + f"--{boundary}--\r\n".encode("utf-8")
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{cfg.media_name}"\r\n'
+            f"Content-Type: text/plain\r\n\r\n"
+        ).encode()
+        + cfg.media_bytes
+        + b"\r\n"
+        + f"--{boundary}--\r\n".encode()
+    )
     status, body = _http_bytes(
         "POST",
         f"{cfg.api}/v1/media/upload",
@@ -399,12 +421,22 @@ def _verify_feed(cfg: Cfg, *, account: str, post_id: str, body_text: str, media_
         public_items = public_feed.get("items") if isinstance(public_feed, dict) else None
         account_items = account_feed.get("items") if isinstance(account_feed, dict) else None
         if isinstance(public_items, list) and isinstance(account_items, list):
-            pub_hit = next((x for x in public_items if str(x.get("post_id") or "") == post_id), None)
-            acct_hit = next((x for x in account_items if str(x.get("post_id") or "") == post_id), None)
+            pub_hit = next(
+                (x for x in public_items if str(x.get("post_id") or "") == post_id), None
+            )
+            acct_hit = next(
+                (x for x in account_items if str(x.get("post_id") or "") == post_id), None
+            )
             if pub_hit and acct_hit:
                 pub_media = pub_hit.get("media") if isinstance(pub_hit.get("media"), list) else []
-                acct_media = acct_hit.get("media") if isinstance(acct_hit.get("media"), list) else []
-                if pub_hit.get("body") == body_text and media_id in pub_media and media_id in acct_media:
+                acct_media = (
+                    acct_hit.get("media") if isinstance(acct_hit.get("media"), list) else []
+                )
+                if (
+                    pub_hit.get("body") == body_text
+                    and media_id in pub_media
+                    and media_id in acct_media
+                ):
                     return
         time.sleep(cfg.poll_s)
     raise FlowError(
@@ -433,7 +465,13 @@ def main() -> int:
     _get(cfg, "/v1/state/snapshot")
 
     print("[1] ACCOUNT_REGISTER")
-    reg = _submit_tx(cfg, priv_hex=priv_hex, tx_type="ACCOUNT_REGISTER", signer=account, payload={"pubkey": pub_hex})
+    reg = _submit_tx(
+        cfg,
+        priv_hex=priv_hex,
+        tx_type="ACCOUNT_REGISTER",
+        signer=account,
+        payload={"pubkey": pub_hex},
+    )
     _wait_tx_confirmed(cfg, reg["tx_id"])
     _wait_account_exists(cfg, account)
     print(f"    confirmed tx_id={reg['tx_id']}")
@@ -448,7 +486,9 @@ def main() -> int:
     )
     _wait_tx_confirmed(cfg, boot["tx_id"])
     state = _wait_registered(cfg, account)
-    print(f"    confirmed tx_id={boot['tx_id']} poh_tier={state.get('poh_tier') or state.get('tier')}")
+    print(
+        f"    confirmed tx_id={boot['tx_id']} poh_tier={state.get('poh_tier') or state.get('tier')}"
+    )
 
     print("[3] ACCOUNT_SESSION_KEY_ISSUE")
     session_key = _issue_session(cfg, account=account, priv_hex=priv_hex)
@@ -517,7 +557,9 @@ def main() -> int:
     )
 
     print()
-    print(f"View account feed at: {cfg.api}/v1/accounts/{urllib.parse.quote(account, safe='')}/feed")
+    print(
+        f"View account feed at: {cfg.api}/v1/accounts/{urllib.parse.quote(account, safe='')}/feed"
+    )
     print(f"DEMO_ACCOUNT={account}")
     print(f"DEMO_POST_BODY={cfg.post_body}")
     print(f"DEMO_SUMMARY={summary_path}")
@@ -527,4 +569,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

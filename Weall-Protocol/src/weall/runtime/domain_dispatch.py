@@ -3,17 +3,12 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
-from typing import Any, Dict, Optional, Callable
 import logging
 import os
-
-from weall.runtime.errors import ApplyError
-from weall.runtime.state_invariants import ensure_state
-from weall.runtime.tx_admission_types import TxEnvelope
-from weall.runtime.metrics import inc_counter
-from weall.tx.canon import TxIndex
+from collections.abc import Callable
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
 
 # Domain appliers (each returns Optional[Json]; returning None means "not claimed")
 from weall.runtime.apply.consensus import apply_consensus
@@ -35,9 +30,14 @@ from weall.runtime.apply.roles import apply_roles
 from weall.runtime.apply.social import apply_social
 from weall.runtime.apply.storage import apply_storage
 from weall.runtime.apply.treasury import apply_treasury
+from weall.runtime.errors import ApplyError
+from weall.runtime.metrics import inc_counter
+from weall.runtime.state_invariants import ensure_state
+from weall.runtime.tx_admission_types import TxEnvelope
+from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
-ApplyFn = Callable[[Json, Any], Optional[Json]]
+Json = dict[str, Any]
+ApplyFn = Callable[[Json, Any], Json | None]
 
 _LOG = logging.getLogger("weall.runtime.domain_dispatch")
 
@@ -84,7 +84,7 @@ def _load_index() -> TxIndex:
     return TxIndex.load_from_file(Path("generated/tx_index.json"))
 
 
-def _get_txdef(t: str) -> Optional[Dict[str, Any]]:
+def _get_txdef(t: str) -> dict[str, Any] | None:
     try:
         idx = _load_index()
     except Exception:
@@ -136,7 +136,9 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
         except Exception:
             pass
         try:
-            _LOG.warning("apply-time guard parse failed for bootstrap founder expiry gate", exc_info=True)
+            _LOG.warning(
+                "apply-time guard parse failed for bootstrap founder expiry gate", exc_info=True
+            )
         except Exception:
             pass
 

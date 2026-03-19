@@ -35,8 +35,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
+from typing import Any
 
 REPO_ROOT = Path.cwd()
 CANON_PATH = REPO_ROOT / "specs" / "tx_canon" / "tx_canon.yaml"
@@ -74,6 +73,7 @@ def warn(msg: str) -> None:
 def _import_yaml():
     try:
         import yaml  # type: ignore
+
         return yaml
     except Exception as e:
         fail(
@@ -96,7 +96,7 @@ def check_forbidden_directories() -> None:
             )
 
 
-def load_canon() -> Dict[str, Any]:
+def load_canon() -> dict[str, Any]:
     if not CANON_PATH.exists():
         fail(f"Tx canon not found at: {CANON_PATH}")
 
@@ -113,7 +113,7 @@ def load_canon() -> Dict[str, Any]:
     return data
 
 
-def expect_key(root: Dict[str, Any], k: str) -> Any:
+def expect_key(root: dict[str, Any], k: str) -> Any:
     if k not in root:
         fail(f"Tx canon missing top-level '{k}'")
     return root[k]
@@ -123,7 +123,7 @@ def is_nonempty_str(x: Any) -> bool:
     return isinstance(x, str) and x.strip() != ""
 
 
-def check_root_schema(root: Dict[str, Any]) -> List[Dict[str, Any]]:
+def check_root_schema(root: dict[str, Any]) -> list[dict[str, Any]]:
     # Required top-level keys in your current schema
     expect_key(root, "version")
     expect_key(root, "law")
@@ -150,7 +150,7 @@ def check_root_schema(root: Dict[str, Any]) -> List[Dict[str, Any]]:
     return txs
 
 
-def check_uniqueness(txs: List[Dict[str, Any]]) -> None:
+def check_uniqueness(txs: list[dict[str, Any]]) -> None:
     seen_ids = {}
     seen_names = {}
 
@@ -159,21 +159,15 @@ def check_uniqueness(txs: List[Dict[str, Any]]) -> None:
         tx_name = tx.get("name")
 
         if tx_id in seen_ids:
-            fail(
-                f"Duplicate tx id '{tx_id}'.\n"
-                f"Seen in tx '{seen_ids[tx_id]}' and '{tx_name}'."
-            )
+            fail(f"Duplicate tx id '{tx_id}'.\nSeen in tx '{seen_ids[tx_id]}' and '{tx_name}'.")
         seen_ids[tx_id] = tx_name
 
         if tx_name in seen_names:
-            fail(
-                f"Duplicate tx name '{tx_name}'.\n"
-                f"Seen at index {seen_names[tx_name]} and {i}."
-            )
+            fail(f"Duplicate tx name '{tx_name}'.\nSeen at index {seen_names[tx_name]} and {i}.")
         seen_names[tx_name] = i
 
 
-def check_tx_fields_and_types(txs: List[Dict[str, Any]]) -> None:
+def check_tx_fields_and_types(txs: list[dict[str, Any]]) -> None:
     required = {"id", "name", "domain", "origin", "context", "receipt_only"}
 
     for idx, tx in enumerate(txs):
@@ -182,7 +176,9 @@ def check_tx_fields_and_types(txs: List[Dict[str, Any]]) -> None:
 
         missing = required - set(tx.keys())
         if missing:
-            fail(f"Tx '{tx.get('name', f'index {idx}')}' missing required fields: {sorted(missing)}")
+            fail(
+                f"Tx '{tx.get('name', f'index {idx}')}' missing required fields: {sorted(missing)}"
+            )
 
         # id
         if not isinstance(tx["id"], int):
@@ -196,13 +192,19 @@ def check_tx_fields_and_types(txs: List[Dict[str, Any]]) -> None:
 
         # origin/context
         if tx["origin"] not in ALLOWED_ORIGINS:
-            fail(f"Tx '{tx['name']}' origin must be one of {sorted(ALLOWED_ORIGINS)}; found '{tx['origin']}'")
+            fail(
+                f"Tx '{tx['name']}' origin must be one of {sorted(ALLOWED_ORIGINS)}; found '{tx['origin']}'"
+            )
         if tx["context"] not in ALLOWED_CONTEXTS:
-            fail(f"Tx '{tx['name']}' context must be one of {sorted(ALLOWED_CONTEXTS)}; found '{tx['context']}'")
+            fail(
+                f"Tx '{tx['name']}' context must be one of {sorted(ALLOWED_CONTEXTS)}; found '{tx['context']}'"
+            )
 
         # receipt_only
         if not isinstance(tx["receipt_only"], bool):
-            fail(f"Tx '{tx['name']}' receipt_only must be bool; found {type(tx['receipt_only']).__name__}")
+            fail(
+                f"Tx '{tx['name']}' receipt_only must be bool; found {type(tx['receipt_only']).__name__}"
+            )
 
         # optional bools
         for opt_b in ("system_only", "via_gov_execute"):
@@ -211,14 +213,16 @@ def check_tx_fields_and_types(txs: List[Dict[str, Any]]) -> None:
 
         # optional ints
         if "min_reputation" in tx and not isinstance(tx["min_reputation"], int):
-            fail(f"Tx '{tx['name']}' min_reputation must be int; found {type(tx['min_reputation']).__name__}")
+            fail(
+                f"Tx '{tx['name']}' min_reputation must be int; found {type(tx['min_reputation']).__name__}"
+            )
 
         # optional strings
         if "parent" in tx and not is_nonempty_str(tx["parent"]):
             fail(f"Tx '{tx['name']}' parent must be a non-empty string if present")
 
 
-def check_gate_rules(txs: List[Dict[str, Any]]) -> None:
+def check_gate_rules(txs: list[dict[str, Any]]) -> None:
     """
     Rules:
     - gate may be absent ONLY for SYSTEM + block context
@@ -248,20 +252,17 @@ def check_gate_rules(txs: List[Dict[str, Any]]) -> None:
             )
 
 
-def check_system_origin_rules(txs: List[Dict[str, Any]]) -> None:
+def check_system_origin_rules(txs: list[dict[str, Any]]) -> None:
     """
     Rules:
     - SYSTEM txs must be block-only (no mempool SYSTEM)
     """
     for tx in txs:
         if tx["origin"] == "SYSTEM" and tx["context"] != "block":
-            fail(
-                f"SYSTEM tx '{tx['name']}' must be block-only.\n"
-                f"Found context='{tx['context']}'"
-            )
+            fail(f"SYSTEM tx '{tx['name']}' must be block-only.\nFound context='{tx['context']}'")
 
 
-def check_tagging_presence(txs: List[Dict[str, Any]]) -> None:
+def check_tagging_presence(txs: list[dict[str, Any]]) -> None:
     """
     You said tagging is user-attached identifying tags at upload time.
     In the current canon, this may be implemented as CONTENT_LABEL_SET.

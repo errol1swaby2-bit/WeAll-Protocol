@@ -27,14 +27,17 @@ def test_status_persists_height_after_restart(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    assert ex1.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@user1",
-            "nonce": 1,
-            "payload": {"pubkey": "k:user1"},
-        }
-    )["ok"] is True
+    assert (
+        ex1.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@user1",
+                "nonce": 1,
+                "payload": {"pubkey": "k:user1"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex1.produce_block(max_txs=1).ok is True
 
     ex2 = WeAllExecutor(

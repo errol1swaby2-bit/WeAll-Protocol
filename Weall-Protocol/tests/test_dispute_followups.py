@@ -20,7 +20,9 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     # Minimal ledger skeleton
     st = {
         "height": 0,
-        "accounts": {"alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10}},
+        "accounts": {
+            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10}
+        },
         "roles": {},
         "system_queue": [],
     }
@@ -32,7 +34,12 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
             tx_type="DISPUTE_OPEN",
             signer="alice",
             nonce=1,
-            payload={"dispute_id": "d1", "target_type": "content", "target_id": "c1", "reason": "test"},
+            payload={
+                "dispute_id": "d1",
+                "target_type": "content",
+                "target_id": "c1",
+                "reason": "test",
+            },
             sig="",
             system=False,
         ),
@@ -106,7 +113,9 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     # After applying DISPUTE_RESOLVE, follow-up receipts/actions are scheduled for height=2.
     q2 = st.get("system_queue")
     assert isinstance(q2, list)
-    final_items = [x for x in q2 if isinstance(x, dict) and x.get("tx_type") == "DISPUTE_FINAL_RECEIPT"]
+    final_items = [
+        x for x in q2 if isinstance(x, dict) and x.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
+    ]
     assert len(final_items) == 1
     assert int(final_items[0].get("due_height")) == 2
     assert str(final_items[0].get("phase")) == "post"

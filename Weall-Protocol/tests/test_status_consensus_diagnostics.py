@@ -38,11 +38,25 @@ class _FakeExecutor:
             "tip_hash": "hash17",
             "tip_ts_ms": 1700000000017,
             "finalized": {"height": 15, "block_id": "15:block"},
-            "roles": {"validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]}},
+            "roles": {
+                "validators": {
+                    "active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]
+                }
+            },
             "bft": {
                 "view": 6,
-                "high_qc": {"block_id": "16:block", "parent_id": "15:block", "view": 5, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
-                "locked_qc": {"block_id": "15:block", "parent_id": "14:block", "view": 4, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
+                "high_qc": {
+                    "block_id": "16:block",
+                    "parent_id": "15:block",
+                    "view": 5,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
+                "locked_qc": {
+                    "block_id": "15:block",
+                    "parent_id": "14:block",
+                    "view": 4,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
             },
             "meta": {
                 "schema_version": "1",
@@ -73,8 +87,20 @@ class _FakeNetNode:
                 "peers_banned": 1,
             },
             "peers": [
-                {"peer_id": "p1", "established": True, "identity_verified": True, "strikes": 0, "banned": False},
-                {"peer_id": "p2", "established": False, "identity_verified": False, "strikes": 3, "banned": True},
+                {
+                    "peer_id": "p1",
+                    "established": True,
+                    "identity_verified": True,
+                    "strikes": 0,
+                    "banned": False,
+                },
+                {
+                    "peer_id": "p2",
+                    "established": False,
+                    "identity_verified": False,
+                    "strikes": 3,
+                    "banned": True,
+                },
             ],
         }
 

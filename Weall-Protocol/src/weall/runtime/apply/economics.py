@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -20,7 +20,7 @@ class EconomicsApplyError(ApplyError):
 
     code: str
     reason: str
-    details: Optional[Json] = None
+    details: Json | None = None
 
 
 def _as_str(v: Any) -> str:
@@ -213,7 +213,9 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
     econ = _ensure_econ_root(state)
 
     # Deterministic append order is the order of execution (block tx order).
-    econ["fee_payments"].append({"at_nonce": int(env.nonce), "payload": payload, "parent": env.parent})
+    econ["fee_payments"].append(
+        {"at_nonce": int(env.nonce), "payload": payload, "parent": env.parent}
+    )
     return {"applied": "FEE_PAY"}
 
 
@@ -278,7 +280,9 @@ def _apply_rate_limit_strike_apply(state: Json, env: TxEnvelope) -> Json:
     econ["rate_limit_strikes"].append(
         {
             "at_nonce": int(env.nonce),
-            "target": _as_str(payload.get("target") or payload.get("account") or payload.get("account_id")),
+            "target": _as_str(
+                payload.get("target") or payload.get("account") or payload.get("account_id")
+            ),
             "reason": _as_str(payload.get("reason")),
             "payload": payload,
         }
@@ -304,7 +308,7 @@ def _apply_mempool_reject_receipt(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "MEMPOOL_REJECT_RECEIPT"}
 
 
-ECON_TX_TYPES: Set[str] = {
+ECON_TX_TYPES: set[str] = {
     "RATE_LIMIT_POLICY_SET",
     "ECONOMICS_ACTIVATION",
     "FEE_POLICY_SET",
@@ -315,7 +319,7 @@ ECON_TX_TYPES: Set[str] = {
 }
 
 
-def apply_economics(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_economics(state: Json, env: TxEnvelope) -> Json | None:
     """
     Returns:
       - dict: applied result (debug/receipt convenience)

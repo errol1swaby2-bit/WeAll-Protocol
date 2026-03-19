@@ -4,10 +4,8 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass
-from typing import Dict
 
 from weall.runtime.reputation_units import REPUTATION_SCALE
-
 
 PROTOCOL_VERSION = "2026.03-prod.6"
 GENESIS_CREATED_MS = 0
@@ -38,7 +36,7 @@ class ProductionConsensusProfile:
     vrf_required: bool = False
     timestamp_rule: str = "chain_time_successor_only"
 
-    def to_json(self) -> Dict[str, object]:
+    def to_json(self) -> dict[str, object]:
         return {
             "protocol_version": self.protocol_version,
             "sigverify_required": bool(self.sigverify_required),
@@ -48,7 +46,9 @@ class ProductionConsensusProfile:
             "trusted_anchor_required": bool(self.trusted_anchor_required),
             "proposal_requires_justify_qc": bool(self.proposal_requires_justify_qc),
             "handshake_requires_profile_match": bool(self.handshake_requires_profile_match),
-            "handshake_requires_validator_epoch_match_for_bft": bool(self.handshake_requires_validator_epoch_match_for_bft),
+            "handshake_requires_validator_epoch_match_for_bft": bool(
+                self.handshake_requires_validator_epoch_match_for_bft
+            ),
             "reputation_scale": int(self.reputation_scale),
             "max_block_future_drift_ms": int(self.max_block_future_drift_ms),
             "clock_skew_warn_ms": int(self.clock_skew_warn_ms),
@@ -142,7 +142,7 @@ def runtime_vrf_required() -> bool:
     return bool(_env_bool("WEALL_REQUIRE_VRF", p.vrf_required))
 
 
-def effective_runtime_consensus_posture() -> Dict[str, object]:
+def effective_runtime_consensus_posture() -> dict[str, object]:
     """
     Return the effective runtime consensus posture that operators should rely on.
 
@@ -165,7 +165,9 @@ def effective_runtime_consensus_posture() -> Dict[str, object]:
             "trusted_anchor_required": bool(p.trusted_anchor_required),
             "proposal_requires_justify_qc": bool(p.proposal_requires_justify_qc),
             "handshake_requires_profile_match": bool(p.handshake_requires_profile_match),
-            "handshake_requires_validator_epoch_match_for_bft": bool(p.handshake_requires_validator_epoch_match_for_bft),
+            "handshake_requires_validator_epoch_match_for_bft": bool(
+                p.handshake_requires_validator_epoch_match_for_bft
+            ),
             "max_block_future_drift_ms": int(p.max_block_future_drift_ms),
             "clock_skew_warn_ms": int(p.clock_skew_warn_ms),
             "startup_clock_sanity_required": bool(p.startup_clock_sanity_required),
@@ -181,9 +183,15 @@ def effective_runtime_consensus_posture() -> Dict[str, object]:
         "mode": mode,
         "profile_enforced": False,
         "sigverify_required": bool(_env_bool("WEALL_SIGVERIFY", p.sigverify_required)),
-        "legacy_sig_domain_allowed": bool(_env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", p.legacy_sig_domain_allowed)),
-        "qc_less_blocks_allowed": bool(_env_bool("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", p.qc_less_blocks_allowed)),
-        "unsafe_autocommit_allowed": bool(_env_bool("WEALL_BFT_UNSAFE_AUTOCOMMIT", p.unsafe_autocommit_allowed)),
+        "legacy_sig_domain_allowed": bool(
+            _env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", p.legacy_sig_domain_allowed)
+        ),
+        "qc_less_blocks_allowed": bool(
+            _env_bool("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", p.qc_less_blocks_allowed)
+        ),
+        "unsafe_autocommit_allowed": bool(
+            _env_bool("WEALL_BFT_UNSAFE_AUTOCOMMIT", p.unsafe_autocommit_allowed)
+        ),
         "trusted_anchor_required": bool(
             _env_bool(
                 "WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR",
@@ -192,12 +200,22 @@ def effective_runtime_consensus_posture() -> Dict[str, object]:
         ),
         "proposal_requires_justify_qc": bool(p.proposal_requires_justify_qc),
         "handshake_requires_profile_match": bool(p.handshake_requires_profile_match),
-        "handshake_requires_validator_epoch_match_for_bft": bool(p.handshake_requires_validator_epoch_match_for_bft),
-        "max_block_future_drift_ms": int(_env_int("WEALL_MAX_BLOCK_FUTURE_DRIFT_MS", p.max_block_future_drift_ms)),
+        "handshake_requires_validator_epoch_match_for_bft": bool(
+            p.handshake_requires_validator_epoch_match_for_bft
+        ),
+        "max_block_future_drift_ms": int(
+            _env_int("WEALL_MAX_BLOCK_FUTURE_DRIFT_MS", p.max_block_future_drift_ms)
+        ),
         "clock_skew_warn_ms": int(_env_int("WEALL_CLOCK_SKEW_WARN_MS", p.clock_skew_warn_ms)),
-        "startup_clock_sanity_required": bool(_env_bool("WEALL_STARTUP_CLOCK_SANITY_REQUIRED", p.startup_clock_sanity_required)),
-        "startup_clock_hard_fail_ms": int(_env_int("WEALL_STARTUP_CLOCK_HARD_FAIL_MS", p.startup_clock_hard_fail_ms)),
-        "max_block_time_advance_ms": int(_env_int("WEALL_MAX_BLOCK_TIME_ADVANCE_MS", p.max_block_time_advance_ms)),
+        "startup_clock_sanity_required": bool(
+            _env_bool("WEALL_STARTUP_CLOCK_SANITY_REQUIRED", p.startup_clock_sanity_required)
+        ),
+        "startup_clock_hard_fail_ms": int(
+            _env_int("WEALL_STARTUP_CLOCK_HARD_FAIL_MS", p.startup_clock_hard_fail_ms)
+        ),
+        "max_block_time_advance_ms": int(
+            _env_int("WEALL_MAX_BLOCK_TIME_ADVANCE_MS", p.max_block_time_advance_ms)
+        ),
         "protocol_version": str(p.protocol_version),
         "protocol_profile_hash": str(p.profile_hash()),
         "vrf_required": bool(_env_bool("WEALL_REQUIRE_VRF", p.vrf_required)),
@@ -214,7 +232,7 @@ def runtime_startup_fingerprint(
     bft_enabled: bool = False,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """
     Deterministic operator-facing startup fingerprint.
 
@@ -233,14 +251,28 @@ def runtime_startup_fingerprint(
         "mode": str(posture.get("mode") or _mode()),
         "profile_enforced": bool(posture.get("profile_enforced", False)),
         "sigverify_required": bool(posture.get("sigverify_required", p.sigverify_required)),
-        "qc_less_blocks_allowed": bool(posture.get("qc_less_blocks_allowed", p.qc_less_blocks_allowed)),
-        "unsafe_autocommit_allowed": bool(posture.get("unsafe_autocommit_allowed", p.unsafe_autocommit_allowed)),
-        "trusted_anchor_required": bool(posture.get("trusted_anchor_required", p.trusted_anchor_required)),
-        "max_block_future_drift_ms": int(posture.get("max_block_future_drift_ms", p.max_block_future_drift_ms)),
+        "qc_less_blocks_allowed": bool(
+            posture.get("qc_less_blocks_allowed", p.qc_less_blocks_allowed)
+        ),
+        "unsafe_autocommit_allowed": bool(
+            posture.get("unsafe_autocommit_allowed", p.unsafe_autocommit_allowed)
+        ),
+        "trusted_anchor_required": bool(
+            posture.get("trusted_anchor_required", p.trusted_anchor_required)
+        ),
+        "max_block_future_drift_ms": int(
+            posture.get("max_block_future_drift_ms", p.max_block_future_drift_ms)
+        ),
         "clock_skew_warn_ms": int(posture.get("clock_skew_warn_ms", p.clock_skew_warn_ms)),
-        "startup_clock_sanity_required": bool(posture.get("startup_clock_sanity_required", p.startup_clock_sanity_required)),
-        "startup_clock_hard_fail_ms": int(posture.get("startup_clock_hard_fail_ms", p.startup_clock_hard_fail_ms)),
-        "max_block_time_advance_ms": int(posture.get("max_block_time_advance_ms", p.max_block_time_advance_ms)),
+        "startup_clock_sanity_required": bool(
+            posture.get("startup_clock_sanity_required", p.startup_clock_sanity_required)
+        ),
+        "startup_clock_hard_fail_ms": int(
+            posture.get("startup_clock_hard_fail_ms", p.startup_clock_hard_fail_ms)
+        ),
+        "max_block_time_advance_ms": int(
+            posture.get("max_block_time_advance_ms", p.max_block_time_advance_ms)
+        ),
         "vrf_required": bool(posture.get("vrf_required", p.vrf_required)),
         "timestamp_rule": str(posture.get("timestamp_rule") or p.timestamp_rule),
         "bft_enabled": bool(bft_enabled),
@@ -267,11 +299,20 @@ def validate_runtime_consensus_profile() -> None:
 
     if _env_bool("WEALL_SIGVERIFY", p.sigverify_required) != p.sigverify_required:
         violations.append("WEALL_SIGVERIFY")
-    if _env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", p.legacy_sig_domain_allowed) != p.legacy_sig_domain_allowed:
+    if (
+        _env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", p.legacy_sig_domain_allowed)
+        != p.legacy_sig_domain_allowed
+    ):
         violations.append("WEALL_ALLOW_LEGACY_SIG_DOMAIN")
-    if _env_bool("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", p.qc_less_blocks_allowed) != p.qc_less_blocks_allowed:
+    if (
+        _env_bool("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", p.qc_less_blocks_allowed)
+        != p.qc_less_blocks_allowed
+    ):
         violations.append("WEALL_BFT_ALLOW_QC_LESS_BLOCKS")
-    if _env_bool("WEALL_BFT_UNSAFE_AUTOCOMMIT", p.unsafe_autocommit_allowed) != p.unsafe_autocommit_allowed:
+    if (
+        _env_bool("WEALL_BFT_UNSAFE_AUTOCOMMIT", p.unsafe_autocommit_allowed)
+        != p.unsafe_autocommit_allowed
+    ):
         violations.append("WEALL_BFT_UNSAFE_AUTOCOMMIT")
 
     anchor_ok = _env_bool("WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR", p.trusted_anchor_required)
@@ -279,16 +320,25 @@ def validate_runtime_consensus_profile() -> None:
     if anchor_ok != p.trusted_anchor_required or anchor_ok2 != p.trusted_anchor_required:
         violations.append("WEALL_*SYNC_REQUIRE_TRUSTED_ANCHOR")
 
-    if _env_int("WEALL_MAX_BLOCK_FUTURE_DRIFT_MS", p.max_block_future_drift_ms) != p.max_block_future_drift_ms:
+    if (
+        _env_int("WEALL_MAX_BLOCK_FUTURE_DRIFT_MS", p.max_block_future_drift_ms)
+        != p.max_block_future_drift_ms
+    ):
         violations.append("WEALL_MAX_BLOCK_FUTURE_DRIFT_MS")
     if _env_int("WEALL_CLOCK_SKEW_WARN_MS", p.clock_skew_warn_ms) != p.clock_skew_warn_ms:
         violations.append("WEALL_CLOCK_SKEW_WARN_MS")
     # Startup clock sanity is warning-only in the pinned production posture.
     # Ignore environment attempts to toggle it so operator tooling can heal
     # forward from legacy settings without tripping fail-closed startup checks.
-    if _env_int("WEALL_STARTUP_CLOCK_HARD_FAIL_MS", p.startup_clock_hard_fail_ms) != p.startup_clock_hard_fail_ms:
+    if (
+        _env_int("WEALL_STARTUP_CLOCK_HARD_FAIL_MS", p.startup_clock_hard_fail_ms)
+        != p.startup_clock_hard_fail_ms
+    ):
         violations.append("WEALL_STARTUP_CLOCK_HARD_FAIL_MS")
-    if _env_int("WEALL_MAX_BLOCK_TIME_ADVANCE_MS", p.max_block_time_advance_ms) != p.max_block_time_advance_ms:
+    if (
+        _env_int("WEALL_MAX_BLOCK_TIME_ADVANCE_MS", p.max_block_time_advance_ms)
+        != p.max_block_time_advance_ms
+    ):
         violations.append("WEALL_MAX_BLOCK_TIME_ADVANCE_MS")
     if _env_bool("WEALL_REQUIRE_VRF", p.vrf_required) != p.vrf_required:
         violations.append("WEALL_REQUIRE_VRF")

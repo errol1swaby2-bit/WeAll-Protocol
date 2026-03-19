@@ -21,7 +21,13 @@ def test_epoch_rolls_over_after_blocks_per_epoch_finalizations() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
+            "SYSTEM": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
         },
         "roles": {},
         "system_queue": [],
@@ -43,7 +49,7 @@ def test_epoch_rolls_over_after_blocks_per_epoch_finalizations() -> None:
                 payload={"block_id": bid, "height": h, "_due_height": h},
                 sig="",
                 # Canon: BLOCK_FINALIZE is receipt_only -> must carry a parent reference.
-                parent=f"p:{h-1}",
+                parent=f"p:{h - 1}",
                 system=True,
             ),
         )
@@ -53,11 +59,29 @@ def test_epoch_rolls_over_after_blocks_per_epoch_finalizations() -> None:
     q = st.get("system_queue")
     assert isinstance(q, list)
 
-    opens_due2 = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "EPOCH_OPEN" and int(x.get("due_height", 0)) == 2]
+    opens_due2 = [
+        x
+        for x in q
+        if isinstance(x, dict)
+        and x.get("tx_type") == "EPOCH_OPEN"
+        and int(x.get("due_height", 0)) == 2
+    ]
     assert len(opens_due2) == 1
 
-    closes_due4 = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "EPOCH_CLOSE" and int(x.get("due_height", 0)) == 4]
-    opens_due4 = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "EPOCH_OPEN" and int(x.get("due_height", 0)) == 4]
+    closes_due4 = [
+        x
+        for x in q
+        if isinstance(x, dict)
+        and x.get("tx_type") == "EPOCH_CLOSE"
+        and int(x.get("due_height", 0)) == 4
+    ]
+    opens_due4 = [
+        x
+        for x in q
+        if isinstance(x, dict)
+        and x.get("tx_type") == "EPOCH_OPEN"
+        and int(x.get("due_height", 0)) == 4
+    ]
     assert len(closes_due4) == 1
     assert len(opens_due4) == 1
 

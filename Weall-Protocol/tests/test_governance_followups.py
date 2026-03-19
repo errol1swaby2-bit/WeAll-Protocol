@@ -20,8 +20,20 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
+            "SYSTEM": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
         },
         "roles": {},
         "system_queue": [],
@@ -56,7 +68,9 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
 
     q = st.get("system_queue")
     assert isinstance(q, list)
-    rec_items = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "GOV_EXECUTION_RECEIPT"]
+    rec_items = [
+        x for x in q if isinstance(x, dict) and x.get("tx_type") == "GOV_EXECUTION_RECEIPT"
+    ]
     assert len(rec_items) == 1
     assert int(rec_items[0].get("due_height")) == 2
     assert str(rec_items[0].get("phase")) == "post"
@@ -79,8 +93,20 @@ def test_gov_finalize_enqueues_proposal_receipt() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
+            "SYSTEM": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
         },
         "roles": {},
         "system_queue": [],

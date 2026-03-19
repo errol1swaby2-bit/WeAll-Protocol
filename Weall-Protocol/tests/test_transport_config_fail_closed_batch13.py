@@ -5,8 +5,9 @@ import importlib
 import pytest
 
 
-
-def test_tcp_transport_prod_rejects_invalid_connection_cap_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tcp_transport_prod_rejects_invalid_connection_cap_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NET_MAX_CONNECTIONS", "bogus")
 
@@ -17,8 +18,9 @@ def test_tcp_transport_prod_rejects_invalid_connection_cap_env(monkeypatch: pyte
         transport_tcp.TcpTransport()
 
 
-
-def test_tcp_transport_dev_defaults_invalid_connection_cap_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tcp_transport_dev_defaults_invalid_connection_cap_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_NET_MAX_CONNECTIONS", "bogus")
 
@@ -29,8 +31,9 @@ def test_tcp_transport_dev_defaults_invalid_connection_cap_env(monkeypatch: pyte
     assert tx.max_connections_total == 200
 
 
-
-def test_tls_transport_prod_rejects_invalid_connection_cap_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_tls_transport_prod_rejects_invalid_connection_cap_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NET_MAX_CONNECTIONS", "bogus")
 
@@ -45,7 +48,6 @@ def test_tls_transport_prod_rejects_invalid_connection_cap_env(monkeypatch: pyte
         transport_tls.TlsTransport(server_cert=str(cert), server_key=str(key))
 
 
-
 def test_state_sync_prod_rejects_invalid_integer_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SYNC_MAX_DELTA_BLOCKS", "bad")
@@ -53,14 +55,15 @@ def test_state_sync_prod_rejects_invalid_integer_env(monkeypatch: pytest.MonkeyP
     import weall.net.state_sync as state_sync
 
     state_sync = importlib.reload(state_sync)
-    with pytest.raises(state_sync.StateSyncVerifyError, match="invalid_integer_env:WEALL_SYNC_MAX_DELTA_BLOCKS"):
+    with pytest.raises(
+        state_sync.StateSyncVerifyError, match="invalid_integer_env:WEALL_SYNC_MAX_DELTA_BLOCKS"
+    ):
         state_sync.StateSyncService(
             chain_id="weall",
             schema_version="1",
             tx_index_hash="abc",
             state_provider=lambda: {"height": 0},
         )
-
 
 
 def test_state_sync_prod_rejects_invalid_boolean_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -70,14 +73,15 @@ def test_state_sync_prod_rejects_invalid_boolean_env(monkeypatch: pytest.MonkeyP
     import weall.net.state_sync as state_sync
 
     state_sync = importlib.reload(state_sync)
-    with pytest.raises(state_sync.StateSyncVerifyError, match="invalid_boolean_env:WEALL_SYNC_REQUIRE_HEADER_MATCH"):
+    with pytest.raises(
+        state_sync.StateSyncVerifyError, match="invalid_boolean_env:WEALL_SYNC_REQUIRE_HEADER_MATCH"
+    ):
         state_sync.StateSyncService(
             chain_id="weall",
             schema_version="1",
             tx_index_hash="abc",
             state_provider=lambda: {"height": 0},
         )
-
 
 
 def test_state_sync_dev_defaults_invalid_boolean_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -96,8 +100,9 @@ def test_state_sync_dev_defaults_invalid_boolean_env(monkeypatch: pytest.MonkeyP
     assert svc.require_header_match is True
 
 
-
-def test_net_node_prod_rejects_invalid_explicit_transport_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_net_node_prod_rejects_invalid_explicit_transport_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NET_TRANSPORT", "carrier-pigeon")
 
@@ -109,8 +114,9 @@ def test_net_node_prod_rejects_invalid_explicit_transport_kind(monkeypatch: pyte
         node_mod._make_transport(cfg)
 
 
-
-def test_net_node_dev_defaults_invalid_explicit_transport_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_net_node_dev_defaults_invalid_explicit_transport_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_NET_TRANSPORT", "carrier-pigeon")
 

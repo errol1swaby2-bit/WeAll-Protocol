@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from fastapi import Request
 
@@ -11,7 +11,7 @@ from weall.api.errors import ApiError
 from weall.ledger.state import LedgerView
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class PublicRouteConfigError(ValueError):
@@ -159,11 +159,11 @@ def _str_param(v: Any, default: str = "") -> str:
 
 def _cursor_pack(*, created_at_nonce: int, content_id: str) -> str:
     """Encode pagination cursor as urlsafe base64."""
-    raw = f"{int(created_at_nonce)}|{str(content_id)}".encode("utf-8")
+    raw = f"{int(created_at_nonce)}|{str(content_id)}".encode()
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
 
-def _cursor_unpack(cursor: Any) -> Tuple[Optional[int], Optional[str]]:
+def _cursor_unpack(cursor: Any) -> tuple[int | None, str | None]:
     """Decode pagination cursor. Returns (nonce, content_id) or (None, None)."""
     if cursor is None:
         return (None, None)
@@ -194,14 +194,14 @@ def _cursor_unpack(cursor: Any) -> Tuple[Optional[int], Optional[str]]:
     return (n, cid)
 
 
-def _normalize_tags_param(v: Any) -> List[str]:
+def _normalize_tags_param(v: Any) -> list[str]:
     """Normalize tags query param into a list of unique, non-empty tags."""
     s = _str_param(v).strip()
     if not s:
         return []
 
     # split on comma primarily; also accept whitespace
-    parts: List[str] = []
+    parts: list[str] = []
     for chunk in s.split(","):
         chunk = chunk.strip()
         if not chunk:
@@ -211,7 +211,7 @@ def _normalize_tags_param(v: Any) -> List[str]:
             if p:
                 parts.append(p)
 
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
     for t in parts:
         if t in seen:
@@ -221,7 +221,7 @@ def _normalize_tags_param(v: Any) -> List[str]:
     return out
 
 
-def _groups_by_id(st: Dict[str, Any]) -> Dict[str, Any]:
+def _groups_by_id(st: dict[str, Any]) -> dict[str, Any]:
     by_id = st.get("groups_by_id")
     if isinstance(by_id, dict):
         return by_id
@@ -235,7 +235,7 @@ def _groups_by_id(st: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def _group_roles_by_id(st: Dict[str, Any]) -> Dict[str, Any]:
+def _group_roles_by_id(st: dict[str, Any]) -> dict[str, Any]:
     by_id = st.get("group_roles_by_id")
     if isinstance(by_id, dict):
         return by_id
@@ -267,10 +267,12 @@ def _require_valid_signer_format(*, signer: str, tx_type: str) -> None:
         )
 
 
-def _require_registered_account(ledger: LedgerView, account: str) -> Dict[str, Any]:
+def _require_registered_account(ledger: LedgerView, account: str) -> dict[str, Any]:
     acct = ledger.accounts.get(account)
     if not isinstance(acct, dict):
-        raise ApiError.forbidden("not_registered", "signer account is not registered", {"account": account})
+        raise ApiError.forbidden(
+            "not_registered", "signer account is not registered", {"account": account}
+        )
     if bool(acct.get("banned", False)):
         raise ApiError.forbidden("banned", "account is banned", {"account": account})
     if bool(acct.get("locked", False)):
@@ -278,7 +280,9 @@ def _require_registered_account(ledger: LedgerView, account: str) -> Dict[str, A
     return acct
 
 
-def _require_registered_signer_for_user_tx(*, ledger: LedgerView, tx_type: str, signer: str) -> None:
+def _require_registered_signer_for_user_tx(
+    *, ledger: LedgerView, tx_type: str, signer: str
+) -> None:
     """Gatekeeper for user-submitted txs entering the mempool via HTTP."""
 
     tx_type = str(tx_type or "").strip()

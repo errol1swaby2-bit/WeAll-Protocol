@@ -3,18 +3,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 # NOTE: TxEnvelope lives in tx_admission_types.
 # Importing it directly avoids accidental circular imports and keeps this module
 # usable from both admission and execution codepaths.
 from weall.runtime.tx_admission_types import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _json_canonical(obj: Any) -> bytes:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def _sha256_hex(data: bytes) -> str:
@@ -29,7 +31,7 @@ def compute_tx_id(
     nonce: int,
     payload: Json,
     system: bool = False,
-    parent: Optional[str] = None,
+    parent: str | None = None,
 ) -> str:
     """
     Canonical tx_id function (single source of truth).
@@ -66,7 +68,7 @@ def compute_tx_id_from_envelope(chain_id: str, env: TxEnvelope) -> str:
     )
 
 
-def compute_tx_id_from_dict(chain_id: str, tx: Dict[str, Any]) -> str:
+def compute_tx_id_from_dict(chain_id: str, tx: dict[str, Any]) -> str:
     """
     Backwards compatible helper for codepaths that still hold a raw dict tx envelope.
     Unknown extra keys are ignored.

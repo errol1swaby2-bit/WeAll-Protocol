@@ -24,7 +24,15 @@ def _seed_validator_state(ex: WeAllExecutor, validators: list[str], pubs: dict[s
     ex.state = ex._ledger_store.read()
 
 
-def _block(*, block_id: str, block_hash: str, height: int, prev_block_id: str = "", validator_epoch: int = 0, validator_set_hash: str = "") -> dict:
+def _block(
+    *,
+    block_id: str,
+    block_hash: str,
+    height: int,
+    prev_block_id: str = "",
+    validator_epoch: int = 0,
+    validator_set_hash: str = "",
+) -> dict:
     return {
         "block_id": block_id,
         "height": height,
@@ -47,7 +55,9 @@ def _block(*, block_id: str, block_hash: str, height: int, prev_block_id: str = 
     }
 
 
-def test_bootstrap_phase_keeps_unlabeled_pending_blocks_for_diagnostics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bootstrap_phase_keeps_unlabeled_pending_blocks_for_diagnostics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "node.db"),
         node_id="v1",

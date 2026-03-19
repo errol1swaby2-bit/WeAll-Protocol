@@ -3,12 +3,12 @@ from __future__ import annotations
 import base64
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey, Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _decode_bytes(s: str) -> bytes:
@@ -57,12 +57,12 @@ def strict_tx_sig_domain_enabled() -> bool:
 
 def canonical_tx_message(
     *,
-    chain_id: Optional[str] = None,
+    chain_id: str | None = None,
     tx_type: str,
     signer: str,
     nonce: int,
     payload: Json,
-    parent: Optional[str] = None,
+    parent: str | None = None,
 ) -> bytes:
     obj: Json = {
         **({"chain_id": str(chain_id)} if (isinstance(chain_id, str) and chain_id.strip()) else {}),
@@ -73,7 +73,9 @@ def canonical_tx_message(
     }
     if parent is not None:
         obj["parent"] = str(parent)
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def verify_ed25519_signature(*, message: bytes, sig: str, pubkey: str) -> bool:
@@ -153,7 +155,7 @@ def sign_ed25519(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
     raise ValueError("unsupported encoding")
 
 
-def extract_active_account_pubkeys(ledger: Json, account_id: str) -> List[str]:
+def extract_active_account_pubkeys(ledger: Json, account_id: str) -> list[str]:
     """
     STRICT schema:
 
@@ -175,7 +177,7 @@ def extract_active_account_pubkeys(ledger: Json, account_id: str) -> List[str]:
     if not isinstance(keys, list):
         return []
 
-    out: List[str] = []
+    out: list[str] = []
     seen = set()
 
     for rec in keys:
@@ -201,9 +203,9 @@ def verify_tx_sig_against_any_key(
     nonce: int,
     payload: Json,
     sig: str,
-    parent: Optional[str] = None,
-    chain_id: Optional[str] = None,
-) -> Tuple[bool, Dict[str, Any]]:
+    parent: str | None = None,
+    chain_id: str | None = None,
+) -> tuple[bool, dict[str, Any]]:
     keys = extract_active_account_pubkeys(ledger, signer)
     if not keys:
         return False, {"reason": "no_active_keys"}
@@ -212,7 +214,7 @@ def verify_tx_sig_against_any_key(
     if strict_tx_sig_domain_enabled() and not chain_id2:
         return False, {"reason": "missing_chain_id"}
 
-    msg_candidates: List[bytes] = []
+    msg_candidates: list[bytes] = []
     if chain_id2:
         msg_candidates.append(
             canonical_tx_message(

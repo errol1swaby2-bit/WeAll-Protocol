@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from weall.net.net_loop import NetLoopConfig, NetMeshLoop
 from weall.runtime.executor import WeAllExecutor
-from weall.net.net_loop import NetMeshLoop, NetLoopConfig
 
 
 def _repo_root() -> Path:
@@ -12,7 +12,9 @@ def _repo_root() -> Path:
 
 class _DummyNode:
     def __init__(self, chain_id: str) -> None:
-        self.cfg = type("Cfg", (), {"chain_id": chain_id, "schema_version": "1", "tx_index_hash": "0"})()
+        self.cfg = type(
+            "Cfg", (), {"chain_id": chain_id, "schema_version": "1", "tx_index_hash": "0"}
+        )()
 
 
 def test_executor_resolves_fetch_descriptor_to_canonical_block_id(tmp_path: Path) -> None:
@@ -48,9 +50,20 @@ def test_net_loop_prefers_resolved_fetch_descriptors(tmp_path: Path, monkeypatch
         tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
     )
     ex.bft_resolved_pending_fetch_request_descriptors = lambda: [  # type: ignore[method-assign]
-        {"block_id": "canonical-id", "block_hash": "hash-1", "reason": "missing_parent", "requested_block_id": "alias-id"}
+        {
+            "block_id": "canonical-id",
+            "block_hash": "hash-1",
+            "reason": "missing_parent",
+            "requested_block_id": "alias-id",
+        }
     ]
-    loop = NetMeshLoop(executor=ex, mempool=object(), cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"))
+    loop = NetMeshLoop(
+        executor=ex,
+        mempool=object(),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
+    )
     loop.node = _DummyNode("weall:test")
     loop._bft_enabled = True
     loop._bft_fetch_enabled = True
@@ -59,6 +72,7 @@ def test_net_loop_prefers_resolved_fetch_descriptors(tmp_path: Path, monkeypatch
     loop._bft_fetch_sources = ["http://peer1"]
 
     seen = []
+
     def _fake_fetch(base: str, bid: str):
         seen.append((base, bid))
         return None

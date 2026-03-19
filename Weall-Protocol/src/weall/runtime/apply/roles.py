@@ -4,19 +4,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
 class RolesApplyError(Exception):
     code: str
     reason: str
-    details: Optional[Json] = None
+    details: Json | None = None
 
     def __str__(self) -> str:
         return f"{self.code}:{self.reason}"
@@ -33,7 +33,7 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(default)
 
 
-def _as_list(v: Any) -> List[Any]:
+def _as_list(v: Any) -> list[Any]:
     return v if isinstance(v, list) else []
 
 
@@ -67,7 +67,9 @@ def _ensure_roles(ledger: Json) -> Json:
 def _require_system_env(env: TxEnvelope) -> None:
     if bool(getattr(env, "system", False)) or _as_str(getattr(env, "signer", "")) == "SYSTEM":
         return
-    raise RolesApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer})
+    raise RolesApplyError(
+        "forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer}
+    )
 
 
 PROTOCOL_TREASURY_ID = "TREASURY_PROTOCOL"
@@ -101,7 +103,7 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
         return
 
     em = roles.get("emissaries")
-    seated: List[str] = []
+    seated: list[str] = []
     if isinstance(em, dict) and isinstance(em.get("seated"), list):
         seated = [str(x).strip() for x in em.get("seated") if str(x).strip()]
     seated = sorted(set([s for s in seated if s]))
@@ -123,7 +125,10 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
     desired_threshold = min(max(2, existing_threshold), len(seated))
 
     # No-op if already synced.
-    if existing_signers == seated and _as_int(obj.get("threshold"), desired_threshold) == desired_threshold:
+    if (
+        existing_signers == seated
+        and _as_int(obj.get("threshold"), desired_threshold) == desired_threshold
+    ):
         return
 
     # Normalize via schema helper then re-attach metadata.
@@ -144,6 +149,7 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
 # ---------------------------------------------------------------------------
 # Jurors role
 # ---------------------------------------------------------------------------
+
 
 def _apply_role_juror_enroll(ledger: Json, env: TxEnvelope) -> Json:
     roles = _ensure_roles(ledger)
@@ -253,6 +259,7 @@ def _apply_role_juror_reinstate(ledger: Json, env: TxEnvelope) -> Json:
 # Validators role
 # ---------------------------------------------------------------------------
 
+
 def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     roles = _ensure_roles(ledger)
     validators = roles.get("validators")
@@ -302,6 +309,7 @@ def _apply_role_validator_suspend(ledger: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # Node Operators role
 # ---------------------------------------------------------------------------
+
 
 def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     roles = _ensure_roles(ledger)
@@ -405,6 +413,7 @@ def _apply_role_node_operator_suspend(ledger: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # Emissaries role (nominate/vote/seat/remove)
 # ---------------------------------------------------------------------------
+
 
 def _apply_role_emissary_nominate(ledger: Json, env: TxEnvelope) -> Json:
     roles = _ensure_roles(ledger)
@@ -546,6 +555,7 @@ def _apply_role_emissary_remove(ledger: Json, env: TxEnvelope) -> Json:
 # Gov Executor role pointer
 # ---------------------------------------------------------------------------
 
+
 def _apply_role_gov_executor_set(ledger: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     roles = _ensure_roles(ledger)
@@ -559,7 +569,9 @@ def _apply_role_gov_executor_set(ledger: Json, env: TxEnvelope) -> Json:
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
 
-    already = _as_str(gov_exec.get("current")).strip() == acct and bool(gov_exec.get("active", True))
+    already = _as_str(gov_exec.get("current")).strip() == acct and bool(
+        gov_exec.get("active", True)
+    )
     gov_exec["current"] = acct
     gov_exec["active"] = True
     gov_exec["set_at_nonce"] = int(env.nonce)
@@ -573,6 +585,7 @@ def _apply_role_gov_executor_set(ledger: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # MVP Treasury role authority (TREASURY_CREATE / TREASURY_SIGNERS_SET)
 # ---------------------------------------------------------------------------
+
 
 def _apply_treasury_create(ledger: Json, env: TxEnvelope) -> Json:
     roles = _ensure_roles(ledger)
@@ -591,7 +604,10 @@ def _apply_treasury_create(ledger: Json, env: TxEnvelope) -> Json:
         raise RolesApplyError("duplicate", "treasury_id_exists", {"treasury_id": treasury_id})
 
     # Default signer set = creator, threshold=1
-    is_system = bool(getattr(env, "system", False)) or str(getattr(env, "signer", "") or "").strip() == "SYSTEM"
+    is_system = (
+        bool(getattr(env, "system", False))
+        or str(getattr(env, "signer", "") or "").strip() == "SYSTEM"
+    )
 
     treasuries[treasury_id] = {
         "signers": [env.signer],
@@ -619,7 +635,9 @@ def _apply_treasury_signers_set(ledger: Json, env: TxEnvelope) -> Json:
         raise RolesApplyError("not_found", "treasury_not_found", {"treasury_id": treasury_id})
 
     t_obj = treasuries.get(treasury_id)
-    require_emissary = bool(t_obj.get("require_emissary_signers", False)) if isinstance(t_obj, dict) else False
+    require_emissary = (
+        bool(t_obj.get("require_emissary_signers", False)) if isinstance(t_obj, dict) else False
+    )
 
     signers = [s for s in _as_list(payload.get("signers")) if isinstance(s, str) and s.strip()]
     # deterministic uniq sort
@@ -678,7 +696,7 @@ def _apply_treasury_signers_set(ledger: Json, env: TxEnvelope) -> Json:
 # Router
 # ---------------------------------------------------------------------------
 
-ROLES_TX_TYPES: Set[str] = {
+ROLES_TX_TYPES: set[str] = {
     "ROLE_JUROR_ENROLL",
     "ROLE_JUROR_ACTIVATE",
     "ROLE_JUROR_SUSPEND",
@@ -698,7 +716,7 @@ ROLES_TX_TYPES: Set[str] = {
 }
 
 
-def apply_roles(ledger: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_roles(ledger: Json, env: TxEnvelope) -> Json | None:
     t = _as_str(env.tx_type).strip().upper()
     if t not in ROLES_TX_TYPES:
         return None

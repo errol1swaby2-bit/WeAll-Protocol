@@ -42,7 +42,9 @@ class _RoundLimitedTransport:
         self.blocks_per_round = max(1, int(blocks_per_round))
         self.requests: list[tuple[int, int]] = []
 
-    def request_state_sync(self, peer_id: str, req: StateSyncRequestMsg, **_: object) -> StateSyncResponseMsg:
+    def request_state_sync(
+        self, peer_id: str, req: StateSyncRequestMsg, **_: object
+    ) -> StateSyncResponseMsg:
         self.requests.append((int(req.from_height or 0), int(req.to_height or 0)))
         start = int(req.from_height or 0)
         end = min(int(req.to_height or 0), start + self.blocks_per_round)
@@ -78,7 +80,9 @@ class _NoProgressTransport:
     def __init__(self, source: WeAllExecutor) -> None:
         self.source = source
 
-    def request_state_sync(self, peer_id: str, req: StateSyncRequestMsg, **_: object) -> StateSyncResponseMsg:
+    def request_state_sync(
+        self, peer_id: str, req: StateSyncRequestMsg, **_: object
+    ) -> StateSyncResponseMsg:
         hdr = WireHeader(
             type=MsgType.STATE_SYNC_RESPONSE,
             chain_id=self.source.chain_id,
@@ -99,7 +103,9 @@ class _NoProgressTransport:
         )
 
 
-def test_request_and_apply_state_sync_advances_in_multiple_rounds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_request_and_apply_state_sync_advances_in_multiple_rounds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_SYNC_MAX_DELTA_BLOCKS", "2")
     leader = _make_executor(tmp_path, "leader")
     lagger = _make_executor(tmp_path, "lagger")

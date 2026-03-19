@@ -1,7 +1,7 @@
 # src/weall/api/routes_public_parts/gov.py
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Request
 
@@ -11,7 +11,7 @@ from weall.api.routes_public_parts.common import _int_param, _snapshot
 router = APIRouter()
 
 
-def _proposals_by_id_from_snapshot(st: Dict[str, Any]) -> Dict[str, Any]:
+def _proposals_by_id_from_snapshot(st: dict[str, Any]) -> dict[str, Any]:
     """Return proposals-by-id mapping from the canonical runtime snapshot.
 
     Canonical (current) state surface:
@@ -39,7 +39,7 @@ def _proposals_by_id_from_snapshot(st: Dict[str, Any]) -> Dict[str, Any]:
     return by_id
 
 
-def _normalize_proposal(obj: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     """Ensure a stable shape for API consumers.
 
     Internally, governance uses "proposal_id".
@@ -53,7 +53,7 @@ def _normalize_proposal(obj: Dict[str, Any]) -> Dict[str, Any]:
     return obj
 
 
-def _proposal_obj_from_snapshot(st: Dict[str, Any], proposal_id: str) -> Dict[str, Any]:
+def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     """Fetch a proposal object by id from snapshot, supporting canonical + legacy IDs."""
 
     by_id = _proposals_by_id_from_snapshot(st)
@@ -92,7 +92,7 @@ def v1_gov_proposals(request: Request):
     if not by_id:
         return {"ok": True, "items": []}
 
-    items: List[dict] = []
+    items: list[dict] = []
     for _, obj in by_id.items():
         if isinstance(obj, dict):
             items.append(_normalize_proposal(obj))
@@ -147,8 +147,8 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
         votes = {}
 
     # Optional convenience counts
-    def _count_map(m: Dict[str, Any]) -> Dict[str, int]:
-        out: Dict[str, int] = {}
+    def _count_map(m: dict[str, Any]) -> dict[str, int]:
+        out: dict[str, int] = {}
         for _, v in m.items():
             if not isinstance(v, dict):
                 continue

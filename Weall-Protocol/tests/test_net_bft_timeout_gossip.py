@@ -31,11 +31,20 @@ def test_net_loop_gossips_bft_timeout_with_dedupe(monkeypatch):
     loop.node = _FakeNode()
     loop._bft_timeout_seen_ttl_ms = 999999
 
-    hdr = WireHeader(type=MsgType.BFT_TIMEOUT, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.BFT_TIMEOUT, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     msg = BftTimeoutMsg(
         header=hdr,
         view=7,
-        timeout={"t": "TIMEOUT", "view": 7, "high_qc_id": "x", "signer": "@a", "pubkey": "p", "sig": "s"},
+        timeout={
+            "t": "TIMEOUT",
+            "view": 7,
+            "high_qc_id": "x",
+            "signer": "@a",
+            "pubkey": "p",
+            "sig": "s",
+        },
     )
 
     loop._on_bft_timeout("peer1", msg)

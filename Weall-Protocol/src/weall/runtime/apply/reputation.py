@@ -23,7 +23,7 @@ penalties deterministically without duplicating logic.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
@@ -36,7 +36,7 @@ from weall.runtime.reputation_units import (
 )
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +95,7 @@ def _ensure_root_dict(state: Json, key: str) -> Json:
     return cur
 
 
-def _ensure_root_list(obj: Json, key: str) -> List[Any]:
+def _ensure_root_list(obj: Json, key: str) -> list[Any]:
     cur = obj.get(key)
     if not isinstance(cur, list):
         cur = []
@@ -161,7 +161,7 @@ def _pick_account(payload: Json, *keys: str) -> str:
     return ""
 
 
-def _find_by_id(items: List[Any], key: str, value: str) -> Optional[Json]:
+def _find_by_id(items: list[Any], key: str, value: str) -> Json | None:
     for it in items:
         if isinstance(it, dict) and _as_str(it.get(key)).strip() == value:
             return it
@@ -177,7 +177,7 @@ def _apply_rep_delta_and_autoban(
     reason: str,
     payload: Json,
     ban_audit_nonce: int,
-) -> Tuple[int, bool]:
+) -> tuple[int, bool]:
     """Apply delta to accounts[account_id].reputation with clamp and auto-ban.
 
     Returns: (new_reputation_units, newly_banned)
@@ -246,8 +246,14 @@ def apply_reputation_delta_system(
     # Deterministic delta_id from evidence fields if provided
     delta_id = _as_str(evidence.get("delta_id") or evidence.get("id") or "").strip()
     if not delta_id:
-        stable = _as_str(evidence.get("slash_id") or evidence.get("parent") or evidence.get("proof") or "")
-        delta_id = f"repdelta:system:{account_id}:{stable}:{int(at_nonce)}" if stable else f"repdelta:system:{account_id}:{int(at_nonce)}"
+        stable = _as_str(
+            evidence.get("slash_id") or evidence.get("parent") or evidence.get("proof") or ""
+        )
+        delta_id = (
+            f"repdelta:system:{account_id}:{stable}:{int(at_nonce)}"
+            if stable
+            else f"repdelta:system:{account_id}:{int(at_nonce)}"
+        )
 
     if _find_by_id(deltas, "delta_id", delta_id) is None:
         deltas.append(
@@ -293,7 +299,9 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
 
     if "delta" not in payload and "delta_milli" not in payload:
         raise ReputationApplyError("invalid_payload", "missing_delta", {"tx_type": env.tx_type})
@@ -350,7 +358,9 @@ def _apply_reputation_threshold_cross(state: Json, env: TxEnvelope) -> Json:
     direction = _as_str(payload.get("direction")).strip().lower()
 
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
     if not threshold:
         raise ReputationApplyError("invalid_payload", "missing_threshold", {"tx_type": env.tx_type})
     if direction and direction not in {"up", "down", "above", "below", "cross"}:
@@ -371,7 +381,12 @@ def _apply_reputation_threshold_cross(state: Json, env: TxEnvelope) -> Json:
             }
         )
 
-    return {"applied": "REPUTATION_THRESHOLD_CROSS", "cross_id": cross_id, "account_id": account_id, "deduped": bool(already)}
+    return {
+        "applied": "REPUTATION_THRESHOLD_CROSS",
+        "cross_id": cross_id,
+        "account_id": account_id,
+        "deduped": bool(already),
+    }
 
 
 def _apply_role_eligibility_set(state: Json, env: TxEnvelope) -> Json:
@@ -382,7 +397,9 @@ def _apply_role_eligibility_set(state: Json, env: TxEnvelope) -> Json:
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
     role = _as_str(payload.get("role")).strip()
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
     if not role:
         raise ReputationApplyError("invalid_payload", "missing_role", {"tx_type": env.tx_type})
 
@@ -396,14 +413,21 @@ def _apply_role_eligibility_set(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(roles, dict):
         roles = {}
 
-    already = bool(roles.get(role)) is True and _as_int(rec.get("updated_at_nonce"), 0) == int(env.nonce)
+    already = bool(roles.get(role)) is True and _as_int(rec.get("updated_at_nonce"), 0) == int(
+        env.nonce
+    )
     roles[role] = True
     rec["roles"] = roles
     rec["updated_at_nonce"] = int(env.nonce)
     rec["last_payload"] = payload
     elig[account_id] = rec
 
-    return {"applied": "ROLE_ELIGIBILITY_SET", "account_id": account_id, "role": role, "deduped": bool(already)}
+    return {
+        "applied": "ROLE_ELIGIBILITY_SET",
+        "account_id": account_id,
+        "role": role,
+        "deduped": bool(already),
+    }
 
 
 def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
@@ -414,7 +438,9 @@ def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
     role = _as_str(payload.get("role")).strip()
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
     if not role:
         raise ReputationApplyError("invalid_payload", "missing_role", {"tx_type": env.tx_type})
 
@@ -428,14 +454,21 @@ def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(roles, dict):
         roles = {}
 
-    already = (role in roles and bool(roles.get(role)) is False) and _as_int(rec.get("updated_at_nonce"), 0) == int(env.nonce)
+    already = (role in roles and bool(roles.get(role)) is False) and _as_int(
+        rec.get("updated_at_nonce"), 0
+    ) == int(env.nonce)
     roles[role] = False
     rec["roles"] = roles
     rec["updated_at_nonce"] = int(env.nonce)
     rec["last_payload"] = payload
     elig[account_id] = rec
 
-    return {"applied": "ROLE_ELIGIBILITY_REVOKE", "account_id": account_id, "role": role, "deduped": bool(already)}
+    return {
+        "applied": "ROLE_ELIGIBILITY_REVOKE",
+        "account_id": account_id,
+        "role": role,
+        "deduped": bool(already),
+    }
 
 
 def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
@@ -445,14 +478,20 @@ def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
 
     reason = _as_str(payload.get("reason")).strip()
 
     bans = rep["bans"]
     assert isinstance(bans, dict)
     prior = bans.get(account_id)
-    already = isinstance(prior, dict) and bool(prior.get("banned")) and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
+    already = (
+        isinstance(prior, dict)
+        and bool(prior.get("banned"))
+        and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
+    )
 
     bans[account_id] = {
         "account_id": account_id,
@@ -476,12 +515,18 @@ def _apply_account_reinstate(state: Json, env: TxEnvelope) -> Json:
 
     account_id = _pick_account(payload, "account_id", "target", "account", "user")
     if not account_id:
-        raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        raise ReputationApplyError(
+            "invalid_payload", "missing_account_id", {"tx_type": env.tx_type}
+        )
 
     bans = rep["bans"]
     assert isinstance(bans, dict)
     prior = bans.get(account_id)
-    already = isinstance(prior, dict) and (not bool(prior.get("banned"))) and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
+    already = (
+        isinstance(prior, dict)
+        and (not bool(prior.get("banned")))
+        and _as_int(prior.get("set_at_nonce"), 0) == int(env.nonce)
+    )
 
     reason = _as_str(payload.get("reason")).strip()
     bans[account_id] = {
@@ -506,7 +551,7 @@ def _apply_account_reinstate(state: Json, env: TxEnvelope) -> Json:
 # Router
 # ---------------------------------------------------------------------------
 
-REPUTATION_TX_TYPES: Set[str] = {
+REPUTATION_TX_TYPES: set[str] = {
     "REPUTATION_DELTA_APPLY",
     "REPUTATION_THRESHOLD_CROSS",
     "ROLE_ELIGIBILITY_SET",
@@ -516,7 +561,7 @@ REPUTATION_TX_TYPES: Set[str] = {
 }
 
 
-def apply_reputation(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_reputation(state: Json, env: TxEnvelope) -> Json | None:
     """Apply Reputation txs. Returns meta dict if handled; otherwise None."""
     t = str(env.tx_type or "").strip().upper()
     if t not in REPUTATION_TX_TYPES:

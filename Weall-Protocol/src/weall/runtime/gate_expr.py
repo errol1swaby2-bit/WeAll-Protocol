@@ -22,9 +22,9 @@ This module must be deterministic and fail closed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 # ============================================================
@@ -38,9 +38,9 @@ class _Tok:
     text: str
 
 
-def _tokenize(expr: str) -> List[_Tok]:
+def _tokenize(expr: str) -> list[_Tok]:
     s = (expr or "").strip()
-    out: List[_Tok] = []
+    out: list[_Tok] = []
     i = 0
     n = len(s)
 
@@ -76,12 +76,12 @@ class _ParseError(Exception):
 class _Node:
     kind: str  # ATOM | AND | OR
     value: str = ""
-    left: Optional["_Node"] = None
-    right: Optional["_Node"] = None
+    left: _Node | None = None
+    right: _Node | None = None
 
 
 class _Parser:
-    def __init__(self, toks: List[_Tok]):
+    def __init__(self, toks: list[_Tok]):
         self.toks = toks
         self.i = 0
 
@@ -154,7 +154,7 @@ def _ledger_from_any(obj: Any) -> Json:
             return {}
 
     if hasattr(obj, "ledger"):
-        led = getattr(obj, "ledger")
+        led = obj.ledger
         if isinstance(led, dict):
             return led
 
@@ -250,9 +250,9 @@ def eval_gate(
     signer: str,
     state: Any = None,
     ledger: Any = None,
-    payload: Optional[Json] = None,
+    payload: Json | None = None,
     tx_type: str = "",
-) -> Tuple[bool, Json]:
+) -> tuple[bool, Json]:
     """
     Accepts both `state=` and `ledger=` for backward compatibility.
     """

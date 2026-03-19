@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 from weall.ledger.state import LedgerView
 
@@ -22,7 +22,7 @@ def deterministic_token_id(*, chain_id: str, owner: str, tier: int, source_id: s
     """
     Deterministic token id. No randomness. Replay-safe and idempotent.
     """
-    payload = f"{chain_id}|POF_GATE|{owner}|{int(tier)}|{source_id}".encode("utf-8")
+    payload = f"{chain_id}|POF_GATE|{owner}|{int(tier)}|{source_id}".encode()
     return _sha256_hex(payload)
 
 
@@ -44,8 +44,8 @@ def apply_pof_nft_mint(
     tier: int,
     source_id: str,
     height: int,
-    ts: Optional[int] = None,
-) -> Dict[str, Any]:
+    ts: int | None = None,
+) -> dict[str, Any]:
     """
     SYSTEM / block-only: mint the PoF gate NFT for a tier and attribute to owner.
 
@@ -63,7 +63,9 @@ def apply_pof_nft_mint(
 
     ledger.ensure_account(owner)
 
-    token_id = deterministic_token_id(chain_id=chain_id, owner=owner, tier=int(tier), source_id=source_id)
+    token_id = deterministic_token_id(
+        chain_id=chain_id, owner=owner, tier=int(tier), source_id=source_id
+    )
     tokens = ledger.pof_tokens()
     by_owner = ledger.pof_by_owner()
 
@@ -76,7 +78,12 @@ def apply_pof_nft_mint(
             by_owner[owner] = bucket
         if isinstance(bucket, dict):
             bucket[token_id] = True
-        return {"ok": True, "token_id": token_id, "status": "exists", "tier": int(existing.get("tier", tier))}
+        return {
+            "ok": True,
+            "token_id": token_id,
+            "status": "exists",
+            "tier": int(existing.get("tier", tier)),
+        }
 
     # Create token record
     meta_cid = canonical_metadata_cid_placeholder(tier=int(tier))
@@ -110,9 +117,9 @@ def apply_pof_nft_ban(
     *,
     token_id: str,
     height: int,
-    ts: Optional[int] = None,
+    ts: int | None = None,
     reason: str = "revoked",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     SYSTEM / block-only: mark an existing PoF gate NFT as banned (revoked).
     """

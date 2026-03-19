@@ -14,7 +14,9 @@ def _repo_root():
     return pathlib.Path(__file__).resolve().parents[1]
 
 
-def test_refuse_to_mix_chain_ids_in_same_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_refuse_to_mix_chain_ids_in_same_db(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """SQLite migration safety: chain_id mismatch must fail closed."""
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -24,7 +26,17 @@ def test_refuse_to_mix_chain_ids_in_same_db(tmp_path: Path, monkeypatch: pytest.
     db_path = str(tmp_path / "weall.db")
 
     ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="A", tx_index_path=tx_index_path)
-    assert ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:u0"}})["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@user000",
+                "nonce": 1,
+                "payload": {"pubkey": "k:u0"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     with pytest.raises(ExecutorError):

@@ -4,7 +4,6 @@ import ipaddress
 import os
 import time
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -183,7 +182,7 @@ def require_account_session(
     return acct
 
 
-_HEALTH_EXEMPTS: Tuple[str, ...] = (
+_HEALTH_EXEMPTS: tuple[str, ...] = (
     # Legacy / common
     "/health",
     "/healthz",
@@ -210,8 +209,8 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         self,
         app,
         *,
-        max_bytes: Optional[int] = None,
-        exempt_prefixes: Tuple[str, ...] = ("/docs", "/openapi.json") + _HEALTH_EXEMPTS,
+        max_bytes: int | None = None,
+        exempt_prefixes: tuple[str, ...] = ("/docs", "/openapi.json") + _HEALTH_EXEMPTS,
     ):
         super().__init__(app)
         if _env_bool("WEALL_SIZE_LIMIT_DISABLE", False):
@@ -219,12 +218,18 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
             self._max_bytes = 0
         else:
             self._enabled = True
-            env_max = os.environ.get("WEALL_MAX_JSON_BYTES") or os.environ.get("WEALL_MAX_REQUEST_BYTES")
+            env_max = os.environ.get("WEALL_MAX_JSON_BYTES") or os.environ.get(
+                "WEALL_MAX_REQUEST_BYTES"
+            )
             if max_bytes is not None:
                 self._max_bytes = int(max_bytes)
             else:
-                self._max_bytes = _env_int("WEALL_MAX_REQUEST_BYTES", 1_000_000) if env_max is None else _env_int(
-                    "WEALL_MAX_JSON_BYTES", _env_int("WEALL_MAX_REQUEST_BYTES", 1_000_000)
+                self._max_bytes = (
+                    _env_int("WEALL_MAX_REQUEST_BYTES", 1_000_000)
+                    if env_max is None
+                    else _env_int(
+                        "WEALL_MAX_JSON_BYTES", _env_int("WEALL_MAX_REQUEST_BYTES", 1_000_000)
+                    )
                 )
         self._exempt_prefixes = exempt_prefixes
 
@@ -244,7 +249,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
             return max(0, int(max_file) + max(0, int(overhead)))
         return self._max_bytes
 
-    async def _read_body_capped(self, request: Request, cap_bytes: int) -> Optional[bytes]:
+    async def _read_body_capped(self, request: Request, cap_bytes: int) -> bytes | None:
         """Read request body in streamed chunks up to cap_bytes+1.
 
         Returns:
@@ -310,12 +315,21 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                 except ValueError:
                     return JSONResponse(
                         status_code=400,
-                        content={"ok": False, "error": {"code": "bad_request", "message": "Invalid request body"}},
+                        content={
+                            "ok": False,
+                            "error": {"code": "bad_request", "message": "Invalid request body"},
+                        },
                     )
                 except Exception:
                     return JSONResponse(
                         status_code=400,
-                        content={"ok": False, "error": {"code": "bad_request", "message": "Unable to read request body"}},
+                        content={
+                            "ok": False,
+                            "error": {
+                                "code": "bad_request",
+                                "message": "Unable to read request body",
+                            },
+                        },
                     )
 
                 if body is None:
@@ -324,7 +338,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                 # Hydrate the cached body so downstream can still read it.
                 # Starlette Request caches body in _body; JSON parsing uses request.body().
                 try:
-                    setattr(request, "_body", body)
+                    request._body = body
                 except Exception:
                     # If we can't set it, downstream might see an empty body;
                     # but do not crash the request.
@@ -361,12 +375,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ttl_s: int | None = None,
         max_keys: int | None = None,
         prune_every: int | None = None,
-        rules: Tuple[Tuple[str, Optional[TokenBucket], Optional[TokenBucket]], ...] = (),
-        exempt_prefixes: Tuple[str, ...] = ("/docs", "/openapi.json") + _HEALTH_EXEMPTS,
+        rules: tuple[tuple[str, TokenBucket | None, TokenBucket | None], ...] = (),
+        exempt_prefixes: tuple[str, ...] = ("/docs", "/openapi.json") + _HEALTH_EXEMPTS,
     ):
         super().__init__(app)
 
-        self._buckets: Dict[str, Tuple[int, int, int]] = {}
+        self._buckets: dict[str, tuple[int, int, int]] = {}
 
         self._write = write_bucket or TokenBucket(rate_per_sec=4, burst=20)
         self._read = read_bucket or TokenBucket(rate_per_sec=12, burst=40)
@@ -374,7 +388,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._exempt_prefixes = exempt_prefixes
 
         self._ttl_s = int(ttl_s) if ttl_s is not None else _env_int("WEALL_RL_TTL_S", 900)
-        self._max_keys = int(max_keys) if max_keys is not None else _env_int("WEALL_RL_MAX_KEYS", 20_000)
+        self._max_keys = (
+            int(max_keys) if max_keys is not None else _env_int("WEALL_RL_MAX_KEYS", 20_000)
+        )
         pe = int(prune_every) if prune_every is not None else _env_int("WEALL_RL_PRUNE_EVERY", 256)
         self._prune_every = max(1, pe)
         self._req_count = 0
@@ -396,7 +412,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _rate_limited(self) -> JSONResponse:
         return JSONResponse(
             status_code=429,
-            content={"ok": False, "error": {"code": "rate_limited", "message": "Too many requests"}},
+            content={
+                "ok": False,
+                "error": {"code": "rate_limited", "message": "Too many requests"},
+            },
         )
 
     def _now_ns(self) -> int:
@@ -414,7 +433,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self._ttl_s > 0:
             ttl_ns = int(self._ttl_s) * _NS_PER_SECOND
             cutoff_ns = int(now_ns) - ttl_ns
-            stale = [k for k, (_, __, last_seen_ns) in self._buckets.items() if last_seen_ns < cutoff_ns]
+            stale = [
+                k for k, (_, __, last_seen_ns) in self._buckets.items() if last_seen_ns < cutoff_ns
+            ]
             for k in stale:
                 self._buckets.pop(k, None)
 

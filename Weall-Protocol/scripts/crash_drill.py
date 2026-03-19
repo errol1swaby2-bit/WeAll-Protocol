@@ -44,7 +44,6 @@ import sys
 import time
 from pathlib import Path
 
-
 CHILD_CODE = r"""
 import os, time
 from weall.runtime.executor import WeAllExecutor
@@ -121,7 +120,9 @@ ex=WeAllExecutor(db_path=workdir+'/chain.sqlite', node_id='restart', chain_id='w
 print('ok height', ex.read_state().get('height'))
 """
 
-    p = subprocess.run([sys.executable, "-c", code], env={**env, "WEALL_DRILL_WORKDIR": str(workdir)})
+    p = subprocess.run(
+        [sys.executable, "-c", code], env={**env, "WEALL_DRILL_WORKDIR": str(workdir)}
+    )
     if p.returncode != 0:
         raise RuntimeError("restart verification failed (executor refused to start or crashed)")
 

@@ -1,8 +1,9 @@
 # src/weall/ledger/rewards.py
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 from weall.ledger.constants import (
     HALVING_INTERVAL_BLOCKS,
@@ -12,7 +13,7 @@ from weall.ledger.constants import (
 )
 from weall.ledger.roles_schema import ensure_roles_schema
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -29,7 +30,7 @@ def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -104,7 +105,7 @@ def block_subsidy(height: int) -> int:
     return max(int(reward), 0)
 
 
-def _cap_subsidy_by_remaining_supply(issued: int, subsidy: int) -> Tuple[int, int]:
+def _cap_subsidy_by_remaining_supply(issued: int, subsidy: int) -> tuple[int, int]:
     issued_i = int(issued)
     sub_i = int(subsidy)
     if issued_i >= MAX_SUPPLY:
@@ -115,8 +116,8 @@ def _cap_subsidy_by_remaining_supply(issued: int, subsidy: int) -> Tuple[int, in
     return sub_i, remaining - sub_i
 
 
-def _uniq_strs(xs: Iterable[Any]) -> List[str]:
-    out: List[str] = []
+def _uniq_strs(xs: Iterable[Any]) -> list[str]:
+    out: list[str] = []
     seen: set[str] = set()
     for it in xs:
         s = _as_str(it).strip()
@@ -126,7 +127,7 @@ def _uniq_strs(xs: Iterable[Any]) -> List[str]:
     return out
 
 
-def _even_split(amount: int, recipients: List[str]) -> Tuple[Dict[str, int], int]:
+def _even_split(amount: int, recipients: list[str]) -> tuple[dict[str, int], int]:
     amt = int(amount)
     recips = [r for r in recipients if isinstance(r, str) and r.strip()]
     if amt <= 0 or not recips:
@@ -135,14 +136,14 @@ def _even_split(amount: int, recipients: List[str]) -> Tuple[Dict[str, int], int
     share = amt // n
     if share <= 0:
         return {}, amt
-    payouts: Dict[str, int] = {}
+    payouts: dict[str, int] = {}
     for r in recips:
         payouts[r] = payouts.get(r, 0) + share
     remainder = amt - (share * n)
     return payouts, remainder
 
 
-def _reward_recipients(state: Json, proposer: str) -> Dict[str, List[str]]:
+def _reward_recipients(state: Json, proposer: str) -> dict[str, list[str]]:
     roles = ensure_roles_schema(state)
 
     node_ops = _as_dict(roles.get("node_operators"))
@@ -164,7 +165,7 @@ def _reward_recipients(state: Json, proposer: str) -> Dict[str, List[str]]:
     }
 
 
-def compute_fee_total_from_receipts(receipts: List[Json]) -> int:
+def compute_fee_total_from_receipts(receipts: list[Json]) -> int:
     """Temporary: sum receipts with applied == 'FEE_PAY'."""
     total = 0
     for r in receipts or []:
@@ -180,8 +181,8 @@ def apply_genesis_block_rewards(
     *,
     height: int,
     proposer: str,
-    receipts: Optional[List[Json]] = None,
-    explicit_fee_total: Optional[int] = None,
+    receipts: list[Json] | None = None,
+    explicit_fee_total: int | None = None,
 ) -> Json:
     """Apply Genesis (v2.1) subsidy + fees, split 20/20/20/20/20.
 
@@ -235,7 +236,7 @@ def apply_genesis_block_rewards(
     }
 
     recips = _reward_recipients(state, proposer=str(proposer))
-    payouts: Dict[str, int] = {}
+    payouts: dict[str, int] = {}
     treasury_extra = 0
 
     for bucket_name in ("validators", "operators", "jurors", "creators"):
@@ -246,8 +247,8 @@ def apply_genesis_block_rewards(
         for acct_id, a in sub_payouts.items():
             payouts[acct_id] = payouts.get(acct_id, 0) + int(a)
 
-    payouts[TREASURY_ACCOUNT_ID] = payouts.get(TREASURY_ACCOUNT_ID, 0) + int(buckets.get("treasury", 0)) + int(
-        treasury_extra
+    payouts[TREASURY_ACCOUNT_ID] = (
+        payouts.get(TREASURY_ACCOUNT_ID, 0) + int(buckets.get("treasury", 0)) + int(treasury_extra)
     )
 
     for acct_id, amt in payouts.items():

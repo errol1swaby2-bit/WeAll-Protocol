@@ -33,7 +33,9 @@ def _mk_validators() -> tuple[list[str], dict[str, str], dict[str, str]]:
     return validators, pubs, privs
 
 
-def test_invalid_remote_proposal_stays_quarantined_not_pending(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_invalid_remote_proposal_stays_quarantined_not_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     validators, pubs, _privs = _mk_validators()
     tx_index_path = str(Path("generated/tx_index.json"))
     follower = WeAllExecutor(
@@ -74,8 +76,9 @@ def test_invalid_remote_proposal_stays_quarantined_not_pending(tmp_path: Path, m
     assert "blk-bad" in follower._quarantined_remote_blocks
 
 
-
-def test_valid_remote_proposal_promotes_from_quarantine_to_pending(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_valid_remote_proposal_promotes_from_quarantine_to_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     validators, pubs, privs = _mk_validators()
     tx_index_path = str(Path("generated/tx_index.json"))
 

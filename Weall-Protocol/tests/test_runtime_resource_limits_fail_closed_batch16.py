@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import importlib
-
 import pytest
 
 
@@ -18,7 +16,9 @@ def _tx_index_path() -> str:
     return "generated/tx_index.json"
 
 
-def test_mempool_prod_rejects_invalid_explicit_integer_limit_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_mempool_prod_rejects_invalid_explicit_integer_limit_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MEMPOOL_MAX", "bogus")
 
@@ -29,7 +29,9 @@ def test_mempool_prod_rejects_invalid_explicit_integer_limit_env(monkeypatch: py
         mempool_mod.PersistentMempool(db=db, chain_id="weall")
 
 
-def test_mempool_prod_rejects_invalid_explicit_boolean_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_mempool_prod_rejects_invalid_explicit_boolean_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MEMPOOL_EVICT_ON_FULL", "maybe")
 
@@ -40,7 +42,9 @@ def test_mempool_prod_rejects_invalid_explicit_boolean_env(monkeypatch: pytest.M
         mempool_mod.PersistentMempool(db=db, chain_id="weall")
 
 
-def test_mempool_dev_defaults_invalid_explicit_envs(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_mempool_dev_defaults_invalid_explicit_envs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_MEMPOOL_MAX", "bogus")
     monkeypatch.setenv("WEALL_MEMPOOL_EVICT_ON_FULL", "maybe")
@@ -53,7 +57,9 @@ def test_mempool_dev_defaults_invalid_explicit_envs(monkeypatch: pytest.MonkeyPa
     assert pool.evict_on_full is False
 
 
-def test_sqlitedb_prod_rejects_invalid_explicit_timeout_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_sqlitedb_prod_rejects_invalid_explicit_timeout_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SQLITE_BUSY_TIMEOUT_MS", "bogus")
 
@@ -64,7 +70,9 @@ def test_sqlitedb_prod_rejects_invalid_explicit_timeout_env(monkeypatch: pytest.
         db.init_schema()
 
 
-def test_sqlitedb_dev_defaults_invalid_explicit_timeout_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_sqlitedb_dev_defaults_invalid_explicit_timeout_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_SQLITE_BUSY_TIMEOUT_MS", "bogus")
 
@@ -75,7 +83,9 @@ def test_sqlitedb_dev_defaults_invalid_explicit_timeout_env(monkeypatch: pytest.
     assert (tmp_path / "ledger.db").exists()
 
 
-def test_executor_prod_rejects_invalid_explicit_cache_limit_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_executor_prod_rejects_invalid_explicit_cache_limit_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MAX_PENDING_REMOTE_BLOCKS", "bogus")
 
@@ -90,7 +100,9 @@ def test_executor_prod_rejects_invalid_explicit_cache_limit_env(monkeypatch: pyt
         )
 
 
-def test_executor_prod_rejects_invalid_explicit_sync_round_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_executor_prod_rejects_invalid_explicit_sync_round_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SYNC_MAX_ROUNDS", "bogus")
 
@@ -102,6 +114,7 @@ def test_executor_prod_rejects_invalid_explicit_sync_round_env(monkeypatch: pyte
         chain_id="weall",
         tx_index_path=_tx_index_path(),
     )
+
     class _Peer:
         def request_state_sync(self, *args, **kwargs):
             raise AssertionError("request_state_sync should not run when env parsing fails")
@@ -118,7 +131,9 @@ def test_executor_prod_rejects_invalid_explicit_sync_round_env(monkeypatch: pyte
         ex.request_and_apply_state_sync(_Peer(), "peer-1", trusted_anchor=trusted_anchor)
 
 
-def test_executor_dev_defaults_invalid_explicit_cache_limit_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_executor_dev_defaults_invalid_explicit_cache_limit_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_MAX_PENDING_REMOTE_BLOCKS", "bogus")
 

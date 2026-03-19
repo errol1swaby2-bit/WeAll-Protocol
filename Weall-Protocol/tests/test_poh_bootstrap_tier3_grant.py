@@ -12,7 +12,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_poh_related_state_can_be_persisted_in_snapshot(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_poh_related_state_can_be_persisted_in_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """SQLite migration invariant:
 
     The ledger snapshot is stored in SQLite. It must be able to persist PoH-relevant
@@ -28,12 +30,19 @@ def test_poh_related_state_can_be_persisted_in_snapshot(tmp_path: Path, monkeypa
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="poh-snapshot", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="poh-snapshot", tx_index_path=tx_index_path
+    )
 
     alice_pubkey, _ = deterministic_ed25519_keypair(label="@alice")
 
     # Create user account with seed pubkey.
-    reg = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"pubkey": alice_pubkey}}
+    reg = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"pubkey": alice_pubkey},
+    }
     assert ex.submit_tx(sign_tx_dict(reg, label="@alice"))["ok"] is True
     assert ex.produce_block(max_txs=1).ok is True
 

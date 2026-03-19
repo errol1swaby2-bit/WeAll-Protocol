@@ -1,7 +1,6 @@
 # File: tests/test_net_fuzz.py
 from __future__ import annotations
 
-import os
 import random
 
 from weall.net.node import NetConfig, NetNode, PeerPolicy

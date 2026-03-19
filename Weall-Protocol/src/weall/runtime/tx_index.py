@@ -9,10 +9,8 @@ Keep this module as a stable import path.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from weall.tx.canon import TxIndex as _TxIndex
-
 
 TxIndex = _TxIndex
 

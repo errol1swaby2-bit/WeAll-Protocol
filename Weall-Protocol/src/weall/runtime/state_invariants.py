@@ -18,9 +18,9 @@ accordingly (ideally with migration tests).
 """
 
 from collections.abc import MutableMapping
-from typing import Any, Dict
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def ensure_state(st: Any) -> Json:

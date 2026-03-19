@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Set
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _iter_files(root: Path, *, exts: Set[str]) -> Iterable[Path]:
+def _iter_files(root: Path, *, exts: set[str]) -> Iterable[Path]:
     for p in root.rglob("*"):
         if p.is_file() and p.suffix.lower() in exts:
             yield p
@@ -22,11 +22,11 @@ _BACKEND_DECORATOR_RE = re.compile(
 )
 
 
-def _extract_backend_v1_paths(weall_protocol_root: Path) -> Set[str]:
+def _extract_backend_v1_paths(weall_protocol_root: Path) -> set[str]:
     routes_root = weall_protocol_root / "src" / "weall" / "api" / "routes_public_parts"
     assert routes_root.exists(), f"missing routes_public_parts at {routes_root}"
 
-    out: Set[str] = set()
+    out: set[str] = set()
     for f in _iter_files(routes_root, exts={".py"}):
         txt = f.read_text(encoding="utf-8", errors="replace")
         for m in _BACKEND_DECORATOR_RE.finditer(txt):
@@ -44,7 +44,7 @@ _WEB_LITERAL_RE = re.compile(r"(?P<q>['\"`])(?P<p>/v1/[^'\"`]+?)(?P=q)")
 
 def _replace_template_exprs(p: str) -> str:
     """Replace JS template expressions (${...}) with {var}, tolerating nested braces."""
-    out: List[str] = []
+    out: list[str] = []
     i = 0
     n = len(p)
     while i < n:
@@ -95,11 +95,11 @@ def _normalize_web_path(p: str) -> str:
     return p
 
 
-def _extract_web_v1_paths(projects_root: Path) -> Set[str]:
+def _extract_web_v1_paths(projects_root: Path) -> set[str]:
     web_root = projects_root / "web" / "src"
     assert web_root.exists(), f"missing web src at {web_root}"
 
-    out: Set[str] = set()
+    out: set[str] = set()
     for f in _iter_files(web_root, exts={".ts", ".tsx"}):
         txt = f.read_text(encoding="utf-8", errors="replace")
         for m in _WEB_LITERAL_RE.finditer(txt):
@@ -109,8 +109,8 @@ def _extract_web_v1_paths(projects_root: Path) -> Set[str]:
     return out
 
 
-def _backend_matchers(backend_paths: Set[str]) -> List[re.Pattern]:
-    out: List[re.Pattern] = []
+def _backend_matchers(backend_paths: set[str]) -> list[re.Pattern]:
+    out: list[re.Pattern] = []
     for p in sorted(backend_paths):
         pat = re.escape(p)
         pat = re.sub(r"\\\{[^}]+\\\}", r"[^/]+", pat)
@@ -118,7 +118,7 @@ def _backend_matchers(backend_paths: Set[str]) -> List[re.Pattern]:
     return out
 
 
-def _is_web_path_covered(web_path: str, backend_matchers: List[re.Pattern]) -> bool:
+def _is_web_path_covered(web_path: str, backend_matchers: list[re.Pattern]) -> bool:
     wp = re.escape(web_path)
     wp = wp.replace(re.escape("{var}"), r"[^/]+")
     wre = re.compile(r"^" + wp + r"$")
@@ -148,7 +148,7 @@ def test_web_calls_are_covered_by_backend_public_api_surface() -> None:
 
     matchers = _backend_matchers(backend_paths)
 
-    missing: List[str] = []
+    missing: list[str] = []
     for p in must_cover:
         if not _is_web_path_covered(p, matchers):
             missing.append(p)
@@ -163,5 +163,5 @@ def test_email_oracle_contract_has_start_and_verify_endpoints() -> None:
 
     txt = issuer.read_text(encoding="utf-8", errors="replace")
 
-    assert "url.pathname === \"/start\"" in txt or "url.pathname===\"/start\"" in txt
-    assert "url.pathname === \"/verify\"" in txt or "url.pathname===\"/verify\"" in txt
+    assert 'url.pathname === "/start"' in txt or 'url.pathname==="/start"' in txt
+    assert 'url.pathname === "/verify"' in txt or 'url.pathname==="/verify"' in txt

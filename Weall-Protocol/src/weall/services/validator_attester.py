@@ -5,12 +5,12 @@ import os
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class ValidatorAttesterError(RuntimeError):
@@ -23,10 +23,10 @@ def _mode() -> str:
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
-def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: float = 10.0) -> Json:
+def _http_json(method: str, url: str, body: Json | None = None, timeout_s: float = 10.0) -> Json:
     method = method.upper().strip()
     headers = {"Content-Type": "application/json"}
-    data: Optional[bytes] = None
+    data: bytes | None = None
 
     if body is not None:
         import json
@@ -60,17 +60,24 @@ def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: fl
                 return parsed
         except Exception:
             pass
-        return {"ok": False, "error": "http_error", "status": int(getattr(e, "code", 0) or 0), "raw": raw}
+        return {
+            "ok": False,
+            "error": "http_error",
+            "status": int(getattr(e, "code", 0) or 0),
+            "raw": raw,
+        }
     except urllib.error.URLError as e:
         return {"ok": False, "error": "url_error", "reason": str(getattr(e, "reason", e))}
 
 
 def _read_secret(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read().strip()
 
 
-def _validate_startup_args(*, producer_url: str, signer: str, privkey: str, poll_seconds: float, encoding: str) -> None:
+def _validate_startup_args(
+    *, producer_url: str, signer: str, privkey: str, poll_seconds: float, encoding: str
+) -> None:
     parsed = urlparse(str(producer_url).strip())
     scheme = (parsed.scheme or "").lower()
     if scheme not in {"http", "https"} or not (parsed.hostname or "").strip():
@@ -105,13 +112,15 @@ def run_attester_loop(
         encoding=encoding,
     )
 
-    last_tip: Optional[str] = None
+    last_tip: str | None = None
 
     while True:
         snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
         if not snap.get("ok"):
             if _mode() == "prod":
-                raise ValidatorAttesterError(f"attester_snapshot_failed:{snap.get('error') or 'unknown'}")
+                raise ValidatorAttesterError(
+                    f"attester_snapshot_failed:{snap.get('error') or 'unknown'}"
+                )
             if verbose:
                 print("snapshot_error:", snap)
             time.sleep(poll_seconds)
@@ -161,7 +170,9 @@ def run_attester_loop(
         nonce_doc = _http_json("GET", f"{producer_url}/v1/accounts/{signer}/nonce")
         if not nonce_doc.get("ok"):
             if _mode() == "prod":
-                raise ValidatorAttesterError(f"attester_nonce_lookup_failed:{nonce_doc.get('error') or 'unknown'}")
+                raise ValidatorAttesterError(
+                    f"attester_nonce_lookup_failed:{nonce_doc.get('error') or 'unknown'}"
+                )
             if verbose:
                 print("nonce_error:", nonce_doc)
             time.sleep(poll_seconds)
@@ -211,7 +222,9 @@ def run_attester_loop(
                 },
             )
         if not res.get("ok") and _mode() == "prod":
-            raise ValidatorAttesterError(f"attester_submit_failed:{res.get('error') or res.get('code') or 'unknown'}")
+            raise ValidatorAttesterError(
+                f"attester_submit_failed:{res.get('error') or res.get('code') or 'unknown'}"
+            )
 
         last_tip = tip
 
@@ -220,14 +233,20 @@ def run_attester_loop(
         time.sleep(poll_seconds)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
-    p = argparse.ArgumentParser(description="WeAll validator attester (poll head, submit signed BLOCK_ATTEST)")
-    p.add_argument("--producer-url", default=os.environ.get("WEALL_PRODUCER_URL", "http://127.0.0.1:8000"))
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(
+        description="WeAll validator attester (poll head, submit signed BLOCK_ATTEST)"
+    )
+    p.add_argument(
+        "--producer-url", default=os.environ.get("WEALL_PRODUCER_URL", "http://127.0.0.1:8000")
+    )
     p.add_argument("--signer", default=os.environ.get("WEALL_VALIDATOR_ACCOUNT", "val1"))
     p.add_argument("--privkey", default=os.environ.get("WEALL_VALIDATOR_PRIVKEY", ""))
     p.add_argument("--privkey-file", default=os.environ.get("WEALL_VALIDATOR_PRIVKEY_FILE", ""))
     p.add_argument("--encoding", default=os.environ.get("WEALL_SIG_ENCODING", "hex"))
-    p.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_ATTEST_POLL_SECONDS", "3")))
+    p.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_ATTEST_POLL_SECONDS", "3"))
+    )
     p.add_argument("--once", action="store_true")
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args(argv)

@@ -14,7 +14,9 @@ def _canon_path() -> str:
     return str(repo_root / "generated" / "tx_index.json")
 
 
-def test_net_on_tx_rejects_missing_chain_id_in_prod(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_net_on_tx_rejects_missing_chain_id_in_prod(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_ALLOW_LEGACY_SIG_DOMAIN", raising=False)
     ex = WeAllExecutor(
@@ -25,15 +27,29 @@ def test_net_on_tx_rejects_missing_chain_id_in_prod(tmp_path: Path, monkeypatch:
     )
     loop = NetMeshLoop(executor=ex, mempool=ex._mempool, cfg=None)
 
-    tx = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"email": "a@example.com"}, "sig": "00"}
-    msg = TxEnvelopeMsg(header=WireHeader(type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""), nonce=1, tx=tx)
+    tx = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"email": "a@example.com"},
+        "sig": "00",
+    }
+    msg = TxEnvelopeMsg(
+        header=WireHeader(
+            type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""
+        ),
+        nonce=1,
+        tx=tx,
+    )
     before = ex._mempool.size()
     loop._on_tx("peer1", msg)
     after = ex._mempool.size()
     assert after == before
 
 
-def test_net_on_tx_rejects_chain_id_mismatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_net_on_tx_rejects_chain_id_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_ALLOW_LEGACY_SIG_DOMAIN", raising=False)
     ex = WeAllExecutor(
@@ -44,8 +60,21 @@ def test_net_on_tx_rejects_chain_id_mismatch(tmp_path: Path, monkeypatch: pytest
     )
     loop = NetMeshLoop(executor=ex, mempool=ex._mempool, cfg=None)
 
-    tx = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"email": "a@example.com"}, "sig": "00", "chain_id": "other-chain"}
-    msg = TxEnvelopeMsg(header=WireHeader(type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""), nonce=1, tx=tx)
+    tx = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"email": "a@example.com"},
+        "sig": "00",
+        "chain_id": "other-chain",
+    }
+    msg = TxEnvelopeMsg(
+        header=WireHeader(
+            type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""
+        ),
+        nonce=1,
+        tx=tx,
+    )
     before = ex._mempool.size()
     loop._on_tx("peer1", msg)
     after = ex._mempool.size()

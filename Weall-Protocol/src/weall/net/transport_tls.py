@@ -49,13 +49,12 @@ import socket
 import ssl
 import struct
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
 
 from weall.net.net_logging import log_event
 from weall.net.transport import Connection, PeerAddr, WirePacket
 from weall.runtime.metrics import inc_counter
-
 
 _LOG = logging.getLogger("weall.net.transport.tls")
 
@@ -227,28 +226,34 @@ class TlsTransport:
         self.max_inbound_connections = max(0, _env_int("WEALL_NET_MAX_INBOUND", default_inbound))
         self.max_connections_per_ip = max(0, _env_int("WEALL_NET_MAX_PER_IP", default_per_ip))
 
-        self._caps_enabled = _env_bool("WEALL_NET_ENABLE_CONN_CAPS", True if md == "prod" else False)
+        self._caps_enabled = _env_bool(
+            "WEALL_NET_ENABLE_CONN_CAPS", True if md == "prod" else False
+        )
 
         default_out_q = 0 if md == "test" else 8_000_000
-        self.max_outbound_buffer_bytes = max(0, _env_int("WEALL_NET_MAX_OUTBOUND_BUFFER_BYTES", default_out_q))
+        self.max_outbound_buffer_bytes = max(
+            0, _env_int("WEALL_NET_MAX_OUTBOUND_BUFFER_BYTES", default_out_q)
+        )
         self.close_on_outbound_overflow = _env_bool("WEALL_NET_CLOSE_ON_OUTBOUND_OVERFLOW", True)
 
         self._sel = selectors.DefaultSelector()
-        self._listener: Optional[socket.socket] = None
-        self._conns: Dict[str, _TlsConn] = {}
+        self._listener: socket.socket | None = None
+        self._conns: dict[str, _TlsConn] = {}
 
         self._server_ctx = self._make_server_ctx()
         self._client_ctx = self._make_client_ctx()
 
     @classmethod
-    def from_env(cls) -> "TlsTransport":
+    def from_env(cls) -> TlsTransport:
         cert = _env_path("WEALL_NET_TLS_CERT")
         key = _env_path("WEALL_NET_TLS_KEY")
         ca = _env_path("WEALL_NET_TLS_CA")
         sni = _env_path("WEALL_NET_TLS_SERVER_NAME")
 
         if not cert or not key:
-            raise RuntimeError("TLS transport selected but WEALL_NET_TLS_CERT/WEALL_NET_TLS_KEY are not set")
+            raise RuntimeError(
+                "TLS transport selected but WEALL_NET_TLS_CERT/WEALL_NET_TLS_KEY are not set"
+            )
 
         insecure_ok = _env_bool("WEALL_NET_TLS_INSECURE_OK", False)
         if _mode() == "prod" and not ca and not insecure_ok:
@@ -272,7 +277,11 @@ class TlsTransport:
         _safe_event("net_tls_bound", addr=str(addr.uri))
 
     def connect(self, addr: PeerAddr) -> _TlsConn:
-        if self._caps_enabled and self.max_connections_total and len(self._conns) >= self.max_connections_total:
+        if (
+            self._caps_enabled
+            and self.max_connections_total
+            and len(self._conns) >= self.max_connections_total
+        ):
             raise RuntimeError("max_connections_exceeded")
 
         host, port = _parse_tls_uri(addr.uri)
@@ -284,7 +293,7 @@ class TlsTransport:
         except BlockingIOError:
             pass
 
-        server_hostname: Optional[str] = None
+        server_hostname: str | None = None
         if self.ca_file:
             server_hostname = self.server_name or host
 
@@ -310,7 +319,9 @@ class TlsTransport:
         )
         self._conns[pid] = conn
 
-        self._sel.register(ssl_sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid))
+        self._sel.register(
+            ssl_sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid)
+        )
         _safe_count("net_tls_connect_attempt_total", 1)
         return conn
 
@@ -343,7 +354,7 @@ class TlsTransport:
         self._drop_conn(peer_id)
 
     def poll(self, *, max_packets: int = 250) -> Iterable[WirePacket]:
-        out: List[WirePacket] = []
+        out: list[WirePacket] = []
         if max_packets <= 0:
             return out
 
@@ -423,7 +434,9 @@ class TlsTransport:
 
             client.setblocking(False)
             try:
-                ssl_sock = self._server_ctx.wrap_socket(client, server_side=True, do_handshake_on_connect=False)
+                ssl_sock = self._server_ctx.wrap_socket(
+                    client, server_side=True, do_handshake_on_connect=False
+                )
                 ssl_sock.setblocking(False)
             except Exception as e:
                 _safe_count("net_tls_wrap_error_total", 1)
@@ -451,7 +464,9 @@ class TlsTransport:
                     continue
 
                 if self.max_inbound_connections:
-                    inbound_count = sum(1 for c in self._conns.values() if getattr(c, "inbound", False))
+                    inbound_count = sum(
+                        1 for c in self._conns.values() if getattr(c, "inbound", False)
+                    )
                     if inbound_count >= self.max_inbound_connections:
                         _safe_count("net_tls_conn_refused_total", 1)
                         try:
@@ -465,7 +480,9 @@ class TlsTransport:
                         continue
 
                 if self.max_connections_per_ip:
-                    ip_count = sum(1 for c in self._conns.values() if getattr(c, "remote_ip", "") == ip)
+                    ip_count = sum(
+                        1 for c in self._conns.values() if getattr(c, "remote_ip", "") == ip
+                    )
                     if ip_count >= self.max_connections_per_ip:
                         _safe_count("net_tls_conn_refused_total", 1)
                         try:
@@ -493,7 +510,9 @@ class TlsTransport:
             self._conns[pid] = conn
 
             try:
-                self._sel.register(ssl_sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid))
+                self._sel.register(
+                    ssl_sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=("conn", pid)
+                )
             except Exception as e:
                 _safe_count("net_tls_register_error_total", 1)
                 _safe_event("net_tls_register_error", peer=str(pid), err=repr(e))
@@ -528,7 +547,7 @@ class TlsTransport:
             self._drop_conn(conn.peer_id)
             return False
 
-    def _try_read(self, conn: _TlsConn, *, max_packets: int) -> List[WirePacket]:
+    def _try_read(self, conn: _TlsConn, *, max_packets: int) -> list[WirePacket]:
         if max_packets <= 0:
             return []
 
@@ -560,7 +579,7 @@ class TlsTransport:
             self._drop_conn(conn.peer_id)
             return []
 
-        out: List[WirePacket] = []
+        out: list[WirePacket] = []
         while len(conn.rbuf) >= 4 and len(out) < max_packets:
             n = struct.unpack(">I", conn.rbuf[:4])[0]
             if n <= 0 or n > self.max_frame_bytes:
@@ -574,7 +593,9 @@ class TlsTransport:
                             meta={
                                 "transport": "tls",
                                 "addr": conn.peer_addr.uri,
-                                "frame_error": "oversize" if n > self.max_frame_bytes else "invalid_length",
+                                "frame_error": "oversize"
+                                if n > self.max_frame_bytes
+                                else "invalid_length",
                                 "declared_len": str(int(n)),
                                 "max_frame_bytes": str(int(self.max_frame_bytes)),
                             },

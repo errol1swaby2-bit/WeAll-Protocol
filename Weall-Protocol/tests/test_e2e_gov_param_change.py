@@ -12,7 +12,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_state_persists_across_blocks_and_restart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_state_persists_across_blocks_and_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Old gov-param-change test depended on legacy governance machinery.
 
     For SQLite migration, we keep the important invariant:
@@ -29,12 +31,19 @@ def test_state_persists_across_blocks_and_restart(tmp_path: Path, monkeypatch: p
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="persist", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="persist", tx_index_path=tx_index_path
+    )
 
     alice_pubkey, _ = deterministic_ed25519_keypair(label="@alice")
 
     # Create account with a seed pubkey so later txs can be signature-verified.
-    reg = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"pubkey": alice_pubkey}}
+    reg = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"pubkey": alice_pubkey},
+    }
     assert ex.submit_tx(sign_tx_dict(reg, label="@alice"))["ok"] is True
     assert ex.produce_block(max_txs=1).ok is True
 
@@ -42,6 +51,8 @@ def test_state_persists_across_blocks_and_restart(tmp_path: Path, monkeypatch: p
     assert "@alice" in (st1.get("accounts") or {})
 
     # Restart executor pointing at same db.
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="persist", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="persist", tx_index_path=tx_index_path
+    )
     st2 = ex2.read_state()
     assert "@alice" in (st2.get("accounts") or {})

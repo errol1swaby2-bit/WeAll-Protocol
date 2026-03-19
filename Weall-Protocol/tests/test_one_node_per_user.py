@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -8,8 +8,7 @@ from weall.net.messages import MsgType, PeerHello, WireHeader
 from weall.net.peer_identity import verify_peer_hello_identity
 from weall.runtime.domain_apply import apply_tx
 
-
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _env(
@@ -32,7 +31,15 @@ def _env(
     }
 
 
-def _hello(*, account_id: str, pubkey: str, sig: str, chain_id: str = "weall", schema: str = "1", tx_index_hash: str = "txindex") -> PeerHello:
+def _hello(
+    *,
+    account_id: str,
+    pubkey: str,
+    sig: str,
+    chain_id: str = "weall",
+    schema: str = "1",
+    tx_index_hash: str = "txindex",
+) -> PeerHello:
     return PeerHello(
         header=WireHeader(
             type=MsgType.PEER_HELLO,
@@ -73,7 +80,12 @@ def test_account_device_register_enforces_one_node_device() -> None:
             st,
             _env(
                 "ACCOUNT_DEVICE_REGISTER",
-                {"device_id": "node:acc1:alt", "device_type": "node", "label": "node-alt", "pubkey": "pk1"},
+                {
+                    "device_id": "node:acc1:alt",
+                    "device_type": "node",
+                    "label": "node-alt",
+                    "pubkey": "pk1",
+                },
                 signer="acc1",
                 nonce=3,
             ),
@@ -93,7 +105,9 @@ def test_peer_identity_requires_node_device_then_accepts(monkeypatch: pytest.Mon
     # We only want to validate the new gating rule, not crypto plumbing.
     import weall.net.peer_identity as peer_identity_mod
 
-    monkeypatch.setattr(peer_identity_mod, "verify_ed25519_sig", lambda pubkey, msg_bytes, sig: True)
+    monkeypatch.setattr(
+        peer_identity_mod, "verify_ed25519_sig", lambda pubkey, msg_bytes, sig: True
+    )
 
     hello = _hello(account_id="acc1", pubkey="pk1", sig="sig1")
 

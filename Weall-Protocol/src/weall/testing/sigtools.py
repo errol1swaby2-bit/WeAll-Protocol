@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from weall.crypto.sig import canonical_tx_message
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _sha256(b: bytes) -> bytes:
     return hashlib.sha256(b).digest()
 
 
-def deterministic_ed25519_keypair(*, label: str) -> Tuple[str, Ed25519PrivateKey]:
+def deterministic_ed25519_keypair(*, label: str) -> tuple[str, Ed25519PrivateKey]:
     """Deterministically derive an Ed25519 keypair from a stable label.
 
     TEST ONLY.
@@ -59,7 +59,7 @@ def ensure_account_has_test_key(accounts: Json, *, account_id: str) -> str:
     return pubkey_hex
 
 
-def sign_tx_dict(tx: Json, *, label: Optional[str] = None) -> Json:
+def sign_tx_dict(tx: Json, *, label: str | None = None) -> Json:
     """Return tx with a real Ed25519 signature (hex), deterministically derived.
 
     - Signing key derived from `label` if provided, else from tx['signer'].
@@ -77,12 +77,14 @@ def sign_tx_dict(tx: Json, *, label: Optional[str] = None) -> Json:
     if not isinstance(payload, dict):
         payload = {}
 
-    parent_s: Optional[str] = None
+    parent_s: str | None = None
     if isinstance(parent, str) and parent.strip():
         parent_s = parent.strip()
 
     _, sk = deterministic_ed25519_keypair(label=(label or signer))
-    msg = canonical_tx_message(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, parent=parent_s)
+    msg = canonical_tx_message(
+        tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, parent=parent_s
+    )
     sig_hex = sk.sign(msg).hex()
 
     out = dict(tx)

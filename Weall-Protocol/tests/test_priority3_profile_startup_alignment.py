@@ -4,7 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from weall.runtime.chain_config import ChainConfig, production_bootstrap_report, production_bootstrap_issues
+from weall.runtime.chain_config import (
+    ChainConfig,
+    production_bootstrap_report,
+)
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import (
     PRODUCTION_CONSENSUS_PROFILE,
@@ -34,13 +37,20 @@ def _cfg(tmp_path: Path) -> ChainConfig:
     )
 
 
-def test_prod_tolerates_legacy_startup_clock_sanity_override(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_tolerates_legacy_startup_clock_sanity_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_STARTUP_CLOCK_SANITY_REQUIRED", "1" if not PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required else "0")
+    monkeypatch.setenv(
+        "WEALL_STARTUP_CLOCK_SANITY_REQUIRED",
+        "1" if not PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required else "0",
+    )
     validate_runtime_consensus_profile()
 
 
-def test_production_bootstrap_report_exposes_profile_identity_and_clock_posture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_bootstrap_report_exposes_profile_identity_and_clock_posture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
@@ -53,8 +63,14 @@ def test_production_bootstrap_report_exposes_profile_identity_and_clock_posture(
 
     assert report["protocol_version"] == PRODUCTION_CONSENSUS_PROFILE.protocol_version
     assert report["protocol_profile_hash"] == PRODUCTION_CONSENSUS_PROFILE.profile_hash()
-    assert report["startup_clock_sanity_required"] == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
-    assert report["startup_clock_hard_fail_ms"] == PRODUCTION_CONSENSUS_PROFILE.startup_clock_hard_fail_ms
+    assert (
+        report["startup_clock_sanity_required"]
+        == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+    )
+    assert (
+        report["startup_clock_hard_fail_ms"]
+        == PRODUCTION_CONSENSUS_PROFILE.startup_clock_hard_fail_ms
+    )
 
 
 def test_runtime_startup_fingerprint_commits_startup_clock_sanity_requirement() -> None:
@@ -65,10 +81,15 @@ def test_runtime_startup_fingerprint_commits_startup_clock_sanity_requirement() 
         schema_version="1",
     )
     assert fp["protocol_version"] == PRODUCTION_CONSENSUS_PROFILE.protocol_version
-    assert fp["startup_clock_sanity_required"] == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+    assert (
+        fp["startup_clock_sanity_required"]
+        == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+    )
 
 
-def test_restart_tolerates_legacy_startup_clock_sanity_meta_and_heals_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_restart_tolerates_legacy_startup_clock_sanity_meta_and_heals_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     ex = WeAllExecutor(
         db_path=str(tmp_path / "weall.db"),
@@ -78,9 +99,9 @@ def test_restart_tolerates_legacy_startup_clock_sanity_meta_and_heals_it(tmp_pat
     )
     ex.mark_clean_shutdown()
     st = ex.read_state()
-    st.setdefault("meta", {})["startup_clock_sanity_required"] = (
-        not PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
-    )
+    st.setdefault("meta", {})[
+        "startup_clock_sanity_required"
+    ] = not PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
     ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     ex2 = WeAllExecutor(
@@ -90,10 +111,15 @@ def test_restart_tolerates_legacy_startup_clock_sanity_meta_and_heals_it(tmp_pat
         tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
     )
     healed = ex2.read_state()
-    assert healed.setdefault("meta", {})["startup_clock_sanity_required"] == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+    assert (
+        healed.setdefault("meta", {})["startup_clock_sanity_required"]
+        == PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+    )
 
 
-def test_restart_warns_and_enters_observer_mode_for_future_skewed_tip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_restart_warns_and_enters_observer_mode_for_future_skewed_tip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = WeAllExecutor(
         db_path=str(tmp_path / "weall-clock.db"),
@@ -113,6 +139,10 @@ def test_restart_warns_and_enters_observer_mode_for_future_skewed_tip(tmp_path: 
         tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
     )
     assert ex2.observer_mode() is True
-    warning = ((ex2.read_state().get("meta") or {}) if isinstance(ex2.read_state().get("meta"), dict) else {}).get("clock_warning")
+    warning = (
+        (ex2.read_state().get("meta") or {})
+        if isinstance(ex2.read_state().get("meta"), dict)
+        else {}
+    ).get("clock_warning")
     assert isinstance(warning, dict)
     assert bool(warning.get("observer_mode_forced", False)) is True

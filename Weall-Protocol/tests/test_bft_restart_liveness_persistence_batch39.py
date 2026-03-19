@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.runtime.executor import WeAllExecutor
 
@@ -21,7 +25,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -44,23 +50,33 @@ def test_partial_timeout_bucket_survives_restart_and_forms_new_view(tmp_path: Pa
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
     db_path = str(tmp_path / "timeout-restart.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=3)
 
     def timeout_from(signer: str, view: int) -> dict:
         import os
 
-        ex2 = WeAllExecutor(db_path=str(tmp_path / f"timeout-sign-{signer}-{view}.db"), node_id=f"@{signer}", chain_id="bft-live", tx_index_path=tx_index_path)
+        ex2 = WeAllExecutor(
+            db_path=str(tmp_path / f"timeout-sign-{signer}-{view}.db"),
+            node_id=f"@{signer}",
+            chain_id="bft-live",
+            tx_index_path=tx_index_path,
+        )
         _seed_validator_set(ex2, validators=validators, pub=vpub, epoch=3)
-        old = {k: os.environ.get(k) for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")}
+        old = {
+            k: os.environ.get(k)
+            for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")
+        }
         os.environ["WEALL_VALIDATOR_ACCOUNT"] = signer
         os.environ["WEALL_NODE_PUBKEY"] = vpub[signer]
         os.environ["WEALL_NODE_PRIVKEY"] = vpriv[signer]
@@ -78,7 +94,9 @@ def test_partial_timeout_bucket_survives_restart_and_forms_new_view(tmp_path: Pa
     assert ex.bft_handle_timeout(timeout_from("v1", 0)) is None
     assert ex.bft_handle_timeout(timeout_from("v2", 0)) is None
 
-    restarted = WeAllExecutor(db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    restarted = WeAllExecutor(
+        db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(restarted, validators=validators, pub=vpub, epoch=3)
 
     assert restarted._bft.export_state().get("pending_timeouts")
@@ -90,15 +108,17 @@ def test_partial_vote_bucket_survives_restart_and_forms_qc(tmp_path: Path) -> No
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
     db_path = str(tmp_path / "vote-restart.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=5)
 
     block_id = "blk-partition-a"
@@ -108,14 +128,24 @@ def test_partial_vote_bucket_survives_restart_and_forms_qc(tmp_path: Path) -> No
     def vote_from(signer: str) -> dict:
         import os
 
-        ex2 = WeAllExecutor(db_path=str(tmp_path / f"vote-sign-{signer}.db"), node_id=f"@{signer}", chain_id="bft-live", tx_index_path=tx_index_path)
+        ex2 = WeAllExecutor(
+            db_path=str(tmp_path / f"vote-sign-{signer}.db"),
+            node_id=f"@{signer}",
+            chain_id="bft-live",
+            tx_index_path=tx_index_path,
+        )
         _seed_validator_set(ex2, validators=validators, pub=vpub, epoch=5)
-        old = {k: os.environ.get(k) for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")}
+        old = {
+            k: os.environ.get(k)
+            for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")
+        }
         os.environ["WEALL_VALIDATOR_ACCOUNT"] = signer
         os.environ["WEALL_NODE_PUBKEY"] = vpub[signer]
         os.environ["WEALL_NODE_PRIVKEY"] = vpriv[signer]
         try:
-            out = ex2.bft_make_vote_for_block(view=7, block_id=block_id, block_hash=block_hash, parent_id=parent_id)
+            out = ex2.bft_make_vote_for_block(
+                view=7, block_id=block_id, block_hash=block_hash, parent_id=parent_id
+            )
             assert isinstance(out, dict)
             return out
         finally:
@@ -128,7 +158,9 @@ def test_partial_vote_bucket_survives_restart_and_forms_qc(tmp_path: Path) -> No
     assert ex.bft_handle_vote(vote_from("v1")) is None
     assert ex.bft_handle_vote(vote_from("v2")) is None
 
-    restarted = WeAllExecutor(db_path=db_path, node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path)
+    restarted = WeAllExecutor(
+        db_path=db_path, node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(restarted, validators=validators, pub=vpub, epoch=5)
 
     pending_votes = restarted._bft.export_state().get("pending_votes")
@@ -145,23 +177,33 @@ def test_restart_drops_old_epoch_liveness_buckets_after_transition(tmp_path: Pat
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
     db_path = str(tmp_path / "epoch-restart.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=3)
 
     def timeout_from(signer: str, view: int, epoch: int) -> dict:
         import os
 
-        ex2 = WeAllExecutor(db_path=str(tmp_path / f"epoch-timeout-{signer}-{view}-{epoch}.db"), node_id=f"@{signer}", chain_id="bft-live", tx_index_path=tx_index_path)
+        ex2 = WeAllExecutor(
+            db_path=str(tmp_path / f"epoch-timeout-{signer}-{view}-{epoch}.db"),
+            node_id=f"@{signer}",
+            chain_id="bft-live",
+            tx_index_path=tx_index_path,
+        )
         _seed_validator_set(ex2, validators=validators, pub=vpub, epoch=epoch)
-        old = {k: os.environ.get(k) for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")}
+        old = {
+            k: os.environ.get(k)
+            for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")
+        }
         os.environ["WEALL_VALIDATOR_ACCOUNT"] = signer
         os.environ["WEALL_NODE_PUBKEY"] = vpub[signer]
         os.environ["WEALL_NODE_PRIVKEY"] = vpriv[signer]
@@ -183,7 +225,9 @@ def test_restart_drops_old_epoch_liveness_buckets_after_transition(tmp_path: Pat
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=4)
     ex._persist_bft_state()
 
-    restarted = WeAllExecutor(db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    restarted = WeAllExecutor(
+        db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path
+    )
     _seed_validator_set(restarted, validators=validators, pub=vpub, epoch=4)
 
     pending_timeouts = restarted._bft.export_state().get("pending_timeouts") or []

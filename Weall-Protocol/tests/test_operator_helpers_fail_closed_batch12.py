@@ -15,7 +15,9 @@ class _FakeSession(SimpleNamespace):
 
 class _FakeNode:
     def __init__(self):
-        self._peers = {"peer-a": _FakeSession(addr=SimpleNamespace(uri="tcp://1.2.3.4:5555"), established=True)}
+        self._peers = {
+            "peer-a": _FakeSession(addr=SimpleNamespace(uri="tcp://1.2.3.4:5555"), established=True)
+        }
 
     def peer_ids(self):
         raise RuntimeError("boom")
@@ -50,7 +52,12 @@ def test_nodes_seeds_invalid_env_stays_permissive_in_dev(monkeypatch):
 
 def test_nodes_registry_bad_weight_fails_closed_in_prod(tmp_path, monkeypatch):
     reg_path = tmp_path / "nodes_registry.json"
-    reg_path.write_text(json.dumps({"version": 1, "nodes": [{"base_url": "https://alpha.example.com", "weight": "nope"}]}), encoding="utf-8")
+    reg_path.write_text(
+        json.dumps(
+            {"version": 1, "nodes": [{"base_url": "https://alpha.example.com", "weight": "nope"}]}
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODES_REGISTRY_PATH", str(reg_path))
     app = create_app(boot_runtime=False)

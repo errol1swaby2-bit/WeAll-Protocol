@@ -19,8 +19,22 @@ def test_equivocation_results_in_slash_execute_event() -> None:
     st["roles"].setdefault("validators", {})["active_set"] = ["v1"]
 
     # Create two competing blocks at height=1.
-    st["blocks"]["b1"] = {"block_id": "b1", "height": 1, "prev_block_id": "gen", "ts_ms": 0, "node_id": "v1", "tx_ids": []}
-    st["blocks"]["c1"] = {"block_id": "c1", "height": 1, "prev_block_id": "gen", "ts_ms": 0, "node_id": "evil", "tx_ids": []}
+    st["blocks"]["b1"] = {
+        "block_id": "b1",
+        "height": 1,
+        "prev_block_id": "gen",
+        "ts_ms": 0,
+        "node_id": "v1",
+        "tx_ids": [],
+    }
+    st["blocks"]["c1"] = {
+        "block_id": "c1",
+        "height": 1,
+        "prev_block_id": "gen",
+        "ts_ms": 0,
+        "node_id": "evil",
+        "tx_ids": [],
+    }
 
     # First attestation is accepted.
     env1 = TxEnvelope(

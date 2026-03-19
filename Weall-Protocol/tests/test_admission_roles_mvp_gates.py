@@ -1,7 +1,7 @@
 # tests/test_admission_roles_mvp_gates.py
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -10,7 +10,7 @@ from weall.runtime.tx_admission import admit_tx
 from weall.tx.canon import TxIndex
 
 
-def _canon(mapping: Dict[str, Dict[str, Any]]) -> TxIndex:
+def _canon(mapping: dict[str, dict[str, Any]]) -> TxIndex:
     tx_types = []
     for i, (name, spec) in enumerate(mapping.items(), start=1):
         d = {"id": i, "name": name}
@@ -20,7 +20,7 @@ def _canon(mapping: Dict[str, Dict[str, Any]]) -> TxIndex:
     by_name = {str(t["name"]).upper(): t for t in tx_types}
     by_id = {int(t["id"]): t for t in tx_types}
     by_id_str = {str(int(t["id"])): t for t in tx_types}
-    meta: Dict[str, Any] = {"generated_from": "unit"}
+    meta: dict[str, Any] = {"generated_from": "unit"}
     return TxIndex(
         tx_types=tx_types,
         by_name=by_name,

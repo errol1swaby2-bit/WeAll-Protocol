@@ -3,14 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.ledger.state import LedgerView
-
 from weall.api.routes_public_parts.common import (
     _att_pool,
     _executor,
-    _snapshot,
     _require_registered_signer_for_attestation,
+    _snapshot,
 )
+from weall.ledger.state import LedgerView
 
 router = APIRouter()
 

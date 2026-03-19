@@ -8,7 +8,15 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, *, signer: str, nonce: int, payload: dict, system: bool = False, parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str,
+    *,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -25,7 +33,17 @@ def _base_state() -> dict:
         "height": 0,
         "time": 1_700_000_000,
         "params": {"ipfs_replication_factor": 2},
-        "storage": {"operators": {}, "pins": {}, "pin_confirms": [], "offers": {}, "leases": {}, "proofs": {}, "challenges": {}, "reports": {}, "payouts": []},
+        "storage": {
+            "operators": {},
+            "pins": {},
+            "pin_confirms": [],
+            "offers": {},
+            "leases": {},
+            "proofs": {},
+            "challenges": {},
+            "reports": {},
+            "payouts": [],
+        },
     }
 
 
@@ -52,9 +70,24 @@ def test_ipfs_pin_request_capacity_filters_targets_when_size_known() -> None:
     st = _base_state()
 
     # opA has tight capacity; opB has plenty; opC unspecified (allowed)
-    st["storage"]["operators"]["opA"] = {"account_id": "opA", "enabled": True, "capacity_bytes": 10, "used_bytes": 9}
-    st["storage"]["operators"]["opB"] = {"account_id": "opB", "enabled": True, "capacity_bytes": 1000, "used_bytes": 0}
-    st["storage"]["operators"]["opC"] = {"account_id": "opC", "enabled": True, "capacity_bytes": 0, "used_bytes": 0}
+    st["storage"]["operators"]["opA"] = {
+        "account_id": "opA",
+        "enabled": True,
+        "capacity_bytes": 10,
+        "used_bytes": 9,
+    }
+    st["storage"]["operators"]["opB"] = {
+        "account_id": "opB",
+        "enabled": True,
+        "capacity_bytes": 1000,
+        "used_bytes": 0,
+    }
+    st["storage"]["operators"]["opC"] = {
+        "account_id": "opC",
+        "enabled": True,
+        "capacity_bytes": 0,
+        "used_bytes": 0,
+    }
 
     cid = "baaaaaaaaaaaaaaaaaaaaa"
 
@@ -78,12 +111,23 @@ def test_ipfs_pin_request_capacity_filters_targets_when_size_known() -> None:
 
 def test_ipfs_pin_confirm_accounts_used_bytes_once_per_operator() -> None:
     st = _base_state()
-    st["storage"]["operators"]["opA"] = {"account_id": "opA", "enabled": True, "capacity_bytes": 1000, "used_bytes": 0}
+    st["storage"]["operators"]["opA"] = {
+        "account_id": "opA",
+        "enabled": True,
+        "capacity_bytes": 1000,
+        "used_bytes": 0,
+    }
 
     cid = "baaaaaaaaaaaaaaaaaaaaa"
     m = apply_tx(
         st,
-        _env("IPFS_PIN_REQUEST", signer="alice", nonce=1, payload={"cid": cid, "size_bytes": 7}, system=False),
+        _env(
+            "IPFS_PIN_REQUEST",
+            signer="alice",
+            nonce=1,
+            payload={"cid": cid, "size_bytes": 7},
+            system=False,
+        ),
     )
     pin_id = m["pin_id"]
 

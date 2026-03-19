@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.executor_safe_mode import executor_safe_mode_guard
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def guarded_produce_block(*, report: Json, actions: Json | None, produce_fn):

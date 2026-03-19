@@ -4,13 +4,12 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass
-from typing import Dict, Optional, Set, Tuple
 
 from weall.net.codec import CanonError
 from weall.net.messages import BlockProposalMsg, TxEnvelopeMsg
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
-JsonObject = Dict[str, object]
+JsonObject = dict[str, object]
 
 
 def _now_ms() -> int:
@@ -54,6 +53,7 @@ def _mode() -> str:
 # Gossip IDs
 # ---------------------------------------------------------------------
 
+
 def tx_gossip_id(msg: TxEnvelopeMsg, *, chain_id: str) -> str:
     """
     Stable identifier for tx gossip.
@@ -91,6 +91,7 @@ def block_gossip_id(blk: BlockProposalMsg) -> str:
 # Config + state
 # ---------------------------------------------------------------------
 
+
 @dataclass(slots=True)
 class GossipConfig:
     """
@@ -104,6 +105,7 @@ class GossipConfig:
         session_is_established(peer_id) returns True.
       - This is a lightweight hardening against pre-handshake spam.
     """
+
     chain_id: str = "weall-devnet"
     fanout: int = 4
     max_seen: int = 50_000
@@ -114,9 +116,10 @@ class GossipConfig:
 @dataclass
 class SeenCache:
     """A bounded, TTL-based seen cache for gossip ids."""
+
     max_seen: int
     ttl_ms: int
-    seen: Dict[str, int]
+    seen: dict[str, int]
 
     def __init__(self, *, max_seen: int, ttl_ms: int) -> None:
         self.max_seen = int(max_seen)
@@ -137,12 +140,12 @@ class SeenCache:
             for k, _ts in items[: max(0, len(items) - self.max_seen)]:
                 self.seen.pop(k, None)
 
-    def mark(self, key: str, *, now_ms: Optional[int] = None) -> None:
+    def mark(self, key: str, *, now_ms: int | None = None) -> None:
         now = int(now_ms) if now_ms is not None else _now_ms()
         self._prune(now_ms=now)
         self.seen[str(key)] = int(now)
 
-    def has(self, key: str, *, now_ms: Optional[int] = None) -> bool:
+    def has(self, key: str, *, now_ms: int | None = None) -> bool:
         now = int(now_ms) if now_ms is not None else _now_ms()
         self._prune(now_ms=now)
         return str(key) in self.seen
@@ -152,7 +155,7 @@ class SeenCache:
 class GossipState:
     cfg: GossipConfig
     seen: SeenCache
-    outbox: Set[Tuple[str, str]]
+    outbox: set[tuple[str, str]]
 
     def __init__(self, cfg: GossipConfig) -> None:
         self.cfg = cfg

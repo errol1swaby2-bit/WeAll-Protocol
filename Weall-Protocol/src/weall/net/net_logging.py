@@ -3,10 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Any, Dict
+from typing import Any
 
-
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _now_ms() -> int:

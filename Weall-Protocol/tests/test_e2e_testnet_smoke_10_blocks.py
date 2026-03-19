@@ -22,12 +22,19 @@ def test_smoke_produce_10_blocks_sqlite(tmp_path: Path) -> None:
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="smoke-10", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="smoke-10", tx_index_path=tx_index_path
+    )
 
     # 10 independent signers => nonce=1 each
     for i in range(10):
         sub = ex.submit_tx(
-            {"tx_type": "ACCOUNT_REGISTER", "signer": f"@user{i}", "nonce": 1, "payload": {"pubkey": f"k:{i}"}}
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": f"@user{i}",
+                "nonce": 1,
+                "payload": {"pubkey": f"k:{i}"},
+            }
         )
         assert sub["ok"] is True
 

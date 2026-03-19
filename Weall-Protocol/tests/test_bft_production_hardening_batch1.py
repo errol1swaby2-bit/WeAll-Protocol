@@ -22,7 +22,12 @@ def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str
 
 def test_non_leader_cannot_propose(tmp_path: Path, monkeypatch) -> None:
     tx_index_path = str(Path("generated/tx_index.json"))
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="v2", chain_id="bft-prod", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="v2",
+        chain_id="bft-prod",
+        tx_index_path=tx_index_path,
+    )
 
     pubs = {}
     privs = {}
@@ -41,7 +46,12 @@ def test_non_leader_cannot_propose(tmp_path: Path, monkeypatch) -> None:
 
 def test_proposal_requires_valid_signature_and_epoch(tmp_path: Path, monkeypatch) -> None:
     tx_index_path = str(Path("generated/tx_index.json"))
-    ex = WeAllExecutor(db_path=str(tmp_path / "node2.db"), node_id="v1", chain_id="bft-prod", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node2.db"),
+        node_id="v1",
+        chain_id="bft-prod",
+        tx_index_path=tx_index_path,
+    )
 
     pubs = {}
     privs = {}
@@ -65,5 +75,3 @@ def test_proposal_requires_valid_signature_and_epoch(tmp_path: Path, monkeypatch
     bad_epoch = dict(proposal)
     bad_epoch["validator_epoch"] = int(proposal["validator_epoch"]) + 1
     assert ex.bft_on_proposal(bad_epoch) is None
-
-

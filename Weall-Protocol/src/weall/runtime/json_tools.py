@@ -5,7 +5,8 @@ These helpers are intentionally tiny and dependency-free.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 
 def deep_get(obj: Any, path: Sequence[Any] | Iterable[Any], default: Any = None) -> Any:

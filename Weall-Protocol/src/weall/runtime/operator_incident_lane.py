@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from weall.runtime.chain_config import ChainConfig
 from weall.runtime.operator_incident_actions import evaluate_incident_actions
@@ -10,7 +11,7 @@ from weall.runtime.operator_incident_diff import diff_operator_incident_reports
 from weall.runtime.operator_incident_report import build_operator_incident_report
 from weall.runtime.operator_safe_mode import safe_mode_gate
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _canon_json(obj: Any) -> str:
@@ -34,8 +35,8 @@ def _max_severity(levels: Iterable[str]) -> str:
     return best
 
 
-def _load_peer_reports(paths: Optional[Iterable[Path]]) -> List[Json]:
-    loaded: List[Json] = []
+def _load_peer_reports(paths: Iterable[Path] | None) -> list[Json]:
+    loaded: list[Json] = []
     if not paths:
         return loaded
     for path in paths:
@@ -47,8 +48,8 @@ def _load_peer_reports(paths: Optional[Iterable[Path]]) -> List[Json]:
 
 
 def summarize_peer_reports(*, local_report: Json, peer_reports: Iterable[Json]) -> Json:
-    diffs: List[Json] = []
-    peer_severities: List[str] = []
+    diffs: list[Json] = []
+    peer_severities: list[str] = []
     divergence_count = 0
     for idx, peer in enumerate(peer_reports):
         diff = diff_operator_incident_reports(local_report, peer)
@@ -61,7 +62,9 @@ def summarize_peer_reports(*, local_report: Json, peer_reports: Iterable[Json]) 
 
     max_peer_severity = _max_severity(peer_severities) if peer_severities else "ok"
     consensus_divergence = divergence_count > 0
-    summary_severity = _max_severity([max_peer_severity, "critical" if consensus_divergence else "ok"])
+    summary_severity = _max_severity(
+        [max_peer_severity, "critical" if consensus_divergence else "ok"]
+    )
     return {
         "count": len(diffs),
         "peer_max_severity": max_peer_severity,
@@ -75,9 +78,15 @@ def summarize_peer_reports(*, local_report: Json, peer_reports: Iterable[Json]) 
 def _augment_actions(*, actions: Json, peer_summary: Json) -> Json:
     base_actions = actions.get("actions") if isinstance(actions.get("actions"), list) else []
     deduped = [str(x) for x in base_actions]
-    if bool(peer_summary.get("consensus_divergence", False)) and "REQUEST_PEER_REPORTS" not in deduped:
+    if (
+        bool(peer_summary.get("consensus_divergence", False))
+        and "REQUEST_PEER_REPORTS" not in deduped
+    ):
         deduped.append("REQUEST_PEER_REPORTS")
-    if bool(peer_summary.get("consensus_divergence", False)) and "HALT_BLOCK_PRODUCTION" not in deduped:
+    if (
+        bool(peer_summary.get("consensus_divergence", False))
+        and "HALT_BLOCK_PRODUCTION" not in deduped
+    ):
         deduped.append("HALT_BLOCK_PRODUCTION")
     return {
         "severity": str(actions.get("severity") or "ok"),
@@ -92,8 +101,8 @@ def build_operator_incident_lane(
     cfg: ChainConfig,
     db_path: Path,
     tx_index_path: Path,
-    remote_forensics: Optional[Json] = None,
-    peer_reports: Optional[Iterable[Json]] = None,
+    remote_forensics: Json | None = None,
+    peer_reports: Iterable[Json] | None = None,
 ) -> Json:
     local_report = build_operator_incident_report(
         cfg=cfg,
@@ -101,7 +110,9 @@ def build_operator_incident_lane(
         tx_index_path=tx_index_path,
         remote_forensics=remote_forensics,
     )
-    peer_summary = summarize_peer_reports(local_report=local_report, peer_reports=list(peer_reports or []))
+    peer_summary = summarize_peer_reports(
+        local_report=local_report, peer_reports=list(peer_reports or [])
+    )
 
     overall_severity = _max_severity(
         [
@@ -126,13 +137,15 @@ def build_operator_incident_lane(
     actions = _augment_actions(actions=base_actions, peer_summary=peer_summary)
     safe_mode = safe_mode_gate(report=effective_report, actions=actions)
 
-    next_steps: List[str] = []
+    next_steps: list[str] = []
     if safe_mode.get("halt_block_production"):
         next_steps.append("stop local proposal/production loop and remain observer-only")
     if safe_mode.get("request_peer_reports"):
         next_steps.append("collect peer incident reports and compare startup fingerprints")
     if peer_summary.get("consensus_divergence"):
-        next_steps.append("investigate divergent tip/validator-set/startup-fingerprint before rejoining")
+        next_steps.append(
+            "investigate divergent tip/validator-set/startup-fingerprint before rejoining"
+        )
     if not next_steps:
         next_steps.append("continue normal operation")
 
@@ -146,7 +159,8 @@ def build_operator_incident_lane(
     )
 
     return {
-        "ok": bool(effective_report.get("ok", False)) and not bool(peer_summary.get("consensus_divergence", False)),
+        "ok": bool(effective_report.get("ok", False))
+        and not bool(peer_summary.get("consensus_divergence", False)),
         "report": effective_report,
         "actions": actions,
         "safe_mode": safe_mode,

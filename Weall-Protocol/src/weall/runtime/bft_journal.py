@@ -4,9 +4,9 @@ import json
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _now_ms() -> int:
@@ -41,13 +41,13 @@ class BftJournal:
                 f.write(line)
             self._trim_locked()
 
-    def read_tail(self, limit: int = 100) -> List[Json]:
+    def read_tail(self, limit: int = 100) -> list[Json]:
         lim = max(1, min(int(limit), self.max_events))
         try:
             lines = Path(self.path).read_text(encoding="utf-8").splitlines()
         except Exception:
             return []
-        out: List[Json] = []
+        out: list[Json] = []
         for line in lines[-lim:]:
             try:
                 obj = json.loads(line)
@@ -57,7 +57,7 @@ class BftJournal:
                 continue
         return out
 
-    def last_event(self, event_type: str) -> Optional[Json]:
+    def last_event(self, event_type: str) -> Json | None:
         for rec in reversed(self.read_tail(limit=self.max_events)):
             if str(rec.get("event") or "") == str(event_type):
                 return rec
@@ -83,7 +83,9 @@ class BftJournal:
                     pass
             elif ev == "bft_timeout_emitted":
                 try:
-                    out["last_timeout_view"] = max(int(out["last_timeout_view"]), int(payload.get("view") or -1))
+                    out["last_timeout_view"] = max(
+                        int(out["last_timeout_view"]), int(payload.get("view") or -1)
+                    )
                 except Exception:
                     pass
                 hqc = str(payload.get("high_qc_id") or "").strip()
@@ -137,6 +139,6 @@ class BftJournal:
         if extra <= 0:
             return
         Path(self.path).write_text(
-            "\n".join(lines[-self.max_events:]) + ("\n" if lines else ""),
+            "\n".join(lines[-self.max_events :]) + ("\n" if lines else ""),
             encoding="utf-8",
         )

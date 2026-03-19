@@ -39,11 +39,11 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ class TxEntry:
     gate: str
     context: str
     receipt_only: bool
-    gates: Optional[Dict[str, Any]]
+    gates: dict[str, Any] | None
 
 
 def _stable_id_hex(name: str) -> str:
@@ -70,12 +70,12 @@ def _load_yaml(path: Path) -> Json:
     return obj
 
 
-def _parse_entries(spec: Json) -> List[TxEntry]:
+def _parse_entries(spec: Json) -> list[TxEntry]:
     txs = spec.get("txs")
     if not isinstance(txs, list) or not txs:
         raise SystemExit("❌ tx_canon.yaml must have non-empty list field: txs")
 
-    out: List[TxEntry] = []
+    out: list[TxEntry] = []
     for idx, t in enumerate(txs):
         if not isinstance(t, dict):
             raise SystemExit(f"❌ tx[{idx}] must be a mapping")
@@ -100,7 +100,7 @@ def _parse_entries(spec: Json) -> List[TxEntry]:
         if gates is not None and not isinstance(gates, dict):
             raise SystemExit(f"❌ tx[{idx}].gates must be a mapping if present")
 
-        merged_gates: Optional[Dict[str, Any]] = dict(gates) if isinstance(gates, dict) else None
+        merged_gates: dict[str, Any] | None = dict(gates) if isinstance(gates, dict) else None
 
         # Compute subject gate preference order:
         # 1) gates.subject_gate (if present)
@@ -144,10 +144,10 @@ def _parse_entries(spec: Json) -> List[TxEntry]:
     return out
 
 
-def _emit(entries: List[TxEntry], *, spec: Json) -> Json:
-    tx_types: List[Json] = []
-    by_id: Dict[str, int] = {}
-    by_name: Dict[str, int] = {}
+def _emit(entries: list[TxEntry], *, spec: Json) -> Json:
+    tx_types: list[Json] = []
+    by_id: dict[str, int] = {}
+    by_name: dict[str, int] = {}
 
     for e in entries:
         rec: Json = {

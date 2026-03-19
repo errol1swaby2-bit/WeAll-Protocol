@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_ed25519
 from weall.runtime.bft_hotstuff import BftTimeout, canonical_timeout_message
@@ -24,7 +28,7 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str]) -> None:
+def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str]) -> None:
     # Executor expects:
     # - roles.validators.active_set for membership
     # - consensus.validators.registry[acct].pubkey for signature verify
@@ -59,18 +63,20 @@ def test_bft_liveness_advances_view_via_timeouts_threshold(tmp_path: Path) -> No
 
     # n=4 => f=1 => threshold=3
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
     # Four independent nodes sharing the same validator set.
-    ex: Dict[str, WeAllExecutor] = {}
+    ex: dict[str, WeAllExecutor] = {}
     for i, vid in enumerate(validators):
         db_path = str(tmp_path / f"node_{i}.db")
-        ex[vid] = WeAllExecutor(db_path=db_path, node_id=f"@{vid}", chain_id="bft-live", tx_index_path=tx_index_path)
+        ex[vid] = WeAllExecutor(
+            db_path=db_path, node_id=f"@{vid}", chain_id="bft-live", tx_index_path=tx_index_path
+        )
         _seed_validator_set(ex[vid], validators=validators, pub=vpub)
 
     # All nodes start at view=0.
@@ -83,7 +89,9 @@ def test_bft_liveness_advances_view_via_timeouts_threshold(tmp_path: Path) -> No
 
     timeouts: list[dict] = []
     for signer in ["v1", "v2", "v3"]:
-        msg = canonical_timeout_message(chain_id="bft-live", view=view, high_qc_id=high_qc_id, signer=signer)
+        msg = canonical_timeout_message(
+            chain_id="bft-live", view=view, high_qc_id=high_qc_id, signer=signer
+        )
         sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
         tmo = BftTimeout(
             chain_id="bft-live",
@@ -107,7 +115,9 @@ def test_bft_liveness_advances_view_via_timeouts_threshold(tmp_path: Path) -> No
     view2 = 1
     timeouts2: list[dict] = []
     for signer in ["v2", "v3", "v4"]:
-        msg = canonical_timeout_message(chain_id="bft-live", view=view2, high_qc_id=high_qc_id, signer=signer)
+        msg = canonical_timeout_message(
+            chain_id="bft-live", view=view2, high_qc_id=high_qc_id, signer=signer
+        )
         sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
         tmo = BftTimeout(
             chain_id="bft-live",

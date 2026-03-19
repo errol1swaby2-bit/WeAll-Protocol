@@ -1,7 +1,7 @@
 # projects/Weall-Protocol/tests/test_ipfs_replication_assignment.py
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -9,7 +9,15 @@ from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, *, signer: str, nonce: int, payload: Dict[str, Any], system: bool = False, parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str,
+    *,
+    signer: str,
+    nonce: int,
+    payload: dict[str, Any],
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -21,7 +29,7 @@ def _env(tx_type: str, *, signer: str, nonce: int, payload: Dict[str, Any], syst
     )
 
 
-def _base_state() -> Dict[str, Any]:
+def _base_state() -> dict[str, Any]:
     return {
         "height": 0,
         "params": {"ipfs_replication_factor": 2},
@@ -40,7 +48,7 @@ def _base_state() -> Dict[str, Any]:
     }
 
 
-def _enable_ops(st: Dict[str, Any], *ops: str) -> None:
+def _enable_ops(st: dict[str, Any], *ops: str) -> None:
     s = st["storage"]
     assert isinstance(s, dict)
     opm = s["operators"]
@@ -49,7 +57,9 @@ def _enable_ops(st: Dict[str, Any], *ops: str) -> None:
         opm[op] = {"account_id": op, "enabled": True}
 
 
-def _pin_info_for_cid_unique_ops(st: Dict[str, Any], cid: str) -> Tuple[bool, int, int, int, int, int]:
+def _pin_info_for_cid_unique_ops(
+    st: dict[str, Any], cid: str
+) -> tuple[bool, int, int, int, int, int]:
     storage = st.get("storage")
     pins = storage.get("pins") if isinstance(storage, dict) else None
     pin_confirms = storage.get("pin_confirms") if isinstance(storage, dict) else None
@@ -211,7 +221,9 @@ def test_media_status_uniqueness_and_durability_threshold() -> None:
         ),
     )
 
-    pin_requested, ok_unique_ops, ok_total, fail_total, last_nonce, last_height = _pin_info_for_cid_unique_ops(st, cid)
+    pin_requested, ok_unique_ops, ok_total, fail_total, last_nonce, last_height = (
+        _pin_info_for_cid_unique_ops(st, cid)
+    )
 
     assert pin_requested is True
     assert ok_unique_ops == 2
@@ -231,7 +243,9 @@ def test_media_status_uniqueness_and_durability_threshold() -> None:
         (["opA", "opB"], 3, 2),
     ],
 )
-def test_target_selection_respects_replication_factor_and_op_count(ops: List[str], rf: int, expected_len: int) -> None:
+def test_target_selection_respects_replication_factor_and_op_count(
+    ops: list[str], rf: int, expected_len: int
+) -> None:
     st = _base_state()
     _enable_ops(st, *ops)
     st["params"]["ipfs_replication_factor"] = rf
@@ -269,4 +283,6 @@ def test_targets_are_stable_under_operator_sorting() -> None:
     )
     assert m["applied"] == "IPFS_PIN_REQUEST"
     targets = list(m["targets"])
-    assert targets == sorted(targets) or targets != sorted(targets)  # just sanity; deterministic already
+    assert targets == sorted(targets) or targets != sorted(
+        targets
+    )  # just sanity; deterministic already

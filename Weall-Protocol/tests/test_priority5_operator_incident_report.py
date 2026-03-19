@@ -103,4 +103,3 @@ def test_operator_incident_report_escalates_remote_stall_to_critical(
     assert report["summary"]["severity"] == "critical"
     assert report["summary"]["remote_stalled"] is True
     assert report["summary"]["pending_fetch_requests_count"] == 2
-

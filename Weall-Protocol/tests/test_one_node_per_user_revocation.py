@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -8,7 +8,7 @@ from weall.net.messages import MsgType, PeerHello, WireHeader
 from weall.net.peer_identity import verify_peer_hello_identity
 from weall.runtime.domain_apply import apply_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _env(
@@ -65,7 +65,9 @@ def test_peer_identity_fails_after_node_device_revoked(monkeypatch: pytest.Monke
     # Patch signature verification to True so this test isolates the node-device gate.
     import weall.net.peer_identity as peer_identity_mod
 
-    monkeypatch.setattr(peer_identity_mod, "verify_ed25519_sig", lambda pubkey, msg_bytes, sig: True)
+    monkeypatch.setattr(
+        peer_identity_mod, "verify_ed25519_sig", lambda pubkey, msg_bytes, sig: True
+    )
 
     hello = _hello(account_id="acc1", pubkey="pk1", sig="sig1")
 

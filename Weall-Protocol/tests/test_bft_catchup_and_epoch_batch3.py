@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
+from weall.crypto.sig import sign_ed25519
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
 from weall.runtime.executor import WeAllExecutor
-from weall.crypto.sig import sign_ed25519
 
 
 def _repo_root() -> Path:
@@ -23,7 +27,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -54,8 +60,8 @@ def _make_qc(
     *,
     chain_id: str,
     validators: list[str],
-    vpub: Dict[str, str],
-    vpriv: Dict[str, str],
+    vpub: dict[str, str],
+    vpriv: dict[str, str],
     block_id: str,
     parent_id: str,
     view: int,
@@ -109,14 +115,19 @@ def test_bft_on_qc_tracks_missing_block_fetch_request(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="@v1",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=3)
     qcj = _make_qc(
         chain_id="bft-live",
@@ -138,14 +149,19 @@ def test_bft_verify_qc_rejects_stale_epoch_metadata(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="@v1", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="@v1",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=2)
     qcj = _make_qc(
         chain_id="bft-live",
@@ -166,14 +182,19 @@ def test_bft_on_proposal_rejects_validator_set_hash_mismatch(tmp_path: Path, mon
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="@v2", chain_id="bft-live", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="@v2",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=5)
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_AUTOVOTE", "1")

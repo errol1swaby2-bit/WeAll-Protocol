@@ -4,14 +4,14 @@ import hashlib
 import json
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.runtime.state_hash import compute_state_root
 
-Json = Dict[str, Any]
-
+Json = dict[str, Any]
 
 
 def _mode() -> str:
@@ -57,7 +57,7 @@ def _trusted_anchor_env(default: bool) -> bool:
         raw = os.environ.get(name)
         if raw is None:
             continue
-        seen[name] = (str(raw).strip().lower() in {"1", "true", "yes", "y", "on"})
+        seen[name] = str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
     if not seen:
         return bool(default)
     vals = set(seen.values())
@@ -113,10 +113,14 @@ def build_snapshot_anchor(snapshot: Json) -> Json:
     finalized = snapshot.get("finalized") if isinstance(snapshot.get("finalized"), dict) else {}
     return {
         "height": _as_int(snapshot.get("height"), 0),
-        "tip_hash": _as_str(snapshot.get("tip_hash") or snapshot.get("tip") or snapshot.get("block_hash") or ""),
+        "tip_hash": _as_str(
+            snapshot.get("tip_hash") or snapshot.get("tip") or snapshot.get("block_hash") or ""
+        ),
         "state_root": compute_state_root(snapshot),
         "finalized_height": _as_int(finalized.get("height"), 0),
-        "finalized_block_id": _as_str(finalized.get("block_id") or snapshot.get("finalized_block_id") or ""),
+        "finalized_block_id": _as_str(
+            finalized.get("block_id") or snapshot.get("finalized_block_id") or ""
+        ),
         "snapshot_hash": sha256_hex_of(snapshot),
     }
 
@@ -133,7 +137,7 @@ class StateSyncService:
     state_provider: Callable[[], Json]
     # Optional provider to fetch blocks by height for delta sync.
     # Signature: (height:int) -> block dict | None
-    block_provider: Optional[Callable[[int], Optional[Json]]] = None
+    block_provider: Callable[[int], Json | None] | None = None
     enable_delta: bool = True
 
     # Hardening caps (tunable by env).
@@ -146,11 +150,21 @@ class StateSyncService:
     enforce_finalized_anchor: bool = False
 
     def __post_init__(self) -> None:
-        self.max_delta_blocks = max(1, _env_int("WEALL_SYNC_MAX_DELTA_BLOCKS", int(self.max_delta_blocks or 250)))
-        self.max_snapshot_bytes = max(0, _env_int("WEALL_SYNC_MAX_SNAPSHOT_BYTES", int(self.max_snapshot_bytes or 0)))
-        self.max_delta_bytes = max(0, _env_int("WEALL_SYNC_MAX_DELTA_BYTES", int(self.max_delta_bytes or 0)))
-        self.require_header_match = _env_bool("WEALL_SYNC_REQUIRE_HEADER_MATCH", bool(self.require_header_match))
-        self.fallback_to_snapshot = _env_bool("WEALL_SYNC_FALLBACK_TO_SNAPSHOT", bool(self.fallback_to_snapshot))
+        self.max_delta_blocks = max(
+            1, _env_int("WEALL_SYNC_MAX_DELTA_BLOCKS", int(self.max_delta_blocks or 250))
+        )
+        self.max_snapshot_bytes = max(
+            0, _env_int("WEALL_SYNC_MAX_SNAPSHOT_BYTES", int(self.max_snapshot_bytes or 0))
+        )
+        self.max_delta_bytes = max(
+            0, _env_int("WEALL_SYNC_MAX_DELTA_BYTES", int(self.max_delta_bytes or 0))
+        )
+        self.require_header_match = _env_bool(
+            "WEALL_SYNC_REQUIRE_HEADER_MATCH", bool(self.require_header_match)
+        )
+        self.fallback_to_snapshot = _env_bool(
+            "WEALL_SYNC_FALLBACK_TO_SNAPSHOT", bool(self.fallback_to_snapshot)
+        )
         self.require_trusted_anchor = _trusted_anchor_env(bool(self.require_trusted_anchor))
         default_finalized = bool(self.enforce_finalized_anchor)
         if not default_finalized:
@@ -159,7 +173,7 @@ class StateSyncService:
             default_finalized = bool(mode == "prod" and bft_enabled)
         self.enforce_finalized_anchor = _finalized_anchor_env(default_finalized)
 
-    def _header_ok(self, req: StateSyncRequestMsg) -> Optional[str]:
+    def _header_ok(self, req: StateSyncRequestMsg) -> str | None:
         if not self.require_header_match:
             return None
         try:
@@ -183,7 +197,7 @@ class StateSyncService:
         except Exception:
             return False
 
-    def _trusted_anchor_from_selector(self, selector: Any) -> Optional[Json]:
+    def _trusted_anchor_from_selector(self, selector: Any) -> Json | None:
         if not isinstance(selector, dict):
             return None
         anchor = selector.get("trusted_anchor")
@@ -193,18 +207,25 @@ class StateSyncService:
 
     def _anchor_matches(self, local_anchor: Json, trusted_anchor: Json) -> bool:
         # Only compare fields the requester explicitly pinned.
-        for key in ("height", "tip_hash", "state_root", "finalized_height", "finalized_block_id", "snapshot_hash"):
+        for key in (
+            "height",
+            "tip_hash",
+            "state_root",
+            "finalized_height",
+            "finalized_block_id",
+            "snapshot_hash",
+        ):
             if key in trusted_anchor and trusted_anchor.get(key) not in (None, ""):
                 if _as_str(local_anchor.get(key)) != _as_str(trusted_anchor.get(key)):
                     return False
         return True
 
-    def _trusted_finalized_height(self, trusted_anchor: Optional[Json]) -> int:
+    def _trusted_finalized_height(self, trusted_anchor: Json | None) -> int:
         if not isinstance(trusted_anchor, dict):
             return 0
         return _as_int(trusted_anchor.get("finalized_height"), 0)
 
-    def _trusted_finalized_block_id(self, trusted_anchor: Optional[Json]) -> str:
+    def _trusted_finalized_block_id(self, trusted_anchor: Json | None) -> str:
         if not isinstance(trusted_anchor, dict):
             return ""
         return _as_str(trusted_anchor.get("finalized_block_id") or "")
@@ -232,14 +253,20 @@ class StateSyncService:
         local_anchor = build_snapshot_anchor(st)
         trusted_anchor = self._trusted_anchor_from_selector(req.selector)
         if trusted_anchor is None and self.require_trusted_anchor:
-            return StateSyncResponseMsg(header=hdr, ok=False, reason="trusted_anchor_required", height=tip_h)
+            return StateSyncResponseMsg(
+                header=hdr, ok=False, reason="trusted_anchor_required", height=tip_h
+            )
         if trusted_anchor is not None and not self._anchor_matches(local_anchor, trusted_anchor):
-            return StateSyncResponseMsg(header=hdr, ok=False, reason="trusted_anchor_mismatch", height=tip_h)
+            return StateSyncResponseMsg(
+                header=hdr, ok=False, reason="trusted_anchor_mismatch", height=tip_h
+            )
 
         if req.mode == "snapshot":
             snap: Json = st
             if not self._size_ok(snap, self.max_snapshot_bytes):
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="snapshot_too_large", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
+                )
             snap_hash = sha256_hex_of(snap)
             return StateSyncResponseMsg(
                 header=hdr,
@@ -255,7 +282,9 @@ class StateSyncService:
         def _reply_snapshot(reason: str) -> StateSyncResponseMsg:
             snap: Json = st
             if not self._size_ok(snap, self.max_snapshot_bytes):
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="snapshot_too_large", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
+                )
             snap_hash = sha256_hex_of(snap)
             return StateSyncResponseMsg(
                 header=hdr,
@@ -270,17 +299,25 @@ class StateSyncService:
 
         if req.mode == "delta":
             if not self.enable_delta:
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="delta_disabled", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="delta_disabled", height=tip_h
+                )
 
             if self.block_provider is None:
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="delta_unavailable", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="delta_unavailable", height=tip_h
+                )
 
             start = int(req.from_height or 0)
             if start < 0:
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="bad_from_height", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="bad_from_height", height=tip_h
+                )
             end = int(req.to_height) if req.to_height is not None else tip_h
             if end < 0:
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="bad_to_height", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="bad_to_height", height=tip_h
+                )
             end = max(start, min(end, tip_h))
 
             trusted_finalized_height = self._trusted_finalized_height(trusted_anchor)
@@ -296,11 +333,15 @@ class StateSyncService:
                 if not isinstance(blk, dict):
                     if self.fallback_to_snapshot:
                         return _reply_snapshot("fallback_snapshot")
-                    return StateSyncResponseMsg(header=hdr, ok=False, reason="delta_missing_block", height=tip_h)
+                    return StateSyncResponseMsg(
+                        header=hdr, ok=False, reason="delta_missing_block", height=tip_h
+                    )
                 blocks.append(blk)
 
             if self.max_delta_bytes > 0 and not self._size_ok(blocks, self.max_delta_bytes):
-                return StateSyncResponseMsg(header=hdr, ok=False, reason="delta_too_large", height=tip_h)
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="delta_too_large", height=tip_h
+                )
 
             return StateSyncResponseMsg(
                 header=hdr,
@@ -315,7 +356,9 @@ class StateSyncService:
 
         return StateSyncResponseMsg(header=hdr, ok=False, reason="bad_mode", height=tip_h)
 
-    def verify_response(self, resp: StateSyncResponseMsg, trusted_anchor: Optional[Json] = None) -> None:
+    def verify_response(
+        self, resp: StateSyncResponseMsg, trusted_anchor: Json | None = None
+    ) -> None:
         if not isinstance(resp, StateSyncResponseMsg):
             raise StateSyncVerifyError("bad_response_type")
         try:
@@ -343,14 +386,25 @@ class StateSyncService:
             if not self._anchor_matches(anchor, trusted_anchor):
                 raise StateSyncVerifyError("trusted_anchor_mismatch")
             if self.enforce_finalized_anchor:
-                if trusted_finalized_height > 0 and _as_int(anchor.get("finalized_height"), 0) != trusted_finalized_height:
+                if (
+                    trusted_finalized_height > 0
+                    and _as_int(anchor.get("finalized_height"), 0) != trusted_finalized_height
+                ):
                     raise StateSyncVerifyError("trusted_finalized_anchor_mismatch:height")
-                if trusted_finalized_block_id and _as_str(anchor.get("finalized_block_id") or "") != trusted_finalized_block_id:
+                if (
+                    trusted_finalized_block_id
+                    and _as_str(anchor.get("finalized_block_id") or "")
+                    != trusted_finalized_block_id
+                ):
                     raise StateSyncVerifyError("trusted_finalized_anchor_mismatch:block_id")
 
         if isinstance(anchor, dict):
             anchor_height = _as_int(anchor.get("height"), 0)
-            if anchor_height > 0 and int(resp.height or 0) > 0 and anchor_height != int(resp.height):
+            if (
+                anchor_height > 0
+                and int(resp.height or 0) > 0
+                and anchor_height != int(resp.height)
+            ):
                 raise StateSyncVerifyError("snapshot_anchor_mismatch:height")
 
         if resp.snapshot is not None:
@@ -366,17 +420,26 @@ class StateSyncService:
             if not isinstance(anchor, dict):
                 raise StateSyncVerifyError("missing_snapshot_anchor")
             computed_anchor = build_snapshot_anchor(resp.snapshot)
-            for key in ("height", "tip_hash", "state_root", "finalized_height", "finalized_block_id", "snapshot_hash"):
+            for key in (
+                "height",
+                "tip_hash",
+                "state_root",
+                "finalized_height",
+                "finalized_block_id",
+                "snapshot_hash",
+            ):
                 if _as_str(anchor.get(key)) != _as_str(computed_anchor.get(key)):
                     raise StateSyncVerifyError(f"snapshot_anchor_mismatch:{key}")
-            if trusted_anchor is not None and not self._anchor_matches(computed_anchor, trusted_anchor):
+            if trusted_anchor is not None and not self._anchor_matches(
+                computed_anchor, trusted_anchor
+            ):
                 raise StateSyncVerifyError("trusted_anchor_mismatch")
 
         if resp.blocks:
             if not isinstance(resp.blocks, (tuple, list)):
                 raise StateSyncVerifyError("blocks_not_sequence")
-            last_h: Optional[int] = None
-            last_bid: Optional[str] = None
+            last_h: int | None = None
+            last_bid: str | None = None
             for blk in resp.blocks:
                 if not isinstance(blk, dict):
                     raise StateSyncVerifyError("block_not_object")
@@ -402,5 +465,10 @@ class StateSyncService:
                 trusted_height = _as_int(trusted_anchor.get("height"), 0)
                 if trusted_height > 0 and last_h is not None and last_h > trusted_height:
                     raise StateSyncVerifyError("block_height_exceeds_trusted_anchor")
-                if self.enforce_finalized_anchor and trusted_finalized_height > 0 and last_h is not None and last_h > trusted_finalized_height:
+                if (
+                    self.enforce_finalized_anchor
+                    and trusted_finalized_height > 0
+                    and last_h is not None
+                    and last_h > trusted_finalized_height
+                ):
                     raise StateSyncVerifyError("block_height_exceeds_finalized_anchor")

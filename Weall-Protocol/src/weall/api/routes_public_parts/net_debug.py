@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import os
-from fastapi import HTTPException
-from fastapi import APIRouter, Request
+
+from fastapi import APIRouter, HTTPException, Request
 
 router = APIRouter()
 
@@ -65,7 +65,12 @@ def v1_net_peers(request: Request) -> dict[str, object]:
             "ok": True,
             "enabled": False,
             "reason": "net_node_not_running",
-            "counts": {"peers_total": 0, "peers_established": 0, "peers_identity_verified": 0, "peers_banned": 0},
+            "counts": {
+                "peers_total": 0,
+                "peers_established": 0,
+                "peers_identity_verified": 0,
+                "peers_banned": 0,
+            },
             "peers": [],
         }
 
@@ -82,6 +87,11 @@ def v1_net_peers(request: Request) -> dict[str, object]:
         "ok": True,
         "enabled": True,
         "reason": "peers_debug_unavailable",
-        "counts": {"peers_total": None, "peers_established": None, "peers_identity_verified": None, "peers_banned": None},
+        "counts": {
+            "peers_total": None,
+            "peers_established": None,
+            "peers_identity_verified": None,
+            "peers_banned": None,
+        },
         "peers": [],
     }

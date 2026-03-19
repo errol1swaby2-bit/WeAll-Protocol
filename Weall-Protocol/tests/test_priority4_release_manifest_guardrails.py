@@ -55,7 +55,10 @@ def _state() -> dict[str, object]:
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
 
@@ -71,7 +74,9 @@ def test_manifest_hash_detects_tampering(tmp_path: Path) -> None:
     assert any("manifest_hash mismatch" in issue for issue in issues)
 
 
-def test_verify_script_reports_bundle_integrity_issues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_verify_script_reports_bundle_integrity_issues(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     cfg = _cfg(tmp_path)
     _write_db(Path(cfg.db_path), _state())
     bundle = build_manifest(cfg, db_path=Path(cfg.db_path), tx_index_path=Path(cfg.tx_index_path))
@@ -80,25 +85,36 @@ def test_verify_script_reports_bundle_integrity_issues(tmp_path: Path, monkeypat
     bundle_path.write_text(json.dumps(bundle, indent=2, sort_keys=True), encoding="utf-8")
 
     cfg_path = tmp_path / "prod.chain.json"
-    cfg_path.write_text(json.dumps({
-        "chain_id": cfg.chain_id,
-        "node_id": cfg.node_id,
-        "mode": cfg.mode,
-        "db_path": cfg.db_path,
-        "tx_index_path": cfg.tx_index_path,
-        "block_interval_ms": cfg.block_interval_ms,
-        "max_txs_per_block": cfg.max_txs_per_block,
-        "block_reward": cfg.block_reward,
-        "api_host": cfg.api_host,
-        "api_port": cfg.api_port,
-        "allow_unsigned_txs": cfg.allow_unsigned_txs,
-        "log_level": cfg.log_level,
-    }), encoding="utf-8")
+    cfg_path.write_text(
+        json.dumps(
+            {
+                "chain_id": cfg.chain_id,
+                "node_id": cfg.node_id,
+                "mode": cfg.mode,
+                "db_path": cfg.db_path,
+                "tx_index_path": cfg.tx_index_path,
+                "block_interval_ms": cfg.block_interval_ms,
+                "max_txs_per_block": cfg.max_txs_per_block,
+                "block_reward": cfg.block_reward,
+                "api_host": cfg.api_host,
+                "api_port": cfg.api_port,
+                "allow_unsigned_txs": cfg.allow_unsigned_txs,
+                "log_level": cfg.log_level,
+            }
+        ),
+        encoding="utf-8",
+    )
 
     env = dict(os.environ)
     env["WEALL_CHAIN_CONFIG_PATH"] = str(cfg_path)
     proc = subprocess.run(
-        [sys.executable, "scripts/verify_validator_bootstrap.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/verify_validator_bootstrap.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=Path(__file__).resolve().parents[1],
         env=env,
         capture_output=True,
@@ -107,4 +123,7 @@ def test_verify_script_reports_bundle_integrity_issues(tmp_path: Path, monkeypat
     )
     assert proc.returncode == 1
     payload = json.loads(proc.stdout)
-    assert any("manifest_hash mismatch" in issue for issue in (payload.get("bundle_integrity_issues") or []))
+    assert any(
+        "manifest_hash mismatch" in issue
+        for issue in (payload.get("bundle_integrity_issues") or [])
+    )

@@ -15,7 +15,6 @@ bad / dangerous inputs, while accepting the vast majority of real-world CIDs.
 import re
 from dataclasses import dataclass
 
-
 _CIDV0_RE = re.compile(r"^Qm[1-9A-HJ-NP-Za-km-z]{44}$")  # base58btc (no 0,O,I,l)
 _CIDV1_BASE32_RE = re.compile(r"^b[a-z2-7]{10,}$")  # base32 lowercase (bafy..., bagy...)
 

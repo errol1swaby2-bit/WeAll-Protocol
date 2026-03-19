@@ -30,7 +30,9 @@ def test_prod_rejects_unsafe_dev_escape(monkeypatch: pytest.MonkeyPatch) -> None
         validate_runtime_consensus_profile()
 
 
-def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", "1")

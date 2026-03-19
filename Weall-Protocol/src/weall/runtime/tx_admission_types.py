@@ -6,11 +6,11 @@ and tests without pulling heavy dependencies.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class TxEnvelope(BaseModel):
@@ -26,12 +26,12 @@ class TxEnvelope(BaseModel):
     nonce: int = 0
     payload: Json = Field(default_factory=dict)
     sig: str = ""
-    parent: Optional[str] = None
+    parent: str | None = None
     system: bool = False
     chain_id: str = ""
 
     @classmethod
-    def from_any(cls, v: Any) -> "TxEnvelope":
+    def from_any(cls, v: Any) -> TxEnvelope:
         """Best-effort conversion from dict/TxEnvelope.
 
         A bunch of call sites (tests, mempool, executor) pass either a raw dict or
@@ -57,7 +57,7 @@ class TxEnvelope(BaseModel):
         raise TypeError(f"cannot convert {type(v).__name__} to TxEnvelope")
 
     @classmethod
-    def from_json(cls, v: Any) -> "TxEnvelope":
+    def from_json(cls, v: Any) -> TxEnvelope:
         """Alias for from_any (dict -> TxEnvelope)."""
         return cls.from_any(v)
 

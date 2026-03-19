@@ -35,16 +35,36 @@ def _mk_state() -> dict:
         "chain_id": "test",
         "height": 1,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
         },
     }
     for i in range(1, 13):
-        st["accounts"][f"j{i}"] = {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9}
+        st["accounts"][f"j{i}"] = {
+            "nonce": 0,
+            "poh_tier": 3,
+            "banned": False,
+            "locked": False,
+            "reputation": 0.9,
+        }
     return st
 
 
 def _open_tier3_case(st: dict) -> str:
-    m0 = apply_tx(st, _env("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "target_tier": 3}, signer="alice", nonce=1))
+    m0 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "target_tier": 3},
+            signer="alice",
+            nonce=1,
+        ),
+    )
     assert m0 and m0["applied"] == "POH_TIER2_REQUEST_OPEN"
     case_id = str(m0["case_id"])
 
@@ -96,7 +116,10 @@ def test_tier3_accept_rechecks_banned_locked() -> None:
 
     st["accounts"]["j2"]["locked"] = True
     with pytest.raises(ApplyError) as ei:
-        apply_tx(st, _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 10}, signer="j2", nonce=4))
+        apply_tx(
+            st,
+            _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 10}, signer="j2", nonce=4),
+        )
     assert ei.value.code == "invalid_tx"
     assert ei.value.reason == "juror_locked"
 
@@ -112,7 +135,13 @@ def test_tier3_attendance_requires_signer_match_and_accept() -> None:
             st,
             _env(
                 "POH_TIER3_ATTENDANCE_MARK",
-                {"case_id": case_id, "juror_id": "j2", "attended": True, "session_commitment": "sc:1", "ts_ms": 11},
+                {
+                    "case_id": case_id,
+                    "juror_id": "j2",
+                    "attended": True,
+                    "session_commitment": "sc:1",
+                    "ts_ms": 11,
+                },
                 signer="j2",
                 nonce=4,
             ),
@@ -120,7 +149,9 @@ def test_tier3_attendance_requires_signer_match_and_accept() -> None:
     assert ei0.value.code == "forbidden"
     assert ei0.value.reason == "accept_required"
 
-    apply_tx(st, _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 12}, signer="j2", nonce=5))
+    apply_tx(
+        st, _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 12}, signer="j2", nonce=5)
+    )
 
     # signer mismatch forbidden
     with pytest.raises(ApplyError) as ei1:
@@ -128,7 +159,13 @@ def test_tier3_attendance_requires_signer_match_and_accept() -> None:
             st,
             _env(
                 "POH_TIER3_ATTENDANCE_MARK",
-                {"case_id": case_id, "juror_id": "j2", "attended": True, "session_commitment": "sc:1", "ts_ms": 13},
+                {
+                    "case_id": case_id,
+                    "juror_id": "j2",
+                    "attended": True,
+                    "session_commitment": "sc:1",
+                    "ts_ms": 13,
+                },
                 signer="j1",
                 nonce=6,
             ),
@@ -141,7 +178,13 @@ def test_tier3_attendance_requires_signer_match_and_accept() -> None:
         st,
         _env(
             "POH_TIER3_ATTENDANCE_MARK",
-            {"case_id": case_id, "juror_id": "j2", "attended": True, "session_commitment": "sc:1", "ts_ms": 14},
+            {
+                "case_id": case_id,
+                "juror_id": "j2",
+                "attended": True,
+                "session_commitment": "sc:1",
+                "ts_ms": 14,
+            },
             signer="j2",
             nonce=7,
         ),
@@ -155,11 +198,21 @@ def test_tier3_replace_system_only_and_keeps_role() -> None:
     _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
 
     # old juror declines
-    apply_tx(st, _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 20}, signer="j1", nonce=4))
+    apply_tx(
+        st, _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 20}, signer="j1", nonce=4)
+    )
 
     # non-system replace forbidden
     with pytest.raises(ApplyError) as ei0:
-        apply_tx(st, _env("POH_TIER3_JUROR_REPLACE", {"case_id": case_id, "old_juror_id": "j1", "new_juror_id": "j11"}, signer="alice", nonce=5))
+        apply_tx(
+            st,
+            _env(
+                "POH_TIER3_JUROR_REPLACE",
+                {"case_id": case_id, "old_juror_id": "j1", "new_juror_id": "j11"},
+                signer="alice",
+                nonce=5,
+            ),
+        )
     assert ei0.value.code == "forbidden"
     assert ei0.value.reason == "system_only"
 

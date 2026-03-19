@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Request
 
 from weall.api.routes_public_parts.common import _att_pool, _executor, _mempool, _snapshot
 from weall.ledger.state import LedgerView
+from weall.runtime.bft_hotstuff import (
+    consensus_contract_summary,
+    consensus_security_summary,
+    leader_for_view,
+    normalize_consensus_phase,
+    quorum_threshold,
+)
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
-from weall.runtime.bft_hotstuff import consensus_contract_summary, consensus_security_summary, leader_for_view, normalize_consensus_phase, quorum_threshold
 from weall.runtime.metrics import metrics_enabled
 from weall.runtime.protocol_profile import (
     effective_runtime_consensus_posture,
@@ -20,7 +26,7 @@ from weall.runtime.protocol_profile import (
 
 router = APIRouter()
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class StatusEndpointConfigError(RuntimeError):
@@ -171,8 +177,6 @@ def _startup_fingerprint(st: Json, ex: Any) -> Json:
     )
 
 
-
-
 def _bootstrap_status() -> Json:
     try:
         cfg = load_chain_config()
@@ -185,9 +189,15 @@ def _bootstrap_status() -> Json:
             "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
         }
 
+
 def _safe_block_loop(ex: Any) -> Json:
     if ex is None:
-        return {"running": None, "unhealthy": None, "last_error": None, "consecutive_failures": None}
+        return {
+            "running": None,
+            "unhealthy": None,
+            "last_error": None,
+            "consecutive_failures": None,
+        }
 
     def _get(name: str) -> Any:
         try:
@@ -247,7 +257,12 @@ def _safe_bft_forensics(ex: Any) -> Json:
             "chain_id": "",
             "node_id": "",
             "diagnostics": _safe_bft_diag(ex),
-            "recent_rejection_summary": {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
+            "recent_rejection_summary": {
+                "count": 0,
+                "by_reason": {},
+                "by_message_type": {},
+                "latest": None,
+            },
             "recent_rejections": [],
             "recent_key_events": [],
             "pending_fetch_request_descriptors": [],
@@ -267,7 +282,12 @@ def _safe_bft_forensics(ex: Any) -> Json:
         "chain_id": str(getattr(ex, "chain_id", "") or ""),
         "node_id": str(getattr(ex, "node_id", "") or ""),
         "diagnostics": _safe_bft_diag(ex),
-        "recent_rejection_summary": {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
+        "recent_rejection_summary": {
+            "count": 0,
+            "by_reason": {},
+            "by_message_type": {},
+            "latest": None,
+        },
         "recent_rejections": [],
         "recent_key_events": [],
         "pending_fetch_request_descriptors": [],
@@ -343,7 +363,7 @@ def _safe_bft_diag(ex: Any) -> Json:
     }
 
 
-def _safe_qc(qc: Any) -> Optional[Json]:
+def _safe_qc(qc: Any) -> Json | None:
     if not isinstance(qc, dict):
         return None
     votes = qc.get("votes") if isinstance(qc.get("votes"), (list, tuple)) else []
@@ -355,7 +375,7 @@ def _safe_qc(qc: Any) -> Optional[Json]:
     }
 
 
-def _consensus_contract(validators: List[str]) -> Json:
+def _consensus_contract(validators: list[str]) -> Json:
     summary = consensus_contract_summary(validators)
     count = _safe_int(summary.get("normalized_validator_count"), 0)
     return {
@@ -384,7 +404,7 @@ def status(request: Request) -> Json:
     mempool_size = _safe_mempool_size(request)
     att_pool_size = _safe_att_pool_size(request)
 
-    active_validators: List[str] = ledger.get_active_validator_set() or []
+    active_validators: list[str] = ledger.get_active_validator_set() or []
     active_validator_count = int(len(active_validators))
     finalized = st.get("finalized") if isinstance(st.get("finalized"), dict) else {}
 
@@ -396,7 +416,9 @@ def status(request: Request) -> Json:
         "tip": tip,
         "tip_hash": str(st.get("tip_hash") or ""),
         "tip_ts_ms": _safe_int(st.get("tip_ts_ms") or st.get("last_block_ts_ms"), 0),
-        "finalized_height": _safe_int(finalized.get("height") if isinstance(finalized, dict) else 0, 0),
+        "finalized_height": _safe_int(
+            finalized.get("height") if isinstance(finalized, dict) else 0, 0
+        ),
         "finalized_block_id": str(finalized.get("block_id") if isinstance(finalized, dict) else ""),
         "mempool_size": mempool_size,
         "attestation_pool_size": att_pool_size,
@@ -504,7 +526,9 @@ def status_consensus(request: Request) -> Json:
     validator_account = _env_str("WEALL_VALIDATOR_ACCOUNT", "")
     active_validators = ledger.get_active_validator_set() or []
     active_count = int(len(active_validators))
-    normalized_validators = consensus_contract_summary(active_validators).get("normalized_validator_set") or []
+    normalized_validators = (
+        consensus_contract_summary(active_validators).get("normalized_validator_set") or []
+    )
 
     bft = st.get("bft") if isinstance(st.get("bft"), dict) else {}
     diag = _safe_bft_diag(ex)
@@ -516,8 +540,12 @@ def status_consensus(request: Request) -> Json:
     q_threshold = quorum_threshold(active_count) if active_count > 0 else 0
     peer_dbg = _safe_peer_debug(request)
     consensus_root = st.get("consensus") if isinstance(st.get("consensus"), dict) else {}
-    phase_root = consensus_root.get("phase") if isinstance(consensus_root.get("phase"), dict) else {}
-    consensus_phase = normalize_consensus_phase(phase_root.get("current"), validator_count=active_count)
+    phase_root = (
+        consensus_root.get("phase") if isinstance(consensus_root.get("phase"), dict) else {}
+    )
+    consensus_phase = normalize_consensus_phase(
+        phase_root.get("current"), validator_count=active_count
+    )
     security_summary = consensus_security_summary(active_validators, phase=consensus_phase)
 
     return {
@@ -531,29 +559,52 @@ def status_consensus(request: Request) -> Json:
         "tip": str(st.get("tip") or ""),
         "tip_hash": str(st.get("tip_hash") or ""),
         "tip_ts_ms": _safe_int(st.get("tip_ts_ms") or st.get("last_block_ts_ms"), 0),
-        "finalized_height": _safe_int((st.get("finalized") or {}).get("height") if isinstance(st.get("finalized"), dict) else 0, 0),
-        "finalized_block_id": str((st.get("finalized") or {}).get("block_id") if isinstance(st.get("finalized"), dict) else ""),
+        "finalized_height": _safe_int(
+            (st.get("finalized") or {}).get("height")
+            if isinstance(st.get("finalized"), dict)
+            else 0,
+            0,
+        ),
+        "finalized_block_id": str(
+            (st.get("finalized") or {}).get("block_id")
+            if isinstance(st.get("finalized"), dict)
+            else ""
+        ),
         "view": view,
         "active_validators": list(active_validators),
         "normalized_active_validators": list(normalized_validators),
         "active_validator_count": active_count,
         "quorum_threshold": q_threshold,
         "consensus_phase": consensus_phase,
-        "consensus_phase_pending": phase_root.get("pending") if isinstance(phase_root.get("pending"), dict) else None,
+        "consensus_phase_pending": phase_root.get("pending")
+        if isinstance(phase_root.get("pending"), dict)
+        else None,
         "security_summary": security_summary,
         "current_leader": current_leader,
-        "local_is_active_validator": bool(validator_account and validator_account in active_validators),
+        "local_is_active_validator": bool(
+            validator_account and validator_account in active_validators
+        ),
         "local_is_expected_leader": bool(validator_account and validator_account == current_leader),
         "next_leader": next_leader,
         "high_qc": _safe_qc(bft.get("high_qc"))
         or (
-            {"block_id": str(diag.get("high_qc_id") or ""), "parent_id": "", "view": 0, "vote_count": 0}
+            {
+                "block_id": str(diag.get("high_qc_id") or ""),
+                "parent_id": "",
+                "view": 0,
+                "vote_count": 0,
+            }
             if str(diag.get("high_qc_id") or "").strip()
             else None
         ),
         "locked_qc": _safe_qc(bft.get("locked_qc"))
         or (
-            {"block_id": str(diag.get("locked_qc_id") or ""), "parent_id": "", "view": 0, "vote_count": 0}
+            {
+                "block_id": str(diag.get("locked_qc_id") or ""),
+                "parent_id": "",
+                "view": 0,
+                "vote_count": 0,
+            }
             if str(diag.get("locked_qc_id") or "").strip()
             else None
         ),
@@ -585,16 +636,22 @@ def status_consensus(request: Request) -> Json:
             "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
             "uses_wall_clock_future_guard": bool(diag.get("uses_wall_clock_future_guard", False)),
             "pacemaker_timeout_ms": _safe_int(diag.get("pacemaker_timeout_ms"), 0),
-            "recent_rejection_summary": diag.get("recent_rejection_summary") if isinstance(diag.get("recent_rejection_summary"), dict) else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
+            "recent_rejection_summary": diag.get("recent_rejection_summary")
+            if isinstance(diag.get("recent_rejection_summary"), dict)
+            else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
         },
         "runtime_profile": {
-            "protocol_profile_hash": str(diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()),
+            "protocol_profile_hash": str(
+                diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()
+            ),
             "reputation_scale": _safe_int(diag.get("reputation_scale"), 0),
             "max_block_future_drift_ms": _safe_int(
                 diag.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
             ),
             "max_block_time_advance_ms": _safe_int(diag.get("max_block_time_advance_ms"), 0),
-            "clock_skew_warn_ms": _safe_int(diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()),
+            "clock_skew_warn_ms": _safe_int(
+                diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
+            ),
             "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
         },
     }
@@ -609,7 +666,9 @@ def status_consensus_forensics(request: Request) -> Json:
         out = {}
     out.setdefault("ok", True)
     out.setdefault("chain_id", str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev")))
-    out.setdefault("node_id", str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node")))
+    out.setdefault(
+        "node_id", str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node"))
+    )
     return out
 
 
@@ -641,7 +700,9 @@ def status_operator(request: Request) -> Json:
         "net": {
             "enabled": _env_bool("WEALL_NET_ENABLED", True),
             "peer_identity_required": _env_bool("WEALL_NET_REQUIRE_IDENTITY", False),
-            "peer_counts": peer_dbg.get("counts") if isinstance(peer_dbg.get("counts"), dict) else {},
+            "peer_counts": peer_dbg.get("counts")
+            if isinstance(peer_dbg.get("counts"), dict)
+            else {},
             "peers": peer_dbg.get("peers") if isinstance(peer_dbg.get("peers"), list) else [],
         },
         "consensus": {
@@ -672,17 +733,23 @@ def status_operator(request: Request) -> Json:
             "chain_time_floor_ms": _safe_int(diag.get("chain_time_floor_ms"), 0),
             "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
             "uses_wall_clock_future_guard": bool(diag.get("uses_wall_clock_future_guard", False)),
-            "recent_rejection_summary": diag.get("recent_rejection_summary") if isinstance(diag.get("recent_rejection_summary"), dict) else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
+            "recent_rejection_summary": diag.get("recent_rejection_summary")
+            if isinstance(diag.get("recent_rejection_summary"), dict)
+            else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
             "contract": _consensus_contract(active_validators),
         },
         "runtime_profile": {
-            "protocol_profile_hash": str(diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()),
+            "protocol_profile_hash": str(
+                diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()
+            ),
             "reputation_scale": _safe_int(diag.get("reputation_scale"), 0),
             "max_block_future_drift_ms": _safe_int(
                 diag.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
             ),
             "max_block_time_advance_ms": _safe_int(diag.get("max_block_time_advance_ms"), 0),
-            "clock_skew_warn_ms": _safe_int(diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()),
+            "clock_skew_warn_ms": _safe_int(
+                diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
+            ),
             "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
         },
         "startup_fingerprint": _startup_fingerprint(st, ex),

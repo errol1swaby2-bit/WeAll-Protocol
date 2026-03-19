@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from typing import Any, Dict
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 REPUTATION_SCALE = 1000
 REPUTATION_MIN_UNITS = -100 * REPUTATION_SCALE

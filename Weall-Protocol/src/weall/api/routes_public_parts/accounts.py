@@ -1,18 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
+from weall.api.routes_public_parts.common import (
+    _cursor_pack,
+    _cursor_unpack,
+    _int_param,
+    _snapshot,
+    _str_param,
+)
 from weall.api.security import require_account_session
-from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot, _str_param
 from weall.ledger.state import LedgerView
 
 router = APIRouter()
 
 
-def _iter_posts_by_author(st: Dict[str, Any], *, author: str) -> List[Dict[str, Any]]:
+def _iter_posts_by_author(st: dict[str, Any], *, author: str) -> list[dict[str, Any]]:
     content = st.get("content")
     if not isinstance(content, dict):
         return []
@@ -20,7 +26,7 @@ def _iter_posts_by_author(st: Dict[str, Any], *, author: str) -> List[Dict[str, 
     if not isinstance(posts, dict):
         return []
 
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for pid, obj in posts.items():
         if not isinstance(obj, dict):
             continue
@@ -39,9 +45,9 @@ def _iter_posts_by_author(st: Dict[str, Any], *, author: str) -> List[Dict[str, 
     return out
 
 
-def _normalize_keys(acct: Dict[str, Any]) -> List[dict]:
+def _normalize_keys(acct: dict[str, Any]) -> list[dict]:
     ks = acct.get("keys")
-    out: List[dict] = []
+    out: list[dict] = []
 
     if isinstance(ks, dict):
         for pubkey, rec in ks.items():
@@ -151,7 +157,7 @@ def v1_account_feed(account: str, request: Request):
 
     posts = _iter_posts_by_author(st, author=account)
 
-    filtered: List[Dict[str, Any]] = []
+    filtered: list[dict[str, Any]] = []
     for obj in posts:
         obj_id = _str_param(obj.get("id") or obj.get("post_id") or "").strip()
         created_at_nonce = int(obj.get("created_at_nonce", 0) or 0)
@@ -181,7 +187,9 @@ def v1_account_feed(account: str, request: Request):
 
         filtered.append(obj)
 
-    filtered.sort(key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True)
+    filtered.sort(
+        key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
+    )
 
     page = filtered[:limit]
     next_cursor = None

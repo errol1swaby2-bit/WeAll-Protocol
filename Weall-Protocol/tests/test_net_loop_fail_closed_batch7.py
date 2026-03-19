@@ -60,49 +60,65 @@ def _make_executor(tmp_path: Path, name: str) -> WeAllExecutor:
     )
 
 
-def test_state_snapshot_raises_in_prod_when_executor_snapshot_throws(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_state_snapshot_raises_in_prod_when_executor_snapshot_throws(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = NetMeshLoop(
         executor=_BadSnapshotExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"
+        ),
     )
 
     with pytest.raises(NetStateSnapshotError, match="state_snapshot_failed"):
         loop._state_snapshot()
 
 
-def test_state_snapshot_raises_in_prod_when_snapshot_is_not_object(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_state_snapshot_raises_in_prod_when_snapshot_is_not_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = NetMeshLoop(
         executor=_InvalidSnapshotExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"
+        ),
     )
 
     with pytest.raises(NetStateSnapshotError, match="state_snapshot_invalid_type"):
         loop._state_snapshot()
 
 
-def test_build_node_raises_in_prod_when_tx_index_hash_lookup_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_node_raises_in_prod_when_tx_index_hash_lookup_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = NetMeshLoop(
         executor=_BrokenMetaExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"
+        ),
     )
 
     with pytest.raises(NetStartupError, match="net_build_node_tx_index_hash_failed"):
         loop._build_node()
 
 
-def test_start_returns_false_in_prod_when_seed_discovery_throws(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_start_returns_false_in_prod_when_seed_discovery_throws(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _make_executor(tmp_path, "seed-fail")
     loop = NetMeshLoop(
         executor=ex,
         mempool=ex._mempool,
-        cfg=NetLoopConfig(enabled=True, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=True, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"
+        ),
     )
 
     def _boom() -> None:

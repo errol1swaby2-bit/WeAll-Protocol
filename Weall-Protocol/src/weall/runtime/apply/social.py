@@ -23,11 +23,11 @@ Design notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -44,7 +44,7 @@ def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -92,6 +92,7 @@ def _mk_edge_key(a: str, b: str) -> str:
 # Profile
 # ---------------------------------------------------------------------------
 
+
 def _apply_profile_update(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     profiles = _ensure_profiles(state)
@@ -113,6 +114,7 @@ def _apply_profile_update(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # Follow / Block / Mute
 # ---------------------------------------------------------------------------
+
 
 def _apply_follow_set(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
@@ -163,6 +165,7 @@ def _apply_mute_set(state: Json, env: TxEnvelope) -> Json:
 # Share / Repost primitive
 # ---------------------------------------------------------------------------
 
+
 def _apply_content_share_create(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     target_id = _as_str(payload.get("target_id")).strip()
@@ -189,7 +192,7 @@ def _apply_content_share_create(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "CONTENT_SHARE_CREATE", "share_id": share_id, "target_id": target_id}
 
 
-SOCIAL_TX_TYPES: Set[str] = {
+SOCIAL_TX_TYPES: set[str] = {
     "PROFILE_UPDATE",
     "FOLLOW_SET",
     "BLOCK_SET",
@@ -198,7 +201,7 @@ SOCIAL_TX_TYPES: Set[str] = {
 }
 
 
-def apply_social(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_social(state: Json, env: TxEnvelope) -> Json | None:
     t = str(env.tx_type or "").strip()
     if t not in SOCIAL_TX_TYPES:
         return None

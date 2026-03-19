@@ -46,16 +46,17 @@ Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class IndexingApplyError(RuntimeError):
@@ -71,11 +72,12 @@ class IndexingApplyError(RuntimeError):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -103,7 +105,7 @@ def _ensure_root_dict(state: Json, key: str) -> Json:
     return cur
 
 
-def _ensure_root_list(state: Json, key: str) -> List[Any]:
+def _ensure_root_list(state: Json, key: str) -> list[Any]:
     cur = state.get(key)
     if not isinstance(cur, list):
         cur = []
@@ -152,7 +154,7 @@ def _mk_id(prefix: str, env: TxEnvelope, provided: Any) -> str:
     return f"{prefix}:{env.signer}:{int(getattr(env, 'nonce', 0) or 0)}"
 
 
-def _find_existing_by_id(items: List[Any], key: str, value: str) -> Optional[Json]:
+def _find_existing_by_id(items: list[Any], key: str, value: str) -> Json | None:
     for it in items:
         if isinstance(it, dict) and _as_str(it.get(key)).strip() == value:
             return it
@@ -162,6 +164,7 @@ def _find_existing_by_id(items: List[Any], key: str, value: str) -> Optional[Jso
 # ---------------------------------------------------------------------------
 # INDEX_ANCHOR_SET
 # ---------------------------------------------------------------------------
+
 
 def _apply_index_anchor_set(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -184,12 +187,15 @@ def _apply_index_anchor_set(state: Json, env: TxEnvelope) -> Json:
 # STATE_SNAPSHOT_DECLARE / ACCEPT
 # ---------------------------------------------------------------------------
 
+
 def _apply_state_snapshot_declare(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     idx = _ensure_indexing(state)
     payload = _as_dict(env.payload)
 
-    snapshot_id = _as_str(payload.get("snapshot_id") or payload.get("id") or payload.get("cid")).strip()
+    snapshot_id = _as_str(
+        payload.get("snapshot_id") or payload.get("id") or payload.get("cid")
+    ).strip()
     if not snapshot_id:
         raise IndexingApplyError("invalid_payload", "missing_snapshot_id", {"tx_type": env.tx_type})
 
@@ -211,7 +217,9 @@ def _apply_state_snapshot_accept(state: Json, env: TxEnvelope) -> Json:
     idx = _ensure_indexing(state)
     payload = _as_dict(env.payload)
 
-    snapshot_id = _as_str(payload.get("snapshot_id") or payload.get("id") or payload.get("cid")).strip()
+    snapshot_id = _as_str(
+        payload.get("snapshot_id") or payload.get("id") or payload.get("cid")
+    ).strip()
     if not snapshot_id:
         raise IndexingApplyError("invalid_payload", "missing_snapshot_id", {"tx_type": env.tx_type})
 
@@ -222,7 +230,9 @@ def _apply_state_snapshot_accept(state: Json, env: TxEnvelope) -> Json:
     # Fail-closed: accept must correspond to an existing declare
     declares = snaps["declares_by_id"]
     if snapshot_id not in declares:
-        raise IndexingApplyError("not_found", "snapshot_declare_not_found", {"snapshot_id": snapshot_id})
+        raise IndexingApplyError(
+            "not_found", "snapshot_declare_not_found", {"snapshot_id": snapshot_id}
+        )
 
     accepts[snapshot_id] = {
         "snapshot_id": snapshot_id,
@@ -246,6 +256,7 @@ def _apply_state_snapshot_accept(state: Json, env: TxEnvelope) -> Json:
 # COLD_SYNC_REQUEST / COMPLETE
 # ---------------------------------------------------------------------------
 
+
 def _apply_cold_sync_request(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     idx = _ensure_indexing(state)
@@ -258,7 +269,9 @@ def _apply_cold_sync_request(state: Json, env: TxEnvelope) -> Json:
 
     snaps = idx["snapshots"]
     if snapshot_id not in snaps["accepts_by_id"]:
-        raise IndexingApplyError("not_found", "snapshot_accept_not_found", {"snapshot_id": snapshot_id})
+        raise IndexingApplyError(
+            "not_found", "snapshot_accept_not_found", {"snapshot_id": snapshot_id}
+        )
 
     cold = snaps["cold_sync"]
     reqs = cold["requests_by_id"]
@@ -270,7 +283,12 @@ def _apply_cold_sync_request(state: Json, env: TxEnvelope) -> Json:
         "requested_at_nonce": int(env.nonce),
         "payload": payload,
     }
-    return {"applied": "COLD_SYNC_REQUEST", "request_id": req_id, "snapshot_id": snapshot_id, "deduped": already}
+    return {
+        "applied": "COLD_SYNC_REQUEST",
+        "request_id": req_id,
+        "snapshot_id": snapshot_id,
+        "deduped": already,
+    }
 
 
 def _apply_cold_sync_complete(state: Json, env: TxEnvelope) -> Json:
@@ -302,6 +320,7 @@ def _apply_cold_sync_complete(state: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 # INDEX_TOPIC_REGISTER / ANCHOR_SET
 # ---------------------------------------------------------------------------
+
 
 def _apply_index_topic_register(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -345,18 +364,30 @@ def _apply_index_topic_anchor_set(state: Json, env: TxEnvelope) -> Json:
     # Idempotent by (topic, anchor_id)
     already = False
     for it in anchors:
-        if isinstance(it, dict) and _as_str(it.get("topic")) == topic and _as_str(it.get("anchor_id")) == anchor_id:
+        if (
+            isinstance(it, dict)
+            and _as_str(it.get("topic")) == topic
+            and _as_str(it.get("anchor_id")) == anchor_id
+        ):
             already = True
             break
     if not already:
-        anchors.append({"topic": topic, "anchor_id": anchor_id, "at_nonce": int(env.nonce), "payload": payload})
+        anchors.append(
+            {"topic": topic, "anchor_id": anchor_id, "at_nonce": int(env.nonce), "payload": payload}
+        )
 
-    return {"applied": "INDEX_TOPIC_ANCHOR_SET", "topic": topic, "anchor_id": anchor_id, "deduped": already}
+    return {
+        "applied": "INDEX_TOPIC_ANCHOR_SET",
+        "topic": topic,
+        "anchor_id": anchor_id,
+        "deduped": already,
+    }
 
 
 # ---------------------------------------------------------------------------
 # TX_RECEIPT_EMIT
 # ---------------------------------------------------------------------------
+
 
 def _apply_tx_receipt_emit(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -367,7 +398,9 @@ def _apply_tx_receipt_emit(state: Json, env: TxEnvelope) -> Json:
     receipt_id = _as_str(payload.get("receipt_id") or payload.get("id")).strip()
     if not receipt_id:
         # As a fallback, allow tx_id + type
-        tx_id = _as_str(payload.get("tx_id") or payload.get("txhash") or payload.get("tx_hash")).strip()
+        tx_id = _as_str(
+            payload.get("tx_id") or payload.get("txhash") or payload.get("tx_hash")
+        ).strip()
         tx_type = _as_str(payload.get("tx_type")).strip()
         if not tx_id or not tx_type:
             raise IndexingApplyError(
@@ -389,7 +422,7 @@ def _apply_tx_receipt_emit(state: Json, env: TxEnvelope) -> Json:
 # Router
 # ---------------------------------------------------------------------------
 
-INDEXING_TX_TYPES: Set[str] = {
+INDEXING_TX_TYPES: set[str] = {
     "INDEX_ANCHOR_SET",
     "STATE_SNAPSHOT_DECLARE",
     "STATE_SNAPSHOT_ACCEPT",
@@ -401,7 +434,7 @@ INDEXING_TX_TYPES: Set[str] = {
 }
 
 
-def apply_indexing(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_indexing(state: Json, env: TxEnvelope) -> Json | None:
     """Apply Indexing txs. Returns meta dict if handled; otherwise None."""
     t = str(env.tx_type or "").strip()
     if t not in INDEXING_TX_TYPES:

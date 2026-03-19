@@ -1,16 +1,16 @@
 # src/weall/ledger/roles_schema.py
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
-def _as_dict(x: Any) -> Dict[str, Any]:
+def _as_dict(x: Any) -> dict[str, Any]:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -18,8 +18,8 @@ def _as_str(x: Any) -> str:
     return str(x) if x is not None else ""
 
 
-def _uniq_str_list(xs: Any) -> List[str]:
-    out: List[str] = []
+def _uniq_str_list(xs: Any) -> list[str]:
+    out: list[str] = []
     seen: set[str] = set()
     for it in _as_list(xs):
         s = _as_str(it).strip()
@@ -74,7 +74,7 @@ def ensure_roles_schema(ledger: Json) -> Json:
 
 
 def set_treasury_signers(
-    ledger: Json, treasury_id: str, signers: List[str], *, threshold: int = 1
+    ledger: Json, treasury_id: str, signers: list[str], *, threshold: int = 1
 ) -> None:
     roles = ensure_roles_schema(ledger)
     treasuries = roles["treasuries_by_id"]
@@ -96,7 +96,7 @@ def set_treasury_signers(
 
 
 def set_group_signers(
-    ledger: Json, group_id: str, signers: List[str], *, threshold: int = 1
+    ledger: Json, group_id: str, signers: list[str], *, threshold: int = 1
 ) -> None:
     roles = ensure_roles_schema(ledger)
     groups = roles["groups_by_id"]
@@ -117,7 +117,7 @@ def set_group_signers(
     obj["threshold"] = int(threshold) if int(threshold) > 0 else 1
 
 
-def set_group_moderators(ledger: Json, group_id: str, moderators: List[str]) -> None:
+def set_group_moderators(ledger: Json, group_id: str, moderators: list[str]) -> None:
     roles = ensure_roles_schema(ledger)
     groups = roles["groups_by_id"]
     if not isinstance(groups, dict):
@@ -136,7 +136,7 @@ def set_group_moderators(ledger: Json, group_id: str, moderators: List[str]) -> 
     obj["moderators"] = _uniq_str_list(moderators)
 
 
-def migrate_legacy_role_shapes(ledger: Json) -> Tuple[int, List[str]]:
+def migrate_legacy_role_shapes(ledger: Json) -> tuple[int, list[str]]:
     """
     Best-effort migration from any legacy locations into canonical roles schema.
 
@@ -144,7 +144,7 @@ def migrate_legacy_role_shapes(ledger: Json) -> Tuple[int, List[str]]:
 
     Returns: (num_changes, notes)
     """
-    notes: List[str] = []
+    notes: list[str] = []
     changes = 0
 
     roles = ensure_roles_schema(ledger)
@@ -175,7 +175,7 @@ def migrate_legacy_role_shapes(ledger: Json) -> Tuple[int, List[str]]:
             if isinstance(can_obj, dict) and "signers" in can_obj:
                 continue  # already canonical
 
-            signers: List[str] = []
+            signers: list[str] = []
             threshold = 1
 
             if isinstance(obj, dict):
@@ -204,7 +204,7 @@ def migrate_legacy_role_shapes(ledger: Json) -> Tuple[int, List[str]]:
         canonical_groups = {}
         roles["groups_by_id"] = canonical_groups
 
-    def _ensure_group(gid: str) -> Dict[str, Any]:
+    def _ensure_group(gid: str) -> dict[str, Any]:
         obj = canonical_groups.get(gid)
         if not isinstance(obj, dict):
             obj = {}

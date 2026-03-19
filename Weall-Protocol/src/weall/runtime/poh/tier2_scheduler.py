@@ -1,12 +1,12 @@
 # src/weall/runtime/poh/tier2_scheduler.py
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -93,7 +93,9 @@ def _case_needs_assign(case: Json) -> bool:
     return False
 
 
-def _case_ready_to_finalize(case: Json, *, min_total: int, pass_threshold: int, fail_max: int) -> bool:
+def _case_ready_to_finalize(
+    case: Json, *, min_total: int, pass_threshold: int, fail_max: int
+) -> bool:
     """Heuristic: enqueue finalize when the case looks ready.
 
     The apply-layer is authoritative. Scheduler only tries to reduce latency.
@@ -171,7 +173,9 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
     enq = 0
 
     n_jurors = max(1, _param_int(state, "tier2_n_jurors", DEFAULT_TIER2_N_JURORS))
-    min_total = max(1, _param_int(state, "tier2_min_total_reviews", DEFAULT_TIER2_MIN_TOTAL_REVIEWS))
+    min_total = max(
+        1, _param_int(state, "tier2_min_total_reviews", DEFAULT_TIER2_MIN_TOTAL_REVIEWS)
+    )
     pass_threshold = max(1, _param_int(state, "tier2_pass_threshold", DEFAULT_TIER2_PASS_THRESHOLD))
     fail_max = max(0, _param_int(state, "tier2_fail_max", DEFAULT_TIER2_FAIL_MAX))
 
@@ -229,7 +233,9 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
                     enq += 1
 
         # FINALIZE
-        if _case_ready_to_finalize(case, min_total=min_total, pass_threshold=pass_threshold, fail_max=fail_max):
+        if _case_ready_to_finalize(
+            case, min_total=min_total, pass_threshold=pass_threshold, fail_max=fail_max
+        ):
             enqueue_system_tx(
                 state,
                 tx_type="POH_TIER2_FINALIZE",

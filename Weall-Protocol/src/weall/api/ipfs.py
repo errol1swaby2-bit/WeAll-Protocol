@@ -6,10 +6,9 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from io import BytesIO
-from typing import BinaryIO, Dict, Optional, Tuple
+from typing import BinaryIO
 
-
-Json = Dict[str, object]
+Json = dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -62,7 +61,7 @@ def ipfs_gateway_url(cid: str) -> str:
     return f"{cfg.gateway_base}/ipfs/{cid}"
 
 
-def _parse_ipfs_add_response(raw: bytes) -> Tuple[str, int]:
+def _parse_ipfs_add_response(raw: bytes) -> tuple[str, int]:
     """
     IPFS /api/v0/add returns NDJSON (one JSON object per line).
     We take the last valid JSON object and extract Hash + Size.
@@ -71,7 +70,7 @@ def _parse_ipfs_add_response(raw: bytes) -> Tuple[str, int]:
     if not txt:
         raise RuntimeError("ipfs_add_failed:empty_response")
 
-    last_obj: Optional[dict] = None
+    last_obj: dict | None = None
     for line in txt.splitlines():
         line = line.strip()
         if not line:
@@ -116,7 +115,7 @@ def _read_all_bytes(fileobj: BinaryIO) -> bytes:
     return b"".join(parts)
 
 
-def ipfs_add_fileobj(*, name: str, fileobj: BinaryIO, pin: bool) -> Tuple[str, int]:
+def ipfs_add_fileobj(*, name: str, fileobj: BinaryIO, pin: bool) -> tuple[str, int]:
     """
     Upload a file-like object to IPFS via /api/v0/add.
 
@@ -140,8 +139,8 @@ def ipfs_add_fileobj(*, name: str, fileobj: BinaryIO, pin: bool) -> Tuple[str, i
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
         "Content-Type: application/octet-stream\r\n"
         "\r\n"
-    ).encode("utf-8")
-    epilogue = f"\r\n--{boundary}--\r\n".encode("utf-8")
+    ).encode()
+    epilogue = f"\r\n--{boundary}--\r\n".encode()
     body = preamble + file_bytes + epilogue
 
     qs = urllib.parse.urlencode(
@@ -176,7 +175,7 @@ def ipfs_add_fileobj(*, name: str, fileobj: BinaryIO, pin: bool) -> Tuple[str, i
         raise RuntimeError(f"ipfs_add_failed:{type(e).__name__}:{e}") from e
 
 
-def ipfs_add_bytes(*, name: str, data: bytes, pin: bool) -> Tuple[str, int]:
+def ipfs_add_bytes(*, name: str, data: bytes, pin: bool) -> tuple[str, int]:
     """
     Backward-compatible helper: adds bytes to IPFS.
     """

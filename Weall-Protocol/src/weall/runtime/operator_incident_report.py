@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from weall.runtime.bootstrap_manifest import (
     expected_startup_fingerprint,
@@ -14,7 +14,7 @@ from weall.runtime.bootstrap_manifest import (
 )
 from weall.runtime.chain_config import ChainConfig, production_bootstrap_report
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _canon_json(obj: Any) -> str:
@@ -38,7 +38,11 @@ def classify_local_severity(*, bootstrap_report: Json, manifest_report: Json | N
     issues = bootstrap_report.get("issues")
     if isinstance(issues, list) and issues:
         return "critical"
-    manifest = _coerce_json_object((manifest_report or {}) if manifest_report is not None else bootstrap_report.get("release_manifest"))
+    manifest = _coerce_json_object(
+        (manifest_report or {})
+        if manifest_report is not None
+        else bootstrap_report.get("release_manifest")
+    )
     manifest_issues = manifest.get("issues")
     if isinstance(manifest_issues, list) and manifest_issues:
         return "critical"
@@ -69,11 +73,13 @@ def build_operator_incident_report(
     cfg: ChainConfig,
     db_path: Path,
     tx_index_path: Path,
-    remote_forensics: Optional[Json] = None,
+    remote_forensics: Json | None = None,
 ) -> Json:
     state, meta = read_db_state(db_path)
     state_meta = _coerce_json_object(state.get("meta"))
-    validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(state)
+    validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
+        state
+    )
 
     startup_fingerprint = expected_startup_fingerprint(
         cfg_chain_id=str(cfg.chain_id or ""),
@@ -94,7 +100,9 @@ def build_operator_incident_report(
             expected_pubkey=str(release_pubkey() or "").strip(),
         )
     remote = _coerce_json_object(remote_forensics)
-    local_severity = classify_local_severity(bootstrap_report=bootstrap, manifest_report=manifest_report)
+    local_severity = classify_local_severity(
+        bootstrap_report=bootstrap, manifest_report=manifest_report
+    )
     remote_severity = classify_remote_severity(remote_forensics=remote)
     overall = _max_severity(local_severity, remote_severity)
 
@@ -104,7 +112,9 @@ def build_operator_incident_report(
         "tip": str(state.get("tip") or ""),
         "tip_hash": str(state.get("tip_hash") or ""),
         "finalized": _coerce_json_object(state.get("finalized")),
-        "schema_version": str(meta.get("schema_version") or state_meta.get("schema_version") or "1"),
+        "schema_version": str(
+            meta.get("schema_version") or state_meta.get("schema_version") or "1"
+        ),
         "tx_index_hash": str(state_meta.get("tx_index_hash") or ""),
     }
 
@@ -126,8 +136,14 @@ def build_operator_incident_report(
         "bootstrap_ok": bool(bootstrap.get("ok", False)),
         "remote_ok": bool(remote.get("ok", True)) if remote else True,
         "remote_stalled": bool(remote.get("stalled", False)) if remote else False,
-        "pending_fetch_requests_count": int(remote.get("pending_fetch_requests_count") or 0) if remote else 0,
-        "recent_rejections_count": int(_coerce_json_object(remote.get("recent_rejection_summary")).get("count") or 0) if remote else 0,
+        "pending_fetch_requests_count": int(remote.get("pending_fetch_requests_count") or 0)
+        if remote
+        else 0,
+        "recent_rejections_count": int(
+            _coerce_json_object(remote.get("recent_rejection_summary")).get("count") or 0
+        )
+        if remote
+        else 0,
         "compatibility_contract_ok": bool(compatibility_contract.get("ok", True)),
         "compatibility_contract_mismatches": list(compatibility_contract.get("mismatches") or []),
     }

@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
-from weall.api.security import RateLimitMiddleware, RequestSizeLimitMiddleware
+from weall.api.security import RequestSizeLimitMiddleware
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import TxIndex
@@ -33,7 +33,13 @@ def _clean_env(monkeypatch):
 
 
 def _env() -> TxEnvelope:
-    return TxEnvelope(tx_type="PEER_ADVERTISE", signer="@alice", nonce=1, payload={"endpoint": "tcp://node:9000"}, sig="sig")
+    return TxEnvelope(
+        tx_type="PEER_ADVERTISE",
+        signer="@alice",
+        nonce=1,
+        payload={"endpoint": "tcp://node:9000"},
+        sig="sig",
+    )
 
 
 def _ledger() -> dict:
@@ -57,7 +63,7 @@ def _canon() -> TxIndex:
 )
 def test_tx_admission_rejects_invalid_explicit_payload_limit_env_in_prod(monkeypatch, name):
     monkeypatch.setenv(name, "bogus")
-    with pytest.raises(ValueError, match=fr"invalid_integer_env:{name}"):
+    with pytest.raises(ValueError, match=rf"invalid_integer_env:{name}"):
         admit_tx(_env(), _ledger(), _canon(), context="mempool")
 
 
@@ -86,7 +92,7 @@ def test_request_size_limit_rejects_invalid_media_limit_env_in_prod(monkeypatch)
 def test_rate_limit_rejects_invalid_explicit_env_in_prod(monkeypatch, name):
     monkeypatch.setenv(name, "bogus")
     app = create_app(boot_runtime=False)
-    with pytest.raises(ValueError, match=fr"invalid_integer_env:{name}"):
+    with pytest.raises(ValueError, match=rf"invalid_integer_env:{name}"):
         app.build_middleware_stack()
 
 

@@ -24,7 +24,9 @@ def _loop() -> NetMeshLoop:
     return NetMeshLoop(
         executor=_Exec(),
         mempool=_Mempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
 
 

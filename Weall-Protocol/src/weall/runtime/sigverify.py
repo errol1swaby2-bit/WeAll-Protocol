@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List
+from typing import Any
 
-from weall.crypto.sig import canonical_tx_message, strict_tx_sig_domain_enabled, verify_ed25519_signature
+from weall.crypto.sig import (
+    canonical_tx_message,
+    strict_tx_sig_domain_enabled,
+    verify_ed25519_signature,
+)
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
-def _add_pubkey(out: List[str], seen: set[str], pk: Any) -> None:
+def _add_pubkey(out: list[str], seen: set[str], pk: Any) -> None:
     """Add a pubkey to out (deduped) if it's a non-empty string."""
     if not isinstance(pk, str):
         return
@@ -19,12 +23,12 @@ def _add_pubkey(out: List[str], seen: set[str], pk: Any) -> None:
     out.append(pk2)
 
 
-def _extract_active_keys(acct: Any) -> List[str]:
+def _extract_active_keys(acct: Any) -> list[str]:
     """Extract active pubkeys from a signer account record."""
     if not isinstance(acct, dict):
         return []
 
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
 
     active_keys = acct.get("active_keys")
@@ -116,7 +120,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
         return True
 
     accounts = state.get("accounts") if isinstance(state, dict) else None
-    acct: Dict[str, Any] = {}
+    acct: dict[str, Any] = {}
     if isinstance(accounts, dict):
         maybe = accounts.get(signer)
         if isinstance(maybe, dict):
@@ -139,7 +143,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
         if expected_chain_id and tx_chain_id2 != expected_chain_id:
             return False
 
-    msg_candidates: List[bytes] = []
+    msg_candidates: list[bytes] = []
     try:
         if tx_chain_id2:
             msg_candidates.append(

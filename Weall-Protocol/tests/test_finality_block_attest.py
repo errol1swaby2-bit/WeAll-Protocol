@@ -14,7 +14,9 @@ def _repo_root():
     return pathlib.Path(__file__).resolve().parents[1]
 
 
-def test_block_retrieval_and_tip_persistence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_retrieval_and_tip_persistence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Persistence invariant:
     - blocks retrievable by height
     - tip survives restarts
@@ -26,9 +28,21 @@ def test_block_retrieval_and_tip_persistence(tmp_path: Path, monkeypatch: pytest
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="blocks", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="blocks", tx_index_path=tx_index_path
+    )
 
-    assert ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@user001", "nonce": 1, "payload": {"pubkey": "k:u1"}})["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@user001",
+                "nonce": 1,
+                "payload": {"pubkey": "k:u1"},
+            }
+        )["ok"]
+        is True
+    )
     meta = ex.produce_block(max_txs=1)
     assert meta.ok is True
     assert meta.height == 1
@@ -37,6 +51,8 @@ def test_block_retrieval_and_tip_persistence(tmp_path: Path, monkeypatch: pytest
     assert blk is not None
 
     # Restart and ensure tip persists.
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="blocks", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="blocks", tx_index_path=tx_index_path
+    )
     st2 = ex2.read_state()
     assert int(st2.get("height", 0)) == 1

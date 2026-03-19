@@ -20,7 +20,6 @@ Format rationale:
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -30,7 +29,6 @@ from cryptography.hazmat.primitives.serialization import (
     PrivateFormat,
     PublicFormat,
 )
-
 
 SECRETS_DIR = Path("secrets")
 PRIV_PATH = SECRETS_DIR / "weall_node_privkey"

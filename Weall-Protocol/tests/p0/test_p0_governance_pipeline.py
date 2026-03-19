@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def clone_state(state: Json) -> Json:
@@ -18,7 +19,7 @@ def clone_state(state: Json) -> Json:
 
 def env(
     tx_type: str,
-    payload: Dict[str, Any] | None = None,
+    payload: dict[str, Any] | None = None,
     *,
     signer: str = "alice",
     nonce: int = 1,
@@ -38,7 +39,7 @@ def env(
     return e
 
 
-def apply_ok(state: Json, envelope: Json) -> Dict[str, Any]:
+def apply_ok(state: Json, envelope: Json) -> dict[str, Any]:
     out = apply_tx(state, envelope)
     assert isinstance(out, dict)
     applied = out.get("applied")
@@ -52,8 +53,8 @@ def apply_err(state: Json, envelope: Json) -> ApplyError:
     return ei.value
 
 
-def _iter_dicts(obj: Any) -> Iterable[Dict[str, Any]]:
-    stack: List[Any] = [obj]
+def _iter_dicts(obj: Any) -> Iterable[dict[str, Any]]:
+    stack: list[Any] = [obj]
     while stack:
         cur = stack.pop()
         if isinstance(cur, dict):
@@ -65,7 +66,9 @@ def _iter_dicts(obj: Any) -> Iterable[Dict[str, Any]]:
                 stack.append(v)
 
 
-def _find_proposal_container_and_obj(state: Json, proposal_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def _find_proposal_container_and_obj(
+    state: Json, proposal_id: str
+) -> tuple[dict[str, Any], dict[str, Any]]:
     for key in ("gov_proposals_by_id", "gov_proposals", "governance_proposals"):
         root = state.get(key)
         if isinstance(root, dict):
@@ -79,34 +82,42 @@ def _find_proposal_container_and_obj(state: Json, proposal_id: str) -> Tuple[Dic
             if "stage" in pr or "creator" in pr or "proposal_id" in pr:
                 return d, pr
 
-    raise AssertionError(f"Could not locate proposal object for proposal_id={proposal_id!r} in state")
+    raise AssertionError(
+        f"Could not locate proposal object for proposal_id={proposal_id!r} in state"
+    )
 
 
-def _get_proposal(state: Json, proposal_id: str) -> Dict[str, Any]:
+def _get_proposal(state: Json, proposal_id: str) -> dict[str, Any]:
     _, pr = _find_proposal_container_and_obj(state, proposal_id)
     return pr
 
 
-def _find_latest_stage_receipt(state: Json, proposal_id: str) -> Optional[Dict[str, Any]]:
+def _find_latest_stage_receipt(state: Json, proposal_id: str) -> dict[str, Any] | None:
     """
     Prefer the canonical receipt list if present.
     Avoid accidentally returning the proposal dict itself (it also has proposal_id + stage).
     """
     receipts = state.get("gov_stage_set_receipts")
     if isinstance(receipts, list):
-        matches = [r for r in receipts if isinstance(r, dict) and r.get("proposal_id") == proposal_id]
+        matches = [
+            r for r in receipts if isinstance(r, dict) and r.get("proposal_id") == proposal_id
+        ]
         return matches[-1] if matches else None
 
     # Fallback: scan nested dicts but only accept things that look like receipts
     # (have _height and/or _parent fields).
-    candidates: List[Dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     for d in _iter_dicts(state):
-        if d.get("proposal_id") == proposal_id and "stage" in d and ("_parent" in d or "_height" in d):
+        if (
+            d.get("proposal_id") == proposal_id
+            and "stage" in d
+            and ("_parent" in d or "_height" in d)
+        ):
             candidates.append(d)
     return candidates[-1] if candidates else None
 
 
-def _find_vote_store(pr: Dict[str, Any], key_candidates: List[str]) -> Optional[Dict[str, Any]]:
+def _find_vote_store(pr: dict[str, Any], key_candidates: list[str]) -> dict[str, Any] | None:
     for k in key_candidates:
         v = pr.get(k)
         if isinstance(v, dict):
@@ -131,19 +142,35 @@ def _stage_set(proposal_id: str, stage: str, *, nonce: int, parent: str) -> Json
 
 
 def _vote_revoke(proposal_id: str, *, signer: str, nonce: int) -> Json:
-    return env("GOV_VOTE_REVOKE", {"proposal_id": proposal_id}, signer=signer, nonce=nonce, system=False)
+    return env(
+        "GOV_VOTE_REVOKE", {"proposal_id": proposal_id}, signer=signer, nonce=nonce, system=False
+    )
 
 
 def _proposal_edit(proposal_id: str, *, signer: str, nonce: int, title: str) -> Json:
-    return env("GOV_PROPOSAL_EDIT", {"proposal_id": proposal_id, "title": title}, signer=signer, nonce=nonce, system=False)
+    return env(
+        "GOV_PROPOSAL_EDIT",
+        {"proposal_id": proposal_id, "title": title},
+        signer=signer,
+        nonce=nonce,
+        system=False,
+    )
 
 
 def _proposal_withdraw(proposal_id: str, *, signer: str, nonce: int) -> Json:
-    return env("GOV_PROPOSAL_WITHDRAW", {"proposal_id": proposal_id}, signer=signer, nonce=nonce, system=False)
+    return env(
+        "GOV_PROPOSAL_WITHDRAW",
+        {"proposal_id": proposal_id},
+        signer=signer,
+        nonce=nonce,
+        system=False,
+    )
 
 
 def _delegation_set(delegatee: str, *, signer: str, nonce: int) -> Json:
-    return env("GOV_DELEGATION_SET", {"delegatee": delegatee}, signer=signer, nonce=nonce, system=False)
+    return env(
+        "GOV_DELEGATION_SET", {"delegatee": delegatee}, signer=signer, nonce=nonce, system=False
+    )
 
 
 def test_gov_proposal_create_sets_creator_and_default_stage(base_state, txf) -> None:
@@ -155,7 +182,15 @@ def test_gov_proposal_create_sets_creator_and_default_stage(base_state, txf) -> 
 
     assert pr.get("creator") == "alice"
     assert pr.get("proposal_id") in (None, pid) or pr.get("proposal_id") == pid
-    assert pr.get("stage") in ("draft", "poll", "voting", "vote", "revision", "finalized", "withdrawn")
+    assert pr.get("stage") in (
+        "draft",
+        "poll",
+        "voting",
+        "vote",
+        "revision",
+        "finalized",
+        "withdrawn",
+    )
 
     poll_votes = _find_vote_store(pr, ["poll_votes", "poll_votes_by_account"])
     votes = _find_vote_store(pr, ["votes", "votes_by_account"])
@@ -171,7 +206,13 @@ def test_gov_proposal_create_respects_rules_start_stage(base_state) -> None:
         st,
         env(
             "GOV_PROPOSAL_CREATE",
-            {"proposal_id": pid, "rules": {"start_stage": "voting"}, "title": "p0", "body": "p0", "kind": "generic"},
+            {
+                "proposal_id": pid,
+                "rules": {"start_stage": "voting"},
+                "title": "p0",
+                "body": "p0",
+                "kind": "generic",
+            },
             signer="alice",
             nonce=1,
             system=False,

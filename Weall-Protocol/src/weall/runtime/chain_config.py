@@ -4,10 +4,10 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
 
 
@@ -90,7 +90,7 @@ def canon_json(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def chain_config_compatibility_payload(cfg: "ChainConfig") -> Json:
+def chain_config_compatibility_payload(cfg: ChainConfig) -> Json:
     """Consensus-/interop-relevant subset for validator compatibility checks.
 
     This intentionally excludes local-only operator settings such as db_path,
@@ -108,7 +108,7 @@ def chain_config_compatibility_payload(cfg: "ChainConfig") -> Json:
     }
 
 
-def chain_config_compatibility_hash(cfg: "ChainConfig") -> str:
+def chain_config_compatibility_hash(cfg: ChainConfig) -> str:
     from hashlib import sha256
 
     return sha256(canon_json(chain_config_compatibility_payload(cfg)).encode("utf-8")).hexdigest()
@@ -181,14 +181,14 @@ def _trusted_anchor_env_status(default: bool = True) -> tuple[bool, bool, bool]:
     return bool(next(iter(vals))), False, invalid
 
 
-def _csv_values(name: str) -> List[str]:
+def _csv_values(name: str) -> list[str]:
     raw = str(os.environ.get(name, "") or "").strip()
     if not raw:
         return []
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
-def _urls_all_https(urls: List[str]) -> bool:
+def _urls_all_https(urls: list[str]) -> bool:
     if not urls:
         return False
     for raw in urls:
@@ -203,7 +203,7 @@ def _urls_all_https(urls: List[str]) -> bool:
     return True
 
 
-def _urls_have_no_duplicates(urls: List[str]) -> bool:
+def _urls_have_no_duplicates(urls: list[str]) -> bool:
     seen: set[str] = set()
     for raw in urls:
         normalized = str(raw).strip().rstrip("/").lower()
@@ -234,7 +234,7 @@ def _node_identity_source_report() -> Json:
     }
 
 
-def production_bootstrap_issues(cfg: ChainConfig) -> List[str]:
+def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
     """Return operator-facing production bootstrap blockers.
 
     This is intentionally stricter than basic config validation. It checks the
@@ -242,7 +242,7 @@ def production_bootstrap_issues(cfg: ChainConfig) -> List[str]:
     to start fail-closed instead of silently degrading into an unsafe or
     non-diagnosable setup.
     """
-    issues: List[str] = []
+    issues: list[str] = []
     validate_chain_config(cfg)
 
     mode = str(cfg.mode or "").strip().lower()
@@ -271,94 +271,152 @@ def production_bootstrap_issues(cfg: ChainConfig) -> List[str]:
 
     if net_enabled or bft_enabled:
         if not pubkey_ok:
-            issues.append("missing node public key: set WEALL_NODE_PUBKEY or WEALL_NODE_PUBKEY_FILE")
+            issues.append(
+                "missing node public key: set WEALL_NODE_PUBKEY or WEALL_NODE_PUBKEY_FILE"
+            )
         if not privkey_ok:
-            issues.append("missing node private key: set WEALL_NODE_PRIVKEY or WEALL_NODE_PRIVKEY_FILE")
+            issues.append(
+                "missing node private key: set WEALL_NODE_PRIVKEY or WEALL_NODE_PRIVKEY_FILE"
+            )
 
     if bft_enabled:
         validator_account = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT", "") or "").strip()
-        validator_account_file = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT_FILE", "") or "").strip()
-        if not validator_account and not (validator_account_file and Path(validator_account_file).is_file()):
-            issues.append("missing validator account: set WEALL_VALIDATOR_ACCOUNT or WEALL_VALIDATOR_ACCOUNT_FILE")
+        validator_account_file = str(
+            os.environ.get("WEALL_VALIDATOR_ACCOUNT_FILE", "") or ""
+        ).strip()
+        if not validator_account and not (
+            validator_account_file and Path(validator_account_file).is_file()
+        ):
+            issues.append(
+                "missing validator account: set WEALL_VALIDATOR_ACCOUNT or WEALL_VALIDATOR_ACCOUNT_FILE"
+            )
 
-        sync_enforce_finalized_anchor, sync_enforce_finalized_anchor_invalid = _env_bool_status("WEALL_SYNC_ENFORCE_FINALIZED_ANCHOR", True)
+        sync_enforce_finalized_anchor, sync_enforce_finalized_anchor_invalid = _env_bool_status(
+            "WEALL_SYNC_ENFORCE_FINALIZED_ANCHOR", True
+        )
         if sync_enforce_finalized_anchor_invalid:
             issues.append("invalid_boolean_env:WEALL_SYNC_ENFORCE_FINALIZED_ANCHOR")
         elif not sync_enforce_finalized_anchor:
-            issues.append("WEALL_SYNC_ENFORCE_FINALIZED_ANCHOR must remain enabled when BFT is enabled in production")
+            issues.append(
+                "WEALL_SYNC_ENFORCE_FINALIZED_ANCHOR must remain enabled when BFT is enabled in production"
+            )
 
         raw_strict = os.environ.get("WEALL_BFT_STRICT_EPOCH_BINDING")
         if raw_strict is not None:
-            strict_epoch_binding, strict_epoch_binding_invalid = _env_bool_status("WEALL_BFT_STRICT_EPOCH_BINDING", True)
+            strict_epoch_binding, strict_epoch_binding_invalid = _env_bool_status(
+                "WEALL_BFT_STRICT_EPOCH_BINDING", True
+            )
             if strict_epoch_binding_invalid:
                 issues.append("invalid_boolean_env:WEALL_BFT_STRICT_EPOCH_BINDING")
             elif not strict_epoch_binding:
-                issues.append("WEALL_BFT_STRICT_EPOCH_BINDING must remain enabled for production BFT nodes")
+                issues.append(
+                    "WEALL_BFT_STRICT_EPOCH_BINDING must remain enabled for production BFT nodes"
+                )
 
-        bft_fetch_enabled, bft_fetch_enabled_invalid = _env_bool_status("WEALL_BFT_FETCH_ENABLED", True)
+        bft_fetch_enabled, bft_fetch_enabled_invalid = _env_bool_status(
+            "WEALL_BFT_FETCH_ENABLED", True
+        )
         if bft_fetch_enabled_invalid:
             issues.append("invalid_boolean_env:WEALL_BFT_FETCH_ENABLED")
         elif not bft_fetch_enabled:
             issues.append("WEALL_BFT_FETCH_ENABLED must remain enabled for production BFT nodes")
         fetch_sources = _csv_values("WEALL_BFT_FETCH_BASE_URLS")
         if not fetch_sources:
-            issues.append("missing BFT fetch sources: set WEALL_BFT_FETCH_BASE_URLS to one or more HTTPS base URLs")
+            issues.append(
+                "missing BFT fetch sources: set WEALL_BFT_FETCH_BASE_URLS to one or more HTTPS base URLs"
+            )
         elif not _urls_all_https(fetch_sources):
-            issues.append("WEALL_BFT_FETCH_BASE_URLS must contain only HTTPS base URLs in production")
+            issues.append(
+                "WEALL_BFT_FETCH_BASE_URLS must contain only HTTPS base URLs in production"
+            )
         elif not _urls_have_no_duplicates(fetch_sources):
-            issues.append("WEALL_BFT_FETCH_BASE_URLS must not contain duplicate base URLs in production")
+            issues.append(
+                "WEALL_BFT_FETCH_BASE_URLS must not contain duplicate base URLs in production"
+            )
 
     if net_enabled:
         require_anchor, anchor_conflict, anchor_invalid = _trusted_anchor_env_status(True)
         if anchor_invalid:
-            issues.append("invalid_boolean_env:WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR")
+            issues.append(
+                "invalid_boolean_env:WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR"
+            )
         elif anchor_conflict:
-            issues.append("trusted-anchor env aliases conflict: WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR vs WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR")
+            issues.append(
+                "trusted-anchor env aliases conflict: WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR vs WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR"
+            )
         elif not require_anchor:
             issues.append("TRUSTED_ANCHOR requirement must remain enabled in production networking")
 
         peer_id = str(os.environ.get("WEALL_PEER_ID", "") or "").strip()
         if not peer_id or peer_id == "local":
-            issues.append("missing explicit peer id: set WEALL_PEER_ID to a stable non-default value")
+            issues.append(
+                "missing explicit peer id: set WEALL_PEER_ID to a stable non-default value"
+            )
 
-        net_require_peer_identity, net_require_peer_identity_invalid = _env_bool_status("WEALL_NET_REQUIRE_PEER_IDENTITY", True)
+        net_require_peer_identity, net_require_peer_identity_invalid = _env_bool_status(
+            "WEALL_NET_REQUIRE_PEER_IDENTITY", True
+        )
         if net_require_peer_identity_invalid:
             issues.append("invalid_boolean_env:WEALL_NET_REQUIRE_PEER_IDENTITY")
         elif not net_require_peer_identity:
-            issues.append("WEALL_NET_REQUIRE_PEER_IDENTITY must remain enabled in production networking")
+            issues.append(
+                "WEALL_NET_REQUIRE_PEER_IDENTITY must remain enabled in production networking"
+            )
 
-        net_require_identity, net_require_identity_invalid = _env_bool_status("WEALL_NET_REQUIRE_IDENTITY", True)
+        net_require_identity, net_require_identity_invalid = _env_bool_status(
+            "WEALL_NET_REQUIRE_IDENTITY", True
+        )
         if net_require_identity_invalid:
             issues.append("invalid_boolean_env:WEALL_NET_REQUIRE_IDENTITY")
         elif not net_require_identity:
             issues.append("WEALL_NET_REQUIRE_IDENTITY must remain enabled in production networking")
 
         if bft_enabled:
-            net_require_identity_for_bft, net_require_identity_for_bft_invalid = _env_bool_status("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", True)
+            net_require_identity_for_bft, net_require_identity_for_bft_invalid = _env_bool_status(
+                "WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", True
+            )
             if net_require_identity_for_bft_invalid:
                 issues.append("invalid_boolean_env:WEALL_NET_REQUIRE_IDENTITY_FOR_BFT")
             elif not net_require_identity_for_bft:
-                issues.append("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT must remain enabled for production BFT nodes")
+                issues.append(
+                    "WEALL_NET_REQUIRE_IDENTITY_FOR_BFT must remain enabled for production BFT nodes"
+                )
 
-        sync_require_header_match, sync_require_header_match_invalid = _env_bool_status("WEALL_SYNC_REQUIRE_HEADER_MATCH", True)
+        sync_require_header_match, sync_require_header_match_invalid = _env_bool_status(
+            "WEALL_SYNC_REQUIRE_HEADER_MATCH", True
+        )
         if sync_require_header_match_invalid:
             issues.append("invalid_boolean_env:WEALL_SYNC_REQUIRE_HEADER_MATCH")
         elif not sync_require_header_match:
-            issues.append("WEALL_SYNC_REQUIRE_HEADER_MATCH must remain enabled in production networking")
+            issues.append(
+                "WEALL_SYNC_REQUIRE_HEADER_MATCH must remain enabled in production networking"
+            )
 
-    block_loop_autostart, block_loop_autostart_invalid = _env_bool_status("WEALL_BLOCK_LOOP_AUTOSTART", False)
-    net_loop_autostart, net_loop_autostart_invalid = _env_bool_status("WEALL_NET_LOOP_AUTOSTART", False)
+    block_loop_autostart, block_loop_autostart_invalid = _env_bool_status(
+        "WEALL_BLOCK_LOOP_AUTOSTART", False
+    )
+    net_loop_autostart, net_loop_autostart_invalid = _env_bool_status(
+        "WEALL_NET_LOOP_AUTOSTART", False
+    )
     if block_loop_autostart_invalid:
         issues.append("invalid_boolean_env:WEALL_BLOCK_LOOP_AUTOSTART")
     if net_loop_autostart_invalid:
         issues.append("invalid_boolean_env:WEALL_NET_LOOP_AUTOSTART")
     if bft_enabled and block_loop_autostart:
-        issues.append("WEALL_BFT_ENABLED=1 cannot be combined with WEALL_BLOCK_LOOP_AUTOSTART=1 in production")
+        issues.append(
+            "WEALL_BFT_ENABLED=1 cannot be combined with WEALL_BLOCK_LOOP_AUTOSTART=1 in production"
+        )
 
+    from weall.runtime.bootstrap_manifest import (
+        release_manifest_path,
+        release_pubkey,
+        signed_manifest_required,
+        verify_local_manifest,
+    )
 
-    from weall.runtime.bootstrap_manifest import release_manifest_path, release_pubkey, signed_manifest_required, verify_local_manifest
-
-    manifest_required = signed_manifest_required(mode=mode, network_enabled=bool(net_enabled), bft_enabled=bool(bft_enabled))
+    manifest_required = signed_manifest_required(
+        mode=mode, network_enabled=bool(net_enabled), bft_enabled=bool(bft_enabled)
+    )
     manifest_path_raw = release_manifest_path()
     manifest_pubkey = release_pubkey()
     manifest_report = None
@@ -368,16 +426,23 @@ def production_bootstrap_issues(cfg: ChainConfig) -> List[str]:
         elif not Path(manifest_path_raw).is_file():
             issues.append(f"release manifest not found: {manifest_path_raw!r}")
         if not manifest_pubkey:
-            issues.append("missing release manifest signer pubkey: set WEALL_RELEASE_PUBKEY or WEALL_RELEASE_PUBKEY_FILE")
+            issues.append(
+                "missing release manifest signer pubkey: set WEALL_RELEASE_PUBKEY or WEALL_RELEASE_PUBKEY_FILE"
+            )
     if manifest_path_raw and manifest_pubkey and Path(manifest_path_raw).is_file():
         try:
-            manifest_report = verify_local_manifest(cfg=cfg, manifest_path=Path(manifest_path_raw).resolve(), expected_pubkey=manifest_pubkey)
+            manifest_report = verify_local_manifest(
+                cfg=cfg,
+                manifest_path=Path(manifest_path_raw).resolve(),
+                expected_pubkey=manifest_pubkey,
+            )
             issues.extend(list(manifest_report.get("issues") or []))
         except Exception as exc:
             issues.append(f"release manifest verification failed: {exc}")
 
     startup_clock_sanity_required, startup_clock_sanity_required_invalid = _env_bool_status(
-        "WEALL_STARTUP_CLOCK_SANITY_REQUIRED", PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+        "WEALL_STARTUP_CLOCK_SANITY_REQUIRED",
+        PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required,
     )
     if startup_clock_sanity_required_invalid:
         issues.append("invalid_boolean_env:WEALL_STARTUP_CLOCK_SANITY_REQUIRED")
@@ -386,7 +451,9 @@ def production_bootstrap_issues(cfg: ChainConfig) -> List[str]:
     if workers_invalid:
         issues.append("invalid_integer_env:GUNICORN_WORKERS")
     if (block_loop_autostart or net_loop_autostart or bft_enabled or net_enabled) and workers > 1:
-        issues.append("GUNICORN_WORKERS must be 1 when networking/consensus autostart loops are enabled in production")
+        issues.append(
+            "GUNICORN_WORKERS must be 1 when networking/consensus autostart loops are enabled in production"
+        )
 
     sigverify = str(os.environ.get("WEALL_SIGVERIFY", "") or "").strip()
     if sigverify == "0":
@@ -402,17 +469,35 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     require_anchor, anchor_conflict, anchor_invalid = _trusted_anchor_env_status(True)
     net_enabled, net_enabled_invalid = _env_bool_status("WEALL_NET_ENABLED", False)
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
-    from weall.runtime.bootstrap_manifest import release_manifest_path, release_pubkey, signed_manifest_required, verify_local_manifest
+    from weall.runtime.bootstrap_manifest import (
+        release_manifest_path,
+        release_pubkey,
+        signed_manifest_required,
+        verify_local_manifest,
+    )
 
-    manifest_required = signed_manifest_required(mode=str(cfg.mode or "").strip().lower(), network_enabled=bool(net_enabled), bft_enabled=bool(bft_enabled))
+    manifest_required = signed_manifest_required(
+        mode=str(cfg.mode or "").strip().lower(),
+        network_enabled=bool(net_enabled),
+        bft_enabled=bool(bft_enabled),
+    )
     manifest_path_raw = release_manifest_path()
     manifest_pubkey = release_pubkey()
     manifest_report = None
     if manifest_path_raw and manifest_pubkey and Path(manifest_path_raw).is_file():
         try:
-            manifest_report = verify_local_manifest(cfg=cfg, manifest_path=Path(manifest_path_raw).resolve(), expected_pubkey=manifest_pubkey)
+            manifest_report = verify_local_manifest(
+                cfg=cfg,
+                manifest_path=Path(manifest_path_raw).resolve(),
+                expected_pubkey=manifest_pubkey,
+            )
         except Exception as exc:
-            manifest_report = {"ok": False, "path": manifest_path_raw, "pubkey": manifest_pubkey, "issues": [f"release manifest verification failed: {exc}"]}
+            manifest_report = {
+                "ok": False,
+                "path": manifest_path_raw,
+                "pubkey": manifest_pubkey,
+                "issues": [f"release manifest verification failed: {exc}"],
+            }
     return {
         "ok": not issues,
         "mode": str(cfg.mode or "").strip().lower(),
@@ -427,7 +512,9 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
         "trusted_anchor_required": bool(require_anchor),
         "protocol_version": str(PRODUCTION_CONSENSUS_PROFILE.protocol_version),
         "protocol_profile_hash": str(PRODUCTION_CONSENSUS_PROFILE.profile_hash()),
-        "startup_clock_sanity_required": bool(PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required),
+        "startup_clock_sanity_required": bool(
+            PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
+        ),
         "startup_clock_hard_fail_ms": int(PRODUCTION_CONSENSUS_PROFILE.startup_clock_hard_fail_ms),
         "trusted_anchor_env_conflict": bool(anchor_conflict),
         "trusted_anchor_env_invalid": bool(anchor_invalid),
@@ -505,7 +592,7 @@ def _read_json_file(path: Path) -> Json:
     return data
 
 
-def load_chain_config(path: Optional[str] = None) -> ChainConfig:
+def load_chain_config(path: str | None = None) -> ChainConfig:
     env_path = os.environ.get("WEALL_CHAIN_CONFIG_PATH", "").strip()
     chosen = path or env_path or "./configs/dev.chain.json"
     resolved = _resolve_chain_config_path(chosen)

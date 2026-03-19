@@ -5,9 +5,9 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,8 +20,8 @@ class GenesisValidator:
 @dataclass(frozen=True, slots=True)
 class GenesisConfig:
     chain_id: str
-    validators: List[GenesisValidator]
-    active_set: Optional[List[str]] = None
+    validators: list[GenesisValidator]
+    active_set: list[str] | None = None
 
 
 def load_genesis(path: str) -> GenesisConfig:
@@ -49,7 +49,7 @@ def load_genesis(path: str) -> GenesisConfig:
     if not isinstance(vals_raw, list):
         vals_raw = []
 
-    vals: List[GenesisValidator] = []
+    vals: list[GenesisValidator] = []
     for rec in vals_raw:
         if not isinstance(rec, dict):
             continue
@@ -69,7 +69,7 @@ def load_genesis(path: str) -> GenesisConfig:
     return GenesisConfig(chain_id=chain_id, validators=vals, active_set=active_set)
 
 
-def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> Tuple[bool, Json]:
+def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tuple[bool, Json]:
     """Apply genesis validator config to a ledger state dict.
 
     Returns (changed, state). Safe to call repeatedly; it is idempotent.
@@ -133,7 +133,7 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> Tup
         # Canonical keys dict
         keys = acct.get("keys")
         if isinstance(keys, list):
-            migrated: Dict[str, Any] = {}
+            migrated: dict[str, Any] = {}
             for rec in keys:
                 if not isinstance(rec, dict):
                     continue

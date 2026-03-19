@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import mimetypes
-from typing import Any, Dict, List, Optional
+import os
+from typing import Any
 
-from fastapi import APIRouter, Request, UploadFile, File
+from fastapi import APIRouter, File, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from weall.api.errors import ApiError
+from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
 from weall.poh.email_verification import EmailVerificationService
 from weall.runtime.system_tx_engine import enqueue_system_tx
-from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 router = APIRouter()
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class PohRouteConfigError(ValueError):
@@ -44,7 +44,7 @@ def _is_prod() -> bool:
 class PohEmailBeginRequest(BaseModel):
     account: str = Field(..., min_length=1, max_length=128)
     email: str = Field(..., min_length=3, max_length=320)
-    turnstile_token: Optional[str] = Field(default=None, max_length=4096)
+    turnstile_token: str | None = Field(default=None, max_length=4096)
 
 
 class PohEmailBeginResponse(BaseModel):
@@ -58,7 +58,7 @@ class PohEmailConfirmRequest(BaseModel):
     request_id: str = Field(..., min_length=8, max_length=256)
     # Must be string to preserve leading zeros (email codes often start with 0)
     code: str = Field(..., min_length=4, max_length=16)
-    turnstile_token: Optional[str] = Field(default=None, max_length=4096)
+    turnstile_token: str | None = Field(default=None, max_length=4096)
 
 
 class PohEmailConfirmResponse(BaseModel):
@@ -122,7 +122,11 @@ def poh_email_confirm(req: PohEmailConfirmRequest, request: Request) -> PohEmail
         raise ApiError.bad_request("invalid_code", "code is required")
 
     svc = _svc(request)
-    ok = bool(svc.confirm(account=account, request_id=request_id, code=code, turnstile_token=req.turnstile_token))
+    ok = bool(
+        svc.confirm(
+            account=account, request_id=request_id, code=code, turnstile_token=req.turnstile_token
+        )
+    )
     if not ok:
         raise ApiError.bad_request("invalid_code", "email verification failed", {})
 
@@ -141,8 +145,6 @@ def poh_email_confirm(req: PohEmailConfirmRequest, request: Request) -> PohEmail
     )
 
     return PohEmailConfirmResponse(ok=True)
-
-
 
 
 class PohEmailReceiptSubmitRequest(BaseModel):
@@ -168,9 +170,11 @@ def poh_email_tx_receipt_submit(req: PohEmailReceiptSubmitRequest, request: Requ
         },
     }
 
+
 # ---------------------------------------------------------------------------
 # PoH Tier2: Video intake (IPFS upload helper)
 # ---------------------------------------------------------------------------
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
@@ -232,8 +236,14 @@ class PohTier2VideoUploadResponse(BaseModel):
     video_commitment: str
 
 
-@router.post("/poh/tier2/video/upload", response_model=PohTier2VideoUploadResponse, name="poh_tier2_video_upload")
-async def poh_tier2_video_upload(request: Request, file: UploadFile = File(...)) -> PohTier2VideoUploadResponse:
+@router.post(
+    "/poh/tier2/video/upload",
+    response_model=PohTier2VideoUploadResponse,
+    name="poh_tier2_video_upload",
+)
+async def poh_tier2_video_upload(
+    request: Request, file: UploadFile = File(...)
+) -> PohTier2VideoUploadResponse:
     """Upload Tier-2 video evidence to IPFS and return a CID + commitment.
 
     Why this exists:
@@ -255,7 +265,9 @@ async def poh_tier2_video_upload(request: Request, file: UploadFile = File(...))
     max_bytes = _env_int("WEALL_POH_TIER2_VIDEO_MAX_BYTES", 25 * 1024 * 1024)
 
     name = (file.filename or "poh_tier2_video").strip() or "poh_tier2_video"
-    mime = (file.content_type or "").strip() or (mimetypes.guess_type(name)[0] or "application/octet-stream")
+    mime = (file.content_type or "").strip() or (
+        mimetypes.guess_type(name)[0] or "application/octet-stream"
+    )
 
     size = _file_size(file)
     if size == 0:
@@ -271,7 +283,9 @@ async def poh_tier2_video_upload(request: Request, file: UploadFile = File(...))
     pin_on_upload = _env_bool("WEALL_POH_TIER2_VIDEO_PIN_ON_UPLOAD", False)
 
     try:
-        cid, ipfs_reported_size = ipfs_add_fileobj(name=name, fileobj=file.file, pin=bool(pin_on_upload))
+        cid, ipfs_reported_size = ipfs_add_fileobj(
+            name=name, fileobj=file.file, pin=bool(pin_on_upload)
+        )
     except RuntimeError as e:
         raise ApiError.bad_request("ipfs_error", str(e))
 
@@ -339,20 +353,20 @@ class PohTier2CaseModel(BaseModel):
     case_id: str
     account_id: str
     status: str
-    requested_by: Optional[str] = None
-    created_ts_ms: Optional[int] = None
-    finalized_ts_ms: Optional[int] = None
-    outcome: Optional[str] = None
-    tier_awarded: Optional[int] = None
-    jurors: Dict[str, object] = Field(default_factory=dict)
-    evidence: Dict[str, object] = Field(default_factory=dict)
+    requested_by: str | None = None
+    created_ts_ms: int | None = None
+    finalized_ts_ms: int | None = None
+    outcome: str | None = None
+    tier_awarded: int | None = None
+    jurors: dict[str, object] = Field(default_factory=dict)
+    evidence: dict[str, object] = Field(default_factory=dict)
 
 
-def _as_tier2_case(case_id: str, r: Dict[str, object]) -> PohTier2CaseModel:
+def _as_tier2_case(case_id: str, r: dict[str, object]) -> PohTier2CaseModel:
     acct = str(r.get("account_id") or "").strip()
     status = str(r.get("status") or "").strip() or "unknown"
 
-    def _opt_int(v: Any) -> Optional[int]:
+    def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
@@ -387,7 +401,7 @@ class PohTier2CaseResponse(BaseModel):
 
 class PohTier2CaseListResponse(BaseModel):
     ok: bool
-    cases: List[PohTier2CaseModel]
+    cases: list[PohTier2CaseModel]
 
 
 @router.get("/poh/tier2/case/{case_id}", response_model=PohTier2CaseResponse, name="poh_tier2_case")
@@ -401,7 +415,9 @@ def poh_tier2_case(case_id: str, request: Request) -> PohTier2CaseResponse:
     return PohTier2CaseResponse(ok=True, case=_as_tier2_case(cid, raw))
 
 
-@router.get("/poh/tier2/my-cases", response_model=PohTier2CaseListResponse, name="poh_tier2_my_cases")
+@router.get(
+    "/poh/tier2/my-cases", response_model=PohTier2CaseListResponse, name="poh_tier2_my_cases"
+)
 def poh_tier2_my_cases(account: str, request: Request) -> PohTier2CaseListResponse:
     acct = str(account or "").strip()
     if not acct:
@@ -409,7 +425,7 @@ def poh_tier2_my_cases(account: str, request: Request) -> PohTier2CaseListRespon
     st = _snapshot(request)
     cases = _tier2_cases_from_snapshot(st)
 
-    out: List[PohTier2CaseModel] = []
+    out: list[PohTier2CaseModel] = []
     for cid, raw in cases.items():
         if not isinstance(raw, dict):
             continue
@@ -420,7 +436,9 @@ def poh_tier2_my_cases(account: str, request: Request) -> PohTier2CaseListRespon
     return PohTier2CaseListResponse(ok=True, cases=out)
 
 
-@router.get("/poh/tier2/juror-cases", response_model=PohTier2CaseListResponse, name="poh_tier2_juror_cases")
+@router.get(
+    "/poh/tier2/juror-cases", response_model=PohTier2CaseListResponse, name="poh_tier2_juror_cases"
+)
 def poh_tier2_juror_cases(juror: str, request: Request) -> PohTier2CaseListResponse:
     j = str(juror or "").strip()
     if not j:
@@ -428,7 +446,7 @@ def poh_tier2_juror_cases(juror: str, request: Request) -> PohTier2CaseListRespo
     st = _snapshot(request)
     cases = _tier2_cases_from_snapshot(st)
 
-    out: List[PohTier2CaseModel] = []
+    out: list[PohTier2CaseModel] = []
     for cid, raw in cases.items():
         if not isinstance(raw, dict):
             continue
@@ -452,29 +470,29 @@ class PohTier3JurorModel(BaseModel):
     role: str
     accepted: bool
     attended: bool
-    attended_ts_ms: Optional[int] = None
-    verdict: Optional[str] = None
+    attended_ts_ms: int | None = None
+    verdict: str | None = None
 
 
 class PohTier3CaseModel(BaseModel):
     case_id: str
     account_id: str
     status: str
-    requested_by: Optional[str] = None
-    session_commitment: Optional[str] = None
-    init_ts_ms: Optional[int] = None
-    finalized_ts_ms: Optional[int] = None
-    outcome: Optional[str] = None
-    tier_awarded: Optional[int] = None
-    poh_nft_token_id: Optional[str] = None
-    jurors: List[PohTier3JurorModel] = Field(default_factory=list)
+    requested_by: str | None = None
+    session_commitment: str | None = None
+    init_ts_ms: int | None = None
+    finalized_ts_ms: int | None = None
+    outcome: str | None = None
+    tier_awarded: int | None = None
+    poh_nft_token_id: str | None = None
+    jurors: list[PohTier3JurorModel] = Field(default_factory=list)
 
 
-def _as_tier3_case(case_id: str, r: Dict[str, object]) -> PohTier3CaseModel:
+def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
     acct = str(r.get("account_id") or "").strip()
     status = str(r.get("status") or "").strip() or "unknown"
 
-    jurors: List[PohTier3JurorModel] = []
+    jurors: list[PohTier3JurorModel] = []
     jm = r.get("jurors")
     if isinstance(jm, dict):
         for jid, jrec_any in jm.items():
@@ -484,7 +502,7 @@ def _as_tier3_case(case_id: str, r: Dict[str, object]) -> PohTier3CaseModel:
             verdict = jrec.get("verdict")
             verdict = str(verdict).strip() if isinstance(verdict, str) else None
 
-            ats: Optional[int]
+            ats: int | None
             try:
                 ats = None
                 if jrec.get("attended_ts_ms") is not None:
@@ -505,7 +523,7 @@ def _as_tier3_case(case_id: str, r: Dict[str, object]) -> PohTier3CaseModel:
 
     jurors.sort(key=lambda j: (0 if j.role == "interacting" else 1, j.juror_id))
 
-    def _opt_int(v: Any) -> Optional[int]:
+    def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
@@ -533,7 +551,7 @@ class PohTier3CaseResponse(BaseModel):
 
 class PohTier3AssignedResponse(BaseModel):
     ok: bool
-    cases: List[PohTier3CaseModel]
+    cases: list[PohTier3CaseModel]
 
 
 @router.get("/poh/tier3/case/{case_id}", response_model=PohTier3CaseResponse, name="poh_tier3_case")
@@ -547,7 +565,9 @@ def poh_tier3_case(case_id: str, request: Request) -> PohTier3CaseResponse:
     return PohTier3CaseResponse(ok=True, case=_as_tier3_case(cid, raw))
 
 
-@router.get("/poh/tier3/assigned", response_model=PohTier3AssignedResponse, name="poh_tier3_assigned")
+@router.get(
+    "/poh/tier3/assigned", response_model=PohTier3AssignedResponse, name="poh_tier3_assigned"
+)
 def poh_tier3_assigned(juror: str, request: Request) -> PohTier3AssignedResponse:
     j = str(juror or "").strip()
     if not j:
@@ -555,7 +575,7 @@ def poh_tier3_assigned(juror: str, request: Request) -> PohTier3AssignedResponse
     st = _snapshot(request)
     cases = _tier3_cases_from_snapshot(st)
 
-    out: List[PohTier3CaseModel] = []
+    out: list[PohTier3CaseModel] = []
     for cid, raw in cases.items():
         if not isinstance(raw, dict):
             continue
@@ -573,10 +593,10 @@ class PohTier3SessionModel(BaseModel):
     session_id: str
     case_id: str
     status: str
-    created_ts_ms: Optional[int] = None
-    started_ts_ms: Optional[int] = None
-    ended_ts_ms: Optional[int] = None
-    join_url: Optional[str] = None
+    created_ts_ms: int | None = None
+    started_ts_ms: int | None = None
+    ended_ts_ms: int | None = None
+    join_url: str | None = None
 
 
 class PohTier3SessionResponse(BaseModel):
@@ -586,11 +606,11 @@ class PohTier3SessionResponse(BaseModel):
 
 class PohTier3SessionListResponse(BaseModel):
     ok: bool
-    sessions: List[PohTier3SessionModel]
+    sessions: list[PohTier3SessionModel]
 
 
-def _as_tier3_session(session_id: str, r: Dict[str, object]) -> PohTier3SessionModel:
-    def _opt_int(v: Any) -> Optional[int]:
+def _as_tier3_session(session_id: str, r: dict[str, object]) -> PohTier3SessionModel:
+    def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
@@ -607,7 +627,11 @@ def _as_tier3_session(session_id: str, r: Dict[str, object]) -> PohTier3SessionM
     )
 
 
-@router.get("/poh/tier3/session/{session_id}", response_model=PohTier3SessionResponse, name="poh_tier3_session")
+@router.get(
+    "/poh/tier3/session/{session_id}",
+    response_model=PohTier3SessionResponse,
+    name="poh_tier3_session",
+)
 def poh_tier3_session(session_id: str, request: Request) -> PohTier3SessionResponse:
     st = _snapshot(request)
     sess = _tier3_sessions_from_snapshot(st)
@@ -618,12 +642,14 @@ def poh_tier3_session(session_id: str, request: Request) -> PohTier3SessionRespo
     return PohTier3SessionResponse(ok=True, session=_as_tier3_session(sid, raw))
 
 
-@router.get("/poh/tier3/sessions", response_model=PohTier3SessionListResponse, name="poh_tier3_sessions")
+@router.get(
+    "/poh/tier3/sessions", response_model=PohTier3SessionListResponse, name="poh_tier3_sessions"
+)
 def poh_tier3_sessions(request: Request) -> PohTier3SessionListResponse:
     st = _snapshot(request)
     sess = _tier3_sessions_from_snapshot(st)
 
-    out: List[PohTier3SessionModel] = []
+    out: list[PohTier3SessionModel] = []
     for sid, raw in sess.items():
         if not isinstance(raw, dict):
             continue
@@ -637,17 +663,19 @@ class PohTier3SessionParticipantModel(BaseModel):
     session_id: str
     juror_id: str
     status: str
-    joined_ts_ms: Optional[int] = None
-    left_ts_ms: Optional[int] = None
+    joined_ts_ms: int | None = None
+    left_ts_ms: int | None = None
 
 
 class PohTier3SessionParticipantsResponse(BaseModel):
     ok: bool
-    participants: List[PohTier3SessionParticipantModel]
+    participants: list[PohTier3SessionParticipantModel]
 
 
-def _as_participant(session_id: str, juror_id: str, r: Dict[str, object]) -> PohTier3SessionParticipantModel:
-    def _opt_int(v: Any) -> Optional[int]:
+def _as_participant(
+    session_id: str, juror_id: str, r: dict[str, object]
+) -> PohTier3SessionParticipantModel:
+    def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
@@ -667,7 +695,9 @@ def _as_participant(session_id: str, juror_id: str, r: Dict[str, object]) -> Poh
     response_model=PohTier3SessionParticipantsResponse,
     name="poh_tier3_session_participants",
 )
-def poh_tier3_session_participants(session_id: str, request: Request) -> PohTier3SessionParticipantsResponse:
+def poh_tier3_session_participants(
+    session_id: str, request: Request
+) -> PohTier3SessionParticipantsResponse:
     st = _snapshot(request)
     sp = _tier3_session_participants_from_snapshot(st)
     sid = str(session_id or "").strip()
@@ -675,7 +705,7 @@ def poh_tier3_session_participants(session_id: str, request: Request) -> PohTier
     if not isinstance(raw, dict):
         raise ApiError.not_found("not_found", "tier3_session_participants_not_found")
 
-    out: List[PohTier3SessionParticipantModel] = []
+    out: list[PohTier3SessionParticipantModel] = []
     for juror_id, jrec_any in raw.items():
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
         out.append(_as_participant(sid, str(juror_id), jrec))
@@ -688,6 +718,7 @@ def poh_tier3_session_participants(session_id: str, request: Request) -> PohTier
 # PoH Operator endpoints (MVP)
 # ---------------------------------------------------------------------------
 
+
 def _require_operator_poh_enabled() -> None:
     if not _env_bool("WEALL_ENABLE_OPERATOR_POH", False):
         raise ApiError.not_found("not_found", "operator_poh_disabled")
@@ -696,7 +727,9 @@ def _require_operator_poh_enabled() -> None:
 def _require_operator_token(request: Request) -> None:
     want = (os.getenv("WEALL_OPERATOR_TOKEN") or "").strip()
     if not want:
-        raise ApiError.bad_request("missing_env", "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled")
+        raise ApiError.bad_request(
+            "missing_env", "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled"
+        )
 
     got = (request.headers.get("X-WeAll-Operator-Token") or "").strip()
     if not got or got != want:
@@ -719,7 +752,9 @@ class OperatorPohTier2FinalizeResponse(BaseModel):
     response_model=OperatorPohTier2FinalizeResponse,
     name="operator_poh_tier2_finalize",
 )
-def operator_poh_tier2_finalize(req: OperatorPohTier2FinalizeRequest, request: Request) -> OperatorPohTier2FinalizeResponse:
+def operator_poh_tier2_finalize(
+    req: OperatorPohTier2FinalizeRequest, request: Request
+) -> OperatorPohTier2FinalizeResponse:
     _require_operator_poh_enabled()
     _require_operator_token(request)
 
@@ -728,7 +763,9 @@ def operator_poh_tier2_finalize(req: OperatorPohTier2FinalizeRequest, request: R
     if not case_id:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
     if outcome not in ("pass", "fail"):
-        raise ApiError.bad_request("bad_request", "outcome must be 'pass' or 'fail'", {"outcome": outcome})
+        raise ApiError.bad_request(
+            "bad_request", "outcome must be 'pass' or 'fail'", {"outcome": outcome}
+        )
 
     st = _snapshot(request)
     height = int(st.get("height") or 0)
@@ -758,8 +795,14 @@ class OperatorPohTier3InitResponse(BaseModel):
     due_height: int
 
 
-@router.post("/poh/operator/tier3/init", response_model=OperatorPohTier3InitResponse, name="operator_poh_tier3_init")
-def operator_poh_tier3_init(req: OperatorPohTier3InitRequest, request: Request) -> OperatorPohTier3InitResponse:
+@router.post(
+    "/poh/operator/tier3/init",
+    response_model=OperatorPohTier3InitResponse,
+    name="operator_poh_tier3_init",
+)
+def operator_poh_tier3_init(
+    req: OperatorPohTier3InitRequest, request: Request
+) -> OperatorPohTier3InitResponse:
     _require_operator_poh_enabled()
     _require_operator_token(request)
 
@@ -802,7 +845,9 @@ class OperatorPohTier3FinalizeResponse(BaseModel):
     response_model=OperatorPohTier3FinalizeResponse,
     name="operator_poh_tier3_finalize",
 )
-def operator_poh_tier3_finalize(req: OperatorPohTier3FinalizeRequest, request: Request) -> OperatorPohTier3FinalizeResponse:
+def operator_poh_tier3_finalize(
+    req: OperatorPohTier3FinalizeRequest, request: Request
+) -> OperatorPohTier3FinalizeResponse:
     _require_operator_poh_enabled()
     _require_operator_token(request)
 
@@ -835,7 +880,7 @@ def operator_poh_tier3_finalize(req: OperatorPohTier3FinalizeRequest, request: R
 class TxSkeletonTier2(BaseModel):
     tx_type: str
     signer_hint: str
-    parent: Optional[str]
+    parent: str | None
     payload: Json
 
 
@@ -847,10 +892,10 @@ class TxSkeletonResponseTier2(BaseModel):
 class PohTier2RequestSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
     # User may supply either a video commitment (sha256) or an uploaded CID.
-    video_commitment: Optional[str] = Field(default=None, max_length=128)
-    video_cid: Optional[str] = Field(default=None, max_length=256)
+    video_commitment: str | None = Field(default=None, max_length=128)
+    video_cid: str | None = Field(default=None, max_length=256)
     # Optional: request Tier3 directly via Tier2 request path
-    target_tier: Optional[int] = Field(default=None, ge=2, le=3)
+    target_tier: int | None = Field(default=None, ge=2, le=3)
 
 
 class PohTier2JurorActionSkeletonRequest(BaseModel):
@@ -862,8 +907,12 @@ class PohTier2ReviewSkeletonRequest(BaseModel):
     verdict: str = Field(..., min_length=1)
 
 
-@router.post("/poh/tier2/tx/request", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_request")
-def poh_tier2_tx_request(req: PohTier2RequestSkeletonRequest, request: Request) -> TxSkeletonResponseTier2:
+@router.post(
+    "/poh/tier2/tx/request", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_request"
+)
+def poh_tier2_tx_request(
+    req: PohTier2RequestSkeletonRequest, request: Request
+) -> TxSkeletonResponseTier2:
     """Return a tx skeleton to request Tier-2 (or Tier-3 via target_tier=3).
 
     Client must sign and submit via /v1/tx/submit.
@@ -902,8 +951,14 @@ def poh_tier2_tx_request(req: PohTier2RequestSkeletonRequest, request: Request) 
     )
 
 
-@router.post("/poh/tier2/tx/juror-accept", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_juror_accept")
-def poh_tier2_tx_juror_accept(req: PohTier2JurorActionSkeletonRequest, request: Request) -> TxSkeletonResponseTier2:
+@router.post(
+    "/poh/tier2/tx/juror-accept",
+    response_model=TxSkeletonResponseTier2,
+    name="poh_tier2_tx_juror_accept",
+)
+def poh_tier2_tx_juror_accept(
+    req: PohTier2JurorActionSkeletonRequest, request: Request
+) -> TxSkeletonResponseTier2:
     cid = str(req.case_id or "").strip()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
@@ -919,8 +974,14 @@ def poh_tier2_tx_juror_accept(req: PohTier2JurorActionSkeletonRequest, request: 
     )
 
 
-@router.post("/poh/tier2/tx/juror-decline", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_juror_decline")
-def poh_tier2_tx_juror_decline(req: PohTier2JurorActionSkeletonRequest, request: Request) -> TxSkeletonResponseTier2:
+@router.post(
+    "/poh/tier2/tx/juror-decline",
+    response_model=TxSkeletonResponseTier2,
+    name="poh_tier2_tx_juror_decline",
+)
+def poh_tier2_tx_juror_decline(
+    req: PohTier2JurorActionSkeletonRequest, request: Request
+) -> TxSkeletonResponseTier2:
     cid = str(req.case_id or "").strip()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
@@ -936,14 +997,20 @@ def poh_tier2_tx_juror_decline(req: PohTier2JurorActionSkeletonRequest, request:
     )
 
 
-@router.post("/poh/tier2/tx/review", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_review")
-def poh_tier2_tx_review(req: PohTier2ReviewSkeletonRequest, request: Request) -> TxSkeletonResponseTier2:
+@router.post(
+    "/poh/tier2/tx/review", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_review"
+)
+def poh_tier2_tx_review(
+    req: PohTier2ReviewSkeletonRequest, request: Request
+) -> TxSkeletonResponseTier2:
     cid = str(req.case_id or "").strip()
     verdict = str(req.verdict or "").strip().lower()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
     if verdict not in ("pass", "fail"):
-        raise ApiError.bad_request("bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict})
+        raise ApiError.bad_request(
+            "bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict}
+        )
 
     return TxSkeletonResponseTier2(
         ok=True,
@@ -963,7 +1030,7 @@ def poh_tier2_tx_review(req: PohTier2ReviewSkeletonRequest, request: Request) ->
 class TxSkeleton(BaseModel):
     tx_type: str
     signer_hint: str
-    parent: Optional[str] = None
+    parent: str | None = None
     payload: Json
 
 
@@ -999,8 +1066,12 @@ def _case_session_commitment(st: Json, case_id: str) -> str:
     return str(raw.get("session_commitment") or "").strip()
 
 
-@router.post("/poh/tier3/tx/request", response_model=TxSkeletonResponse, name="poh_tier3_tx_request")
-def poh_tier3_tx_request(req: PohTier3RequestSkeletonRequest, request: Request) -> TxSkeletonResponse:
+@router.post(
+    "/poh/tier3/tx/request", response_model=TxSkeletonResponse, name="poh_tier3_tx_request"
+)
+def poh_tier3_tx_request(
+    req: PohTier3RequestSkeletonRequest, request: Request
+) -> TxSkeletonResponse:
     """Return a tx skeleton to request Tier-3.
 
     IMPORTANT:
@@ -1026,8 +1097,14 @@ def poh_tier3_tx_request(req: PohTier3RequestSkeletonRequest, request: Request) 
     )
 
 
-@router.post("/poh/tier3/tx/juror-accept", response_model=TxSkeletonResponse, name="poh_tier3_tx_juror_accept")
-def poh_tier3_tx_juror_accept(req: PohTier3JurorCaseSkeletonRequest, request: Request) -> TxSkeletonResponse:
+@router.post(
+    "/poh/tier3/tx/juror-accept",
+    response_model=TxSkeletonResponse,
+    name="poh_tier3_tx_juror_accept",
+)
+def poh_tier3_tx_juror_accept(
+    req: PohTier3JurorCaseSkeletonRequest, request: Request
+) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
@@ -1044,8 +1121,14 @@ def poh_tier3_tx_juror_accept(req: PohTier3JurorCaseSkeletonRequest, request: Re
     )
 
 
-@router.post("/poh/tier3/tx/juror-decline", response_model=TxSkeletonResponse, name="poh_tier3_tx_juror_decline")
-def poh_tier3_tx_juror_decline(req: PohTier3JurorCaseSkeletonRequest, request: Request) -> TxSkeletonResponse:
+@router.post(
+    "/poh/tier3/tx/juror-decline",
+    response_model=TxSkeletonResponse,
+    name="poh_tier3_tx_juror_decline",
+)
+def poh_tier3_tx_juror_decline(
+    req: PohTier3JurorCaseSkeletonRequest, request: Request
+) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
@@ -1061,8 +1144,12 @@ def poh_tier3_tx_juror_decline(req: PohTier3JurorCaseSkeletonRequest, request: R
     )
 
 
-@router.post("/poh/tier3/tx/attendance", response_model=TxSkeletonResponse, name="poh_tier3_tx_attendance")
-def poh_tier3_tx_attendance(req: PohTier3AttendanceSkeletonRequest, request: Request) -> TxSkeletonResponse:
+@router.post(
+    "/poh/tier3/tx/attendance", response_model=TxSkeletonResponse, name="poh_tier3_tx_attendance"
+)
+def poh_tier3_tx_attendance(
+    req: PohTier3AttendanceSkeletonRequest, request: Request
+) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     juror_id = str(req.juror_id or "").strip()
     if not cid:
@@ -1099,14 +1186,20 @@ def poh_tier3_tx_attendance(req: PohTier3AttendanceSkeletonRequest, request: Req
     )
 
 
-@router.post("/poh/tier3/tx/verdict", response_model=TxSkeletonResponse, name="poh_tier3_tx_verdict")
-def poh_tier3_tx_verdict(req: PohTier3VerdictSkeletonRequest, request: Request) -> TxSkeletonResponse:
+@router.post(
+    "/poh/tier3/tx/verdict", response_model=TxSkeletonResponse, name="poh_tier3_tx_verdict"
+)
+def poh_tier3_tx_verdict(
+    req: PohTier3VerdictSkeletonRequest, request: Request
+) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     verdict = str(req.verdict or "").strip().lower()
     if not cid:
         raise ApiError.bad_request("bad_request", "missing case_id", {})
     if verdict not in ("pass", "fail"):
-        raise ApiError.bad_request("bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict})
+        raise ApiError.bad_request(
+            "bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict}
+        )
 
     st = _snapshot(request)
     sc = _case_session_commitment(st, cid)

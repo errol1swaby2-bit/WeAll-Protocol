@@ -1,22 +1,21 @@
 # projects/Weall-Protocol/src/weall/api/routes_public_parts/media.py
 from __future__ import annotations
 
+import mimetypes
 import os
 import re
-import mimetypes
-from typing import Any, Dict, Tuple, Set
+from typing import Any
 
-from fastapi import APIRouter, Request, UploadFile, File
+from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.responses import RedirectResponse
 
 from weall.api.errors import ApiError
+from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _executor, _mempool, _snapshot
 from weall.api.security import require_account_session
-from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.ledger.state import LedgerView
-from weall.storage.ipfs_partition import read_partition_config, can_accept_bytes
+from weall.storage.ipfs_partition import can_accept_bytes, read_partition_config
 from weall.util.ipfs_cid import validate_ipfs_cid
-
 
 router = APIRouter()
 
@@ -61,7 +60,7 @@ def _sanitize_filename(name: str) -> str:
     return name[:128] or "upload"
 
 
-def _require_tier3(st: Dict[str, Any], account: str) -> None:
+def _require_tier3(st: dict[str, Any], account: str) -> None:
     accounts = st.get("accounts")
     if not isinstance(accounts, dict):
         raise ApiError.forbidden("forbidden", "Account state unavailable")
@@ -77,7 +76,7 @@ def _require_tier3(st: Dict[str, Any], account: str) -> None:
         raise ApiError.forbidden("forbidden", "Media upload requires PoH tier 3+")
 
 
-def _next_account_nonce(st: Dict[str, Any], account: str) -> int:
+def _next_account_nonce(st: dict[str, Any], account: str) -> int:
     accounts = st.get("accounts")
     if isinstance(accounts, dict):
         rec = accounts.get(account)
@@ -106,12 +105,14 @@ def _file_size(upload: UploadFile) -> int:
         return -1
 
 
-def _storage_get(st: Dict[str, Any]) -> Dict[str, Any]:
+def _storage_get(st: dict[str, Any]) -> dict[str, Any]:
     storage = st.get("storage")
     return storage if isinstance(storage, dict) else {}
 
 
-def _pin_info_for_cid_unique_ops(st: Dict[str, Any], cid: str) -> Tuple[bool, int, int, int, int, int]:
+def _pin_info_for_cid_unique_ops(
+    st: dict[str, Any], cid: str
+) -> tuple[bool, int, int, int, int, int]:
     """
     Returns:
       (pin_requested, ok_unique_ops, ok_total, fail_total, last_nonce, last_height)
@@ -130,7 +131,7 @@ def _pin_info_for_cid_unique_ops(st: Dict[str, Any], cid: str) -> Tuple[bool, in
     fail_total = 0
     last_nonce = 0
     last_height = 0
-    ok_ops: Set[str] = set()
+    ok_ops: set[str] = set()
 
     if isinstance(pins, dict):
         for _, rec_any in pins.items():
@@ -173,7 +174,7 @@ def _pin_info_for_cid_unique_ops(st: Dict[str, Any], cid: str) -> Tuple[bool, in
     return pin_requested, len(ok_ops), ok_total, fail_total, last_nonce, last_height
 
 
-def _replication_factor(st: Dict[str, Any]) -> int:
+def _replication_factor(st: dict[str, Any]) -> int:
     """
     Source-of-truth order:
       1) env WEALL_IPFS_REPLICATION_FACTOR (int)
@@ -215,7 +216,9 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
     max_bytes = _env_int("WEALL_IPFS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
 
     name = _sanitize_filename(file.filename or "upload")
-    mime = (file.content_type or "").strip() or (mimetypes.guess_type(name)[0] or "application/octet-stream")
+    mime = (file.content_type or "").strip() or (
+        mimetypes.guess_type(name)[0] or "application/octet-stream"
+    )
 
     size = _file_size(file)
     if size == 0:
@@ -246,7 +249,9 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
     pin_on_upload = _env_bool("WEALL_IPFS_PIN_ON_UPLOAD", False)
 
     try:
-        cid, ipfs_reported_size = ipfs_add_fileobj(name=name, fileobj=file.file, pin=bool(pin_on_upload))
+        cid, ipfs_reported_size = ipfs_add_fileobj(
+            name=name, fileobj=file.file, pin=bool(pin_on_upload)
+        )
     except RuntimeError as e:
         raise ApiError.bad_request("ipfs_error", str(e))
 
@@ -257,7 +262,12 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
     final_size = size if size >= 0 else int(ipfs_reported_size)
 
     auto_pin_request = _env_bool("WEALL_MEDIA_AUTO_PIN_REQUEST", False)
-    pin_request: Dict[str, Any] = {"submitted": False, "tx_id": None, "error": None, "envelope": None}
+    pin_request: dict[str, Any] = {
+        "submitted": False,
+        "tx_id": None,
+        "error": None,
+        "envelope": None,
+    }
 
     suggested_env = {
         "tx_type": "IPFS_PIN_REQUEST",
@@ -282,12 +292,20 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
 
             res = mp.submit(ledger=ledger, tx=suggested_env, context="mempool")
             if not res.ok:
-                pin_request["error"] = {"code": res.code, "reason": res.reason, "details": res.details}
+                pin_request["error"] = {
+                    "code": res.code,
+                    "reason": res.reason,
+                    "details": res.details,
+                }
             else:
                 pin_request["submitted"] = True
                 pin_request["tx_id"] = res.tx_id
         except Exception as e:
-            pin_request["error"] = {"code": "pin_request_submit_failed", "reason": str(e), "details": {}}
+            pin_request["error"] = {
+                "code": "pin_request_submit_failed",
+                "reason": str(e),
+                "details": {},
+            }
 
     return {
         "ok": True,
@@ -323,7 +341,9 @@ async def v1_media_status(request: Request, cid: str):
         raise ApiError.invalid("invalid_payload", v.reason)
 
     rf = _replication_factor(st)
-    pin_requested, ok_unique_ops, ok_total, fail_total, last_nonce, last_height = _pin_info_for_cid_unique_ops(st, v.cid)
+    pin_requested, ok_unique_ops, ok_total, fail_total, last_nonce, last_height = (
+        _pin_info_for_cid_unique_ops(st, v.cid)
+    )
 
     durable = bool(ok_unique_ops >= rf and rf > 0)
 

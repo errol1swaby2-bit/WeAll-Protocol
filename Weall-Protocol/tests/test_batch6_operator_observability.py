@@ -36,11 +36,25 @@ class _FakeExecutor:
             "tip_hash": "tiphash22",
             "tip_ts_ms": int(time.time() * 1000),
             "finalized": {"height": 20, "block_id": "20:block"},
-            "roles": {"validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]}},
+            "roles": {
+                "validators": {
+                    "active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]
+                }
+            },
             "bft": {
                 "view": 8,
-                "high_qc": {"block_id": "21:block", "parent_id": "20:block", "view": 7, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
-                "locked_qc": {"block_id": "20:block", "parent_id": "19:block", "view": 6, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
+                "high_qc": {
+                    "block_id": "21:block",
+                    "parent_id": "20:block",
+                    "view": 7,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
+                "locked_qc": {
+                    "block_id": "20:block",
+                    "parent_id": "19:block",
+                    "view": 6,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
             },
             "accounts": {},
             "blocks": {},

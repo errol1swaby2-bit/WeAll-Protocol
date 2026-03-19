@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from weall.net.messages import MsgType, PeerHello, PeerHelloAck, WireHeader
 from weall.tx.canon import CanonError
@@ -63,9 +63,9 @@ class HandshakeConfig:
     tx_index_hash: str
     peer_id: str
     agent: str = "weall-node"
-    caps: Tuple[str, ...] = ()
-    identity_pubkey: Optional[str] = None
-    identity_privkey: Optional[str] = None
+    caps: tuple[str, ...] = ()
+    identity_pubkey: str | None = None
+    identity_privkey: str | None = None
     require_identity: bool = False
     protocol_version: str = ""
     protocol_profile_hash: str = ""
@@ -80,9 +80,9 @@ class HandshakeConfig:
 class HandshakeState:
     config: HandshakeConfig
     status: str = "NEW"
-    session_id: Optional[str] = None
-    last_error: Optional[str] = None
-    outbound_corr_id: Optional[str] = None
+    session_id: str | None = None
+    last_error: str | None = None
+    outbound_corr_id: str | None = None
     started_ms: int = 0
 
     def start(self) -> None:
@@ -118,7 +118,7 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
     )
     hello_nonce = corr_id
 
-    identity: Optional[Dict[str, Any]] = None
+    identity: dict[str, Any] | None = None
     pubkey = (cfg.identity_pubkey or "").strip()
     privkey = (cfg.identity_privkey or "").strip()
 
@@ -163,10 +163,10 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
 def build_hello_ack(
     cfg: HandshakeConfig,
     *,
-    corr_id: Optional[str],
+    corr_id: str | None,
     ok: bool,
-    reason: Optional[str] = None,
-    caps: Optional[Tuple[str, ...]] = None,
+    reason: str | None = None,
+    caps: tuple[str, ...] | None = None,
 ) -> PeerHelloAck:
     chain_id = _validate_non_empty(cfg.chain_id, "chain_id")
     schema_version = _validate_non_empty(cfg.schema_version, "schema_version")
@@ -197,7 +197,9 @@ def build_hello_ack(
     )
 
 
-def _check_protocol_profile(cfg: HandshakeConfig, *, protocol_version: Any, protocol_profile_hash: Any) -> None:
+def _check_protocol_profile(
+    cfg: HandshakeConfig, *, protocol_version: Any, protocol_profile_hash: Any
+) -> None:
     if not cfg.require_protocol_profile_match:
         return
     local_version = _normalize_opt_str(cfg.protocol_version)
@@ -236,10 +238,17 @@ def _check_validator_metadata(
     # other side does not.
     remote_has_validator_meta = remote_epoch > 0 or bool(remote_set_hash)
     local_has_validator_meta = local_epoch > 0 or bool(local_set_hash)
-    if (local_bft != remote_bft) and (local_bft or remote_bft or local_has_validator_meta or remote_has_validator_meta):
+    if (local_bft != remote_bft) and (
+        local_bft or remote_bft or local_has_validator_meta or remote_has_validator_meta
+    ):
         raise HandshakeRejected("bft_enabled_mismatch")
 
-    if not local_bft and not remote_bft and not local_has_validator_meta and not remote_has_validator_meta:
+    if (
+        not local_bft
+        and not remote_bft
+        and not local_has_validator_meta
+        and not remote_has_validator_meta
+    ):
         return
 
     # In strict BFT mode, both sides must explicitly advertise the validator

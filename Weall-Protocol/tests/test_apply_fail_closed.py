@@ -10,7 +10,6 @@ from weall.runtime.supported_txs import SUPPORTED_TX_TYPES
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import load_tx_index_json
 
-
 # This list MUST match what is actually routed/implemented in src/weall/runtime/domain_apply.py.
 # The purpose of this test is to ensure apply_tx() fails closed for any canon tx_type that
 # is not explicitly implemented in the deterministic apply router.

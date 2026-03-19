@@ -17,9 +17,9 @@ This module is pure structure: no sockets here.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Protocol, runtime_checkable
-
+from typing import Protocol, runtime_checkable
 
 # ---------------------------------------------------------------------
 # Types
@@ -39,6 +39,7 @@ class PeerAddr:
       - "quic://node.example:443"
       - "mem://peerA"
     """
+
     uri: str
 
 
@@ -51,15 +52,17 @@ class WirePacket:
     - received_at_ms is optional (transport can fill it).
     - meta can store backend-specific details (remote ip, conn id, etc.)
     """
+
     peer_id: PeerId
     payload: bytes
-    received_at_ms: Optional[int] = None
-    meta: Optional[Dict[str, str]] = None
+    received_at_ms: int | None = None
+    meta: dict[str, str] | None = None
 
 
 # ---------------------------------------------------------------------
 # Connection interface
 # ---------------------------------------------------------------------
+
 
 @runtime_checkable
 class Connection(Protocol):
@@ -81,6 +84,7 @@ class Connection(Protocol):
 # Transport interface
 # ---------------------------------------------------------------------
 
+
 @runtime_checkable
 class Transport(Protocol):
     """
@@ -97,4 +101,3 @@ class Transport(Protocol):
     def connections(self) -> Iterable[Connection]: ...
 
     def close(self) -> None: ...
-

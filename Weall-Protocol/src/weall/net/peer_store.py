@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from weall.runtime.sqlite_db import SqliteDB, _now_ms
 
@@ -31,7 +30,7 @@ class PeerSecurityStore:
         # Ensure schema exists.
         self._db.init_schema()
 
-    def load(self, peer_id: str) -> Optional[PeerSecurityRecord]:
+    def load(self, peer_id: str) -> PeerSecurityRecord | None:
         pid = str(peer_id or "").strip()
         if not pid:
             return None
@@ -85,7 +84,7 @@ class PeerSecurityStore:
         with self._db.write_tx() as con:
             con.execute("DELETE FROM peer_security WHERE peer_id=?;", (pid,))
 
-    def prune_expired(self, *, now_ms: Optional[int] = None, limit: int = 5000) -> int:
+    def prune_expired(self, *, now_ms: int | None = None, limit: int = 5000) -> int:
         """Drop rows that are fully neutral: no strikes, no ban, near-zero score.
 
         This keeps the table from growing unbounded on long-lived nodes.

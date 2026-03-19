@@ -6,13 +6,14 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Optional
+from typing import Any
 
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
-from weall.runtime.domain_apply_all import ApplyError, apply_tx as _apply_tx_internal
+from weall.runtime.domain_apply_all import ApplyError
+from weall.runtime.domain_apply_all import apply_tx as _apply_tx_internal
 from weall.runtime.tx_admission_types import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class NonceSideEffectError(RuntimeError):
@@ -151,7 +152,7 @@ def apply_tx_atomic_meta(
     env: Any,
     *,
     consume_nonce_on_fail: bool = True,
-) -> Optional[Json]:
+) -> Json | None:
     """Apply a tx atomically and return apply metadata.
 
     This is an executor-facing helper that preserves access to the apply-layer
@@ -184,7 +185,7 @@ def apply_tx_atomic_meta(
     return meta
 
 
-def apply_tx(state: Json, env: Any) -> Optional[Json]:
+def apply_tx(state: Json, env: Any) -> Json | None:
     """Apply a tx envelope with consensus-aligned nonce semantics.
 
     Many unit tests in this repo use apply_tx(...) directly and expect
@@ -201,4 +202,11 @@ def apply_tx(state: Json, env: Any) -> Optional[Json]:
     return apply_tx_atomic_meta(state, env, consume_nonce_on_fail=True)
 
 
-__all__ = ["ApplyError", "NonceSideEffectError", "apply_tx", "apply_tx_atomic", "apply_tx_atomic_meta", "Json"]
+__all__ = [
+    "ApplyError",
+    "NonceSideEffectError",
+    "apply_tx",
+    "apply_tx_atomic",
+    "apply_tx_atomic_meta",
+    "Json",
+]

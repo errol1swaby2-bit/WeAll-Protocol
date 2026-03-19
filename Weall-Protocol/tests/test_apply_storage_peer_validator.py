@@ -91,9 +91,27 @@ def test_storage_challenge_issue_and_resolve() -> None:
 def test_peer_ban_set_receipt_requires_system() -> None:
     st = {}
     with pytest.raises(ApplyError):
-        apply_tx(st, _env("PEER_BAN_SET", signer="SYSTEM", nonce=1, payload={"peer_id": "p1", "banned": True}, system=False))
+        apply_tx(
+            st,
+            _env(
+                "PEER_BAN_SET",
+                signer="SYSTEM",
+                nonce=1,
+                payload={"peer_id": "p1", "banned": True},
+                system=False,
+            ),
+        )
 
-    meta = apply_tx(st, _env("PEER_BAN_SET", signer="SYSTEM", nonce=2, payload={"peer_id": "p1", "banned": True}, system=True))
+    meta = apply_tx(
+        st,
+        _env(
+            "PEER_BAN_SET",
+            signer="SYSTEM",
+            nonce=2,
+            payload={"peer_id": "p1", "banned": True},
+            system=True,
+        ),
+    )
     assert meta and meta["applied"] == "PEER_BAN_SET"
     assert st["peers"]["bans"]["p1"]["banned"] is True
 

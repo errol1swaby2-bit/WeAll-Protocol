@@ -10,11 +10,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
-from weall.runtime.errors import ApplyError
 from weall.runtime.domain_dispatch import apply_tx
+from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 __all__ = ["ApplyError", "apply_tx", "Json"]

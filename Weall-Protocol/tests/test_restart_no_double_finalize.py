@@ -22,11 +22,20 @@ def test_restart_does_not_duplicate_blocks(tmp_path: Path) -> None:
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="restart-smoke", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="restart-smoke", tx_index_path=tx_index_path
+    )
 
     # Force one tx per block.
     for i in range(2):
-        sub = ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": f"@user{i}", "nonce": 1, "payload": {"pubkey": f"k:{i}"}})
+        sub = ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": f"@user{i}",
+                "nonce": 1,
+                "payload": {"pubkey": f"k:{i}"},
+            }
+        )
         assert sub["ok"] is True
         assert ex.produce_block(max_txs=1).ok is True
 
@@ -34,12 +43,21 @@ def test_restart_does_not_duplicate_blocks(tmp_path: Path) -> None:
     assert int(st.get("height", 0)) == 2
 
     # Restart.
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="restart-smoke", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="restart-smoke", tx_index_path=tx_index_path
+    )
     st2 = ex2.read_state()
     assert int(st2.get("height", 0)) == 2
 
     # One more block after restart.
-    sub3 = ex2.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@user2", "nonce": 1, "payload": {"pubkey": "k:2"}})
+    sub3 = ex2.submit_tx(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user2",
+            "nonce": 1,
+            "payload": {"pubkey": "k:2"},
+        }
+    )
     assert sub3["ok"] is True
     assert ex2.produce_block(max_txs=1).ok is True
 

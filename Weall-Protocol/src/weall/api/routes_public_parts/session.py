@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Request
 
@@ -11,7 +11,7 @@ from weall.api.routes_public_parts.common import _executor, _read_json_limited, 
 router = APIRouter()
 
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _norm_account(v: Any) -> str:
@@ -83,7 +83,7 @@ async def v1_session_create(request: Request):
     if ledger_store is None or not hasattr(ledger_store, "update"):
         raise ApiError.internal("not_ready", "ledger store update primitive unavailable", {})
 
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     def _mutate(st: Json) -> Json:
         accounts = st.get("accounts")
@@ -92,7 +92,9 @@ async def v1_session_create(request: Request):
 
         acct = accounts.get(account)
         if not isinstance(acct, dict):
-            raise ApiError.not_found("account_not_found", "account does not exist", {"account": account})
+            raise ApiError.not_found(
+                "account_not_found", "account does not exist", {"account": account}
+            )
 
         sessions = acct.get("session_keys")
         if not isinstance(sessions, dict):
@@ -201,4 +203,3 @@ def v1_session_me(request: Request):
             "expired": expired,
         },
     }
-

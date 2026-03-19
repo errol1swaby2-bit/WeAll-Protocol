@@ -1,11 +1,11 @@
 # src/weall/runtime/group_treasury_scheduler.py
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -38,14 +38,14 @@ def _height_now(state: Json) -> int:
     return _as_int(state.get("height"), 0) + 1
 
 
-def _allowed_signers(spend: Json) -> Set[str]:
+def _allowed_signers(spend: Json) -> set[str]:
     allowed = spend.get("allowed_signers")
     if isinstance(allowed, list):
         return {str(x).strip() for x in allowed if isinstance(x, str) and x.strip()}
     return set()
 
 
-def _valid_sigs(spend: Json) -> Set[str]:
+def _valid_sigs(spend: Json) -> set[str]:
     sigs = spend.get("signatures")
     if not isinstance(sigs, dict):
         return set()
@@ -61,7 +61,7 @@ def _is_terminal(spend: Json) -> bool:
     return st in {"executed", "canceled", "cancelled", "expired"}
 
 
-def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> Optional[str]:
+def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None:
     """If a spend has reached threshold, enqueue GROUP_TREASURY_SPEND_EXECUTE.
 
     Canon (tx_canon.yaml):
@@ -107,7 +107,7 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> Optional[s
     )
 
 
-def maybe_enqueue_group_spend_expire(state: Json, *, spend: Json) -> Optional[str]:
+def maybe_enqueue_group_spend_expire(state: Json, *, spend: Json) -> str | None:
     """Enqueue GROUP_TREASURY_SPEND_EXPIRE if expiry policy is enabled.
 
     Policy:
@@ -138,7 +138,11 @@ def maybe_enqueue_group_spend_expire(state: Json, *, spend: Json) -> Optional[st
     if due_h <= 0:
         return None
 
-    payload = {"group_id": group_id, "spend_id": spend_id, "_parent_ref": "GROUP_TREASURY_SPEND_PROPOSE"}
+    payload = {
+        "group_id": group_id,
+        "spend_id": spend_id,
+        "_parent_ref": "GROUP_TREASURY_SPEND_PROPOSE",
+    }
     return enqueue_system_tx(
         state,
         tx_type="GROUP_TREASURY_SPEND_EXPIRE",

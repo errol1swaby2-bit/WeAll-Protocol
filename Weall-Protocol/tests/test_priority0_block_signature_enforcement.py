@@ -5,15 +5,15 @@ from pathlib import Path
 
 import pytest
 
+from weall.crypto.sig import canonical_tx_message
 from weall.ledger.state import LedgerView
 from weall.runtime.block_hash import compute_receipts_root, ensure_block_hash, make_block_header
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.domain_apply import apply_tx_atomic_meta
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
-from weall.runtime.tx_id import compute_tx_id
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
-from weall.crypto.sig import canonical_tx_message
+from weall.runtime.tx_id import compute_tx_id
 from weall.testing.sigtools import deterministic_ed25519_keypair
 from weall.tx.canon import load_tx_index_json
 
@@ -64,7 +64,9 @@ def test_block_admission_rejects_unsigned_non_system_tx() -> None:
     assert verdict.reason == "sig_required_in_block"
 
 
-def test_apply_block_rejects_forged_block_with_signature_removed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_block_rejects_forged_block_with_signature_removed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower")
 
@@ -85,18 +87,26 @@ def test_apply_block_rejects_forged_block_with_signature_removed(tmp_path: Path,
         "chain_id": "sig-enforce",
         "sig": priv.sign(msg).hex(),
     }
-    tx_id = compute_tx_id(chain_id="sig-enforce", tx_type="ACCOUNT_REGISTER", signer="@alice", nonce=1, payload={"pubkey": pub})
+    tx_id = compute_tx_id(
+        chain_id="sig-enforce",
+        tx_type="ACCOUNT_REGISTER",
+        signer="@alice",
+        nonce=1,
+        payload={"pubkey": pub},
+    )
     signed["tx_id"] = tx_id
 
     working = copy.deepcopy(follower.read_state())
     apply_tx_atomic_meta(working, signed, consume_nonce_on_fail=True)
-    receipts = [{
-        "tx_id": tx_id,
-        "tx_type": "ACCOUNT_REGISTER",
-        "signer": "@alice",
-        "nonce": 1,
-        "ok": True,
-    }]
+    receipts = [
+        {
+            "tx_id": tx_id,
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@alice",
+            "nonce": 1,
+            "ok": True,
+        }
+    ]
     receipts_root = compute_receipts_root(receipts=receipts)
     block_id = compute_block_id(
         chain_id="sig-enforce",
@@ -139,8 +149,9 @@ def test_apply_block_rejects_forged_block_with_signature_removed(tmp_path: Path,
     assert "@alice" not in (follower_state.get("accounts") or {})
 
 
-
-def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower-missing-chain-id")
 
@@ -160,7 +171,13 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(tmp_path: Pa
         "payload": {"pubkey": pub},
         "sig": priv.sign(msg).hex(),
     }
-    tx_id = compute_tx_id(chain_id="sig-enforce", tx_type="ACCOUNT_REGISTER", signer="@alice", nonce=1, payload={"pubkey": pub})
+    tx_id = compute_tx_id(
+        chain_id="sig-enforce",
+        tx_type="ACCOUNT_REGISTER",
+        signer="@alice",
+        nonce=1,
+        payload={"pubkey": pub},
+    )
     signed["tx_id"] = tx_id
 
     header = make_block_header(

@@ -17,18 +17,36 @@ def _pkt(peer_id: str, msg) -> WirePacket:
 
 def test_state_sync_request_with_mismatched_header_fast_bans_peer() -> None:
     st = {"height": 3, "tip_hash": "t3", "accounts": {"a": {"nonce": 1}}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     node = NetNode(
         cfg=_cfg(),
         peer_policy=PeerPolicy(max_strikes=2, ban_cooldown_ms=10_000, strike_handshake_rejected=1),
         sync_service=svc,
     )
 
-    hello_hdr = WireHeader(type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hello_hdr = WireHeader(
+        type=MsgType.PEER_HELLO, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     from weall.net.messages import PeerHello
-    node._handle_packet(_pkt("tcp://1.2.3.4:5555", PeerHello(header=hello_hdr, peer_id="tcp://1.2.3.4:5555", agent="t", nonce="n", caps=())))
 
-    bad_hdr = WireHeader(type=MsgType.STATE_SYNC_REQUEST, chain_id="WRONG", schema_version="1", tx_index_hash="deadbeef", corr_id="c1")
+    node._handle_packet(
+        _pkt(
+            "tcp://1.2.3.4:5555",
+            PeerHello(
+                header=hello_hdr, peer_id="tcp://1.2.3.4:5555", agent="t", nonce="n", caps=()
+            ),
+        )
+    )
+
+    bad_hdr = WireHeader(
+        type=MsgType.STATE_SYNC_REQUEST,
+        chain_id="WRONG",
+        schema_version="1",
+        tx_index_hash="deadbeef",
+        corr_id="c1",
+    )
     req = StateSyncRequestMsg(header=bad_hdr, mode="snapshot", selector=None)
     node._handle_packet(_pkt("tcp://1.2.3.4:5555", req))
     node._handle_packet(_pkt("tcp://1.2.3.4:5555", req))
@@ -38,8 +56,16 @@ def test_state_sync_request_with_mismatched_header_fast_bans_peer() -> None:
 def test_state_sync_service_requires_pinned_anchor_when_configured(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "1")
     st = {"height": 4, "tip_hash": "t4", "accounts": {"a": {"nonce": 1}}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
-    hdr = WireHeader(type=MsgType.STATE_SYNC_REQUEST, chain_id="test", schema_version="1", tx_index_hash="deadbeef", corr_id="c1")
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
+    hdr = WireHeader(
+        type=MsgType.STATE_SYNC_REQUEST,
+        chain_id="test",
+        schema_version="1",
+        tx_index_hash="deadbeef",
+        corr_id="c1",
+    )
     req = StateSyncRequestMsg(header=hdr, mode="snapshot", selector=None)
     resp = svc.handle_request(req)
     assert resp.ok is False

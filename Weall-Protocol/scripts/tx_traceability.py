@@ -127,27 +127,26 @@ def main() -> None:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
     # Lazy imports (after sys.path tweak) to satisfy ruff E402.
-    from weall.runtime.errors import ApplyError  # type: ignore
-    from weall.runtime.tx_admission import TxEnvelope  # type: ignore
-
-    from weall.runtime.apply.identity import apply_identity  # type: ignore
-    from weall.runtime.apply.poh import apply_poh  # type: ignore
-    from weall.runtime.apply.dispute import apply_dispute  # type: ignore
-    from weall.runtime.apply.content import apply_content  # type: ignore
-    from weall.runtime.apply.groups import apply_groups  # type: ignore
-    from weall.runtime.apply.governance import apply_governance  # type: ignore
-    from weall.runtime.apply.treasury import apply_treasury  # type: ignore
-    from weall.runtime.apply.roles import apply_roles  # type: ignore
     from weall.runtime.apply.consensus import apply_consensus  # type: ignore
+    from weall.runtime.apply.content import apply_content  # type: ignore
+    from weall.runtime.apply.dispute import apply_dispute  # type: ignore
+    from weall.runtime.apply.economics import apply_economics  # type: ignore
+    from weall.runtime.apply.governance import apply_governance  # type: ignore
+    from weall.runtime.apply.groups import apply_groups  # type: ignore
+    from weall.runtime.apply.identity import apply_identity  # type: ignore
     from weall.runtime.apply.indexing import apply_indexing  # type: ignore
+    from weall.runtime.apply.messaging import apply_messaging  # type: ignore
     from weall.runtime.apply.networking import apply_networking  # type: ignore
+    from weall.runtime.apply.notifications import apply_notifications  # type: ignore
+    from weall.runtime.apply.poh import apply_poh  # type: ignore
     from weall.runtime.apply.reputation import apply_reputation  # type: ignore
     from weall.runtime.apply.rewards import apply_rewards  # type: ignore
-    from weall.runtime.apply.messaging import apply_messaging  # type: ignore
-    from weall.runtime.apply.notifications import apply_notifications  # type: ignore
+    from weall.runtime.apply.roles import apply_roles  # type: ignore
     from weall.runtime.apply.social import apply_social  # type: ignore
-    from weall.runtime.apply.economics import apply_economics  # type: ignore
     from weall.runtime.apply.storage import apply_storage  # type: ignore
+    from weall.runtime.apply.treasury import apply_treasury  # type: ignore
+    from weall.runtime.errors import ApplyError  # type: ignore
+    from weall.runtime.tx_admission import TxEnvelope  # type: ignore
 
     def env_factory(tx_type: str) -> TxEnvelope:
         return TxEnvelope(tx_type=tx_type, signer="alice", nonce=1, payload={})

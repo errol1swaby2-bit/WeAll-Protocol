@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -12,7 +12,7 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import admit_tx
 from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def clone_state(state: Json) -> Json:
@@ -24,7 +24,7 @@ def _canon_acct(a: str) -> str:
     return a if a.startswith("@") else f"@{a}"
 
 
-def _ensure_canonical_accounts_for_admission(st: Json, ids: List[str]) -> None:
+def _ensure_canonical_accounts_for_admission(st: Json, ids: list[str]) -> None:
     """
     Admission expects canonical account IDs to exist as keys in state['accounts'].
     The base_state fixture uses non-canonical keys ("alice", "bob"), so we mirror them
@@ -55,7 +55,7 @@ def _load_index() -> TxIndex:
     return TxIndex.load_from_file(Path("generated/tx_index.json"))
 
 
-def _acct(st: Json, a: str) -> Dict[str, Any]:
+def _acct(st: Json, a: str) -> dict[str, Any]:
     accs = st.get("accounts")
     assert isinstance(accs, dict)
     acct = accs.get(a)
@@ -165,7 +165,7 @@ def test_poh_tier1_view_only_gating_if_social_txs_exist(base_state) -> None:
     st.setdefault("accounts", {})["t1"] = {"balance": 0, "nonce": 0, "poh_tier": 1}
     _ensure_canonical_accounts_for_admission(st, ["t1"])
 
-    candidates: List[Tuple[str, Dict[str, Any]]] = [
+    candidates: list[tuple[str, dict[str, Any]]] = [
         ("CONTENT_POST", {"content_id": "c1", "text": "hi"}),
         ("CONTENT_COMMENT", {"content_id": "c1", "comment_id": "m1", "text": "yo"}),
         ("CONTENT_LIKE", {"content_id": "c1"}),

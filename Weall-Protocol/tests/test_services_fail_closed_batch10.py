@@ -25,7 +25,9 @@ class _ProducerOkExecutor:
         return {"ok": True}
 
 
-def test_block_producer_prod_fails_closed_on_tick_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_producer_prod_fails_closed_on_tick_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import block_producer as svc
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -49,7 +51,9 @@ def test_block_producer_prod_fails_closed_when_executor_exposes_no_producer_meth
         svc.run_forever()
 
 
-def test_block_producer_dev_still_logs_and_continues_for_testability(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_producer_dev_still_logs_and_continues_for_testability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import block_producer as svc
 
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -78,7 +82,9 @@ class _AttesterHttpStub:
         return self._responses.pop(0)
 
 
-def test_validator_attester_prod_fails_closed_on_snapshot_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_attester_prod_fails_closed_on_snapshot_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import validator_attester as svc
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -96,7 +102,9 @@ def test_validator_attester_prod_fails_closed_on_snapshot_error(monkeypatch: pyt
         )
 
 
-def test_validator_attester_prod_fails_closed_on_nonce_parse_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_attester_prod_fails_closed_on_nonce_parse_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import validator_attester as svc
 
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -123,16 +131,20 @@ def test_validator_attester_prod_fails_closed_on_nonce_parse_error(monkeypatch: 
         )
 
 
-def test_validator_attester_main_fails_closed_on_invalid_producer_url(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_attester_main_fails_closed_on_invalid_producer_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import validator_attester as svc
 
-    rc = svc.main([
-        "--producer-url",
-        "not-a-url",
-        "--signer",
-        "val1",
-        "--privkey",
-        "00" * 32,
-        "--once",
-    ])
+    rc = svc.main(
+        [
+            "--producer-url",
+            "not-a-url",
+            "--signer",
+            "val1",
+            "--privkey",
+            "00" * 32,
+            "--once",
+        ]
+    )
     assert rc == 2

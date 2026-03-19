@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Request
 
 from weall.api.config import allow_insecure_localhost, normalize_base_url, read_nodes_registry
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 router = APIRouter(tags=["nodes"])
 
@@ -66,7 +66,9 @@ def _load_seed_urls(request: Request) -> list[str]:
     seen: set[str] = set()
 
     # 1) Registry file.
-    reg = read_nodes_registry(getattr(cfg, "nodes_registry_path", None) if cfg is not None else None)
+    reg = read_nodes_registry(
+        getattr(cfg, "nodes_registry_path", None) if cfg is not None else None
+    )
     nodes = reg.get("nodes", [])
     if isinstance(nodes, list):
         for n in nodes:
@@ -106,7 +108,9 @@ def _load_seed_urls(request: Request) -> list[str]:
 
 def _seeds_response(request: Request) -> Json:
     cfg = getattr(request.app.state, "cfg", None)
-    reg = read_nodes_registry(getattr(cfg, "nodes_registry_path", None) if cfg is not None else None)
+    reg = read_nodes_registry(
+        getattr(cfg, "nodes_registry_path", None) if cfg is not None else None
+    )
     version = int(reg.get("version", 1) or 1)
     seeds = _load_seed_urls(request)
     strict = _is_prod()
@@ -146,7 +150,12 @@ def _seeds_response(request: Request) -> Json:
                     raise NodesEndpointConfigError("registry_node_bad_weight") from exc
                 weight_i = 0
 
-            meta_by_url[norm] = {"base_url": norm, "role": role, "region": region, "weight": weight_i}
+            meta_by_url[norm] = {
+                "base_url": norm,
+                "role": role,
+                "region": region,
+                "weight": weight_i,
+            }
 
     for url in seeds:
         meta = meta_by_url.get(url) or {"base_url": url, "role": "seed", "region": "", "weight": 0}
@@ -166,7 +175,7 @@ def _known_peers_response(request: Request) -> Json:
     if net_node is None:
         return {"ok": True, "generated_ts_ms": int(time.time() * 1000), "peers": []}
 
-    peers: List[Json] = []
+    peers: list[Json] = []
     strict = _is_prod()
 
     try:

@@ -12,7 +12,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_fault_injection_soak_converges_after_partition_restart_and_child_first(tmp_path: Path) -> None:
+def test_fault_injection_soak_converges_after_partition_restart_and_child_first(
+    tmp_path: Path,
+) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path),
         rounds=10,
@@ -30,7 +32,10 @@ def test_fault_injection_soak_converges_after_partition_restart_and_child_first(
     assert summary.delayed_child_first_events >= 1
     assert all(h == summary.leader_height for h in summary.follower_heights.values())
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
-    assert all(not list((diag.get("pending_fetch_requests") or [])) for diag in summary.follower_diagnostics.values())
+    assert all(
+        not list(diag.get("pending_fetch_requests") or [])
+        for diag in summary.follower_diagnostics.values()
+    )
 
 
 def test_fault_injection_cli_emits_summary_json(tmp_path: Path) -> None:

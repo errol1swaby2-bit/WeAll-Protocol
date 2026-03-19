@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from fastapi import APIRouter, Request
 
-from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _snapshot
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 router = APIRouter()
 
@@ -60,11 +59,11 @@ def _replication_factor(st: Json) -> int:
     return 1
 
 
-def _enabled_operators(storage: Json) -> List[str]:
+def _enabled_operators(storage: Json) -> list[str]:
     ops_any = storage.get("operators")
     if not isinstance(ops_any, dict):
         return []
-    out: List[str] = []
+    out: list[str] = []
     for k, rec_any in ops_any.items():
         acc = str(k or "").strip()
         if not acc:
@@ -76,12 +75,12 @@ def _enabled_operators(storage: Json) -> List[str]:
     return out
 
 
-def _pin_status_counts(storage: Json) -> Dict[str, int]:
+def _pin_status_counts(storage: Json) -> dict[str, int]:
     pins_any = storage.get("pins")
     if not isinstance(pins_any, dict):
         return {}
 
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for _, rec_any in pins_any.items():
         if not isinstance(rec_any, dict):
             continue
@@ -90,7 +89,7 @@ def _pin_status_counts(storage: Json) -> Dict[str, int]:
     return counts
 
 
-def _pin_targets_stats(storage: Json) -> Dict[str, int]:
+def _pin_targets_stats(storage: Json) -> dict[str, int]:
     pins_any = storage.get("pins")
     if not isinstance(pins_any, dict):
         return {"with_targets": 0, "without_targets": 0}
@@ -108,7 +107,7 @@ def _pin_targets_stats(storage: Json) -> Dict[str, int]:
     return {"with_targets": int(with_targets), "without_targets": int(without_targets)}
 
 
-def _durability_stats(st: Json, rf: int) -> Dict[str, int]:
+def _durability_stats(st: Json, rf: int) -> dict[str, int]:
     """
     Compute best-effort durable CID counts:
       durable := unique_ok_operator_confirms >= rf
@@ -118,7 +117,7 @@ def _durability_stats(st: Json, rf: int) -> Dict[str, int]:
     confirms_any = storage.get("pin_confirms")
 
     # Collect CIDs we care about (from pins).
-    cids: Set[str] = set()
+    cids: set[str] = set()
     if isinstance(pins_any, dict):
         for _, rec_any in pins_any.items():
             if not isinstance(rec_any, dict):
@@ -128,7 +127,7 @@ def _durability_stats(st: Json, rf: int) -> Dict[str, int]:
                 cids.add(cid)
 
     # Build cid -> set(operator_id) for ok confirms.
-    ok_ops_by_cid: Dict[str, Set[str]] = {}
+    ok_ops_by_cid: dict[str, set[str]] = {}
     if isinstance(confirms_any, list):
         for item_any in confirms_any:
             if not isinstance(item_any, dict):

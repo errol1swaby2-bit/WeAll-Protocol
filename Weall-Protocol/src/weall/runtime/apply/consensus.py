@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 """Consensus domain apply semantics.
 
 This module implements:
@@ -24,37 +22,37 @@ NOTE: This is still an MVP consensus implementation. The intent is:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema
-from weall.runtime.proposer_selection import select_proposer
 from weall.runtime.apply.reputation import apply_reputation_delta_system
 from weall.runtime.bft_hotstuff import (
     BFT_MIN_VALIDATORS,
     CONSENSUS_PHASE_BFT_ACTIVE,
-    CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP,
-    CONSENSUS_PHASE_SOLO_BOOTSTRAP,
     normalize_consensus_phase,
+)
+from weall.runtime.bft_hotstuff import (
     validator_set_hash as _canonical_validator_set_hash,
 )
+from weall.runtime.proposer_selection import select_proposer
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
 class ConsensusApplyError(RuntimeError):
     code: str
     reason: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
-def _as_dict(v: Any) -> Dict[str, Any]:
+def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
 
 
-def _as_list(v: Any) -> List[Any]:
+def _as_list(v: Any) -> list[Any]:
     return v if isinstance(v, list) else []
 
 
@@ -194,7 +192,7 @@ def _ensure_slashing_root(state: Json) -> Json:
     return sl
 
 
-def _ensure_roles_validators_active_set(state: Json) -> List[str]:
+def _ensure_roles_validators_active_set(state: Json) -> list[str]:
     ensure_roles_schema(state)
     roles = state.get("roles")
     if not isinstance(roles, dict):
@@ -210,7 +208,7 @@ def _ensure_roles_validators_active_set(state: Json) -> List[str]:
         active_set = []
         validators["active_set"] = active_set
 
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
     for x in active_set:
         s = _as_str(x)
@@ -223,7 +221,7 @@ def _ensure_roles_validators_active_set(state: Json) -> List[str]:
     return out
 
 
-def _set_active_set(state: Json, accounts: List[str]) -> None:
+def _set_active_set(state: Json, accounts: list[str]) -> None:
     roles = state.get("roles")
     if not isinstance(roles, dict):
         roles = {}
@@ -233,7 +231,7 @@ def _set_active_set(state: Json, accounts: List[str]) -> None:
         validators = {}
         roles["validators"] = validators
 
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
     for x in accounts:
         s = _as_str(x)
@@ -253,13 +251,15 @@ def _phase_root(state: Json) -> Json:
         c["phase"] = phase
     if not isinstance(phase.get("history"), list):
         phase["history"] = []
-    phase["current"] = normalize_consensus_phase(phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state)))
+    phase["current"] = normalize_consensus_phase(
+        phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state))
+    )
     if phase.get("pending") is not None and not isinstance(phase.get("pending"), dict):
         phase["pending"] = None
     return phase
 
 
-def _phase_for_active_set(active_set: List[str], *, bft_requested: bool = False) -> str:
+def _phase_for_active_set(active_set: list[str], *, bft_requested: bool = False) -> str:
     normalized_count = len([_as_str(x) for x in active_set if _as_str(x)])
     if bft_requested:
         if normalized_count < int(BFT_MIN_VALIDATORS):
@@ -272,10 +272,16 @@ def _phase_for_active_set(active_set: List[str], *, bft_requested: bool = False)
     return normalize_consensus_phase("", validator_count=normalized_count)
 
 
-def _record_phase_transition(state: Json, *, new_phase: str, activation_epoch: int, validator_set_hash: str, reason: str) -> None:
+def _record_phase_transition(
+    state: Json, *, new_phase: str, activation_epoch: int, validator_set_hash: str, reason: str
+) -> None:
     phase = _phase_root(state)
-    current = normalize_consensus_phase(phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state)))
-    next_phase = normalize_consensus_phase(new_phase, validator_count=len(_ensure_roles_validators_active_set(state)))
+    current = normalize_consensus_phase(
+        phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state))
+    )
+    next_phase = normalize_consensus_phase(
+        new_phase, validator_count=len(_ensure_roles_validators_active_set(state))
+    )
     phase["current"] = next_phase
     if current != next_phase:
         history = phase.get("history")
@@ -292,7 +298,6 @@ def _record_phase_transition(state: Json, *, new_phase: str, activation_epoch: i
         phase["history"] = history
     c = _ensure_consensus(state)
     c["phase"] = phase
-
 
 
 # ------------------- Validators -------------------
@@ -369,13 +374,11 @@ def _apply_validator_deregister(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "VALIDATOR_DEREGISTER", "account": account, "existed": existed}
 
 
-
-
-def _validator_set_hash(accounts: List[str]) -> str:
+def _validator_set_hash(accounts: list[str]) -> str:
     return _canonical_validator_set_hash([str(x).strip() for x in accounts if str(x).strip()])
 
 
-def _bump_validator_epoch(state: Json, active_set: List[str]) -> None:
+def _bump_validator_epoch(state: Json, active_set: list[str]) -> None:
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
     if not isinstance(vs, dict):
@@ -396,7 +399,7 @@ def _bump_validator_epoch(state: Json, active_set: List[str]) -> None:
 def _set_pending_validator_set(
     state: Json,
     *,
-    active_set: List[str],
+    active_set: list[str],
     activate_at_epoch: int,
     pending_phase: str = "",
 ) -> str:
@@ -421,7 +424,11 @@ def _set_pending_validator_set(
                 "validator_set_hash": set_hash,
             },
         )
-    phase_name = normalize_consensus_phase(pending_phase, validator_count=len(active_set)) if _as_str(pending_phase) else ""
+    phase_name = (
+        normalize_consensus_phase(pending_phase, validator_count=len(active_set))
+        if _as_str(pending_phase)
+        else ""
+    )
     vs["pending"] = {
         "active_set": list(active_set),
         "activate_at_epoch": int(activate_at_epoch),
@@ -433,7 +440,7 @@ def _set_pending_validator_set(
     return set_hash
 
 
-def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Optional[Json]:
+def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json | None:
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
     if not isinstance(vs, dict):
@@ -445,7 +452,7 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Option
     if act_epoch <= 0 or int(epoch) != act_epoch:
         return None
     active_set = _as_list(pending.get("active_set"))
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
     for x in active_set:
         s = _as_str(x)
@@ -458,7 +465,11 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Option
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
     assert isinstance(vs, dict)
-    pending_phase = normalize_consensus_phase(pending.get("phase"), validator_count=len(out)) if _as_str(pending.get("phase")) else _phase_for_active_set(out)
+    pending_phase = (
+        normalize_consensus_phase(pending.get("phase"), validator_count=len(out))
+        if _as_str(pending.get("phase"))
+        else _phase_for_active_set(out)
+    )
     vs.pop("pending", None)
     c["validator_set"] = vs
     _record_phase_transition(
@@ -481,11 +492,13 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
     # Receipt-only, system-origin in canon.
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     active_set = _as_list(payload.get("active_set"))
-    out: List[str] = []
+    out: list[str] = []
     seen: set[str] = set()
     for x in active_set:
         s = _as_str(x)
@@ -505,7 +518,10 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
             raise ConsensusApplyError(
                 "invalid_payload",
                 "activate_bft_at_epoch_must_match_activate_at_epoch",
-                {"activate_at_epoch": int(activate_at_epoch), "activate_bft_at_epoch": int(activate_bft_at_epoch)},
+                {
+                    "activate_at_epoch": int(activate_at_epoch),
+                    "activate_bft_at_epoch": int(activate_bft_at_epoch),
+                },
             )
         pending_phase = _phase_for_active_set(out, bft_requested=True)
     if activate_at_epoch > 0:
@@ -594,7 +610,12 @@ def _apply_validator_performance_report(state: Json, env: TxEnvelope) -> Json:
     reports = vroot.get("performance_reports")
     assert isinstance(reports, list)
 
-    rec = {"account": account, "ts_ms": int(ts_ms) if ts_ms else None, "report": report, "payload": payload}
+    rec = {
+        "account": account,
+        "ts_ms": int(ts_ms) if ts_ms else None,
+        "report": report,
+        "payload": payload,
+    }
     reports.append(rec)
     vroot["performance_reports"] = reports
 
@@ -660,10 +681,20 @@ def _apply_block_propose(state: Json, env: TxEnvelope) -> Json:
             raise ConsensusApplyError(
                 "invalid_block",
                 "bad_proposer",
-                {"expected": expected, "got": proposer, "height": int(height), "block_id": block_id},
+                {
+                    "expected": expected,
+                    "got": proposer,
+                    "height": int(height),
+                    "block_id": block_id,
+                },
             )
 
-    return {"applied": "BLOCK_PROPOSE", "block_id": block_id, "height": int(height), "existed": existed}
+    return {
+        "applied": "BLOCK_PROPOSE",
+        "block_id": block_id,
+        "height": int(height),
+        "existed": existed,
+    }
 
 
 def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
@@ -722,7 +753,9 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
                 # Executor boundary: also queue an explicit SYSTEM receipt for SLASH_EXECUTE.
                 # This does not replace the immediate recording above (tests rely on it),
                 # but provides a clean production path for the block/system phase.
-                due = int(height) + 1 if int(height) > 0 else int(_as_int(state.get("height"), 0)) + 1
+                due = (
+                    int(height) + 1 if int(height) > 0 else int(_as_int(state.get("height"), 0)) + 1
+                )
                 if due <= 0:
                     due = 1
                 enqueue_system_tx(
@@ -749,7 +782,12 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
                     account_id=validator,
                     delta=-25.0,
                     reason="equivocation",
-                    evidence={"source": "consensus", "event": "EQUIVOCATION", "slash_id": sid, "payload": payload},
+                    evidence={
+                        "source": "consensus",
+                        "event": "EQUIVOCATION",
+                        "slash_id": sid,
+                        "payload": payload,
+                    },
                     at_nonce=int(env.nonce),
                 )
         else:
@@ -762,17 +800,29 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(per, dict):
         per = {}
     existed = validator in per
-    per[validator] = {"validator": validator, "attestation": att, "payload": payload, "parent": _as_str(env.parent)}
+    per[validator] = {
+        "validator": validator,
+        "attestation": att,
+        "payload": payload,
+        "parent": _as_str(env.parent),
+    }
     ba[block_id] = per
 
-    return {"applied": "BLOCK_ATTEST", "block_id": block_id, "validator": validator, "existed": existed}
+    return {
+        "applied": "BLOCK_ATTEST",
+        "block_id": block_id,
+        "validator": validator,
+        "existed": existed,
+    }
 
 
 def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
     # Receipt-only, system-origin in canon, but can be applied in tests.
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     block_id = _as_str(payload.get("block_id") or payload.get("id"))
@@ -787,7 +837,9 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
         ba = _ensure_block_attestations(state)
         per = ba.get(block_id)
         if not isinstance(per, dict):
-            raise ConsensusApplyError("invalid_block", "missing_attestations", {"block_id": block_id})
+            raise ConsensusApplyError(
+                "invalid_block", "missing_attestations", {"block_id": block_id}
+            )
 
         active = _ensure_roles_validators_active_set(state)
         if len(active) == 0:
@@ -796,7 +848,12 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
         yes = 0
         for v in active:
             rec = per.get(v)
-            if isinstance(rec, dict) and _as_str(rec.get("attestation")).lower() in ("yes", "y", "true", "1"):
+            if isinstance(rec, dict) and _as_str(rec.get("attestation")).lower() in (
+                "yes",
+                "y",
+                "true",
+                "1",
+            ):
                 yes += 1
 
         # Very simple threshold for MVP: > 2/3.
@@ -819,7 +876,9 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
     # - After every blocks_per_epoch finalizations, close/open epoch at due height (height+1)
     bpe = _blocks_per_epoch(state)
     if int(height) == 1:
-        enqueue_system_tx(state, tx_type="EPOCH_OPEN", payload={"epoch": 1}, due_height=2, phase="post")
+        enqueue_system_tx(
+            state, tx_type="EPOCH_OPEN", payload={"epoch": 1}, due_height=2, phase="post"
+        )
 
     if bpe > 0 and int(height) > 0 and int(height) % int(bpe) == 0:
         c = _ensure_consensus(state)
@@ -828,16 +887,29 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
             ep = {"current": 0, "events": []}
         cur_epoch = _as_int(ep.get("current"), 0) or 1
         due = int(height) + 1
-        enqueue_system_tx(state, tx_type="EPOCH_CLOSE", payload={"epoch": cur_epoch}, due_height=due, phase="post")
-        enqueue_system_tx(state, tx_type="EPOCH_OPEN", payload={"epoch": cur_epoch + 1}, due_height=due, phase="post")
+        enqueue_system_tx(
+            state, tx_type="EPOCH_CLOSE", payload={"epoch": cur_epoch}, due_height=due, phase="post"
+        )
+        enqueue_system_tx(
+            state,
+            tx_type="EPOCH_OPEN",
+            payload={"epoch": cur_epoch + 1},
+            due_height=due,
+            phase="post",
+        )
 
-    return {"applied": "BLOCK_FINALIZE", "block_id": block_id, "height": int(height), "existed": existed}
+    return {
+        "applied": "BLOCK_FINALIZE",
+        "block_id": block_id,
+        "height": int(height),
+        "existed": existed,
+    }
 
 
 # ------------------- Epochs -------------------
 
 
-def _epoch_events(ep: Json) -> List[Json]:
+def _epoch_events(ep: Json) -> list[Json]:
     events = ep.get("events")
     return list(events) if isinstance(events, list) else []
 
@@ -873,7 +945,11 @@ def _apply_epoch_open(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError(
             "invalid_payload",
             "epoch_open_must_advance_sequentially",
-            {"epoch": int(epoch), "current_epoch": int(current_epoch), "expected_epoch": int(expected_epoch)},
+            {
+                "epoch": int(epoch),
+                "current_epoch": int(current_epoch),
+                "expected_epoch": int(expected_epoch),
+            },
         )
     if current_epoch > 0 and not _epoch_has_event(ep, epoch=current_epoch, event="close"):
         raise ConsensusApplyError(
@@ -952,7 +1028,9 @@ def _apply_epoch_close(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_slash_propose(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
-    slash_id = _as_str(payload.get("slash_id") or payload.get("id") or f"slash:{env.signer}:{env.nonce}")
+    slash_id = _as_str(
+        payload.get("slash_id") or payload.get("id") or f"slash:{env.signer}:{env.nonce}"
+    )
     account = _as_str(payload.get("account") or payload.get("target") or payload.get("validator"))
 
     sl = _ensure_slashing_root(state)
@@ -960,7 +1038,12 @@ def _apply_slash_propose(state: Json, env: TxEnvelope) -> Json:
     assert isinstance(props, dict)
 
     existed = slash_id in props
-    props[slash_id] = {"slash_id": slash_id, "account": account, "payload": payload, "proposer": _as_str(env.signer)}
+    props[slash_id] = {
+        "slash_id": slash_id,
+        "account": account,
+        "payload": payload,
+        "proposer": _as_str(env.signer),
+    }
     sl["proposals"] = props
     return {"applied": "SLASH_PROPOSE", "slash_id": slash_id, "existed": existed}
 
@@ -988,13 +1071,21 @@ def _apply_slash_vote(state: Json, env: TxEnvelope) -> Json:
     votes[slash_id] = per
     sl["votes"] = votes
 
-    return {"applied": "SLASH_VOTE", "slash_id": slash_id, "voter": voter, "vote": vote, "existed": existed}
+    return {
+        "applied": "SLASH_VOTE",
+        "slash_id": slash_id,
+        "voter": voter,
+        "vote": vote,
+        "existed": existed,
+    }
 
 
 def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     slash_id = _as_str(payload.get("slash_id") or payload.get("id"))
@@ -1010,12 +1101,20 @@ def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
 
     existed = slash_id in execs
     if not existed:
-        execs[slash_id] = {"slash_id": slash_id, "account": account, "reason": reason, "payload": payload, "parent": _as_str(env.parent)}
+        execs[slash_id] = {
+            "slash_id": slash_id,
+            "account": account,
+            "reason": reason,
+            "payload": payload,
+            "parent": _as_str(env.parent),
+        }
         sl["executions"] = execs
 
         ev = sl.get("events")
         assert isinstance(ev, list)
-        ev.append({"tx_type": "SLASH_EXECUTE", "slash_id": slash_id, "account": account, "reason": reason})
+        ev.append(
+            {"tx_type": "SLASH_EXECUTE", "slash_id": slash_id, "account": account, "reason": reason}
+        )
         sl["events"] = ev
 
     return {"applied": "SLASH_EXECUTE", "slash_id": slash_id, "existed": existed}
@@ -1052,7 +1151,7 @@ CONSENSUS_TX_TYPES = {
 }
 
 
-def apply_consensus(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_consensus(state: Json, env: TxEnvelope) -> Json | None:
     t = _as_str(env.tx_type).strip().upper()
     if t not in CONSENSUS_TX_TYPES:
         return None

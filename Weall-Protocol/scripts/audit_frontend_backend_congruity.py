@@ -28,13 +28,11 @@ If your backend import needs PYTHONPATH:
 
 from __future__ import annotations
 
-import os
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECTS_DIR = REPO_ROOT / "projects"
@@ -61,7 +59,7 @@ def _read_text(path: Path) -> str:
         return ""
 
 
-def _iter_files(root: Path, exts: Tuple[str, ...]) -> Iterable[Path]:
+def _iter_files(root: Path, exts: tuple[str, ...]) -> Iterable[Path]:
     if not root.exists():
         return
     for p in root.rglob("*"):
@@ -69,7 +67,7 @@ def _iter_files(root: Path, exts: Tuple[str, ...]) -> Iterable[Path]:
             yield p
 
 
-def _extract_frontend_v1_paths(paths: List[Path]) -> Dict[str, Set[str]]:
+def _extract_frontend_v1_paths(paths: list[Path]) -> dict[str, set[str]]:
     """
     Returns: map endpoint -> {files...}
     Captures:
@@ -78,7 +76,7 @@ def _extract_frontend_v1_paths(paths: List[Path]) -> Dict[str, Set[str]]:
       `/v1/xyz/${var}`
     We normalize templates by stripping ${...} segments to the base prefix.
     """
-    out: Dict[str, Set[str]] = {}
+    out: dict[str, set[str]] = {}
     # literal " /v1/.... "
     lit_pat = re.compile(r"""["'](/v1/[^"' \t\r\n]+)["']""")
     tpl_pat = re.compile(r"""`(/v1/[^`]+)`""")
@@ -125,7 +123,7 @@ def _normalize_path(p: str) -> str:
     return s
 
 
-def _extract_backend_router_paths(route_files: List[Path]) -> Dict[str, Set[str]]:
+def _extract_backend_router_paths(route_files: list[Path]) -> dict[str, set[str]]:
     """
     Extracts paths from:
       @router.get("/feed")
@@ -133,7 +131,7 @@ def _extract_backend_router_paths(route_files: List[Path]) -> Dict[str, Set[str]
       router = APIRouter(prefix="/v1") is handled elsewhere (backend uses /v1 mount at app level),
     so we assume these are mounted under /v1 and we report them as /v1/<path>.
     """
-    out: Dict[str, Set[str]] = {}
+    out: dict[str, set[str]] = {}
     # matches @router.<method>("...") or @router.<method>( "...", ...
     dec_pat = re.compile(r"""@router\.(get|post|put|delete|patch)\(\s*["']([^"']+)["']""")
 
@@ -152,7 +150,7 @@ def _extract_backend_router_paths(route_files: List[Path]) -> Dict[str, Set[str]
     return out
 
 
-def _extract_frontend_tx_types(paths: List[Path]) -> Dict[str, Set[str]]:
+def _extract_frontend_tx_types(paths: list[Path]) -> dict[str, set[str]]:
     """
     Extract tx types used in frontend code.
     Captures patterns like:
@@ -161,7 +159,7 @@ def _extract_frontend_tx_types(paths: List[Path]) -> Dict[str, Set[str]]:
       tx_type: SOME_CONST (won't catch)
     Also captures submitTx("CONTENT_POST_CREATE", ...)
     """
-    out: Dict[str, Set[str]] = {}
+    out: dict[str, set[str]] = {}
 
     pat1 = re.compile(r"""tx_type\s*:\s*["']([A-Z0-9_]+)["']""")
     pat2 = re.compile(r"""submitTx\(\s*["']([A-Z0-9_]+)["']""")
@@ -180,7 +178,7 @@ def _extract_frontend_tx_types(paths: List[Path]) -> Dict[str, Set[str]]:
     return out
 
 
-def _try_import_tx_schema() -> Optional[object]:
+def _try_import_tx_schema() -> object | None:
     """
     Attempt to import weall.runtime.tx_schema with best-effort sys.path fixes.
     """
@@ -195,13 +193,14 @@ def _try_import_tx_schema() -> Optional[object]:
 
     try:
         import weall.runtime.tx_schema as tx_schema  # type: ignore
+
         return tx_schema
     except Exception:
         return None
 
 
 def main() -> int:
-    findings: List[Finding] = []
+    findings: list[Finding] = []
 
     if not PROJECTS_DIR.exists():
         print(f"ERROR: expected {PROJECTS_DIR} to exist (repo root: {REPO_ROOT})")
@@ -251,7 +250,13 @@ def main() -> int:
     else:
         model_for_tx_type = getattr(tx_schema, "model_for_tx_type", None)
         if not callable(model_for_tx_type):
-            findings.append(Finding("tx_schema_missing_api", "model_for_tx_type", "tx_schema.model_for_tx_type not found"))
+            findings.append(
+                Finding(
+                    "tx_schema_missing_api",
+                    "model_for_tx_type",
+                    "tx_schema.model_for_tx_type not found",
+                )
+            )
         else:
             for t, files in sorted(fe_tx_types.items()):
                 try:
@@ -278,7 +283,7 @@ def main() -> int:
         return 0
 
     # Group findings
-    grouped: Dict[str, List[Finding]] = {}
+    grouped: dict[str, list[Finding]] = {}
     for f in findings:
         grouped.setdefault(f.kind, []).append(f)
 
@@ -293,7 +298,7 @@ def main() -> int:
     return 1 if hard_fail else 0
 
 
-def _endpoint_is_satisfied(front_ep: str, backend_paths: Dict[str, Set[str]]) -> bool:
+def _endpoint_is_satisfied(front_ep: str, backend_paths: dict[str, set[str]]) -> bool:
     """
     Treat these as satisfied:
       - exact match exists

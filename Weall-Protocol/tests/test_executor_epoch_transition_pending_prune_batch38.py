@@ -41,7 +41,9 @@ def _mk_executor(tmp_path: Path) -> tuple[WeAllExecutor, dict[str, str]]:
     return ex, pubs
 
 
-def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_artifacts(tmp_path: Path) -> None:
+def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_artifacts(
+    tmp_path: Path,
+) -> None:
     ex, pubs = _mk_executor(tmp_path)
     old_validators = ["v1", "v2", "v3", "v4"]
     new_validators = ["v2", "v3", "v4", "v5"]
@@ -91,7 +93,9 @@ def test_epoch_transition_immediately_prunes_stale_pending_fetch_and_remote_arti
     assert "old-epoch-block" not in ex._pending_remote_blocks
 
 
-def test_epoch_transition_prunes_only_stale_epoch_artifacts_and_keeps_current_epoch_entries(tmp_path: Path) -> None:
+def test_epoch_transition_prunes_only_stale_epoch_artifacts_and_keeps_current_epoch_entries(
+    tmp_path: Path,
+) -> None:
     ex, pubs = _mk_executor(tmp_path)
     old_validators = ["v1", "v2", "v3", "v4"]
     new_validators = ["v2", "v3", "v4", "v5"]

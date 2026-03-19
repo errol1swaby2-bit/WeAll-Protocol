@@ -33,7 +33,9 @@ def test_sqlite_writer_pressure_soak_completes_without_counter_loss(tmp_path: Pa
     assert summary.maintenance_ticks >= 1
 
 
-def test_mempool_spam_stress_drains_unique_transactions_after_duplicate_burst(tmp_path: Path) -> None:
+def test_mempool_spam_stress_drains_unique_transactions_after_duplicate_burst(
+    tmp_path: Path,
+) -> None:
     summary = run_mempool_spam_stress(
         work_dir=str(tmp_path / "mempool"),
         chain_id="batch19-mempool",
@@ -75,7 +77,10 @@ def test_priority1_heavy_soak_cli_reports_all_subsystems_green(tmp_path: Path) -
     assert payload["ok"] is True
     assert payload["bft"]["converged"] is True
     assert payload["sqlite_writer_pressure"]["ok"] is True
-    assert payload["sqlite_writer_pressure"]["final_counter"] == payload["sqlite_writer_pressure"]["successes"]
+    assert (
+        payload["sqlite_writer_pressure"]["final_counter"]
+        == payload["sqlite_writer_pressure"]["successes"]
+    )
     assert payload["mempool_spam"]["ok"] is True
     assert payload["mempool_spam"]["final_mempool_size"] == 0
     assert payload["mempool_spam"]["committed_tx_count"] == payload["mempool_spam"]["unique_tx_ids"]

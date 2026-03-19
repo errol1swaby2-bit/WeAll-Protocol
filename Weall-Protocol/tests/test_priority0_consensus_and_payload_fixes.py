@@ -8,7 +8,6 @@ from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import load_tx_index_json
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

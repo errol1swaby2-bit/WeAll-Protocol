@@ -16,7 +16,9 @@ from weall.net.net_loop import (
 
 class _FakeNode:
     def __init__(self, *, fail_broadcast: bool = False, fail_poll: bool = False) -> None:
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer", chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"
+        )
         self.calls = []
         self._fail_broadcast = bool(fail_broadcast)
         self._fail_poll = bool(fail_poll)
@@ -52,7 +54,14 @@ class _BadEntryMempool:
 
 class _GoodTxMempool:
     def __init__(self) -> None:
-        self._tx = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"email": "a@example.com"}, "chain_id": "chain-A", "sig": "00"}
+        self._tx = {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@alice",
+            "nonce": 1,
+            "payload": {"email": "a@example.com"},
+            "chain_id": "chain-A",
+            "sig": "00",
+        }
 
     def peek(self, limit: int):
         return [self._tx]
@@ -79,7 +88,13 @@ class _StopAfterTxGossipLoop(NetMeshLoop):
         super().__init__(
             executor=_ExecutorSimple(),
             mempool=_GoodTxMempool(),
-            cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+            cfg=NetLoopConfig(
+                enabled=False,
+                bind_host="127.0.0.1",
+                bind_port=30303,
+                tick_ms=25,
+                schema_version="1",
+            ),
         )
         self.node = _FakeNode()
 
@@ -108,8 +123,24 @@ class _StoppingEvent:
 
 
 def _mk_tx_msg() -> TxEnvelopeMsg:
-    tx = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"email": "a@example.com"}, "chain_id": "chain-A", "sig": "00"}
-    return TxEnvelopeMsg(header=WireHeader(type=MsgType.TX_ENVELOPE, chain_id="chain-A", schema_version="1", tx_index_hash="deadbeef"), nonce=1, tx=tx)
+    tx = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"email": "a@example.com"},
+        "chain_id": "chain-A",
+        "sig": "00",
+    }
+    return TxEnvelopeMsg(
+        header=WireHeader(
+            type=MsgType.TX_ENVELOPE,
+            chain_id="chain-A",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+        ),
+        nonce=1,
+        tx=tx,
+    )
 
 
 def test_on_tx_prod_fails_closed_on_state_snapshot_error(monkeypatch) -> None:
@@ -117,9 +148,13 @@ def test_on_tx_prod_fails_closed_on_state_snapshot_error(monkeypatch) -> None:
     loop = NetMeshLoop(
         executor=_ExecutorWithBadSnapshot(),
         mempool=_RejectingMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
-    monkeypatch.setattr(loop, "_state_snapshot", lambda: (_ for _ in ()).throw(ValueError("snapshot boom")))
+    monkeypatch.setattr(
+        loop, "_state_snapshot", lambda: (_ for _ in ()).throw(ValueError("snapshot boom"))
+    )
     with pytest.raises(TxIngressProcessingError, match="tx_ingress_state_snapshot_failed"):
         loop._on_tx("peer1", _mk_tx_msg())
 
@@ -129,10 +164,14 @@ def test_on_tx_prod_fails_closed_on_mempool_add_error(monkeypatch) -> None:
     loop = NetMeshLoop(
         executor=_ExecutorSimple(),
         mempool=_RejectingMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     monkeypatch.setattr("weall.net.net_loop.verify_tx_signature", lambda state, tx: True)
-    monkeypatch.setattr("weall.net.net_loop.admit_tx", lambda **kwargs: SimpleNamespace(ok=True, code=None))
+    monkeypatch.setattr(
+        "weall.net.net_loop.admit_tx", lambda **kwargs: SimpleNamespace(ok=True, code=None)
+    )
     with pytest.raises(TxIngressProcessingError, match="tx_ingress_mempool_add_failed"):
         loop._on_tx("peer1", _mk_tx_msg())
 
@@ -142,7 +181,9 @@ def test_outbound_tx_gossip_tick_prod_fails_closed_on_source_error(monkeypatch) 
     loop = NetMeshLoop(
         executor=_ExecutorSimple(),
         mempool=_ListOnlyBrokenMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode()
     loop._tx_gossip_interval_ms = 1
@@ -156,7 +197,9 @@ def test_outbound_tx_gossip_tick_prod_fails_closed_on_invalid_entry(monkeypatch)
     loop = NetMeshLoop(
         executor=_ExecutorSimple(),
         mempool=_BadEntryMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode()
     loop._tx_gossip_interval_ms = 1
@@ -170,7 +213,9 @@ def test_outbound_tx_gossip_tick_prod_fails_closed_on_broadcast_error(monkeypatc
     loop = NetMeshLoop(
         executor=_ExecutorSimple(),
         mempool=_GoodTxMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _FakeNode(fail_broadcast=True)
     loop._tx_gossip_interval_ms = 1
@@ -184,7 +229,9 @@ def test_run_prod_fails_closed_on_node_poll_error(monkeypatch) -> None:
     loop = NetMeshLoop(
         executor=_ExecutorSimple(),
         mempool=_GoodTxMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = _SinglePollFailNode()
     loop._stop = _StoppingEvent()

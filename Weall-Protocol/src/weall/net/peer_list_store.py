@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Set
 
 
 def _now_ms() -> int:
@@ -47,20 +47,20 @@ class PeerListStore:
 
     _last_write_ms: int = 0
 
-    def load(self) -> List[str]:
+    def load(self) -> list[str]:
         p = str(self.path or "").strip()
         if not p:
             return []
         try:
-            with open(p, "r", encoding="utf-8") as f:
+            with open(p, encoding="utf-8") as f:
                 raw = f.read().splitlines()
         except FileNotFoundError:
             return []
         except Exception:
             return []
 
-        out: List[str] = []
-        seen: Set[str] = set()
+        out: list[str] = []
+        seen: set[str] = set()
         for line in raw:
             s = (line or "").strip()
             if not s or s.startswith("#"):
@@ -77,7 +77,7 @@ class PeerListStore:
         return out
 
     # Backwards-compatible alias for older callsites.
-    def read_list(self) -> List[str]:
+    def read_list(self) -> list[str]:
         return self.load()
 
     def save(self, peers: Iterable[str], *, force: bool = False) -> None:
@@ -89,8 +89,8 @@ class PeerListStore:
         if not force and (now - int(self._last_write_ms or 0)) < int(self.min_write_interval_ms):
             return
 
-        cleaned: List[str] = []
-        seen: Set[str] = set()
+        cleaned: list[str] = []
+        seen: set[str] = set()
         for uri in peers:
             s = _norm_uri(str(uri))
             if not s or not _is_supported_uri(s):
@@ -114,7 +114,7 @@ class PeerListStore:
     def write_list(self, peers: Iterable[str], *, force: bool = False) -> None:
         self.save(peers, force=force)
 
-    def merge(self, peers: Iterable[str], *, force: bool = False) -> List[str]:
+    def merge(self, peers: Iterable[str], *, force: bool = False) -> list[str]:
         """Merge peers into the persisted list and return the merged list.
 
         This is intended for bootstrapping: the node can merge env/seed peers
@@ -122,8 +122,8 @@ class PeerListStore:
         """
 
         existing = self.load()
-        merged: List[str] = []
-        seen: Set[str] = set()
+        merged: list[str] = []
+        seen: set[str] = set()
 
         for uri in list(existing) + [str(p) for p in peers]:
             s = _norm_uri(uri)

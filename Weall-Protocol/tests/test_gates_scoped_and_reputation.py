@@ -1,7 +1,7 @@
 # tests/test_gates_scoped_and_reputation.py
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -10,7 +10,7 @@ from weall.runtime.tx_admission import admit_tx
 from weall.tx.canon import TxIndex
 
 
-def _canon(mapping: Dict[str, Dict[str, Any]]) -> TxIndex:
+def _canon(mapping: dict[str, dict[str, Any]]) -> TxIndex:
     tx_types = []
     for i, (name, spec) in enumerate(mapping.items(), start=1):
         d = {"id": i, "name": name}
@@ -20,7 +20,7 @@ def _canon(mapping: Dict[str, Dict[str, Any]]) -> TxIndex:
     by_name = {str(t["name"]).upper(): t for t in tx_types}
     by_id = {int(t["id"]): t for t in tx_types}
     by_id_str = {str(int(t["id"])): t for t in tx_types}
-    meta: Dict[str, Any] = {"generated_from": "unit"}
+    meta: dict[str, Any] = {"generated_from": "unit"}
     return TxIndex(
         tx_types=tx_types,
         by_name=by_name,
@@ -51,7 +51,9 @@ def _unsigned_ok(monkeypatch: pytest.MonkeyPatch) -> None:
         ({"min_reputation_milli": 1250}, 1250, True),
     ],
 )
-def test_min_reputation_enforced(spec_fragment: Dict[str, Any], have_rep_units: int, should_pass: bool) -> None:
+def test_min_reputation_enforced(
+    spec_fragment: dict[str, Any], have_rep_units: int, should_pass: bool
+) -> None:
     canon = _canon(
         {
             "CONTENT_POST_CREATE": {
@@ -104,7 +106,9 @@ def test_banned_overrides_gate_and_reputation() -> None:
     )
 
     ledger = LedgerView(
-        accounts={"@user": {"poh_tier": 3, "banned": True, "locked": False, "reputation": 1.0, "nonce": 0}},
+        accounts={
+            "@user": {"poh_tier": 3, "banned": True, "locked": False, "reputation": 1.0, "nonce": 0}
+        },
         roles={},
     )
     ok, rej = admit_tx(
@@ -137,7 +141,9 @@ def test_locked_overrides_gate_and_reputation() -> None:
     )
 
     ledger = LedgerView(
-        accounts={"@user": {"poh_tier": 3, "banned": False, "locked": True, "reputation": 1.0, "nonce": 0}},
+        accounts={
+            "@user": {"poh_tier": 3, "banned": False, "locked": True, "reputation": 1.0, "nonce": 0}
+        },
         roles={},
     )
     ok, rej = admit_tx(

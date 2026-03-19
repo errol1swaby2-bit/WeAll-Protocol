@@ -9,7 +9,12 @@ from weall.net.net_loop import NetMeshLoop, net_loop_config_from_env
 class _FakeNode:
     def __init__(self) -> None:
         self.calls: list[tuple[object, str]] = []
-        self.cfg = SimpleNamespace(peer_id="local-peer", chain_id="test-chain", schema_version="1", tx_index_hash="deadbeef")
+        self.cfg = SimpleNamespace(
+            peer_id="local-peer",
+            chain_id="test-chain",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+        )
 
     def broadcast_message(self, msg, exclude_peer_id: str = "") -> int:
         self.calls.append((msg, exclude_peer_id))
@@ -87,7 +92,9 @@ def test_on_bft_vote_broadcasts_qc_once(monkeypatch):
     loop._bft_enabled = True
     loop._bft_msg_seen_ttl_ms = 999999
 
-    hdr = WireHeader(type=MsgType.BFT_VOTE, chain_id="test-chain", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.BFT_VOTE, chain_id="test-chain", schema_version="1", tx_index_hash="deadbeef"
+    )
     msg = BftVoteMsg(
         header=hdr,
         view=11,

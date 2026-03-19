@@ -13,7 +13,9 @@ def _canon_path() -> str:
     return str(repo_root / "generated" / "tx_index.json")
 
 
-def test_pending_remote_blocks_is_bounded_strict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pending_remote_blocks_is_bounded_strict(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_MAX_PENDING_REMOTE_BLOCKS", "25")
@@ -43,7 +45,9 @@ def test_pending_remote_blocks_is_bounded_strict(tmp_path: Path, monkeypatch: py
     assert len(ex._pending_remote_blocks) <= 25  # type: ignore[attr-defined]
 
 
-def test_pending_candidates_is_bounded_strict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pending_candidates_is_bounded_strict(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_MAX_PENDING_CANDIDATES", "10")

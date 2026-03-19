@@ -13,7 +13,9 @@ def _repo_root():
     return pathlib.Path(__file__).resolve().parents[1]
 
 
-def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_clock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_clock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Prod restart stays chain-time safe and degrades to observer mode on huge skew.
 
     Normal consensus validity follows chain time. A catastrophically future-skewed tip
@@ -27,9 +29,18 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path
+    )
 
-    sub = ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:0"}})
+    sub = ex.submit_tx(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user000",
+            "nonce": 1,
+            "payload": {"pubkey": "k:0"},
+        }
+    )
     assert sub["ok"] is True
 
     meta = ex.produce_block(max_txs=1)
@@ -44,9 +55,15 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     ex._store.write_state_snapshot(st1)  # type: ignore[attr-defined]
 
     monkeypatch.delenv("WEALL_UNSAFE_DEV", raising=False)
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path
+    )
     assert ex2.observer_mode() is True
-    warning = ((ex2.read_state().get("meta") or {}) if isinstance(ex2.read_state().get("meta"), dict) else {}).get("clock_warning")
+    warning = (
+        (ex2.read_state().get("meta") or {})
+        if isinstance(ex2.read_state().get("meta"), dict)
+        else {}
+    ).get("clock_warning")
     assert isinstance(warning, dict)
     assert bool(warning.get("observer_mode_forced", False)) is True
     assert bool(warning.get("startup_blocked", True)) is False

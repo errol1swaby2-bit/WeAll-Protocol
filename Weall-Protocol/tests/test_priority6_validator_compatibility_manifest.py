@@ -4,8 +4,6 @@ import json
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 from weall.runtime.bootstrap_manifest import build_manifest, verify_local_manifest
 from weall.runtime.chain_config import (
     ChainConfig,
@@ -14,7 +12,9 @@ from weall.runtime.chain_config import (
 )
 
 
-def _cfg(tmp_path: Path, *, block_interval_ms: int = 600_000, max_txs_per_block: int = 1000) -> ChainConfig:
+def _cfg(
+    tmp_path: Path, *, block_interval_ms: int = 600_000, max_txs_per_block: int = 1000
+) -> ChainConfig:
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text("{}", encoding="utf-8")
     return ChainConfig(
@@ -40,7 +40,9 @@ def _write_db(db_path: Path, state: dict[str, object]) -> None:
         con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         con.execute("CREATE TABLE ledger_state (id INTEGER PRIMARY KEY, state_json TEXT NOT NULL)")
         con.execute("INSERT INTO meta(key, value) VALUES (?, ?)", ("schema_version", "1"))
-        con.execute("INSERT INTO ledger_state(id, state_json) VALUES (1, ?)", (json.dumps(_state()),))
+        con.execute(
+            "INSERT INTO ledger_state(id, state_json) VALUES (1, ?)", (json.dumps(_state()),)
+        )
         con.commit()
     finally:
         con.close()
@@ -56,7 +58,10 @@ def _state() -> dict[str, object]:
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
 
@@ -73,7 +78,9 @@ def test_verify_local_manifest_rejects_chain_config_drift(tmp_path: Path) -> Non
     build_cfg = _cfg(tmp_path, block_interval_ms=600_000, max_txs_per_block=1000)
     verify_cfg = _cfg(tmp_path, block_interval_ms=300_000, max_txs_per_block=1000)
     _write_db(Path(build_cfg.db_path), _state())
-    manifest = build_manifest(build_cfg, db_path=Path(build_cfg.db_path), tx_index_path=Path(build_cfg.tx_index_path))
+    manifest = build_manifest(
+        build_cfg, db_path=Path(build_cfg.db_path), tx_index_path=Path(build_cfg.tx_index_path)
+    )
     manifest_path = tmp_path / "bundle.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 

@@ -35,7 +35,15 @@ def _produce_register_block(ex: WeAllExecutor, signer: str, nonce: int) -> None:
     assert meta.ok is True
 
 
-def _req(ex: WeAllExecutor, corr_id: str, *, mode: str, from_height: int = 0, to_height: int | None = None, selector=None) -> StateSyncRequestMsg:
+def _req(
+    ex: WeAllExecutor,
+    corr_id: str,
+    *,
+    mode: str,
+    from_height: int = 0,
+    to_height: int | None = None,
+    selector=None,
+) -> StateSyncRequestMsg:
     return StateSyncRequestMsg(
         header=WireHeader(
             type=MsgType.STATE_SYNC_REQUEST,
@@ -53,7 +61,13 @@ def _req(ex: WeAllExecutor, corr_id: str, *, mode: str, from_height: int = 0, to
 
 def test_net_loop_build_node_uses_executor_sync_metadata(tmp_path: Path) -> None:
     ex = _make_executor(tmp_path, "node-a", chain_id="sync-live")
-    loop = NetMeshLoop(executor=ex, mempool=ex._mempool, cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="stale"))
+    loop = NetMeshLoop(
+        executor=ex,
+        mempool=ex._mempool,
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="stale"
+        ),
+    )
 
     node = loop._build_node()
 
@@ -66,13 +80,18 @@ def test_net_loop_build_node_uses_executor_sync_metadata(tmp_path: Path) -> None
     assert node.sync_service.tx_index_hash == ex.tx_index_hash()
 
 
-
 def test_net_loop_built_sync_service_serves_snapshot_and_delta(tmp_path: Path) -> None:
     ex = _make_executor(tmp_path, "leader", chain_id="sync-live")
     _produce_register_block(ex, "@u1", 1)
     _produce_register_block(ex, "@u2", 1)
 
-    loop = NetMeshLoop(executor=ex, mempool=ex._mempool, cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="bad"))
+    loop = NetMeshLoop(
+        executor=ex,
+        mempool=ex._mempool,
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="bad"
+        ),
+    )
     node = loop._build_node()
     assert node.sync_service is not None
 
@@ -83,7 +102,9 @@ def test_net_loop_built_sync_service_serves_snapshot_and_delta(tmp_path: Path) -
     assert int(snap_resp.snapshot.get("height") or 0) == 2
 
     anchor = build_snapshot_anchor(ex.state)
-    delta_req = _req(ex, "delta-1", mode="delta", from_height=0, to_height=2, selector={"trusted_anchor": anchor})
+    delta_req = _req(
+        ex, "delta-1", mode="delta", from_height=0, to_height=2, selector={"trusted_anchor": anchor}
+    )
     delta_resp = node.sync_service.handle_request(delta_req)
     assert delta_resp.ok is True
     assert [int(b.get("height") or 0) for b in delta_resp.blocks] == [1, 2]

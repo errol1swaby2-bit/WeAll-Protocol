@@ -22,9 +22,9 @@ Enforcement strategy:
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _mode() -> str:
@@ -60,7 +60,7 @@ def _env_str(name: str, default: str = "") -> str:
     return str(v).strip()
 
 
-def read_partition_config() -> Tuple[str, int, int]:
+def read_partition_config() -> tuple[str, int, int]:
     """Read partition config from env.
 
     Returns: (partition_path, cap_bytes, reserve_bytes)
@@ -97,7 +97,7 @@ def can_accept_bytes(
     cap_bytes: int,
     reserve_bytes: int,
     need_bytes: int,
-) -> Tuple[bool, str, Json]:
+) -> tuple[bool, str, Json]:
     """Check whether the local partition budget can accept `need_bytes`.
 
     If partition_path is empty, returns ok=True (feature disabled).
@@ -113,7 +113,11 @@ def can_accept_bytes(
     try:
         stats = stat_partition(p)
     except Exception as e:
-        return False, "partition_unavailable", {"partition_path": p, "error": str(e), "need_bytes": need}
+        return (
+            False,
+            "partition_unavailable",
+            {"partition_path": p, "error": str(e), "need_bytes": need},
+        )
 
     reserve = int(reserve_bytes or 0)
     if reserve < 0:

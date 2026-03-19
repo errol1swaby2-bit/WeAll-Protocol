@@ -60,7 +60,9 @@ def _mk_executor(
     return ex, pubs, privs
 
 
-def _mk_qc_from_votes(ex: WeAllExecutor, monkeypatch: pytest.MonkeyPatch, pubs: dict[str, str], privs: dict[str, str]):
+def _mk_qc_from_votes(
+    ex: WeAllExecutor, monkeypatch: pytest.MonkeyPatch, pubs: dict[str, str], privs: dict[str, str]
+):
     proposal = ex.bft_leader_propose(max_txs=0)
     assert isinstance(proposal, dict)
     bid = str(proposal["block_id"])
@@ -72,7 +74,9 @@ def _mk_qc_from_votes(ex: WeAllExecutor, monkeypatch: pytest.MonkeyPatch, pubs: 
         monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", signer)
         monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs[signer])
         monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs[signer])
-        vote = ex.bft_make_vote_for_block(view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id)
+        vote = ex.bft_make_vote_for_block(
+            view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id
+        )
         assert isinstance(vote, dict)
         qc = ex.bft_handle_vote(vote) or qc
     assert qc is not None
@@ -82,8 +86,12 @@ def _mk_qc_from_votes(ex: WeAllExecutor, monkeypatch: pytest.MonkeyPatch, pubs: 
     return qc
 
 
-def test_bootstrap_phase_suppresses_vote_timeout_and_qc_processing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    ex, pubs, privs = _mk_executor(tmp_path, monkeypatch, phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP)
+def test_bootstrap_phase_suppresses_vote_timeout_and_qc_processing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ex, pubs, privs = _mk_executor(
+        tmp_path, monkeypatch, phase=CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP
+    )
 
     # Bootstrap may still build a proposal candidate, but BFT artifacts must not be emitted.
     proposal = ex.bft_leader_propose(max_txs=0)
@@ -92,13 +100,18 @@ def test_bootstrap_phase_suppresses_vote_timeout_and_qc_processing(tmp_path: Pat
     parent_id = str(proposal.get("prev_block_id") or "")
     block_hash = str(proposal.get("block_hash") or "")
 
-    assert ex.bft_make_vote_for_block(view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id) is None
+    assert (
+        ex.bft_make_vote_for_block(view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id)
+        is None
+    )
     assert ex.bft_make_timeout(view=0) is None
 
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "v2")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs["v2"])
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs["v2"])
-    foreign_vote = ex.bft_make_vote_for_block(view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id)
+    foreign_vote = ex.bft_make_vote_for_block(
+        view=0, block_id=bid, block_hash=block_hash, parent_id=parent_id
+    )
     assert foreign_vote is None
 
     qc_payload = {
@@ -112,22 +125,27 @@ def test_bootstrap_phase_suppresses_vote_timeout_and_qc_processing(tmp_path: Pat
         "validator_set_hash": ex._current_validator_set_hash(),
     }
     assert ex.bft_verify_qc_json(qc_payload) is None
-    assert ex.bft_handle_timeout(
-        {
-            "t": "TIMEOUT",
-            "chain_id": ex.chain_id,
-            "view": 0,
-            "high_qc_id": "genesis",
-            "signer": "v1",
-            "pubkey": pubs["v1"],
-            "sig": "00",
-            "validator_epoch": ex._current_validator_epoch(),
-            "validator_set_hash": ex._current_validator_set_hash(),
-        }
-    ) is None
+    assert (
+        ex.bft_handle_timeout(
+            {
+                "t": "TIMEOUT",
+                "chain_id": ex.chain_id,
+                "view": 0,
+                "high_qc_id": "genesis",
+                "signer": "v1",
+                "pubkey": pubs["v1"],
+                "sig": "00",
+                "validator_epoch": ex._current_validator_epoch(),
+                "validator_set_hash": ex._current_validator_set_hash(),
+            }
+        )
+        is None
+    )
 
 
-def test_bft_active_phase_allows_signed_votes_timeouts_and_qcs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bft_active_phase_allows_signed_votes_timeouts_and_qcs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex, pubs, privs = _mk_executor(tmp_path, monkeypatch, phase=CONSENSUS_PHASE_BFT_ACTIVE)
 
     proposal = ex.bft_leader_propose(max_txs=0)

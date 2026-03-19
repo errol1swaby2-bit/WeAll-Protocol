@@ -49,7 +49,9 @@ def test_consensus_resilience_matrix_direct_runner_is_green(tmp_path: Path) -> N
     assert epoch_boundary["converged"] is True
     assert int(epoch_boundary["epoch_bump_events"]) == 3
     assert int(epoch_boundary["restart_events"]) >= 10
-    assert int(epoch_boundary["stale_qc_replay_rejections"]) == int(epoch_boundary["stale_qc_replay_attempts"])
+    assert int(epoch_boundary["stale_qc_replay_rejections"]) == int(
+        epoch_boundary["stale_qc_replay_attempts"]
+    )
     assert int(epoch_boundary["healed_partition_events"]) >= 6
 
 

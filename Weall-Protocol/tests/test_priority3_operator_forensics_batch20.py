@@ -34,11 +34,25 @@ class _FakeExecutor:
             "tip_hash": "hash17",
             "tip_ts_ms": 1700000000017,
             "finalized": {"height": 15, "block_id": "15:block"},
-            "roles": {"validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]}},
+            "roles": {
+                "validators": {
+                    "active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]
+                }
+            },
             "bft": {
                 "view": 6,
-                "high_qc": {"block_id": "16:block", "parent_id": "15:block", "view": 5, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
-                "locked_qc": {"block_id": "15:block", "parent_id": "14:block", "view": 4, "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}]},
+                "high_qc": {
+                    "block_id": "16:block",
+                    "parent_id": "15:block",
+                    "view": 5,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
+                "locked_qc": {
+                    "block_id": "15:block",
+                    "parent_id": "14:block",
+                    "view": 4,
+                    "votes": [{"s": "a"}, {"s": "b"}, {"s": "c"}],
+                },
             },
             "meta": {
                 "schema_version": "1",
@@ -111,14 +125,33 @@ class _FakeExecutor:
             "diagnostics": self.bft_diagnostics(),
             "recent_rejection_summary": self.bft_diagnostics()["recent_rejection_summary"],
             "recent_rejections": [
-                {"ts_ms": 1111, "message_type": "proposal", "reason": "missing_parent", "block_id": "blk-2"},
-                {"ts_ms": 1100, "message_type": "proposal", "reason": "chain_id_mismatch", "block_id": "blk-1"},
+                {
+                    "ts_ms": 1111,
+                    "message_type": "proposal",
+                    "reason": "missing_parent",
+                    "block_id": "blk-2",
+                },
+                {
+                    "ts_ms": 1100,
+                    "message_type": "proposal",
+                    "reason": "chain_id_mismatch",
+                    "block_id": "blk-1",
+                },
             ],
             "recent_key_events": [
-                {"ts_ms": 1200, "event": "bft_fetch_requested", "payload": {"block_id": "parent-1"}},
+                {
+                    "ts_ms": 1200,
+                    "event": "bft_fetch_requested",
+                    "payload": {"block_id": "parent-1"},
+                },
             ],
             "pending_fetch_request_descriptors": [
-                {"block_id": "parent-1", "block_hash": "hash-parent-1", "reason": "missing_parent", "child_block_id": "blk-2"}
+                {
+                    "block_id": "parent-1",
+                    "block_hash": "hash-parent-1",
+                    "reason": "missing_parent",
+                    "child_block_id": "blk-2",
+                }
             ],
             "pending_outbound_messages": [
                 {"kind": "vote", "payload": {"block_id": "blk-2", "view": 6}}

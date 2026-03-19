@@ -9,7 +9,9 @@ def test_peer_list_store_load_save_roundtrip(tmp_path: Path) -> None:
     p = tmp_path / "peers.txt"
     store = PeerListStore(path=str(p), max_peers=5, min_write_interval_ms=0)
 
-    store.save(["tcp://1.1.1.1:30303", "tls://node.example:30303", "tcp://1.1.1.1:30303"], force=True)
+    store.save(
+        ["tcp://1.1.1.1:30303", "tls://node.example:30303", "tcp://1.1.1.1:30303"], force=True
+    )
     got = store.load()
     assert got == ["tcp://1.1.1.1:30303", "tls://node.example:30303"]
 

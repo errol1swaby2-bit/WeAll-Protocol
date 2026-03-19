@@ -4,11 +4,11 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _now_ms() -> int:
@@ -131,7 +131,7 @@ class PersistentAttestationPool:
             con.execute("DELETE FROM attestations WHERE att_id=?;", (att_id,))
         return {"ok": True, "att_id": att_id}
 
-    def fetch_for_block(self, block_id: str, *, limit: int = 1000) -> List[Json]:
+    def fetch_for_block(self, block_id: str, *, limit: int = 1000) -> list[Json]:
         bid = str(block_id).strip()
         if not bid:
             return []
@@ -149,7 +149,7 @@ class PersistentAttestationPool:
                 (bid, int(now), lim),
             ).fetchall()
 
-        out: List[Json] = []
+        out: list[Json] = []
         for r in rows:
             try:
                 env = json.loads(str(r["envelope_json"]))

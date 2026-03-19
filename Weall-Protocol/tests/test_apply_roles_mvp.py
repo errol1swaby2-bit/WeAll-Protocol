@@ -38,7 +38,13 @@ def test_treasury_create_then_set_signers() -> None:
     assert meta and meta["applied"] == "TREASURY_CREATE"
 
     # set signers
-    meta2 = apply_tx(st, _env("TREASURY_SIGNERS_SET", {"treasury_id": "t1", "signers": ["alice", "bob"], "threshold": 2}))
+    meta2 = apply_tx(
+        st,
+        _env(
+            "TREASURY_SIGNERS_SET",
+            {"treasury_id": "t1", "signers": ["alice", "bob"], "threshold": 2},
+        ),
+    )
     assert meta2 and meta2["applied"] == "TREASURY_SIGNERS_SET"
 
     assert st["roles"]["treasuries_by_id"]["t1"]["signers"] == ["alice", "bob"]
@@ -83,4 +89,9 @@ def test_invalid_threshold_rejected() -> None:
     st = {}
     apply_tx(st, _env("TREASURY_CREATE", {"treasury_id": "t1"}))
     with pytest.raises(ApplyError):
-        apply_tx(st, _env("TREASURY_SIGNERS_SET", {"treasury_id": "t1", "signers": ["alice"], "threshold": 2}))
+        apply_tx(
+            st,
+            _env(
+                "TREASURY_SIGNERS_SET", {"treasury_id": "t1", "signers": ["alice"], "threshold": 2}
+            ),
+        )

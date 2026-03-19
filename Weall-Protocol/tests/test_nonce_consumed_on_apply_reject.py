@@ -22,19 +22,40 @@ def test_nonce_consumed_when_apply_rejects() -> None:
     st = _empty_state()
 
     # Register
-    st = apply_tx_atomic(copy.deepcopy(st), {"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:u"}, "sig": "x"})
+    st = apply_tx_atomic(
+        copy.deepcopy(st),
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user000",
+            "nonce": 1,
+            "payload": {"pubkey": "k:u"},
+            "sig": "x",
+        },
+    )
     assert st["accounts"]["@user000"]["nonce"] == 1
 
     # nonce=2: revoke missing device => apply reject, but nonce must still advance to 2
     with pytest.raises(ApplyError):
         apply_tx_atomic(
             copy.deepcopy(st),
-            {"tx_type": "ACCOUNT_DEVICE_REVOKE", "signer": "@user000", "nonce": 2, "payload": {"device_id": "missing"}, "sig": "x"},
+            {
+                "tx_type": "ACCOUNT_DEVICE_REVOKE",
+                "signer": "@user000",
+                "nonce": 2,
+                "payload": {"device_id": "missing"},
+                "sig": "x",
+            },
         )
 
     # Confirm nonce consumption behavior by applying nonce=3 successfully.
     st2 = apply_tx_atomic(
         copy.deepcopy(st),
-        {"tx_type": "ACCOUNT_DEVICE_REGISTER", "signer": "@user000", "nonce": 3, "payload": {"device_id": "dev1", "pubkey": "k:dev1"}, "sig": "x"},
+        {
+            "tx_type": "ACCOUNT_DEVICE_REGISTER",
+            "signer": "@user000",
+            "nonce": 3,
+            "payload": {"device_id": "dev1", "pubkey": "k:dev1"},
+            "sig": "x",
+        },
     )
     assert st2["accounts"]["@user000"]["nonce"] == 3

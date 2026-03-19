@@ -13,4 +13,3 @@ def test_executor_allows_when_ok():
     out = executor_safe_mode_guard(report=report, actions=None)
     assert out["halt_block_production"] is False
     assert out["allow_block_production"] is True
-

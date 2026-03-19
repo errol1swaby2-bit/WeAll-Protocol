@@ -30,7 +30,7 @@ DOMAIN_APPLY = REPO_ROOT / "src" / "weall" / "runtime" / "domain_apply.py"
 HELPERS_BEGIN = "# BEGIN WEALL BAN SLASH HELPERS (AUTO-GENERATED)\n"
 HELPERS_END = "# END WEALL BAN SLASH HELPERS (AUTO-GENERATED)\n"
 
-HELPERS_BLOCK = r'''# BEGIN WEALL BAN SLASH HELPERS (AUTO-GENERATED)
+HELPERS_BLOCK = r"""# BEGIN WEALL BAN SLASH HELPERS (AUTO-GENERATED)
 # Deterministic, integer-only money helpers used for ban slashing.
 # We keep behavior opt-in via payload fields to avoid surprising semantics.
 
@@ -118,7 +118,7 @@ def _compute_slash_amount(*, current_balance: int, payload: Json) -> int:
     return 0
 
 # END WEALL BAN SLASH HELPERS (AUTO-GENERATED)
-'''
+"""
 
 
 def _insert_helpers_if_missing(src: str) -> str:
@@ -166,7 +166,7 @@ def _patch_apply_account_ban(src: str) -> str:
     before = body[:ret_idx]
     after = body[ret_idx:]
 
-    injection = r'''
+    injection = r"""
     # Optional balance slashing on ban (opt-in via payload).
     # If present, slashed value is routed into fees.pending_reward for next block reward.
     try:
@@ -194,7 +194,7 @@ def _patch_apply_account_ban(src: str) -> str:
                 }
             )
             state["ban_slash_log"] = log
-'''
+"""
 
     new_body = before + injection + after
     return src[: m.start("body")] + new_body + src[m.end("body") :]

@@ -10,7 +10,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_unclean_restart_forces_observer_mode_until_clean_shutdown(tmp_path: Path, monkeypatch) -> None:
+def test_unclean_restart_forces_observer_mode_until_clean_shutdown(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
     monkeypatch.delenv("WEALL_ALLOW_DIRTY_SIGNING", raising=False)

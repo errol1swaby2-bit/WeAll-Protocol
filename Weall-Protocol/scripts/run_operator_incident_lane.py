@@ -40,9 +40,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build an operator incident lane bundle: report, actions, safe mode, and peer divergence summary."
     )
-    parser.add_argument("--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path.")
-    parser.add_argument("--tx-index-path", default=None, help="Path to generated tx index. Defaults to chain config tx_index_path.")
-    parser.add_argument("--remote-forensics", default=None, help="Optional path to remote consensus forensics JSON.")
+    parser.add_argument(
+        "--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path."
+    )
+    parser.add_argument(
+        "--tx-index-path",
+        default=None,
+        help="Path to generated tx index. Defaults to chain config tx_index_path.",
+    )
+    parser.add_argument(
+        "--remote-forensics", default=None, help="Optional path to remote consensus forensics JSON."
+    )
     parser.add_argument(
         "--peer-report",
         dest="peer_reports",
@@ -50,7 +58,9 @@ def main() -> int:
         default=None,
         help="Optional path to a peer operator incident report JSON. May be passed multiple times.",
     )
-    parser.add_argument("--out", default=None, help="Optional output path. Prints to stdout when omitted.")
+    parser.add_argument(
+        "--out", default=None, help="Optional output path. Prints to stdout when omitted."
+    )
     args = parser.parse_args()
 
     cfg = load_chain_config()

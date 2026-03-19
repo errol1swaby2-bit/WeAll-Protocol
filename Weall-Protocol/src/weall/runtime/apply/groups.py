@@ -3,21 +3,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
-from weall.runtime.group_treasury_scheduler import maybe_enqueue_group_spend_execute, maybe_enqueue_group_spend_expire
+from weall.runtime.group_treasury_scheduler import (
+    maybe_enqueue_group_spend_execute,
+    maybe_enqueue_group_spend_expire,
+)
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
 class GroupsApplyError(Exception):
     code: str
     reason: str
-    details: Optional[Json] = None
+    details: Json | None = None
 
     def __str__(self) -> str:
         return f"{self.code}:{self.reason}"
@@ -140,7 +143,7 @@ def _group_treasury_timelock_blocks(state: Json) -> int:
     return 0
 
 
-GROUPS_TX_TYPES: Set[str] = {
+GROUPS_TX_TYPES: set[str] = {
     "GROUP_CREATE",
     "GROUP_UPDATE",
     "GROUP_ROLE_GRANT",
@@ -180,11 +183,11 @@ def _ensure_group_emissary_ballots(state: Json) -> Json:
     return root
 
 
-def _uniq_sorted_accounts(xs: Any) -> List[str]:
+def _uniq_sorted_accounts(xs: Any) -> list[str]:
     if not isinstance(xs, list):
         return []
-    seen: Set[str] = set()
-    out: List[str] = []
+    seen: set[str] = set()
+    out: list[str] = []
     for x in xs:
         s = _as_str(x).strip()
         if not s:
@@ -196,7 +199,7 @@ def _uniq_sorted_accounts(xs: Any) -> List[str]:
     return sorted(out)
 
 
-def _group_member_snapshot(g: Json) -> List[str]:
+def _group_member_snapshot(g: Json) -> list[str]:
     members = g.get("members")
     if not isinstance(members, dict):
         return []
@@ -223,7 +226,9 @@ def _default_emissary_election_window_blocks(state: Json) -> int:
     return 1008
 
 
-def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str], seats: int) -> List[str]:
+def _stv_winners(
+    *, ballots_by_voter: dict[str, list[str]], candidates: list[str], seats: int
+) -> list[str]:
     """Deterministic STV (Droop quota) with Fraction weights."""
     cands = sorted([c for c in candidates if isinstance(c, str) and c.strip()])
     if seats <= 0 or not cands:
@@ -232,22 +237,22 @@ def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str
     class _Ballot:
         __slots__ = ("prefs", "w")
 
-        def __init__(self, prefs: List[str], w: Fraction):
+        def __init__(self, prefs: list[str], w: Fraction):
             self.prefs = prefs
             self.w = w
 
-        def next_choice(self, active: Set[str]) -> Optional[str]:
+        def next_choice(self, active: set[str]) -> str | None:
             for p in self.prefs:
                 if p in active:
                     return p
             return None
 
-    ballots: List[_Ballot] = []
+    ballots: list[_Ballot] = []
     for _v, prefs in ballots_by_voter.items():
         if not isinstance(prefs, list):
             continue
-        seen: Set[str] = set()
-        norm: List[str] = []
+        seen: set[str] = set()
+        norm: list[str] = []
         for p in prefs:
             s = _as_str(p).strip()
             if not s or s not in cands or s in seen:
@@ -257,15 +262,15 @@ def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str
         if norm:
             ballots.append(_Ballot(norm, Fraction(1, 1)))
 
-    active: Set[str] = set(cands)
-    winners: List[str] = []
+    active: set[str] = set(cands)
+    winners: list[str] = []
 
     total_votes = sum((b.w for b in ballots), Fraction(0, 1))
     quota = int(total_votes / Fraction(seats + 1, 1)) + 1
     if quota <= 0:
         quota = 1
 
-    piles: Dict[str, List[_Ballot]] = {c: [] for c in active}
+    piles: dict[str, list[_Ballot]] = {c: [] for c in active}
 
     def _reassign_all() -> None:
         for c in list(piles.keys()):
@@ -276,7 +281,7 @@ def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str
                 continue
             piles.setdefault(ch, []).append(b)
 
-    def _tally() -> Dict[str, Fraction]:
+    def _tally() -> dict[str, Fraction]:
         return {c: sum((b.w for b in piles.get(c, [])), Fraction(0, 1)) for c in active}
 
     _reassign_all()
@@ -300,7 +305,7 @@ def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str
 
             if surplus > 0 and elect_total > 0:
                 tv = surplus / elect_total
-                new_ballots: List[_Ballot] = []
+                new_ballots: list[_Ballot] = []
                 for b in piles.get(elect, []):
                     transfer_w = b.w * tv
                     b.w = b.w - transfer_w
@@ -318,8 +323,8 @@ def _stv_winners(*, ballots_by_voter: Dict[str, List[str]], candidates: List[str
         piles.pop(low, None)
         _reassign_all()
 
-    out: List[str] = []
-    seen_out: Set[str] = set()
+    out: list[str] = []
+    seen_out: set[str] = set()
     for w in winners:
         if w in seen_out:
             continue
@@ -507,7 +512,12 @@ def _apply_group_membership_decide(state: Json, env: TxEnvelope) -> Json:
         reqs.pop(account, None)
     g["membership_requests"] = reqs
     groups[group_id] = g
-    return {"applied": "GROUP_MEMBERSHIP_DECIDE", "group_id": group_id, "account": account, "decision": decision}
+    return {
+        "applied": "GROUP_MEMBERSHIP_DECIDE",
+        "group_id": group_id,
+        "account": account,
+        "decision": decision,
+    }
 
 
 def _apply_group_membership_remove(state: Json, env: TxEnvelope) -> Json:
@@ -542,7 +552,9 @@ def _apply_group_signers_set(state: Json, env: TxEnvelope) -> Json:
 
     signers = sorted({str(s).strip() for s in signers_raw if str(s).strip()})
     if not signers:
-        raise GroupsApplyError("invalid_payload", "signers_required", {"tx_type": env.tx_type, "group_id": group_id})
+        raise GroupsApplyError(
+            "invalid_payload", "signers_required", {"tx_type": env.tx_type, "group_id": group_id}
+        )
 
     threshold = _as_int(threshold_raw, 0)
     if threshold <= 0:
@@ -570,7 +582,12 @@ def _apply_group_signers_set(state: Json, env: TxEnvelope) -> Json:
         except Exception:
             pass
 
-    return {"applied": "GROUP_SIGNERS_SET", "group_id": group_id, "n_signers": len(signers), "threshold": int(threshold)}
+    return {
+        "applied": "GROUP_SIGNERS_SET",
+        "group_id": group_id,
+        "n_signers": len(signers),
+        "threshold": int(threshold),
+    }
 
 
 def _apply_group_moderators_set(state: Json, env: TxEnvelope) -> Json:
@@ -602,7 +619,9 @@ def _apply_group_treasury_create(state: Json, env: TxEnvelope) -> Json:
 def _require_system(env: TxEnvelope) -> None:
     if bool(getattr(env, "system", False)) or _as_str(getattr(env, "signer", "")) == "SYSTEM":
         return
-    raise GroupsApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer})
+    raise GroupsApplyError(
+        "forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer}
+    )
 
 
 def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
@@ -646,7 +665,9 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
             allowed = sorted({str(x).strip() for x in em if str(x).strip()})
 
     if not allowed:
-        raise GroupsApplyError("forbidden", "no_authorized_signers", {"group_id": group_id, "treasury_id": treasury_id})
+        raise GroupsApplyError(
+            "forbidden", "no_authorized_signers", {"group_id": group_id, "treasury_id": treasury_id}
+        )
 
     threshold = _as_int(g.get("threshold"), 0)
     if threshold <= 0:
@@ -655,7 +676,12 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError(
             "forbidden",
             "threshold_exceeds_signer_set",
-            {"group_id": group_id, "treasury_id": treasury_id, "threshold": int(threshold), "n_allowed": len(allowed)},
+            {
+                "group_id": group_id,
+                "treasury_id": treasury_id,
+                "threshold": int(threshold),
+                "n_allowed": len(allowed),
+            },
         )
 
     now_h = _height_hint(state, env)
@@ -722,7 +748,9 @@ def _apply_group_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
     allowed_set = {str(x).strip() for x in allowed if str(x).strip()}
 
     if signer not in allowed_set:
-        raise GroupsApplyError("forbidden", "not_authorized_signer", {"spend_id": spend_id, "signer": signer})
+        raise GroupsApplyError(
+            "forbidden", "not_authorized_signer", {"spend_id": spend_id, "signer": signer}
+        )
 
     sigs = s.get("signatures")
     if not isinstance(sigs, dict):
@@ -738,7 +766,12 @@ def _apply_group_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
     except Exception:
         pass
 
-    return {"applied": "GROUP_TREASURY_SPEND_SIGN", "spend_id": spend_id, "signer": signer, "deduped": had}
+    return {
+        "applied": "GROUP_TREASURY_SPEND_SIGN",
+        "spend_id": spend_id,
+        "signer": signer,
+        "deduped": had,
+    }
 
 
 def _apply_group_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
@@ -776,7 +809,9 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
         deny_if_econ_time_locked(state)
         deny_if_econ_disabled(state, tx_type="GROUP_TREASURY_SPEND_EXECUTE")
     except ValueError as e:
-        raise GroupsApplyError("forbidden", "economics_disabled", {"tx_type": env.tx_type, "error": str(e)})
+        raise GroupsApplyError(
+            "forbidden", "economics_disabled", {"tx_type": env.tx_type, "error": str(e)}
+        )
 
     payload = _as_dict(env.payload)
     spend_id = _as_str(payload.get("spend_id")).strip()
@@ -802,7 +837,11 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError(
             "forbidden",
             "timelock_not_expired",
-            {"spend_id": spend_id, "earliest_execute_height": int(earliest), "now_height": int(now_h)},
+            {
+                "spend_id": spend_id,
+                "earliest_execute_height": int(earliest),
+                "now_height": int(now_h),
+            },
         )
 
     allowed = s.get("allowed_signers")
@@ -824,7 +863,12 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError(
             "forbidden",
             "insufficient_multisig",
-            {"spend_id": spend_id, "threshold": int(threshold), "valid_signatures": len(valid), "signed_by": sorted(valid)},
+            {
+                "spend_id": spend_id,
+                "threshold": int(threshold),
+                "valid_signatures": len(valid),
+                "signed_by": sorted(valid),
+            },
         )
 
     s["status"] = "executed"
@@ -845,7 +889,9 @@ def _apply_group_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:
     g = groups.get(gid)
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": gid})
-    g["treasury_policy"] = payload.get("policy") if isinstance(payload.get("policy"), dict) else payload
+    g["treasury_policy"] = (
+        payload.get("policy") if isinstance(payload.get("policy"), dict) else payload
+    )
     g["treasury_policy_set_at_nonce"] = int(env.nonce)
     groups[gid] = g
     return {"applied": "GROUP_TREASURY_POLICY_SET", "group_id": gid}
@@ -867,7 +913,9 @@ def _apply_group_treasury_spend_expire(state: Json, env: TxEnvelope) -> Json:
     gid = _as_str(payload.get("group_id")).strip()
     spend_id = _as_str(payload.get("spend_id")).strip()
     if not gid or not spend_id:
-        raise GroupsApplyError("invalid_payload", "missing_group_or_spend_id", {"group_id": gid, "spend_id": spend_id})
+        raise GroupsApplyError(
+            "invalid_payload", "missing_group_or_spend_id", {"group_id": gid, "spend_id": spend_id}
+        )
 
     spends = _ensure_group_spends(state)
     s = spends.get(spend_id)
@@ -984,19 +1032,27 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
     start_h = _as_int(e.get("start_height"), 0)
     end_h = _as_int(e.get("end_height"), 0)
     if start_h and now_h < start_h:
-        raise GroupsApplyError("forbidden", "election_not_started", {"election_id": election_id, "now": now_h, "start": start_h})
+        raise GroupsApplyError(
+            "forbidden",
+            "election_not_started",
+            {"election_id": election_id, "now": now_h, "start": start_h},
+        )
     if end_h and now_h >= end_h:
-        raise GroupsApplyError("forbidden", "election_closed", {"election_id": election_id, "now": now_h, "end": end_h})
+        raise GroupsApplyError(
+            "forbidden", "election_closed", {"election_id": election_id, "now": now_h, "end": end_h}
+        )
 
     voter = _as_str(env.signer).strip()
     snapshot = e.get("voter_snapshot")
     if isinstance(snapshot, list) and voter not in [str(x) for x in snapshot]:
-        raise GroupsApplyError("forbidden", "voter_not_in_snapshot", {"election_id": election_id, "voter": voter})
+        raise GroupsApplyError(
+            "forbidden", "voter_not_in_snapshot", {"election_id": election_id, "voter": voter}
+        )
 
     candidates = e.get("candidates")
     cand_set = set([str(x) for x in candidates]) if isinstance(candidates, list) else set()
-    norm_rank: List[str] = []
-    seen: Set[str] = set()
+    norm_rank: list[str] = []
+    seen: set[str] = set()
     for x in ranking:
         s = _as_str(x).strip()
         if not s or s not in cand_set or s in seen:
@@ -1004,7 +1060,9 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         seen.add(s)
         norm_rank.append(s)
     if not norm_rank:
-        raise GroupsApplyError("invalid_payload", "ranking_has_no_valid_candidates", {"election_id": election_id})
+        raise GroupsApplyError(
+            "invalid_payload", "ranking_has_no_valid_candidates", {"election_id": election_id}
+        )
 
     ballots_root = _ensure_group_emissary_ballots(state)
     ballots = ballots_root.get(election_id)
@@ -1013,7 +1071,12 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         ballots_root[election_id] = ballots
 
     had = voter in ballots
-    ballots[voter] = {"ranking": norm_rank, "cast_at_nonce": int(env.nonce), "cast_at_height": int(now_h), "payload": payload}
+    ballots[voter] = {
+        "ranking": norm_rank,
+        "cast_at_nonce": int(env.nonce),
+        "cast_at_height": int(now_h),
+        "payload": payload,
+    }
     ballots_root[election_id] = ballots
 
     return {
@@ -1046,12 +1109,18 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
             "deduped": True,
         }
     if status != "open":
-        raise GroupsApplyError("forbidden", "election_not_open", {"election_id": election_id, "status": status})
+        raise GroupsApplyError(
+            "forbidden", "election_not_open", {"election_id": election_id, "status": status}
+        )
 
     now_h = _height_hint(state, env)
     end_h = _as_int(e.get("end_height"), 0)
     if end_h and now_h < end_h:
-        raise GroupsApplyError("forbidden", "election_still_open", {"election_id": election_id, "now": now_h, "end": end_h})
+        raise GroupsApplyError(
+            "forbidden",
+            "election_still_open",
+            {"election_id": election_id, "now": now_h, "end": end_h},
+        )
 
     group_id = _as_str(e.get("group_id")).strip()
     groups = _ensure_groups_root(state)
@@ -1066,7 +1135,7 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
 
     ballots_root = _ensure_group_emissary_ballots(state)
     raw_ballots = ballots_root.get(election_id)
-    ballots_by_voter: Dict[str, List[str]] = {}
+    ballots_by_voter: dict[str, list[str]] = {}
     if isinstance(raw_ballots, dict):
         for voter, b in raw_ballots.items():
             if isinstance(b, dict) and isinstance(b.get("ranking"), list):
@@ -1131,7 +1200,7 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     }
 
 
-def apply_groups(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_groups(state: Json, env: TxEnvelope) -> Json | None:
     t = _as_str(env.tx_type).strip().upper()
     if t not in GROUPS_TX_TYPES:
         return None

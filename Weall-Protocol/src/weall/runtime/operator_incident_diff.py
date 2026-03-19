@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _canon(obj: Any) -> str:
@@ -14,7 +14,7 @@ def _as_dict(value: Any) -> Json:
     return value if isinstance(value, dict) else {}
 
 
-def _as_list(value: Any) -> List[Any]:
+def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
@@ -67,7 +67,7 @@ def diff_operator_incident_reports(left: Json, right: Json) -> Json:
     left_remote = _as_dict(left.get("remote_forensics"))
     right_remote = _as_dict(right.get("remote_forensics"))
 
-    concerns: List[str] = []
+    concerns: list[str] = []
     if left_summary.get("severity") != right_summary.get("severity"):
         concerns.append("severity_changed")
     if left_snapshot.get("tip_hash") != right_snapshot.get("tip_hash"):
@@ -87,7 +87,8 @@ def diff_operator_incident_reports(left: Json, right: Json) -> Json:
         "severity_mismatch": left_summary.get("severity") != right_summary.get("severity"),
         "tip_mismatch": left_snapshot.get("tip_hash") != right_snapshot.get("tip_hash"),
         "height_mismatch": left_snapshot.get("height") != right_snapshot.get("height"),
-        "validator_set_mismatch": left_validator.get("validator_set_hash") != right_validator.get("validator_set_hash"),
+        "validator_set_mismatch": left_validator.get("validator_set_hash")
+        != right_validator.get("validator_set_hash"),
         "startup_fingerprint_mismatch": _canon(left_fp) != _canon(right_fp),
     }
 

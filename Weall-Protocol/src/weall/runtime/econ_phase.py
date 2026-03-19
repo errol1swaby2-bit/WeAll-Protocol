@@ -28,11 +28,11 @@ State assumptions:
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 DEFAULT_LOCK_SECONDS: int = 90 * 24 * 60 * 60
 
@@ -62,7 +62,7 @@ def _tx_index() -> TxIndex:
     return TxIndex.load_from_file(str(path))
 
 
-def is_econ_unlocked(state: Json, now_s: Optional[int] = None) -> bool:
+def is_econ_unlocked(state: Json, now_s: int | None = None) -> bool:
     """True if current time is on/after the economic unlock time."""
 
     params = state.get("params") or {}
@@ -90,13 +90,13 @@ def _economics_enabled(state: Json) -> bool:
     return bool(params.get("economics_enabled", False))
 
 
-def econ_allowed_from_state(state: Json, now_s: Optional[int] = None) -> bool:
+def econ_allowed_from_state(state: Json, now_s: int | None = None) -> bool:
     """True only when (unlock_time reached) AND (economics_enabled is true)."""
 
     return is_econ_unlocked(state, now_s) and _economics_enabled(state)
 
 
-def deny_if_econ_time_locked(state: Json, now_s: Optional[int] = None) -> None:
+def deny_if_econ_time_locked(state: Json, now_s: int | None = None) -> None:
     """Raise ValueError if the time-based Genesis economic lock has not expired.
 
     This gate is used when a tx is only permitted after unlock, regardless of whether
@@ -153,8 +153,8 @@ def is_economic_system_tx(tx_type: str) -> bool:
 
 def deny_if_econ_disabled(
     state: Json,
-    now_s: Optional[int] = None,
-    tx_type: Optional[str] = None,
+    now_s: int | None = None,
+    tx_type: str | None = None,
     *,
     for_activation: bool = False,
 ) -> None:

@@ -19,8 +19,14 @@ def _parse_int_csv(value: str) -> list[int]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run a local BFT soak/fault-injection harness against WeAll executors.")
-    ap.add_argument("--work-dir", default="", help="Directory for per-node sqlite databases. Defaults to a temp dir.")
+    ap = argparse.ArgumentParser(
+        description="Run a local BFT soak/fault-injection harness against WeAll executors."
+    )
+    ap.add_argument(
+        "--work-dir",
+        default="",
+        help="Directory for per-node sqlite databases. Defaults to a temp dir.",
+    )
     ap.add_argument("--rounds", type=int, default=18)
     ap.add_argument("--validator-count", type=int, default=4)
     ap.add_argument("--partition-target", default="")

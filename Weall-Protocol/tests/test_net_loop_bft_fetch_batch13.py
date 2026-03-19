@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_ed25519
 from weall.net.net_loop import NetMeshLoop
@@ -24,7 +28,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -52,8 +58,8 @@ def _make_qc(
     *,
     chain_id: str,
     validators: list[str],
-    vpub: Dict[str, str],
-    vpriv: Dict[str, str],
+    vpub: dict[str, str],
+    vpriv: dict[str, str],
     block_id: str,
     parent_id: str,
     view: int,
@@ -101,17 +107,21 @@ def _make_qc(
 
 
 def _build_committed_block(ex: WeAllExecutor, *, force_ts_ms: int) -> dict:
-    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms)
+    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms
+    )
     assert err == ""
-    meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = ex.commit_block_candidate(
+        block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
     assert meta.ok is True
     return blk
 
 
-def _mk_validators() -> tuple[list[str], Dict[str, str], Dict[str, str]]:
+def _mk_validators() -> tuple[list[str], dict[str, str], dict[str, str]]:
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
@@ -119,7 +129,9 @@ def _mk_validators() -> tuple[list[str], Dict[str, str], Dict[str, str]]:
     return validators, vpub, vpriv
 
 
-def test_bft_fetch_tick_recovers_missing_parent_and_replays_chain(tmp_path: Path, monkeypatch) -> None:
+def test_bft_fetch_tick_recovers_missing_parent_and_replays_chain(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_FETCH_BASE_URLS", "http://peer-a")
@@ -127,8 +139,18 @@ def test_bft_fetch_tick_recovers_missing_parent_and_replays_chain(tmp_path: Path
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     validators, vpub, vpriv = _mk_validators()
 
-    leader = WeAllExecutor(db_path=str(tmp_path / "leader.db"), node_id="v1", chain_id="bft-live", tx_index_path=tx_index_path)
-    follower = WeAllExecutor(db_path=str(tmp_path / "follower.db"), node_id="v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    leader = WeAllExecutor(
+        db_path=str(tmp_path / "leader.db"),
+        node_id="v1",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
+    follower = WeAllExecutor(
+        db_path=str(tmp_path / "follower.db"),
+        node_id="v4",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
     _seed_validator_set(leader, validators=validators, pub=vpub, epoch=3)
     _seed_validator_set(follower, validators=validators, pub=vpub, epoch=3)
 
@@ -191,8 +213,18 @@ def test_bft_fetch_tick_rejects_mismatched_fetched_block(tmp_path: Path, monkeyp
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     validators, vpub, vpriv = _mk_validators()
 
-    leader = WeAllExecutor(db_path=str(tmp_path / "leader.db"), node_id="v1", chain_id="bft-live", tx_index_path=tx_index_path)
-    follower = WeAllExecutor(db_path=str(tmp_path / "follower.db"), node_id="v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    leader = WeAllExecutor(
+        db_path=str(tmp_path / "leader.db"),
+        node_id="v1",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
+    follower = WeAllExecutor(
+        db_path=str(tmp_path / "follower.db"),
+        node_id="v4",
+        chain_id="bft-live",
+        tx_index_path=tx_index_path,
+    )
     _seed_validator_set(leader, validators=validators, pub=vpub, epoch=3)
     _seed_validator_set(follower, validators=validators, pub=vpub, epoch=3)
 
@@ -224,7 +256,10 @@ def test_bft_fetch_tick_rejects_mismatched_fetched_block(tmp_path: Path, monkeyp
     bad_block = dict(block1)
     bad_block["block_id"] = "wrong-block-id"
 
-    monkeypatch.setattr("weall.net.net_loop._http_get_json", lambda url, *, timeout_s=2.0: {"ok": True, "block": bad_block})
+    monkeypatch.setattr(
+        "weall.net.net_loop._http_get_json",
+        lambda url, *, timeout_s=2.0: {"ok": True, "block": bad_block},
+    )
     loop._bft_fetch_tick()
 
     assert int(follower.state.get("height") or 0) == 0

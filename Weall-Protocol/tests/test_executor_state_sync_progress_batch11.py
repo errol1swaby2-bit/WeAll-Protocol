@@ -41,9 +41,13 @@ class _LeaderBackedStateSyncPeer:
         self.leader = leader
         self.calls: list[tuple[int, int | None]] = []
 
-    def request_state_sync(self, peer_id: str, req: StateSyncRequestMsg, **_: object) -> StateSyncResponseMsg:
+    def request_state_sync(
+        self, peer_id: str, req: StateSyncRequestMsg, **_: object
+    ) -> StateSyncResponseMsg:
         del peer_id
-        self.calls.append((int(req.from_height or 0), None if req.to_height is None else int(req.to_height)))
+        self.calls.append(
+            (int(req.from_height or 0), None if req.to_height is None else int(req.to_height))
+        )
         svc = self.leader._state_sync_service()
         resp = svc.handle_request(req)
         blocks = []
@@ -70,7 +74,9 @@ class _NoProgressStateSyncPeer:
         self.tx_index_hash = tx_index_hash
         self.trusted_anchor = dict(trusted_anchor)
 
-    def request_state_sync(self, peer_id: str, req: StateSyncRequestMsg, **_: object) -> StateSyncResponseMsg:
+    def request_state_sync(
+        self, peer_id: str, req: StateSyncRequestMsg, **_: object
+    ) -> StateSyncResponseMsg:
         del peer_id
         return StateSyncResponseMsg(
             header=WireHeader(
@@ -91,7 +97,9 @@ class _NoProgressStateSyncPeer:
         )
 
 
-def test_request_and_apply_state_sync_retries_in_chunks_until_anchor(tmp_path: Path, monkeypatch) -> None:
+def test_request_and_apply_state_sync_retries_in_chunks_until_anchor(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_SYNC_MAX_DELTA_BLOCKS", "2")
     leader = _make_executor(tmp_path, "leader")
     lagger = _make_executor(tmp_path, "lagger")

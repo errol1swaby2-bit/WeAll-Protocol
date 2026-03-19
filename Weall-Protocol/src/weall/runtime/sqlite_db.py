@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import os
 import json
-import sqlite3
-import time
+import os
 import random
+import sqlite3
 import threading
+import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 _PROCESS_LOCAL_WRITE_LOCKS: dict[str, threading.RLock] = {}
@@ -148,7 +149,11 @@ class SqliteDB:
         # WAL improves concurrent read/write behavior and is strongly preferred.
         # In production we prefer to fail-closed if WAL cannot be enabled, since
         # rollback-journal mode is far more prone to writer contention.
-        allow_non_wal = (os.environ.get("WEALL_SQLITE_ALLOW_NON_WAL") or "").strip() in {"1", "true", "TRUE"}
+        allow_non_wal = (os.environ.get("WEALL_SQLITE_ALLOW_NON_WAL") or "").strip() in {
+            "1",
+            "true",
+            "TRUE",
+        }
         try:
             row = con.execute("PRAGMA journal_mode=WAL;").fetchone()
             mode = ""
@@ -275,7 +280,9 @@ class SqliteDB:
             )
             con.execute("CREATE INDEX IF NOT EXISTS idx_blocks_block_id ON blocks(block_id);")
             # Helps retention/pruning scans (non-consensus operational index).
-            con.execute("CREATE INDEX IF NOT EXISTS idx_blocks_created_ts ON blocks(created_ts_ms);")
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_blocks_created_ts ON blocks(created_ts_ms);"
+            )
 
             con.execute(
                 """
@@ -287,8 +294,12 @@ class SqliteDB:
                 );
                 """
             )
-            con.execute("CREATE INDEX IF NOT EXISTS idx_block_hash_index_height ON block_hash_index(height);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_block_hash_index_hash ON block_hash_index(block_hash);")
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_block_hash_index_height ON block_hash_index(height);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_block_hash_index_hash ON block_hash_index(block_hash);"
+            )
 
             con.execute(
                 """
@@ -306,8 +317,12 @@ class SqliteDB:
             )
             con.execute("CREATE INDEX IF NOT EXISTS idx_tx_index_height ON tx_index(height);")
             con.execute("CREATE INDEX IF NOT EXISTS idx_tx_index_block_id ON tx_index(block_id);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_tx_index_signer_nonce ON tx_index(signer, nonce);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_tx_index_included_ts ON tx_index(included_ts_ms);")
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tx_index_signer_nonce ON tx_index(signer, nonce);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tx_index_included_ts ON tx_index(included_ts_ms);"
+            )
 
             con.execute(
                 """
@@ -362,8 +377,12 @@ class SqliteDB:
                 );
                 """
             )
-            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_candidates_height ON bft_candidates(height);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_candidates_created ON bft_candidates(created_ms);")
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_candidates_height ON bft_candidates(height);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_candidates_created ON bft_candidates(created_ms);"
+            )
 
             con.execute(
                 """
@@ -378,9 +397,15 @@ class SqliteDB:
                 );
                 """
             )
-            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_kind ON bft_pending_artifacts(kind);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_updated ON bft_pending_artifacts(updated_ms);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_block_hash ON bft_pending_artifacts(block_hash);")
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_kind ON bft_pending_artifacts(kind);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_updated ON bft_pending_artifacts(updated_ms);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_block_hash ON bft_pending_artifacts(block_hash);"
+            )
 
             con.execute(
                 """
@@ -392,9 +417,14 @@ class SqliteDB:
                 """
             )
 
-            row = con.execute("SELECT value FROM meta WHERE key='schema_version' LIMIT 1;").fetchone()
+            row = con.execute(
+                "SELECT value FROM meta WHERE key='schema_version' LIMIT 1;"
+            ).fetchone()
             if row is None:
-                con.execute("INSERT INTO meta(key, value) VALUES('schema_version', ?);", (str(self.SCHEMA_VERSION),))
+                con.execute(
+                    "INSERT INTO meta(key, value) VALUES('schema_version', ?);",
+                    (str(self.SCHEMA_VERSION),),
+                )
             else:
                 try:
                     v = int(str(row["value"]))
@@ -520,7 +550,11 @@ class SqliteDB:
     @staticmethod
     def _is_locked_error(e: Exception) -> bool:
         msg = str(e).lower()
-        return ("database is locked" in msg) or ("database is busy" in msg) or ("locked" in msg and "database" in msg)
+        return (
+            ("database is locked" in msg)
+            or ("database is busy" in msg)
+            or ("locked" in msg and "database" in msg)
+        )
 
     @contextmanager
     def write_tx(self) -> Iterator[sqlite3.Connection]:
@@ -547,8 +581,12 @@ class SqliteDB:
         base_sleep = max(0.001, base_sleep)
         max_sleep = max(base_sleep, max_sleep)
 
-        process_local_lock_enabled = str(os.environ.get("WEALL_SQLITE_PROCESS_LOCAL_WRITE_MUTEX", "1") or "1").strip().lower() not in {"0", "false", "no", "off"}
-        process_local_lock = _process_local_write_lock_for(self.path) if process_local_lock_enabled else None
+        process_local_lock_enabled = str(
+            os.environ.get("WEALL_SQLITE_PROCESS_LOCAL_WRITE_MUTEX", "1") or "1"
+        ).strip().lower() not in {"0", "false", "no", "off"}
+        process_local_lock = (
+            _process_local_write_lock_for(self.path) if process_local_lock_enabled else None
+        )
 
         with self.connection() as con:
             ctx = process_local_lock if process_local_lock is not None else nullcontext()

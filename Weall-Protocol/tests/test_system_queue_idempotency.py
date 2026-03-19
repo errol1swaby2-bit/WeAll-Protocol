@@ -15,7 +15,9 @@ def test_produce_block_is_idempotent_when_mempool_empty(tmp_path: Path) -> None:
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="alice", chain_id="empty-mempool", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="alice", chain_id="empty-mempool", tx_index_path=tx_index_path
+    )
     st0 = ex.read_state()
     h0 = int(st0.get("height", 0))
 

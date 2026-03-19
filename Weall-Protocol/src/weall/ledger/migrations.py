@@ -1,11 +1,12 @@
 # src/weall/ledger/migrations.py
 from __future__ import annotations
 
-from typing import Any, Dict, Callable
+from collections.abc import Callable
+from typing import Any
 
 from weall.runtime.reputation_units import sync_account_reputation
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 # Increment this when you add a new migration step.
 CURRENT_STATE_VERSION = 1
@@ -132,7 +133,7 @@ def _migrate_v0_to_v1(st: Json) -> Json:
     return st
 
 
-_MIGRATIONS: Dict[int, Callable[[Json], Json]] = {
+_MIGRATIONS: dict[int, Callable[[Json], Json]] = {
     0: _migrate_v0_to_v1,
 }
 
@@ -156,7 +157,9 @@ def migrate_state_dict(raw: Any) -> Json:
     while v < CURRENT_STATE_VERSION:
         step = _MIGRATIONS.get(v)
         if step is None:
-            raise ValueError(f"No migration path from state_version={v} to {CURRENT_STATE_VERSION}.")
+            raise ValueError(
+                f"No migration path from state_version={v} to {CURRENT_STATE_VERSION}."
+            )
         st = step(st)
         v = _as_int(st.get("state_version"), v + 1)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+
 import pytest
 
 from weall.ledger.migrations import CURRENT_STATE_VERSION, migrate_state_dict
@@ -76,7 +77,13 @@ def test_migrate_v0_accounts_are_normalized() -> None:
         "height": 2,
         "tip": "t",
         "accounts": {
-            "alice": {"nonce": "3", "poh_tier": "2", "banned": "false", "locked": 0, "reputation": "0.25"},
+            "alice": {
+                "nonce": "3",
+                "poh_tier": "2",
+                "banned": "false",
+                "locked": 0,
+                "reputation": "0.25",
+            },
             "bob": "bad",
         },
         # omit other roots on purpose

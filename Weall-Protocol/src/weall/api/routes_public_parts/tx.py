@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import APIRouter, Request
 from pydantic import ValidationError
@@ -11,18 +11,18 @@ from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
     _executor,
     _mempool,
-    _snapshot,
-    _require_registered_signer_for_user_tx,
     _read_json_limited,
+    _require_registered_signer_for_user_tx,
+    _snapshot,
 )
 from weall.ledger.state import LedgerView
-from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.mempool import compute_tx_id
+from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_schema import validate_tx_envelope
 
 router = APIRouter()
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _mode() -> str:
@@ -43,8 +43,7 @@ def _safe_executor(request: Request):
         return None
 
 
-
-def _tx_index_lookup(request: Request, tx_id: str) -> Optional[Json]:
+def _tx_index_lookup(request: Request, tx_id: str) -> Json | None:
     """Return tx_index row if present."""
     mp = _safe_mempool(request)
     db = getattr(mp, "db", None)
@@ -73,7 +72,7 @@ def _tx_index_lookup(request: Request, tx_id: str) -> Optional[Json]:
         return None
 
 
-def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> Optional[Json]:
+def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> Json | None:
     """
     Fallback lookup for confirmed txs by scanning persisted blocks.
 
@@ -115,17 +114,16 @@ def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> O
             block_id = str(row["block_id"] or "")
             created_ts_ms = int(row["created_ts_ms"] or 0)
             block_json_raw = row["block_json"]
-            block = json.loads(block_json_raw) if isinstance(block_json_raw, str) else block_json_raw
+            block = (
+                json.loads(block_json_raw) if isinstance(block_json_raw, str) else block_json_raw
+            )
             if not isinstance(block, dict):
                 continue
 
             header = block.get("header")
             header = header if isinstance(header, dict) else {}
             included_ts_ms = int(
-                header.get("block_ts_ms")
-                or block.get("block_ts_ms")
-                or created_ts_ms
-                or 0
+                header.get("block_ts_ms") or block.get("block_ts_ms") or created_ts_ms or 0
             )
 
             # Preferred path: receipts contain tx_id.
@@ -201,7 +199,9 @@ async def tx_submit(request: Request) -> Json:
     ex = _executor(request)
     mp = _mempool(request)
 
-    body = await _read_json_limited(request, max_bytes_env="WEALL_MAX_HTTP_TX_BYTES", default_max_bytes=256 * 1024)
+    body = await _read_json_limited(
+        request, max_bytes_env="WEALL_MAX_HTTP_TX_BYTES", default_max_bytes=256 * 1024
+    )
     if not isinstance(body, dict):
         raise ApiError.bad_request("bad_request", "Body must be a tx envelope object", {})
 

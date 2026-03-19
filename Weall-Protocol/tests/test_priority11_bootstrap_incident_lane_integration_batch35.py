@@ -33,7 +33,10 @@ def _state() -> dict[str, object]:
             "schema_version": "1",
             "production_consensus_profile_hash": "",
         },
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
 
@@ -166,8 +169,13 @@ def test_build_operator_incident_report_can_embed_lane_summary(tmp_path: Path) -
 
 
 def test_bootstrap_prod_node_mentions_incident_lane() -> None:
-    text = (Path(__file__).resolve().parents[1] / "scripts" / "bootstrap_prod_node.sh").read_text(encoding="utf-8")
-    assert 'public_validator_preflight.py --bundle "$BUNDLE_OUT" --incident-lane-out "$INCIDENT_LANE_OUT"' in text
+    text = (Path(__file__).resolve().parents[1] / "scripts" / "bootstrap_prod_node.sh").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        'public_validator_preflight.py --bundle "$BUNDLE_OUT" --incident-lane-out "$INCIDENT_LANE_OUT"'
+        in text
+    )
     assert "Operator incident lane" in text
     assert "build_operator_incident_report.py --include-lane-summary --lane-out" in text
 
@@ -200,7 +208,13 @@ def test_build_operator_incident_report_marks_compatibility_drift_critical(tmp_p
     env["WEALL_RELEASE_MANIFEST_PATH"] = str(bundle_path)
 
     proc = subprocess.run(
-        [sys.executable, "scripts/build_operator_incident_report.py", "--out", str(out_path), "--include-lane-summary"],
+        [
+            sys.executable,
+            "scripts/build_operator_incident_report.py",
+            "--out",
+            str(out_path),
+            "--include-lane-summary",
+        ],
         cwd=root,
         env=env,
         capture_output=True,

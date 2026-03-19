@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 def _now_ms() -> int:
@@ -77,7 +77,7 @@ class EmailVerificationService:
         email_secret: str | None = None,
         email_verify_base_url: str | None = None,
     ) -> None:
-        s = str((secret or email_secret or "")).strip()
+        s = str(secret or email_secret or "").strip()
         if not s:
             raise ValueError("missing_email_secret")
 
@@ -87,15 +87,12 @@ class EmailVerificationService:
         if email_verify_base_url is None:
             import os
 
-            email_verify_base_url = (
-                str(
-                    os.environ.get("WEALL_POH_EMAIL_ORACLE_URL")
-                    or os.environ.get("WEALL_POH_EMAIL_ORACLE_BASE")
-                    or os.environ.get("WEALL_EMAIL_ORACLE_URL")
-                    or ""
-                )
-                .strip()
-            )
+            email_verify_base_url = str(
+                os.environ.get("WEALL_POH_EMAIL_ORACLE_URL")
+                or os.environ.get("WEALL_POH_EMAIL_ORACLE_BASE")
+                or os.environ.get("WEALL_EMAIL_ORACLE_URL")
+                or ""
+            ).strip()
 
         # e.g. http://localhost:8787
         self.email_verify_base_url: str = str(email_verify_base_url or "").strip()
@@ -108,7 +105,7 @@ class EmailVerificationService:
         token_raw = json.dumps(token, separators=(",", ":"), sort_keys=True).encode("utf-8")
         return _b64url(token_raw)
 
-    def _parse_request_id(self, request_id: str) -> Optional[dict[str, Any]]:
+    def _parse_request_id(self, request_id: str) -> dict[str, Any] | None:
         try:
             padded = request_id + "=" * (-len(request_id) % 4)
             raw = base64.urlsafe_b64decode(padded.encode("utf-8"))
@@ -147,7 +144,9 @@ class EmailVerificationService:
         expires_ts_ms = int(data.get("expires_ts_ms") or (_now_ms() + self.ttl_ms))
         local_expires = min(expires_ts_ms, _now_ms() + self.ttl_ms)
 
-        request_id = self._make_request_id(account=account, email_norm=email_norm, expires_ts_ms=local_expires)
+        request_id = self._make_request_id(
+            account=account, email_norm=email_norm, expires_ts_ms=local_expires
+        )
         return BeginResult(request_id=request_id, expires_ms=max(1, local_expires - _now_ms()))
 
     def confirm(

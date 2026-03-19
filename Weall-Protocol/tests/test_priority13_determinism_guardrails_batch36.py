@@ -15,10 +15,14 @@ def _repo_root() -> Path:
 def _make_executor(tmp_path: Path, *, node_id: str, chain_id: str) -> WeAllExecutor:
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     db_path = str(tmp_path / f"{node_id.strip('@')}.db")
-    return WeAllExecutor(db_path=db_path, node_id=node_id, chain_id=chain_id, tx_index_path=tx_index_path)
+    return WeAllExecutor(
+        db_path=db_path, node_id=node_id, chain_id=chain_id, tx_index_path=tx_index_path
+    )
 
 
-def test_genesis_bootstrap_reputation_env_uses_integer_units(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_genesis_bootstrap_reputation_env_uses_integer_units(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     acct = "@bootstrap"
     pub = "ed25519:bootstrap"
 

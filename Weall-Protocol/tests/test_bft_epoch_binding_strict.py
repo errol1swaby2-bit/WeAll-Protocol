@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_ed25519
-from weall.runtime.bft_hotstuff import BftTimeout, QuorumCert, canonical_timeout_message, canonical_vote_message, verify_qc
+from weall.runtime.bft_hotstuff import (
+    BftTimeout,
+    QuorumCert,
+    canonical_timeout_message,
+    canonical_vote_message,
+    verify_qc,
+)
 
 
 def _mk_keypair_hex() -> tuple[str, str]:
@@ -31,7 +42,14 @@ def test_qc_rejects_legacy_votes_when_epoch_metadata_present() -> None:
     votes = []
     for signer in ["@v1", "@v2", "@v3"]:
         pub, priv = keys[signer]
-        msg = canonical_vote_message(chain_id="chain-A", view=7, block_id="b7", block_hash="bh7", parent_id="b6", signer=signer)
+        msg = canonical_vote_message(
+            chain_id="chain-A",
+            view=7,
+            block_id="b7",
+            block_hash="bh7",
+            parent_id="b6",
+            signer=signer,
+        )
         sig = sign_ed25519(message=msg, privkey=priv, encoding="hex")
         votes.append(
             {
@@ -56,7 +74,9 @@ def test_qc_rejects_legacy_votes_when_epoch_metadata_present() -> None:
         validator_epoch=5,
         validator_set_hash="sethash",
     )
-    assert verify_qc(qc=qc, validators=_validators(), vpub={k: v[0] for k, v in keys.items()}) is False
+    assert (
+        verify_qc(qc=qc, validators=_validators(), vpub={k: v[0] for k, v in keys.items()}) is False
+    )
 
 
 def test_timeout_json_carries_epoch_binding() -> None:

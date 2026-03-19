@@ -7,13 +7,13 @@ import pytest
 from weall.runtime.executor import WeAllExecutor
 
 
-
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-
-def _make_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, bft_enabled: bool = False) -> WeAllExecutor:
+def _make_executor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, bft_enabled: bool = False
+) -> WeAllExecutor:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1" if bft_enabled else "0")
     monkeypatch.setenv("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", "1")
@@ -27,10 +27,13 @@ def _make_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, bft_enabl
     )
 
 
-
-def test_votecheck_caches_success_by_block_hash(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_votecheck_caches_success_by_block_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ex = _make_executor(tmp_path, monkeypatch, bft_enabled=False)
-    sub = ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@u1", "nonce": 1, "payload": {"pubkey": "k:1"}})
+    sub = ex.submit_tx(
+        {"tx_type": "ACCOUNT_REGISTER", "signer": "@u1", "nonce": 1, "payload": {"pubkey": "k:1"}}
+    )
     assert sub["ok"] is True
     proposal, _st, _applied, _invalid, err = ex.build_block_candidate(max_txs=1)
     assert err == ""
@@ -51,11 +54,14 @@ def test_votecheck_caches_success_by_block_hash(tmp_path: Path, monkeypatch: pyt
     assert calls["n"] == 1
 
 
-
-def test_votecheck_rejects_oversized_proposal_before_clone_replay(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_votecheck_rejects_oversized_proposal_before_clone_replay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_BFT_VOTECHECK_MAX_BLOCK_BYTES", "256")
     ex = _make_executor(tmp_path, monkeypatch, bft_enabled=False)
-    sub = ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@u1", "nonce": 1, "payload": {"pubkey": "k:1"}})
+    sub = ex.submit_tx(
+        {"tx_type": "ACCOUNT_REGISTER", "signer": "@u1", "nonce": 1, "payload": {"pubkey": "k:1"}}
+    )
     assert sub["ok"] is True
     proposal, _st, _applied, _invalid, err = ex.build_block_candidate(max_txs=1)
     assert err == ""

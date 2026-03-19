@@ -3,13 +3,13 @@ from __future__ import annotations
 import copy
 import json
 import random
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from weall.runtime.domain_dispatch import apply_tx
-from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _stable(obj: Any) -> str:
@@ -84,16 +84,36 @@ def _mk_poh_state() -> Json:
         "chain_id": "test",
         "height": 1,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
         },
     }
     for i in range(1, 11):
-        st["accounts"][f"j{i}"] = {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9}
+        st["accounts"][f"j{i}"] = {
+            "nonce": 0,
+            "poh_tier": 3,
+            "banned": False,
+            "locked": False,
+            "reputation": 0.9,
+        }
     return st
 
 
 def _open_tier3_case(st: Json) -> str:
-    m0 = apply_tx(st, _env("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "target_tier": 3}, signer="alice", nonce=1))
+    m0 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "target_tier": 3},
+            signer="alice",
+            nonce=1,
+        ),
+    )
     assert m0 and m0["applied"] == "POH_TIER2_REQUEST_OPEN"
     case_id = str(m0["case_id"])
     m1 = apply_tx(
@@ -123,19 +143,32 @@ def _open_tier3_case(st: Json) -> str:
     return case_id
 
 
-def _tier3_action_groups(case_id: str) -> tuple[List[Json], List[Json], List[Json]]:
-    accepts: List[Json] = []
-    attendance: List[Json] = []
-    verdict_ops: List[Json] = []
+def _tier3_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Json]]:
+    accepts: list[Json] = []
+    attendance: list[Json] = []
+    verdict_ops: list[Json] = []
     nonce = 10
     for i in range(1, 11):
         jid = f"j{i}"
-        accepts.append(_env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": nonce}, signer=jid, nonce=nonce))
+        accepts.append(
+            _env(
+                "POH_TIER3_JUROR_ACCEPT",
+                {"case_id": case_id, "ts_ms": nonce},
+                signer=jid,
+                nonce=nonce,
+            )
+        )
         nonce += 1
         attendance.append(
             _env(
                 "POH_TIER3_ATTENDANCE_MARK",
-                {"case_id": case_id, "juror_id": jid, "attended": True, "session_commitment": "sc:1", "ts_ms": nonce},
+                {
+                    "case_id": case_id,
+                    "juror_id": jid,
+                    "attended": True,
+                    "session_commitment": "sc:1",
+                    "ts_ms": nonce,
+                },
                 signer=jid,
                 nonce=nonce,
             )
@@ -146,7 +179,12 @@ def _tier3_action_groups(case_id: str) -> tuple[List[Json], List[Json], List[Jso
         verdict_ops.append(
             _env(
                 "POH_TIER3_VERDICT_SUBMIT",
-                {"case_id": case_id, "verdict": verdict, "session_commitment": "sc:1", "ts_ms": nonce},
+                {
+                    "case_id": case_id,
+                    "verdict": verdict,
+                    "session_commitment": "sc:1",
+                    "ts_ms": nonce,
+                },
                 signer=jid,
                 nonce=nonce,
             )
@@ -168,7 +206,10 @@ def test_priority4_governance_execute_queue_is_deterministic_and_replay_deduped(
         "body": "queue",
         "kind": "generic",
         "actions": [
-            {"tx_type": "VALIDATOR_SET_UPDATE", "payload": {"active_set": ["v2", "v1", "v1"], "activate_at_epoch": 7}},
+            {
+                "tx_type": "VALIDATOR_SET_UPDATE",
+                "payload": {"active_set": ["v2", "v1", "v1"], "activate_at_epoch": 7},
+            },
             {"tx_type": "TREASURY_PARAMS_SET", "payload": {"timelock_blocks": 5}},
         ],
     }
@@ -181,7 +222,11 @@ def test_priority4_governance_execute_queue_is_deterministic_and_replay_deduped(
 
     exec_env = _env(
         "GOV_EXECUTE",
-        {"proposal_id": "prop-q", "actions": _clone(action_payload["actions"]), "_parent_ref": "txid:prop-q"},
+        {
+            "proposal_id": "prop-q",
+            "actions": _clone(action_payload["actions"]),
+            "_parent_ref": "txid:prop-q",
+        },
         signer="SYSTEM",
         nonce=2,
         system=True,
@@ -201,7 +246,7 @@ def test_priority4_governance_execute_queue_is_deterministic_and_replay_deduped(
 
 
 def test_priority4_treasury_signature_permutations_converge() -> None:
-    def _build(sign_order: List[str]) -> Json:
+    def _build(sign_order: list[str]) -> Json:
         st = _treasury_state()
         apply_tx(st, _env("TREASURY_CREATE", {"treasury_id": "t1"}, signer="alice", nonce=1))
         apply_tx(
@@ -226,7 +271,12 @@ def test_priority4_treasury_signature_permutations_converge() -> None:
         for signer in sign_order:
             out = apply_tx(
                 st,
-                _env("TREASURY_SPEND_SIGN", {"treasury_id": "t1", "spend_id": "s1"}, signer=signer, nonce=next_nonce),
+                _env(
+                    "TREASURY_SPEND_SIGN",
+                    {"treasury_id": "t1", "spend_id": "s1"},
+                    signer=signer,
+                    nonce=next_nonce,
+                ),
             )
             assert out and out["applied"] == "TREASURY_SPEND_SIGN"
             next_nonce += 1
@@ -336,14 +386,17 @@ def test_priority4_cross_domain_queue_id_is_stable() -> None:
     )
     assert q1 == q2
     assert len(st1["system_queue"]) == 1
-    assert enqueue_system_tx(
-        st1,
-        tx_type="GOV_EXECUTION_RECEIPT",
-        payload={"proposal_id": "p1", "ok": True, "_parent_ref": "txid:p1"},
-        due_height=7,
-        signer="SYSTEM",
-        parent="txid:p1",
-        phase="post",
-        once=True,
-    ) == q1
+    assert (
+        enqueue_system_tx(
+            st1,
+            tx_type="GOV_EXECUTION_RECEIPT",
+            payload={"proposal_id": "p1", "ok": True, "_parent_ref": "txid:p1"},
+            due_height=7,
+            signer="SYSTEM",
+            parent="txid:p1",
+            phase="post",
+            once=True,
+        )
+        == q1
+    )
     assert len(st1["system_queue"]) == 1

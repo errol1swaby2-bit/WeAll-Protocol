@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
 
 from weall.ledger.state import LedgerView
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
@@ -42,12 +41,20 @@ def _load_index():
 
 def _ledger() -> LedgerView:
     return LedgerView(
-        accounts={"@alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10.0}},
+        accounts={
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation": 10.0,
+            }
+        },
         roles={},
     )
 
 
-def _admit(env: TxEnvelope, ledger: LedgerView, idx, context: str) -> Tuple[bool, Optional[str]]:
+def _admit(env: TxEnvelope, ledger: LedgerView, idx, context: str) -> tuple[bool, str | None]:
     ok, rej = admit_tx(env.to_json(), ledger, idx, context=context)
     if ok:
         return True, None

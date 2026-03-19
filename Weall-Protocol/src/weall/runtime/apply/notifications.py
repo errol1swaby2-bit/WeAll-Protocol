@@ -20,11 +20,11 @@ IMPORTANT:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -41,7 +41,7 @@ def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
 
-def _as_list(x: Any) -> List[Any]:
+def _as_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else []
 
 
@@ -73,11 +73,11 @@ def _ensure_notify_root(state: Json) -> Json:
     return n
 
 
-def _normalize_topics(raw: Any) -> List[str]:
+def _normalize_topics(raw: Any) -> list[str]:
     if isinstance(raw, str) and raw.strip():
         return [raw.strip()]
     items = _as_list(raw)
-    out: List[str] = []
+    out: list[str] = []
     for it in items:
         if isinstance(it, str) and it.strip():
             out.append(it.strip())
@@ -89,7 +89,9 @@ def _apply_notification_subscribe(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
 
     # Accept either "topic" or "topics" (future-friendly)
-    topics = _normalize_topics(payload.get("topics") if "topics" in payload else payload.get("topic"))
+    topics = _normalize_topics(
+        payload.get("topics") if "topics" in payload else payload.get("topic")
+    )
     if not topics:
         raise NotificationApplyError("invalid_payload", "missing_topic", {"tx_type": env.tx_type})
 
@@ -112,7 +114,9 @@ def _apply_notification_subscribe(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_notification_unsubscribe(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
-    topics = _normalize_topics(payload.get("topics") if "topics" in payload else payload.get("topic"))
+    topics = _normalize_topics(
+        payload.get("topics") if "topics" in payload else payload.get("topic")
+    )
     if not topics:
         raise NotificationApplyError("invalid_payload", "missing_topic", {"tx_type": env.tx_type})
 
@@ -144,14 +148,14 @@ def _apply_notification_emit_receipt(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "NOTIFICATION_EMIT_RECEIPT"}
 
 
-NOTIFICATION_TX_TYPES: Set[str] = {
+NOTIFICATION_TX_TYPES: set[str] = {
     "NOTIFICATION_SUBSCRIBE",
     "NOTIFICATION_UNSUBSCRIBE",
     "NOTIFICATION_EMIT_RECEIPT",
 }
 
 
-def apply_notifications(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_notifications(state: Json, env: TxEnvelope) -> Json | None:
     t = str(env.tx_type or "").strip()
     if t not in NOTIFICATION_TX_TYPES:
         return None

@@ -34,8 +34,21 @@ def test_on_tx_passes_state_to_sigverify(tmp_path: Path, monkeypatch: pytest.Mon
 
     monkeypatch.setattr("weall.net.net_loop.verify_tx_signature", fake_verify)
 
-    tx = {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "payload": {"email": "a@example.com"}, "sig": "00", "chain_id": "test-chain"}
-    msg = TxEnvelopeMsg(header=WireHeader(type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""), nonce=1, tx=tx)
+    tx = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"email": "a@example.com"},
+        "sig": "00",
+        "chain_id": "test-chain",
+    }
+    msg = TxEnvelopeMsg(
+        header=WireHeader(
+            type=MsgType.TX_ENVELOPE, chain_id="test-chain", schema_version="1", tx_index_hash=""
+        ),
+        nonce=1,
+        tx=tx,
+    )
     loop._on_tx("peer1", msg)
 
     assert seen["tx"] == tx

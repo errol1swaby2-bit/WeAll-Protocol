@@ -2,20 +2,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
 class TreasuryApplyError(Exception):
     code: str
     reason: str
-    details: Optional[Json] = None
+    details: Json | None = None
 
     def __str__(self) -> str:
         return f"{self.code}:{self.reason}"
@@ -39,7 +39,9 @@ def _as_dict(v: Any) -> Json:
 def _require_system_env(env: TxEnvelope) -> None:
     if bool(getattr(env, "system", False)) or _as_str(getattr(env, "signer", "")) == "SYSTEM":
         return
-    raise TreasuryApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer})
+    raise TreasuryApplyError(
+        "forbidden", "system_tx_required", {"tx_type": env.tx_type, "signer": env.signer}
+    )
 
 
 def _ensure_treasury_root(state: Json) -> Json:
@@ -70,7 +72,7 @@ def _ensure_treasury_policy(state: Json) -> Json:
     return root
 
 
-def _ensure_spends_expired(state: Json) -> List[Json]:
+def _ensure_spends_expired(state: Json) -> list[Json]:
     root = state.get("treasury_spends_expired")
     if not isinstance(root, list):
         root = []
@@ -83,7 +85,7 @@ def _roles_root(state: Json) -> Json:
     return r if isinstance(r, dict) else {}
 
 
-def _seated_emissaries(state: Json) -> Set[str]:
+def _seated_emissaries(state: Json) -> set[str]:
     """Return the active seated emissary set (role-tagged on-chain)."""
     roles = _roles_root(state)
     em = roles.get("emissaries")
@@ -92,7 +94,7 @@ def _seated_emissaries(state: Json) -> Set[str]:
     seated = em.get("seated")
     if not isinstance(seated, list):
         return set()
-    out: Set[str] = set()
+    out: set[str] = set()
     for it in seated:
         s = _as_str(it).strip()
         if s:
@@ -100,7 +102,7 @@ def _seated_emissaries(state: Json) -> Set[str]:
     return out
 
 
-def _treasury_signer_policy(state: Json, treasury_id: str) -> tuple[List[str], int]:
+def _treasury_signer_policy(state: Json, treasury_id: str) -> tuple[list[str], int]:
     """Return (signers, threshold) for a treasury_id from canonical roles schema."""
     tid = _as_str(treasury_id).strip()
     if not tid:
@@ -115,7 +117,7 @@ def _treasury_signer_policy(state: Json, treasury_id: str) -> tuple[List[str], i
         return ([], 0)
 
     signers_raw = obj.get("signers")
-    signers: List[str] = []
+    signers: list[str] = []
     if isinstance(signers_raw, list):
         for it in signers_raw:
             s = _as_str(it).strip()
@@ -142,9 +144,13 @@ def _treasury_requires_emissaries(state: Json, treasury_id: str) -> bool:
 
 
 def _require_treasury_id(payload: Json) -> str:
-    tid = _as_str(payload.get("treasury_id") or payload.get("wallet_id") or payload.get("id")).strip()
+    tid = _as_str(
+        payload.get("treasury_id") or payload.get("wallet_id") or payload.get("id")
+    ).strip()
     if not tid:
-        raise TreasuryApplyError("invalid_payload", "missing_treasury_id", {"expected": "treasury_id"})
+        raise TreasuryApplyError(
+            "invalid_payload", "missing_treasury_id", {"expected": "treasury_id"}
+        )
     return tid
 
 
@@ -171,7 +177,9 @@ def _apply_treasury_params_set(state: Json, env: TxEnvelope) -> Json:
 
     # Production: strict whitelist + bounds validation.
     if payload:
-        validate_param_blob(base_path=("treasury", "params"), blob={str(k): payload[k] for k in payload.keys()})
+        validate_param_blob(
+            base_path=("treasury", "params"), blob={str(k): payload[k] for k in payload.keys()}
+        )
 
     params = tre.get("params")
     if not isinstance(params, dict):
@@ -210,7 +218,11 @@ def _apply_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
         raise TreasuryApplyError(
             "forbidden",
             reason,
-            {"treasury_id": treasury_id, "n_signers": len(signers), "require_emissary": bool(require_emissary)},
+            {
+                "treasury_id": treasury_id,
+                "n_signers": len(signers),
+                "require_emissary": bool(require_emissary),
+            },
         )
     if int(threshold) > len(allowed):
         raise TreasuryApplyError(
@@ -256,11 +268,18 @@ def _apply_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(s, dict):
         raise TreasuryApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
 
-    if _as_str(s.get("treasury_id")).strip() and _as_str(s.get("treasury_id")).strip() != treasury_id:
+    if (
+        _as_str(s.get("treasury_id")).strip()
+        and _as_str(s.get("treasury_id")).strip() != treasury_id
+    ):
         raise TreasuryApplyError(
             "forbidden",
             "treasury_id_mismatch",
-            {"spend_id": spend_id, "treasury_id": treasury_id, "expected": _as_str(s.get("treasury_id")).strip()},
+            {
+                "spend_id": spend_id,
+                "treasury_id": treasury_id,
+                "expected": _as_str(s.get("treasury_id")).strip(),
+            },
         )
 
     require_emissary = _treasury_requires_emissaries(state, treasury_id)
@@ -342,11 +361,18 @@ def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(s, dict):
         raise TreasuryApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
 
-    if _as_str(s.get("treasury_id")).strip() and _as_str(s.get("treasury_id")).strip() != treasury_id:
+    if (
+        _as_str(s.get("treasury_id")).strip()
+        and _as_str(s.get("treasury_id")).strip() != treasury_id
+    ):
         raise TreasuryApplyError(
             "forbidden",
             "treasury_id_mismatch",
-            {"spend_id": spend_id, "treasury_id": treasury_id, "expected": _as_str(s.get("treasury_id")).strip()},
+            {
+                "spend_id": spend_id,
+                "treasury_id": treasury_id,
+                "expected": _as_str(s.get("treasury_id")).strip(),
+            },
         )
 
     # Production: enforce timelock.
@@ -355,7 +381,11 @@ def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
         raise TreasuryApplyError(
             "forbidden",
             "timelock_not_expired",
-            {"spend_id": spend_id, "earliest_execute_height": int(earliest), "now_height": int(_height_now(state))},
+            {
+                "spend_id": spend_id,
+                "earliest_execute_height": int(earliest),
+                "now_height": int(_height_now(state)),
+            },
         )
 
     status = _as_str(s.get("status")).strip().lower()
@@ -415,7 +445,9 @@ def _apply_treasury_wallet_create(state: Json, env: TxEnvelope) -> Json:
     Allow user or system to create a named treasury wallet record (MVP storage only).
     """
     payload = _as_dict(env.payload)
-    wallet_id = _as_str(payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")).strip()
+    wallet_id = _as_str(
+        payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
+    ).strip()
     if not wallet_id:
         raise TreasuryApplyError("invalid_payload", "missing_wallet_id", {})
 
@@ -434,8 +466,12 @@ def _apply_treasury_wallet_create(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
-    wallet_id = _as_str(payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")).strip()
-    signer = _as_str(payload.get("signer") or payload.get("account") or payload.get("account_id")).strip()
+    wallet_id = _as_str(
+        payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
+    ).strip()
+    signer = _as_str(
+        payload.get("signer") or payload.get("account") or payload.get("account_id")
+    ).strip()
     if not wallet_id or not signer:
         raise TreasuryApplyError("invalid_payload", "missing_wallet_or_signer", {})
 
@@ -453,13 +489,22 @@ def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
     w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
     w["updated_at_nonce"] = int(env.nonce)
     wallets[wallet_id] = w
-    return {"applied": "TREASURY_SIGNER_ADD", "wallet_id": wallet_id, "signer": signer, "deduped": had}
+    return {
+        "applied": "TREASURY_SIGNER_ADD",
+        "wallet_id": wallet_id,
+        "signer": signer,
+        "deduped": had,
+    }
 
 
 def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
-    wallet_id = _as_str(payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")).strip()
-    signer = _as_str(payload.get("signer") or payload.get("account") or payload.get("account_id")).strip()
+    wallet_id = _as_str(
+        payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
+    ).strip()
+    signer = _as_str(
+        payload.get("signer") or payload.get("account") or payload.get("account_id")
+    ).strip()
     if not wallet_id or not signer:
         raise TreasuryApplyError("invalid_payload", "missing_wallet_or_signer", {})
 
@@ -477,7 +522,12 @@ def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
     w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
     w["updated_at_nonce"] = int(env.nonce)
     wallets[wallet_id] = w
-    return {"applied": "TREASURY_SIGNER_REMOVE", "wallet_id": wallet_id, "signer": signer, "deduped": (not had)}
+    return {
+        "applied": "TREASURY_SIGNER_REMOVE",
+        "wallet_id": wallet_id,
+        "signer": signer,
+        "deduped": (not had),
+    }
 
 
 def _apply_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:
@@ -537,7 +587,9 @@ def _apply_treasury_spend_expire(state: Json, env: TxEnvelope) -> Json:
 
     # Move into expiry list (audit) and delete from pending set
     expired = _ensure_spends_expired(state)
-    expired.append({"spend_id": spend_id, "expired_at_nonce": int(env.nonce), "payload": s.get("payload")})
+    expired.append(
+        {"spend_id": spend_id, "expired_at_nonce": int(env.nonce), "payload": s.get("payload")}
+    )
     state["treasury_spends_expired"] = expired
     try:
         del spends[spend_id]
@@ -558,7 +610,9 @@ def _program_id_from_payload(payload: Json) -> str:
     return pid if pid else _MISSING_PROGRAM_ID
 
 
-def _append_program_receipt(state: Json, *, program_id: str, kind: str, env: TxEnvelope, payload: Json) -> None:
+def _append_program_receipt(
+    state: Json, *, program_id: str, kind: str, env: TxEnvelope, payload: Json
+) -> None:
     tre = _ensure_treasury_root(state)
     programs = tre.get("programs")
     if not isinstance(programs, dict):
@@ -638,7 +692,7 @@ TREASURY_TX_TYPES = {
 }
 
 
-def apply_treasury(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_treasury(state: Json, env: TxEnvelope) -> Json | None:
     t = str(env.tx_type or "").strip()
     if t not in TREASURY_TX_TYPES:
         return None

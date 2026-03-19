@@ -11,15 +11,30 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from weall.runtime.bootstrap_manifest import build_manifest, release_pubkey, release_signing_privkey, sign_manifest  # noqa: E402
+from weall.runtime.bootstrap_manifest import (
+    build_manifest,
+    release_pubkey,
+    release_signing_privkey,
+    sign_manifest,
+)  # noqa: E402
 from weall.runtime.chain_config import load_chain_config  # noqa: E402
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a canonical validator bootstrap bundle for operator verification and trusted-anchor distribution.")
-    parser.add_argument("--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path.")
-    parser.add_argument("--tx-index-path", default=None, help="Path to generated tx index. Defaults to chain config tx_index_path.")
-    parser.add_argument("--out", default="generated/validator_bootstrap_bundle.json", help="Output bundle path.")
+    parser = argparse.ArgumentParser(
+        description="Build a canonical validator bootstrap bundle for operator verification and trusted-anchor distribution."
+    )
+    parser.add_argument(
+        "--db-path", default=None, help="Path to node SQLite DB. Defaults to chain config db_path."
+    )
+    parser.add_argument(
+        "--tx-index-path",
+        default=None,
+        help="Path to generated tx index. Defaults to chain config tx_index_path.",
+    )
+    parser.add_argument(
+        "--out", default="generated/validator_bootstrap_bundle.json", help="Output bundle path."
+    )
     args = parser.parse_args()
 
     cfg = load_chain_config()

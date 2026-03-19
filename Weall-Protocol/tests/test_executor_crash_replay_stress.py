@@ -37,7 +37,7 @@ def test_repeated_sigkill_does_not_corrupt_db_and_replay_is_deterministic(tmp_pa
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "weall.db")
 
-    child_code = r'''
+    child_code = r"""
 import os
 from weall.runtime.executor import WeAllExecutor
 
@@ -57,7 +57,7 @@ assert err == ""
 
 meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
 assert meta.ok is True
-'''
+"""
 
     # Repeatedly crash in the commit window.
     for i in range(3):
@@ -77,7 +77,9 @@ assert meta.ok is True
         p.wait(timeout=5)
 
         # Restart and verify atomic rollback.
-        ex = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path)
+        ex = WeAllExecutor(
+            db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path
+        )
         st = ex.read_state()
         assert int(st.get("height", 0)) == 0
 
@@ -86,7 +88,9 @@ assert meta.ok is True
         assert len(mp) == i + 1
 
     # Now produce blocks normally to clear the accumulated mempool.
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path
+    )
 
     # Commit until mempool empty.
     for _ in range(10):
@@ -104,7 +108,9 @@ assert meta.ok is True
     assert h1 >= 1
 
     # Hard restart: must converge to identical tip + roots.
-    ex3 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path)
+    ex3 = WeAllExecutor(
+        db_path=db_path, node_id="@alice", chain_id="crashstress", tx_index_path=tx_index_path
+    )
     tip2 = ex3.get_latest_block()
     assert isinstance(tip2, dict)
 

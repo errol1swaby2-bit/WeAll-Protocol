@@ -13,12 +13,12 @@ DisputeApplyError into ApplyError to preserve error codes and failure semantics.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass
@@ -68,7 +68,7 @@ def _require_assigned_juror(d: Json, juror: str) -> Json:
     return j
 
 
-def _require_juror_status(d: Json, juror: str, allowed: Set[str]) -> Json:
+def _require_juror_status(d: Json, juror: str, allowed: set[str]) -> Json:
     j = _require_assigned_juror(d, juror)
     status = _as_str(j.get("status")).strip().lower()
     allowed_l = {s.lower() for s in allowed}
@@ -76,7 +76,12 @@ def _require_juror_status(d: Json, juror: str, allowed: Set[str]) -> Json:
         raise DisputeApplyError(
             "forbidden",
             "juror_wrong_status",
-            {"dispute_id": d.get("id", ""), "juror": juror, "status": status, "allowed": sorted(list(allowed_l))},
+            {
+                "dispute_id": d.get("id", ""),
+                "juror": juror,
+                "status": status,
+                "allowed": sorted(list(allowed_l)),
+            },
         )
     return j
 
@@ -154,7 +159,9 @@ def _apply_dispute_stage_set(state: Json, env: TxEnvelope) -> Json:
     dispute_id = _as_str(payload.get("dispute_id")).strip()
     stage = _as_str(payload.get("stage")).strip()
     if not dispute_id or not stage:
-        raise DisputeApplyError("invalid_payload", "missing_dispute_or_stage", {"tx_type": env.tx_type})
+        raise DisputeApplyError(
+            "invalid_payload", "missing_dispute_or_stage", {"tx_type": env.tx_type}
+        )
     d = _get_dispute(state, dispute_id)
     d["stage"] = stage
     d["stage_set_at_nonce"] = int(env.nonce)
@@ -190,7 +197,9 @@ def _apply_dispute_evidence_bind(state: Json, env: TxEnvelope) -> Json:
     dispute_id = _as_str(payload.get("dispute_id")).strip()
     evidence_id = _as_str(payload.get("evidence_id")).strip()
     if not dispute_id or not evidence_id:
-        raise DisputeApplyError("invalid_payload", "missing_dispute_or_evidence_id", {"tx_type": env.tx_type})
+        raise DisputeApplyError(
+            "invalid_payload", "missing_dispute_or_evidence_id", {"tx_type": env.tx_type}
+        )
     d = _get_dispute(state, dispute_id)
     ev = d.get("evidence")
     if not isinstance(ev, list):
@@ -204,7 +213,11 @@ def _apply_dispute_evidence_bind(state: Json, env: TxEnvelope) -> Json:
     else:
         raise DisputeApplyError("not_found", "evidence_not_found", {"evidence_id": evidence_id})
     d["evidence"] = ev
-    return {"applied": "DISPUTE_EVIDENCE_BIND", "dispute_id": dispute_id, "evidence_id": evidence_id}
+    return {
+        "applied": "DISPUTE_EVIDENCE_BIND",
+        "dispute_id": dispute_id,
+        "evidence_id": evidence_id,
+    }
 
 
 def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
@@ -213,7 +226,9 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
     dispute_id = _as_str(payload.get("dispute_id")).strip()
     juror = _as_str(payload.get("juror") or payload.get("juror_id")).strip()
     if not dispute_id or not juror:
-        raise DisputeApplyError("invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type})
+        raise DisputeApplyError(
+            "invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type}
+        )
     d = _get_dispute(state, dispute_id)
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
@@ -289,7 +304,9 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     j = _require_juror_status(d, env.signer, {"accepted"})
     att = j.get("attendance")
     if isinstance(att, dict) and not bool(att.get("present", False)):
-        raise DisputeApplyError("forbidden", "juror_not_present", {"dispute_id": dispute_id, "juror": env.signer})
+        raise DisputeApplyError(
+            "forbidden", "juror_not_present", {"dispute_id": dispute_id, "juror": env.signer}
+        )
     votes = d.get("votes")
     if not isinstance(votes, dict):
         votes = {}
@@ -354,19 +371,26 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
 
     # Use the queue item id as a stable "parent" reference if available.
     # (We don't have chain_id here, so we can't compute canonical tx_id.)
-    parent_ref = _as_str(payload.get("_system_queue_id") or "").strip() or f"tx:{env.signer}:{int(env.nonce)}"
+    parent_ref = (
+        _as_str(payload.get("_system_queue_id") or "").strip()
+        or f"tx:{env.signer}:{int(env.nonce)}"
+    )
 
     # 1) Always emit DISPUTE_FINAL_RECEIPT for audits.
     enqueue_system_tx(
         state,
         tx_type="DISPUTE_FINAL_RECEIPT",
-        payload={"dispute_id": dispute_id, "resolution": payload.get("resolution") or {}, "_parent_ref": parent_ref},
+        payload={
+            "dispute_id": dispute_id,
+            "resolution": payload.get("resolution") or {},
+            "_parent_ref": parent_ref,
+        },
         due_height=due_height,
         signer="SYSTEM",
         once=True,
         parent=parent_ref,
         phase="post",
-        )
+    )
 
     # 2) Optional enforcement actions (best-effort, schema-light MVP).
     res = payload.get("resolution")
@@ -416,7 +440,12 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))
     if rid not in root:
-        root[rid] = {"receipt_id": rid, "tx_type": str(env.tx_type or ""), "at_nonce": int(env.nonce), "payload": payload}
+        root[rid] = {
+            "receipt_id": rid,
+            "tx_type": str(env.tx_type or ""),
+            "at_nonce": int(env.nonce),
+            "payload": payload,
+        }
     return {"applied": "DISPUTE_FINAL_RECEIPT", "receipt_id": rid, "receipt": True}
 
 
@@ -442,16 +471,24 @@ def _apply_case_receipt(state: Json, env: TxEnvelope) -> Json:
     t = str(env.tx_type or "").strip()
 
     if t == "CASE_TYPE_REGISTER":
-        case_type = _as_str(payload.get("case_type") or payload.get("type") or payload.get("name")).strip()
+        case_type = _as_str(
+            payload.get("case_type") or payload.get("type") or payload.get("name")
+        ).strip()
         if not case_type:
             raise DisputeApplyError("invalid_payload", "missing_case_type", {"tx_type": t})
         types = cases["types"]
         if case_type not in types:
-            types[case_type] = {"case_type": case_type, "registered_at_nonce": int(env.nonce), "payload": payload}
+            types[case_type] = {
+                "case_type": case_type,
+                "registered_at_nonce": int(env.nonce),
+                "payload": payload,
+            }
         return {"applied": t, "case_type": case_type, "receipt": True}
 
     if t == "CASE_BIND_TO_DISPUTE":
-        case_id = _as_str(payload.get("case_id") or payload.get("id")).strip() or f"case:{env.nonce}"
+        case_id = (
+            _as_str(payload.get("case_id") or payload.get("id")).strip() or f"case:{env.nonce}"
+        )
         dispute_id = _as_str(payload.get("dispute_id")).strip()
         if not dispute_id:
             raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": t})
@@ -473,7 +510,7 @@ def _apply_case_receipt(state: Json, env: TxEnvelope) -> Json:
     raise DisputeApplyError("tx_unimplemented", "case_tx_not_implemented", {"tx_type": t})
 
 
-DISPUTE_TX_TYPES: Set[str] = {
+DISPUTE_TX_TYPES: set[str] = {
     "DISPUTE_OPEN",
     "DISPUTE_STAGE_SET",
     "DISPUTE_EVIDENCE_DECLARE",
@@ -493,7 +530,7 @@ DISPUTE_TX_TYPES: Set[str] = {
 }
 
 
-def apply_dispute(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_dispute(state: Json, env: TxEnvelope) -> Json | None:
     """Apply dispute txs. Returns meta dict if handled; otherwise None."""
     t = str(env.tx_type or "").strip()
     if t not in DISPUTE_TX_TYPES:

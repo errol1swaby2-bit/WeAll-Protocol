@@ -3,17 +3,19 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
-from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.bft_hotstuff import (
     BFT_MIN_VALIDATORS,
     CONSENSUS_PHASE_BFT_ACTIVE,
     CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP,
     CONSENSUS_PHASE_SOLO_BOOTSTRAP,
 )
+from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, payload: dict, *, nonce: int = 1, system: bool = True, parent: str = "parent") -> TxEnvelope:
+def _env(
+    tx_type: str, payload: dict, *, nonce: int = 1, system: bool = True, parent: str = "parent"
+) -> TxEnvelope:
     return TxEnvelope(
         tx_id=f"tx:{tx_type}:{nonce}",
         tx_type=tx_type,
@@ -38,7 +40,13 @@ def test_immediate_validator_set_update_tracks_bootstrap_phase() -> None:
 
 
 def test_validator_set_update_can_schedule_bft_activation_at_epoch_boundary() -> None:
-    st = {"roles": {"validators": {"active_set": ["@solo"]}}, "consensus": {"epochs": {"current": 1}, "phase": {"current": CONSENSUS_PHASE_SOLO_BOOTSTRAP}}}
+    st = {
+        "roles": {"validators": {"active_set": ["@solo"]}},
+        "consensus": {
+            "epochs": {"current": 1},
+            "phase": {"current": CONSENSUS_PHASE_SOLO_BOOTSTRAP},
+        },
+    }
     apply_tx(
         st,
         _env(
@@ -71,7 +79,10 @@ def test_validator_set_update_can_schedule_bft_activation_at_epoch_boundary() ->
 
 
 def test_validator_set_update_rejects_bft_activation_below_minimum_validator_count() -> None:
-    st = {"roles": {"validators": {"active_set": ["@solo"]}}, "consensus": {"epochs": {"current": 1}}}
+    st = {
+        "roles": {"validators": {"active_set": ["@solo"]}},
+        "consensus": {"epochs": {"current": 1}},
+    }
     try:
         apply_tx(
             st,
@@ -88,7 +99,9 @@ def test_validator_set_update_rejects_bft_activation_below_minimum_validator_cou
     except Exception as exc:
         assert "bft_activation_requires_minimum_validator_count" in str(exc)
     else:
-        raise AssertionError(f"expected rejection below minimum validator count {BFT_MIN_VALIDATORS}")
+        raise AssertionError(
+            f"expected rejection below minimum validator count {BFT_MIN_VALIDATORS}"
+        )
 
 
 class _FakeExecutor:
@@ -103,7 +116,11 @@ class _FakeExecutor:
             "tip_hash": "hash9",
             "tip_ts_ms": 1700000000009,
             "finalized": {"height": 8, "block_id": "8:block"},
-            "roles": {"validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]}},
+            "roles": {
+                "validators": {
+                    "active_set": ["@validator-1", "@validator-2", "@validator-3", "@validator-4"]
+                }
+            },
             "consensus": {"phase": {"current": CONSENSUS_PHASE_BFT_ACTIVE}},
             "bft": {"view": 2},
             "meta": {"schema_version": "1", "tx_index_hash": "phase-hash"},

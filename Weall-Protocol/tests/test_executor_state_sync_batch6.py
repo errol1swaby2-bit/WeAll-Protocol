@@ -36,7 +36,9 @@ def _produce_register_block(ex: WeAllExecutor, signer: str, nonce: int) -> None:
     assert meta.ok is True
 
 
-def _delta_response_from(source: WeAllExecutor, *, from_height: int, to_height: int | None = None) -> StateSyncResponseMsg:
+def _delta_response_from(
+    source: WeAllExecutor, *, from_height: int, to_height: int | None = None
+) -> StateSyncResponseMsg:
     top = int(source.state.get("height") or 0)
     end = top if to_height is None else min(int(to_height), top)
     blocks = []
@@ -76,7 +78,9 @@ def test_apply_state_sync_response_replays_contiguous_delta(tmp_path: Path) -> N
     _produce_register_block(leader, "@u3", 1)
 
     resp = _delta_response_from(leader, from_height=0)
-    metas = lagger.apply_state_sync_response(resp, trusted_anchor=build_snapshot_anchor(leader.state))
+    metas = lagger.apply_state_sync_response(
+        resp, trusted_anchor=build_snapshot_anchor(leader.state)
+    )
 
     assert [m.ok for m in metas] == [True, True, True]
     assert int(lagger.state.get("height") or 0) == 3

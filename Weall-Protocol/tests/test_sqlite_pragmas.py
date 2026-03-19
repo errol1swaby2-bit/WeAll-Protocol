@@ -16,7 +16,9 @@ def _pragma(con: sqlite3.Connection, name: str) -> int | str:
     return row[0]
 
 
-def test_sqlite_operational_pragmas_are_applied(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sqlite_operational_pragmas_are_applied(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # Force deterministic defaults for this test.
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_SQLITE_SYNCHRONOUS", raising=False)

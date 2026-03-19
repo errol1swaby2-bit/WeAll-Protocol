@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import urllib.request
 from typing import Any
 
@@ -21,7 +20,13 @@ def main() -> int:
     try:
         payload = _get_json(url)
     except Exception as exc:
-        print(json.dumps({"ok": False, "error": "fetch_failed", "url": url, "details": str(exc)}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"ok": False, "error": "fetch_failed", "url": url, "details": str(exc)},
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 1
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0

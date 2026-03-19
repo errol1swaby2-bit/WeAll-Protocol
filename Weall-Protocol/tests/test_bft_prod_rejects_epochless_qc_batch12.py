@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from weall.crypto.sig import sign_ed25519
 from weall.runtime.bft_hotstuff import canonical_vote_message, quorum_threshold
 from weall.runtime.executor import WeAllExecutor
 from weall.testing.sigtools import deterministic_ed25519_keypair
-from weall.crypto.sig import sign_ed25519
 
 
-def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str, str], *, epoch: int = 7) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, validators: list[str], pubs: dict[str, str], *, epoch: int = 7
+) -> None:
     st = ex.state
     st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(validators)
     c = st.setdefault("consensus", {})
@@ -22,7 +24,17 @@ def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str
     ex.state = ex._ledger_store.read()
 
 
-def _make_epochless_qc(*, chain_id: str, validators: list[str], vpub: dict[str, str], vpriv: dict[str, str], block_id: str, block_hash: str, parent_id: str, view: int) -> dict:
+def _make_epochless_qc(
+    *,
+    chain_id: str,
+    validators: list[str],
+    vpub: dict[str, str],
+    vpriv: dict[str, str],
+    block_id: str,
+    block_hash: str,
+    parent_id: str,
+    view: int,
+) -> dict:
     # Intentionally omit validator_epoch / validator_set_hash at QC level and
     # sign votes with epoch=0 and empty set-hash.
     votes = []
@@ -70,7 +82,12 @@ def _make_epochless_qc(*, chain_id: str, validators: list[str], vpub: dict[str, 
 def test_prod_rejects_epochless_qc_when_epoch_is_set(tmp_path: Path, monkeypatch) -> None:
     # Default mode is production in this test environment.
     tx_index_path = str(Path("generated/tx_index.json"))
-    ex = WeAllExecutor(db_path=str(tmp_path / "node.db"), node_id="v1", chain_id="bft-prod", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "node.db"),
+        node_id="v1",
+        chain_id="bft-prod",
+        tx_index_path=tx_index_path,
+    )
 
     validators = ["v1", "v2", "v3", "v4"]
     vpub: dict[str, str] = {}

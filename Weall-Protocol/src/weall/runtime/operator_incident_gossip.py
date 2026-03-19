@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def serialize_incident_report(report: Json) -> str:

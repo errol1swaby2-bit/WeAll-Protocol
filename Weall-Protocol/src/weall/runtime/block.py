@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import builtins
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -15,12 +16,12 @@ class Block:
     ts_ms: int
     node_id: str
     chain_id: str
-    prev_block_id: Optional[str]
-    txs: List[Dict[str, Any]]
-    receipts: List[Dict[str, Any]]
+    prev_block_id: str | None
+    txs: list[builtins.dict[str, Any]]
+    receipts: list[builtins.dict[str, Any]]
 
-    def dict(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def dict(self) -> builtins.dict[str, Any]:
+        out: dict[str, Any] = {
             "block_id": self.block_id,
             "height": int(self.height),
             "ts_ms": int(self.ts_ms),
@@ -34,5 +35,5 @@ class Block:
         return out
 
     # Back-compat for older callers that expect a "to_json" method.
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> builtins.dict[str, Any]:
         return self.dict()

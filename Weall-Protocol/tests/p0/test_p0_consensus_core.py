@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _stable(obj: Any) -> str:
@@ -23,7 +23,7 @@ def _clone(state: Json) -> Json:
 
 def _env(
     tx_type: str,
-    payload: Dict[str, Any] | None = None,
+    payload: dict[str, Any] | None = None,
     *,
     signer: str = "alice",
     nonce: int = 1,
@@ -115,7 +115,9 @@ def test_validator_heartbeat_account_must_match_signer(base_state) -> None:
     st = _clone(base_state)
 
     with pytest.raises(ApplyError) as ei:
-        apply_tx(st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "ts_ms": 1}, signer="bob", nonce=1))
+        apply_tx(
+            st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "ts_ms": 1}, signer="bob", nonce=1)
+        )
     _assert_apply_error(ei.value, "forbidden", "account_must_match_signer")
 
 
@@ -195,10 +197,14 @@ def test_slash_vote_records_vote_per_voter_overwrites(base_state) -> None:
         ),
     )
 
-    out1 = apply_tx(st, _env("SLASH_VOTE", {"slash_id": slash_id, "vote": "yes"}, signer="carol", nonce=1))
+    out1 = apply_tx(
+        st, _env("SLASH_VOTE", {"slash_id": slash_id, "vote": "yes"}, signer="carol", nonce=1)
+    )
     assert out1["applied"] == "SLASH_VOTE"
     assert st["slashing"]["votes"][slash_id]["carol"] == "yes"
 
-    out2 = apply_tx(st, _env("SLASH_VOTE", {"slash_id": slash_id, "vote": "no"}, signer="carol", nonce=2))
+    out2 = apply_tx(
+        st, _env("SLASH_VOTE", {"slash_id": slash_id, "vote": "no"}, signer="carol", nonce=2)
+    )
     assert out2["applied"] == "SLASH_VOTE"
     assert st["slashing"]["votes"][slash_id]["carol"] == "no"

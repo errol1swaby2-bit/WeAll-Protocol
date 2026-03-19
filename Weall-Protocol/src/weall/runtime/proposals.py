@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _sha256(data: bytes) -> str:
@@ -14,7 +14,7 @@ def _sha256(data: bytes) -> str:
     return h.hexdigest()
 
 
-def commitment_hash(tx_ids: List[str]) -> str:
+def commitment_hash(tx_ids: list[str]) -> str:
     """Deterministic sha256 commitment over ordered tx_ids."""
     arr = [str(x) for x in tx_ids]
     raw = json.dumps(arr, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -26,7 +26,7 @@ def compute_proposal_id(
     chain_id: str,
     height: int,
     round: int,
-    prev_block_id: Optional[str],
+    prev_block_id: str | None,
     ts_ms: int,
     proposer: str,
     body_commitment: str,

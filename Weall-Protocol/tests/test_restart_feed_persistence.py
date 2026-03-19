@@ -31,24 +31,30 @@ def test_feed_persists_across_restart(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@bob",
-            "nonce": 1,
-            "payload": {"pubkey": "k:bob"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@bob",
+                "nonce": 1,
+                "payload": {"pubkey": "k:bob"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     st1 = ex.read_state()
@@ -73,14 +79,17 @@ def test_feed_persists_across_restart(tmp_path: Path) -> None:
     assert "@bob" in accounts2
 
     # Also verify the restored executor can still progress.
-    assert ex2.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@carol",
-            "nonce": 1,
-            "payload": {"pubkey": "k:carol"},
-        }
-    )["ok"] is True
+    assert (
+        ex2.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@carol",
+                "nonce": 1,
+                "payload": {"pubkey": "k:carol"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex2.produce_block(max_txs=1).ok is True
 
     st3 = ex2.read_state()

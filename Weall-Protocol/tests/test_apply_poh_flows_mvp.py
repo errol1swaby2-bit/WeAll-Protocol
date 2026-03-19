@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _env(

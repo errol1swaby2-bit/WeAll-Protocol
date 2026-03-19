@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
-from weall.net.state_sync import StateSyncService, StateSyncVerifyError, build_snapshot_anchor, sha256_hex_of
+from weall.net.state_sync import (
+    StateSyncService,
+    StateSyncVerifyError,
+    build_snapshot_anchor,
+    sha256_hex_of,
+)
 
 
 def _req_hdr() -> WireHeader:
@@ -28,11 +33,19 @@ def _resp_hdr() -> WireHeader:
 
 def test_verify_response_rejects_header_chain_mismatch() -> None:
     st = {"height": 3, "tip_hash": "t3", "accounts": {"a": {"nonce": 1}}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     req = StateSyncRequestMsg(header=_req_hdr(), mode="snapshot", selector=None)
     resp = svc.handle_request(req)
     bad = StateSyncResponseMsg(
-        header=WireHeader(type=MsgType.STATE_SYNC_RESPONSE, chain_id="evil", schema_version="1", tx_index_hash="deadbeef", corr_id="c1"),
+        header=WireHeader(
+            type=MsgType.STATE_SYNC_RESPONSE,
+            chain_id="evil",
+            schema_version="1",
+            tx_index_hash="deadbeef",
+            corr_id="c1",
+        ),
         ok=resp.ok,
         reason=resp.reason,
         height=resp.height,
@@ -59,7 +72,13 @@ def test_verify_delta_response_rejects_mismatched_trusted_anchor() -> None:
         block_provider=lambda h: blocks.get(h),
     )
     anchor = build_snapshot_anchor(st)
-    req = StateSyncRequestMsg(header=_req_hdr(), mode="delta", from_height=3, to_height=5, selector={"trusted_anchor": anchor})
+    req = StateSyncRequestMsg(
+        header=_req_hdr(),
+        mode="delta",
+        from_height=3,
+        to_height=5,
+        selector={"trusted_anchor": anchor},
+    )
     resp = svc.handle_request(req)
     assert resp.ok is True
     bad_anchor = {**anchor, "tip_hash": "evil"}
@@ -68,7 +87,12 @@ def test_verify_delta_response_rejects_mismatched_trusted_anchor() -> None:
 
 
 def test_verify_delta_response_rejects_height_beyond_response_height() -> None:
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: {"height": 2})
+    svc = StateSyncService(
+        chain_id="test",
+        schema_version="1",
+        tx_index_hash="deadbeef",
+        state_provider=lambda: {"height": 2},
+    )
     resp = StateSyncResponseMsg(
         header=_resp_hdr(),
         ok=True,
@@ -88,7 +112,9 @@ def test_verify_delta_response_rejects_height_beyond_response_height() -> None:
 
 def test_verify_snapshot_rejects_missing_anchor_when_trusted_anchor_supplied() -> None:
     st = {"height": 2, "tip_hash": "t2", "accounts": {"a": {"nonce": 1}}}
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
     snapshot_hash = sha256_hex_of(st)
     trusted_anchor = build_snapshot_anchor(st)
     resp = StateSyncResponseMsg(

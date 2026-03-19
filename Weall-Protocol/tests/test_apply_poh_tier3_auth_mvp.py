@@ -35,16 +35,36 @@ def _mk_state() -> dict:
         "chain_id": "test",
         "height": 1,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
         },
     }
     for i in range(1, 11):
-        st["accounts"][f"j{i}"] = {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9}
+        st["accounts"][f"j{i}"] = {
+            "nonce": 0,
+            "poh_tier": 3,
+            "banned": False,
+            "locked": False,
+            "reputation": 0.9,
+        }
     return st
 
 
 def _open_tier3_case(st: dict) -> str:
-    m0 = apply_tx(st, _env("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "target_tier": 3}, signer="alice", nonce=1))
+    m0 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "target_tier": 3},
+            signer="alice",
+            nonce=1,
+        ),
+    )
     assert m0 and m0["applied"] == "POH_TIER2_REQUEST_OPEN"
     case_id = str(m0["case_id"])
 
@@ -225,7 +245,9 @@ def test_tier3_juror_assign_rejects_subject_as_juror() -> None:
     st = _mk_state()
     case_id = _open_tier3_case(st)
 
-    jurors = [f"j{i}" for i in range(1, 10)] + ["alice"]  # subject included (alice is being verified)
+    jurors = [f"j{i}" for i in range(1, 10)] + [
+        "alice"
+    ]  # subject included (alice is being verified)
     st["accounts"]["alice"]["poh_tier"] = 3  # even if tier3, still disallowed
 
     with pytest.raises(ApplyError) as ei:

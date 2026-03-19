@@ -30,7 +30,9 @@ class _FakeExecutor:
             "chain_id": "obs-test",
             "height": 1,
             "tip": "1:block",
-            "roles": {"validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3"]}},
+            "roles": {
+                "validators": {"active_set": ["@validator-1", "@validator-2", "@validator-3"]}
+            },
             "bft": {"view": 1},
             "meta": {"schema_version": "1", "tx_index_hash": "txindexhash-obs"},
             "accounts": {},
@@ -57,11 +59,15 @@ class _FakeNetNode:
                 "peers_identity_verified": 1,
                 "peers_banned": 0,
             },
-            "peers": [{"peer_id": "p1", "established": True, "identity_verified": True, "banned": False}],
+            "peers": [
+                {"peer_id": "p1", "established": True, "identity_verified": True, "banned": False}
+            ],
         }
 
 
-def test_session_create_prod_fails_closed_on_invalid_max_json_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_session_create_prod_fails_closed_on_invalid_max_json_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MAX_JSON_BYTES", "bogus")
 
@@ -72,7 +78,9 @@ def test_session_create_prod_fails_closed_on_invalid_max_json_env(monkeypatch: p
     assert r.status_code == 500
 
 
-def test_session_create_dev_still_falls_back_on_invalid_max_json_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_session_create_dev_still_falls_back_on_invalid_max_json_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_MAX_JSON_BYTES", "bogus")
 
@@ -81,10 +89,16 @@ def test_session_create_dev_still_falls_back_on_invalid_max_json_env(monkeypatch
 
     r = client.post("/v1/session/create", json={"account": "@demo", "session_key": "sk"})
     assert r.status_code in {400, 500}
-    assert r.status_code == 500 or r.json()["error"]["code"] in {"not_ready", "account_not_found", "state_invalid"}
+    assert r.status_code == 500 or r.json()["error"]["code"] in {
+        "not_ready",
+        "account_not_found",
+        "state_invalid",
+    }
 
 
-def test_status_operator_prod_fails_closed_on_invalid_public_debug_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_operator_prod_fails_closed_on_invalid_public_debug_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_ENABLE_PUBLIC_DEBUG", "maybe")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
@@ -99,7 +113,9 @@ def test_status_operator_prod_fails_closed_on_invalid_public_debug_env(monkeypat
     assert r.status_code == 500
 
 
-def test_net_debug_prod_fails_closed_on_invalid_public_debug_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_net_debug_prod_fails_closed_on_invalid_public_debug_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_ENABLE_PUBLIC_DEBUG", "maybe")
 
@@ -111,7 +127,9 @@ def test_net_debug_prod_fails_closed_on_invalid_public_debug_env(monkeypatch: py
     assert r.status_code == 500
 
 
-def test_block_producer_main_fails_closed_on_invalid_allow_empty_bool(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_producer_main_fails_closed_on_invalid_allow_empty_bool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.services import block_producer as svc
 
     monkeypatch.setenv("WEALL_PRODUCER_ALLOW_EMPTY", "maybe")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Request
 
@@ -54,7 +54,7 @@ def _env_str(name: str, default: str = "") -> str:
     return str(v)
 
 
-def _try_executor_snapshot(ex: Any) -> Optional[dict[str, Any]]:
+def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
     fn = getattr(ex, "snapshot", None)
@@ -94,7 +94,9 @@ def _count_active_node_devices(acct: dict[str, Any]) -> int:
         if not bool(rec.get("active", False)):
             continue
 
-        d_type = str(rec.get("device_type") or rec.get("kind") or rec.get("type") or "").strip().lower()
+        d_type = (
+            str(rec.get("device_type") or rec.get("kind") or rec.get("type") or "").strip().lower()
+        )
         label = str(rec.get("label") or "").strip()
         is_node = (
             d_type == "node"
@@ -151,8 +153,8 @@ def v1_net_self(request: Request) -> dict[str, object]:
     # Publicly reachable address to give other nodes.
     # Bind host is often 0.0.0.0 and not directly dialable.
     advertise_uri = (
-        (_env_str("WEALL_NET_ADVERTISE_URI", "") or _env_str("WEALL_NET_PUBLIC_URI", "")).strip() or None
-    )
+        _env_str("WEALL_NET_ADVERTISE_URI", "") or _env_str("WEALL_NET_PUBLIC_URI", "")
+    ).strip() or None
 
     peers_env = _env_str("WEALL_PEERS", "")
     peers_list = [p.strip() for p in peers_env.split(",") if p.strip()] if peers_env else []
@@ -211,19 +213,27 @@ def v1_net_self(request: Request) -> dict[str, object]:
             acct = getattr(ledger, "accounts", {}).get(peer_id)
             if isinstance(acct, dict):
                 node_device_count = _count_active_node_devices(acct)
-                node_device_gate_ok = (node_device_count == 1)
+                node_device_gate_ok = node_device_count == 1
                 if node_device_count == 0:
-                    warnings.append("node_device_required: register ACCOUNT_DEVICE_REGISTER device_id 'node:<account_id>'")
+                    warnings.append(
+                        "node_device_required: register ACCOUNT_DEVICE_REGISTER device_id 'node:<account_id>'"
+                    )
                 elif node_device_count > 1:
-                    warnings.append("multiple_node_devices: revoke extras via ACCOUNT_DEVICE_REVOKE")
+                    warnings.append(
+                        "multiple_node_devices: revoke extras via ACCOUNT_DEVICE_REVOKE"
+                    )
             else:
-                warnings.append("account_not_found: create account before node can register node device")
+                warnings.append(
+                    "account_not_found: create account before node can register node device"
+                )
         except Exception:
             warnings.append("node_device_gate_unknown: unable to read ledger snapshot")
 
     # Also warn if pubkey is missing while peer identity is required
     if require_peer_identity and not (cfg_pubkey or node_pubkey_env):
-        warnings.append("missing_identity_pubkey: set WEALL_NODE_PUBKEY to participate in identity-gated mesh")
+        warnings.append(
+            "missing_identity_pubkey: set WEALL_NODE_PUBKEY to participate in identity-gated mesh"
+        )
 
     return {
         "ok": True,

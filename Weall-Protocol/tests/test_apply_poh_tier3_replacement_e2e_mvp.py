@@ -33,12 +33,24 @@ def _mk_state() -> dict:
         "chain_id": "test",
         "height": 1,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
         },
     }
     # 12 Tier-3 jurors so we can replace one.
     for i in range(1, 13):
-        st["accounts"][f"j{i}"] = {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9}
+        st["accounts"][f"j{i}"] = {
+            "nonce": 0,
+            "poh_tier": 3,
+            "banned": False,
+            "locked": False,
+            "reputation": 0.9,
+        }
     return st
 
 
@@ -87,7 +99,9 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
     assert m2 and m2["applied"] == "POH_TIER3_JUROR_ASSIGN"
 
     # j1 (interacting) declines
-    m3 = apply_tx(st, _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=4))
+    m3 = apply_tx(
+        st, _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=4)
+    )
     assert m3 and m3["applied"] == "POH_TIER3_JUROR_DECLINE"
 
     # System replaces j1 with j11 (preserve role interacting)
@@ -109,7 +123,12 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
     # Observing: j4..j10
     nonce = 6
     for jid in ["j2", "j3", "j11"] + [f"j{i}" for i in range(4, 11)]:
-        m = apply_tx(st, _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 20}, signer=jid, nonce=nonce))
+        m = apply_tx(
+            st,
+            _env(
+                "POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 20}, signer=jid, nonce=nonce
+            ),
+        )
         assert m and m["applied"] == "POH_TIER3_JUROR_ACCEPT"
         nonce += 1
 
@@ -121,7 +140,13 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
             st,
             _env(
                 "POH_TIER3_ATTENDANCE_MARK",
-                {"case_id": case_id, "juror_id": jid, "attended": True, "session_commitment": "sc:1", "ts_ms": 30},
+                {
+                    "case_id": case_id,
+                    "juror_id": jid,
+                    "attended": True,
+                    "session_commitment": "sc:1",
+                    "ts_ms": 30,
+                },
                 signer=jid,
                 nonce=nonce,
             ),

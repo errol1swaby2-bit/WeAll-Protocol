@@ -35,7 +35,9 @@ def test_peer_sigverify_cannot_be_disabled_in_prod(monkeypatch: pytest.MonkeyPat
     assert _peer_requires_sigverify() is True
 
 
-def test_tx_admission_requires_sig_on_peer_ingress_in_prod_even_with_override(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tx_admission_requires_sig_on_peer_ingress_in_prod_even_with_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
@@ -67,7 +69,9 @@ def test_tx_admission_requires_sig_on_peer_ingress_in_prod_even_with_override(mo
     assert rej.code == "missing_sig"
 
 
-def test_qc_less_blocks_remain_forbidden_in_prod_even_with_rollout_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_qc_less_blocks_remain_forbidden_in_prod_even_with_rollout_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", "1")

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 DEFAULT_TIER3_MIN_REP_UNITS = 0
 
@@ -49,7 +49,7 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
 def _session_commitment(state: Json, *, case_id: str, account_id: str) -> str:
     tip = _as_str(state.get("tip") or "").strip()
     height = _as_int(state.get("height") or 0)
-    seed = f"{tip}|{height}|{case_id}|{account_id}|POH3".encode("utf-8")
+    seed = f"{tip}|{height}|{case_id}|{account_id}|POH3".encode()
     return hashlib.sha256(seed).hexdigest()
 
 
@@ -160,7 +160,9 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                     payload={
                         "case_id": cid,
                         "account_id": account_id,
-                        "session_commitment": _session_commitment(state, case_id=cid, account_id=account_id),
+                        "session_commitment": _session_commitment(
+                            state, case_id=cid, account_id=account_id
+                        ),
                         "ts_ms": 0,
                     },
                     due_height=int(next_height),
@@ -193,7 +195,11 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                     enqueue_system_tx(
                         state,
                         tx_type="POH_TIER3_JUROR_ASSIGN",
-                        payload={"case_id": cid, "jurors": jurors, "min_rep_milli": int(min_rep_units)},
+                        payload={
+                            "case_id": cid,
+                            "jurors": jurors,
+                            "min_rep_milli": int(min_rep_units),
+                        },
                         due_height=int(next_height),
                         signer="SYSTEM",
                         once=True,

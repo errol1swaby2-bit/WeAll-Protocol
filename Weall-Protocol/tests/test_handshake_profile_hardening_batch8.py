@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import pytest
-
-from weall.net.handshake import HandshakeConfig, HandshakeRejected, HandshakeState, build_hello, process_inbound_hello
+from weall.net.handshake import (
+    HandshakeConfig,
+    HandshakeState,
+    build_hello,
+    process_inbound_hello,
+)
 from weall.runtime.protocol_profile import runtime_startup_fingerprint
 
 

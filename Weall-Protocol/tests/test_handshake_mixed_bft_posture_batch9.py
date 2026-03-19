@@ -45,7 +45,14 @@ def test_handshake_rejects_remote_bft_enabled_when_local_is_non_bft_peer() -> No
             validator_set_hash="",
         )
     )
-    hello = build_hello(_cfg(peer_id="validator-b", bft_enabled=True, validator_epoch=7, validator_set_hash="sethash-7"))
+    hello = build_hello(
+        _cfg(
+            peer_id="validator-b",
+            bft_enabled=True,
+            validator_epoch=7,
+            validator_set_hash="sethash-7",
+        )
+    )
     ack = process_inbound_hello(state, hello)
     assert ack.ok is False
     assert ack.reason == "bft_enabled_mismatch"

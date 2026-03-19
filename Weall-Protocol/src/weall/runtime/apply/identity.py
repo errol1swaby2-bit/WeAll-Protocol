@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Optional
+from typing import Any
 
 from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
@@ -167,7 +167,7 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_state", "keys_not_configured", {})
 
     by_id = keys["by_id"]
-    match_kid: Optional[str] = None
+    match_kid: str | None = None
     for kid, rec in by_id.items():
         if not isinstance(rec, dict):
             continue
@@ -215,7 +215,11 @@ def _apply_account_device_register(state: Json, env: TxEnvelope) -> Json:
         by_id = {}
         devices["by_id"] = by_id
 
-    if device_id in by_id and isinstance(by_id.get(device_id), dict) and by_id[device_id].get("revoked") is not True:
+    if (
+        device_id in by_id
+        and isinstance(by_id.get(device_id), dict)
+        and by_id[device_id].get("revoked") is not True
+    ):
         raise ApplyError("invalid_tx", "device_exists", {"device_id": device_id})
 
     # Enforce one node device per account (used to gate peer hello identity).
@@ -229,7 +233,9 @@ def _apply_account_device_register(state: Json, env: TxEnvelope) -> Json:
                 continue
             if _as_str(_rec.get("device_type") or "").strip().lower() == "node":
                 # IMPORTANT: tests assert this reason string is visible.
-                raise ApplyError("forbidden", "one_node_per_account", {"device_id": device_id, "existing": _did})
+                raise ApplyError(
+                    "forbidden", "one_node_per_account", {"device_id": device_id, "existing": _did}
+                )
 
     by_id[device_id] = {
         "device_id": device_id,
@@ -362,7 +368,13 @@ def _apply_account_lock(state: Json, env: TxEnvelope) -> Json:
     a = accounts.get(target)
     if not isinstance(a, dict):
         # Autocreate for MVP? Keep consistent with existing tests.
-        accounts[target] = {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0}
+        accounts[target] = {
+            "nonce": 0,
+            "poh_tier": 0,
+            "banned": False,
+            "locked": False,
+            "reputation": 0,
+        }
         a = accounts[target]
 
     exp = _expect_nonce(a, env)
@@ -554,7 +566,9 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
         prop["approvals"] = approvals
 
     if guardian in approvals:
-        raise ApplyError("invalid_tx", "already_approved", {"guardian": guardian, "proposal_id": proposal_id})
+        raise ApplyError(
+            "invalid_tx", "already_approved", {"guardian": guardian, "proposal_id": proposal_id}
+        )
 
     approvals.append(guardian)
     return state
@@ -612,7 +626,12 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
     if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
         raise ApplyError("invalid_tx", "key_exists", {"pubkey": new_pubkey})
 
-    by_id[kid] = {"pubkey": new_pubkey, "key_type": "recovered", "revoked": False, "revoked_at": None}
+    by_id[kid] = {
+        "pubkey": new_pubkey,
+        "key_type": "recovered",
+        "revoked": False,
+        "revoked_at": None,
+    }
     prop["executed"] = True
 
     a["nonce"] = exp
@@ -674,7 +693,7 @@ def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(accounts, dict):
         raise ApplyError("invalid_state", "accounts_not_dict", {})
 
-    found_req: Optional[Json] = None
+    found_req: Json | None = None
     for _aid, acct in accounts.items():
         if not isinstance(acct, dict):
             continue
@@ -702,7 +721,7 @@ def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
     return state
 
 
-def apply_identity(state: Json, env: TxEnvelope) -> Optional[Json]:
+def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     tx = _as_str(getattr(env, "tx_type", "")).strip().upper()
 
     if tx == "ACCOUNT_REGISTER":

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from weall.net.codec import encode_message
-from weall.net.messages import MsgType, WireHeader, BlockVoteMsg, StateSyncRequestMsg
+from weall.net.messages import BlockVoteMsg, MsgType, StateSyncRequestMsg, WireHeader
 from weall.net.node import NetConfig, NetNode, PeerPolicy
 from weall.net.state_sync import StateSyncService, sha256_hex_of
 from weall.net.transport import WirePacket
@@ -26,10 +26,15 @@ def test_peer_eviction_on_decode_fail() -> None:
 
 
 def test_session_required_strikes_and_ban() -> None:
-    node = NetNode(cfg=_cfg(), peer_policy=PeerPolicy(max_strikes=3, ban_cooldown_ms=10_000, strike_session_required=2))
+    node = NetNode(
+        cfg=_cfg(),
+        peer_policy=PeerPolicy(max_strikes=3, ban_cooldown_ms=10_000, strike_session_required=2),
+    )
 
     # Send a post-handshake message without doing handshake -> should be SessionRequired
-    hdr = WireHeader(type=MsgType.BLOCK_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef")
+    hdr = WireHeader(
+        type=MsgType.BLOCK_VOTE, chain_id="test", schema_version="1", tx_index_hash="deadbeef"
+    )
     vote = BlockVoteMsg(header=hdr, height=1, block_hash="abc", vote="yes")
     node._handle_packet(_pkt("tcp://9.9.9.9:7777", vote))
     node._handle_packet(_pkt("tcp://9.9.9.9:7777", vote))
@@ -40,7 +45,9 @@ def test_session_required_strikes_and_ban() -> None:
 def test_state_sync_snapshot_hash_verifies() -> None:
     st = {"height": 7, "tip": "x", "accounts": {"a": {"nonce": 1}}}
 
-    svc = StateSyncService(chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st)
+    svc = StateSyncService(
+        chain_id="test", schema_version="1", tx_index_hash="deadbeef", state_provider=lambda: st
+    )
 
     hdr = WireHeader(
         type=MsgType.STATE_SYNC_REQUEST,
@@ -49,7 +56,9 @@ def test_state_sync_snapshot_hash_verifies() -> None:
         tx_index_hash="deadbeef",
         corr_id="c",
     )
-    req = StateSyncRequestMsg(header=hdr, mode="snapshot", from_height=0, to_height=None, selector=None)
+    req = StateSyncRequestMsg(
+        header=hdr, mode="snapshot", from_height=0, to_height=None, selector=None
+    )
     resp = svc.handle_request(req)
 
     assert resp.ok is True

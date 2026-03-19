@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.runtime.executor import WeAllExecutor
 
@@ -20,7 +25,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -48,7 +55,9 @@ def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[s
     ex._ledger_store.write(ex.state)
 
 
-def test_vote_persisted_before_returned_vote_can_be_replayed_after_restart(tmp_path: Path, monkeypatch) -> None:
+def test_vote_persisted_before_returned_vote_can_be_replayed_after_restart(
+    tmp_path: Path, monkeypatch
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["@v1", "@v2", "@v3", "@v4"]
@@ -67,7 +76,9 @@ def test_vote_persisted_before_returned_vote_can_be_replayed_after_restart(tmp_p
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", priv["@v2"])
 
     db_path = str(tmp_path / "node.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=pub)
 
     ex.bft_set_view(1)
@@ -79,10 +90,14 @@ def test_vote_persisted_before_returned_vote_can_be_replayed_after_restart(tmp_p
     assert ex.state.get("bft", {}).get("last_voted_view") == 1
     assert ex.state.get("bft", {}).get("last_voted_block_id") == str(proposal.get("block_id") or "")
 
-    ex2 = WeAllExecutor(db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="@v2", chain_id="chain-A", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex2, validators=validators, pub=pub)
     assert ex2.state.get("bft", {}).get("last_voted_view") == 1
-    assert ex2.state.get("bft", {}).get("last_voted_block_id") == str(proposal.get("block_id") or "")
+    assert ex2.state.get("bft", {}).get("last_voted_block_id") == str(
+        proposal.get("block_id") or ""
+    )
     replayed = ex2.bft_on_proposal(proposal)
     assert isinstance(replayed, dict)
     assert str(replayed.get("block_id") or "") == str(proposal.get("block_id") or "")

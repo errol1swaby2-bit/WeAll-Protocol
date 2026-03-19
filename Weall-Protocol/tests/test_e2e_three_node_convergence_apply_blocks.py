@@ -34,9 +34,15 @@ def test_three_node_convergence_by_applying_blocks(tmp_path: Path) -> None:
     db_b = str(tmp_path / "b.db")
     db_c = str(tmp_path / "c.db")
 
-    ex_a = WeAllExecutor(db_path=db_a, node_id="@alice", chain_id="conv3", tx_index_path=tx_index_path)
-    ex_b = WeAllExecutor(db_path=db_b, node_id="@bob", chain_id="conv3", tx_index_path=tx_index_path)
-    ex_c = WeAllExecutor(db_path=db_c, node_id="@carol", chain_id="conv3", tx_index_path=tx_index_path)
+    ex_a = WeAllExecutor(
+        db_path=db_a, node_id="@alice", chain_id="conv3", tx_index_path=tx_index_path
+    )
+    ex_b = WeAllExecutor(
+        db_path=db_b, node_id="@bob", chain_id="conv3", tx_index_path=tx_index_path
+    )
+    ex_c = WeAllExecutor(
+        db_path=db_c, node_id="@carol", chain_id="conv3", tx_index_path=tx_index_path
+    )
 
     lagged_blocks: list[dict] = []
 
@@ -80,8 +86,12 @@ def test_three_node_convergence_by_applying_blocks(tmp_path: Path) -> None:
     assert isinstance(c_latest, dict)
 
     # Height/tip convergence.
-    assert int(a_latest.get("header", {}).get("height") or 0) == int(b_latest.get("header", {}).get("height") or 0)
-    assert int(a_latest.get("header", {}).get("height") or 0) == int(c_latest.get("header", {}).get("height") or 0)
+    assert int(a_latest.get("header", {}).get("height") or 0) == int(
+        b_latest.get("header", {}).get("height") or 0
+    )
+    assert int(a_latest.get("header", {}).get("height") or 0) == int(
+        c_latest.get("header", {}).get("height") or 0
+    )
     assert str(a_latest.get("block_id") or "") == str(b_latest.get("block_id") or "")
     assert str(a_latest.get("block_id") or "") == str(c_latest.get("block_id") or "")
 

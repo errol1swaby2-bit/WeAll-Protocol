@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.poh.juror_select import eligible_tier2_jurors, eligible_tier3_jurors
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.tier3_scheduler import schedule_poh_tier3_system_txs
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _tier2_state() -> Json:
@@ -74,7 +74,7 @@ def test_tier2_scheduler_is_env_independent(monkeypatch) -> None:
     enq = schedule_poh_tier2_system_txs(state, next_height=12)
 
     assert enq == 1
-    queue = (state.get("system_queue") or [])
+    queue = state.get("system_queue") or []
     assert len(queue) == 1
     payload = dict(queue[0].get("payload") or {})
     assert payload["n_jurors"] == 3
@@ -91,7 +91,7 @@ def test_tier3_scheduler_is_env_independent(monkeypatch) -> None:
     enq = schedule_poh_tier3_system_txs(state, next_height=23)
 
     assert enq == 1
-    queue = (state.get("system_queue") or [])
+    queue = state.get("system_queue") or []
     assert len(queue) == 1
     assert queue[0].get("tx_type") == "POH_TIER3_JUROR_ASSIGN"
     payload = dict(queue[0].get("payload") or {})

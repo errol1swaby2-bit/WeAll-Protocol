@@ -5,11 +5,11 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _now_ms() -> int:
@@ -174,16 +174,22 @@ class PersistentMempool:
         else:
             env_chain_id = _env_str("WEALL_CHAIN_ID", "").strip()
             if not env_chain_id:
-                raise ValueError("PersistentMempool requires an explicit chain_id or WEALL_CHAIN_ID")
+                raise ValueError(
+                    "PersistentMempool requires an explicit chain_id or WEALL_CHAIN_ID"
+                )
             self.chain_id = env_chain_id
 
         # Allow env overrides without forcing callers to plumb config everywhere.
         self.default_ttl_ms = _env_int("WEALL_MEMPOOL_TTL_MS", self.default_ttl_ms)
         self.max_items = max(0, _env_int("WEALL_MEMPOOL_MAX", self.max_items))
         self.max_per_signer = max(0, _env_int("WEALL_MEMPOOL_MAX_PER_SIGNER", self.max_per_signer))
-        self.max_per_tx_type = max(0, _env_int("WEALL_MEMPOOL_MAX_PER_TX_TYPE", self.max_per_tx_type))
+        self.max_per_tx_type = max(
+            0, _env_int("WEALL_MEMPOOL_MAX_PER_TX_TYPE", self.max_per_tx_type)
+        )
         self.prune_on_add = _env_bool("WEALL_MEMPOOL_PRUNE_ON_ADD", self.prune_on_add)
-        self.prune_interval_ms = max(0, _env_int("WEALL_MEMPOOL_PRUNE_INTERVAL_MS", self.prune_interval_ms))
+        self.prune_interval_ms = max(
+            0, _env_int("WEALL_MEMPOOL_PRUNE_INTERVAL_MS", self.prune_interval_ms)
+        )
         self.evict_on_full = _env_bool("WEALL_MEMPOOL_EVICT_ON_FULL", self.evict_on_full)
         self.evict_batch = max(1, _env_int("WEALL_MEMPOOL_EVICT_BATCH", self.evict_batch))
 
@@ -196,7 +202,9 @@ class PersistentMempool:
         return int(row["n"]) if row is not None else 0
 
     def _count_tx_type(self, tx_type: str, *, con) -> int:
-        row = con.execute("SELECT COUNT(1) AS n FROM mempool WHERE tx_type=?;", (tx_type,)).fetchone()
+        row = con.execute(
+            "SELECT COUNT(1) AS n FROM mempool WHERE tx_type=?;", (tx_type,)
+        ).fetchone()
         return int(row["n"]) if row is not None else 0
 
     def _prune_expired_if_due(self, *, con, now_ms: int) -> None:
@@ -210,7 +218,9 @@ class PersistentMempool:
             con.execute("DELETE FROM mempool WHERE expires_ms <= ?;", (int(now_ms),))
             self._last_prune_ms = int(now_ms)
 
-    def _evict_oldest(self, *, con, need: int, signer: str | None = None, tx_type: str | None = None) -> int:
+    def _evict_oldest(
+        self, *, con, need: int, signer: str | None = None, tx_type: str | None = None
+    ) -> int:
         """Deterministically evict oldest items (received_ms ASC, tx_id ASC).
 
         Returns number of rows deleted.
@@ -263,7 +273,9 @@ class PersistentMempool:
         now = int(_now_ms() if now_ms is None else int(now_ms))
         with self.db.write_tx() as con:
             # Count first for a deterministic return value.
-            row = con.execute("SELECT COUNT(1) AS n FROM mempool WHERE expires_ms <= ?;", (now,)).fetchone()
+            row = con.execute(
+                "SELECT COUNT(1) AS n FROM mempool WHERE expires_ms <= ?;", (now,)
+            ).fetchone()
             n = int(row["n"]) if row is not None else 0
             if n > 0:
                 con.execute("DELETE FROM mempool WHERE expires_ms <= ?;", (now,))
@@ -295,8 +307,14 @@ class PersistentMempool:
             now = _now_ms()
             self._prune_expired_if_due(con=con, now_ms=int(now))
 
-            row_last = con.execute("SELECT MAX(received_ms) AS last_received_ms FROM mempool;").fetchone()
-            last_received_ms = int(row_last["last_received_ms"]) if row_last is not None and row_last["last_received_ms"] is not None else 0
+            row_last = con.execute(
+                "SELECT MAX(received_ms) AS last_received_ms FROM mempool;"
+            ).fetchone()
+            last_received_ms = (
+                int(row_last["last_received_ms"])
+                if row_last is not None and row_last["last_received_ms"] is not None
+                else 0
+            )
             received_ms = int(requested_received_ms)
             if received_ms <= last_received_ms:
                 received_ms = int(last_received_ms) + 1
@@ -317,9 +335,17 @@ class PersistentMempool:
                         self._evict_oldest(con=con, need=int(need))
                         n2 = self._count_total(con=con)
                         if n2 >= self.max_items:
-                            return {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                            return {
+                                "ok": False,
+                                "error": "mempool_full",
+                                "details": {"max": self.max_items},
+                            }
                     else:
-                        return {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                        return {
+                            "ok": False,
+                            "error": "mempool_full",
+                            "details": {"max": self.max_items},
+                        }
 
             if self.max_per_signer > 0:
                 n_s = self._count_signer(signer, con=con)
@@ -411,7 +437,9 @@ class PersistentMempool:
             return False
         try:
             with self.db.connection() as con:
-                row = con.execute("SELECT 1 AS ok FROM mempool WHERE tx_id=? LIMIT 1;", (t,)).fetchone()
+                row = con.execute(
+                    "SELECT 1 AS ok FROM mempool WHERE tx_id=? LIMIT 1;", (t,)
+                ).fetchone()
                 return row is not None
         except Exception:
             return False
@@ -424,10 +452,10 @@ class PersistentMempool:
         except Exception:
             return 0
 
-    def peek(self, *, limit: int = 1000) -> List[Json]:
+    def peek(self, *, limit: int = 1000) -> list[Json]:
         lim = int(limit) if int(limit) > 0 else 1000
         now = _now_ms()
-        out: List[Json] = []
+        out: list[Json] = []
         try:
             with self.db.connection() as con:
                 rows = con.execute(

@@ -12,7 +12,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from weall.runtime.bootstrap_manifest import canon_json, release_manifest_path, release_pubkey  # noqa: E402
+from weall.runtime.bootstrap_manifest import (  # noqa: E402
+    canon_json,
+    release_manifest_path,
+    release_pubkey,
+)
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report  # noqa: E402
 from weall.runtime.operator_incident_lane import (  # noqa: E402
     build_operator_incident_lane,
@@ -20,11 +24,19 @@ from weall.runtime.operator_incident_lane import (  # noqa: E402
 )
 
 
-def _load_verify_payload(bundle_path: Path | None, *, json_mode: bool) -> tuple[int, dict[str, object] | None, str | None]:
+def _load_verify_payload(
+    bundle_path: Path | None, *, json_mode: bool
+) -> tuple[int, dict[str, object] | None, str | None]:
     if bundle_path is None:
         return 0, None, None
 
-    cmd = [sys.executable, str(ROOT / "scripts" / "verify_validator_bootstrap.py"), "--bundle", str(bundle_path), "--json"]
+    cmd = [
+        sys.executable,
+        str(ROOT / "scripts" / "verify_validator_bootstrap.py"),
+        "--bundle",
+        str(bundle_path),
+        "--json",
+    ]
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, check=False)
     out = (proc.stdout or "").strip()
     err = (proc.stderr or "").strip()
@@ -56,9 +68,17 @@ def main() -> int:
             "release manifest inputs, and optional bootstrap bundle."
         )
     )
-    parser.add_argument("--config", default=None, help="Optional chain config path. Defaults to WEALL_CHAIN_CONFIG_PATH / repo defaults.")
-    parser.add_argument("--bundle", default=None, help="Optional validator bootstrap bundle JSON path.")
-    parser.add_argument("--require-bundle", action="store_true", help="Fail if no bundle path is supplied.")
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Optional chain config path. Defaults to WEALL_CHAIN_CONFIG_PATH / repo defaults.",
+    )
+    parser.add_argument(
+        "--bundle", default=None, help="Optional validator bootstrap bundle JSON path."
+    )
+    parser.add_argument(
+        "--require-bundle", action="store_true", help="Fail if no bundle path is supplied."
+    )
     parser.add_argument(
         "--incident-lane-out",
         default=None,
@@ -69,6 +89,7 @@ def main() -> int:
 
     if args.config:
         import os
+
         os.environ["WEALL_CHAIN_CONFIG_PATH"] = str(Path(args.config).resolve())
 
     cfg = load_chain_config()
@@ -87,7 +108,9 @@ def main() -> int:
             print(json.dumps(payload, indent=2, sort_keys=True))
         return 1
 
-    verify_rc, verify_payload, verify_parse_error = _load_verify_payload(bundle_path, json_mode=bool(args.json))
+    verify_rc, verify_payload, verify_parse_error = _load_verify_payload(
+        bundle_path, json_mode=bool(args.json)
+    )
 
     issues: list[str] = list(bootstrap.get("issues") or [])
     if verify_parse_error:
@@ -116,13 +139,21 @@ def main() -> int:
     incident_lane_summary = build_operator_incident_lane_summary(incident_lane)
 
     if incident_lane_summary["halt_block_production"]:
-        deduped_issues.append("local operator incident lane requires halted block production before validator signing")
+        deduped_issues.append(
+            "local operator incident lane requires halted block production before validator signing"
+        )
     elif incident_lane_summary["safe_mode"] != "normal":
-        deduped_issues.append("local operator incident lane requires observer-first recovery before validator signing")
+        deduped_issues.append(
+            "local operator incident lane requires observer-first recovery before validator signing"
+        )
 
     compatibility_contract = {}
-    if isinstance(verify_payload, dict) and isinstance(verify_payload.get("release_manifest"), dict):
-        compatibility_contract = dict(verify_payload.get("release_manifest", {}).get("compatibility_contract") or {})
+    if isinstance(verify_payload, dict) and isinstance(
+        verify_payload.get("release_manifest"), dict
+    ):
+        compatibility_contract = dict(
+            verify_payload.get("release_manifest", {}).get("compatibility_contract") or {}
+        )
 
     signing_ready = bool(not deduped_issues and compatibility_contract.get("ok", True))
 
@@ -136,7 +167,9 @@ def main() -> int:
         "release_manifest_pubkey_present": bool(release_pubkey()),
         "bootstrap": bootstrap,
         "bundle_path": str(bundle_path) if bundle_path is not None else None,
-        "bundle_verified": bool(bundle_path is not None and verify_payload is not None and verify_rc == 0),
+        "bundle_verified": bool(
+            bundle_path is not None and verify_payload is not None and verify_rc == 0
+        ),
         "bundle_verification": verify_payload,
         "compatibility_contract": compatibility_contract,
         "incident_lane": incident_lane_summary,
@@ -157,7 +190,9 @@ def main() -> int:
     if args.incident_lane_out:
         out_path = Path(args.incident_lane_out).resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(incident_lane, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        out_path.write_text(
+            json.dumps(incident_lane, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
 
     if args.json:
         print(canon_json(payload))

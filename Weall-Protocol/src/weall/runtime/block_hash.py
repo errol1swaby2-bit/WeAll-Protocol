@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from weall.runtime.sqlite_db import _canon_json
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def compute_block_hash(*, header: Json) -> str:
@@ -24,7 +24,7 @@ def compute_block_hash(*, header: Json) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def compute_receipts_root(*, receipts: List[Json]) -> str:
+def compute_receipts_root(*, receipts: list[Json]) -> str:
     """Compute a deterministic receipts root.
 
     We commit execution results into the block hash so all nodes, indexers,
@@ -43,7 +43,7 @@ def make_block_header(
     height: int,
     prev_block_hash: str,
     block_ts_ms: int,
-    tx_ids: List[str],
+    tx_ids: list[str],
     receipts_root: str,
     state_root: str | None = None,
     vrf: Json | None = None,
@@ -72,7 +72,7 @@ def make_block_header(
     return hdr
 
 
-def ensure_block_hash(block: Json) -> Tuple[Json, str]:
+def ensure_block_hash(block: Json) -> tuple[Json, str]:
     """Return (block_with_hash, block_hash).
 
     - If block already includes `block_hash`, it is returned unchanged.
@@ -96,7 +96,7 @@ def ensure_block_hash(block: Json) -> Tuple[Json, str]:
     prev_bh = str(block.get("prev_block_hash") or "")
     ts_ms = int(block.get("block_ts_ms") or block.get("created_ms") or block.get("ts_ms") or 0)
 
-    tx_ids: List[str] = []
+    tx_ids: list[str] = []
     txs = block.get("txs")
     if isinstance(txs, list):
         for env in txs:

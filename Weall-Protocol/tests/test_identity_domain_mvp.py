@@ -26,7 +26,16 @@ def test_device_register_and_revoke_roundtrip() -> None:
     st = _empty_state()
 
     # Register account
-    st = _apply_ok({"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:u"}, "sig": "x"}, st)
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user000",
+            "nonce": 1,
+            "payload": {"pubkey": "k:u"},
+            "sig": "x",
+        },
+        st,
+    )
 
     # Register device
     st = _apply_ok(
@@ -78,7 +87,16 @@ def test_guardian_recovery_flow_threshold_2() -> None:
     # the full guardian voting logic is validated elsewhere.
     st = _empty_state()
 
-    st = _apply_ok({"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:u"}, "sig": "x"}, st)
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user000",
+            "nonce": 1,
+            "payload": {"pubkey": "k:u"},
+            "sig": "x",
+        },
+        st,
+    )
 
     # Configure recovery (2-of-3)
     st = _apply_ok(
@@ -94,7 +112,13 @@ def test_guardian_recovery_flow_threshold_2() -> None:
 
     # Request recovery
     st = _apply_ok(
-        {"tx_type": "ACCOUNT_RECOVERY_REQUEST", "signer": "@user000", "nonce": 3, "payload": {"request_id": "r1"}, "sig": "x"},
+        {
+            "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+            "signer": "@user000",
+            "nonce": 3,
+            "payload": {"request_id": "r1"},
+            "sig": "x",
+        },
         st,
     )
 
@@ -103,7 +127,13 @@ def test_guardian_recovery_flow_threshold_2() -> None:
     # we assert that such rejects still consume nonce (Policy B).
     try:
         _ = _apply_ok(
-            {"tx_type": "ACCOUNT_RECOVERY_VOTE", "signer": "@user101", "nonce": 1, "payload": {"request_id": "r1", "vote": "yes"}, "sig": "x"},
+            {
+                "tx_type": "ACCOUNT_RECOVERY_VOTE",
+                "signer": "@user101",
+                "nonce": 1,
+                "payload": {"request_id": "r1", "vote": "yes"},
+                "sig": "x",
+            },
             st,
         )
     except ApplyError:

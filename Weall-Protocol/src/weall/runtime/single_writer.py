@@ -1,6 +1,6 @@
+import fcntl
 import os
 import sys
-import fcntl
 
 
 class SingleWriterLock:

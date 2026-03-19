@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, MutableMapping, Optional
+from collections.abc import MutableMapping
+from typing import Any
 
 from weall.poh.apply import canonical_metadata_cid_placeholder, deterministic_token_id
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class PoHFinalizeError(Exception):
     pass
 
 
-def _now(ctx: Dict[str, Any]) -> Optional[int]:
+def _now(ctx: dict[str, Any]) -> int | None:
     v = ctx.get("ts")
     if isinstance(v, int):
         return v
@@ -21,14 +22,14 @@ def _now(ctx: Dict[str, Any]) -> Optional[int]:
     return None
 
 
-def _height(ctx: Dict[str, Any]) -> int:
+def _height(ctx: dict[str, Any]) -> int:
     v = ctx.get("height")
     if isinstance(v, int):
         return v
     return 0
 
 
-def _chain_id(ctx: Dict[str, Any]) -> str:
+def _chain_id(ctx: dict[str, Any]) -> str:
     v = ctx.get("chain_id")
     return str(v) if isinstance(v, str) and v else "weall-dev"
 
@@ -139,7 +140,7 @@ def _mint_gate_nft(
     tier: int,
     source_id: str,
     height: int,
-    ts: Optional[int],
+    ts: int | None,
 ) -> Json:
     if int(tier) not in (1, 2, 3):
         raise PoHFinalizeError("tier must be 1, 2, or 3")
@@ -201,7 +202,7 @@ def _ban_gate_nft(
     tier: int,
     source_id: str,
     height: int,
-    ts: Optional[int],
+    ts: int | None,
     reason: str,
 ) -> Json:
     token_id = deterministic_token_id(
@@ -250,7 +251,7 @@ def _ban_gate_nft(
     return {"ok": True, "token_id": token_id, "status": "banned", "tier": int(tier)}
 
 
-def finalize_poh_and_mint_gate_nfts(ledger: Any, *, ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+def finalize_poh_and_mint_gate_nfts(ledger: Any, *, ctx: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Block-only finalizer.
 
@@ -281,7 +282,7 @@ def finalize_poh_and_mint_gate_nfts(ledger: Any, *, ctx: Dict[str, Any]) -> List
     ts = _now(ctx)
     chain_id = _chain_id(ctx)
 
-    receipts: List[Dict[str, Any]] = []
+    receipts: list[dict[str, Any]] = []
 
     for entry in list(finals):
         if not isinstance(entry, dict):

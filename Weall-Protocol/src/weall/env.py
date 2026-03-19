@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
 
 _LOADED = False
 
@@ -22,7 +21,7 @@ def _is_prod() -> bool:
     return _runtime_mode() == "prod"
 
 
-def load_dotenv_if_present(dotenv_path: Optional[str] = None) -> bool:
+def load_dotenv_if_present(dotenv_path: str | None = None) -> bool:
     """
     Load an operator-configured .env file when present.
 

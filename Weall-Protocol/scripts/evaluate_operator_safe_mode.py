@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -23,7 +23,9 @@ def _load_json(path_str: str):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate operator safe-mode state from incident report and optional actions.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate operator safe-mode state from incident report and optional actions."
+    )
     parser.add_argument("report", help="Path to operator incident report JSON")
     parser.add_argument("--actions", default=None, help="Optional path to incident action JSON")
     parser.add_argument("--out", default=None, help="Optional output path")

@@ -14,10 +14,14 @@ def _repo_root() -> Path:
 def _make_executor(tmp_path: Path, *, node_id: str, chain_id: str) -> WeAllExecutor:
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     db_path = str(tmp_path / f"{node_id.strip('@')}.db")
-    return WeAllExecutor(db_path=db_path, node_id=node_id, chain_id=chain_id, tx_index_path=tx_index_path)
+    return WeAllExecutor(
+        db_path=db_path, node_id=node_id, chain_id=chain_id, tx_index_path=tx_index_path
+    )
 
 
-def test_build_block_candidate_ignores_wall_clock_for_proposal_timestamp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_block_candidate_ignores_wall_clock_for_proposal_timestamp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
@@ -36,7 +40,9 @@ def test_build_block_candidate_ignores_wall_clock_for_proposal_timestamp(tmp_pat
     assert int(blk2.get("block_ts_ms") or 0) == 1
 
 
-def test_produced_block_timestamp_advances_by_one_over_chain_floor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_produced_block_timestamp_advances_by_one_over_chain_floor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
@@ -59,7 +65,9 @@ def test_produced_block_timestamp_advances_by_one_over_chain_floor(tmp_path: Pat
     assert int(blk2.get("block_ts_ms") or 0) == 2
 
 
-def test_bft_diagnostics_surface_next_chain_time_successor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bft_diagnostics_surface_next_chain_time_successor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
@@ -68,7 +76,9 @@ def test_bft_diagnostics_surface_next_chain_time_successor(tmp_path: Path, monke
     assert diag0["timestamp_rule"] == "chain_time_successor_only"
     assert int(diag0["proposed_next_ts_ms"]) == 1
 
-    blk1, st1, _applied1, _invalid1, err1 = ex.build_block_candidate(allow_empty=True, force_ts_ms=5_000)
+    blk1, st1, _applied1, _invalid1, err1 = ex.build_block_candidate(
+        allow_empty=True, force_ts_ms=5_000
+    )
     assert err1 == ""
     assert blk1 is not None
     assert st1 is not None

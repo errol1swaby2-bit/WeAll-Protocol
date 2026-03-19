@@ -6,13 +6,13 @@ import logging
 import os
 import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 _VALID_BOOL_TRUE = {"1", "true", "yes", "y", "on"}
 _VALID_BOOL_FALSE = {"0", "false", "no", "n", "off"}
 _VALID_LOG_LEVELS = {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"}
@@ -84,7 +84,7 @@ def configure_structured_logging() -> None:
     root.handlers = [handler]
     root.setLevel(level)
     root.propagate = False
-    setattr(root, "_weall_configured", True)  # type: ignore[attr-defined]
+    root._weall_configured = True  # type: ignore[attr-defined]
 
 
 def log_event(logger: logging.Logger, event: str, **fields: Any) -> None:
@@ -137,8 +137,8 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
             pass
 
         status = 500
-        err: Optional[str] = None
-        response: Optional[Response] = None
+        err: str | None = None
+        response: Response | None = None
 
         try:
             response = await call_next(request)

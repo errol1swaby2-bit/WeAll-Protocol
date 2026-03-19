@@ -15,7 +15,9 @@ def _sanitize(name: str) -> str:
 
 
 def _active_failpoints() -> set[str]:
-    raw = str(os.environ.get("WEALL_TEST_FAILPOINTS") or os.environ.get("WEALL_TEST_FAILPOINT") or "")
+    raw = str(
+        os.environ.get("WEALL_TEST_FAILPOINTS") or os.environ.get("WEALL_TEST_FAILPOINT") or ""
+    )
     return {part.strip() for part in raw.split(",") if part.strip()}
 
 

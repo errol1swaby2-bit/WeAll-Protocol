@@ -4,7 +4,6 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import List
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +33,7 @@ def build_executor():
     return _build_executor()
 
 
-def _parse_cors_origins() -> List[str]:
+def _parse_cors_origins() -> list[str]:
     """Parse CORS origins with production-safe defaults.
 
     Policy:
@@ -139,9 +138,13 @@ def _enforce_prod_runtime_topology() -> None:
         workers = 1
 
     if bft_enabled and block_loop_autostart:
-        raise RuntimeError("Unsafe production runtime: WEALL_BFT_ENABLED=1 cannot be combined with WEALL_BLOCK_LOOP_AUTOSTART=1")
+        raise RuntimeError(
+            "Unsafe production runtime: WEALL_BFT_ENABLED=1 cannot be combined with WEALL_BLOCK_LOOP_AUTOSTART=1"
+        )
     if (bft_enabled or block_loop_autostart or net_loop_autostart) and workers > 1:
-        raise RuntimeError("Unsafe production runtime: GUNICORN_WORKERS must be 1 when consensus/network autostart loops are enabled")
+        raise RuntimeError(
+            "Unsafe production runtime: GUNICORN_WORKERS must be 1 when consensus/network autostart loops are enabled"
+        )
 
 
 def create_app(*, boot_runtime: bool = True) -> FastAPI:
@@ -162,18 +165,24 @@ def create_app(*, boot_runtime: bool = True) -> FastAPI:
             if autostart:
                 if ex is None:
                     if prod_fail_closed:
-                        raise ApiRuntimeLifecycleError("api_block_loop_start_failed:missing_executor")
+                        raise ApiRuntimeLifecycleError(
+                            "api_block_loop_start_failed:missing_executor"
+                        )
                 else:
                     mp = getattr(ex, "mempool", None)
                     ap = getattr(ex, "attestation_pool", None)
                     if mp is None or ap is None:
                         if prod_fail_closed:
-                            raise ApiRuntimeLifecycleError("api_block_loop_start_failed:missing_runtime_dependencies")
+                            raise ApiRuntimeLifecycleError(
+                                "api_block_loop_start_failed:missing_runtime_dependencies"
+                            )
                     else:
                         block_loop = BlockProducerLoop(executor=ex, mempool=mp, attestation_pool=ap)
                         if not block_loop.start():
                             if prod_fail_closed:
-                                raise ApiRuntimeLifecycleError("api_block_loop_start_failed:start_returned_false")
+                                raise ApiRuntimeLifecycleError(
+                                    "api_block_loop_start_failed:start_returned_false"
+                                )
                             block_loop = None
         except ApiRuntimeLifecycleError:
             raise
@@ -191,13 +200,17 @@ def create_app(*, boot_runtime: bool = True) -> FastAPI:
                     mp = getattr(ex, "mempool", None)
                     if mp is None:
                         if prod_fail_closed:
-                            raise ApiRuntimeLifecycleError("api_net_loop_start_failed:missing_runtime_dependencies")
+                            raise ApiRuntimeLifecycleError(
+                                "api_net_loop_start_failed:missing_runtime_dependencies"
+                            )
                     else:
                         net_loop = NetMeshLoop(executor=ex, mempool=mp)
                         if not net_loop.start():
                             net_loop = None
                             if prod_fail_closed:
-                                raise ApiRuntimeLifecycleError("api_net_loop_start_failed:start_returned_false")
+                                raise ApiRuntimeLifecycleError(
+                                    "api_net_loop_start_failed:start_returned_false"
+                                )
         except ApiRuntimeLifecycleError:
             raise
         except Exception as exc:
