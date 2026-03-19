@@ -5,11 +5,44 @@ import json
 import sqlite3
 import time
 import random
-from contextlib import contextmanager
+import threading
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator
 
 Json = Dict[str, Any]
+
+
+_PROCESS_LOCAL_WRITE_LOCKS: dict[str, threading.RLock] = {}
+_PROCESS_LOCAL_WRITE_LOCKS_GUARD = threading.Lock()
+
+
+def derive_aux_db_path(main_db_path: str) -> str:
+    """Derive the non-consensus auxiliary DB path for a node.
+
+    The auxiliary DB is intended for high-churn, non-consensus local data that
+    should not contend with the consensus-critical ledger commit path.
+
+    We intentionally keep the canonical ledger snapshot, blocks, tx index, and
+    mempool in the main DB so block commit remains a single atomic transaction.
+    """
+    p = Path(str(main_db_path)).expanduser()
+    suffix = "".join(p.suffixes)
+    stem = p.name[: -len(suffix)] if suffix else p.name
+    if not stem:
+        stem = "weall"
+    aux_name = f"{stem}.aux.sqlite"
+    return str((p.parent / aux_name).resolve())
+
+
+def _process_local_write_lock_for(path: str) -> threading.RLock:
+    key = str(Path(str(path)).expanduser().resolve())
+    with _PROCESS_LOCAL_WRITE_LOCKS_GUARD:
+        lock = _PROCESS_LOCAL_WRITE_LOCKS.get(key)
+        if lock is None:
+            lock = threading.RLock()
+            _PROCESS_LOCAL_WRITE_LOCKS[key] = lock
+        return lock
 
 
 def _now_ms() -> int:
@@ -27,11 +60,24 @@ def _canon_json(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+def _mode() -> str:
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
+    s = str(raw).strip()
+    if not s:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}")
+        return int(default)
     try:
-        raw = str(os.environ.get(name, "")).strip()
-        return int(raw) if raw else int(default)
+        return int(s)
     except Exception:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}")
         return int(default)
 
 
@@ -233,6 +279,19 @@ class SqliteDB:
 
             con.execute(
                 """
+                CREATE TABLE IF NOT EXISTS block_hash_index (
+                  block_id TEXT PRIMARY KEY,
+                  block_hash TEXT NOT NULL,
+                  height INTEGER NOT NULL,
+                  created_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_block_hash_index_height ON block_hash_index(height);")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_block_hash_index_hash ON block_hash_index(block_hash);")
+
+            con.execute(
+                """
                 CREATE TABLE IF NOT EXISTS tx_index (
                   tx_id TEXT PRIMARY KEY,
                   height INTEGER NOT NULL,
@@ -305,6 +364,23 @@ class SqliteDB:
             )
             con.execute("CREATE INDEX IF NOT EXISTS idx_bft_candidates_height ON bft_candidates(height);")
             con.execute("CREATE INDEX IF NOT EXISTS idx_bft_candidates_created ON bft_candidates(created_ms);")
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_pending_artifacts (
+                  kind TEXT NOT NULL,
+                  block_id TEXT NOT NULL,
+                  block_hash TEXT NOT NULL,
+                  payload_json TEXT NOT NULL,
+                  created_ms INTEGER NOT NULL,
+                  updated_ms INTEGER NOT NULL,
+                  PRIMARY KEY (kind, block_id)
+                );
+                """
+            )
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_kind ON bft_pending_artifacts(kind);")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_updated ON bft_pending_artifacts(updated_ms);")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_bft_pending_artifacts_block_hash ON bft_pending_artifacts(block_hash);")
 
             con.execute(
                 """
@@ -471,50 +547,55 @@ class SqliteDB:
         base_sleep = max(0.001, base_sleep)
         max_sleep = max(base_sleep, max_sleep)
 
+        process_local_lock_enabled = str(os.environ.get("WEALL_SQLITE_PROCESS_LOCAL_WRITE_MUTEX", "1") or "1").strip().lower() not in {"0", "false", "no", "off"}
+        process_local_lock = _process_local_write_lock_for(self.path) if process_local_lock_enabled else None
+
         with self.connection() as con:
-            attempt = 0
-            while True:
-                try:
-                    con.execute("BEGIN IMMEDIATE;")
-                    break
-                except sqlite3.OperationalError as e:
-                    if not self._is_locked_error(e):
-                        raise
-                    if _now_ms() >= deadline_ts:
-                        # Keep original exception context; this is a real failure.
-                        raise
-                    # exponential backoff with jitter
-                    sleep_s = min(max_sleep, base_sleep * (2.0 ** min(attempt, 8)))
-                    sleep_s = sleep_s * (0.5 + random.random())  # jitter in [0.5x, 1.5x]
-                    time.sleep(sleep_s)
-                    attempt += 1
-
-            try:
-                yield con
-
-                # COMMIT can also transiently fail under contention (rare but
-                # possible when other connections are checkpointing). Treat it
-                # with the same bounded retry policy.
-                c_attempt = 0
+            ctx = process_local_lock if process_local_lock is not None else nullcontext()
+            with ctx:
+                attempt = 0
                 while True:
                     try:
-                        con.execute("COMMIT;")
+                        con.execute("BEGIN IMMEDIATE;")
                         break
                     except sqlite3.OperationalError as e:
                         if not self._is_locked_error(e):
                             raise
                         if _now_ms() >= deadline_ts:
+                            # Keep original exception context; this is a real failure.
                             raise
-                        sleep_s = min(max_sleep, base_sleep * (2.0 ** min(c_attempt, 8)))
-                        sleep_s = sleep_s * (0.5 + random.random())
+                        # exponential backoff with jitter
+                        sleep_s = min(max_sleep, base_sleep * (2.0 ** min(attempt, 8)))
+                        sleep_s = sleep_s * (0.5 + random.random())  # jitter in [0.5x, 1.5x]
                         time.sleep(sleep_s)
-                        c_attempt += 1
-            except Exception:
+                        attempt += 1
+
                 try:
-                    con.execute("ROLLBACK;")
+                    yield con
+
+                    # COMMIT can also transiently fail under contention (rare but
+                    # possible when other connections are checkpointing). Treat it
+                    # with the same bounded retry policy.
+                    c_attempt = 0
+                    while True:
+                        try:
+                            con.execute("COMMIT;")
+                            break
+                        except sqlite3.OperationalError as e:
+                            if not self._is_locked_error(e):
+                                raise
+                            if _now_ms() >= deadline_ts:
+                                raise
+                            sleep_s = min(max_sleep, base_sleep * (2.0 ** min(c_attempt, 8)))
+                            sleep_s = sleep_s * (0.5 + random.random())
+                            time.sleep(sleep_s)
+                            c_attempt += 1
                 except Exception:
-                    pass
-                raise
+                    try:
+                        con.execute("ROLLBACK;")
+                    except Exception:
+                        pass
+                    raise
 
 
 class SqliteLedgerStore:

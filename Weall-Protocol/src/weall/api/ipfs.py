@@ -18,10 +18,38 @@ class IpfsConfig:
     gateway_base: str
 
 
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
+def _validated_url_base(name: str, default: str) -> str:
+    raw = os.getenv(name)
+    if raw is None:
+        candidate = str(default).strip()
+    else:
+        candidate = str(raw).strip()
+        if candidate == "":
+            if _mode() == "prod":
+                raise ValueError(f"invalid_url_env:{name}")
+            candidate = str(default).strip()
+    parsed = urllib.parse.urlparse(candidate)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        if _mode() == "prod" and raw is not None:
+            raise ValueError(f"invalid_url_env:{name}")
+        if raw is None:
+            parsed_default = urllib.parse.urlparse(str(default).strip())
+            if parsed_default.scheme not in {"http", "https"} or not parsed_default.netloc:
+                raise ValueError(f"invalid_url_env:{name}")
+        candidate = str(default).strip()
+    return candidate.rstrip("/")
+
+
 def _cfg() -> IpfsConfig:
-    api_base = (os.getenv("WEALL_IPFS_API_BASE") or "http://127.0.0.1:5001").strip()
-    gateway_base = (os.getenv("WEALL_IPFS_GATEWAY_BASE") or "http://127.0.0.1:8080").strip()
-    return IpfsConfig(api_base=api_base.rstrip("/"), gateway_base=gateway_base.rstrip("/"))
+    api_base = _validated_url_base("WEALL_IPFS_API_BASE", "http://127.0.0.1:5001")
+    gateway_base = _validated_url_base("WEALL_IPFS_GATEWAY_BASE", "http://127.0.0.1:8080")
+    return IpfsConfig(api_base=api_base, gateway_base=gateway_base)
 
 
 def ipfs_gateway_url(cid: str) -> str:
@@ -110,8 +138,8 @@ def ipfs_add_fileobj(*, name: str, fileobj: BinaryIO, pin: bool) -> Tuple[str, i
     preamble = (
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
-        f"Content-Type: application/octet-stream\r\n"
-        f"\r\n"
+        "Content-Type: application/octet-stream\r\n"
+        "\r\n"
     ).encode("utf-8")
     epilogue = f"\r\n--{boundary}--\r\n".encode("utf-8")
     body = preamble + file_bytes + epilogue

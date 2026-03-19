@@ -23,7 +23,6 @@ class MsgType(str, Enum):
     BLOCK_PROPOSAL = "BLOCK_PROPOSAL"
     BLOCK_VOTE = "BLOCK_VOTE"
 
-    # HotStuff BFT (finality path)
     BFT_PROPOSAL = "BFT_PROPOSAL"
     BFT_VOTE = "BFT_VOTE"
     BFT_QC = "BFT_QC"
@@ -32,7 +31,6 @@ class MsgType(str, Enum):
     STATE_SYNC_REQUEST = "STATE_SYNC_REQUEST"
     STATE_SYNC_RESPONSE = "STATE_SYNC_RESPONSE"
 
-    # Keepalive / liveness
     PING = "PING"
     PONG = "PONG"
 
@@ -59,6 +57,11 @@ class PeerHello(WireMessage):
     nonce: Optional[str] = None
     caps: Tuple[str, ...] = field(default_factory=tuple)
     identity: Optional[JsonObject] = None
+    protocol_version: Optional[str] = None
+    protocol_profile_hash: Optional[str] = None
+    validator_epoch: Optional[int] = None
+    validator_set_hash: Optional[str] = None
+    bft_enabled: Optional[bool] = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +71,11 @@ class PeerHelloAck(WireMessage):
     reason: Optional[str] = None
     caps: Tuple[str, ...] = field(default_factory=tuple)
     server_ts_ms: Optional[int] = None
+    protocol_version: Optional[str] = None
+    protocol_profile_hash: Optional[str] = None
+    validator_epoch: Optional[int] = None
+    validator_set_hash: Optional[str] = None
+    bft_enabled: Optional[bool] = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,10 +104,6 @@ class BlockVoteMsg(WireMessage):
     voter: Optional[str] = None
 
 
-# ----------------------------
-# HotStuff BFT messages
-# ----------------------------
-
 @dataclass(frozen=True, slots=True)
 class BftProposalMsg(WireMessage):
     view: int
@@ -125,10 +129,6 @@ class BftTimeoutMsg(WireMessage):
     timeout: JsonObject = field(default_factory=dict)
 
 
-# ----------------------------
-# State sync (BACK-COMPAT SHAPE)
-# ----------------------------
-
 @dataclass(frozen=True, slots=True)
 class StateSyncRequestMsg(WireMessage):
     mode: Literal["snapshot", "delta"]
@@ -142,18 +142,11 @@ class StateSyncResponseMsg(WireMessage):
     ok: bool
     reason: Optional[str]
     height: int
-
-    # snapshot mode
     snapshot: Optional[JsonObject] = None
     snapshot_hash: Optional[str] = None
-
-    # delta mode
+    snapshot_anchor: Optional[JsonObject] = None
     blocks: Tuple[JsonObject, ...] = field(default_factory=tuple)
 
-
-# ----------------------------
-# Keepalive / liveness
-# ----------------------------
 
 @dataclass(frozen=True, slots=True)
 class PingMsg(WireMessage):

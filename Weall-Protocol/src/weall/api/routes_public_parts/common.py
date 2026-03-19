@@ -14,11 +14,30 @@ from weall.runtime.account_id import is_valid_account_id, strict_account_ids_ena
 Json = Dict[str, Any]
 
 
+class PublicRouteConfigError(ValueError):
+    """Raised when explicit public-route config is malformed in prod."""
+
+
+def _runtime_mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
+def _is_prod() -> bool:
+    return _runtime_mode() == "prod"
+
+
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
     try:
-        v = str(os.environ.get(name, "") or "").strip()
+        v = str(raw or "").strip()
         return int(v) if v else int(default)
-    except Exception:
+    except Exception as exc:
+        if _is_prod():
+            raise PublicRouteConfigError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 

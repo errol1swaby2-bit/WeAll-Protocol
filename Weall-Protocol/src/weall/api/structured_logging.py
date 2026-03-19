@@ -13,16 +13,54 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 Json = Dict[str, Any]
+_VALID_BOOL_TRUE = {"1", "true", "yes", "y", "on"}
+_VALID_BOOL_FALSE = {"0", "false", "no", "n", "off"}
+_VALID_LOG_LEVELS = {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"}
 
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 def _truthy(v: str | None) -> bool:
     if v is None:
         return False
-    return v.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return v.strip().lower() in _VALID_BOOL_TRUE
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    s = str(raw).strip().lower()
+    if s == "":
+        return bool(default)
+    if s in _VALID_BOOL_TRUE:
+        return True
+    if s in _VALID_BOOL_FALSE:
+        return False
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
+
+
+def _log_level() -> int:
+    raw = os.environ.get("WEALL_LOG_LEVEL")
+    if raw is None:
+        level_name = "INFO"
+    else:
+        level_name = str(raw).strip().upper() or "INFO"
+        if level_name not in _VALID_LOG_LEVELS:
+            if _mode() == "prod":
+                raise ValueError("invalid_log_level_env:WEALL_LOG_LEVEL")
+            level_name = "INFO"
+    return getattr(logging, level_name, logging.INFO)
 
 
 def configure_structured_logging() -> None:
@@ -32,8 +70,7 @@ def configure_structured_logging() -> None:
     - Level from WEALL_LOG_LEVEL (default INFO).
     - Safe to call multiple times.
     """
-    level_name = (os.environ.get("WEALL_LOG_LEVEL") or "INFO").strip().upper()
-    level = getattr(logging, level_name, logging.INFO)
+    level = _log_level()
 
     root = logging.getLogger()
     if getattr(root, "_weall_configured", False):  # type: ignore[attr-defined]
@@ -70,9 +107,8 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
 
     def __init__(self, app) -> None:
         super().__init__(app)
-        raw = (os.environ.get("WEALL_LOG_REQUESTS") or "1").strip().lower()
-        self._enabled = raw not in {"0", "false", "no", "n", "off"}
-        self._log_headers = _truthy(os.environ.get("WEALL_LOG_REQUEST_HEADERS"))
+        self._enabled = _env_bool("WEALL_LOG_REQUESTS", True)
+        self._log_headers = _env_bool("WEALL_LOG_REQUEST_HEADERS", False)
         self._logger = logging.getLogger("weall.http")
 
     def _mk_request_id(self) -> str:

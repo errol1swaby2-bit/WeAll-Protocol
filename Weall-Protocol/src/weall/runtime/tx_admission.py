@@ -16,6 +16,7 @@ full YAML tx_canon). This module follows that MVP spec.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 import json
 import os
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -23,22 +24,34 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 from pydantic import ValidationError
 
 from weall.ledger.state import LedgerView
+from weall.runtime.reputation_units import account_reputation_units, threshold_to_units, units_to_reputation
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
 from weall.runtime.gate_expr import eval_gate
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
+from weall.crypto.sig import strict_tx_sig_domain_enabled
+from weall.runtime.sigverify import verify_tx_signature
 from weall.tx.canon import TxIndex
 
 Json = Dict[str, Any]
+
+
+def _mode() -> str:
+    return str(os.environ.get("WEALL_MODE") or "prod").strip().lower() or "prod"
 
 
 def _env_int(name: str, default: int) -> int:
     v = os.environ.get(name)
     if v is None:
         return int(default)
+    s = str(v).strip()
+    if not s:
+        return int(default)
     try:
-        return int(str(v).strip())
-    except Exception:
+        return int(s)
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
@@ -82,8 +95,11 @@ def _walk_limits(
         if depth > max_depth:
             return "payload_depth_exceeded", {"have": depth, "limit": max_depth}
 
-        if cur is None or isinstance(cur, (bool, int, float)):
+        if cur is None or isinstance(cur, (bool, int)):
             continue
+
+        if isinstance(cur, float):
+            return "payload_float_not_allowed", {"value": repr(cur)}
 
         if isinstance(cur, str):
             if len(cur) > max_str_len:
@@ -289,6 +305,30 @@ def _nonce_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]
     return None
 
 
+def _min_reputation_units(spec: Json) -> Optional[int]:
+    raw_units = spec.get("min_reputation_milli")
+    if raw_units is not None:
+        try:
+            return max(0, int(raw_units))
+        except Exception:
+            return 0
+
+    raw = spec.get("min_reputation")
+    if raw is None:
+        return None
+
+    try:
+        raw_dec = Decimal(str(raw).strip())
+    except Exception:
+        raw_dec = Decimal(0)
+
+    if Decimal(1) <= raw_dec <= Decimal(100):
+        normalized = raw_dec / Decimal(100)
+    else:
+        normalized = raw_dec
+    return max(0, threshold_to_units(str(normalized), default=0))
+
+
 def _reputation_and_flags_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[AdmissionVerdict]:
     signer = env.signer or ""
     if not _should_apply_account_semantics(signer):
@@ -302,18 +342,18 @@ def _reputation_and_flags_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) ->
     if acct.get("locked") is True:
         return _rej("gate_denied", "locked")
 
-    min_rep = spec.get("min_reputation")
-    if min_rep is not None:
-        try:
-            min_rep_f = float(min_rep)
-        except Exception:
-            min_rep_f = 0.0
-
-        rep = float(acct.get("reputation") or 0.0)
-        req = (min_rep_f / 100.0) if (1.0 <= min_rep_f <= 100.0) else min_rep_f
-
-        if rep < req:
-            return _rej("gate_denied", "min_reputation", min_reputation=req, reputation=rep)
+    min_rep_units = _min_reputation_units(spec)
+    if min_rep_units is not None:
+        rep_units = account_reputation_units(acct, default=0)
+        if rep_units < min_rep_units:
+            return _rej(
+                "gate_denied",
+                "min_reputation",
+                min_reputation_milli=int(min_rep_units),
+                min_reputation=units_to_reputation(min_rep_units),
+                reputation_milli=int(rep_units),
+                reputation=units_to_reputation(rep_units),
+            )
 
     return None
 
@@ -357,20 +397,30 @@ def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Optional[Admiss
     return None
 
 
+def _tx_sigverify_enforced() -> bool:
+    mode = _mode()
+    override = os.environ.get("WEALL_SIGVERIFY")
+
+    if mode == "prod":
+        return True
+    if override is None:
+        return False
+    return bool(str(override).strip() == "1")
+
+
 def _sig_ok(env: TxEnvelope, *, context: str) -> Optional[AdmissionVerdict]:
     """Enforce *presence* of a signature for untrusted ingress contexts.
 
-    IMPORTANT: `context="block"` is treated as a local/deterministic pathway.
-    Blocks may include envelopes that were admitted locally (or produced in tests)
-    without signatures when sig verification is disabled at the HTTP boundary.
-
     Policy:
-      - context in {mempool, local, block}: signature presence is NOT enforced.
+      - context in {mempool, local, block}: signature presence is NOT enforced here.
+        Block-context cryptographic verification is handled separately by
+        `_block_sig_verify_ok(...)` so block validity does not rely on public
+        ingress checks.
       - context in {gossip, peer, http}: required when WEALL_SIGVERIFY=1 (or default-prod behavior).
     """
     ctx = (context or "").strip().lower() or "mempool"
 
-    # Local/deterministic paths: do not require signatures to be present.
+    # Local/deterministic paths: presence-only checks are handled elsewhere.
     if ctx in {"mempool", "local", "block"}:
         return None
 
@@ -378,18 +428,46 @@ def _sig_ok(env: TxEnvelope, *, context: str) -> Optional[AdmissionVerdict]:
     if str(env.sig or "").strip():
         return None
 
-    mode = (os.environ.get("WEALL_MODE") or "testnet").strip().lower()
-    override = os.environ.get("WEALL_SIGVERIFY")
-
-    if override is None:
-        enforce = bool(mode == "prod")
-    else:
-        enforce = bool(str(override).strip() == "1")
-
-    if not enforce:
+    if not _tx_sigverify_enforced():
         return None
 
     return _rej("missing_sig", "sig_required")
+
+
+def _block_sig_verify_ok(env: TxEnvelope, ledger: LedgerView) -> Optional[AdmissionVerdict]:
+    """Verify non-system tx signatures during block validation.
+
+    Block validity must not depend on local mempool/HTTP ingress assumptions.
+    Every non-system tx carried by a committed block must be self-authenticating
+    from the block payload alone.
+
+    Policy:
+      - SYSTEM txs remain exempt because they are authorized by protocol/block context.
+      - non-system txs must carry a non-empty signature in all modes.
+      - when the strict replay domain is enabled, non-system txs must also carry
+        an explicit chain_id that matches the signed message domain.
+    """
+    signer = str(env.signer or "").strip()
+    if not signer:
+        return _rej("invalid_tx", "missing_signer")
+
+    if signer == "SYSTEM" or bool(getattr(env, "system", False)):
+        return None
+
+    sig = str(getattr(env, "sig", "") or "").strip()
+    if not sig:
+        return _rej("missing_sig", "sig_required_in_block")
+
+    txj = env.to_json()
+    tx_chain_id = str(txj.get("chain_id") or "").strip()
+    if strict_tx_sig_domain_enabled() and not tx_chain_id:
+        return _rej("missing_chain_id", "chain_id_required_in_block")
+
+    state = ledger.to_ledger()
+    if not verify_tx_signature(state if isinstance(state, dict) else {}, txj):
+        return _rej("bad_sig", "signature_verification_failed")
+
+    return None
 
 
 def admit_tx(
@@ -418,17 +496,6 @@ def admit_tx(
                 signer=str(env.signer),
             )
 
-    # Strict schema validation for modeled tx types (public-ish ingress + block validation).
-    if ctx in {"mempool", "gossip", "peer", "block"}:
-        try:
-            if model_for_tx_type(env.tx_type.upper()) is not None:
-                raw = tx if isinstance(tx, dict) else env.to_json()
-                validate_tx_envelope(raw)
-        except ValidationError as ve:
-            return _rej("invalid_payload", "schema_validation_failed", errors=ve.errors())
-        except Exception:
-            return _rej("invalid_payload", "schema_validation_error")
-
     if strict_account_ids_enabled() and not is_valid_account_id(env.signer):
         return _rej("invalid_tx", "bad_signer_format", signer=str(env.signer))
 
@@ -444,6 +511,17 @@ def admit_tx(
     if bad is not None:
         return bad
 
+    # Strict schema validation for modeled tx types (public-ish ingress + block validation).
+    if ctx in {"mempool", "gossip", "peer", "block"}:
+        try:
+            if model_for_tx_type(env.tx_type.upper()) is not None:
+                raw = tx if isinstance(tx, dict) else env.to_json()
+                validate_tx_envelope(raw)
+        except ValidationError as ve:
+            return _rej("invalid_payload", "schema_validation_failed", errors=ve.errors())
+        except Exception:
+            return _rej("invalid_payload", "schema_validation_error")
+
     bad = _mvp_payload_checks(env)
     if bad is not None:
         return bad
@@ -451,6 +529,11 @@ def admit_tx(
     bad = _sig_ok(env, context=ctx)
     if bad is not None:
         return bad
+
+    if ctx == "block":
+        bad = _block_sig_verify_ok(env, lv)
+        if bad is not None:
+            return bad
 
     bad = _nonce_ok(env, lv)
     if bad is not None:

@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import os
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from weall.net.codec import decode_message, encode_message
-from weall.net.handshake import HandshakeConfig, HandshakeRejected, HandshakeState, build_hello
+from weall.net.handshake import HandshakeConfig, HandshakeRejected, HandshakeState, begin_outbound_handshake
 from weall.net.messages import (
     BftProposalMsg,
     BftQcMsg,
@@ -17,12 +18,16 @@ from weall.net.messages import (
     PeerHello,
     PeerHelloAck,
     PongMsg,
+    StateSyncRequestMsg,
+    StateSyncResponseMsg,
     WireHeader,
     WireMessage,
 )
 from weall.net.peer_identity import verify_peer_hello_identity
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
+from weall.runtime.protocol_profile import active_consensus_profile, runtime_protocol_profile_hash, runtime_protocol_version
+from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
@@ -43,6 +48,21 @@ def _env_bool(key: str, default: bool = False) -> bool:
     return str(v).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
 
 
+def _env_int(key: str, default: int = 0) -> int:
+    v = os.environ.get(key)
+    if v is None:
+        return int(default)
+    try:
+        return int(str(v).strip() or str(default))
+    except Exception as exc:
+        mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+        if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+            mode = "test"
+        if mode == "prod":
+            raise ValueError(f"invalid_integer_env:{key}") from exc
+        return int(default)
+
+
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
@@ -54,6 +74,21 @@ def _make_header(cfg: "NetConfig", mtype: str) -> WireHeader:
         schema_version=cfg.schema_version,
         tx_index_hash=cfg.tx_index_hash,
     )
+
+
+def _normalize_validators(values: Any) -> tuple[str, ...]:
+    if not isinstance(values, list):
+        return ()
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in values:
+        s = str(raw or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    out.sort()
+    return tuple(out)
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +188,11 @@ def _make_transport(cfg: NetConfig) -> Transport:
             )
         return TlsTransport(server_cert=cert, server_key=key, ca_file=ca_file, server_name=server_name)
 
+    mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        mode = "test"
+    if mode == "prod" and str(os.environ.get("WEALL_NET_TRANSPORT") or "").strip():
+        raise RuntimeError("invalid_net_transport")
     return InMemoryTransport()
 
 
@@ -196,6 +236,9 @@ class NetNode:
 
         self._conns: Dict[str, Connection] = {}
         self._peers: Dict[str, _PeerRec] = {}
+        self._sync_response_cap: int = max(1, _env_int("WEALL_NET_SYNC_RESPONSE_CACHE", 256))
+        self._sync_request_timeout_ms: int = max(50, _env_int("WEALL_NET_SYNC_REQUEST_TIMEOUT_MS", 1_500))
+        self._sync_responses: "OrderedDict[str, StateSyncResponseMsg]" = OrderedDict()
 
     # ----------------------------
     # Peer state + rate limiting
@@ -276,6 +319,45 @@ class NetNode:
         active = validators.get("active_set")
         return isinstance(active, list) and account_id in active
 
+    def _handshake_validator_epoch(self) -> int:
+        ledger = self._get_ledger() or {}
+        consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
+        if isinstance(consensus, dict):
+            epochs = consensus.get("epochs")
+            if isinstance(epochs, dict):
+                try:
+                    cur = int(epochs.get("current") or 0)
+                    if cur > 0:
+                        return cur
+                except Exception:
+                    pass
+            validator_set = consensus.get("validator_set")
+            if isinstance(validator_set, dict):
+                try:
+                    cur2 = int(validator_set.get("epoch") or 0)
+                    if cur2 > 0:
+                        return cur2
+                except Exception:
+                    pass
+        return 0
+
+    def _handshake_validator_set_hash(self) -> str:
+        ledger = self._get_ledger() or {}
+        consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
+        if isinstance(consensus, dict):
+            validator_set = consensus.get("validator_set")
+            if isinstance(validator_set, dict):
+                have = str(validator_set.get("set_hash") or "").strip()
+                if have:
+                    return have
+        roles = ledger.get("roles") if isinstance(ledger, dict) else {}
+        validators = roles.get("validators") if isinstance(roles, dict) else {}
+        active = validators.get("active_set") if isinstance(validators, dict) else []
+        vals = _normalize_validators(active)
+        if not vals:
+            return ""
+        return _canonical_validator_set_hash(vals)
+
     def _verify_inbound_hello_identity(self, rec: _PeerRec, hello: PeerHello) -> None:
         if not self._identity_required():
             return
@@ -317,6 +399,35 @@ class NetNode:
             raise HandshakeRejected("bft_identity_mismatch")
 
     # ----------------------------
+    # Sync response cache
+    # ----------------------------
+
+    def _cache_sync_response(self, msg: StateSyncResponseMsg) -> None:
+        try:
+            corr_id = str(getattr(getattr(msg, "header", None), "corr_id", "") or "").strip()
+        except Exception:
+            corr_id = ""
+        if not corr_id:
+            return
+        try:
+            if corr_id in self._sync_responses:
+                del self._sync_responses[corr_id]
+            self._sync_responses[corr_id] = msg
+            while len(self._sync_responses) > int(self._sync_response_cap):
+                self._sync_responses.popitem(last=False)
+        except Exception:
+            return
+
+    def pop_sync_response(self, corr_id: str) -> Optional[StateSyncResponseMsg]:
+        cid = str(corr_id or "").strip()
+        if not cid:
+            return None
+        try:
+            return self._sync_responses.pop(cid, None)
+        except Exception:
+            return None
+
+    # ----------------------------
     # Peer creation + router wiring
     # ----------------------------
 
@@ -336,6 +447,13 @@ class NetNode:
                 identity_pubkey=self.cfg.identity_pubkey,
                 identity_privkey=self.cfg.identity_privkey,
                 require_identity=_env_bool("WEALL_NET_REQUIRE_IDENTITY", False),
+                protocol_version=runtime_protocol_version(),
+                protocol_profile_hash=runtime_protocol_profile_hash(),
+                validator_epoch=self._handshake_validator_epoch(),
+                validator_set_hash=self._handshake_validator_set_hash(),
+                bft_enabled=self._bft_enabled(),
+                require_protocol_profile_match=bool(active_consensus_profile().handshake_requires_profile_match),
+                require_validator_epoch_match_for_bft=bool(active_consensus_profile().handshake_requires_validator_epoch_match_for_bft),
             )
         )
 
@@ -364,6 +482,9 @@ class NetNode:
                 return None
             return self.sync_service.handle_request(msg)  # type: ignore[arg-type]
 
+        def _on_sync_response(msg: StateSyncResponseMsg) -> None:
+            self._cache_sync_response(msg)
+
         def _on_ping(msg: WireMessage) -> WireMessage:
             ping_id = getattr(msg, "ping_id", None)
             return PongMsg(header=_make_header(self.cfg, MsgType.PONG), ping_id=ping_id)
@@ -376,6 +497,7 @@ class NetNode:
             on_bft_qc=_on_bft_qc,
             on_bft_timeout=_on_bft_timeout,
             on_sync_request=_on_sync_request,
+            on_sync_response=_on_sync_response,
             on_ping=_on_ping,
         )
 
@@ -506,7 +628,7 @@ class NetNode:
         # Start handshake: send hello
         try:
             rec = self._ensure_peer(str(conn.peer_id))
-            hello = build_hello(rec.router.handshake.config, corr_id=None)
+            hello = begin_outbound_handshake(rec.router.handshake)
             conn.send(encode_message(hello))
         except Exception:
             pass
@@ -578,6 +700,104 @@ class NetNode:
                 c.send(payload)
             except Exception:
                 continue
+
+    def request_state_sync(
+        self,
+        peer_id: str,
+        req: StateSyncRequestMsg,
+        *,
+        timeout_ms: Optional[int] = None,
+        max_packets: int = 250,
+        pump: Optional[Callable[[], None]] = None,
+        sleep_ms: int = 10,
+    ) -> Optional[StateSyncResponseMsg]:
+        pid = str(peer_id or "").strip()
+        if not pid or not isinstance(req, StateSyncRequestMsg):
+            return None
+
+        try:
+            corr_id = str(getattr(req.header, "corr_id", "") or "").strip()
+        except Exception:
+            corr_id = ""
+        if not corr_id:
+            raise ValueError("state sync request requires header.corr_id")
+
+        self.pop_sync_response(corr_id)
+        self.send_message(pid, req)
+
+        deadline = _now_ms() + int(timeout_ms if timeout_ms is not None else self._sync_request_timeout_ms)
+        while _now_ms() <= deadline:
+            if pump is not None:
+                try:
+                    pump()
+                except Exception:
+                    pass
+            else:
+                self.tick(max_packets=int(max_packets))
+
+            resp = self.pop_sync_response(corr_id)
+            if resp is not None:
+                return resp
+
+            if sleep_ms > 0:
+                try:
+                    time.sleep(float(sleep_ms) / 1000.0)
+                except Exception:
+                    pass
+        return None
+
+    def peers_debug(self) -> Json:
+        """Best-effort read-only peer diagnostics for operator tooling."""
+        self._refresh_conns()
+        peers: list[Json] = []
+        established = 0
+        identity_verified = 0
+        banned = 0
+
+        for peer_id, rec in sorted(self._peers.items(), key=lambda kv: str(kv[0])):
+            router = rec.router
+            hs = getattr(router, 'handshake', None)
+            is_established = bool(getattr(hs, 'is_established', lambda: False)())
+            hs_state = hs
+            if is_established:
+                established += 1
+            if bool(rec.identity_ok):
+                identity_verified += 1
+            if self.is_banned(peer_id):
+                banned += 1
+
+            last_error = ''
+            try:
+                last_error = str(getattr(hs_state, 'last_error', '') or getattr(router, 'last_error', '') or '').strip()
+            except Exception:
+                last_error = ''
+
+            peers.append({
+                'peer_id': str(peer_id),
+                'established': is_established,
+                'identity_verified': bool(rec.identity_ok),
+                'account_id': str(rec.identity_account or ''),
+                'pubkey': str(rec.identity_pubkey or ''),
+                'strikes': int(rec.strikes),
+                'banned': self.is_banned(peer_id),
+                'banned_until_ms': int(rec.banned_until_ms),
+                'last_error': last_error,
+                'msg_tokens': int(rec.msg_tokens),
+                'byte_tokens': int(rec.byte_tokens),
+                'connected': bool(peer_id in self._conns),
+            })
+
+        return {
+            'ok': True,
+            'enabled': True,
+            'counts': {
+                'peers_total': int(len(self._peers)),
+                'peers_established': int(established),
+                'peers_identity_verified': int(identity_verified),
+                'peers_banned': int(banned),
+            },
+            'peers': peers,
+        }
 
     def report_peer_fault(self, peer_id: str, *, strikes: int = 1, reason: str = "") -> None:
         pid = str(peer_id or "").strip()

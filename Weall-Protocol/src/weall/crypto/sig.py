@@ -1,8 +1,8 @@
-# src/weall/crypto/sig.py
 from __future__ import annotations
 
 import base64
 import json
+import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from cryptography.exceptions import InvalidSignature
@@ -29,6 +29,32 @@ def _decode_bytes(s: str) -> bytes:
         raise ValueError("not hex or base64") from e
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    s = str(raw).strip().lower()
+    if not s:
+        return bool(default)
+    if s in {"1", "true", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
+
+
+def strict_tx_sig_domain_enabled() -> bool:
+    """Return True when tx signatures must include chain_id.
+
+    Production default is fail-closed. Legacy no-chain-id signatures remain
+    available only outside prod, or when explicitly re-enabled via
+    WEALL_ALLOW_LEGACY_SIG_DOMAIN=1.
+    """
+    mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+    allow_legacy = _env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", default=(mode != "prod"))
+    return not allow_legacy
+
+
 def canonical_tx_message(
     *,
     chain_id: Optional[str] = None,
@@ -39,8 +65,6 @@ def canonical_tx_message(
     parent: Optional[str] = None,
 ) -> bytes:
     obj: Json = {
-        # Optional replay-domain separator.
-        # Back-compat: omit entirely if None/empty.
         **({"chain_id": str(chain_id)} if (isinstance(chain_id, str) and chain_id.strip()) else {}),
         "tx_type": str(tx_type),
         "signer": str(signer),
@@ -72,7 +96,8 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
         "signer": str,
         "nonce": int,
         "payload": dict,
-        "parent": Optional[str]
+        "parent": Optional[str],
+        "chain_id": Optional[str]
       }
     """
     tx_type = str(tx.get("tx_type") or tx.get("type") or "")
@@ -100,6 +125,8 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
     out["sig"] = sig
     if parent is not None:
         out["parent"] = str(parent)
+    if isinstance(chain_id, str) and chain_id.strip():
+        out["chain_id"] = chain_id.strip()
     return out
 
 
@@ -111,10 +138,7 @@ def sign_ed25519(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
     """
     pk_b = _decode_bytes(privkey)
 
-    # cryptography expects a 32-byte seed for from_private_bytes.
     if len(pk_b) == 64:
-        # Many libs store 64-byte expanded private keys; Ed25519PrivateKey.from_private_bytes
-        # accepts the 32-byte seed. Use the first 32 bytes as a pragmatic default.
         pk_b = pk_b[:32]
 
     if len(pk_b) != 32:
@@ -178,14 +202,42 @@ def verify_tx_sig_against_any_key(
     payload: Json,
     sig: str,
     parent: Optional[str] = None,
+    chain_id: Optional[str] = None,
 ) -> Tuple[bool, Dict[str, Any]]:
     keys = extract_active_account_pubkeys(ledger, signer)
     if not keys:
         return False, {"reason": "no_active_keys"}
 
-    msg = canonical_tx_message(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, parent=parent)
+    chain_id2 = str(chain_id).strip() if isinstance(chain_id, str) else ""
+    if strict_tx_sig_domain_enabled() and not chain_id2:
+        return False, {"reason": "missing_chain_id"}
+
+    msg_candidates: List[bytes] = []
+    if chain_id2:
+        msg_candidates.append(
+            canonical_tx_message(
+                chain_id=chain_id2,
+                tx_type=tx_type,
+                signer=signer,
+                nonce=nonce,
+                payload=payload,
+                parent=parent,
+            )
+        )
+    if not strict_tx_sig_domain_enabled():
+        msg_candidates.append(
+            canonical_tx_message(
+                tx_type=tx_type,
+                signer=signer,
+                nonce=nonce,
+                payload=payload,
+                parent=parent,
+            )
+        )
+
     for pk in keys:
-        if verify_ed25519_signature(message=msg, sig=sig, pubkey=pk):
-            return True, {"pubkey": pk}
+        for msg in msg_candidates:
+            if verify_ed25519_signature(message=msg, sig=sig, pubkey=pk):
+                return True, {"pubkey": pk}
 
     return False, {"reason": "invalid_signature"}

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import os
 import hashlib
 from typing import Any, Dict
 
+from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = Dict[str, Any]
+
+DEFAULT_TIER3_MIN_REP_UNITS = 0
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -34,13 +36,14 @@ def _poh_params(state: Json) -> Json:
     return poh if isinstance(poh, dict) else {}
 
 
-def _param_float(state: Json, key: str, default: float) -> float:
+def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_units: int) -> int:
     poh = _poh_params(state)
-    v = poh.get(key)
+    raw_units = poh.get(units_key)
     try:
-        return float(v)
+        return max(0, int(raw_units))
     except Exception:
-        return float(default)
+        pass
+    return max(0, threshold_to_units(poh.get(legacy_key), default=default_units))
 
 
 def _session_commitment(state: Json, *, case_id: str, account_id: str) -> str:
@@ -131,12 +134,12 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
     enq = 0
     cases = _tier3_cases(state)
 
-    min_rep = _param_float(state, "tier3_min_rep", 0.0)
-    try:
-        if min_rep == 0.0:
-            min_rep = float(os.environ.get("WEALL_POH_TIER3_MIN_REP", "0.0"))
-    except Exception:
-        pass
+    min_rep_units = _param_rep_units(
+        state,
+        units_key="tier3_min_rep_milli",
+        legacy_key="tier3_min_rep",
+        default_units=DEFAULT_TIER3_MIN_REP_UNITS,
+    )
 
     for case_id, case in list(cases.items()):
         if not isinstance(case, dict):
@@ -180,7 +183,7 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                         target_account=account_id,
                         n_interacting=3,
                         n_observing=7,
-                        min_rep=min_rep,
+                        min_rep_units=int(min_rep_units),
                     )
                     jurors = list(interacting) + list(observing)
                 except Exception:
@@ -190,7 +193,7 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                     enqueue_system_tx(
                         state,
                         tx_type="POH_TIER3_JUROR_ASSIGN",
-                        payload={"case_id": cid, "jurors": jurors},
+                        payload={"case_id": cid, "jurors": jurors, "min_rep_milli": int(min_rep_units)},
                         due_height=int(next_height),
                         signer="SYSTEM",
                         once=True,

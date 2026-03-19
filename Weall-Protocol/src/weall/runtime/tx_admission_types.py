@@ -28,6 +28,7 @@ class TxEnvelope(BaseModel):
     sig: str = ""
     parent: Optional[str] = None
     system: bool = False
+    chain_id: str = ""
 
     @classmethod
     def from_any(cls, v: Any) -> "TxEnvelope":
@@ -51,6 +52,7 @@ class TxEnvelope(BaseModel):
                 sig=str(v.get("sig") or ""),
                 parent=v.get("parent"),
                 system=bool(v.get("system") or False),
+                chain_id=str(v.get("chain_id") or ""),
             )
         raise TypeError(f"cannot convert {type(v).__name__} to TxEnvelope")
 
@@ -68,4 +70,5 @@ class TxEnvelope(BaseModel):
             "sig": self.sig,
             **({"parent": self.parent} if self.parent is not None else {}),
             **({"system": True} if self.system else {}),
+            **({"chain_id": self.chain_id} if self.chain_id else {}),
         }

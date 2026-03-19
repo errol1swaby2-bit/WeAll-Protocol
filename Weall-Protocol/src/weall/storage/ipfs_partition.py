@@ -27,6 +27,12 @@ from typing import Any, Dict, Tuple
 Json = Dict[str, Any]
 
 
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 @dataclass
 class PartitionStats:
     path: str
@@ -36,12 +42,14 @@ class PartitionStats:
 
 
 def _env_int(name: str, default: int) -> int:
+    v = os.getenv(name)
+    if v is None or str(v).strip() == "":
+        return int(default)
     try:
-        v = os.getenv(name)
-        if v is None or str(v).strip() == "":
-            return int(default)
         return int(str(v).strip())
-    except Exception:
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 

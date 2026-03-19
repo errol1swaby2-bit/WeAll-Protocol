@@ -27,15 +27,10 @@ def _env(
     )
 
 
-def test_poh_tier2_happy_path_majority_pass_upgrades_to_tier2(monkeypatch) -> None:
-    # Keep MVP-sized juror set for unit test determinism
-    monkeypatch.setenv("WEALL_POH_TIER2_N_JURORS", "3")
-    monkeypatch.setenv("WEALL_POH_TIER2_MIN_TOTAL_REVIEWS", "3")
-    monkeypatch.setenv("WEALL_POH_TIER2_PASS_THRESHOLD", "2")
-    monkeypatch.setenv("WEALL_POH_TIER2_FAIL_MAX", "1")
-
+def test_poh_tier2_happy_path_majority_pass_upgrades_to_tier2() -> None:
     st = {
         "chain_id": "test",
+        "params": {"poh": {"tier2_n_jurors": 3, "tier2_min_total_reviews": 3, "tier2_pass_threshold": 2, "tier2_fail_max": 1}},
         "accounts": {
             "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
             "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
@@ -52,7 +47,7 @@ def test_poh_tier2_happy_path_majority_pass_upgrades_to_tier2(monkeypatch) -> No
         st,
         _env(
             "POH_TIER2_JUROR_ASSIGN",
-            {"case_id": case_id, "jurors": ["j1", "j2", "j3"], "n_jurors": 3},
+            {"case_id": case_id, "jurors": ["j1", "j2", "j3"], "n_jurors": 3, "min_total_reviews": 3, "pass_threshold": 2, "fail_max": 1},
             signer="SYSTEM",
             nonce=2,
             system=True,

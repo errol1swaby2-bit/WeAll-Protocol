@@ -104,9 +104,14 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
     try:
-        return int(os.environ.get(name, str(default)))
-    except Exception:
+        return int(str(raw).strip() or str(default))
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 

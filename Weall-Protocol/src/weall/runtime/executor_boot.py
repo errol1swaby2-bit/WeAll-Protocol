@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 
 
 @dataclass
@@ -44,6 +45,7 @@ def build_executor(cfg: Optional[ExecutorBootConfig] = None) -> WeAllExecutor:
     with no args in production.
     """
     c = cfg or boot_config_from_env()
+    validate_runtime_consensus_profile()
     return WeAllExecutor(
         db_path=c.db_path,
         node_id=c.node_id,

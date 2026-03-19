@@ -10,6 +10,24 @@ from weall.ledger.state import LedgerView
 router = APIRouter()
 
 
+class NetSelfConfigError(RuntimeError):
+    """Raised when operator-supplied net/self config is malformed in prod."""
+
+
+class NetSelfStateError(RuntimeError):
+    """Raised when net/self cannot read local runtime state safely in prod."""
+
+
+def _runtime_mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
+def _is_prod() -> bool:
+    return _runtime_mode() == "prod"
+
+
 def _env_bool(name: str, default: bool) -> bool:
     v = os.environ.get(name)
     if v is None:
@@ -18,9 +36,14 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
     try:
-        return int(str(os.environ.get(name, str(default))).strip())
-    except Exception:
+        return int(str(raw).strip())
+    except Exception as exc:
+        if _is_prod():
+            raise NetSelfConfigError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
@@ -36,12 +59,22 @@ def _try_executor_snapshot(ex: Any) -> Optional[dict[str, Any]]:
         return None
     fn = getattr(ex, "snapshot", None)
     if not callable(fn):
+        if _is_prod():
+            raise NetSelfStateError("net_self_snapshot_missing")
         return None
     try:
         st = fn()
-        return st if isinstance(st, dict) else None
-    except Exception:
+    except Exception as exc:
+        if _is_prod():
+            raise NetSelfStateError("net_self_snapshot_failed") from exc
         return None
+    if st is None:
+        return None
+    if not isinstance(st, dict):
+        if _is_prod():
+            raise NetSelfStateError("net_self_snapshot_not_dict")
+        return None
+    return st
 
 
 def _as_dict(x: Any) -> dict[str, Any]:
@@ -138,8 +171,9 @@ def v1_net_self(request: Request) -> dict[str, object]:
             schema_version = getattr(cfg, "schema_version", None)
             tx_index_hash = getattr(cfg, "tx_index_hash", None)
             cfg_pubkey = getattr(cfg, "identity_pubkey", None)
-    except Exception:
-        pass
+    except Exception as exc:
+        if _is_prod():
+            raise NetSelfStateError("net_self_cfg_read_failed") from exc
 
     if not peer_id:
         peer_id = _env_str("WEALL_ACCOUNT_ID", "") or _env_str("WEALL_PEER_ID", "") or None
@@ -151,7 +185,9 @@ def v1_net_self(request: Request) -> dict[str, object]:
         t = getattr(net, "transport", None)
         if t is not None and hasattr(t, "connections"):
             connected_peers = len(list(t.connections()))  # type: ignore[call-arg]
-    except Exception:
+    except Exception as exc:
+        if _is_prod() and net is not None:
+            raise NetSelfStateError("net_self_connections_failed") from exc
         connected_peers = None
 
     try:
@@ -160,7 +196,9 @@ def v1_net_self(request: Request) -> dict[str, object]:
         if callable(peer_ids_fn) and callable(sess_fn):
             ids = list(peer_ids_fn())
             established_sessions = sum(1 for pid in ids if bool(sess_fn(pid)))
-    except Exception:
+    except Exception as exc:
+        if _is_prod() and net is not None:
+            raise NetSelfStateError("net_self_sessions_failed") from exc
         established_sessions = None
 
     # Startup warnings: node-device gate state (best-effort)
@@ -218,5 +256,6 @@ def v1_net_self(request: Request) -> dict[str, object]:
         "notes": [
             "No private keys are returned by this endpoint.",
             "peer_id is intended to equal account_id (one node per user).",
+            "advertise_uri should be the dialable public URI if this node accepts inbound peers.",
         ],
     }

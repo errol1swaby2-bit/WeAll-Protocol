@@ -1,9 +1,9 @@
 # src/weall/runtime/poh/tier2_scheduler.py
 from __future__ import annotations
 
-import os
 from typing import Any, Dict
 
+from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = Dict[str, Any]
@@ -27,18 +27,11 @@ def _as_dict(v: Any) -> Json:
     return v if isinstance(v, dict) else {}
 
 
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(os.environ.get(name, str(default)))
-    except Exception:
-        return int(default)
-
-
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.environ.get(name, str(default)))
-    except Exception:
-        return float(default)
+DEFAULT_TIER2_N_JURORS = 25
+DEFAULT_TIER2_MIN_TOTAL_REVIEWS = 25
+DEFAULT_TIER2_PASS_THRESHOLD = 20
+DEFAULT_TIER2_FAIL_MAX = 3
+DEFAULT_TIER2_MIN_REP_UNITS = 0
 
 
 def _params_root(state: Json) -> Json:
@@ -61,13 +54,14 @@ def _param_int(state: Json, key: str, default: int) -> int:
         return int(default)
 
 
-def _param_float(state: Json, key: str, default: float) -> float:
+def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_units: int) -> int:
     poh = _poh_params(state)
-    v = poh.get(key)
+    raw_units = poh.get(units_key)
     try:
-        return float(v)
+        return max(0, int(raw_units))
     except Exception:
-        return float(default)
+        pass
+    return max(0, threshold_to_units(poh.get(legacy_key), default=default_units))
 
 
 def _poh_root(state: Json) -> Json:
@@ -164,24 +158,29 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
       - Jurors swipe in a gated feed. On-chain records attestations.
       - After enough attestations, system finalizes and emits a receipt.
 
-    Defaults (override via env vars):
-      - WEALL_POH_TIER2_N_JURORS=25
-      - WEALL_POH_TIER2_MIN_TOTAL_REVIEWS=25
-      - WEALL_POH_TIER2_PASS_THRESHOLD=20
-      - WEALL_POH_TIER2_FAIL_MAX=3
-      - WEALL_POH_TIER2_MIN_REP=0.0
+    Deterministic defaults (used only when on-chain params are absent):
+      - tier2_n_jurors=25
+      - tier2_min_total_reviews=25
+      - tier2_pass_threshold=20
+      - tier2_fail_max=3
+      - tier2_min_rep_milli=0
 
     Returns number of system txs enqueued (best-effort, dedupe-safe).
     """
 
     enq = 0
 
-    n_jurors = max(1, _param_int(state, "tier2_n_jurors", _env_int("WEALL_POH_TIER2_N_JURORS", 25)))
-    min_total = max(1, _param_int(state, "tier2_min_total_reviews", _env_int("WEALL_POH_TIER2_MIN_TOTAL_REVIEWS", 25)))
-    pass_threshold = max(1, _param_int(state, "tier2_pass_threshold", _env_int("WEALL_POH_TIER2_PASS_THRESHOLD", 20)))
-    fail_max = max(0, _param_int(state, "tier2_fail_max", _env_int("WEALL_POH_TIER2_FAIL_MAX", 3)))
+    n_jurors = max(1, _param_int(state, "tier2_n_jurors", DEFAULT_TIER2_N_JURORS))
+    min_total = max(1, _param_int(state, "tier2_min_total_reviews", DEFAULT_TIER2_MIN_TOTAL_REVIEWS))
+    pass_threshold = max(1, _param_int(state, "tier2_pass_threshold", DEFAULT_TIER2_PASS_THRESHOLD))
+    fail_max = max(0, _param_int(state, "tier2_fail_max", DEFAULT_TIER2_FAIL_MAX))
 
-    min_rep = _param_float(state, "tier2_min_rep", _env_float("WEALL_POH_TIER2_MIN_REP", 0.0))
+    min_rep_units = _param_rep_units(
+        state,
+        units_key="tier2_min_rep_milli",
+        legacy_key="tier2_min_rep",
+        default_units=DEFAULT_TIER2_MIN_REP_UNITS,
+    )
 
     cases = _tier2_cases(state)
 
@@ -203,7 +202,7 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
                         case_id=cid,
                         target_account=account_id,
                         n_jurors=int(n_jurors),
-                        min_rep=float(min_rep),
+                        min_rep_units=int(min_rep_units),
                     )
                 except Exception:
                     jurors = []
@@ -212,7 +211,15 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
                     enqueue_system_tx(
                         state,
                         tx_type="POH_TIER2_JUROR_ASSIGN",
-                        payload={"case_id": cid, "jurors": jurors, "n_jurors": int(n_jurors)},
+                        payload={
+                            "case_id": cid,
+                            "jurors": jurors,
+                            "n_jurors": int(n_jurors),
+                            "min_total_reviews": int(min_total),
+                            "pass_threshold": int(pass_threshold),
+                            "fail_max": int(fail_max),
+                            "min_rep_milli": int(min_rep_units),
+                        },
                         due_height=int(next_height),
                         signer="SYSTEM",
                         once=True,
@@ -254,7 +261,6 @@ def schedule_poh_tier2_system_txs(state: Json, *, next_height: int) -> int:
             )
             enq += 1
 
-        # If a finalize happened previously but receipt hasn't been emitted (catch-up)
         if _case_needs_receipt(case):
             enqueue_system_tx(
                 state,

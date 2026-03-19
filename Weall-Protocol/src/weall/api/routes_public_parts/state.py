@@ -32,3 +32,17 @@ def state_snapshot(request: Request) -> Json:
 
     # Keep response shape stable.
     return {"ok": True, "state": st}
+
+
+@router.get("/state/block/{block_id}")
+def state_block(block_id: str, request: Request) -> Json:
+    ex = getattr(request.app.state, "executor", None)
+    if ex is None:
+        raise HTTPException(status_code=503, detail={"code": "not_ready", "message": "executor not ready"})
+    fn = getattr(ex, "get_block_by_id", None)
+    if not callable(fn):
+        raise HTTPException(status_code=501, detail={"code": "not_supported", "message": "block lookup unavailable"})
+    blk = fn(str(block_id or ""))
+    if not isinstance(blk, dict):
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "block not found"})
+    return {"ok": True, "block": blk}

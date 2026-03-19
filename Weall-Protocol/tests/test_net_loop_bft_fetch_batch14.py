@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Dict
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+
+from weall.crypto.sig import sign_ed25519
+from weall.net.net_loop import NetMeshLoop, NetLoopConfig
+from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
+from weall.runtime.executor import WeAllExecutor
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _mk_keypair_hex() -> tuple[str, str]:
+    sk = Ed25519PrivateKey.generate()
+    pk = sk.public_key()
+    sk_b = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
+    pk_b = pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return pk_b.hex(), sk_b.hex()
+
+
+def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str], epoch: int = 1) -> None:
+    st = ex.read_state()
+    st.setdefault("roles", {})
+    st["roles"].setdefault("validators", {})
+    st["roles"]["validators"]["active_set"] = list(validators)
+    st.setdefault("consensus", {})
+    st["consensus"].setdefault("validators", {})
+    st["consensus"]["validators"].setdefault("registry", {})
+    st["consensus"].setdefault("epochs", {})
+    st["consensus"]["epochs"]["current"] = int(epoch)
+    st["consensus"].setdefault("validator_set", {})
+    st["consensus"]["validator_set"]["active_set"] = list(validators)
+    st["consensus"]["validator_set"]["epoch"] = int(epoch)
+    for v in validators:
+        st["consensus"]["validators"]["registry"].setdefault(v, {})
+        st["consensus"]["validators"]["registry"][v]["pubkey"] = pub[v]
+    ex.state = st
+    ex._ledger_store.write(ex.state)
+    st = ex.read_state()
+    st["consensus"]["validator_set"]["set_hash"] = ex._current_validator_set_hash()
+    ex.state = st
+    ex._ledger_store.write(ex.state)
+
+
+def _make_qc(*, chain_id: str, validators: list[str], vpub: Dict[str, str], vpriv: Dict[str, str], block_id: str, block_hash: str, parent_id: str, view: int, validator_epoch: int, validator_set_hash: str) -> dict:
+    votes = []
+    for signer in validators[:3]:
+        msg = canonical_vote_message(chain_id=chain_id, view=view, block_id=block_id, block_hash=block_hash, parent_id=parent_id, signer=signer, validator_epoch=int(validator_epoch), validator_set_hash=str(validator_set_hash))
+        sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
+        votes.append(BftVote(chain_id=chain_id, view=view, block_id=block_id, block_hash=block_hash, parent_id=parent_id, signer=signer, pubkey=vpub[signer], sig=sig, validator_epoch=int(validator_epoch), validator_set_hash=str(validator_set_hash)).to_json())
+    return {
+        "t": "QC",
+        "chain_id": chain_id,
+        "view": int(view),
+        "block_id": block_id,
+        "block_hash": block_hash,
+        "parent_id": parent_id,
+        "votes": votes,
+        "validator_epoch": int(validator_epoch),
+        "validator_set_hash": str(validator_set_hash),
+    }
+
+
+def _build_committed_block(ex: WeAllExecutor, *, force_ts_ms: int) -> dict:
+    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms)
+    assert err == ""
+    meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    assert meta.ok is True
+    return blk
+
+
+class _DummyNode:
+    def __init__(self, chain_id: str) -> None:
+        self.cfg = type("Cfg", (), {"chain_id": chain_id, "schema_version": "1", "tx_index_hash": "0"})()
+
+
+def test_net_loop_fetches_missing_parent_and_replays_chain(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_INTERVAL_MS", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_COOLDOWN_MS", "1")
+
+    tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
+    validators = ["v1", "v2", "v3", "v4"]
+    vpub: Dict[str, str] = {}
+    vpriv: Dict[str, str] = {}
+    for v in validators:
+        pk, sk = _mk_keypair_hex()
+        vpub[v] = pk
+        vpriv[v] = sk
+
+    leader = WeAllExecutor(db_path=str(tmp_path / "leader.db"), node_id="v1", chain_id="bft-live", tx_index_path=tx_index_path)
+    follower = WeAllExecutor(db_path=str(tmp_path / "follower.db"), node_id="v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    _seed_validator_set(leader, validators=validators, pub=vpub, epoch=3)
+    _seed_validator_set(follower, validators=validators, pub=vpub, epoch=3)
+
+    block1 = _build_committed_block(leader, force_ts_ms=1000)
+    block2 = _build_committed_block(leader, force_ts_ms=2000)
+    qc1 = _make_qc(chain_id="bft-live", validators=validators, vpub=vpub, vpriv=vpriv, block_id=str(block1["block_id"]), block_hash=str(block1.get("block_hash") or ""), parent_id=str(block1.get("prev_block_id") or ""), view=1, validator_epoch=3, validator_set_hash=follower._current_validator_set_hash())
+    qc2 = _make_qc(chain_id="bft-live", validators=validators, vpub=vpub, vpriv=vpriv, block_id=str(block2["block_id"]), block_hash=str(block2.get("block_hash") or ""), parent_id=str(block2.get("prev_block_id") or ""), view=2, validator_epoch=3, validator_set_hash=follower._current_validator_set_hash())
+    block1 = dict(block1)
+    block2 = dict(block2)
+    block1["qc"] = qc1
+    block2["qc"] = qc2
+    block1["validator_epoch"] = 3
+    block2["validator_epoch"] = 3
+    block1["validator_set_hash"] = follower._current_validator_set_hash()
+    block2["validator_set_hash"] = follower._current_validator_set_hash()
+
+    assert follower.bft_on_proposal({"view": 2, "proposer": "v2", "block": block2}) is None
+    assert follower.bft_pending_fetch_requests() == [str(block1["block_id"])]
+
+    loop = NetMeshLoop(executor=follower, mempool=object(), cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"))
+    loop.node = _DummyNode("bft-live")
+    loop._bft_enabled = True
+    loop._bft_fetch_sources = ["http://peer1"]
+
+    def _fake_get(url: str, *, timeout_s: float = 2.0):
+        assert url.endswith(f"/v1/state/block/{block1['block_id']}")
+        return {"ok": True, "block": json.loads(json.dumps(block1))}
+
+    import weall.net.net_loop as net_loop_mod
+
+    monkeypatch.setattr(net_loop_mod, "_http_get_json", _fake_get)
+    loop._bft_fetch_tick()
+
+    assert int(follower.state.get("height") or 0) == 2
+    assert str(follower.state.get("tip") or "") == str(block2["block_id"])
+    assert follower.bft_pending_fetch_requests() == []
+
+
+def test_net_loop_rejects_mismatched_fetched_block_id(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_INTERVAL_MS", "1")
+    monkeypatch.setenv("WEALL_BFT_FETCH_COOLDOWN_MS", "1")
+
+    tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
+    validators = ["v1", "v2", "v3", "v4"]
+    vpub: Dict[str, str] = {}
+    for v in validators:
+        pk, _ = _mk_keypair_hex()
+        vpub[v] = pk
+    follower = WeAllExecutor(db_path=str(tmp_path / "follower.db"), node_id="v4", chain_id="bft-live", tx_index_path=tx_index_path)
+    _seed_validator_set(follower, validators=validators, pub=vpub, epoch=3)
+
+    follower._pending_missing_qcs["wanted-parent"] = {"t": "QC", "chain_id": "bft-live", "view": 1, "block_id": "wanted-parent", "parent_id": "genesis", "votes": [], "validator_epoch": 3, "validator_set_hash": follower._current_validator_set_hash()}
+
+    loop = NetMeshLoop(executor=follower, mempool=object(), cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"))
+    loop.node = _DummyNode("bft-live")
+    loop._bft_enabled = True
+    loop._bft_fetch_sources = ["http://peer1"]
+
+    def _fake_get(url: str, *, timeout_s: float = 2.0):
+        return {"ok": True, "block": {"block_id": "evil-other", "height": 1, "prev_block_id": "genesis", "header": {"chain_id": "bft-live", "height": 1, "prev_block_hash": "00" * 32, "block_ts_ms": 1000, "tx_ids": [], "receipts_root": "11" * 32, "state_root": "22" * 32}, "txs": [], "receipts": [], "validator_epoch": 3, "validator_set_hash": follower._current_validator_set_hash()}}
+
+    import weall.net.net_loop as net_loop_mod
+
+    monkeypatch.setattr(net_loop_mod, "_http_get_json", _fake_get)
+    loop._bft_fetch_tick()
+
+    assert follower.bft_pending_fetch_requests() == ["wanted-parent"]

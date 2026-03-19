@@ -48,6 +48,7 @@ TxHandler = Callable[[TxEnvelopeMsg], None]
 BlockHandler = Callable[[BlockProposalMsg], None]
 VoteHandler = Callable[[BlockVoteMsg], None]
 SyncRequestHandler = Callable[[StateSyncRequestMsg], Optional[StateSyncResponseMsg]]
+SyncResponseHandler = Callable[[StateSyncResponseMsg], None]
 
 PingHandler = Callable[[PingMsg], Optional[PongMsg]]
 
@@ -65,6 +66,7 @@ class Router:
     on_block: Optional[BlockHandler] = None
     on_vote: Optional[VoteHandler] = None
     on_sync_request: Optional[SyncRequestHandler] = None
+    on_sync_response: Optional[SyncResponseHandler] = None
     on_ping: Optional[PingHandler] = None
 
     # BFT
@@ -148,6 +150,8 @@ class Router:
             return self.on_sync_request(msg)  # type: ignore[arg-type]
 
         if mtype == MsgType.STATE_SYNC_RESPONSE:
+            if self.on_sync_response:
+                self.on_sync_response(msg)  # type: ignore[arg-type]
             return None
 
         # Keepalive

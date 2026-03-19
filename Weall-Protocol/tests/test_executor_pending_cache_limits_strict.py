@@ -34,7 +34,8 @@ def test_pending_remote_blocks_is_bounded_strict(tmp_path: Path, monkeypatch: py
                 "prev_block_hash": "00" * 32,
                 "block_ts_ms": 1_700_000_000_000 + i,
                 "tx_ids": [],
-                "receipts_root": "",
+                "receipts_root": "11" * 32,
+                "state_root": "22" * 32,
             },
         }
         ex.bft_on_proposal(proposal)

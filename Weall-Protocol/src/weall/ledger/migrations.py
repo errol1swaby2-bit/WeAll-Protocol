@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Callable
 
+from weall.runtime.reputation_units import sync_account_reputation
+
 Json = Dict[str, Any]
 
 # Increment this when you add a new migration step.
@@ -123,7 +125,8 @@ def _migrate_v0_to_v1(st: Json) -> Json:
             _ensure_int(acct, "poh_tier", 0)
             _ensure_bool(acct, "banned", False)
             _ensure_bool(acct, "locked", False)
-            _ensure_float(acct, "reputation", 0.0)
+            acct.setdefault("reputation", 0.0)
+            sync_account_reputation(acct, default_units=0)
 
     st["state_version"] = 1
     return st

@@ -1,4 +1,3 @@
-# File: src/weall/api/security.py
 from __future__ import annotations
 
 import ipaddress
@@ -11,18 +10,46 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+_RATE_LIMIT_SCALE = 1_000_000
+_NS_PER_SECOND = 1_000_000_000
+
 
 def _truthy(v: str | None) -> bool:
     return (v or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    v = str(raw or "").strip().lower()
+    if not v:
+        return bool(default)
+    if v in {"1", "true", "yes", "y", "on"}:
+        return True
+    if v in {"0", "false", "no", "n", "off"}:
+        return False
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
+
+
+def _mode() -> str:
+    return str(os.environ.get("WEALL_MODE") or "prod").strip().lower() or "prod"
 
 
 def _env_int(name: str, default: int) -> int:
     raw = os.environ.get(name)
     if raw is None:
         return int(default)
+    s = str(raw).strip()
+    if not s:
+        return int(default)
     try:
-        return int(str(raw).strip())
-    except Exception:
+        return int(s)
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
@@ -90,7 +117,7 @@ def _client_ip(request: Request) -> str:
                 continue
         return False
 
-    trust_proxy = _truthy(os.environ.get("WEALL_TRUST_PROXY_HEADERS"))
+    trust_proxy = _env_bool("WEALL_TRUST_PROXY_HEADERS", False)
     if trust_proxy and _trusted_proxy_ok():
         for hdr in ("cf-connecting-ip", "x-real-ip"):
             v = (request.headers.get(hdr) or "").strip()
@@ -187,7 +214,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         exempt_prefixes: Tuple[str, ...] = ("/docs", "/openapi.json") + _HEALTH_EXEMPTS,
     ):
         super().__init__(app)
-        if _truthy(os.environ.get("WEALL_SIZE_LIMIT_DISABLE")):
+        if _env_bool("WEALL_SIZE_LIMIT_DISABLE", False):
             self._enabled = False
             self._max_bytes = 0
         else:
@@ -308,12 +335,22 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
 
 @dataclass(frozen=True)
 class TokenBucket:
-    rate_per_sec: float
-    burst: float
+    rate_per_sec: int
+    burst: int
+
+    def __post_init__(self) -> None:
+        if int(self.rate_per_sec) <= 0:
+            raise ValueError("invalid_rate_limit_bucket_rate")
+        if int(self.burst) <= 0:
+            raise ValueError("invalid_rate_limit_bucket_burst")
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """In-memory token bucket rate limiter with path-specific rules."""
+    """In-memory token bucket rate limiter with path-specific rules.
+
+    Uses monotonic integer time and fixed-point microtokens so request-admission
+    decisions do not depend on float rounding or wall-clock jumps.
+    """
 
     def __init__(
         self,
@@ -329,10 +366,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ):
         super().__init__(app)
 
-        self._buckets: Dict[str, Tuple[float, float, float]] = {}
+        self._buckets: Dict[str, Tuple[int, int, int]] = {}
 
-        self._write = write_bucket or TokenBucket(rate_per_sec=4.0, burst=20.0)
-        self._read = read_bucket or TokenBucket(rate_per_sec=12.0, burst=40.0)
+        self._write = write_bucket or TokenBucket(rate_per_sec=4, burst=20)
+        self._read = read_bucket or TokenBucket(rate_per_sec=12, burst=40)
         self._rules = rules
         self._exempt_prefixes = exempt_prefixes
 
@@ -362,10 +399,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             content={"ok": False, "error": {"code": "rate_limited", "message": "Too many requests"}},
         )
 
-    def _prune(self, now: float) -> None:
+    def _now_ns(self) -> int:
+        return int(time.monotonic_ns())
+
+    def _burst_capacity(self, bucket: TokenBucket) -> int:
+        return int(bucket.burst) * _RATE_LIMIT_SCALE
+
+    def _refill_units(self, bucket: TokenBucket, elapsed_ns: int) -> int:
+        if elapsed_ns <= 0:
+            return 0
+        return (int(elapsed_ns) * int(bucket.rate_per_sec) * _RATE_LIMIT_SCALE) // _NS_PER_SECOND
+
+    def _prune(self, now_ns: int) -> None:
         if self._ttl_s > 0:
-            cutoff = now - float(self._ttl_s)
-            stale = [k for k, (_, __, last_seen) in self._buckets.items() if last_seen < cutoff]
+            ttl_ns = int(self._ttl_s) * _NS_PER_SECOND
+            cutoff_ns = int(now_ns) - ttl_ns
+            stale = [k for k, (_, __, last_seen_ns) in self._buckets.items() if last_seen_ns < cutoff_ns]
             for k in stale:
                 self._buckets.pop(k, None)
 
@@ -385,25 +434,28 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ip = _client_ip(request)
         bucket = self._pick_bucket(request)
 
-        now = time.time()
+        now_ns = self._now_ns()
 
         self._req_count += 1
         if (self._req_count % self._prune_every) == 0:
-            self._prune(now)
+            self._prune(now_ns)
 
         key = f"{ip}:{bucket.rate_per_sec}:{bucket.burst}"
+        burst_units = self._burst_capacity(bucket)
+        cost_units = _RATE_LIMIT_SCALE
 
-        tokens, last, _last_seen = self._buckets.get(key, (bucket.burst, now, now))
+        tokens_units, last_ns, _last_seen_ns = self._buckets.get(key, (burst_units, now_ns, now_ns))
 
-        tokens = min(bucket.burst, tokens + (now - last) * bucket.rate_per_sec)
-        if tokens < 1.0:
-            self._buckets[key] = (tokens, now, now)
+        refill_units = self._refill_units(bucket, now_ns - int(last_ns))
+        available_units = min(burst_units, int(tokens_units) + refill_units)
+        if available_units < cost_units:
+            self._buckets[key] = (available_units, now_ns, now_ns)
             return self._rate_limited()
 
-        tokens -= 1.0
-        self._buckets[key] = (tokens, now, now)
+        remaining_units = available_units - cost_units
+        self._buckets[key] = (remaining_units, now_ns, now_ns)
 
         if self._max_keys > 0 and len(self._buckets) > self._max_keys:
-            self._prune(now)
+            self._prune(now_ns)
 
         return await call_next(request)

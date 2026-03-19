@@ -15,6 +15,8 @@ from typing import Any, Dict, Iterator, MutableMapping, Optional
 
 from weall.ledger.migrations import CURRENT_STATE_VERSION
 
+from weall.runtime.reputation_units import sync_account_reputation
+
 Json = Dict[str, Any]
 
 
@@ -275,17 +277,14 @@ class LedgerState(MutableMapping[str, Any]):
 
                 if strict:
                     try:
-                        acct["reputation"] = float(acct.get("reputation", 0.0))
+                        sync_account_reputation(acct, default_units=0)
                     except Exception as e:
                         raise ValueError(
-                            f"LedgerState schema error: accounts['{aid}'].reputation must be float-coercible "
+                            f"LedgerState schema error: accounts['{aid}'].reputation must be numeric/coercible "
                             f"(got {type(acct.get('reputation')).__name__})"
                         ) from e
                 else:
-                    try:
-                        acct["reputation"] = float(acct.get("reputation", 0.0))
-                    except Exception:
-                        acct["reputation"] = 0.0
+                    sync_account_reputation(acct, default_units=0)
 
         # Ensure producer exists
         if ensure_producer:
@@ -297,6 +296,7 @@ class LedgerState(MutableMapping[str, Any]):
                     "banned": False,
                     "locked": False,
                     "reputation": 0.0,
+                    "reputation_milli": 0,
                 }
 
 

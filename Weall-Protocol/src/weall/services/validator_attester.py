@@ -6,10 +6,21 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
 Json = Dict[str, Any]
+
+
+class ValidatorAttesterError(RuntimeError):
+    """Raised when the standalone attester cannot safely continue in production."""
+
+
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
 def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: float = 10.0) -> Json:
@@ -30,9 +41,12 @@ def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: fl
         import json
 
         try:
-            return json.loads(raw)
+            parsed = json.loads(raw)
         except Exception:
             return {"ok": False, "error": "bad_json", "raw": raw}
+        if not isinstance(parsed, dict):
+            return {"ok": False, "error": "bad_json_type", "raw": raw}
+        return parsed
     except urllib.error.HTTPError as e:
         try:
             raw = e.read().decode("utf-8", errors="replace")
@@ -41,7 +55,9 @@ def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: fl
         try:
             import json
 
-            return json.loads(raw)
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                return parsed
         except Exception:
             pass
         return {"ok": False, "error": "http_error", "status": int(getattr(e, "code", 0) or 0), "raw": raw}
@@ -50,7 +66,24 @@ def _http_json(method: str, url: str, body: Optional[Json] = None, timeout_s: fl
 
 
 def _read_secret(path: str) -> str:
-    return open(path, "r", encoding="utf-8").read().strip()
+    with open(path, "r", encoding="utf-8") as fh:
+        return fh.read().strip()
+
+
+def _validate_startup_args(*, producer_url: str, signer: str, privkey: str, poll_seconds: float, encoding: str) -> None:
+    parsed = urlparse(str(producer_url).strip())
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"http", "https"} or not (parsed.hostname or "").strip():
+        raise ValidatorAttesterError("attester_invalid_producer_url")
+    if not str(signer).strip():
+        raise ValidatorAttesterError("attester_invalid_signer")
+    if not str(privkey).strip():
+        raise ValidatorAttesterError("attester_missing_privkey")
+    if float(poll_seconds) <= 0:
+        raise ValidatorAttesterError("attester_invalid_poll_seconds")
+    enc = str(encoding).strip().lower()
+    if enc not in {"hex", "b64", "base64"}:
+        raise ValidatorAttesterError("attester_invalid_sig_encoding")
 
 
 def run_attester_loop(
@@ -64,12 +97,21 @@ def run_attester_loop(
     verbose: bool,
 ) -> int:
     producer_url = producer_url.rstrip("/")
+    _validate_startup_args(
+        producer_url=producer_url,
+        signer=signer,
+        privkey=privkey,
+        poll_seconds=poll_seconds,
+        encoding=encoding,
+    )
 
     last_tip: Optional[str] = None
 
     while True:
         snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
         if not snap.get("ok"):
+            if _mode() == "prod":
+                raise ValidatorAttesterError(f"attester_snapshot_failed:{snap.get('error') or 'unknown'}")
             if verbose:
                 print("snapshot_error:", snap)
             time.sleep(poll_seconds)
@@ -77,10 +119,13 @@ def run_attester_loop(
                 return 2
             continue
 
-        tip = str(snap.get("tip") or "").strip()
-        tip_proposal_id = str(snap.get("tip_proposal_id") or "").strip()
-        tip_round = int(snap.get("tip_round", 0) or 0)
-        height = int(snap.get("height", 0) or 0)
+        try:
+            tip = str(snap.get("tip") or "").strip()
+            tip_proposal_id = str(snap.get("tip_proposal_id") or "").strip()
+            tip_round = int(snap.get("tip_round", 0) or 0)
+            height = int(snap.get("height", 0) or 0)
+        except Exception as e:
+            raise ValidatorAttesterError(f"attester_snapshot_invalid:{type(e).__name__}:{e}") from e
 
         # Source checkpoint for Casper-style justification/finality.
         source_block_id = (
@@ -115,6 +160,8 @@ def run_attester_loop(
         # Fetch current nonce so we can produce next nonce.
         nonce_doc = _http_json("GET", f"{producer_url}/v1/accounts/{signer}/nonce")
         if not nonce_doc.get("ok"):
+            if _mode() == "prod":
+                raise ValidatorAttesterError(f"attester_nonce_lookup_failed:{nonce_doc.get('error') or 'unknown'}")
             if verbose:
                 print("nonce_error:", nonce_doc)
             time.sleep(poll_seconds)
@@ -122,7 +169,10 @@ def run_attester_loop(
                 return 2
             continue
 
-        cur_nonce = int(nonce_doc.get("nonce", 0) or 0)
+        try:
+            cur_nonce = int(nonce_doc.get("nonce", 0) or 0)
+        except Exception as e:
+            raise ValidatorAttesterError(f"attester_nonce_invalid:{type(e).__name__}:{e}") from e
         next_nonce = cur_nonce + 1
 
         payload: Json = {
@@ -160,6 +210,8 @@ def run_attester_loop(
                     "code": res.get("code"),
                 },
             )
+        if not res.get("ok") and _mode() == "prod":
+            raise ValidatorAttesterError(f"attester_submit_failed:{res.get('error') or res.get('code') or 'unknown'}")
 
         last_tip = tip
 
@@ -188,15 +240,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("missing privkey: set WEALL_VALIDATOR_PRIVKEY or --privkey / --privkey-file")
         return 2
 
-    return run_attester_loop(
-        producer_url=str(args.producer_url),
-        signer=str(args.signer),
-        privkey=priv,
-        poll_seconds=max(0.5, float(args.poll)),
-        encoding=str(args.encoding),
-        once=bool(args.once),
-        verbose=bool(args.verbose),
-    )
+    try:
+        return run_attester_loop(
+            producer_url=str(args.producer_url),
+            signer=str(args.signer),
+            privkey=priv,
+            poll_seconds=max(0.5, float(args.poll)),
+            encoding=str(args.encoding),
+            once=bool(args.once),
+            verbose=bool(args.verbose),
+        )
+    except ValidatorAttesterError as e:
+        print(f"fatal: {e}")
+        return 2
 
 
 if __name__ == "__main__":

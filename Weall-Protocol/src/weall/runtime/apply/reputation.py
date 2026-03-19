@@ -25,6 +25,15 @@ penalties deterministically without duplicating logic.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from weall.runtime.reputation_units import (
+    REPUTATION_MAX_UNITS,
+    REPUTATION_MIN_UNITS,
+    account_reputation_units,
+    clamp_reputation_units,
+    reputation_to_units,
+    sync_account_reputation,
+    units_to_reputation,
+)
 from weall.runtime.tx_admission import TxEnvelope
 
 Json = Dict[str, Any]
@@ -34,8 +43,8 @@ Json = Dict[str, Any]
 # Constants (hard protocol)
 # ---------------------------------------------------------------------------
 
-REP_MIN: float = -100.0
-REP_MAX: float = 100.0
+REP_MIN_UNITS: int = REPUTATION_MIN_UNITS
+REP_MAX_UNITS: int = REPUTATION_MAX_UNITS
 
 
 # ---------------------------------------------------------------------------
@@ -71,21 +80,6 @@ def _as_int(x: Any, default: int = 0) -> int:
         return int(x)
     except Exception:
         return default
-
-
-def _as_float(x: Any, default: float = 0.0) -> float:
-    try:
-        return float(x)
-    except Exception:
-        return default
-
-
-def _clamp_rep(v: float) -> float:
-    if v < REP_MIN:
-        return REP_MIN
-    if v > REP_MAX:
-        return REP_MAX
-    return v
 
 
 def _require_system_env(env: TxEnvelope) -> None:
@@ -139,6 +133,7 @@ def _ensure_account(state: Json, account_id: str) -> Json:
             "banned": False,
             "locked": False,
             "reputation": 0.0,
+            "reputation_milli": 0,
             "balance": 0,
             "keys": [],
         }
@@ -147,6 +142,7 @@ def _ensure_account(state: Json, account_id: str) -> Json:
     # Ensure fields exist
     acct.setdefault("banned", False)
     acct.setdefault("reputation", 0.0)
+    sync_account_reputation(acct, default_units=0)
     return acct
 
 
@@ -176,24 +172,25 @@ def _apply_rep_delta_and_autoban(
     state: Json,
     *,
     account_id: str,
-    delta: float,
+    delta_units: int,
     at_nonce: int,
     reason: str,
     payload: Json,
     ban_audit_nonce: int,
-) -> Tuple[float, bool]:
+) -> Tuple[int, bool]:
     """Apply delta to accounts[account_id].reputation with clamp and auto-ban.
 
-    Returns: (new_reputation, newly_banned)
+    Returns: (new_reputation_units, newly_banned)
     """
     acct = _ensure_account(state, account_id)
 
-    cur = float(_as_float(acct.get("reputation"), 0.0))
-    nxt = _clamp_rep(cur + float(delta))
-    acct["reputation"] = float(nxt)
+    cur_units = account_reputation_units(acct, default=0)
+    nxt_units = clamp_reputation_units(cur_units + int(delta_units))
+    acct["reputation_milli"] = int(nxt_units)
+    acct["reputation"] = units_to_reputation(nxt_units)
 
     newly_banned = False
-    if float(nxt) <= REP_MIN and not bool(acct.get("banned", False)):
+    if int(nxt_units) <= REP_MIN_UNITS and not bool(acct.get("banned", False)):
         acct["banned"] = True
         newly_banned = True
 
@@ -216,7 +213,7 @@ def _apply_rep_delta_and_autoban(
                 "auto": True,
             }
 
-    return float(nxt), newly_banned
+    return int(nxt_units), newly_banned
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +254,8 @@ def apply_reputation_delta_system(
             {
                 "delta_id": delta_id,
                 "account_id": account_id,
-                "delta": float(delta),
+                "delta": units_to_reputation(reputation_to_units(delta)),
+                "delta_milli": reputation_to_units(delta),
                 "reason": _as_str(reason).strip(),
                 "at_nonce": int(at_nonce),
                 "payload": evidence,
@@ -267,14 +265,20 @@ def apply_reputation_delta_system(
     new_rep, newly_banned = _apply_rep_delta_and_autoban(
         state,
         account_id=account_id,
-        delta=float(delta),
+        delta_units=reputation_to_units(delta),
         at_nonce=int(at_nonce),
         reason=_as_str(reason).strip(),
         payload=evidence,
         ban_audit_nonce=int(at_nonce),
     )
 
-    return {"ok": True, "account_id": account_id, "reputation": float(new_rep), "newly_banned": bool(newly_banned)}
+    return {
+        "ok": True,
+        "account_id": account_id,
+        "reputation": units_to_reputation(new_rep),
+        "reputation_milli": int(new_rep),
+        "newly_banned": bool(newly_banned),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -291,14 +295,11 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     if not account_id:
         raise ReputationApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
 
-    if "delta" not in payload:
+    if "delta" not in payload and "delta_milli" not in payload:
         raise ReputationApplyError("invalid_payload", "missing_delta", {"tx_type": env.tx_type})
 
-    delta_raw = payload.get("delta")
-    try:
-        delta_val = float(int(delta_raw))
-    except Exception:
-        delta_val = _as_float(delta_raw, default=0.0)
+    delta_raw = payload.get("delta_milli", payload.get("delta"))
+    delta_units = reputation_to_units(delta_raw)
 
     delta_id = _mk_id("repdelta", env, payload.get("delta_id") or payload.get("id"))
     reason = _as_str(payload.get("reason")).strip()
@@ -310,7 +311,8 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
             {
                 "delta_id": delta_id,
                 "account_id": account_id,
-                "delta": float(delta_val),
+                "delta": units_to_reputation(delta_units),
+                "delta_milli": int(delta_units),
                 "reason": reason,
                 "at_nonce": int(env.nonce),
                 "payload": payload,
@@ -320,7 +322,7 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     new_rep, newly_banned = _apply_rep_delta_and_autoban(
         state,
         account_id=account_id,
-        delta=float(delta_val),
+        delta_units=int(delta_units),
         at_nonce=int(env.nonce),
         reason=reason,
         payload=payload,
@@ -332,7 +334,8 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         "delta_id": delta_id,
         "account_id": account_id,
         "deduped": bool(already),
-        "reputation": float(new_rep),
+        "reputation": units_to_reputation(new_rep),
+        "reputation_milli": int(new_rep),
         "newly_banned": bool(newly_banned),
     }
 

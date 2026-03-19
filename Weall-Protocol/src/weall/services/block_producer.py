@@ -25,11 +25,22 @@ from typing import Optional
 from weall.runtime.executor_boot import build_executor
 
 
+class ProducerLifecycleError(RuntimeError):
+    """Raised when the standalone producer cannot safely continue in production."""
+
+
 @dataclass(frozen=True)
 class ProducerConfig:
     interval_ms: int
     max_txs: int
     allow_empty: bool
+
+
+def _mode() -> str:
+    # Mirror other runtime modules: tests default to non-prod unless explicitly pinned.
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
 def _env_int(name: str, default: int) -> int:
@@ -38,15 +49,20 @@ def _env_int(name: str, default: int) -> int:
         return default
     try:
         return int(v)
-    except ValueError:
-        raise SystemExit(f"{name} must be an int, got: {v!r}")
+    except ValueError as e:
+        raise SystemExit(f"{name} must be an int, got: {v!r}") from e
 
 
 def _env_bool(name: str, default: bool) -> bool:
     v = os.getenv(name)
     if v is None or v == "":
         return default
-    return v.strip().lower() in {"1", "true", "yes", "y", "on"}
+    vl = v.strip().lower()
+    if vl in {"1", "true", "yes", "y", "on"}:
+        return True
+    if vl in {"0", "false", "no", "n", "off"}:
+        return False
+    raise SystemExit(f"{name} must be a boolean, got: {v!r}")
 
 
 def _load_cfg() -> ProducerConfig:
@@ -66,6 +82,49 @@ def _log(msg: str) -> None:
     # Keep it extremely simple so logs always show up in Docker.
     sys.stdout.write(msg.rstrip() + "\n")
     sys.stdout.flush()
+
+
+def _produce_once(executor, cfg: ProducerConfig) -> None:
+    produced = False
+
+    if hasattr(executor, "produce_block"):
+        produce = executor.produce_block
+        try:
+            sig = inspect.signature(produce)
+            if "allow_empty" in sig.parameters:
+                produce(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
+            else:
+                produce(max_txs=cfg.max_txs)
+        except TypeError:
+            produce(max_txs=cfg.max_txs)
+        produced = True
+    elif hasattr(executor, "maybe_produce_block"):
+        maybe = executor.maybe_produce_block
+        try:
+            sig = inspect.signature(maybe)
+            if "allow_empty" in sig.parameters:
+                maybe(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
+            else:
+                maybe(max_txs=cfg.max_txs)
+        except TypeError:
+            maybe(max_txs=cfg.max_txs)
+        produced = True
+    elif hasattr(executor, "tick_block_producer"):
+        tick = executor.tick_block_producer
+        try:
+            sig = inspect.signature(tick)
+            if "allow_empty" in sig.parameters:
+                tick(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
+            else:
+                tick(max_txs=cfg.max_txs)
+        except TypeError:
+            tick(max_txs=cfg.max_txs)
+        produced = True
+
+    if not produced:
+        raise ProducerLifecycleError(
+            "producer_method_missing:expected_one_of=produce_block|maybe_produce_block|tick_block_producer"
+        )
 
 
 def run_forever() -> None:
@@ -95,49 +154,10 @@ def run_forever() -> None:
     while not stop["flag"]:
         t0 = time.time()
         try:
-            produced = False
-
-            if hasattr(executor, "produce_block"):
-                produce = executor.produce_block
-                try:
-                    sig = inspect.signature(produce)
-                    if "allow_empty" in sig.parameters:
-                        produce(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-                    else:
-                        produce(max_txs=cfg.max_txs)
-                except TypeError:
-                    produce(max_txs=cfg.max_txs)
-                produced = True
-            elif hasattr(executor, "maybe_produce_block"):
-                maybe = executor.maybe_produce_block
-                try:
-                    sig = inspect.signature(maybe)
-                    if "allow_empty" in sig.parameters:
-                        maybe(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-                    else:
-                        maybe(max_txs=cfg.max_txs)
-                except TypeError:
-                    maybe(max_txs=cfg.max_txs)
-                produced = True
-            elif hasattr(executor, "tick_block_producer"):
-                tick = executor.tick_block_producer
-                try:
-                    sig = inspect.signature(tick)
-                    if "allow_empty" in sig.parameters:
-                        tick(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-                    else:
-                        tick(max_txs=cfg.max_txs)
-                except TypeError:
-                    tick(max_txs=cfg.max_txs)
-                produced = True
-
-            if not produced:
-                raise RuntimeError(
-                    "Executor does not expose a block production method. "
-                    "Expected one of: produce_block, maybe_produce_block, tick_block_producer"
-                )
-
+            _produce_once(executor, cfg)
         except Exception as e:
+            if _mode() == "prod":
+                raise ProducerLifecycleError(f"producer_tick_failed:{type(e).__name__}:{e}") from e
             _log(f"weall-producer error: {type(e).__name__}: {e}")
 
         elapsed_ms = int((time.time() - t0) * 1000)
@@ -152,9 +172,13 @@ def main() -> int:
         run_forever()
         return 0
     except SystemExit as e:
-        if e.code not in (None, 0):
-            _log(str(e))
-        return int(e.code or 0)
+        if e.code in (None, 0):
+            return 0
+        _log(str(e))
+        try:
+            return int(e.code)
+        except Exception:
+            return 2
     except Exception as e:
         _log(f"fatal: {type(e).__name__}: {e}")
         return 2

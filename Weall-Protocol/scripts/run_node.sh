@@ -58,6 +58,8 @@ fi
 # If networking/BFT is enabled, fail-closed if identity keys are missing
 WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-0}"
 WEALL_BFT_ENABLED="${WEALL_BFT_ENABLED:-0}"
+WEALL_BLOCK_LOOP_AUTOSTART="${WEALL_BLOCK_LOOP_AUTOSTART:-0}"
+WEALL_NET_LOOP_AUTOSTART="${WEALL_NET_LOOP_AUTOSTART:-0}"
 
 if [ "$WEALL_NET_ENABLED" = "1" ] || [ "$WEALL_BFT_ENABLED" = "1" ]; then
   if [ -z "${WEALL_NODE_PUBKEY:-}" ] || [ -z "${WEALL_NODE_PRIVKEY:-}" ]; then
@@ -69,11 +71,46 @@ if [ "$WEALL_NET_ENABLED" = "1" ] || [ "$WEALL_BFT_ENABLED" = "1" ]; then
   fi
 fi
 
+if [ "$WEALL_BFT_ENABLED" = "1" ] && [ "$WEALL_BLOCK_LOOP_AUTOSTART" = "1" ]; then
+  echo "ERROR: cannot combine WEALL_BFT_ENABLED=1 with WEALL_BLOCK_LOOP_AUTOSTART=1." >&2
+  exit 2
+fi
+
+if [ "$WEALL_BFT_ENABLED" = "1" ] || [ "$WEALL_BLOCK_LOOP_AUTOSTART" = "1" ] || [ "$WEALL_NET_LOOP_AUTOSTART" = "1" ]; then
+  export GUNICORN_WORKERS="${GUNICORN_WORKERS:-1}"
+else
+  export GUNICORN_WORKERS="${GUNICORN_WORKERS:-2}"
+fi
+
+
+manifest_required_raw="${WEALL_REQUIRE_SIGNED_BOOTSTRAP_MANIFEST:-}"
+manifest_required="0"
+case "$(printf "%s" "$manifest_required_raw" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|y|on) manifest_required="1" ;;
+  *) manifest_required="0" ;;
+esac
+
+if [ "$manifest_required" = "1" ] || [ -n "${WEALL_RELEASE_MANIFEST_PATH:-}" ] || [ -n "${WEALL_RELEASE_PUBKEY:-}" ] || [ -n "${WEALL_RELEASE_PUBKEY_FILE:-}" ]; then
+  echo "[bootstrap-verify] verifying local signed release manifest posture" >&2
+  set -- python3 scripts/verify_validator_bootstrap.py
+  if [ -n "${WEALL_RELEASE_MANIFEST_PATH:-}" ]; then
+    set -- "$@" --bundle "$WEALL_RELEASE_MANIFEST_PATH"
+  fi
+  if [ -n "${WEALL_RELEASE_PUBKEY:-}" ]; then
+    set -- "$@" --release-pubkey "$WEALL_RELEASE_PUBKEY"
+  fi
+  PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}src" "$@" >/tmp/weall_bootstrap_verify.log 2>&1 || {
+    cat /tmp/weall_bootstrap_verify.log >&2 || true
+    echo "ERROR: signed release manifest verification failed." >&2
+    exit 2
+  }
+fi
+
 # Run the same production command as Dockerfile default CMD
 exec sh -c "gunicorn weall.api.app:app \
   -k uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8000 \
-  --workers ${GUNICORN_WORKERS:-2} \
+  --workers ${GUNICORN_WORKERS} \
   --timeout ${GUNICORN_TIMEOUT:-60} \
   --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30} \
   --keep-alive ${GUNICORN_KEEPALIVE:-5} \

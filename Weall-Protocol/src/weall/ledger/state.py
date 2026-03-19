@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 import copy
 from typing import Any, Dict, List
 
+from weall.runtime.reputation_units import account_reputation_units, units_to_reputation
+
 
 Json = Dict[str, Any]
 
@@ -23,6 +25,9 @@ class LedgerView:
     accounts: Dict[str, Any] = field(default_factory=dict)
     roles: Dict[str, Any] = field(default_factory=dict)
 
+    # consensus replay-domain identity
+    chain_id: str = ""
+
     # protocol params + time markers (needed for Genesis economic lock at admission-time)
     params: Dict[str, Any] = field(default_factory=dict)
     last_block_ts_ms: int = 0
@@ -35,6 +40,7 @@ class LedgerView:
         return cls(
             accounts=copy.deepcopy(state.get("accounts", {})),
             roles=copy.deepcopy(state.get("roles", {})),
+            chain_id=str(state.get("chain_id") or ""),
             params=copy.deepcopy(state.get("params", {})) if isinstance(state.get("params"), dict) else {},
             last_block_ts_ms=int(state.get("last_block_ts_ms", 0) or 0),
             poh=copy.deepcopy(state.get("poh", {})) if isinstance(state.get("poh"), dict) else {},
@@ -44,6 +50,7 @@ class LedgerView:
         return {
             "accounts": copy.deepcopy(self.accounts),
             "roles": copy.deepcopy(self.roles),
+            "chain_id": str(self.chain_id or ""),
             "params": copy.deepcopy(self.params),
             "last_block_ts_ms": int(self.last_block_ts_ms),
             "poh": copy.deepcopy(self.poh),
@@ -71,12 +78,12 @@ class LedgerView:
         except Exception:
             return 0
 
-    def reputation(self, account_id: str) -> float:
+    def reputation_units(self, account_id: str) -> int:
         acct = self.get_account(account_id)
-        try:
-            return float(acct.get("reputation", 0.0))
-        except Exception:
-            return 0.0
+        return int(account_reputation_units(acct, default=0))
+
+    def reputation(self, account_id: str) -> float:
+        return units_to_reputation(self.reputation_units(account_id), default=0.0)
 
     def get_param(self, key: str, default: Any = None) -> Any:
         try:

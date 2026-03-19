@@ -50,14 +50,63 @@ from weall.net.node import NetConfig, NetNode
 from weall.net.peer_list_store import PeerListStore
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import PeerAddr
-from weall.runtime.metrics import inc_counter
+from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission import admit_tx
+from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 
 Json = Dict[str, Any]
 
 _LOG = logging.getLogger("weall.net.loop")
+
+
+class NetLoopRuntimeError(RuntimeError):
+    pass
+
+
+class NetStartupError(NetLoopRuntimeError):
+    pass
+
+
+class NetPeerConfigError(NetLoopRuntimeError):
+    pass
+
+
+class NetStateSnapshotError(NetLoopRuntimeError):
+    pass
+
+
+class TxIngressProcessingError(NetLoopRuntimeError):
+    pass
+
+
+class TxGossipBridgeError(NetLoopRuntimeError):
+    pass
+
+
+class BftInboundProcessingError(NetLoopRuntimeError):
+    pass
+
+
+class BftOutboundBridgeError(NetLoopRuntimeError):
+    pass
+
+
+class BftOutboundReplayError(BftOutboundBridgeError):
+    pass
+
+
+class BftFetchDescriptorError(NetLoopRuntimeError):
+    pass
+
+
+def _is_prod() -> bool:
+    return _mode() == "prod"
+
+
+def _raise_fail_closed(exc_type: type[Exception], reason: str) -> None:
+    raise exc_type(reason)
 
 
 def _now_ms() -> int:
@@ -92,12 +141,18 @@ def _mode() -> str:
 
 
 def _peer_requires_sigverify() -> bool:
-    """Mirror HTTP boundary policy for peer-ingress."""
+    """Mirror HTTP boundary policy for peer-ingress.
+
+    Production peer ingress must always require signatures; WEALL_SIGVERIFY
+    may only tighten policy outside production, never relax it in prod.
+    """
 
     mode = _mode()
     override = os.environ.get("WEALL_SIGVERIFY")
+    if mode == "prod":
+        return True
     if override is None:
-        return bool(mode == "prod")
+        return False
     return str(override).strip() == "1"
 
 
@@ -136,6 +191,80 @@ def _http_get_json(url: str, *, timeout_s: float = 2.0) -> Optional[Json]:
         return None
 
 
+def _json_size_bytes(obj: Any, *, limit: int = 0) -> int:
+    try:
+        raw = json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        size = len(raw)
+    except Exception:
+        return -1
+    if int(limit or 0) > 0 and size > int(limit):
+        return size
+    return size
+
+
+def _payload_oversize(obj: Any, *, limit: int) -> bool:
+    cap = int(limit or 0)
+    if cap <= 0:
+        return False
+    size = _json_size_bytes(obj, limit=cap)
+    return size < 0 or size > cap
+
+
+
+
+
+def _required_keys_present(payload: Json, keys: tuple[str, ...]) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    for key in keys:
+        val = payload.get(key)
+        if val in (None, "", []):
+            return False
+    return True
+
+
+def _cheap_validate_bft_payload(kind: str, payload: Json, *, chain_id: str) -> Optional[str]:
+    if not isinstance(payload, dict) or not payload:
+        return "empty_payload"
+    expected_tag = {"proposal": None, "vote": "VOTE", "qc": None, "timeout": "TIMEOUT"}.get(kind)
+    if expected_tag is not None and str(payload.get("t") or "").strip() != expected_tag:
+        return "bad_type_tag"
+    payload_chain_id = str(payload.get("chain_id") or chain_id).strip()
+    if payload_chain_id != str(chain_id).strip():
+        return "chain_mismatch"
+    check_payload = payload
+    if kind == "proposal":
+        block = payload.get("block")
+        if isinstance(block, dict) and block:
+            check_payload = dict(block)
+            if "view" not in check_payload and payload.get("view") not in (None, ""):
+                check_payload["view"] = payload.get("view")
+    required = {
+        "proposal": ("block_id", "height", "view"),
+        "vote": ("block_id", "parent_id", "view", "signer", "pubkey", "sig"),
+        "qc": ("block_id", "view", "votes"),
+        "timeout": ("view", "high_qc_id", "signer", "pubkey", "sig"),
+    }[kind]
+    if not _required_keys_present(check_payload, required):
+        return "missing_required_fields"
+    return None
+
+
+def _emit_bft_rejection_diagnostic(executor: Any, message_type: str, payload: Json, reason: str) -> None:
+    try:
+        if hasattr(executor, "_bft_record_event"):
+            executor._bft_record_event("bft_message_rejected", message_type=message_type, reason=reason, summary={
+                "view": int(payload.get("view") or 0) if isinstance(payload, dict) else 0,
+                "block_id": str(payload.get("block_id") or "") if isinstance(payload, dict) else "",
+                "signer": str(payload.get("signer") or payload.get("proposer") or "") if isinstance(payload, dict) else "",
+            })
+    except Exception:
+        pass
+    try:
+        log_event("bft_message_rejected", message_type=message_type, reason=reason)
+    except Exception:
+        pass
+
 @dataclass
 class NetLoopConfig:
     enabled: bool
@@ -146,6 +275,7 @@ class NetLoopConfig:
 
 
 def net_loop_config_from_env() -> NetLoopConfig:
+    validate_runtime_consensus_profile()
     enabled = _env_bool("WEALL_NET_ENABLED", False)
     bind_host = os.environ.get("WEALL_NET_BIND_HOST", "0.0.0.0")
     bind_port = _env_int("WEALL_NET_BIND_PORT", 30303)
@@ -182,7 +312,8 @@ class NetMeshLoop:
             try:
                 self._peers_store.merge(env_peer_uris, force=True)
             except Exception:
-                pass
+                if _is_prod():
+                    raise NetStartupError("net_env_peer_merge_failed")
 
         self._seed_nodes = _split_csv(os.environ.get("WEALL_SEED_NODES", "") or os.environ.get("WEALL_SEED_URLS", ""))
         try:
@@ -195,9 +326,11 @@ class NetMeshLoop:
 
         self._bft_timeout_seen: Dict[str, int] = {}
         self._bft_timeout_seen_ttl_ms: int = max(250, _env_int("WEALL_BFT_TIMEOUT_DEDUPE_TTL_MS", 10_000))
+        self._bft_timeout_seen_max: int = max(32, _env_int("WEALL_BFT_TIMEOUT_DEDUPE_MAX", 4_096))
 
         self._tx_seen: Dict[str, int] = {}
         self._tx_seen_ttl_ms: int = max(1_000, _env_int("WEALL_NET_TX_DEDUPE_TTL_MS", 60_000))
+        self._tx_seen_max: int = max(128, _env_int("WEALL_NET_TX_DEDUPE_MAX", 16_384))
         self._tx_gossip_interval_ms: int = max(25, _env_int("WEALL_NET_GOSSIP_TX_INTERVAL_MS", 250))
         self._tx_gossip_batch: int = max(1, _env_int("WEALL_NET_GOSSIP_TX_BATCH", 128))
         self._last_tx_gossip_ms: int = 0
@@ -211,31 +344,57 @@ class NetMeshLoop:
 
         self._bft_msg_seen: Dict[str, int] = {}
         self._bft_msg_seen_ttl_ms: int = max(250, _env_int("WEALL_BFT_MSG_DEDUPE_TTL_MS", 10_000))
+        self._bft_msg_seen_max: int = max(128, _env_int("WEALL_BFT_MSG_DEDUPE_MAX", 16_384))
 
         self._bft_propose_interval_ms = max(25, _env_int("WEALL_BFT_NET_PROPOSE_INTERVAL_MS", 250))
         self._bft_vote_interval_ms = max(25, _env_int("WEALL_BFT_NET_VOTE_INTERVAL_MS", 250))
         self._bft_timeout_interval_ms = max(25, _env_int("WEALL_BFT_NET_TIMEOUT_INTERVAL_MS", 250))
+        self._bft_fetch_enabled = _env_bool("WEALL_BFT_FETCH_ENABLED", True)
+        self._bft_fetch_interval_ms = max(100, _env_int("WEALL_BFT_FETCH_INTERVAL_MS", 500))
+        self._bft_fetch_cooldown_ms = max(250, _env_int("WEALL_BFT_FETCH_COOLDOWN_MS", 2_000))
+        self._bft_fetch_batch = max(1, _env_int("WEALL_BFT_FETCH_BATCH", 8))
+        self._bft_fetch_sources = _split_csv(os.environ.get("WEALL_BFT_FETCH_BASE_URLS", ""))
+        self._bft_fetch_cooldowns: Dict[str, int] = {}
+        self._last_bft_fetch_ms: int = 0
         self._last_bft_propose_ms: int = 0
         self._last_bft_vote_ms: int = 0
         self._last_bft_timeout_ms: int = 0
 
+        self._bft_proposal_max_bytes = max(1_024, _env_int("WEALL_BFT_PROPOSAL_MAX_BYTES", 1_048_576))
+        self._bft_vote_max_bytes = max(512, _env_int("WEALL_BFT_VOTE_MAX_BYTES", 131_072))
+        self._bft_qc_max_bytes = max(1_024, _env_int("WEALL_BFT_QC_MAX_BYTES", 524_288))
+        self._bft_timeout_max_bytes = max(512, _env_int("WEALL_BFT_TIMEOUT_MAX_BYTES", 131_072))
+        self._bft_fetch_sources_max = max(1, _env_int("WEALL_BFT_FETCH_SOURCES_MAX", 16))
+
     def _state_snapshot(self) -> Json:
         try:
             st = self._executor.snapshot()
-            if isinstance(st, dict):
-                return st
         except Exception:
-            pass
+            if _is_prod():
+                raise NetStateSnapshotError("state_snapshot_failed")
+            return {}
+        if isinstance(st, dict):
+            return st
+        if _is_prod():
+            raise NetStateSnapshotError("state_snapshot_invalid_type")
         return {}
 
     def _build_node(self) -> NetNode:
-        chain_id = str(os.environ.get("WEALL_CHAIN_ID", "weall-devnet") or "weall-devnet").strip()
+        executor_chain_id = str(getattr(self._executor, "chain_id", "") or "").strip()
+        chain_id = executor_chain_id or str(os.environ.get("WEALL_CHAIN_ID", "weall-devnet") or "weall-devnet").strip()
+
         schema_version = str(self._cfg.schema_version or "1").strip() or "1"
+        try:
+            schema_version = str(getattr(self._executor, "_schema_version", lambda: schema_version)() or schema_version).strip() or schema_version
+        except Exception:
+            schema_version = str(self._cfg.schema_version or "1").strip() or "1"
 
         tx_index_hash = "0"
         try:
             tx_index_hash = str(getattr(self._executor, "tx_index_hash", lambda: "0")() or "0")
         except Exception:
+            if _is_prod():
+                raise NetStartupError("net_build_node_tx_index_hash_failed")
             tx_index_hash = "0"
 
         peer_id = str(os.environ.get("WEALL_PEER_ID", "") or "").strip() or "local"
@@ -257,7 +416,16 @@ class NetMeshLoop:
             server_key=(os.environ.get("WEALL_NET_TLS_KEY") or None),
         )
 
-        sync = StateSyncService(chain_id=chain_id, snapshot_provider=self._state_snapshot)
+        block_provider = getattr(self._executor, "get_block_by_height", None)
+        if not callable(block_provider):
+            block_provider = None
+        sync = StateSyncService(
+            chain_id=chain_id,
+            schema_version=schema_version,
+            tx_index_hash=tx_index_hash,
+            state_provider=self._state_snapshot,
+            block_provider=block_provider,
+        )
 
         node = NetNode(
             cfg=cfg,
@@ -318,7 +486,8 @@ class NetMeshLoop:
         try:
             self._seed_discover_once()
         except Exception:
-            pass
+            self.node = None
+            return False
 
         try:
             bind = PeerAddr(uri=f"tcp://{self._cfg.bind_host}:{int(self._cfg.bind_port)}")
@@ -351,7 +520,9 @@ class NetMeshLoop:
             return
         try:
             t.join(timeout=timeout)
-        except Exception:
+        except Exception as e:
+            if _is_prod():
+                raise BftInboundProcessingError("proposal_executor_failed") from e
             return
 
     def _run(self) -> None:
@@ -364,7 +535,8 @@ class NetMeshLoop:
             try:
                 self.node.poll()
             except Exception:
-                pass
+                if _is_prod():
+                    raise NetLoopRuntimeError("node_poll_failed")
 
             try:
                 self._dial_peers_tick()
@@ -373,14 +545,24 @@ class NetMeshLoop:
 
             try:
                 self._outbound_tx_gossip_tick()
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    raise NetLoopRuntimeError("tx_gossip_tick_failed") from e
 
             if self._bft_enabled:
+                try:
+                    self._bft_fetch_tick()
+                except Exception:
+                    pass
                 try:
                     self._outbound_bft_tick()
                 except Exception:
                     pass
+
+            try:
+                self._record_net_metric_gauges()
+            except Exception:
+                pass
 
             time.sleep(tick_s)
 
@@ -389,13 +571,28 @@ class NetMeshLoop:
             return
 
         now = _now_ms()
-        peers: list[str] = []
+        raw_peers = []
         try:
-            peers = [str(x) for x in (self._peers_store.read_list() or [])]
-        except Exception:
-            peers = []
+            raw_peers = list(self._peers_store.read_list() or [])
+        except Exception as e:
+            if _is_prod():
+                raise NetPeerConfigError("peer_list_read_failed") from e
+            raw_peers = []
 
-        peers = [p.strip() for p in peers if isinstance(p, str) and p.strip()]
+        peers: list[str] = []
+        for entry in raw_peers:
+            if not isinstance(entry, str):
+                if _is_prod():
+                    raise NetPeerConfigError("peer_list_entry_invalid_type")
+                continue
+            uri = entry.strip()
+            if not uri:
+                continue
+            if not _is_peer_uri(uri):
+                if _is_prod():
+                    raise NetPeerConfigError("peer_list_entry_invalid_uri")
+                continue
+            peers.append(uri)
         peers = peers[: self._peers_max]
 
         for uri in peers:
@@ -424,19 +621,22 @@ class NetMeshLoop:
             if not isinstance(tx, dict):
                 return
 
-            # Signature policy mirrors HTTP boundary
-            if _peer_requires_sigverify():
-                ok = verify_tx_signature(tx)
-                if not ok:
-                    inc_counter("net_tx_reject_sigverify")
-                    return
-
             # Apply the same admission rules as HTTP/mempool (nonce, gates, schema, etc.)
             try:
                 st = self._state_snapshot()
                 ledger = LedgerView.from_ledger(st if isinstance(st, dict) else {})
-            except Exception:
+            except Exception as e:
+                if _is_prod():
+                    raise TxIngressProcessingError("tx_ingress_state_snapshot_failed") from e
+                st = {}
                 ledger = LedgerView.from_ledger({})
+
+            # Signature policy mirrors HTTP boundary
+            if _peer_requires_sigverify():
+                ok = verify_tx_signature(st if isinstance(st, dict) else {}, tx)
+                if not ok:
+                    inc_counter("net_tx_reject_sigverify")
+                    return
 
             canon = None
             try:
@@ -453,9 +653,12 @@ class NetMeshLoop:
             # Submit to mempool (best-effort)
             try:
                 self._mempool.add(tx)
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    raise TxIngressProcessingError("tx_ingress_mempool_add_failed") from e
         except Exception:
+            if _is_prod():
+                raise
             return
 
     def _mk_bft_proposal_json(self, msg: BftProposalMsg) -> Json:
@@ -506,7 +709,7 @@ class NetMeshLoop:
         except Exception:
             return repr(payload)
 
-    def _dedupe_seen(self, cache: Dict[str, int], key: str, *, ttl_ms: int, now_ms: int) -> bool:
+    def _dedupe_seen(self, cache: Dict[str, int], key: str, *, ttl_ms: int, now_ms: int, max_entries: int = 0) -> bool:
         ttl = int(ttl_ms)
         if ttl <= 0:
             return False
@@ -521,8 +724,225 @@ class NetMeshLoop:
 
         if key in cache:
             return True
+
+        if int(max_entries or 0) > 0 and len(cache) >= int(max_entries):
+            try:
+                overflow = (len(cache) - int(max_entries)) + 1
+                oldest = sorted(cache.items(), key=lambda kv: (int(kv[1]), str(kv[0])))[:overflow]
+                for old_key, _ in oldest:
+                    cache.pop(old_key, None)
+            except Exception:
+                try:
+                    cache.pop(next(iter(cache)), None)
+                except Exception:
+                    pass
+
         cache[key] = int(now_ms)
         return False
+
+    def _record_net_metric_gauges(self) -> None:
+        try:
+            set_gauge("net_bft_seen_cache", len(self._bft_msg_seen))
+            set_gauge("net_bft_timeout_seen_cache", len(self._bft_timeout_seen))
+            set_gauge("net_tx_seen_cache", len(self._tx_seen))
+            set_gauge("net_bft_fetch_cooldowns", len(self._bft_fetch_cooldowns))
+            set_gauge("net_peers_configured", len(list(self._peers_store.read_list() or [])))
+        except Exception:
+            pass
+        try:
+            diag = getattr(self._executor, "bft_diagnostics", lambda: {})() or {}
+            if isinstance(diag, dict):
+                set_gauge("net_bft_pending_remote_blocks", len(list(diag.get("pending_remote_blocks") or [])))
+                set_gauge("net_bft_pending_missing_qcs", len(list(diag.get("pending_missing_qcs") or [])))
+                set_gauge("net_bft_pending_fetch_requests", len(list(diag.get("pending_fetch_requests") or [])))
+        except Exception:
+            pass
+
+    def _bft_payload_limit(self, kind: str) -> int:
+        return {
+            "proposal": int(self._bft_proposal_max_bytes),
+            "vote": int(self._bft_vote_max_bytes),
+            "qc": int(self._bft_qc_max_bytes),
+            "timeout": int(self._bft_timeout_max_bytes),
+        }.get(str(kind or ""), 0)
+
+    def _bft_payload_reject_reason(self, kind: str, payload: Json) -> Optional[str]:
+        limit = self._bft_payload_limit(kind)
+        if _payload_oversize(payload, limit=limit):
+            inc_counter(f"net_bft_{kind}_reject_oversize")
+            return "oversize_payload"
+        return None
+
+    def _bft_fetch_base_urls(self) -> list[str]:
+        urls = [str(x).rstrip("/") for x in list(self._bft_fetch_sources or []) if str(x).strip()]
+        if not urls:
+            urls = [str(x).rstrip("/") for x in list(self._seed_nodes or []) if str(x).strip()]
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            deduped.append(url)
+            if len(deduped) >= int(self._bft_fetch_sources_max):
+                break
+        return deduped
+
+    def _fetch_committed_block(self, base_url: str, block_id: str) -> Optional[Json]:
+        base = str(base_url or "").strip().rstrip("/")
+        bid = str(block_id or "").strip()
+        if not base or not bid:
+            return None
+        obj = _http_get_json(f"{base}/v1/state/block/{bid}", timeout_s=2.0)
+        if not isinstance(obj, dict) or not bool(obj.get("ok")):
+            return None
+        blk = obj.get("block")
+        return dict(blk) if isinstance(blk, dict) else None
+
+    def _bft_fetch_tick(self) -> None:
+        if not self._bft_fetch_enabled:
+            return
+        now = _now_ms()
+        if (now - int(self._last_bft_fetch_ms)) < int(self._bft_fetch_interval_ms):
+            return
+        self._last_bft_fetch_ms = int(now)
+        raw_wants = []
+        try:
+            desc_fn = getattr(self._executor, "bft_resolved_pending_fetch_request_descriptors", None)
+            if callable(desc_fn):
+                raw_wants = list(desc_fn() or [])
+            else:
+                desc_fn = getattr(self._executor, "bft_pending_fetch_request_descriptors", None)
+                if callable(desc_fn):
+                    raw_wants = list(desc_fn() or [])
+                else:
+                    raw_wants = list(getattr(self._executor, "bft_pending_fetch_requests", lambda: [])() or [])
+        except Exception as e:
+            if _is_prod():
+                raise BftFetchDescriptorError("descriptor_resolution_failed") from e
+            raw_wants = []
+        wants: list[dict[str, str]] = []
+        for item in raw_wants:
+            try:
+                resolver = getattr(self._executor, "bft_resolve_fetch_request_descriptor", None)
+                if callable(resolver) and isinstance(item, dict):
+                    resolved = resolver(item)
+                    if resolved is not None:
+                        item = resolved
+                if isinstance(item, dict):
+                    bid = str(item.get("block_id") or "").strip()
+                    if not bid:
+                        continue
+                    wants.append({
+                        "block_id": bid,
+                        "block_hash": str(item.get("block_hash") or "").strip(),
+                        "reason": str(item.get("reason") or "").strip(),
+                    })
+                else:
+                    bid = str(item or "").strip()
+                    if not bid:
+                        continue
+                    wants.append({"block_id": bid, "block_hash": "", "reason": ""})
+            except Exception as e:
+                if _is_prod():
+                    raise BftFetchDescriptorError("descriptor_resolution_failed") from e
+        if not wants:
+            self._record_net_metric_gauges()
+            return
+        sources = self._bft_fetch_base_urls()
+        if not sources:
+            inc_counter("net_bft_fetch_no_sources")
+            self._record_net_metric_gauges()
+            return
+        sent = 0
+        for req in wants:
+            sbid = str((req or {}).get("block_id") or "").strip()
+            expected_hash = str((req or {}).get("block_hash") or "").strip()
+            if not sbid:
+                continue
+            allow_at = int(self._bft_fetch_cooldowns.get(sbid, 0) or 0)
+            if allow_at > now:
+                continue
+            self._bft_fetch_cooldowns[sbid] = int(now) + int(self._bft_fetch_cooldown_ms)
+            for base in sources:
+                blk = self._fetch_committed_block(base, sbid)
+                if not isinstance(blk, dict):
+                    inc_counter("net_bft_fetch_miss")
+                    continue
+                if str(blk.get("block_id") or "").strip() != sbid:
+                    try:
+                        log_event(_LOG, "bft_fetch_block_id_mismatch", requested_block_id=sbid, returned_block_id=str(blk.get("block_id") or ""), base_url=base)
+                    except Exception:
+                        pass
+                    continue
+                fetched_hash = str(blk.get("block_hash") or ((blk.get("header") or {}) if isinstance(blk.get("header"), dict) else {}).get("block_hash") or "").strip()
+                if expected_hash and fetched_hash and fetched_hash != expected_hash:
+                    try:
+                        log_event(_LOG, "bft_fetch_block_hash_mismatch", requested_block_id=sbid, expected_block_hash=expected_hash, returned_block_hash=fetched_hash, base_url=base)
+                    except Exception:
+                        pass
+                    inc_counter("net_bft_fetch_hash_mismatch")
+                    continue
+                try:
+                    ok = bool(getattr(self._executor, "bft_cache_remote_block", lambda *_a, **_k: False)(blk))
+                except Exception as e:
+                    if _is_prod():
+                        raise BftFetchDescriptorError("cache_remote_block_failed") from e
+                    ok = False
+                if ok:
+                    inc_counter("net_bft_fetch_applied")
+                    try:
+                        log_event(_LOG, "bft_fetch_applied", block_id=sbid, base_url=base)
+                    except Exception:
+                        pass
+                    sent += 1
+                    break
+                inc_counter("net_bft_fetch_reject")
+            if sent >= int(self._bft_fetch_batch):
+                break
+        self._record_net_metric_gauges()
+
+    def _mark_bft_outbound_sent(self, kind: str, payload: Json) -> None:
+        try:
+            fn = getattr(self._executor, "bft_mark_outbound_sent", None)
+            if callable(fn):
+                fn(str(kind), payload)
+        except Exception as e:
+            if _is_prod():
+                raise BftOutboundBridgeError(f"mark_outbound_sent_failed:{str(kind)}") from e
+            return
+
+    def _broadcast_bft_proposal(self, proposal_json: Json, *, exclude_peer_id: str = "") -> None:
+        if self.node is None or not isinstance(proposal_json, dict) or not proposal_json:
+            return
+
+        block = proposal_json.get("block") if isinstance(proposal_json.get("block"), dict) else proposal_json
+        if not isinstance(block, dict) or not block:
+            return
+
+        justify_qc = proposal_json.get("justify_qc")
+        if not isinstance(justify_qc, dict):
+            justify_qc = block.get("justify_qc") if isinstance(block.get("justify_qc"), dict) else block.get("qc")
+        try:
+            view = int(proposal_json.get("view") or block.get("view") or getattr(self._executor, "bft_current_view", lambda: 0)() or 0)
+        except Exception:
+            view = 0
+        proposer = str(proposal_json.get("proposer") or block.get("proposer") or getattr(self.node.cfg, "peer_id", "") or "").strip()
+        msg = BftProposalMsg(
+            header=self._mk_header(mtype=MsgType.BFT_PROPOSAL),
+            view=view,
+            proposer=proposer,
+            block=block,
+            justify_qc=justify_qc if isinstance(justify_qc, dict) else None,
+        )
+        try:
+            self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+            self._mark_bft_outbound_sent("proposal", block)
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftOutboundBridgeError):
+                    raise
+                raise BftOutboundBridgeError("proposal_broadcast_failed") from e
 
     def _broadcast_bft_vote(self, vote_json: Json, *, exclude_peer_id: str = "") -> None:
         if self.node is None:
@@ -534,8 +954,12 @@ class NetMeshLoop:
         msg = BftVoteMsg(header=self._mk_header(mtype=MsgType.BFT_VOTE), view=view, vote=vote_json)
         try:
             self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
-        except Exception:
-            pass
+            self._mark_bft_outbound_sent("vote", vote_json)
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftOutboundBridgeError):
+                    raise
+                raise BftOutboundBridgeError("vote_broadcast_failed") from e
 
     def _broadcast_bft_timeout(self, timeout_json: Json, *, exclude_peer_id: str = "") -> None:
         if self.node is None:
@@ -547,8 +971,12 @@ class NetMeshLoop:
         msg = BftTimeoutMsg(header=self._mk_header(mtype=MsgType.BFT_TIMEOUT), view=view, timeout=timeout_json)
         try:
             self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
-        except Exception:
-            pass
+            self._mark_bft_outbound_sent("timeout", timeout_json)
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftOutboundBridgeError):
+                    raise
+                raise BftOutboundBridgeError("timeout_broadcast_failed") from e
 
     def _on_bft_proposal(self, peer_id: str, msg: BftProposalMsg) -> None:
         try:
@@ -559,7 +987,15 @@ class NetMeshLoop:
 
             now = _now_ms()
             key = self._bft_generic_key({"t": "proposal", "v": proposal})
-            if self._dedupe_seen(self._bft_msg_seen, key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now):
+            if self._dedupe_seen(self._bft_msg_seen, key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now, max_entries=self._bft_msg_seen_max):
+                inc_counter("net_bft_proposal_duplicate")
+                return
+
+            local_chain_id = str(getattr(getattr(self.node, "cfg", None), "chain_id", "") or getattr(getattr(msg, "header", None), "chain_id", "") or "")
+            reason = self._bft_payload_reject_reason("proposal", proposal) or _cheap_validate_bft_payload("proposal", proposal, chain_id=local_chain_id)
+            if reason is not None:
+                inc_counter("net_bft_proposal_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "proposal", proposal, reason)
                 return
 
             fn = getattr(self._executor, "bft_on_proposal", None)
@@ -567,11 +1003,75 @@ class NetMeshLoop:
                 return
 
             votej = fn(proposal)
+            if votej is None:
+                inc_counter("net_bft_proposal_executor_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "proposal", proposal, "executor_rejected")
+                return
             if isinstance(votej, dict) and votej:
                 vote_key = self._bft_generic_key({"t": "vote", "v": votej})
-                if not self._dedupe_seen(self._bft_msg_seen, vote_key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now):
+                if not self._dedupe_seen(self._bft_msg_seen, vote_key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now, max_entries=self._bft_msg_seen_max):
                     self._broadcast_bft_vote(votej, exclude_peer_id=str(peer_id or ""))
-        except Exception:
+            self._record_net_metric_gauges()
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftInboundProcessingError):
+                    raise
+                raise BftInboundProcessingError("proposal_executor_failed") from e
+            return
+
+    def _on_bft_vote(self, peer_id: str, msg: BftVoteMsg) -> None:
+        try:
+            if not self._bft_enabled:
+                return
+
+            votej = self._mk_bft_vote_json(msg)
+            if not isinstance(votej, dict) or not votej:
+                return
+
+            now = _now_ms()
+            key = self._bft_generic_key({"t": "vote", "v": votej})
+            if self._dedupe_seen(self._bft_msg_seen, key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now, max_entries=self._bft_msg_seen_max):
+                inc_counter("net_bft_vote_duplicate")
+                return
+
+            local_chain_id = str(getattr(getattr(self.node, "cfg", None), "chain_id", "") or getattr(getattr(msg, "header", None), "chain_id", "") or "")
+            reason = self._bft_payload_reject_reason("vote", votej) or _cheap_validate_bft_payload("vote", votej, chain_id=local_chain_id)
+            if reason is not None:
+                inc_counter("net_bft_vote_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "vote", votej, reason)
+                return
+
+            fn = getattr(self._executor, "bft_on_vote", None)
+            if not callable(fn):
+                return
+
+            qcj = fn(votej)
+            if qcj is None:
+                inc_counter("net_bft_vote_executor_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "vote", votej, "executor_rejected")
+                return
+            if isinstance(qcj, dict) and qcj:
+                try:
+                    apply_fn = getattr(self._executor, "bft_on_qc", None)
+                    if callable(apply_fn):
+                        apply_fn(qcj)
+                except Exception as e:
+                    if _is_prod():
+                        raise BftInboundProcessingError("vote_local_qc_apply_failed") from e
+                qc_key = self._bft_generic_key({"t": "qc", "v": qcj})
+                if not self._dedupe_seen(self._bft_msg_seen, qc_key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now, max_entries=self._bft_msg_seen_max):
+                    qmsg = BftQcMsg(header=self._mk_header(mtype=MsgType.BFT_QC), qc=qcj)
+                    try:
+                        self.node.broadcast_message(qmsg, exclude_peer_id=str(peer_id or ""))
+                    except Exception as e:
+                        if _is_prod():
+                            raise BftInboundProcessingError("vote_qc_broadcast_failed") from e
+            self._record_net_metric_gauges()
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftInboundProcessingError):
+                    raise
+                raise BftInboundProcessingError("vote_executor_failed") from e
             return
 
     def _on_bft_qc(self, peer_id: str, msg: BftQcMsg) -> None:
@@ -583,15 +1083,29 @@ class NetMeshLoop:
             if not isinstance(qcj, dict) or not qcj:
                 return
 
+            local_chain_id = str(getattr(getattr(self.node, "cfg", None), "chain_id", "") or getattr(getattr(msg, "header", None), "chain_id", "") or "")
+            reason = self._bft_payload_reject_reason("qc", qcj) or _cheap_validate_bft_payload("qc", qcj, chain_id=local_chain_id)
+            if reason is not None:
+                inc_counter("net_bft_qc_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "qc", qcj, reason)
+                return
+
             now = _now_ms()
             key = self._bft_generic_key({"t": "qc", "v": qcj})
-            if self._dedupe_seen(self._bft_msg_seen, key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now):
+            if self._dedupe_seen(self._bft_msg_seen, key, ttl_ms=self._bft_msg_seen_ttl_ms, now_ms=now, max_entries=self._bft_msg_seen_max):
+                inc_counter("net_bft_qc_duplicate")
                 return
 
             fn = getattr(self._executor, "bft_on_qc", None)
             if callable(fn):
-                fn(qcj)
-        except Exception:
+                out = fn(qcj)
+                if out is None:
+                    inc_counter("net_bft_qc_executor_rejected")
+                    _emit_bft_rejection_diagnostic(self._executor, "qc", qcj, "executor_rejected")
+            self._record_net_metric_gauges()
+        except Exception as e:
+            if _is_prod():
+                raise BftInboundProcessingError("qc_executor_failed") from e
             return
 
     def _on_bft_timeout(self, peer_id: str, msg: BftTimeoutMsg) -> None:
@@ -608,24 +1122,46 @@ class NetMeshLoop:
         try:
             now = _now_ms()
             key = self._bft_timeout_key(msg)
-            if self._dedupe_seen(self._bft_timeout_seen, key, ttl_ms=self._bft_timeout_seen_ttl_ms, now_ms=now):
+            if self._dedupe_seen(self._bft_timeout_seen, key, ttl_ms=self._bft_timeout_seen_ttl_ms, now_ms=now, max_entries=self._bft_timeout_seen_max):
+                inc_counter("net_bft_timeout_duplicate")
                 return
 
             timeoutj = self._mk_bft_timeout_json(msg)
+            local_chain_id = str(getattr(getattr(self.node, "cfg", None), "chain_id", "") or getattr(getattr(msg, "header", None), "chain_id", "") or "")
+            reason = self._bft_payload_reject_reason("timeout", timeoutj) or _cheap_validate_bft_payload("timeout", timeoutj, chain_id=local_chain_id)
+            if reason is not None:
+                inc_counter("net_bft_timeout_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "timeout", timeoutj, reason)
+                return
 
-            try:
-                fn = getattr(self._executor, "bft_on_timeout", None)
-                if callable(fn):
-                    fn(timeoutj)
-            except Exception:
-                pass
+            out = None
+            fn = getattr(self._executor, "bft_on_timeout", None)
+            if callable(fn):
+                out = fn(timeoutj)
+                if out is None:
+                    inc_counter("net_bft_timeout_executor_rejected")
+                    _emit_bft_rejection_diagnostic(self._executor, "timeout", timeoutj, "executor_rejected")
+            if isinstance(out, dict) and out:
+                try:
+                    apply_fn = getattr(self._executor, "bft_on_qc", None)
+                    if callable(apply_fn):
+                        apply_fn(out)
+                except Exception as e:
+                    if _is_prod():
+                        raise BftInboundProcessingError("timeout_local_qc_apply_failed") from e
 
             if self.node is not None:
                 try:
                     self.node.broadcast_message(msg, exclude_peer_id=str(peer_id or ""))
-                except Exception:
-                    pass
-        except Exception:
+                except Exception as e:
+                    if _is_prod():
+                        raise BftInboundProcessingError("timeout_broadcast_failed") from e
+            self._record_net_metric_gauges()
+        except Exception as e:
+            if _is_prod():
+                if isinstance(e, BftInboundProcessingError):
+                    raise
+                raise BftInboundProcessingError("timeout_executor_failed") from e
             return
 
     # ----------------------------
@@ -650,6 +1186,17 @@ class NetMeshLoop:
         self._tx_seen_prune(now_ms)
         if tx_id in self._tx_seen:
             return True
+        if int(self._tx_seen_max or 0) > 0 and len(self._tx_seen) >= int(self._tx_seen_max):
+            try:
+                overflow = (len(self._tx_seen) - int(self._tx_seen_max)) + 1
+                oldest = sorted(self._tx_seen.items(), key=lambda kv: (int(kv[1]), str(kv[0])))[:overflow]
+                for old_key, _ in oldest:
+                    self._tx_seen.pop(old_key, None)
+            except Exception:
+                try:
+                    self._tx_seen.pop(next(iter(self._tx_seen)), None)
+                except Exception:
+                    pass
         self._tx_seen[tx_id] = int(now_ms)
         return False
 
@@ -669,7 +1216,9 @@ class NetMeshLoop:
             try:
                 txs = list(getattr(self._mempool, "list", lambda *_a, **_k: [])())  # type: ignore[misc]
                 txs = txs[: int(self._tx_gossip_batch)]
-            except Exception:
+            except Exception as e:
+                if _is_prod():
+                    raise TxGossipBridgeError("tx_gossip_source_failed") from e
                 txs = []
 
         if not txs:
@@ -677,6 +1226,8 @@ class NetMeshLoop:
 
         for tx in txs:
             if not isinstance(tx, dict):
+                if _is_prod():
+                    raise TxGossipBridgeError("tx_gossip_entry_not_object")
                 continue
             try:
                 tx_id = compute_tx_id(tx)
@@ -689,12 +1240,15 @@ class NetMeshLoop:
 
             msg = TxEnvelopeMsg(
                 header=self._mk_header(mtype=MsgType.TX_ENVELOPE),
+                nonce=int(tx.get("nonce") or 0) if isinstance(tx, dict) else 0,
+                client_tx_id=str(tx.get("client_tx_id") or "") if isinstance(tx, dict) and tx.get("client_tx_id") is not None else None,
                 tx=tx,
             )
             try:
                 self.node.broadcast_message(msg)
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    raise TxGossipBridgeError("tx_gossip_broadcast_failed") from e
 
     # ----------------------------
     # Outbound BFT gossip
@@ -704,37 +1258,77 @@ class NetMeshLoop:
         if self.node is None:
             return
 
+        try:
+            pending = getattr(self._executor, "bft_pending_outbound_messages", lambda: [])()
+        except Exception:
+            pending = []
+        for item in list(pending or []):
+            if not isinstance(item, dict):
+                continue
+            kind = str(item.get("kind") or "").strip().lower()
+            payload = item.get("payload")
+            if not isinstance(payload, dict) or not payload:
+                if _is_prod():
+                    raise BftOutboundReplayError("invalid_payload")
+                continue
+            if kind == "vote":
+                self._broadcast_bft_vote(payload)
+            elif kind == "timeout":
+                self._broadcast_bft_timeout(payload)
+            elif kind == "proposal":
+                self._broadcast_bft_proposal(payload)
+
         now = _now_ms()
 
         if (now - int(self._last_bft_propose_ms)) >= int(self._bft_propose_interval_ms):
             self._last_bft_propose_ms = int(now)
             try:
                 out = getattr(self._executor, "bft_leader_propose", lambda: None)()
-                if isinstance(out, dict):
-                    if isinstance(out.get("proposal"), dict):
-                        # Proposal broadcast handled by NetNode internally if needed
-                        pass
-            except Exception:
-                pass
+                if isinstance(out, dict) and out:
+                    self._broadcast_bft_proposal(out)
+            except Exception as e:
+                if _is_prod():
+                    if isinstance(e, BftOutboundBridgeError):
+                        raise
+                    raise BftOutboundBridgeError("leader_propose_failed") from e
 
         if (now - int(self._last_bft_vote_ms)) >= int(self._bft_vote_interval_ms):
             self._last_bft_vote_ms = int(now)
             try:
-                out = getattr(self._executor, "bft_drive_timeouts", lambda: None)()
-                if isinstance(out, dict):
+                out = getattr(self._executor, "bft_drive_timeouts", lambda *_a, **_k: None)(now)
+            except TypeError:
+                try:
+                    out = getattr(self._executor, "bft_drive_timeouts", lambda: None)()
+                except Exception:
+                    out = None
+            except Exception as e:
+                if _is_prod():
+                    raise BftOutboundBridgeError("drive_timeouts_failed") from e
+                out = None
+            try:
+                if isinstance(out, list):
+                    for item in out:
+                        if isinstance(item, dict) and item:
+                            self._broadcast_bft_timeout(item)
+                elif isinstance(out, dict):
                     if isinstance(out.get("vote"), dict):
                         self._broadcast_bft_vote(out["vote"])
                     if isinstance(out.get("timeout"), dict):
                         self._broadcast_bft_timeout(out["timeout"])
-            except Exception:
+            except Exception as e:
+                if _is_prod():
+                    if isinstance(e, BftOutboundBridgeError):
+                        raise
+                    raise BftOutboundBridgeError("drive_timeouts_failed") from e
                 pass
 
         if (now - int(self._last_bft_timeout_ms)) >= int(self._bft_timeout_interval_ms):
             self._last_bft_timeout_ms = int(now)
             try:
-                out = getattr(self._executor, "bft_drive_timeouts", lambda: None)()
-                if isinstance(out, dict):
-                    if isinstance(out.get("timeout"), dict):
-                        self._broadcast_bft_timeout(out["timeout"])
-            except Exception:
-                pass
+                out = getattr(self._executor, "bft_timeout_check", lambda: None)()
+                if isinstance(out, dict) and out:
+                    self._broadcast_bft_timeout(out)
+            except Exception as e:
+                if _is_prod():
+                    raise BftOutboundBridgeError("timeout_check_failed") from e
+

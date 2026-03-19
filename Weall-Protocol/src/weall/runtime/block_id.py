@@ -23,23 +23,33 @@ def compute_block_id(
     height: int,
     prev_block_id: Optional[str],
     ts_ms: int,
-    node_id: str,
-    tx_ids: List[str],
+    node_id: str = "",
+    tx_ids: Optional[List[str]] = None,
+    prev_block_hash: str = "",
+    receipts_root: str = "",
 ) -> str:
-    """Compute a deterministic block_id.
+    """Compute a deterministic, content-addressed block id.
 
-    Contract:
-      - includes chain_id and height
-      - includes prev_block_id (or "" for genesis)
-      - includes ordered tx_ids
-      - excludes receipts (derived) and any non-deterministic mempool metadata
+    Safety contract:
+      - must not depend on wall-clock local-only metadata beyond the block's
+        committed timestamp
+      - must be stable for the same ordered tx set and same parent linkage
+      - must be strong enough that two distinct blocks at the same height cannot
+        alias merely because they share (height, ts_ms, tx_count)
+
+    IMPORTANT:
+      We intentionally do *not* include state_root here because the current
+      state_root commits to tip/block ancestry metadata that itself contains the
+      block_id. Including state_root would create a circular dependency.
     """
     obj: Json = {
         "chain_id": str(chain_id),
         "height": int(height),
         "prev_block_id": str(prev_block_id or ""),
+        "prev_block_hash": str(prev_block_hash or ""),
         "ts_ms": int(ts_ms),
-        "node_id": str(node_id),
+        "node_id": str(node_id or ""),
         "tx_ids": [str(x) for x in (tx_ids or [])],
+        "receipts_root": str(receipts_root or ""),
     }
     return _sha256_hex(_json_canonical(obj))

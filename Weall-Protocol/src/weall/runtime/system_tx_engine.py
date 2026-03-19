@@ -19,17 +19,29 @@ from weall.runtime.econ_phase import econ_allowed_from_state
 Json = Dict[str, Any]
 
 
+class SystemTxEngineError(RuntimeError):
+    """Base error for consensus-adjacent system-tx scheduling and emission."""
+
+
+class SystemSchedulerError(SystemTxEngineError):
+    """Deterministic scheduler failed while preparing system tx side effects."""
+
+
+class SystemQueueCorruptionError(SystemTxEngineError):
+    """The replicated system queue contains malformed data and must fail closed."""
+
+
 def _as_int(v: Any, default: int = 0) -> int:
     try:
         return int(v)
-    except Exception:
+    except (TypeError, ValueError):
         return int(default)
 
 
 def _as_str(v: Any) -> str:
     try:
         return str(v)
-    except Exception:
+    except (TypeError, ValueError):
         return ""
 
 
@@ -51,12 +63,9 @@ def _canon_info(canon: Any, tx_type: str) -> Optional[Dict[str, Any]]:
     if not tx_u:
         return None
 
-    try:
-        if isinstance(canon, TxIndex):
-            info = canon.get(tx_u)
-            return info if isinstance(info, dict) else None
-    except Exception:
-        pass
+    if isinstance(canon, TxIndex):
+        info = canon.get(tx_u)
+        return info if isinstance(info, dict) else None
 
     if isinstance(canon, dict):
         by_name = canon.get("by_name")
@@ -69,9 +78,9 @@ def _canon_info(canon: Any, tx_type: str) -> Optional[Dict[str, Any]]:
 
     try:
         info = canon.get(tx_u)  # type: ignore[attr-defined]
-        return info if isinstance(info, dict) else None
-    except Exception:
+    except AttributeError:
         return None
+    return info if isinstance(info, dict) else None
 
 
 def _canon_context(canon: Any, tx_type: str) -> str:
@@ -346,6 +355,34 @@ def _queue_root(state: Json) -> List[Json]:
     return root
 
 
+def _validated_queue_items(state: Json) -> List[SystemQueueItem]:
+    items: List[SystemQueueItem] = []
+    for idx, obj in enumerate(_queue_root(state)):
+        if not isinstance(obj, dict):
+            raise SystemQueueCorruptionError(f"system_queue_item_not_object:{idx}")
+        try:
+            item = SystemQueueItem.from_ledger_obj(obj)
+        except (TypeError, ValueError) as exc:
+            raise SystemQueueCorruptionError(f"system_queue_item_invalid:{idx}") from exc
+
+        if not item.queue_id:
+            raise SystemQueueCorruptionError(f"system_queue_item_missing_queue_id:{idx}")
+        if item.phase not in {"pre", "post"}:
+            raise SystemQueueCorruptionError(f"system_queue_item_bad_phase:{idx}")
+        items.append(item)
+    return items
+
+
+def system_queue_phase_for_id(state: Json, *, queue_id: str) -> str:
+    qid = _as_str(queue_id).strip()
+    if not qid:
+        return ""
+    for item in _validated_queue_items(state):
+        if item.queue_id == qid:
+            return str(item.phase).strip().lower()
+    return ""
+
+
 def _queue_ids(state: Json) -> set[str]:
     ids: set[str] = set()
     for obj in _queue_root(state):
@@ -395,14 +432,7 @@ def enqueue_system_tx(
 def _select_due_items(state: Json, *, next_height: int, phase: str) -> List[SystemQueueItem]:
     out: List[SystemQueueItem] = []
     phase_n = _as_str(phase).strip().lower() or "post"
-    for obj in _queue_root(state):
-        if not isinstance(obj, dict):
-            continue
-        try:
-            item = SystemQueueItem.from_ledger_obj(obj)
-        except Exception:
-            continue
-
+    for item in _validated_queue_items(state):
         if item.emitted_height is not None and item.once:
             continue
         if item.phase != phase_n:
@@ -428,10 +458,8 @@ def system_tx_emitter(
     # included in the block. Followers replay the block and do not call this.
     try:
         schedule_block_rewards_system_txs(state, next_height=int(next_height), proposer=str(proposer or ""), phase=phase)
-    except Exception:
-        # Never crash block production because of a scheduler bug; fail-closed
-        # behavior for economic actions is enforced in apply modules.
-        pass
+    except Exception as exc:
+        raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
 
     items = _select_due_items(state, next_height=int(next_height), phase=phase)
     ledger = state
@@ -500,26 +528,37 @@ def confirm_system_tx_emitted(state: Json, *, queue_id: str, emitted_height: int
     qid = _as_str(queue_id).strip()
     if not qid:
         return False
-    for obj in _queue_root(state):
-        if not isinstance(obj, dict):
-            continue
-        if _as_str(obj.get("queue_id")).strip() == qid:
-            obj["emitted_height"] = int(emitted_height)
-            return True
-    return False
+    root = _queue_root(state)
+    found = False
+    for idx, item in enumerate(_validated_queue_items(state)):
+        if item.queue_id == qid:
+            root[idx]["emitted_height"] = int(emitted_height)
+            found = True
+            break
+    return found
 
 
 def prune_emitted_system_queue(state: Json) -> int:
-    root = _queue_root(state)
-    before = len(root)
+    items = _validated_queue_items(state)
+    before = len(items)
     kept: List[Json] = []
-    for obj in root:
-        if not isinstance(obj, dict):
+    for item in items:
+        if item.once and isinstance(item.emitted_height, int):
             continue
-        once = bool(obj.get("once", True))
-        eh = obj.get("emitted_height")
-        if once and isinstance(eh, int):
-            continue
-        kept.append(obj)
+        kept.append(item.to_ledger_obj())
     state["system_queue"] = kept
     return before - len(kept)
+
+
+__all__ = [
+    "SystemQueueCorruptionError",
+    "SystemSchedulerError",
+    "SystemTxEngineError",
+    "SystemQueueItem",
+    "confirm_system_tx_emitted",
+    "enqueue_system_tx",
+    "prune_emitted_system_queue",
+    "system_queue_phase_for_id",
+    "schedule_block_rewards_system_txs",
+    "system_tx_emitter",
+]

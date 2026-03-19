@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 """Consensus domain apply semantics.
 
 This module implements:
@@ -27,6 +29,14 @@ from typing import Any, Dict, List, Optional
 from weall.ledger.roles_schema import ensure_roles_schema
 from weall.runtime.proposer_selection import select_proposer
 from weall.runtime.apply.reputation import apply_reputation_delta_system
+from weall.runtime.bft_hotstuff import (
+    BFT_MIN_VALIDATORS,
+    CONSENSUS_PHASE_BFT_ACTIVE,
+    CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP,
+    CONSENSUS_PHASE_SOLO_BOOTSTRAP,
+    normalize_consensus_phase,
+    validator_set_hash as _canonical_validator_set_hash,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -141,6 +151,19 @@ def _ensure_consensus(state: Json) -> Json:
     ep.setdefault("events", [])
     c["epochs"] = ep
 
+    phase = c.get("phase")
+    if not isinstance(phase, dict):
+        phase = {}
+    current_vs = c.get("validator_set") if isinstance(c.get("validator_set"), dict) else {}
+    active_count = len(_as_list(current_vs.get("active_set")))
+    phase["current"] = normalize_consensus_phase(phase.get("current"), validator_count=active_count)
+    if not isinstance(phase.get("history"), list):
+        phase["history"] = []
+    pending_phase = phase.get("pending")
+    if pending_phase is not None and not isinstance(pending_phase, dict):
+        phase["pending"] = None
+    c["phase"] = phase
+
     return c
 
 
@@ -222,6 +245,56 @@ def _set_active_set(state: Json, accounts: List[str]) -> None:
     validators["active_set"] = out
 
 
+def _phase_root(state: Json) -> Json:
+    c = _ensure_consensus(state)
+    phase = c.get("phase")
+    if not isinstance(phase, dict):
+        phase = {}
+        c["phase"] = phase
+    if not isinstance(phase.get("history"), list):
+        phase["history"] = []
+    phase["current"] = normalize_consensus_phase(phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state)))
+    if phase.get("pending") is not None and not isinstance(phase.get("pending"), dict):
+        phase["pending"] = None
+    return phase
+
+
+def _phase_for_active_set(active_set: List[str], *, bft_requested: bool = False) -> str:
+    normalized_count = len([_as_str(x) for x in active_set if _as_str(x)])
+    if bft_requested:
+        if normalized_count < int(BFT_MIN_VALIDATORS):
+            raise ConsensusApplyError(
+                "invalid_payload",
+                "bft_activation_requires_minimum_validator_count",
+                {"validator_count": int(normalized_count), "minimum": int(BFT_MIN_VALIDATORS)},
+            )
+        return CONSENSUS_PHASE_BFT_ACTIVE
+    return normalize_consensus_phase("", validator_count=normalized_count)
+
+
+def _record_phase_transition(state: Json, *, new_phase: str, activation_epoch: int, validator_set_hash: str, reason: str) -> None:
+    phase = _phase_root(state)
+    current = normalize_consensus_phase(phase.get("current"), validator_count=len(_ensure_roles_validators_active_set(state)))
+    next_phase = normalize_consensus_phase(new_phase, validator_count=len(_ensure_roles_validators_active_set(state)))
+    phase["current"] = next_phase
+    if current != next_phase:
+        history = phase.get("history")
+        assert isinstance(history, list)
+        history.append(
+            {
+                "from": current,
+                "to": next_phase,
+                "activation_epoch": int(activation_epoch),
+                "validator_set_hash": _as_str(validator_set_hash or ""),
+                "reason": _as_str(reason or ""),
+            }
+        )
+        phase["history"] = history
+    c = _ensure_consensus(state)
+    c["phase"] = phase
+
+
+
 # ------------------- Validators -------------------
 
 
@@ -229,6 +302,9 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     account = _as_str(payload.get("account") or env.signer)
     pubkey = _as_str(payload.get("pubkey"))
+
+    # Consensus membership must not be mutable by ordinary user-origin txs.
+    _require_system_env(env)
 
     if not account:
         raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
@@ -240,16 +316,22 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     assert isinstance(reg, dict)
 
     existed = account in reg
-    reg[account] = {"account": account, "pubkey": pubkey, "active": True}
+    prior = reg.get(account) if isinstance(reg.get(account), dict) else {}
+    reg[account] = {
+        "account": account,
+        "pubkey": pubkey,
+        # Registration alone must not activate consensus power. Activation is
+        # handled separately via deterministic validator-set updates.
+        "active": bool(prior.get("active", False)),
+    }
     vroot["registry"] = reg
 
-    # Keep roles.active_set as a best-effort mirror
-    active = _ensure_roles_validators_active_set(state)
-    if account not in active:
-        active.append(account)
-        _set_active_set(state, active)
-
-    return {"applied": "VALIDATOR_REGISTER", "account": account, "existed": existed}
+    return {
+        "applied": "VALIDATOR_REGISTER",
+        "account": account,
+        "existed": existed,
+        "active": bool(reg[account].get("active", False)),
+    }
 
 
 def _apply_validator_deregister(state: Json, env: TxEnvelope) -> Json:
@@ -287,6 +369,114 @@ def _apply_validator_deregister(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "VALIDATOR_DEREGISTER", "account": account, "existed": existed}
 
 
+
+
+def _validator_set_hash(accounts: List[str]) -> str:
+    return _canonical_validator_set_hash([str(x).strip() for x in accounts if str(x).strip()])
+
+
+def _bump_validator_epoch(state: Json, active_set: List[str]) -> None:
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set")
+    if not isinstance(vs, dict):
+        vs = {}
+    epoch = _as_int(vs.get("epoch"), 0) + 1
+    vs["epoch"] = int(epoch)
+    vs["active_set"] = list(active_set)
+    vs["set_hash"] = _validator_set_hash(active_set)
+    pending = vs.get("pending")
+    if isinstance(pending, dict):
+        cur_epoch = _as_int(vs.get("epoch"), 0)
+        act_epoch = _as_int(pending.get("activate_at_epoch"), 0)
+        if act_epoch > 0 and act_epoch <= cur_epoch:
+            vs.pop("pending", None)
+    c["validator_set"] = vs
+
+
+def _set_pending_validator_set(
+    state: Json,
+    *,
+    active_set: List[str],
+    activate_at_epoch: int,
+    pending_phase: str = "",
+) -> str:
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set")
+    if not isinstance(vs, dict):
+        vs = {}
+    set_hash = _validator_set_hash(active_set)
+    pending = vs.get("pending")
+    if isinstance(pending, dict):
+        pending_epoch = _as_int(pending.get("activate_at_epoch"), 0)
+        pending_hash = _as_str(pending.get("set_hash") or "")
+        if pending_epoch == int(activate_at_epoch) and pending_hash == set_hash:
+            return set_hash
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "validator_set_pending_update_exists",
+            {
+                "existing_activate_at_epoch": int(pending_epoch),
+                "existing_validator_set_hash": pending_hash,
+                "activate_at_epoch": int(activate_at_epoch),
+                "validator_set_hash": set_hash,
+            },
+        )
+    phase_name = normalize_consensus_phase(pending_phase, validator_count=len(active_set)) if _as_str(pending_phase) else ""
+    vs["pending"] = {
+        "active_set": list(active_set),
+        "activate_at_epoch": int(activate_at_epoch),
+        "set_hash": set_hash,
+    }
+    if phase_name:
+        vs["pending"]["phase"] = phase_name
+    c["validator_set"] = vs
+    return set_hash
+
+
+def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Optional[Json]:
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set")
+    if not isinstance(vs, dict):
+        return None
+    pending = vs.get("pending")
+    if not isinstance(pending, dict):
+        return None
+    act_epoch = _as_int(pending.get("activate_at_epoch"), 0)
+    if act_epoch <= 0 or int(epoch) != act_epoch:
+        return None
+    active_set = _as_list(pending.get("active_set"))
+    out: List[str] = []
+    seen: set[str] = set()
+    for x in active_set:
+        s = _as_str(x)
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    _set_active_set(state, out)
+    _bump_validator_epoch(state, out)
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set")
+    assert isinstance(vs, dict)
+    pending_phase = normalize_consensus_phase(pending.get("phase"), validator_count=len(out)) if _as_str(pending.get("phase")) else _phase_for_active_set(out)
+    vs.pop("pending", None)
+    c["validator_set"] = vs
+    _record_phase_transition(
+        state,
+        new_phase=pending_phase,
+        activation_epoch=int(act_epoch),
+        validator_set_hash=_as_str(vs.get("set_hash") or ""),
+        reason="validator_set_activation",
+    )
+    return {
+        "active_set": out,
+        "validator_epoch": int(vs.get("epoch") or 0),
+        "validator_set_hash": _as_str(vs.get("set_hash") or ""),
+        "activate_at_epoch": int(act_epoch),
+        "consensus_phase": pending_phase,
+    }
+
+
 def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
     # Receipt-only, system-origin in canon.
     _require_system_env(env)
@@ -304,14 +494,65 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
         seen.add(s)
         out.append(s)
 
+    activate_at_epoch = _as_int(payload.get("activate_at_epoch"), 0)
+    activate_bft_at_epoch = _as_int(payload.get("activate_bft_at_epoch"), 0)
+    current_epoch = _as_int(_ensure_consensus(state).get("epochs", {}).get("current"), 0)
+    pending_phase = ""
+    if activate_bft_at_epoch > 0:
+        if activate_at_epoch <= 0:
+            activate_at_epoch = int(activate_bft_at_epoch)
+        if int(activate_bft_at_epoch) != int(activate_at_epoch):
+            raise ConsensusApplyError(
+                "invalid_payload",
+                "activate_bft_at_epoch_must_match_activate_at_epoch",
+                {"activate_at_epoch": int(activate_at_epoch), "activate_bft_at_epoch": int(activate_bft_at_epoch)},
+            )
+        pending_phase = _phase_for_active_set(out, bft_requested=True)
+    if activate_at_epoch > 0:
+        if int(current_epoch) > 0 and int(activate_at_epoch) <= int(current_epoch):
+            raise ConsensusApplyError(
+                "invalid_payload",
+                "validator_set_activate_at_epoch_must_be_future",
+                {"activate_at_epoch": int(activate_at_epoch), "current_epoch": int(current_epoch)},
+            )
+        set_hash = _set_pending_validator_set(
+            state,
+            active_set=out,
+            activate_at_epoch=int(activate_at_epoch),
+            pending_phase=pending_phase,
+        )
+        out_meta = {
+            "applied": "VALIDATOR_SET_UPDATE",
+            "active_set": out,
+            "pending": True,
+            "activate_at_epoch": int(activate_at_epoch),
+            "validator_set_hash": str(set_hash),
+        }
+        if pending_phase:
+            out_meta["consensus_phase"] = pending_phase
+        return out_meta
+
     _set_active_set(state, out)
+    _bump_validator_epoch(state, out)
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
     assert isinstance(vs, dict)
-    vs["active_set"] = out
-    c["validator_set"] = vs
+    consensus_phase = _phase_for_active_set(out)
+    _record_phase_transition(
+        state,
+        new_phase=consensus_phase,
+        activation_epoch=int(vs.get("epoch") or 0),
+        validator_set_hash=_as_str(vs.get("set_hash") or ""),
+        reason="validator_set_update",
+    )
 
-    return {"applied": "VALIDATOR_SET_UPDATE", "active_set": out}
+    return {
+        "applied": "VALIDATOR_SET_UPDATE",
+        "active_set": out,
+        "validator_epoch": int(vs.get("epoch") or 0),
+        "validator_set_hash": _as_str(vs.get("set_hash") or ""),
+        "consensus_phase": consensus_phase,
+    }
 
 
 def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
@@ -596,6 +837,24 @@ def _apply_block_finalize(state: Json, env: TxEnvelope) -> Json:
 # ------------------- Epochs -------------------
 
 
+def _epoch_events(ep: Json) -> List[Json]:
+    events = ep.get("events")
+    return list(events) if isinstance(events, list) else []
+
+
+def _epoch_has_event(ep: Json, *, epoch: int, event: str) -> bool:
+    want_epoch = int(epoch)
+    want_event = str(event).strip().lower()
+    for item in _epoch_events(ep):
+        if not isinstance(item, dict):
+            continue
+        if _as_int(item.get("epoch"), 0) != want_epoch:
+            continue
+        if str(item.get("event") or "").strip().lower() == want_event:
+            return True
+    return False
+
+
 def _apply_epoch_open(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
@@ -608,15 +867,50 @@ def _apply_epoch_open(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(ep, dict):
         ep = {"current": 0, "events": []}
 
+    current_epoch = _as_int(ep.get("current"), 0)
+    expected_epoch = 1 if current_epoch <= 0 else current_epoch + 1
+    if int(epoch) != int(expected_epoch):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "epoch_open_must_advance_sequentially",
+            {"epoch": int(epoch), "current_epoch": int(current_epoch), "expected_epoch": int(expected_epoch)},
+        )
+    if current_epoch > 0 and not _epoch_has_event(ep, epoch=current_epoch, event="close"):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "epoch_open_requires_previous_epoch_close",
+            {"epoch": int(epoch), "current_epoch": int(current_epoch)},
+        )
+    if _epoch_has_event(ep, epoch=epoch, event="open"):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "epoch_already_open",
+            {"epoch": int(epoch)},
+        )
+
+    vs = c.get("validator_set")
+    if isinstance(vs, dict):
+        pending = vs.get("pending")
+        if isinstance(pending, dict):
+            pending_epoch = _as_int(pending.get("activate_at_epoch"), 0)
+            if pending_epoch > 0 and int(epoch) > int(pending_epoch):
+                raise ConsensusApplyError(
+                    "invalid_payload",
+                    "epoch_open_skips_pending_validator_set_activation",
+                    {"epoch": int(epoch), "activate_at_epoch": int(pending_epoch)},
+                )
+
     ep["current"] = int(epoch)
-    events = ep.get("events")
-    if not isinstance(events, list):
-        events = []
+    events = _epoch_events(ep)
     events.append({"event": "open", "epoch": int(epoch)})
     ep["events"] = events
 
     c["epochs"] = ep
-    return {"applied": "EPOCH_OPEN", "epoch": int(epoch)}
+    out = {"applied": "EPOCH_OPEN", "epoch": int(epoch)}
+    pending_meta = _activate_pending_validator_set_for_epoch(state, int(epoch))
+    if isinstance(pending_meta, dict):
+        out["validator_set_activated"] = pending_meta
+    return out
 
 
 def _apply_epoch_close(state: Json, env: TxEnvelope) -> Json:
@@ -631,9 +925,21 @@ def _apply_epoch_close(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(ep, dict):
         ep = {"current": 0, "events": []}
 
-    events = ep.get("events")
-    if not isinstance(events, list):
-        events = []
+    current_epoch = _as_int(ep.get("current"), 0)
+    if current_epoch <= 0 or int(epoch) != int(current_epoch):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "epoch_close_must_match_current_epoch",
+            {"epoch": int(epoch), "current_epoch": int(current_epoch)},
+        )
+    if _epoch_has_event(ep, epoch=epoch, event="close"):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "epoch_already_closed",
+            {"epoch": int(epoch)},
+        )
+
+    events = _epoch_events(ep)
     events.append({"event": "close", "epoch": int(epoch)})
     ep["events"] = events
 

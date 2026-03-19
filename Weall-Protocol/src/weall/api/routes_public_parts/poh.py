@@ -22,6 +22,20 @@ router = APIRouter()
 Json = Dict[str, Any]
 
 
+class PohRouteConfigError(ValueError):
+    """Raised when explicit PoH route envs are malformed in prod."""
+
+
+_ALLOWED_TRUE = {"1", "true", "yes", "y", "on"}
+_ALLOWED_FALSE = {"0", "false", "no", "n", "off"}
+
+
+def _is_prod() -> bool:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return False
+    return (str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod") == "prod"
+
+
 # ---------------------------------------------------------------------------
 # PoH Tier1: Email verification
 # ---------------------------------------------------------------------------
@@ -159,16 +173,33 @@ def poh_email_tx_receipt_submit(req: PohEmailReceiptSubmitRequest, request: Requ
 # ---------------------------------------------------------------------------
 
 def _env_bool(name: str, default: bool = False) -> bool:
-    v = (os.getenv(name) or "").strip().lower()
+    raw = os.getenv(name)
+    if raw is None:
+        return bool(default)
+    v = str(raw).strip().lower()
     if not v:
         return bool(default)
-    return v in ("1", "true", "yes", "y", "on")
+    if v in _ALLOWED_TRUE:
+        return True
+    if v in _ALLOWED_FALSE:
+        return False
+    if _is_prod():
+        raise PohRouteConfigError(f"invalid_boolean_env:{name}")
+    return bool(default)
 
 
 def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return int(default)
+    v = str(raw).strip()
+    if not v:
+        return int(default)
     try:
-        return int(os.getenv(name, str(default)))
-    except Exception:
+        return int(v)
+    except Exception as exc:
+        if _is_prod():
+            raise PohRouteConfigError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
@@ -658,7 +689,7 @@ def poh_tier3_session_participants(session_id: str, request: Request) -> PohTier
 # ---------------------------------------------------------------------------
 
 def _require_operator_poh_enabled() -> None:
-    if (os.getenv("WEALL_ENABLE_OPERATOR_POH") or "").strip().lower() not in ("1", "true", "yes", "y", "on"):
+    if not _env_bool("WEALL_ENABLE_OPERATOR_POH", False):
         raise ApiError.not_found("not_found", "operator_poh_disabled")
 
 

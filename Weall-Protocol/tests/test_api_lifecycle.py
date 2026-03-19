@@ -35,3 +35,22 @@ def test_create_app_boot_runtime_true_attaches_executor(monkeypatch: pytest.Monk
 
     with TestClient(app) as _client:
         pass
+
+
+def test_create_app_boot_runtime_true_attaches_executor_outside_repo_cwd(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    from weall.api import app as api_app
+
+    def _fake_build_executor():
+        return _FakeExecutor(chain_id="weall-test")
+
+    monkeypatch.setattr(api_app, "build_executor", _fake_build_executor)
+    monkeypatch.chdir(tmp_path)
+
+    app = api_app.create_app(boot_runtime=True)
+    assert getattr(app.state, "executor", None) is not None
+    assert getattr(app.state.executor, "chain_id", "") == "weall-test"
+
+    with TestClient(app) as _client:
+        pass

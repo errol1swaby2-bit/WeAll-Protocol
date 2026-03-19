@@ -9,10 +9,10 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from weall.runtime.sqlite_db import SqliteDB, _canon_json
+from weall.runtime.sqlite_db import SqliteDB, _canon_json, derive_aux_db_path
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.storage.ipfs_partition import read_partition_config, can_accept_bytes
 
@@ -65,6 +65,76 @@ def compute_job_fingerprint(job: Json) -> str:
     return f"job:{h}"
 
 
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    s = str(raw).strip().lower()
+    if s == "":
+        return bool(default)
+    if s in {"1", "true", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "no", "n", "off"}:
+        return False
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
+    s = str(raw).strip()
+    if s == "":
+        return int(default)
+    try:
+        return int(s)
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
+        return int(default)
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        return float(default)
+    s = str(raw).strip()
+    if s == "":
+        return float(default)
+    try:
+        return float(s)
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_float_env:{name}") from exc
+        return float(default)
+
+
+def _env_url(name: str, default: str) -> str:
+    raw = os.environ.get(name)
+    if raw is None:
+        candidate = str(default).strip()
+    else:
+        candidate = str(raw).strip()
+        if candidate == "":
+            if _mode() == "prod":
+                raise ValueError(f"invalid_url_env:{name}")
+            candidate = str(default).strip()
+    parsed = urllib.parse.urlparse(candidate)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        if _mode() == "prod" and raw is not None:
+            raise ValueError(f"invalid_url_env:{name}")
+        candidate = str(default).strip()
+    return candidate
+
+
 @dataclass
 class IpfsPinWorkerConfig:
     db_path: str
@@ -73,32 +143,21 @@ class IpfsPinWorkerConfig:
     max_jobs: int = 200
 
     # Production safety: by default, do NOT perform live network pinning.
-    ipfs_enabled: bool = str(os.environ.get("WEALL_IPFS_ENABLED", "0")).strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    ipfs_enabled: bool = field(default_factory=lambda: _env_bool("WEALL_IPFS_ENABLED", False))
 
     # IPFS/Kubo API
-    ipfs_api_url: str = os.environ.get("WEALL_IPFS_API_URL", "http://127.0.0.1:5001").strip()
-    ipfs_timeout_s: float = float(os.environ.get("WEALL_IPFS_TIMEOUT_S", "10").strip() or "10")
+    ipfs_api_url: str = field(default_factory=lambda: _env_url("WEALL_IPFS_API_URL", "http://127.0.0.1:5001"))
+    ipfs_timeout_s: float = field(default_factory=lambda: _env_float("WEALL_IPFS_TIMEOUT_S", 10.0))
 
     # Retry / backoff
-    max_attempts: int = int(os.environ.get("WEALL_IPFS_MAX_ATTEMPTS", "12").strip() or "12")
-    backoff_base_ms: int = int(os.environ.get("WEALL_IPFS_BACKOFF_BASE_MS", "750").strip() or "750")
-    backoff_cap_ms: int = int(os.environ.get("WEALL_IPFS_BACKOFF_CAP_MS", "60000").strip() or "60000")
+    max_attempts: int = field(default_factory=lambda: _env_int("WEALL_IPFS_MAX_ATTEMPTS", 12))
+    backoff_base_ms: int = field(default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_BASE_MS", 750))
+    backoff_cap_ms: int = field(default_factory=lambda: _env_int("WEALL_IPFS_BACKOFF_CAP_MS", 60000))
 
     # Local partition enforcement (mounted path you control)
-    ipfs_partition_path: str = os.environ.get("WEALL_IPFS_PARTITION_PATH", "").strip()
-    ipfs_partition_cap_bytes: int = int(os.environ.get("WEALL_IPFS_PARTITION_CAP_BYTES", "0").strip() or "0")
-    ipfs_partition_free_reserve_bytes: int = int(
-        os.environ.get(
-            "WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES",
-            str(512 * 1024 * 1024),
-        ).strip()
-        or str(512 * 1024 * 1024)
-    )
+    ipfs_partition_path: str = field(default_factory=lambda: str(os.environ.get("WEALL_IPFS_PARTITION_PATH", "") or "").strip())
+    ipfs_partition_cap_bytes: int = field(default_factory=lambda: _env_int("WEALL_IPFS_PARTITION_CAP_BYTES", 0))
+    ipfs_partition_free_reserve_bytes: int = field(default_factory=lambda: _env_int("WEALL_IPFS_PARTITION_FREE_RESERVE_BYTES", 512 * 1024 * 1024))
 
 
 class IpfsPinWorker:
@@ -106,7 +165,9 @@ class IpfsPinWorker:
 
     def __init__(self, cfg: IpfsPinWorkerConfig) -> None:
         self.cfg = cfg
-        self.db = SqliteDB(path=self.cfg.db_path)
+        aux_db_override = str(os.environ.get("WEALL_AUX_DB_PATH") or "").strip()
+        db_path = aux_db_override or derive_aux_db_path(self.cfg.db_path)
+        self.db = SqliteDB(path=db_path)
         self.db.init_schema()
 
     def _read_job(self, cid: str) -> Optional[Json]:

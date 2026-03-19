@@ -1,42 +1,4 @@
 # File: src/weall/net/handshake.py
-"""
-WeAll Protocol — Network Handshake
-
-Purpose:
-  - Establish compatibility between peers BEFORE any tx/block traffic
-  - Enforce strict invariants:
-      * chain_id must match
-      * schema_version must match
-      * tx_index_hash must match (derived from generated/tx_index.json)
-  - Negotiate a session id for subsequent messages
-
-Non-goals (expanded in this build):
-  - No transport I/O here (caller sends/receives using transport + codec)
-
-Peer identity (THIS BUILD):
-  - Outbound PEER_HELLO may optionally include an identity object proving
-    control of an Ed25519 public key.
-  - The intended binding is: the same public key the user created/added at
-    account creation (ACCOUNT_REGISTER / ACCOUNT_KEY_ADD).
-  - Verification happens at the node layer (net/node.py) because it requires
-    a ledger snapshot.
-
-This module provides:
-  - HandshakeState: per-peer handshake state machine
-  - build_hello / build_hello_ack helpers
-  - process_inbound_hello / process_inbound_ack
-  - begin_outbound_handshake / require_established (compat helpers for router/tests)
-
-Integration pattern:
-  - On connect:
-      send HELLO
-      await HELLO_ACK
-      if ok: mark session established
-  - On inbound HELLO:
-      validate compatibility
-      reply HELLO_ACK
-"""
-
 from __future__ import annotations
 
 import secrets
@@ -45,14 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 from weall.net.messages import MsgType, PeerHello, PeerHelloAck, WireHeader
-
-# codec is used by caller; handshake operates on decoded dataclasses.
 from weall.tx.canon import CanonError
-
-
-# ---------------------------------------------------------------------
-# Errors
-# ---------------------------------------------------------------------
 
 
 class HandshakeError(RuntimeError):
@@ -60,16 +15,10 @@ class HandshakeError(RuntimeError):
 
 
 class HandshakeRejected(HandshakeError):
-    """Raised when a peer is incompatible or handshake is refused."""
-
     def __init__(self, reason: str):
         super().__init__(reason)
         self.reason = reason
 
-
-# ---------------------------------------------------------------------
-# Config / defaults
-# ---------------------------------------------------------------------
 
 DEFAULT_HANDSHAKE_TIMEOUT_S = 10.0
 
@@ -83,12 +32,10 @@ def _new_corr_id() -> str:
 
 
 def _new_session_id() -> str:
-    # Stable length, URL-safe-ish (hex).
     return secrets.token_hex(24)
 
 
 def _default_agent() -> str:
-    # Keep it short; no env leakage.
     return "weall-node"
 
 
@@ -98,9 +45,15 @@ def _validate_non_empty(s: Any, field: str) -> str:
     return s.strip()
 
 
-# ---------------------------------------------------------------------
-# Handshake state
-# ---------------------------------------------------------------------
+def _normalize_opt_str(v: Any) -> str:
+    return str(v).strip() if isinstance(v, (str, int, float)) else ""
+
+
+def _normalize_opt_int(v: Any) -> int:
+    try:
+        return int(v)
+    except Exception:
+        return 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,40 +64,25 @@ class HandshakeConfig:
     peer_id: str
     agent: str = "weall-node"
     caps: Tuple[str, ...] = ()
-
-    # Optional peer identity signing material.
-    # If identity_privkey is provided (and identity_pubkey), the outgoing HELLO
-    # will include a signed identity object:
-    #   {account, pubkey, sig_alg, sig}
     identity_pubkey: Optional[str] = None
     identity_privkey: Optional[str] = None
-
-    # Production posture: if True, outbound HELLO MUST include a valid identity
-    # object. Any signing failure is fail-closed.
     require_identity: bool = False
+    protocol_version: str = ""
+    protocol_profile_hash: str = ""
+    validator_epoch: int = 0
+    validator_set_hash: str = ""
+    bft_enabled: bool = False
+    require_protocol_profile_match: bool = False
+    require_validator_epoch_match_for_bft: bool = False
 
 
 @dataclass(slots=True)
 class HandshakeState:
-    """Per-peer handshake state.
-
-    Lifecycle:
-      NEW -> SENT_HELLO -> ESTABLISHED
-      or
-      NEW -> GOT_HELLO -> ESTABLISHED
-      or failure -> REJECTED
-    """
-
     config: HandshakeConfig
-
-    status: str = "NEW"  # NEW | SENT_HELLO | GOT_HELLO | ESTABLISHED | REJECTED
+    status: str = "NEW"
     session_id: Optional[str] = None
     last_error: Optional[str] = None
-
-    # Correlation id used for our outbound hello (if any)
     outbound_corr_id: Optional[str] = None
-
-    # When handshake started (ms)
     started_ms: int = 0
 
     def start(self) -> None:
@@ -163,14 +101,7 @@ class HandshakeState:
         return (_now_ms() - self.started_ms) > int(timeout_s * 1000)
 
 
-# ---------------------------------------------------------------------
-# Builders
-# ---------------------------------------------------------------------
-
-
 def build_hello(cfg: HandshakeConfig) -> PeerHello:
-    """Create an outbound HELLO message."""
-
     chain_id = _validate_non_empty(cfg.chain_id, "chain_id")
     schema_version = _validate_non_empty(cfg.schema_version, "schema_version")
     tx_index_hash = _validate_non_empty(cfg.tx_index_hash, "tx_index_hash")
@@ -185,12 +116,8 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
         sent_ts_ms=_now_ms(),
         corr_id=corr_id,
     )
-
-    # Nonce is signed (when identity is present) and provides replay resistance.
-    # Use corr_id for stable linkage and to avoid extra randomness calls.
     hello_nonce = corr_id
 
-    # Optional: include a signed identity binding using the user's account pubkey.
     identity: Optional[Dict[str, Any]] = None
     pubkey = (cfg.identity_pubkey or "").strip()
     privkey = (cfg.identity_privkey or "").strip()
@@ -211,10 +138,8 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
                 nonce=hello_nonce,
             )
         except Exception:
-            # Fail-closed in production posture when identity is required.
             if cfg.require_identity:
                 raise HandshakeRejected("identity_sign_failed")
-            # Otherwise: fail-open (dev/test convenience).
             identity = None
 
     if cfg.require_identity and not (isinstance(identity, dict) and identity):
@@ -227,6 +152,11 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
         nonce=hello_nonce,
         caps=tuple(cfg.caps or ()),
         identity=identity,
+        protocol_version=str(cfg.protocol_version or "").strip() or None,
+        protocol_profile_hash=str(cfg.protocol_profile_hash or "").strip() or None,
+        validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
+        validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
+        bft_enabled=bool(cfg.bft_enabled),
     )
 
 
@@ -238,8 +168,6 @@ def build_hello_ack(
     reason: Optional[str] = None,
     caps: Optional[Tuple[str, ...]] = None,
 ) -> PeerHelloAck:
-    """Create an outbound HELLO_ACK message."""
-
     chain_id = _validate_non_empty(cfg.chain_id, "chain_id")
     schema_version = _validate_non_empty(cfg.schema_version, "schema_version")
     tx_index_hash = _validate_non_empty(cfg.tx_index_hash, "tx_index_hash")
@@ -261,42 +189,104 @@ def build_hello_ack(
         reason=reason,
         caps=tuple(caps or ()),
         server_ts_ms=_now_ms(),
+        protocol_version=str(cfg.protocol_version or "").strip() or None,
+        protocol_profile_hash=str(cfg.protocol_profile_hash or "").strip() or None,
+        validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
+        validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
+        bft_enabled=bool(cfg.bft_enabled),
     )
 
 
-# ---------------------------------------------------------------------
-# Processing
-# ---------------------------------------------------------------------
+def _check_protocol_profile(cfg: HandshakeConfig, *, protocol_version: Any, protocol_profile_hash: Any) -> None:
+    if not cfg.require_protocol_profile_match:
+        return
+    local_version = _normalize_opt_str(cfg.protocol_version)
+    remote_version = _normalize_opt_str(protocol_version)
+    local_hash = _normalize_opt_str(cfg.protocol_profile_hash)
+    remote_hash = _normalize_opt_str(protocol_profile_hash)
+    if local_version and not remote_version:
+        raise HandshakeRejected("protocol_version_missing")
+    if local_hash and not remote_hash:
+        raise HandshakeRejected("protocol_profile_hash_missing")
+    if local_version and remote_version and local_version != remote_version:
+        raise HandshakeRejected("protocol_version_mismatch")
+    if local_hash and remote_hash and local_hash != remote_hash:
+        raise HandshakeRejected("protocol_profile_hash_mismatch")
+
+
+def _check_validator_metadata(
+    cfg: HandshakeConfig,
+    *,
+    validator_epoch: Any,
+    validator_set_hash: Any,
+    bft_enabled: Any,
+) -> None:
+    if not cfg.require_validator_epoch_match_for_bft:
+        return
+
+    local_bft = bool(cfg.bft_enabled)
+    remote_bft = bool(bft_enabled)
+    local_epoch = int(cfg.validator_epoch)
+    remote_epoch = _normalize_opt_int(validator_epoch)
+    local_set_hash = _normalize_opt_str(cfg.validator_set_hash)
+    remote_set_hash = _normalize_opt_str(validator_set_hash)
+
+    # Mixed BFT posture is a consensus-affecting compatibility failure. Reject
+    # when either side advertises validator metadata or enables BFT while the
+    # other side does not.
+    remote_has_validator_meta = remote_epoch > 0 or bool(remote_set_hash)
+    local_has_validator_meta = local_epoch > 0 or bool(local_set_hash)
+    if (local_bft != remote_bft) and (local_bft or remote_bft or local_has_validator_meta or remote_has_validator_meta):
+        raise HandshakeRejected("bft_enabled_mismatch")
+
+    if not local_bft and not remote_bft and not local_has_validator_meta and not remote_has_validator_meta:
+        return
+
+    # In strict BFT mode, both sides must explicitly advertise the validator
+    # epoch and set-hash they believe are active. Allowing a restarted/rejoining
+    # node to handshake without local validator metadata would silently admit a
+    # peer before the operator has confirmed the node is on the expected epoch /
+    # validator-set view.
+    if local_bft or remote_bft:
+        if local_epoch <= 0:
+            raise HandshakeRejected("local_validator_epoch_missing")
+        if remote_epoch <= 0:
+            raise HandshakeRejected("validator_epoch_missing")
+        if not local_set_hash:
+            raise HandshakeRejected("local_validator_set_hash_missing")
+        if not remote_set_hash:
+            raise HandshakeRejected("validator_set_hash_missing")
+
+    if local_epoch > 0 and remote_epoch > 0 and local_epoch != remote_epoch:
+        raise HandshakeRejected("validator_epoch_mismatch")
+    if local_set_hash and remote_set_hash and local_set_hash != remote_set_hash:
+        raise HandshakeRejected("validator_set_hash_mismatch")
 
 
 def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck:
-    """Handle an inbound HELLO and produce a HELLO_ACK to send back.
-
-    Enforces strict compatibility.
-    On success, establishes a session.
-
-    NOTE: peer identity verification is performed at net/node.py because it
-    requires a ledger snapshot.
-    """
-
     cfg = state.config
     try:
-        # Validate header invariants.
         if msg.header.chain_id != cfg.chain_id:
             raise HandshakeRejected("chain_id_mismatch")
         if msg.header.schema_version != cfg.schema_version:
             raise HandshakeRejected("schema_version_mismatch")
         if msg.header.tx_index_hash != cfg.tx_index_hash:
             raise HandshakeRejected("tx_index_hash_mismatch")
-
-        # Validate peer_id.
         _validate_non_empty(msg.peer_id, "peer_id")
-
-        # Establish session.
+        _check_protocol_profile(
+            cfg,
+            protocol_version=getattr(msg, "protocol_version", None),
+            protocol_profile_hash=getattr(msg, "protocol_profile_hash", None),
+        )
+        _check_validator_metadata(
+            cfg,
+            validator_epoch=getattr(msg, "validator_epoch", None),
+            validator_set_hash=getattr(msg, "validator_set_hash", None),
+            bft_enabled=getattr(msg, "bft_enabled", None),
+        )
         state.status = "ESTABLISHED"
         state.session_id = _new_session_id()
         state.last_error = None
-
         return build_hello_ack(
             cfg,
             corr_id=getattr(msg.header, "corr_id", None),
@@ -304,7 +294,6 @@ def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck
             reason=None,
             caps=tuple(cfg.caps or ()),
         )
-
     except HandshakeRejected as he:
         state.status = "REJECTED"
         state.session_id = None
@@ -319,26 +308,30 @@ def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck
 
 
 def process_inbound_ack(state: HandshakeState, msg: PeerHelloAck) -> None:
-    """Handle inbound HELLO_ACK after we sent HELLO."""
-
     if state.status not in {"SENT_HELLO"}:
         raise HandshakeError("unexpected_hello_ack")
-
     if not msg.ok:
         state.status = "REJECTED"
         state.session_id = None
         state.last_error = str(msg.reason or "handshake_rejected")
         raise HandshakeRejected(state.last_error)
-
-    # Success.
+    _check_protocol_profile(
+        state.config,
+        protocol_version=getattr(msg, "protocol_version", None),
+        protocol_profile_hash=getattr(msg, "protocol_profile_hash", None),
+    )
+    _check_validator_metadata(
+        state.config,
+        validator_epoch=getattr(msg, "validator_epoch", None),
+        validator_set_hash=getattr(msg, "validator_set_hash", None),
+        bft_enabled=getattr(msg, "bft_enabled", None),
+    )
     state.status = "ESTABLISHED"
     state.session_id = _new_session_id()
     state.last_error = None
 
 
 def initiate(state: HandshakeState) -> PeerHello:
-    """Start handshake: build HELLO and update state."""
-
     state.start()
     hello = build_hello(state.config)
     state.status = "SENT_HELLO"
@@ -346,18 +339,11 @@ def initiate(state: HandshakeState) -> PeerHello:
     return hello
 
 
-# ---------------------------------------------------------------------
-# Compatibility helpers (router/tests expect these names)
-# ---------------------------------------------------------------------
-
-
 def begin_outbound_handshake(state: HandshakeState) -> PeerHello:
-    """Legacy name used by router/tests: start and return outbound HELLO."""
     return initiate(state)
 
 
 def require_established(state: HandshakeState) -> None:
-    """Legacy helper used by router to enforce session establishment."""
     if not isinstance(state, HandshakeState):
         raise HandshakeRejected("invalid_handshake_state")
     if not state.is_established():

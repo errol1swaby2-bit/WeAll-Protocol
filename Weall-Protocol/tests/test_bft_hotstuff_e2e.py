@@ -52,13 +52,13 @@ def test_hotstuff_qc_verification_and_3chain_commit() -> None:
     # Build votes for block b3 by 3 validators
     votes: List[dict] = []
     for signer in ["v1", "v2", "v3"]:
-        msg = canonical_vote_message(chain_id=chain_id, view=view, block_id="b3", parent_id="b2", signer=signer)
+        msg = canonical_vote_message(chain_id=chain_id, view=view, block_id="b3", block_hash="bh3", parent_id="b2", signer=signer)
         sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
-        v = BftVote(chain_id=chain_id, view=view, block_id="b3", parent_id="b2", signer=signer, pubkey=vpub[signer], sig=sig)
+        v = BftVote(chain_id=chain_id, view=view, block_id="b3", block_hash="bh3", parent_id="b2", signer=signer, pubkey=vpub[signer], sig=sig)
         assert v.verify() is True
         votes.append({"signer": signer, "pubkey": vpub[signer], "sig": sig})
 
-    qc = QuorumCert(chain_id=chain_id, view=view, block_id="b3", parent_id="b2", votes=tuple(votes))
+    qc = QuorumCert(chain_id=chain_id, view=view, block_id="b3", block_hash="bh3", parent_id="b2", votes=tuple(votes))
 
     # QC must verify against active set
     assert verify_qc(qc=qc, validators=validators, validator_pubkeys=vpub) is True

@@ -21,21 +21,36 @@ from weall.util.ipfs_cid import validate_ipfs_cid
 router = APIRouter()
 
 
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return int(default)
     try:
-        v = os.getenv(name)
-        if v is None:
-            return int(default)
-        return int(v)
-    except Exception:
+        return int(str(raw).strip())
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
 def _env_bool(name: str, default: bool) -> bool:
-    v = os.getenv(name)
-    if v is None:
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
         return bool(default)
-    return (v or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+    v = str(raw).strip().lower()
+    if v in {"1", "true", "yes", "y", "on"}:
+        return True
+    if v in {"0", "false", "no", "n", "off"}:
+        return False
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
 
 
 def _sanitize_filename(name: str) -> str:

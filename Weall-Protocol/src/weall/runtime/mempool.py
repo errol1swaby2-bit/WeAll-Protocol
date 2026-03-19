@@ -23,26 +23,43 @@ def _safe_int(v: Any, default: int) -> int:
         return int(default)
 
 
+def _mode() -> str:
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
+    s = str(raw).strip()
+    if not s:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}")
+        return int(default)
     try:
-        raw = str(os.environ.get(name, "")).strip()
-        return int(raw) if raw else int(default)
+        return int(s)
     except Exception:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}")
         return int(default)
 
 
 def _env_bool(name: str, default: bool) -> bool:
-    try:
-        raw = str(os.environ.get(name, "")).strip().lower()
-        if not raw:
-            return bool(default)
-        if raw in {"1", "true", "yes", "y", "on"}:
-            return True
-        if raw in {"0", "false", "no", "n", "off"}:
-            return False
+    raw = os.environ.get(name)
+    if raw is None:
         return bool(default)
-    except Exception:
+    s = str(raw).strip().lower()
+    if not s:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_boolean_env:{name}")
         return bool(default)
+    if s in {"1", "true", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "no", "n", "off"}:
+        return False
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
 
 
 def _env_str(name: str, default: str) -> str:
@@ -149,9 +166,16 @@ class PersistentMempool:
     def __post_init__(self) -> None:
         self.db.init_schema()
 
-        # Chain id is used for tx_id derivation (avoid cross-chain collisions).
-        if not str(self.chain_id or "").strip():
-            self.chain_id = _env_str("WEALL_CHAIN_ID", "weall-devnet").strip() or "weall-devnet"
+        # Chain id is consensus-relevant for tx_id derivation. Prefer the explicit
+        # executor-supplied chain id; only fall back to environment for legacy callers.
+        explicit_chain_id = str(self.chain_id or "").strip()
+        if explicit_chain_id:
+            self.chain_id = explicit_chain_id
+        else:
+            env_chain_id = _env_str("WEALL_CHAIN_ID", "").strip()
+            if not env_chain_id:
+                raise ValueError("PersistentMempool requires an explicit chain_id or WEALL_CHAIN_ID")
+            self.chain_id = env_chain_id
 
         # Allow env overrides without forcing callers to plumb config everywhere.
         self.default_ttl_ms = _env_int("WEALL_MEMPOOL_TTL_MS", self.default_ttl_ms)
@@ -264,19 +288,25 @@ class PersistentMempool:
         if provided and provided != tx_id:
             return {"ok": False, "error": "bad_env:tx_id_mismatch"}
 
-        received_ms = _safe_int(env.get("received_ms"), _now_ms())
+        requested_received_ms = _safe_int(env.get("received_ms"), _now_ms())
         expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
-
-        # Persist canonical envelope including computed stamps (but id derived from base fields).
-        env_persist: Json = dict(env)
-        env_persist["tx_id"] = tx_id
-        env_persist["received_ms"] = received_ms
-        env_persist["expires_ms"] = expires_ms
-        env_json = _canon_json(env_persist)
 
         with self.db.write_tx() as con:
             now = _now_ms()
             self._prune_expired_if_due(con=con, now_ms=int(now))
+
+            row_last = con.execute("SELECT MAX(received_ms) AS last_received_ms FROM mempool;").fetchone()
+            last_received_ms = int(row_last["last_received_ms"]) if row_last is not None and row_last["last_received_ms"] is not None else 0
+            received_ms = int(requested_received_ms)
+            if received_ms <= last_received_ms:
+                received_ms = int(last_received_ms) + 1
+
+            # Persist canonical envelope including computed stamps (but id derived from base fields).
+            env_persist: Json = dict(env)
+            env_persist["tx_id"] = tx_id
+            env_persist["received_ms"] = received_ms
+            env_persist["expires_ms"] = expires_ms
+            env_json = _canon_json(env_persist)
 
             # Enforce caps (if enabled). Reject by default. Optional deterministic eviction.
             if self.max_items > 0:

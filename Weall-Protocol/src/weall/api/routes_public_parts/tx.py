@@ -25,6 +25,10 @@ router = APIRouter()
 Json = Dict[str, Any]
 
 
+def _mode() -> str:
+    return (os.environ.get("WEALL_MODE") or "prod").strip().lower() or "prod"
+
+
 def _safe_mempool(request: Request):
     try:
         return _mempool(request)
@@ -168,11 +172,17 @@ def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> O
 
 
 def _http_requires_sig_by_default() -> bool:
-    """Default HTTP policy: require cryptographic signatures in prod."""
-    mode = (os.environ.get("WEALL_MODE") or "testnet").strip().lower()
+    """Default HTTP policy: require cryptographic signatures in prod.
+
+    In production, validator-facing/public HTTP must fail closed regardless of
+    WEALL_SIGVERIFY overrides. Outside production, operators may opt in.
+    """
+    mode = _mode()
     override = os.environ.get("WEALL_SIGVERIFY")
+    if mode == "prod":
+        return True
     if override is None:
-        return bool(mode == "prod")
+        return False
     return bool(str(override).strip() == "1")
 
 

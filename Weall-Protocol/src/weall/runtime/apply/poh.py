@@ -431,17 +431,22 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
     return {"applied": "POH_CHALLENGE_RESOLVE", "challenge_id": cid, "resolution": resolution}
 
 
-def _tier2_defaults_from_env() -> tuple[int, int, int, int]:
-    def _env_int(name: str, default: int) -> int:
+def _tier2_defaults_from_state(state: Json) -> tuple[int, int, int, int]:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    poh = params.get("poh")
+    poh = poh if isinstance(poh, dict) else {}
+
+    def _param_int(key: str, default: int, minimum: int) -> int:
         try:
-            return int(os.environ.get(name, str(default)))
+            return max(minimum, int(poh.get(key)))
         except Exception:
             return int(default)
 
-    n_jurors = max(1, _env_int("WEALL_POH_TIER2_N_JURORS", 25))
-    min_total = max(1, _env_int("WEALL_POH_TIER2_MIN_TOTAL_REVIEWS", 25))
-    pass_threshold = max(1, _env_int("WEALL_POH_TIER2_PASS_THRESHOLD", 20))
-    fail_max = max(0, _env_int("WEALL_POH_TIER2_FAIL_MAX", 3))
+    n_jurors = _param_int("tier2_n_jurors", 25, 1)
+    min_total = _param_int("tier2_min_total_reviews", 25, 1)
+    pass_threshold = _param_int("tier2_pass_threshold", 20, 1)
+    fail_max = _param_int("tier2_fail_max", 3, 0)
     return min_total, pass_threshold, fail_max, n_jurors
 
 
@@ -512,7 +517,7 @@ def apply_poh_tier2_juror_assign(state: Json, env: Any) -> Json:
     if len(jurors) != len(set([_as_str(x) for x in jurors])):
         raise ApplyError("invalid_tx", "duplicate_jurors", {})
 
-    min_total, pass_threshold, fail_max, n_jurors_default = _tier2_defaults_from_env()
+    min_total, pass_threshold, fail_max, n_jurors_default = _tier2_defaults_from_state(state)
     n_jurors = _as_int(p.get("n_jurors") or n_jurors_default, n_jurors_default)
     if n_jurors <= 0:
         n_jurors = n_jurors_default

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from weall.runtime.errors import ApplyError
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
+from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
@@ -103,6 +104,78 @@ def _enforce_genesis_econ_lock(state: Json, actions: List[Dict[str, Any]]) -> No
                 {"tx_type": tx_type, "reason": "genesis_economic_lock"},
             )
 
+DEFAULT_GOV_ACTION_ALLOWLIST = frozenset({
+    "ECONOMICS_ACTIVATION",
+    "FEE_POLICY_SET",
+    "GOV_QUORUM_SET",
+    "GOV_RULES_SET",
+    "TREASURY_PARAMS_SET",
+    "VALIDATOR_SET_UPDATE",
+})
+
+_ALLOWED_GOV_QUORUM_KEYS = frozenset({"quorum_percent", "quorum_bps"})
+_ALLOWED_GOV_RULES_ROOTS = frozenset({"params", "treasury"})
+
+
+def _allowed_gov_action_types(state: Json) -> frozenset[str]:
+    params = _d(state.get("params"))
+    raw = params.get("gov_action_allowlist")
+    if isinstance(raw, list) and raw:
+        out = {
+            _s(item).strip().upper()
+            for item in raw
+            if _s(item).strip()
+        }
+        if out:
+            return frozenset(sorted(out))
+    return DEFAULT_GOV_ACTION_ALLOWLIST
+
+
+def _validate_gov_quorum_payload(payload: Dict[str, Any]) -> None:
+    extras = sorted(str(k) for k in payload.keys() if str(k) not in _ALLOWED_GOV_QUORUM_KEYS)
+    if extras:
+        raise ApplyError("forbidden", "governance_quorum_field_not_allowed", {"fields": extras})
+
+
+def _validate_gov_rules_payload(payload: Dict[str, Any]) -> None:
+    extras = sorted(str(k) for k in payload.keys() if str(k) not in _ALLOWED_GOV_RULES_ROOTS)
+    if extras:
+        raise ApplyError("forbidden", "governance_rules_root_not_allowed", {"fields": extras})
+
+    params_blob = payload.get("params")
+    if isinstance(params_blob, dict) and params_blob:
+        try:
+            validate_param_blob(base_path=("params",), blob=params_blob)
+        except ValueError as e:
+            raise ApplyError("forbidden", str(e), {"path": "params"}) from e
+
+    treasury_blob = payload.get("treasury")
+    if isinstance(treasury_blob, dict) and treasury_blob:
+        try:
+            validate_param_blob(base_path=("treasury",), blob=treasury_blob)
+        except ValueError as e:
+            raise ApplyError("forbidden", str(e), {"path": "treasury"}) from e
+
+
+def _validate_governance_action_payload(tx_type: str, payload: Dict[str, Any]) -> None:
+    t = _s(tx_type).strip().upper()
+    if t == "GOV_QUORUM_SET":
+        _validate_gov_quorum_payload(payload)
+    elif t == "GOV_RULES_SET":
+        _validate_gov_rules_payload(payload)
+
+
+def _assert_governance_actions_allowed(state: Json, actions: List[Dict[str, Any]]) -> None:
+    allowed = _allowed_gov_action_types(state)
+    for action in actions:
+        tx_type = _s(action.get("tx_type")).strip().upper()
+        if not tx_type:
+            continue
+        if tx_type not in allowed:
+            raise ApplyError("forbidden", "governance_action_not_allowed", {"tx_type": tx_type})
+        _validate_governance_action_payload(tx_type, _d(action.get("payload")))
+
+
 
 def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> Dict[str, Any]:
     root = _ensure_root(state)
@@ -115,6 +188,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> Dict[str, Any]:
 
     rules = _d(p.get("rules"))
     actions = _extract_actions(p)
+    _assert_governance_actions_allowed(state, actions)
     _enforce_genesis_econ_lock(state, actions)
 
     h = _height_hint(state, env)
@@ -189,6 +263,7 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> Dict[str, Any]:
 
     if "actions" in p:
         actions = _extract_actions(p)
+        _assert_governance_actions_allowed(state, actions)
         _enforce_genesis_econ_lock(state, actions)
         pr["actions"] = actions
 
@@ -339,6 +414,8 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> Dict[str, Any]:
             for a in snap:
                 if isinstance(a, dict):
                     actions.append({"tx_type": _s(a.get("tx_type")).strip().upper(), "payload": _d(a.get("payload"))})
+
+    _assert_governance_actions_allowed(state, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
     for a in actions:
@@ -530,6 +607,7 @@ def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
     p = _d(env.payload)
+    _validate_gov_quorum_payload(p)
 
     # Minimal bounds safety: if a quorum numeric field is present, keep it sane.
     if "quorum_percent" in p:
@@ -569,6 +647,7 @@ def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> Dict[str, Any]:
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
     p = _d(env.payload)
+    _validate_gov_rules_payload(p)
 
     rec = _sorted_dict(dict(p))
     rec["_height"] = _height_hint(state, env)

@@ -15,6 +15,10 @@ from weall.runtime.tx_admission_types import TxEnvelope
 Json = Dict[str, Any]
 
 
+class NonceSideEffectError(RuntimeError):
+    """Consensus-critical nonce mutation failed after or during atomic apply."""
+
+
 def _is_system(env: Any) -> bool:
     if isinstance(env, dict):
         return bool(env.get("system", False))
@@ -47,6 +51,8 @@ def _consume_nonce_if_possible(state: Json, env: Any) -> None:
       - system txs do not consume nonce
 
     This function only mutates the account nonce and nothing else.
+    It MUST fail closed on malformed consensus state; silently skipping a
+    nonce write would let different nodes commit different post-apply state.
     """
 
     if _is_system(env):
@@ -54,13 +60,24 @@ def _consume_nonce_if_possible(state: Json, env: Any) -> None:
 
     signer = _signer(env)
     if not signer:
-        return
+        raise NonceSideEffectError("nonce_side_effect_missing_signer")
 
-    acct = state.get("accounts", {}).get(signer)
+    accounts = state.get("accounts")
+    if accounts is None:
+        return
+    if not isinstance(accounts, dict):
+        raise NonceSideEffectError("nonce_side_effect_accounts_not_object")
+
+    acct = accounts.get(signer)
+    if acct is None:
+        return
     if not isinstance(acct, dict):
-        return
+        raise NonceSideEffectError(f"nonce_side_effect_account_not_object:{signer}")
 
-    acct["nonce"] = int(_nonce(env))
+    try:
+        acct["nonce"] = int(_nonce(env))
+    except Exception as exc:
+        raise NonceSideEffectError(f"nonce_side_effect_write_failed:{type(exc).__name__}") from exc
 
 
 def _require_valid_signer_format(env: Any) -> None:
@@ -114,10 +131,7 @@ def apply_tx_atomic(
         _ = _apply_tx_internal(snapshot, env_norm)
     except ApplyError:
         if consume_nonce_on_fail:
-            try:
-                _consume_nonce_if_possible(state, env_norm)
-            except Exception:
-                pass
+            _consume_nonce_if_possible(state, env_norm)
         raise
 
     # Commit by replacing contents in-place so callers holding references
@@ -126,10 +140,7 @@ def apply_tx_atomic(
     state.update(snapshot)
 
     # Always consume nonce on success for non-system txs.
-    try:
-        _consume_nonce_if_possible(state, env_norm)
-    except Exception:
-        pass
+    _consume_nonce_if_possible(state, env_norm)
 
     # Return the updated state object (stable, test-friendly API).
     return state
@@ -162,19 +173,13 @@ def apply_tx_atomic_meta(
         meta = _apply_tx_internal(snapshot, env_norm)
     except ApplyError:
         if consume_nonce_on_fail:
-            try:
-                _consume_nonce_if_possible(state, env_norm)
-            except Exception:
-                pass
+            _consume_nonce_if_possible(state, env_norm)
         raise
 
     state.clear()
     state.update(snapshot)
 
-    try:
-        _consume_nonce_if_possible(state, env_norm)
-    except Exception:
-        pass
+    _consume_nonce_if_possible(state, env_norm)
 
     return meta
 
@@ -196,4 +201,4 @@ def apply_tx(state: Json, env: Any) -> Optional[Json]:
     return apply_tx_atomic_meta(state, env, consume_nonce_on_fail=True)
 
 
-__all__ = ["ApplyError", "apply_tx", "apply_tx_atomic", "apply_tx_atomic_meta", "Json"]
+__all__ = ["ApplyError", "NonceSideEffectError", "apply_tx", "apply_tx_atomic", "apply_tx_atomic_meta", "Json"]

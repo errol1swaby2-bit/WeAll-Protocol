@@ -26,13 +26,12 @@ def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
     monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
 
-    t = 1_000.0
+    t_ns = 1_000 * 1_000_000_000
 
-    def _now() -> float:
-        return float(t)
+    def _now_ns() -> int:
+        return int(t_ns)
 
-    # Monkeypatch module time used by the middleware.
-    monkeypatch.setattr(sec.time, "time", _now)
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
 
     app = FastAPI()
 
@@ -56,7 +55,7 @@ def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
         assert before >= 50
 
         # Advance beyond TTL for all existing keys.
-        t += 60.0
+        t_ns += 60 * 1_000_000_000
 
         # One more request triggers prune_every=1.
         r = client.get("/ping", headers={"x-forwarded-for": "203.0.113.250"})
@@ -68,6 +67,7 @@ def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
         assert after <= 5
 
 
+
 def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     """Size-cap eviction drops oldest keys when max_keys is exceeded."""
 
@@ -77,12 +77,12 @@ def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
     monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
 
-    t = 5_000.0
+    t_ns = 5_000 * 1_000_000_000
 
-    def _now() -> float:
-        return float(t)
+    def _now_ns() -> int:
+        return int(t_ns)
 
-    monkeypatch.setattr(sec.time, "time", _now)
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
 
     app = FastAPI()
 
@@ -95,7 +95,7 @@ def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestClient(app) as client:
         # Touch 4 distinct keys, forcing eviction down to 3.
         for i in range(4):
-            t += 1.0
+            t_ns += 1_000_000_000
             r = client.get("/ping", headers={"x-forwarded-for": f"198.51.100.{i}"})
             assert r.status_code == 200
 
@@ -103,3 +103,44 @@ def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
         assert rl is not None
 
         assert len(rl._buckets) == 3
+
+
+
+def test_rate_limit_refill_uses_monotonic_integer_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weall.api.security import RateLimitMiddleware, TokenBucket
+    import weall.api.security as sec
+
+    monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
+    monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
+
+    t_ns = 10_000 * 1_000_000_000
+
+    def _now_ns() -> int:
+        return int(t_ns)
+
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
+
+    app = FastAPI()
+
+    @app.get("/ping")
+    def _ping():
+        return {"ok": True}
+
+    app.add_middleware(
+        RateLimitMiddleware,
+        read_bucket=TokenBucket(rate_per_sec=1, burst=2),
+        ttl_s=60,
+        max_keys=100,
+        prune_every=1,
+    )
+
+    with TestClient(app) as client:
+        headers = {"x-forwarded-for": "203.0.113.10"}
+
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 429
+
+        t_ns += 1_000_000_000
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 429

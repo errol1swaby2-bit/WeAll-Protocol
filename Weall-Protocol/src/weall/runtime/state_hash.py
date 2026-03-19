@@ -2,12 +2,24 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Final
 
 Json = Dict[str, Any]
 
-# Node-local keys that must never affect consensus state commitments.
-_EPHEMERAL_KEYS = {"created_ms", "bft"}
+# Consensus-critical contract.
+#
+# These keys may appear in local snapshots and API/status payloads, but they must
+# never affect the committed state root because they are operational or circular
+# tip-tracking metadata rather than durable ledger semantics.
+#
+# Keep this set synchronized with the authoritative protocol specification.
+_EPHEMERAL_KEYS: Final[frozenset[str]] = frozenset({
+    "created_ms",
+    "bft",
+    "meta",
+    "tip_hash",
+    "tip_ts_ms",
+})
 
 
 def _strip_ephemeral(obj: Any) -> Any:

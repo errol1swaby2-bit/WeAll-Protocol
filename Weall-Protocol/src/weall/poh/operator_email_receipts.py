@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, Optional, Tuple
 
 from weall.crypto.sig import verify_ed25519_signature
+from weall.runtime.reputation_units import account_reputation_units
 
 Json = Dict[str, Any]
 
@@ -260,7 +261,7 @@ def validate_operator_email_receipt(
         return False, "worker_locked", None
     if int(worker_acct.get("poh_tier") or 0) < 3:
         return False, "worker_not_tier3", None
-    if float(worker_acct.get("reputation") or 0.0) <= 0.0:
+    if account_reputation_units(worker_acct, default=0) <= 0:
         return False, "worker_reputation_too_low", None
     if not _account_has_pubkey(worker_acct, worker_pubkey):
         return False, "worker_pubkey_not_registered", None

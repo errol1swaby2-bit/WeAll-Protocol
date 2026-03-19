@@ -12,11 +12,30 @@ _gauges: Dict[str, int] = {}
 _started_ms = int(time.time() * 1000)
 
 
-def metrics_enabled() -> bool:
-    v = (os.environ.get("WEALL_METRICS_ENABLED") or "").strip().lower()
+def _mode() -> str:
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return "test"
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    v = str(raw or "").strip().lower()
     if not v:
+        return bool(default)
+    if v in {"1", "true", "yes", "y", "on"}:
+        return True
+    if v in {"0", "false", "no", "n", "off"}:
         return False
-    return v in {"1", "true", "yes", "y", "on"}
+    if _mode() == "prod":
+        raise ValueError(f"invalid_boolean_env:{name}")
+    return bool(default)
+
+
+def metrics_enabled() -> bool:
+    return _env_bool("WEALL_METRICS_ENABLED", False)
 
 
 def inc_counter(name: str, value: int = 1) -> None:
@@ -63,7 +82,6 @@ def format_prometheus(prefix: str = "weall_") -> str:
     snap = snapshot()
     lines: list[str] = []
 
-    # stable base metrics
     lines.append(f"{pre}uptime_ms {int(snap.get('uptime_ms') or 0)}")
 
     c = snap.get("counters") if isinstance(snap.get("counters"), dict) else {}

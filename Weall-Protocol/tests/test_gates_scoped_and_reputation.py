@@ -38,30 +38,41 @@ def _unsigned_ok(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
-    "min_rep_value,have_rep,should_pass",
+    "spec_fragment,have_rep_units,should_pass",
     [
-        (0.0, 0.0, True),
-        (0.01, 0.0, False),
-        (0.01, 0.009, False),
-        (0.01, 0.01, True),
+        ({"min_reputation": 0.0}, 0, True),
+        ({"min_reputation": 0.01}, 0, False),
+        ({"min_reputation": 0.01}, 9, False),
+        ({"min_reputation": 0.01}, 10, True),
         # Admission treats values in [1.0, 100.0] as percentages.
-        (100.0, 0.99, False),
-        (100.0, 1.0, True),
+        ({"min_reputation": 100.0}, 990, False),
+        ({"min_reputation": 100.0}, 1000, True),
+        ({"min_reputation_milli": 1250}, 1249, False),
+        ({"min_reputation_milli": 1250}, 1250, True),
     ],
 )
-def test_min_reputation_enforced(min_rep_value: float, have_rep: float, should_pass: bool) -> None:
+def test_min_reputation_enforced(spec_fragment: Dict[str, Any], have_rep_units: int, should_pass: bool) -> None:
     canon = _canon(
         {
             "CONTENT_POST_CREATE": {
                 "context": "mempool",
                 "subject_gate": "Tier0+",
-                "min_reputation": min_rep_value,
+                **spec_fragment,
             }
         }
     )
 
     ledger = LedgerView(
-        accounts={"@user": {"poh_tier": 3, "banned": False, "locked": False, "reputation": have_rep, "nonce": 0}},
+        accounts={
+            "@user": {
+                "poh_tier": 3,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": have_rep_units,
+                "reputation": have_rep_units / 1000.0,
+                "nonce": 0,
+            }
+        },
         roles={},
     )
 

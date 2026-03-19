@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from weall.runtime.metrics import inc_counter, set_gauge
+from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 
 
 log = logging.getLogger("weall.block_loop")
@@ -41,13 +42,23 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return int(default)
     try:
-        return int(os.environ.get(name, str(default)))
-    except Exception:
+        return int(str(raw).strip())
+    except Exception as exc:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_integer_env:{name}") from exc
         return int(default)
 
 
+def _mode() -> str:
+    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+
+
 def block_loop_config_from_env() -> BlockLoopConfig:
+    validate_runtime_consensus_profile()
     enabled = _env_bool("WEALL_BLOCK_LOOP_ENABLED", True)
     interval_ms = _env_int("WEALL_BLOCK_INTERVAL_MS", 20_000)
     interval_ms = max(250, int(interval_ms))
@@ -64,8 +75,10 @@ def block_loop_config_from_env() -> BlockLoopConfig:
     # BFT controls
     bft_enabled = _env_bool("WEALL_BFT_ENABLED", False)
     bft_timeout_ms = max(1_000, _env_int("WEALL_BFT_TIMEOUT_MS", 10_000))
-    # Safety: legacy autocommit in BFT mode is UNSAFE; keep default False.
+    # Safety: legacy autocommit in BFT mode is UNSAFE. Never allow it in production.
     bft_unsafe_autocommit = _env_bool("WEALL_BFT_UNSAFE_AUTOCOMMIT", False)
+    if bft_enabled and _mode() == "prod" and bft_unsafe_autocommit:
+        raise ValueError("WEALL_BFT_UNSAFE_AUTOCOMMIT is not allowed in WEALL_MODE=prod")
 
     # Local validator identity (account id) for leader schedule and voting.
     validator_account = (os.environ.get("WEALL_VALIDATOR_ACCOUNT") or "").strip()
@@ -456,7 +469,15 @@ class BlockProducerLoop:
 
     def _maybe_timeout(self) -> None:
         now_ms = int(time.time() * 1000)
-        if (now_ms - self._last_bft_timeout_check_ms) < int(self._cfg.bft_timeout_ms):
+        timeout_ms = int(self._cfg.bft_timeout_ms)
+        if hasattr(self._executor, "bft_diagnostics"):
+            try:
+                diag = self._executor.bft_diagnostics()
+                if isinstance(diag, dict):
+                    timeout_ms = int(diag.get("pacemaker_timeout_ms") or timeout_ms)
+            except Exception:
+                pass
+        if (now_ms - self._last_bft_timeout_check_ms) < int(timeout_ms):
             return
         self._last_bft_timeout_check_ms = now_ms
         if hasattr(self._executor, "bft_timeout_check"):

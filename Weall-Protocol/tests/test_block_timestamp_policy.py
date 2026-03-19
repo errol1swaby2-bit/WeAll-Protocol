@@ -1,4 +1,3 @@
-# tests/test_block_timestamp_policy.py
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,10 +13,12 @@ def _repo_root():
     return pathlib.Path(__file__).resolve().parents[1]
 
 
-def test_executor_rejects_future_drift_block_timestamp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """If the persisted tip timestamp is too far in the future, block production must fail-closed.
+def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_clock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prod restart stays chain-time safe and degrades to observer mode on huge skew.
 
-    NOTE: executor validates tip_ts_ms (not last_block_ts_ms).
+    Normal consensus validity follows chain time. A catastrophically future-skewed tip
+    should no longer prevent startup, but it must leave clear diagnostics and block
+    automatic validator signing until an operator verifies the node.
     """
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -31,21 +32,21 @@ def test_executor_rejects_future_drift_block_timestamp(tmp_path: Path, monkeypat
     sub = ex.submit_tx({"tx_type": "ACCOUNT_REGISTER", "signer": "@user000", "nonce": 1, "payload": {"pubkey": "k:0"}})
     assert sub["ok"] is True
 
-    # Produce one block to establish a real tip timestamp.
     meta = ex.produce_block(max_txs=1)
     assert meta.ok is True
+    ex.mark_clean_shutdown()
     st1 = ex.read_state()
     assert int(st1.get("height", 0)) == 1
 
-    # Corrupt the snapshot tip timestamp far into the future.
-    st1["tip_ts_ms"] = int(st1.get("tip_ts_ms", 0)) + 10_000_000_000
+    import time
 
-    # Test-only corruption hook: write snapshot directly.
+    st1["tip_ts_ms"] = int(time.time() * 1000) + 10_000_000_000
     ex._store.write_state_snapshot(st1)  # type: ignore[attr-defined]
 
-    # Now block production must fail-closed.
-    meta2 = ex.produce_block(max_txs=1)
-    assert meta2.ok is False
-
-    st2 = ex.read_state()
-    assert int(st2.get("height", 0)) == 1
+    monkeypatch.delenv("WEALL_UNSAFE_DEV", raising=False)
+    ex2 = WeAllExecutor(db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path)
+    assert ex2.observer_mode() is True
+    warning = ((ex2.read_state().get("meta") or {}) if isinstance(ex2.read_state().get("meta"), dict) else {}).get("clock_warning")
+    assert isinstance(warning, dict)
+    assert bool(warning.get("observer_mode_forced", False)) is True
+    assert bool(warning.get("startup_blocked", True)) is False
