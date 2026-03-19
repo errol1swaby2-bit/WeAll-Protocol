@@ -47,6 +47,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["weall"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/weall/ledger/migrations.py" = ["UP006", "UP035"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
