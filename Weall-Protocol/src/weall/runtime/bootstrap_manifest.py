@@ -137,9 +137,7 @@ def read_db_state(db_path: str | Path) -> tuple[Json, Json]:
             for key, value in meta_rows:
                 meta[str(key)] = value
 
-            row = con.execute(
-                "SELECT state_json FROM ledger_state WHERE id = 1"
-            ).fetchone()
+            row = con.execute("SELECT state_json FROM ledger_state WHERE id = 1").fetchone()
             if row is None or not row[0]:
                 state, fallback_meta = _empty_state()
                 fallback_meta.update(meta)
@@ -468,9 +466,7 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
         }
         if not ok:
             mismatches.append(field)
-            issues.append(
-                f"{field} mismatch: local={local_value!r} manifest={manifest_value!r}"
-            )
+            issues.append(f"{field} mismatch: local={local_value!r} manifest={manifest_value!r}")
 
     _check("chain_id", str(cfg.chain_id or ""), str(manifest.get("chain_id") or ""))
     _check("tx_index_hash", local_tx_index_hash, str(manifest.get("tx_index_hash") or ""))
