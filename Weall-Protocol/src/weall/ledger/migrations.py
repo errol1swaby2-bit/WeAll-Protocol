@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Dict
+from typing import Any
 
 from weall.runtime.reputation_units import sync_account_reputation
 
@@ -119,7 +119,7 @@ def _migrate_v0_to_v1(st: Json) -> Json:
     return st
 
 
-_MIGRATIONS: Dict[int, Callable[[Json], Json]] = {
+_MIGRATIONS: dict[int, Callable[[Json], Json]] = {
     0: _migrate_v0_to_v1,
 }
 
