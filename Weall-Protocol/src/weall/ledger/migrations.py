@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Dict
 
 from weall.runtime.reputation_units import sync_account_reputation
 
@@ -72,7 +72,6 @@ def _ensure_bool(root: Json, key: str, default: bool = False) -> bool:
         if s in {"0", "false", "no", "n", "off"}:
             root[key] = False
             return False
-    # fallback
     root[key] = bool(default)
     return bool(default)
 
@@ -97,18 +96,15 @@ def _migrate_v0_to_v1(st: Json) -> Json:
       - no 'state_version'
       - may have missing roots or wrong shapes
     """
-    # Chain meta
     _ensure_int(st, "height", 0)
     _ensure_str(st, "tip", "")
 
-    # Required roots
     accounts = _ensure_dict(st, "accounts")
     _ensure_dict(st, "roles")
     _ensure_dict(st, "blocks")
     _ensure_dict(st, "params")
     _ensure_dict(st, "block_attestations")
 
-    # Finality root
     finalized = st.get("finalized")
     if not isinstance(finalized, dict):
         finalized = {"height": 0, "block_id": ""}
@@ -116,7 +112,6 @@ def _migrate_v0_to_v1(st: Json) -> Json:
     _ensure_int(finalized, "height", 0)
     _ensure_str(finalized, "block_id", "")
 
-    # Minimal account normalization (only if existing)
     if isinstance(accounts, dict):
         for aid, acct in list(accounts.items()):
             if not isinstance(acct, dict):
@@ -133,7 +128,7 @@ def _migrate_v0_to_v1(st: Json) -> Json:
     return st
 
 
-_MIGRATIONS: dict[int, Callable[[Json], Json]] = {
+_MIGRATIONS: Dict[int, Callable[[Json], Json]] = {
     0: _migrate_v0_to_v1,
 }
 
@@ -149,7 +144,6 @@ def migrate_state_dict(raw: Any) -> Json:
 
     v = _as_int(st.get("state_version"), 0)
     if v > CURRENT_STATE_VERSION:
-        # Future state created by a newer binary; refuse to downgrade silently.
         raise ValueError(
             f"Ledger state version {v} is newer than this binary supports (max {CURRENT_STATE_VERSION})."
         )
@@ -163,6 +157,5 @@ def migrate_state_dict(raw: Any) -> Json:
         st = step(st)
         v = _as_int(st.get("state_version"), v + 1)
 
-    # Ensure correct final version tag
     st["state_version"] = CURRENT_STATE_VERSION
     return st
