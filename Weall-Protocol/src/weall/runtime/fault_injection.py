@@ -1,18 +1,23 @@
 from __future__ import annotations
 
-import json
+import multiprocessing as mp
 import os
 import tempfile
 import threading
 import time
+from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-import multiprocessing as mp
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_ed25519
 from weall.runtime.bft_hotstuff import (
@@ -25,7 +30,7 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.sqlite_db import SqliteDB
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -33,7 +38,7 @@ class FaultInjectionSummary:
     chain_id: str
     rounds_requested: int
     rounds_built: int
-    validator_ids: List[str]
+    validator_ids: list[str]
     restart_events: int
     partitioned_deliveries: int
     delayed_child_first_events: int
@@ -47,9 +52,9 @@ class FaultInjectionSummary:
     forced_clock_skew_warnings: int
     leader_height: int
     leader_tip: str
-    follower_heights: Dict[str, int]
-    follower_tips: Dict[str, str]
-    follower_diagnostics: Dict[str, Json]
+    follower_heights: dict[str, int]
+    follower_tips: dict[str, str]
+    follower_diagnostics: dict[str, Json]
     converged: bool
 
     def to_json(self) -> Json:
@@ -64,10 +69,10 @@ def _default_tx_index_path() -> str:
     return str(_repo_root() / "generated" / "tx_index.json")
 
 
-
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
+
+
 def _mk_keypair_hex() -> tuple[str, str]:
     sk = Ed25519PrivateKey.generate()
     pk = sk.public_key()
@@ -76,7 +81,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: Sequence[str], pub: Mapping[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: Sequence[str], pub: Mapping[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -167,12 +174,16 @@ def _make_qc(
 
 
 def _build_committed_block(ex: WeAllExecutor, *, force_ts_ms: int) -> Json:
-    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms)
+    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms
+    )
     if err:
         raise RuntimeError(f"build_block_candidate failed: {err}")
     if not isinstance(blk, dict) or not isinstance(st2, dict):
         raise RuntimeError("build_block_candidate returned malformed result")
-    meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = ex.commit_block_candidate(
+        block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
     if meta.ok is not True:
         raise RuntimeError(f"commit_block_candidate failed: {meta.error}")
     return blk
@@ -186,7 +197,7 @@ def _proposal_payload(*, validators: Sequence[str], view: int, block: Json) -> J
 class _EnvPatch:
     def __init__(self, updates: Mapping[str, str]) -> None:
         self._updates = {str(k): str(v) for k, v in updates.items()}
-        self._prev: Dict[str, Optional[str]] = {}
+        self._prev: dict[str, str | None] = {}
 
     def __enter__(self) -> None:
         for k, v in self._updates.items():
@@ -203,25 +214,25 @@ class _EnvPatch:
 
 def run_bft_fault_injection_soak(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     rounds: int = 18,
     validator_count: int = 4,
-    partition_target: Optional[str] = None,
+    partition_target: str | None = None,
     partition_rounds: Sequence[int] = (5, 6, 7),
-    stall_target: Optional[str] = None,
+    stall_target: str | None = None,
     stall_rounds: Sequence[int] = (),
-    delay_target: Optional[str] = None,
+    delay_target: str | None = None,
     delay_child_first_every: int = 4,
-    restart_target: Optional[str] = None,
+    restart_target: str | None = None,
     restart_every: int = 6,
     epoch_bump_rounds: Sequence[int] = (),
-    stale_qc_replay_target: Optional[str] = None,
-    clock_skew_target: Optional[str] = None,
+    stale_qc_replay_target: str | None = None,
+    clock_skew_target: str | None = None,
     clock_skew_rounds: Sequence[int] = (),
     clock_skew_ahead_ms: int = 120_000,
     chain_id: str = "bft-soak",
     validator_epoch: int = 3,
-    tx_index_path: Optional[str] = None,
+    tx_index_path: str | None = None,
 ) -> FaultInjectionSummary:
     rounds_n = max(1, int(rounds))
     n_validators = max(4, int(validator_count))
@@ -248,23 +259,27 @@ def run_bft_fault_injection_soak(
     ):
         raise ValueError("targets must be members of the validator set")
 
-    base_dir_obj = tempfile.TemporaryDirectory(prefix="weall-bft-soak-") if work_dir is None else None
+    base_dir_obj = (
+        tempfile.TemporaryDirectory(prefix="weall-bft-soak-") if work_dir is None else None
+    )
     base_dir = Path(work_dir or base_dir_obj.name)
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
-    executors: Dict[str, WeAllExecutor] = {}
-    db_paths: Dict[str, str] = {v: str(base_dir / f"{v}.db") for v in validators}
+    executors: dict[str, WeAllExecutor] = {}
+    db_paths: dict[str, str] = {v: str(base_dir / f"{v}.db") for v in validators}
 
     with _EnvPatch({"WEALL_MODE": "testnet", "WEALL_BFT_ENABLED": "1"}):
         for v in validators:
-            ex = WeAllExecutor(db_path=db_paths[v], node_id=v, chain_id=chain_id, tx_index_path=tx_index)
+            ex = WeAllExecutor(
+                db_path=db_paths[v], node_id=v, chain_id=chain_id, tx_index_path=tx_index
+            )
             _seed_validator_set(ex, validators=validators, pub=vpub, epoch=validator_epoch)
             executors[v] = ex
 
@@ -273,8 +288,8 @@ def run_bft_fault_injection_soak(
         current_epoch = int(validator_epoch)
         vset_hash = leader._current_validator_set_hash()
 
-        partition_backlog: Dict[str, List[Json]] = {v: [] for v in validators}
-        delayed_parent: Dict[str, Optional[Json]] = {v: None for v in validators}
+        partition_backlog: dict[str, list[Json]] = {v: [] for v in validators}
+        delayed_parent: dict[str, Json | None] = {v: None for v in validators}
         restart_events = 0
         partitioned_deliveries = 0
         delayed_child_first_events = 0
@@ -374,7 +389,12 @@ def run_bft_fault_injection_soak(
 
                 if node_id == delay_target_s:
                     pending_parent = delayed_parent[node_id]
-                    if pending_parent is None and delay_child_first_every > 0 and view % int(delay_child_first_every) == 1 and view < rounds_n:
+                    if (
+                        pending_parent is None
+                        and delay_child_first_every > 0
+                        and view % int(delay_child_first_every) == 1
+                        and view < rounds_n
+                    ):
                         delayed_parent[node_id] = dict(blk)
                         continue
                     if pending_parent is not None:
@@ -396,7 +416,12 @@ def run_bft_fault_injection_soak(
                 persisted_height = int(ex_old.state.get("height") or 0)
                 if hasattr(ex_old, "mark_clean_shutdown"):
                     ex_old.mark_clean_shutdown()
-                ex_new = WeAllExecutor(db_path=db_paths[restart_target_s], node_id=restart_target_s, chain_id=chain_id, tx_index_path=tx_index)
+                ex_new = WeAllExecutor(
+                    db_path=db_paths[restart_target_s],
+                    node_id=restart_target_s,
+                    chain_id=chain_id,
+                    tx_index_path=tx_index,
+                )
                 executors[restart_target_s] = ex_new
                 restart_events += 1
                 if int(ex_new.state.get("height") or 0) < persisted_height:
@@ -405,7 +430,9 @@ def run_bft_fault_injection_soak(
             if view in epoch_rounds:
                 stale_qc = dict(qc)
                 current_epoch += 1
-                _advance_validator_epoch(executors, validators=validators, pub=vpub, new_epoch=current_epoch)
+                _advance_validator_epoch(
+                    executors, validators=validators, pub=vpub, new_epoch=current_epoch
+                )
                 epoch_bump_events += 1
                 leader = executors[leader_id]
                 vset_hash = leader._current_validator_set_hash()
@@ -430,9 +457,9 @@ def run_bft_fault_injection_soak(
         leader = executors[leader_id]
         leader_height = int(leader.state.get("height") or 0)
         leader_tip = str(leader.state.get("tip") or "")
-        follower_heights: Dict[str, int] = {}
-        follower_tips: Dict[str, str] = {}
-        follower_diagnostics: Dict[str, Json] = {}
+        follower_heights: dict[str, int] = {}
+        follower_tips: dict[str, str] = {}
+        follower_diagnostics: dict[str, Json] = {}
         converged = True
         for node_id in validators[1:]:
             ex = executors[node_id]
@@ -470,8 +497,6 @@ def run_bft_fault_injection_soak(
     )
 
 
-
-
 @dataclass(frozen=True)
 class CrossProcessSqlitePressureSummary:
     db_path: str
@@ -493,7 +518,7 @@ class CrossProcessSqlitePressureSummary:
 @dataclass(frozen=True)
 class TimeoutEpochStormSummary:
     chain_id: str
-    validator_ids: List[str]
+    validator_ids: list[str]
     duplicate_timeouts: int
     stale_timeout_rejections: int
     epoch_replay_attempts: int
@@ -565,7 +590,7 @@ class MempoolSpamSummary:
 
 def run_sqlite_writer_pressure_soak(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     worker_count: int = 4,
     writes_per_worker: int = 24,
     tx_hold_ms: int = 2,
@@ -582,7 +607,9 @@ def run_sqlite_writer_pressure_soak(
     db = SqliteDB(path=db_path)
     db.init_schema()
     with db.write_tx() as con:
-        con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES('writer_pressure_counter', '0');")
+        con.execute(
+            "INSERT OR REPLACE INTO meta(key, value) VALUES('writer_pressure_counter', '0');"
+        )
 
     lock = threading.Lock()
     stop_event = threading.Event()
@@ -610,7 +637,9 @@ def run_sqlite_writer_pressure_soak(
                 counters["attempts"] += 1
             try:
                 with db.write_tx() as con:
-                    row = con.execute("SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;").fetchone()
+                    row = con.execute(
+                        "SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;"
+                    ).fetchone()
                     cur = int(row[0]) if row is not None and row[0] is not None else 0
                     if int(tx_hold_ms) > 0:
                         time.sleep(int(tx_hold_ms) / 1000.0)
@@ -640,7 +669,9 @@ def run_sqlite_writer_pressure_soak(
         maint.join(timeout=1.0)
 
     with db.connection() as con:
-        row = con.execute("SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;").fetchone()
+        row = con.execute(
+            "SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;"
+        ).fetchone()
         final_counter = int(row[0]) if row is not None and row[0] is not None else 0
 
     duration_ms = _now_ms() - started
@@ -657,7 +688,11 @@ def run_sqlite_writer_pressure_soak(
         maintenance_ticks=int(counters["maintenance_ticks"]),
         final_counter=final_counter,
         duration_ms=duration_ms,
-        ok=(final_counter == successes and int(counters["operational_errors"]) == 0 and int(counters["other_errors"]) == 0),
+        ok=(
+            final_counter == successes
+            and int(counters["operational_errors"]) == 0
+            and int(counters["other_errors"]) == 0
+        ),
     )
     if base_dir_obj is not None:
         base_dir_obj.cleanup()
@@ -666,13 +701,13 @@ def run_sqlite_writer_pressure_soak(
 
 def run_mempool_spam_stress(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     chain_id: str = "mempool-spam",
     worker_count: int = 4,
     txs_per_worker: int = 30,
     duplicate_every: int = 7,
     block_batch_size: int = 25,
-    tx_index_path: Optional[str] = None,
+    tx_index_path: str | None = None,
 ) -> MempoolSpamSummary:
     base_dir_obj = None
     if work_dir:
@@ -683,7 +718,9 @@ def run_mempool_spam_stress(
         base_dir = Path(base_dir_obj.name)
     tx_index = str(tx_index_path or _default_tx_index_path())
     db_path = str(base_dir / "mempool_spam.sqlite")
-    ex = WeAllExecutor(db_path=db_path, node_id="spam-node", chain_id=chain_id, tx_index_path=tx_index)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="spam-node", chain_id=chain_id, tx_index_path=tx_index
+    )
 
     results_lock = threading.Lock()
     seen_tx_ids: set[str] = set()
@@ -736,7 +773,9 @@ def run_mempool_spam_stress(
     while ex._mempool.size() > 0 and blocks_produced < guard_rounds:
         meta = ex.produce_block(max_txs=max(1, int(block_batch_size)))
         if not bool(getattr(meta, "ok", False)):
-            raise RuntimeError(f"mempool spam block production failed: {getattr(meta, 'error', '')}")
+            raise RuntimeError(
+                f"mempool spam block production failed: {getattr(meta, 'error', '')}"
+            )
         if int(getattr(meta, "height", 0) or 0) > 0:
             blocks_produced += 1
 
@@ -785,9 +824,9 @@ class HeavySoakSummary:
 
 def run_priority1_heavy_soak(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     chain_id_prefix: str = "priority1-heavy",
-    tx_index_path: Optional[str] = None,
+    tx_index_path: str | None = None,
 ) -> HeavySoakSummary:
     base_dir_obj = None
     if work_dir:
@@ -839,7 +878,9 @@ def run_priority1_heavy_soak(
     return summary
 
 
-def _sqlite_pressure_worker_process(db_path: str, writes_per_process: int, tx_hold_ms: int, queue: Any) -> None:
+def _sqlite_pressure_worker_process(
+    db_path: str, writes_per_process: int, tx_hold_ms: int, queue: Any
+) -> None:
     db = SqliteDB(path=db_path)
     attempts = 0
     successes = 0
@@ -849,7 +890,9 @@ def _sqlite_pressure_worker_process(db_path: str, writes_per_process: int, tx_ho
         attempts += 1
         try:
             with db.write_tx() as con:
-                row = con.execute("SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;").fetchone()
+                row = con.execute(
+                    "SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;"
+                ).fetchone()
                 cur = int(row[0]) if row is not None and row[0] is not None else 0
                 if int(tx_hold_ms) > 0:
                     time.sleep(int(tx_hold_ms) / 1000.0)
@@ -859,21 +902,23 @@ def _sqlite_pressure_worker_process(db_path: str, writes_per_process: int, tx_ho
                 )
             successes += 1
         except Exception as e:
-            if 'locked' in str(e).lower():
+            if "locked" in str(e).lower():
                 operational_errors += 1
             else:
                 other_errors += 1
-    queue.put({
-        'attempts': attempts,
-        'successes': successes,
-        'operational_errors': operational_errors,
-        'other_errors': other_errors,
-    })
+    queue.put(
+        {
+            "attempts": attempts,
+            "successes": successes,
+            "operational_errors": operational_errors,
+            "other_errors": other_errors,
+        }
+    )
 
 
 def run_sqlite_writer_pressure_cross_process_soak(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     process_count: int = 3,
     writes_per_process: int = 12,
     tx_hold_ms: int = 2,
@@ -883,16 +928,18 @@ def run_sqlite_writer_pressure_cross_process_soak(
         base_dir = Path(work_dir).resolve()
         base_dir.mkdir(parents=True, exist_ok=True)
     else:
-        base_dir_obj = tempfile.TemporaryDirectory(prefix='weall-sqlite-pressure-proc-')
+        base_dir_obj = tempfile.TemporaryDirectory(prefix="weall-sqlite-pressure-proc-")
         base_dir = Path(base_dir_obj.name)
-    db_path = str(base_dir / 'writer_pressure_cross_process.sqlite')
+    db_path = str(base_dir / "writer_pressure_cross_process.sqlite")
     db = SqliteDB(path=db_path)
     db.init_schema()
     with db.write_tx() as con:
-        con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES('writer_pressure_counter', '0');")
+        con.execute(
+            "INSERT OR REPLACE INTO meta(key, value) VALUES('writer_pressure_counter', '0');"
+        )
 
     started = _now_ms()
-    ctx = mp.get_context('spawn')
+    ctx = mp.get_context("spawn")
     queue = ctx.Queue()
     procs = []
     for _ in range(max(1, int(process_count))):
@@ -903,7 +950,7 @@ def run_sqlite_writer_pressure_cross_process_soak(
         proc.start()
         procs.append(proc)
 
-    totals = {'attempts': 0, 'successes': 0, 'operational_errors': 0, 'other_errors': 0}
+    totals = {"attempts": 0, "successes": 0, "operational_errors": 0, "other_errors": 0}
     for _ in procs:
         payload = queue.get()
         for k in totals:
@@ -911,10 +958,12 @@ def run_sqlite_writer_pressure_cross_process_soak(
     for proc in procs:
         proc.join(timeout=30.0)
         if proc.exitcode not in {0, None}:
-            totals['other_errors'] += 1
+            totals["other_errors"] += 1
 
     with db.connection() as con:
-        row = con.execute("SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;").fetchone()
+        row = con.execute(
+            "SELECT value FROM meta WHERE key='writer_pressure_counter' LIMIT 1;"
+        ).fetchone()
         final_counter = int(row[0]) if row is not None and row[0] is not None else 0
 
     duration_ms = _now_ms() - started
@@ -923,13 +972,17 @@ def run_sqlite_writer_pressure_cross_process_soak(
         process_count=max(1, int(process_count)),
         writes_per_process=max(1, int(writes_per_process)),
         tx_hold_ms=max(0, int(tx_hold_ms)),
-        attempts=int(totals['attempts']),
-        successes=int(totals['successes']),
-        operational_errors=int(totals['operational_errors']),
-        other_errors=int(totals['other_errors']),
+        attempts=int(totals["attempts"]),
+        successes=int(totals["successes"]),
+        operational_errors=int(totals["operational_errors"]),
+        other_errors=int(totals["other_errors"]),
         final_counter=final_counter,
         duration_ms=duration_ms,
-        ok=(final_counter == int(totals['successes']) and int(totals['operational_errors']) == 0 and int(totals['other_errors']) == 0),
+        ok=(
+            final_counter == int(totals["successes"])
+            and int(totals["operational_errors"]) == 0
+            and int(totals["other_errors"]) == 0
+        ),
     )
     if base_dir_obj is not None:
         base_dir_obj.cleanup()
@@ -938,30 +991,32 @@ def run_sqlite_writer_pressure_cross_process_soak(
 
 def run_timeout_epoch_storm_soak(
     *,
-    work_dir: Optional[str] = None,
-    chain_id: str = 'timeout-epoch-storm',
+    work_dir: str | None = None,
+    chain_id: str = "timeout-epoch-storm",
     validator_count: int = 4,
     starting_epoch: int = 3,
     restart_after_view: int = 1,
-    tx_index_path: Optional[str] = None,
+    tx_index_path: str | None = None,
 ) -> TimeoutEpochStormSummary:
     base_dir_obj = None
     if work_dir:
         base_dir = Path(work_dir).resolve()
         base_dir.mkdir(parents=True, exist_ok=True)
     else:
-        base_dir_obj = tempfile.TemporaryDirectory(prefix='weall-timeout-epoch-storm-')
+        base_dir_obj = tempfile.TemporaryDirectory(prefix="weall-timeout-epoch-storm-")
         base_dir = Path(base_dir_obj.name)
     tx_index = str(tx_index_path or _default_tx_index_path())
-    validators = [f'v{i}' for i in range(1, max(4, int(validator_count)) + 1)]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    validators = [f"v{i}" for i in range(1, max(4, int(validator_count)) + 1)]
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
         vpriv[v] = sk
 
-    def _signed_timeout(*, signer: str, view: int, high_qc_id: str, validator_epoch: int, validator_set_hash: str) -> Json:
+    def _signed_timeout(
+        *, signer: str, view: int, high_qc_id: str, validator_epoch: int, validator_set_hash: str
+    ) -> Json:
         msg = canonical_timeout_message(
             chain_id=chain_id,
             view=int(view),
@@ -971,19 +1026,19 @@ def run_timeout_epoch_storm_soak(
             validator_set_hash=str(validator_set_hash),
         )
         return {
-            't': 'TIMEOUT',
-            'chain_id': str(chain_id),
-            'view': int(view),
-            'high_qc_id': str(high_qc_id),
-            'signer': str(signer),
-            'pubkey': str(vpub[signer]),
-            'sig': sign_ed25519(message=msg, privkey=str(vpriv[signer]), encoding='hex'),
-            'validator_epoch': int(validator_epoch),
-            'validator_set_hash': str(validator_set_hash),
+            "t": "TIMEOUT",
+            "chain_id": str(chain_id),
+            "view": int(view),
+            "high_qc_id": str(high_qc_id),
+            "signer": str(signer),
+            "pubkey": str(vpub[signer]),
+            "sig": sign_ed25519(message=msg, privkey=str(vpriv[signer]), encoding="hex"),
+            "validator_epoch": int(validator_epoch),
+            "validator_set_hash": str(validator_set_hash),
         }
 
-    db_path = str(base_dir / 'timeout_epoch_storm.sqlite')
-    ex = WeAllExecutor(db_path=db_path, node_id='@v4', chain_id=chain_id, tx_index_path=tx_index)
+    db_path = str(base_dir / "timeout_epoch_storm.sqlite")
+    ex = WeAllExecutor(db_path=db_path, node_id="@v4", chain_id=chain_id, tx_index_path=tx_index)
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=int(starting_epoch))
     current_epoch = int(starting_epoch)
     set_hash = ex._current_validator_set_hash()
@@ -1000,7 +1055,7 @@ def run_timeout_epoch_storm_soak(
                 _signed_timeout(
                     signer=signer,
                     view=view,
-                    high_qc_id='genesis' if view == 0 else f'qc-{view}',
+                    high_qc_id="genesis" if view == 0 else f"qc-{view}",
                     validator_epoch=current_epoch,
                     validator_set_hash=set_hash,
                 )
@@ -1010,20 +1065,20 @@ def run_timeout_epoch_storm_soak(
                     _signed_timeout(
                         signer=signer,
                         view=view,
-                        high_qc_id='genesis' if view == 0 else f'qc-{view}',
+                        high_qc_id="genesis" if view == 0 else f"qc-{view}",
                         validator_epoch=current_epoch,
                         validator_set_hash=set_hash,
                     )
                 )
                 duplicate_timeouts += 1
                 if dup is not None:
-                    raise RuntimeError('duplicate timeout unexpectedly accepted')
+                    raise RuntimeError("duplicate timeout unexpectedly accepted")
             if view > 0:
                 stale = ex.bft_handle_timeout(
                     _signed_timeout(
                         signer=signer,
                         view=view - 1,
-                        high_qc_id=f'qc-{max(0, view - 1)}',
+                        high_qc_id=f"qc-{max(0, view - 1)}",
                         validator_epoch=current_epoch,
                         validator_set_hash=set_hash,
                     )
@@ -1031,32 +1086,36 @@ def run_timeout_epoch_storm_soak(
                 if stale is None:
                     stale_timeout_rejections += 1
             if accepted is not None and not isinstance(accepted, (int, dict)):
-                raise RuntimeError('unexpected timeout acceptance payload')
+                raise RuntimeError("unexpected timeout acceptance payload")
 
         if int(ex.bft_current_view()) != view + 1:
-            raise RuntimeError('timeout storm failed to advance view')
+            raise RuntimeError("timeout storm failed to advance view")
 
         if view == int(restart_after_view):
-            if hasattr(ex, 'mark_clean_shutdown'):
+            if hasattr(ex, "mark_clean_shutdown"):
                 ex.mark_clean_shutdown()
-            ex = WeAllExecutor(db_path=db_path, node_id='@v4', chain_id=chain_id, tx_index_path=tx_index)
+            ex = WeAllExecutor(
+                db_path=db_path, node_id="@v4", chain_id=chain_id, tx_index_path=tx_index
+            )
             _seed_validator_set(ex, validators=validators, pub=vpub, epoch=current_epoch)
             restarts += 1
             if int(ex.bft_current_view()) != view + 1:
-                raise RuntimeError('restart lost timeout-driven view advancement')
+                raise RuntimeError("restart lost timeout-driven view advancement")
 
         if view == 1:
             old_epoch = current_epoch
             old_set_hash = set_hash
             current_epoch += 1
-            _advance_validator_epoch({'v4': ex}, validators=validators, pub=vpub, new_epoch=current_epoch)
+            _advance_validator_epoch(
+                {"v4": ex}, validators=validators, pub=vpub, new_epoch=current_epoch
+            )
             set_hash = ex._current_validator_set_hash()
             epoch_replay_attempts += 1
             replay = ex.bft_handle_timeout(
                 _signed_timeout(
-                    signer='v1',
+                    signer="v1",
                     view=view + 1,
-                    high_qc_id=f'qc-{view + 1}',
+                    high_qc_id=f"qc-{view + 1}",
                     validator_epoch=old_epoch,
                     validator_set_hash=old_set_hash,
                 )
@@ -1077,7 +1136,12 @@ def run_timeout_epoch_storm_soak(
         restarts=restarts,
         final_view=final_view,
         highest_tc_view=highest_tc_view,
-        ok=(final_view >= 3 and highest_tc_view >= 2 and stale_timeout_rejections >= len(threshold_signers) * 2 and epoch_replay_rejections == epoch_replay_attempts),
+        ok=(
+            final_view >= 3
+            and highest_tc_view >= 2
+            and stale_timeout_rejections >= len(threshold_signers) * 2
+            and epoch_replay_rejections == epoch_replay_attempts
+        ),
     )
     if base_dir_obj is not None:
         base_dir_obj.cleanup()
@@ -1086,64 +1150,64 @@ def run_timeout_epoch_storm_soak(
 
 def run_priority2_adversarial_soak(
     *,
-    work_dir: Optional[str] = None,
-    chain_id_prefix: str = 'priority2-adversarial',
-    tx_index_path: Optional[str] = None,
+    work_dir: str | None = None,
+    chain_id_prefix: str = "priority2-adversarial",
+    tx_index_path: str | None = None,
 ) -> Priority2SoakSummary:
     base_dir_obj = None
     if work_dir:
         base_dir = Path(work_dir).resolve()
         base_dir.mkdir(parents=True, exist_ok=True)
     else:
-        base_dir_obj = tempfile.TemporaryDirectory(prefix='weall-priority2-adversarial-')
+        base_dir_obj = tempfile.TemporaryDirectory(prefix="weall-priority2-adversarial-")
         base_dir = Path(base_dir_obj.name)
     tx_index = str(tx_index_path or _default_tx_index_path())
     bft = run_bft_fault_injection_soak(
-        work_dir=str(base_dir / 'bft'),
+        work_dir=str(base_dir / "bft"),
         rounds=18,
         validator_count=4,
         partition_rounds=(4, 5, 6),
-        stall_target='v4',
+        stall_target="v4",
         stall_rounds=(7, 8, 9),
         delay_child_first_every=2,
-        restart_target='v4',
+        restart_target="v4",
         restart_every=3,
         epoch_bump_rounds=(10, 14),
-        stale_qc_replay_target='v2',
-        clock_skew_target='v4',
+        stale_qc_replay_target="v2",
+        clock_skew_target="v4",
         clock_skew_rounds=(8, 15),
-        chain_id=f'{chain_id_prefix}-bft',
+        chain_id=f"{chain_id_prefix}-bft",
         tx_index_path=tx_index,
     )
     matrix = run_consensus_resilience_matrix(
-        work_dir=str(base_dir / 'consensus-resilience-matrix'),
-        chain_id_prefix=f'{chain_id_prefix}-matrix',
+        work_dir=str(base_dir / "consensus-resilience-matrix"),
+        chain_id_prefix=f"{chain_id_prefix}-matrix",
         tx_index_path=tx_index,
     )
     writer = run_sqlite_writer_pressure_soak(
-        work_dir=str(base_dir / 'sqlite-threaded'),
+        work_dir=str(base_dir / "sqlite-threaded"),
         worker_count=5,
         writes_per_worker=24,
         tx_hold_ms=3,
         checkpoint_interval_ms=8,
     )
     writer_proc = run_sqlite_writer_pressure_cross_process_soak(
-        work_dir=str(base_dir / 'sqlite-process'),
+        work_dir=str(base_dir / "sqlite-process"),
         process_count=3,
         writes_per_process=14,
         tx_hold_ms=3,
     )
     timeout_epoch = run_timeout_epoch_storm_soak(
-        work_dir=str(base_dir / 'timeout-epoch'),
-        chain_id=f'{chain_id_prefix}-timeout',
+        work_dir=str(base_dir / "timeout-epoch"),
+        chain_id=f"{chain_id_prefix}-timeout",
         validator_count=4,
         starting_epoch=3,
         restart_after_view=1,
         tx_index_path=tx_index,
     )
     mempool = run_mempool_spam_stress(
-        work_dir=str(base_dir / 'mempool'),
-        chain_id=f'{chain_id_prefix}-mempool',
+        work_dir=str(base_dir / "mempool"),
+        chain_id=f"{chain_id_prefix}-mempool",
         worker_count=5,
         txs_per_worker=24,
         duplicate_every=5,
@@ -1157,7 +1221,14 @@ def run_priority2_adversarial_soak(
         sqlite_writer_pressure_cross_process=writer_proc.to_json(),
         timeout_epoch_storm=timeout_epoch.to_json(),
         mempool_spam=mempool.to_json(),
-        ok=bool(bft.converged and matrix.ok and writer.ok and writer_proc.ok and timeout_epoch.ok and mempool.ok),
+        ok=bool(
+            bft.converged
+            and matrix.ok
+            and writer.ok
+            and writer_proc.ok
+            and timeout_epoch.ok
+            and mempool.ok
+        ),
     )
     if base_dir_obj is not None:
         base_dir_obj.cleanup()
@@ -1166,14 +1237,16 @@ def run_priority2_adversarial_soak(
 
 @dataclass(frozen=True)
 class ConsensusResilienceMatrixSummary:
-    scenarios: Dict[str, Json]
+    scenarios: dict[str, Json]
     ok: bool
 
     def to_json(self) -> Json:
         return asdict(self)
 
 
-def _seed_validator_set_full(ex: WeAllExecutor, *, validators: Sequence[str], pub: Mapping[str, str], epoch: int = 1) -> None:
+def _seed_validator_set_full(
+    ex: WeAllExecutor, *, validators: Sequence[str], pub: Mapping[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -1203,9 +1276,9 @@ def _seed_validator_set_full(ex: WeAllExecutor, *, validators: Sequence[str], pu
 
 def run_consensus_resilience_matrix(
     *,
-    work_dir: Optional[str] = None,
+    work_dir: str | None = None,
     chain_id_prefix: str = "consensus-resilience",
-    tx_index_path: Optional[str] = None,
+    tx_index_path: str | None = None,
 ) -> ConsensusResilienceMatrixSummary:
     base_dir_obj = None
     if work_dir:
@@ -1216,11 +1289,11 @@ def run_consensus_resilience_matrix(
         base_dir = Path(base_dir_obj.name)
     tx_index = str(tx_index_path or _default_tx_index_path())
 
-    scenarios: Dict[str, Json] = {}
+    scenarios: dict[str, Json] = {}
 
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
@@ -1240,7 +1313,9 @@ def run_consensus_resilience_matrix(
 
     def _mk_executor(db_path: Path, node_id: str, chain_id: str) -> WeAllExecutor:
         with _validator_env(node_id):
-            ex = WeAllExecutor(db_path=str(db_path), node_id=node_id, chain_id=chain_id, tx_index_path=tx_index)
+            ex = WeAllExecutor(
+                db_path=str(db_path), node_id=node_id, chain_id=chain_id, tx_index_path=tx_index
+            )
         _seed_validator_set_full(ex, validators=validators, pub=vpub, epoch=7)
         ex.bft_set_view(1)
         return ex
@@ -1292,7 +1367,9 @@ def run_consensus_resilience_matrix(
         "initial_vote": isinstance(first_vote, dict),
         "replayed_vote": isinstance(replayed_vote, dict),
         "last_voted_view": int((replay_ex2.state.get("bft") or {}).get("last_voted_view") or 0),
-        "last_voted_block_id": str((replay_ex2.state.get("bft") or {}).get("last_voted_block_id") or ""),
+        "last_voted_block_id": str(
+            (replay_ex2.state.get("bft") or {}).get("last_voted_block_id") or ""
+        ),
     }
 
     # Scenario 2: forged non-leader conflicting proposal is rejected while canonical leader proposal is accepted.
@@ -1343,7 +1420,14 @@ def run_consensus_resilience_matrix(
             proposer="v2",
             validator_epoch=int(forged.get("validator_epoch") or 0),
             validator_set_hash=str(forged.get("validator_set_hash") or ""),
-            justify_qc_id=str(((forged.get("justify_qc") or {}) if isinstance(forged.get("justify_qc"), dict) else {}).get("block_id") or ""),
+            justify_qc_id=str(
+                (
+                    (forged.get("justify_qc") or {})
+                    if isinstance(forged.get("justify_qc"), dict)
+                    else {}
+                ).get("block_id")
+                or ""
+            ),
         ),
         privkey=str(vpriv["v2"]),
         encoding="hex",
@@ -1359,7 +1443,8 @@ def run_consensus_resilience_matrix(
         "forged_rejected": rejected_vote is None,
         "pending_remote_blocks_count": int(after.get("pending_remote_blocks_count") or 0),
         "pending_candidates_count": int(after.get("pending_candidates_count") or 0),
-        "rejection_count_delta": int(after.get("recent_rejection_summary", {}).get("count") or 0) - int(before.get("recent_rejection_summary", {}).get("count") or 0),
+        "rejection_count_delta": int(after.get("recent_rejection_summary", {}).get("count") or 0)
+        - int(before.get("recent_rejection_summary", {}).get("count") or 0),
     }
 
     # Scenario 3: a delayed QC that arrives only after the view has turned over still
@@ -1422,7 +1507,7 @@ def run_consensus_resilience_matrix(
     with _turnover_env(target_follower):
         follower.bft_set_view(2)
         before_qc_diag = follower.bft_diagnostics()
-        delayed_qc_meta = follower.bft_on_qc(dict(qc_view_1))
+        follower.bft_on_qc(dict(qc_view_1))
         after_qc_diag = follower.bft_diagnostics()
     with _turnover_env(leader_view_2):
         leader2.bft_on_proposal(dict(proposal_v1))
@@ -1434,15 +1519,22 @@ def run_consensus_resilience_matrix(
         second_vote = follower.bft_on_proposal(dict(proposal_v2))
         after_turnover_diag = follower.bft_diagnostics()
     scenarios["delayed_qc_after_leader_turnover"] = {
-        "ok": bool(isinstance(first_vote, dict) and follower.bft_verify_qc_json(qc_view_1) is not None and isinstance(second_vote, dict)),
+        "ok": bool(
+            isinstance(first_vote, dict)
+            and follower.bft_verify_qc_json(qc_view_1) is not None
+            and isinstance(second_vote, dict)
+        ),
         "initial_vote": isinstance(first_vote, dict),
-        "delayed_qc_applied": str(after_qc_diag.get("high_qc_id") or "") == str(qc_view_1.get("block_id") or ""),
+        "delayed_qc_applied": str(after_qc_diag.get("high_qc_id") or "")
+        == str(qc_view_1.get("block_id") or ""),
         "view_after_turnover": int(after_turnover_diag.get("view") or 0),
         "high_qc_block_id": str(after_turnover_diag.get("high_qc_id") or ""),
         "second_leader_vote": isinstance(second_vote, dict),
         "pending_missing_qc_before": int(before_qc_diag.get("pending_missing_qcs_count") or 0),
         "pending_missing_qc_after": int(after_turnover_diag.get("pending_missing_qcs_count") or 0),
-        "pending_remote_blocks_after": int(after_turnover_diag.get("pending_remote_blocks_count") or 0),
+        "pending_remote_blocks_after": int(
+            after_turnover_diag.get("pending_remote_blocks_count") or 0
+        ),
     }
 
     # Scenario 4: delayed child-first + partition heal + restart under load still converges.
@@ -1489,7 +1581,8 @@ def run_consensus_resilience_matrix(
         epoch_boundary.converged
         and int(epoch_boundary.restart_events) >= 10
         and int(epoch_boundary.epoch_bump_events) == 3
-        and int(epoch_boundary.stale_qc_replay_rejections) == int(epoch_boundary.stale_qc_replay_attempts)
+        and int(epoch_boundary.stale_qc_replay_rejections)
+        == int(epoch_boundary.stale_qc_replay_attempts)
         and int(epoch_boundary.healed_partition_events) >= 6
         and int(epoch_boundary.rejoin_catchup_events) >= 2
     )

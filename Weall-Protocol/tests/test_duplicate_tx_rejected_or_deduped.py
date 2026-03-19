@@ -34,7 +34,7 @@ def test_duplicate_tx_rejected_or_deduped(tmp_path: Path) -> None:
     }
 
     r1 = ex.submit_tx(dict(tx))
-    r2 = ex.submit_tx(dict(tx))
+    ex.submit_tx(dict(tx))
 
     assert r1["ok"] is True
 

@@ -18,8 +18,8 @@ embedded packaging), we fall back to a conservative hard-coded set.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Set
 from pathlib import Path
-from typing import AbstractSet, Iterable, Set
 
 
 def _as_str(x: object) -> str:
@@ -49,13 +49,13 @@ def _find_generated_tx_index() -> Path | None:
     return None
 
 
-def _load_supported_from_tx_index(path: Path) -> Set[str]:
+def _load_supported_from_tx_index(path: Path) -> set[str]:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return set()
 
-    out: Set[str] = set()
+    out: set[str] = set()
 
     # Newer TxIndex shape:
     #   {"by_id": {"1": {"name": ...}, ...}, "by_name": {"TX": {...}}, ...}
@@ -81,7 +81,7 @@ def _load_supported_from_tx_index(path: Path) -> Set[str]:
 
 
 # Conservative fallback set (kept small on purpose).
-_FALLBACK: AbstractSet[str] = frozenset(
+_FALLBACK: Set[str] = frozenset(
     {
         "IDENTITY_CREATE",
         "POH_TIER1_MINT",
@@ -98,7 +98,7 @@ _FALLBACK: AbstractSet[str] = frozenset(
 _idx_path = _find_generated_tx_index()
 if _idx_path is not None:
     _loaded = _load_supported_from_tx_index(_idx_path)
-    SUPPORTED_TX_TYPES: AbstractSet[str] = frozenset(_loaded) if _loaded else _FALLBACK
+    SUPPORTED_TX_TYPES: Set[str] = frozenset(_loaded) if _loaded else _FALLBACK
 else:
     SUPPORTED_TX_TYPES = _FALLBACK
 

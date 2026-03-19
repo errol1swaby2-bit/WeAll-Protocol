@@ -10,5 +10,3 @@ Do not use it for new code.
 """
 
 from __future__ import annotations
-
-from weall.poh.email_verification import EmailVerificationService  # re-export

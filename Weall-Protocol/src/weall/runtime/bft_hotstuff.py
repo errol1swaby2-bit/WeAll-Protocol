@@ -4,12 +4,12 @@ import hashlib
 import math
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from weall.crypto.sig import verify_ed25519_signature
 from weall.runtime.sqlite_db import _canon_json
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 # Canonical production consensus contract.
 #
@@ -50,7 +50,7 @@ def fault_tolerance_for_validator_count(n: int) -> int:
     return max((n2 - 1) // 3, 0)
 
 
-def consensus_security_summary(validators: Optional[List[str]] = None, *, phase: Any = "") -> Json:
+def consensus_security_summary(validators: list[str] | None = None, *, phase: Any = "") -> Json:
     normalized = normalize_validators(list(validators or []))
     count = int(len(normalized))
     normalized_phase = normalize_consensus_phase(phase, validator_count=count)
@@ -64,15 +64,21 @@ def consensus_security_summary(validators: Optional[List[str]] = None, *, phase:
         "bft_min_validators": int(BFT_MIN_VALIDATORS),
         "bft_ready": bool(bft_ready),
         "fault_tolerance": int(fault_tolerance),
-        "safety_model": "single_operator_bootstrap" if normalized_phase == CONSENSUS_PHASE_SOLO_BOOTSTRAP else (
-            "coordinated_multivalidator_bootstrap" if normalized_phase == CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP else "hotstuff_bft"
+        "safety_model": "single_operator_bootstrap"
+        if normalized_phase == CONSENSUS_PHASE_SOLO_BOOTSTRAP
+        else (
+            "coordinated_multivalidator_bootstrap"
+            if normalized_phase == CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP
+            else "hotstuff_bft"
         ),
         "public_bft_active": bool(normalized_phase == CONSENSUS_PHASE_BFT_ACTIVE),
-        "degraded_reason": "validator_count_below_bft_minimum" if count < BFT_MIN_VALIDATORS else "",
+        "degraded_reason": "validator_count_below_bft_minimum"
+        if count < BFT_MIN_VALIDATORS
+        else "",
     }
 
 
-def consensus_contract_summary(validators: Optional[List[str]] = None) -> Json:
+def consensus_contract_summary(validators: list[str] | None = None) -> Json:
     normalized = normalize_validators(list(validators or []))
     return {
         "algorithm": CONSENSUS_ALGORITHM,
@@ -103,13 +109,13 @@ def _as_str(v: Any) -> str:
     return str(v).strip() if isinstance(v, (str, int, float)) else ""
 
 
-def normalize_validators(validators: List[str]) -> List[str]:
+def normalize_validators(validators: list[str]) -> list[str]:
     """
     Deterministic validator ordering.
     We sort + de-dup so leader selection is stable even if nodes receive the same set in different orders.
     """
     seen: set[str] = set()
-    out: List[str] = []
+    out: list[str] = []
     for x in validators or []:
         s = _as_str(x)
         if s and s not in seen:
@@ -132,7 +138,7 @@ def quorum_threshold(n: int) -> int:
     return int(math.ceil((2 * n2) / 3.0))
 
 
-def leader_for_view(validators: List[str], view: int) -> str:
+def leader_for_view(validators: list[str], view: int) -> str:
     vset = normalize_validators(validators)
     if not vset:
         return ""
@@ -148,6 +154,7 @@ def bft_message_id(msg: Json) -> str:
 # -----------------------------
 # Canonical signing payloads
 # -----------------------------
+
 
 def canonical_vote_message(
     *,
@@ -222,13 +229,14 @@ def canonical_proposal_message(
     return _canon_json(payload).encode("utf-8")
 
 
-def validator_set_hash(validators: List[str]) -> str:
+def validator_set_hash(validators: list[str]) -> str:
     return hashlib.sha256(_canon_json(normalize_validators(validators)).encode("utf-8")).hexdigest()
 
 
 # -----------------------------
 # Data types
 # -----------------------------
+
 
 @dataclass(frozen=True, slots=True)
 class BftVote:
@@ -283,7 +291,7 @@ class QuorumCert:
     block_id: str
     block_hash: str
     parent_id: str
-    votes: Tuple[Json, ...]
+    votes: tuple[Json, ...]
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -307,7 +315,7 @@ class TimeoutCertificate:
     view: int
     high_qc_id: str
     signer_count: int
-    signers: Tuple[str, ...]
+    signers: tuple[str, ...]
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -368,7 +376,8 @@ class BftTimeout:
 # Parsing / verification helpers
 # -----------------------------
 
-def qc_from_json(q: Json) -> Optional[QuorumCert]:
+
+def qc_from_json(q: Json) -> QuorumCert | None:
     if not isinstance(q, dict):
         return None
     if _as_str(q.get("t") or "") not in {"QC", "qc"}:
@@ -386,7 +395,7 @@ def qc_from_json(q: Json) -> Optional[QuorumCert]:
         votes = []
     if not chain_id or not block_id:
         return None
-    vv: List[Json] = []
+    vv: list[Json] = []
     for v in votes:
         if isinstance(v, dict):
             vv.append(v)
@@ -402,7 +411,9 @@ def qc_from_json(q: Json) -> Optional[QuorumCert]:
     )
 
 
-def is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 2048) -> bool:
+def is_descendant(
+    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 2048
+) -> bool:
     """
     Return True iff `ancestor` is on candidate's chain (including equality).
     Requires blocks map entries include "prev_block_id".
@@ -432,9 +443,9 @@ def is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max_
 def verify_qc(
     *,
     qc: QuorumCert,
-    validators: List[str],
-    vpub: Optional[Dict[str, str]] = None,
-    validator_pubkeys: Optional[Dict[str, str]] = None,
+    validators: list[str],
+    vpub: dict[str, str] | None = None,
+    validator_pubkeys: dict[str, str] | None = None,
     require_threshold: bool = True,
 ) -> bool:
     """
@@ -457,7 +468,7 @@ def verify_qc(
     if not vset:
         return False
 
-    pubmap: Dict[str, str] = {}
+    pubmap: dict[str, str] = {}
     if isinstance(vpub, dict):
         for k, v in vpub.items():
             ks = _as_str(k)
@@ -499,7 +510,6 @@ def verify_qc(
         vote_block_id = _as_str(vj.get("block_id") or qc.block_id)
         vote_block_hash = _as_str(vj.get("block_hash") or qc.block_hash)
         vote_parent_id = _as_str(vj.get("parent_id") or qc.parent_id)
-        has_epoch_field = "validator_epoch" in vj
         has_set_hash_field = "validator_set_hash" in vj
         vote_epoch = _as_int(vj.get("validator_epoch"), qc.validator_epoch)
         if has_set_hash_field:
@@ -525,7 +535,11 @@ def verify_qc(
             strict_meta_match = False
         if int(vote.view) != int(qc.view):
             strict_meta_match = False
-        if vote.block_id != qc.block_id or vote.block_hash != qc.block_hash or vote.parent_id != qc.parent_id:
+        if (
+            vote.block_id != qc.block_id
+            or vote.block_hash != qc.block_hash
+            or vote.parent_id != qc.parent_id
+        ):
             strict_meta_match = False
 
         if int(vote.validator_epoch) != int(qc.validator_epoch):
@@ -550,8 +564,8 @@ def verify_qc(
 def verify_proposal_json(
     *,
     proposal: Json,
-    validators: List[str],
-    vpub: Optional[Dict[str, str]] = None,
+    validators: list[str],
+    vpub: dict[str, str] | None = None,
     expected_leader: str = "",
 ) -> bool:
     if not isinstance(proposal, dict):
@@ -583,7 +597,7 @@ def verify_proposal_json(
     return verify_ed25519_signature(message=msg, sig=sig, pubkey=pubkey)
 
 
-def _as_dict(v: Any) -> Dict[str, Any]:
+def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
 
 
@@ -591,13 +605,14 @@ def _as_dict(v: Any) -> Dict[str, Any]:
 # HotStuff BFT state machine
 # -----------------------------
 
+
 class HotStuffBFT:
     def __init__(self, *, chain_id: str) -> None:
         self.chain_id = str(chain_id)
 
         self.view: int = 0
-        self.high_qc: Optional[QuorumCert] = None
-        self.locked_qc: Optional[QuorumCert] = None
+        self.high_qc: QuorumCert | None = None
+        self.locked_qc: QuorumCert | None = None
 
         self.finalized_block_id: str = ""
         self.finalized_view: int = 0
@@ -613,9 +628,9 @@ class HotStuffBFT:
         self.last_proposed_block_id: str = ""
 
         # vote cache: (view, block_id, block_hash) -> signer -> vote_json
-        self._votes: Dict[Tuple[int, str, str], Dict[str, Json]] = {}
+        self._votes: dict[tuple[int, str, str], dict[str, Json]] = {}
         # timeout cache: view -> signer -> timeout_json
-        self._timeouts: Dict[int, Dict[str, Json]] = {}
+        self._timeouts: dict[int, dict[str, Json]] = {}
 
         # Restart-safe liveness caches. These are node-local hints only and are
         # persisted under the non-consensus ``bft`` subtree so restarts during a
@@ -630,7 +645,7 @@ class HotStuffBFT:
         # a restarted/new leader recover the highest referenced QC id from a
         # threshold of timeout messages and persist that recovery hint across
         # restarts.
-        self.last_timeout_certificate: Optional[TimeoutCertificate] = None
+        self.last_timeout_certificate: TimeoutCertificate | None = None
 
         self.last_progress_ms: int = _now_ms()
         # Adaptive pacemaker state. This is node-local and only affects when we
@@ -665,17 +680,23 @@ class HotStuffBFT:
         self.last_voted_view = _as_int(b.get("last_voted_view"), self.last_voted_view)
         self.last_voted_block_id = _as_str(b.get("last_voted_block_id") or self.last_voted_block_id)
         self.last_proposed_view = _as_int(b.get("last_proposed_view"), self.last_proposed_view)
-        self.last_proposed_block_id = _as_str(b.get("last_proposed_block_id") or self.last_proposed_block_id)
+        self.last_proposed_block_id = _as_str(
+            b.get("last_proposed_block_id") or self.last_proposed_block_id
+        )
         self.timeout_base_ms = max(250, _as_int(b.get("timeout_base_ms"), self.timeout_base_ms))
-        self.timeout_backoff_exp = max(0, _as_int(b.get("timeout_backoff_exp"), self.timeout_backoff_exp))
-        self.timeout_backoff_cap = max(0, _as_int(b.get("timeout_backoff_cap"), self.timeout_backoff_cap))
+        self.timeout_backoff_exp = max(
+            0, _as_int(b.get("timeout_backoff_exp"), self.timeout_backoff_exp)
+        )
+        self.timeout_backoff_cap = max(
+            0, _as_int(b.get("timeout_backoff_cap"), self.timeout_backoff_cap)
+        )
         self.last_timeout_view = _as_int(b.get("last_timeout_view"), self.last_timeout_view)
         self.last_progress_ms = _as_int(b.get("last_progress_ms"), self.last_progress_ms)
 
         tcj = b.get("last_timeout_certificate")
         if isinstance(tcj, dict):
             signers_any = tcj.get("signers")
-            signers: List[str] = []
+            signers: list[str] = []
             if isinstance(signers_any, list):
                 for s in signers_any:
                     ss = _as_str(s)
@@ -693,7 +714,7 @@ class HotStuffBFT:
 
         votes_any = b.get("pending_votes")
         if isinstance(votes_any, list):
-            restored_votes: Dict[Tuple[int, str, str], Dict[str, Json]] = {}
+            restored_votes: dict[tuple[int, str, str], dict[str, Json]] = {}
             for item in votes_any:
                 if not isinstance(item, dict):
                     continue
@@ -703,7 +724,7 @@ class HotStuffBFT:
                 votes_list = item.get("votes")
                 if view < 0 or not block_id or not block_hash or not isinstance(votes_list, list):
                     continue
-                bucket: Dict[str, Json] = {}
+                bucket: dict[str, Json] = {}
                 for vj in votes_list[: max(1, int(self.max_votes_per_bucket))]:
                     if not isinstance(vj, dict):
                         continue
@@ -716,7 +737,7 @@ class HotStuffBFT:
 
         timeouts_any = b.get("pending_timeouts")
         if isinstance(timeouts_any, list):
-            restored_timeouts: Dict[int, Dict[str, Json]] = {}
+            restored_timeouts: dict[int, dict[str, Json]] = {}
             for item in timeouts_any:
                 if not isinstance(item, dict):
                     continue
@@ -724,7 +745,7 @@ class HotStuffBFT:
                 timeouts_list = item.get("timeouts")
                 if view < 0 or not isinstance(timeouts_list, list):
                     continue
-                bucket: Dict[str, Json] = {}
+                bucket: dict[str, Json] = {}
                 for tj in timeouts_list[: max(1, int(self.max_timeouts_per_bucket))]:
                     if not isinstance(tj, dict):
                         continue
@@ -758,32 +779,44 @@ class HotStuffBFT:
             out["locked_qc"] = self.locked_qc.to_json()
         if self.last_timeout_certificate is not None:
             out["last_timeout_certificate"] = self.last_timeout_certificate.to_json()
-        pending_votes: List[Json] = []
-        for key in sorted(self._votes.keys(), key=lambda item: (int(item[0]), str(item[1]), str(item[2]))):
+        pending_votes: list[Json] = []
+        for key in sorted(
+            self._votes.keys(), key=lambda item: (int(item[0]), str(item[1]), str(item[2]))
+        ):
             bucket = self._votes.get(key) or {}
-            votes = [dict(bucket[s]) for s in sorted(bucket.keys()) if isinstance(bucket.get(s), dict)]
+            votes = [
+                dict(bucket[s]) for s in sorted(bucket.keys()) if isinstance(bucket.get(s), dict)
+            ]
             if not votes:
                 continue
-            pending_votes.append({
-                "view": int(key[0]),
-                "block_id": str(key[1]),
-                "block_hash": str(key[2]),
-                "votes": votes[: max(1, int(self.max_votes_per_bucket))],
-            })
+            pending_votes.append(
+                {
+                    "view": int(key[0]),
+                    "block_id": str(key[1]),
+                    "block_hash": str(key[2]),
+                    "votes": votes[: max(1, int(self.max_votes_per_bucket))],
+                }
+            )
         if pending_votes:
-            out["pending_votes"] = pending_votes[-max(1, int(self.max_persisted_vote_buckets)):]
-        pending_timeouts: List[Json] = []
+            out["pending_votes"] = pending_votes[-max(1, int(self.max_persisted_vote_buckets)) :]
+        pending_timeouts: list[Json] = []
         for view in sorted(self._timeouts.keys()):
             bucket = self._timeouts.get(int(view)) or {}
-            timeouts = [dict(bucket[s]) for s in sorted(bucket.keys()) if isinstance(bucket.get(s), dict)]
+            timeouts = [
+                dict(bucket[s]) for s in sorted(bucket.keys()) if isinstance(bucket.get(s), dict)
+            ]
             if not timeouts:
                 continue
-            pending_timeouts.append({
-                "view": int(view),
-                "timeouts": timeouts[: max(1, int(self.max_timeouts_per_bucket))],
-            })
+            pending_timeouts.append(
+                {
+                    "view": int(view),
+                    "timeouts": timeouts[: max(1, int(self.max_timeouts_per_bucket))],
+                }
+            )
         if pending_timeouts:
-            out["pending_timeouts"] = pending_timeouts[-max(1, int(self.max_persisted_timeout_buckets)):]
+            out["pending_timeouts"] = pending_timeouts[
+                -max(1, int(self.max_persisted_timeout_buckets)) :
+            ]
         return out
 
     def dump_to_state(self, state: Json) -> None:
@@ -794,13 +827,16 @@ class HotStuffBFT:
     def _prune_local_liveness_caches(self) -> None:
         current_view = int(self.view)
 
-        vote_items = sorted(self._votes.items(), key=lambda item: (int(item[0][0]), str(item[0][1]), str(item[0][2])))
-        pruned_votes: Dict[Tuple[int, str, str], Dict[str, Json]] = {}
+        vote_items = sorted(
+            self._votes.items(),
+            key=lambda item: (int(item[0][0]), str(item[0][1]), str(item[0][2])),
+        )
+        pruned_votes: dict[tuple[int, str, str], dict[str, Json]] = {}
         for key, bucket in vote_items:
             view = int(key[0])
             if view + 2 < current_view:
                 continue
-            compact: Dict[str, Json] = {}
+            compact: dict[str, Json] = {}
             for signer in sorted(bucket.keys())[: max(1, int(self.max_votes_per_bucket))]:
                 payload = bucket.get(signer)
                 if isinstance(payload, dict):
@@ -808,16 +844,20 @@ class HotStuffBFT:
             if compact:
                 pruned_votes[key] = compact
         if len(pruned_votes) > int(self.max_persisted_vote_buckets):
-            keep = list(sorted(pruned_votes.keys(), key=lambda item: (int(item[0]), str(item[1]), str(item[2]))))[-int(self.max_persisted_vote_buckets):]
+            keep = list(
+                sorted(
+                    pruned_votes.keys(), key=lambda item: (int(item[0]), str(item[1]), str(item[2]))
+                )
+            )[-int(self.max_persisted_vote_buckets) :]
             pruned_votes = {k: pruned_votes[k] for k in keep}
         self._votes = pruned_votes
 
         timeout_items = sorted((int(view), bucket) for view, bucket in self._timeouts.items())
-        pruned_timeouts: Dict[int, Dict[str, Json]] = {}
+        pruned_timeouts: dict[int, dict[str, Json]] = {}
         for view, bucket in timeout_items:
             if int(view) + 1 < current_view:
                 continue
-            compact: Dict[str, Json] = {}
+            compact: dict[str, Json] = {}
             for signer in sorted(bucket.keys())[: max(1, int(self.max_timeouts_per_bucket))]:
                 payload = bucket.get(signer)
                 if isinstance(payload, dict):
@@ -825,26 +865,30 @@ class HotStuffBFT:
             if compact:
                 pruned_timeouts[int(view)] = compact
         if len(pruned_timeouts) > int(self.max_persisted_timeout_buckets):
-            keep_views = list(sorted(pruned_timeouts.keys()))[-int(self.max_persisted_timeout_buckets):]
+            keep_views = list(sorted(pruned_timeouts.keys()))[
+                -int(self.max_persisted_timeout_buckets) :
+            ]
             pruned_timeouts = {int(v): pruned_timeouts[int(v)] for v in keep_views}
         self._timeouts = pruned_timeouts
 
     def pacemaker_timeout_ms(self) -> int:
         exp = max(0, min(int(self.timeout_backoff_exp), int(self.timeout_backoff_cap)))
-        return int(self.timeout_base_ms) * (2 ** exp)
+        return int(self.timeout_base_ms) * (2**exp)
 
     def note_timeout_emitted(self, *, view: int) -> None:
         v = int(view)
         if v > int(self.last_timeout_view):
             self.last_timeout_view = v
         if v >= int(self.view):
-            self.timeout_backoff_exp = min(int(self.timeout_backoff_exp) + 1, int(self.timeout_backoff_cap))
+            self.timeout_backoff_exp = min(
+                int(self.timeout_backoff_exp) + 1, int(self.timeout_backoff_cap)
+            )
 
     def note_progress(self) -> None:
         self.last_progress_ms = _now_ms()
         self.timeout_backoff_exp = 0
 
-    def best_timeout_certificate(self) -> Optional[TimeoutCertificate]:
+    def best_timeout_certificate(self) -> TimeoutCertificate | None:
         tc = self.last_timeout_certificate
         if tc is None:
             return None
@@ -865,9 +909,9 @@ class HotStuffBFT:
     def can_vote_for(
         self,
         *,
-        blocks: Dict[str, Any],
+        blocks: dict[str, Any],
         block_id: str,
-        justify_qc: Optional[QuorumCert] = None,
+        justify_qc: QuorumCert | None = None,
     ) -> bool:
         """
         HotStuff safe-node rule.
@@ -908,7 +952,9 @@ class HotStuffBFT:
             return True
 
         justify_block_id = str(justify_qc.block_id or "").strip()
-        if justify_block_id and is_descendant(blocks, candidate=justify_block_id, ancestor=locked_block_id):
+        if justify_block_id and is_descendant(
+            blocks, candidate=justify_block_id, ancestor=locked_block_id
+        ):
             return True
         return False
 
@@ -931,7 +977,11 @@ class HotStuffBFT:
             return False
 
         # Same-view equivocation guard.
-        if v == int(self.last_voted_view) and self.last_voted_block_id and bid != self.last_voted_block_id:
+        if (
+            v == int(self.last_voted_view)
+            and self.last_voted_block_id
+            and bid != self.last_voted_block_id
+        ):
             return False
 
         self.last_voted_view = v
@@ -953,14 +1003,18 @@ class HotStuffBFT:
         if v < int(self.last_proposed_view):
             return False
 
-        if v == int(self.last_proposed_view) and self.last_proposed_block_id and bid != self.last_proposed_block_id:
+        if (
+            v == int(self.last_proposed_view)
+            and self.last_proposed_block_id
+            and bid != self.last_proposed_block_id
+        ):
             return False
 
         self.last_proposed_view = v
         self.last_proposed_block_id = bid
         return True
 
-    def observe_qc(self, *, blocks: Dict[str, Any], qc: QuorumCert) -> Optional[str]:
+    def observe_qc(self, *, blocks: dict[str, Any], qc: QuorumCert) -> str | None:
         """
         Observe a QC; update highQC/lockedQC, and finalize if we have a 3-chain:
           QC(view=v, block=b3) where parent=b2, grandparent=b1 => finalize b1.
@@ -982,7 +1036,9 @@ class HotStuffBFT:
             self.locked_qc = qc
         else:
             # Only move the lock forward if the new QC extends our current lock.
-            if is_descendant(blocks, candidate=str(qc.block_id), ancestor=str(self.locked_qc.block_id)):
+            if is_descendant(
+                blocks, candidate=str(qc.block_id), ancestor=str(self.locked_qc.block_id)
+            ):
                 if qc.view > self.locked_qc.view:
                     self.locked_qc = qc
 
@@ -1005,7 +1061,9 @@ class HotStuffBFT:
         # away from an already-finalized chain. This keeps finalization monotonic
         # across restarts and delayed messages.
         if int(qc.view) >= int(self.finalized_view) and b1 and b1 != self.finalized_block_id:
-            if self.finalized_block_id and not is_descendant(blocks, candidate=b1, ancestor=self.finalized_block_id):
+            if self.finalized_block_id and not is_descendant(
+                blocks, candidate=b1, ancestor=self.finalized_block_id
+            ):
                 return None
             self.finalized_block_id = b1
             self.finalized_view = int(qc.view)
@@ -1015,7 +1073,9 @@ class HotStuffBFT:
 
     # ---- vote aggregation ----
 
-    def accept_vote(self, *, vote_json: Json, validators: List[str], vpub: Dict[str, str]) -> Optional[QuorumCert]:
+    def accept_vote(
+        self, *, vote_json: Json, validators: list[str], vpub: dict[str, str]
+    ) -> QuorumCert | None:
         """
         Accept a VOTE, cache it, and if threshold reached for (view, block_id) return a QC.
         """
@@ -1093,7 +1153,9 @@ class HotStuffBFT:
 
     # ---- timeout aggregation ----
 
-    def accept_timeout(self, *, timeout_json: Json, validators: List[str], vpub: Dict[str, str]) -> Optional[int]:
+    def accept_timeout(
+        self, *, timeout_json: Json, validators: list[str], vpub: dict[str, str]
+    ) -> int | None:
         """
         Accept TIMEOUT; if threshold reached for view, return new_view to advance to.
         """
@@ -1148,7 +1210,7 @@ class HotStuffBFT:
 
         th = quorum_threshold(len(vset))
         if len(bucket) >= th:
-            high_qc_counts: Dict[str, int] = {}
+            high_qc_counts: dict[str, int] = {}
             for item in bucket.values():
                 if not isinstance(item, dict):
                     continue
@@ -1159,7 +1221,9 @@ class HotStuffBFT:
 
             chosen_high_qc_id = ""
             if high_qc_counts:
-                chosen_high_qc_id = sorted(high_qc_counts.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))[0][0]
+                chosen_high_qc_id = sorted(
+                    high_qc_counts.items(), key=lambda kv: (-int(kv[1]), str(kv[0]))
+                )[0][0]
             elif self.high_qc is not None:
                 chosen_high_qc_id = str(self.high_qc.block_id or "")
 

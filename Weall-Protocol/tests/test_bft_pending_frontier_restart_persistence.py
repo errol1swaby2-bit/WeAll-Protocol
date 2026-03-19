@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sqlite3
-from typing import Dict
+from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 
 from weall.crypto.sig import sign_ed25519
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
@@ -24,7 +28,9 @@ def _mk_keypair_hex() -> tuple[str, str]:
     return pk_b.hex(), sk_b.hex()
 
 
-def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: Dict[str, str], epoch: int = 1) -> None:
+def _seed_validator_set(
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
+) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -52,8 +58,8 @@ def _make_qc(
     *,
     chain_id: str,
     validators: list[str],
-    vpub: Dict[str, str],
-    vpriv: Dict[str, str],
+    vpub: dict[str, str],
+    vpriv: dict[str, str],
     block_id: str,
     block_hash: str,
     parent_id: str,
@@ -101,8 +107,6 @@ def _make_qc(
     }
 
 
-
-
 def _backup_sqlite(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(src)) as src_con, sqlite3.connect(str(dst)) as dst_con:
@@ -110,9 +114,13 @@ def _backup_sqlite(src: Path, dst: Path) -> None:
 
 
 def _build_committed_block(ex: WeAllExecutor, *, force_ts_ms: int) -> dict:
-    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms)
+    blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(
+        max_txs=0, allow_empty=True, force_ts_ms=force_ts_ms
+    )
     assert err == ""
-    meta = ex.commit_block_candidate(block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = ex.commit_block_candidate(
+        block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
     assert meta.ok is True
     return blk
 
@@ -123,8 +131,8 @@ def test_pending_remote_frontier_survives_restart_and_replays(tmp_path: Path, mo
 
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
@@ -132,14 +140,18 @@ def test_pending_remote_frontier_survives_restart_and_replays(tmp_path: Path, mo
 
     source_db = tmp_path / "source.db"
     dest_db = tmp_path / "dest.db"
-    source = WeAllExecutor(db_path=str(source_db), node_id="v1", chain_id="bft-restart", tx_index_path=tx_index_path)
+    source = WeAllExecutor(
+        db_path=str(source_db), node_id="v1", chain_id="bft-restart", tx_index_path=tx_index_path
+    )
     _seed_validator_set(source, validators=validators, pub=vpub, epoch=3)
 
-    block1 = _build_committed_block(source, force_ts_ms=1000)
+    _build_committed_block(source, force_ts_ms=1000)
     _backup_sqlite(source_db, dest_db)
     _backup_sqlite(source_db.with_name("source.aux.sqlite"), dest_db.with_name("dest.aux.sqlite"))
 
-    dest = WeAllExecutor(db_path=str(dest_db), node_id="v4", chain_id="bft-restart", tx_index_path=tx_index_path)
+    dest = WeAllExecutor(
+        db_path=str(dest_db), node_id="v4", chain_id="bft-restart", tx_index_path=tx_index_path
+    )
 
     block2 = _build_committed_block(source, force_ts_ms=2000)
     block3 = _build_committed_block(source, force_ts_ms=3000)
@@ -180,7 +192,12 @@ def test_pending_remote_frontier_survives_restart_and_replays(tmp_path: Path, mo
     assert str(block3["block_id"]) in list(before.get("pending_missing_qcs") or [])
     assert int(dest.state.get("height") or 0) == 1
 
-    restarted = WeAllExecutor(db_path=str(tmp_path / "dest.db"), node_id="v4", chain_id="bft-restart", tx_index_path=tx_index_path)
+    restarted = WeAllExecutor(
+        db_path=str(tmp_path / "dest.db"),
+        node_id="v4",
+        chain_id="bft-restart",
+        tx_index_path=tx_index_path,
+    )
     after_restart = restarted.bft_diagnostics()
     assert str(block3["block_id"]) in list(after_restart.get("pending_remote_blocks") or [])
     assert str(block3["block_id"]) in list(after_restart.get("pending_missing_qcs") or [])
@@ -204,8 +221,8 @@ def test_pending_candidate_survives_restart(tmp_path: Path, monkeypatch) -> None
 
     tx_index_path = str(_repo_root() / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
@@ -216,7 +233,9 @@ def test_pending_candidate_survives_restart(tmp_path: Path, monkeypatch) -> None
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", vpriv["v1"])
 
     db_path = str(tmp_path / "candidate.db")
-    ex = WeAllExecutor(db_path=db_path, node_id="v1", chain_id="bft-candidate-restart", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="v1", chain_id="bft-candidate-restart", tx_index_path=tx_index_path
+    )
     _seed_validator_set(ex, validators=validators, pub=vpub, epoch=5)
     ex.bft_set_view(0)
 
@@ -227,7 +246,9 @@ def test_pending_candidate_survives_restart(tmp_path: Path, monkeypatch) -> None
     before = ex.bft_diagnostics()
     assert block_id in list(before.get("pending_candidates") or [])
 
-    ex2 = WeAllExecutor(db_path=db_path, node_id="v1", chain_id="bft-candidate-restart", tx_index_path=tx_index_path)
+    ex2 = WeAllExecutor(
+        db_path=db_path, node_id="v1", chain_id="bft-candidate-restart", tx_index_path=tx_index_path
+    )
     after = ex2.bft_diagnostics()
     assert block_id in list(after.get("pending_candidates") or [])
     restored = ex2._bft_pending_block_json(block_id)

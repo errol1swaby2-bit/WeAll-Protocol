@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Literal
 
-JsonScalar = Union[str, int, float, bool, None]
-JsonValue = Union[JsonScalar, Dict[str, Any], List[Any]]
-JsonObject = Dict[str, JsonValue]
+JsonScalar = str | int | float | bool | None
+JsonValue = JsonScalar | dict[str, Any] | list[Any]
+JsonObject = dict[str, JsonValue]
 
 ChainId = str
 SchemaVersion = str
@@ -14,7 +14,7 @@ HexDigest = str
 PeerId = str
 
 
-class MsgType(str, Enum):
+class MsgType(Enum):
     PEER_HELLO = "PEER_HELLO"
     PEER_HELLO_ACK = "PEER_HELLO_ACK"
 
@@ -41,8 +41,8 @@ class WireHeader:
     chain_id: ChainId
     schema_version: SchemaVersion
     tx_index_hash: HexDigest
-    sent_ts_ms: Optional[int] = None
-    corr_id: Optional[str] = None
+    sent_ts_ms: int | None = None
+    corr_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,35 +53,35 @@ class WireMessage:
 @dataclass(frozen=True, slots=True)
 class PeerHello(WireMessage):
     peer_id: PeerId
-    agent: Optional[str] = None
-    nonce: Optional[str] = None
-    caps: Tuple[str, ...] = field(default_factory=tuple)
-    identity: Optional[JsonObject] = None
-    protocol_version: Optional[str] = None
-    protocol_profile_hash: Optional[str] = None
-    validator_epoch: Optional[int] = None
-    validator_set_hash: Optional[str] = None
-    bft_enabled: Optional[bool] = None
+    agent: str | None = None
+    nonce: str | None = None
+    caps: tuple[str, ...] = field(default_factory=tuple)
+    identity: JsonObject | None = None
+    protocol_version: str | None = None
+    protocol_profile_hash: str | None = None
+    validator_epoch: int | None = None
+    validator_set_hash: str | None = None
+    bft_enabled: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class PeerHelloAck(WireMessage):
     peer_id: PeerId
     ok: bool
-    reason: Optional[str] = None
-    caps: Tuple[str, ...] = field(default_factory=tuple)
-    server_ts_ms: Optional[int] = None
-    protocol_version: Optional[str] = None
-    protocol_profile_hash: Optional[str] = None
-    validator_epoch: Optional[int] = None
-    validator_set_hash: Optional[str] = None
-    bft_enabled: Optional[bool] = None
+    reason: str | None = None
+    caps: tuple[str, ...] = field(default_factory=tuple)
+    server_ts_ms: int | None = None
+    protocol_version: str | None = None
+    protocol_profile_hash: str | None = None
+    validator_epoch: int | None = None
+    validator_set_hash: str | None = None
+    bft_enabled: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class TxEnvelopeMsg(WireMessage):
     nonce: int
-    client_tx_id: Optional[str] = None
+    client_tx_id: str | None = None
     tx: JsonObject = field(default_factory=dict)
 
 
@@ -90,9 +90,9 @@ class BlockProposalMsg(WireMessage):
     height: int
     prev_block_hash: HexDigest
     block_ts_ms: int
-    block_hash: Optional[HexDigest] = None
-    txs: Tuple[JsonObject, ...] = field(default_factory=tuple)
-    proposer: Optional[str] = None
+    block_hash: HexDigest | None = None
+    txs: tuple[JsonObject, ...] = field(default_factory=tuple)
+    proposer: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,8 +100,8 @@ class BlockVoteMsg(WireMessage):
     height: int
     block_hash: HexDigest
     vote: Literal["yes", "no"]
-    reason: Optional[str] = None
-    voter: Optional[str] = None
+    reason: str | None = None
+    voter: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +109,7 @@ class BftProposalMsg(WireMessage):
     view: int
     proposer: str
     block: JsonObject = field(default_factory=dict)
-    justify_qc: Optional[JsonObject] = None
+    justify_qc: JsonObject | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,26 +133,26 @@ class BftTimeoutMsg(WireMessage):
 class StateSyncRequestMsg(WireMessage):
     mode: Literal["snapshot", "delta"]
     from_height: int = 0
-    to_height: Optional[int] = None
-    selector: Optional[JsonObject] = None
+    to_height: int | None = None
+    selector: JsonObject | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class StateSyncResponseMsg(WireMessage):
     ok: bool
-    reason: Optional[str]
+    reason: str | None
     height: int
-    snapshot: Optional[JsonObject] = None
-    snapshot_hash: Optional[str] = None
-    snapshot_anchor: Optional[JsonObject] = None
-    blocks: Tuple[JsonObject, ...] = field(default_factory=tuple)
+    snapshot: JsonObject | None = None
+    snapshot_hash: str | None = None
+    snapshot_anchor: JsonObject | None = None
+    blocks: tuple[JsonObject, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)
 class PingMsg(WireMessage):
-    ping_id: Optional[str] = None
+    ping_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class PongMsg(WireMessage):
-    ping_id: Optional[str] = None
+    ping_id: str | None = None

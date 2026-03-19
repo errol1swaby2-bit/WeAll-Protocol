@@ -37,20 +37,25 @@ def _cfg_for(tmp_path: Path, chain_id: str):
     )
 
 
-def test_operator_incident_lane_is_normal_for_clean_local_state(tmp_path: Path, monkeypatch) -> None:
+def test_operator_incident_lane_is_normal_for_clean_local_state(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_NET_ENABLED", "0")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
 
     ex = _make_executor(tmp_path, chain_id="incident-lane-clean")
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     lane = build_operator_incident_lane(
@@ -73,7 +78,7 @@ def test_operator_incident_lane_halts_on_peer_divergence(tmp_path: Path, monkeyp
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
 
-    ex = _make_executor(tmp_path, chain_id="incident-lane-divergence")
+    _make_executor(tmp_path, chain_id="incident-lane-divergence")
     cfg = _cfg_for(tmp_path, chain_id="incident-lane-divergence")
 
     peer_report = {
@@ -98,7 +103,9 @@ def test_operator_incident_lane_halts_on_peer_divergence(tmp_path: Path, monkeyp
     assert lane["peer_summary"]["divergence_count"] == 1
     assert lane["safe_mode"]["halt_block_production"] is True
     assert "HALT_BLOCK_PRODUCTION" in lane["actions"]["actions"]
-    assert any("divergent tip/validator-set/startup-fingerprint" in step for step in lane["next_steps"])
+    assert any(
+        "divergent tip/validator-set/startup-fingerprint" in step for step in lane["next_steps"]
+    )
 
 
 def test_operator_incident_lane_cli_writes_bundle(tmp_path: Path, monkeypatch) -> None:
@@ -107,14 +114,17 @@ def test_operator_incident_lane_cli_writes_bundle(tmp_path: Path, monkeypatch) -
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
 
     ex = _make_executor(tmp_path, chain_id="incident-lane-cli")
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     out_path = tmp_path / "lane.json"

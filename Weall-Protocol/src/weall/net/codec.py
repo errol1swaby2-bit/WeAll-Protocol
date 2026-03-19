@@ -2,29 +2,30 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, Iterable, Type, TypeVar, Union
+from collections.abc import Iterable
+from dataclasses import fields, is_dataclass
+from enum import Enum
+from typing import Any, TypeVar
 
 from weall.net.messages import (
-    MsgType,
-    WireHeader,
-    WireMessage,
-    PeerHello,
-    PeerHelloAck,
-    TxEnvelopeMsg,
-    BlockProposalMsg,
-    BlockVoteMsg,
     BftProposalMsg,
-    BftVoteMsg,
     BftQcMsg,
     BftTimeoutMsg,
-    StateSyncRequestMsg,
-    StateSyncResponseMsg,
+    BftVoteMsg,
+    BlockProposalMsg,
+    BlockVoteMsg,
+    MsgType,
+    PeerHello,
+    PeerHelloAck,
     PingMsg,
     PongMsg,
+    StateSyncRequestMsg,
+    StateSyncResponseMsg,
+    TxEnvelopeMsg,
+    WireHeader,
 )
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 T = TypeVar("T")
 
@@ -41,7 +42,7 @@ class WireEncodeError(RuntimeError):
         self.code = code
 
 
-AnyWireMsg = Union[
+AnyWireMsg = (
     PeerHello,
     PeerHelloAck,
     TxEnvelopeMsg,
@@ -55,12 +56,14 @@ AnyWireMsg = Union[
     StateSyncResponseMsg,
     PingMsg,
     PongMsg,
-]
+)
 
 
 def dumps_json(obj: Any) -> bytes:
     try:
-        return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+            "utf-8"
+        )
     except Exception as e:
         raise WireEncodeError("encode_failed", f"encode failed: {e}") from e
 
@@ -76,7 +79,7 @@ def loads_json(data: bytes | str) -> Any:
         raise WireDecodeError("invalid_utf8", f"invalid utf-8: {e}") from e
 
 
-_MSG_REGISTRY: Dict[MsgType, Type[AnyWireMsg]] = {
+_MSG_REGISTRY: dict[MsgType, type[AnyWireMsg]] = {
     MsgType.PEER_HELLO: PeerHello,
     MsgType.PEER_HELLO_ACK: PeerHelloAck,
     MsgType.TX_ENVELOPE: TxEnvelopeMsg,
@@ -109,7 +112,9 @@ def _coerce_int(v: Any, field: str) -> int:
         raise WireDecodeError("invalid_int_field", f"Invalid int field '{field}': bool not allowed")
     if isinstance(v, int):
         return v
-    raise WireDecodeError("invalid_int_field", f"Invalid int field '{field}': expected int, got {type(v).__name__}")
+    raise WireDecodeError(
+        "invalid_int_field", f"Invalid int field '{field}': expected int, got {type(v).__name__}"
+    )
 
 
 def _coerce_opt_int(v: Any, field: str) -> int | None:
@@ -123,7 +128,9 @@ def _coerce_opt_str(v: Any, field: str) -> str | None:
         return None
     if isinstance(v, str):
         return v
-    raise WireDecodeError("invalid_str_field", f"Invalid str field '{field}': expected str, got {type(v).__name__}")
+    raise WireDecodeError(
+        "invalid_str_field", f"Invalid str field '{field}': expected str, got {type(v).__name__}"
+    )
 
 
 def _tupleize(v: Any) -> tuple:
@@ -134,12 +141,18 @@ def _tupleize(v: Any) -> tuple:
     if isinstance(v, list):
         return tuple(v)
     if isinstance(v, dict):
-        raise WireDecodeError("invalid_tuple_field", "Expected list/tuple for tuple field, got dict")
+        raise WireDecodeError(
+            "invalid_tuple_field", "Expected list/tuple for tuple field, got dict"
+        )
     if isinstance(v, (str, bytes)):
-        raise WireDecodeError("invalid_tuple_field", "Expected list/tuple for tuple field, got scalar")
+        raise WireDecodeError(
+            "invalid_tuple_field", "Expected list/tuple for tuple field, got scalar"
+        )
     if isinstance(v, Iterable):
         return tuple(v)
-    raise WireDecodeError("invalid_tuple_field", f"Expected list/tuple for tuple field, got {type(v).__name__}")
+    raise WireDecodeError(
+        "invalid_tuple_field", f"Expected list/tuple for tuple field, got {type(v).__name__}"
+    )
 
 
 def _coerce_header(header_raw: Any) -> WireHeader:
@@ -151,7 +164,11 @@ def _coerce_header(header_raw: Any) -> WireHeader:
     chain_id = h.get("chain_id")
     schema_version = h.get("schema_version")
     tx_index_hash = h.get("tx_index_hash")
-    if not isinstance(chain_id, str) or not isinstance(schema_version, str) or not isinstance(tx_index_hash, str):
+    if (
+        not isinstance(chain_id, str)
+        or not isinstance(schema_version, str)
+        or not isinstance(tx_index_hash, str)
+    ):
         raise WireDecodeError("invalid_header", "Invalid header fields")
 
     sent_ts_ms = _coerce_opt_int(h.get("sent_ts_ms"), "sent_ts_ms")
@@ -166,7 +183,7 @@ def _coerce_header(header_raw: Any) -> WireHeader:
     )
 
 
-def _normalize_tuple_fields_for_message(msg_type: MsgType, body: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_tuple_fields_for_message(msg_type: MsgType, body: dict[str, Any]) -> dict[str, Any]:
     b = dict(body)
     if msg_type in (MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK):
         b["caps"] = _tupleize(b.get("caps"))
@@ -180,10 +197,22 @@ def _normalize_tuple_fields_for_message(msg_type: MsgType, body: Dict[str, Any])
     return b
 
 
+def _to_jsonable(value: Any) -> Any:
+    if isinstance(value, Enum):
+        return value.value
+    if is_dataclass(value):
+        return {f.name: _to_jsonable(getattr(value, f.name)) for f in fields(value)}
+    if isinstance(value, dict):
+        return {str(k): _to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(v) for v in value]
+    return value
+
+
 def encode_message(msg: AnyWireMsg) -> bytes:
     if not is_dataclass(msg):
         raise WireEncodeError("not_dataclass", "msg must be dataclass")
-    d = asdict(msg)
+    d = _to_jsonable(msg)
     return dumps_json(d)
 
 

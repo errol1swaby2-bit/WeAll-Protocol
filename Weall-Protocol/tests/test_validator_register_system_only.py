@@ -27,7 +27,7 @@ def test_validator_register_does_not_activate_on_register_and_requires_system() 
     )
     try:
         apply_consensus(state, env)
-        assert False, "expected system_only rejection"
+        raise AssertionError("expected system_only rejection")
     except ConsensusApplyError as e:
         assert e.code == "forbidden"
         assert e.reason == "system_only"

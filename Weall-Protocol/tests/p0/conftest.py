@@ -3,14 +3,14 @@ from __future__ import annotations
 import copy
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 def _sorted_json(obj: Any) -> str:
@@ -28,12 +28,12 @@ def assert_state_not_equal(a: Json, b: Json) -> None:
 
 def env(
     tx_type: str,
-    payload: Optional[Json] = None,
+    payload: Json | None = None,
     *,
     signer: str = "alice",
     nonce: int = 1,
     system: bool = False,
-    parent: Optional[str] = None,
+    parent: str | None = None,
 ) -> Json:
     e: Json = {
         "tx_type": tx_type,
@@ -91,7 +91,7 @@ class TxF:
             parent="txid:gov_block",
         )
 
-    def gov_tally_publish(self, proposal_id: str, *, nonce: int, tally: Optional[Json] = None) -> Json:
+    def gov_tally_publish(self, proposal_id: str, *, nonce: int, tally: Json | None = None) -> Json:
         return env(
             "GOV_TALLY_PUBLISH",
             {"proposal_id": proposal_id, "tally": tally or {"yes": 1, "no": 0}},

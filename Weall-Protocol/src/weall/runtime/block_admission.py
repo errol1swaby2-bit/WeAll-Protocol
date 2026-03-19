@@ -1,28 +1,27 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
-
-from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from typing import Any
 
 from weall.ledger.state import LedgerView
+from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
 class BlockReject:
     code: str
     reason: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
 class TxReject:
     code: str
     reason: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -47,15 +46,15 @@ def _as_str(v: Any) -> str:
     return str(v).strip() if isinstance(v, (str, int, float)) else ""
 
 
-def _as_dict(v: Any) -> Dict[str, Any]:
+def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
 
 
-def _as_list(v: Any) -> List[Any]:
+def _as_list(v: Any) -> list[Any]:
     return v if isinstance(v, list) else []
 
 
-def _get_active_validators_from_state(state: Json) -> List[str]:
+def _get_active_validators_from_state(state: Json) -> list[str]:
     # Primary source: state["roles"]["validators"]["active_set"]
     roles = state.get("roles")
     if isinstance(roles, dict):
@@ -63,7 +62,7 @@ def _get_active_validators_from_state(state: Json) -> List[str]:
         if isinstance(validators, dict):
             aset = validators.get("active_set")
             if isinstance(aset, list):
-                out: List[str] = []
+                out: list[str] = []
                 seen: set[str] = set()
                 for x in aset:
                     s = _as_str(x)
@@ -79,7 +78,7 @@ def _get_active_validators_from_state(state: Json) -> List[str]:
         if isinstance(vs, dict):
             aset = vs.get("active_set")
             if isinstance(aset, list):
-                out2: List[str] = []
+                out2: list[str] = []
                 seen2: set[str] = set()
                 for x in aset:
                     s = _as_str(x)
@@ -91,9 +90,9 @@ def _get_active_validators_from_state(state: Json) -> List[str]:
     return []
 
 
-def _get_validator_pubkeys_from_state(state: Json) -> Dict[str, str]:
+def _get_validator_pubkeys_from_state(state: Json) -> dict[str, str]:
     # consensus.apply.consensus.py stores validators under state["consensus"]["validators"]["registry"]
-    out: Dict[str, str] = {}
+    out: dict[str, str] = {}
     c = state.get("consensus")
     if not isinstance(c, dict):
         return out
@@ -113,9 +112,7 @@ def _get_validator_pubkeys_from_state(state: Json) -> Dict[str, str]:
     return out
 
 
-
-
-def _validator_set_hash_from_validators(validators: List[str]) -> str:
+def _validator_set_hash_from_validators(validators: list[str]) -> str:
     """Return the canonical validator-set hash used by HotStuff and handshake paths.
 
     Consensus safety requires every caller in the codebase to derive the same
@@ -154,15 +151,23 @@ def _current_validator_set_hash_from_state(state: Json) -> str:
 
 def _block_view(block: Json) -> int:
     hdr = block.get("header") if isinstance(block.get("header"), dict) else {}
-    return _as_int(block.get("view") or block.get("bft_view") or hdr.get("view") or hdr.get("bft_view"), 0)
+    return _as_int(
+        block.get("view") or block.get("bft_view") or hdr.get("view") or hdr.get("bft_view"), 0
+    )
 
 
 def _block_proposer(block: Json) -> str:
     hdr = block.get("header") if isinstance(block.get("header"), dict) else {}
-    return _as_str(block.get("proposer") or block.get("node_id") or hdr.get("proposer") or hdr.get("node_id") or "")
+    return _as_str(
+        block.get("proposer")
+        or block.get("node_id")
+        or hdr.get("proposer")
+        or hdr.get("node_id")
+        or ""
+    )
 
 
-def _validate_bft_proposal_leader_view(block: Json, state: Json) -> Tuple[bool, Optional[BlockReject]]:
+def _validate_bft_proposal_leader_view(block: Json, state: Json) -> tuple[bool, BlockReject | None]:
     validators = _get_active_validators_from_state(state)
     if not validators:
         return False, BlockReject("bft_no_validators", "validator_set_empty", {})
@@ -172,7 +177,9 @@ def _validate_bft_proposal_leader_view(block: Json, state: Json) -> Tuple[bool, 
     if view < 0:
         return False, BlockReject("bft_bad_view", "proposal_view_invalid", {"view": view})
     if not proposer:
-        return False, BlockReject("bft_missing_proposer", "proposal_missing_proposer", {"view": view})
+        return False, BlockReject(
+            "bft_missing_proposer", "proposal_missing_proposer", {"view": view}
+        )
 
     from weall.runtime.bft_hotstuff import leader_for_view
 
@@ -186,7 +193,9 @@ def _validate_bft_proposal_leader_view(block: Json, state: Json) -> Tuple[bool, 
     return True, None
 
 
-def _block_is_on_or_after_finalized_path(block: Json, state: Json, blocks_map: Dict[str, Any]) -> Tuple[bool, Optional[BlockReject]]:
+def _block_is_on_or_after_finalized_path(
+    block: Json, state: Json, blocks_map: dict[str, Any]
+) -> tuple[bool, BlockReject | None]:
     """Return whether ``block`` is the finalized block or a descendant of it.
 
     Commit/apply admission must reject blocks that would move local execution
@@ -210,14 +219,17 @@ def _block_is_on_or_after_finalized_path(block: Json, state: Json, blocks_map: D
         {"block_id": bid, "finalized_block_id": finalized},
     )
 
-def _parent_of(blocks: Dict[str, Any], block_id: str) -> str:
+
+def _parent_of(blocks: dict[str, Any], block_id: str) -> str:
     rec = blocks.get(str(block_id))
     if not isinstance(rec, dict):
         return ""
     return _as_str(rec.get("prev_block_id") or rec.get("prev") or "")
 
 
-def _is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000) -> bool:
+def _is_descendant(
+    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000
+) -> bool:
     cand = str(candidate).strip()
     anc = str(ancestor).strip()
     if not cand or not anc:
@@ -238,13 +250,13 @@ def _is_descendant(blocks: Dict[str, Any], *, candidate: str, ancestor: str, max
 
 
 def admit_block_txs(
-    txs: List[TxEnvelope],
+    txs: list[TxEnvelope],
     ledger: LedgerView,
     tx_index: TxIndex,
     *,
     max_block_txs: int = 50_000,
     verify_signatures: bool = True,
-) -> Tuple[bool, Optional[BlockReject], List[Optional[TxReject]]]:
+) -> tuple[bool, BlockReject | None, list[TxReject | None]]:
     """
     Deterministic block-context admission for a list of tx envelopes.
 
@@ -269,14 +281,18 @@ def admit_block_txs(
     if len(txs) > int(max_block_txs):
         return (
             False,
-            BlockReject("too_large", "block_txs_exceeds_limit", {"count": len(txs), "max": int(max_block_txs)}),
+            BlockReject(
+                "too_large",
+                "block_txs_exceeds_limit",
+                {"count": len(txs), "max": int(max_block_txs)},
+            ),
             [],
         )
 
-    rejects: List[Optional[TxReject]] = [None] * len(txs)
+    rejects: list[TxReject | None] = [None] * len(txs)
 
     # Enforce monotonic per-signer sequencing within this block for non-system txs.
-    per_signer_next: Dict[str, int] = {}
+    per_signer_next: dict[str, int] = {}
     seen_signer_nonce: set[tuple[str, int]] = set()
 
     for i, env in enumerate(txs):
@@ -347,11 +363,12 @@ def admit_block_txs(
 # BFT-aware block admission
 # -----------------------------
 
+
 def admit_bft_block(
     *,
     block: Json,
     state: Json,
-) -> Tuple[bool, Optional[BlockReject]]:
+) -> tuple[bool, BlockReject | None]:
     """BFT gating for incoming blocks.
 
     Feature flag:
@@ -398,7 +415,11 @@ def admit_bft_block(
             BlockReject(
                 "bft_validator_set_mismatch",
                 "block_validator_set_hash_mismatch",
-                {"block_id": bid, "block_set_hash": block_set_hash, "local_set_hash": local_set_hash},
+                {
+                    "block_id": bid,
+                    "block_set_hash": block_set_hash,
+                    "local_set_hash": local_set_hash,
+                },
             ),
         )
 
@@ -416,7 +437,11 @@ def admit_bft_block(
                 if not _is_descendant(blocks_map, candidate=bid, ancestor=finalized):
                     return (
                         False,
-                        BlockReject("bft_conflict", "block_not_descendant_of_finalized", {"block_id": bid, "finalized": finalized}),
+                        BlockReject(
+                            "bft_conflict",
+                            "block_not_descendant_of_finalized",
+                            {"block_id": bid, "finalized": finalized},
+                        ),
                     )
             else:
                 # unknown block: use prev linkage as a minimum check
@@ -424,9 +449,12 @@ def admit_bft_block(
                     if not _is_descendant(blocks_map, candidate=prev, ancestor=finalized):
                         return (
                             False,
-                            BlockReject("bft_conflict", "parent_not_descendant_of_finalized", {"parent": prev, "finalized": finalized}),
+                            BlockReject(
+                                "bft_conflict",
+                                "parent_not_descendant_of_finalized",
+                                {"parent": prev, "finalized": finalized},
+                            ),
                         )
-
 
     justify_qc = block.get("justify_qc")
 
@@ -436,16 +464,20 @@ def admit_bft_block(
             if not ok_view:
                 return False, rej_view
             return True, None
-        return False, BlockReject("bft_missing_qc", "bft_enabled_requires_justify_qc", {"block_id": bid})
+        return False, BlockReject(
+            "bft_missing_qc", "bft_enabled_requires_justify_qc", {"block_id": bid}
+        )
 
     if not isinstance(justify_qc, dict):
-        return False, BlockReject("bad_shape", "justify_qc_must_be_object", {"type": str(type(justify_qc))})
+        return False, BlockReject(
+            "bad_shape", "justify_qc_must_be_object", {"type": str(type(justify_qc))}
+        )
 
     ok_view, rej_view = _validate_bft_proposal_leader_view(block, state)
     if not ok_view:
         return False, rej_view
 
-    from weall.runtime.bft_hotstuff import verify_qc, qc_from_json
+    from weall.runtime.bft_hotstuff import qc_from_json, verify_qc
 
     chain_id = _as_str(state.get("chain_id") or block.get("chain_id") or "")
     if not chain_id:
@@ -457,23 +489,43 @@ def admit_bft_block(
 
     qc_epoch = _as_int(justify_qc.get("validator_epoch"), 0)
     if local_epoch > 0 and qc_epoch > 0 and qc_epoch != local_epoch:
-        return False, BlockReject("bft_epoch_mismatch", "justify_qc_validator_epoch_mismatch", {"qc_epoch": qc_epoch, "local_epoch": local_epoch})
+        return False, BlockReject(
+            "bft_epoch_mismatch",
+            "justify_qc_validator_epoch_mismatch",
+            {"qc_epoch": qc_epoch, "local_epoch": local_epoch},
+        )
 
     qc_set_hash = _as_str(justify_qc.get("validator_set_hash") or "")
     if local_set_hash and qc_set_hash and qc_set_hash != local_set_hash:
-        return False, BlockReject("bft_validator_set_mismatch", "justify_qc_validator_set_hash_mismatch", {"qc_set_hash": qc_set_hash, "local_set_hash": local_set_hash})
+        return False, BlockReject(
+            "bft_validator_set_mismatch",
+            "justify_qc_validator_set_hash_mismatch",
+            {"qc_set_hash": qc_set_hash, "local_set_hash": local_set_hash},
+        )
 
     qc = qc_from_json(justify_qc)
     if qc is None:
         return False, BlockReject("bft_bad_qc", "justify_qc_invalid_shape", {"block_id": bid})
     if str(qc.chain_id or "") != chain_id:
-        return False, BlockReject("bft_bad_qc", "justify_qc_chain_id_mismatch", {"qc_chain_id": str(qc.chain_id or ""), "chain_id": chain_id})
+        return False, BlockReject(
+            "bft_bad_qc",
+            "justify_qc_chain_id_mismatch",
+            {"qc_chain_id": str(qc.chain_id or ""), "chain_id": chain_id},
+        )
     if prev and str(qc.block_id or "") != prev:
-        return False, BlockReject("bft_bad_qc", "justify_qc_block_id_mismatch", {"expected_parent": prev, "justify_qc_block_id": str(qc.block_id or "")})
+        return False, BlockReject(
+            "bft_bad_qc",
+            "justify_qc_block_id_mismatch",
+            {"expected_parent": prev, "justify_qc_block_id": str(qc.block_id or "")},
+        )
 
     vpub = _get_validator_pubkeys_from_state(state)
     if not verify_qc(qc=qc, validators=validators, validator_pubkeys=vpub):
-        return False, BlockReject("bft_qc_insufficient", "justify_qc_threshold_not_met", {"block_id": bid, "justify_qc_block_id": str(qc.block_id or "")})
+        return False, BlockReject(
+            "bft_qc_insufficient",
+            "justify_qc_threshold_not_met",
+            {"block_id": bid, "justify_qc_block_id": str(qc.block_id or "")},
+        )
 
     locked_qc = bft.get("locked_qc") if isinstance(bft, dict) else None
     if isinstance(locked_qc, dict):
@@ -484,7 +536,10 @@ def admit_bft_block(
             if bid in blocks_map:
                 extends_lock = _is_descendant(blocks_map, candidate=bid, ancestor=locked_bid)
             elif prev and prev in blocks_map:
-                extends_lock = _is_descendant(blocks_map, candidate=prev, ancestor=locked_bid) or prev == locked_bid
+                extends_lock = (
+                    _is_descendant(blocks_map, candidate=prev, ancestor=locked_bid)
+                    or prev == locked_bid
+                )
 
             justify_advances_lock = int(qc.view) > int(locked_view)
 
@@ -505,18 +560,19 @@ def admit_bft_block(
                 )
 
     if isinstance(block.get("qc"), dict):
-        return False, BlockReject("bft_bad_qc", "proposal_must_not_embed_self_qc", {"block_id": bid})
+        return False, BlockReject(
+            "bft_bad_qc", "proposal_must_not_embed_self_qc", {"block_id": bid}
+        )
 
     return True, None
-
 
 
 def admit_bft_commit_block(
     *,
     block: Json,
     state: Json,
-    blocks_map: Optional[Dict[str, Any]] = None,
-) -> Tuple[bool, Optional[BlockReject]]:
+    blocks_map: dict[str, Any] | None = None,
+) -> tuple[bool, BlockReject | None]:
     """Final commit/apply admission for BFT mode.
 
     This is stricter than proposal admission: the block must already satisfy proposal

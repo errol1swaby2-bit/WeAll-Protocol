@@ -4,19 +4,18 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
-
-from weall.runtime.tx_admission import TxEnvelope
-from weall.tx.canon import TxIndex
+from typing import Any
 
 # Rewards scheduling (Genesis v2.1): leaders enqueue deterministic reward system txs
 # inside the block. Followers never run the scheduler; they replay the included txs.
 from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID, TREASURY_ACCOUNT_ID
-from weall.ledger.roles_schema import ensure_roles_schema
 from weall.ledger.rewards import block_subsidy
+from weall.ledger.roles_schema import ensure_roles_schema
 from weall.runtime.econ_phase import econ_allowed_from_state
+from weall.runtime.tx_admission import TxEnvelope
+from weall.tx.canon import TxIndex
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class SystemTxEngineError(RuntimeError):
@@ -52,7 +51,7 @@ def _as_opt_str(v: Any) -> str:
     return _as_str(v)
 
 
-def _canon_info(canon: Any, tx_type: str) -> Optional[Dict[str, Any]]:
+def _canon_info(canon: Any, tx_type: str) -> dict[str, Any] | None:
     """Return canon entry for tx_type, supporting both TxIndex and lightweight dict stubs.
 
     TxIndex: canon.get(tx_type) -> dict|None
@@ -113,12 +112,12 @@ def _canon_parent_required(canon: Any, tx_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _as_list(v: Any) -> List[Any]:
+def _as_list(v: Any) -> list[Any]:
     return v if isinstance(v, list) else []
 
 
-def _uniq_strs(xs: List[Any]) -> List[str]:
-    out: List[str] = []
+def _uniq_strs(xs: list[Any]) -> list[str]:
+    out: list[str] = []
     seen: set[str] = set()
     for it in xs:
         s = _as_str(it).strip()
@@ -128,7 +127,7 @@ def _uniq_strs(xs: List[Any]) -> List[str]:
     return out
 
 
-def _reward_recipients(state: Json, proposer: str) -> Dict[str, List[str]]:
+def _reward_recipients(state: Json, proposer: str) -> dict[str, list[str]]:
     roles = ensure_roles_schema(state)
 
     node_ops = roles.get("node_operators") if isinstance(roles.get("node_operators"), dict) else {}
@@ -150,7 +149,7 @@ def _reward_recipients(state: Json, proposer: str) -> Dict[str, List[str]]:
     }
 
 
-def _even_split(amount: int, recipients: List[str]) -> tuple[Dict[str, int], int]:
+def _even_split(amount: int, recipients: list[str]) -> tuple[dict[str, int], int]:
     amt = int(amount)
     recips = [r for r in recipients if isinstance(r, str) and r.strip()]
     if amt <= 0 or not recips:
@@ -159,14 +158,14 @@ def _even_split(amount: int, recipients: List[str]) -> tuple[Dict[str, int], int
     share = amt // n
     if share <= 0:
         return {}, amt
-    payouts: Dict[str, int] = {}
+    payouts: dict[str, int] = {}
     for r in recips:
         payouts[r] = payouts.get(r, 0) + share
     remainder = amt - (share * n)
     return payouts, remainder
 
 
-def _monetary_policy_snapshot(state: Json) -> Dict[str, int]:
+def _monetary_policy_snapshot(state: Json) -> dict[str, int]:
     econ = state.get("economics")
     if not isinstance(econ, dict):
         return {"issued": 0}
@@ -234,7 +233,7 @@ def schedule_block_rewards_system_txs(
     }
 
     recips = _reward_recipients(state, proposer=str(proposer or "").strip())
-    payouts: Dict[str, int] = {}
+    payouts: dict[str, int] = {}
     treasury_extra = 0
 
     for bucket_name in ("validators", "operators", "jurors", "creators"):
@@ -245,11 +244,11 @@ def schedule_block_rewards_system_txs(
         for acct_id, a in sub_payouts.items():
             payouts[acct_id] = payouts.get(acct_id, 0) + int(a)
 
-    payouts[TREASURY_ACCOUNT_ID] = payouts.get(TREASURY_ACCOUNT_ID, 0) + int(buckets.get("treasury", 0)) + int(
-        treasury_extra
+    payouts[TREASURY_ACCOUNT_ID] = (
+        payouts.get(TREASURY_ACCOUNT_ID, 0) + int(buckets.get("treasury", 0)) + int(treasury_extra)
     )
 
-    transfers: List[Json] = []
+    transfers: list[Json] = []
     for acct_id in sorted(payouts.keys()):
         amt = int(payouts.get(acct_id, 0))
         if amt <= 0:
@@ -262,7 +261,7 @@ def schedule_block_rewards_system_txs(
     # funded by newly minted subsidy.
     #
     # Future: when fees are wired, include fee pool debits as well.
-    debits: List[Json] = []
+    debits: list[Json] = []
     if total_reward > 0:
         debits.append({"from": MINT_POOL_ACCOUNT_ID, "amount": int(total_reward)})
 
@@ -315,7 +314,7 @@ class SystemQueueItem:
     parent: str
     phase: str  # "pre" or "post"
     once: bool = True
-    emitted_height: Optional[int] = None
+    emitted_height: int | None = None
 
     def to_ledger_obj(self) -> Json:
         return {
@@ -331,7 +330,7 @@ class SystemQueueItem:
         }
 
     @staticmethod
-    def from_ledger_obj(obj: Any) -> "SystemQueueItem":
+    def from_ledger_obj(obj: Any) -> SystemQueueItem:
         if not isinstance(obj, dict):
             raise ValueError("bad_system_queue_item")
         return SystemQueueItem(
@@ -343,11 +342,13 @@ class SystemQueueItem:
             parent=_as_opt_str(obj.get("parent")).strip(),
             phase=_as_str(obj.get("phase")).strip().lower() or "post",
             once=bool(obj.get("once", True)),
-            emitted_height=obj.get("emitted_height") if isinstance(obj.get("emitted_height"), int) else None,
+            emitted_height=obj.get("emitted_height")
+            if isinstance(obj.get("emitted_height"), int)
+            else None,
         )
 
 
-def _queue_root(state: Json) -> List[Json]:
+def _queue_root(state: Json) -> list[Json]:
     root = state.get("system_queue")
     if not isinstance(root, list):
         root = []
@@ -355,8 +356,8 @@ def _queue_root(state: Json) -> List[Json]:
     return root
 
 
-def _validated_queue_items(state: Json) -> List[SystemQueueItem]:
-    items: List[SystemQueueItem] = []
+def _validated_queue_items(state: Json) -> list[SystemQueueItem]:
+    items: list[SystemQueueItem] = []
     for idx, obj in enumerate(_queue_root(state)):
         if not isinstance(obj, dict):
             raise SystemQueueCorruptionError(f"system_queue_item_not_object:{idx}")
@@ -401,7 +402,7 @@ def enqueue_system_tx(
     due_height: int,
     signer: str = "SYSTEM",
     once: bool = True,
-    parent: Optional[str] = None,
+    parent: str | None = None,
     phase: str = "post",
 ) -> str:
     tx_type_u = _as_str(tx_type).strip().upper()
@@ -429,8 +430,8 @@ def enqueue_system_tx(
     return qid
 
 
-def _select_due_items(state: Json, *, next_height: int, phase: str) -> List[SystemQueueItem]:
-    out: List[SystemQueueItem] = []
+def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[SystemQueueItem]:
+    out: list[SystemQueueItem] = []
     phase_n = _as_str(phase).strip().lower() or "post"
     for item in _validated_queue_items(state):
         if item.emitted_height is not None and item.once:
@@ -451,13 +452,15 @@ def system_tx_emitter(
     next_height: int,
     phase: str,
     proposer: str = "",
-) -> List[TxEnvelope]:
-    out: List[TxEnvelope] = []
+) -> list[TxEnvelope]:
+    out: list[TxEnvelope] = []
 
     # Leader-only scheduling: enqueue deterministic system txs that must be
     # included in the block. Followers replay the block and do not call this.
     try:
-        schedule_block_rewards_system_txs(state, next_height=int(next_height), proposer=str(proposer or ""), phase=phase)
+        schedule_block_rewards_system_txs(
+            state, next_height=int(next_height), proposer=str(proposer or ""), phase=phase
+        )
     except Exception as exc:
         raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
 
@@ -490,7 +493,6 @@ def system_tx_emitter(
         # Receipt-only means it can only be emitted on the system/block path,
         # but it does *not* necessarily imply a parent reference is required.
         # Parent requirements are tracked separately in canon.
-        is_receipt = _is_receipt_only(canon, it.tx_type)
         parent_required = _canon_parent_required(canon, it.tx_type)
 
         # Autofill parent_ref from canon *only* when canon explicitly requires it.
@@ -541,7 +543,7 @@ def confirm_system_tx_emitted(state: Json, *, queue_id: str, emitted_height: int
 def prune_emitted_system_queue(state: Json) -> int:
     items = _validated_queue_items(state)
     before = len(items)
-    kept: List[Json] = []
+    kept: list[Json] = []
     for item in items:
         if item.once and isinstance(item.emitted_height, int):
             continue

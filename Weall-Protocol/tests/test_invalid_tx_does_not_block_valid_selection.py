@@ -26,7 +26,7 @@ def test_invalid_tx_does_not_block_valid_selection(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    bad = ex.submit_tx(
+    ex.submit_tx(
         {
             "tx_type": "ACCOUNT_REGISTER",
             "signer": "@user",

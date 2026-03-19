@@ -47,18 +47,16 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any
+
+Json = dict[str, Any]
 
 
-Json = Dict[str, Any]
-
-
-def env(name: str, default: Optional[str] = None) -> Optional[str]:
+def env(name: str, default: str | None = None) -> str | None:
     v = os.environ.get(name)
     return v if v is not None and str(v).strip() != "" else default
 
@@ -66,10 +64,10 @@ def env(name: str, default: Optional[str] = None) -> Optional[str]:
 def http_json(
     method: str,
     url: str,
-    body: Optional[Json] = None,
-    headers: Optional[Dict[str, str]] = None,
+    body: Json | None = None,
+    headers: dict[str, str] | None = None,
     timeout: float = 10.0,
-) -> Tuple[int, Json]:
+) -> tuple[int, Json]:
     data = None
     h = {"Accept": "application/json"}
     if headers:
@@ -125,10 +123,10 @@ def is_ok(j: Json) -> bool:
     return bool(isinstance(j, dict) and j.get("ok") is True)
 
 
-def mk_auth_headers(account: str, session_key: Optional[str]) -> Dict[str, str]:
+def mk_auth_headers(account: str, session_key: str | None) -> dict[str, str]:
     # Backend CORS explicitly allows X-WeAll-Account / X-WeAll-Session-Key in your builds.
     # If your node uses different headers, adjust here.
-    h: Dict[str, str] = {}
+    h: dict[str, str] = {}
     if account:
         h["X-WeAll-Account"] = account
     if session_key:
@@ -136,13 +134,15 @@ def mk_auth_headers(account: str, session_key: Optional[str]) -> Dict[str, str]:
     return h
 
 
-def submit_tx_shape_candidates(account: str, tx_type: str, payload: Json, parent: Optional[str]) -> List[Json]:
+def submit_tx_shape_candidates(
+    account: str, tx_type: str, payload: Json, parent: str | None
+) -> list[Json]:
     """
     Try a few common request shapes for /v1/tx/submit so this script survives small contract changes.
     """
     tx = {"tx_type": tx_type, "payload": payload, "parent": parent}
 
-    candidates: List[Json] = [
+    candidates: list[Json] = [
         # Shape A: { account, tx_type, payload, parent }
         {"account": account, "tx_type": tx_type, "payload": payload, "parent": parent},
         # Shape B: { account, tx: { tx_type, payload, parent } }
@@ -160,7 +160,7 @@ def submit_tx_shape_candidates(account: str, tx_type: str, payload: Json, parent
 class Actor:
     label: str
     account: str
-    session_key: Optional[str]
+    session_key: str | None
 
 
 @dataclass(frozen=True)
@@ -174,7 +174,7 @@ class Case:
 
 def wait_ready(base: str) -> None:
     # prefer /v1/readyz; fallback /v1/health
-    for i in range(30):
+    for _ in range(30):
         try:
             st, j = http_json("GET", f"{base}/v1/readyz", None, None, timeout=3.0)
             if st == 200:
@@ -191,7 +191,7 @@ def wait_ready(base: str) -> None:
     raise RuntimeError("node_not_ready")
 
 
-def run_case(base: str, c: Case) -> Tuple[bool, str]:
+def run_case(base: str, c: Case) -> tuple[bool, str]:
     url = f"{base}/v1/tx/submit"
     headers = mk_auth_headers(c.actor.account, c.actor.session_key)
 
@@ -219,7 +219,10 @@ def run_case(base: str, c: Case) -> Tuple[bool, str]:
                 return True, f"PASS allow ({c.actor.label}) {c.tx_type} -> ok:true"
             # Allow tests may fail if you require signing. That’s still useful signal.
             if is_gate_denied(status, resp):
-                return False, f"FAIL expected allow but got gate denied ({c.actor.label}) {c.tx_type}: {status} {json.dumps(resp)[:250]}"
+                return (
+                    False,
+                    f"FAIL expected allow but got gate denied ({c.actor.label}) {c.tx_type}: {status} {json.dumps(resp)[:250]}",
+                )
             return False, f"FAIL expected allow but got {status} {json.dumps(resp)[:300]}"
 
     # Exhausted shapes
@@ -237,7 +240,9 @@ def main() -> int:
         print("❌ Missing required env vars:")
         print("   WEALL_ACCT_TIER0, WEALL_ACCT_TIER2, WEALL_ACCT_TIER3")
         print("")
-        print("Tip: use the web UI or your existing tooling to create 3 accounts and upgrade them to desired PoH tiers,")
+        print(
+            "Tip: use the web UI or your existing tooling to create 3 accounts and upgrade them to desired PoH tiers,"
+        )
         print("then export those account ids here.")
         return 2
 
@@ -256,7 +261,7 @@ def main() -> int:
     # Minimal payloads — these should be sufficient to trigger admission gating before deep apply validation.
     # If your executor requires additional fields, the ALLOW cases may fail for validation (which is still useful),
     # but the DENY cases should still show gate_denied if admission gates are wired correctly.
-    cases: List[Case] = [
+    cases: list[Case] = [
         # Content posting should be Tier3+ in your current build
         Case(
             name="tier0_cannot_post",
@@ -292,14 +297,20 @@ def main() -> int:
             name="tier0_cannot_create_group",
             actor=actors["tier0"],
             tx_type="GROUP_CREATE",
-            payload={"group_id": "g:gate-test", "charter": {"name": "Gate Test", "description": "test"}},
+            payload={
+                "group_id": "g:gate-test",
+                "charter": {"name": "Gate Test", "description": "test"},
+            },
             expect="deny",
         ),
         Case(
             name="tier2_can_create_group",
             actor=actors["tier2"],
             tx_type="GROUP_CREATE",
-            payload={"group_id": "g:gate-test", "charter": {"name": "Gate Test", "description": "test"}},
+            payload={
+                "group_id": "g:gate-test",
+                "charter": {"name": "Gate Test", "description": "test"},
+            },
             expect="allow",
         ),
     ]

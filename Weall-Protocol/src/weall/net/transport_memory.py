@@ -23,8 +23,8 @@ This is intentionally minimal and should never be used for production networking
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
 
 from weall.net.transport import Connection, PeerAddr, WirePacket
 
@@ -34,15 +34,15 @@ def _now_ms() -> int:
 
 
 # Global registry so multiple InMemoryTransport instances can connect.
-_REGISTRY: Dict[str, "InMemoryTransport"] = {}
+_REGISTRY: dict[str, InMemoryTransport] = {}
 
 
 @dataclass(slots=True)
 class _MemConn(Connection):
     _peer_id: str
     _peer_addr: PeerAddr
-    _local: "InMemoryTransport"
-    _remote: "InMemoryTransport"
+    _local: InMemoryTransport
+    _remote: InMemoryTransport
     _closed: bool = False
 
     @property
@@ -61,7 +61,12 @@ class _MemConn(Connection):
         sender = self._local.bound_uri or "mem://anonymous"
         # Remote receives packet "from" the sender's uri.
         self._remote._inbox.append(
-            WirePacket(peer_id=str(sender), payload=bytes(payload), received_at_ms=_now_ms(), meta={"transport": "mem"})
+            WirePacket(
+                peer_id=str(sender),
+                payload=bytes(payload),
+                received_at_ms=_now_ms(),
+                meta={"transport": "mem"},
+            )
         )
 
     def close(self) -> None:
@@ -83,8 +88,8 @@ class InMemoryTransport:
     def __init__(self) -> None:
         self.bound_uri: str = ""
         self._closed: bool = False
-        self._inbox: List[WirePacket] = []
-        self._conns: Dict[str, _MemConn] = {}
+        self._inbox: list[WirePacket] = []
+        self._conns: dict[str, _MemConn] = {}
 
     def bind(self, addr: PeerAddr) -> None:
         if self._closed:
@@ -137,7 +142,7 @@ class InMemoryTransport:
 
     # ---- helpers for tests/harness ----
 
-    def _inject(self, *, peer_id: str, payload: bytes, received_at_ms: Optional[int] = None) -> None:
+    def _inject(self, *, peer_id: str, payload: bytes, received_at_ms: int | None = None) -> None:
         """Inject a packet into this transport's inbox."""
         if self._closed:
             return

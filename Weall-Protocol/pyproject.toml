@@ -39,6 +39,9 @@ fix = false
 select = ["E", "F", "I", "B", "UP"]
 ignore = [
   "E501", # line length handled separately
+  "E402", # repo intentionally uses late imports in some runtime/script modules
+  "B008", # FastAPI File()/Form() defaults are part of the API contract
+  "B904", # preserve existing exception wrapping style for operator diagnostics
 ]
 
 [tool.ruff.lint.isort]

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 
 class _StrictModel(BaseModel):
@@ -26,8 +26,8 @@ class AccountRegisterPayload(_StrictModel):
 
 class AccountKeyAddPayload(_StrictModel):
     pubkey: str = Field(..., min_length=1)
-    key_id: Optional[str] = None
-    key_type: Optional[str] = None
+    key_id: str | None = None
+    key_type: str | None = None
 
 
 class AccountKeyRevokePayload(_StrictModel):
@@ -36,9 +36,9 @@ class AccountKeyRevokePayload(_StrictModel):
 
 class AccountDeviceRegisterPayload(_StrictModel):
     device_id: str = Field(..., min_length=1)
-    device_type: Optional[str] = Field(default=None, min_length=1)
-    label: Optional[str] = Field(default=None, min_length=1)
-    pubkey: Optional[str] = Field(default=None, min_length=1)
+    device_type: str | None = Field(default=None, min_length=1)
+    label: str | None = Field(default=None, min_length=1)
+    pubkey: str | None = Field(default=None, min_length=1)
 
 
 class AccountDeviceRevokePayload(_StrictModel):
@@ -46,16 +46,16 @@ class AccountDeviceRevokePayload(_StrictModel):
 
 
 class AccountSessionKeyIssuePayload(_StrictModel):
-    session_pubkey: Optional[str] = Field(default=None, min_length=1)
-    expires_ts_ms: Optional[int] = Field(default=None, ge=0)
+    session_pubkey: str | None = Field(default=None, min_length=1)
+    expires_ts_ms: int | None = Field(default=None, ge=0)
 
-    session_key: Optional[str] = Field(default=None, min_length=1)
-    ttl_s: Optional[int] = Field(default=None, ge=0)
+    session_key: str | None = Field(default=None, min_length=1)
+    ttl_s: int | None = Field(default=None, ge=0)
 
 
 class AccountSessionKeyRevokePayload(_StrictModel):
-    session_key: Optional[str] = Field(default=None, min_length=1)
-    session_pubkey: Optional[str] = Field(default=None, min_length=1)
+    session_key: str | None = Field(default=None, min_length=1)
+    session_pubkey: str | None = Field(default=None, min_length=1)
 
 
 class AccountGuardianAddPayload(_StrictModel):
@@ -67,22 +67,22 @@ class AccountGuardianRemovePayload(_StrictModel):
 
 
 class AccountLockPayload(_StrictModel):
-    target: Optional[str] = None
+    target: str | None = None
 
 
 class AccountUnlockPayload(_StrictModel):
-    target: Optional[str] = None
+    target: str | None = None
 
 
 class AccountRecoveryConfigSetPayload(_StrictModel):
-    guardians: Optional[List[str]] = None
-    threshold: Optional[int] = Field(default=None, ge=0)
-    delay_blocks: Optional[int] = Field(default=None, ge=0)
+    guardians: list[str] | None = None
+    threshold: int | None = Field(default=None, ge=0)
+    delay_blocks: int | None = Field(default=None, ge=0)
 
 
 class AccountRecoveryRequestPayload(_StrictModel):
-    request_id: Optional[str] = None
-    target: Optional[str] = None
+    request_id: str | None = None
+    target: str | None = None
 
 
 class AccountRecoveryApprovePayload(_StrictModel):
@@ -110,18 +110,18 @@ class PohTierSetPayload(_StrictModel):
 class PohApplicationSubmitPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     target_tier: int = Field(..., ge=0)
-    video_cid: Optional[str] = None
-    video_commitment: Optional[str] = None
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    video_cid: str | None = None
+    video_commitment: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohEvidenceDeclarePayload(_StrictModel):
-    evidence_id: Optional[str] = None
-    cid: Optional[str] = None
-    kind: Optional[str] = None
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    evidence_id: str | None = None
+    cid: str | None = None
+    kind: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohEvidenceBindPayload(_StrictModel):
@@ -130,27 +130,27 @@ class PohEvidenceBindPayload(_StrictModel):
 
 
 class PohChallengeOpenPayload(_StrictModel):
-    challenge_id: Optional[str] = None
+    challenge_id: str | None = None
     account_id: str = Field(..., min_length=1)
-    reason: Optional[str] = None
-    evidence_id: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    reason: str | None = None
+    evidence_id: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohChallengeResolvePayload(_StrictModel):
     challenge_id: str = Field(..., min_length=1)
     resolution: str = Field(..., min_length=1)
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier2RequestOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     target_tier: int = Field(..., ge=0)
-    video_cid: Optional[str] = None
-    video_commitment: Optional[str] = None
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    video_cid: str | None = None
+    video_commitment: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier2JurorAssignPayload(_StrictModel):
@@ -169,8 +169,8 @@ class PohTier2JurorDeclinePayload(_StrictModel):
 class PohTier2ReviewSubmitPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier2FinalizePayload(_StrictModel):
@@ -178,18 +178,18 @@ class PohTier2FinalizePayload(_StrictModel):
 
 
 class PohTier2ReceiptPayload(_StrictModel):
-    receipt_id: Optional[str] = None
+    receipt_id: str | None = None
     case_id: str = Field(..., min_length=1)
-    outcome: Optional[str] = None
-    tier_awarded: Optional[int] = Field(default=None, ge=0)
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    outcome: str | None = None
+    tier_awarded: int | None = Field(default=None, ge=0)
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier3InitPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
-    session_commitment: Optional[str] = None
-    note: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    session_commitment: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier3JurorAssignPayload(_StrictModel):
@@ -213,21 +213,21 @@ class PohTier3JurorReplacePayload(_StrictModel):
 
 class PohTier3AttendanceMarkPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
-    juror_id: Optional[str] = None
+    juror_id: str | None = None
     attended: bool = Field(...)
     # REQUIRED by runtime/apply/poh.py (bad_session_commitment) and by API skeletons.
-    session_commitment: Optional[str] = None
+    session_commitment: str | None = None
     # API skeletons default to 0; client should set Date.now().
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier3VerdictSubmitPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
-    note: Optional[str] = None
+    note: str | None = None
     # REQUIRED by runtime/apply/poh.py (bad_session_commitment) and by API skeletons.
-    session_commitment: Optional[str] = None
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    session_commitment: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohTier3FinalizePayload(_StrictModel):
@@ -235,17 +235,17 @@ class PohTier3FinalizePayload(_StrictModel):
 
 
 class PohTier3ReceiptPayload(_StrictModel):
-    receipt_id: Optional[str] = None
+    receipt_id: str | None = None
     case_id: str = Field(..., min_length=1)
-    outcome: Optional[str] = None
-    tier_awarded: Optional[int] = Field(default=None, ge=0)
-    ts_ms: Optional[int] = Field(default=None, ge=0)
+    outcome: str | None = None
+    tier_awarded: int | None = Field(default=None, ge=0)
+    ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PohBootstrapTier3GrantPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
-    accepted: Optional[bool] = None
-    note: Optional[str] = None
+    accepted: bool | None = None
+    note: str | None = None
 
 
 class PohEmailReceiptSubmitPayload(_StrictModel):
@@ -259,20 +259,20 @@ class PohEmailReceiptSubmitPayload(_StrictModel):
 
 
 class ContentPostCreatePayload(_StrictModel):
-    post_id: Optional[str] = Field(default=None, min_length=1)
-    body: Optional[str] = Field(default=None, min_length=1)
-    media: Optional[List[str]] = None
-    visibility: Optional[str] = Field(default=None, min_length=1)
-    tags: Optional[List[str]] = None
-    group_id: Optional[str] = None
+    post_id: str | None = Field(default=None, min_length=1)
+    body: str | None = Field(default=None, min_length=1)
+    media: list[str] | None = None
+    visibility: str | None = Field(default=None, min_length=1)
+    tags: list[str] | None = None
+    group_id: str | None = None
 
 
 class ContentPostEditPayload(_StrictModel):
     post_id: str = Field(..., min_length=1)
-    body: Optional[str] = Field(default=None, min_length=1)
-    media: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
-    group_id: Optional[str] = None
+    body: str | None = Field(default=None, min_length=1)
+    media: list[str] | None = None
+    tags: list[str] | None = None
+    group_id: str | None = None
 
 
 class ContentPostDeletePayload(_StrictModel):
@@ -280,7 +280,7 @@ class ContentPostDeletePayload(_StrictModel):
 
 
 class ContentCommentCreatePayload(_StrictModel):
-    comment_id: Optional[str] = Field(default=None, min_length=1)
+    comment_id: str | None = Field(default=None, min_length=1)
     post_id: str = Field(..., min_length=1)
     body: str = Field(..., min_length=1)
 
@@ -295,29 +295,29 @@ class ContentReactionSetPayload(_StrictModel):
 
 
 class ContentFlagPayload(_StrictModel):
-    flag_id: Optional[str] = Field(default=None, min_length=1)
+    flag_id: str | None = Field(default=None, min_length=1)
     target_id: str = Field(..., min_length=1)
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class ContentMediaDeclarePayload(_StrictModel):
-    media_id: Optional[str] = Field(default=None, min_length=1)
-    id: Optional[str] = Field(default=None, min_length=1)
+    media_id: str | None = Field(default=None, min_length=1)
+    id: str | None = Field(default=None, min_length=1)
 
-    cid: Optional[str] = None
-    ipfs_cid: Optional[str] = None
-    content_cid: Optional[str] = None
-    upload_ref: Optional[str] = None
-    ref: Optional[str] = None
+    cid: str | None = None
+    ipfs_cid: str | None = None
+    content_cid: str | None = None
+    upload_ref: str | None = None
+    ref: str | None = None
 
-    kind: Optional[str] = None
-    mime: Optional[str] = None
-    bytes: Optional[int] = Field(default=None, ge=0)
-    name: Optional[str] = None
+    kind: str | None = None
+    mime: str | None = None
+    bytes: int | None = Field(default=None, ge=0)
+    name: str | None = None
 
 
 class ContentMediaBindPayload(_StrictModel):
-    binding_id: Optional[str] = Field(default=None, min_length=1)
+    binding_id: str | None = Field(default=None, min_length=1)
     media_id: str = Field(..., min_length=1)
     target_id: str = Field(..., min_length=1)
 
@@ -332,28 +332,28 @@ class GovProposalCreatePayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
 
     # Optional human-friendly metadata (used by web UI / API responses)
-    title: Optional[str] = None
-    body: Optional[str] = None
+    title: str | None = None
+    body: str | None = None
 
     # Governance engine fields
-    rules: Optional[Json] = None
-    actions: Optional[List[Json]] = None
+    rules: Json | None = None
+    actions: list[Json] | None = None
 
     # Deterministic height hint (used in tests / internal scheduling)
-    due_height: Optional[int] = Field(default=None, ge=0, alias="_due_height")
+    due_height: int | None = Field(default=None, ge=0, alias="_due_height")
 
 
 class GovVoteCastPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
 
     # Backward/forward compatibility: some clients use 'choice'.
-    vote: Optional[str] = None
-    choice: Optional[str] = None
+    vote: str | None = None
+    choice: str | None = None
 
 
 class GovDelegationSetPayload(_StrictModel):
     # Empty / missing clears delegation.
-    delegatee: Optional[str] = None
+    delegatee: str | None = None
 
 
 # ============================================================
@@ -382,7 +382,7 @@ class DisputeJurorDeclinePayload(_StrictModel):
 class DisputeEvidenceDeclarePayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
     evidence_id: str = Field(..., min_length=1)
-    cid: Optional[str] = None
+    cid: str | None = None
 
 
 class DisputeEvidenceBindPayload(_StrictModel):
@@ -407,14 +407,14 @@ class TxEnvelopeModel(_StrictModel):
     nonce: int = Field(..., ge=0)
     payload: Json = Field(default_factory=dict)
     sig: str = Field(default="")
-    parent: Optional[str] = None
+    parent: str | None = None
     system: bool = False
 
     # IMPORTANT: frontend includes this in the signed envelope; we must accept it.
-    chain_id: Optional[str] = None
+    chain_id: str | None = None
 
 
-TxPayloadModel = Union[
+TxPayloadModel = (
     # Identity
     AccountRegisterPayload,
     AccountKeyAddPayload,
@@ -478,9 +478,9 @@ TxPayloadModel = Union[
     DisputeEvidenceDeclarePayload,
     DisputeEvidenceBindPayload,
     DisputeVoteSubmitPayload,
-]
+)
 
-TX_PAYLOADS: Dict[str, Any] = {
+TX_PAYLOADS: dict[str, Any] = {
     # Identity
     "ACCOUNT_REGISTER": AccountRegisterPayload,
     "ACCOUNT_KEY_ADD": AccountKeyAddPayload,
@@ -552,11 +552,11 @@ TX_PAYLOADS: Dict[str, Any] = {
 }
 
 
-def model_for_tx_type(tx_type: str) -> Optional[Any]:
+def model_for_tx_type(tx_type: str) -> Any | None:
     return TX_PAYLOADS.get((tx_type or "").upper())
 
 
-def validate_tx_envelope(env: Json) -> Tuple[TxEnvelopeModel, Optional[BaseModel]]:
+def validate_tx_envelope(env: Json) -> tuple[TxEnvelopeModel, BaseModel | None]:
     """Validate envelope + payload shape (strict)."""
     e = TxEnvelopeModel(**env)
     payload_model = model_for_tx_type(e.tx_type)

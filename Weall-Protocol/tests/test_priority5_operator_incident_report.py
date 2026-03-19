@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from weall.runtime.chain_config import load_chain_config
-from weall.runtime.operator_incident_report import build_operator_incident_report
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.operator_incident_report import build_operator_incident_report
 
 
 def _repo_root() -> Path:
@@ -28,18 +27,29 @@ def test_operator_incident_report_is_ok_for_clean_local_state(tmp_path: Path, mo
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
 
     ex = _make_executor(tmp_path, chain_id="incident-clean")
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:alice"},
+            }
+        )["ok"]
+        is True
+    )
     assert ex.produce_block(max_txs=1).ok is True
 
     cfg = load_chain_config()
-    cfg = cfg.__class__(**{**cfg.__dict__, "db_path": str(tmp_path / "node.db"), "tx_index_path": str(_repo_root() / "generated" / "tx_index.json"), "chain_id": "incident-clean", "node_id": "@validator"})
+    cfg = cfg.__class__(
+        **{
+            **cfg.__dict__,
+            "db_path": str(tmp_path / "node.db"),
+            "tx_index_path": str(_repo_root() / "generated" / "tx_index.json"),
+            "chain_id": "incident-clean",
+            "node_id": "@validator",
+        }
+    )
 
     report = build_operator_incident_report(
         cfg=cfg,
@@ -56,14 +66,24 @@ def test_operator_incident_report_is_ok_for_clean_local_state(tmp_path: Path, mo
     assert report["startup_fingerprint"]["chain_id"] == "incident-clean"
 
 
-def test_operator_incident_report_escalates_remote_stall_to_critical(tmp_path: Path, monkeypatch) -> None:
+def test_operator_incident_report_escalates_remote_stall_to_critical(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
 
-    ex = _make_executor(tmp_path, chain_id="incident-stall")
+    _make_executor(tmp_path, chain_id="incident-stall")
     cfg = load_chain_config()
-    cfg = cfg.__class__(**{**cfg.__dict__, "db_path": str(tmp_path / "node.db"), "tx_index_path": str(_repo_root() / "generated" / "tx_index.json"), "chain_id": "incident-stall", "node_id": "@validator"})
+    cfg = cfg.__class__(
+        **{
+            **cfg.__dict__,
+            "db_path": str(tmp_path / "node.db"),
+            "tx_index_path": str(_repo_root() / "generated" / "tx_index.json"),
+            "chain_id": "incident-stall",
+            "node_id": "@validator",
+        }
+    )
 
     remote = {
         "ok": True,
@@ -83,3 +103,4 @@ def test_operator_incident_report_escalates_remote_stall_to_critical(tmp_path: P
     assert report["summary"]["severity"] == "critical"
     assert report["summary"]["remote_stalled"] is True
     assert report["summary"]["pending_fetch_requests_count"] == 2
+
