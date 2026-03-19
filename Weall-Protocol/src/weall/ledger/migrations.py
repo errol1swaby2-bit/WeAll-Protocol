@@ -1,14 +1,12 @@
-# src/weall/ledger/migrations.py
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Dict
 
 from weall.runtime.reputation_units import sync_account_reputation
 
 Json = dict[str, Any]
 
-# Increment this when you add a new migration step.
 CURRENT_STATE_VERSION = 1
 
 
@@ -89,13 +87,6 @@ def _ensure_float(root: Json, key: str, default: float = 0.0) -> float:
 
 
 def _migrate_v0_to_v1(st: Json) -> Json:
-    """
-    v0 -> v1: introduce explicit state_version and normalize minimal roots.
-
-    v0 characteristics:
-      - no 'state_version'
-      - may have missing roots or wrong shapes
-    """
     _ensure_int(st, "height", 0)
     _ensure_str(st, "tip", "")
 
@@ -128,18 +119,12 @@ def _migrate_v0_to_v1(st: Json) -> Json:
     return st
 
 
-_MIGRATIONS: dict[int, Callable[[Json], Json]] = {
+_MIGRATIONS: Dict[int, Callable[[Json], Json]] = {
     0: _migrate_v0_to_v1,
 }
 
 
 def migrate_state_dict(raw: Any) -> Json:
-    """
-    Upgrade a raw persisted JSON dict to CURRENT_STATE_VERSION.
-
-    - Best-effort: never raises for simple shape issues; it normalizes.
-    - If raw isn't a dict, returns an empty vCURRENT state skeleton.
-    """
     st: Json = raw if isinstance(raw, dict) else {}
 
     v = _as_int(st.get("state_version"), 0)
