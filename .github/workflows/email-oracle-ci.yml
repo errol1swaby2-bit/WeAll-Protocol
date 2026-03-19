@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: projects/weall-email-oracle
+        working-directory: Weall-Protocol/cloudflare/email_oracle
 
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: projects/weall-email-oracle/package-lock.json
+          cache-dependency-path: Weall-Protocol/cloudflare/email_oracle/package-lock.json
 
       - name: Install
         run: npm ci

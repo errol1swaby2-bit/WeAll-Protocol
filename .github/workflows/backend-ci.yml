@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: projects/Weall-Protocol
+        working-directory: Weall-Protocol
 
     steps:
       - name: Checkout
@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tx-coverage-report
-          path: projects/Weall-Protocol/generated/tx_coverage_report.md
+          path: Weall-Protocol/generated/tx_coverage_report.md
 
       - name: Pytest
         run: |

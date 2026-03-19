@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: projects/web
+        working-directory: web
 
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: projects/web/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install
         run: |
