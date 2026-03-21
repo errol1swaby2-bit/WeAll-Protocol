@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from weall.runtime.bft_hotstuff import HotStuffBFT, QuorumCert
 
 

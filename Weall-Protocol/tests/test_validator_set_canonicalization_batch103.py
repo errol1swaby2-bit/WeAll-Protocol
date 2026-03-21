@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from weall.ledger.roles_schema import ensure_roles_schema
+from weall.runtime.domain_apply import apply_tx
 from weall.runtime.genesis_config import (
     GenesisConfig,
     GenesisValidator,
     apply_genesis_config_to_ledger_state,
 )
-from weall.runtime.domain_apply import apply_tx
 from weall.runtime.tx_admission import TxEnvelope
 
 

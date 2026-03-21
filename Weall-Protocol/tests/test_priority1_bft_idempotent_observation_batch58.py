@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
 
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.executor import WeAllExecutor
@@ -12,7 +11,7 @@ def _repo_root() -> Path:
 
 
 def _seed_validator_set(
-    ex: WeAllExecutor, *, validators: List[str], pub: Dict[str, str], epoch: int = 1
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
 ) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})

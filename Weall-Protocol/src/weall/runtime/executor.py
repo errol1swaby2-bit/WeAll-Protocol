@@ -2399,7 +2399,7 @@ class WeAllExecutor:
                 1, _safe_int(os.environ.get("WEALL_BFT_RECENT_PROPOSALS"), 2048)
             )
         if not hasattr(self, "_recent_bft_proposals") or not isinstance(
-            getattr(self, "_recent_bft_proposals"), OrderedDict
+            self._recent_bft_proposals, OrderedDict
         ):
             self._recent_bft_proposals = OrderedDict()
         if not hasattr(self, "_max_recent_bft_qcs"):
@@ -2407,7 +2407,7 @@ class WeAllExecutor:
                 1, _safe_int(os.environ.get("WEALL_BFT_RECENT_QCS"), 2048)
             )
         if not hasattr(self, "_recent_bft_qcs") or not isinstance(
-            getattr(self, "_recent_bft_qcs"), OrderedDict
+            self._recent_bft_qcs, OrderedDict
         ):
             self._recent_bft_qcs = OrderedDict()
         if not hasattr(self, "_max_recent_bft_votes"):
@@ -2415,7 +2415,7 @@ class WeAllExecutor:
                 1, _safe_int(os.environ.get("WEALL_BFT_RECENT_VOTES"), 4096)
             )
         if not hasattr(self, "_recent_bft_votes") or not isinstance(
-            getattr(self, "_recent_bft_votes"), OrderedDict
+            self._recent_bft_votes, OrderedDict
         ):
             self._recent_bft_votes = OrderedDict()
         if not hasattr(self, "_max_recent_bft_timeouts"):
@@ -2423,7 +2423,7 @@ class WeAllExecutor:
                 1, _safe_int(os.environ.get("WEALL_BFT_RECENT_TIMEOUTS"), 4096)
             )
         if not hasattr(self, "_recent_bft_timeouts") or not isinstance(
-            getattr(self, "_recent_bft_timeouts"), OrderedDict
+            self._recent_bft_timeouts, OrderedDict
         ):
             self._recent_bft_timeouts = OrderedDict()
         if not hasattr(self, "_max_recent_bft_sender_budgets"):
@@ -2439,7 +2439,7 @@ class WeAllExecutor:
                 1, _safe_int(os.environ.get("WEALL_BFT_SENDER_BUDGET"), 64)
             )
         if not hasattr(self, "_recent_bft_sender_budgets") or not isinstance(
-            getattr(self, "_recent_bft_sender_budgets"), OrderedDict
+            self._recent_bft_sender_budgets, OrderedDict
         ):
             self._recent_bft_sender_budgets = OrderedDict()
 

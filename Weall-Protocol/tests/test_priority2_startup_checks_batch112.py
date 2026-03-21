@@ -1,5 +1,5 @@
-import os
 import pytest
+
 from weall.runtime.startup_checks import validate_environment
 
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from weall.net.codec import encode_message
 from weall.net.messages import MsgType, StateSyncResponseMsg, WireHeader
 from weall.net.node import NetConfig, NetNode, PeerPolicy
 from weall.net.transport import PeerAddr

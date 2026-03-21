@@ -83,14 +83,6 @@ def test_descendant_qc_after_roundtrip_advances_lock_batch75() -> None:
 
 def test_high_qc_and_locked_qc_split_state_survives_roundtrip_batch75() -> None:
     hs = HotStuffBFT(chain_id="batch75")
-    blocks = {
-        "A": {"prev_block_id": ""},
-        "B1": {"prev_block_id": "A"},
-        "C1": {"prev_block_id": "B1"},
-        "B2": {"prev_block_id": "A"},
-        "C2": {"prev_block_id": "B2"},
-    }
-
     hs.locked_qc = _qc("batch75", 4, "B1", "A")
     hs.high_qc = _qc("batch75", 6, "C2", "B2")
     state1 = hs.export_state()

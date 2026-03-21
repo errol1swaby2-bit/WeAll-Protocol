@@ -4,7 +4,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import pytest
 
@@ -23,7 +22,7 @@ def _mk_keypair_hex() -> tuple[str, str]:
 
 
 def _seed_validator_set(
-    ex: WeAllExecutor, *, validators: List[str], pub: Dict[str, str], epoch: int = 1
+    ex: WeAllExecutor, *, validators: list[str], pub: dict[str, str], epoch: int = 1
 ) -> None:
     st = ex.read_state()
     st.setdefault("roles", {})
@@ -56,7 +55,7 @@ def _seed_validator_set(
     ex._ledger_store.write(ex.state)
 
 
-def leader_for_view(validators: List[str], view: int) -> str:
+def leader_for_view(validators: list[str], view: int) -> str:
     return validators[view % len(validators)]
 
 
@@ -67,8 +66,8 @@ def test_bft_drive_timeouts_emit_only_for_non_leaders_across_rotating_views(
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
 
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
@@ -114,8 +113,8 @@ def test_timeout_quorum_survives_restart_and_advances_to_next_rotating_leader(
     tx_index_path = str(root / "generated" / "tx_index.json")
     validators = ["v1", "v2", "v3", "v4"]
 
-    vpub: Dict[str, str] = {}
-    vpriv: Dict[str, str] = {}
+    vpub: dict[str, str] = {}
+    vpriv: dict[str, str] = {}
     for v in validators:
         pk, sk = _mk_keypair_hex()
         vpub[v] = pk
