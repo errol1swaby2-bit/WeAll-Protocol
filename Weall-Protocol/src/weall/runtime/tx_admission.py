@@ -379,18 +379,31 @@ def _reputation_and_flags_ok(
     return None
 
 
-def _bootstrap_open_gate_bypass(env: TxEnvelope, spec: Json) -> bool:
+def _consensus_bootstrap_open_enabled(ledger: LedgerView) -> bool:
+    """Return True when ledger state explicitly enables open PoH bootstrap.
+
+    This gate is consensus-critical and therefore must be derived from replayable
+    chain state rather than process-local environment variables.
     """
-    Dev/testnet escape hatch for POH bootstrap.
+    params = ledger.params if isinstance(ledger.params, dict) else {}
+    raw = params.get("poh_bootstrap_open")
+    if isinstance(raw, bool):
+        return raw
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+
+def _bootstrap_open_gate_bypass(env: TxEnvelope, ledger: LedgerView, spec: Json) -> bool:
+    """On-chain escape hatch for POH bootstrap.
 
     Canon marks POH_BOOTSTRAP_TIER3_GRANT with a Validator subject gate and
-    SYSTEM origin. In dev/testnet, when WEALL_POH_BOOTSTRAP_OPEN=1, we
-    intentionally allow a freshly registered user account to submit this tx so
-    local operators can run the full golden path without pre-seeding a validator
-    identity or system signer plumbing.
+    SYSTEM origin. When the ledger state explicitly enables open bootstrap,
+    admission intentionally allows a freshly registered user account to submit
+    this tx so controlled bootstrap flows can run without pre-seeding a
+    validator identity or system signer plumbing.
 
-    Apply-time system-only bypass already exists in domain_dispatch.py; this
-    mirrors that behavior at admission-time for the subject gate only.
+    Because this affects block validity, the bypass must be derived from the
+    replayable ledger state, not from local environment configuration.
     """
     tx_type = str(env.tx_type or "").strip().upper()
     gate = str(spec.get("subject_gate") or "").strip()
@@ -398,10 +411,7 @@ def _bootstrap_open_gate_bypass(env: TxEnvelope, spec: Json) -> bool:
         return False
     if gate != "Validator":
         return False
-    if str(os.environ.get("WEALL_POH_BOOTSTRAP_OPEN") or "").strip() != "1":
-        return False
-    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
-    return mode in {"dev", "testnet"}
+    return _consensus_bootstrap_open_enabled(ledger)
 
 
 def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdict | None:
@@ -409,7 +419,7 @@ def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdic
     if not gate:
         return None
 
-    if _bootstrap_open_gate_bypass(env, spec):
+    if _bootstrap_open_gate_bypass(env, ledger, spec):
         return None
 
     ok, meta = eval_gate(

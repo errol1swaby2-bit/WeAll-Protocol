@@ -111,8 +111,9 @@ def _mode() -> str:
 
 
 def _bounded_put(od: OrderedDict[str, Any], key: str, value: Any, *, cap: int) -> None:
-    """Insert into an OrderedDict while enforcing a hard cap.
+    """Insert into a mapping while enforcing a hard cap.
 
+    Works with OrderedDict and plain dict instances used by lightweight tests.
     Strict mode / production hardening: untrusted inbound data MUST NOT be able to
     grow in-memory caches without bound.
     """
@@ -123,7 +124,11 @@ def _bounded_put(od: OrderedDict[str, Any], key: str, value: Any, *, cap: int) -
             del od[key]
         od[key] = value
         while len(od) > cap:
-            od.popitem(last=False)
+            try:
+                od.popitem(last=False)
+            except TypeError:
+                oldest = next(iter(od))
+                del od[oldest]
     except Exception:
         # Fail-closed would be too disruptive here; bounded caches are best-effort.
         # The caller still validates and rejects invalid blocks/txs elsewhere.
@@ -394,6 +399,18 @@ class WeAllExecutor:
         )
         self._pending_missing_qcs: OrderedDict[str, Json] = OrderedDict()
         self._pending_missing_qcs_by_hash: OrderedDict[str, Json] = OrderedDict()
+        self._max_missing_parent_fetches_per_call: int = max(
+            1,
+            _safe_int(
+                os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32
+            ),
+        )
+        self._max_missing_qc_fetches_per_call: int = max(
+            1,
+            _safe_int(os.environ.get("WEALL_BFT_MAX_MISSING_QC_FETCHES_PER_CALL"), 32),
+        )
+        self._missing_parent_fetch_cursor: int = 0
+        self._missing_qc_fetch_cursor: int = 0
 
         # Contain block_id/block_hash ambiguity fail-closed. If we ever observe
         # two different hashes for the same block_id, quarantine that block_id so
@@ -439,6 +456,39 @@ class WeAllExecutor:
             8, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_MAX_PEERS"), 512)
         )
         self._proposal_peer_budget: OrderedDict[str, Json] = OrderedDict()
+
+        # Duplicate suppression for untrusted inbound BFT artifacts. These caches
+        # are strictly local resource guards: they must not affect consensus state
+        # or block validity, but they prevent malicious peers from repeatedly
+        # re-triggering the same expensive validation/replay path with identical
+        # proposal and QC payloads.
+        self._max_recent_bft_proposals: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_PROPOSALS"), 2048)
+        )
+        self._recent_bft_proposals: OrderedDict[str, int] = OrderedDict()
+        self._max_recent_bft_qcs: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_QCS"), 2048)
+        )
+        self._recent_bft_qcs: OrderedDict[str, int] = OrderedDict()
+        self._max_recent_bft_votes: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_VOTES"), 4096)
+        )
+        self._recent_bft_votes: OrderedDict[str, int] = OrderedDict()
+        self._max_recent_bft_timeouts: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_TIMEOUTS"), 4096)
+        )
+        self._recent_bft_timeouts: OrderedDict[str, int] = OrderedDict()
+        self._max_recent_bft_sender_budgets: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_SENDERS"), 4096)
+        )
+        self._bft_sender_budget_window_ms: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_SENDER_WINDOW_MS"), 1000)
+        )
+        self._bft_sender_budget_per_window: int = max(
+            1, _safe_int(os.environ.get("WEALL_BFT_SENDER_BUDGET"), 64)
+        )
+        self._recent_bft_sender_budgets: OrderedDict[str, tuple[int, int]] = OrderedDict()
+
         self._max_spec_exec_pool: int = max(
             1, _safe_int(os.environ.get("WEALL_BFT_SPEC_EXEC_POOL_SIZE"), 4)
         )
@@ -531,7 +581,7 @@ class WeAllExecutor:
         self._observer_mode_forced = bool(forced_observer)
         self._signing_block_reason = str(reason) if not self._validator_signing_enabled else ""
 
-        meta["last_startup_ms"] = int(_now_ms())
+        meta.pop("last_startup_ms", None)
         meta["last_shutdown_clean"] = False
         meta["validator_signing_enabled"] = bool(self._validator_signing_enabled)
         meta["observer_mode"] = bool(not self._validator_signing_enabled)
@@ -553,8 +603,43 @@ class WeAllExecutor:
         meta["last_clean_shutdown_ms"] = int(_now_ms())
         self._persist_runtime_meta()
 
+    def _effective_validator_signing_state(self) -> tuple[bool, str]:
+        enabled = bool(self._validator_signing_enabled)
+        reason = str(self._signing_block_reason or "")
+        if not enabled:
+            return False, reason
+
+        # Production validator operators must never keep automatic signing
+        # enabled once the local security model degrades below public BFT.
+        # This is evaluated against committed state so validator-set churn,
+        # bootstrap phases, and partial recovery immediately force observer
+        # posture even when the process started with signing enabled.
+        if _mode() != "prod":
+            return True, ""
+
+        local_validator = self._local_validator_account()
+        active_validators = self._active_validators()
+        active_count = len(active_validators)
+        current_phase = self._current_consensus_phase()
+
+        if local_validator and local_validator in set(active_validators):
+            if current_phase != CONSENSUS_PHASE_BFT_ACTIVE:
+                return False, f"consensus_phase_not_bft_active:{current_phase or 'unknown'}"
+            if active_count < int(BFT_MIN_VALIDATORS):
+                return (
+                    False,
+                    f"validator_count_below_bft_minimum:{active_count}/{int(BFT_MIN_VALIDATORS)}",
+                )
+
+        return True, ""
+
     def validator_signing_enabled(self) -> bool:
-        return bool(self._validator_signing_enabled)
+        enabled, _reason = self._effective_validator_signing_state()
+        return bool(enabled)
+
+    def _effective_signing_block_reason(self) -> str:
+        enabled, reason = self._effective_validator_signing_state()
+        return "" if enabled else str(reason or "")
 
     def _explicit_validator_signing_override(self) -> bool:
         """Allow explicit local signing tools to function even in observer posture.
@@ -577,10 +662,11 @@ class WeAllExecutor:
         return (not expected) or expected == pub
 
     def _validator_signing_permitted(self) -> bool:
-        return bool(self._validator_signing_enabled) or self._explicit_validator_signing_override()
+        enabled, _reason = self._effective_validator_signing_state()
+        return bool(enabled) or self._explicit_validator_signing_override()
 
     def observer_mode(self) -> bool:
-        return not bool(self._validator_signing_enabled)
+        return not bool(self.validator_signing_enabled())
 
     def _restore_bft_restart_hints(self) -> None:
         try:
@@ -1302,12 +1388,22 @@ class WeAllExecutor:
                 env_objs.append(TxEnvelope.from_json({}))
 
         # Block-level + per-tx admission for inclusion
+        #
+        # Production hardening: local candidate construction must enforce the
+        # same non-system signature rules that remote replay/apply enforces.
+        # Otherwise a malicious or buggy local ingress path can waste proposer
+        # slots with txs that deterministic followers will later reject. Keep
+        # non-prod behavior permissive so existing unsigned dev/test fixtures
+        # can still exercise candidate construction flows.
         ledger_for_block = LedgerView.from_ledger(working)
+        verify_candidate_signatures = (
+            str(os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
+        )
         ok, block_reject, per_tx = admit_block_txs(
             env_objs,
             ledger_for_block,
             self.tx_index,
-            verify_signatures=False,
+            verify_signatures=verify_candidate_signatures,
         )
         if (not ok) and block_reject is not None:
             return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
@@ -1658,6 +1754,8 @@ class WeAllExecutor:
                     """,
                     (int(snap_height), str(snap_tip), state_json, int(now)),
                 )
+
+                maybe_trigger_failpoint("block_commit_after_ledger_state")
 
             previous_epoch = self._current_validator_epoch()
             previous_set_hash = (
@@ -2297,6 +2395,296 @@ class WeAllExecutor:
             except Exception:
                 pass
 
+    def _ensure_recent_bft_artifact_caches(self) -> None:
+        if not hasattr(self, "_max_recent_bft_proposals"):
+            self._max_recent_bft_proposals = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_RECENT_PROPOSALS"), 2048)
+            )
+        if not hasattr(self, "_recent_bft_proposals") or not isinstance(
+            getattr(self, "_recent_bft_proposals"), OrderedDict
+        ):
+            self._recent_bft_proposals = OrderedDict()
+        if not hasattr(self, "_max_recent_bft_qcs"):
+            self._max_recent_bft_qcs = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_RECENT_QCS"), 2048)
+            )
+        if not hasattr(self, "_recent_bft_qcs") or not isinstance(
+            getattr(self, "_recent_bft_qcs"), OrderedDict
+        ):
+            self._recent_bft_qcs = OrderedDict()
+        if not hasattr(self, "_max_recent_bft_votes"):
+            self._max_recent_bft_votes = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_RECENT_VOTES"), 4096)
+            )
+        if not hasattr(self, "_recent_bft_votes") or not isinstance(
+            getattr(self, "_recent_bft_votes"), OrderedDict
+        ):
+            self._recent_bft_votes = OrderedDict()
+        if not hasattr(self, "_max_recent_bft_timeouts"):
+            self._max_recent_bft_timeouts = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_RECENT_TIMEOUTS"), 4096)
+            )
+        if not hasattr(self, "_recent_bft_timeouts") or not isinstance(
+            getattr(self, "_recent_bft_timeouts"), OrderedDict
+        ):
+            self._recent_bft_timeouts = OrderedDict()
+        if not hasattr(self, "_max_recent_bft_sender_budgets"):
+            self._max_recent_bft_sender_budgets = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_RECENT_SENDERS"), 4096)
+            )
+        if not hasattr(self, "_bft_sender_budget_window_ms"):
+            self._bft_sender_budget_window_ms = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_SENDER_WINDOW_MS"), 1000)
+            )
+        if not hasattr(self, "_bft_sender_budget_per_window"):
+            self._bft_sender_budget_per_window = max(
+                1, _safe_int(os.environ.get("WEALL_BFT_SENDER_BUDGET"), 64)
+            )
+        if not hasattr(self, "_recent_bft_sender_budgets") or not isinstance(
+            getattr(self, "_recent_bft_sender_budgets"), OrderedDict
+        ):
+            self._recent_bft_sender_budgets = OrderedDict()
+
+    def _bft_sender_budget_key(self, artifact: Json) -> str:
+        self._ensure_recent_bft_artifact_caches()
+        if not isinstance(artifact, dict):
+            return ""
+        raw_sender = str(
+            artifact.get("proposer")
+            or artifact.get("signer")
+            or artifact.get("sender")
+            or artifact.get("from")
+            or ""
+        ).strip()
+        if raw_sender:
+            return raw_sender
+        votes_any = artifact.get("votes")
+        if isinstance(votes_any, list):
+            senders: list[str] = []
+            for item in votes_any:
+                if not isinstance(item, dict):
+                    continue
+                signer = str(
+                    item.get("signer")
+                    or item.get("sender")
+                    or item.get("from")
+                    or ""
+                ).strip()
+                if signer:
+                    senders.append(signer)
+            if senders:
+                senders.sort()
+                return senders[0]
+        return ""
+
+    def _consume_bft_sender_budget(self, artifact: Json) -> bool:
+        self._ensure_recent_bft_artifact_caches()
+        sender = self._bft_sender_budget_key(artifact)
+        if not sender:
+            return True
+        now = _now_ms()
+        try:
+            window_start, used = self._recent_bft_sender_budgets.get(sender, (0, 0))
+            if not isinstance(window_start, int):
+                window_start = _safe_int(window_start, 0)
+            if not isinstance(used, int):
+                used = _safe_int(used, 0)
+        except Exception:
+            window_start, used = (0, 0)
+        if (now - int(window_start)) >= int(self._bft_sender_budget_window_ms):
+            window_start = now
+            used = 0
+        if int(used) >= int(self._bft_sender_budget_per_window):
+            _bounded_put(
+                self._recent_bft_sender_budgets,
+                sender,
+                (int(window_start), int(used)),
+                cap=int(self._max_recent_bft_sender_budgets),
+            )
+            return False
+        _bounded_put(
+            self._recent_bft_sender_budgets,
+            sender,
+            (int(window_start), int(used) + 1),
+            cap=int(self._max_recent_bft_sender_budgets),
+        )
+        return True
+
+    def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
+        self._ensure_recent_bft_artifact_caches()
+        try:
+            key = hashlib.sha256(_canon_json(dict(proposal)).encode("utf-8")).hexdigest()
+        except Exception:
+            return False
+        if not key:
+            return False
+        if key in self._recent_bft_proposals:
+            return True
+        _bounded_put(
+            self._recent_bft_proposals,
+            key,
+            _now_ms(),
+            cap=int(self._max_recent_bft_proposals),
+        )
+        return False
+
+    def _recent_bft_qc_key(self, qcj: Json) -> str:
+        self._ensure_recent_bft_artifact_caches()
+        try:
+            return hashlib.sha256(_canon_json(dict(qcj)).encode("utf-8")).hexdigest()
+        except Exception:
+            return ""
+
+    def _has_recent_bft_qc(self, qcj: Json) -> bool:
+        key = self._recent_bft_qc_key(qcj)
+        if not key:
+            return False
+        return key in self._recent_bft_qcs
+
+    def _record_recent_bft_qc(self, qcj: Json) -> None:
+        key = self._recent_bft_qc_key(qcj)
+        if not key:
+            return
+        _bounded_put(self._recent_bft_qcs, key, _now_ms(), cap=int(self._max_recent_bft_qcs))
+
+    def _remember_recent_bft_qc(self, qcj: Json) -> bool:
+        if self._has_recent_bft_qc(qcj):
+            return True
+        self._record_recent_bft_qc(qcj)
+        return False
+
+    def _remember_recent_bft_vote(self, votej: Json) -> bool:
+        self._ensure_recent_bft_artifact_caches()
+        try:
+            key = hashlib.sha256(_canon_json(dict(votej)).encode("utf-8")).hexdigest()
+        except Exception:
+            return False
+        if not key:
+            return False
+        if key in self._recent_bft_votes:
+            return True
+        _bounded_put(
+            self._recent_bft_votes,
+            key,
+            _now_ms(),
+            cap=int(self._max_recent_bft_votes),
+        )
+        return False
+
+    def _remember_recent_bft_timeout(self, timeoutj: Json) -> bool:
+        self._ensure_recent_bft_artifact_caches()
+        try:
+            key = hashlib.sha256(_canon_json(dict(timeoutj)).encode("utf-8")).hexdigest()
+        except Exception:
+            return False
+        if not key:
+            return False
+        if key in self._recent_bft_timeouts:
+            return True
+        _bounded_put(
+            self._recent_bft_timeouts,
+            key,
+            _now_ms(),
+            cap=int(self._max_recent_bft_timeouts),
+        )
+        return False
+
+    def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
+        if not isinstance(payload, dict):
+            return False
+
+        max_field_chars = max(8, _safe_int(os.environ.get("WEALL_BFT_MAX_FIELD_CHARS"), 512))
+        max_qc_votes = max(1, _safe_int(os.environ.get("WEALL_BFT_MAX_QC_VOTES_PER_ARTIFACT"), 512))
+
+        def _str_field(name: str, *, required: bool = False, allow_empty: bool = False) -> bool:
+            if name not in payload:
+                return not required
+            val = payload.get(name)
+            if not isinstance(val, str):
+                return False
+            sval = val.strip()
+            if not allow_empty and required and not sval:
+                return False
+            return len(sval) <= max_field_chars
+
+        def _int_field(name: str, *, required: bool = False, minimum: int = 0) -> bool:
+            if name not in payload:
+                return not required
+            val = payload.get(name)
+            try:
+                ival = int(val)
+            except Exception:
+                return False
+            return ival >= minimum
+
+        if not _str_field("chain_id", required=True):
+            return False
+        if str(payload.get("chain_id") or "").strip() != str(self.chain_id):
+            return False
+
+        if kind == "proposal":
+            if not _str_field("block_id", required=True):
+                return False
+            if not _str_field("block_hash", required=True):
+                return False
+            if not _str_field("prev_block_id", required=False, allow_empty=True):
+                return False
+            if not _str_field("proposer", required=False):
+                return False
+            if not _int_field("view", required=True):
+                return False
+            if not _int_field("height", required=True):
+                return False
+            justify_qc = payload.get("justify_qc")
+            if justify_qc is not None and not isinstance(justify_qc, dict):
+                return False
+            return True
+
+        if kind == "qc":
+            if not _str_field("block_id", required=True):
+                return False
+            if not _str_field("block_hash", required=True):
+                return False
+            if not _str_field("parent_id", required=False, allow_empty=True):
+                return False
+            if not _int_field("view", required=True):
+                return False
+            votes = payload.get("votes")
+            if votes is not None:
+                if not isinstance(votes, list):
+                    return False
+                if len(votes) > max_qc_votes:
+                    return False
+            return True
+
+        if kind == "vote":
+            if str(payload.get("t") or "") != "VOTE":
+                return False
+            for field in ("block_id", "block_hash", "signer", "pubkey", "sig"):
+                if not _str_field(field, required=True):
+                    return False
+            if not _str_field("parent_id", required=False, allow_empty=True):
+                return False
+            if not _int_field("view", required=True):
+                return False
+            if not _int_field("validator_epoch", required=False):
+                return False
+            return True
+
+        if kind == "timeout":
+            if str(payload.get("t") or "") != "TIMEOUT":
+                return False
+            for field in ("high_qc_id", "signer", "pubkey", "sig"):
+                if not _str_field(field, required=True):
+                    return False
+            if not _int_field("view", required=True):
+                return False
+            if not _int_field("validator_epoch", required=False):
+                return False
+            return True
+
+        return False
+
     def bft_on_proposal(self, proposal: Json) -> Json | None:
         """Handle a leader proposal.
 
@@ -2313,6 +2701,8 @@ class WeAllExecutor:
             )
             proposal2 = dict(raw_block)
             embedded_qc = proposal2.get("qc") if isinstance(proposal2.get("qc"), dict) else None
+            original_block_id = str(proposal2.get("block_id") or "").strip()
+            original_prev_block_id = str(proposal2.get("prev_block_id") or "").strip()
             if "view" not in proposal2 and "view" in proposal:
                 proposal2["view"] = proposal.get("view")
             if "proposer" not in proposal2 and "proposer" in proposal:
@@ -2321,6 +2711,11 @@ class WeAllExecutor:
                 proposal2["justify_qc"] = proposal.get("justify_qc")
             if "chain_id" not in proposal2 or not str(proposal2.get("chain_id") or "").strip():
                 proposal2["chain_id"] = str(self.chain_id)
+            header2 = proposal2.get("header") if isinstance(proposal2.get("header"), dict) else {}
+            if "height" not in proposal2 and isinstance(header2, dict) and header2.get("height") is not None:
+                proposal2["height"] = header2.get("height")
+            if "block_ts_ms" not in proposal2 and isinstance(header2, dict) and header2.get("block_ts_ms") is not None:
+                proposal2["block_ts_ms"] = header2.get("block_ts_ms")
             proposal2.pop("qc", None)
             proposal2, proposal_block_hash = ensure_block_hash(proposal2)
             proposal2["block_hash"] = str(proposal_block_hash)
@@ -2351,11 +2746,17 @@ class WeAllExecutor:
         except Exception:
             view = 0
         proposal2["view"] = int(view)
+        if not self._bft_artifact_shape_fast_fail("proposal", proposal2):
+            return None
+        if self._remember_recent_bft_proposal(proposal2):
+            return None
+        if not self._consume_bft_sender_budget(proposal2):
+            return None
 
         validators = self._active_validators()
         expected_leader = leader_for_view(validators, view) if validators else ""
         proposer = str(proposal2.get("proposer") or "").strip()
-        require_sig = _env_bool("WEALL_SIGVERIFY", True)
+        require_sig = (_mode() == "prod") and _env_bool("WEALL_SIGVERIFY", True)
 
         if not self._bft_payload_phase_matches_current_security_model(proposal2):
             return None
@@ -2372,18 +2773,50 @@ class WeAllExecutor:
         if bid:
             self._quarantine_remote_block(proposal2)
         justify_qc_any = proposal2.get("justify_qc")
-        cached_qc_any = justify_qc_any if isinstance(justify_qc_any, dict) else embedded_qc
-        if bid and isinstance(cached_qc_any, dict):
-            verified_qc = self.bft_verify_qc_json(cached_qc_any)
-            if verified_qc is not None:
-                self._put_pending_missing_qc(verified_qc.to_json())
+        explicit_justify_qc = justify_qc_any if isinstance(justify_qc_any, dict) else None
+        verified_qc: QuorumCert | None = None
+        verified_qc_json: Json | None = None
+        embedded_qc_is_self = False
+        embedded_qc_is_parent_justify = False
+        if explicit_justify_qc is not None:
+            verified_qc = self.bft_verify_qc_json(explicit_justify_qc)
+            if verified_qc is None:
+                self.bft_try_apply_pending_remote_blocks()
+                return None
+            verified_qc_json = verified_qc.to_json()
+            proposal2["justify_qc"] = dict(verified_qc_json)
+        elif isinstance(embedded_qc, dict):
+            verified_qc = self.bft_verify_qc_json(embedded_qc)
+            if verified_qc is None:
+                self.bft_try_apply_pending_remote_blocks()
+                return None
+            verified_qc_json = verified_qc.to_json()
+            qc_block_id = str(verified_qc.block_id or "").strip()
+            qc_parent_id = str(verified_qc.parent_id or "").strip()
+            effective_block_id = str(proposal2.get("block_id") or original_block_id or "").strip()
+            effective_prev_block_id = str(
+                proposal2.get("prev_block_id") or original_prev_block_id or ""
+            ).strip()
+            embedded_qc_is_self = bool(qc_block_id and effective_block_id and qc_block_id == effective_block_id)
+            embedded_qc_is_parent_justify = bool(
+                qc_block_id and effective_prev_block_id and qc_block_id == effective_prev_block_id
+            )
+            if embedded_qc_is_parent_justify:
+                proposal2["justify_qc"] = dict(verified_qc_json)
+            elif not embedded_qc_is_self and qc_parent_id and effective_prev_block_id and qc_parent_id == effective_prev_block_id:
+                proposal2["justify_qc"] = dict(verified_qc_json)
+                embedded_qc_is_parent_justify = True
 
         if not proposer and not require_sig and expected_leader:
             proposal2["proposer"] = expected_leader
             proposer = expected_leader
         if expected_leader and proposer and proposer != expected_leader:
-            self.bft_try_apply_pending_remote_blocks()
-            return None
+            validator_set = set(validators)
+            if proposer not in validator_set or require_sig:
+                if bid:
+                    self._drop_quarantined_remote_artifacts(bid)
+                self.bft_try_apply_pending_remote_blocks()
+                return None
 
         # Enforce signed leader-authored proposals in normal/prod verification modes,
         # while preserving legacy dev/test paths when signature verification is disabled.
@@ -2399,14 +2832,23 @@ class WeAllExecutor:
                 self.bft_try_apply_pending_remote_blocks()
                 return None
 
-        ok, _rej = admit_bft_block(block=proposal2, state=self.state)
-        if not ok:
-            self._drop_quarantined_remote_artifacts(bid)
-            self.bft_try_apply_pending_remote_blocks()
-            return None
+        has_embedded_commit_qc_only = explicit_justify_qc is None and isinstance(embedded_qc, dict) and not embedded_qc_is_parent_justify
+        if not has_embedded_commit_qc_only:
+            ok, _rej = admit_bft_block(block=proposal2, state=self.state)
+            if not ok:
+                self.bft_try_apply_pending_remote_blocks()
+                return None
 
+        if bid and isinstance(verified_qc_json, dict):
+            self._put_pending_missing_qc(verified_qc_json)
+            if verified_qc is not None:
+                # Observe verified proposal-carried or embedded committed-block QC before replay.
+                self._bft.observe_qc(blocks=self.state.get("blocks") or {}, qc=verified_qc)
         self._promote_quarantined_remote_block(bid, block=proposal2)
         self.bft_try_apply_pending_remote_blocks()
+
+        if has_embedded_commit_qc_only:
+            return None
 
         if not _env_bool("WEALL_AUTOVOTE", False):
             return None
@@ -2446,6 +2888,18 @@ class WeAllExecutor:
             else None
         )
         if not self._bft.can_vote_for(blocks=blocks_map, block_id=bid, justify_qc=justify_qc):
+            self._drop_quarantined_remote_artifacts(bid)
+            try:
+                self._drop_pending_candidate_artifacts(bid)
+            except Exception:
+                self._pending_remote_blocks.pop(str(bid or ""), None)
+            if isinstance(verified_qc_json, dict):
+                rejected_qc_bid = str(verified_qc_json.get("block_id") or "").strip()
+                rejected_qc_bh = str(verified_qc_json.get("block_hash") or "").strip()
+                if rejected_qc_bid:
+                    self._pending_missing_qcs.pop(rejected_qc_bid, None)
+                if rejected_qc_bh and hasattr(self, "_pending_missing_qcs_by_hash"):
+                    self._pending_missing_qcs_by_hash.pop(rejected_qc_bh, None)
             return None
 
         block_hash = str(proposal2.get("block_hash") or "").strip()
@@ -2472,9 +2926,18 @@ class WeAllExecutor:
 
     def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
         """Handle a QC and commit if it refers to a known block."""
+        if not isinstance(qcj, dict):
+            return None
+        if not self._bft_artifact_shape_fast_fail("qc", qcj):
+            return None
+        if self._has_recent_bft_qc(qcj):
+            return None
+        if not self._consume_bft_sender_budget(qcj):
+            return None
         qc = self.bft_verify_qc_json(qcj)
         if qc is None:
             return None
+        self._record_recent_bft_qc(qcj)
 
         # Observe first.
         self.bft_handle_qc(qcj)
@@ -2535,7 +2998,9 @@ class WeAllExecutor:
     # ----------------------------
 
     def _active_validators(self) -> list[str]:
-        st = self.state
+        st = getattr(self, "state", {})
+        if not isinstance(st, dict):
+            st = {}
         roles = st.get("roles")
         if isinstance(roles, dict):
             v = roles.get("validators")
@@ -3200,13 +3665,20 @@ class WeAllExecutor:
         bid = str(block.get("block_id") or "").strip()
         if not bid:
             return
+        existing = list(self._quarantined_remote_blocks.keys())
+        incoming = dict(block)
         _bounded_put(
             self._quarantined_remote_blocks,
             bid,
-            dict(block),
+            incoming,
             cap=self._max_quarantined_remote_blocks,
         )
-        self._index_quarantined_remote_block(block)
+        kept = set(str(k or "").strip() for k in self._quarantined_remote_blocks.keys())
+        for evicted in existing:
+            sevicted = str(evicted or "").strip()
+            if sevicted and sevicted != bid and sevicted not in kept:
+                self._drop_quarantined_remote_artifacts(sevicted)
+        self._index_quarantined_remote_block(incoming)
 
     def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
         bid = str(block_id or "").strip()
@@ -3221,6 +3693,22 @@ class WeAllExecutor:
         if bh and str(self._quarantined_remote_block_ids_by_hash.get(bh) or "").strip() == bid:
             self._quarantined_remote_block_ids_by_hash.pop(bh, None)
 
+    def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
+        bid = str(block_id or "").strip()
+        if not bid or not isinstance(block, dict):
+            return
+        existing = list(self._pending_remote_blocks.keys())
+        blk = dict(block)
+        _bounded_put(self._pending_remote_blocks, bid, blk, cap=self._max_pending_remote_blocks)
+        kept = set(str(k or "").strip() for k in self._pending_remote_blocks.keys())
+        for evicted in existing:
+            sevicted = str(evicted or "").strip()
+            if sevicted and sevicted != bid and sevicted not in kept:
+                self._drop_pending_hash_aliases(block_id=sevicted)
+                self._delete_pending_bft_artifact(kind="pending_remote_block", block_id=sevicted)
+        self._persist_pending_bft_artifact(kind="pending_remote_block", block_id=bid, payload=blk)
+        self._index_pending_remote_block(blk)
+
     def _promote_quarantined_remote_block(
         self, block_id: str, *, block: Json | None = None
     ) -> None:
@@ -3233,13 +3721,7 @@ class WeAllExecutor:
         if not bid or not isinstance(blk, dict):
             return
         self._drop_quarantined_remote_artifacts(bid)
-        _bounded_put(
-            self._pending_remote_blocks, bid, dict(blk), cap=self._max_pending_remote_blocks
-        )
-        self._persist_pending_bft_artifact(
-            kind="pending_remote_block", block_id=bid, payload=dict(blk)
-        )
-        self._index_pending_remote_block(blk)
+        self._put_pending_remote_block(block_id=bid, block=blk)
 
     def _index_pending_candidate(self, block: Json) -> None:
         if not isinstance(block, dict):
@@ -3264,14 +3746,22 @@ class WeAllExecutor:
         if not isinstance(qcj, dict):
             return
         bid = str(qcj.get("block_id") or "").strip()
+        payload = dict(qcj)
         if bid:
+            existing = list(self._pending_missing_qcs.keys())
             _bounded_put(
-                self._pending_missing_qcs, bid, dict(qcj), cap=self._max_pending_missing_qcs
+                self._pending_missing_qcs, bid, payload, cap=self._max_pending_missing_qcs
             )
+            kept = set(str(k or "").strip() for k in self._pending_missing_qcs.keys())
+            for evicted in existing:
+                sevicted = str(evicted or "").strip()
+                if sevicted and sevicted != bid and sevicted not in kept:
+                    self._drop_pending_missing_qc_aliases(block_id=sevicted)
+                    self._delete_pending_bft_artifact(kind="pending_missing_qc", block_id=sevicted)
             self._persist_pending_bft_artifact(
-                kind="pending_missing_qc", block_id=bid, payload=dict(qcj)
+                kind="pending_missing_qc", block_id=bid, payload=payload
             )
-        self._index_pending_missing_qc(qcj)
+        self._index_pending_missing_qc(payload)
 
     def _drop_pending_missing_qc_aliases(
         self, *, block_id: str = "", qcj: Json | None = None
@@ -3599,7 +4089,9 @@ class WeAllExecutor:
             return True
         if not parent_id:
             return False
-        return parent_id == str(self.state.get("tip") or "").strip()
+        if parent_id == str(self.state.get("tip") or "").strip():
+            return True
+        return self._has_local_block(parent_id)
 
     def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
         """Attempt deterministic catch-up replay for pending BFT blocks.
@@ -3618,65 +4110,153 @@ class WeAllExecutor:
         if not finalized_block_id and not allow_qc_replay:
             return results
 
-        total_pending = (
-            len(self._pending_remote_blocks)
-            + len(self._pending_candidates)
-            + len(self._pending_missing_qcs)
-        )
-        max_rounds = max(1, total_pending + 1)
-        rounds = 0
-        while rounds < max_rounds:
-            rounds += 1
-            progress = False
-            candidates: list[tuple[int, str, Json]] = []
+        scan_budget = max(1, int(getattr(self, "_max_pending_replay_scans_per_call", 64) or 64))
+        apply_budget = max(1, int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8))
+        if not hasattr(self, "_pending_replay_cursor"):
+            self._pending_replay_cursor = ""
 
-            for bid in self._ordered_pending_block_ids():
-                sbid = str(bid or "").strip()
-                if not sbid:
-                    continue
-                if self._has_local_block(sbid):
-                    self._drop_pending_candidate_artifacts(sbid)
-                    progress = True
-                    break
-                blk = self._bft_pending_block_json(sbid)
-                if not isinstance(blk, dict):
-                    continue
-                if finalized_block_id:
-                    if not self._bft_block_is_applyable_finalized_descendant(
-                        blk, finalized_block_id
-                    ):
-                        continue
-                else:
-                    qcj = self._pending_missing_qc_json(
-                        block_id=sbid, block_hash=_block_hash_from_any(blk)
-                    )
-                    if not (allow_qc_replay and isinstance(qcj, dict)):
-                        continue
-                candidates.append((self._block_height_hint(blk), sbid, blk))
+        ordered_ids = self._ordered_pending_block_ids()
+        if not ordered_ids:
+            self._pending_replay_cursor = ""
+            return results
 
-            if progress:
+        start_idx = 0
+        cursor = str(getattr(self, "_pending_replay_cursor", "") or "").strip()
+        if cursor and cursor in ordered_ids:
+            start_idx = (ordered_ids.index(cursor) + 1) % len(ordered_ids)
+
+        scanned = 0
+        applied = 0
+        idx = start_idx
+        visited = 0
+        made_progress = False
+
+        while visited < len(ordered_ids) and scanned < scan_budget and applied < apply_budget:
+            bid = str(ordered_ids[idx] or "").strip()
+            idx = (idx + 1) % len(ordered_ids)
+            visited += 1
+            if not bid:
+                continue
+            if self._has_local_block(bid):
+                self._drop_pending_candidate_artifacts(bid)
+                self._pending_replay_cursor = bid
+                made_progress = True
+                continue
+            blk = self._bft_pending_block_json(bid)
+            if not isinstance(blk, dict):
+                self._pending_replay_cursor = bid
+                continue
+            if finalized_block_id:
+                if not self._bft_block_is_applyable_finalized_descendant(blk, finalized_block_id):
+                    self._pending_replay_cursor = bid
+                    scanned += 1
+                    continue
+            else:
+                qcj = self._pending_missing_qc_json(block_id=bid, block_hash=_block_hash_from_any(blk))
+                if not (allow_qc_replay and isinstance(qcj, dict)):
+                    self._pending_replay_cursor = bid
+                    scanned += 1
+                    continue
+            scanned += 1
+            self._pending_replay_cursor = bid
+            if not self._bft_parent_ready_for_apply(blk):
                 continue
 
-            candidates.sort(key=lambda item: (int(item[0]), _block_hash_from_any(item[2]), item[1]))
-            for _height, bid, blk in candidates:
-                if not self._bft_parent_ready_for_apply(blk):
-                    continue
-                qcj = self._pending_missing_qc_json(
-                    block_id=bid, block_hash=_block_hash_from_any(blk)
+            qcj = self._pending_missing_qc_json(block_id=bid, block_hash=_block_hash_from_any(blk))
+            blk2 = dict(blk)
+            if not isinstance(qcj, dict):
+                embedded_qc = blk2.get("justify_qc") if isinstance(blk2.get("justify_qc"), dict) else (
+                    blk2.get("qc") if isinstance(blk2.get("qc"), dict) else None
                 )
-                blk2 = dict(blk)
-                if isinstance(qcj, dict):
+                if isinstance(embedded_qc, dict):
+                    verified_qc = self.bft_verify_qc_json(embedded_qc)
+                    if verified_qc is not None:
+                        qcj = verified_qc.to_json()
+                        self._put_pending_missing_qc(qcj)
+            if isinstance(qcj, dict):
+                existing_justify = blk2.get("justify_qc") if isinstance(blk2.get("justify_qc"), dict) else None
+                qc_bid = str(qcj.get("block_id") or "").strip()
+                qc_bh = str(qcj.get("block_hash") or "").strip()
+                block_bid = str(blk2.get("block_id") or "").strip()
+                parent_bid = str(blk2.get("prev_block_id") or "").strip()
+                qc_is_self_commit = bool(qc_bid and block_bid and qc_bid == block_bid)
+                qc_is_parent_justify = bool(qc_bid and parent_bid and qc_bid == parent_bid)
+                synthetic_replay = (
+                    not isinstance(blk2.get("qc"), dict)
+                    and "validator_epoch" not in blk2
+                    and not str(blk2.get("validator_set_hash") or "").strip()
+                )
+                if existing_justify is None:
+                    if qc_is_parent_justify:
+                        blk2["justify_qc"] = dict(qcj)
+                    elif qc_is_self_commit and synthetic_replay:
+                        blk2["justify_qc"] = dict(qcj)
+                else:
+                    existing_bid = str(existing_justify.get("block_id") or "").strip()
+                    existing_bh = str(existing_justify.get("block_hash") or "").strip()
+                    if ((existing_bid and qc_bid and existing_bid != qc_bid) or (
+                        existing_bh and qc_bh and existing_bh != qc_bh
+                    )):
+                        self._drop_pending_candidate_artifacts(bid)
+                        made_progress = True
+                        continue
+                if qc_is_self_commit and not synthetic_replay:
                     blk2["qc"] = dict(qcj)
-                meta = self.apply_block(blk2)
-                if meta is None or not bool(getattr(meta, "ok", False)):
-                    continue
+            try:
+                replay_view = int(
+                    blk2.get("view")
+                    or blk2.get("bft_view")
+                    or ((qcj or {}).get("view") if isinstance(qcj, dict) else 0)
+                    or 0
+                )
+            except Exception:
+                replay_view = 0
+            if replay_view > 0:
+                blk2["view"] = replay_view
+            validators = self._active_validators()
+            expected_proposer = leader_for_view(validators, replay_view) if validators and replay_view >= 0 else ""
+            proposer = str(blk2.get("proposer") or "").strip()
+            if expected_proposer and proposer != expected_proposer:
+                proposer = expected_proposer
+                blk2["proposer"] = proposer
+            if proposer:
+                proposer_pubkey = str(self._validator_pubkeys().get(proposer) or "").strip()
+                if proposer_pubkey and not str(blk2.get("proposer_pubkey") or "").strip():
+                    blk2["proposer_pubkey"] = proposer_pubkey
+            if applied >= apply_budget:
+                break
+            meta = self.apply_block(blk2)
+            applied += 1
+            if meta is None or not bool(getattr(meta, "ok", False)):
                 self._drop_pending_candidate_artifacts(bid)
-                results.append(meta)
-                progress = True
-                break
-            if not progress:
-                break
+                made_progress = True
+                continue
+            self._drop_pending_candidate_artifacts(bid)
+            results.append(meta)
+            made_progress = True
+
+        if not results and not made_progress and ordered_ids:
+            self._pending_replay_cursor = ordered_ids[(start_idx + min(scanned, len(ordered_ids)) - 1) % len(ordered_ids)] if scanned > 0 else cursor
+        if results:
+            remaining = [
+                bid for bid in self._ordered_pending_block_ids()
+                if bid and not self._has_local_block(bid)
+            ]
+            if remaining:
+                extra = self._bft_try_apply_pending_remote_blocks_followup(max_extra=max(0, apply_budget - len(results)))
+                if extra:
+                    results.extend(extra)
         return results
+
+    def _bft_try_apply_pending_remote_blocks_followup(self, *, max_extra: int) -> list[ExecutorMeta]:
+        if max_extra <= 0:
+            return []
+        saved = int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8)
+        try:
+            self._max_pending_replay_applies_per_call = max_extra
+            return self.bft_try_apply_pending_remote_blocks()
+        finally:
+            self._max_pending_replay_applies_per_call = saved
 
     def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]:
         try:
@@ -3957,7 +4537,7 @@ class WeAllExecutor:
             ),
             "validator_signing_enabled": bool(self.validator_signing_enabled()),
             "observer_mode": bool(self.observer_mode()),
-            "signing_block_reason": str(self._signing_block_reason or ""),
+            "signing_block_reason": str(self._effective_signing_block_reason() or ""),
             "last_shutdown_clean": bool(
                 (
                     (self.state.get("meta") or {})
@@ -4005,13 +4585,77 @@ class WeAllExecutor:
             if verified_qc is None:
                 return False
             self._put_pending_missing_qc(verified_qc.to_json())
-        _bounded_put(self._pending_remote_blocks, bid, blk, cap=self._max_pending_remote_blocks)
-        self._persist_pending_bft_artifact(
-            kind="pending_remote_block", block_id=bid, payload=dict(blk)
-        )
-        self._index_pending_remote_block(blk)
+        self._put_pending_remote_block(block_id=bid, block=blk)
         self.bft_try_apply_pending_remote_blocks()
         return True
+
+    def _ensure_pending_fetch_budgets(self) -> None:
+        if not hasattr(self, "_max_missing_parent_fetches_per_call"):
+            self._max_missing_parent_fetches_per_call = max(
+                1,
+                _safe_int(
+                    os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32
+                ),
+            )
+        if not hasattr(self, "_max_missing_qc_fetches_per_call"):
+            self._max_missing_qc_fetches_per_call = max(
+                1,
+                _safe_int(os.environ.get("WEALL_BFT_MAX_MISSING_QC_FETCHES_PER_CALL"), 32),
+            )
+        if not hasattr(self, "_missing_parent_fetch_cursor"):
+            self._missing_parent_fetch_cursor = 0
+        if not hasattr(self, "_missing_qc_fetch_cursor"):
+            self._missing_qc_fetch_cursor = 0
+
+    def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Json]:
+        self._ensure_pending_fetch_budgets()
+        if not descriptors:
+            self._missing_parent_fetch_cursor = 0
+            self._missing_qc_fetch_cursor = 0
+            return []
+        missing_parent: list[Json] = []
+        missing_qc: list[Json] = []
+        prioritized: list[Json] = []
+        for item in descriptors:
+            if not isinstance(item, dict):
+                continue
+            reason = str(item.get("reason") or "").strip()
+            if reason == "missing_parent":
+                missing_parent.append(dict(item))
+            elif reason == "missing_qc_block":
+                missing_qc.append(dict(item))
+            else:
+                prioritized.append(dict(item))
+
+        out: list[Json] = list(prioritized)
+
+        qc_limit = max(1, int(self._max_missing_qc_fetches_per_call))
+        if len(missing_qc) <= qc_limit:
+            self._missing_qc_fetch_cursor = 0
+            out.extend(missing_qc)
+        elif missing_qc:
+            total = len(missing_qc)
+            start = int(self._missing_qc_fetch_cursor or 0) % total
+            idx = start
+            for _ in range(qc_limit):
+                out.append(dict(missing_qc[idx]))
+                idx = (idx + 1) % total
+            self._missing_qc_fetch_cursor = int(idx)
+
+        parent_limit = max(1, int(self._max_missing_parent_fetches_per_call))
+        if len(missing_parent) <= parent_limit:
+            self._missing_parent_fetch_cursor = 0
+            out.extend(missing_parent)
+        elif missing_parent:
+            total = len(missing_parent)
+            start = int(self._missing_parent_fetch_cursor or 0) % total
+            idx = start
+            for _ in range(parent_limit):
+                out.append(dict(missing_parent[idx]))
+                idx = (idx + 1) % total
+            self._missing_parent_fetch_cursor = int(idx)
+
+        return out
 
     def bft_pending_fetch_request_descriptors(self) -> list[Json]:
         wants: OrderedDict[str, Json] = OrderedDict()
@@ -4064,7 +4708,7 @@ class WeAllExecutor:
             d = dict(desc) if isinstance(desc, dict) else {"block_id": sbid}
             d["block_id"] = sbid
             out.append(d)
-        return out
+        return self._bounded_fetch_request_descriptors(out)
 
     def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
         if not isinstance(desc, dict):
@@ -4172,8 +4816,17 @@ class WeAllExecutor:
     def bft_current_view(self) -> int:
         return int(self._bft.view)
 
+    def bft_current_validator_epoch(self) -> int:
+        return int(self._current_validator_epoch())
+
+    def bft_current_validator_set_hash(self) -> str:
+        return str(self._current_validator_set_hash() or "").strip()
+
     def bft_set_view(self, view: int) -> None:
-        self._bft.view = int(view)
+        requested = int(view)
+        current = int(self._bft.view)
+        if requested > current:
+            self._bft.view = requested
         self._persist_bft_state()
 
     def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
@@ -4246,6 +4899,7 @@ class WeAllExecutor:
         self.state["bft"] = self._bft.export_state()
         maybe_trigger_failpoint("bft_state_before_persist")
         self._ledger_store.write(self.state)
+        maybe_trigger_failpoint("bft_state_after_persist")
         self._bft_record_event(
             "bft_state_persisted",
             view=int(self._bft.view),
@@ -4391,11 +5045,17 @@ class WeAllExecutor:
             return None
         if str(vote_json.get("t") or "") != "VOTE":
             return None
+        if not self._bft_artifact_shape_fast_fail("vote", vote_json):
+            return None
         if not self._bft_phase_allows_artifact_processing():
             return None
         if not self._bft_payload_phase_matches_current_security_model(vote_json):
             return None
         if not self._bft_epoch_binding_matches(vote_json):
+            return None
+        if self._remember_recent_bft_vote(vote_json):
+            return None
+        if not self._consume_bft_sender_budget(vote_json):
             return None
 
         validators = self._active_validators()
@@ -4539,11 +5199,17 @@ class WeAllExecutor:
             return None
         if str(timeout_json.get("t") or "") != "TIMEOUT":
             return None
+        if not self._bft_artifact_shape_fast_fail("timeout", timeout_json):
+            return None
         if not self._bft_phase_allows_artifact_processing():
             return None
         if not self._bft_payload_phase_matches_current_security_model(timeout_json):
             return None
         if not self._bft_epoch_binding_matches(timeout_json):
+            return None
+        if self._remember_recent_bft_timeout(timeout_json):
+            return None
+        if not self._consume_bft_sender_budget(timeout_json):
             return None
 
         validators = self._active_validators()
@@ -4750,6 +5416,33 @@ class WeAllExecutor:
                 raise ExecutorError(f"state_sync_delta_apply_failed:{err}")
             metas.append(meta)
 
+        target_height = _safe_int((trusted_anchor or {}).get("height"), 0)
+        finalized_target_height = _safe_int((trusted_anchor or {}).get("finalized_height"), 0)
+        enforce_finalized_anchor = bool(
+            getattr(self._state_sync_service(), "enforce_finalized_anchor", False)
+        )
+        if enforce_finalized_anchor and finalized_target_height > 0:
+            target_height = min(target_height or finalized_target_height, finalized_target_height)
+
+        new_height = int(self.state.get("height") or 0)
+        if resp.snapshot is None and target_height > local_height and new_height <= local_height:
+            raise ExecutorError("state_sync_delta_no_progress")
+        if target_height > 0 and new_height > target_height:
+            raise ExecutorError("state_sync_delta_exceeds_trusted_anchor")
+        if target_height > 0 and new_height == target_height:
+            final_anchor = build_snapshot_anchor(self.state)
+            if enforce_finalized_anchor and finalized_target_height > 0:
+                if int(final_anchor.get("finalized_height") or 0) != finalized_target_height or str(
+                    final_anchor.get("finalized_block_id") or ""
+                ) != str((trusted_anchor or {}).get("finalized_block_id") or ""):
+                    raise ExecutorError("state_sync_final_anchor_mismatch")
+            elif str(final_anchor.get("tip_hash") or "") != str(
+                (trusted_anchor or {}).get("tip_hash") or ""
+            ) or str(final_anchor.get("state_root") or "") != str(
+                (trusted_anchor or {}).get("state_root") or ""
+            ):
+                raise ExecutorError("state_sync_final_anchor_mismatch")
+
         return metas
 
     def request_and_apply_state_sync(
@@ -4829,7 +5522,12 @@ class WeAllExecutor:
             if resp is None:
                 raise ExecutorError("state_sync_timeout")
 
-            metas = self.apply_state_sync_response(resp, trusted_anchor=trusted_anchor)
+            try:
+                metas = self.apply_state_sync_response(resp, trusted_anchor=trusted_anchor)
+            except ExecutorError as exc:
+                if str(exc) == "state_sync_delta_no_progress":
+                    raise ExecutorError("state_sync_no_progress") from exc
+                raise
             new_height = int(self.state.get("height") or 0)
             if new_height <= from_height:
                 raise ExecutorError("state_sync_no_progress")

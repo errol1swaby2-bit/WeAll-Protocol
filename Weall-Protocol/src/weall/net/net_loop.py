@@ -248,23 +248,36 @@ def _cheap_validate_bft_payload(kind: str, payload: Json, *, chain_id: str) -> s
 
 
 def _emit_bft_rejection_diagnostic(
-    executor: Any, message_type: str, payload: Json, reason: str
+    executor: Any,
+    message_type: str,
+    payload: Json,
+    reason: str,
+    *,
+    extra_summary: Json | None = None,
 ) -> None:
     try:
         if hasattr(executor, "_bft_record_event"):
+            summary = {
+                "view": int(payload.get("view") or 0) if isinstance(payload, dict) else 0,
+                "block_id": str(payload.get("block_id") or "") if isinstance(payload, dict) else "",
+                "signer": str(payload.get("signer") or payload.get("proposer") or "")
+                if isinstance(payload, dict)
+                else "",
+                "validator_epoch": int(payload.get("validator_epoch") or 0)
+                if isinstance(payload, dict)
+                else 0,
+                "validator_set_hash": str(payload.get("validator_set_hash") or "")
+                if isinstance(payload, dict)
+                else "",
+                "high_qc_id": str(payload.get("high_qc_id") or "") if isinstance(payload, dict) else "",
+            }
+            if isinstance(extra_summary, dict):
+                summary.update({str(k): v for k, v in extra_summary.items()})
             executor._bft_record_event(
                 "bft_message_rejected",
                 message_type=message_type,
                 reason=reason,
-                summary={
-                    "view": int(payload.get("view") or 0) if isinstance(payload, dict) else 0,
-                    "block_id": str(payload.get("block_id") or "")
-                    if isinstance(payload, dict)
-                    else "",
-                    "signer": str(payload.get("signer") or payload.get("proposer") or "")
-                    if isinstance(payload, dict)
-                    else "",
-                },
+                summary=summary,
             )
     except Exception:
         pass
@@ -372,6 +385,12 @@ class NetMeshLoop:
         self._bft_fetch_batch = max(1, _env_int("WEALL_BFT_FETCH_BATCH", 8))
         self._bft_fetch_sources = _split_csv(os.environ.get("WEALL_BFT_FETCH_BASE_URLS", ""))
         self._bft_fetch_cooldowns: dict[str, int] = {}
+        self._bft_fetch_source_penalty_ms = max(
+            250, _env_int("WEALL_BFT_FETCH_SOURCE_PENALTY_MS", 5_000)
+        )
+        self._bft_fetch_source_cooldowns: dict[str, int] = {}
+        self._bft_fetch_source_cursor: int = 0
+        self._bft_fetch_source_penalty_drops: int = 0
         self._last_bft_fetch_ms: int = 0
         self._last_bft_propose_ms: int = 0
         self._last_bft_vote_ms: int = 0
@@ -817,6 +836,50 @@ class NetMeshLoop:
             return "oversize_payload"
         return None
 
+    def _executor_bft_current_view(self) -> int:
+        try:
+            fn = getattr(self._executor, "bft_current_view", None)
+            if callable(fn):
+                return int(fn() or 0)
+        except Exception:
+            return 0
+        return 0
+
+    def _executor_bft_current_validator_epoch(self) -> int:
+        try:
+            fn = getattr(self._executor, "bft_current_validator_epoch", None)
+            if callable(fn):
+                return int(fn() or 0)
+        except Exception:
+            return 0
+        return 0
+
+    def _bft_prefilter_reject_reason(self, kind: str, payload: Json) -> tuple[str | None, Json | None]:
+        if not isinstance(payload, dict) or not payload:
+            return (None, None)
+        local_view = int(self._executor_bft_current_view())
+        local_epoch = int(self._executor_bft_current_validator_epoch())
+        payload_view = int(payload.get("view") or 0)
+        payload_epoch = int(payload.get("validator_epoch") or 0)
+        extra_summary = {
+            "local_view": int(local_view),
+            "local_validator_epoch": int(local_epoch),
+        }
+        if local_epoch > 0 and payload_epoch > 0 and payload_epoch < local_epoch:
+            inc_counter(f"net_bft_{kind}_reject_stale_epoch")
+            return ("stale_epoch", extra_summary)
+        if local_view <= 0 or payload_view <= 0:
+            return (None, extra_summary)
+        stale = False
+        if str(kind) == "timeout":
+            stale = int(payload_view) + 1 < int(local_view)
+        else:
+            stale = int(payload_view) + 2 < int(local_view)
+        if stale:
+            inc_counter(f"net_bft_{kind}_reject_stale_view")
+            return ("stale_view", extra_summary)
+        return (None, extra_summary)
+
     def _bft_fetch_base_urls(self) -> list[str]:
         urls = [str(x).rstrip("/") for x in list(self._bft_fetch_sources or []) if str(x).strip()]
         if not urls:
@@ -842,6 +905,31 @@ class NetMeshLoop:
             return None
         blk = obj.get("block")
         return dict(blk) if isinstance(blk, dict) else None
+
+    def _penalize_bft_fetch_source(self, base_url: str, *, now_ms: int | None = None) -> None:
+        base = str(base_url or "").strip().rstrip("/")
+        if not base:
+            return
+        now = int(_now_ms() if now_ms is None else now_ms)
+        self._bft_fetch_source_cooldowns[base] = int(now) + int(self._bft_fetch_source_penalty_ms)
+        self._bft_fetch_source_penalty_drops = int(self._bft_fetch_source_penalty_drops) + 1
+
+    def _candidate_bft_fetch_sources(self, *, now_ms: int | None = None) -> list[str]:
+        now = int(_now_ms() if now_ms is None else now_ms)
+        sources = self._bft_fetch_base_urls()
+        if not sources:
+            return []
+        total = len(sources)
+        start = int(self._bft_fetch_source_cursor or 0) % total
+        self._bft_fetch_source_cursor = int((start + 1) % total)
+        ordered = [sources[(start + i) % total] for i in range(total)]
+        active: list[str] = []
+        for base in ordered:
+            allow_at = int(self._bft_fetch_source_cooldowns.get(base, 0) or 0)
+            if allow_at > now:
+                continue
+            active.append(base)
+        return active
 
     def _bft_fetch_tick(self) -> None:
         if not self._bft_fetch_enabled:
@@ -914,7 +1002,7 @@ class NetMeshLoop:
             if allow_at > now:
                 continue
             self._bft_fetch_cooldowns[sbid] = int(now) + int(self._bft_fetch_cooldown_ms)
-            for base in sources:
+            for base in self._candidate_bft_fetch_sources(now_ms=now):
                 blk = self._fetch_committed_block(base, sbid)
                 if not isinstance(blk, dict):
                     inc_counter("net_bft_fetch_miss")
@@ -930,6 +1018,7 @@ class NetMeshLoop:
                         )
                     except Exception:
                         pass
+                    self._penalize_bft_fetch_source(base, now_ms=now)
                     continue
                 fetched_hash = str(
                     blk.get("block_hash")
@@ -950,6 +1039,7 @@ class NetMeshLoop:
                         )
                     except Exception:
                         pass
+                    self._penalize_bft_fetch_source(base, now_ms=now)
                     inc_counter("net_bft_fetch_hash_mismatch")
                     continue
                 try:
@@ -1098,9 +1188,17 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason(
                 "proposal", proposal
             ) or _cheap_validate_bft_payload("proposal", proposal, chain_id=local_chain_id)
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("proposal", proposal)
+            reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_proposal_rejected")
-                _emit_bft_rejection_diagnostic(self._executor, "proposal", proposal, reason)
+                _emit_bft_rejection_diagnostic(
+                    self._executor,
+                    "proposal",
+                    proposal,
+                    reason,
+                    extra_summary=prefilter_summary,
+                )
                 return
 
             fn = getattr(self._executor, "bft_on_proposal", None)
@@ -1161,9 +1259,17 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason("vote", votej) or _cheap_validate_bft_payload(
                 "vote", votej, chain_id=local_chain_id
             )
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("vote", votej)
+            reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_vote_rejected")
-                _emit_bft_rejection_diagnostic(self._executor, "vote", votej, reason)
+                _emit_bft_rejection_diagnostic(
+                    self._executor,
+                    "vote",
+                    votej,
+                    reason,
+                    extra_summary=prefilter_summary,
+                )
                 return
 
             fn = getattr(self._executor, "bft_on_vote", None)
@@ -1222,9 +1328,17 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason("qc", qcj) or _cheap_validate_bft_payload(
                 "qc", qcj, chain_id=local_chain_id
             )
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("qc", qcj)
+            reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_qc_rejected")
-                _emit_bft_rejection_diagnostic(self._executor, "qc", qcj, reason)
+                _emit_bft_rejection_diagnostic(
+                    self._executor,
+                    "qc",
+                    qcj,
+                    reason,
+                    extra_summary=prefilter_summary,
+                )
                 return
 
             now = _now_ms()
@@ -1284,9 +1398,17 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason(
                 "timeout", timeoutj
             ) or _cheap_validate_bft_payload("timeout", timeoutj, chain_id=local_chain_id)
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("timeout", timeoutj)
+            reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_timeout_rejected")
-                _emit_bft_rejection_diagnostic(self._executor, "timeout", timeoutj, reason)
+                _emit_bft_rejection_diagnostic(
+                    self._executor,
+                    "timeout",
+                    timeoutj,
+                    reason,
+                    extra_summary=prefilter_summary,
+                )
                 return
 
             out = None

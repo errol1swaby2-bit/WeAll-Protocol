@@ -44,13 +44,17 @@ def compute_block_id(
       state_root commits to tip/block ancestry metadata that itself contains the
       block_id. Including state_root would create a circular dependency.
     """
+    # ``node_id`` remains in the function signature for call-site compatibility,
+    # but it is intentionally excluded from the committed identity. Local node
+    # or proposer identity is not consensus payload here; including it would
+    # make otherwise identical blocks diverge across nodes during deterministic
+    # replay and state reconstruction.
     obj: Json = {
         "chain_id": str(chain_id),
         "height": int(height),
         "prev_block_id": str(prev_block_id or ""),
         "prev_block_hash": str(prev_block_hash or ""),
         "ts_ms": int(ts_ms),
-        "node_id": str(node_id or ""),
         "tx_ids": [str(x) for x in (tx_ids or [])],
         "receipts_root": str(receipts_root or ""),
     }

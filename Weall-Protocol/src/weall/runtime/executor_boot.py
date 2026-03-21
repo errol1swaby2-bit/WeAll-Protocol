@@ -1,5 +1,3 @@
-# src/weall/runtime/executor_boot.py
-
 from __future__ import annotations
 
 import os
@@ -7,6 +5,7 @@ from dataclasses import dataclass
 
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
+from weall.tx.canon import ensure_tx_index_json
 
 
 @dataclass
@@ -45,6 +44,12 @@ def build_executor(cfg: ExecutorBootConfig | None = None) -> WeAllExecutor:
     """
     c = cfg or boot_config_from_env()
     validate_runtime_consensus_profile()
+
+    # First-boot / stale-artifact bootstrap:
+    # ensure the generated tx index exists and matches the current canon spec
+    # before the executor tries to load it.
+    ensure_tx_index_json(out_path=c.tx_index_path)
+
     return WeAllExecutor(
         db_path=c.db_path,
         node_id=c.node_id,

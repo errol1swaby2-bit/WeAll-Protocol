@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from weall.ledger.roles_schema import canonicalize_account_set
+
 Json = dict[str, Any]
 
 
@@ -62,7 +64,7 @@ def load_genesis(path: str) -> GenesisConfig:
 
     active_set = obj.get("active_set")
     if isinstance(active_set, list):
-        active_set = [str(x) for x in active_set if str(x).strip()]
+        active_set = canonicalize_account_set(active_set)
     else:
         active_set = None
 
@@ -206,8 +208,8 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         changed = True
 
     # Compute default active set: all active validators
-    default_active = [v.account for v in cfg.validators if v.active]
-    active_set = cfg.active_set or default_active
+    default_active = canonicalize_account_set([v.account for v in cfg.validators if v.active])
+    active_set = canonicalize_account_set(cfg.active_set or default_active)
 
     if validators.get("active_set") != active_set:
         validators["active_set"] = list(active_set)

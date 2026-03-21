@@ -25,6 +25,8 @@ also requires block admission rules that enforce the locked rule and QC validity
 
 from typing import Any
 
+from weall.runtime.ancestry import walk_ancestry
+
 Json = dict[str, Any]
 
 
@@ -59,34 +61,14 @@ def _att_count(state: Json, block_id: str) -> int:
     return len(per) if isinstance(per, dict) else 0
 
 
-def _is_descendant(
-    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000
-) -> bool:
+def _is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> bool:
     """Return True if candidate descends from ancestor.
 
-    max_hops prevents infinite loops if state is corrupted.
+    This fork-choice path must agree with block admission and HotStuff safety
+    checks even after long-lived chains exceed arbitrary hop caps. Corrupted
+    cyclic state still terminates via cycle detection in ``walk_ancestry``.
     """
-    cand = str(candidate).strip()
-    anc = str(ancestor).strip()
-    if not cand or not anc:
-        return False
-    if cand == anc:
-        return True
-
-    cur = cand
-    hops = 0
-    while hops < int(max_hops):
-        hops += 1
-        rec = blocks.get(cur)
-        if not isinstance(rec, dict):
-            return False
-        parent = _parent_of(rec)
-        if not parent:
-            return False
-        if parent == anc:
-            return True
-        cur = parent
-    return False
+    return walk_ancestry(blocks, candidate=str(candidate), ancestor=str(ancestor), parent_of=_parent_of)
 
 
 def _bft_choose_head(state: Json, blocks: dict[str, Any]) -> str | None:

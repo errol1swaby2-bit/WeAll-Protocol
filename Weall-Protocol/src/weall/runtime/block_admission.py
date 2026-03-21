@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.state import LedgerView
+from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.tx.canon import TxIndex
@@ -227,26 +228,24 @@ def _parent_of(blocks: dict[str, Any], block_id: str) -> str:
     return _as_str(rec.get("prev_block_id") or rec.get("prev") or "")
 
 
-def _is_descendant(
-    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 50_000
-) -> bool:
-    cand = str(candidate).strip()
-    anc = str(ancestor).strip()
-    if not cand or not anc:
-        return False
-    if cand == anc:
-        return True
-    cur = cand
-    hops = 0
-    while hops < int(max_hops):
-        hops += 1
-        parent = _parent_of(blocks, cur)
-        if not parent:
-            return False
-        if parent == anc:
-            return True
-        cur = parent
-    return False
+def _is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> bool:
+    """Consensus-critical ancestry check without arbitrary depth limits.
+
+    Block admission must agree with the HotStuff core and fork-choice logic on
+    whether a block extends a finalized or locked branch. Fixed hop limits can
+    make honest long-lived chains fail admission once they grow beyond the
+    bound, even though the same branch still passes ancestry checks elsewhere in
+    the stack. Route through the shared cycle-safe helper so every caller uses
+    the same semantics.
+    """
+
+    return walk_ancestry(
+        blocks,
+        candidate=str(candidate).strip(),
+        ancestor=str(ancestor).strip(),
+        parent_of=lambda rec: _parent_of(blocks, _as_str(rec.get("block_id") or ""))
+        or _as_str(rec.get("prev_block_id") or rec.get("prev") or ""),
+    )
 
 
 def admit_block_txs(

@@ -24,7 +24,7 @@ NOTE: This is still an MVP consensus implementation. The intent is:
 from dataclasses import dataclass
 from typing import Any
 
-from weall.ledger.roles_schema import ensure_roles_schema
+from weall.ledger.roles_schema import canonicalize_account_set, ensure_roles_schema
 from weall.runtime.apply.reputation import apply_reputation_delta_system
 from weall.runtime.bft_hotstuff import (
     BFT_MIN_VALIDATORS,
@@ -203,20 +203,7 @@ def _ensure_roles_validators_active_set(state: Json) -> list[str]:
         validators = {}
         roles["validators"] = validators
 
-    active_set = validators.get("active_set")
-    if not isinstance(active_set, list):
-        active_set = []
-        validators["active_set"] = active_set
-
-    out: list[str] = []
-    seen: set[str] = set()
-    for x in active_set:
-        s = _as_str(x)
-        if not s or s in seen:
-            continue
-        seen.add(s)
-        out.append(s)
-
+    out = canonicalize_account_set(validators.get("active_set"))
     validators["active_set"] = out
     return out
 
@@ -231,16 +218,7 @@ def _set_active_set(state: Json, accounts: list[str]) -> None:
         validators = {}
         roles["validators"] = validators
 
-    out: list[str] = []
-    seen: set[str] = set()
-    for x in accounts:
-        s = _as_str(x)
-        if not s or s in seen:
-            continue
-        seen.add(s)
-        out.append(s)
-
-    validators["active_set"] = out
+    validators["active_set"] = canonicalize_account_set(accounts)
 
 
 def _phase_root(state: Json) -> Json:
@@ -385,7 +363,7 @@ def _bump_validator_epoch(state: Json, active_set: list[str]) -> None:
         vs = {}
     epoch = _as_int(vs.get("epoch"), 0) + 1
     vs["epoch"] = int(epoch)
-    vs["active_set"] = list(active_set)
+    vs["active_set"] = canonicalize_account_set(active_set)
     vs["set_hash"] = _validator_set_hash(active_set)
     pending = vs.get("pending")
     if isinstance(pending, dict):
@@ -407,30 +385,51 @@ def _set_pending_validator_set(
     vs = c.get("validator_set")
     if not isinstance(vs, dict):
         vs = {}
-    set_hash = _validator_set_hash(active_set)
+    canonical_active_set = canonicalize_account_set(active_set)
+    set_hash = _validator_set_hash(canonical_active_set)
+    phase_name = (
+        normalize_consensus_phase(pending_phase, validator_count=len(canonical_active_set))
+        if _as_str(pending_phase)
+        else ""
+    )
     pending = vs.get("pending")
     if isinstance(pending, dict):
         pending_epoch = _as_int(pending.get("activate_at_epoch"), 0)
         pending_hash = _as_str(pending.get("set_hash") or "")
+        existing_phase = (
+            normalize_consensus_phase(pending.get("phase"), validator_count=len(canonical_active_set))
+            if _as_str(pending.get("phase"))
+            else ""
+        )
         if pending_epoch == int(activate_at_epoch) and pending_hash == set_hash:
-            return set_hash
+            if existing_phase == phase_name:
+                return set_hash
+            raise ConsensusApplyError(
+                "invalid_payload",
+                "validator_set_pending_phase_conflict",
+                {
+                    "existing_activate_at_epoch": int(pending_epoch),
+                    "existing_validator_set_hash": pending_hash,
+                    "existing_consensus_phase": existing_phase,
+                    "activate_at_epoch": int(activate_at_epoch),
+                    "validator_set_hash": set_hash,
+                    "consensus_phase": phase_name,
+                },
+            )
         raise ConsensusApplyError(
             "invalid_payload",
             "validator_set_pending_update_exists",
             {
                 "existing_activate_at_epoch": int(pending_epoch),
                 "existing_validator_set_hash": pending_hash,
+                "existing_consensus_phase": existing_phase,
                 "activate_at_epoch": int(activate_at_epoch),
                 "validator_set_hash": set_hash,
+                "consensus_phase": phase_name,
             },
         )
-    phase_name = (
-        normalize_consensus_phase(pending_phase, validator_count=len(active_set))
-        if _as_str(pending_phase)
-        else ""
-    )
     vs["pending"] = {
-        "active_set": list(active_set),
+        "active_set": list(canonical_active_set),
         "activate_at_epoch": int(activate_at_epoch),
         "set_hash": set_hash,
     }
@@ -451,15 +450,7 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json |
     act_epoch = _as_int(pending.get("activate_at_epoch"), 0)
     if act_epoch <= 0 or int(epoch) != act_epoch:
         return None
-    active_set = _as_list(pending.get("active_set"))
-    out: list[str] = []
-    seen: set[str] = set()
-    for x in active_set:
-        s = _as_str(x)
-        if not s or s in seen:
-            continue
-        seen.add(s)
-        out.append(s)
+    out = canonicalize_account_set(pending.get("active_set"))
     _set_active_set(state, out)
     _bump_validator_epoch(state, out)
     c = _ensure_consensus(state)
@@ -497,15 +488,7 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
         )
 
     payload = _as_dict(env.payload)
-    active_set = _as_list(payload.get("active_set"))
-    out: list[str] = []
-    seen: set[str] = set()
-    for x in active_set:
-        s = _as_str(x)
-        if not s or s in seen:
-            continue
-        seen.add(s)
-        out.append(s)
+    out = canonicalize_account_set(payload.get("active_set"))
 
     activate_at_epoch = _as_int(payload.get("activate_at_epoch"), 0)
     activate_bft_at_epoch = _as_int(payload.get("activate_bft_at_epoch"), 0)

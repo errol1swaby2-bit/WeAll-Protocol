@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+from weall.runtime.fault_injection import run_bft_fault_injection_soak
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def test_fault_injection_soak_converges_after_stall_partition_restart_and_rejoin(
+    tmp_path: Path,
+) -> None:
+    summary = run_bft_fault_injection_soak(
+        work_dir=str(tmp_path),
+        rounds=14,
+        validator_count=4,
+        partition_rounds=(3, 4),
+        stall_target="v4",
+        stall_rounds=(6, 7, 8),
+        delay_child_first_every=3,
+        restart_target="v4",
+        restart_every=4,
+        epoch_bump_rounds=(9,),
+        stale_qc_replay_target="v2",
+        chain_id="bft-batch18-rejoin",
+    )
+    assert summary.converged is True
+    assert summary.leader_height == 14
+    assert summary.partitioned_deliveries >= 2
+    assert summary.stalled_delivery_events >= 3
+    assert summary.rejoin_catchup_events >= 2
+    assert summary.restart_events >= 3
+    assert summary.epoch_bump_events == 1
+    assert summary.stale_qc_replay_attempts == 1
+    assert summary.stale_qc_replay_rejections == 1
+    assert all(h == summary.leader_height for h in summary.follower_heights.values())
+    assert all(t == summary.leader_tip for t in summary.follower_tips.values())
+
+
+def test_fault_injection_soak_records_clock_skew_warning_and_recovers(tmp_path: Path) -> None:
+    summary = run_bft_fault_injection_soak(
+        work_dir=str(tmp_path),
+        rounds=10,
+        validator_count=4,
+        clock_skew_target="v4",
+        clock_skew_rounds=(2, 3, 6),
+        clock_skew_ahead_ms=180_000,
+        partition_rounds=(),
+        stall_rounds=(),
+        delay_child_first_every=3,
+        restart_every=0,
+        chain_id="bft-batch18-skew",
+    )
+    assert summary.converged is True
+    assert summary.forced_clock_skew_events == 3
+    assert summary.forced_clock_skew_warnings == 3
+    assert summary.follower_diagnostics["v4"]["clock_skew_warning"] is False
+    assert int(summary.follower_diagnostics["v4"]["clock_skew_ahead_ms"]) == 0
+
+
+def test_epoch_transition_restart_and_stale_qc_replay_cycles_converge(tmp_path: Path) -> None:
+    summary = run_bft_fault_injection_soak(
+        work_dir=str(tmp_path),
+        rounds=16,
+        validator_count=4,
+        partition_target="v4",
+        partition_rounds=(3, 4, 10),
+        restart_target="v4",
+        restart_every=4,
+        epoch_bump_rounds=(5, 9, 13),
+        stale_qc_replay_target="v2",
+        delay_target="v3",
+        delay_child_first_every=0,
+        chain_id="bft-batch18-epoch-restart-stale-qc",
+    )
+    assert summary.converged is True
+    assert summary.leader_height == 16
+    assert summary.epoch_bump_events == 3
+    assert summary.stale_qc_replay_attempts == 3
+    assert summary.stale_qc_replay_rejections == 3
+    assert summary.restart_events >= 4
+    assert summary.partitioned_deliveries >= 3
+    assert summary.healed_partition_events >= 3
+    assert summary.rejoin_catchup_events >= 2
+    assert summary.delayed_child_first_events == 0
+    assert all(h == summary.leader_height for h in summary.follower_heights.values())
+    assert all(t == summary.leader_tip for t in summary.follower_tips.values())
+
+
+def test_five_validator_long_running_fault_injection_soak_converges(tmp_path: Path) -> None:
+    summary = run_bft_fault_injection_soak(
+        work_dir=str(tmp_path),
+        rounds=18,
+        validator_count=5,
+        partition_target="v5",
+        partition_rounds=(4, 5, 11),
+        stall_target="v4",
+        stall_rounds=(7, 8),
+        restart_target="v3",
+        restart_every=6,
+        epoch_bump_rounds=(9,),
+        stale_qc_replay_target="v2",
+        delay_child_first_every=0,
+        chain_id="bft-batch18-five-validator-long-soak",
+    )
+    assert summary.converged is True
+    assert summary.leader_height == 18
+    assert len(summary.validator_ids) == 5
+    assert summary.restart_events >= 3
+    assert summary.partitioned_deliveries >= 3
+    assert summary.healed_partition_events >= 3
+    assert summary.stalled_delivery_events >= 2
+    assert summary.epoch_bump_events == 1
+    assert summary.stale_qc_replay_attempts == 1
+    assert summary.stale_qc_replay_rejections == 1
+    assert summary.delayed_child_first_events == 0
+    assert all(h == summary.leader_height for h in summary.follower_heights.values())
+    assert all(t == summary.leader_tip for t in summary.follower_tips.values())
+
+
+def test_bft_adversarial_matrix_cli_runs_all_scenarios(tmp_path: Path) -> None:
+    env = {"PYTHONPATH": str(_repo_root() / "src")}
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(_repo_root() / "scripts" / "bft_adversarial_matrix.py"),
+            "--work-dir",
+            str(tmp_path),
+            "--chain-id-prefix",
+            "bft-batch18-matrix",
+        ],
+        cwd=str(_repo_root()),
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["ok"] is True
+    assert int(payload["scenario_count"]) == 6
+    scenarios = payload["scenarios"]
+    assert scenarios["partition_restart_rejoin"]["converged"] is True
+    assert scenarios["stall_recovery"]["stalled_delivery_events"] >= 3
+    assert scenarios["epoch_shift_rejoin"]["stale_qc_replay_rejections"] >= 1
+    assert scenarios["clock_skew_warning"]["forced_clock_skew_warnings"] >= 1
+
+    epoch_restart = scenarios["epoch_restart_stale_qc"]
+    assert epoch_restart["converged"] is True
+    assert int(epoch_restart["epoch_bump_events"]) == 3
+    assert int(epoch_restart["stale_qc_replay_rejections"]) == int(
+        epoch_restart["stale_qc_replay_attempts"]
+    )
+    assert int(epoch_restart["restart_events"]) >= 4
+    assert int(epoch_restart["delayed_child_first_events"]) == 0
+
+    long_soak = scenarios["five_validator_long_soak"]
+    assert long_soak["converged"] is True
+    assert len(long_soak["validator_ids"]) == 5
+    assert int(long_soak["leader_height"]) == 18
+    assert int(long_soak["restart_events"]) >= 3
+    assert int(long_soak["epoch_bump_events"]) == 1
+    assert int(long_soak["stale_qc_replay_rejections"]) == int(
+        long_soak["stale_qc_replay_attempts"]
+    )
+    assert int(long_soak["delayed_child_first_events"]) == 0

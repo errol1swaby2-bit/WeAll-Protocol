@@ -1,11 +1,12 @@
 # File: src/weall/net/node.py
 from __future__ import annotations
 
+import hashlib
 import os
 import time
 from collections import OrderedDict
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from weall.net.codec import decode_message, encode_message
@@ -160,6 +161,18 @@ class PeerPolicy:
     # Protocol mismatch fast-ban window
     fast_ban_mismatch_ms: int = 0
 
+    # Exact duplicate payload suppression (per peer, bounded LRU window).
+    duplicate_cache_entries: int = 256
+    duplicate_cache_ttl_ms: int = 15_000
+
+    # Bound peer bookkeeping so spoofed / one-shot peer IDs cannot grow memory without bound.
+    max_peer_records: int = 1024
+
+    # Bound outstanding state-sync correlation tracking and replay suppression window.
+    max_outstanding_sync_requests: int = 64
+    sync_request_ttl_ms: int = 5_000
+    recent_completed_sync_responses: int = 256
+
 
 @dataclass
 class _PeerRec:
@@ -177,6 +190,20 @@ class _PeerRec:
     identity_ok: bool = False
     identity_account: str = ""
     identity_pubkey: str = ""
+
+    # Exact duplicate raw-payload suppression (node-local abuse hardening only).
+    recent_payload_digests: OrderedDict[str, int] = field(default_factory=OrderedDict)
+    duplicate_payloads_dropped: int = 0
+
+    # Activity tracking for bounded peer-record eviction.
+    last_seen_ms: int = 0
+    established_at_ms: int = 0
+    packets_received: int = 0
+
+    # State-sync abuse diagnostics.
+    sync_responses_dropped: int = 0
+    sync_unsolicited_dropped: int = 0
+    sync_replayed_dropped: int = 0
 
 
 def _make_transport(cfg: NetConfig) -> Transport:
@@ -251,7 +278,30 @@ class NetNode:
         self._sync_request_timeout_ms: int = max(
             50, _env_int("WEALL_NET_SYNC_REQUEST_TIMEOUT_MS", 1_500)
         )
+        self._sync_outstanding_cap: int = max(
+            1,
+            _env_int(
+                "WEALL_NET_SYNC_OUTSTANDING_MAX",
+                int(self.peer_policy.max_outstanding_sync_requests),
+            ),
+        )
+        self._sync_request_ttl_ms: int = max(
+            50,
+            _env_int(
+                "WEALL_NET_SYNC_REQUEST_TTL_MS",
+                int(self.peer_policy.sync_request_ttl_ms),
+            ),
+        )
+        self._sync_completed_cap: int = max(
+            1,
+            _env_int(
+                "WEALL_NET_SYNC_COMPLETED_CACHE",
+                int(self.peer_policy.recent_completed_sync_responses),
+            ),
+        )
         self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
+        self._sync_requests: OrderedDict[str, tuple[str, int]] = OrderedDict()
+        self._sync_completed: OrderedDict[tuple[str, str], int] = OrderedDict()
 
     # ----------------------------
     # Peer state + rate limiting
@@ -301,6 +351,112 @@ class NetNode:
         rec.byte_tokens -= float(payload_len)
         return True
 
+    def _prune_recent_payload_digests(self, rec: _PeerRec, now_ms: int) -> None:
+        ttl_ms = max(0, int(self.peer_policy.duplicate_cache_ttl_ms))
+        cap = max(0, int(self.peer_policy.duplicate_cache_entries))
+        cache = rec.recent_payload_digests
+        if ttl_ms <= 0 or cap <= 0:
+            try:
+                cache.clear()
+            except Exception:
+                pass
+            return
+        cutoff = int(now_ms) - ttl_ms
+        try:
+            while cache:
+                _digest, last_seen_ms = next(iter(cache.items()))
+                if int(last_seen_ms) > cutoff and len(cache) <= cap:
+                    break
+                cache.popitem(last=False)
+        except Exception:
+            try:
+                cache.clear()
+            except Exception:
+                pass
+
+    def _is_duplicate_payload(self, rec: _PeerRec, payload: bytes, *, now_ms: int) -> bool:
+        ttl_ms = max(0, int(self.peer_policy.duplicate_cache_ttl_ms))
+        cap = max(0, int(self.peer_policy.duplicate_cache_entries))
+        if ttl_ms <= 0 or cap <= 0 or not payload:
+            return False
+        self._prune_recent_payload_digests(rec, now_ms)
+        digest = hashlib.blake2s(bytes(payload), digest_size=16).hexdigest()
+        cache = rec.recent_payload_digests
+        last_seen_ms = cache.get(digest)
+        if last_seen_ms is not None and (int(now_ms) - int(last_seen_ms)) <= ttl_ms:
+            try:
+                del cache[digest]
+            except Exception:
+                pass
+            cache[digest] = int(now_ms)
+            rec.duplicate_payloads_dropped += 1
+            return True
+        cache[digest] = int(now_ms)
+        while len(cache) > cap:
+            cache.popitem(last=False)
+        return False
+
+    def _peer_is_established(self, rec: _PeerRec) -> bool:
+        try:
+            hs = getattr(rec.router, "handshake", None)
+            return bool(getattr(hs, "is_established", lambda: False)())
+        except Exception:
+            return False
+
+    def _touch_peer(self, rec: _PeerRec, *, now_ms: int) -> None:
+        ts = int(now_ms if int(now_ms) > 0 else _now_ms())
+        rec.last_seen_ms = max(int(rec.last_seen_ms), ts)
+        rec.packets_received += 1
+        if self._peer_is_established(rec) and int(rec.established_at_ms) <= 0:
+            rec.established_at_ms = ts
+
+    def _peer_is_connected(self, peer_id: str) -> bool:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return False
+        if pid in self._conns:
+            return True
+        try:
+            for cc in self.transport.connections():
+                if str(getattr(cc, "peer_id", "") or "").strip() == pid:
+                    self._conns[pid] = cc
+                    return True
+        except Exception:
+            return False
+        return False
+
+    def _peer_eviction_sort_key(self, rec: _PeerRec) -> tuple[int, int, int, int, str]:
+        established = 1 if self._peer_is_established(rec) else 0
+        connected = 1 if self._peer_is_connected(rec.peer_id) else 0
+        banned = 1 if self.is_banned(rec.peer_id) else 0
+        return (
+            established,
+            connected,
+            banned,
+            int(rec.last_seen_ms or 0),
+            str(rec.peer_id or ""),
+        )
+
+    def _prune_peer_records(self, *, allow_connected: bool = False) -> None:
+        cap = max(0, int(self.peer_policy.max_peer_records))
+        if cap <= 0:
+            return
+        while len(self._peers) >= cap:
+            victims: list[_PeerRec] = []
+            for rec in self._peers.values():
+                established = self._peer_is_established(rec)
+                connected = self._peer_is_connected(rec.peer_id)
+                if established:
+                    continue
+                if connected and not allow_connected:
+                    continue
+                victims.append(rec)
+            if not victims:
+                break
+            victim = min(victims, key=self._peer_eviction_sort_key)
+            self._peers.pop(str(victim.peer_id), None)
+            self._conns.pop(str(victim.peer_id), None)
+
     # ----------------------------
     # Identity / BFT gates
     # ----------------------------
@@ -314,13 +470,26 @@ class NetNode:
             return None
 
     def _identity_required(self) -> bool:
-        return _env_bool("WEALL_NET_REQUIRE_IDENTITY", False)
+        if _env_bool("WEALL_NET_REQUIRE_IDENTITY", False):
+            return True
+        if self._bft_enabled() and self._identity_required_for_bft():
+            return True
+        return self._local_validator_posture()
 
     def _identity_required_for_bft(self) -> bool:
         return _env_bool("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", False)
 
     def _bft_enabled(self) -> bool:
         return _env_bool("WEALL_BFT_ENABLED", False)
+
+    def _local_validator_posture(self) -> bool:
+        validator_account = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT", "") or "").strip()
+        if validator_account:
+            return True
+        ledger = self._get_ledger()
+        if isinstance(ledger, dict) and self._is_validator(ledger, str(self.cfg.peer_id or "").strip()):
+            return True
+        return False
 
     def _is_validator(self, ledger: Json, account_id: str) -> bool:
         roles = ledger.get("roles")
@@ -417,12 +586,112 @@ class NetNode:
     # Sync response cache
     # ----------------------------
 
-    def _cache_sync_response(self, msg: StateSyncResponseMsg) -> None:
+    # ----------------------------
+    # Sync response cache
+    # ----------------------------
+
+    def _prune_completed_sync_responses(self, *, now_ms: int | None = None) -> None:
+        now = int(now_ms if now_ms is not None else _now_ms())
+        cutoff = now - int(self._sync_request_ttl_ms)
+        try:
+            while self._sync_completed:
+                (_peer_id, _corr_id), seen_ms = next(iter(self._sync_completed.items()))
+                if int(seen_ms) > cutoff and len(self._sync_completed) <= int(self._sync_completed_cap):
+                    break
+                self._sync_completed.popitem(last=False)
+        except Exception:
+            try:
+                self._sync_completed.clear()
+            except Exception:
+                pass
+
+    def _prune_sync_requests(self, *, now_ms: int | None = None) -> None:
+        now = int(now_ms if now_ms is not None else _now_ms())
+        try:
+            while self._sync_requests:
+                _corr_id, (_peer_id, deadline_ms) = next(iter(self._sync_requests.items()))
+                if int(deadline_ms) > now and len(self._sync_requests) <= int(self._sync_outstanding_cap):
+                    break
+                self._sync_requests.popitem(last=False)
+        except Exception:
+            try:
+                self._sync_requests.clear()
+            except Exception:
+                pass
+
+    def _drop_sync_response(self, peer_id: str, *, replayed: bool = False) -> None:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return
+        rec = self._peers.get(pid)
+        if rec is None:
+            return
+        rec.sync_responses_dropped += 1
+        if replayed:
+            rec.sync_replayed_dropped += 1
+        else:
+            rec.sync_unsolicited_dropped += 1
+
+    def _register_sync_request(self, peer_id: str, corr_id: str, *, deadline_ms: int) -> None:
+        pid = str(peer_id or "").strip()
+        cid = str(corr_id or "").strip()
+        if not pid or not cid:
+            raise ValueError("state sync request requires peer_id and corr_id")
+        now = _now_ms()
+        self._prune_sync_requests(now_ms=now)
+        self._prune_completed_sync_responses(now_ms=now)
+        if cid in self._sync_requests:
+            del self._sync_requests[cid]
+        while len(self._sync_requests) >= int(self._sync_outstanding_cap):
+            self._sync_requests.popitem(last=False)
+        self._sync_requests[cid] = (pid, max(int(deadline_ms), now + int(self._sync_request_ttl_ms)))
+
+    def _complete_sync_request(self, corr_id: str, *, peer_id: str = "") -> None:
+        cid = str(corr_id or "").strip()
+        pid = str(peer_id or "").strip()
+        if not cid:
+            return
+        try:
+            if not pid:
+                entry = self._sync_requests.pop(cid, None)
+                if entry is not None:
+                    pid = str(entry[0] or "").strip()
+            else:
+                self._sync_requests.pop(cid, None)
+        except Exception:
+            pass
+        if pid:
+            self._sync_completed[(pid, cid)] = _now_ms()
+            while len(self._sync_completed) > int(self._sync_completed_cap):
+                self._sync_completed.popitem(last=False)
+            self._prune_completed_sync_responses()
+
+    def _cache_sync_response(self, peer_id: str, msg: StateSyncResponseMsg) -> None:
+        pid = str(peer_id or "").strip()
         try:
             corr_id = str(getattr(getattr(msg, "header", None), "corr_id", "") or "").strip()
         except Exception:
             corr_id = ""
-        if not corr_id:
+        if not pid or not corr_id:
+            self._drop_sync_response(pid, replayed=False)
+            return
+        now = _now_ms()
+        self._prune_sync_requests(now_ms=now)
+        self._prune_completed_sync_responses(now_ms=now)
+        if (pid, corr_id) in self._sync_completed:
+            self._drop_sync_response(pid, replayed=True)
+            return
+        outstanding = self._sync_requests.get(corr_id)
+        if outstanding is None:
+            self._drop_sync_response(pid, replayed=False)
+            return
+        expect_peer_id, deadline_ms = outstanding
+        if int(deadline_ms) <= now:
+            self._sync_requests.pop(corr_id, None)
+            self._drop_sync_response(pid, replayed=False)
+            return
+        if str(expect_peer_id or "").strip() != pid:
+            self._drop_sync_response(pid, replayed=False)
             return
         try:
             if corr_id in self._sync_responses:
@@ -438,10 +707,20 @@ class NetNode:
         if not cid:
             return None
         try:
-            return self._sync_responses.pop(cid, None)
+            msg = self._sync_responses.pop(cid, None)
         except Exception:
             return None
-
+        if msg is None:
+            return None
+        peer_id = ""
+        try:
+            entry = self._sync_requests.get(cid)
+            if entry is not None:
+                peer_id = str(entry[0] or "").strip()
+        except Exception:
+            peer_id = ""
+        self._complete_sync_request(cid, peer_id=peer_id)
+        return msg
     # ----------------------------
     # Peer creation + router wiring
     # ----------------------------
@@ -450,6 +729,8 @@ class NetNode:
         rec = self._peers.get(peer_id)
         if rec:
             return rec
+
+        self._prune_peer_records()
 
         hs = HandshakeState(
             config=HandshakeConfig(
@@ -461,7 +742,7 @@ class NetNode:
                 caps=self.cfg.caps,
                 identity_pubkey=self.cfg.identity_pubkey,
                 identity_privkey=self.cfg.identity_privkey,
-                require_identity=_env_bool("WEALL_NET_REQUIRE_IDENTITY", False),
+                require_identity=self._identity_required(),
                 protocol_version=runtime_protocol_version(),
                 protocol_profile_hash=runtime_protocol_profile_hash(),
                 validator_epoch=self._handshake_validator_epoch(),
@@ -502,7 +783,7 @@ class NetNode:
             return self.sync_service.handle_request(msg)  # type: ignore[arg-type]
 
         def _on_sync_response(msg: StateSyncResponseMsg) -> None:
-            self._cache_sync_response(msg)
+            self._cache_sync_response(peer_id, msg)
 
         def _on_ping(msg: WireMessage) -> WireMessage:
             ping_id = getattr(msg, "ping_id", None)
@@ -521,6 +802,7 @@ class NetNode:
         )
 
         rec = _PeerRec(peer_id=peer_id, router=router)
+        rec.last_seen_ms = _now_ms()
         self._peers[peer_id] = rec
         return rec
 
@@ -540,6 +822,7 @@ class NetNode:
             return
 
         rec = self._ensure_peer(peer_id)
+        self._touch_peer(rec, now_ms=now)
 
         # If currently banned, ignore.
         if rec.banned_until_ms > _now_ms():
@@ -590,6 +873,16 @@ class NetNode:
             self._strike(rec, int(self.peer_policy.strike_decode_fail))
             return
 
+        # Exact duplicate raw-payload suppression is a node-local abuse hardening
+        # measure only. Keep it scoped to established sessions so pre-session
+        # protocol violations still accumulate strikes exactly as before.
+        established = self._peer_is_established(rec)
+        if established and int(rec.established_at_ms) <= 0:
+            rec.established_at_ms = int(now)
+        mtype = getattr(getattr(msg, "header", None), "type", None)
+        if established and mtype not in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK} and self._is_duplicate_payload(rec, payload, now_ms=now):
+            return
+
         # Identity checks on inbound hello
         if getattr(msg.header, "type", None) == MsgType.PEER_HELLO:
             try:
@@ -628,6 +921,9 @@ class NetNode:
                 return
             self._strike(rec, int(self.peer_policy.strike_decode_fail))
             return
+
+        if self._peer_is_established(rec) and int(rec.established_at_ms) <= 0:
+            rec.established_at_ms = int(now)
 
         # Send response if any
         if resp is not None:
@@ -744,11 +1040,11 @@ class NetNode:
             raise ValueError("state sync request requires header.corr_id")
 
         self.pop_sync_response(corr_id)
-        self.send_message(pid, req)
-
         deadline = _now_ms() + int(
             timeout_ms if timeout_ms is not None else self._sync_request_timeout_ms
         )
+        self._register_sync_request(pid, corr_id, deadline_ms=deadline)
+        self.send_message(pid, req)
         while _now_ms() <= deadline:
             if pump is not None:
                 try:
@@ -767,6 +1063,7 @@ class NetNode:
                     time.sleep(float(sleep_ms) / 1000.0)
                 except Exception:
                     pass
+        self._complete_sync_request(corr_id, peer_id=pid)
         return None
 
     def peers_debug(self) -> Json:
@@ -811,6 +1108,14 @@ class NetNode:
                     "msg_tokens": int(rec.msg_tokens),
                     "byte_tokens": int(rec.byte_tokens),
                     "connected": bool(peer_id in self._conns),
+                    "duplicate_payloads_dropped": int(rec.duplicate_payloads_dropped),
+                    "duplicate_payload_cache_size": int(len(rec.recent_payload_digests)),
+                    "last_seen_ms": int(rec.last_seen_ms),
+                    "established_at_ms": int(rec.established_at_ms),
+                    "packets_received": int(rec.packets_received),
+                    "sync_responses_dropped": int(rec.sync_responses_dropped),
+                    "sync_unsolicited_dropped": int(rec.sync_unsolicited_dropped),
+                    "sync_replayed_dropped": int(rec.sync_replayed_dropped),
                 }
             )
 
@@ -822,6 +1127,11 @@ class NetNode:
                 "peers_established": int(established),
                 "peers_identity_verified": int(identity_verified),
                 "peers_banned": int(banned),
+                "peer_record_capacity": int(self.peer_policy.max_peer_records),
+                "sync_requests_outstanding": int(len(self._sync_requests)),
+                "sync_response_cache": int(len(self._sync_responses)),
+                "sync_completed_cache": int(len(self._sync_completed)),
+                "sync_outstanding_capacity": int(self._sync_outstanding_cap),
             },
             "peers": peers,
         }

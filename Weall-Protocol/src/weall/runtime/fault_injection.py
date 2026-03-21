@@ -26,6 +26,7 @@ from weall.runtime.bft_hotstuff import (
     canonical_timeout_message,
     canonical_vote_message,
     leader_for_view,
+    quorum_threshold,
 )
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.sqlite_db import SqliteDB
@@ -134,7 +135,8 @@ def _make_qc(
     validator_set_hash: str,
 ) -> Json:
     votes: list[Json] = []
-    for signer in list(validators)[:3]:
+    signer_count = quorum_threshold(len(validators))
+    for signer in list(validators)[:signer_count]:
         msg = canonical_vote_message(
             chain_id=chain_id,
             view=view,

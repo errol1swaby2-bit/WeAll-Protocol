@@ -29,6 +29,16 @@ def _uniq_str_list(xs: Any) -> list[str]:
     return out
 
 
+def canonicalize_account_set(xs: Any) -> list[str]:
+    """Return the canonical account-set encoding used for validator sets.
+
+    Consensus-critical validator sets must be order-independent. Persisting them
+    as sorted + de-duplicated account ids prevents insertion-order drift between
+    mutation paths, restarts, and alternative node implementations.
+    """
+    return sorted(_uniq_str_list(xs))
+
+
 def ensure_roles_schema(ledger: Json) -> Json:
     """
     Ensure ledger['roles'] exists and contains the canonical role roots.
@@ -58,7 +68,7 @@ def ensure_roles_schema(ledger: Json) -> Json:
     if not isinstance(validators, dict):
         validators = {"active_set": []}
         roles["validators"] = validators
-    validators["active_set"] = _uniq_str_list(validators.get("active_set"))
+    validators["active_set"] = canonicalize_account_set(validators.get("active_set"))
 
     # Normalize other active_set lists
     for key in ("jurors", "node_operators", "creators"):

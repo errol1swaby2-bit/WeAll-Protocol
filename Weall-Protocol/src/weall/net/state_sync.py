@@ -230,6 +230,11 @@ class StateSyncService:
             return ""
         return _as_str(trusted_anchor.get("finalized_block_id") or "")
 
+    def _local_finalized_height(self, local_anchor: Json | None) -> int:
+        if not isinstance(local_anchor, dict):
+            return 0
+        return _as_int(local_anchor.get("finalized_height"), 0)
+
     def handle_request(self, req: StateSyncRequestMsg) -> StateSyncResponseMsg:
         corr_id = req.header.corr_id
         hdr = WireHeader(
@@ -309,20 +314,36 @@ class StateSyncService:
                 )
 
             start = int(req.from_height or 0)
-            if start < 0:
+            if start < 0 or start > tip_h:
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="bad_from_height", height=tip_h
                 )
-            end = int(req.to_height) if req.to_height is not None else tip_h
-            if end < 0:
+            raw_end = int(req.to_height) if req.to_height is not None else tip_h
+            if raw_end < 0:
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="bad_to_height", height=tip_h
                 )
-            end = max(start, min(end, tip_h))
+            if req.to_height is not None and raw_end < start:
+                return StateSyncResponseMsg(
+                    header=hdr, ok=False, reason="bad_height_range", height=tip_h
+                )
+            end = min(raw_end, tip_h)
 
             trusted_finalized_height = self._trusted_finalized_height(trusted_anchor)
-            if self.enforce_finalized_anchor and trusted_finalized_height > 0:
-                end = min(end, trusted_finalized_height)
+            if self.enforce_finalized_anchor:
+                local_finalized_height = self._local_finalized_height(local_anchor)
+                finalized_cap = local_finalized_height
+                if trusted_finalized_height > 0:
+                    finalized_cap = min(finalized_cap, trusted_finalized_height)
+                if finalized_cap > 0:
+                    if start >= finalized_cap and end > finalized_cap:
+                        return StateSyncResponseMsg(
+                            header=hdr,
+                            ok=False,
+                            reason="delta_range_exceeds_finalized_anchor",
+                            height=tip_h,
+                        )
+                    end = min(end, finalized_cap)
 
             if end - start > int(self.max_delta_blocks):
                 end = start + int(self.max_delta_blocks)

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.crypto.sig import verify_ed25519_signature
+from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.sqlite_db import _canon_json
 
 Json = dict[str, Any]
@@ -411,33 +412,24 @@ def qc_from_json(q: Json) -> QuorumCert | None:
     )
 
 
-def is_descendant(
-    blocks: dict[str, Any], *, candidate: str, ancestor: str, max_hops: int = 2048
-) -> bool:
+def is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> bool:
     """
-    Return True iff `ancestor` is on candidate's chain (including equality).
-    Requires blocks map entries include "prev_block_id".
+    Return True iff ``ancestor`` is on ``candidate``'s chain (including equality).
+
+    This path is consensus-critical. It must not depend on a fixed traversal
+    bound because long-lived honest chains can legitimately exceed any static
+    hop cap. We instead walk until the lineage ends or corrupted state creates a
+    cycle.
     """
-    c = str(candidate)
-    a = str(ancestor)
+    a = str(ancestor).strip()
     if not a:
         return True
-    if c == a:
-        return True
-    hops = 0
-    cur = c
-    while cur and hops < max_hops:
-        rec = blocks.get(cur)
-        if not isinstance(rec, dict):
-            return False
-        prev = _as_str(rec.get("prev_block_id") or "")
-        if not prev:
-            return False
-        if prev == a:
-            return True
-        cur = prev
-        hops += 1
-    return False
+    return walk_ancestry(
+        blocks,
+        candidate=str(candidate),
+        ancestor=a,
+        parent_of=lambda rec: _as_str(rec.get("prev_block_id") or ""),
+    )
 
 
 def verify_qc(
@@ -913,17 +905,19 @@ class HotStuffBFT:
         block_id: str,
         justify_qc: QuorumCert | None = None,
     ) -> bool:
-        """
-        HotStuff safe-node rule.
+        """Return whether a proposal is safe to vote for.
 
-        A node may vote for a proposal when either:
-          - the proposed block extends the currently locked block, or
-          - the proposal carries a justify QC whose view is strictly higher than
-            the current lock view.
+        Safety rules:
+          - always allow descendants of the current lock;
+          - an explicit ``justify_qc`` may only unlock voting when it is on the
+            candidate's branch and its view is strictly higher than the lock;
+          - when no explicit ``justify_qc`` is supplied, a strictly higher local
+            persisted ``high_qc`` may be used as recovery evidence, but only for
+            strict descendants of that ``high_qc`` block.
 
-        The higher-justify branch is required for liveness during view changes
-        and delayed message delivery. Restricting votes only to descendants of
-        the current lock can strand honest validators on recoverable stalls.
+        The local ``high_qc`` recovery path is intentionally narrower than the
+        explicit justify path: it must not permit voting for the conflicting
+        certified block itself after restart or delayed-QC delivery.
         """
         bid = str(block_id).strip()
         if not bid:
@@ -937,26 +931,41 @@ class HotStuffBFT:
         if is_descendant(blocks, candidate=bid, ancestor=locked_block_id):
             return True
 
-        if justify_qc is None:
-            return False
-        if str(justify_qc.chain_id or "") != self.chain_id:
-            return False
-
         try:
-            justify_view = int(justify_qc.view)
             locked_view = int(lock.view)
         except Exception:
             return False
 
-        if justify_view > locked_view:
-            return True
+        if justify_qc is not None:
+            if str(justify_qc.chain_id or "") != self.chain_id:
+                return False
+            try:
+                justify_view = int(justify_qc.view)
+            except Exception:
+                return False
+            justify_block_id = str(justify_qc.block_id or "").strip()
+            if not justify_block_id:
+                return False
+            if not is_descendant(blocks, candidate=bid, ancestor=justify_block_id):
+                return False
+            return justify_view > locked_view
 
-        justify_block_id = str(justify_qc.block_id or "").strip()
-        if justify_block_id and is_descendant(
-            blocks, candidate=justify_block_id, ancestor=locked_block_id
-        ):
-            return True
-        return False
+        high_qc = self.high_qc
+        if high_qc is None:
+            return False
+        if str(high_qc.chain_id or "") != self.chain_id:
+            return False
+        try:
+            high_view = int(high_qc.view)
+        except Exception:
+            return False
+        if high_view <= locked_view:
+            return False
+
+        high_block_id = str(high_qc.block_id or "").strip()
+        if not high_block_id or high_block_id == bid:
+            return False
+        return is_descendant(blocks, candidate=bid, ancestor=high_block_id)
 
     def record_local_vote(self, *, view: int, block_id: str) -> bool:
         """Record a local vote if safe.
@@ -1019,35 +1028,46 @@ class HotStuffBFT:
         Observe a QC; update highQC/lockedQC, and finalize if we have a 3-chain:
           QC(view=v, block=b3) where parent=b2, grandparent=b1 => finalize b1.
         Returns finalized block_id if newly finalized.
+
+        Safety hardening:
+          - ignore QCs whose referenced block is unknown
+          - ignore QCs whose declared parent_id does not match the block record
+          - only then allow highQC / lockedQC progression
         """
         if qc.chain_id != self.chain_id:
             return None
 
-        # bump view on observed qc
-        self.bump_view(int(qc.view) + 1)
-
-        # HighQC always tracks the highest-view QC observed.
-        if self.high_qc is None or qc.view > self.high_qc.view:
-            self.high_qc = qc
-
-        # LockedQC: update only when it maintains the locked-descendant safety rule.
-        # This prevents a remote peer from forcing us to "unlock" onto a conflicting branch.
-        if self.locked_qc is None or not self.locked_qc.block_id:
-            self.locked_qc = qc
-        else:
-            # Only move the lock forward if the new QC extends our current lock.
-            if is_descendant(
-                blocks, candidate=str(qc.block_id), ancestor=str(self.locked_qc.block_id)
-            ):
-                if qc.view > self.locked_qc.view:
-                    self.locked_qc = qc
-
-        # 3-chain finalize rule: qc on b3 -> finalize b1 (grandparent)
-        b3 = qc.block_id
+        b3 = _as_str(qc.block_id or "")
+        if not b3:
+            return None
         rec3 = blocks.get(b3)
         if not isinstance(rec3, dict):
             return None
-        b2 = _as_str(rec3.get("prev_block_id") or "")
+
+        declared_parent = _as_str(qc.parent_id or "")
+        actual_parent = _as_str(rec3.get("prev_block_id") or "")
+        if declared_parent != actual_parent:
+            return None
+
+        # bump view only after the QC passes basic structural validation
+        self.bump_view(int(qc.view) + 1)
+
+        # HighQC tracks the highest-view structurally valid QC observed.
+        if self.high_qc is None or int(qc.view) > int(self.high_qc.view):
+            self.high_qc = qc
+
+        # LockedQC may only move forward on the currently locked branch.
+        if self.locked_qc is None or not self.locked_qc.block_id:
+            self.locked_qc = qc
+        else:
+            if is_descendant(
+                blocks, candidate=str(qc.block_id), ancestor=str(self.locked_qc.block_id)
+            ):
+                if int(qc.view) > int(self.locked_qc.view):
+                    self.locked_qc = qc
+
+        # 3-chain finalize rule: qc on b3 -> finalize b1 (grandparent)
+        b2 = actual_parent
         if not b2:
             return None
         rec2 = blocks.get(b2)
@@ -1250,3 +1270,5 @@ class HotStuffBFT:
             self._prune_local_liveness_caches()
             return new_view
         return None
+
+

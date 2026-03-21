@@ -300,7 +300,7 @@ class PersistentMempool:
         if provided and provided != tx_id:
             return {"ok": False, "error": "bad_env:tx_id_mismatch"}
 
-        requested_received_ms = _safe_int(env.get("received_ms"), _now_ms())
+        requested_received_ms = _now_ms()
         expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
 
         with self.db.write_tx() as con:

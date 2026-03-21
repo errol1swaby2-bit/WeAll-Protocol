@@ -318,7 +318,7 @@ def test_priority4_validator_pending_update_replay_is_idempotent() -> None:
     assert out2["pending"] is True
     assert out1["validator_set_hash"] == out2["validator_set_hash"]
     pending = st["consensus"]["validator_set"]["pending"]
-    assert pending["active_set"] == ["v2", "v1"]
+    assert pending["active_set"] == ["v1", "v2"]
     assert pending["activate_at_epoch"] == 5
 
 

@@ -42,14 +42,13 @@ ApplyFn = Callable[[Json, Any], Json | None]
 _LOG = logging.getLogger("weall.runtime.domain_dispatch")
 
 
-def _truthy_env(name: str) -> bool:
-    v = str(os.environ.get(name) or "").strip().lower()
-    return v in {"1", "true", "yes", "y", "on"}
-
-
-def _mode() -> str:
-    # Default to prod if unset (fail-closed).
-    return str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
+def _consensus_bootstrap_open_enabled(state: Json) -> bool:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    raw = params.get("poh_bootstrap_open")
+    if isinstance(raw, bool):
+        return raw
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _get(env: Any, key: str, default: Any = None) -> Any:
@@ -163,22 +162,14 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
 
     # Canon-derived system-only/origin=SYSTEM enforcement at apply-time.
     #
-    # NOTE: In dev/testnet we support an explicit "open bootstrap" escape hatch
-    # for POH_BOOTSTRAP_TIER3_GRANT so local operators can run golden-path flows
-    # without needing a genesis allowlist + system signer plumbing. The apply_poh
-    # domain already gates the behavior on:
-    #   - WEALL_POH_BOOTSTRAP_OPEN=1
-    #   - WEALL_MODE in {dev,testnet}
-    #
-    # Therefore, when that explicit gate is active, we skip canon system-only
-    # enforcement for this single tx type at apply-time.
+    # POH bootstrap open-mode is consensus-critical and therefore must be driven
+    # by replayable ledger state, not process-local environment configuration.
     origin = str(txdef.get("origin") or "").strip().upper()
     system_enforced = bool(txdef.get("system_only", False)) or origin == "SYSTEM"
     if (
         system_enforced
         and t == "POH_BOOTSTRAP_TIER3_GRANT"
-        and _truthy_env("WEALL_POH_BOOTSTRAP_OPEN")
-        and _mode() in {"dev", "testnet"}
+        and _consensus_bootstrap_open_enabled(state)
     ):
         system_enforced = False
 

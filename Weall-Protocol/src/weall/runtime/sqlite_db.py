@@ -11,6 +11,8 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any
 
+from weall.runtime.failpoints import maybe_trigger_failpoint
+
 Json = dict[str, Any]
 
 
@@ -611,6 +613,8 @@ class SqliteDB:
                 try:
                     yield con
 
+                    maybe_trigger_failpoint("sqlite_write_tx_before_commit")
+
                     # COMMIT can also transiently fail under contention (rare but
                     # possible when other connections are checkpointing). Treat it
                     # with the same bounded retry policy.
@@ -628,6 +632,8 @@ class SqliteDB:
                             sleep_s = sleep_s * (0.5 + random.random())
                             time.sleep(sleep_s)
                             c_attempt += 1
+
+                    maybe_trigger_failpoint("sqlite_write_tx_after_commit")
                 except Exception:
                     try:
                         con.execute("ROLLBACK;")

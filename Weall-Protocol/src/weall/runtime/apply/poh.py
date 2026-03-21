@@ -156,13 +156,13 @@ def _require_account_exists(
     return acct
 
 
-def _truthy_env(name: str) -> bool:
-    v = (os.environ.get(name) or "").strip().lower()
-    return v in {"1", "true", "yes", "y", "on"}
-
-
-def _mode() -> str:
-    return (os.environ.get("WEALL_MODE") or "prod").strip().lower()
+def _consensus_bootstrap_open_enabled(state: Json) -> bool:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    raw = params.get("poh_bootstrap_open")
+    if isinstance(raw, bool):
+        return raw
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
@@ -311,12 +311,12 @@ def apply_poh_tier_set(state: Json, tx: Json) -> None:
 def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     """Bootstrap a Tier3 PoH grant.
 
-    Production policy:
+    Default policy:
       - restricted to params.bootstrap_allowlist entries
       - expires after params.bootstrap_expires_height
 
-    Dev/testnet convenience (opt-in, explicit):
-      - if WEALL_POH_BOOTSTRAP_OPEN=1 and WEALL_MODE!=prod
+    Optional open bootstrap mode (opt-in, explicit, consensus-state driven):
+      - if params.poh_bootstrap_open is truthy
       - signer must equal payload.account_id (self-bootstrap only)
       - still requires the account to exist (must register first)
       - respects params.poh_bootstrap_max_height if set (>0)
@@ -340,8 +340,8 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
             "forbidden", "bootstrap_expired", {"height": current_height, "expires_height": max_h}
         )
 
-    # --- Dev/testnet open bootstrap (explicit opt-in) ---
-    if _truthy_env("WEALL_POH_BOOTSTRAP_OPEN") and _mode() in {"dev", "testnet"}:
+    # --- Open bootstrap (explicit on-chain opt-in) ---
+    if _consensus_bootstrap_open_enabled(state):
         if signer != account_id:
             raise ApplyError(
                 "forbidden", "bootstrap_self_only", {"signer": signer, "account_id": account_id}
@@ -366,7 +366,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         _mint_poh_nft(state, owner=account_id, tier=3, source_id="bootstrap_open", ts_ms=0)
         return
 
-    # --- Production / allowlist bootstrap ---
+    # --- Allowlist bootstrap ---
     allowlist = params.get("bootstrap_allowlist") or {}
     expires_height = int(params.get("bootstrap_expires_height") or 0)
 

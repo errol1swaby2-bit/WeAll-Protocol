@@ -4,6 +4,7 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any
 
+from weall.ledger.roles_schema import canonicalize_account_set
 from weall.runtime.reputation_units import account_reputation_units, units_to_reputation
 
 Json = dict[str, Any]
@@ -166,17 +167,7 @@ class LedgerView:
         validators = self.roles.get("validators")
         if not isinstance(validators, dict):
             return []
-        aset = validators.get("active_set")
-        if not isinstance(aset, list):
-            return []
-        out: list[str] = []
-        seen = set()
-        for v in aset:
-            s = str(v).strip()
-            if s and s not in seen:
-                seen.add(s)
-                out.append(s)
-        return out
+        return canonicalize_account_set(validators.get("active_set"))
 
     def get_system_signer(self) -> str:
         v = self.params.get("system_signer")
