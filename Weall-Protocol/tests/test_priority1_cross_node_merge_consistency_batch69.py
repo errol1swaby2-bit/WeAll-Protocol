@@ -61,7 +61,9 @@ def test_redundant_replay_after_full_commit_is_noop_batch69(tmp_path: Path) -> N
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "noop.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="n3", chain_id="b69-noop", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="n3", chain_id="b69-noop", tx_index_path=tx_index_path
+    )
 
     for signer in ["@c", "@d"]:
         assert _submit(ex, signer, 1).get("ok") is True
@@ -82,16 +84,22 @@ def test_redundant_replay_after_full_commit_is_noop_batch69(tmp_path: Path) -> N
     assert state_before == state_after
 
 
-def test_interleaved_restart_and_submission_does_not_create_duplicates_batch69(tmp_path: Path) -> None:
+def test_interleaved_restart_and_submission_does_not_create_duplicates_batch69(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "dupguard.db")
 
-    ex = WeAllExecutor(db_path=db_path, node_id="n4", chain_id="b69-dup", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="n4", chain_id="b69-dup", tx_index_path=tx_index_path
+    )
 
     assert _submit(ex, "@x", 1).get("ok") is True
 
-    ex = WeAllExecutor(db_path=db_path, node_id="n4", chain_id="b69-dup", tx_index_path=tx_index_path)
+    ex = WeAllExecutor(
+        db_path=db_path, node_id="n4", chain_id="b69-dup", tx_index_path=tx_index_path
+    )
 
     # try duplicate after restart
     res = _submit(ex, "@x", 1)

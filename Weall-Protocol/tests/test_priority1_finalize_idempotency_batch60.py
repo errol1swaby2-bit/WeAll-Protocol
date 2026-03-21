@@ -109,7 +109,9 @@ def test_executor_height_and_tip_remain_stable_on_empty_production_batch60(tmp_p
         assert tip1 == tip0
 
 
-def test_executor_restart_after_empty_production_keeps_canonical_tip_batch60(tmp_path: Path) -> None:
+def test_executor_restart_after_empty_production_keeps_canonical_tip_batch60(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "restart-empty.db")

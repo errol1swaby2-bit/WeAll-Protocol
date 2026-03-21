@@ -6,10 +6,8 @@ from weall.net.node import NetConfig, NetNode, PeerPolicy
 from weall.net.transport import WirePacket
 
 
-
 def _cfg() -> NetConfig:
     return NetConfig(chain_id="test", schema_version="1", tx_index_hash="deadbeef", peer_id="me")
-
 
 
 def _tx_msg(nonce: int, signer: str = "@alice") -> TxEnvelopeMsg:
@@ -32,17 +30,14 @@ def _tx_msg(nonce: int, signer: str = "@alice") -> TxEnvelopeMsg:
     )
 
 
-
 def _pkt(peer_id: str, payload: bytes, *, received_at_ms: int) -> WirePacket:
     return WirePacket(peer_id=peer_id, payload=payload, received_at_ms=received_at_ms, meta=None)
-
 
 
 def _mark_established(node: NetNode, peer_id: str) -> None:
     rec = node._ensure_peer(peer_id)
     rec.router.handshake.status = "ESTABLISHED"
     rec.router.handshake.session_id = "session-test"
-
 
 
 def test_exact_duplicate_packet_is_suppressed_after_session_established_batch107() -> None:
@@ -70,7 +65,6 @@ def test_exact_duplicate_packet_is_suppressed_after_session_established_batch107
     assert int(peer["duplicate_payloads_dropped"]) == 1
     assert int(peer["duplicate_payload_cache_size"]) == 1
     assert int(peer["strikes"]) == 0
-
 
 
 def test_duplicate_cache_respects_ttl_and_capacity_batch107() -> None:

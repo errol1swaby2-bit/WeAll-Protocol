@@ -182,8 +182,16 @@ def test_epoch_and_validator_set_metadata_remain_aligned_batch47(tmp_path: Path)
     _seed_validator_set(ex, validators=validators, pub=pub, epoch=9)
 
     st = ex.read_state()
-    assert int(st["consensus"]["epochs"]["current"]) == int(st["consensus"]["validator_set"]["epoch"]) == 9
+    assert (
+        int(st["consensus"]["epochs"]["current"])
+        == int(st["consensus"]["validator_set"]["epoch"])
+        == 9
+    )
 
     _seed_validator_set(ex, validators=validators, pub=pub, epoch=10)
     st2 = ex.read_state()
-    assert int(st2["consensus"]["epochs"]["current"]) == int(st2["consensus"]["validator_set"]["epoch"]) == 10
+    assert (
+        int(st2["consensus"]["epochs"]["current"])
+        == int(st2["consensus"]["validator_set"]["epoch"])
+        == 10
+    )

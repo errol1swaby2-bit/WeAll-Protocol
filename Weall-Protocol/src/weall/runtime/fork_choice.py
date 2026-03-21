@@ -68,7 +68,9 @@ def _is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> 
     checks even after long-lived chains exceed arbitrary hop caps. Corrupted
     cyclic state still terminates via cycle detection in ``walk_ancestry``.
     """
-    return walk_ancestry(blocks, candidate=str(candidate), ancestor=str(ancestor), parent_of=_parent_of)
+    return walk_ancestry(
+        blocks, candidate=str(candidate), ancestor=str(ancestor), parent_of=_parent_of
+    )
 
 
 def _bft_choose_head(state: Json, blocks: dict[str, Any]) -> str | None:

@@ -89,7 +89,11 @@ def default_tx_canon_paths(
 ) -> TxCanonPaths:
     repo_root = _repo_root()
 
-    spec = Path(spec_path) if spec_path is not None else repo_root / "specs" / "tx_canon" / "tx_canon.yaml"
+    spec = (
+        Path(spec_path)
+        if spec_path is not None
+        else repo_root / "specs" / "tx_canon" / "tx_canon.yaml"
+    )
     out = Path(out_path) if out_path is not None else repo_root / "generated" / "tx_index.json"
 
     if not spec.is_absolute():

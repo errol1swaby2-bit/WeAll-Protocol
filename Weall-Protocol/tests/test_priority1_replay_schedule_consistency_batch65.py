@@ -131,7 +131,9 @@ def test_empty_restart_cycles_do_not_change_committed_state_batch65(tmp_path: Pa
     expected_tip = _latest_block_id(ex)
 
     for _ in range(4):
-        ex = WeAllExecutor(db_path=db_path, node_id="n5", chain_id="b65f", tx_index_path=tx_index_path)
+        ex = WeAllExecutor(
+            db_path=db_path, node_id="n5", chain_id="b65f", tx_index_path=tx_index_path
+        )
         assert len(ex.read_mempool()) == 0
         assert ex.produce_block(max_txs=10).ok is True
         assert ex.read_state().get("accounts", {}) == expected_accounts

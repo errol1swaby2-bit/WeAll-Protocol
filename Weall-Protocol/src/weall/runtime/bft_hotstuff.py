@@ -1270,5 +1270,3 @@ class HotStuffBFT:
             self._prune_local_liveness_caches()
             return new_view
         return None
-
-

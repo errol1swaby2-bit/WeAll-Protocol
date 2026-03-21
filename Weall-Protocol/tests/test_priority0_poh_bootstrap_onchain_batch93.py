@@ -52,7 +52,9 @@ def _env(*, signer: str = "alice", system: bool = False) -> dict:
     ).to_json()
 
 
-def test_admission_rejects_open_bootstrap_when_only_local_env_requests_it(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_admission_rejects_open_bootstrap_when_only_local_env_requests_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_POH_BOOTSTRAP_OPEN", "1")
     monkeypatch.setenv("WEALL_MODE", "testnet")
 

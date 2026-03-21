@@ -21,7 +21,9 @@ def main() -> int:
             "and fail closed if any block/header/state-root diverges."
         )
     )
-    parser.add_argument("--work-dir", required=True, help="Working directory for temp SQLite files.")
+    parser.add_argument(
+        "--work-dir", required=True, help="Working directory for temp SQLite files."
+    )
     parser.add_argument(
         "--chain-id-prefix",
         default="replay-audit",
@@ -30,7 +32,9 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Emit compact JSON only.")
     args = parser.parse_args()
 
-    summary = build_sample_chain(work_dir=str(Path(args.work_dir)), chain_id_prefix=args.chain_id_prefix)
+    summary = build_sample_chain(
+        work_dir=str(Path(args.work_dir)), chain_id_prefix=args.chain_id_prefix
+    )
     if args.json:
         print(json.dumps(summary, sort_keys=True, separators=(",", ":")))
     else:

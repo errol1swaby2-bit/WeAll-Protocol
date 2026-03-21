@@ -397,7 +397,9 @@ def _set_pending_validator_set(
         pending_epoch = _as_int(pending.get("activate_at_epoch"), 0)
         pending_hash = _as_str(pending.get("set_hash") or "")
         existing_phase = (
-            normalize_consensus_phase(pending.get("phase"), validator_count=len(canonical_active_set))
+            normalize_consensus_phase(
+                pending.get("phase"), validator_count=len(canonical_active_set)
+            )
             if _as_str(pending.get("phase"))
             else ""
         )

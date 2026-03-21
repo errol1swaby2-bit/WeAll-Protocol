@@ -24,9 +24,11 @@ def _make_executor() -> WeAllExecutor:
         lambda self: OrderedDict((k, dict(v)) for k, v in self._pending_missing_qcs.items()), ex
     )
     ex._pending_missing_qc_json = MethodType(
-        lambda self, *, block_id="", block_hash="": dict(self._pending_missing_qcs.get(str(block_id or ""), {}))
-        if str(block_id or "") in self._pending_missing_qcs
-        else None,
+        lambda self, *, block_id="", block_hash="": (
+            dict(self._pending_missing_qcs.get(str(block_id or ""), {}))
+            if str(block_id or "") in self._pending_missing_qcs
+            else None
+        ),
         ex,
     )
     ex._bft_pending_block_json = MethodType(
@@ -110,9 +112,7 @@ def test_missing_qc_fetch_cursor_resets_when_backlog_clears_batch108() -> None:
     assert [d["block_id"] for d in first] == ["Q1", "Q2"]
     assert ex._missing_qc_fetch_cursor == 2
 
-    ex._pending_missing_qcs = OrderedDict(
-        (("Q3", {"block_id": "Q3", "block_hash": "Q3-h"}),)
-    )
+    ex._pending_missing_qcs = OrderedDict((("Q3", {"block_id": "Q3", "block_hash": "Q3-h"}),))
     second = ex.bft_pending_fetch_request_descriptors()
     assert [d["block_id"] for d in second] == ["Q3"]
     assert ex._missing_qc_fetch_cursor == 0

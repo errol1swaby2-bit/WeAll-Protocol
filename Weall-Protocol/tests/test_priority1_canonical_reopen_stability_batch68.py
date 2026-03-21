@@ -58,7 +58,9 @@ def test_committed_tip_is_stable_across_multiple_executor_reopens_batch68(tmp_pa
         assert len(ex.read_mempool()) == 0
 
 
-def test_partial_commit_then_restart_then_resume_preserves_canonical_result_batch68(tmp_path: Path) -> None:
+def test_partial_commit_then_restart_then_resume_preserves_canonical_result_batch68(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "partial.db")

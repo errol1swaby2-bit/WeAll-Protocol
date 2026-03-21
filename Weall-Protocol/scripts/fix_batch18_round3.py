@@ -56,7 +56,9 @@ def _next_force_ts_ms(ex: WeAllExecutor, *, view: int) -> int:
     if old_helper in text:
         text = text.replace(old_helper, new_helper, 1)
 
-    old_call = "            blk = dict(_build_committed_block(leader, force_ts_ms=int(view * 1000)))\n"
+    old_call = (
+        "            blk = dict(_build_committed_block(leader, force_ts_ms=int(view * 1000)))\n"
+    )
     new_call = (
         "            blk = dict(\n"
         "                _build_committed_block(leader, force_ts_ms=_next_force_ts_ms(leader, view=view))\n"

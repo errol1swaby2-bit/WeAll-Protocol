@@ -84,7 +84,9 @@ def test_same_logical_work_different_restart_schedule_same_canonical_state_batch
 
         while ex2.read_mempool():
             assert ex2.produce_block(max_txs=1).ok is True
-            ex2 = WeAllExecutor(db_path=db2, node_id="n1", chain_id="b82x", tx_index_path=tx_index_path)
+            ex2 = WeAllExecutor(
+                db_path=db2, node_id="n1", chain_id="b82x", tx_index_path=tx_index_path
+            )
 
         assert _canonical_state(ex1) == _canonical_state(ex2)
         assert _canonical_hash(ex1) == _canonical_hash(ex2)

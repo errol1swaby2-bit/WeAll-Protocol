@@ -39,7 +39,9 @@ def test_executor_state_persistence_is_atomic_across_restarts_batch48(tmp_path: 
     assert st2["accounts"]["alice"]["balance"] == 100
 
 
-def test_executor_state_does_not_partially_persist_on_multiple_writes_batch48(tmp_path: Path) -> None:
+def test_executor_state_does_not_partially_persist_on_multiple_writes_batch48(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

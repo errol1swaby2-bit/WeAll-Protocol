@@ -7,17 +7,14 @@ from weall.net.transport import PeerAddr
 from weall.net.transport_memory import InMemoryTransport
 
 
-
 def _cfg(peer_id: str) -> NetConfig:
     return NetConfig(chain_id="test", schema_version="1", tx_index_hash="deadbeef", peer_id=peer_id)
-
 
 
 def _handshake(*nodes: NetNode) -> None:
     for _ in range(6):
         for node in nodes:
             node.tick()
-
 
 
 def _resp(corr_id: str, *, height: int = 3) -> StateSyncResponseMsg:
@@ -39,7 +36,6 @@ def _resp(corr_id: str, *, height: int = 3) -> StateSyncResponseMsg:
     )
 
 
-
 def test_unsolicited_state_sync_response_is_dropped() -> None:
     a = NetNode(cfg=_cfg("peer-a"), transport=InMemoryTransport())
     b = NetNode(cfg=_cfg("peer-b"), transport=InMemoryTransport())
@@ -59,7 +55,6 @@ def test_unsolicited_state_sync_response_is_dropped() -> None:
 
     a.close()
     b.close()
-
 
 
 def test_state_sync_response_must_match_expected_peer() -> None:
@@ -96,7 +91,6 @@ def test_state_sync_response_must_match_expected_peer() -> None:
     c.close()
 
 
-
 def test_replayed_state_sync_response_is_dropped_after_completion() -> None:
     a = NetNode(cfg=_cfg("peer-a"), transport=InMemoryTransport())
     b = NetNode(cfg=_cfg("peer-b"), transport=InMemoryTransport())
@@ -121,7 +115,6 @@ def test_replayed_state_sync_response_is_dropped_after_completion() -> None:
 
     a.close()
     b.close()
-
 
 
 def test_outstanding_state_sync_requests_are_bounded() -> None:

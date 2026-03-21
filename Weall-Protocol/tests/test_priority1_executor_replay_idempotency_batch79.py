@@ -73,8 +73,12 @@ def test_replay_order_independence_batch79() -> None:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
 
-        ex1 = WeAllExecutor(db_path=db1, node_id="n1", chain_id="b79o-a", tx_index_path=tx_index_path)
-        ex2 = WeAllExecutor(db_path=db2, node_id="n2", chain_id="b79o-b", tx_index_path=tx_index_path)
+        ex1 = WeAllExecutor(
+            db_path=db1, node_id="n1", chain_id="b79o-a", tx_index_path=tx_index_path
+        )
+        ex2 = WeAllExecutor(
+            db_path=db2, node_id="n2", chain_id="b79o-b", tx_index_path=tx_index_path
+        )
 
         accepted = [
             ("@a", 1),

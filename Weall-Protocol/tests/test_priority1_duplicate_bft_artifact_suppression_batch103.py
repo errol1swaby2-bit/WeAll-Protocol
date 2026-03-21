@@ -77,7 +77,9 @@ def _make_executor(*, chain_id: str = "batch103") -> WeAllExecutor:
         self._pending_missing_qcs_by_hash[str(qcj.get("block_hash") or "")] = dict(qcj)
 
     ex._put_pending_missing_qc = MethodType(_put_pending_missing_qc, ex)
-    ex._resolve_pending_block_identity = MethodType(lambda self, block_id, block_hash: ("", None), ex)
+    ex._resolve_pending_block_identity = MethodType(
+        lambda self, block_id, block_hash: ("", None), ex
+    )
     ex.bft_commit_if_ready = MethodType(lambda self, qc: None, ex)
     ex.bft_handle_qc = MethodType(lambda self, qcj: None, ex)
     ex.bft_try_apply_pending_remote_blocks = MethodType(lambda self: [], ex)

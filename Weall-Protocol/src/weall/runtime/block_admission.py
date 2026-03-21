@@ -243,8 +243,10 @@ def _is_descendant(blocks: dict[str, Any], *, candidate: str, ancestor: str) -> 
         blocks,
         candidate=str(candidate).strip(),
         ancestor=str(ancestor).strip(),
-        parent_of=lambda rec: _parent_of(blocks, _as_str(rec.get("block_id") or ""))
-        or _as_str(rec.get("prev_block_id") or rec.get("prev") or ""),
+        parent_of=lambda rec: (
+            _parent_of(blocks, _as_str(rec.get("block_id") or ""))
+            or _as_str(rec.get("prev_block_id") or rec.get("prev") or "")
+        ),
     )
 
 

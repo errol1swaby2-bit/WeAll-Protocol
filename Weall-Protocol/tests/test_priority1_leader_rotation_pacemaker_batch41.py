@@ -18,6 +18,7 @@ def _repo_root() -> Path:
 
 def _mk_keypair_hex() -> tuple[str, str]:
     import os
+
     return os.urandom(32).hex(), os.urandom(32).hex()
 
 

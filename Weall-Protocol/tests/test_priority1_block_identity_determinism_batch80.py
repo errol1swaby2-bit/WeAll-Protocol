@@ -127,8 +127,12 @@ def test_different_chain_ids_may_change_block_identity_without_state_divergence_
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
 
-        ex1 = WeAllExecutor(db_path=db1, node_id="n1", chain_id="b80g1", tx_index_path=tx_index_path)
-        ex2 = WeAllExecutor(db_path=db2, node_id="n1", chain_id="b80g2", tx_index_path=tx_index_path)
+        ex1 = WeAllExecutor(
+            db_path=db1, node_id="n1", chain_id="b80g1", tx_index_path=tx_index_path
+        )
+        ex2 = WeAllExecutor(
+            db_path=db2, node_id="n1", chain_id="b80g2", tx_index_path=tx_index_path
+        )
 
         for signer in ["@m", "@n"]:
             assert _submit(ex1, signer, 1).get("ok") is True

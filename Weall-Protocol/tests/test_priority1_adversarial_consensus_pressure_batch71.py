@@ -81,7 +81,9 @@ def test_qc_roundtrip_after_conflict_attempt_has_no_state_drift_batch71() -> Non
     }
 
     hs.observe_qc(blocks=blocks, qc=_qc("batch71", 4, "B1", "A"))
-    hs.observe_qc(blocks=blocks, qc=_qc("batch71", 4, "B2", "A"))  # conflicting same-view QC attempt
+    hs.observe_qc(
+        blocks=blocks, qc=_qc("batch71", 4, "B2", "A")
+    )  # conflicting same-view QC attempt
     hs.observe_qc(blocks=blocks, qc=_qc("batch71", 5, "C1", "B1"))
 
     state1 = hs.export_state()

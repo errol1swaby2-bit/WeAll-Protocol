@@ -487,7 +487,9 @@ class NetNode:
         if validator_account:
             return True
         ledger = self._get_ledger()
-        if isinstance(ledger, dict) and self._is_validator(ledger, str(self.cfg.peer_id or "").strip()):
+        if isinstance(ledger, dict) and self._is_validator(
+            ledger, str(self.cfg.peer_id or "").strip()
+        ):
             return True
         return False
 
@@ -596,7 +598,9 @@ class NetNode:
         try:
             while self._sync_completed:
                 (_peer_id, _corr_id), seen_ms = next(iter(self._sync_completed.items()))
-                if int(seen_ms) > cutoff and len(self._sync_completed) <= int(self._sync_completed_cap):
+                if int(seen_ms) > cutoff and len(self._sync_completed) <= int(
+                    self._sync_completed_cap
+                ):
                     break
                 self._sync_completed.popitem(last=False)
         except Exception:
@@ -610,7 +614,9 @@ class NetNode:
         try:
             while self._sync_requests:
                 _corr_id, (_peer_id, deadline_ms) = next(iter(self._sync_requests.items()))
-                if int(deadline_ms) > now and len(self._sync_requests) <= int(self._sync_outstanding_cap):
+                if int(deadline_ms) > now and len(self._sync_requests) <= int(
+                    self._sync_outstanding_cap
+                ):
                     break
                 self._sync_requests.popitem(last=False)
         except Exception:
@@ -644,7 +650,10 @@ class NetNode:
             del self._sync_requests[cid]
         while len(self._sync_requests) >= int(self._sync_outstanding_cap):
             self._sync_requests.popitem(last=False)
-        self._sync_requests[cid] = (pid, max(int(deadline_ms), now + int(self._sync_request_ttl_ms)))
+        self._sync_requests[cid] = (
+            pid,
+            max(int(deadline_ms), now + int(self._sync_request_ttl_ms)),
+        )
 
     def _complete_sync_request(self, corr_id: str, *, peer_id: str = "") -> None:
         cid = str(corr_id or "").strip()
@@ -721,6 +730,7 @@ class NetNode:
             peer_id = ""
         self._complete_sync_request(cid, peer_id=peer_id)
         return msg
+
     # ----------------------------
     # Peer creation + router wiring
     # ----------------------------
@@ -880,7 +890,11 @@ class NetNode:
         if established and int(rec.established_at_ms) <= 0:
             rec.established_at_ms = int(now)
         mtype = getattr(getattr(msg, "header", None), "type", None)
-        if established and mtype not in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK} and self._is_duplicate_payload(rec, payload, now_ms=now):
+        if (
+            established
+            and mtype not in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK}
+            and self._is_duplicate_payload(rec, payload, now_ms=now)
+        ):
             return
 
         # Identity checks on inbound hello

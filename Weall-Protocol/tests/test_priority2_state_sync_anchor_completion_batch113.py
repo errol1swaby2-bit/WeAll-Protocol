@@ -100,14 +100,18 @@ def test_apply_state_sync_response_rejects_empty_delta_when_anchor_ahead(tmp_pat
     assert int(lagger.state.get("height") or 0) == 0
 
 
-def test_apply_state_sync_response_allows_empty_delta_when_already_at_anchor(tmp_path: Path) -> None:
+def test_apply_state_sync_response_allows_empty_delta_when_already_at_anchor(
+    tmp_path: Path,
+) -> None:
     leader = _make_executor(tmp_path, "leader")
     lagger = _make_executor(tmp_path, "lagger")
 
     _produce_register_block(leader, "@u1", 1)
     _produce_register_block(leader, "@u2", 1)
 
-    lagger.apply_state_sync_response(_delta_response(leader, from_height=0), trusted_anchor=build_snapshot_anchor(leader.state))
+    lagger.apply_state_sync_response(
+        _delta_response(leader, from_height=0), trusted_anchor=build_snapshot_anchor(leader.state)
+    )
     trusted_anchor = build_snapshot_anchor(leader.state)
     empty = StateSyncResponseMsg(
         header=WireHeader(
@@ -133,7 +137,9 @@ def test_apply_state_sync_response_allows_empty_delta_when_already_at_anchor(tmp
     assert int(lagger.state.get("height") or 0) == 2
 
 
-def test_apply_state_sync_response_accepts_completed_delta_with_matching_anchor(tmp_path: Path) -> None:
+def test_apply_state_sync_response_accepts_completed_delta_with_matching_anchor(
+    tmp_path: Path,
+) -> None:
     leader = _make_executor(tmp_path, "leader")
     lagger = _make_executor(tmp_path, "lagger")
 

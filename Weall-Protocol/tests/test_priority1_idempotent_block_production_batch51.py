@@ -78,7 +78,9 @@ def test_repeated_restart_produce_cycle_does_not_duplicate_effects_batch51(tmp_p
             meta = ex.produce_block(max_txs=10)
             assert meta.ok is True
 
-        ex = WeAllExecutor(db_path=db_path, node_id="v3", chain_id="b51", tx_index_path=tx_index_path)
+        ex = WeAllExecutor(
+            db_path=db_path, node_id="v3", chain_id="b51", tx_index_path=tx_index_path
+        )
 
     st = ex.read_state()
     acct = st.get("accounts", {}).get("@d", {})

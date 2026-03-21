@@ -68,9 +68,7 @@ def test_missing_parent_fetch_requests_are_bounded_and_rotating_batch107(
             if str(item.get("reason") or "") == "missing_parent"
         ]
 
-    assert [
-        item for item in first if str(item.get("reason") or "") == "missing_qc_block"
-    ] == [
+    assert [item for item in first if str(item.get("reason") or "") == "missing_qc_block"] == [
         {
             "block_id": "qc-missing",
             "block_hash": "qc-missing-h",

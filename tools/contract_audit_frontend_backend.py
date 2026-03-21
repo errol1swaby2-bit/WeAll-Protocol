@@ -72,7 +72,14 @@ def read_text(p: Path) -> str:
 
 
 def collect_backend_routes(projects_root: Path) -> List[dict]:
-    routes_dir = projects_root / "Weall-Protocol" / "src" / "weall" / "api" / "routes_public_parts"
+    routes_dir = (
+        projects_root
+        / "Weall-Protocol"
+        / "src"
+        / "weall"
+        / "api"
+        / "routes_public_parts"
+    )
     if not routes_dir.exists():
         raise SystemExit(f"Backend routes directory not found: {routes_dir}")
 
@@ -182,33 +189,51 @@ def main() -> int:
     md.append("## Summary\n")
     md.append(f"- Frontend API calls found: **{len(frontend)}**\n")
     md.append(f"- Backend public `/v1` routes found: **{len(backend)}**\n")
-    md.append(f"- Frontend calls with a matching backend route: **{len(matches)} / {len(front_map)}**\n")
+    md.append(
+        f"- Frontend calls with a matching backend route: **{len(matches)} / {len(front_map)}**\n"
+    )
     md.append(f"- Frontend calls missing in backend: **{len(missing_in_backend)}**\n")
     md.append(f"- Backend routes unused by frontend: **{len(unused_in_frontend)}**\n\n")
 
     md.append("## Matched endpoints (frontend calls exist in backend)\n")
-    md.append("| Method | Path (canonical) | Frontend locations | Backend locations |\n")
+    md.append(
+        "| Method | Path (canonical) | Frontend locations | Backend locations |\n"
+    )
     md.append("|---|---|---|---|\n")
     for (method, cpath), frs, brs in sorted(matches, key=lambda x: (x[0][0], x[0][1])):
-        md.append(f"| {method} | `{cpath}` | {fmt_sources(frs)} | {fmt_sources(brs)} |\n")
+        md.append(
+            f"| {method} | `{cpath}` | {fmt_sources(frs)} | {fmt_sources(brs)} |\n"
+        )
 
     if missing_in_backend:
         md.append("\n## Frontend calls missing in backend (needs fix)\n")
         md.append("| Method | Path (canonical) | Frontend locations |\n|---|---|---|\n")
-        for (method, cpath), frs in sorted(missing_in_backend, key=lambda x: (x[0][0], x[0][1])):
+        for (method, cpath), frs in sorted(
+            missing_in_backend, key=lambda x: (x[0][0], x[0][1])
+        ):
             md.append(f"| {method} | `{cpath}` | {fmt_sources(frs)} |\n")
     else:
         md.append("\n## Frontend calls missing in backend\n- None ✅\n")
 
-    md.append("\n## Backend routes not currently used by the frontend (opportunity / alignment backlog)\n")
+    md.append(
+        "\n## Backend routes not currently used by the frontend (opportunity / alignment backlog)\n"
+    )
     md.append("| Method | Path (canonical) | Backend locations |\n|---|---|---|\n")
-    for (method, cpath), brs in sorted(unused_in_frontend, key=lambda x: (x[0][0], x[0][1])):
+    for (method, cpath), brs in sorted(
+        unused_in_frontend, key=lambda x: (x[0][0], x[0][1])
+    ):
         md.append(f"| {method} | `{cpath}` | {fmt_sources(brs)} |\n")
 
     md.append("\n## Notes & recommended follow-ups\n")
-    md.append("1) Confirm executor enforces tier gating for content writes (UI gating is not sufficient).\n")
-    md.append("2) Freeze account state JSON shape (PoH tier, etc.) so UI doesn’t need fallbacks.\n")
-    md.append("3) Document `/v1/tx/status/{tx_id}` semantics and enums for stable UI polling.\n")
+    md.append(
+        "1) Confirm executor enforces tier gating for content writes (UI gating is not sufficient).\n"
+    )
+    md.append(
+        "2) Freeze account state JSON shape (PoH tier, etc.) so UI doesn’t need fallbacks.\n"
+    )
+    md.append(
+        "3) Document `/v1/tx/status/{tx_id}` semantics and enums for stable UI polling.\n"
+    )
 
     md_path = out_dir / "frontend_backend_contract_audit.md"
     md_path.write_text("".join(md), encoding="utf-8")

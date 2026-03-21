@@ -29,7 +29,9 @@ def _env(
     )
 
 
-def test_pending_validator_set_survives_intermediate_epoch_boundaries_until_exact_activation() -> None:
+def test_pending_validator_set_survives_intermediate_epoch_boundaries_until_exact_activation() -> (
+    None
+):
     st: dict = {}
 
     stage = apply_tx(

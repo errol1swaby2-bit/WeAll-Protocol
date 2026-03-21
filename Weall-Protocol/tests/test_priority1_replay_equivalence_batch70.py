@@ -24,7 +24,9 @@ def _state_accounts(ex: WeAllExecutor) -> dict:
     return dict(ex.read_state().get("accounts", {}))
 
 
-def test_same_logical_work_replayed_in_multiple_chunks_matches_single_chunk_batch70(tmp_path: Path) -> None:
+def test_same_logical_work_replayed_in_multiple_chunks_matches_single_chunk_batch70(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     signers = ["@a", "@b", "@c", "@d", "@e"]

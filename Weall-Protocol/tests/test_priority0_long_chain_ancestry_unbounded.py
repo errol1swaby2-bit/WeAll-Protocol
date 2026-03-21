@@ -42,7 +42,9 @@ def test_observe_qc_advances_lock_and_finality_past_old_hop_cap() -> None:
     hs.finalized_block_id = "B3"
     hs.finalized_view = 90
 
-    finalized = hs.observe_qc(blocks=blocks, qc=qc_from_json(_qc("long-chain", 2605, "B2605", "B2604")))
+    finalized = hs.observe_qc(
+        blocks=blocks, qc=qc_from_json(_qc("long-chain", 2605, "B2605", "B2604"))
+    )
 
     assert hs.locked_qc is not None
     assert hs.locked_qc.block_id == "B2605"

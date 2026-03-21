@@ -401,9 +401,7 @@ class WeAllExecutor:
         self._pending_missing_qcs_by_hash: OrderedDict[str, Json] = OrderedDict()
         self._max_missing_parent_fetches_per_call: int = max(
             1,
-            _safe_int(
-                os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32
-            ),
+            _safe_int(os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32),
         )
         self._max_missing_qc_fetches_per_call: int = max(
             1,
@@ -2465,10 +2463,7 @@ class WeAllExecutor:
                 if not isinstance(item, dict):
                     continue
                 signer = str(
-                    item.get("signer")
-                    or item.get("sender")
-                    or item.get("from")
-                    or ""
+                    item.get("signer") or item.get("sender") or item.get("from") or ""
                 ).strip()
                 if signer:
                     senders.append(signer)
@@ -2712,9 +2707,17 @@ class WeAllExecutor:
             if "chain_id" not in proposal2 or not str(proposal2.get("chain_id") or "").strip():
                 proposal2["chain_id"] = str(self.chain_id)
             header2 = proposal2.get("header") if isinstance(proposal2.get("header"), dict) else {}
-            if "height" not in proposal2 and isinstance(header2, dict) and header2.get("height") is not None:
+            if (
+                "height" not in proposal2
+                and isinstance(header2, dict)
+                and header2.get("height") is not None
+            ):
                 proposal2["height"] = header2.get("height")
-            if "block_ts_ms" not in proposal2 and isinstance(header2, dict) and header2.get("block_ts_ms") is not None:
+            if (
+                "block_ts_ms" not in proposal2
+                and isinstance(header2, dict)
+                and header2.get("block_ts_ms") is not None
+            ):
                 proposal2["block_ts_ms"] = header2.get("block_ts_ms")
             proposal2.pop("qc", None)
             proposal2, proposal_block_hash = ensure_block_hash(proposal2)
@@ -2797,13 +2800,20 @@ class WeAllExecutor:
             effective_prev_block_id = str(
                 proposal2.get("prev_block_id") or original_prev_block_id or ""
             ).strip()
-            embedded_qc_is_self = bool(qc_block_id and effective_block_id and qc_block_id == effective_block_id)
+            embedded_qc_is_self = bool(
+                qc_block_id and effective_block_id and qc_block_id == effective_block_id
+            )
             embedded_qc_is_parent_justify = bool(
                 qc_block_id and effective_prev_block_id and qc_block_id == effective_prev_block_id
             )
             if embedded_qc_is_parent_justify:
                 proposal2["justify_qc"] = dict(verified_qc_json)
-            elif not embedded_qc_is_self and qc_parent_id and effective_prev_block_id and qc_parent_id == effective_prev_block_id:
+            elif (
+                not embedded_qc_is_self
+                and qc_parent_id
+                and effective_prev_block_id
+                and qc_parent_id == effective_prev_block_id
+            ):
                 proposal2["justify_qc"] = dict(verified_qc_json)
                 embedded_qc_is_parent_justify = True
 
@@ -2832,7 +2842,11 @@ class WeAllExecutor:
                 self.bft_try_apply_pending_remote_blocks()
                 return None
 
-        has_embedded_commit_qc_only = explicit_justify_qc is None and isinstance(embedded_qc, dict) and not embedded_qc_is_parent_justify
+        has_embedded_commit_qc_only = (
+            explicit_justify_qc is None
+            and isinstance(embedded_qc, dict)
+            and not embedded_qc_is_parent_justify
+        )
         if not has_embedded_commit_qc_only:
             ok, _rej = admit_bft_block(block=proposal2, state=self.state)
             if not ok:
@@ -3749,9 +3763,7 @@ class WeAllExecutor:
         payload = dict(qcj)
         if bid:
             existing = list(self._pending_missing_qcs.keys())
-            _bounded_put(
-                self._pending_missing_qcs, bid, payload, cap=self._max_pending_missing_qcs
-            )
+            _bounded_put(self._pending_missing_qcs, bid, payload, cap=self._max_pending_missing_qcs)
             kept = set(str(k or "").strip() for k in self._pending_missing_qcs.keys())
             for evicted in existing:
                 sevicted = str(evicted or "").strip()
@@ -4152,7 +4164,9 @@ class WeAllExecutor:
                     scanned += 1
                     continue
             else:
-                qcj = self._pending_missing_qc_json(block_id=bid, block_hash=_block_hash_from_any(blk))
+                qcj = self._pending_missing_qc_json(
+                    block_id=bid, block_hash=_block_hash_from_any(blk)
+                )
                 if not (allow_qc_replay and isinstance(qcj, dict)):
                     self._pending_replay_cursor = bid
                     scanned += 1
@@ -4165,8 +4179,10 @@ class WeAllExecutor:
             qcj = self._pending_missing_qc_json(block_id=bid, block_hash=_block_hash_from_any(blk))
             blk2 = dict(blk)
             if not isinstance(qcj, dict):
-                embedded_qc = blk2.get("justify_qc") if isinstance(blk2.get("justify_qc"), dict) else (
-                    blk2.get("qc") if isinstance(blk2.get("qc"), dict) else None
+                embedded_qc = (
+                    blk2.get("justify_qc")
+                    if isinstance(blk2.get("justify_qc"), dict)
+                    else (blk2.get("qc") if isinstance(blk2.get("qc"), dict) else None)
                 )
                 if isinstance(embedded_qc, dict):
                     verified_qc = self.bft_verify_qc_json(embedded_qc)
@@ -4174,7 +4190,9 @@ class WeAllExecutor:
                         qcj = verified_qc.to_json()
                         self._put_pending_missing_qc(qcj)
             if isinstance(qcj, dict):
-                existing_justify = blk2.get("justify_qc") if isinstance(blk2.get("justify_qc"), dict) else None
+                existing_justify = (
+                    blk2.get("justify_qc") if isinstance(blk2.get("justify_qc"), dict) else None
+                )
                 qc_bid = str(qcj.get("block_id") or "").strip()
                 qc_bh = str(qcj.get("block_hash") or "").strip()
                 block_bid = str(blk2.get("block_id") or "").strip()
@@ -4194,9 +4212,9 @@ class WeAllExecutor:
                 else:
                     existing_bid = str(existing_justify.get("block_id") or "").strip()
                     existing_bh = str(existing_justify.get("block_hash") or "").strip()
-                    if ((existing_bid and qc_bid and existing_bid != qc_bid) or (
+                    if (existing_bid and qc_bid and existing_bid != qc_bid) or (
                         existing_bh and qc_bh and existing_bh != qc_bh
-                    )):
+                    ):
                         self._drop_pending_candidate_artifacts(bid)
                         made_progress = True
                         continue
@@ -4214,7 +4232,9 @@ class WeAllExecutor:
             if replay_view > 0:
                 blk2["view"] = replay_view
             validators = self._active_validators()
-            expected_proposer = leader_for_view(validators, replay_view) if validators and replay_view >= 0 else ""
+            expected_proposer = (
+                leader_for_view(validators, replay_view) if validators and replay_view >= 0 else ""
+            )
             proposer = str(blk2.get("proposer") or "").strip()
             if expected_proposer and proposer != expected_proposer:
                 proposer = expected_proposer
@@ -4236,19 +4256,28 @@ class WeAllExecutor:
             made_progress = True
 
         if not results and not made_progress and ordered_ids:
-            self._pending_replay_cursor = ordered_ids[(start_idx + min(scanned, len(ordered_ids)) - 1) % len(ordered_ids)] if scanned > 0 else cursor
+            self._pending_replay_cursor = (
+                ordered_ids[(start_idx + min(scanned, len(ordered_ids)) - 1) % len(ordered_ids)]
+                if scanned > 0
+                else cursor
+            )
         if results:
             remaining = [
-                bid for bid in self._ordered_pending_block_ids()
+                bid
+                for bid in self._ordered_pending_block_ids()
                 if bid and not self._has_local_block(bid)
             ]
             if remaining:
-                extra = self._bft_try_apply_pending_remote_blocks_followup(max_extra=max(0, apply_budget - len(results)))
+                extra = self._bft_try_apply_pending_remote_blocks_followup(
+                    max_extra=max(0, apply_budget - len(results))
+                )
                 if extra:
                     results.extend(extra)
         return results
 
-    def _bft_try_apply_pending_remote_blocks_followup(self, *, max_extra: int) -> list[ExecutorMeta]:
+    def _bft_try_apply_pending_remote_blocks_followup(
+        self, *, max_extra: int
+    ) -> list[ExecutorMeta]:
         if max_extra <= 0:
             return []
         saved = int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8)
@@ -4593,9 +4622,7 @@ class WeAllExecutor:
         if not hasattr(self, "_max_missing_parent_fetches_per_call"):
             self._max_missing_parent_fetches_per_call = max(
                 1,
-                _safe_int(
-                    os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32
-                ),
+                _safe_int(os.environ.get("WEALL_BFT_MAX_MISSING_PARENT_FETCHES_PER_CALL"), 32),
             )
         if not hasattr(self, "_max_missing_qc_fetches_per_call"):
             self._max_missing_qc_fetches_per_call = max(

@@ -269,7 +269,9 @@ def _emit_bft_rejection_diagnostic(
                 "validator_set_hash": str(payload.get("validator_set_hash") or "")
                 if isinstance(payload, dict)
                 else "",
-                "high_qc_id": str(payload.get("high_qc_id") or "") if isinstance(payload, dict) else "",
+                "high_qc_id": str(payload.get("high_qc_id") or "")
+                if isinstance(payload, dict)
+                else "",
             }
             if isinstance(extra_summary, dict):
                 summary.update({str(k): v for k, v in extra_summary.items()})
@@ -854,7 +856,9 @@ class NetMeshLoop:
             return 0
         return 0
 
-    def _bft_prefilter_reject_reason(self, kind: str, payload: Json) -> tuple[str | None, Json | None]:
+    def _bft_prefilter_reject_reason(
+        self, kind: str, payload: Json
+    ) -> tuple[str | None, Json | None]:
         if not isinstance(payload, dict) or not payload:
             return (None, None)
         local_view = int(self._executor_bft_current_view())
@@ -1188,7 +1192,9 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason(
                 "proposal", proposal
             ) or _cheap_validate_bft_payload("proposal", proposal, chain_id=local_chain_id)
-            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("proposal", proposal)
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason(
+                "proposal", proposal
+            )
             reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_proposal_rejected")
@@ -1398,7 +1404,9 @@ class NetMeshLoop:
             reason = self._bft_payload_reject_reason(
                 "timeout", timeoutj
             ) or _cheap_validate_bft_payload("timeout", timeoutj, chain_id=local_chain_id)
-            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason("timeout", timeoutj)
+            prefilter_reason, prefilter_summary = self._bft_prefilter_reject_reason(
+                "timeout", timeoutj
+            )
             reason = reason or prefilter_reason
             if reason is not None:
                 inc_counter("net_bft_timeout_rejected")

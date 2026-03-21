@@ -392,7 +392,6 @@ def _consensus_bootstrap_open_enabled(ledger: LedgerView) -> bool:
     return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
-
 def _bootstrap_open_gate_bypass(env: TxEnvelope, ledger: LedgerView, spec: Json) -> bool:
     """On-chain escape hatch for POH bootstrap.
 

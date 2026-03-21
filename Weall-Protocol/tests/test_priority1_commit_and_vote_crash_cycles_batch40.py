@@ -402,7 +402,10 @@ assert meta.ok is True
     last_view = 0
     for view in _leader_views_for_v2(3):
         ex_vote = WeAllExecutor(
-            db_path=db_vote, node_id="@v2", chain_id="batch40-vote-mixed", tx_index_path=tx_index_path
+            db_path=db_vote,
+            node_id="@v2",
+            chain_id="batch40-vote-mixed",
+            tx_index_path=tx_index_path,
         )
         _seed_validator_set(ex_vote, validators=validators, pub=pub)
         ex_vote.bft_set_view(view)
@@ -414,7 +417,10 @@ assert meta.ok is True
         assert view >= last_view
 
         ex_vote_restart = WeAllExecutor(
-            db_path=db_vote, node_id="@v2", chain_id="batch40-vote-mixed", tx_index_path=tx_index_path
+            db_path=db_vote,
+            node_id="@v2",
+            chain_id="batch40-vote-mixed",
+            tx_index_path=tx_index_path,
         )
         _seed_validator_set(ex_vote_restart, validators=validators, pub=pub)
         assert int(ex_vote_restart.state.get("bft", {}).get("last_voted_view") or 0) == view
@@ -427,4 +433,3 @@ assert meta.ok is True
     latest_final = ex_final.get_latest_block()
     assert str(latest_final.get("block_id") or "") == tip_before_restart
     assert int(ex_final.read_state().get("height", 0)) == 2
-

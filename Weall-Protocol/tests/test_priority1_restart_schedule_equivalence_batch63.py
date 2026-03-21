@@ -109,7 +109,9 @@ def test_tip_stability_across_many_restarts_without_new_work_batch63(tmp_path: P
         assert len(ex.read_mempool()) == 0
 
 
-def test_redundant_empty_production_after_restart_does_not_mutate_state_batch63(tmp_path: Path) -> None:
+def test_redundant_empty_production_after_restart_does_not_mutate_state_batch63(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "empty.db")

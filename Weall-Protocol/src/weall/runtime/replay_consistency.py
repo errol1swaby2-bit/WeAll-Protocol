@@ -84,7 +84,7 @@ def compare_replay_manifests(expected: Json, observed: Json) -> list[str]:
             continue
         if exp != obs:
             issues.append(
-                f"manifest_mismatch:block:{idx}:expected={json.dumps(exp, sort_keys=True, separators=(",", ":"))}:observed={json.dumps(obs, sort_keys=True, separators=(",", ":"))}"
+                f"manifest_mismatch:block:{idx}:expected={json.dumps(exp, sort_keys=True, separators=(',', ':'))}:observed={json.dumps(obs, sort_keys=True, separators=(',', ':'))}"
             )
     return issues
 
@@ -142,7 +142,9 @@ def build_sample_chain(*, work_dir: str, chain_id_prefix: str) -> Json:
             raise RuntimeError(f"source_produce_failed:{size}:{meta.error}")
 
     source_manifest = build_replay_manifest(source)
-    source_blocks = [source.get_block_by_height(h) for h in range(1, int(source_manifest["height"]) + 1)]
+    source_blocks = [
+        source.get_block_by_height(h) for h in range(1, int(source_manifest["height"]) + 1)
+    ]
 
     replay = WeAllExecutor(
         db_path=str(replay_db),

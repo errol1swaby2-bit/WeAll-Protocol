@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from weall.runtime.executor import ExecutorMeta, WeAllExecutor
 
 
-def _make_minimal_executor(*, pending_blocks: dict[str, dict], pending_qcs: dict[str, dict]) -> tuple[WeAllExecutor, list[str], list[str]]:
+def _make_minimal_executor(
+    *, pending_blocks: dict[str, dict], pending_qcs: dict[str, dict]
+) -> tuple[WeAllExecutor, list[str], list[str]]:
     ex = WeAllExecutor.__new__(WeAllExecutor)
     ex._pending_remote_blocks = dict(pending_blocks)
     ex._pending_candidates = {}
@@ -19,12 +21,12 @@ def _make_minimal_executor(*, pending_blocks: dict[str, dict], pending_qcs: dict
     ex._bft_phase_allows_artifact_processing = lambda: True
     ex._ordered_pending_block_ids = lambda: sorted(ex._pending_remote_blocks.keys())
     ex._has_local_block = lambda bid: False
-    ex._bft_pending_block_json = lambda bid: dict(ex._pending_remote_blocks[bid]) if bid in ex._pending_remote_blocks else None
+    ex._bft_pending_block_json = lambda bid: (
+        dict(ex._pending_remote_blocks[bid]) if bid in ex._pending_remote_blocks else None
+    )
     ex._bft_block_is_applyable_finalized_descendant = lambda blk, finalized_block_id: True
-    ex._pending_missing_qc_json = (
-        lambda *, block_id="", block_hash="": dict(ex._pending_missing_qcs[block_id])
-        if block_id in ex._pending_missing_qcs
-        else None
+    ex._pending_missing_qc_json = lambda *, block_id="", block_hash="": (
+        dict(ex._pending_missing_qcs[block_id]) if block_id in ex._pending_missing_qcs else None
     )
     ex._block_height_hint = lambda blk: int(blk.get("height") or 0)
     ex._bft_parent_ready_for_apply = lambda blk: True

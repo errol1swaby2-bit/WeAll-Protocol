@@ -62,7 +62,9 @@ def test_progress_then_reload_keeps_reset_backoff_batch54() -> None:
     assert int(hs2.export_state().get("timeout_backoff_exp", 99)) == 0
 
 
-def test_bft_view_persistence_remains_monotonic_across_executor_reloads_batch54(tmp_path: Path) -> None:
+def test_bft_view_persistence_remains_monotonic_across_executor_reloads_batch54(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "view.db")
