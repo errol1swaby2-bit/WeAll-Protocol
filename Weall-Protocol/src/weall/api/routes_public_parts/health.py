@@ -7,6 +7,16 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
+from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
+from weall.runtime.helper_startup_integration import (
+    HelperStartupConfig,
+    evaluate_helper_startup,
+)
+from weall.runtime.helper_status_endpoint_integration import (
+    build_node_status_envelope,
+    build_readyz_envelope,
+)
+from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.protocol_profile import (
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
@@ -97,7 +107,6 @@ def _try_tx_index_hash(ex: Any) -> str | None:
             return _safe_str(fn())
         except Exception:
             return None
-    # fallback: some builds store it as a field
     v = getattr(ex, "tx_index_hash", None)
     if isinstance(v, str) and v:
         return v
@@ -133,28 +142,18 @@ def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
                 return {
                     "stalled": bool(out.get("stalled", False)),
                     "stall_reason": _safe_str(out.get("stall_reason"), "unknown"),
-                    "pending_remote_blocks_count": _safe_int(
-                        out.get("pending_remote_blocks_count"), 0
-                    ),
+                    "pending_remote_blocks_count": _safe_int(out.get("pending_remote_blocks_count"), 0),
                     "pending_candidates_count": _safe_int(out.get("pending_candidates_count"), 0),
                     "pending_missing_qcs_count": _safe_int(out.get("pending_missing_qcs_count"), 0),
-                    "pending_fetch_requests_count": _safe_int(
-                        out.get("pending_fetch_requests_count"), 0
-                    ),
+                    "pending_fetch_requests_count": _safe_int(out.get("pending_fetch_requests_count"), 0),
                     "pending_artifacts_pruned": bool(out.get("pending_artifacts_pruned", False)),
                     "pacemaker_timeout_ms": _safe_int(out.get("pacemaker_timeout_ms"), 0),
                     "clock_skew_warning": bool(out.get("clock_skew_warning", False)),
                     "clock_skew_ahead_ms": _safe_int(out.get("clock_skew_ahead_ms"), 0),
-                    "protocol_profile_hash": _safe_str(
-                        out.get("protocol_profile_hash"), runtime_protocol_profile_hash()
-                    ),
+                    "protocol_profile_hash": _safe_str(out.get("protocol_profile_hash"), runtime_protocol_profile_hash()),
                     "reputation_scale": _safe_int(out.get("reputation_scale"), 0),
-                    "max_block_future_drift_ms": _safe_int(
-                        out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
-                    ),
-                    "clock_skew_warn_ms": _safe_int(
-                        out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
-                    ),
+                    "max_block_future_drift_ms": _safe_int(out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()),
+                    "clock_skew_warn_ms": _safe_int(out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()),
                 }
         except Exception:
             if _is_prod():
@@ -177,17 +176,8 @@ def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
 
 
 def _try_executor_running_flag(ex: Any) -> bool | None:
-    """
-    Best-effort: many executors keep a boolean like:
-      - _running
-      - running
-      - is_running
-      - block_loop_running
-    We probe common names. If none exist, return None.
-    """
     if ex is None:
         return None
-
     for name in ("_running", "running", "is_running", "block_loop_running", "_block_loop_running"):
         try:
             v = getattr(ex, name)
@@ -206,10 +196,6 @@ def _try_executor_running_flag(ex: Any) -> bool | None:
 
 
 def _try_block_loop_status(ex: Any) -> dict[str, object]:
-    """Best-effort producer loop status.
-
-    Populated by runtime.block_loop.BlockProducerLoop if used.
-    """
     if ex is None:
         return {
             "running": None,
@@ -238,11 +224,6 @@ def _try_block_loop_status(ex: Any) -> dict[str, object]:
 
 
 def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
-    """
-    Best-effort: if the node has a net layer attached to app.state, expose:
-      - connected_peers
-      - established_sessions (handshake done)
-    """
     connected_peers: int | None = None
     established_sessions: int | None = None
 
@@ -252,7 +233,6 @@ def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     if net is None:
         return {"connected_peers": None, "established_sessions": None}
 
-    # connected peers from transport
     try:
         t = getattr(net, "transport", None)
         if t is not None and hasattr(t, "connections"):
@@ -261,7 +241,6 @@ def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     except Exception:
         connected_peers = None
 
-    # established sessions: try net.session_is_established(peer_id)
     try:
         peer_ids_fn = getattr(net, "peer_ids", None)
         sess_fn = getattr(net, "session_is_established", None)
@@ -274,12 +253,33 @@ def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     return {"connected_peers": connected_peers, "established_sessions": established_sessions}
 
 
+def _try_helper_release_gate_report(app_state: Any):
+    try:
+        return getattr(app_state, "helper_release_gate_report", None)
+    except Exception:
+        return None
+
+
+def _helper_status_surface(request: Request, chain_id: str) -> Any:
+    status = evaluate_helper_startup(
+        config=HelperStartupConfig(
+            helper_mode_requested=_env_bool("WEALL_HELPER_MODE_ENABLED", False),
+            chain_id_ok=bool(chain_id),
+            protocol_profile_ok=True,
+            validator_set_ok=True,
+            trusted_anchor_ok=True,
+            sqlite_wal_ok=True,
+        ),
+        helper_release_gate=_try_helper_release_gate_report(request.app.state),
+    )
+    diagnostic = build_helper_operator_diagnostic(status=status)
+    return build_helper_status_surface(diagnostic=diagnostic)
+
+
 def _health_payload(request: Request) -> dict[str, object]:
-    # health must never crash — best-effort telemetry only
     ex = getattr(request.app.state, "executor", None)
     st = _try_executor_snapshot(ex)
 
-    # Prefer chain_id/node_id from state snapshot if present, otherwise env.
     chain_id = None
     node_id = None
     height = None
@@ -313,19 +313,18 @@ def _health_payload(request: Request) -> dict[str, object]:
     if not node_id:
         node_id = _safe_str(os.environ.get("WEALL_NODE_ID"), "")
 
-    # net flags
     net_enabled = _env_bool("WEALL_NET_ENABLED", True)
     peer_identity_required = _env_bool("WEALL_NET_REQUIRE_PEER_IDENTITY", True)
 
-    # richer runtime fields
     tx_index_hash = _try_tx_index_hash(ex)
     executor_running = _try_executor_running_flag(ex)
     block_loop = _try_block_loop_status(ex)
 
     peers = _try_peer_counts(request.app.state)
     bft_diag = _try_bft_diagnostics(ex)
+    helper_surface = _helper_status_surface(request, chain_id or "")
 
-    return {
+    payload = {
         "ok": True,
         "service": "weall-node",
         "version": "v1",
@@ -351,24 +350,20 @@ def _health_payload(request: Request) -> dict[str, object]:
         },
         "consensus_diagnostics": bft_diag,
     }
+    return build_node_status_envelope(
+        chain_id=chain_id or "",
+        base_ok=bool(payload["ok"]),
+        base_mode="validator",
+        helper_surface=helper_surface,
+    ).to_json() | {k: v for k, v in payload.items() if k not in {"ok", "chain_id", "mode"}}
 
 
 @router.get("/health")
 def health(request: Request) -> dict[str, object]:
-    # unversioned alias for ops tooling
     return _health_payload(request)
 
 
 def _ready_payload(request: Request) -> dict[str, object]:
-    """Readiness check.
-
-    Intended for load balancers and webfront node selection.
-
-    Policy:
-      - must never crash
-      - returns ok=true only if we can safely serve public API
-      - includes chain_id, height, tip, tx_index_hash for client validation
-    """
     ex = getattr(request.app.state, "executor", None)
     st = _try_executor_snapshot(ex)
 
@@ -387,18 +382,22 @@ def _ready_payload(request: Request) -> dict[str, object]:
     tx_index_hash = _try_tx_index_hash(ex)
     bft_diag = _try_bft_diagnostics(ex)
 
-    # Minimal readiness: we must have a chain_id and tx_index_hash (prevents accidental cross-chain).
     ready = bool(chain_id) and bool(tx_index_hash)
 
-    # Optional: require the block producer loop to be healthy/running.
-    # Default is False so API-only deployments are still "ready".
     require_block_loop = _env_bool("WEALL_READYZ_REQUIRE_BLOCK_LOOP", False)
     bl = _try_block_loop_status(ex)
     if require_block_loop:
         ready = bool(ready) and (bl.get("running") is True) and (bl.get("unhealthy") is not True)
 
+    helper_surface = _helper_status_surface(request, chain_id or "")
+    helper_ready = build_readyz_envelope(
+        chain_id=chain_id or "",
+        base_ready=bool(ready),
+        helper_surface=helper_surface,
+    ).to_json()
+
     return {
-        "ok": bool(ready),
+        "ok": bool(helper_ready.get("ready", False)),
         "service": "weall-node",
         "version": "v1",
         "ts_ms": _now_ms(),
@@ -409,6 +408,9 @@ def _ready_payload(request: Request) -> dict[str, object]:
         "require_block_loop": bool(require_block_loop),
         "block_loop": bl,
         "consensus_diagnostics": bft_diag,
+        "helper_status": str(helper_ready.get("helper_status") or ""),
+        "helper_severity": str(helper_ready.get("helper_severity") or ""),
+        "helper_summary": str(helper_ready.get("helper_summary") or ""),
     }
 
 
@@ -419,5 +421,4 @@ def readyz(request: Request) -> dict[str, object]:
 
 @router.get("/healthz")
 def healthz(request: Request) -> dict[str, object]:
-    # Kubernetes-style alias
     return _health_payload(request)

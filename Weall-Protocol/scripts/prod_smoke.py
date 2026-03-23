@@ -2,12 +2,12 @@
 
 """Production-ish smoke test for WeAll.
 
-This is intentionally simple and dependency-light.
+This smoke test is intentionally lightweight and source-checkout friendly.
 
 It verifies:
-  - executor boots on a fresh SQLite db
-  - FastAPI app boots and serves /health + /readyz
-  - block loop can produce at least one empty block when enabled
+  - the app can boot from a fresh SQLite database
+  - the canonical health/readiness/operator status routes respond
+  - the block loop can produce at least one empty block when enabled
 
 Usage:
   python3 scripts/prod_smoke.py
@@ -22,8 +22,22 @@ Optional env overrides:
 from __future__ import annotations
 
 import os
+import shutil
+import sys
 import tempfile
 import time
+from pathlib import Path
+
+
+def _bootstrap_repo_imports() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    src_dir = repo_root / "src"
+    src_dir_str = str(src_dir)
+    if src_dir.exists() and src_dir_str not in sys.path:
+        sys.path.insert(0, src_dir_str)
+
+
+_bootstrap_repo_imports()
 
 from fastapi.testclient import TestClient
 
@@ -38,20 +52,27 @@ def _env_int(name: str, default: int) -> int:
         return int(default)
 
 
+def _assert_ok_json(client: TestClient, path: str) -> dict:
+    response = client.get(path)
+    assert response.status_code == 200, f"{path} -> {response.status_code}: {response.text}"
+    data = response.json()
+    assert isinstance(data, dict), f"{path} did not return a JSON object"
+    return data
+
+
 def main() -> int:
     tx_index_path = os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json")
+    temp_dir = tempfile.mkdtemp(prefix="weall-smoke-")
 
-    # Fresh isolated db
-    with tempfile.TemporaryDirectory(prefix="weall-smoke-") as td:
-        db_path = os.path.join(td, "weall.db")
-        lock_path = os.path.join(td, "block_loop.lock")
+    try:
+        db_path = os.path.join(temp_dir, "weall.db")
+        lock_path = os.path.join(temp_dir, "block_loop.lock")
 
         os.environ["WEALL_DB_PATH"] = db_path
         os.environ.setdefault("WEALL_NODE_ID", "smoke-node")
         os.environ.setdefault("WEALL_CHAIN_ID", "smoke-chain")
         os.environ["WEALL_TX_INDEX_PATH"] = tx_index_path
 
-        # Make it easy for the loop to produce a block.
         os.environ.setdefault("WEALL_BLOCK_LOOP_ENABLED", "1")
         os.environ.setdefault("WEALL_PRODUCE_EMPTY_BLOCKS", "1")
         os.environ.setdefault(
@@ -61,7 +82,6 @@ def main() -> int:
         app = create_app(boot_runtime=True)
         ex = app.state.executor
 
-        # Start an explicit block loop for the smoke run (API runtime may not start it).
         cfg = BlockLoopConfig(
             interval_ms=_env_int("WEALL_BLOCK_INTERVAL_MS", 500),
             produce_empty_blocks=True,
@@ -78,44 +98,59 @@ def main() -> int:
         )
 
         loop = BlockProducerLoop(
-            executor=ex, mempool=ex.mempool, attestation_pool=ex.attestation_pool, cfg=cfg
+            executor=ex,
+            mempool=ex.mempool,
+            attestation_pool=ex.attestation_pool,
+            cfg=cfg,
         )
         if not loop.start():
             raise RuntimeError("failed to start block loop")
 
-        # API checks
-        c = TestClient(app)
-        r = c.get("/health")
-        assert r.status_code == 200, r.text
-        j = r.json()
-        assert bool(j.get("ok")) is True
+        try:
+            client = TestClient(app)
 
-        r2 = c.get("/readyz")
-        assert r2.status_code == 200, r2.text
-        j2 = r2.json()
-        assert "chain_id" in j2
-        assert "tx_index_hash" in j2
+            health = _assert_ok_json(client, "/v1/health")
+            assert bool(health.get("ok")) is True, f"/v1/health returned unexpected payload: {health}"
 
-        # Wait for at least one produced block.
-        deadline = time.time() + 8.0
-        start_h = int(ex.read_state().get("height") or 0)
-        while time.time() < deadline:
-            h = int(ex.read_state().get("height") or 0)
-            if h >= start_h + 1:
-                break
-            time.sleep(0.1)
+            ready = _assert_ok_json(client, "/v1/readyz")
+            assert "chain_id" in ready, f"/v1/readyz missing chain_id: {ready}"
+            assert "tx_index_hash" in ready, f"/v1/readyz missing tx_index_hash: {ready}"
 
-        loop.stop()
+            status = _assert_ok_json(client, "/v1/status")
+            consensus = _assert_ok_json(client, "/v1/status/consensus")
+            operator = _assert_ok_json(client, "/v1/status/operator")
 
-        end_h = int(ex.read_state().get("height") or 0)
-        if end_h < start_h + 1:
-            raise RuntimeError(f"block height did not advance: start={start_h} end={end_h}")
+            start_h = int(ex.read_state().get("height") or 0)
+            deadline = time.time() + 8.0
+            while time.time() < deadline:
+                h = int(ex.read_state().get("height") or 0)
+                if h >= start_h + 1:
+                    break
+                time.sleep(0.1)
 
-        print(
-            "OK: health/ready + produced empty block",
-            {"start_height": start_h, "end_height": end_h},
-        )
-        return 0
+            end_h = int(ex.read_state().get("height") or 0)
+            if end_h < start_h + 1:
+                raise RuntimeError(
+                    f"block height did not advance: start={start_h} end={end_h}"
+                )
+
+            print(
+                "OK: health/ready/status + produced empty block",
+                {
+                    "start_height": start_h,
+                    "end_height": end_h,
+                    "health_ok": health.get("ok"),
+                    "ready_chain_id": ready.get("chain_id"),
+                    "status_keys": sorted(status.keys()),
+                    "consensus_keys": sorted(consensus.keys()),
+                    "operator_keys": sorted(operator.keys()),
+                },
+            )
+            return 0
+        finally:
+            loop.stop()
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

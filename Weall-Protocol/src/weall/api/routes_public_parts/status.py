@@ -1,51 +1,56 @@
 from __future__ import annotations
 
+import math
 import os
-from typing import Any
+import time
+from typing import Any, Mapping
 
 from fastapi import APIRouter, Request
 
-from weall.api.routes_public_parts.common import _att_pool, _executor, _mempool, _snapshot
-from weall.ledger.state import LedgerView
-from weall.runtime.bft_hotstuff import (
-    consensus_contract_summary,
-    consensus_security_summary,
-    leader_for_view,
-    normalize_consensus_phase,
-    quorum_threshold,
-)
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
-from weall.runtime.metrics import metrics_enabled
+from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
+from weall.runtime.helper_startup_integration import (
+    HelperStartupConfig,
+    evaluate_helper_startup,
+)
+from weall.runtime.helper_status_route_adapter import build_api_status_response_shape
+from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.protocol_profile import (
     effective_runtime_consensus_posture,
-    runtime_clock_skew_warn_ms,
-    runtime_max_block_future_drift_ms,
     runtime_protocol_profile_hash,
     runtime_startup_fingerprint,
 )
 
 router = APIRouter()
 
-Json = dict[str, Any]
+_ALLOWED_TRUE = {"1", "true", "yes", "y", "on"}
+_ALLOWED_FALSE = {"0", "false", "no", "n", "off"}
 
 
-class StatusEndpointConfigError(RuntimeError):
-    """Raised when operator-supplied status endpoint config is malformed in prod."""
-
-
-def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
-    return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
+class StatusRouteConfigError(ValueError):
+    """Raised when operator-facing status envs are malformed in prod."""
 
 
 def _is_prod() -> bool:
-    return _runtime_mode() == "prod"
+    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
+        return False
+    return (str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod") == "prod"
 
 
-def _env_str(name: str, default: str) -> str:
-    v = str(os.environ.get(name, "") or "").strip()
-    return v if v else str(default)
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    s = str(raw or "").strip().lower()
+    if not s:
+        return bool(default)
+    if s in _ALLOWED_TRUE:
+        return True
+    if s in _ALLOWED_FALSE:
+        return False
+    if _is_prod():
+        raise StatusRouteConfigError(f"invalid_boolean_env:{name}")
+    return bool(default)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -53,223 +58,130 @@ def _env_int(name: str, default: int) -> int:
     if raw is None:
         return int(default)
     try:
-        v = str(raw or "").strip()
-        return int(v) if v else int(default)
-    except Exception as exc:
+        return int(str(raw).strip())
+    except Exception:
         if _is_prod():
-            raise StatusEndpointConfigError(f"invalid_integer_env:{name}") from exc
+            raise StatusRouteConfigError(f"invalid_integer_env:{name}")
         return int(default)
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return bool(default)
-    v = str(raw or "").strip()
-    if v == "":
-        return bool(default)
-    vl = v.lower()
-    if vl in {"1", "true", "yes", "y", "on"}:
-        return True
-    if vl in {"0", "false", "no", "n", "off"}:
-        return False
-    if _is_prod():
-        raise StatusEndpointConfigError(f"invalid_boolean_env:{name}")
-    return bool(default)
+def _safe_str(v: Any, default: str = "") -> str:
+    try:
+        if v is None:
+            return str(default)
+        return str(v)
+    except Exception:
+        return str(default)
 
 
 def _safe_int(v: Any, default: int = 0) -> int:
     try:
-        if v is None:
-            return int(default)
-        if isinstance(v, bool):
+        if v is None or isinstance(v, bool):
             return int(default)
         return int(v)
     except Exception:
         return int(default)
 
 
-def _safe_executor(request: Request):
+def _safe_bool(v: Any, default: bool = False) -> bool:
     try:
-        return _executor(request)
+        if v is None:
+            return bool(default)
+        return bool(v)
+    except Exception:
+        return bool(default)
+
+
+def _now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
+    if ex is None:
+        return None
+    snap = getattr(ex, "snapshot", None)
+    if not callable(snap):
+        return None
+    try:
+        out = snap()
+        return out if isinstance(out, dict) else None
     except Exception:
         return None
 
 
-def _safe_snapshot(request: Request) -> Json:
-    try:
-        st = _snapshot(request)
-        return st if isinstance(st, dict) else {}
-    except Exception:
-        return {}
-
-
-def _safe_mempool_size(request: Request) -> int:
-    try:
-        mp = _mempool(request)
-        return int(getattr(mp, "size", lambda: 0)())
-    except Exception:
-        return 0
-
-
-def _safe_att_pool_size(request: Request) -> int:
-    try:
-        ap = _att_pool(request)
-        return int(getattr(ap, "size", lambda: 0)())
-    except Exception:
-        return 0
-
-
-def _safe_tx_index_hash(ex: Any) -> str:
+def _try_read_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
-        return ""
+        return None
+    fn = getattr(ex, "read_state", None)
+    if not callable(fn):
+        return _try_executor_snapshot(ex)
+    try:
+        out = fn()
+        return out if isinstance(out, dict) else None
+    except Exception:
+        return _try_executor_snapshot(ex)
+
+
+def _tx_index_hash(ex: Any, state: Mapping[str, Any]) -> str:
     fn = getattr(ex, "tx_index_hash", None)
     if callable(fn):
         try:
-            return str(fn() or "").strip()
-        except Exception:
-            return ""
-    v = getattr(ex, "tx_index_hash", None)
-    return str(v or "").strip() if isinstance(v, str) else ""
-
-
-def _safe_schema_version(st: Json, ex: Any) -> str:
-    meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
-    sv = str(meta.get("schema_version") or "").strip()
-    if sv:
-        return sv
-    if ex is not None:
-        v = getattr(ex, "_schema_version_cached", None)
-        if isinstance(v, str) and v.strip():
-            return v.strip()
-    return "1"
-
-
-def _startup_fingerprint(st: Json, ex: Any) -> Json:
-    chain_id = str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev"))
-    node_id = str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node"))
-    tx_index_hash = _safe_tx_index_hash(ex)
-    schema_version = _safe_schema_version(st, ex)
-    validator_epoch = 0
-    validator_set_hash = ""
-    bft_enabled = _env_bool("WEALL_BFT_ENABLED", False)
-    if ex is not None:
-        try:
-            validator_epoch = int(getattr(ex, "_current_validator_epoch", lambda: 0)() or 0)
-        except Exception:
-            validator_epoch = 0
-        try:
-            validator_set_hash = str(getattr(ex, "_current_validator_set_hash", lambda: "")() or "")
-        except Exception:
-            validator_set_hash = ""
-        try:
-            bft_enabled = bool(getattr(ex, "_bft_enabled", bft_enabled))
+            out = _safe_str(fn(), "")
+            if out:
+                return out
         except Exception:
             pass
-    return runtime_startup_fingerprint(
-        chain_id=chain_id,
-        node_id=node_id,
-        tx_index_hash=tx_index_hash,
-        schema_version=schema_version,
-        bft_enabled=bool(bft_enabled),
-        validator_epoch=int(validator_epoch),
-        validator_set_hash=validator_set_hash,
-    )
+    meta = state.get("meta")
+    if isinstance(meta, dict):
+        return _safe_str(meta.get("tx_index_hash"), "")
+    return ""
 
 
-def _bootstrap_status() -> Json:
+def _schema_version(ex: Any, state: Mapping[str, Any]) -> str:
+    meta = state.get("meta")
+    if isinstance(meta, dict):
+        out = _safe_str(meta.get("schema_version"), "")
+        if out:
+            return out
+    cached = getattr(ex, "_schema_version_cached", None)
+    return _safe_str(cached, "")
+
+
+def _helper_release_gate_report(app_state: Any):
     try:
-        cfg = load_chain_config()
-        return production_bootstrap_report(cfg)
-    except Exception as exc:
-        return {
-            "ok": False,
-            "issues": [f"failed to load chain config: {exc}"],
-            "observer_first_recommended": True,
-            "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
-        }
+        return getattr(app_state, "helper_release_gate_report", None)
+    except Exception:
+        return None
 
 
-def _safe_block_loop(ex: Any) -> Json:
-    if ex is None:
-        return {
-            "running": None,
-            "unhealthy": None,
-            "last_error": None,
-            "consecutive_failures": None,
-        }
-
-    def _get(name: str) -> Any:
-        try:
-            return getattr(ex, name)
-        except Exception:
-            return None
-
-    running = _get("block_loop_running")
-    unhealthy = _get("block_loop_unhealthy")
-    last_error = _get("block_loop_last_error")
-    consecutive = _get("block_loop_consecutive_failures")
-    return {
-        "running": running if isinstance(running, bool) else None,
-        "unhealthy": unhealthy if isinstance(unhealthy, bool) else None,
-        "last_error": str(last_error or "") if last_error is not None else None,
-        "consecutive_failures": _safe_int(consecutive, 0) if consecutive is not None else None,
-    }
+def _helper_surface(request: Request, chain_id: str):
+    status = evaluate_helper_startup(
+        config=HelperStartupConfig(
+            helper_mode_requested=_env_bool("WEALL_HELPER_MODE_ENABLED", False),
+            chain_id_ok=bool(chain_id),
+            protocol_profile_ok=True,
+            validator_set_ok=True,
+            trusted_anchor_ok=True,
+            sqlite_wal_ok=True,
+        ),
+        helper_release_gate=_helper_release_gate_report(request.app.state),
+    )
+    diagnostic = build_helper_operator_diagnostic(status=status)
+    return build_helper_status_surface(diagnostic=diagnostic)
 
 
-def _safe_peer_debug(request: Request) -> Json:
-    net = getattr(request.app.state, "net_node", None)
+def _peer_debug(app_state: Any) -> dict[str, Any]:
+    net = getattr(app_state, "net_node", None)
     if net is None:
-        net = getattr(request.app.state, "net", None)
+        net = getattr(app_state, "net", None)
     if net is None:
         return {
-            "enabled": False,
-            "counts": {
-                "peers_total": 0,
-                "peers_established": 0,
-                "peers_identity_verified": 0,
-                "peers_banned": 0,
-            },
+            "ok": True,
+            "enabled": _env_bool("WEALL_NET_ENABLED", False),
+            "counts": {},
             "peers": [],
         }
-    try:
-        dbg = net.peers_debug()
-        if isinstance(dbg, dict):
-            return dbg
-    except Exception:
-        pass
-    return {
-        "enabled": True,
-        "counts": {
-            "peers_total": None,
-            "peers_established": None,
-            "peers_identity_verified": None,
-            "peers_banned": None,
-        },
-        "peers": [],
-    }
-
-
-def _safe_bft_forensics(ex: Any) -> Json:
-    if ex is None:
-        return {
-            "ok": False,
-            "chain_id": "",
-            "node_id": "",
-            "diagnostics": _safe_bft_diag(ex),
-            "recent_rejection_summary": {
-                "count": 0,
-                "by_reason": {},
-                "by_message_type": {},
-                "latest": None,
-            },
-            "recent_rejections": [],
-            "recent_key_events": [],
-            "pending_fetch_request_descriptors": [],
-            "pending_outbound_messages": [],
-            "journal_tail": [],
-        }
-    fn = getattr(ex, "bft_operator_forensics", None)
+    fn = getattr(net, "peers_debug", None)
     if callable(fn):
         try:
             out = fn()
@@ -279,53 +191,70 @@ def _safe_bft_forensics(ex: Any) -> Json:
             pass
     return {
         "ok": True,
-        "chain_id": str(getattr(ex, "chain_id", "") or ""),
-        "node_id": str(getattr(ex, "node_id", "") or ""),
-        "diagnostics": _safe_bft_diag(ex),
-        "recent_rejection_summary": {
-            "count": 0,
-            "by_reason": {},
-            "by_message_type": {},
-            "latest": None,
-        },
-        "recent_rejections": [],
-        "recent_key_events": [],
-        "pending_fetch_request_descriptors": [],
-        "pending_outbound_messages": [],
-        "journal_tail": [],
+        "enabled": _env_bool("WEALL_NET_ENABLED", False),
+        "counts": {},
+        "peers": [],
     }
 
 
-def _safe_bft_diag(ex: Any) -> Json:
-    if ex is None:
-        return {
-            "view": 0,
-            "high_qc_id": "",
-            "locked_qc_id": "",
-            "finalized_block_id": "",
-            "pending_remote_blocks": [],
-            "pending_remote_blocks_count": 0,
-            "pending_candidates": [],
-            "pending_candidates_count": 0,
-            "pending_missing_qcs": [],
-            "pending_missing_qcs_count": 0,
-            "pending_fetch_requests": [],
-            "pending_fetch_requests_count": 0,
-            "pending_artifacts_pruned": False,
-            "pacemaker_timeout_ms": 0,
-            "stalled": False,
-            "stall_reason": "unknown",
-            "tip_ts_ms": 0,
-            "clock_skew_ahead_ms": 0,
-            "clock_skew_warning": False,
-            "protocol_profile_hash": "",
-            "schema_version": "",
-            "tx_index_hash": "",
-            "reputation_scale": 0,
-            "max_block_future_drift_ms": 0,
-            "clock_skew_warn_ms": 0,
-            "journal_tail": [],
-        }
+def _active_validators(state: Mapping[str, Any]) -> list[str]:
+    roles = state.get("roles")
+    if not isinstance(roles, dict):
+        return []
+    validators = roles.get("validators")
+    if not isinstance(validators, dict):
+        return []
+    active = validators.get("active_set")
+    if isinstance(active, list):
+        out = []
+        seen = set()
+        for x in sorted(_safe_str(v, "") for v in active if _safe_str(v, "")):
+            if x not in seen:
+                seen.add(x)
+                out.append(x)
+        return out
+    return []
+
+
+def _quorum_threshold(n: int) -> int:
+    return int(math.ceil((2 * int(n)) / 3.0)) if n > 0 else 0
+
+
+def _fault_tolerance(n: int) -> int:
+    return max(0, (int(n) - 1) // 3)
+
+
+def _current_leader(validators: list[str], view: int) -> str:
+    if not validators:
+        return ""
+    return validators[int(view) % len(validators)]
+
+
+def _next_leader(validators: list[str], view: int) -> str:
+    if not validators:
+        return ""
+    return validators[(int(view) + 1) % len(validators)]
+
+
+def _consensus_phase(state: Mapping[str, Any]) -> str:
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        phase = consensus.get("phase")
+        if isinstance(phase, dict):
+            return _safe_str(phase.get("current"), "")
+    return ""
+
+
+def _consensus_security_summary(state: Mapping[str, Any], validators: list[str]) -> dict[str, Any]:
+    phase = _consensus_phase(state)
+    n = len(validators)
+    return {
+        "public_bft_active": bool(phase == "bft_active" or n >= 4),
+        "fault_tolerance": _fault_tolerance(n),
+    }
+
+
+def _consensus_diagnostics(ex: Any) -> dict[str, Any]:
     fn = getattr(ex, "bft_diagnostics", None)
     if callable(fn):
         try:
@@ -334,424 +263,273 @@ def _safe_bft_diag(ex: Any) -> Json:
                 return out
         except Exception:
             pass
+    return {}
+
+
+def _runtime_profile_payload(diag: Mapping[str, Any]) -> dict[str, Any]:
+    posture = effective_runtime_consensus_posture()
     return {
-        "view": 0,
-        "high_qc_id": "",
-        "locked_qc_id": "",
-        "finalized_block_id": "",
-        "pending_remote_blocks": [],
-        "pending_remote_blocks_count": 0,
-        "pending_candidates": [],
-        "pending_candidates_count": 0,
-        "pending_missing_qcs": [],
-        "pending_missing_qcs_count": 0,
-        "pending_fetch_requests": [],
-        "pending_fetch_requests_count": 0,
-        "pacemaker_timeout_ms": 0,
-        "stalled": False,
-        "stall_reason": "unknown",
-        "tip_ts_ms": 0,
-        "clock_skew_ahead_ms": 0,
-        "clock_skew_warning": False,
-        "protocol_profile_hash": "",
-        "schema_version": "",
-        "tx_index_hash": _safe_tx_index_hash(ex),
-        "reputation_scale": 0,
-        "max_block_future_drift_ms": 0,
-        "clock_skew_warn_ms": 0,
-        "journal_tail": [],
+        "protocol_profile_hash": _safe_str(diag.get("protocol_profile_hash"), runtime_protocol_profile_hash()),
+        "reputation_scale": _safe_int(diag.get("reputation_scale"), _safe_int(posture.get("reputation_scale"), 0)),
+        "timestamp_rule": _safe_str(diag.get("timestamp_rule"), _safe_str(posture.get("timestamp_rule"), "")),
+        "max_block_future_drift_ms": _safe_int(
+            diag.get("max_block_future_drift_ms"),
+            _safe_int(posture.get("max_block_future_drift_ms"), 0),
+        ),
+        "clock_skew_warn_ms": _safe_int(
+            diag.get("clock_skew_warn_ms"),
+            _safe_int(posture.get("clock_skew_warn_ms"), 0),
+        ),
+        "max_block_time_advance_ms": _safe_int(
+            diag.get("max_block_time_advance_ms"),
+            _safe_int(posture.get("max_block_time_advance_ms"), 0),
+        ),
     }
 
 
-def _safe_qc(qc: Any) -> Json | None:
-    if not isinstance(qc, dict):
-        return None
-    votes = qc.get("votes") if isinstance(qc.get("votes"), (list, tuple)) else []
-    return {
-        "block_id": str(qc.get("block_id") or "").strip(),
-        "parent_id": str(qc.get("parent_id") or "").strip(),
-        "view": _safe_int(qc.get("view"), 0),
-        "vote_count": int(len(votes)),
-    }
+def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: str) -> dict[str, Any]:
+    validators = _active_validators(state)
+    current_epoch_fn = getattr(ex, "_current_validator_epoch", None)
+    current_set_hash_fn = getattr(ex, "_current_validator_set_hash", None)
+    try:
+        validator_epoch = int(current_epoch_fn()) if callable(current_epoch_fn) else 0
+    except Exception:
+        validator_epoch = 0
+    try:
+        validator_set_hash = _safe_str(current_set_hash_fn(), "") if callable(current_set_hash_fn) else ""
+    except Exception:
+        validator_set_hash = ""
+    return runtime_startup_fingerprint(
+        chain_id=_safe_str(state.get("chain_id"), ""),
+        node_id=_safe_str(getattr(ex, "node_id", None), validator_account),
+        tx_index_hash=_tx_index_hash(ex, state),
+        schema_version=_schema_version(ex, state),
+        bft_enabled=_env_bool("WEALL_BFT_ENABLED", False),
+        validator_epoch=validator_epoch,
+        validator_set_hash=validator_set_hash,
+    )
 
 
-def _consensus_contract(validators: list[str]) -> Json:
-    summary = consensus_contract_summary(validators)
-    count = _safe_int(summary.get("normalized_validator_count"), 0)
+def _base_status_payload(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+
+    chain_id = _safe_str(state.get("chain_id") or os.environ.get("WEALL_CHAIN_ID"), "")
+    node_id = _safe_str(
+        state.get("node_id") or getattr(ex, "node_id", None) or os.environ.get("WEALL_NODE_ID"),
+        "",
+    )
     return {
-        **summary,
-        "quorum_threshold": quorum_threshold(count) if count > 0 else 0,
-        "notes": [
-            "Leader selection is deterministic round-robin over the sorted active validator set.",
-            "QC formation and timeout progress both use ceil(2n/3).",
-            "Finalization follows the HotStuff 3-chain rule.",
-        ],
+        "ok": True,
+        "service": "weall-node",
+        "version": "v1",
+        "ts_ms": _now_ms(),
+        "chain_id": chain_id or None,
+        "node_id": node_id or None,
+        "mode": "validator",
+        "height": _safe_int(state.get("height"), 0),
+        "tip": _safe_str(state.get("tip"), ""),
     }
 
 
 @router.get("/status")
-def status(request: Request) -> Json:
-    ex = _safe_executor(request)
-    st = _safe_snapshot(request)
+def status(request: Request) -> dict[str, Any]:
+    base = _base_status_payload(request)
+    helper_surface = _helper_surface(request, _safe_str(base.get("chain_id"), ""))
+    shape = build_api_status_response_shape(
+        chain_id=_safe_str(base.get("chain_id"), ""),
+        base_ok=bool(base.get("ok", False)),
+        base_mode=_safe_str(base.get("mode"), "validator"),
+        base_ready=True,
+        base_status_payload=base,
+        base_readyz_payload={"ready": True, "checks": ["status"]},
+        helper_surface=helper_surface,
+    ).to_json()
+    return shape["status_payload"]
 
-    ledger = LedgerView.from_ledger(st if isinstance(st, dict) else {})
 
-    height = int(st.get("height") or 0)
-    tip = str(st.get("tip") or "")
-    chain_id = str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev"))
-    node_id = str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node"))
+@router.get("/status/operator")
+def status_operator(request: Request) -> dict[str, Any]:
+    # Fail closed on malformed explicit prod debug env.
+    _env_bool("WEALL_ENABLE_PUBLIC_DEBUG", False)
 
-    mempool_size = _safe_mempool_size(request)
-    att_pool_size = _safe_att_pool_size(request)
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    validators = _active_validators(state)
+    diag = _consensus_diagnostics(ex)
+    peer_debug = _peer_debug(request.app.state)
+    helper_surface = _helper_surface(request, _safe_str(state.get("chain_id"), ""))
 
-    active_validators: list[str] = ledger.get_active_validator_set() or []
-    active_validator_count = int(len(active_validators))
-    finalized = st.get("finalized") if isinstance(st.get("finalized"), dict) else {}
-
-    return {
-        "ok": True,
-        "chain_id": chain_id,
-        "node_id": node_id,
-        "height": height,
-        "tip": tip,
-        "tip_hash": str(st.get("tip_hash") or ""),
-        "tip_ts_ms": _safe_int(st.get("tip_ts_ms") or st.get("last_block_ts_ms"), 0),
-        "finalized_height": _safe_int(
-            finalized.get("height") if isinstance(finalized, dict) else 0, 0
-        ),
-        "finalized_block_id": str(finalized.get("block_id") if isinstance(finalized, dict) else ""),
-        "mempool_size": mempool_size,
-        "attestation_pool_size": att_pool_size,
-        "active_validator_count": active_validator_count,
-        "mode": _env_str("WEALL_MODE", "prod"),
-        "db_path": _env_str("WEALL_DB_PATH", "./data/weall.db"),
-        "tx_index_hash": _safe_tx_index_hash(ex),
-        "consensus_contract": _consensus_contract(active_validators),
-        "startup_fingerprint": _startup_fingerprint(st, ex),
-        "bootstrap": _bootstrap_status(),
+    base = _base_status_payload(request)
+    shape = build_api_status_response_shape(
+        chain_id=_safe_str(base.get("chain_id"), ""),
+        base_ok=bool(base.get("ok", False)),
+        base_mode=_safe_str(base.get("mode"), "validator"),
+        base_ready=True,
+        base_status_payload={**base, "operator_view": True},
+        base_readyz_payload={"ready": True, "checks": ["status", "operator"]},
+        helper_surface=helper_surface,
+    ).to_json()
+    payload = dict(shape["status_payload"])
+    payload["db_path"] = _safe_str(os.environ.get("WEALL_DB_PATH"), "")
+    payload["mempool_size"] = _safe_int(getattr(getattr(ex, "mempool", None), "size", lambda: 0)(), 0)
+    payload["attestation_pool_size"] = _safe_int(getattr(getattr(ex, "attestation_pool", None), "size", lambda: 0)(), 0)
+    payload["block_loop"] = {
+        "running": _safe_bool(getattr(ex, "block_loop_running", None), False),
+        "unhealthy": _safe_bool(getattr(ex, "block_loop_unhealthy", None), False),
+        "last_error": _safe_str(getattr(ex, "block_loop_last_error", None), ""),
+        "consecutive_failures": _safe_int(getattr(ex, "block_loop_consecutive_failures", None), 0),
     }
-
-
-@router.get("/chain/head")
-def chain_head(request: Request) -> Json:
-    st = _safe_snapshot(request)
-
-    height = int(st.get("height") or 0)
-    tip = str(st.get("tip") or "")
-    tip_hash = str(st.get("tip_hash") or "")
-    tip_ts_ms = int(st.get("tip_ts_ms") or st.get("last_block_ts_ms") or 0)
-    chain_id = str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev"))
-
-    return {
-        "ok": True,
-        "chain_id": chain_id,
-        "height": height,
-        "tip": tip,
-        "tip_hash": tip_hash,
-        "tip_ts_ms": tip_ts_ms,
+    payload["net"] = {
+        "enabled": _env_bool("WEALL_NET_ENABLED", False),
+        "peer_counts": dict(peer_debug.get("counts", {})) if isinstance(peer_debug.get("counts"), dict) else {},
+        "peers": list(peer_debug.get("peers", [])) if isinstance(peer_debug.get("peers"), list) else [],
     }
-
-
-@router.get("/status/mempool")
-def status_mempool(request: Request) -> Json:
-    limit = _env_int("WEALL_STATUS_MEMPOOL_LIMIT", 50)
-    limit = max(1, min(int(limit), 500))
-
+    payload["consensus"] = {
+        "bft_enabled": _env_bool("WEALL_BFT_ENABLED", False),
+        "validator_account": _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), ""),
+        "profile_enforced": bool(effective_runtime_consensus_posture().get("profile_enforced", False)),
+        "qc_less_blocks_allowed": bool(effective_runtime_consensus_posture().get("qc_less_blocks_allowed", False)),
+        "unsafe_autocommit": bool(effective_runtime_consensus_posture().get("unsafe_autocommit_allowed", False)),
+        "sigverify_required": bool(effective_runtime_consensus_posture().get("sigverify_required", False)),
+        "trusted_anchor_required": bool(effective_runtime_consensus_posture().get("trusted_anchor_required", False)),
+        "effective_posture": effective_runtime_consensus_posture(),
+        "stalled": bool(diag.get("stalled", False)),
+        "stall_reason": _safe_str(diag.get("stall_reason"), ""),
+        "timestamp_rule": _safe_str(diag.get("timestamp_rule"), _safe_str(effective_runtime_consensus_posture().get("timestamp_rule"), "")),
+        "uses_wall_clock_future_guard": _safe_bool(diag.get("uses_wall_clock_future_guard"), False),
+    }
+    payload["runtime_profile"] = _runtime_profile_payload(diag)
+    payload["startup_fingerprint"] = _startup_fingerprint(
+        ex,
+        state,
+        _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), ""),
+    )
     try:
-        mp = _mempool(request)
-        items = mp.peek(limit=limit)
+        cfg = load_chain_config()
+        payload["bootstrap"] = production_bootstrap_report(cfg)
     except Exception:
-        items = []
-
-    trimmed = []
-    for env in items:
-        if not isinstance(env, dict):
-            continue
-        trimmed.append(
-            {
-                "tx_id": str(env.get("tx_id") or ""),
-                "tx_type": str(env.get("tx_type") or ""),
-                "signer": str(env.get("signer") or ""),
-                "nonce": env.get("nonce", 0),
-                "received_ms": env.get("received_ms", 0),
-                "expires_ms": env.get("expires_ms", 0),
-            }
-        )
-
-    return {"ok": True, "count": len(trimmed), "items": trimmed}
-
-
-@router.get("/status/attestations")
-def status_attestations(request: Request) -> Json:
-    st = _safe_snapshot(request)
-    tip = str(st.get("tip") or "")
-
-    if not tip:
-        return {"ok": True, "block_id": "", "count": 0, "items": []}
-
-    limit = _env_int("WEALL_STATUS_ATTESTATIONS_LIMIT", 50)
-    limit = max(1, min(int(limit), 500))
-
-    try:
-        ap = _att_pool(request)
-        items = ap.fetch_for_block(tip, limit=limit)
-    except Exception:
-        items = []
-
-    trimmed = []
-    for env in items:
-        if not isinstance(env, dict):
-            continue
-        trimmed.append(
-            {
-                "att_id": str(env.get("att_id") or ""),
-                "signer": str(env.get("signer") or ""),
-                "block_id": str(env.get("block_id") or tip),
-                "received_ms": env.get("received_ms", 0),
-                "expires_ms": env.get("expires_ms", 0),
-            }
-        )
-
-    return {"ok": True, "block_id": tip, "count": len(trimmed), "items": trimmed}
+        payload["bootstrap"] = {
+            "ok": False,
+            "observer_first_recommended": True,
+            "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
+        }
+    payload["operator"] = {
+        "helper_status": payload["helper"]["helper_status"],
+        "helper_severity": payload["helper"]["helper_severity"],
+        "helper_summary": payload["helper"]["helper_summary"],
+    }
+    return payload
 
 
 @router.get("/status/consensus")
-def status_consensus(request: Request) -> Json:
-    ex = _safe_executor(request)
-    st = _safe_snapshot(request)
-    ledger = LedgerView.from_ledger(st if isinstance(st, dict) else {})
-
-    chain_id = str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev"))
-    node_id = str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node"))
-    validator_account = _env_str("WEALL_VALIDATOR_ACCOUNT", "")
-    active_validators = ledger.get_active_validator_set() or []
-    active_count = int(len(active_validators))
-    normalized_validators = (
-        consensus_contract_summary(active_validators).get("normalized_validator_set") or []
-    )
-
-    bft = st.get("bft") if isinstance(st.get("bft"), dict) else {}
-    diag = _safe_bft_diag(ex)
-    view = _safe_int(diag.get("view"), 0)
-    if view <= 0:
-        view = _safe_int(bft.get("view"), 0)
-    current_leader = leader_for_view(active_validators, view) if active_validators else ""
-    next_leader = leader_for_view(active_validators, view + 1) if active_validators else ""
-    q_threshold = quorum_threshold(active_count) if active_count > 0 else 0
-    peer_dbg = _safe_peer_debug(request)
-    consensus_root = st.get("consensus") if isinstance(st.get("consensus"), dict) else {}
-    phase_root = (
-        consensus_root.get("phase") if isinstance(consensus_root.get("phase"), dict) else {}
-    )
-    consensus_phase = normalize_consensus_phase(
-        phase_root.get("current"), validator_count=active_count
-    )
-    security_summary = consensus_security_summary(active_validators, phase=consensus_phase)
-
+def status_consensus(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    validators = _active_validators(state)
+    diag = _consensus_diagnostics(ex)
+    peer_debug = _peer_debug(request.app.state)
+    view = _safe_int(diag.get("view"), _safe_int(state.get("bft", {}).get("view") if isinstance(state.get("bft"), dict) else 0, 0))
+    high_qc = state.get("bft", {}).get("high_qc") if isinstance(state.get("bft"), dict) else {}
+    locked_qc = state.get("bft", {}).get("locked_qc") if isinstance(state.get("bft"), dict) else {}
+    validator_account = _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")
+    chain_id = _safe_str(state.get("chain_id"), "")
+    current = _current_leader(validators, view)
+    nxt = _next_leader(validators, view)
+    startup = _startup_fingerprint(ex, state, validator_account)
     return {
         "ok": True,
         "chain_id": chain_id,
-        "node_id": node_id,
-        "mode": _env_str("WEALL_MODE", "prod"),
-        "bft_enabled": _env_bool("WEALL_BFT_ENABLED", False),
-        "validator_account": validator_account,
-        "height": _safe_int(st.get("height"), 0),
-        "tip": str(st.get("tip") or ""),
-        "tip_hash": str(st.get("tip_hash") or ""),
-        "tip_ts_ms": _safe_int(st.get("tip_ts_ms") or st.get("last_block_ts_ms"), 0),
-        "finalized_height": _safe_int(
-            (st.get("finalized") or {}).get("height")
-            if isinstance(st.get("finalized"), dict)
-            else 0,
-            0,
-        ),
-        "finalized_block_id": str(
-            (st.get("finalized") or {}).get("block_id")
-            if isinstance(st.get("finalized"), dict)
-            else ""
-        ),
+        "node_id": _safe_str(getattr(ex, "node_id", None), validator_account),
+        "height": _safe_int(state.get("height"), 0),
+        "tip": _safe_str(state.get("tip"), ""),
+        "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
+        "active_validator_count": len(validators),
+        "quorum_threshold": _quorum_threshold(len(validators)),
         "view": view,
-        "active_validators": list(active_validators),
-        "normalized_active_validators": list(normalized_validators),
-        "active_validator_count": active_count,
-        "quorum_threshold": q_threshold,
-        "consensus_phase": consensus_phase,
-        "consensus_phase_pending": phase_root.get("pending")
-        if isinstance(phase_root.get("pending"), dict)
-        else None,
-        "security_summary": security_summary,
-        "current_leader": current_leader,
-        "local_is_active_validator": bool(
-            validator_account and validator_account in active_validators
-        ),
-        "local_is_expected_leader": bool(validator_account and validator_account == current_leader),
-        "next_leader": next_leader,
-        "high_qc": _safe_qc(bft.get("high_qc"))
-        or (
-            {
-                "block_id": str(diag.get("high_qc_id") or ""),
-                "parent_id": "",
-                "view": 0,
-                "vote_count": 0,
-            }
-            if str(diag.get("high_qc_id") or "").strip()
-            else None
-        ),
-        "locked_qc": _safe_qc(bft.get("locked_qc"))
-        or (
-            {
-                "block_id": str(diag.get("locked_qc_id") or ""),
-                "parent_id": "",
-                "view": 0,
-                "vote_count": 0,
-            }
-            if str(diag.get("locked_qc_id") or "").strip()
-            else None
-        ),
-        "peer_counts": peer_dbg.get("counts") if isinstance(peer_dbg.get("counts"), dict) else {},
-        "block_loop": _safe_block_loop(ex),
-        "tx_index_hash": _safe_tx_index_hash(ex),
-        "consensus_contract": _consensus_contract(active_validators),
-        "startup_fingerprint": _startup_fingerprint(st, ex),
-        "diagnostics": {
-            "stalled": bool(diag.get("stalled", False)),
-            "stall_reason": str(diag.get("stall_reason") or "unknown"),
-            "stalled_since_ts_ms": _safe_int(diag.get("stalled_since_ts_ms"), 0),
-            "stalled_for_ms": _safe_int(diag.get("stalled_for_ms"), 0),
-            "last_progress_ts_ms": _safe_int(diag.get("last_progress_ts_ms"), 0),
-            "last_view_advanced_ts_ms": _safe_int(diag.get("last_view_advanced_ts_ms"), 0),
-            "last_qc_observed_ts_ms": _safe_int(diag.get("last_qc_observed_ts_ms"), 0),
-            "last_timeout_emitted_ts_ms": _safe_int(diag.get("last_timeout_emitted_ts_ms"), 0),
-            "last_fetch_requested_ts_ms": _safe_int(diag.get("last_fetch_requested_ts_ms"), 0),
-            "last_fetch_satisfied_ts_ms": _safe_int(diag.get("last_fetch_satisfied_ts_ms"), 0),
-            "pending_remote_blocks_count": _safe_int(diag.get("pending_remote_blocks_count"), 0),
-            "pending_candidates_count": _safe_int(diag.get("pending_candidates_count"), 0),
-            "pending_missing_qcs_count": _safe_int(diag.get("pending_missing_qcs_count"), 0),
-            "pending_fetch_requests_count": _safe_int(diag.get("pending_fetch_requests_count"), 0),
-            "pending_artifacts_pruned": bool(diag.get("pending_artifacts_pruned", False)),
-            "clock_skew_ahead_ms": _safe_int(diag.get("clock_skew_ahead_ms"), 0),
-            "clock_skew_warning": bool(diag.get("clock_skew_warning", False)),
-            "median_time_past_ms": _safe_int(diag.get("median_time_past_ms"), 0),
-            "chain_time_floor_ms": _safe_int(diag.get("chain_time_floor_ms"), 0),
-            "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
-            "uses_wall_clock_future_guard": bool(diag.get("uses_wall_clock_future_guard", False)),
-            "pacemaker_timeout_ms": _safe_int(diag.get("pacemaker_timeout_ms"), 0),
-            "recent_rejection_summary": diag.get("recent_rejection_summary")
-            if isinstance(diag.get("recent_rejection_summary"), dict)
-            else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
+        "current_leader": current,
+        "next_leader": nxt,
+        "local_is_active_validator": validator_account in validators if validator_account else False,
+        "local_is_expected_leader": bool(validator_account and validator_account == current),
+        "high_qc": {
+            "block_id": _safe_str((high_qc or {}).get("block_id"), _safe_str(diag.get("high_qc_id"), "")),
+            "vote_count": len((high_qc or {}).get("votes", [])) if isinstance((high_qc or {}).get("votes"), list) else 0,
         },
-        "runtime_profile": {
-            "protocol_profile_hash": str(
-                diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()
-            ),
-            "reputation_scale": _safe_int(diag.get("reputation_scale"), 0),
-            "max_block_future_drift_ms": _safe_int(
-                diag.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
-            ),
-            "max_block_time_advance_ms": _safe_int(diag.get("max_block_time_advance_ms"), 0),
-            "clock_skew_warn_ms": _safe_int(
-                diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
-            ),
-            "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
+        "locked_qc": {
+            "block_id": _safe_str((locked_qc or {}).get("block_id"), _safe_str(diag.get("locked_qc_id"), "")),
+            "vote_count": len((locked_qc or {}).get("votes", [])) if isinstance((locked_qc or {}).get("votes"), list) else 0,
         },
+        "peer_counts": dict(peer_debug.get("counts", {})) if isinstance(peer_debug.get("counts"), dict) else {},
+        "tx_index_hash": _tx_index_hash(ex, state),
+        "startup_fingerprint": startup,
+        "diagnostics": diag,
+        "runtime_profile": _runtime_profile_payload(diag),
+        "consensus_phase": _consensus_phase(state),
+        "security_summary": _consensus_security_summary(state, validators),
     }
 
 
 @router.get("/status/consensus/forensics")
-def status_consensus_forensics(request: Request) -> Json:
-    ex = _safe_executor(request)
-    st = _safe_snapshot(request)
-    out = _safe_bft_forensics(ex)
-    if not isinstance(out, dict):
-        out = {}
-    out.setdefault("ok", True)
-    out.setdefault("chain_id", str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev")))
-    out.setdefault(
-        "node_id", str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node"))
-    )
-    return out
-
-
-@router.get("/status/operator")
-def status_operator(request: Request) -> Json:
-    ex = _safe_executor(request)
-    st = _safe_snapshot(request)
-    peer_dbg = _safe_peer_debug(request)
-
-    diag = _safe_bft_diag(ex)
-    ledger = LedgerView.from_ledger(st if isinstance(st, dict) else {})
-    active_validators = ledger.get_active_validator_set() or []
-    posture = effective_runtime_consensus_posture()
-
+def status_consensus_forensics(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    fn = getattr(ex, "bft_operator_forensics", None)
+    if callable(fn):
+        out = fn()
+        if isinstance(out, dict):
+            return out
+    diag = _consensus_diagnostics(ex)
     return {
         "ok": True,
-        "mode": _env_str("WEALL_MODE", "prod"),
-        "chain_id": str(st.get("chain_id") or _env_str("WEALL_CHAIN_ID", "weall-dev")),
-        "node_id": str(getattr(ex, "node_id", "") or _env_str("WEALL_NODE_ID", "local-node")),
-        "db_path": _env_str("WEALL_DB_PATH", "./data/weall.db"),
-        "tx_index_hash": _safe_tx_index_hash(ex),
-        "height": _safe_int(st.get("height"), 0),
-        "tip": str(st.get("tip") or ""),
-        "mempool_size": _safe_mempool_size(request),
-        "attestation_pool_size": _safe_att_pool_size(request),
-        "metrics_enabled": bool(metrics_enabled()),
-        "public_debug_enabled": _env_bool("WEALL_ENABLE_PUBLIC_DEBUG", False),
-        "block_loop": _safe_block_loop(ex),
-        "net": {
-            "enabled": _env_bool("WEALL_NET_ENABLED", True),
-            "peer_identity_required": _env_bool("WEALL_NET_REQUIRE_IDENTITY", False),
-            "peer_counts": peer_dbg.get("counts")
-            if isinstance(peer_dbg.get("counts"), dict)
-            else {},
-            "peers": peer_dbg.get("peers") if isinstance(peer_dbg.get("peers"), list) else [],
-        },
-        "consensus": {
-            "bft_enabled": _env_bool("WEALL_BFT_ENABLED", False),
-            "validator_account": _env_str("WEALL_VALIDATOR_ACCOUNT", ""),
-            "effective_posture": posture,
-            "qc_less_blocks_allowed": bool(posture.get("qc_less_blocks_allowed", False)),
-            "unsafe_autocommit": bool(posture.get("unsafe_autocommit_allowed", False)),
-            "sigverify_required": bool(posture.get("sigverify_required", True)),
-            "trusted_anchor_required": bool(posture.get("trusted_anchor_required", True)),
-            "profile_enforced": bool(posture.get("profile_enforced", False)),
-            "stalled": bool(diag.get("stalled", False)),
-            "stall_reason": str(diag.get("stall_reason") or "unknown"),
-            "stalled_since_ts_ms": _safe_int(diag.get("stalled_since_ts_ms"), 0),
-            "stalled_for_ms": _safe_int(diag.get("stalled_for_ms"), 0),
-            "last_progress_ts_ms": _safe_int(diag.get("last_progress_ts_ms"), 0),
-            "last_view_advanced_ts_ms": _safe_int(diag.get("last_view_advanced_ts_ms"), 0),
-            "last_qc_observed_ts_ms": _safe_int(diag.get("last_qc_observed_ts_ms"), 0),
-            "last_timeout_emitted_ts_ms": _safe_int(diag.get("last_timeout_emitted_ts_ms"), 0),
-            "pending_remote_blocks_count": _safe_int(diag.get("pending_remote_blocks_count"), 0),
-            "pending_candidates_count": _safe_int(diag.get("pending_candidates_count"), 0),
-            "pending_missing_qcs_count": _safe_int(diag.get("pending_missing_qcs_count"), 0),
-            "pending_fetch_requests_count": _safe_int(diag.get("pending_fetch_requests_count"), 0),
-            "pending_artifacts_pruned": bool(diag.get("pending_artifacts_pruned", False)),
-            "pacemaker_timeout_ms": _safe_int(diag.get("pacemaker_timeout_ms"), 0),
-            "clock_skew_warning": bool(diag.get("clock_skew_warning", False)),
-            "median_time_past_ms": _safe_int(diag.get("median_time_past_ms"), 0),
-            "chain_time_floor_ms": _safe_int(diag.get("chain_time_floor_ms"), 0),
-            "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
-            "uses_wall_clock_future_guard": bool(diag.get("uses_wall_clock_future_guard", False)),
-            "recent_rejection_summary": diag.get("recent_rejection_summary")
-            if isinstance(diag.get("recent_rejection_summary"), dict)
-            else {"count": 0, "by_reason": {}, "by_message_type": {}, "latest": None},
-            "contract": _consensus_contract(active_validators),
-        },
-        "runtime_profile": {
-            "protocol_profile_hash": str(
-                diag.get("protocol_profile_hash") or runtime_protocol_profile_hash()
-            ),
-            "reputation_scale": _safe_int(diag.get("reputation_scale"), 0),
-            "max_block_future_drift_ms": _safe_int(
-                diag.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
-            ),
-            "max_block_time_advance_ms": _safe_int(diag.get("max_block_time_advance_ms"), 0),
-            "clock_skew_warn_ms": _safe_int(
-                diag.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
-            ),
-            "timestamp_rule": str(diag.get("timestamp_rule") or "chain_time_floor_only"),
-        },
-        "startup_fingerprint": _startup_fingerprint(st, ex),
-        "bootstrap": _bootstrap_status(),
+        "chain_id": _safe_str(getattr(ex, "chain_id", None), ""),
+        "node_id": _safe_str(getattr(ex, "node_id", None), ""),
+        "diagnostics": diag,
+        "recent_rejection_summary": dict(diag.get("recent_rejection_summary", {})) if isinstance(diag.get("recent_rejection_summary"), dict) else {},
+        "pending_fetch_request_descriptors": list(diag.get("pending_fetch_request_descriptors", [])) if isinstance(diag.get("pending_fetch_request_descriptors"), list) else [],
+        "pending_outbound_messages": list(diag.get("pending_outbound_messages", [])) if isinstance(diag.get("pending_outbound_messages"), list) else [],
+        "journal_tail": list(diag.get("journal_tail", [])) if isinstance(diag.get("journal_tail"), list) else [],
+    }
+
+
+@router.get("/status/mempool")
+def status_mempool(request: Request) -> dict[str, Any]:
+    limit = _env_int("WEALL_STATUS_MEMPOOL_LIMIT", 50)
+    ex = getattr(request.app.state, "executor", None)
+    mp = getattr(ex, "mempool", None)
+    items = []
+    if mp is not None:
+        peek = getattr(mp, "peek", None)
+        if callable(peek):
+            try:
+                out = peek(limit=limit)
+                if isinstance(out, list):
+                    items = out
+            except Exception:
+                items = []
+    return {
+        "ok": True,
+        "limit": limit,
+        "size": _safe_int(getattr(mp, "size", lambda: 0)(), 0) if mp is not None else 0,
+        "items": items,
+    }
+
+
+@router.get("/status/attestations")
+def status_attestations(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    ap = getattr(ex, "attestation_pool", None)
+    return {
+        "ok": True,
+        "size": _safe_int(getattr(ap, "size", lambda: 0)(), 0) if ap is not None else 0,
+    }
+
+
+@router.get("/chain/head")
+def chain_head(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    return {
+        "ok": True,
+        "chain_id": _safe_str(state.get("chain_id"), ""),
+        "height": _safe_int(state.get("height"), 0),
+        "tip": _safe_str(state.get("tip"), ""),
     }

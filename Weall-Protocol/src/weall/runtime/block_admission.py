@@ -5,6 +5,7 @@ from typing import Any
 from weall.ledger.state import LedgerView
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.tx.canon import TxIndex
 
@@ -167,6 +168,18 @@ def _block_proposer(block: Json) -> str:
         or ""
     )
 
+
+def _validate_helper_execution_metadata(block: Json) -> tuple[bool, BlockReject | None]:
+    helper_execution = block.get("helper_execution")
+    if helper_execution is None:
+        return True, None
+    if not isinstance(helper_execution, dict):
+        return False, BlockReject("bad_shape", "helper_execution_must_be_object", {"type": str(type(helper_execution))})
+    advertised_plan_id = _as_str(helper_execution.get("plan_id") or "")
+    ok, reason = verify_block_helper_plan_metadata(helper_execution=helper_execution, expected_plan_id=advertised_plan_id)
+    if not ok:
+        return False, BlockReject("helper_plan_invalid", str(reason), {"block_id": _as_str(block.get("block_id") or ""), "plan_id": advertised_plan_id})
+    return True, None
 
 def _validate_bft_proposal_leader_view(block: Json, state: Json) -> tuple[bool, BlockReject | None]:
     validators = _get_active_validators_from_state(state)
@@ -389,6 +402,10 @@ def admit_bft_block(
 
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
+
+    ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block)
+    if not ok_helper_meta:
+        return False, rej_helper_meta
 
     blocks = state.get("blocks")
     blocks_map = blocks if isinstance(blocks, dict) else {}

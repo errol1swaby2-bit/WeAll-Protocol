@@ -419,6 +419,110 @@ class SqliteDB:
                 """
             )
 
+            # Family-partitioned consensus-visible state tables. These preserve
+            # a single atomic block commit boundary while allowing future
+            # family-specific indexing and storage separation.
+            for family_table in (
+                "state_consensus",
+                "state_governance",
+                "state_roles",
+                "state_poh",
+                "state_identity",
+                "state_treasury",
+                "state_economics",
+                "state_groups",
+                "state_content",
+                "state_dispute",
+                "state_cases",
+                "state_moderation",
+                "state_messaging",
+                "state_networking",
+                "state_notifications",
+                "state_indexing",
+                "state_reputation",
+                "state_rewards",
+                "state_performance",
+                "state_social",
+                "state_storage",
+            ):
+                con.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {family_table} (
+                      state_key TEXT PRIMARY KEY,
+                      state_json TEXT NOT NULL,
+                      updated_ts_ms INTEGER NOT NULL
+                    );
+                    """
+                )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tx_conflict_materialization (
+                  tx_id TEXT PRIMARY KEY,
+                  tx_type TEXT NOT NULL,
+                  family TEXT NOT NULL,
+                  barrier_class TEXT NOT NULL,
+                  subject_keys_json TEXT NOT NULL,
+                  read_keys_json TEXT NOT NULL,
+                  write_keys_json TEXT NOT NULL,
+                  authority_keys_json TEXT NOT NULL,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tx_conflict_family ON tx_conflict_materialization(family);"
+            )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS helper_plans (
+                  plan_id TEXT PRIMARY KEY,
+                  plan_json TEXT NOT NULL,
+                  created_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS helper_lane_results (
+                  plan_id TEXT NOT NULL,
+                  lane_id TEXT NOT NULL,
+                  result_json TEXT NOT NULL,
+                  updated_ms INTEGER NOT NULL,
+                  PRIMARY KEY (plan_id, lane_id)
+                );
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS helper_lane_receipts (
+                  plan_id TEXT NOT NULL,
+                  lane_id TEXT NOT NULL,
+                  receipt_fingerprint TEXT NOT NULL,
+                  receipt_json TEXT NOT NULL,
+                  accepted INTEGER NOT NULL,
+                  updated_ms INTEGER NOT NULL,
+                  PRIMARY KEY (plan_id, lane_id, receipt_fingerprint)
+                );
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS helper_resolution_journal (
+                  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                  plan_id TEXT NOT NULL,
+                  lane_id TEXT NOT NULL,
+                  record_kind TEXT NOT NULL,
+                  record_json TEXT NOT NULL,
+                  created_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_helper_resolution_journal_plan_lane ON helper_resolution_journal(plan_id, lane_id);"
+            )
+
             row = con.execute(
                 "SELECT value FROM meta WHERE key='schema_version' LIMIT 1;"
             ).fetchone()

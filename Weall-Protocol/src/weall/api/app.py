@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from weall.api.config import load_api_config
 from weall.api.errors import ApiError
 from weall.api.routes_public import public_router
+from weall.api.routes_public_parts.helper_readiness import router as helper_readiness_router
 from weall.api.security import RateLimitMiddleware, RequestSizeLimitMiddleware
 from weall.net.net_loop import NetMeshLoop
 from weall.runtime.block_loop import BlockProducerLoop
@@ -296,6 +297,7 @@ def create_app(*, boot_runtime: bool = True) -> FastAPI:
         )
 
     app.include_router(public_router)
+    app.include_router(helper_readiness_router, prefix="/v1")
     _maybe_mount_web(app)
 
     return app
