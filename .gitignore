@@ -1,72 +1,104 @@
-# Secrets / env
-.env
-.env.*
-*.pem
-*.key
-*.p12
-*.pfx
-
-# Logs
-*.log
-
-# Python
-__pycache__/
-*.py[cod]
+# =========================
+# Virtual Environments
+# =========================
 .venv/
-.venv-*/
 venv/
 env/
+
+# =========================
+# Python Cache / Bytecode
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# =========================
+# Pytest / Coverage
+# =========================
 .pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.pyright/
-.tox/
-.nox/
+.coverage
+coverage.json
+htmlcov/
 
-# Node
-node_modules/
-.vite/
-*.tsbuildinfo
-dist/
-build/
-coverage/
+# =========================
+# Local Test Artifacts
+# =========================
+.pytest*
+*.aux.sqlite
+*.db.bft_journal.jsonl
 
-# Runtime / local data
-data/
-tmp/
-generated/
+# =========================
+# SQLite / Local Databases
+# =========================
+*.sqlite
 *.db
+*.db-journal
 *.db-wal
 *.db-shm
 
-# Editor / OS
-.DS_Store
-Thumbs.db
+# =========================
+# Logs / Runtime Files
+# =========================
+*.log
+*.tmp
+*.pid
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# Packaging / Installer
+# =========================
+pip-wheel-metadata/
+*.whl
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.key
+*.pem
+
+# =========================
+# IDE / Editor
+# =========================
 .vscode/
 .idea/
 
-# Repo-specific local artifacts
-.dev_backend.log
-.dev_web.log
-web/.env.local
-web/playwright-report/
-web/test-results/
-web/node_modules/
-web/dist/
-Weall-Protocol/.env
-Weall-Protocol/.venv/
-Weall-Protocol/.venv-*/
-Weall-Protocol/.venv-tools/
-Weall-Protocol/data/
-Weall-Protocol/data_local/
-Weall-Protocol/data.backup.test/
-Weall-Protocol/data.before-restore/
-Weall-Protocol/generated/
-Weall-Protocol/weall.db
-Weall-Protocol/.pytest_cache/
-Weall-Protocol/.ruff_cache/
-Weall-Protocol/.mypy_cache/
-Weall-Protocol/cloudflare/email_oracle/.dev.vars
-Weall-Protocol/secrets/*
-!Weall-Protocol/secrets/.gitignore
-!Weall-Protocol/secrets/README.md
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Node / Frontend (if present)
+# =========================
+node_modules/
+
+# =========================
+# IPFS / Local Storage (if used locally)
+# =========================
+.ipfs/
+data/
+storage/
+
+# =========================
+# Coverage / Reports
+# =========================
+*.coverage
+coverage.xml
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.swp
+*.swo
