@@ -26,7 +26,7 @@ htmlcov/
 # =========================
 .pytest*
 *.aux.sqlite
-*.db.bft_journal.jsonl
+*.bft_journal.jsonl
 
 # =========================
 # SQLite / Local Databases
