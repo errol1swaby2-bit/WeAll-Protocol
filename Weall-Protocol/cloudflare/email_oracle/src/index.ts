@@ -1,7 +1,8 @@
 import nacl from "tweetnacl";
 
 export interface Env {
-  DB: D1Database;
+  DB?: D1Database;
+  EMAIL_ORACLE_DB?: D1Database;
 
   TURNSTILE_SECRET_KEY: string;
   RESEND_API_KEY: string;
@@ -16,6 +17,10 @@ export interface Env {
   CHALLENGE_TTL_SECONDS?: string;
   MAX_VERIFY_ATTEMPTS?: string;
   RELAY_ACCOUNT_ID?: string;
+
+  WEALL_CHAIN_AUTHORITY_URL?: string;
+  WEALL_CHAIN_AUTHORITY_TTL_SECONDS?: string;
+  WEALL_ORACLE_ALLOW_DEV_BYPASS?: string;
 }
 
 type StartBody = {
@@ -66,6 +71,18 @@ function json(data: unknown, init?: ResponseInit): Response {
       ...(init?.headers ?? {}),
     },
   });
+}
+
+function logOracleEvent(event: string, fields: Record<string, unknown>): void {
+  console.log(JSON.stringify({ event, ...fields }));
+}
+
+function db(env: Env): D1Database {
+  const handle = env.DB ?? env.EMAIL_ORACLE_DB;
+  if (!handle) {
+    throw new Error("missing_d1_binding");
+  }
+  return handle;
 }
 
 function parseAllowedOrigins(raw: string | undefined): string[] {
@@ -151,6 +168,16 @@ function hexOfBytes(bytes: Uint8Array): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function bytesFromHex(hex: string): Uint8Array {
+  const clean = String(hex || "").trim().toLowerCase();
+  if (!clean || clean.length % 2 !== 0) throw new Error("invalid_hex");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < clean.length; i += 2) {
+    out[i / 2] = Number.parseInt(clean.slice(i, i + 2), 16);
+  }
+  return out;
+}
+
 async function deriveRelayKeypair(env: Env): Promise<{ pubkeyHex: string; secretKey: Uint8Array }> {
   const seed = await sha256Bytes(
     new TextEncoder().encode(String(env.RELAY_SIGNING_SECRET || "")),
@@ -173,6 +200,196 @@ function canonicalRelayPayload(payload: RelayCompletionPayload): string {
     issued_at_ms: payload.issued_at_ms,
     expires_at_ms: payload.expires_at_ms,
   });
+}
+
+type OracleAuthorityRegistry = Record<string, { pubkeys?: string[]; reasons?: string[]; status?: string }>
+
+type OracleAuthoritySnapshot = {
+  chain_id?: string;
+  height?: number;
+  registry: OracleAuthorityRegistry;
+  authorized_accounts: string[];
+  authorized_pubkeys: string[];
+};
+
+let AUTHORITY_CACHE: { fetchedAtMs: number; snapshot: OracleAuthoritySnapshot | null } = {
+  fetchedAtMs: 0,
+  snapshot: null,
+};
+
+function canonicalOracleSignatureMaterial(input: {
+  method: string;
+  path: string;
+  tsMs: number;
+  nonce: string;
+  bodySha256: string;
+  operatorAccount: string;
+  nodePubkey: string;
+}): string {
+  return [
+    "weall-email-oracle-v1",
+    String(input.method || "").trim().toUpperCase(),
+    String(input.path || "").trim(),
+    String(Math.trunc(input.tsMs || 0)),
+    String(input.nonce || "").trim(),
+    String(input.bodySha256 || "").trim().toLowerCase(),
+    String(input.operatorAccount || "").trim(),
+    String(input.nodePubkey || "").trim(),
+    "",
+  ].join("\n");
+}
+
+
+async function claimOracleNonce(env: Env, key: string, expiresAtMs: number): Promise<boolean> {
+  try {
+    await db(env).prepare(
+      `
+      INSERT INTO oracle_request_nonces (nonce_key, expires_at_ms, created_at_ms)
+      VALUES (?, ?, ?)
+      `,
+    )
+      .bind(key, expiresAtMs, nowMs())
+      .run();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function pruneExpiredOracleNonces(env: Env): Promise<void> {
+  try {
+    await db(env).prepare(
+      `DELETE FROM oracle_request_nonces WHERE expires_at_ms <= ?`,
+    )
+      .bind(nowMs())
+      .run();
+  } catch {
+    // best effort
+  }
+}
+
+function envAuthorityUrl(env: Env): string {
+  const raw = String(env.WEALL_CHAIN_AUTHORITY_URL || "").trim();
+  if (!raw) return "";
+  const normalized = raw.replace(/\/+$/, "");
+  if (normalized.endsWith("/v1/poh/email/oracle-authority")) return normalized;
+  return `${normalized}/v1/poh/email/oracle-authority`;
+}
+
+async function fetchOracleAuthoritySnapshot(env: Env): Promise<OracleAuthoritySnapshot | null> {
+  const ttlS = Math.max(5, envInt(env.WEALL_CHAIN_AUTHORITY_TTL_SECONDS, 30));
+  const now = nowMs();
+  if (AUTHORITY_CACHE.snapshot && now - AUTHORITY_CACHE.fetchedAtMs <= ttlS * 1000) {
+    return AUTHORITY_CACHE.snapshot;
+  }
+
+  const url = envAuthorityUrl(env);
+  if (!url) return null;
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: { accept: "application/json" },
+    cf: { cacheTtl: 0, cacheEverything: false },
+  });
+  if (!resp.ok) {
+    logOracleEvent("oracle_authority_fetch_failed", { status: resp.status, url });
+    return null;
+  }
+  const body = (await resp.json().catch(() => null)) as any;
+  if (!body?.ok || typeof body !== "object") return null;
+
+  const snapshot: OracleAuthoritySnapshot = {
+    chain_id: typeof body.chain_id === "string" ? body.chain_id : "",
+    height: Number.isFinite(Number(body.height)) ? Math.trunc(Number(body.height)) : 0,
+    registry: typeof body.registry === "object" && body.registry ? (body.registry as OracleAuthorityRegistry) : {},
+    authorized_accounts: Array.isArray(body.authorized_accounts) ? body.authorized_accounts.map((v: unknown) => String(v || "").trim()).filter(Boolean) : [],
+    authorized_pubkeys: Array.isArray(body.authorized_pubkeys) ? body.authorized_pubkeys.map((v: unknown) => String(v || "").trim()).filter(Boolean) : [],
+  };
+
+  AUTHORITY_CACHE = { fetchedAtMs: now, snapshot };
+  return snapshot;
+}
+
+async function verifyOracleCallerAuthorization(request: Request, env: Env, rawBody: string): Promise<{ ok: true; operatorAccount: string; nodePubkey: string } | { ok: false; status: number; error: string; details?: unknown }> {
+  const allowDevBypass = envBool(env.WEALL_ORACLE_ALLOW_DEV_BYPASS, false);
+  const operatorAccount = String(request.headers.get("x-weall-oracle-account") || "").trim();
+  const nodePubkey = String(request.headers.get("x-weall-oracle-pubkey") || "").trim().toLowerCase();
+  const tsRaw = String(request.headers.get("x-weall-oracle-timestamp") || "").trim();
+  const nonce = String(request.headers.get("x-weall-oracle-nonce") || "").trim();
+  const bodyShaHeader = String(request.headers.get("x-weall-oracle-body-sha256") || "").trim().toLowerCase();
+  const signatureHex = String(request.headers.get("x-weall-oracle-signature") || "").trim().toLowerCase();
+
+  if (!operatorAccount || !nodePubkey || !tsRaw || !nonce || !bodyShaHeader || !signatureHex) {
+    if (allowDevBypass) return { ok: true, operatorAccount: "DEV_BYPASS", nodePubkey: "DEV_BYPASS" };
+    return { ok: false, status: 401, error: "missing_oracle_auth_headers" };
+  }
+
+  const tsMs = Math.trunc(Number(tsRaw));
+  if (!Number.isFinite(tsMs) || tsMs <= 0) {
+    return { ok: false, status: 401, error: "invalid_oracle_timestamp" };
+  }
+  const skewMs = Math.abs(nowMs() - tsMs);
+  if (skewMs > 5 * 60 * 1000) {
+    return { ok: false, status: 401, error: "stale_oracle_timestamp", details: { skew_ms: skewMs } };
+  }
+
+  const computedBodySha = await sha256Hex(rawBody);
+  if (!timingSafeEqualHex(bodyShaHeader, computedBodySha)) {
+    return { ok: false, status: 401, error: "oracle_body_hash_mismatch" };
+  }
+
+  const snapshot = await fetchOracleAuthoritySnapshot(env);
+  if (!snapshot) {
+    logOracleEvent("oracle_auth_rejected", { reason: "oracle_authority_unavailable" });
+    return { ok: false, status: 503, error: "oracle_authority_unavailable" };
+  }
+
+  const rec = snapshot.registry?.[operatorAccount];
+  const authorizedPubkeys = Array.isArray(rec?.pubkeys) ? rec!.pubkeys!.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean) : [];
+  if (!authorizedPubkeys.includes(nodePubkey)) {
+    logOracleEvent("oracle_auth_rejected", {
+      reason: "oracle_operator_not_authorized",
+      operator_account: operatorAccount,
+      node_pubkey: nodePubkey,
+      authorized_pubkeys: authorizedPubkeys,
+      authority_accounts: snapshot.authorized_accounts,
+    });
+    return { ok: false, status: 403, error: "oracle_operator_not_authorized", details: { operator_account: operatorAccount, node_pubkey: nodePubkey, authorized_pubkeys: authorizedPubkeys } };
+  }
+
+  const msg = canonicalOracleSignatureMaterial({
+    method: request.method,
+    path: new URL(request.url).pathname,
+    tsMs,
+    nonce,
+    bodySha256: computedBodySha,
+    operatorAccount,
+    nodePubkey,
+  });
+
+  const nonceKey = await sha256Hex(`${operatorAccount}|${nodePubkey}|${tsMs}|${nonce}|${computedBodySha}`);
+  await pruneExpiredOracleNonces(env);
+  if (!(await claimOracleNonce(env, nonceKey, tsMs + 10 * 60 * 1000))) {
+    logOracleEvent("oracle_auth_rejected", { reason: "oracle_nonce_replay", operator_account: operatorAccount, node_pubkey: nodePubkey });
+    return { ok: false, status: 409, error: "oracle_nonce_replay" };
+  }
+
+  let okSig = false;
+  try {
+    okSig = nacl.sign.detached.verify(
+      new TextEncoder().encode(msg),
+      bytesFromHex(signatureHex),
+      bytesFromHex(nodePubkey),
+    );
+  } catch {
+    okSig = false;
+  }
+  if (!okSig) {
+    logOracleEvent("oracle_auth_rejected", { reason: "invalid_oracle_signature", operator_account: operatorAccount, node_pubkey: nodePubkey });
+    return { ok: false, status: 401, error: "invalid_oracle_signature" };
+  }
+
+  return { ok: true, operatorAccount, nodePubkey };
 }
 
 async function signRelayCompletionToken(
@@ -261,15 +478,22 @@ function requireString(value: unknown): string | null {
 async function handleStart(request: Request, env: Env): Promise<Response> {
   const origin = request.headers.get("Origin");
 
+  const rawBody = await request.text().catch(() => "");
+  const authz = await verifyOracleCallerAuthorization(request, env, rawBody);
+  if (!authz.ok) {
+    logOracleEvent("oracle_start_rejected", { error: authz.error, details: authz.details ?? null, status: authz.status });
+    return json({ ok: false, error: authz.error, details: authz.details ?? null }, { status: authz.status, headers: corsHeaders(origin, env) });
+  }
+
   let body: StartBody;
   try {
-    body = (await request.json()) as StartBody;
+    body = JSON.parse(rawBody || "{}") as StartBody;
   } catch {
     return badRequest(env, origin, "invalid_json");
   }
 
   const accountId = requireString(body.account_id);
-  const operatorAccountId = requireString(body.operator_account_id);
+  const operatorAccountId = requireString(body.operator_account_id) || authz.operatorAccount;
   const emailRaw = requireString(body.email);
   const turnstileToken = requireString(body.turnstile_token);
 
@@ -285,11 +509,13 @@ async function handleStart(request: Request, env: Env): Promise<Response> {
     const bypassAllowed = allowBypass && turnstileToken === bypassToken;
     if (!bypassAllowed) {
       if (!turnstileToken) {
+        logOracleEvent("oracle_start_rejected", { error: "missing_turnstile_token", account_id: accountId, operator_account_id: operatorAccountId });
         return badRequest(env, origin, "missing_turnstile_token");
       }
       const remoteIp = request.headers.get("CF-Connecting-IP");
       const checked = await verifyTurnstile(env, turnstileToken, remoteIp);
       if (!checked.success) {
+        logOracleEvent("oracle_start_rejected", { error: "turnstile_invalid", account_id: accountId, operator_account_id: operatorAccountId, turnstile: checked.body });
         return forbidden(env, origin, "turnstile_invalid", checked.body);
       }
     }
@@ -310,11 +536,12 @@ async function handleStart(request: Request, env: Env): Promise<Response> {
     const sent = await sendVerificationEmail(env, email, code, accountId);
     resendId = sent.id ?? null;
   } catch (error) {
+    logOracleEvent("oracle_start_rejected", { error: "email_send_failed", account_id: accountId, operator_account_id: operatorAccountId, details: String(error) });
     return serverError(env, origin, "email_send_failed", String(error));
   }
 
   try {
-    await env.DB.prepare(
+    await db(env).prepare(
       `
       INSERT INTO email_challenges (
         challenge_id,
@@ -343,9 +570,11 @@ async function handleStart(request: Request, env: Env): Promise<Response> {
       )
       .run();
   } catch (error) {
+    logOracleEvent("oracle_start_rejected", { error: "challenge_store_failed", account_id: accountId, operator_account_id: operatorAccountId, details: String(error) });
     return serverError(env, origin, "challenge_store_failed", String(error));
   }
 
+  logOracleEvent("oracle_start_accepted", { account_id: accountId, operator_account_id: operatorAccountId, challenge_id: challengeId, resend_id: resendId });
   return json(
     {
       ok: true,
@@ -362,9 +591,16 @@ async function handleStart(request: Request, env: Env): Promise<Response> {
 async function handleVerify(request: Request, env: Env): Promise<Response> {
   const origin = request.headers.get("Origin");
 
+  const rawBody = await request.text().catch(() => "");
+  const authz = await verifyOracleCallerAuthorization(request, env, rawBody);
+  if (!authz.ok) {
+    logOracleEvent("oracle_start_rejected", { error: authz.error, details: authz.details ?? null, status: authz.status });
+    return json({ ok: false, error: authz.error, details: authz.details ?? null }, { status: authz.status, headers: corsHeaders(origin, env) });
+  }
+
   let body: VerifyBody;
   try {
-    body = (await request.json()) as VerifyBody;
+    body = JSON.parse(rawBody || "{}") as VerifyBody;
   } catch {
     return badRequest(env, origin, "invalid_json");
   }
@@ -390,7 +626,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
     | null = null;
 
   try {
-    row = await env.DB.prepare(
+    row = await db(env).prepare(
       `
       SELECT challenge_id, account_id, operator_account_id, email, code_hash, status, attempts, created_at_ms, expires_at_ms
       FROM email_challenges
@@ -421,7 +657,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
     return badRequest(env, origin, "challenge_not_pending", { status: row.status });
   }
   if (now > row.expires_at_ms) {
-    await env.DB.prepare(
+    await db(env).prepare(
       `UPDATE email_challenges SET status = 'expired' WHERE challenge_id = ?`,
     )
       .bind(challengeId)
@@ -431,7 +667,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
 
   const maxAttempts = Math.max(1, envInt(env.MAX_VERIFY_ATTEMPTS, 8));
   if (row.attempts >= maxAttempts) {
-    await env.DB.prepare(
+    await db(env).prepare(
       `UPDATE email_challenges SET status = 'failed' WHERE challenge_id = ?`,
     )
       .bind(challengeId)
@@ -444,7 +680,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
   );
 
   if (!timingSafeEqualHex(candidateHash, row.code_hash)) {
-    await env.DB.prepare(
+    await db(env).prepare(
       `UPDATE email_challenges SET attempts = attempts + 1 WHERE challenge_id = ?`,
     )
       .bind(challengeId)
@@ -454,7 +690,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
 
   const verifiedAt = nowMs();
   try {
-    await env.DB.prepare(
+    await db(env).prepare(
       `
       UPDATE email_challenges
       SET status = 'verified',
@@ -526,3 +762,10 @@ export default {
     return json({ ok: false, error: "not_found" }, { status: 404, headers: corsHeaders(origin, env) });
   },
 };
+export class EmailCodesDO {
+  constructor(_state: DurableObjectState, _env: unknown) {}
+
+  async fetch(_request: Request): Promise<Response> {
+    return new Response("EmailCodesDO legacy compatibility stub", { status: 410 });
+  }
+}

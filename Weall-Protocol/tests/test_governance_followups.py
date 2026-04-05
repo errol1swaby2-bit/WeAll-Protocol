@@ -14,10 +14,8 @@ def _load_index():
     return load_tx_index_json(canon_path)
 
 
-def test_gov_execute_enqueues_execution_receipt() -> None:
-    idx = _load_index()
-
-    st = {
+def _mk_state() -> dict:
+    return {
         "height": 0,
         "accounts": {
             "alice": {
@@ -37,9 +35,27 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
         },
         "roles": {},
         "system_queue": [],
+        "params": {
+            "gov_action_allowlist": [
+                "ECONOMICS_ACTIVATION",
+                "FEE_POLICY_SET",
+                "GOV_QUORUM_SET",
+                "GOV_RULES_SET",
+                "TREASURY_PARAMS_SET",
+                "VALIDATOR_SET_UPDATE",
+                "VALIDATOR_CANDIDATE_APPROVE",
+                "VALIDATOR_SUSPEND",
+                "VALIDATOR_REMOVE",
+            ]
+        },
     }
 
-    # Create proposal (mempool tx)
+
+def test_gov_execute_enqueues_execution_receipt() -> None:
+    idx = _load_index()
+
+    st = _mk_state()
+
     apply_tx(
         st,
         TxEnvelope(
@@ -52,7 +68,6 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
         ),
     )
 
-    # Apply GOV_EXECUTE (receipt-only, SYSTEM) as if it arrived from system queue at height=1
     apply_tx(
         st,
         TxEnvelope(
@@ -76,7 +91,6 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
     assert str(rec_items[0].get("phase")) == "post"
     assert str(rec_items[0].get("parent") or "").strip() != ""
 
-    # Emit + apply receipt at height=2
     post_h2 = system_tx_emitter(st, canon=idx, next_height=2, phase="post")
     assert "GOV_EXECUTION_RECEIPT" in [e.tx_type for e in post_h2]
     for env in post_h2:
@@ -87,30 +101,59 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
     assert len(log) >= 1
 
 
+def test_gov_execute_enqueues_validator_candidate_approve() -> None:
+    idx = _load_index()
+    st = _mk_state()
+
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="GOV_PROPOSAL_CREATE",
+            signer="alice",
+            nonce=1,
+            payload={
+                "proposal_id": "p-approve",
+                "title": "approve validator candidate",
+                "actions": [
+                    {
+                        "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
+                        "payload": {"account": "bob", "activate_at_epoch": 4},
+                    }
+                ],
+            },
+            sig="",
+            system=False,
+        ),
+    )
+
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="GOV_EXECUTE",
+            signer="SYSTEM",
+            nonce=1,
+            payload={"proposal_id": "p-approve", "_due_height": 1, "_system_queue_id": "qid-approve"},
+            sig="",
+            parent="tx:alice:1",
+            system=True,
+        ),
+    )
+
+    q = st.get("system_queue")
+    assert isinstance(q, list)
+    items = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "VALIDATOR_CANDIDATE_APPROVE"]
+    assert len(items) == 1
+    assert int(items[0].get("due_height")) == 2
+    assert str(items[0].get("phase")) == "post"
+
+    post_h2 = system_tx_emitter(st, canon=idx, next_height=2, phase="post")
+    assert "VALIDATOR_CANDIDATE_APPROVE" in [e.tx_type for e in post_h2]
+
+
 def test_gov_finalize_enqueues_proposal_receipt() -> None:
     idx = _load_index()
 
-    st = {
-        "height": 0,
-        "accounts": {
-            "alice": {
-                "nonce": 0,
-                "poh_tier": 3,
-                "banned": False,
-                "locked": False,
-                "reputation": 10,
-            },
-            "SYSTEM": {
-                "nonce": 0,
-                "poh_tier": 3,
-                "banned": False,
-                "locked": False,
-                "reputation": 10,
-            },
-        },
-        "roles": {},
-        "system_queue": [],
-    }
+    st = _mk_state()
 
     apply_tx(
         st,
@@ -124,7 +167,6 @@ def test_gov_finalize_enqueues_proposal_receipt() -> None:
         ),
     )
 
-    # Apply finalize receipt-only tx as if produced by GovExecutor at height=1
     apply_tx(
         st,
         TxEnvelope(

@@ -260,6 +260,8 @@ def _register_many(names: Iterable[str], family: TxFamily, barrier: BarrierClass
 _register_many(
     [
         "VALIDATOR_REGISTER",
+        "VALIDATOR_CANDIDATE_REGISTER",
+        "VALIDATOR_CANDIDATE_APPROVE",
         "VALIDATOR_DEREGISTER",
         "VALIDATOR_SET_UPDATE",
         "BLOCK_PROPOSE",
@@ -275,7 +277,17 @@ _register_many(
     BarrierClass.GLOBAL_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["VALIDATOR_HEARTBEAT"], TxFamily.CONSENSUS, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    [
+        "VALIDATOR_HEARTBEAT",
+        "VALIDATOR_CANDIDATE_APPROVE",
+        "VALIDATOR_SUSPEND",
+        "VALIDATOR_REMOVE",
+    ],
+    TxFamily.CONSENSUS,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [

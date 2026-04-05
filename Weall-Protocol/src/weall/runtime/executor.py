@@ -897,18 +897,20 @@ class WeAllExecutor:
           - adequate starting reputation for operator duties
           - an active node-operator role record
           - an enabled storage-operator record
+          - validator-role enrollment + active validator set membership
+          - consensus validator pubkey registry
+          - genesis bootstrap founder allowlist/metadata used by PoH oracle authority
 
-        Env contract:
-          - WEALL_GENESIS_BOOTSTRAP_ENABLE=1: required to activate bootstrap
-          - WEALL_GENESIS_BOOTSTRAP_ACCOUNT: required with PUBKEY when enabled
-          - WEALL_GENESIS_BOOTSTRAP_PUBKEY: required with ACCOUNT when enabled
-          - WEALL_GENESIS_BOOTSTRAP_REPUTATION: optional, default 1.0
-          - WEALL_GENESIS_BOOTSTRAP_STORAGE_CAPACITY_BYTES: optional, default 0
+        Bootstrap activation modes:
+          - Explicit mode: WEALL_GENESIS_BOOTSTRAP_ENABLE=1 plus ACCOUNT/PUBKEY envs
+          - Genesis-node mode: WEALL_GENESIS_MODE=1 derives account/pubkey from the
+            normal validator identity envs so an authorized genesis node can boot
+            without a second set of bootstrap-only secrets.
 
         Safety properties:
           - No implicit "first node" auto-elevation.
-          - Bootstrap is off by default unless WEALL_GENESIS_BOOTSTRAP_ENABLE=1.
-          - If enabled, missing or partial config fails closed.
+          - Bootstrap is still off by default unless explicit bootstrap or genesis mode is enabled.
+          - Missing or partial config fails closed.
           - If WEALL_NODE_ID is set and differs from BOOTSTRAP_ACCOUNT, fail-closed.
         """
 
@@ -919,30 +921,39 @@ class WeAllExecutor:
         if height != 0:
             return
 
-        enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
+        explicit_enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
+        genesis_mode_enabled = _env_bool("WEALL_GENESIS_MODE", False)
+        if not explicit_enabled and not genesis_mode_enabled:
+            return
+
         acct = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT") or "").strip()
         pk = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_PUBKEY") or "").strip()
-
-        if not enabled:
-            return
+        if genesis_mode_enabled:
+            acct = acct or str(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or self.node_id or os.environ.get("WEALL_NODE_ID") or "").strip()
+            pk = pk or str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
 
         if not acct and not pk:
             raise ExecutorError(
-                "genesis_bootstrap_config_error: WEALL_GENESIS_BOOTSTRAP_ENABLE=1 requires both "
-                "WEALL_GENESIS_BOOTSTRAP_ACCOUNT and WEALL_GENESIS_BOOTSTRAP_PUBKEY."
+                "genesis_bootstrap_config_error: genesis bootstrap requires an account and pubkey. "
+                "Set WEALL_GENESIS_BOOTSTRAP_ACCOUNT/WEALL_GENESIS_BOOTSTRAP_PUBKEY or enable "
+                "WEALL_GENESIS_MODE=1 with WEALL_VALIDATOR_ACCOUNT and WEALL_NODE_PUBKEY."
             )
 
         if not acct or not pk:
             raise ExecutorError(
-                "genesis_bootstrap_config_error: both WEALL_GENESIS_BOOTSTRAP_ACCOUNT and "
-                "WEALL_GENESIS_BOOTSTRAP_PUBKEY must be set (or neither)."
+                "genesis_bootstrap_config_error: both bootstrap account and bootstrap pubkey must be set (or neither)."
             )
 
         node_id = str(os.environ.get("WEALL_NODE_ID") or self.node_id or "").strip()
         if node_id and node_id != acct:
             raise ExecutorError(
-                "genesis_bootstrap_config_error: WEALL_NODE_ID does not match "
-                "WEALL_GENESIS_BOOTSTRAP_ACCOUNT (refuse to grant Tier 3 to a different account)."
+                "genesis_bootstrap_config_error: WEALL_NODE_ID does not match bootstrap account."
+            )
+
+        validator_account = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or "").strip()
+        if validator_account and validator_account != acct:
+            raise ExecutorError(
+                "genesis_bootstrap_config_error: WEALL_VALIDATOR_ACCOUNT does not match bootstrap account."
             )
 
         bootstrap_rep_raw = os.environ.get("WEALL_GENESIS_BOOTSTRAP_REPUTATION")
@@ -1019,6 +1030,22 @@ class WeAllExecutor:
         poh_meta.setdefault("tier3_reason", "genesis_bootstrap_tier3")
         poh_meta.setdefault("bootstrap_operator_bundle", True)
 
+        params = state.get("params")
+        if not isinstance(params, dict):
+            params = {}
+            state["params"] = params
+        params.setdefault("bootstrap_founder_account", acct)
+        allowlist = params.get("bootstrap_allowlist")
+        if not isinstance(allowlist, dict):
+            allowlist = {}
+            params["bootstrap_allowlist"] = allowlist
+        allow_rec = allowlist.get(acct)
+        if not isinstance(allow_rec, dict):
+            allow_rec = {}
+            allowlist[acct] = allow_rec
+        allow_rec["pubkey"] = pk
+        allow_rec.setdefault("source", "genesis_bootstrap")
+
         roles = ensure_roles_schema(state)
         node_ops = roles.get("node_operators")
         if not isinstance(node_ops, dict):
@@ -1043,6 +1070,55 @@ class WeAllExecutor:
         if acct not in aset:
             aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
         node_ops["active_set"] = aset
+
+        validators_role = roles.get("validators")
+        if not isinstance(validators_role, dict):
+            validators_role = {}
+            roles["validators"] = validators_role
+        active_validators = validators_role.get("active_set")
+        if not isinstance(active_validators, list):
+            active_validators = []
+        if acct not in active_validators:
+            active_validators = sorted({*(str(x) for x in active_validators if str(x).strip()), acct})
+        validators_role["active_set"] = active_validators
+
+        consensus = state.get("consensus")
+        if not isinstance(consensus, dict):
+            consensus = {}
+            state["consensus"] = consensus
+        consensus_validators = consensus.get("validators")
+        if not isinstance(consensus_validators, dict):
+            consensus_validators = {}
+            consensus["validators"] = consensus_validators
+        registry = consensus_validators.get("registry")
+        if not isinstance(registry, dict):
+            registry = {}
+            consensus_validators["registry"] = registry
+        reg = registry.get(acct)
+        if not isinstance(reg, dict):
+            reg = {}
+            registry[acct] = reg
+        reg["account_id"] = acct
+        reg["pubkey"] = pk
+        reg["status"] = str(reg.get("status") or "active")
+        reg.setdefault("source", "genesis_bootstrap")
+
+        validators_root = state.get("validators")
+        if not isinstance(validators_root, dict):
+            validators_root = {}
+            state["validators"] = validators_root
+        validators_registry = validators_root.get("registry")
+        if not isinstance(validators_registry, dict):
+            validators_registry = {}
+            validators_root["registry"] = validators_registry
+        vroot = validators_registry.get(acct)
+        if not isinstance(vroot, dict):
+            vroot = {}
+            validators_registry[acct] = vroot
+        vroot["account_id"] = acct
+        vroot["pubkey"] = pk
+        vroot["status"] = str(vroot.get("status") or "active")
+        vroot.setdefault("source", "genesis_bootstrap")
 
         storage = state.get("storage")
         if not isinstance(storage, dict):

@@ -65,3 +65,79 @@ def test_validator_set_update_requires_active_set_list() -> None:
     assert not ok
     assert rej is not None
     assert rej.code == "invalid_payload"
+
+
+def test_validator_candidate_register_requires_node_and_endpoint_fields() -> None:
+    idx = _load_index()
+    ledger = _ledger(0)
+
+    env = TxEnvelope(
+        tx_type="VALIDATOR_CANDIDATE_REGISTER",
+        signer="@alice",
+        nonce=1,
+        payload={"pubkey": "ed25519:alice"},
+        sig="deadbeef",
+        parent=None,
+    )
+    ok, rej = admit_tx(env, ledger, idx, context="mempool")
+    assert not ok
+    assert rej is not None
+    assert rej.code == "invalid_payload"
+
+
+def test_validator_candidate_approve_requires_account_and_epoch() -> None:
+    idx = _load_index()
+    ledger = _ledger(0)
+
+    env = TxEnvelope(
+        tx_type="VALIDATOR_CANDIDATE_APPROVE",
+        signer="@alice",
+        nonce=1,
+        payload={"account": "@alice"},
+        sig="deadbeef",
+        parent="gov:exec:1",
+        system=True,
+    )
+    ok, rej = admit_tx(env, ledger, idx, context="block")
+    assert not ok
+    assert rej is not None
+    assert rej.code == "invalid_payload"
+
+
+
+def test_validator_suspend_requires_account_and_effective_epoch() -> None:
+    idx = _load_index()
+    ledger = _ledger(0)
+
+    env = TxEnvelope(
+        tx_type="VALIDATOR_SUSPEND",
+        signer="@alice",
+        nonce=1,
+        payload={"account": "@alice"},
+        sig="deadbeef",
+        parent="gov:exec:1",
+        system=True,
+    )
+    ok, rej = admit_tx(env, ledger, idx, context="block")
+    assert not ok
+    assert rej is not None
+    assert rej.code == "invalid_payload"
+
+
+def test_validator_remove_requires_account_and_effective_epoch() -> None:
+    idx = _load_index()
+    ledger = _ledger(0)
+
+    env = TxEnvelope(
+        tx_type="VALIDATOR_REMOVE",
+        signer="@alice",
+        nonce=1,
+        payload={"effective_epoch": 2},
+        sig="deadbeef",
+        parent="gov:exec:1",
+        system=True,
+    )
+    ok, rej = admit_tx(env, ledger, idx, context="block")
+    assert not ok
+    assert rej is not None
+    assert rej.code == "invalid_payload"

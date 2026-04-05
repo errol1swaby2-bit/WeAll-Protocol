@@ -1,46 +1,19 @@
-version: "3.9"
-
 services:
   ipfs:
-    # Pin to a specific Kubo version for reproducible production deployments.
-    # Update intentionally (and together across the fleet).
     image: ipfs/kubo:v0.29.0
     container_name: weall-ipfs
     restart: unless-stopped
 
-    # Store the IPFS repo on a mounted path you control.
-    # IMPORTANT: this must be the SAME host path you set as WEALL_IPFS_PARTITION_PATH
-    # when running the WeAll backend, so quota checks reflect reality.
-    #
-    # Default (if env not set): ./data/ipfs_partition
     volumes:
-      - ${WEALL_IPFS_PARTITION_PATH:-./data/ipfs_partition}:/mnt/weall-ipfs
+      - ${WEALL_IPFS_PARTITION_PATH:-./data/ipfs_partition}:/data/ipfs
 
     environment:
-      # Use a repo directory inside the mounted partition.
-      - IPFS_PATH=/mnt/weall-ipfs/ipfs-repo
-
-      # Disable the "public gateway" behavior that can be abused in some deployments.
-      # We are running a local gateway for our node/web, not an internet gateway service.
+      - IPFS_PATH=/data/ipfs
       - IPFS_PROFILE=server
-
-      # Optional: reduce log noise
       - IPFS_LOGGING=info
 
-      # NOTE: Keep CORS locked down if you ever allow browser access.
-      # - IPFS_API_HTTPHeaders_Access-Control-Allow-Origin=["https://your-web-origin"]
-      # - IPFS_API_HTTPHeaders_Access-Control-Allow-Methods=["PUT", "POST"]
-
-    # Kubo ports:
-    #  - 4001: swarm
-    #  - 5001: API
-    #  - 8080: gateway
     ports:
-      # Swarm must be reachable for the IPFS network.
       - "4001:4001"
       - "4001:4001/udp"
-
-      # Do NOT expose the API or gateway publicly by default.
-      # Keep them local to the host (or place behind a reverse proxy you control).
       - "127.0.0.1:5001:5001"
       - "127.0.0.1:8080:8080"

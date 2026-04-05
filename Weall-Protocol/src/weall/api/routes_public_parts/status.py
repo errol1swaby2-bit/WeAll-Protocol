@@ -266,6 +266,83 @@ def _consensus_diagnostics(ex: Any) -> dict[str, Any]:
     return {}
 
 
+
+def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str) -> dict[str, Any]:
+    validators_root = state.get("validators")
+    registry = validators_root.get("registry") if isinstance(validators_root, dict) else None
+    if not isinstance(registry, dict):
+        registry = {}
+    rec = registry.get(validator_account) if validator_account else None
+    rec = rec if isinstance(rec, dict) else {}
+
+    consensus = state.get("consensus")
+    consensus = consensus if isinstance(consensus, dict) else {}
+    epochs = consensus.get("epochs")
+    epochs = epochs if isinstance(epochs, dict) else {}
+    validator_set = consensus.get("validator_set")
+    validator_set = validator_set if isinstance(validator_set, dict) else {}
+    pending = validator_set.get("pending")
+    pending = pending if isinstance(pending, dict) else {}
+
+    current_epoch = _safe_int(epochs.get("current", validator_set.get("epoch", 0)), 0)
+    current_set_hash = _safe_str(validator_set.get("set_hash"), "")
+    active_validators = _active_validators(state)
+    pending_active_set = pending.get("active_set") if isinstance(pending.get("active_set"), list) else []
+    pending_activate_at_epoch = _safe_int(pending.get("activate_at_epoch"), 0)
+
+    if validator_account and not rec:
+        if validator_account in active_validators:
+            lifecycle_state = "active"
+        else:
+            lifecycle_state = "observer"
+    else:
+        lifecycle_state = _safe_str(rec.get("status"), "observer") or "observer"
+        if lifecycle_state == "active_validator":
+            lifecycle_state = "active"
+
+    pending_activation_epoch = _safe_int(
+        rec.get("effective_epoch", rec.get("approved_activation_epoch", rec.get("requested_activation_epoch", 0))),
+        0,
+    )
+    if validator_account and validator_account in pending_active_set and pending_activate_at_epoch > 0:
+        pending_activation_epoch = pending_activate_at_epoch
+        if lifecycle_state in {"candidate", "observer"}:
+            lifecycle_state = "pending_activation"
+
+    local_is_active = bool(validator_account and validator_account in active_validators and lifecycle_state not in {"removed", "suspended"})
+    local_is_pending = bool(
+        lifecycle_state == "pending_activation"
+        or (
+            validator_account
+            and validator_account in pending_active_set
+            and pending_activate_at_epoch > current_epoch
+        )
+    )
+
+    if lifecycle_state == "observer" and local_is_pending:
+        lifecycle_state = "pending_activation"
+    if lifecycle_state == "observer" and local_is_active:
+        lifecycle_state = "active"
+
+    return {
+        "validator_lifecycle_state": lifecycle_state,
+        "local_validator_account": _safe_str(validator_account, ""),
+        "local_validator_record_found": bool(validator_account and isinstance(rec, dict) and bool(rec)),
+        "local_validator_pubkey": _safe_str(rec.get("pubkey"), ""),
+        "local_validator_node_id": _safe_str(rec.get("node_id"), ""),
+        "local_validator_is_active": local_is_active,
+        "local_validator_is_pending": local_is_pending,
+        "local_validator_is_suspended": lifecycle_state == "suspended",
+        "local_validator_is_removed": lifecycle_state == "removed",
+        "pending_activation_epoch": int(pending_activation_epoch) if pending_activation_epoch > 0 else None,
+        "current_validator_epoch": current_epoch,
+        "current_validator_set_hash": current_set_hash,
+        "requested_activation_epoch": _safe_int(rec.get("requested_activation_epoch"), 0) or None,
+        "approved_activation_epoch": _safe_int(rec.get("approved_activation_epoch"), 0) or None,
+        "validator_registry_status": _safe_str(rec.get("status"), lifecycle_state),
+        "validator_metadata_hash": _safe_str(rec.get("metadata_hash"), ""),
+    }
+
 def _runtime_profile_payload(diag: Mapping[str, Any]) -> dict[str, Any]:
     posture = effective_runtime_consensus_posture()
     return {
@@ -418,6 +495,10 @@ def status_operator(request: Request) -> dict[str, Any]:
         "helper_status": payload["helper"]["helper_status"],
         "helper_severity": payload["helper"]["helper_severity"],
         "helper_summary": payload["helper"]["helper_summary"],
+        **_local_validator_lifecycle(state, _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")),
+        "signing_enabled_locally": bool(payload.get("startup_fingerprint", {}).get("mode") or True),
+        "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
+        "signing_block_reason": _safe_str(getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""),
     }
     return payload
 
@@ -451,6 +532,7 @@ def status_consensus(request: Request) -> dict[str, Any]:
         "next_leader": nxt,
         "local_is_active_validator": validator_account in validators if validator_account else False,
         "local_is_expected_leader": bool(validator_account and validator_account == current),
+        **_local_validator_lifecycle(state, validator_account),
         "high_qc": {
             "block_id": _safe_str((high_qc or {}).get("block_id"), _safe_str(diag.get("high_qc_id"), "")),
             "vote_count": len((high_qc or {}).get("votes", [])) if isinstance((high_qc or {}).get("votes"), list) else 0,

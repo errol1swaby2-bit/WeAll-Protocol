@@ -280,6 +280,29 @@ def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
         miss = _required(p, ("endpoint",))
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
+    if t == "VALIDATOR_CANDIDATE_REGISTER":
+        required = ("node_id", "pubkey")
+        miss = _required(p, required)
+        if miss:
+            return _rej("invalid_payload", f"missing:{miss}", field=miss)
+        endpoints = p.get("endpoints")
+        endpoint = p.get("endpoint")
+        if not endpoint and not (isinstance(endpoints, list) and len(endpoints) > 0):
+            return _rej("invalid_payload", "missing:endpoints", field="endpoints")
+        return None
+
+    if t == "VALIDATOR_CANDIDATE_APPROVE":
+        miss = _required(p, ("account", "activate_at_epoch"))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_SUSPEND":
+        miss = _required(p, ("account", "effective_epoch"))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
+    if t == "VALIDATOR_REMOVE":
+        miss = _required(p, ("account", "effective_epoch"))
+        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+
     if t == "VALIDATOR_HEARTBEAT":
         miss = _required(p, ("node_id",))
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None

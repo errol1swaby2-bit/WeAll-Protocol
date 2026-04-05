@@ -1,0 +1,2926 @@
+{
+  "by_id": {
+    "1": 0,
+    "10": 9,
+    "100": 10,
+    "1000": 122,
+    "1001": 123,
+    "1002": 124,
+    "1003": 125,
+    "1004": 126,
+    "101": 11,
+    "102": 12,
+    "103": 13,
+    "104": 14,
+    "105": 15,
+    "110": 16,
+    "1100": 127,
+    "1101": 128,
+    "1102": 129,
+    "1103": 130,
+    "1104": 131,
+    "1105": 132,
+    "1106": 133,
+    "1107": 134,
+    "1108": 135,
+    "1109": 136,
+    "111": 17,
+    "1110": 137,
+    "1111": 138,
+    "1112": 139,
+    "1113": 140,
+    "112": 18,
+    "113": 19,
+    "114": 20,
+    "115": 21,
+    "116": 22,
+    "120": 23,
+    "1200": 141,
+    "1201": 142,
+    "1202": 143,
+    "1203": 144,
+    "1204": 145,
+    "121": 24,
+    "122": 25,
+    "123": 26,
+    "124": 27,
+    "125": 28,
+    "126": 29,
+    "127": 30,
+    "128": 31,
+    "1300": 146,
+    "1301": 147,
+    "1304": 148,
+    "1305": 149,
+    "1400": 150,
+    "1401": 151,
+    "1500": 152,
+    "1501": 153,
+    "1600": 154,
+    "1601": 155,
+    "1602": 156,
+    "1603": 157,
+    "1604": 158,
+    "1700": 159,
+    "1701": 160,
+    "1702": 161,
+    "1703": 162,
+    "1704": 163,
+    "1705": 164,
+    "1706": 165,
+    "1707": 166,
+    "1708": 167,
+    "1709": 168,
+    "1710": 169,
+    "1711": 170,
+    "1712": 171,
+    "1713": 172,
+    "1714": 173,
+    "1715": 174,
+    "1716": 175,
+    "1717": 176,
+    "1800": 177,
+    "1801": 178,
+    "1802": 179,
+    "1803": 180,
+    "1804": 181,
+    "1900": 182,
+    "1901": 183,
+    "1902": 184,
+    "2": 1,
+    "200": 32,
+    "2000": 185,
+    "2001": 186,
+    "2002": 187,
+    "201": 33,
+    "202": 34,
+    "203": 35,
+    "204": 36,
+    "205": 37,
+    "206": 38,
+    "207": 39,
+    "208": 40,
+    "209": 41,
+    "210": 42,
+    "2100": 188,
+    "2101": 189,
+    "2102": 190,
+    "2103": 191,
+    "2104": 192,
+    "2105": 193,
+    "2106": 194,
+    "2107": 195,
+    "211": 43,
+    "2200": 196,
+    "2201": 197,
+    "2202": 198,
+    "2203": 199,
+    "2204": 200,
+    "2205": 201,
+    "2400": 202,
+    "2401": 203,
+    "2402": 204,
+    "2500": 205,
+    "2501": 206,
+    "2502": 207,
+    "2503": 208,
+    "2504": 209,
+    "2505": 210,
+    "2506": 211,
+    "2600": 212,
+    "2601": 213,
+    "3": 2,
+    "300": 44,
+    "301": 45,
+    "302": 46,
+    "303": 47,
+    "304": 48,
+    "305": 49,
+    "306": 50,
+    "307": 51,
+    "308": 52,
+    "309": 53,
+    "310": 54,
+    "320": 55,
+    "321": 56,
+    "322": 57,
+    "323": 58,
+    "4": 3,
+    "400": 59,
+    "401": 60,
+    "402": 61,
+    "403": 62,
+    "404": 63,
+    "405": 64,
+    "406": 65,
+    "407": 66,
+    "408": 67,
+    "409": 68,
+    "410": 69,
+    "411": 70,
+    "5": 4,
+    "500": 71,
+    "501": 72,
+    "502": 73,
+    "503": 74,
+    "504": 75,
+    "505": 76,
+    "506": 77,
+    "507": 78,
+    "508": 79,
+    "509": 80,
+    "510": 81,
+    "511": 82,
+    "512": 83,
+    "6": 5,
+    "600": 84,
+    "601": 85,
+    "602": 86,
+    "603": 87,
+    "604": 88,
+    "605": 89,
+    "606": 90,
+    "607": 91,
+    "608": 92,
+    "609": 93,
+    "610": 94,
+    "611": 95,
+    "612": 96,
+    "613": 97,
+    "7": 6,
+    "700": 98,
+    "701": 99,
+    "702": 100,
+    "703": 101,
+    "704": 102,
+    "705": 103,
+    "8": 7,
+    "800": 104,
+    "801": 105,
+    "802": 106,
+    "803": 107,
+    "804": 108,
+    "805": 109,
+    "806": 110,
+    "807": 111,
+    "808": 112,
+    "809": 113,
+    "810": 114,
+    "811": 115,
+    "9": 8,
+    "900": 116,
+    "901": 117,
+    "902": 118,
+    "903": 119,
+    "904": 120,
+    "905": 121
+  },
+  "by_name": {
+    "ACCOUNT_BAN": 120,
+    "ACCOUNT_DEVICE_REGISTER": 3,
+    "ACCOUNT_DEVICE_REVOKE": 4,
+    "ACCOUNT_GUARDIAN_ADD": 189,
+    "ACCOUNT_GUARDIAN_REMOVE": 190,
+    "ACCOUNT_KEY_ADD": 1,
+    "ACCOUNT_KEY_REVOKE": 2,
+    "ACCOUNT_LOCK": 8,
+    "ACCOUNT_RECOVERY_APPROVE": 192,
+    "ACCOUNT_RECOVERY_CANCEL": 193,
+    "ACCOUNT_RECOVERY_CONFIG_SET": 188,
+    "ACCOUNT_RECOVERY_FINALIZE": 194,
+    "ACCOUNT_RECOVERY_RECEIPT": 195,
+    "ACCOUNT_RECOVERY_REQUEST": 191,
+    "ACCOUNT_REGISTER": 0,
+    "ACCOUNT_REINSTATE": 121,
+    "ACCOUNT_SECURITY_POLICY_SET": 7,
+    "ACCOUNT_SESSION_KEY_ISSUE": 5,
+    "ACCOUNT_SESSION_KEY_REVOKE": 6,
+    "ACCOUNT_UNLOCK": 9,
+    "BALANCE_TRANSFER": 146,
+    "BLOCK_ATTEST": 91,
+    "BLOCK_FINALIZE": 92,
+    "BLOCK_PROPOSE": 90,
+    "BLOCK_REWARD_DISTRIBUTE": 100,
+    "BLOCK_REWARD_MINT": 99,
+    "BLOCK_SET": 143,
+    "CASE_BIND_TO_DISPUTE": 203,
+    "CASE_OUTCOME_RECEIPT": 204,
+    "CASE_TYPE_REGISTER": 202,
+    "COLD_SYNC_COMPLETE": 126,
+    "COLD_SYNC_REQUEST": 125,
+    "CONTENT_COMMENT_CREATE": 47,
+    "CONTENT_COMMENT_DELETE": 48,
+    "CONTENT_ESCALATE_TO_DISPUTE": 54,
+    "CONTENT_FLAG": 50,
+    "CONTENT_LABEL_SET": 51,
+    "CONTENT_MEDIA_BIND": 56,
+    "CONTENT_MEDIA_DECLARE": 55,
+    "CONTENT_MEDIA_REPLACE": 57,
+    "CONTENT_MEDIA_UNBIND": 58,
+    "CONTENT_POST_CREATE": 44,
+    "CONTENT_POST_DELETE": 46,
+    "CONTENT_POST_EDIT": 45,
+    "CONTENT_REACTION_SET": 49,
+    "CONTENT_SHARE_CREATE": 145,
+    "CONTENT_THREAD_LOCK_SET": 53,
+    "CONTENT_VISIBILITY_SET": 52,
+    "CREATOR_PERFORMANCE_REPORT": 179,
+    "CREATOR_REWARD_ALLOCATE": 101,
+    "DIRECT_MESSAGE_REDACT": 153,
+    "DIRECT_MESSAGE_SEND": 152,
+    "DISPUTE_APPEAL": 42,
+    "DISPUTE_EVIDENCE_BIND": 35,
+    "DISPUTE_EVIDENCE_DECLARE": 34,
+    "DISPUTE_FINAL_RECEIPT": 43,
+    "DISPUTE_JUROR_ACCEPT": 37,
+    "DISPUTE_JUROR_ASSIGN": 36,
+    "DISPUTE_JUROR_ATTENDANCE": 39,
+    "DISPUTE_JUROR_DECLINE": 38,
+    "DISPUTE_OPEN": 32,
+    "DISPUTE_RESOLVE": 41,
+    "DISPUTE_STAGE_SET": 33,
+    "DISPUTE_VOTE_SUBMIT": 40,
+    "ECONOMICS_ACTIVATION": 147,
+    "EPOCH_CLOSE": 94,
+    "EPOCH_OPEN": 93,
+    "FEE_PAY": 149,
+    "FEE_POLICY_SET": 148,
+    "FLAG_ESCALATION_RECEIPT": 151,
+    "FOLLOW_SET": 142,
+    "FORFEITURE_APPLY": 103,
+    "GOV_DELEGATION_SET": 64,
+    "GOV_EXECUTE": 67,
+    "GOV_EXECUTION_RECEIPT": 68,
+    "GOV_PROPOSAL_CREATE": 59,
+    "GOV_PROPOSAL_EDIT": 60,
+    "GOV_PROPOSAL_FINALIZE": 157,
+    "GOV_PROPOSAL_RECEIPT": 158,
+    "GOV_PROPOSAL_WITHDRAW": 61,
+    "GOV_QUORUM_SET": 65,
+    "GOV_RULES_SET": 66,
+    "GOV_STAGE_SET": 62,
+    "GOV_TALLY_PUBLISH": 156,
+    "GOV_VOTE_CAST": 63,
+    "GOV_VOTE_REVOKE": 154,
+    "GOV_VOTING_CLOSE": 155,
+    "GROUP_CREATE": 159,
+    "GROUP_EMISSARY_BALLOT_CAST": 175,
+    "GROUP_EMISSARY_ELECTION_CREATE": 174,
+    "GROUP_EMISSARY_ELECTION_FINALIZE": 176,
+    "GROUP_MEMBERSHIP_DECIDE": 164,
+    "GROUP_MEMBERSHIP_REMOVE": 165,
+    "GROUP_MEMBERSHIP_REQUEST": 163,
+    "GROUP_MODERATORS_SET": 211,
+    "GROUP_ROLE_GRANT": 161,
+    "GROUP_ROLE_REVOKE": 162,
+    "GROUP_SIGNERS_SET": 210,
+    "GROUP_TREASURY_AUDIT_ANCHOR_SET": 173,
+    "GROUP_TREASURY_CREATE": 166,
+    "GROUP_TREASURY_POLICY_SET": 167,
+    "GROUP_TREASURY_SPEND_CANCEL": 170,
+    "GROUP_TREASURY_SPEND_EXECUTE": 172,
+    "GROUP_TREASURY_SPEND_EXPIRE": 171,
+    "GROUP_TREASURY_SPEND_PROPOSE": 168,
+    "GROUP_TREASURY_SPEND_SIGN": 169,
+    "GROUP_UPDATE": 160,
+    "INDEX_ANCHOR_SET": 122,
+    "INDEX_TOPIC_ANCHOR_SET": 183,
+    "INDEX_TOPIC_REGISTER": 182,
+    "IPFS_PIN_CONFIRM": 105,
+    "IPFS_PIN_REQUEST": 104,
+    "MEMPOOL_REJECT_RECEIPT": 187,
+    "MOD_ACTION_RECEIPT": 150,
+    "MUTE_SET": 144,
+    "NODE_OPERATOR_PERFORMANCE_REPORT": 178,
+    "NOTIFICATION_EMIT_RECEIPT": 207,
+    "NOTIFICATION_SUBSCRIBE": 205,
+    "NOTIFICATION_UNSUBSCRIBE": 206,
+    "PEER_ADVERTISE": 196,
+    "PEER_BAN_SET": 200,
+    "PEER_RENDEZVOUS_TICKET_CREATE": 198,
+    "PEER_RENDEZVOUS_TICKET_REVOKE": 199,
+    "PEER_REPUTATION_SIGNAL": 201,
+    "PEER_REQUEST_CONNECT": 197,
+    "PERFORMANCE_EVALUATE": 180,
+    "PERFORMANCE_SCORE_APPLY": 181,
+    "POH_APPLICATION_SUBMIT": 10,
+    "POH_BOOTSTRAP_TIER3_GRANT": 31,
+    "POH_CHALLENGE_OPEN": 13,
+    "POH_CHALLENGE_RESOLVE": 14,
+    "POH_EVIDENCE_BIND": 12,
+    "POH_EVIDENCE_DECLARE": 11,
+    "POH_TIER2_FINALIZE": 21,
+    "POH_TIER2_JUROR_ACCEPT": 18,
+    "POH_TIER2_JUROR_ASSIGN": 17,
+    "POH_TIER2_JUROR_DECLINE": 19,
+    "POH_TIER2_RECEIPT": 22,
+    "POH_TIER2_REQUEST_OPEN": 16,
+    "POH_TIER2_REVIEW_SUBMIT": 20,
+    "POH_TIER3_ATTENDANCE_MARK": 27,
+    "POH_TIER3_FINALIZE": 29,
+    "POH_TIER3_INIT": 23,
+    "POH_TIER3_JUROR_ACCEPT": 25,
+    "POH_TIER3_JUROR_ASSIGN": 24,
+    "POH_TIER3_JUROR_DECLINE": 26,
+    "POH_TIER3_RECEIPT": 30,
+    "POH_TIER3_VERDICT_SUBMIT": 28,
+    "POH_TIER_SET": 15,
+    "PROFILE_UPDATE": 141,
+    "PROTOCOL_UPGRADE_ACTIVATE": 70,
+    "PROTOCOL_UPGRADE_DECLARE": 69,
+    "RATE_LIMIT_POLICY_SET": 185,
+    "RATE_LIMIT_STRIKE_APPLY": 186,
+    "REPUTATION_DELTA_APPLY": 116,
+    "REPUTATION_THRESHOLD_CROSS": 117,
+    "REWARD_POOL_OPT_IN_SET": 98,
+    "ROLE_ELIGIBILITY_REVOKE": 119,
+    "ROLE_ELIGIBILITY_SET": 118,
+    "ROLE_EMISSARY_NOMINATE": 136,
+    "ROLE_EMISSARY_REMOVE": 139,
+    "ROLE_EMISSARY_SEAT": 138,
+    "ROLE_EMISSARY_VOTE": 137,
+    "ROLE_GOV_EXECUTOR_SET": 140,
+    "ROLE_JUROR_ACTIVATE": 128,
+    "ROLE_JUROR_ENROLL": 127,
+    "ROLE_JUROR_REINSTATE": 130,
+    "ROLE_JUROR_SUSPEND": 129,
+    "ROLE_NODE_OPERATOR_ACTIVATE": 134,
+    "ROLE_NODE_OPERATOR_ENROLL": 133,
+    "ROLE_NODE_OPERATOR_SUSPEND": 135,
+    "ROLE_VALIDATOR_ACTIVATE": 131,
+    "ROLE_VALIDATOR_SUSPEND": 132,
+    "SLASH_EXECUTE": 97,
+    "SLASH_PROPOSE": 95,
+    "SLASH_VOTE": 96,
+    "STATE_SNAPSHOT_ACCEPT": 124,
+    "STATE_SNAPSHOT_DECLARE": 123,
+    "STORAGE_CHALLENGE_ISSUE": 112,
+    "STORAGE_CHALLENGE_RESPOND": 113,
+    "STORAGE_LEASE_CREATE": 108,
+    "STORAGE_LEASE_RENEW": 109,
+    "STORAGE_LEASE_REVOKE": 110,
+    "STORAGE_OFFER_CREATE": 106,
+    "STORAGE_OFFER_WITHDRAW": 107,
+    "STORAGE_PAYOUT_EXECUTE": 114,
+    "STORAGE_PROOF_SUBMIT": 111,
+    "STORAGE_REPORT_ANCHOR": 115,
+    "TREASURY_AUDIT_ANCHOR_SET": 83,
+    "TREASURY_CREATE": 208,
+    "TREASURY_POLICY_SET": 74,
+    "TREASURY_PROGRAM_CLOSE": 82,
+    "TREASURY_PROGRAM_CREATE": 80,
+    "TREASURY_PROGRAM_UPDATE": 81,
+    "TREASURY_REWARD_ALLOCATE": 102,
+    "TREASURY_SIGNERS_SET": 209,
+    "TREASURY_SIGNER_ADD": 72,
+    "TREASURY_SIGNER_REMOVE": 73,
+    "TREASURY_SPEND_CANCEL": 77,
+    "TREASURY_SPEND_EXECUTE": 79,
+    "TREASURY_SPEND_EXPIRE": 78,
+    "TREASURY_SPEND_PROPOSE": 75,
+    "TREASURY_SPEND_SIGN": 76,
+    "TREASURY_WALLET_CREATE": 71,
+    "TX_RECEIPT_EMIT": 184,
+    "VALIDATOR_CANDIDATE_APPROVE": 86,
+    "VALIDATOR_CANDIDATE_REGISTER": 85,
+    "VALIDATOR_DEREGISTER": 87,
+    "VALIDATOR_HEARTBEAT": 88,
+    "VALIDATOR_PERFORMANCE_REPORT": 177,
+    "VALIDATOR_REGISTER": 84,
+    "VALIDATOR_REMOVE": 213,
+    "VALIDATOR_SET_UPDATE": 89,
+    "VALIDATOR_SUSPEND": 212
+  },
+  "meta": {
+    "law": "append-only",
+    "source": "WeAll Transaction Canon v1.22 \u2014 Full Enforceable Production Canon",
+    "version": "1.22.1"
+  },
+  "source_sha256": "ccd5a14ed80fcb090c57c22620e0310791bef47f2743be616acf873027acf5e5",
+  "tx_types": [
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "5adefa60437074f9",
+      "name": "ACCOUNT_REGISTER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "9e60dd8aa68a454f",
+      "name": "ACCOUNT_KEY_ADD",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "12c1a910669be62a",
+      "name": "ACCOUNT_KEY_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "8884a9e038ca124f",
+      "name": "ACCOUNT_DEVICE_REGISTER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "7789d38907a77c45",
+      "name": "ACCOUNT_DEVICE_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "be29a4b6efa745ea",
+      "name": "ACCOUNT_SESSION_KEY_ISSUE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "7b34668b38f37ed8",
+      "name": "ACCOUNT_SESSION_KEY_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "7317a63d71fc83b4",
+      "name": "ACCOUNT_SECURITY_POLICY_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "Identity",
+      "id": "26a243272ad5c769",
+      "name": "ACCOUNT_LOCK",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Identity",
+      "id": "f9fccb1ea669f6e6",
+      "name": "ACCOUNT_UNLOCK",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "41cd7f78053abc5a",
+      "name": "POH_APPLICATION_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "495d2fcbd8108fb4",
+      "name": "POH_EVIDENCE_DECLARE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "073984fa5d4d59a1",
+      "name": "POH_EVIDENCE_BIND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "47558ff52729c061",
+      "name": "POH_CHALLENGE_OPEN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "ca99df6fa7e65924",
+      "name": "POH_CHALLENGE_RESOLVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "id": "704b56e1ce86a705",
+      "name": "POH_TIER_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "b4ac08e8955c1a4a",
+      "name": "POH_TIER2_REQUEST_OPEN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "5b7e2da430fb8570",
+      "name": "POH_TIER2_JUROR_ASSIGN",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "d441795d1f8f383c",
+      "name": "POH_TIER2_JUROR_ACCEPT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "43b436b1ff6bbcd5",
+      "name": "POH_TIER2_JUROR_DECLINE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "8dcf9bfca504e77b",
+      "name": "POH_TIER2_REVIEW_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "804d41dbff7ade12",
+      "name": "POH_TIER2_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "id": "29ad0d8da5424d6c",
+      "name": "POH_TIER2_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "42adf2c2c2934886",
+      "name": "POH_TIER3_INIT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "deb8a8b30471a198",
+      "name": "POH_TIER3_JUROR_ASSIGN",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "a2e142a619e5f62e",
+      "name": "POH_TIER3_JUROR_ACCEPT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "414e632a892bc2b6",
+      "name": "POH_TIER3_JUROR_DECLINE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "a8c98b9eb470f13e",
+      "name": "POH_TIER3_ATTENDANCE_MARK",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "c146dc8153907fb1",
+      "name": "POH_TIER3_VERDICT_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "e38bf555b9365334",
+      "name": "POH_TIER3_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "id": "cfc8eedf0f2bfbbf",
+      "name": "POH_TIER3_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "96eb6b842e00e302",
+      "name": "POH_BOOTSTRAP_TIER3_GRANT",
+      "origin": "SYSTEM",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "b785ec5a1905dd27",
+      "name": "DISPUTE_OPEN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "400cc0c48ac78211",
+      "name": "DISPUTE_STAGE_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "ddf97d0a1eae8a17",
+      "name": "DISPUTE_EVIDENCE_DECLARE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "3f79be14f7054d3d",
+      "name": "DISPUTE_EVIDENCE_BIND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "2e900f7570707387",
+      "name": "DISPUTE_JUROR_ASSIGN",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "750d0fd1f499b764",
+      "name": "DISPUTE_JUROR_ACCEPT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "248d32699a657892",
+      "name": "DISPUTE_JUROR_DECLINE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "2db995f9ca2d5555",
+      "name": "DISPUTE_JUROR_ATTENDANCE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "888caac660f3dba1",
+      "name": "DISPUTE_VOTE_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "896ace52e723737f",
+      "name": "DISPUTE_RESOLVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "88f368d9733d8d09",
+      "name": "DISPUTE_APPEAL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "id": "474eb160afdb663d",
+      "name": "DISPUTE_FINAL_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "bbbe64cbb63540e5",
+      "name": "CONTENT_POST_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "d3e6000f27c6c856",
+      "name": "CONTENT_POST_EDIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "6d9cb13882132c86",
+      "name": "CONTENT_POST_DELETE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "3af1ac0fb0e7047c",
+      "name": "CONTENT_COMMENT_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "f85577530aee8dc7",
+      "name": "CONTENT_COMMENT_DELETE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "34c99f5caa3ba5dd",
+      "name": "CONTENT_REACTION_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "82809539c06b9357",
+      "name": "CONTENT_FLAG",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "b89dae79fddd6444",
+      "name": "CONTENT_LABEL_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "16de90c09ddcaa37",
+      "name": "CONTENT_VISIBILITY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "6357aa9753f493d4",
+      "name": "CONTENT_THREAD_LOCK_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Content",
+      "id": "667a0fedd7b0535d",
+      "name": "CONTENT_ESCALATE_TO_DISPUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "e103554ec695d1ce",
+      "name": "CONTENT_MEDIA_DECLARE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "60d3705e4f69e6a6",
+      "name": "CONTENT_MEDIA_BIND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "c848d27864b0103a",
+      "name": "CONTENT_MEDIA_REPLACE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Content",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "11b7cff2be18470d",
+      "name": "CONTENT_MEDIA_UNBIND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "c5d592f789ba02ce",
+      "name": "GOV_PROPOSAL_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "73b322d401604154",
+      "name": "GOV_PROPOSAL_EDIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "b4fd0a794ed50576",
+      "name": "GOV_PROPOSAL_WITHDRAW",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "b2c82368a2177b5b",
+      "name": "GOV_STAGE_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "6aace1c8c54ee591",
+      "name": "GOV_VOTE_CAST",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "172c812e80c9383a",
+      "name": "GOV_DELEGATION_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "fc478f35a80f553b",
+      "name": "GOV_QUORUM_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "dbd7d3a9ef440702",
+      "name": "GOV_RULES_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "8d85465f0b27536b",
+      "name": "GOV_EXECUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "id": "e1488b0e543856e9",
+      "name": "GOV_EXECUTION_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "60ba9b677655ae12",
+      "name": "PROTOCOL_UPGRADE_DECLARE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "2f8c6da441964db6",
+      "name": "PROTOCOL_UPGRADE_ACTIVATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "b65bf9809971ffa7",
+      "name": "TREASURY_WALLET_CREATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "3585932156ffb3d1",
+      "name": "TREASURY_SIGNER_ADD",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "3ab5b52f616c55a0",
+      "name": "TREASURY_SIGNER_REMOVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "5bf9fce7bc8543fa",
+      "name": "TREASURY_POLICY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "Emissary"
+      },
+      "id": "1a03d0122b9c79ff",
+      "name": "TREASURY_SPEND_PROPOSE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Emissary"
+    },
+    {
+      "context": "mempool",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "e1c70f56eb333624",
+      "name": "TREASURY_SPEND_SIGN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "Emissary"
+      },
+      "id": "fa99a7cfda979e98",
+      "name": "TREASURY_SPEND_CANCEL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Emissary"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "72c4f603ae4b2bbb",
+      "name": "TREASURY_SPEND_EXPIRE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "d494cd88cea04af6",
+      "name": "TREASURY_SPEND_EXECUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "df31812ff2703218",
+      "name": "TREASURY_PROGRAM_CREATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "daf91531b0cd9315",
+      "name": "TREASURY_PROGRAM_UPDATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "02e5e2b7b60ba0a0",
+      "name": "TREASURY_PROGRAM_CLOSE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "85527ae613976beb",
+      "name": "TREASURY_AUDIT_ANCHOR_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "f882271dfdc96aed",
+      "name": "VALIDATOR_REGISTER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "f826fed6c34c48b2",
+      "name": "VALIDATOR_CANDIDATE_REGISTER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "91da7af095ce2e5c",
+      "name": "VALIDATOR_CANDIDATE_APPROVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "04a139fd1fb8b6d3",
+      "name": "VALIDATOR_DEREGISTER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "347b7f26fcdd0d8b",
+      "name": "VALIDATOR_HEARTBEAT",
+      "origin": "VALIDATOR",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "0901da783b2dbb50",
+      "name": "VALIDATOR_SET_UPDATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "dee038c41327c50e",
+      "name": "BLOCK_PROPOSE",
+      "origin": "VALIDATOR",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "72ab4d42c77d1208",
+      "name": "BLOCK_ATTEST",
+      "origin": "VALIDATOR",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "a3c2a3f7d1598e9f",
+      "name": "BLOCK_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "e74a4d38192fad49",
+      "name": "EPOCH_OPEN",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "8ca4e4f3fd62a959",
+      "name": "EPOCH_CLOSE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "48842e1fe4b5a61c",
+      "name": "SLASH_PROPOSE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "f521c0309b786009",
+      "name": "SLASH_VOTE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "c69d0f327331e99f",
+      "name": "SLASH_EXECUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Rewards",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "1870be906330efa4",
+      "name": "REWARD_POOL_OPT_IN_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Rewards",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "d712167d919b9061",
+      "name": "BLOCK_REWARD_MINT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Rewards",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "d3ebe542f5d80ae3",
+      "name": "BLOCK_REWARD_DISTRIBUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Rewards",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "d267a8be014d7f7f",
+      "name": "CREATOR_REWARD_ALLOCATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Rewards",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "082841b820a8d70b",
+      "name": "TREASURY_REWARD_ALLOCATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Rewards",
+      "id": "f981b0805b9114e0",
+      "name": "FORFEITURE_APPLY",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "50a3158c433ea158",
+      "name": "IPFS_PIN_REQUEST",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "block",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "5af06e430e99d819",
+      "name": "IPFS_PIN_CONFIRM",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "45a365d806dc81f2",
+      "name": "STORAGE_OFFER_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "8f23ec3167582efe",
+      "name": "STORAGE_OFFER_WITHDRAW",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "3351b9121b5e5dae",
+      "name": "STORAGE_LEASE_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "7cf6d27aa3e80f89",
+      "name": "STORAGE_LEASE_RENEW",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "6b126e95998d7e74",
+      "name": "STORAGE_LEASE_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "57dffd2e86632c5f",
+      "name": "STORAGE_PROOF_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "block",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "5d1d86f16cf327d2",
+      "name": "STORAGE_CHALLENGE_ISSUE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "b6973532f6077a48",
+      "name": "STORAGE_CHALLENGE_RESPOND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "block",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "a13ea7330d03c6b1",
+      "name": "STORAGE_PAYOUT_EXECUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Storage",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "b7b9b488ea4bd9cc",
+      "name": "STORAGE_REPORT_ANCHOR",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "b72c7d4ee095e6f7",
+      "name": "REPUTATION_DELTA_APPLY",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "0a98a76293d9c47c",
+      "name": "REPUTATION_THRESHOLD_CROSS",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "7cab52d2a5173a61",
+      "name": "ROLE_ELIGIBILITY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "431f580e7395191d",
+      "name": "ROLE_ELIGIBILITY_REVOKE",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "9c569180bf9d968b",
+      "name": "ACCOUNT_BAN",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Reputation",
+      "id": "5ef3224c635f6ad8",
+      "name": "ACCOUNT_REINSTATE",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "a4fcd6e618c4e885",
+      "name": "INDEX_ANCHOR_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "38ddec5261c35060",
+      "name": "STATE_SNAPSHOT_DECLARE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "2c311e2d41536b54",
+      "name": "STATE_SNAPSHOT_ACCEPT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "55f688f747bf99aa",
+      "name": "COLD_SYNC_REQUEST",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "11b72dd171802021",
+      "name": "COLD_SYNC_COMPLETE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "fe8842e6e8125ee9",
+      "name": "ROLE_JUROR_ENROLL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "fa6c172e28d6d0d0",
+      "name": "ROLE_JUROR_ACTIVATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "cdacc0f9c5f99105",
+      "name": "ROLE_JUROR_SUSPEND",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "f0e2a7311a8177f8",
+      "name": "ROLE_JUROR_REINSTATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "3d8cc856fbd7b948",
+      "name": "ROLE_VALIDATOR_ACTIVATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "15a6bc5fb0c4d16b",
+      "name": "ROLE_VALIDATOR_SUSPEND",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "3069f4c08604e682",
+      "name": "ROLE_NODE_OPERATOR_ENROLL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "bc029a2043af7ee0",
+      "name": "ROLE_NODE_OPERATOR_ACTIVATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "9fddcd8d5f795750",
+      "name": "ROLE_NODE_OPERATOR_SUSPEND",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "37d36447761f7ec4",
+      "name": "ROLE_EMISSARY_NOMINATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "b5c0058142edb980",
+      "name": "ROLE_EMISSARY_VOTE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "a1a8333ded66ff68",
+      "name": "ROLE_EMISSARY_SEAT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "9eead1568b1ceb7a",
+      "name": "ROLE_EMISSARY_REMOVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "faddfb4888e6ff23",
+      "name": "ROLE_GOV_EXECUTOR_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Social",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "7af65537f63c64b3",
+      "name": "PROFILE_UPDATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Social",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "90b16416e151c84b",
+      "name": "FOLLOW_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Social",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "dd1d104a9dcac117",
+      "name": "BLOCK_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Social",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "2f9e9557395f803d",
+      "name": "MUTE_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Social",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "c315166aa05cae27",
+      "name": "CONTENT_SHARE_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "ebb8281c1c5b9477",
+      "name": "BALANCE_TRANSFER",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "block",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "7574e05e72afd4a6",
+      "name": "ECONOMICS_ACTIVATION",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "4f3453c518b91fdc",
+      "name": "FEE_POLICY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "d05cc95c321a9606",
+      "name": "FEE_PAY",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "Moderation",
+      "id": "8e74ca067a63b0bd",
+      "name": "MOD_ACTION_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Moderation",
+      "id": "58cf0a27822d1abb",
+      "name": "FLAG_ESCALATION_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Messaging",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "bbb657b08a67cb1a",
+      "name": "DIRECT_MESSAGE_SEND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Messaging",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "f55d415866d64f0f",
+      "name": "DIRECT_MESSAGE_REDACT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "70ef2cb709a7997c",
+      "name": "GOV_VOTE_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "916cd337f303daec",
+      "name": "GOV_VOTING_CLOSE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "db4048acd7b148e6",
+      "name": "GOV_TALLY_PUBLISH",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "023c329d6b30db2e",
+      "name": "GOV_PROPOSAL_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Governance",
+      "id": "f9173062bc958f3c",
+      "name": "GOV_PROPOSAL_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "afe93b91f8c909e9",
+      "name": "GROUP_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "ed92ca6edd9a38dc",
+      "name": "GROUP_UPDATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "a52e3725aeb7ab74",
+      "name": "GROUP_ROLE_GRANT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "020f1f0c15f779e4",
+      "name": "GROUP_ROLE_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "a64860334da5aa39",
+      "name": "GROUP_MEMBERSHIP_REQUEST",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GroupModerator"
+      },
+      "id": "83bbbcff300227ed",
+      "name": "GROUP_MEMBERSHIP_DECIDE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "GroupModerator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GroupModerator"
+      },
+      "id": "907eaa0dfe3bdcc7",
+      "name": "GROUP_MEMBERSHIP_REMOVE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "GroupModerator"
+    },
+    {
+      "context": "block",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "4d831d198c174fd8",
+      "name": "GROUP_TREASURY_CREATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "561e992bdac01ca2",
+      "name": "GROUP_TREASURY_POLICY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Emissary"
+      },
+      "id": "499b86a2ed776540",
+      "name": "GROUP_TREASURY_SPEND_PROPOSE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Emissary"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GroupSigner"
+      },
+      "id": "754088966f42c8ce",
+      "name": "GROUP_TREASURY_SPEND_SIGN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "GroupSigner"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Emissary"
+      },
+      "id": "a59bba552fcba5b2",
+      "name": "GROUP_TREASURY_SPEND_CANCEL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Emissary"
+    },
+    {
+      "context": "block",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "1ec2b67bf46b40fe",
+      "name": "GROUP_TREASURY_SPEND_EXPIRE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "919ff6d69f280e74",
+      "name": "GROUP_TREASURY_SPEND_EXECUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "bf0e3f0cd2225623",
+      "name": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "653a7b8ed97567aa",
+      "name": "GROUP_EMISSARY_ELECTION_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Tier1+"
+      },
+      "id": "768e8c561bc3b8d5",
+      "name": "GROUP_EMISSARY_BALLOT_CAST",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier1+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "9f44a2aa61702458",
+      "name": "GROUP_EMISSARY_ELECTION_FINALIZE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Performance",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "2ae9cc9aa8f18932",
+      "name": "VALIDATOR_PERFORMANCE_REPORT",
+      "origin": "VALIDATOR",
+      "receipt_only": false,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Performance",
+      "gates": {
+        "subject_gate": "NodeOperator"
+      },
+      "id": "c204c32cf3cb41f1",
+      "name": "NODE_OPERATOR_PERFORMANCE_REPORT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "NodeOperator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Performance",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "790fcdba3cc76b96",
+      "name": "CREATOR_PERFORMANCE_REPORT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Performance",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "d421b305e5ab47a3",
+      "name": "PERFORMANCE_EVALUATE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Performance",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "1ae6de74626cd3b8",
+      "name": "PERFORMANCE_SCORE_APPLY",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "6eea4931ede2fa56",
+      "name": "INDEX_TOPIC_REGISTER",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "38a06ab3d14f693a",
+      "name": "INDEX_TOPIC_ANCHOR_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Indexing",
+      "id": "6beabd707304aee8",
+      "name": "TX_RECEIPT_EMIT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "1dc1a1626eecb4f0",
+      "name": "RATE_LIMIT_POLICY_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "1c0d9f21b147ec9d",
+      "name": "RATE_LIMIT_STRIKE_APPLY",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Economics",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "a5180da84a51cf05",
+      "name": "MEMPOOL_REJECT_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "631b1744f3fb214b",
+      "name": "ACCOUNT_RECOVERY_CONFIG_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "fd405fe55f808494",
+      "name": "ACCOUNT_GUARDIAN_ADD",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "4517d57609d281ac",
+      "name": "ACCOUNT_GUARDIAN_REMOVE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "f76f1c96d522ed44",
+      "name": "ACCOUNT_RECOVERY_REQUEST",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "5685403d2eb77f29",
+      "name": "ACCOUNT_RECOVERY_APPROVE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "faa84ce7edcdc02b",
+      "name": "ACCOUNT_RECOVERY_CANCEL",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "Identity",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "789149b4f5bb14d2",
+      "name": "ACCOUNT_RECOVERY_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Identity",
+      "id": "09bba370f7319edb",
+      "name": "ACCOUNT_RECOVERY_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "a9f9785173a19db0",
+      "name": "PEER_ADVERTISE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "bcb193cae4180b53",
+      "name": "PEER_REQUEST_CONNECT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "bbb6a68ab503b942",
+      "name": "PEER_RENDEZVOUS_TICKET_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "366286fd11488a5a",
+      "name": "PEER_RENDEZVOUS_TICKET_REVOKE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "b8cdba5b3b4a09c3",
+      "name": "PEER_BAN_SET",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Networking",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "3e8122d9142d1bef",
+      "name": "PEER_REPUTATION_SIGNAL",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Cases",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "4d0dd5bc71e0d808",
+      "name": "CASE_TYPE_REGISTER",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Cases",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "7c512aca4a3fbe7e",
+      "name": "CASE_BIND_TO_DISPUTE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "block",
+      "domain": "Cases",
+      "id": "7e96736c27113389",
+      "name": "CASE_OUTCOME_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Notifications",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "c89e8f2130e736ea",
+      "name": "NOTIFICATION_SUBSCRIBE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Notifications",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "ba81d596690456a0",
+      "name": "NOTIFICATION_UNSUBSCRIBE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "Notifications",
+      "gates": {
+        "subject_gate": "Validator"
+      },
+      "id": "86d46f4bf1241491",
+      "name": "NOTIFICATION_EMIT_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Validator"
+    },
+    {
+      "context": "mempool",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "Tier3+"
+      },
+      "id": "e845e895520e2781",
+      "name": "TREASURY_CREATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier3+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Treasury",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "bd74e37b8ce2e343",
+      "name": "TREASURY_SIGNERS_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "d8b6ea4a0075c33e",
+      "name": "GROUP_SIGNERS_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "mempool",
+      "domain": "Groups",
+      "gates": {
+        "subject_gate": "Signer"
+      },
+      "id": "5043d657e65f841d",
+      "name": "GROUP_MODERATORS_SET",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Signer"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "79a49826061b9aed",
+      "name": "VALIDATOR_SUSPEND",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "block",
+      "domain": "Consensus",
+      "gates": {
+        "subject_gate": "GovExecutor"
+      },
+      "id": "0fac2810840999a6",
+      "name": "VALIDATOR_REMOVE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "GovExecutor"
+    }
+  ]
+}

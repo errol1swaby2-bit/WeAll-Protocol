@@ -15,6 +15,8 @@
       content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com;
+        frame-src https://challenges.cloudflare.com;
+        connect-src 'self' http://127.0.0.1:8000 https://api.weallprotocol.xyz https://weall-email-oracle.errol1swaby2.worker.dev https://challenges.clouflare.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: blob:;
         font-src 'self' data:;

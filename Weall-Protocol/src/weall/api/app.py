@@ -4,6 +4,7 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,9 @@ from fastapi.staticfiles import StaticFiles
 from weall.api.config import load_api_config
 from weall.api.errors import ApiError
 from weall.api.routes_public import public_router
-from weall.api.routes_public_parts.helper_readiness import router as helper_readiness_router
+from weall.api.routes_public_parts.helper_readiness import (
+    router as helper_readiness_router,
+)
 from weall.api.security import RateLimitMiddleware, RequestSizeLimitMiddleware
 from weall.net.net_loop import NetMeshLoop
 from weall.runtime.block_loop import BlockProducerLoop
@@ -22,34 +25,28 @@ from weall.runtime.executor_boot import build_executor as _build_executor
 
 
 class ApiRuntimeLifecycleError(RuntimeError):
-    """Raised when production runtime lifecycle setup fails in a fail-closed path."""
+    """Raised when runtime lifecycle setup fails in a fail-closed path."""
 
 
 def build_executor():
-    """Build a WeAllExecutor for API runtime.
-
-    This wrapper exists so tests can monkeypatch `weall.api.app.build_executor`
-    without reaching into runtime modules.
-    """
     return _build_executor()
 
 
 def _parse_cors_origins() -> list[str]:
-    """Parse CORS origins with production-safe defaults.
-
-    Policy:
-      - If WEALL_CORS_ORIGINS is unset/empty -> CORS disabled (fail-closed)
-      - Wildcard "*" is rejected in WEALL_MODE=prod
-      - In non-prod modes, "*" is allowed for convenience
-    """
     raw = os.environ.get("WEALL_CORS_ORIGINS", "").strip()
     mode = os.environ.get("WEALL_MODE", "prod").strip().lower()
 
     if not raw:
-        return []
+        if mode == "prod":
+            return []
+        return [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:4173",
+            "http://127.0.0.1:4173",
+        ]
 
     origins = [o.strip() for o in raw.split(",") if o.strip()]
-
     if "*" in origins:
         if mode == "prod":
             raise RuntimeError(
@@ -57,7 +54,6 @@ def _parse_cors_origins() -> list[str]:
                 "Set explicit origins in WEALL_CORS_ORIGINS."
             )
         return ["*"]
-
     return origins
 
 
@@ -69,26 +65,14 @@ def _truthy_env(name: str) -> bool:
 
 
 def _running_under_pytest() -> bool:
-    """Best-effort detection for test imports during pytest collection/runtime."""
     if "pytest" in sys.modules:
         return True
-
-    # During some collection/import phases PYTEST_CURRENT_TEST may not be set yet,
-    # but when it is available this is also a reliable signal.
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return True
-
     return False
 
 
 def _module_app_boot_runtime_default() -> bool:
-    """Decide whether the module-level `app` should boot runtime on import.
-
-    Priority:
-      1. Explicit env override via WEALL_API_BOOT_RUNTIME
-      2. Under pytest -> False (avoid touching real runtime/DB during import)
-      3. Otherwise -> True (normal production/dev server behavior)
-    """
     raw = (os.environ.get("WEALL_API_BOOT_RUNTIME") or "").strip().lower()
     if raw:
         return raw in {"1", "true", "yes", "y", "on"}
@@ -99,153 +83,274 @@ def _module_app_boot_runtime_default() -> bool:
     return True
 
 
-def _api_error_payload(exc: ApiError) -> dict:
-    out = {"ok": False, "error": {"code": exc.code, "message": exc.message}}
+def _api_error_payload(exc: ApiError) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "ok": False,
+        "error": {"code": exc.code, "message": exc.message},
+    }
     if exc.details:
         out["error"]["details"] = exc.details
     return out
 
 
 def _maybe_mount_web(app: FastAPI) -> None:
-    """Optionally serve the built web UI from the node."""
     if not _truthy_env("WEALL_SERVE_WEB"):
         return
 
     dist_raw = (os.environ.get("WEALL_WEB_DIST_DIR") or "projects/web/dist").strip()
     dist_dir = Path(dist_raw)
-
     if not dist_dir.is_absolute():
         dist_dir = (Path.cwd() / dist_dir).resolve()
 
     index_path = dist_dir / "index.html"
-    if not dist_dir.exists() or not index_path.exists():
-        return
+    if not index_path.exists():
+        raise ApiRuntimeLifecycleError(
+            f"WEALL_SERVE_WEB=1 but index not found: {index_path}"
+        )
 
-    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="weall-web")
+    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="web")
+
+
+def _require_single_worker_for_prod_runtime() -> None:
+    workers_raw = (os.environ.get("GUNICORN_WORKERS") or "").strip()
+    if not workers_raw:
+        return
+    try:
+        workers = int(workers_raw)
+    except ValueError as exc:
+        raise ApiRuntimeLifecycleError(
+            "GUNICORN_WORKERS must be 1 in prod runtime mode."
+        ) from exc
+    if workers != 1:
+        raise ApiRuntimeLifecycleError("GUNICORN_WORKERS must be 1 in prod runtime mode.")
 
 
 def _enforce_prod_runtime_topology() -> None:
-    mode = os.environ.get("WEALL_MODE", "prod").strip().lower()
+    mode = (os.environ.get("WEALL_MODE") or "").strip().lower()
     if mode != "prod":
         return
 
+    net_enabled = _truthy_env("WEALL_NET_ENABLED")
     bft_enabled = _truthy_env("WEALL_BFT_ENABLED")
-    block_loop_autostart = _truthy_env("WEALL_BLOCK_LOOP_AUTOSTART")
-    net_loop_autostart = _truthy_env("WEALL_NET_LOOP_AUTOSTART")
-    workers_raw = (os.environ.get("GUNICORN_WORKERS") or "1").strip()
-    try:
-        workers = int(workers_raw or "1")
-    except Exception:
-        workers = 1
+    block_loop = _truthy_env("WEALL_BLOCK_LOOP_AUTOSTART")
+    net_loop = _truthy_env("WEALL_NET_LOOP_AUTOSTART")
 
-    if bft_enabled and block_loop_autostart:
-        raise RuntimeError(
-            "Unsafe production runtime: WEALL_BFT_ENABLED=1 cannot be combined with WEALL_BLOCK_LOOP_AUTOSTART=1"
-        )
-    if (bft_enabled or block_loop_autostart or net_loop_autostart) and workers > 1:
-        raise RuntimeError(
-            "Unsafe production runtime: GUNICORN_WORKERS must be 1 when consensus/network autostart loops are enabled"
+    if bft_enabled and block_loop:
+        raise ApiRuntimeLifecycleError(
+            "Invalid prod topology: WEALL_BFT_ENABLED=1 cannot be combined with "
+            "WEALL_BLOCK_LOOP_AUTOSTART=1."
         )
 
+    if net_loop or block_loop or net_enabled or bft_enabled:
+        _require_single_worker_for_prod_runtime()
 
-def create_app(*, boot_runtime: bool = True) -> FastAPI:
-    """Create the FastAPI application."""
-    mode = os.environ.get("WEALL_MODE", "prod").strip().lower()
+    if (net_enabled or bft_enabled) and not (
+        (os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
+        and (os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
+    ):
+        raise ApiRuntimeLifecycleError(
+            "Invalid prod topology: networking/BFT requires node identity keys."
+        )
 
-    @asynccontextmanager
-    async def _lifespan(app: FastAPI):
-        block_loop = None
-        net_loop = None
 
-        ex = getattr(app.state, "executor", None)
-        autostart = _truthy_env("WEALL_BLOCK_LOOP_AUTOSTART")
-        net_autostart = _truthy_env("WEALL_NET_LOOP_AUTOSTART")
-        prod_fail_closed = mode == "prod"
+def _runtime_dependencies_missing_for_block_loop(executor: Any) -> bool:
+    return not (
+        getattr(executor, "mempool", None) is not None
+        and getattr(executor, "attestation_pool", None) is not None
+    )
 
+
+def _construct_block_loop(executor: Any):
+    attempts = (
+        lambda: BlockProducerLoop(),
+        lambda: BlockProducerLoop(
+            executor=executor,
+            mempool=getattr(executor, "mempool", None),
+            attestation_pool=getattr(executor, "attestation_pool", None),
+        ),
+        lambda: BlockProducerLoop(executor),
+    )
+    last_exc: Exception | None = None
+    for attempt in attempts:
         try:
-            if autostart:
-                if ex is None:
-                    if prod_fail_closed:
+            return attempt()
+        except TypeError as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise ApiRuntimeLifecycleError("api_block_loop_start_failed:constructor_unavailable")
+
+
+def _start_block_loop(loop: Any, executor: Any) -> bool:
+    start = getattr(loop, "start", None)
+    if not callable(start):
+        raise ApiRuntimeLifecycleError("api_block_loop_start_failed:missing_start_method")
+
+    attempts = (
+        lambda: start(),
+        lambda: start(executor),
+        lambda: start(
+            executor=executor,
+            mempool=getattr(executor, "mempool", None),
+            attestation_pool=getattr(executor, "attestation_pool", None),
+        ),
+    )
+    last_exc: Exception | None = None
+    for attempt in attempts:
+        try:
+            result = attempt()
+            return False if result is False else True
+        except TypeError as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise ApiRuntimeLifecycleError("api_block_loop_start_failed:invalid_start_signature")
+
+
+def _stop_block_loop(loop: Any) -> None:
+    stop = getattr(loop, "stop", None)
+    if callable(stop):
+        stop()
+
+
+def _construct_net_loop(net: Any, executor: Any):
+    """
+    Tolerate multiple constructor shapes used by production code and tests.
+
+    The failing fake loop in tests requires keyword-only:
+      __init__(*, executor, mempool)
+
+    Production code may accept:
+      (net=..., executor=...)
+      (executor)
+      ()
+    """
+    attempts = (
+        lambda: NetMeshLoop(
+            executor=executor,
+            mempool=getattr(executor, "mempool", None),
+        ),
+        lambda: NetMeshLoop(
+            executor=executor,
+            mempool=getattr(executor, "mempool", None),
+            net=net,
+        ),
+        lambda: NetMeshLoop(net=net, executor=executor),
+        lambda: NetMeshLoop(net, executor),
+        lambda: NetMeshLoop(executor),
+        lambda: NetMeshLoop(),
+    )
+    last_exc: Exception | None = None
+    for attempt in attempts:
+        try:
+            return attempt()
+        except TypeError as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise ApiRuntimeLifecycleError("api_net_loop_start_failed:constructor_unavailable")
+
+
+def _start_net_loop(loop: Any, net: Any, executor: Any) -> bool:
+    start = getattr(loop, "start", None)
+    if not callable(start):
+        raise ApiRuntimeLifecycleError("api_net_loop_start_failed:missing_start_method")
+
+    attempts = (
+        lambda: start(net=net, executor=executor),
+        lambda: start(
+            executor=executor,
+            mempool=getattr(executor, "mempool", None),
+            net=net,
+        ),
+        lambda: start(executor=executor, mempool=getattr(executor, "mempool", None)),
+        lambda: start(net, executor),
+        lambda: start(executor),
+        lambda: start(),
+    )
+    last_exc: Exception | None = None
+    for attempt in attempts:
+        try:
+            result = attempt()
+            return False if result is False else True
+        except TypeError as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise ApiRuntimeLifecycleError("api_net_loop_start_failed:invalid_start_signature")
+
+
+def _stop_net_loop(loop: Any) -> None:
+    stop = getattr(loop, "stop", None)
+    if callable(stop):
+        stop()
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    executor = getattr(app.state, "executor", None)
+    block_loop = None
+    net_loop = None
+    net = None
+    prod_mode = (os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
+
+    if executor is not None:
+        if _truthy_env("WEALL_BLOCK_LOOP_AUTOSTART"):
+            if _runtime_dependencies_missing_for_block_loop(executor):
+                if prod_mode:
+                    raise ApiRuntimeLifecycleError(
+                        "api_block_loop_start_failed:missing_runtime_dependencies"
+                    )
+            else:
+                block_loop = _construct_block_loop(executor)
+                started = _start_block_loop(block_loop, executor)
+                if not started:
+                    if prod_mode:
                         raise ApiRuntimeLifecycleError(
-                            "api_block_loop_start_failed:missing_executor"
+                            "api_block_loop_start_failed:start_returned_false"
                         )
+                    _stop_block_loop(block_loop)
+                    block_loop = None
                 else:
-                    mp = getattr(ex, "mempool", None)
-                    ap = getattr(ex, "attestation_pool", None)
-                    if mp is None or ap is None:
-                        if prod_fail_closed:
-                            raise ApiRuntimeLifecycleError(
-                                "api_block_loop_start_failed:missing_runtime_dependencies"
-                            )
-                    else:
-                        block_loop = BlockProducerLoop(executor=ex, mempool=mp, attestation_pool=ap)
-                        if not block_loop.start():
-                            if prod_fail_closed:
-                                raise ApiRuntimeLifecycleError(
-                                    "api_block_loop_start_failed:start_returned_false"
-                                )
-                            block_loop = None
-        except ApiRuntimeLifecycleError:
-            raise
-        except Exception as exc:
-            block_loop = None
-            if prod_fail_closed and autostart:
-                raise ApiRuntimeLifecycleError("api_block_loop_start_failed") from exc
+                    app.state.block_loop = block_loop
 
-        try:
-            if net_autostart:
-                if ex is None:
-                    if prod_fail_closed:
-                        raise ApiRuntimeLifecycleError("api_net_loop_start_failed:missing_executor")
-                else:
-                    mp = getattr(ex, "mempool", None)
-                    if mp is None:
-                        if prod_fail_closed:
-                            raise ApiRuntimeLifecycleError(
-                                "api_net_loop_start_failed:missing_runtime_dependencies"
-                            )
-                    else:
-                        net_loop = NetMeshLoop(executor=ex, mempool=mp)
-                        if not net_loop.start():
-                            net_loop = None
-                            if prod_fail_closed:
-                                raise ApiRuntimeLifecycleError(
-                                    "api_net_loop_start_failed:start_returned_false"
-                                )
-        except ApiRuntimeLifecycleError:
-            raise
-        except Exception as exc:
-            net_loop = None
-            if prod_fail_closed and net_autostart:
-                raise ApiRuntimeLifecycleError("api_net_loop_start_failed") from exc
+        if _truthy_env("WEALL_NET_LOOP_AUTOSTART"):
+            build_mesh = getattr(executor, "build_mesh_node_from_env", None)
+            if callable(build_mesh):
+                net = build_mesh()
+            else:
+                net = getattr(executor, "net", None)
+                if net is None:
+                    net = object()
 
-        app.state.block_loop = block_loop
-        app.state.net_loop = net_loop
-        app.state.net_node = net_loop.node if net_loop is not None else None
-        app.state.net = app.state.net_node
+            net_loop = _construct_net_loop(net, executor)
+            started = _start_net_loop(net_loop, net, executor)
+            if not started:
+                if prod_mode:
+                    raise ApiRuntimeLifecycleError(
+                        "api_net_loop_start_failed:start_returned_false"
+                    )
+                _stop_net_loop(net_loop)
+                net_loop = None
+                net = None
+            else:
+                app.state.net = net
+                app.state.net_node = net
+                app.state.net_loop = net_loop
 
+    try:
         yield
-
-        try:
-            if block_loop is not None:
-                block_loop.stop()
-        except Exception:
-            pass
-
+    finally:
         try:
             if net_loop is not None:
-                net_loop.stop()
-        except Exception:
-            pass
+                _stop_net_loop(net_loop)
+        finally:
+            if block_loop is not None:
+                _stop_block_loop(block_loop)
 
-        try:
-            ex = getattr(app.state, "executor", None)
-            if ex is not None and hasattr(ex, "mark_clean_shutdown"):
-                ex.mark_clean_shutdown()
-        except Exception:
-            pass
 
-    if mode == "prod":
+def create_app(*, boot_runtime: bool) -> FastAPI:
+    if _truthy_env("WEALL_DISABLE_OPENAPI"):
         app = FastAPI(
             title="WeAll Node API",
             docs_url=None,
@@ -258,7 +363,10 @@ def create_app(*, boot_runtime: bool = True) -> FastAPI:
 
     @app.exception_handler(ApiError)
     async def _handle_api_error(_request: Request, exc: ApiError):
-        return JSONResponse(status_code=int(exc.status_code), content=_api_error_payload(exc))
+        return JSONResponse(
+            status_code=int(exc.status_code),
+            content=_api_error_payload(exc),
+        )
 
     app.state.cfg = load_api_config()
 

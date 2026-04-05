@@ -109,8 +109,8 @@ export default function FeedView({
   defaultFilters?: FeedFilters;
   pageSize?: number;
 }): JSX.Element {
+  void defaultSort;
   const [items, setItems] = useState<any[]>([]);
-  const [sort, setSort] = useState<"new" | "top" | "hot">(defaultSort);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -134,9 +134,6 @@ export default function FeedView({
       author: defaultFilters?.author,
     } as FeedFilters;
   }, [defaultFilters]);
-
-  const sortNote =
-    sort === "new" ? null : "Top and Hot are reserved for future ranking logic. This view currently stays newest-first.";
 
   const headerTitle =
     title ||
@@ -237,27 +234,27 @@ export default function FeedView({
 
   function refresh() {
     setNextCursor(null);
-    loadPage({ cursor: null, append: false });
+    void loadPage({ cursor: null, append: false });
   }
 
   function loadMore() {
     if (!nextCursor) return;
-    loadPage({ cursor: nextCursor, append: true });
+    void loadPage({ cursor: nextCursor, append: true });
   }
 
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author, sort]);
+  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author]);
 
   useEffect(() => {
-    refreshViewerState();
+    void refreshViewerState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewer]);
 
   async function doLike(targetId: string) {
     setLikeErr(null);
-    if (!viewer) return setLikeErr("Not logged in.");
+    if (!viewer) return setLikeErr("Sign in first to react.");
     if (!gateTier2.ok) return setLikeErr(gateTier2.reason || `Gated (${viewerSummary}).`);
 
     setLikeBusyId(String(targetId));
@@ -279,7 +276,7 @@ export default function FeedView({
 
   async function doFlag(targetId: string) {
     setFlagErr(null);
-    if (!viewer) return setFlagErr("Not logged in.");
+    if (!viewer) return setFlagErr("Sign in first to flag content.");
     if (!gateTier2.ok) return setFlagErr(gateTier2.reason || `Gated (${viewerSummary}).`);
 
     const reasonRaw = window.prompt("Flag reason (optional)", "");
@@ -315,7 +312,7 @@ export default function FeedView({
       ? "This group feed has not received visible posts yet. Once members publish here, they will appear newest-first."
       : scope?.kind === "account"
         ? "This account does not have visible posts in the selected view yet."
-        : "This feed is empty for now. Once activity starts landing on-chain, posts will appear here newest-first.";
+        : "This feed is empty for now. Once activity starts landing on-chain, posts will appear newest-first.";
 
   return (
     <div className="pageStack">
@@ -334,14 +331,13 @@ export default function FeedView({
           </div>
 
           <div className="grid2 formGrid">
-            <label className="fieldLabel">
-              Sort
-              <select value={sort} onChange={(e) => setSort(e.target.value as "new" | "top" | "hot")}>
-                <option value="new">Newest</option>
-                <option value="top">Top</option>
-                <option value="hot">Hot</option>
-              </select>
-            </label>
+            <div className="fieldLabel">
+              Ordering
+              <div className="statusSummary">
+                <span className="statusPill ok">Newest first</span>
+                <span className="statusPill">Server truth</span>
+              </div>
+            </div>
 
             <div className="fieldLabel">
               Participation
@@ -354,7 +350,6 @@ export default function FeedView({
             </div>
           </div>
 
-          {sortNote ? <div className="inlineError">{sortNote}</div> : null}
           {err ? <div className="inlineError">{err}</div> : null}
           {likeErr ? <div className="inlineError">{likeErr}</div> : null}
           {flagErr ? <div className="inlineError">{flagErr}</div> : null}
@@ -432,10 +427,10 @@ export default function FeedView({
                   <button className="btn btnPrimary" onClick={() => nav(`/thread/${encodeURIComponent(id)}`)} disabled={!id}>
                     Open thread
                   </button>
-                  <button className="btn" onClick={() => doLike(id)} disabled={!id || likeBusyId === id}>
+                  <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id}>
                     {likeBusyId === id ? "Liking…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
-                  <button className="btn" onClick={() => doFlag(id)} disabled={!id || flagBusyId === id}>
+                  <button className="btn" onClick={() => void doFlag(id)} disabled={!id || flagBusyId === id}>
                     {flagBusyId === id ? "Flagging…" : "Flag"}
                   </button>
                 </div>

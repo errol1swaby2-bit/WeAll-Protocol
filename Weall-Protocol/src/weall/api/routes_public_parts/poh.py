@@ -1,5 +1,3 @@
-# src/weall/api/routes_public_parts/poh.py
-
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +11,7 @@ from pydantic import BaseModel, Field
 from weall.api.errors import ApiError
 from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
-from weall.poh.email_verification import EmailVerificationService
-from weall.runtime.system_tx_engine import enqueue_system_tx
+from weall.poh.email_verification import EmailVerificationService, OracleCallerIdentity
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 router = APIRouter()
@@ -53,19 +50,217 @@ class PohEmailBeginResponse(BaseModel):
     expires_ms: int
 
 
-class PohEmailConfirmRequest(BaseModel):
-    account: str = Field(..., min_length=1, max_length=128)
-    request_id: str = Field(..., min_length=8, max_length=256)
-    # Must be string to preserve leading zeros (email codes often start with 0)
-    code: str = Field(..., min_length=4, max_length=16)
-    turnstile_token: str | None = Field(default=None, max_length=4096)
-
-
-class PohEmailConfirmResponse(BaseModel):
+class PohEmailOracleAuthorityResponse(BaseModel):
     ok: bool
+    chain_id: str
+    height: int
+    authority_source: str
+    authorized_accounts: list[str]
+    authorized_pubkeys: list[str]
+    registry: dict[str, dict[str, Any]]
 
 
-def _svc(_: Request) -> EmailVerificationService:
+def _consensus_validator_registry(st: Json) -> dict[str, dict[str, Any]]:
+    consensus = st.get("consensus")
+    consensus = consensus if isinstance(consensus, dict) else {}
+    validators = consensus.get("validators")
+    validators = validators if isinstance(validators, dict) else {}
+    registry = validators.get("registry")
+    return registry if isinstance(registry, dict) else {}
+
+
+def _active_validator_accounts(st: Json) -> list[str]:
+    roles = st.get("roles")
+    roles = roles if isinstance(roles, dict) else {}
+    validators = roles.get("validators")
+    validators = validators if isinstance(validators, dict) else {}
+    active = validators.get("active_set")
+    out: list[str] = []
+    seen: set[str] = set()
+    if isinstance(active, list):
+        for item in active:
+            acct = str(item or "").strip()
+            if acct and acct not in seen:
+                seen.add(acct)
+                out.append(acct)
+    return out
+
+
+def _active_node_operator_accounts(st: Json) -> list[str]:
+    roles = st.get("roles")
+    roles = roles if isinstance(roles, dict) else {}
+    node_ops = roles.get("node_operators")
+    node_ops = node_ops if isinstance(node_ops, dict) else {}
+    active = node_ops.get("active_set")
+    out: list[str] = []
+    seen: set[str] = set()
+    if isinstance(active, list):
+        for item in active:
+            acct = str(item or "").strip()
+            if acct and acct not in seen:
+                seen.add(acct)
+                out.append(acct)
+    return out
+
+
+def _account_active_pubkeys(st: Json, account: str) -> list[str]:
+    acct = ((st.get("accounts") or {}).get(account) if isinstance(st.get("accounts"), dict) else None)
+    acct = acct if isinstance(acct, dict) else {}
+    keys = acct.get("keys")
+    out: list[str] = []
+    seen: set[str] = set()
+    if isinstance(keys, dict):
+        by_id = keys.get("by_id")
+        if isinstance(by_id, dict):
+            for meta in by_id.values():
+                meta = meta if isinstance(meta, dict) else {}
+                pk = str(meta.get("pubkey") or "").strip()
+                if not pk or pk in seen:
+                    continue
+                revoked = bool(meta.get("revoked", False))
+                active = not revoked and bool(meta.get("active", True))
+                if active:
+                    seen.add(pk)
+                    out.append(pk)
+        for pubkey, meta in keys.items():
+            if pubkey == "by_id":
+                continue
+            pk = str(pubkey or "").strip()
+            if not pk or pk in seen:
+                continue
+            active = True
+            if isinstance(meta, dict):
+                active = bool(meta.get("active", True)) and not bool(meta.get("revoked", False))
+            elif isinstance(meta, bool):
+                active = meta
+            if active:
+                seen.add(pk)
+                out.append(pk)
+    elif isinstance(keys, list):
+        for item in keys:
+            pk = str(item or "").strip()
+            if pk and pk not in seen:
+                seen.add(pk)
+                out.append(pk)
+    return out
+
+
+def _bootstrap_founder_account(st: Json) -> str:
+    params = st.get("params")
+    params = params if isinstance(params, dict) else {}
+    return str(params.get("bootstrap_founder_account") or "").strip()
+
+
+def _oracle_authority_registry(st: Json) -> dict[str, dict[str, Any]]:
+    registry: dict[str, dict[str, Any]] = {}
+    validator_registry = _consensus_validator_registry(st)
+    active_validators = set(_active_validator_accounts(st))
+    active_node_ops = set(_active_node_operator_accounts(st))
+
+    def _merge_account(account: str, *, reason: str, status: str) -> None:
+        rec = validator_registry.get(account) if isinstance(validator_registry, dict) else None
+        rec = rec if isinstance(rec, dict) else {}
+        pubkeys: list[str] = []
+        seen: set[str] = set()
+
+        validator_pubkey = str(rec.get("pubkey") or "").strip()
+        if validator_pubkey and validator_pubkey not in seen:
+            seen.add(validator_pubkey)
+            pubkeys.append(validator_pubkey)
+
+        for pk in _account_active_pubkeys(st, account):
+            if pk not in seen:
+                seen.add(pk)
+                pubkeys.append(pk)
+
+        if not pubkeys:
+            return
+
+        base = registry.setdefault(account, {"pubkeys": [], "reasons": [], "status": status})
+        for pk in pubkeys:
+            if pk not in base["pubkeys"]:
+                base["pubkeys"].append(pk)
+        if reason not in base["reasons"]:
+            base["reasons"].append(reason)
+        if reason == "active_validator":
+            base["status"] = str(rec.get("status") or base.get("status") or "active").strip() or "active"
+        elif not str(base.get("status") or "").strip():
+            base["status"] = status
+
+    for account in sorted(active_validators):
+        _merge_account(account, reason="active_validator", status="active")
+
+    for account in sorted(active_node_ops):
+        _merge_account(account, reason="active_node_operator", status="active")
+
+    founder = _bootstrap_founder_account(st)
+    if founder:
+        founder_pubkeys: list[str] = []
+        seen2: set[str] = set()
+        params = st.get("params")
+        params = params if isinstance(params, dict) else {}
+        allowlist = params.get("bootstrap_allowlist")
+        allowlist = allowlist if isinstance(allowlist, dict) else {}
+        allow_rec = allowlist.get(founder) if isinstance(allowlist.get(founder), dict) else {}
+        allow_pk = str(allow_rec.get("pubkey") or "").strip()
+        if allow_pk and allow_pk not in seen2:
+            seen2.add(allow_pk)
+            founder_pubkeys.append(allow_pk)
+        for pk in _account_active_pubkeys(st, founder):
+            if pk not in seen2:
+                seen2.add(pk)
+                founder_pubkeys.append(pk)
+        if founder_pubkeys:
+            base = registry.setdefault(founder, {"pubkeys": [], "reasons": [], "status": "bootstrap_founder"})
+            for pk in founder_pubkeys:
+                if pk not in base["pubkeys"]:
+                    base["pubkeys"].append(pk)
+            if "bootstrap_founder" not in base["reasons"]:
+                base["reasons"].append("bootstrap_founder")
+            if not str(base.get("status") or "").strip():
+                base["status"] = "bootstrap_founder"
+
+    return registry
+
+
+def _oracle_caller_identity(request: Request, st: Json) -> OracleCallerIdentity | None:
+    ex = getattr(request.app.state, "executor", None)
+    if ex is not None:
+        fn = getattr(ex, "_local_validator_identity", None)
+        if callable(fn):
+            try:
+                account, pubkey, privkey = fn()
+                if account and pubkey and privkey:
+                    return OracleCallerIdentity(
+                        operator_account=str(account).strip(),
+                        node_pubkey=str(pubkey).strip(),
+                        node_privkey=str(privkey).strip(),
+                    )
+            except Exception:
+                pass
+
+    account = str(os.getenv("WEALL_ORACLE_OPERATOR_ACCOUNT") or os.getenv("WEALL_VALIDATOR_ACCOUNT") or "").strip()
+    pubkey = str(os.getenv("WEALL_NODE_PUBKEY") or "").strip()
+    privkey = str(os.getenv("WEALL_NODE_PRIVKEY") or "").strip()
+
+    if not account and pubkey:
+        for acct, rec in _oracle_authority_registry(st).items():
+            pubkeys = rec.get("pubkeys") if isinstance(rec, dict) else []
+            if isinstance(pubkeys, list) and pubkey in {str(x).strip() for x in pubkeys}:
+                account = acct
+                break
+
+    if account and pubkey and privkey:
+        auth = _oracle_authority_registry(st)
+        rec = auth.get(account) if isinstance(auth.get(account), dict) else {}
+        pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), list) else []
+        if pubkey in {str(x).strip() for x in pubkeys}:
+            return OracleCallerIdentity(operator_account=account, node_pubkey=pubkey, node_privkey=privkey)
+
+    return None
+
+
+def _svc(request: Request) -> EmailVerificationService:
     """Construct the off-chain email verification service.
 
     Notes:
@@ -88,9 +283,34 @@ def _svc(_: Request) -> EmailVerificationService:
         except ValueError:
             raise ApiError.bad_request("invalid_ttl_ms", "WEALL_POH_EMAIL_TTL_MS must be an int")
 
-    # EmailVerificationService reads the oracle base URL internally (env/config),
-    # so this route layer doesn't need to pass it down.
-    return EmailVerificationService(secret=secret, ttl_ms=ttl_ms)
+    st = _snapshot(request)
+    caller_identity = _oracle_caller_identity(request, st)
+    if caller_identity is None:
+        raise ApiError.bad_request(
+            "missing_oracle_caller_identity",
+            "authorized local node identity required for email verification oracle calls",
+        )
+
+    return EmailVerificationService(secret=secret, ttl_ms=ttl_ms, caller_identity=caller_identity)
+
+
+@router.get("/poh/email/oracle-authority", response_model=PohEmailOracleAuthorityResponse, name="poh_email_oracle_authority")
+def poh_email_oracle_authority(request: Request) -> PohEmailOracleAuthorityResponse:
+    st = _snapshot(request)
+    registry = _oracle_authority_registry(st)
+    authorized_accounts = sorted(registry.keys())
+    authorized_pubkeys = sorted(
+        {str(pk).strip() for rec in registry.values() if isinstance(rec, dict) for pk in (rec.get("pubkeys") or []) if str(pk).strip()}
+    )
+    return PohEmailOracleAuthorityResponse(
+        ok=True,
+        chain_id=str(st.get("chain_id") or "").strip(),
+        height=int(st.get("height") or 0),
+        authority_source="on_chain",
+        authorized_accounts=authorized_accounts,
+        authorized_pubkeys=authorized_pubkeys,
+        registry=registry,
+    )
 
 
 @router.post("/poh/email/begin", response_model=PohEmailBeginResponse, name="poh_email_begin")
@@ -104,47 +324,25 @@ def poh_email_begin(req: PohEmailBeginRequest, request: Request) -> PohEmailBegi
         raise ApiError.bad_request("invalid_email", "email is required")
 
     svc = _svc(request)
-    r = svc.begin(account=account, email=email, turnstile_token=req.turnstile_token)
-    return PohEmailBeginResponse(ok=True, request_id=r.request_id, expires_ms=r.expires_ms)
+    result = svc.begin(account=account, email=email, turnstile_token=req.turnstile_token)
 
+    request_id = str(result.get("request_id") or result.get("challenge_id") or "").strip()
+    expires_ms_raw = result.get("expires_ms")
+    if expires_ms_raw is None:
+        expires_ms_raw = result.get("expires_at_ms")
+    try:
+        expires_ms = int(expires_ms_raw or 0)
+    except (TypeError, ValueError):
+        expires_ms = 0
 
-@router.post("/poh/email/confirm", response_model=PohEmailConfirmResponse, name="poh_email_confirm")
-def poh_email_confirm(req: PohEmailConfirmRequest, request: Request) -> PohEmailConfirmResponse:
-    account = str(req.account or "").strip()
-    request_id = str(req.request_id or "").strip()
-    code = str(req.code or "").strip()
-
-    if not account:
-        raise ApiError.bad_request("invalid_account", "account is required")
     if not request_id:
-        raise ApiError.bad_request("invalid_request_id", "request_id is required")
-    if not code:
-        raise ApiError.bad_request("invalid_code", "code is required")
+        raise ApiError.internal("poh_email_begin_invalid_response", "missing request_id")
+    if expires_ms <= 0:
+        raise ApiError.internal("poh_email_begin_invalid_response", "missing expires_ms")
 
-    svc = _svc(request)
-    ok = bool(
-        svc.confirm(
-            account=account, request_id=request_id, code=code, turnstile_token=req.turnstile_token
-        )
-    )
-    if not ok:
-        raise ApiError.bad_request("invalid_code", "email verification failed", {})
+    return PohEmailBeginResponse(ok=True, request_id=request_id, expires_ms=expires_ms)
 
-    # Enqueue the Tier1 on-chain update. This is a SYSTEM tx at next block height.
-    st = _snapshot(request)
-    height = int(st.get("height") or 0)
-    enqueue_system_tx(
-        st,
-        tx_type="POH_TIER_SET",
-        payload={"account_id": account, "tier": 1},
-        due_height=height + 1,
-        signer="SYSTEM",
-        once=True,
-        parent=None,
-        phase="post",
-    )
 
-    return PohEmailConfirmResponse(ok=True)
 
 
 class PohEmailReceiptSubmitRequest(BaseModel):
@@ -1226,3 +1424,4 @@ def poh_tier3_tx_verdict(
             payload=payload,
         ),
     )
+

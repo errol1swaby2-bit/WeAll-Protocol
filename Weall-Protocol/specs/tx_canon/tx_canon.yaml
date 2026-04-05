@@ -792,20 +792,54 @@ txs:
   context: mempool
   receipt_only: false
 - id: 601
+  name: VALIDATOR_CANDIDATE_REGISTER
+  domain: Consensus
+  origin: USER
+  gate: Tier3+
+  context: mempool
+  receipt_only: false
+- id: 602
+  name: VALIDATOR_CANDIDATE_APPROVE
+  domain: Consensus
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2600
+  name: VALIDATOR_SUSPEND
+  domain: Consensus
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2601
+  name: VALIDATOR_REMOVE
+  domain: Consensus
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 603
   name: VALIDATOR_DEREGISTER
   domain: Consensus
   origin: USER
   gate: Validator
   context: mempool
   receipt_only: false
-- id: 602
+- id: 604
   name: VALIDATOR_HEARTBEAT
   domain: Consensus
   origin: VALIDATOR
   gate: Validator
   context: mempool
   receipt_only: false
-- id: 603
+- id: 605
   name: VALIDATOR_SET_UPDATE
   domain: Consensus
   origin: SYSTEM
@@ -814,21 +848,21 @@ txs:
   receipt_only: true
   parent: GOV_EXECUTE
   via_gov_execute: true
-- id: 604
+- id: 606
   name: BLOCK_PROPOSE
   domain: Consensus
   origin: VALIDATOR
   gate: Validator
   context: block
   receipt_only: false
-- id: 605
+- id: 607
   name: BLOCK_ATTEST
   domain: Consensus
   origin: VALIDATOR
   gate: Validator
   context: block
   receipt_only: false
-- id: 606
+- id: 608
   name: BLOCK_FINALIZE
   domain: Consensus
   origin: SYSTEM
@@ -837,7 +871,7 @@ txs:
   receipt_only: true
   parent: BLOCK_ATTEST
   system_only: true
-- id: 607
+- id: 609
   name: EPOCH_OPEN
   domain: Consensus
   origin: SYSTEM
@@ -846,7 +880,7 @@ txs:
   receipt_only: true
   parent: BLOCK_FINALIZE
   system_only: true
-- id: 608
+- id: 610
   name: EPOCH_CLOSE
   domain: Consensus
   origin: SYSTEM
@@ -855,21 +889,21 @@ txs:
   receipt_only: true
   parent: BLOCK_FINALIZE
   system_only: true
-- id: 609
+- id: 611
   name: SLASH_PROPOSE
   domain: Consensus
   origin: USER
   gate: Tier3+
   context: mempool
   receipt_only: false
-- id: 610
+- id: 612
   name: SLASH_VOTE
   domain: Consensus
   origin: USER
   gate: Validator
   context: mempool
   receipt_only: false
-- id: 611
+- id: 613
   name: SLASH_EXECUTE
   domain: Consensus
   origin: SYSTEM

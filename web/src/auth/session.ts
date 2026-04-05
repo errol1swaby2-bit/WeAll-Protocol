@@ -9,7 +9,7 @@
 //   - tx submission (/v1/tx/submit)
 
 import { getChainId, getEnvChainId } from "../lib/chain";
-import { weall } from "../api/weall";
+import { createBrowserSession, weall } from "../api/weall";
 
 import {
   KeypairB64,
@@ -70,6 +70,31 @@ function randomSessionKeyB64(bytes = 32): string {
   return b64Encode(u);
 }
 
+function randomDeviceId(account: string): string {
+  const u = new Uint8Array(12);
+  crypto.getRandomValues(u);
+  const suffix = Array.from(u).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `browser:${normalizeAccount(account)}:${suffix}`;
+}
+
+function canonicalSessionLoginMessage(args: {
+  account: string;
+  sessionKey: string;
+  ttlSeconds: number;
+  issuedAtMs: number;
+  deviceId: string;
+}): Uint8Array {
+  const obj = {
+    t: "SESSION_LOGIN",
+    account: normalizeAccount(args.account),
+    session_key: String(args.sessionKey || ""),
+    ttl_s: Math.max(60, Math.floor(Number(args.ttlSeconds || 0))),
+    issued_at_ms: Math.floor(Number(args.issuedAtMs || 0)),
+    device_id: String(args.deviceId || ""),
+  };
+  return new TextEncoder().encode(JSON.stringify(obj, Object.keys(obj).sort()));
+}
+
 export function getSession(): SessionV1 | null {
   try {
     const raw = localStorage.getItem(LS_SESSION);
@@ -80,7 +105,14 @@ export function getSession(): SessionV1 | null {
     const account = normalizeAccount(String(obj.account || ""));
     if (!account) return null;
     const expiresAtMs = Number(obj.expiresAtMs || 0);
-    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) return null;
+    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) {
+      endSession();
+      return null;
+    }
+    if (Date.now() >= expiresAtMs) {
+      endSession();
+      return null;
+    }
     const sessionKey = obj.sessionKey ? String(obj.sessionKey) : undefined;
     return { version: 1, account, expiresAtMs, sessionKey };
   } catch {
@@ -211,7 +243,13 @@ function setReservedNonce(account: string, nonce: number): void {
   }
 }
 
-async function nextNonce(account: string, base?: string): Promise<number> {
+type NonceClaim = {
+  account: string;
+  nonce: number;
+  previousReserved: number;
+};
+
+async function claimNextNonce(account: string, base?: string): Promise<NonceClaim> {
   const acct = normalizeAccount(account);
   if (!acct) throw new Error("invalid_account");
 
@@ -225,10 +263,25 @@ async function nextNonce(account: string, base?: string): Promise<number> {
     chainNext = 1;
   }
 
-  const reserved = getReservedNonce(acct);
-  const n = Math.max(chainNext, reserved + 1);
-  setReservedNonce(acct, n);
-  return n;
+  const previousReserved = getReservedNonce(acct);
+  const nonce = Math.max(chainNext, previousReserved + 1);
+  setReservedNonce(acct, nonce);
+  return { account: acct, nonce, previousReserved };
+}
+
+function rollbackNonceClaim(claim: NonceClaim | null | undefined): void {
+  if (!claim) return;
+  try {
+    const current = getReservedNonce(claim.account);
+    if (current !== claim.nonce) return;
+    if (claim.previousReserved > 0) {
+      setReservedNonce(claim.account, claim.previousReserved);
+    } else {
+      localStorage.removeItem(nonceReservationKey(claim.account));
+    }
+  } catch {
+    // ignore
+  }
 }
 
 export type TxEnvelope = {
@@ -295,18 +348,23 @@ export async function submitSignedTx(args: {
   if (!kp) throw new Error("missing_local_keypair");
 
   const chain_id = await resolveChainId();
-  const nonce = await nextNonce(signer, args.base);
+  const claim = await claimNextNonce(signer, args.base);
 
   const unsigned = buildUnsignedEnvelope({
     chain_id,
     tx_type: args.tx_type,
     signer,
-    nonce,
+    nonce: claim.nonce,
     payload: args.payload ?? {},
     parent: args.parent ?? null,
   });
   const signed = signEnvelope(unsigned, kp);
-  return await weall.txSubmit(signed, args.base);
+  try {
+    return await weall.txSubmit(signed, args.base);
+  } catch (error) {
+    rollbackNonceClaim(claim);
+    throw error;
+  }
 }
 
 export async function submitSignedTxWithNonce(args: {
@@ -323,20 +381,56 @@ export async function submitSignedTxWithNonce(args: {
   if (!kp) throw new Error("missing_local_keypair");
 
   const chain_id = await resolveChainId();
-  const nonce = await nextNonce(signer, args.base);
-  const payload = args.payloadFactory(nonce);
+  const claim = await claimNextNonce(signer, args.base);
+  const payload = args.payloadFactory(claim.nonce);
 
   const unsigned = buildUnsignedEnvelope({
     chain_id,
     tx_type: args.tx_type,
     signer,
-    nonce,
+    nonce: claim.nonce,
     payload,
     parent: args.parent ?? null,
   });
   const signed = signEnvelope(unsigned, kp);
-  const result = await weall.txSubmit(signed, args.base);
-  return { env: signed, result };
+  try {
+    const result = await weall.txSubmit(signed, args.base);
+    return { env: signed, result };
+  } catch (error) {
+    rollbackNonceClaim(claim);
+    throw error;
+  }
+}
+
+
+export async function restoreAccountAndLoginOnThisDevice(args: {
+  account: string;
+  secretKeyB64: string;
+  ttlSeconds?: number;
+  base?: string;
+}): Promise<{ session: SessionV1; keypair: KeypairB64; result: any }> {
+  const acct = normalizeAccount(args.account)
+  const secretKeyB64 = String(args.secretKeyB64 || "").trim()
+  if (!acct) throw new Error("invalid_account")
+  if (!secretKeyB64) throw new Error("secret_key_required")
+
+  endSession()
+  clearNonceReservation(acct)
+  const keypair = saveKeypair(acct, { secretKeyB64 })
+
+  try {
+    const result = await loginOnThisDevice({
+      account: acct,
+      ttlSeconds: args.ttlSeconds,
+      base: args.base,
+    })
+    const session = getSession()
+    if (!session || !session.sessionKey) throw new Error("session_issue_failed")
+    return { session, keypair, result }
+  } catch (error) {
+    endSession()
+    throw error
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -347,17 +441,38 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
   const acct = normalizeAccount(args.account);
   if (!acct) throw new Error("invalid_account");
 
-  const ttlSeconds = Math.max(60, Math.floor(Number(args.ttlSeconds ?? 24 * 60 * 60))); // default 24h
+  const ttlSeconds = Math.max(60, Math.floor(Number(args.ttlSeconds ?? 24 * 60 * 60)));
   const sessionKey = randomSessionKeyB64(32);
-  const expiresAtMs = Date.now() + ttlSeconds * 1000;
+  const deviceId = randomDeviceId(acct);
+  const issuedAtMs = Date.now();
+  const expiresAtMs = issuedAtMs + ttlSeconds * 1000;
 
-  const res = await submitSignedTx({
-    account: acct,
-    tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
-    payload: { session_key: sessionKey, ttl_s: ttlSeconds },
-    parent: null,
-    base: args.base,
-  });
+  const kp = loadKeypair(acct);
+  if (!kp) throw new Error("missing_local_keypair");
+
+  const sig = signDetachedB64(
+    kp.secretKeyB64,
+    canonicalSessionLoginMessage({
+      account: acct,
+      sessionKey,
+      ttlSeconds,
+      issuedAtMs,
+      deviceId,
+    }),
+  );
+
+  const res = await createBrowserSession(
+    {
+      account: acct,
+      session_key: sessionKey,
+      ttl_s: ttlSeconds,
+      issued_at_ms: issuedAtMs,
+      device_id: deviceId,
+      pubkey: kp.pubkeyB64,
+      sig,
+    },
+    args.base,
+  );
 
   setSession({ version: 1, account: acct, sessionKey, expiresAtMs });
   return res;

@@ -18,8 +18,13 @@ import {
 import { nav } from "../lib/router";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.body || e?.data || e;
-  const msg = details?.message || e?.message || "error";
+  const details = e?.payload || e?.body || e?.data || e;
+  const msg =
+    details?.error?.message ||
+    details?.message ||
+    details?.detail?.message ||
+    e?.message ||
+    "error";
   return { msg, details };
 }
 
@@ -81,6 +86,22 @@ function formatBytes(bytes: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+const MAX_MEDIA_UPLOAD_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_MEDIA_PREFIXES = ["image/", "video/", "audio/"];
+
+function validateSelectedFile(file: File | null): string | null {
+  if (!file) return null;
+  const mime = String(file.type || "").trim().toLowerCase();
+  const supported = SUPPORTED_MEDIA_PREFIXES.some((prefix) => mime.startsWith(prefix));
+  if (!supported) {
+    return "Only image, video, and audio uploads are supported in this composer.";
+  }
+  if (Number(file.size || 0) > MAX_MEDIA_UPLOAD_BYTES) {
+    return `This file is larger than the current ${formatBytes(MAX_MEDIA_UPLOAD_BYTES)} upload limit.`;
+  }
+  return null;
 }
 
 export default function CreatePostPage(): JSX.Element {
@@ -198,6 +219,12 @@ export default function CreatePostPage(): JSX.Element {
     const body = text.trim();
     if (!body && !file) {
       setErr({ msg: "Write something or attach a file.", details: null });
+      return;
+    }
+
+    const fileError = validateSelectedFile(file);
+    if (fileError) {
+      setErr({ msg: fileError, details: { max_bytes: MAX_MEDIA_UPLOAD_BYTES, file_type: file?.type || null } });
       return;
     }
 
@@ -334,7 +361,7 @@ export default function CreatePostPage(): JSX.Element {
     } catch (e: any) {
       setStatus("Error");
       setErr(prettyErr(e));
-      setLast(e?.body || e?.data || e);
+      setLast(e?.payload || e?.body || e?.data || e);
     } finally {
       setBusy(false);
     }
@@ -345,10 +372,11 @@ export default function CreatePostPage(): JSX.Element {
   const bodyLen = text.trim().length;
   const tagListPreview = parseTags(tags);
   const previewType = file?.type || "";
+  const fileValidationError = validateSelectedFile(file);
   const previewGateway = String(uploadInfo?.cid || "").trim()
     ? weall.mediaGatewayUrl(String(uploadInfo.cid), base)
     : "";
-  const canPublish = snapshot.canPost && !!(text.trim() || file) && !busy;
+  const canPublish = snapshot.canPost && !!(text.trim() || file) && !busy && !fileValidationError;
 
   const readinessChecks = summarizeNextRequirements(snapshot);
 
@@ -374,15 +402,15 @@ export default function CreatePostPage(): JSX.Element {
         ? mediaDurability?.durable
           ? "Replication threshold reached."
           : mediaDurability
-            ? "Still waiting on replication."
-            : "Checked after upload."
+            ? "Replication is still catching up; publish can still complete."
+            : "Observed after upload so you can see whether replication has caught up yet."
         : "No durability check needed.",
     },
     {
       label: "Declare",
       state: uploadInfo && !busy ? "done" : file ? "pending" : "idle",
       detail: file
-        ? "Creates a declared media reference before publish."
+        ? "Creates the on-chain media record used by the post."
         : "No media declaration needed.",
     },
     {
@@ -421,9 +449,9 @@ export default function CreatePostPage(): JSX.Element {
               <div className="eyebrow">Creator flow</div>
               <h1 className="heroTitle heroTitleSm">Create a post</h1>
               <p className="heroText">
-                Compose text, optionally attach media, then let the client walk through upload,
-                durability, declaration, and publish. The page now also explains what durable media
-                means for this deployment.
+                Compose a public post, optionally attach media, then walk through upload, media
+                declaration, and publish. Durability is observed after upload so the UI stays honest
+                about what is confirmed now versus what may still be replicating.
               </p>
             </div>
 
@@ -458,6 +486,10 @@ export default function CreatePostPage(): JSX.Element {
             <div className="statCard">
               <span className="statLabel">Attachment</span>
               <span className="statValue">{file ? formatBytes(file.size) : "None"}</span>
+            </div>
+            <div className="statCard">
+              <span className="statLabel">Audience</span>
+              <span className="statValue">Public</span>
             </div>
           </div>
         </div>
@@ -507,19 +539,8 @@ export default function CreatePostPage(): JSX.Element {
 
             <div className="grid2 formGrid">
               <label className="fieldLabel">
-                Visibility
-                <select value={visibility} onChange={(e) => setVisibility(e.target.value as typeof visibility)}>
-                  <option value="public">Public</option>
-                  <option value="followers" disabled>
-                    Followers (soon)
-                  </option>
-                  <option value="group" disabled>
-                    Group (soon)
-                  </option>
-                  <option value="private" disabled>
-                    Private (soon)
-                  </option>
-                </select>
+                Audience
+                <input value="Public" readOnly />
               </label>
 
               <label className="fieldLabel">
@@ -532,10 +553,16 @@ export default function CreatePostPage(): JSX.Element {
               </label>
             </div>
 
+            <div className="calloutInfo">
+              This deployment currently publishes public posts only. Followers-only, group-only, and
+              private composer options are hidden until the backend supports them end to end.
+            </div>
+
             <label className="uploadZone">
               <span className="uploadTitle">Attachment</span>
               <span className="uploadHint">
-                Optional. Images, audio, and video use the upload → durability → declare flow.
+                Optional. Images, audio, and video up to {formatBytes(MAX_MEDIA_UPLOAD_BYTES)} use
+                the upload → declare → publish flow.
               </span>
               <input
                 type="file"
@@ -546,6 +573,18 @@ export default function CreatePostPage(): JSX.Element {
                 {file ? `${file.name} · ${formatBytes(file.size)}` : "No file selected"}
               </span>
             </label>
+
+            {fileValidationError ? (
+              <div className="calloutDanger">{fileValidationError}</div>
+            ) : null}
+
+            {file ? (
+              <div className="buttonRow">
+                <button className="btn btnGhost" onClick={() => setFile(null)} disabled={busy}>
+                  Remove attachment
+                </button>
+              </div>
+            ) : null}
 
             <div className="buttonRow buttonRowWide">
               <button className="btn btnPrimary" onClick={submit} disabled={!canPublish}>
@@ -573,7 +612,9 @@ export default function CreatePostPage(): JSX.Element {
                         ? "Finish account registration before posting."
                         : tier < POSTING_MIN_TIER
                           ? `Finish PoH so Tier ${POSTING_MIN_TIER} is unlocked.`
-                          : "Add text or a file to continue."}
+                          : fileValidationError
+                            ? fileValidationError
+                            : "Add text or a file to continue."}
                 </span>
               </div>
             ) : null}
@@ -599,7 +640,7 @@ export default function CreatePostPage(): JSX.Element {
               <span className={`statusPill ${registered ? "ok" : ""}`}>
                 {registered ? "Account registered" : "Registration required"}
               </span>
-              <span className="statusPill">{visibility}</span>
+              <span className="statusPill">public</span>
             </div>
 
             <div className="feedBodyText">{text.trim() || "Your draft preview appears here."}</div>
@@ -697,8 +738,9 @@ export default function CreatePostPage(): JSX.Element {
                 </div>
               </div>
               <div className="infoCardText">
-                Media becomes durable when enough operators confirm successful pinning to satisfy the
-                current deployment thresholds.
+                Media durability is a storage signal, not a second publish button. Your post can be
+                created once the media reference is declared, while replication may still continue in
+                the background.
               </div>
             </div>
 

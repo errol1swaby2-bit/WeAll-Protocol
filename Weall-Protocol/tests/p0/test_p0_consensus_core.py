@@ -208,3 +208,137 @@ def test_slash_vote_records_vote_per_voter_overwrites(base_state) -> None:
     )
     assert out2["applied"] == "SLASH_VOTE"
     assert st["slashing"]["votes"][slash_id]["carol"] == "no"
+
+
+def test_validator_candidate_register_records_candidate_without_activation(base_state) -> None:
+    st = _clone(base_state)
+
+    out = apply_tx(
+        st,
+        _env(
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {
+                "node_id": "node-alice",
+                "pubkey": "ed25519:alice",
+                "endpoints": ["https://alice.example"],
+                "metadata_hash": "abc123",
+            },
+            signer="alice",
+            nonce=1,
+        ),
+    )
+    assert out["applied"] == "VALIDATOR_CANDIDATE_REGISTER"
+    rec = st["validators"]["registry"]["alice"]
+    assert rec["status"] == "candidate"
+    assert rec["active"] is False
+    assert "alice" not in st["roles"]["validators"].get("active_set", [])
+
+
+def test_validator_candidate_approve_schedules_future_activation(base_state) -> None:
+    st = _clone(base_state)
+    apply_tx(
+        st,
+        _env(
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {
+                "node_id": "node-alice",
+                "pubkey": "ed25519:alice",
+                "endpoints": ["https://alice.example"],
+            },
+            signer="alice",
+            nonce=1,
+        ),
+    )
+
+    out = apply_tx(
+        st,
+        _env(
+            "VALIDATOR_CANDIDATE_APPROVE",
+            {"account": "alice", "activate_at_epoch": 2},
+            signer="SYSTEM",
+            nonce=2,
+            system=True,
+            parent="gov:exec:1",
+        ),
+    )
+    assert out["applied"] == "VALIDATOR_CANDIDATE_APPROVE"
+    assert out["status"] == "pending_activation"
+    rec = st["validators"]["registry"]["alice"]
+    assert rec["status"] == "pending_activation"
+    pending = st["consensus"]["validator_set"]["pending"]
+    assert pending["activate_at_epoch"] == 2
+    assert "alice" in pending["active_set"]
+
+
+
+def test_validator_suspend_schedules_epoch_bound_membership_removal(base_state) -> None:
+    st = _clone(base_state)
+    apply_tx(
+        st,
+        _env(
+            "VALIDATOR_SET_UPDATE",
+            {"active_set": ["alice", "bob"], "activate_at_epoch": 1},
+            signer="SYSTEM",
+            nonce=1,
+            system=True,
+            parent="gov:exec:set1",
+        ),
+    )
+    apply_tx(st, _env("EPOCH_OPEN", {"epoch": 1}, signer="SYSTEM", nonce=2, system=True))
+
+    out = apply_tx(
+        st,
+        _env(
+            "VALIDATOR_SUSPEND",
+            {"account": "alice", "effective_epoch": 2, "reason": "liveness_failure"},
+            signer="SYSTEM",
+            nonce=3,
+            system=True,
+            parent="gov:exec:suspend1",
+        ),
+    )
+    assert out["applied"] == "VALIDATOR_SUSPEND"
+    assert out["status"] == "pending_suspension"
+    assert st["validators"]["registry"]["alice"]["status"] == "pending_suspension"
+    pending = st["consensus"]["validator_set"]["pending"]
+    assert pending["activate_at_epoch"] == 2
+    assert pending["active_set"] == ["bob"]
+
+    apply_tx(st, _env("EPOCH_CLOSE", {"epoch": 1}, signer="SYSTEM", nonce=4, system=True))
+    open2 = apply_tx(st, _env("EPOCH_OPEN", {"epoch": 2}, signer="SYSTEM", nonce=5, system=True))
+    assert open2["validator_set_activated"]["active_set"] == ["bob"]
+    assert st["validators"]["registry"]["alice"]["status"] == "suspended"
+    assert st["validators"]["registry"]["alice"]["active"] is False
+
+
+def test_validator_remove_marks_non_active_record_removed_immediately(base_state) -> None:
+    st = _clone(base_state)
+    apply_tx(
+        st,
+        _env(
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {
+                "node_id": "node-alice",
+                "pubkey": "ed25519:alice",
+                "endpoints": ["https://alice.example"],
+            },
+            signer="alice",
+            nonce=1,
+        ),
+    )
+    out = apply_tx(
+        st,
+        _env(
+            "VALIDATOR_REMOVE",
+            {"account": "alice", "effective_epoch": 2, "reason": "withdrawn"},
+            signer="SYSTEM",
+            nonce=2,
+            system=True,
+            parent="gov:exec:remove1",
+        ),
+    )
+    assert out["applied"] == "VALIDATOR_REMOVE"
+    assert out["status"] == "removed"
+    rec = st["validators"]["registry"]["alice"]
+    assert rec["status"] == "removed"
+    assert rec["active"] is False

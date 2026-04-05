@@ -14,9 +14,6 @@ import { normalizeAccount, signDetachedB64 } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import {
-  getBootstrapTier3Enabled,
-  getDurableOperatorTarget,
-  getMediaReplicationTarget,
   getTier2VideoUploadEnabled,
 } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
@@ -152,7 +149,6 @@ export default function PohPage(): JSX.Element {
   const [err, setErr] = useState<ErrState>(null);
   const [result, setResult] = useState<any | null>(null);
 
-  const [bootstrapBusy, setBootstrapBusy] = useState(false);
   const [sessionBusy, setSessionBusy] = useState(false);
   const [registerBusy, setRegisterBusy] = useState(false);
   const [emailBusy, setEmailBusy] = useState(false);
@@ -175,9 +171,6 @@ export default function PohPage(): JSX.Element {
   const sessionKeyPresent = !!session?.sessionKey;
 
   const tier2VideoUploadEnabled = getTier2VideoUploadEnabled();
-  const bootstrapTier3Enabled = getBootstrapTier3Enabled();
-  const replicationTarget = getMediaReplicationTarget();
-  const durableOperatorTarget = getDurableOperatorTarget();
 
   async function refresh(): Promise<void> {
     setLoading(true);
@@ -287,44 +280,6 @@ export default function PohPage(): JSX.Element {
       setResult(e?.body || e?.data || null);
     } finally {
       setRegisterBusy(false);
-    }
-  }
-
-  async function bootstrapTier3(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
-      return;
-    }
-
-    setBootstrapBusy(true);
-    setErr(null);
-    setResult(null);
-
-    try {
-      const r = await tx.runTx({
-        title: "Bootstrap Tier 3 grant",
-        pendingMessage: "Submitting Tier 3 bootstrap grant…",
-        successMessage: "Tier 3 bootstrap grant submitted.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.result?.tx_id,
-        task: async () =>
-          submitSignedTx({
-            account: acct,
-            tx_type: "POH_BOOTSTRAP_TIER3_GRANT",
-            payload: {},
-            parent: null,
-            base,
-          }),
-      });
-      setResult(r);
-      await refresh();
-      await loadPohData();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-      setResult(e?.body || e?.data || null);
-    } finally {
-      setBootstrapBusy(false);
     }
   }
 
@@ -454,40 +409,31 @@ export default function PohPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
         task: async () => {
-          if (useEmailOracle) {
-            const verifyRes: any = await weall.emailOracleVerify(
-              { challenge_id: requestId.trim(), code: emailCode.trim() },
-              emailOracleBase,
-            );
-            const relayToken = verifyRes?.relay_token;
-            if (!relayToken?.payload || !relayToken?.signature) throw new Error("invalid_relay_token");
-            const receipt = buildOperatorReceipt(acct, kp as any, relayToken as RelayToken);
-            const skel: any = await weall.pohEmailReceiptTxSubmit(
-              { account_id: acct, receipt },
-              base,
-              getAuthHeaders(acct),
-            );
-            const skeletonTx = skel?.tx;
-            if (!skeletonTx) throw new Error("invalid_skeleton");
-            const submit = await submitSignedTx({
-              account: acct,
-              tx_type: String(skeletonTx.tx_type || ""),
-              payload: skeletonTx.payload || {},
-              parent: skeletonTx.parent ?? null,
-              base,
-            });
-            return { verify: verifyRes, receipt, skeleton: skel, submit };
+          if (!useEmailOracle) {
+            throw new Error("email_oracle_base_url_required");
           }
-          return await weall.pohEmailConfirm(
-            {
-              account: acct,
-              request_id: requestId.trim(),
-              code: emailCode.trim(),
-              turnstile_token: turnstileToken || undefined,
-            },
+          const verifyRes: any = await weall.emailOracleVerify(
+            { challenge_id: requestId.trim(), code: emailCode.trim() },
+            emailOracleBase,
+          );
+          const relayToken = verifyRes?.relay_token;
+          if (!relayToken?.payload || !relayToken?.signature) throw new Error("invalid_relay_token");
+          const receipt = buildOperatorReceipt(acct, kp as any, relayToken as RelayToken);
+          const skel: any = await weall.pohEmailReceiptTxSubmit(
+            { account_id: acct, receipt },
             base,
             getAuthHeaders(acct),
           );
+          const skeletonTx = skel?.tx;
+          if (!skeletonTx) throw new Error("invalid_skeleton");
+          const submit = await submitSignedTx({
+            account: acct,
+            tx_type: String(skeletonTx.tx_type || ""),
+            payload: skeletonTx.payload || {},
+            parent: skeletonTx.parent ?? null,
+            base,
+          });
+          return { verify: verifyRes, receipt, skeleton: skel, submit };
         },
       });
       setResult(r);
@@ -629,9 +575,9 @@ export default function PohPage(): JSX.Element {
               <div className="eyebrow">Identity and Proof of Humanity</div>
               <h1 className="heroTitle heroTitleSm">Move from device setup into verified participation</h1>
               <p className="heroText">
-                This page acts as the canonical onboarding hub for account readiness, Tier 1 email
-                verification, Tier 2 video intake, Tier 2 case tracking, Tier 3 request submission,
-                and live session visibility.
+                This page is the canonical onboarding hub for account readiness, Tier 1 email
+                verification, Tier 2 request intake when enabled on the deployment, and Tier 3 case
+                visibility once the network has assigned a live review session.
               </p>
             </div>
 
@@ -703,26 +649,26 @@ export default function PohPage(): JSX.Element {
 
             <div className="progressList">
               <div className="progressRow">
-                <span>Tier 2 video upload UI</span>
+                <span>Tier 1 email verification</span>
+                <span className="statusPill ok">Live</span>
+              </div>
+              <div className="progressRow">
+                <span>Tier 2 self-serve video intake</span>
                 <span className={`statusPill ${tier2VideoUploadEnabled ? "ok" : ""}`}>
-                  {tier2VideoUploadEnabled ? "Enabled" : "Disabled"}
+                  {tier2VideoUploadEnabled ? "Live" : "Unavailable here"}
                 </span>
               </div>
               <div className="progressRow">
-                <span>Bootstrap Tier 3 controls</span>
-                <span className={`statusPill ${bootstrapTier3Enabled ? "ok" : ""}`}>
-                  {bootstrapTier3Enabled ? "Enabled" : "Disabled"}
+                <span>Tier 3 request submit</span>
+                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
+                  {tier >= 2 ? "Available after Tier 2" : "Locked until Tier 2"}
                 </span>
-              </div>
-              <div className="progressRow">
-                <span>Media replication target</span>
-                <span className="statusPill">{replicationTarget}</span>
-              </div>
-              <div className="progressRow">
-                <span>Durable operator threshold</span>
-                <span className="statusPill">{durableOperatorTarget}</span>
               </div>
             </div>
+            <p className="cardDesc">
+              Founder-only bootstrap shortcuts are intentionally removed from this product surface so
+              testers only see real user paths.
+            </p>
           </div>
         </article>
 
@@ -839,11 +785,6 @@ export default function PohPage(): JSX.Element {
               >
                 {sessionBusy ? "Issuing…" : "Issue session tx"}
               </button>
-              {bootstrapTier3Enabled ? (
-                <button className="btn" onClick={() => void bootstrapTier3()} disabled={!acct || bootstrapBusy}>
-                  {bootstrapBusy ? "Submitting…" : "Bootstrap Tier 3 grant"}
-                </button>
-              ) : null}
               <button
                 className="btn btnGhost"
                 onClick={() => {
@@ -898,7 +839,7 @@ export default function PohPage(): JSX.Element {
                 className="input mono"
                 value={requestId}
                 onChange={(e) => setRequestId(e.target.value)}
-                placeholder="Returned by /start"
+                placeholder="Returned by /v1/poh/email/begin"
               />
             </label>
 
@@ -938,9 +879,9 @@ export default function PohPage(): JSX.Element {
 
             {!tier2VideoUploadEnabled ? (
               <div className="calloutInfo">
-                Tier 2 video upload UI is disabled for this deployment. The client capability flags
-                currently hide the upload surface. Enable it only when the backend route and IPFS
-                path are intended to be available.
+                Tier 2 self-serve video intake is not enabled on this deployment. That means a new
+                tester cannot start Tier 2 from this screen yet, so the UI stays explicit instead of
+                pretending the upload path is live.
               </div>
             ) : (
               <>
@@ -979,16 +920,16 @@ export default function PohPage(): JSX.Element {
             </div>
 
             <p className="cardDesc">
-              Tier 3 opens a live juror case. Once operators initialize the session, the join URL
-              and participant state will appear in your case timeline below.
+              Tier 3 opens a live juror case after Tier 2. Once operators initialize the session,
+              the join URL and participant state will appear in your case timeline below.
             </p>
 
             <button
               className="btn"
               onClick={() => void submitTier3Request()}
-              disabled={!acct || tier3RequestBusy || tier >= 3}
+              disabled={!acct || tier3RequestBusy || tier >= 3 || tier < 2}
             >
-              {tier3RequestBusy ? "Submitting…" : "Open Tier 3 request"}
+              {tier3RequestBusy ? "Submitting…" : tier < 2 ? "Finish Tier 2 first" : "Open Tier 3 request"}
             </button>
           </div>
         </article>

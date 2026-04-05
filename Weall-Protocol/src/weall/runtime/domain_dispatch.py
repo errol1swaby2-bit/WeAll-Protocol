@@ -33,6 +33,7 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.metrics import inc_counter
 from weall.runtime.state_invariants import ensure_state
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.tx_contracts import handler_name_for_tx_type, resolve_applier_for_tx_type
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -226,6 +227,34 @@ def apply_tx(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_tx_type", {"tx_type": t})
 
     _enforce_apply_time_canon(state, env_norm)
+
+    routed = resolve_applier_for_tx_type(t)
+    if routed is not None:
+        try:
+            out = routed(state, env_norm)
+        except ApplyError:
+            raise
+        except Exception as e:
+            code = getattr(e, "code", None)
+            reason = getattr(e, "reason", None)
+            details = getattr(e, "details", None)
+
+            if code is not None or reason is not None:
+                raise ApplyError(
+                    str(code or "domain_error"),
+                    str(reason or "exception"),
+                    details if isinstance(details, dict) else {"error": repr(e)},
+                )
+
+            raise ApplyError("domain_error", "exception", {"error": repr(e)})
+
+        if out is None:
+            raise ApplyError(
+                "invalid_tx",
+                "unclaimed_tx_type",
+                {"tx_type": t, "handler": handler_name_for_tx_type(t) or routed.__name__},
+            )
+        return out
 
     for fn in _APPLIERS:
         try:

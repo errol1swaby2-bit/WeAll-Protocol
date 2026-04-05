@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getKeypair, getSession } from "../auth/session";
+import { useAccount } from "../context/AccountContext";
 import { nav } from "../lib/router";
 
 type NavItem = {
@@ -45,7 +46,9 @@ export default function SidebarNav(): JSX.Element {
   const session = getSession();
   const account = session?.account || "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
+  const { state: accountState } = useAccount();
   const ready = !!session?.account && !!keypair?.secretKeyB64;
+  const tier = Number(accountState?.poh_tier ?? 0);
   const items = ready ? READY_ITEMS : LOGGED_OUT_ITEMS;
 
   useEffect(() => {
@@ -59,7 +62,10 @@ export default function SidebarNav(): JSX.Element {
   return (
     <nav className="sidebarNav" aria-label="Primary">
       {items
-        .filter((item) => !item.requiresReady || ready)
+        .filter((item) => {
+          if (item.href === "/juror") return ready && tier >= 3;
+          return !item.requiresReady || ready;
+        })
         .map((item) => {
           const active = isActive(currentPath, item.href);
           return (

@@ -444,6 +444,127 @@ def _apply_account_unban(state: Json, env: TxEnvelope) -> Json:
     return state
 
 
+
+
+def _normalized_guardians(a: Json) -> tuple[Json, list[str], int]:
+    recovery = a.get("recovery")
+    if not isinstance(recovery, dict):
+        recovery = {}
+        a["recovery"] = recovery
+
+    cfg = recovery.get("config")
+    if not isinstance(cfg, dict):
+        cfg = {}
+        recovery["config"] = cfg
+
+    raw_guardians = cfg.get("guardians")
+    guardians: list[str] = []
+    if isinstance(raw_guardians, list):
+        for g in raw_guardians:
+            gs = _as_str(g).strip()
+            if gs and gs not in guardians:
+                guardians.append(gs)
+
+    threshold = _as_int(cfg.get("threshold"), 0)
+    if guardians and threshold <= 0:
+        threshold = min(1, len(guardians))
+    if guardians and threshold > len(guardians):
+        threshold = len(guardians)
+
+    cfg["guardians"] = guardians
+    cfg["threshold"] = threshold
+    return recovery, guardians, threshold
+
+
+def _iter_recovery_requests(state: Json):
+    accounts = _ensure(state, "accounts", {})
+    if not isinstance(accounts, dict):
+        raise ApplyError("invalid_state", "accounts_not_dict", {})
+    for account_id, acct in accounts.items():
+        if not isinstance(acct, dict):
+            continue
+        recovery = acct.get("recovery")
+        if not isinstance(recovery, dict):
+            continue
+        requests = recovery.get("requests")
+        if not isinstance(requests, dict):
+            continue
+        yield account_id, acct, recovery, requests
+
+
+def _find_recovery_request(state: Json, request_id: str) -> tuple[str, Json, Json, Json]:
+    for account_id, acct, recovery, requests in _iter_recovery_requests(state):
+        req = requests.get(request_id)
+        if isinstance(req, dict):
+            return account_id, acct, recovery, req
+    raise ApplyError("invalid_tx", "unknown_request", {"request_id": request_id})
+
+
+def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
+    a = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(a, env)
+    p = _payload(env)
+
+    raw_policy = p.get("policy")
+    if isinstance(raw_policy, dict):
+        policy = dict(raw_policy)
+    else:
+        policy = {}
+
+    for key in ("lock_on_recovery_request", "require_guardian_threshold_for_unlock"):
+        if key in p and p.get(key) is not None:
+            policy[key] = bool(p.get(key))
+    if p.get("session_ttl_s") is not None:
+        policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
+
+    a["security_policy"] = policy
+    a["nonce"] = exp
+    return state
+
+
+def _apply_account_guardian_add(state: Json, env: TxEnvelope) -> Json:
+    a = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(a, env)
+    p = _payload(env)
+
+    guardian_id = _as_str(p.get("guardian_id") or "").strip()
+    if not guardian_id:
+        raise ApplyError("invalid_tx", "missing_guardian_id", {})
+    if guardian_id == _as_str(env.signer).strip():
+        raise ApplyError("invalid_tx", "guardian_self_reference", {})
+
+    recovery, guardians, threshold = _normalized_guardians(a)
+    if guardian_id in guardians:
+        raise ApplyError("invalid_tx", "guardian_exists", {"guardian_id": guardian_id})
+    guardians.append(guardian_id)
+    recovery["config"] = {"guardians": guardians, "threshold": max(1, threshold)}
+
+    a["nonce"] = exp
+    return state
+
+
+def _apply_account_guardian_remove(state: Json, env: TxEnvelope) -> Json:
+    a = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(a, env)
+    p = _payload(env)
+
+    guardian_id = _as_str(p.get("guardian_id") or "").strip()
+    if not guardian_id:
+        raise ApplyError("invalid_tx", "missing_guardian_id", {})
+
+    recovery, guardians, threshold = _normalized_guardians(a)
+    if guardian_id not in guardians:
+        raise ApplyError("invalid_tx", "unknown_guardian", {"guardian_id": guardian_id})
+    guardians = [g for g in guardians if g != guardian_id]
+    if guardians:
+        threshold = min(max(1, threshold), len(guardians))
+        recovery["config"] = {"guardians": guardians, "threshold": threshold}
+    else:
+        recovery["config"] = None
+
+    a["nonce"] = exp
+    return state
+
 def _apply_account_recovery_config_set(state: Json, env: TxEnvelope) -> Json:
     a = _require_not_banned_or_locked(state, env.signer)
     exp = _expect_nonce(a, env)
@@ -520,57 +641,46 @@ def _apply_account_recovery_propose(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
-    # Guardian approves a proposal for a target account.
     p = _payload(env)
-    target = _as_str(p.get("target") or "").strip()
-    proposal_id = _as_str(p.get("proposal_id") or "").strip()
-    if not target:
-        raise ApplyError("invalid_tx", "missing_target", {})
-    if not proposal_id:
-        raise ApplyError("invalid_tx", "missing_proposal_id", {})
+    request_id = _as_str(p.get("request_id") or "").strip()
+    if not request_id:
+        # Back-compat legacy proposal flow.
+        return _apply_account_recovery_vote(state, env)
 
+    account_id, _acct, _recovery, req = _find_recovery_request(state, request_id)
     accounts = _ensure(state, "accounts", {})
     if not isinstance(accounts, dict):
         raise ApplyError("invalid_state", "accounts_not_dict", {})
+    subject = accounts.get(account_id)
+    if not isinstance(subject, dict):
+        raise ApplyError("invalid_tx", "unknown_account", {"account_id": account_id})
+    if subject.get("banned") is True:
+        raise ApplyError("forbidden", "account_banned", {"account_id": account_id})
+    _recovery, guardians, threshold = _normalized_guardians(subject)
 
-    a = accounts.get(target)
-    if not isinstance(a, dict):
-        raise ApplyError("invalid_tx", "unknown_account", {"account_id": target})
+    guardian = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(guardian, env)
+    guardian_id = _as_str(env.signer).strip()
+    if guardian_id not in guardians:
+        raise ApplyError("forbidden", "not_a_guardian", {"guardian": guardian_id})
 
-    recovery = a.get("recovery")
-    if not isinstance(recovery, dict) or not isinstance(recovery.get("config"), dict):
-        raise ApplyError("invalid_tx", "recovery_not_configured", {})
+    status = _as_str(req.get("status") or "open").strip().lower()
+    if status not in {"open", "approved"}:
+        raise ApplyError("invalid_tx", "request_not_open", {"request_id": request_id, "status": status})
 
-    cfg = recovery["config"]
-    guardians = cfg.get("guardians")
-    if not isinstance(guardians, list):
-        raise ApplyError("invalid_state", "invalid_recovery_guardians", {})
-
-    guardian = _as_str(env.signer).strip()
-    if guardian not in guardians:
-        raise ApplyError("forbidden", "not_a_guardian", {"guardian": guardian})
-
-    proposals = recovery.get("proposals")
-    if not isinstance(proposals, dict):
-        raise ApplyError("invalid_tx", "proposal_missing", {"proposal_id": proposal_id})
-
-    prop = proposals.get(proposal_id)
-    if not isinstance(prop, dict):
-        raise ApplyError("invalid_tx", "proposal_missing", {"proposal_id": proposal_id})
-    if prop.get("executed") is True:
-        raise ApplyError("invalid_tx", "proposal_executed", {"proposal_id": proposal_id})
-
-    approvals = prop.get("approvals")
+    approvals = req.get("approvals")
     if not isinstance(approvals, list):
         approvals = []
-        prop["approvals"] = approvals
+        req["approvals"] = approvals
+    if guardian_id in approvals:
+        raise ApplyError("invalid_tx", "already_approved", {"guardian": guardian_id, "request_id": request_id})
 
-    if guardian in approvals:
-        raise ApplyError(
-            "invalid_tx", "already_approved", {"guardian": guardian, "proposal_id": proposal_id}
-        )
+    approvals.append(guardian_id)
+    req["guardian_threshold"] = threshold
+    req["guardians_snapshot"] = list(guardians)
+    req["status"] = "approved" if len(approvals) >= max(1, threshold) else "open"
 
-    approvals.append(guardian)
+    guardian["nonce"] = exp
     return state
 
 
@@ -639,23 +749,21 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
-    """Open an account recovery request.
-
-    This is an MVP smoke-path used by tests. Full guardian voting semantics are
-    validated elsewhere.
-    """
-    a = _require_not_banned_or_locked(state, env.signer)
-    exp = _expect_nonce(a, env)
+    """Open an account recovery request under the target account."""
+    requester = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(requester, env)
     p = _payload(env)
 
     request_id = _as_str(p.get("request_id") or "").strip()
+    target = _as_str(p.get("target") or env.signer).strip()
     if not request_id:
         raise ApplyError("invalid_tx", "missing_request_id", {})
+    if not target:
+        raise ApplyError("invalid_tx", "missing_target", {})
 
-    recovery = a.get("recovery")
-    if not isinstance(recovery, dict):
-        recovery = {}
-        a["recovery"] = recovery
+    subject = _require_not_banned_or_locked(state, target)
+    recovery, guardians, threshold = _normalized_guardians(subject)
+
     requests = recovery.get("requests")
     if not isinstance(requests, dict):
         requests = {}
@@ -664,15 +772,96 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
     if request_id in requests:
         raise ApplyError("invalid_tx", "request_exists", {"request_id": request_id})
 
+    security_policy = subject.get("security_policy")
+    lock_on_request = False
+    if isinstance(security_policy, dict):
+        lock_on_request = bool(security_policy.get("lock_on_recovery_request"))
+
     requests[request_id] = {
         "status": "open",
+        "target": target,
+        "requester": _as_str(env.signer).strip(),
+        "approvals": [],
         "votes": {},
+        "guardian_threshold": threshold,
+        "guardians_snapshot": list(guardians),
         "created_at": _as_int(state.get("height"), 0),
     }
 
-    a["nonce"] = exp
+    if lock_on_request:
+        subject["locked"] = True
+
+    requester["nonce"] = exp
     return state
 
+
+
+
+def _apply_account_recovery_cancel(state: Json, env: TxEnvelope) -> Json:
+    actor = _require_not_banned_or_locked(state, env.signer)
+    exp = _expect_nonce(actor, env)
+    p = _payload(env)
+
+    request_id = _as_str(p.get("request_id") or "").strip()
+    if not request_id:
+        raise ApplyError("invalid_tx", "missing_request_id", {})
+
+    account_id, _acct, _recovery, req = _find_recovery_request(state, request_id)
+    requester = _as_str(req.get("requester") or "").strip()
+    if _as_str(env.signer).strip() not in {requester, account_id}:
+        raise ApplyError("forbidden", "not_request_owner", {"request_id": request_id})
+
+    status = _as_str(req.get("status") or "open").strip().lower()
+    if status in {"cancelled", "finalized", "receipt_recorded"}:
+        raise ApplyError("invalid_tx", "request_not_cancellable", {"request_id": request_id, "status": status})
+
+    req["status"] = "cancelled"
+    req["cancelled_by"] = _as_str(env.signer).strip()
+    req["cancelled_at"] = _as_int(state.get("height"), 0)
+
+    actor["nonce"] = exp
+    return state
+
+
+def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
+    p = _payload(env)
+    request_id = _as_str(p.get("request_id") or "").strip()
+    if not request_id:
+        raise ApplyError("invalid_tx", "missing_request_id", {})
+
+    account_id, acct, _recovery, req = _find_recovery_request(state, request_id)
+    approvals = req.get("approvals")
+    if not isinstance(approvals, list):
+        approvals = []
+    threshold = _as_int(req.get("guardian_threshold"), 0)
+    if threshold <= 0:
+        _, _, threshold = _normalized_guardians(acct)
+    if len(approvals) < max(1, threshold):
+        raise ApplyError("forbidden", "threshold_not_met", {"have": len(approvals), "need": max(1, threshold)})
+
+    status = _as_str(req.get("status") or "").strip().lower()
+    if status in {"cancelled", "finalized", "receipt_recorded"}:
+        raise ApplyError("invalid_tx", "request_not_finalizable", {"request_id": request_id, "status": status})
+
+    req["status"] = "finalized"
+    req["finalized_at"] = _as_int(state.get("height"), 0)
+    req["finalized_by"] = _as_str(getattr(env, "signer", "")).strip() or "SYSTEM"
+    acct["locked"] = False
+    return state
+
+
+def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
+    p = _payload(env)
+    request_id = _as_str(p.get("request_id") or "").strip()
+    if not request_id:
+        raise ApplyError("invalid_tx", "missing_request_id", {})
+
+    _account_id, _acct, _recovery, req = _find_recovery_request(state, request_id)
+    status = _as_str(p.get("status") or req.get("status") or "finalized").strip().lower()
+    req["status"] = "receipt_recorded"
+    req["receipt_status"] = status or "finalized"
+    req["receipt_at"] = _as_int(state.get("height"), 0)
+    return state
 
 def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
     """Cast a vote on a recovery request (minimal MVP)."""
@@ -745,6 +934,15 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     if tx == "ACCOUNT_SESSION_KEY_REVOKE":
         return _apply_account_session_key_revoke(state, env)
 
+    if tx == "ACCOUNT_GUARDIAN_ADD":
+        return _apply_account_guardian_add(state, env)
+
+    if tx == "ACCOUNT_GUARDIAN_REMOVE":
+        return _apply_account_guardian_remove(state, env)
+
+    if tx == "ACCOUNT_SECURITY_POLICY_SET":
+        return _apply_account_security_policy_set(state, env)
+
     if tx == "ACCOUNT_LOCK":
         return _apply_account_lock(state, env)
 
@@ -771,6 +969,15 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
 
     if tx == "ACCOUNT_RECOVERY_REQUEST":
         return _apply_account_recovery_request(state, env)
+
+    if tx == "ACCOUNT_RECOVERY_CANCEL":
+        return _apply_account_recovery_cancel(state, env)
+
+    if tx == "ACCOUNT_RECOVERY_FINALIZE":
+        return _apply_account_recovery_finalize(state, env)
+
+    if tx == "ACCOUNT_RECOVERY_RECEIPT":
+        return _apply_account_recovery_receipt(state, env)
 
     if tx == "ACCOUNT_RECOVERY_VOTE":
         return _apply_account_recovery_vote(state, env)

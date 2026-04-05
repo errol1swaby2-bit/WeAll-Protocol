@@ -138,3 +138,195 @@ def test_guardian_recovery_flow_threshold_2() -> None:
         )
     except ApplyError:
         pass
+
+
+
+def test_identity_canon_guardian_and_security_policy_txs_are_claimed() -> None:
+    st = _empty_state()
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@user000",
+            "nonce": 1,
+            "payload": {"pubkey": "k:u"},
+            "sig": "x",
+        },
+        st,
+    )
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+            "signer": "@user000",
+            "nonce": 2,
+            "payload": {"lock_on_recovery_request": True, "session_ttl_s": 3600},
+            "sig": "x",
+        },
+        st,
+    )
+    assert st["accounts"]["@user000"]["security_policy"]["lock_on_recovery_request"] is True
+    assert st["accounts"]["@user000"]["security_policy"]["session_ttl_s"] == 3600
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_GUARDIAN_ADD",
+            "signer": "@user000",
+            "nonce": 3,
+            "payload": {"guardian_id": "@guardian1"},
+            "sig": "x",
+        },
+        st,
+    )
+    cfg = st["accounts"]["@user000"]["recovery"]["config"]
+    assert cfg["guardians"] == ["@guardian1"]
+    assert cfg["threshold"] == 1
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_GUARDIAN_REMOVE",
+            "signer": "@user000",
+            "nonce": 4,
+            "payload": {"guardian_id": "@guardian1"},
+            "sig": "x",
+        },
+        st,
+    )
+    assert st["accounts"]["@user000"]["recovery"]["config"] is None
+
+
+def test_recovery_request_cancel_finalize_and_receipt_flow() -> None:
+    st = _empty_state()
+    for signer in ("@subject", "@guardian1", "@guardian2"):
+        st = _apply_ok(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": signer,
+                "nonce": 1,
+                "payload": {"pubkey": f"k:{signer}"},
+                "sig": "x",
+            },
+            st,
+        )
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+            "signer": "@subject",
+            "nonce": 2,
+            "payload": {"lock_on_recovery_request": True},
+            "sig": "x",
+        },
+        st,
+    )
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
+            "signer": "@subject",
+            "nonce": 3,
+            "payload": {"guardians": ["@guardian1", "@guardian2"], "threshold": 2},
+            "sig": "x",
+        },
+        st,
+    )
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+            "signer": "@subject",
+            "nonce": 4,
+            "payload": {"request_id": "req-1"},
+            "sig": "x",
+        },
+        st,
+    )
+    req = st["accounts"]["@subject"]["recovery"]["requests"]["req-1"]
+    assert req["status"] == "open"
+    assert st["accounts"]["@subject"]["locked"] is True
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+            "signer": "@guardian1",
+            "nonce": 2,
+            "payload": {"request_id": "req-1"},
+            "sig": "x",
+        },
+        st,
+    )
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+            "signer": "@guardian2",
+            "nonce": 2,
+            "payload": {"request_id": "req-1"},
+            "sig": "x",
+        },
+        st,
+    )
+    req = st["accounts"]["@subject"]["recovery"]["requests"]["req-1"]
+    assert req["status"] == "approved"
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_FINALIZE",
+            "signer": "SYSTEM",
+            "system": True,
+            "nonce": 0,
+            "payload": {"request_id": "req-1"},
+            "sig": "",
+        },
+        st,
+    )
+    req = st["accounts"]["@subject"]["recovery"]["requests"]["req-1"]
+    assert req["status"] == "finalized"
+    assert st["accounts"]["@subject"]["locked"] is False
+
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_RECEIPT",
+            "signer": "SYSTEM",
+            "system": True,
+            "nonce": 0,
+            "payload": {"request_id": "req-1", "status": "finalized"},
+            "sig": "",
+        },
+        st,
+    )
+    req = st["accounts"]["@subject"]["recovery"]["requests"]["req-1"]
+    assert req["status"] == "receipt_recorded"
+    assert req["receipt_status"] == "finalized"
+
+
+def test_recovery_request_cancel_by_requester() -> None:
+    st = _empty_state()
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@subject",
+            "nonce": 1,
+            "payload": {"pubkey": "k:subject"},
+            "sig": "x",
+        },
+        st,
+    )
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+            "signer": "@subject",
+            "nonce": 2,
+            "payload": {"request_id": "req-cancel"},
+            "sig": "x",
+        },
+        st,
+    )
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_CANCEL",
+            "signer": "@subject",
+            "nonce": 3,
+            "payload": {"request_id": "req-cancel"},
+            "sig": "x",
+        },
+        st,
+    )
+    req = st["accounts"]["@subject"]["recovery"]["requests"]["req-cancel"]
+    assert req["status"] == "cancelled"

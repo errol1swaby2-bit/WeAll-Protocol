@@ -27,7 +27,18 @@ function getHashPath(): string {
 }
 
 function isPublicRoute(path: string): boolean {
-  return path === "/login";
+  return (
+    path === "/login" ||
+    path === "/feed" ||
+    path === "/groups" ||
+    path === "/proposals" ||
+    path === "/settings" ||
+    path.startsWith("/groups/") ||
+    path.startsWith("/proposal/") ||
+    path.startsWith("/account/") ||
+    path.startsWith("/content/") ||
+    path.startsWith("/thread/")
+  );
 }
 
 export default function App(): JSX.Element {
@@ -83,64 +94,49 @@ export default function App(): JSX.Element {
     case "/home":
       page = readyForApp ? <Home /> : <LoginPage />;
       break;
-
     case "/feed":
-      page = readyForApp ? <Feed /> : <LoginPage />;
+      page = <Feed />;
       break;
-
     case "/post":
       page = readyForApp ? <CreatePostPage /> : <LoginPage />;
       break;
-
     case "/poh":
       page = readyForApp ? <PohPage /> : <LoginPage />;
       break;
-
     case "/juror":
       page = readyForApp ? <JurorDashboard /> : <LoginPage />;
       break;
-
     case "/groups":
-      page = readyForApp ? <Groups /> : <LoginPage />;
+      page = <Groups />;
       break;
-
     case "/groups/:id":
-      page = readyForApp ? <Groups groupId={r.id} /> : <LoginPage />;
+      page = <Groups groupId={r.id} />;
       break;
-
     case "/proposals":
-      page = readyForApp ? <Proposals /> : <LoginPage />;
+      page = <Proposals />;
       break;
-
     case "/proposal/:id":
-      page = readyForApp ? <Proposal id={r.id} /> : <LoginPage />;
+      page = <Proposal id={r.id} />;
       break;
-
     case "/tools":
       page = readyForApp ? <Tools /> : <LoginPage />;
       break;
-
     case "/settings":
-      page = readyForApp ? <Settings /> : <LoginPage />;
+      page = <Settings />;
       break;
-
     case "/account/:account":
-      page = readyForApp ? <Account account={r.account} /> : <LoginPage />;
+      page = <Account account={r.account} />;
       break;
-
     case "/content/:id":
-      page = readyForApp ? <Content id={r.id} /> : <LoginPage />;
+      page = <Content id={r.id} />;
       break;
-
     case "/thread/:id":
-      page = readyForApp ? <Thread id={r.id} /> : <LoginPage />;
+      page = <Thread id={r.id} />;
       break;
-
     default:
-      page = readyForApp ? <Home /> : <LoginPage />;
+      page = readyForApp ? <Home /> : <Feed />;
       break;
   }
 
   return <AppShell>{page}</AppShell>;
 }
-

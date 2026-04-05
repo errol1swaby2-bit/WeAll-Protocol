@@ -54,7 +54,7 @@ LANE_RULES: dict[str, LaneRule] = {
     ),
     LANE_PARALLEL_IDENTITY: LaneRule(
         lane_id=LANE_PARALLEL_IDENTITY,
-        allowed_tx_prefixes=("IDENTITY_", "POH_"),
+        allowed_tx_prefixes=("ACCOUNT_", "IDENTITY_", "POH_"),
         allowed_state_prefixes=("identity:", "poh:"),
         helper_allowed=True,
     ),
@@ -72,8 +72,8 @@ LANE_RULES: dict[str, LaneRule] = {
     ),
     LANE_PARALLEL_ECONOMY: LaneRule(
         lane_id=LANE_PARALLEL_ECONOMY,
-        allowed_tx_prefixes=("ECONOMICS_", "TREASURY_", "REWARDS_"),
-        allowed_state_prefixes=("economy:", "treasury:", "rewards:"),
+        allowed_tx_prefixes=("BALANCE_", "ECONOMICS_", "FEE_", "TREASURY_", "REWARDS_"),
+        allowed_state_prefixes=("economics:", "economy:", "treasury:", "rewards:"),
         helper_allowed=True,
     ),
 }
@@ -142,7 +142,9 @@ INFERRED_NAMESPACE_BY_TX_PREFIX: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("STORAGE_", ("storage:",)),
     ("INDEXING_", ("indexing:",)),
     ("TREASURY_", ("treasury:",)),
-    ("ECONOMICS_", ("economy:",)),
+    ("BALANCE_", ("economics:",)),
+    ("FEE_", ("economics:",)),
+    ("ECONOMICS_", ("economics:", "economy:")),
     ("REWARDS_", ("rewards:",)),
 )
 

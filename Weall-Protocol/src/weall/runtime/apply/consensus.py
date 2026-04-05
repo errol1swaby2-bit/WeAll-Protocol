@@ -131,6 +131,7 @@ def _ensure_consensus(state: Json) -> Json:
     c = _ensure_root_dict(state, "consensus")
     for k in (
         "validators_by_account",
+        "validators",
         "validator_set",
         "blocks_by_id",
         "epochs",
@@ -140,6 +141,14 @@ def _ensure_consensus(state: Json) -> Json:
     ):
         if not isinstance(c.get(k), dict):
             c[k] = {}
+
+    validators = c.get("validators")
+    if not isinstance(validators, dict):
+        validators = {}
+        c["validators"] = validators
+    if not isinstance(validators.get("registry"), dict):
+        validators["registry"] = {}
+    c["validators"] = validators
 
     ep = c.get("epochs")
     if not isinstance(ep, dict):
@@ -281,6 +290,80 @@ def _record_phase_transition(
 # ------------------- Validators -------------------
 
 
+def _ensure_consensus_validator_registry(state: Json) -> Json:
+    c = _ensure_consensus(state)
+    validators = c.get("validators")
+    if not isinstance(validators, dict):
+        validators = {}
+        c["validators"] = validators
+    reg = validators.get("registry")
+    if not isinstance(reg, dict):
+        reg = {}
+        validators["registry"] = reg
+    return reg
+
+
+def _registry_record(state: Json, account: str) -> Json:
+    vroot = _ensure_validators_root(state)
+    reg = vroot.get("registry")
+    assert isinstance(reg, dict)
+    rec = reg.get(account)
+    if not isinstance(rec, dict):
+        rec = {"account": account}
+        reg[account] = rec
+    return rec
+
+
+def _sync_validator_registry_membership(state: Json) -> None:
+    active = set(_ensure_roles_validators_active_set(state))
+    vroot = _ensure_validators_root(state)
+    reg = vroot.get("registry")
+    assert isinstance(reg, dict)
+    creg = _ensure_consensus_validator_registry(state)
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set") if isinstance(c.get("validator_set"), dict) else {}
+    current_epoch = _as_int(vs.get("epoch"), 0)
+    for account, rec in list(reg.items()):
+        if not isinstance(rec, dict):
+            rec = {"account": str(account).strip()}
+        acct = _as_str(rec.get("account") or account)
+        if not acct:
+            continue
+        approved_epoch = _as_int(rec.get("approved_activation_epoch"), 0)
+        if acct in active:
+            rec["active"] = True
+            rec["status"] = "active"
+            if approved_epoch > 0 and not rec.get("effective_epoch"):
+                rec["effective_epoch"] = int(approved_epoch)
+        else:
+            rec["active"] = False
+            status = _as_str(rec.get("status") or "")
+            effective_epoch = _as_int(rec.get("effective_epoch"), 0)
+            if status == "pending_activation" and approved_epoch > 0 and current_epoch >= approved_epoch:
+                rec["status"] = "observer"
+            elif status == "pending_suspension" and effective_epoch > 0 and current_epoch >= effective_epoch:
+                rec["status"] = "suspended"
+            elif status == "pending_removal" and effective_epoch > 0 and current_epoch >= effective_epoch:
+                rec["status"] = "removed"
+            elif not status:
+                rec["status"] = "observer"
+        reg[acct] = rec
+        pk = _as_str(rec.get("pubkey") or "")
+        if pk:
+            crec = creg.get(acct) if isinstance(creg.get(acct), dict) else {}
+            crec["pubkey"] = pk
+            creg[acct] = crec
+    vroot["registry"] = reg
+
+
+def _validator_registry_lifecycle_record(state: Json, account: str) -> Json:
+    rec = _registry_record(state, account)
+    rec["account"] = account
+    rec.setdefault("status", "observer")
+    rec.setdefault("active", False)
+    return rec
+
+
 def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     account = _as_str(payload.get("account") or env.signer)
@@ -303,17 +386,226 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     reg[account] = {
         "account": account,
         "pubkey": pubkey,
+        "node_id": _as_str(payload.get("node_id") or prior.get("node_id") or ""),
+        "endpoints": list(payload.get("endpoints")) if isinstance(payload.get("endpoints"), list) else ([] if not _as_str(payload.get("endpoint")) else [_as_str(payload.get("endpoint"))]),
         # Registration alone must not activate consensus power. Activation is
         # handled separately via deterministic validator-set updates.
+        "status": _as_str(prior.get("status") or "observer") or "observer",
         "active": bool(prior.get("active", False)),
+        "approved_activation_epoch": _as_int(prior.get("approved_activation_epoch"), 0) or None,
+        "effective_epoch": _as_int(prior.get("effective_epoch"), 0) or None,
     }
     vroot["registry"] = reg
+    creg = _ensure_consensus_validator_registry(state)
+    crec = creg.get(account) if isinstance(creg.get(account), dict) else {}
+    crec["pubkey"] = pubkey
+    creg[account] = crec
 
     return {
         "applied": "VALIDATOR_REGISTER",
         "account": account,
         "existed": existed,
+        "status": _as_str(reg[account].get("status") or "observer"),
         "active": bool(reg[account].get("active", False)),
+    }
+
+
+def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
+    _ensure_roles_validators_active_set(state)
+    payload = _as_dict(env.payload)
+    account = _as_str(env.signer)
+    pubkey = _as_str(payload.get("pubkey"))
+    node_id = _as_str(payload.get("node_id"))
+    endpoints_raw = payload.get("endpoints")
+    endpoint = _as_str(payload.get("endpoint"))
+    endpoints = [_as_str(x) for x in endpoints_raw if _as_str(x)] if isinstance(endpoints_raw, list) else ([] if not endpoint else [endpoint])
+    metadata_hash = _as_str(payload.get("metadata_hash"))
+
+    if not account:
+        raise ConsensusApplyError("invalid_payload", "missing_signer_account", {"tx_type": env.tx_type})
+    if not pubkey:
+        raise ConsensusApplyError("invalid_payload", "missing_pubkey", {"tx_type": env.tx_type})
+    if not node_id:
+        raise ConsensusApplyError("invalid_payload", "missing_node_id", {"tx_type": env.tx_type})
+    if not endpoints:
+        raise ConsensusApplyError("invalid_payload", "missing_endpoints", {"tx_type": env.tx_type})
+
+    rec = _validator_registry_lifecycle_record(state, account)
+    status = _as_str(rec.get("status") or "observer")
+    if status in {"pending_activation", "active", "suspended"} and _as_str(rec.get("pubkey") or pubkey) != pubkey:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_record_conflict",
+            {"account": account, "existing_status": status},
+        )
+
+    rec["pubkey"] = pubkey
+    rec["node_id"] = node_id
+    rec["endpoints"] = endpoints
+    rec["metadata_hash"] = metadata_hash
+    rec["registered_tx_id"] = _as_str(getattr(env, "txid", None) or "")
+    rec["registered_at_height"] = _as_int(state.get("height"), 0)
+    rec["poh_tier_snapshot"] = 3
+    if status not in {"pending_activation", "active", "suspended"}:
+        rec["status"] = "candidate"
+    rec["active"] = False
+
+    creg = _ensure_consensus_validator_registry(state)
+    crec = creg.get(account) if isinstance(creg.get(account), dict) else {}
+    crec["pubkey"] = pubkey
+    creg[account] = crec
+
+    return {
+        "applied": "VALIDATOR_CANDIDATE_REGISTER",
+        "account": account,
+        "status": _as_str(rec.get("status") or "candidate"),
+        "node_id": node_id,
+        "endpoints": list(endpoints),
+    }
+
+
+def _apply_validator_candidate_approve(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    if not env.parent:
+        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+
+    payload = _as_dict(env.payload)
+    account = _as_str(payload.get("account"))
+    activate_at_epoch = _as_int(payload.get("activate_at_epoch"), 0)
+    if not account:
+        raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
+    if activate_at_epoch <= 0:
+        raise ConsensusApplyError("invalid_payload", "missing_activate_at_epoch", {"tx_type": env.tx_type})
+
+    rec = _validator_registry_lifecycle_record(state, account)
+    pubkey = _as_str(rec.get("pubkey") or payload.get("pubkey") or "")
+    if not pubkey:
+        raise ConsensusApplyError("invalid_payload", "candidate_missing_pubkey", {"account": account})
+    status = _as_str(rec.get("status") or "")
+    if status not in {"candidate", "observer", "pending_activation"}:
+        raise ConsensusApplyError("forbidden", "validator_not_candidate", {"account": account, "status": status})
+
+    current_active = canonicalize_account_set(_ensure_roles_validators_active_set(state) + [account])
+    set_hash = _set_pending_validator_set(
+        state,
+        active_set=current_active,
+        activate_at_epoch=int(activate_at_epoch),
+    )
+    rec["status"] = "pending_activation"
+    rec["approved_activation_epoch"] = int(activate_at_epoch)
+    rec["requested_activation_epoch"] = int(activate_at_epoch)
+    rec["effective_epoch"] = int(activate_at_epoch)
+    rec["active"] = False
+
+    creg = _ensure_consensus_validator_registry(state)
+    crec = creg.get(account) if isinstance(creg.get(account), dict) else {}
+    crec["pubkey"] = pubkey
+    creg[account] = crec
+
+    return {
+        "applied": "VALIDATOR_CANDIDATE_APPROVE",
+        "account": account,
+        "status": "pending_activation",
+        "activate_at_epoch": int(activate_at_epoch),
+        "validator_set_hash": str(set_hash),
+    }
+
+
+def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    if not env.parent:
+        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+
+    payload = _as_dict(env.payload)
+    account = _as_str(payload.get("account"))
+    effective_epoch = _as_int(payload.get("effective_epoch"), 0)
+    reason = _as_str(payload.get("reason"))
+    if not account:
+        raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
+    if effective_epoch <= 0:
+        raise ConsensusApplyError("invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type})
+
+    rec = _validator_registry_lifecycle_record(state, account)
+    rec["suspension"] = {
+        "reason": reason,
+        "effective_epoch": int(effective_epoch),
+    }
+    current_active = _ensure_roles_validators_active_set(state)
+    if account not in current_active:
+        rec["status"] = "suspended"
+        rec["active"] = False
+        rec["effective_epoch"] = int(effective_epoch)
+        return {
+            "applied": "VALIDATOR_SUSPEND",
+            "account": account,
+            "status": "suspended",
+            "effective_epoch": int(effective_epoch),
+        }
+
+    next_active = canonicalize_account_set([acct for acct in current_active if _as_str(acct) != account])
+    set_hash = _set_pending_validator_set(
+        state,
+        active_set=next_active,
+        activate_at_epoch=int(effective_epoch),
+    )
+    rec["status"] = "pending_suspension"
+    rec["active"] = True
+    rec["effective_epoch"] = int(effective_epoch)
+    return {
+        "applied": "VALIDATOR_SUSPEND",
+        "account": account,
+        "status": "pending_suspension",
+        "effective_epoch": int(effective_epoch),
+        "validator_set_hash": str(set_hash),
+    }
+
+
+def _apply_validator_remove(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    if not env.parent:
+        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+
+    payload = _as_dict(env.payload)
+    account = _as_str(payload.get("account"))
+    effective_epoch = _as_int(payload.get("effective_epoch"), 0)
+    reason = _as_str(payload.get("reason"))
+    if not account:
+        raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
+    if effective_epoch <= 0:
+        raise ConsensusApplyError("invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type})
+
+    rec = _validator_registry_lifecycle_record(state, account)
+    rec["removal"] = {
+        "reason": reason,
+        "effective_epoch": int(effective_epoch),
+    }
+    current_active = _ensure_roles_validators_active_set(state)
+    if account not in current_active:
+        rec["status"] = "removed"
+        rec["active"] = False
+        rec["effective_epoch"] = int(effective_epoch)
+        return {
+            "applied": "VALIDATOR_REMOVE",
+            "account": account,
+            "status": "removed",
+            "effective_epoch": int(effective_epoch),
+        }
+
+    next_active = canonicalize_account_set([acct for acct in current_active if _as_str(acct) != account])
+    set_hash = _set_pending_validator_set(
+        state,
+        active_set=next_active,
+        activate_at_epoch=int(effective_epoch),
+    )
+    rec["status"] = "pending_removal"
+    rec["active"] = True
+    rec["effective_epoch"] = int(effective_epoch)
+    return {
+        "applied": "VALIDATOR_REMOVE",
+        "account": account,
+        "status": "pending_removal",
+        "effective_epoch": int(effective_epoch),
+        "validator_set_hash": str(set_hash),
     }
 
 
@@ -340,6 +632,7 @@ def _apply_validator_deregister(state: Json, env: TxEnvelope) -> Json:
         rec = reg.get(account)
         if isinstance(rec, dict):
             rec["active"] = False
+            rec["status"] = "removed"
             reg[account] = rec
 
     vroot["registry"] = reg
@@ -372,6 +665,7 @@ def _bump_validator_epoch(state: Json, active_set: list[str]) -> None:
         if act_epoch > 0 and act_epoch <= cur_epoch:
             vs.pop("pending", None)
     c["validator_set"] = vs
+    _sync_validator_registry_membership(state)
 
 
 def _set_pending_validator_set(
@@ -438,6 +732,17 @@ def _set_pending_validator_set(
     if phase_name:
         vs["pending"]["phase"] = phase_name
     c["validator_set"] = vs
+    pending_accounts = set(canonical_active_set)
+    reg = _ensure_validators_root(state).get("registry")
+    assert isinstance(reg, dict)
+    current_active = set(_ensure_roles_validators_active_set(state))
+    for acct in pending_accounts - current_active:
+        rec = _validator_registry_lifecycle_record(state, acct)
+        if _as_str(rec.get("status") or "") not in {"active", "suspended", "removed"}:
+            rec["status"] = "pending_activation"
+        rec["approved_activation_epoch"] = int(activate_at_epoch)
+        rec["effective_epoch"] = int(activate_at_epoch)
+        rec["active"] = False
     return set_hash
 
 
@@ -920,6 +1225,14 @@ def _apply_epoch_open(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError("invalid_payload", "missing_epoch", {"tx_type": env.tx_type})
 
     c = _ensure_consensus(state)
+    validators = c.get("validators")
+    if not isinstance(validators, dict):
+        validators = {}
+        c["validators"] = validators
+    if not isinstance(validators.get("registry"), dict):
+        validators["registry"] = {}
+    c["validators"] = validators
+
     ep = c.get("epochs")
     if not isinstance(ep, dict):
         ep = {"current": 0, "events": []}
@@ -982,6 +1295,14 @@ def _apply_epoch_close(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError("invalid_payload", "missing_epoch", {"tx_type": env.tx_type})
 
     c = _ensure_consensus(state)
+    validators = c.get("validators")
+    if not isinstance(validators, dict):
+        validators = {}
+        c["validators"] = validators
+    if not isinstance(validators.get("registry"), dict):
+        validators["registry"] = {}
+    c["validators"] = validators
+
     ep = c.get("epochs")
     if not isinstance(ep, dict):
         ep = {"current": 0, "events": []}
@@ -1120,6 +1441,10 @@ def _apply_slash_legacy(state: Json, env: TxEnvelope) -> Json:
 
 CONSENSUS_TX_TYPES = {
     "VALIDATOR_REGISTER",
+    "VALIDATOR_CANDIDATE_REGISTER",
+    "VALIDATOR_CANDIDATE_APPROVE",
+    "VALIDATOR_SUSPEND",
+    "VALIDATOR_REMOVE",
     "VALIDATOR_DEREGISTER",
     "VALIDATOR_SET_UPDATE",
     "VALIDATOR_HEARTBEAT",
@@ -1143,6 +1468,14 @@ def apply_consensus(state: Json, env: TxEnvelope) -> Json | None:
 
     if t == "VALIDATOR_REGISTER":
         return _apply_validator_register(state, env)
+    if t == "VALIDATOR_CANDIDATE_REGISTER":
+        return _apply_validator_candidate_register(state, env)
+    if t == "VALIDATOR_CANDIDATE_APPROVE":
+        return _apply_validator_candidate_approve(state, env)
+    if t == "VALIDATOR_SUSPEND":
+        return _apply_validator_suspend(state, env)
+    if t == "VALIDATOR_REMOVE":
+        return _apply_validator_remove(state, env)
     if t == "VALIDATOR_DEREGISTER":
         return _apply_validator_deregister(state, env)
     if t == "VALIDATOR_SET_UPDATE":

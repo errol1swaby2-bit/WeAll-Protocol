@@ -113,6 +113,9 @@ DEFAULT_GOV_ACTION_ALLOWLIST = frozenset(
         "GOV_RULES_SET",
         "TREASURY_PARAMS_SET",
         "VALIDATOR_SET_UPDATE",
+        "VALIDATOR_CANDIDATE_APPROVE",
+        "VALIDATOR_SUSPEND",
+        "VALIDATOR_REMOVE",
     }
 )
 
@@ -427,6 +430,9 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _assert_governance_actions_allowed(state, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
+    # Governance execution is allowed to emit validator lifecycle receipts, but the
+    # canonical active set still changes only through the existing system-only
+    # epoch-bound validator-set machinery downstream of those receipts.
     for a in actions:
         tx_type = _s(a.get("tx_type")).strip().upper()
         if not tx_type:

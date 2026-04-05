@@ -231,9 +231,15 @@ export default function Home(): JSX.Element {
               >
                 {snapshot.registered ? "Manage PoH" : "Finish login"}
               </button>
-              <button className="btn" onClick={() => nav("/juror")}>
-                Juror area
-              </button>
+              {snapshot.tier >= 3 ? (
+                <button className="btn" onClick={() => nav("/juror")}>
+                  Juror area
+                </button>
+              ) : (
+                <button className="btn" onClick={() => nav("/poh")}>
+                  Continue PoH
+                </button>
+              )}
             </div>
           </div>
         </article>

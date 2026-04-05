@@ -25,6 +25,9 @@ def _mk_state() -> dict:
                 "GOV_RULES_SET",
                 "TREASURY_PARAMS_SET",
                 "VALIDATOR_SET_UPDATE",
+                "VALIDATOR_CANDIDATE_APPROVE",
+                "VALIDATOR_SUSPEND",
+                "VALIDATOR_REMOVE",
             ],
         },
         "economics": {"fee_policy": {"transfer_fee_int": 0}},
@@ -89,3 +92,42 @@ def test_gov_rules_set_accepts_whitelisted_param_paths() -> None:
     meta = apply_tx(st, env)
     assert meta and meta["applied"] is True
     assert "p:surface" in st["gov_proposals_by_id"]
+
+
+def test_gov_proposal_accepts_validator_candidate_approve_action() -> None:
+    st = _mk_state()
+    env = _env_proposal(
+        [
+            {
+                "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
+                "payload": {"account": "bob", "activate_at_epoch": 5},
+            }
+        ]
+    )
+
+    meta = apply_tx(st, env)
+    assert meta and meta["applied"] is True
+    proposal = st["gov_proposals_by_id"]["p:surface"]
+    assert proposal["actions"][0]["tx_type"] == "VALIDATOR_CANDIDATE_APPROVE"
+
+
+def test_gov_proposal_accepts_validator_suspend_and_remove_actions() -> None:
+    st = _mk_state()
+    env = _env_proposal(
+        [
+            {
+                "tx_type": "VALIDATOR_SUSPEND",
+                "payload": {"account": "bob", "effective_epoch": 6, "reason": "liveness_failure"},
+            },
+            {
+                "tx_type": "VALIDATOR_REMOVE",
+                "payload": {"account": "bob", "effective_epoch": 7, "reason": "governance_remove"},
+            },
+        ]
+    )
+
+    meta = apply_tx(st, env)
+    assert meta and meta["applied"] is True
+    proposal = st["gov_proposals_by_id"]["p:surface"]
+    tx_types = [a["tx_type"] for a in proposal["actions"]]
+    assert tx_types == ["VALIDATOR_SUSPEND", "VALIDATOR_REMOVE"]

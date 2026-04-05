@@ -219,17 +219,12 @@ export default function Settings(): JSX.Element {
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Advanced</div>
-          <h2 style={{ marginTop: 8 }}>Local client toggles</h2>
+          <h2 style={{ marginTop: 8 }}>Local client behavior</h2>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <input
-              type="checkbox"
-              checked={settings.showGenesisBootstrap}
-              onChange={toggleGenesisBootstrap}
-              style={{ width: 18, height: 18 }}
-            />
-            <span>Show genesis bootstrap tooling where supported</span>
-          </label>
+          <p className="cardDesc">
+            Founder-only bootstrap controls are hidden from the product surface for external testers.
+            This page keeps only user-facing network and appearance settings.
+          </p>
         </div>
       </section>
     </div>

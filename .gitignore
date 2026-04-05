@@ -27,6 +27,13 @@ htmlcov/
 .pytest*
 *.aux.sqlite
 *.bft_journal.jsonl
+*.aux_helper_lanes/
+
+# Nested audit/runtime clutter
+**/.pytest-b*
+**/*.bft_journal.jsonl
+**/*.aux_helper_lanes/
+**/*.aux.sqlite
 
 # =========================
 # SQLite / Local Databases
@@ -82,6 +89,8 @@ Thumbs.db
 # Node / Frontend (if present)
 # =========================
 node_modules/
+**/tsconfig.tsbuildinfo
+**/.env.local
 
 # =========================
 # IPFS / Local Storage (if used locally)
@@ -102,3 +111,8 @@ coverage.xml
 *.bak
 *.swp
 *.swo
+
+# =========================
+# Local Runtime Secrets
+# =========================
+secrets/
