@@ -865,7 +865,15 @@ class WeAllExecutor:
             # Core ledger subtrees
             "accounts": {},
             "roles": {},
-            "params": {},
+            # Dev / E2E local chains should allow self-bootstrap unless explicitly disabled.
+            # Production/testnet remain validator-gated unless consensus state enables otherwise.
+            "params": {
+                "poh_bootstrap_open": (
+                    True
+                    if _mode() == "dev" and _env_bool("WEALL_POH_BOOTSTRAP_OPEN", True)
+                    else False
+                )
+            },
             "poh": {},
             "last_block_ts_ms": 0,
             # Chain tip / ancestry

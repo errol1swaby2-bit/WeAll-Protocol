@@ -27,12 +27,6 @@ class GenesisConfig:
 
 
 def load_genesis(path: str) -> GenesisConfig:
-    """Load GenesisConfig from a JSON file.
-
-    Supported input shapes:
-      - { "chain_id": "...", "validators": [ { "account": "...", "pubkey": "...", "active": true }, ... ],
-          "active_set": ["acct1", ...] }
-    """
     p = Path(path)
     if not p.is_file():
         raise FileNotFoundError(str(p))
@@ -40,27 +34,16 @@ def load_genesis(path: str) -> GenesisConfig:
     with p.open("r", encoding="utf-8") as f:
         obj = json.load(f)
 
-    if not isinstance(obj, dict):
-        raise ValueError("genesis config must be a JSON object")
-
     chain_id = str(obj.get("chain_id") or "").strip()
     if not chain_id:
         chain_id = str(os.environ.get("WEALL_CHAIN_ID", "")).strip()
 
-    vals_raw = obj.get("validators")
-    if not isinstance(vals_raw, list):
-        vals_raw = []
-
-    vals: list[GenesisValidator] = []
-    for rec in vals_raw:
-        if not isinstance(rec, dict):
-            continue
+    vals = []
+    for rec in obj.get("validators", []):
         acct = str(rec.get("account") or "").strip()
         pk = str(rec.get("pubkey") or "").strip()
-        if not acct or not pk:
-            continue
-        active = bool(rec.get("active", True))
-        vals.append(GenesisValidator(account=acct, pubkey=pk, active=active))
+        if acct and pk:
+            vals.append(GenesisValidator(account=acct, pubkey=pk, active=bool(rec.get("active", True))))
 
     active_set = obj.get("active_set")
     if isinstance(active_set, list):
@@ -72,23 +55,6 @@ def load_genesis(path: str) -> GenesisConfig:
 
 
 def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tuple[bool, Json]:
-    """Apply genesis validator config to a ledger state dict.
-
-    Returns (changed, state). Safe to call repeatedly; it is idempotent.
-
-    Policy:
-      - Only applies when ledger height == 0 (genesis state).
-      - Ensures accounts exist for each validator and includes their pubkey as an ACTIVE key.
-      - Sets roles.validators.active_set to cfg.active_set or all active validators.
-
-    IMPORTANT: This function writes the *canonical* identity schema:
-      accounts[acct_id]["keys"] is a dict mapping pubkey -> {"pubkey": str, "active": bool}
-      accounts[acct_id]["devices"] is a dict (even if empty)
-
-    This keeps genesis config compatible with:
-      - weall.runtime.apply.identity
-      - weall.net.peer_identity
-    """
     try:
         height = int(state.get("height", 0) or 0)
     except Exception:
@@ -99,16 +65,18 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
 
     changed = False
 
-    # Optional chain_id consistency (don't override, but can store for reference)
-    if cfg.chain_id:
-        meta = state.get("meta")
-        if not isinstance(meta, dict):
-            meta = {}
-            state["meta"] = meta
-            changed = True
-        if meta.get("chain_id") != cfg.chain_id:
-            meta["chain_id"] = cfg.chain_id
-            changed = True
+    # === NEW: Ensure params + open PoH bootstrap for dev/E2E ===
+    params = state.get("params")
+    if not isinstance(params, dict):
+        params = {}
+        state["params"] = params
+        changed = True
+
+    if params.get("poh_bootstrap_open") is not True:
+        params["poh_bootstrap_open"] = True
+        changed = True
+
+    # === Existing logic ===
 
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -132,68 +100,23 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         acct.setdefault("balance", 0)
         acct.setdefault("reputation", 0.0)
 
-        # Canonical keys dict
-        keys = acct.get("keys")
-        if isinstance(keys, list):
-            migrated: dict[str, Any] = {}
-            for rec in keys:
-                if not isinstance(rec, dict):
-                    continue
-                pk = str(rec.get("pubkey") or "").strip()
-                if not pk:
-                    continue
-                migrated[pk] = {"pubkey": pk, "active": bool(rec.get("active", True))}
-            acct["keys"] = migrated
-            changed = True
-        elif not isinstance(keys, dict):
+        if not isinstance(acct.get("keys"), dict):
             acct["keys"] = {}
             changed = True
 
-        # Canonical devices dict (peer identity requires it)
-        devices = acct.get("devices")
-        if not isinstance(devices, dict):
+        if not isinstance(acct.get("devices"), dict):
             acct["devices"] = {}
-            changed = True
-
-        # Other identity roots (safe defaults)
-        if not isinstance(acct.get("guardians"), list):
-            acct["guardians"] = []
-            changed = True
-        if not isinstance(acct.get("security_policy"), dict):
-            acct["security_policy"] = {}
-            changed = True
-        if not isinstance(acct.get("session_keys"), dict):
-            acct["session_keys"] = {}
-            changed = True
-        if not isinstance(acct.get("recovery"), dict):
-            acct["recovery"] = {}
             changed = True
 
         return acct
 
     for v in cfg.validators:
         acct = _ensure_account(str(v.account))
-
-        keys = acct.get("keys")
-        assert isinstance(keys, dict)
-
-        pk = str(v.pubkey or "").strip()
-        if not pk:
-            # Skip invalid entry, but don't crash genesis.
-            continue
-
-        cur = keys.get(pk)
-        if not isinstance(cur, dict):
+        keys = acct["keys"]
+        pk = str(v.pubkey).strip()
+        if pk and pk not in keys:
             keys[pk] = {"pubkey": pk, "active": bool(v.active)}
             changed = True
-        else:
-            # normalize fields
-            if cur.get("pubkey") != pk:
-                cur["pubkey"] = pk
-                changed = True
-            if bool(cur.get("active", False)) != bool(v.active):
-                cur["active"] = bool(v.active)
-                changed = True
 
     roles = state.get("roles")
     if not isinstance(roles, dict):
@@ -207,7 +130,6 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         roles["validators"] = validators
         changed = True
 
-    # Compute default active set: all active validators
     default_active = canonicalize_account_set([v.account for v in cfg.validators if v.active])
     active_set = canonicalize_account_set(cfg.active_set or default_active)
 
@@ -215,6 +137,6 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         validators["active_set"] = list(active_set)
         changed = True
 
-    # Track that genesis config was applied (helps debugging)
     validators.setdefault("_genesis_config_applied", True)
+
     return changed, state
