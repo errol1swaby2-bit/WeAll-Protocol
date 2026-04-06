@@ -1,222 +1,249 @@
 # WeAll Protocol
 
-![Python](https://img.shields.io/badge/python-3.12-blue)
-![License](https://img.shields.io/badge/license-MPL%202.0-purple)
-![Status](https://img.shields.io/badge/status-genesis--ready-brightgreen)
+WeAll is a custom Layer 1 blockchain focused on deterministic social, identity, and governance systems.
 
-WeAll is a custom Layer 1 protocol for decentralized social coordination, identity, governance, and validator-operated public infrastructure.
+The protocol is designed to eliminate trust assumptions wherever possible by enforcing:
+- deterministic execution
+- on-chain verifiability
+- reproducible state transitions
+- user-controlled identity and participation
 
-This public baseline is designed around deterministic execution, canonical hashing, fail-closed production posture, persistent mempool ordering, strict transaction handling, and HotStuff-style BFT finality. Helper-assisted execution is being brought in as a deterministic acceleration layer beneath the existing finality contract, not as an alternate consensus family. 
+---
 
-## Current release posture
+# 🚀 Current Status
 
-This repository is now in a **Genesis-ready** state for public review and continued hardening.
+✅ Full test suite passing  
+✅ Fresh clone reproducible  
+✅ Full-stack golden path (account → PoH → media → post → feed) validated  
+✅ IPFS-backed media pipeline working  
 
-Current implementation priorities:
-- deterministic state transition behavior
-- canonical block, receipt, and state commitments
-- HotStuff-style BFT with deterministic leader rotation
-- strict transaction schema and transaction canon handling
-- fail-closed production startup profile
-- helper execution safety under serial-equivalence constraints
-- validator, restart, replay, and crash-recovery hardening
+---
 
-Important current constraint:
-- **Economics are intentionally disabled during the Genesis phase** and should remain locked until the protocol’s activation path is intentionally exercised through governance and release discipline.
+# 🧱 System Overview
 
-## Protocol contract at a glance
+WeAll consists of:
 
-The synchronized protocol spec describes the current contract this way:
-- HotStuff-style BFT consensus
-- deterministic round-robin proposer selection over the normalized validator set
-- quorum rule `ceil(2n/3)`
-- canonical JSON commitments for transaction identity, receipts, blocks, and state
-- handshake binding on `chain_id`, `schema_version`, and `tx_index_hash`, with stricter production matching available for protocol profile, validator epoch, and validator-set hash
-- fail-closed production profile requiring signature verification, trusted anchors, profile matching, and monotonic block timestamp discipline
+- Backend (Python / FastAPI / Gunicorn)
+- Frontend (Vite / TypeScript)
+- IPFS (Kubo via Docker)
+- Custom L1 runtime (execution + consensus + state)
 
-For helper-assisted execution, the production-readiness plan keeps the boundary explicit:
-- HotStuff remains the sole source of canonical ordering and finality
-- helpers may improve throughput, but must not create a new path for honest nodes to disagree on block validity, receipts root, state root, or finality
-- helper planning, laneing, merge, fallback, replay handling, and restart behavior must remain deterministic and serial-equivalent
+---
 
-## Repository layout
+# ⚙️ Requirements
 
-Top-level layout:
+### System Dependencies
 
-- `.github/` — CI and repository automation
-- `Weall-Protocol/` — core backend, runtime, consensus, tests, docs, generated canon files
-- `web/` — frontend client
-- `scripts/` — outer convenience and environment helpers
-- `tools/` — auxiliary tooling
+You must have:
 
-Core backend layout inside `Weall-Protocol/`:
+- Python 3.12+
+- Node.js 18+
+- npm
+- Git
+- Docker Desktop (with WSL2 integration enabled)
 
-- `src/weall/runtime/` — consensus, executor, block admission, mempool, helper execution, safety surfaces
-- `src/weall/net/` — networking, handshake, state sync, transport
-- `src/weall/api/` — public and node-facing HTTP surfaces
-- `src/weall/ledger/` — deterministic ledger access model
-- `tests/` — protocol, adversarial, restart, helper, validator, and production-hardening tests
-- `generated/` — tracked generated protocol artifacts, including the tx canon index and contract maps
-- `specs/tx_canon/` — transaction canon source material
-- `docs/` — operational and production posture documentation
+---
 
-## What is implemented today
+## ⚠️ WSL2 USERS (IMPORTANT)
 
-The current codebase includes:
+If you're on Windows:
 
-- deterministic executor and commit pipeline
-- block admission safety gates
-- persistent mempool and SQLite-backed durability
-- HotStuff-style BFT state machine
-- validator epoch and validator-set binding in consensus traffic
-- state sync with trusted-anchor posture
-- Proof-of-Humanity and governance surfaces inside the deterministic state machine
-- helper-assisted execution safety scaffolding, receipts, fallback, replay guards, and stress/adversarial coverage
-- release hygiene scripts for cleaning, verification, and packaging
+1. Install Docker Desktop
+2. Go to:
+   - Settings → Resources → WSL Integration
+3. Enable your Ubuntu distro
 
-## Quickstart
+Verify inside WSL:
 
-### 1) Clone the repo
+docker version
+docker compose version
 
-```bash
-git clone git@github.com:errol1swaby2-bit/WeAll-Protocol.git
-cd WeAll-Protocol
-```
+If these fail, the golden path will NOT work.
 
-### 2) Backend quickstart
+---
 
-```bash
-cd Weall-Protocol
+# 📦 Fresh Clone Setup
+
+cd ~
+git clone https://github.com/errol1swaby2-bit/WeAll-Protocol.git
+cd WeAll-Protocol/Weall-Protocol
+
+---
+
+## 🐍 Python Setup
+
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.lock
+
+pip install -r requirements-dev.lock
+
+---
+
+## 🌐 Frontend Setup
+
+cd web
+npm install
+cd ..
+
+---
+
+# 🧪 Validate Full System (GOLDEN PATH)
+
+This is the canonical validation command:
+
+cd ~/WeAll-Protocol
+./scripts/golden_path_e2e_gate.sh
+
+---
+
+## ✅ What This Does
+
+The golden path verifies:
+
+1. Starts IPFS (Kubo via Docker)
+2. Starts backend API
+3. Starts block producer
+4. Waits for readiness
+5. Runs frontend contract checks
+6. Executes full user flow:
+
+- account registration
+- PoH bootstrap
+- session issuance
+- media upload (IPFS)
+- content declaration
+- post creation
+- feed verification
+
+---
+
+## ✅ Expected Result
+
+✅ FULL STACK GOLDEN PATH PASSED  
+✅ golden path e2e gate complete  
+
+---
+
+# 📡 IPFS (Kubo)
+
+Media uploads depend on IPFS.
+
+The golden path automatically starts it via Docker:
+
+docker compose -f Weall-Protocol/docker-compose.ipfs.yml up -d
+
+Manual check:
+
+curl -X POST http://127.0.0.1:5001/api/v0/version
+
+---
+
+# 🧪 Run Tests
+
 pytest -q
-```
 
-### 3) Frontend quickstart
+---
 
-```bash
-cd ../web
-npm ci
-cp .env.example .env.local
-npm run dev -- --host 127.0.0.1 --port 5173
-```
+# 🧠 Dev vs Production Behavior
 
-### 4) Full-stack local flow
+### Dev / E2E Mode
 
-From the backend repo:
+- Open PoH bootstrap enabled
+- Self-registration allowed
+- No validator gating
 
-```bash
-cd ../Weall-Protocol
-./scripts/start_full_stack.sh
-```
+### Production Mode (Target)
 
-## Running the node
+- Validator-controlled PoH issuance
+- Strict identity verification
+- Governance-controlled permissions
 
-Backend node launcher:
+---
 
-```bash
-cd Weall-Protocol
-./scripts/run_node.sh
-```
+# 📁 Key Scripts
 
-Production-oriented launcher:
+- scripts/golden_path_e2e_gate.sh → Full system validation
+- scripts/golden_path_full_stack.py → End-to-end flow
+- scripts/run_node.sh → Start backend
+- scripts/start_full_stack.sh → Full stack boot
 
-```bash
-cd Weall-Protocol
-./scripts/run_node_prod.sh
-```
+---
 
-The production posture expects node identity and related secrets to come from environment variables or secret files, with secret-file-based flows preferred for real deployments.
+# 🔐 Determinism Goals
 
-## Release hygiene
+WeAll is built around:
 
-Before publishing or packaging a release from the backend repo:
+- deterministic transaction execution
+- explicit read/write sets
+- replay-safe execution
+- verifiable state transitions
+- consensus-safe recovery
 
-```bash
-cd Weall-Protocol
-./scripts/clean_repo.sh
-./scripts/verify_release_tree.sh
-./scripts/release_package.sh
-```
+---
 
-These scripts are intended to keep local artifacts such as bytecode, cache directories, build outputs, node modules, Wrangler local state, and environment files out of release packages.
+# 🧩 Architecture Principles
 
-## Fresh-clone verification
+- No hidden state
+- No implicit trust
+- All critical flows auditable
+- Economic layer isolated from social layer during genesis phase
 
-A fresh-clone reproducibility check is strongly recommended after major pushes.
+---
 
-Use the helper script in this batch:
+# 📊 Genesis Phase
 
-```bash
-./scripts/fresh_clone_smoke.sh
-```
+WeAll launches with:
 
-By default it:
-- clones the public repo into `/tmp`
-- creates a fresh Python virtual environment
-- installs backend dependencies from `requirements.lock`
-- regenerates `generated/tx_index.json`
-- runs `pytest -q`
-- optionally runs frontend install and build if Node is available
+- economics disabled
+- no fees
+- no rewards
+- governance locked for economic parameters
 
-## Architecture notes
+---
 
-### Consensus
+# 🧭 Roadmap Focus
 
-WeAll currently uses a HotStuff-style BFT engine with deterministic proposer selection and explicit validator epoch / validator-set binding.
+- validator network hardening
+- consensus safety under adversarial conditions
+- PoH strengthening
+- DAO governance activation
+- economic layer unlock
 
-### Deterministic execution
+---
 
-Consensus-critical objects are canonically encoded before hashing or signing. Block validity, state roots, receipts roots, and replay behavior are expected to be stable across honest nodes and across restart.
+# 🧪 What Makes This Different
 
-### Helper execution
+Most projects validate:
+- builds
+- unit tests
 
-Helpers are currently treated as a deterministic parallel execution layer beneath the finality contract. The safety standard is serial equivalence, deterministic planning, deterministic merge, replay resistance, and crash-safe restart behavior.
+WeAll validates:
+- full user lifecycle
+- full runtime execution
+- cross-system integration
+- reproducibility from fresh clone
 
-### Storage and recovery
+---
 
-The runtime uses a single durable SQLite database for ledger state, block metadata, queues, and mempool-like persistence. The production posture strongly prefers WAL mode and aims for atomic commit behavior.
+# 🤝 Contributing
 
-## Documentation worth reading first
+We are actively looking for:
 
-Inside `Weall-Protocol/docs/`:
+- backend engineers (Python / distributed systems)
+- frontend engineers (TypeScript / Vite)
+- protocol researchers
+- systems engineers
 
-- `PRODUCTION_POSTURE.md`
-- `PRODUCTION_RUNBOOK_VALIDATORS.md`
-- `production_node_bootstrap.md`
-- `helper_spec.md`
-- `STATE_ROOT_COMMITMENT_CONTRACT.md`
-- `THREAT_MODEL_CHECKLIST.md`
-- `runtime_consensus_profile_snapshot_2026-03-prod.4.md`
+---
 
-Reference documents in the broader project context:
-- code-synchronized protocol spec
-- helper production-readiness plan
+# 📜 License
 
-## Current status guidance
+(Define your license here)
 
-This repository should be read as a **production-hardened public baseline**, not as a finished endpoint.
+---
 
-The next strongest stream after this release is long-running multinode end-to-end simulation with:
-- mixed transaction load
-- helper-enabled and helper-degraded rounds
-- restart churn
-- sync / rejoin pressure
-- state-consistency checks across nodes
+# 🧠 Final Note
 
-## Contributing
+If the golden path passes from a fresh clone, the system works.
 
-Contributions are most valuable in:
-- distributed systems
-- consensus and protocol safety
-- adversarial testing
-- backend/runtime engineering
-- frontend integration and operator UX
-- infrastructure and validator tooling
-
-Please preserve deterministic behavior and fail-closed posture when proposing changes.
-
-## License
-
-Mozilla Public License 2.0
+That is the standard.
