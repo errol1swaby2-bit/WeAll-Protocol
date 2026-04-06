@@ -238,7 +238,9 @@ We are actively looking for:
 
 # 📜 License
 
-(Define your license here)
+This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
+
+See the `LICENSE` file for the full text.
 
 ---
 
