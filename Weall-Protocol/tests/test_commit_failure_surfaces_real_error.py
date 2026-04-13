@@ -4,11 +4,35 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
+from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def _signed_account_register(*, chain_id: str, signer: str) -> dict[str, object]:
+    pub, priv = deterministic_ed25519_keypair(label=signer)
+    payload = {"pubkey": pub}
+    return {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": signer,
+        "nonce": 1,
+        "payload": payload,
+        "chain_id": chain_id,
+        "sig": priv.sign(
+            canonical_tx_message(
+                chain_id=chain_id,
+                tx_type="ACCOUNT_REGISTER",
+                signer=signer,
+                nonce=1,
+                payload=payload,
+                parent=None,
+            )
+        ).hex(),
+    }
 
 
 def test_commit_failure_surfaces_real_error_class(tmp_path: Path) -> None:
@@ -27,14 +51,7 @@ def test_commit_failure_surfaces_real_error_class(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    sub = ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@user0",
-            "nonce": 1,
-            "payload": {"pubkey": "k:user0"},
-        }
-    )
+    sub = ex.submit_tx(_signed_account_register(chain_id="commit-failure-shape", signer="@user0"))
     assert sub["ok"] is True
 
     original_write_tx = ex._db.write_tx
@@ -54,6 +71,7 @@ def test_commit_failure_surfaces_real_error_class(tmp_path: Path) -> None:
     assert isinstance(meta.error, str)
     assert "commit_failed" in meta.error
     assert "OperationalError" in meta.error
+    assert "forced commit failure for test" in meta.error
 
 
 def test_commit_failure_does_not_advance_height(tmp_path: Path) -> None:
@@ -71,14 +89,7 @@ def test_commit_failure_does_not_advance_height(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    sub = ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@user0",
-            "nonce": 1,
-            "payload": {"pubkey": "k:user0"},
-        }
-    )
+    sub = ex.submit_tx(_signed_account_register(chain_id="commit-failure-height", signer="@user0"))
     assert sub["ok"] is True
 
     before = ex.read_state()

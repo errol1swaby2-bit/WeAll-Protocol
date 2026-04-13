@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react"
+
 import TurnstileWidget from "../components/TurnstileWidget"
 import {
   ApiError,
@@ -9,9 +10,16 @@ import {
   setApiBase,
   weall,
 } from "../api/weall"
-import { getKeypair, restoreAccountAndLoginOnThisDevice, submitSignedTx } from "../auth/session"
+import {
+  ensureKeypair,
+  getKeypair,
+  getSession,
+  restoreAccountAndLoginOnThisDevice,
+  submitSignedTx,
+} from "../auth/session"
 import { signDetachedB64 } from "../auth/keys"
 import { nav } from "../lib/router"
+import { useAppConfig } from "../lib/config"
 
 function normalizeAccount(raw: string): string {
   const trimmed = raw.trim().toLowerCase()
@@ -20,12 +28,8 @@ function normalizeAccount(raw: string): string {
 }
 
 function humanizeApiError(error: unknown, fallback: string): string {
-  if (error instanceof ApiError) {
-    return error.message || fallback
-  }
-  if (error instanceof Error) {
-    return error.message || fallback
-  }
+  if (error instanceof ApiError) return error.message || fallback
+  if (error instanceof Error) return error.message || fallback
   return fallback
 }
 
@@ -39,6 +43,14 @@ type RelayToken = {
     expires_at_ms?: number
   }
   signature?: string
+}
+
+type CheckpointTone = "good" | "pending" | "warn"
+
+type Checkpoint = {
+  title: string
+  detail: string
+  tone: CheckpointTone
 }
 
 function canonicalEmailReceiptMessage(receipt: Record<string, unknown>): Uint8Array {
@@ -80,7 +92,51 @@ function buildOperatorReceipt(
   return receipt
 }
 
+
+type DevBootstrapManifest = {
+  account?: string
+  apiBase?: string
+  pubkeyB64?: string
+  secretKeyB64?: string
+  sessionTtlSeconds?: number
+  note?: string
+}
+
+function maskSecret(value: string): string {
+  const s = String(value || "").trim()
+  if (s.length <= 16) return s
+  return `${s.slice(0, 10)}…${s.slice(-8)}`
+}
+
+async function fetchDevBootstrapManifest(url: string): Promise<DevBootstrapManifest | null> {
+  try {
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const body = (await res.json()) as DevBootstrapManifest
+    return body && typeof body === "object" ? body : null
+  } catch {
+    return null
+  }
+}
+
+function CheckpointList({ items }: { items: Checkpoint[] }) {
+  return (
+    <div className="checkpointList">
+      {items.map((item) => (
+        <div key={item.title} className={`checkpointItem checkpoint-${item.tone}`}>
+          <div className="checkpointBullet" aria-hidden="true" />
+          <div className="checkpointBody">
+            <strong>{item.title}</strong>
+            <span>{item.detail}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function LoginPage() {
+  const config = useAppConfig()
   const [apiBaseInput, setApiBaseInput] = useState(getApiBase())
   const [backendReachable, setBackendReachable] = useState<boolean | null>(null)
   const [mode, setMode] = useState<LoginMode>("create")
@@ -101,10 +157,16 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [devManifest, setDevManifest] = useState<DevBootstrapManifest | null>(null)
+  const [devBootstrapBusy, setDevBootstrapBusy] = useState(false)
+
+  const session = getSession()
+  const sessionAccount = session?.account || ""
+  const sessionKeypair = useMemo(() => (sessionAccount ? getKeypair(sessionAccount) : null), [sessionAccount])
 
   const account = useMemo(() => normalizeAccount(accountInput), [accountInput])
   const existingAccount = useMemo(() => normalizeAccount(existingAccountInput), [existingAccountInput])
-  const keypair = account ? getKeypair(account) : null
+  const newAccountKeypair = useMemo(() => (account ? getKeypair(account) : null), [account])
   const emailOracleBase = useMemo(() => getEmailOracleBaseUrl(), [])
 
   useEffect(() => {
@@ -120,6 +182,31 @@ export default function LoginPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!config.enableDevBootstrap) {
+      setDevManifest(null)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    fetchDevBootstrapManifest(config.devBootstrapManifestUrl).then((manifest) => {
+      if (cancelled || !manifest) return
+      setDevManifest(manifest)
+      const manifestAccount = normalizeAccount(String(manifest.account || ""))
+      const manifestSecret = String(manifest.secretKeyB64 || "").trim()
+      const manifestApiBase = String(manifest.apiBase || "").trim()
+      if (manifestAccount && !existingAccountInput.trim()) setExistingAccountInput(manifestAccount)
+      if (manifestSecret && !privateKey.trim()) setPrivateKey(manifestSecret)
+      if (manifestApiBase && !apiBaseInput.trim()) setApiBaseInput(manifestApiBase)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [config, existingAccountInput, privateKey, apiBaseInput])
 
   async function handleSaveApiBase() {
     setApiBase(apiBaseInput)
@@ -157,6 +244,7 @@ export default function LoginPage() {
 
     setBusy(true)
     try {
+      ensureKeypair(account)
       const res = await beginPohEmailVerification({
         account,
         email: email.trim(),
@@ -172,7 +260,7 @@ export default function LoginPage() {
 
       setRequestId(nextRequestId)
       setStep("confirm")
-      setNotice("Verification code requested. Check your email and enter the code below.")
+      setNotice("Verification code requested. Check your email and continue with the confirmation step below.")
       setTurnstileError("")
     } catch (err) {
       setError(
@@ -205,10 +293,6 @@ export default function LoginPage() {
       setError("Enter the verification code.")
       return
     }
-    if (!keypair?.pubkeyB64 || !keypair?.secretKeyB64) {
-      setError("A local signing key is required to finish email verification.")
-      return
-    }
     if (!requestId.trim()) {
       setError("Missing verification request id. Request a new code and try again.")
       return
@@ -216,6 +300,7 @@ export default function LoginPage() {
 
     setBusy(true)
     try {
+      const keypair = ensureKeypair(account)
       const verifyRes: any = await weall.emailOracleVerify(
         {
           challenge_id: requestId.trim(),
@@ -243,8 +328,13 @@ export default function LoginPage() {
         parent: txSkeleton.parent ?? null,
       })
 
-      setNotice("Email confirmed and Tier 1 submission sent. Continue into the app.")
-      nav("/feed")
+      await restoreAccountAndLoginOnThisDevice({
+        account,
+        secretKeyB64: keypair.secretKeyB64,
+      })
+
+      setNotice("Email confirmed, Tier 1 submission sent, and this device session is now active.")
+      nav("/home")
     } catch (err) {
       setError(
         humanizeApiError(
@@ -277,8 +367,8 @@ export default function LoginPage() {
         account: existingAccount,
         secretKeyB64: privateKey.trim(),
       })
-      setNotice("Fresh device session created. Redirecting to your feed.")
-      nav("/feed")
+      setNotice("Fresh device session created. Redirecting to your home dashboard.")
+      nav("/home")
     } catch (err) {
       setError(
         humanizeApiError(
@@ -291,201 +381,419 @@ export default function LoginPage() {
     }
   }
 
-  return (
-    <main className="page-shell">
-      <section className="panel">
-        <p className="eyebrow">Access</p>
-        <h1>Join or log in</h1>
-        <p className="muted">
-          Use email verification only for new-account onboarding. Existing accounts log in with the account handle and private key, and each successful login creates a fresh device session.
-        </p>
 
-        <div className="stack-md">
+  async function handleUseDevBootstrap() {
+    setError("")
+    setNotice("")
+    if (!devManifest?.account || !devManifest?.secretKeyB64) {
+      setError("Dev bootstrap manifest is missing the account or private key.")
+      return
+    }
+
+    setDevBootstrapBusy(true)
+    try {
+      await restoreAccountAndLoginOnThisDevice({
+        account: normalizeAccount(devManifest.account),
+        secretKeyB64: String(devManifest.secretKeyB64 || "").trim(),
+      })
+      setNotice("Loaded the canonical demo tester credentials and created a fresh device session.")
+      nav("/home")
+    } catch (err) {
+      setError(
+        humanizeApiError(
+          err,
+          "Could not load the demo tester session automatically. You can still use the prefilled restore form below.",
+        ),
+      )
+    } finally {
+      setDevBootstrapBusy(false)
+    }
+  }
+
+  async function handleCopyDevSecret() {
+    if (!devManifest?.secretKeyB64) return
+    try {
+      await navigator.clipboard.writeText(String(devManifest.secretKeyB64))
+      setNotice("Demo private key copied to clipboard.")
+    } catch {
+      setNotice("Could not copy automatically. Select the prefilled private key field below and copy it manually.")
+    }
+  }
+
+  const backendStateLabel =
+    backendReachable === null ? "Checking backend reachability" : backendReachable ? "Backend reachable" : "Backend unreachable"
+
+  const currentSessionCheckpoints: Checkpoint[] = sessionAccount
+    ? [
+        {
+          title: "Local session",
+          detail: `Active for ${sessionAccount}. ${session?.sessionKey ? "This browser has an issued device session key." : "No backend-issued session key is stored."}`,
+          tone: session?.sessionKey ? "good" : "warn",
+        },
+        {
+          title: "Local signer",
+          detail: sessionKeypair?.secretKeyB64
+            ? "A signer is available on this device for the active account."
+            : "No local signer is available for the active account.",
+          tone: sessionKeypair?.secretKeyB64 ? "good" : "warn",
+        },
+      ]
+    : [
+        {
+          title: "No active session",
+          detail: "Create or restore an account below to establish a device-local session.",
+          tone: "pending",
+        },
+      ]
+
+  const createFlowCheckpoints: Checkpoint[] = [
+    {
+      title: "1. Create local identity",
+      detail: account
+        ? `${account} will get a browser-local signer before email confirmation finishes.`
+        : "Enter a handle to generate a browser-local signer for the new account.",
+      tone: account ? "good" : "pending",
+    },
+    {
+      title: "2. Verify email with the worker",
+      detail: step === "begin"
+        ? "Request a verification code after passing Turnstile."
+        : "A verification request exists. Enter the code from your email to continue.",
+      tone: requestId ? "good" : "pending",
+    },
+    {
+      title: "3. Submit Tier 1 receipt on-chain",
+      detail: "The frontend sends a signed receipt-submit transaction. Submission is not the same as broader PoH completion.",
+      tone: step === "confirm" ? "pending" : "warn",
+    },
+    {
+      title: "4. Establish this device session",
+      detail: "After the receipt transaction is submitted, the client creates a fresh device session for the same account.",
+      tone: requestId ? "pending" : "warn",
+    },
+  ]
+
+  const restoreFlowCheckpoints: Checkpoint[] = [
+    {
+      title: "1. Restore the local signer",
+      detail: "Paste the existing account’s private key. It stays local to this browser.",
+      tone: existingAccount && privateKey.trim() ? "good" : "pending",
+    },
+    {
+      title: "2. Issue a fresh device session",
+      detail: "Successful login creates a new backend-recognized session for this device rather than reusing a stale one.",
+      tone: existingAccount ? "pending" : "warn",
+    },
+    {
+      title: "3. Continue from Home",
+      detail: "After session creation, use Home and PoH to inspect chain-recognized readiness and next steps.",
+      tone: "pending",
+    },
+  ]
+
+  return (
+    <main className="page-shell authPageShell">
+      <section className="panel authHeroPanel">
+        <div className="authHeroGrid">
+          <div className="authHeroCopy">
+            <p className="eyebrow">Start</p>
+            <h1>Connect this device, then continue onboarding with clear state boundaries.</h1>
+            <p className="muted">
+              This page is where local identity, device session, and the first on-chain onboarding steps come together.
+              It should be obvious what is local to this browser, what is verified by the relay worker, and what still
+              depends on on-chain processing.
+            </p>
+          </div>
+
+          <div className="authStatusRail">
+            <div className="authStatusCard">
+              <span className="authStatusLabel">Connection target</span>
+              <strong>{backendStateLabel}</strong>
+              <span>{apiBaseInput || "No API base configured."}</span>
+            </div>
+            <div className="authStatusCard">
+              <span className="authStatusLabel">Email relay</span>
+              <strong>{emailOracleBase}</strong>
+              <span>Used for the email verification step before the receipt transaction is submitted.</span>
+            </div>
+            <div className="authStatusCard">
+              <span className="authStatusLabel">Active device state</span>
+              <strong>{sessionAccount || "No active session"}</strong>
+              <span>
+                {session?.sessionKey ? "A backend-issued device session key is stored locally." : "No backend-issued device session is currently active."}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="authGrid">
+        <article className="panel authConnectionPanel">
+          <div className="authPanelHeader">
+            <div>
+              <p className="eyebrow">Environment</p>
+              <h2>Backend and current browser state</h2>
+            </div>
+            <button type="button" className="secondary" onClick={handleSaveApiBase}>
+              Save target
+            </button>
+          </div>
+
           <label className="field">
             <span>Client API base</span>
             <input
               value={apiBaseInput}
               onChange={(e) => setApiBaseInput(e.target.value)}
-              placeholder="http://localhost:8000"
+              placeholder="http://127.0.0.1:8000"
             />
           </label>
 
-          <div className="row gap-sm wrap">
-            <button type="button" onClick={handleSaveApiBase}>
-              Save API base
-            </button>
+          <p className="muted authHelperCopy">
+            Changing the API base changes the protocol environment this client is talking to. Treat it like an environment switch, not a cosmetic preference.
+          </p>
+
+          <CheckpointList items={currentSessionCheckpoints} />
+        </article>
+
+        <article className="panel authFlowPanel">
+          <div className="authPanelHeader authModeHeader">
+            <div>
+              <p className="eyebrow">Access</p>
+              <h2>{mode === "create" ? "Create a new account" : "Restore an existing account"}</h2>
+            </div>
+            <div className="row gap-sm wrap">
+              <button
+                type="button"
+                className={mode === "create" ? "" : "secondary"}
+                onClick={() => {
+                  setMode("create")
+                  setError("")
+                  setNotice("")
+                }}
+              >
+                New account
+              </button>
+              <button
+                type="button"
+                className={mode === "existing" ? "" : "secondary"}
+                onClick={() => {
+                  setMode("existing")
+                  setError("")
+                  setNotice("")
+                }}
+              >
+                Existing account
+              </button>
+            </div>
           </div>
 
-          <p className="muted">
-            Current backend status:{" "}
-            {backendReachable === null ? "checking" : backendReachable ? "reachable" : "unreachable"}
-          </p>
-        </div>
-      </section>
-
-      <section className="panel stack-md">
-        <div className="row gap-sm wrap">
-          <button
-            type="button"
-            className={mode === "create" ? "" : "secondary"}
-            onClick={() => {
-              setMode("create")
-              setError("")
-              setNotice("")
-            }}
-          >
-            Create new account
-          </button>
-          <button
-            type="button"
-            className={mode === "existing" ? "" : "secondary"}
-            onClick={() => {
-              setMode("existing")
-              setError("")
-              setNotice("")
-            }}
-          >
-            Log in with private key
-          </button>
-        </div>
-
-        {mode === "create" ? (
-          <>
-            <p className="eyebrow">Email onboarding</p>
-            <form onSubmit={step === "begin" ? handleBegin : handleConfirm} className="stack-md">
-              <label className="field">
-                <span>Handle</span>
-                <input
-                  value={accountInput}
-                  onChange={(e) => setAccountInput(e.target.value)}
-                  placeholder="@yourname"
-                  autoComplete="off"
-                />
-              </label>
-
-              <label className="field">
-                <span>Email address</span>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  type="email"
-                />
-              </label>
-
-              {step === "begin" ? (
-                <div className="field">
-                  <span>Human check</span>
-                  <TurnstileWidget
-                    key={turnstileNonce}
-                    onToken={(token) => {
-                      setTurnstileToken(token)
-                      setTurnstileError("")
-                    }}
-                    onError={() => {
-                      setTurnstileToken("")
-                      setTurnstileError("Turnstile could not be verified. Reload the widget and try again.")
-                    }}
-                    onExpired={() => {
-                      setTurnstileToken("")
-                      setTurnstileError(
-                        "Turnstile expired. Complete the challenge again before requesting an email code.",
-                      )
-                    }}
-                  />
+          {mode === "create" ? (
+            <div className="authFlowBody">
+              {config.enableDevBootstrap && devManifest?.account ? (
+                <div className="panel stack-sm">
+                  <p className="eyebrow">Dev bootstrap</p>
+                  <h3>Canonical demo tester is ready</h3>
                   <p className="muted">
-                    This shared Cloudflare Turnstile check protects the protocol email worker from abuse.
+                    This local environment already generated a demo tester account. You can load it with one click or use the
+                    existing-account form below with the surfaced credentials.
                   </p>
-                  {turnstileError ? <p className="error-text">{turnstileError}</p> : null}
-                </div>
-              ) : null}
-
-              {step === "confirm" ? (
-                <label className="field">
-                  <span>Verification code</span>
-                  <input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    placeholder="123456"
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                  />
-                </label>
-              ) : null}
-
-              <div className="row gap-sm wrap">
-                {step === "begin" ? (
-                  <button type="submit" disabled={busy || backendReachable === false}>
-                    {busy ? "Sending code…" : "Send verification code"}
-                  </button>
-                ) : (
-                  <>
-                    <button type="submit" disabled={busy || backendReachable === false}>
-                      {busy ? "Confirming…" : "Confirm code"}
+                  <div className="row gap-sm wrap">
+                    <button type="button" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
+                      {devBootstrapBusy ? "Loading demo session…" : "Load demo tester session"}
+                    </button>
+                    <button type="button" className="secondary" onClick={handleCopyDevSecret}>
+                      Copy private key
                     </button>
                     <button
                       type="button"
                       className="secondary"
                       onClick={() => {
-                        setStep("begin")
-                        setCode("")
-                        setError("")
-                        setNotice("")
-                        setTurnstileToken("")
-                        setTurnstileNonce((v) => v + 1)
+                        setMode("existing")
+                        setExistingAccountInput(normalizeAccount(String(devManifest.account || "")))
+                        setPrivateKey(String(devManifest.secretKeyB64 || "").trim())
                       }}
                     >
-                      Start over
+                      Open restore form
                     </button>
-                  </>
-                )}
-              </div>
-            </form>
+                  </div>
+                  <div className="stack-xs">
+                    <strong>Handle</strong>
+                    <code>{normalizeAccount(String(devManifest.account || ""))}</code>
+                    <strong>Private key</strong>
+                    <code>{maskSecret(String(devManifest.secretKeyB64 || ""))}</code>
+                  </div>
+                </div>
+              ) : null}
+              <CheckpointList items={createFlowCheckpoints} />
 
-            {requestId ? <p className="muted">Request ID: {requestId}</p> : null}
-          </>
-        ) : (
-          <>
-            <p className="eyebrow">Existing account</p>
-            <form onSubmit={handleExistingLogin} className="stack-md">
-              <label className="field">
-                <span>Handle</span>
-                <input
-                  value={existingAccountInput}
-                  onChange={(e) => setExistingAccountInput(e.target.value)}
-                  placeholder="@yourname"
-                  autoComplete="username"
-                />
-              </label>
+              <form onSubmit={step === "begin" ? handleBegin : handleConfirm} className="stack-md authFormCard">
+                <label className="field">
+                  <span>Handle</span>
+                  <input
+                    value={accountInput}
+                    onChange={(e) => setAccountInput(e.target.value)}
+                    placeholder="@yourname"
+                    autoComplete="off"
+                  />
+                </label>
 
-              <label className="field">
-                <span>Private key</span>
-                <textarea
-                  value={privateKey}
-                  onChange={(e) => setPrivateKey(e.target.value)}
-                  placeholder="Paste the 64-byte base64 private key for this account"
-                  rows={5}
-                  spellCheck={false}
-                />
-              </label>
+                <label className="field">
+                  <span>Email address</span>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    type="email"
+                  />
+                </label>
 
-              <p className="muted">
-                The private key stays local to this browser. Each successful login issues a brand-new
-                device session instead of reusing an old one.
-              </p>
+                {step === "begin" ? (
+                  <div className="field">
+                    <span>Human check</span>
+                    <TurnstileWidget
+                      key={turnstileNonce}
+                      onToken={(token) => {
+                        setTurnstileToken(token)
+                        setTurnstileError("")
+                      }}
+                      onError={() => {
+                        setTurnstileToken("")
+                        setTurnstileError("Turnstile could not be verified. Reload the widget and try again.")
+                      }}
+                      onExpired={() => {
+                        setTurnstileToken("")
+                        setTurnstileError(
+                          "Turnstile expired. Complete the challenge again before requesting an email code.",
+                        )
+                      }}
+                    />
+                    <p className="muted">
+                      This protects the shared email worker from abuse before it issues a verification challenge.
+                    </p>
+                    {turnstileError ? <p className="error-text">{turnstileError}</p> : null}
+                  </div>
+                ) : null}
 
-              <div className="row gap-sm wrap">
-                <button type="submit" disabled={busy || backendReachable === false}>
-                  {busy ? "Logging in…" : "Log in"}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
+                {step === "confirm" ? (
+                  <label className="field">
+                    <span>Verification code</span>
+                    <input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="123456"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                    />
+                  </label>
+                ) : null}
 
-        {notice ? <p className="notice-text">{notice}</p> : null}
-        {error ? <p className="error-text">{error}</p> : null}
+                <div className="authMetaGrid">
+                  <div className="authMetaCard">
+                    <span>Local signer</span>
+                    <strong>{newAccountKeypair?.pubkeyB64 ? "Prepared" : account ? "Will be generated" : "Waiting for handle"}</strong>
+                  </div>
+                  <div className="authMetaCard">
+                    <span>Verification request</span>
+                    <strong>{requestId || "Not created yet"}</strong>
+                  </div>
+                </div>
+
+                <div className="row gap-sm wrap">
+                  {step === "begin" ? (
+                    <button type="submit" disabled={busy || backendReachable === false}>
+                      {busy ? "Sending code…" : "Request verification code"}
+                    </button>
+                  ) : (
+                    <>
+                      <button type="submit" disabled={busy || backendReachable === false}>
+                        {busy ? "Confirming…" : "Confirm code and submit Tier 1"}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => {
+                          setStep("begin")
+                          setCode("")
+                          setError("")
+                          setNotice("")
+                          setTurnstileToken("")
+                          setTurnstileNonce((v) => v + 1)
+                        }}
+                      >
+                        Start over
+                      </button>
+                    </>
+                  )}
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="authFlowBody">
+              {config.enableDevBootstrap && devManifest?.account ? (
+                <div className="panel stack-sm">
+                  <p className="eyebrow">Dev bootstrap</p>
+                  <h3>Use the generated tester credentials</h3>
+                  <p className="muted">
+                    The restore form below is already prefilled from the generated demo bootstrap manifest. You can submit it as-is
+                    or load the session with one click.
+                  </p>
+                  <div className="row gap-sm wrap">
+                    <button type="button" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
+                      {devBootstrapBusy ? "Loading demo session…" : "Load demo tester session"}
+                    </button>
+                    <button type="button" className="secondary" onClick={handleCopyDevSecret}>
+                      Copy private key
+                    </button>
+                  </div>
+                  <div className="stack-xs">
+                    <strong>Handle</strong>
+                    <code>{normalizeAccount(String(devManifest.account || ""))}</code>
+                    <strong>Private key</strong>
+                    <code>{maskSecret(String(devManifest.secretKeyB64 || ""))}</code>
+                  </div>
+                </div>
+              ) : null}
+              <CheckpointList items={restoreFlowCheckpoints} />
+
+              <form onSubmit={handleExistingLogin} className="stack-md authFormCard">
+                <label className="field">
+                  <span>Handle</span>
+                  <input
+                    value={existingAccountInput}
+                    onChange={(e) => setExistingAccountInput(e.target.value)}
+                    placeholder="@yourname"
+                    autoComplete="username"
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Private key</span>
+                  <textarea
+                    value={privateKey}
+                    onChange={(e) => setPrivateKey(e.target.value)}
+                    placeholder="Paste the 64-byte base64 private key for this account"
+                    rows={5}
+                    spellCheck={false}
+                  />
+                </label>
+
+                <p className="muted authHelperCopy">
+                  The private key remains local to this browser. A successful restore issues a fresh device session instead of trusting a stale local session record.
+                </p>
+
+                <div className="row gap-sm wrap">
+                  <button type="submit" disabled={busy || backendReachable === false}>
+                    {busy ? "Restoring…" : "Restore account and create session"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {notice ? <p className="notice-text">{notice}</p> : null}
+          {error ? <p className="error-text">{error}</p> : null}
+        </article>
       </section>
     </main>
   )

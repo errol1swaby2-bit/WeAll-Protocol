@@ -162,6 +162,14 @@ def _group_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "group_id") or _stable_tx_id(tx)
 
 
+def _group_treasury_id(tx: Mapping[str, Any]) -> str:
+    explicit = _field(tx, "treasury_id", "group_treasury_id")
+    if explicit:
+        return explicit
+    group_id = _group_id(tx)
+    return f"TREASURY_GROUP::{group_id}" if group_id else ""
+
+
 def _wallet_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "wallet_id", "treasury_id", "program_wallet_id") or _stable_tx_id(tx)
 
@@ -295,7 +303,6 @@ _register_many(
         "GOV_PROPOSAL_EDIT",
         "GOV_PROPOSAL_WITHDRAW",
         "GOV_VOTE_CAST",
-        "GOV_DELEGATION_SET",
         "GOV_VOTE_REVOKE",
         "GOV_EXECUTION_RECEIPT",
         "GOV_PROPOSAL_RECEIPT",
@@ -612,6 +619,11 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         authority.append("authority:roles")
         if "VALIDATOR" in _tx_type(tx):
             authority.extend(["consensus:validator_set", "consensus:validator_epoch"])
+        if _tx_type(tx) in {"ROLE_EMISSARY_SEAT", "ROLE_EMISSARY_REMOVE"}:
+            writes.extend([
+                _key("treasury:wallet", "TREASURY_PROTOCOL"),
+                _key("treasury:policy", "TREASURY_PROTOCOL"),
+            ])
 
     elif rule.family == TxFamily.POH:
         account_id = _account_subject(tx)
@@ -673,6 +685,13 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         election_id = _election_id(tx)
         if election_id and "ELECTION" in _tx_type(tx):
             writes.append(_key("groups:emissary_election", f"{group_id}:{election_id}"))
+        if _tx_type(tx) in {"GROUP_SIGNERS_SET", "GROUP_EMISSARY_ELECTION_FINALIZE"}:
+            treasury_id = _group_treasury_id(tx)
+            if treasury_id:
+                writes.extend([
+                    _key("treasury:wallet", treasury_id),
+                    _key("treasury:policy", treasury_id),
+                ])
         if rule.barrier_class == BarrierClass.AUTHORITY_BARRIER:
             authority.append(_key("groups:treasury_policy", group_id))
 

@@ -1,0 +1,9 @@
+{
+  "account": "@demo_tester",
+  "secretKeyB64": "Mblu6i+P/3kZoKpJzd2pRvCKIPtZRf7b4+VqgQ6TdQLj4SFgHetNAlsb9SnATdI0Ha+fxH2TVneZFrkBni8iEg==",
+  "secret_key_b64": "Mblu6i+P/3kZoKpJzd2pRvCKIPtZRf7b4+VqgQ6TdQLj4SFgHetNAlsb9SnATdI0Ha+fxH2TVneZFrkBni8iEg==",
+  "post_body": "External tester demo post",
+  "summary_path": "/home/errol/WeAll-Protocol/Weall-Protocol/generated/demo_bootstrap_result.json",
+  "apiBase": "/",
+  "api_base": "/"
+}

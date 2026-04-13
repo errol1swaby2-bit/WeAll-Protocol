@@ -13,6 +13,8 @@ from weall.runtime.bootstrap_manifest import (
     verify_local_manifest,
 )
 from weall.runtime.chain_config import ChainConfig, production_bootstrap_report
+from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
 Json = dict[str, Any]
 
@@ -100,6 +102,9 @@ def build_operator_incident_report(
             expected_pubkey=str(release_pubkey() or "").strip(),
         )
     remote = _coerce_json_object(remote_forensics)
+    runtime_cfg = resolve_node_runtime_config_from_env()
+    state_lifecycle = _coerce_json_object(state_meta.get("node_lifecycle"))
+    authority_contract = authority_contract_from_lifecycle(state_lifecycle, runtime_cfg, source="runtime")
     local_severity = classify_local_severity(
         bootstrap_report=bootstrap, manifest_report=manifest_report
     )
@@ -146,6 +151,9 @@ def build_operator_incident_report(
         else 0,
         "compatibility_contract_ok": bool(compatibility_contract.get("ok", True)),
         "compatibility_contract_mismatches": list(compatibility_contract.get("mismatches") or []),
+        "strict_runtime_authority_mode": bool(authority_contract.get("strict_runtime_authority_mode", False)),
+        "validator_effective": bool(authority_contract.get("validator_effective", False)),
+        "helper_effective": bool(authority_contract.get("helper_effective", False)),
     }
 
     return {
@@ -169,6 +177,7 @@ def build_operator_incident_report(
         "bootstrap_report": bootstrap,
         "release_manifest": manifest_report,
         "compatibility_contract": compatibility_contract,
+        "authority_contract": authority_contract,
         "remote_forensics": remote,
         "report_hash": _canon_json(
             {

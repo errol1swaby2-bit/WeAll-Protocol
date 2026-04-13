@@ -3,11 +3,35 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 
+from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def _signed_account_register(*, chain_id: str, signer: str) -> dict[str, object]:
+    pub, priv = deterministic_ed25519_keypair(label=signer)
+    payload = {"pubkey": pub}
+    return {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": signer,
+        "nonce": 1,
+        "payload": payload,
+        "chain_id": chain_id,
+        "sig": priv.sign(
+            canonical_tx_message(
+                chain_id=chain_id,
+                tx_type="ACCOUNT_REGISTER",
+                signer=signer,
+                nonce=1,
+                payload=payload,
+                parent=None,
+            )
+        ).hex(),
+    }
 
 
 def test_pending_tx_survives_failed_commit(tmp_path: Path) -> None:
@@ -26,14 +50,7 @@ def test_pending_tx_survives_failed_commit(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    sub = ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@user1",
-            "nonce": 1,
-            "payload": {"pubkey": "k:user1"},
-        }
-    )
+    sub = ex.submit_tx(_signed_account_register(chain_id="pending-survives-failed-commit", signer="@user1"))
     assert sub["ok"] is True
     tx_id = sub["tx_id"]
 
@@ -52,7 +69,8 @@ def test_pending_tx_survives_failed_commit(tmp_path: Path) -> None:
         ex._db.write_tx = original_write_tx  # type: ignore[assignment]
 
     assert meta.ok is False
-    assert str(meta.error) == "commit_failed:RuntimeError"
+    assert str(meta.error).startswith("commit_failed:RuntimeError")
+    assert "forced_commit_failure_for_test" in str(meta.error)
 
     mp = ex.read_mempool()
     ids = {item["tx_id"] for item in mp}

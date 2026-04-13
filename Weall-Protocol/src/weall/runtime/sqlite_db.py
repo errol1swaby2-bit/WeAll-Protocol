@@ -333,6 +333,7 @@ class SqliteDB:
                   envelope_json TEXT NOT NULL,
                   signer TEXT NOT NULL,
                   tx_type TEXT NOT NULL,
+                  nonce INTEGER,
                   received_ms INTEGER NOT NULL,
                   expires_ms INTEGER NOT NULL
                 );
@@ -340,6 +341,21 @@ class SqliteDB:
             )
             con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_received ON mempool(received_ms);")
             con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_signer ON mempool(signer);")
+            mempool_cols = {
+                str(row["name"])
+                for row in con.execute("PRAGMA table_info(mempool);").fetchall()
+                if row is not None and row["name"] is not None
+            }
+            if "nonce" not in mempool_cols:
+                con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);")
+            con.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_mempool_signer_nonce_unique
+                ON mempool(signer, nonce)
+                WHERE nonce IS NOT NULL;
+                """
+            )
 
             con.execute(
                 """
@@ -828,3 +844,4 @@ class SqliteLedgerStore:
                 (height, block_id, payload, _now_ms()),
             )
             return nxt
+

@@ -15,6 +15,12 @@ from weall.runtime.helper_startup_integration import (
 )
 from weall.runtime.helper_status_route_adapter import build_api_status_response_shape
 from weall.runtime.helper_status_surface import build_helper_status_surface
+from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.runtime.runtime_authority import (
+    authority_contract_from_lifecycle,
+    startup_authority_contract_from_app_state,
+    strict_runtime_authority_mode,
+)
 from weall.runtime.protocol_profile import (
     effective_runtime_consensus_posture,
     runtime_protocol_profile_hash,
@@ -147,6 +153,34 @@ def _schema_version(ex: Any, state: Mapping[str, Any]) -> str:
     return _safe_str(cached, "")
 
 
+
+
+def _node_lifecycle(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    if ex is None:
+        return {}
+    fn = getattr(ex, "node_lifecycle_status", None)
+    if callable(fn):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                return dict(out)
+        except Exception:
+            pass
+    return {}
+
+
+def _authority_contract(request: Request) -> tuple[dict[str, Any], str]:
+    contract = startup_authority_contract_from_app_state(request.app.state)
+    if isinstance(contract, dict) and contract:
+        merged = dict(contract)
+        merged.setdefault("contract_source", "app_startup")
+        return merged, str(merged.get("contract_source") or "app_startup")
+
+    lifecycle = _node_lifecycle(request)
+    runtime_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
+    return runtime_contract, str(runtime_contract.get("contract_source") or "runtime")
+
 def _helper_release_gate_report(app_state: Any):
     try:
         return getattr(app_state, "helper_release_gate_report", None)
@@ -155,9 +189,17 @@ def _helper_release_gate_report(app_state: Any):
 
 
 def _helper_surface(request: Request, chain_id: str):
+    authority_contract, _contract_source = _authority_contract(request)
+    helper_requested = bool(authority_contract.get("helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested))
+    helper_authority_known = any(
+        authority_contract.get(key)
+        for key in ("effective_state", "startup_action", "promotion_failure_reasons", "effective_roles")
+    )
+    helper_effective = bool(authority_contract.get("helper_effective", False))
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
-            helper_mode_requested=_env_bool("WEALL_HELPER_MODE_ENABLED", False),
+            helper_mode_requested=helper_requested,
+            helper_authority_ok=(not helper_requested) or (not helper_authority_known) or helper_effective,
             chain_id_ok=bool(chain_id),
             protocol_profile_ok=True,
             validator_set_ok=True,
@@ -217,7 +259,7 @@ def _active_validators(state: Mapping[str, Any]) -> list[str]:
 
 
 def _quorum_threshold(n: int) -> int:
-    return int(math.ceil((2 * int(n)) / 3.0)) if n > 0 else 0
+    return (((2 * int(n)) + 2) // 3) if n > 0 else 0
 
 
 def _fault_tolerance(n: int) -> int:
@@ -265,6 +307,218 @@ def _consensus_diagnostics(ex: Any) -> dict[str, Any]:
             pass
     return {}
 
+
+def _helper_execution_diagnostics(ex: Any) -> dict[str, Any]:
+    fn = getattr(ex, "helper_execution_diagnostics", None)
+    if callable(fn):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                return out
+        except Exception:
+            pass
+    return {}
+
+
+def _transition_guardrail_diagnostics(ex: Any) -> dict[str, Any]:
+    fn = getattr(ex, "transition_guardrail_diagnostics", None)
+    if callable(fn):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                return out
+        except Exception:
+            pass
+    return {}
+
+
+
+
+
+def _mempool_selection_last_diagnostics(ex: Any) -> dict[str, Any]:
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    persisted = meta.get("mempool_selection_last") if isinstance(meta.get("mempool_selection_last"), dict) else None
+    if isinstance(persisted, dict):
+        return dict(persisted)
+    fn = getattr(ex, "mempool_selection_diagnostics", None)
+    if callable(fn):
+        try:
+            out = fn(preview_limit=0)
+            if isinstance(out, dict):
+                last = out.get("last_candidate") if isinstance(out.get("last_candidate"), dict) else None
+                if isinstance(last, dict):
+                    return dict(last)
+        except Exception:
+            pass
+    return {}
+
+
+def _node_lifecycle_diagnostics(ex: Any) -> dict[str, Any]:
+    if ex is None:
+        return {}
+    fn = getattr(ex, "node_lifecycle_status", None)
+    if callable(fn):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                return dict(out)
+        except Exception:
+            pass
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    node_lifecycle = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
+    if isinstance(node_lifecycle, dict):
+        return dict(node_lifecycle)
+    return {}
+
+
+
+def _app_startup_authority_contract(app_state: Any) -> dict[str, Any]:
+    contract = getattr(app_state, "startup_authority_contract", None)
+    return dict(contract) if isinstance(contract, dict) else {}
+
+
+def _authority_contract_diagnostics(ex: Any, state: Mapping[str, Any], app_state: Any = None) -> dict[str, Any]:
+    lifecycle = _node_lifecycle_diagnostics(ex)
+    runtime_cfg = resolve_node_runtime_config_from_env()
+    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
+    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
+    helper_requested = _safe_bool(lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested)
+    helper_effective = _safe_bool(lifecycle.get("helper_enabled_effective"), False)
+    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
+    validator_requested = bool("validator" in requested_roles or bft_requested)
+    validator_effective = bool("validator" in effective_roles and bft_effective)
+    contract = {
+        "strict_runtime_authority_mode": bool(strict_runtime_authority_mode()),
+        "requested_state": _safe_str(lifecycle.get("requested_state"), runtime_cfg.requested_state),
+        "effective_state": _safe_str(lifecycle.get("effective_state"), ""),
+        "requested_roles": requested_roles,
+        "effective_roles": effective_roles,
+        "validator_requested": validator_requested,
+        "validator_effective": validator_effective,
+        "helper_requested": helper_requested,
+        "helper_effective": helper_effective,
+        "bft_requested": bft_requested,
+        "bft_effective": bft_effective,
+        "startup_action": _safe_str(lifecycle.get("startup_action"), "allow"),
+        "promotion_preflight_passed": _safe_bool(lifecycle.get("promotion_preflight_passed"), False),
+        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else [],
+        "contract_source": "runtime",
+    }
+    startup_contract = _app_startup_authority_contract(app_state)
+    if startup_contract:
+        merged = dict(contract)
+        merged.update(startup_contract)
+        merged["contract_source"] = "app_startup"
+        return merged
+    return contract
+
+
+def _profile_compatibility_diagnostics(ex: Any, state: Mapping[str, Any], app_state: Any = None) -> dict[str, Any]:
+    lifecycle = _node_lifecycle_diagnostics(ex)
+    runtime_cfg = resolve_node_runtime_config_from_env()
+    effective_state = _safe_str(lifecycle.get("effective_state"), "")
+    requested_state = _safe_str(lifecycle.get("requested_state"), runtime_cfg.requested_state)
+    reasons = list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else []
+    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
+    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
+    helper_requested = _safe_bool(lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested)
+    helper_effective = _safe_bool(lifecycle.get("helper_enabled_effective"), False)
+    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
+    chain_id = _safe_str(state.get("chain_id"), "")
+    authority_contract = _authority_contract_diagnostics(ex, state, app_state)
+    genesis_bootstrap = _genesis_bootstrap_diagnostics(state)
+    return {
+        "requested_state": requested_state,
+        "effective_state": effective_state,
+        "peer_profile_enforcement": _safe_str(lifecycle.get("peer_profile_enforcement"), runtime_cfg.peer_profile_enforcement),
+        "profile_commitment": _safe_str(lifecycle.get("profile_commitment"), ""),
+        "runtime_profile_hash": _safe_str(lifecycle.get("runtime_profile_hash"), runtime_protocol_profile_hash()),
+        "schema_version": _safe_str(lifecycle.get("schema_version"), _schema_version(ex, state)),
+        "tx_index_hash": _safe_str(lifecycle.get("tx_index_hash"), _tx_index_hash(ex, state)),
+        "chain_id": chain_id,
+        "genesis_bootstrap_profile_hash": genesis_bootstrap["profile_hash"],
+        "genesis_bootstrap_enabled": genesis_bootstrap["enabled"],
+        "genesis_bootstrap_mode": genesis_bootstrap["mode"],
+        "requested_roles": requested_roles,
+        "effective_roles": effective_roles,
+        "validator_requested": bool(authority_contract.get("validator_requested", False)),
+        "validator_effective": bool(authority_contract.get("validator_effective", False)),
+        "helper_requested": helper_requested,
+        "helper_effective": helper_effective,
+        "bft_requested": bft_requested,
+        "bft_effective": bft_effective,
+        "authority_ready": bool(effective_state == "production_service" and not reasons),
+        "compatibility_ready": bool(chain_id and _safe_str(lifecycle.get("runtime_profile_hash"), "") and _safe_str(lifecycle.get("tx_index_hash"), "")),
+        "strict_runtime_authority_mode": bool(authority_contract.get("strict_runtime_authority_mode", False)),
+        "failure_reasons": reasons,
+        "config_source_summary": dict(lifecycle.get("config_source_summary", {})) if isinstance(lifecycle.get("config_source_summary"), dict) else runtime_cfg.config_source_summary(),
+    }
+
+def _genesis_bootstrap_diagnostics(state: Mapping[str, Any]) -> dict[str, Any]:
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
+    profile_hash = _safe_str(meta.get("genesis_bootstrap_profile_hash"), "")
+    enabled = _safe_bool(profile.get("enabled"), False)
+    return {
+        "enabled": enabled,
+        "mode": _safe_str(profile.get("mode"), "disabled" if not enabled else ""),
+        "account": _safe_str(profile.get("account"), ""),
+        "pubkey_present": bool(_safe_str(profile.get("pubkey"), "")),
+        "reputation_milli": _safe_int(profile.get("reputation_milli"), 0),
+        "storage_capacity_bytes": _safe_int(profile.get("storage_capacity_bytes"), 0),
+        "profile_hash": profile_hash,
+        "profile": dict(profile) if isinstance(profile, dict) else {},
+    }
+
+
+def _startup_posture_diagnostics(ex: Any, app_state: Any = None) -> dict[str, Any]:
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    authority_contract = _authority_contract_diagnostics(ex, state, app_state)
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    warning = meta.get("clock_warning") if isinstance(meta.get("clock_warning"), dict) else None
+    last_shutdown_clean = _safe_bool(meta.get("last_shutdown_clean"), False)
+    observer_mode = _safe_bool(meta.get("observer_mode"), False)
+    signing_block_reason = _safe_str(meta.get("signing_block_reason"), "")
+    runtime_open = _safe_bool(meta.get("runtime_open"), False)
+    genesis_bootstrap = _genesis_bootstrap_diagnostics(state)
+    return {
+        "last_shutdown_clean": last_shutdown_clean,
+        "runtime_open": runtime_open,
+        "recovery_mode_active": bool(
+            runtime_open and (not last_shutdown_clean) and observer_mode and signing_block_reason == "unclean_shutdown"
+        ),
+        "last_clean_shutdown_ms": _safe_int(meta.get("last_clean_shutdown_ms"), 0),
+        "validator_signing_enabled": _safe_bool(meta.get("validator_signing_enabled"), False),
+        "observer_mode": observer_mode,
+        "signing_block_reason": signing_block_reason,
+        "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
+        "startup_clock_sanity_required": _safe_bool(meta.get("startup_clock_sanity_required"), False),
+        "startup_clock_hard_fail_ms": _safe_int(meta.get("startup_clock_hard_fail_ms"), 0),
+        "clock_warning": dict(warning) if isinstance(warning, dict) else {},
+        "genesis_bootstrap_profile": genesis_bootstrap["profile"],
+        "genesis_bootstrap_profile_hash": genesis_bootstrap["profile_hash"],
+        "genesis_bootstrap_enabled": genesis_bootstrap["enabled"],
+        "genesis_bootstrap_mode": genesis_bootstrap["mode"],
+        "authority_contract": authority_contract,
+    }
+
+def _helper_reputation_diagnostics(ex: Any) -> dict[str, Any]:
+    helper_exec = _helper_execution_diagnostics(ex)
+    nested = helper_exec.get("helper_reputation") if isinstance(helper_exec.get("helper_reputation"), dict) else None
+    if isinstance(nested, dict):
+        state = nested.get("state") if isinstance(nested.get("state"), dict) else None
+        if isinstance(state, dict):
+            return dict(state)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    rep = meta.get("helper_reputation") if isinstance(meta.get("helper_reputation"), dict) else None
+    if isinstance(rep, dict):
+        return dict(rep)
+    return {}
 
 
 def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str) -> dict[str, Any]:
@@ -365,6 +619,7 @@ def _runtime_profile_payload(diag: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: str) -> dict[str, Any]:
+    runtime_cfg = resolve_node_runtime_config_from_env()
     validators = _active_validators(state)
     current_epoch_fn = getattr(ex, "_current_validator_epoch", None)
     current_set_hash_fn = getattr(ex, "_current_validator_set_hash", None)
@@ -381,7 +636,7 @@ def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: s
         node_id=_safe_str(getattr(ex, "node_id", None), validator_account),
         tx_index_hash=_tx_index_hash(ex, state),
         schema_version=_schema_version(ex, state),
-        bft_enabled=_env_bool("WEALL_BFT_ENABLED", False),
+        bft_enabled=bool(runtime_cfg.bft_enabled_requested),
         validator_epoch=validator_epoch,
         validator_set_hash=validator_set_hash,
     )
@@ -434,6 +689,10 @@ def status_operator(request: Request) -> dict[str, Any]:
     state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
+    helper_exec = _helper_execution_diagnostics(ex)
+    helper_reputation = _helper_reputation_diagnostics(ex)
+    transition_guardrails = _transition_guardrail_diagnostics(ex)
+    startup_posture = _startup_posture_diagnostics(ex, request.app.state)
     peer_debug = _peer_debug(request.app.state)
     helper_surface = _helper_surface(request, _safe_str(state.get("chain_id"), ""))
 
@@ -463,7 +722,7 @@ def status_operator(request: Request) -> dict[str, Any]:
         "peers": list(peer_debug.get("peers", [])) if isinstance(peer_debug.get("peers"), list) else [],
     }
     payload["consensus"] = {
-        "bft_enabled": _env_bool("WEALL_BFT_ENABLED", False),
+        "bft_enabled": bool(resolve_node_runtime_config_from_env().bft_enabled_requested),
         "validator_account": _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), ""),
         "profile_enforced": bool(effective_runtime_consensus_posture().get("profile_enforced", False)),
         "qc_less_blocks_allowed": bool(effective_runtime_consensus_posture().get("qc_less_blocks_allowed", False)),
@@ -477,6 +736,7 @@ def status_operator(request: Request) -> dict[str, Any]:
         "uses_wall_clock_future_guard": _safe_bool(diag.get("uses_wall_clock_future_guard"), False),
     }
     payload["runtime_profile"] = _runtime_profile_payload(diag)
+    payload["profile_compatibility"] = _profile_compatibility_diagnostics(ex, state, request.app.state)
     payload["startup_fingerprint"] = _startup_fingerprint(
         ex,
         state,
@@ -492,9 +752,17 @@ def status_operator(request: Request) -> dict[str, Any]:
             "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
         }
     payload["operator"] = {
+        "node_lifecycle": _node_lifecycle_diagnostics(ex),
+        "profile_compatibility": payload["profile_compatibility"],
+        "authority_contract": _authority_contract_diagnostics(ex, state, request.app.state),
         "helper_status": payload["helper"]["helper_status"],
         "helper_severity": payload["helper"]["helper_severity"],
         "helper_summary": payload["helper"]["helper_summary"],
+        "helper_execution": helper_exec,
+        "helper_reputation": helper_reputation,
+        "mempool_selection_last": _mempool_selection_last_diagnostics(ex),
+        "transition_guardrails": transition_guardrails,
+        "startup_posture": startup_posture,
         **_local_validator_lifecycle(state, _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")),
         "signing_enabled_locally": bool(payload.get("startup_fingerprint", {}).get("mode") or True),
         "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
@@ -509,6 +777,10 @@ def status_consensus(request: Request) -> dict[str, Any]:
     state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
+    helper_exec = _helper_execution_diagnostics(ex)
+    helper_reputation = _helper_reputation_diagnostics(ex)
+    transition_guardrails = _transition_guardrail_diagnostics(ex)
+    startup_posture = _startup_posture_diagnostics(ex, request.app.state)
     peer_debug = _peer_debug(request.app.state)
     view = _safe_int(diag.get("view"), _safe_int(state.get("bft", {}).get("view") if isinstance(state.get("bft"), dict) else 0, 0))
     high_qc = state.get("bft", {}).get("high_qc") if isinstance(state.get("bft"), dict) else {}
@@ -545,6 +817,13 @@ def status_consensus(request: Request) -> dict[str, Any]:
         "tx_index_hash": _tx_index_hash(ex, state),
         "startup_fingerprint": startup,
         "diagnostics": diag,
+        "helper_execution": helper_exec,
+        "helper_reputation": helper_reputation,
+        "mempool_selection_last": _mempool_selection_last_diagnostics(ex),
+        "transition_guardrails": transition_guardrails,
+        "startup_posture": startup_posture,
+        "node_lifecycle": _node_lifecycle_diagnostics(ex),
+        "profile_compatibility": _profile_compatibility_diagnostics(ex, state, request.app.state),
         "runtime_profile": _runtime_profile_payload(diag),
         "consensus_phase": _consensus_phase(state),
         "security_summary": _consensus_security_summary(state, validators),
@@ -560,11 +839,23 @@ def status_consensus_forensics(request: Request) -> dict[str, Any]:
         if isinstance(out, dict):
             return out
     diag = _consensus_diagnostics(ex)
+    helper_exec = _helper_execution_diagnostics(ex)
+    helper_reputation = _helper_reputation_diagnostics(ex)
+    transition_guardrails = _transition_guardrail_diagnostics(ex)
+    startup_posture = _startup_posture_diagnostics(ex, request.app.state)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
     return {
         "ok": True,
-        "chain_id": _safe_str(getattr(ex, "chain_id", None), ""),
+        "chain_id": _safe_str(getattr(ex, "chain_id", None), _safe_str(state.get("chain_id"), "")),
         "node_id": _safe_str(getattr(ex, "node_id", None), ""),
         "diagnostics": diag,
+        "helper_execution": helper_exec,
+        "helper_reputation": helper_reputation,
+        "mempool_selection_last": _mempool_selection_last_diagnostics(ex),
+        "transition_guardrails": transition_guardrails,
+        "startup_posture": startup_posture,
+        "node_lifecycle": _node_lifecycle_diagnostics(ex),
+        "profile_compatibility": _profile_compatibility_diagnostics(ex, state, request.app.state),
         "recent_rejection_summary": dict(diag.get("recent_rejection_summary", {})) if isinstance(diag.get("recent_rejection_summary"), dict) else {},
         "pending_fetch_request_descriptors": list(diag.get("pending_fetch_request_descriptors", [])) if isinstance(diag.get("pending_fetch_request_descriptors"), list) else [],
         "pending_outbound_messages": list(diag.get("pending_outbound_messages", [])) if isinstance(diag.get("pending_outbound_messages"), list) else [],
@@ -587,11 +878,21 @@ def status_mempool(request: Request) -> dict[str, Any]:
                     items = out
             except Exception:
                 items = []
+    selection_diag: dict[str, Any] = {}
+    fn = getattr(ex, "mempool_selection_diagnostics", None)
+    if callable(fn):
+        try:
+            out = fn(preview_limit=limit)
+            if isinstance(out, dict):
+                selection_diag = dict(out)
+        except Exception:
+            selection_diag = {}
     return {
         "ok": True,
         "limit": limit,
         "size": _safe_int(getattr(mp, "size", lambda: 0)(), 0) if mp is not None else 0,
         "items": items,
+        "selection_diagnostics": selection_diag,
     }
 
 

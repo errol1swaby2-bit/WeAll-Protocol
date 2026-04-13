@@ -17,6 +17,11 @@ from weall.runtime.helper_status_endpoint_integration import (
     build_readyz_envelope,
 )
 from weall.runtime.helper_status_surface import build_helper_status_surface
+from weall.runtime.runtime_authority import (
+    authority_contract_from_lifecycle,
+    startup_authority_contract_from_app_state,
+)
+from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
 from weall.runtime.protocol_profile import (
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
@@ -253,6 +258,34 @@ def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     return {"connected_peers": connected_peers, "established_sessions": established_sessions}
 
 
+
+
+def _node_lifecycle(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    if ex is None:
+        return {}
+    fn = getattr(ex, "node_lifecycle_status", None)
+    if callable(fn):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                return dict(out)
+        except Exception:
+            pass
+    return {}
+
+
+def _authority_contract(request: Request) -> tuple[dict[str, Any], str]:
+    contract = startup_authority_contract_from_app_state(request.app.state)
+    if isinstance(contract, dict) and contract:
+        merged = dict(contract)
+        merged.setdefault("contract_source", "app_startup")
+        return merged, str(merged.get("contract_source") or "app_startup")
+
+    lifecycle = _node_lifecycle(request)
+    runtime_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
+    return runtime_contract, str(runtime_contract.get("contract_source") or "runtime")
+
 def _try_helper_release_gate_report(app_state: Any):
     try:
         return getattr(app_state, "helper_release_gate_report", None)
@@ -261,9 +294,16 @@ def _try_helper_release_gate_report(app_state: Any):
 
 
 def _helper_status_surface(request: Request, chain_id: str) -> Any:
+    authority_contract, contract_source = _authority_contract(request)
+    helper_requested = bool(authority_contract.get("helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested))
+    helper_authority_known = any(
+        authority_contract.get(key)
+        for key in ("effective_state", "startup_action", "promotion_failure_reasons", "effective_roles")
+    )
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
-            helper_mode_requested=_env_bool("WEALL_HELPER_MODE_ENABLED", False),
+            helper_mode_requested=helper_requested,
+            helper_authority_ok=(not helper_requested) or (not helper_authority_known) or bool(authority_contract.get("helper_effective", False)),
             chain_id_ok=bool(chain_id),
             protocol_profile_ok=True,
             validator_set_ok=True,
@@ -273,7 +313,12 @@ def _helper_status_surface(request: Request, chain_id: str) -> Any:
         helper_release_gate=_try_helper_release_gate_report(request.app.state),
     )
     diagnostic = build_helper_operator_diagnostic(status=status)
-    return build_helper_status_surface(diagnostic=diagnostic)
+    payload = build_helper_status_surface(diagnostic=diagnostic).to_json()
+    payload["authority_contract"] = authority_contract
+    payload["authority_contract_source"] = contract_source
+    payload["helper_requested"] = helper_requested
+    payload["helper_effective"] = bool(authority_contract.get("helper_effective", False))
+    return payload
 
 
 def _health_payload(request: Request) -> dict[str, object]:
@@ -322,7 +367,7 @@ def _health_payload(request: Request) -> dict[str, object]:
 
     peers = _try_peer_counts(request.app.state)
     bft_diag = _try_bft_diagnostics(ex)
-    helper_surface = _helper_status_surface(request, chain_id or "")
+    helper_payload = _helper_status_surface(request, chain_id or "")
 
     payload = {
         "ok": True,
@@ -350,12 +395,21 @@ def _health_payload(request: Request) -> dict[str, object]:
         },
         "consensus_diagnostics": bft_diag,
     }
-    return build_node_status_envelope(
+    from weall.runtime.helper_status_surface import HelperStatusSurface
+    helper_surface = HelperStatusSurface(
+        helper_startup=dict(helper_payload.get("helper_startup") or {}),
+        helper_status=str(helper_payload.get("helper_status") or ""),
+        helper_severity=str(helper_payload.get("helper_severity") or ""),
+        helper_summary=str(helper_payload.get("helper_summary") or ""),
+    )
+    merged = build_node_status_envelope(
         chain_id=chain_id or "",
         base_ok=bool(payload["ok"]),
         base_mode="validator",
         helper_surface=helper_surface,
     ).to_json() | {k: v for k, v in payload.items() if k not in {"ok", "chain_id", "mode"}}
+    merged["helper"] = helper_payload
+    return merged
 
 
 @router.get("/health")
@@ -389,7 +443,14 @@ def _ready_payload(request: Request) -> dict[str, object]:
     if require_block_loop:
         ready = bool(ready) and (bl.get("running") is True) and (bl.get("unhealthy") is not True)
 
-    helper_surface = _helper_status_surface(request, chain_id or "")
+    helper_payload = _helper_status_surface(request, chain_id or "")
+    from weall.runtime.helper_status_surface import HelperStatusSurface
+    helper_surface = HelperStatusSurface(
+        helper_startup=dict(helper_payload.get("helper_startup") or {}),
+        helper_status=str(helper_payload.get("helper_status") or ""),
+        helper_severity=str(helper_payload.get("helper_severity") or ""),
+        helper_summary=str(helper_payload.get("helper_summary") or ""),
+    )
     helper_ready = build_readyz_envelope(
         chain_id=chain_id or "",
         base_ready=bool(ready),
@@ -411,6 +472,8 @@ def _ready_payload(request: Request) -> dict[str, object]:
         "helper_status": str(helper_ready.get("helper_status") or ""),
         "helper_severity": str(helper_ready.get("helper_severity") or ""),
         "helper_summary": str(helper_ready.get("helper_summary") or ""),
+        "authority_contract": helper_payload.get("authority_contract", {}),
+        "authority_contract_source": helper_payload.get("authority_contract_source", "runtime"),
     }
 
 

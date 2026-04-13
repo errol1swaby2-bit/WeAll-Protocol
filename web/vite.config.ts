@@ -9,13 +9,13 @@ import path from "node:path";
 const DEV_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; " +
-  "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
   "connect-src 'self' http: https: ws: wss:; frame-src https://challenges.cloudflare.com;";
 
 const PREVIEW_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
   "script-src 'self' https://challenges.cloudflare.com; " +
-  "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
   "connect-src 'self' http: https: ws: wss:; frame-src https://challenges.cloudflare.com;";
 
 function safeReadPackageVersion(): string {
@@ -69,7 +69,8 @@ export default defineConfig({
       "Content-Security-Policy": DEV_CSP,
     },
     proxy: {
-      "/v1": { target: "http://localhost:8000", changeOrigin: true },
+      "/v1": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/ipfs": { target: "http://127.0.0.1:8080", changeOrigin: true },
     },
   },
   preview: {

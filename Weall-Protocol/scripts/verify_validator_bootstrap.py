@@ -134,6 +134,10 @@ def main() -> int:
     else:
         bundle = None
 
+    authority_contract = {}
+    if isinstance(bundle_report, dict):
+        authority_contract = dict(bundle_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") or {})
+
     report = {
         "ok": not issues,
         "chain_id": str(cfg.chain_id or ""),
@@ -163,8 +167,11 @@ def main() -> int:
             "bundle": (bundle.get("trusted_anchor") if isinstance(bundle, dict) else None),
             "observed": observed_anchor,
         },
+        "authority_contract": authority_contract if isinstance(authority_contract, dict) else {},
+        "authority_contract_source": str(((authority_contract or {}) if isinstance(authority_contract, dict) else {}).get("contract_source") or "runtime"),
         "bundle_integrity_issues": bundle_integrity,
         "release_manifest": bundle_report,
+        "compatibility_contract": (bundle_report.get("compatibility_contract") if isinstance(bundle_report, dict) else {}),
         "bootstrap_report": production_bootstrap_report(cfg),
         "issues": issues,
     }

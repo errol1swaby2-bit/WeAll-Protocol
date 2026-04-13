@@ -53,6 +53,7 @@ from weall.net.transport import PeerAddr
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
+from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission import admit_tx
 
@@ -372,7 +373,7 @@ class NetMeshLoop:
             self._dial_backoff_ms, _env_int("WEALL_DIAL_BACKOFF_MAX_MS", 15_000)
         )
 
-        self._bft_enabled = _env_bool("WEALL_BFT_ENABLED", False)
+        self._bft_enabled = bool(effective_bft_enabled(executor=self._executor, default=_env_bool("WEALL_BFT_ENABLED", False)))
 
         self._bft_msg_seen: dict[str, int] = {}
         self._bft_msg_seen_ttl_ms: int = max(250, _env_int("WEALL_BFT_MSG_DEDUPE_TTL_MS", 10_000))
@@ -469,6 +470,7 @@ class NetMeshLoop:
             identity_privkey=id_priv,
             server_cert=(os.environ.get("WEALL_NET_TLS_CERT") or None),
             server_key=(os.environ.get("WEALL_NET_TLS_KEY") or None),
+            bft_enabled=bool(self._bft_enabled),
         )
 
         block_provider = getattr(self._executor, "get_block_by_height", None)
@@ -480,6 +482,7 @@ class NetMeshLoop:
             tx_index_hash=tx_index_hash,
             state_provider=self._state_snapshot,
             block_provider=block_provider,
+            bft_enabled=bool(self._bft_enabled),
         )
 
         node = NetNode(

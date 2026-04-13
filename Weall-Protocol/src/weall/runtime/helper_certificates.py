@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import time
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
@@ -120,6 +119,19 @@ class HelperCertificate:
         return hash_receipts(receipts)
 
     def verify_internal_consistency(self) -> bool:
+        required_fields = (
+            str(self.chain_id or "").strip(),
+            str(self.leader_id or "").strip(),
+            str(self.helper_id or "").strip(),
+            str(self.validator_set_hash or "").strip(),
+            str(self.lane_id or "").strip(),
+        )
+        if not all(required_fields):
+            return False
+        if int(self.block_height) < 0 or int(self.view) < 0 or int(self.validator_epoch) < 0:
+            return False
+        if tuple(str(x) for x in self.tx_ids) != tuple(self.tx_ids):
+            return False
         return self.tx_order_hash == self.compute_tx_order_hash()
 
 
@@ -214,7 +226,20 @@ class HelperExecutionCertificate:
         return hash_receipts(receipts)
 
     def verify_internal_consistency(self) -> bool:
-        return True
+        required_fields = (
+            str(self.chain_id or "").strip(),
+            str(self.leader_id or "").strip(),
+            str(self.helper_id or "").strip(),
+            str(self.validator_set_hash or "").strip(),
+            str(self.lane_id or "").strip(),
+        )
+        if not all(required_fields):
+            return False
+        if int(self.block_height) < 0 or int(self.view) < 0 or int(self.validator_epoch) < 0:
+            return False
+        if tuple(str(x) for x in self.tx_ids) != tuple(self.tx_ids):
+            return False
+        return self.tx_order_hash == self.compute_tx_order_hash()
 
     def to_helper_certificate(self) -> HelperCertificate:
         return HelperCertificate(
@@ -312,7 +337,7 @@ def sign_helper_certificate(
         descriptor_hash = str(kwargs["descriptor_hash"])
         plan_id = str(kwargs["plan_id"])
         shared_secret = str(kwargs["shared_secret"])
-        issued_ms = int(kwargs.get("issued_ms", int(time.time() * 1000)))
+        issued_ms = int(kwargs.get("issued_ms", 0))
         payload = {
             "domain": CERTIFICATE_DOMAIN,
             "chain_id": chain_id,
@@ -343,8 +368,9 @@ def sign_helper_certificate(
         key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(privkey))
         sig = key.sign(_signature_material(normalized)).hex()
         return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig})
-    signing_secret = secret if secret is not None else normalized.helper_id
-    sig = hmac.new(str(signing_secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
+    if secret is None:
+        raise ValueError("helper certificate signing requires privkey or explicit secret")
+    sig = hmac.new(str(secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
     return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig})
 
 
@@ -361,8 +387,9 @@ def verify_helper_certificate_signature(
             return True
         except Exception:
             return False
-    signing_secret = secret if secret is not None else normalized.helper_id
-    expected = hmac.new(str(signing_secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
+    if secret is None:
+        return False
+    expected = hmac.new(str(secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
     return hmac.compare_digest(normalized.helper_signature, expected)
 
 

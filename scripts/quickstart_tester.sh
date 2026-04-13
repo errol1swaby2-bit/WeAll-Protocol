@@ -2,13 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKEND_DIR="${ROOT_DIR}/Weall-Protocol"
-FRONTEND_DIR="${ROOT_DIR}/web"
+cd "$ROOT_DIR"
+
 API_URL="${WEALL_API_URL:-http://127.0.0.1:8000}"
 FRONTEND_URL="${WEALL_FRONTEND_URL:-http://127.0.0.1:5173}"
+FRONTEND_ENV_FILE="${WEALL_FRONTEND_ENV_FILE:-../web/.env.local}"
 
 log() {
-  printf '\n[%s] %s\n' "repo-quickstart" "$*"
+  printf '\n[%s] %s\n' "quickstart" "$*"
 }
 
 need_cmd() {
@@ -18,41 +19,128 @@ need_cmd() {
   fi
 }
 
-need_cmd bash
+wait_for_url() {
+  local url="$1"
+  local seconds="${2:-90}"
+  local i
+  for ((i=1; i<=seconds; i++)); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+port_available() {
+  local port="$1"
+  python3 - "$port" <<'PY'
+import socket
+import sys
+
+port = int(sys.argv[1])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    sock.bind(("127.0.0.1", port))
+except OSError:
+    sys.exit(1)
+finally:
+    sock.close()
+PY
+}
+
 need_cmd docker
 need_cmd python3
 need_cmd curl
-need_cmd npm
 
-if [ ! -d "${BACKEND_DIR}" ]; then
-  echo "ERROR: backend directory not found: ${BACKEND_DIR}" >&2
+log "checking required local ports"
+for port in 8000 4001 5001 8080; do
+  if ! port_available "$port"; then
+    echo "ERROR: required local port already in use: $port" >&2
+    echo "Stop the conflicting service or change the local compose port mapping before retrying." >&2
+    exit 1
+  fi
+done
+
+log "creating local runtime directories"
+mkdir -p data generated data/ipfs
+chmod -R a+rwX data generated
+
+log "generating tx index"
+python3 scripts/gen_tx_index.py
+
+dump_backend_diagnostics() {
+  echo >&2
+  echo "==== docker compose ps ====" >&2
+  docker compose ps >&2 || true
+  echo >&2
+  echo "==== weall_api logs (tail 200) ====" >&2
+  docker compose logs weall_api --tail 200 >&2 || true
+  echo >&2
+  echo "==== weall_producer logs (tail 200) ====" >&2
+  docker compose logs weall_producer --tail 200 >&2 || true
+  echo >&2
+  echo "==== kubo logs (tail 120) ====" >&2
+  docker compose logs kubo --tail 120 >&2 || true
+  echo >&2
+  echo "==== weall_api health inspect ====" >&2
+  local api_id=""
+  api_id="$(docker compose ps -q weall_api 2>/dev/null || true)"
+  if [[ -n "${api_id}" ]]; then
+    docker inspect "${api_id}" --format '{{json .State.Health}}' >&2 || true
+  else
+    echo "weall_api container id unavailable" >&2
+  fi
+}
+
+log "starting backend stack"
+if ! docker compose up -d --build; then
+  echo "ERROR: docker compose up failed." >&2
+  dump_backend_diagnostics
   exit 1
 fi
 
-log "starting canonical backend quickstart from ${BACKEND_DIR}"
-(
-  cd "${BACKEND_DIR}"
-  ./scripts/quickstart_tester.sh
-)
+log "waiting for API readiness at ${API_URL}/v1/readyz"
+if ! wait_for_url "${API_URL}/v1/readyz" 120; then
+  echo "ERROR: API did not become ready in time." >&2
+  dump_backend_diagnostics
+  exit 1
+fi
+
+log "backend is ready"
+curl -fsS "${API_URL}/v1/readyz" && printf '\n'
+curl -fsS "${API_URL}/v1/status" && printf '\n'
 
 cat <<MSG
 
-Repository-level quickstart complete.
+Quickstart complete.
 
-Next terminal for frontend:
-  cd ${FRONTEND_DIR}
+Backend URLs:
+  Ready:  ${API_URL}/v1/readyz
+  Status: ${API_URL}/v1/status
+  Docs:   ${API_URL}/docs
+
+Frontend startup:
+  cd ../web
   cp .env.example .env.local
   npm ci
   npm run dev -- --host 127.0.0.1 --port 5173
 
-Then run the demo bootstrap:
-  cd ${BACKEND_DIR}
+Frontend URL:
+  ${FRONTEND_URL}
+
+Recommended frontend env file:
+  ${FRONTEND_ENV_FILE}
+
+Demo bootstrap command:
+  cd ${ROOT_DIR}
   ./scripts/demo_bootstrap_tester.sh
 
-Expected local URLs:
-  Backend ready: ${API_URL}/v1/readyz
-  Backend docs:  ${API_URL}/docs
-  Frontend:      ${FRONTEND_URL}
-
-If frontend startup fails, confirm Node.js 20+ and npm are installed.
+Useful checks:
+  docker compose ps
+  docker compose logs weall_api --tail 200
+  docker compose logs weall_producer --tail 200
+  docker compose logs kubo --tail 200
+  bash scripts/api_smoke.sh
+  python scripts/check_generated.py
 MSG

@@ -52,6 +52,17 @@ def units_to_reputation(units: Any, *, default: float = 0.0) -> float:
         return float(default)
 
 
+def units_to_reputation_text(units: Any, *, default: str = "0") -> str:
+    try:
+        dec = Decimal(int(units)) / _DEC_SCALE
+    except Exception:
+        return str(default)
+    normalized = format(dec.normalize(), "f")
+    if "." in normalized:
+        normalized = normalized.rstrip("0").rstrip(".")
+    return normalized or "0"
+
+
 def clamp_reputation_units(units: int) -> int:
     u = int(units)
     if u < REPUTATION_MIN_UNITS:
@@ -76,7 +87,7 @@ def sync_account_reputation(acct: Json, *, default_units: int = 0) -> int:
     units = account_reputation_units(acct, default=default_units)
     units = clamp_reputation_units(units)
     acct["reputation_milli"] = int(units)
-    acct["reputation"] = units_to_reputation(units)
+    acct["reputation"] = units_to_reputation_text(units)
     return int(units)
 
 

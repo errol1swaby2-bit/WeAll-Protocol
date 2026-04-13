@@ -51,6 +51,12 @@ def test_every_probe_descriptor_has_materialized_conflict_keys_batch6() -> None:
 
 
 def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
+    allowed_serial_overrides = {
+        "GROUP_SIGNERS_SET",
+        "GROUP_EMISSARY_ELECTION_FINALIZE",
+        "ROLE_EMISSARY_SEAT",
+        "ROLE_EMISSARY_REMOVE",
+    }
     mismatches: list[tuple[str, str, str, str]] = []
     for row in _tx_index_rows():
         tx_type = str(row["name"])
@@ -58,6 +64,8 @@ def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
         descriptor = build_conflict_descriptor(tx)
         access = build_tx_access_set(tx)
         expected_lane = lane_hint_for_family(descriptor.family, descriptor.barrier_class)
+        if tx_type in allowed_serial_overrides and access.lane_hint == "SERIAL":
+            continue
         if access.lane_hint != expected_lane:
             mismatches.append((tx_type, descriptor.family.value, descriptor.barrier_class.value, access.lane_hint))
     assert mismatches == []

@@ -10,7 +10,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from weall.crypto.sig import sign_ed25519
 from weall.ledger.roles_schema import ensure_roles_schema
@@ -45,6 +45,9 @@ from weall.runtime.chain_config import load_chain_config
 from weall.runtime.domain_apply import ApplyError, apply_tx_atomic_meta
 from weall.runtime.failpoints import maybe_trigger_failpoint
 from weall.runtime.mempool import PersistentMempool, compute_tx_id
+from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
+from weall.runtime.node_runtime_config import PRODUCTION_SERVICE
+from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.tier3_scheduler import schedule_poh_tier3_system_txs
 from weall.runtime.protocol_profile import (
@@ -91,6 +94,7 @@ from weall.runtime.reputation_units import (
     sync_account_reputation,
     threshold_to_units,
     units_to_reputation,
+    units_to_reputation_text,
 )
 from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore, _canon_json, derive_aux_db_path
 from weall.runtime.state_hash import compute_state_root
@@ -103,6 +107,175 @@ from weall.runtime.vrf_sig import make_vrf_record, verify_vrf_record
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
+
+
+def _call_admit_bft_block(
+    *,
+    block: Json,
+    state: Json,
+    bft_enabled: bool,
+) -> tuple[bool, Any]:
+    try:
+        return admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
+    except TypeError as exc:
+        if "unexpected keyword argument 'bft_enabled'" not in str(exc):
+            raise
+        return admit_bft_block(block, state)
+
+
+def _call_admit_bft_commit_block(
+    *,
+    block: Json,
+    state: Json,
+    blocks_map: Mapping[str, Json],
+    bft_enabled: bool,
+) -> tuple[bool, Any]:
+    try:
+        return admit_bft_commit_block(
+            block=block,
+            state=state,
+            blocks_map=blocks_map,
+            bft_enabled=bft_enabled,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'bft_enabled'" not in str(exc):
+            raise
+        return admit_bft_commit_block(block, state, blocks_map)
+
+
+_TRANSITION_GUARDRAIL_REASONS: tuple[str, ...] = (
+    "treasury_spend_open",
+    "group_treasury_spend_open",
+    "emissary_election_open",
+)
+
+
+def _normalize_mempool_selection_policy(raw: Any) -> str:
+    s = str(raw or "").strip().lower()
+    if s in {"canonical", "canon", "stable", "deterministic"}:
+        return "canonical"
+    return "fifo"
+
+
+def _sanitize_mempool_selection_marker(
+    marker: Any, *, default_policy: str = "canonical", default_limit: int = 0
+) -> Json:
+    base = marker if isinstance(marker, dict) else {}
+    selected_tx_ids = base.get("selected_tx_ids") if isinstance(base, dict) else []
+    return {
+        "policy": _normalize_mempool_selection_policy(base.get("policy") if isinstance(base, dict) else default_policy),
+        "requested_limit": int((base.get("requested_limit") if isinstance(base, dict) else default_limit) or 0),
+        "fetched_count": int((base.get("fetched_count") if isinstance(base, dict) else 0) or 0),
+        "selected_count": int((base.get("selected_count") if isinstance(base, dict) else 0) or 0),
+        "invalid_count": int((base.get("invalid_count") if isinstance(base, dict) else 0) or 0),
+        "rejected_count": int((base.get("rejected_count") if isinstance(base, dict) else 0) or 0),
+        "selected_tx_ids": [str(x) for x in list(selected_tx_ids or [])[:64]] if isinstance(selected_tx_ids, list) else [],
+    }
+
+
+def _normalize_helper_timeout_ms(raw: Any, default: int = 5000) -> int:
+    return max(1, _safe_int(raw, default))
+
+
+def _helper_execution_profile(*, helper_mode_enabled: bool, helper_fast_path_enabled: bool, helper_timeout_ms: int) -> Json:
+    return {
+        "helper_mode_enabled": bool(helper_mode_enabled),
+        "helper_fast_path_enabled": bool(helper_fast_path_enabled),
+        "helper_timeout_ms": int(_normalize_helper_timeout_ms(helper_timeout_ms, 5000)),
+        "enforce_helper_signature": True,
+        "enforce_helper_certificate_consistency": True,
+        "enforce_helper_tx_order_hash": True,
+        "enforce_helper_namespace_hash": True,
+        "enforce_helper_receipts_root": True,
+    }
+
+
+def _sanitize_helper_execution_profile(marker: Any) -> Json:
+    base = marker if isinstance(marker, dict) else {}
+    return {
+        "helper_mode_enabled": bool(base.get("helper_mode_enabled", False)),
+        "helper_fast_path_enabled": bool(base.get("helper_fast_path_enabled", False)),
+        "helper_timeout_ms": int(_normalize_helper_timeout_ms(base.get("helper_timeout_ms"), 5000)),
+        "enforce_helper_signature": bool(base.get("enforce_helper_signature", True)),
+        "enforce_helper_certificate_consistency": bool(base.get("enforce_helper_certificate_consistency", True)),
+        "enforce_helper_tx_order_hash": bool(base.get("enforce_helper_tx_order_hash", True)),
+        "enforce_helper_namespace_hash": bool(base.get("enforce_helper_namespace_hash", True)),
+        "enforce_helper_receipts_root": bool(base.get("enforce_helper_receipts_root", True)),
+    }
+
+
+def _helper_execution_profile_hash(profile: Any) -> str:
+    safe = _sanitize_helper_execution_profile(profile)
+    return hashlib.sha256(_canon_json(safe).encode("utf-8")).hexdigest()
+
+
+def _state_meta_view(state: Mapping[str, Any] | Any) -> Mapping[str, Any]:
+    meta = state.get("meta") if isinstance(state, Mapping) else {}
+    return meta if isinstance(meta, Mapping) else {}
+
+
+def _pinned_mempool_selection_policy(state: Mapping[str, Any] | Any, fallback: str) -> str:
+    meta = _state_meta_view(state)
+    return _normalize_mempool_selection_policy(meta.get("mempool_selection_policy") or fallback or "canonical")
+
+
+def _genesis_bootstrap_profile_hash(profile: Mapping[str, Any] | Any) -> str:
+    safe = profile if isinstance(profile, Mapping) else {}
+    canon = json.dumps(dict(safe), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def _pinned_helper_execution_profile(state: Mapping[str, Any] | Any, fallback: Mapping[str, Any] | Any) -> Json:
+    meta = _state_meta_view(state)
+    marker = meta.get("helper_execution_profile") if isinstance(meta, Mapping) else {}
+    if isinstance(marker, Mapping) and marker:
+        return _sanitize_helper_execution_profile(marker)
+    return _sanitize_helper_execution_profile(fallback)
+
+
+def _summarize_transition_guardrail_receipts(
+    receipts: list[Json],
+    *,
+    height: int,
+    block_id: str,
+) -> Json:
+    reason_counts: dict[str, int] = {}
+    tx_type_counts: dict[str, dict[str, int]] = {}
+    recent_events: list[Json] = []
+    for raw in receipts:
+        if not isinstance(raw, dict) or bool(raw.get("ok") or False):
+            continue
+        reason = str(raw.get("reason") or "").strip()
+        if reason not in _TRANSITION_GUARDRAIL_REASONS:
+            continue
+        tx_type = str(raw.get("tx_type") or "").strip() or "unknown"
+        reason_counts[reason] = int(reason_counts.get(reason, 0)) + 1
+        by_type = tx_type_counts.setdefault(tx_type, {})
+        by_type[reason] = int(by_type.get(reason, 0)) + 1
+        event: Json = {
+            "tx_id": str(raw.get("tx_id") or ""),
+            "tx_type": tx_type,
+            "signer": str(raw.get("signer") or ""),
+            "reason": reason,
+            "code": str(raw.get("code") or "apply_error"),
+        }
+        details = raw.get("details")
+        if isinstance(details, dict) and details:
+            event["details"] = dict(details)
+        recent_events.append(event)
+    if not reason_counts:
+        return {}
+    return {
+        "height": int(height),
+        "block_id": str(block_id or ""),
+        "rejection_count": int(sum(reason_counts.values())),
+        "reason_counts": {k: int(reason_counts[k]) for k in sorted(reason_counts)},
+        "tx_type_counts": {
+            tx_type: {reason: int(counts[reason]) for reason in sorted(counts)}
+            for tx_type, counts in sorted(tx_type_counts.items())
+        },
+        "recent_events": recent_events[-10:],
+    }
 
 
 def _now_ms() -> int:
@@ -160,6 +333,25 @@ def _bounded_put(od: OrderedDict[str, Any], key: str, value: Any, *, cap: int) -
         # Fail-closed would be too disruptive here; bounded caches are best-effort.
         # The caller still validates and rejects invalid blocks/txs elsewhere.
         return
+
+
+def _compact_error_text(value: Any, *, limit: int = 240) -> str:
+    try:
+        text = str(value)
+    except Exception:
+        text = repr(value)
+    text = " ".join(str(text).split())
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)] + "..."
+
+
+def _format_commit_failure(exc: Exception) -> str:
+    error_class = type(exc).__name__
+    detail = _compact_error_text(exc)
+    if detail:
+        return f"commit_failed:{error_class}:{detail}"
+    return f"commit_failed:{error_class}"
 
 
 def _consensus_fail_closed() -> bool:
@@ -237,6 +429,18 @@ class WeAllExecutor:
         # one transaction. Move only non-consensus local pools to the aux DB.
         self._mempool = PersistentMempool(db=self._db, chain_id=self.chain_id)
         self._att_pool = PersistentAttestationPool(db=self._aux_db)
+        self._helper_mode_enabled_default = _env_bool("WEALL_HELPER_MODE_ENABLED", False)
+        helper_fast_path_requested = _env_bool("WEALL_HELPER_FAST_PATH", False)
+        if helper_fast_path_requested and not self._helper_mode_enabled_default:
+            raise ExecutorError(
+                "helper fast path requires WEALL_HELPER_MODE_ENABLED=1. Refuse to start."
+            )
+        self._helper_fast_path_enabled_default = bool(
+            self._helper_mode_enabled_default and helper_fast_path_requested
+        )
+        self._helper_timeout_ms = _normalize_helper_timeout_ms(
+            os.environ.get("WEALL_HELPER_TIMEOUT_MS"), 5000
+        )
 
         # Back-compat alias used by some tests that reached into the storage layer.
         self._store = self._ledger_store
@@ -275,6 +479,62 @@ class WeAllExecutor:
         st_tx_index_hash = str(meta.get("tx_index_hash") or "").strip()
         st_rep_scale = _safe_int(meta.get("reputation_scale"), 0)
         st_future_drift_ms = _safe_int(meta.get("max_block_future_drift_ms"), 0)
+        st_mempool_selection_policy = _normalize_mempool_selection_policy(
+            meta.get("mempool_selection_policy") or ""
+        )
+        st_helper_execution_profile = _sanitize_helper_execution_profile(
+            meta.get("helper_execution_profile") or {}
+        )
+        st_helper_execution_profile_hash = str(meta.get("helper_execution_profile_hash") or "").strip()
+        st_genesis_bootstrap_profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
+        st_genesis_bootstrap_profile_hash = str(meta.get("genesis_bootstrap_profile_hash") or "").strip()
+        runtime_mempool_selection_policy = _normalize_mempool_selection_policy(
+            getattr(self._mempool, "selection_policy", lambda: "canonical")()
+        )
+        mempool_selection_policy_env_raw = os.environ.get("WEALL_MEMPOOL_SELECTION_POLICY")
+        current_mempool_selection_policy = runtime_mempool_selection_policy
+        legacy_unpinned_policy_snapshot = (
+            not st_profile_hash
+            and not st_schema_version
+            and not st_tx_index_hash
+        )
+        legacy_mempool_policy_upgrade = False
+        if (
+            mempool_selection_policy_env_raw is None
+            and st_mempool_selection_policy
+            and st_mempool_selection_policy != runtime_mempool_selection_policy
+        ):
+            if _mode() != "prod":
+                # Backward-compatible restart posture for pre-pin or locally
+                # drifted dev databases. When the operator has not explicitly
+                # requested a runtime policy, preserve the on-disk pinned policy
+                # so sequential restarts do not fail closed solely because the
+                # process default changed.
+                current_mempool_selection_policy = st_mempool_selection_policy
+            elif (
+                legacy_unpinned_policy_snapshot
+                and st_mempool_selection_policy == "fifo"
+                and runtime_mempool_selection_policy == "canonical"
+            ):
+                # Narrow production compatibility path for legacy snapshots that
+                # predate the profile/schema/tx-index pin set and are upgrading
+                # from fifo -> canonical defaults. Treat this as an in-memory
+                # metadata migration and continue under canonical policy.
+                st_mempool_selection_policy = runtime_mempool_selection_policy
+                legacy_mempool_policy_upgrade = True
+        # Pin the helper execution profile to the explicit local runtime request
+        # at startup. Lifecycle overrides are applied later and may narrow the
+        # effective authority for production_service nodes, but bootstrap/dev
+        # nodes must preserve their requested helper posture for restart
+        # compatibility and deterministic replay diagnostics.
+        current_helper_execution_profile = self._requested_helper_execution_profile()
+        current_genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
+        current_genesis_bootstrap_profile_hash = _genesis_bootstrap_profile_hash(current_genesis_bootstrap_profile)
+        if _mode() == "prod" and current_mempool_selection_policy != "canonical":
+            raise ExecutorError(
+                f"mempool_selection_policy mismatch: runtime={current_mempool_selection_policy!r} required='canonical'. Refuse to start."
+            )
+        current_helper_execution_profile_hash = _helper_execution_profile_hash(current_helper_execution_profile)
         expected_profile_hash = PRODUCTION_CONSENSUS_PROFILE.profile_hash()
         if st_protocol_version and st_protocol_version != PROTOCOL_VERSION:
             raise ExecutorError(
@@ -300,6 +560,31 @@ class WeAllExecutor:
             raise ExecutorError(
                 f"max_block_future_drift_ms mismatch: db={st_future_drift_ms!r} binary={MAX_BLOCK_FUTURE_DRIFT_MS!r}. Refuse to start."
             )
+        if st_mempool_selection_policy and st_mempool_selection_policy != current_mempool_selection_policy:
+            raise ExecutorError(
+                "mempool_selection_policy mismatch: "
+                f"db={st_mempool_selection_policy!r} executor={current_mempool_selection_policy!r}. Refuse to start."
+            )
+        if st_helper_execution_profile_hash and st_helper_execution_profile_hash != current_helper_execution_profile_hash:
+            raise ExecutorError(
+                "helper_execution_profile mismatch: "
+                f"db={st_helper_execution_profile_hash!r} executor={current_helper_execution_profile_hash!r}. Refuse to start."
+            )
+        if st_helper_execution_profile and st_helper_execution_profile != current_helper_execution_profile:
+            raise ExecutorError(
+                "helper_execution_profile mismatch: "
+                f"db={st_helper_execution_profile!r} executor={current_helper_execution_profile!r}. Refuse to start."
+            )
+        if st_genesis_bootstrap_profile_hash and st_genesis_bootstrap_profile_hash != current_genesis_bootstrap_profile_hash:
+            raise ExecutorError(
+                "genesis_bootstrap_profile mismatch: "
+                f"db={st_genesis_bootstrap_profile_hash!r} executor={current_genesis_bootstrap_profile_hash!r}. Refuse to start."
+            )
+        if st_genesis_bootstrap_profile and st_genesis_bootstrap_profile != current_genesis_bootstrap_profile:
+            raise ExecutorError(
+                "genesis_bootstrap_profile mismatch: "
+                f"db={st_genesis_bootstrap_profile!r} executor={current_genesis_bootstrap_profile!r}. Refuse to start."
+            )
         if st_chain_id and st_chain_id != self.chain_id:
             raise ExecutorError(
                 f"chain_id mismatch: db={st_chain_id!r} executor={self.chain_id!r}. Refuse to start."
@@ -320,6 +605,14 @@ class WeAllExecutor:
         meta.setdefault("reputation_scale", REPUTATION_SCALE)
         meta.setdefault("max_block_future_drift_ms", MAX_BLOCK_FUTURE_DRIFT_MS)
         meta.setdefault("clock_skew_warn_ms", CLOCK_SKEW_WARN_MS)
+        if legacy_mempool_policy_upgrade:
+            meta["mempool_selection_policy"] = current_mempool_selection_policy
+        else:
+            meta.setdefault("mempool_selection_policy", current_mempool_selection_policy)
+        meta.setdefault("helper_execution_profile", current_helper_execution_profile)
+        meta.setdefault("helper_execution_profile_hash", current_helper_execution_profile_hash)
+        meta.setdefault("genesis_bootstrap_profile", current_genesis_bootstrap_profile)
+        meta.setdefault("genesis_bootstrap_profile_hash", current_genesis_bootstrap_profile_hash)
         meta["startup_clock_sanity_required"] = bool(
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
@@ -333,7 +626,14 @@ class WeAllExecutor:
             or not st_tx_index_hash
             or not st_rep_scale
             or not st_future_drift_ms
+            or not st_mempool_selection_policy
+            or not st_helper_execution_profile_hash
+            or not st_genesis_bootstrap_profile_hash
         ):
+            meta["helper_execution_profile"] = current_helper_execution_profile
+            meta["helper_execution_profile_hash"] = current_helper_execution_profile_hash
+            meta["genesis_bootstrap_profile"] = current_genesis_bootstrap_profile
+            meta["genesis_bootstrap_profile_hash"] = current_genesis_bootstrap_profile_hash
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
@@ -389,8 +689,6 @@ class WeAllExecutor:
             path=str(journal_path),
             max_events=_safe_int(os.environ.get("WEALL_BFT_JOURNAL_MAX_EVENTS"), 2000),
         )
-        self._helper_fast_path_enabled_default = _env_bool("WEALL_HELPER_FAST_PATH", False)
-        self._helper_timeout_ms = max(1, _safe_int(os.environ.get("WEALL_HELPER_TIMEOUT_MS"), 5000))
         helper_lane_dir = str(os.environ.get("WEALL_HELPER_LANE_JOURNAL_DIR") or "").strip()
         if helper_lane_dir:
             self._helper_lane_journal_dir = helper_lane_dir
@@ -459,6 +757,26 @@ class WeAllExecutor:
             os.environ.get("WEALL_MAX_CONFLICTED_BLOCK_HASHES"), 256
         )
         self._conflicted_block_hashes: OrderedDict[str, Json] = OrderedDict()
+        self._last_mempool_selection_diag: Json = {
+            "policy": str(current_mempool_selection_policy),
+            "requested_limit": 0,
+            "fetched_count": 0,
+            "selected_count": 0,
+            "invalid_count": 0,
+            "rejected_count": 0,
+            "selected_tx_ids": [],
+        }
+        meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
+        persisted_selection_diag = (
+            meta_root.get("mempool_selection_last") if isinstance(meta_root.get("mempool_selection_last"), dict) else None
+        )
+        if isinstance(persisted_selection_diag, dict):
+            restored_diag = _sanitize_mempool_selection_marker(
+                persisted_selection_diag,
+                default_policy=current_mempool_selection_policy,
+                default_limit=0,
+            )
+            self._last_mempool_selection_diag = restored_diag
         self._restore_pending_bft_frontier()
 
         # Remote proposal vote validation can be expensive because the strict path
@@ -567,6 +885,13 @@ class WeAllExecutor:
         self._validator_signing_enabled: bool = True
         self._observer_mode_forced: bool = False
         self._signing_block_reason: str = ""
+        self._node_lifecycle_effective_state: str = ""
+        self._service_roles_effective: tuple[str, ...] = ()
+        self._helper_mode_enabled_effective: bool = False
+        self._helper_fast_path_enabled_effective: bool = False
+        self._bft_enabled_effective: bool = False
+        self._enforce_node_lifecycle_startup()
+        self._apply_node_lifecycle_runtime_overrides()
         self._init_validator_runtime_posture()
 
     def _runtime_meta(self) -> Json:
@@ -579,12 +904,97 @@ class WeAllExecutor:
     def _persist_runtime_meta(self) -> None:
         self._ledger_store.write(self.state)
 
+    def _evaluate_node_lifecycle_status(self):
+        return evaluate_node_lifecycle_status(
+            state=self.state,
+            node_id=str(getattr(self, "node_id", "") or ""),
+            chain_id=str(self.state.get("chain_id") or getattr(self, "chain_id", "") or ""),
+            schema_version=str(getattr(self, "_schema_version_cached", "") or ""),
+            tx_index_hash=str(getattr(self, "_tx_index_hash", "") or ""),
+            runtime_profile_hash=str(PRODUCTION_CONSENSUS_PROFILE.profile_hash()),
+        )
+
+
+    def _apply_node_lifecycle_runtime_overrides(self) -> None:
+        status = self._evaluate_node_lifecycle_status()
+        effective_roles = tuple(str(r) for r in (getattr(status, "service_roles_effective", ()) or ()))
+        requested_state = str(getattr(status, "requested_state", "") or "")
+        strict_authority = bool(_mode() == "prod" or requested_state == PRODUCTION_SERVICE)
+        self._node_lifecycle_effective_state = str(getattr(status, "effective_state", "") or "")
+        self._service_roles_effective = effective_roles
+        if strict_authority:
+            self._helper_mode_enabled_effective = bool(
+                getattr(status, "helper_enabled_effective", False) and "helper" in set(effective_roles)
+            )
+            self._helper_fast_path_enabled_effective = bool(
+                self._helper_mode_enabled_effective and self._helper_fast_path_enabled_default
+            )
+            self._bft_enabled_effective = bool(
+                getattr(status, "bft_enabled_effective", False) and "validator" in set(effective_roles)
+            )
+        else:
+            # Compatibility posture for bootstrap/dev nodes: keep helper/BFT runtime
+            # availability aligned with the explicit local runtime request unless the
+            # operator has opted into the stricter production_service lifecycle.
+            self._helper_mode_enabled_effective = bool(self._helper_mode_enabled_default)
+            self._helper_fast_path_enabled_effective = bool(
+                self._helper_mode_enabled_effective and self._helper_fast_path_enabled_default
+            )
+            self._bft_enabled_effective = bool(_env_bool("WEALL_BFT_ENABLED", False))
+
+        # Persist the runtime-effective helper profile for the live node posture.
+        # In strict production/lifecycle mode, the runtime profile must reflect
+        # authority gating even if the operator explicitly requested helper mode.
+        # In bootstrap/dev compatibility mode, the runtime-effective profile
+        # remains aligned with the local requested helper posture.
+        meta = self._runtime_meta()
+        runtime_helper_execution_profile = (
+            self._effective_helper_execution_profile()
+            if strict_authority
+            else self._requested_helper_execution_profile()
+        )
+        meta["helper_execution_profile"] = dict(runtime_helper_execution_profile)
+        meta["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+            runtime_helper_execution_profile
+        )
+
+    def _helper_mode_enabled_runtime(self) -> bool:
+        return bool(getattr(self, "_helper_mode_enabled_effective", False))
+
+    def _requested_helper_execution_profile(self) -> Json:
+        return _helper_execution_profile(
+            helper_mode_enabled=bool(self._helper_mode_enabled_default),
+            helper_fast_path_enabled=bool(self._helper_fast_path_enabled_default),
+            helper_timeout_ms=int(getattr(self, "_helper_timeout_ms", 5000)),
+        )
+
+    def _effective_helper_execution_profile(self) -> Json:
+        return _helper_execution_profile(
+            helper_mode_enabled=bool(self._helper_mode_enabled_runtime()),
+            helper_fast_path_enabled=bool(self._helper_fast_path_enabled()),
+            helper_timeout_ms=int(getattr(self, "_helper_timeout_ms", 5000)),
+        )
+
+    def _persist_node_lifecycle_meta(self) -> None:
+        meta = self._runtime_meta()
+        status = self._evaluate_node_lifecycle_status()
+        meta["node_lifecycle"] = status.to_json()
+
+    def _enforce_node_lifecycle_startup(self) -> None:
+        status = self._evaluate_node_lifecycle_status()
+        if bool(getattr(status, "startup_refusal_required", False)):
+            reasons = list(getattr(status, "promotion_failure_reasons", ()) or ())
+            detail = ",".join(str(r) for r in reasons if str(r).strip()) or "unknown"
+            raise ExecutorError(f"node_lifecycle_startup_refused:{detail}")
+
     def _init_validator_runtime_posture(self) -> None:
         meta = self._runtime_meta()
-        previous_clean = bool(meta.get("last_shutdown_clean", True))
+        runtime_open = bool(meta.get("runtime_open", False))
+        previous_clean = bool(meta.get("last_shutdown_clean", True)) and not runtime_open
         observer_requested = _env_bool("WEALL_OBSERVER_MODE", False)
         signing_requested = _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", True)
         allow_dirty_signing = _env_bool("WEALL_ALLOW_DIRTY_SIGNING", False)
+        lifecycle = self._evaluate_node_lifecycle_status()
 
         forced_observer = False
         reason = ""
@@ -603,6 +1013,12 @@ class WeAllExecutor:
             reason = str(
                 getattr(self, "_startup_clock_observer_reason", "") or "clock_skew_warning"
             )
+        elif bool(getattr(lifecycle, "bft_enabled_requested", False)) and not bool(
+            getattr(lifecycle, "bft_enabled_effective", False)
+        ) and signing_requested:
+            signing_requested = False
+            forced_observer = True
+            reason = "node_lifecycle_not_validator_ready"
         elif (
             _mode() == "prod"
             and not previous_clean
@@ -618,18 +1034,21 @@ class WeAllExecutor:
         self._signing_block_reason = str(reason) if not self._validator_signing_enabled else ""
 
         meta.pop("last_startup_ms", None)
-        meta["last_shutdown_clean"] = False
+        meta["last_shutdown_clean"] = bool(previous_clean)
+        meta["runtime_open"] = True
         meta["validator_signing_enabled"] = bool(self._validator_signing_enabled)
         meta["observer_mode"] = bool(not self._validator_signing_enabled)
         if self._signing_block_reason:
             meta["signing_block_reason"] = str(self._signing_block_reason)
         else:
             meta.pop("signing_block_reason", None)
+        self._persist_node_lifecycle_meta()
         self._persist_runtime_meta()
 
     def mark_clean_shutdown(self) -> None:
         meta = self._runtime_meta()
         meta["last_shutdown_clean"] = True
+        meta["runtime_open"] = False
         meta["validator_signing_enabled"] = bool(self._validator_signing_enabled)
         meta["observer_mode"] = bool(not self._validator_signing_enabled)
         if self._signing_block_reason:
@@ -637,6 +1056,7 @@ class WeAllExecutor:
         else:
             meta.pop("signing_block_reason", None)
         meta["last_clean_shutdown_ms"] = int(_now_ms())
+        self._persist_node_lifecycle_meta()
         self._persist_runtime_meta()
 
     def _effective_validator_signing_state(self) -> tuple[bool, str]:
@@ -668,6 +1088,15 @@ class WeAllExecutor:
                 )
 
         return True, ""
+
+    def node_lifecycle_status(self) -> Json:
+        state = self.read_state()
+        meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+        persisted = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
+        if isinstance(persisted, dict) and persisted:
+            return dict(persisted)
+        status = self._evaluate_node_lifecycle_status()
+        return status.to_json()
 
     def validator_signing_enabled(self) -> bool:
         enabled, _reason = self._effective_validator_signing_state()
@@ -845,38 +1274,93 @@ class WeAllExecutor:
                 out.append({"kind": kind, "payload": dict(payload)})
         return out
 
+    def _current_genesis_bootstrap_profile(self) -> Json:
+        explicit_enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
+        genesis_mode_enabled = _env_bool("WEALL_GENESIS_MODE", False)
+        acct = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT") or "").strip()
+        pk = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_PUBKEY") or "").strip()
+        mode = "disabled"
+        if genesis_mode_enabled:
+            mode = "genesis_mode"
+            acct = acct or str(
+                os.environ.get("WEALL_VALIDATOR_ACCOUNT")
+                or self.node_id
+                or os.environ.get("WEALL_NODE_ID")
+                or ""
+            ).strip()
+            pk = pk or str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
+        elif explicit_enabled:
+            mode = "explicit"
+
+        enabled = bool(explicit_enabled or genesis_mode_enabled)
+        bootstrap_rep_raw = os.environ.get("WEALL_GENESIS_BOOTSTRAP_REPUTATION")
+        bootstrap_rep_units = threshold_to_units(
+            bootstrap_rep_raw if bootstrap_rep_raw is not None else "1.0",
+            default=REPUTATION_SCALE,
+        )
+        if bootstrap_rep_units < 0:
+            bootstrap_rep_units = 0
+        try:
+            storage_capacity = int(
+                os.environ.get("WEALL_GENESIS_BOOTSTRAP_STORAGE_CAPACITY_BYTES") or 0
+            )
+        except Exception:
+            storage_capacity = 0
+        if storage_capacity < 0:
+            storage_capacity = 0
+        return {
+            "enabled": bool(enabled),
+            "mode": str(mode),
+            "account": str(acct),
+            "pubkey": str(pk),
+            "reputation_milli": int(bootstrap_rep_units),
+            "storage_capacity_bytes": int(storage_capacity),
+        }
+
     def _initial_state(self) -> Json:
-        # IMPORTANT: this must include the core consensus/authorization subtrees.
-        # Many tests and admission/gate logic assume these keys exist.
+        genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
+        bootstrap_open_enabled = (
+            True if _mode() == "dev" and _env_bool("WEALL_POH_BOOTSTRAP_OPEN", True) else False
+        )
+        bootstrap_max_height = (
+            max(1, _env_int("WEALL_POH_BOOTSTRAP_MAX_HEIGHT", 50)) if bootstrap_open_enabled else 0
+        )
+
+        params: Json = {
+            "poh_bootstrap_open": bootstrap_open_enabled,
+        }
+        if bootstrap_open_enabled:
+            params["poh_bootstrap_mode"] = "open"
+            params["poh_bootstrap_max_height"] = bootstrap_max_height
+
         return {
             "chain_id": self.chain_id,
             "created_ms": GENESIS_CREATED_MS,
-            # Monotonic chain time (ts_ms) tracked by the executor.
-            # Initialized at genesis so session-gated logic can behave deterministically.
             "time": 0,
             "meta": {
                 "protocol_version": PROTOCOL_VERSION,
                 "production_consensus_profile": PRODUCTION_CONSENSUS_PROFILE.to_json(),
                 "production_consensus_profile_hash": PRODUCTION_CONSENSUS_PROFILE.profile_hash(),
+                "mempool_selection_policy": _normalize_mempool_selection_policy(
+                    os.environ.get("WEALL_MEMPOOL_SELECTION_POLICY") or "canonical"
+                ),
+                "helper_execution_profile": self._requested_helper_execution_profile(),
+                "helper_execution_profile_hash": _helper_execution_profile_hash(
+                    self._requested_helper_execution_profile()
+                ),
                 "reputation_scale": REPUTATION_SCALE,
                 "max_block_future_drift_ms": MAX_BLOCK_FUTURE_DRIFT_MS,
                 "clock_skew_warn_ms": CLOCK_SKEW_WARN_MS,
+                "genesis_bootstrap_profile": genesis_bootstrap_profile,
+                "genesis_bootstrap_profile_hash": _genesis_bootstrap_profile_hash(
+                    genesis_bootstrap_profile
+                ),
             },
-            # Core ledger subtrees
             "accounts": {},
             "roles": {},
-            # Dev / E2E local chains should allow self-bootstrap unless explicitly disabled.
-            # Production/testnet remain validator-gated unless consensus state enables otherwise.
-            "params": {
-                "poh_bootstrap_open": (
-                    True
-                    if _mode() == "dev" and _env_bool("WEALL_POH_BOOTSTRAP_OPEN", True)
-                    else False
-                )
-            },
+            "params": params,
             "poh": {},
             "last_block_ts_ms": 0,
-            # Chain tip / ancestry
             "height": 0,
             "tip": "",
             "tip_hash": "",
@@ -929,16 +1413,14 @@ class WeAllExecutor:
         if height != 0:
             return
 
-        explicit_enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
-        genesis_mode_enabled = _env_bool("WEALL_GENESIS_MODE", False)
+        profile = self._current_genesis_bootstrap_profile()
+        explicit_enabled = bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "explicit"
+        genesis_mode_enabled = bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "genesis_mode"
         if not explicit_enabled and not genesis_mode_enabled:
             return
 
-        acct = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT") or "").strip()
-        pk = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_PUBKEY") or "").strip()
-        if genesis_mode_enabled:
-            acct = acct or str(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or self.node_id or os.environ.get("WEALL_NODE_ID") or "").strip()
-            pk = pk or str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
+        acct = str(profile.get("account") or "").strip()
+        pk = str(profile.get("pubkey") or "").strip()
 
         if not acct and not pk:
             raise ExecutorError(
@@ -964,20 +1446,11 @@ class WeAllExecutor:
                 "genesis_bootstrap_config_error: WEALL_VALIDATOR_ACCOUNT does not match bootstrap account."
             )
 
-        bootstrap_rep_raw = os.environ.get("WEALL_GENESIS_BOOTSTRAP_REPUTATION")
-        bootstrap_rep_units = threshold_to_units(
-            bootstrap_rep_raw if bootstrap_rep_raw is not None else "1.0",
-            default=REPUTATION_SCALE,
-        )
+        bootstrap_rep_units = int(profile.get("reputation_milli") or 0)
         if bootstrap_rep_units < 0:
             bootstrap_rep_units = 0
 
-        try:
-            storage_capacity = int(
-                os.environ.get("WEALL_GENESIS_BOOTSTRAP_STORAGE_CAPACITY_BYTES") or 0
-            )
-        except Exception:
-            storage_capacity = 0
+        storage_capacity = int(profile.get("storage_capacity_bytes") or 0)
         if storage_capacity < 0:
             storage_capacity = 0
 
@@ -993,7 +1466,7 @@ class WeAllExecutor:
                 "poh_tier": 0,
                 "banned": False,
                 "locked": False,
-                "reputation": 0.0,
+                "reputation": "0",
                 "reputation_milli": 0,
                 "balance": 0,
                 "keys": {"by_id": {}},
@@ -1026,7 +1499,7 @@ class WeAllExecutor:
         a["poh_tier"] = 3
         cur_rep_units = account_reputation_units(a, default=0)
         a["reputation_milli"] = max(cur_rep_units, bootstrap_rep_units)
-        a["reputation"] = units_to_reputation(a["reputation_milli"])
+        a["reputation"] = units_to_reputation_text(a["reputation_milli"])
         a["banned"] = False
         a["locked"] = False
 
@@ -1214,6 +1687,75 @@ class WeAllExecutor:
         lim = int(limit) if int(limit) > 0 else 10_000
         return self._mempool.peek(limit=lim)
 
+    def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
+        base: Json = {}
+        fn = getattr(self._mempool, "selection_diagnostics", None)
+        if callable(fn):
+            try:
+                out = fn(limit=int(preview_limit))
+                if isinstance(out, dict):
+                    base = dict(out)
+            except Exception:
+                base = {}
+        if not isinstance(base.get("items"), list):
+            base["items"] = []
+        last = self._last_mempool_selection_diag
+        if isinstance(last, dict):
+            base["last_candidate"] = dict(last)
+        return base
+
+    def helper_execution_diagnostics(self) -> Json:
+        meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
+        marker = meta_root.get("helper_execution_last") if isinstance(meta_root.get("helper_execution_last"), dict) else None
+        if not isinstance(marker, dict):
+            return {}
+        out = dict(marker)
+        merge_summary = out.get("merge_summary") if isinstance(out.get("merge_summary"), dict) else {}
+        lane_decisions = merge_summary.get("lane_decisions") if isinstance(merge_summary.get("lane_decisions"), list) else []
+        lanes = out.get("lanes") if isinstance(out.get("lanes"), list) else []
+        fallback_reason_counts: dict[str, int] = {}
+        helper_lane_count = 0
+        fallback_lane_count = 0
+        lane_count = 0
+        if lane_decisions:
+            for item in lane_decisions:
+                if not isinstance(item, dict):
+                    continue
+                lane_count += 1
+                if bool(item.get("used_helper")):
+                    helper_lane_count += 1
+                    continue
+                fallback_lane_count += 1
+                reason = str(item.get("fallback_reason") or "").strip() or "unknown"
+                fallback_reason_counts[reason] = int(fallback_reason_counts.get(reason, 0)) + 1
+        else:
+            for item in lanes:
+                if not isinstance(item, dict):
+                    continue
+                lane_count += 1
+                helper_id = str(item.get("helper_id") or item.get("original_helper_id") or "").strip()
+                if helper_id:
+                    helper_lane_count += 1
+                    continue
+                fallback_lane_count += 1
+                reason = str(item.get("routing_mode") or "").strip() or "serial"
+                fallback_reason_counts[reason] = int(fallback_reason_counts.get(reason, 0)) + 1
+        out["summary"] = {
+            "lane_count": int(lane_count),
+            "helper_lane_count": int(helper_lane_count),
+            "fallback_lane_count": int(fallback_lane_count),
+            "fallback_reason_counts": dict(sorted(fallback_reason_counts.items())),
+            "fraud_suspected": bool(out.get("fraud_suspected") or False),
+        }
+        return out
+
+    def transition_guardrail_diagnostics(self) -> Json:
+        meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
+        marker = meta_root.get("transition_guardrail_last")
+        if isinstance(marker, dict):
+            return dict(marker)
+        return {}
+
     def get_tx_status(self, tx_id: str) -> dict[str, object]:
         """Resolve transaction lifecycle state.
 
@@ -1365,7 +1907,7 @@ class WeAllExecutor:
     # ----------------------------
 
     def _helper_fast_path_enabled(self) -> bool:
-        return bool(self._helper_fast_path_enabled_default)
+        return bool(getattr(self, "_helper_fast_path_enabled_effective", False))
 
     def _helper_lane_journal_path(self, *, block_height: int) -> str:
         name = f"lane_journal_h{int(block_height)}.jsonl"
@@ -1590,7 +2132,11 @@ class WeAllExecutor:
                     "manifest_signed": bool(ctx.manifest_signed),
                     "helper_receipts": dict(helper_receipts_by_lane or {}),
                     "helper_state_deltas": dict(helper_state_deltas_by_lane or {}),
+                    "helper_pubkeys": self._validator_pubkeys(),
+                    "enforce_helper_signature": True,
                     "enforce_helper_certificate_consistency": True,
+                    "enforce_helper_tx_order_hash": True,
+                    "enforce_helper_namespace_hash": True,
                     "enforce_helper_receipts_root": True,
                     "enforce_helper_state_delta_hash": bool(helper_state_deltas_by_lane),
                 },
@@ -1784,7 +2330,32 @@ class WeAllExecutor:
         if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
             return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
 
-        txs = self._mempool.peek(limit=int(max_txs))
+        runtime_selection_policy = _normalize_mempool_selection_policy(
+            str(getattr(self._mempool, "selection_policy", lambda: "canonical")())
+        )
+        pinned_selection_policy = _pinned_mempool_selection_policy(
+            self.state,
+            runtime_selection_policy,
+        )
+        fetch_for_block = getattr(self._mempool, "fetch_for_block", None)
+        if callable(fetch_for_block):
+            txs = list(fetch_for_block(limit=int(max_txs), policy=pinned_selection_policy))
+        else:
+            txs = self._mempool.peek(limit=int(max_txs))
+        runtime_helper_execution_profile = self._requested_helper_execution_profile()
+        pinned_helper_execution_profile = _pinned_helper_execution_profile(
+            self.state,
+            runtime_helper_execution_profile,
+        )
+        self._last_mempool_selection_diag = {
+            "policy": pinned_selection_policy,
+            "requested_limit": int(max_txs),
+            "fetched_count": int(len(txs)),
+            "selected_count": 0,
+            "invalid_count": 0,
+            "rejected_count": 0,
+            "selected_tx_ids": [],
+        }
         if not txs and not bool(allow_empty):
             return None, None, [], [], "empty"
 
@@ -1824,22 +2395,27 @@ class WeAllExecutor:
                 }
             )
 
-        # Phase: schedule PoH system txs (best-effort)
+        # Phase: schedule PoH system txs. These mutate consensus-visible state
+        # before candidate tx admission, so production must fail closed here the
+        # same way follower-side replay does.
         try:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_tier3_system_txs(working, next_height=next_height)
-        except Exception:
-            pass
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
 
-        # Phase: system emitter pre
+        # Phase: system emitter pre. These side effects also feed state_root and
+        # must not be swallowed during local proposal construction in production.
         try:
             sys_pre = system_tx_emitter(
                 working, self.tx_index, next_height=next_height, phase="pre"
             )
             for env in sys_pre:
                 _apply_system_env(env)
-        except Exception:
-            pass
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
 
         # Parse envelopes
         env_objs: list[TxEnvelope] = []
@@ -1878,9 +2454,15 @@ class WeAllExecutor:
             verify_signatures=verify_candidate_signatures,
         )
         if (not ok) and block_reject is not None:
+            self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
             return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
-        # Apply txs (fail-atomic) and always emit deterministic receipts
+        # Apply txs (fail-atomic) and always emit deterministic receipts.
+        # Nonces are only consumed on success, so any later non-system tx from a
+        # signer whose earlier tx rejected during apply must also be rejected
+        # deterministically within this block.
+        blocked_signers_after_apply_reject: set[str] = set()
+
         for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
             if not tx_id:
                 invalid_ids.append(tx_id)
@@ -1890,25 +2472,37 @@ class WeAllExecutor:
                 invalid_ids.append(tx_id)
                 continue
 
+            signer = str(getattr(env_obj, "signer", "") or "")
+            is_system = bool(getattr(env_obj, "system", False))
+
             applied_ok = False
             err_code = ""
             err_reason = ""
             err_details: Any = None
 
-            try:
-                meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=True)
-                applied_ok = meta is not None
-            except ApplyError as e:
+            if (not is_system) and signer and signer in blocked_signers_after_apply_reject:
                 applied_ok = False
-                err_code = str(getattr(e, "code", "") or "")
-                err_reason = str(getattr(e, "reason", "") or "")
-                err_details = getattr(e, "details", None)
-            except Exception as e:
-                if _consensus_fail_closed():
-                    return None, None, [], [], f"tx_apply_failed:{type(e).__name__}"
-                applied_ok = False
-                err_code = type(e).__name__
-                err_reason = str(e)
+                err_code = "prior_apply_reject"
+                err_reason = "nonce_not_consumed_after_prior_apply_reject"
+                err_details = {"signer": signer}
+            else:
+                try:
+                    meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=False)
+                    applied_ok = meta is not None
+                except ApplyError as e:
+                    applied_ok = False
+                    err_code = str(getattr(e, "code", "") or "")
+                    err_reason = str(getattr(e, "reason", "") or "")
+                    err_details = getattr(e, "details", None)
+                except Exception as e:
+                    if _consensus_fail_closed():
+                        return None, None, [], [], f"tx_apply_failed:{type(e).__name__}"
+                    applied_ok = False
+                    err_code = type(e).__name__
+                    err_reason = str(e)
+
+            if (not applied_ok) and (not is_system) and signer:
+                blocked_signers_after_apply_reject.add(signer)
 
             applied_envs.append(env)
             applied_ids.append(tx_id)
@@ -1955,6 +2549,26 @@ class WeAllExecutor:
                     invalid_ids,
                     f"system_emitter_post_failed:{type(exc).__name__}",
                 )
+
+        self._last_mempool_selection_diag["selected_count"] = int(len(applied_ids))
+        self._last_mempool_selection_diag["invalid_count"] = int(len(invalid_ids))
+        self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
+        self._last_mempool_selection_diag["selected_tx_ids"] = [str(x) for x in applied_ids[:64]]
+
+        meta_root_working = working.get("meta")
+        if not isinstance(meta_root_working, dict):
+            meta_root_working = {}
+            working["meta"] = meta_root_working
+        meta_root_working["mempool_selection_policy"] = str(pinned_selection_policy)
+        meta_root_working["mempool_selection_last"] = _sanitize_mempool_selection_marker(
+            self._last_mempool_selection_diag,
+            default_policy=pinned_selection_policy,
+            default_limit=int(max_txs),
+        )
+        meta_root_working["helper_execution_profile"] = dict(pinned_helper_execution_profile)
+        meta_root_working["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+            pinned_helper_execution_profile
+        )
 
         if not applied_envs and not bool(allow_empty):
             return None, None, [], invalid_ids, "no_applicable"
@@ -2055,6 +2669,13 @@ class WeAllExecutor:
             "receipts": receipts,
         }
 
+        mempool_selection_marker: Json = _sanitize_mempool_selection_marker(
+            meta_root_working.get("mempool_selection_last"),
+            default_policy=pinned_selection_policy,
+            default_limit=int(max_txs),
+        )
+        block["mempool_selection"] = dict(mempool_selection_marker)
+
         helper_execution = self._build_helper_execution_metadata(
             applied_envs=applied_envs,
             receipts=receipts,
@@ -2085,6 +2706,20 @@ class WeAllExecutor:
                 "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
             }
             meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
+
+        transition_guardrail = _summarize_transition_guardrail_receipts(
+            receipts,
+            height=int(new_height),
+            block_id=str(block_id),
+        )
+        meta_root = working.get("meta")
+        if not isinstance(meta_root, dict):
+            meta_root = {}
+            working["meta"] = meta_root
+        if transition_guardrail:
+            meta_root["transition_guardrail_last"] = transition_guardrail
+        else:
+            meta_root.pop("transition_guardrail_last", None)
 
         try:
             block, bh = ensure_block_hash(block)
@@ -2281,7 +2916,7 @@ class WeAllExecutor:
             )
         except Exception as e:
             return ExecutorMeta(
-                ok=False, error=f"commit_failed:{type(e).__name__}", height=0, block_id=""
+                ok=False, error=_format_commit_failure(e), height=0, block_id=""
             )
 
     # ----------------------------
@@ -2324,15 +2959,18 @@ class WeAllExecutor:
                 ok=False, error="bad_block:chain_id_mismatch", height=0, block_id=""
             )
 
-        if _env_bool("WEALL_BFT_ENABLED", False):
+        if effective_bft_enabled(executor=self, default=False):
             strict_bft_apply = (
                 _mode() == "prod"
                 or isinstance(block2.get("justify_qc"), dict)
                 or not isinstance(block2.get("qc"), dict)
             )
             if strict_bft_apply:
-                ok_bft, rej_bft = admit_bft_commit_block(
-                    block=block2, state=self.state, blocks_map=self._bft_speculative_blocks_map()
+                ok_bft, rej_bft = _call_admit_bft_commit_block(
+                    block=block2,
+                    state=self.state,
+                    blocks_map=self._bft_speculative_blocks_map(),
+                    bft_enabled=effective_bft_enabled(executor=self, default=False),
                 )
                 if not ok_bft:
                     code = str(rej_bft.code) if rej_bft is not None else "bft_reject"
@@ -2476,7 +3114,11 @@ class WeAllExecutor:
         # If we encounter a system tx that the producer would have emitted in the
         # post phase, we must first run the post schedulers/emitter side-effects
         # (because those side-effects can depend on state after user txs).
+        # Nonces are only consumed on success, so any later non-system tx from a
+        # signer whose earlier tx rejected during apply must also be rejected
+        # deterministically within this block.
         post_ran = False
+        blocked_signers_after_apply_reject: set[str] = set()
 
         for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
             if not post_ran and bool(getattr(env_obj, "system", False)):
@@ -2533,30 +3175,42 @@ class WeAllExecutor:
                 applied_ids.append(tx_id)
                 continue
 
+            signer = str(getattr(env_obj, "signer", "") or "")
+            is_system = bool(getattr(env_obj, "system", False))
+
             applied_ok = False
             err_code = ""
             err_reason = ""
             err_details: Any = None
 
-            try:
-                meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=True)
-                applied_ok = meta is not None
-            except ApplyError as e:
+            if (not is_system) and signer and signer in blocked_signers_after_apply_reject:
                 applied_ok = False
-                err_code = str(getattr(e, "code", "") or "")
-                err_reason = str(getattr(e, "reason", "") or "")
-                err_details = getattr(e, "details", None)
-            except Exception as e:
-                if _consensus_fail_closed():
-                    return ExecutorMeta(
+                err_code = "prior_apply_reject"
+                err_reason = "nonce_not_consumed_after_prior_apply_reject"
+                err_details = {"signer": signer}
+            else:
+                try:
+                    meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=False)
+                    applied_ok = meta is not None
+                except ApplyError as e:
+                    applied_ok = False
+                    err_code = str(getattr(e, "code", "") or "")
+                    err_reason = str(getattr(e, "reason", "") or "")
+                    err_details = getattr(e, "details", None)
+                except Exception as e:
+                    if _consensus_fail_closed():
+                        return ExecutorMeta(
                         ok=False,
                         error=f"bad_block:tx_apply_failed:{type(e).__name__}",
                         height=0,
                         block_id="",
                     )
-                applied_ok = False
-                err_code = type(e).__name__
-                err_reason = str(e)
+                    applied_ok = False
+                    err_code = type(e).__name__
+                    err_reason = str(e)
+
+            if (not applied_ok) and (not is_system) and signer:
+                blocked_signers_after_apply_reject.add(signer)
 
             applied_ids.append(tx_id)
 
@@ -2723,6 +3377,74 @@ class WeAllExecutor:
             working["tip_ts_ms"] = int(ts_ms)
         except Exception:
             pass
+
+        meta_root = working.get("meta")
+        if not isinstance(meta_root, dict):
+            meta_root = {}
+            working["meta"] = meta_root
+
+        mempool_selection = block2.get("mempool_selection")
+        if isinstance(mempool_selection, dict):
+            local_mempool_selection_policy = _normalize_mempool_selection_policy(
+                getattr(self._mempool, "selection_policy", lambda: "canonical")()
+            )
+            pinned_mempool_selection_policy = _pinned_mempool_selection_policy(
+                {"meta": meta_root},
+                local_mempool_selection_policy,
+            )
+            remote_mempool_selection_policy = _normalize_mempool_selection_policy(
+                mempool_selection.get("policy") or pinned_mempool_selection_policy
+            )
+            if remote_mempool_selection_policy != pinned_mempool_selection_policy:
+                return ExecutorMeta(
+                    ok=False,
+                    error="bad_block:mempool_selection_policy_mismatch",
+                    height=0,
+                    block_id="",
+                )
+            meta_root["mempool_selection_policy"] = str(pinned_mempool_selection_policy)
+            meta_root["mempool_selection_last"] = _sanitize_mempool_selection_marker(
+                mempool_selection,
+                default_policy=pinned_mempool_selection_policy,
+                default_limit=0,
+            )
+        local_helper_execution_profile = self._requested_helper_execution_profile()
+        pinned_helper_execution_profile = _pinned_helper_execution_profile(
+            {"meta": meta_root},
+            local_helper_execution_profile,
+        )
+        meta_root["helper_execution_profile"] = dict(pinned_helper_execution_profile)
+        meta_root["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+            pinned_helper_execution_profile
+        )
+
+        helper_execution = block2.get("helper_execution")
+        if isinstance(helper_execution, dict):
+            meta_root["helper_execution_last"] = {
+                "height": int(height),
+                "block_id": str(block_id),
+                "view": int(helper_execution.get("view") or 0),
+                "validator_epoch": int(helper_execution.get("validator_epoch") or 0),
+                "validator_set_hash": str(helper_execution.get("validator_set_hash") or ""),
+                "lanes": list(helper_execution.get("lanes") or []),
+                "timed_out_lanes": list(helper_execution.get("timed_out_lanes") or []),
+                "merge_summary": dict(helper_execution.get("merge_summary") or {}),
+                "audit_summary": dict(helper_execution.get("audit_summary") or {}),
+                "fraud_suspected": bool(helper_execution.get("fraud_suspected") or False),
+                "fraud_lane_ids": list(helper_execution.get("fraud_lane_ids") or []),
+                "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
+            }
+            meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
+
+        transition_guardrail = _summarize_transition_guardrail_receipts(
+            receipts,
+            height=int(height),
+            block_id=str(block_id),
+        )
+        if transition_guardrail:
+            meta_root["transition_guardrail_last"] = transition_guardrail
+        else:
+            meta_root.pop("transition_guardrail_last", None)
 
         # Commit.
         meta = self.commit_block_candidate(
@@ -3362,7 +4084,11 @@ class WeAllExecutor:
             and not embedded_qc_is_parent_justify
         )
         if not has_embedded_commit_qc_only:
-            ok, _rej = admit_bft_block(block=proposal2, state=self.state)
+            ok, _rej = _call_admit_bft_block(
+                block=proposal2,
+                state=self.state,
+                bft_enabled=effective_bft_enabled(executor=self, default=False),
+            )
             if not ok:
                 self.bft_try_apply_pending_remote_blocks()
                 return None
@@ -5078,6 +5804,22 @@ class WeAllExecutor:
                 )
                 else None
             ),
+            "helper_execution_profile": _sanitize_helper_execution_profile(
+                (
+                    (self.state.get("meta") or {})
+                    if isinstance(self.state.get("meta"), dict)
+                    else {}
+                ).get("helper_execution_profile")
+                or self._requested_helper_execution_profile()
+            ),
+            "helper_execution_profile_hash": str(
+                (
+                    (self.state.get("meta") or {})
+                    if isinstance(self.state.get("meta"), dict)
+                    else {}
+                ).get("helper_execution_profile_hash")
+                or _helper_execution_profile_hash(self._requested_helper_execution_profile())
+            ),
             "validator_signing_enabled": bool(self.validator_signing_enabled()),
             "observer_mode": bool(self.observer_mode()),
             "signing_block_reason": str(self._effective_signing_block_reason() or ""),
@@ -5870,6 +6612,7 @@ class WeAllExecutor:
             tx_index_hash=self._tx_index_hash,
             state_provider=lambda: dict(self.state),
             block_provider=self.get_block_by_height,
+            bft_enabled=bool(effective_bft_enabled(executor=self, default=False)),
         )
 
     def apply_state_sync_response(
@@ -6194,4 +6937,5 @@ def _env_int(name: str, default: int) -> int:
         if _mode() == "prod":
             raise ValueError(f"invalid_integer_env:{name}")
         return int(default)
+
 

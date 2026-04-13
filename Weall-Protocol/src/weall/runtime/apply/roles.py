@@ -674,6 +674,18 @@ def _apply_treasury_signers_set(ledger: Json, env: TxEnvelope) -> Json:
             {"treasury_id": treasury_id, "threshold": threshold, "n_signers": len(signers)},
         )
 
+    active_spend = _active_protocol_treasury_spend_for_treasury(ledger, treasury_id)
+    if isinstance(active_spend, dict):
+        raise RolesApplyError(
+            "forbidden",
+            "treasury_spend_open",
+            {
+                "treasury_id": treasury_id,
+                "spend_id": _as_str(active_spend.get("spend_id")).strip(),
+                "status": _as_str(active_spend.get("status")).strip().lower() or "proposed",
+            },
+        )
+
     # Use schema helper to normalize
     set_treasury_signers(ledger, treasury_id, signers, threshold=threshold)
 
@@ -691,6 +703,27 @@ def _apply_treasury_signers_set(ledger: Json, env: TxEnvelope) -> Json:
         "n_signers": len(signers),
     }
 
+
+
+
+def _active_protocol_treasury_spend_for_treasury(ledger: Json, treasury_id: str) -> Json | None:
+    tre = ledger.get("treasury")
+    if not isinstance(tre, dict):
+        return None
+    spends = tre.get("spends")
+    if not isinstance(spends, dict):
+        return None
+    tid = _as_str(treasury_id).strip()
+    for spend in spends.values():
+        if not isinstance(spend, dict):
+            continue
+        if _as_str(spend.get("treasury_id")).strip() != tid:
+            continue
+        status = _as_str(spend.get("status")).strip().lower()
+        if status in ("executed", "canceled", "cancelled", "expired"):
+            continue
+        return spend
+    return None
 
 # ---------------------------------------------------------------------------
 # Router

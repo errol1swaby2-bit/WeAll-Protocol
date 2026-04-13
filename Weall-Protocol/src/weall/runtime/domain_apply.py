@@ -44,20 +44,9 @@ def _nonce(env: Any) -> int:
         return 0
 
 
-def _consume_nonce_if_possible(state: Json, env: Any) -> None:
-    """Consume nonce as a deliberate side effect.
-
-    Production rule:
-      - non-system txs consume nonce even if apply fails (prevents account deadlock)
-      - system txs do not consume nonce
-
-    This function only mutates the account nonce and nothing else.
-    It MUST fail closed on malformed consensus state; silently skipping a
-    nonce write would let different nodes commit different post-apply state.
-    """
-
+def _get_signer_account(state: Json, env: Any) -> Json | None:
     if _is_system(env):
-        return
+        return None
 
     signer = _signer(env)
     if not signer:
@@ -65,20 +54,65 @@ def _consume_nonce_if_possible(state: Json, env: Any) -> None:
 
     accounts = state.get("accounts")
     if accounts is None:
-        return
+        return None
     if not isinstance(accounts, dict):
         raise NonceSideEffectError("nonce_side_effect_accounts_not_object")
 
     acct = accounts.get(signer)
     if acct is None:
-        return
+        return None
     if not isinstance(acct, dict):
         raise NonceSideEffectError(f"nonce_side_effect_account_not_object:{signer}")
+    return acct
+
+
+def _consume_nonce_if_possible(state: Json, env: Any) -> None:
+    """Commit the canonical envelope nonce after a successful state transition.
+
+    Production rule:
+      - non-system txs consume nonce only on successful apply
+      - rejected applies must leave signer nonce unchanged
+      - system txs do not consume nonce
+
+    This function only mutates the account nonce and nothing else.
+    It MUST fail closed on malformed consensus state; silently skipping a
+    nonce write would let different nodes commit different post-apply state.
+    """
+
+    acct = _get_signer_account(state, env)
+    if acct is None:
+        return
 
     try:
         acct["nonce"] = int(_nonce(env))
     except Exception as exc:
         raise NonceSideEffectError(f"nonce_side_effect_write_failed:{type(exc).__name__}") from exc
+
+
+def _enforce_nonce_convergence(state: Json, env: Any) -> None:
+    """Require the post-apply signer nonce to converge to the envelope nonce.
+
+    Domain handlers are allowed to update the account nonce internally, but the
+    final committed value must never exceed the canonical envelope nonce.
+    Overshoot would indicate divergent per-domain semantics that the atomic
+    wrapper would otherwise mask by force-writing the envelope nonce.
+    """
+
+    acct = _get_signer_account(state, env)
+    if acct is None:
+        return
+
+    target = int(_nonce(env))
+    current = acct.get("nonce", 0)
+    try:
+        current_i = int(current or 0)
+    except Exception as exc:
+        raise NonceSideEffectError(f"nonce_side_effect_invalid_account_nonce:{type(exc).__name__}") from exc
+
+    if current_i > target:
+        raise NonceSideEffectError(
+            f"nonce_side_effect_overshoot:{_signer(env)}:{current_i}>{target}"
+        )
 
 
 def _require_valid_signer_format(env: Any) -> None:
@@ -103,7 +137,7 @@ def apply_tx_atomic(
     state: Json,
     env: Any,
     *,
-    consume_nonce_on_fail: bool = True,
+    consume_nonce_on_fail: bool = False,
 ) -> Json:
     """Apply a tx with fail-atomic semantics.
 
@@ -111,7 +145,7 @@ def apply_tx_atomic(
       - state is updated as if apply_tx() ran directly.
 
     On ApplyError:
-      - state remains unchanged, except (optionally) nonce consumption.
+      - state remains unchanged, including signer nonce.
 
     This is consensus-safety critical: we must never allow partial state
     mutation when a tx is rejected during apply.
@@ -137,6 +171,8 @@ def apply_tx_atomic(
 
     # Commit by replacing contents in-place so callers holding references
     # to `state` see the updated view.
+    _enforce_nonce_convergence(snapshot, env_norm)
+
     state.clear()
     state.update(snapshot)
 
@@ -151,7 +187,7 @@ def apply_tx_atomic_meta(
     state: Json,
     env: Any,
     *,
-    consume_nonce_on_fail: bool = True,
+    consume_nonce_on_fail: bool = False,
 ) -> Json | None:
     """Apply a tx atomically and return apply metadata.
 
@@ -177,6 +213,8 @@ def apply_tx_atomic_meta(
             _consume_nonce_if_possible(state, env_norm)
         raise
 
+    _enforce_nonce_convergence(snapshot, env_norm)
+
     state.clear()
     state.update(snapshot)
 
@@ -191,7 +229,7 @@ def apply_tx(state: Json, env: Any) -> Json | None:
     Many unit tests in this repo use apply_tx(...) directly and expect
     Policy-B behavior:
       - fail-atomic apply
-      - nonce consumption even when apply rejects (non-system)
+      - signer nonce changes only after successful apply (non-system)
 
     The executor calls apply_tx_atomic(...) directly; this wrapper maintains
     the stable import path for tests/tools.
@@ -199,7 +237,7 @@ def apply_tx(state: Json, env: Any) -> Json | None:
 
     # Keep returning metadata for this wrapper (used by some tools), while
     # `apply_tx_atomic(...)` returns the updated state for tests.
-    return apply_tx_atomic_meta(state, env, consume_nonce_on_fail=True)
+    return apply_tx_atomic_meta(state, env, consume_nonce_on_fail=False)
 
 
 __all__ = [

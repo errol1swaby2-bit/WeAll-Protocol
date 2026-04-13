@@ -72,6 +72,22 @@ def _ensure_treasury_policy(state: Json) -> Json:
     return root
 
 
+
+
+def _has_active_treasury_spend(state: Json) -> Json | None:
+    tre = _ensure_treasury_root(state)
+    spends = tre.get("spends")
+    if not isinstance(spends, dict):
+        return None
+    for spend in spends.values():
+        if not isinstance(spend, dict):
+            continue
+        status = _as_str(spend.get("status")).strip().lower()
+        if status in ("executed", "canceled", "cancelled", "expired"):
+            continue
+        return spend
+    return None
+
 def _ensure_spends_expired(state: Json) -> list[Json]:
     root = state.get("treasury_spends_expired")
     if not isinstance(root, list):
@@ -290,6 +306,20 @@ def _apply_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
         signers, _thr = _treasury_signer_policy(state, treasury_id)
         allowed = [x for x in signers if (x in seated) or (not require_emissary)]
         s["allowed_signers"] = allowed
+
+    status = _as_str(s.get("status")).strip().lower()
+    if status in ("canceled", "cancelled"):
+        raise TreasuryApplyError("forbidden", "spend_canceled", {"spend_id": spend_id})
+    if status == "executed":
+        raise TreasuryApplyError("forbidden", "spend_executed", {"spend_id": spend_id})
+    if status == "expired":
+        raise TreasuryApplyError("forbidden", "spend_expired", {"spend_id": spend_id})
+    if status and status != "proposed":
+        raise TreasuryApplyError(
+            "forbidden",
+            "spend_not_signable",
+            {"spend_id": spend_id, "status": status},
+        )
 
     signer = _as_str(env.signer).strip()
     if require_emissary and (not signer or signer not in seated):
@@ -537,6 +567,19 @@ def _apply_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:
     deny_if_econ_disabled(state, tx_type="TREASURY_POLICY_SET")
 
     payload = _as_dict(env.payload)
+
+    active_spend = _has_active_treasury_spend(state)
+    if isinstance(active_spend, dict):
+        raise TreasuryApplyError(
+            "forbidden",
+            "treasury_spend_open",
+            {
+                "spend_id": _as_str(active_spend.get("spend_id")).strip(),
+                "treasury_id": _as_str(active_spend.get("treasury_id")).strip(),
+                "status": _as_str(active_spend.get("status")).strip().lower() or "proposed",
+            },
+        )
+
     policy = _ensure_treasury_policy(state)
     policy["value"] = payload.get("policy") if isinstance(payload.get("policy"), dict) else payload
     policy["set_at_nonce"] = int(env.nonce)
@@ -591,10 +634,9 @@ def _apply_treasury_spend_expire(state: Json, env: TxEnvelope) -> Json:
         {"spend_id": spend_id, "expired_at_nonce": int(env.nonce), "payload": s.get("payload")}
     )
     state["treasury_spends_expired"] = expired
-    try:
-        del spends[spend_id]
-    except Exception:
-        pass
+    if spend_id not in spends:
+        raise TreasuryApplyError("invalid_state", "spend_missing_during_expire", {"spend_id": spend_id})
+    del spends[spend_id]
     tre["spends"] = spends
     return {"applied": "TREASURY_SPEND_EXPIRE", "spend_id": spend_id}
 

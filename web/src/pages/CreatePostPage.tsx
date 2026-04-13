@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { getAuthHeaders, getKeypair, getSession, submitSignedTxWithNonce } from "../auth/session";
+import { beginNonceSequence, ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTxInSequence, submitSignedTxWithNonce, syncNonceReservation } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -16,6 +16,8 @@ import {
   summarizeNextRequirements,
 } from "../lib/onboarding";
 import { nav } from "../lib/router";
+import { useAppConfig } from "../lib/config";
+import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.payload || e?.body || e?.data || e;
@@ -72,6 +74,47 @@ function deterministicId(prefix: string, account: string, nonce: number): string
   return `${prefix}:${account}:${nonce}`;
 }
 
+function advanceSequencePastNonce(sequence: { nextNonce: number }, nonce: number): void {
+  const used = Math.max(0, Math.floor(Number(nonce) || 0));
+  if (used <= 0) return;
+  sequence.nextNonce = Math.max(Math.floor(sequence.nextNonce || 1), used + 1);
+}
+
+function isSubmittedOrConfirmed(status: any): boolean {
+  const normalized = String(status?.status || "").trim().toLowerCase();
+  return normalized === "confirmed" || normalized === "pending" || normalized === "unknown";
+}
+
+async function waitForAccountNonceAtLeast(
+  account: string,
+  expectedNonce: number,
+  base: string,
+  opts?: { maxWaitMs?: number; intervalMs?: number },
+) {
+  const maxWaitMs = Math.max(1000, Number(opts?.maxWaitMs ?? 20000));
+  const intervalMs = Math.max(200, Number(opts?.intervalMs ?? 500));
+  const started = Date.now();
+  let last: any = null;
+
+  while (Date.now() - started < maxWaitMs) {
+    last = await weall.account(account, base);
+    const current = Number(last?.state?.nonce ?? 0);
+    if (Number.isFinite(current) && current >= expectedNonce) {
+      return last;
+    }
+    await sleep(intervalMs);
+  }
+
+  throw {
+    message: "account_nonce_not_advanced",
+    data: {
+      account,
+      expected_nonce: expectedNonce,
+      last: last || null,
+    },
+  };
+}
+
 function parseTags(raw: string): string[] {
   return raw
     .split(/[\s,]+/g)
@@ -105,6 +148,7 @@ function validateSelectedFile(file: File | null): string | null {
 }
 
 export default function CreatePostPage(): JSX.Element {
+  const config = useAppConfig();
   const base = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -175,6 +219,16 @@ export default function CreatePostPage(): JSX.Element {
     registrationView: registration,
   });
 
+  async function repairDevSessionIfNeeded(): Promise<boolean> {
+    const repaired = await maybeRepairDevBootstrapSession(config).catch(() => false);
+    if (repaired) {
+      await syncNonceReservation(acct || "", base).catch(() => 0);
+      await refresh();
+      await refreshAccountContext();
+    }
+    return repaired;
+  }
+
   async function submit(): Promise<void> {
     setErr(null);
     setLast(null);
@@ -232,11 +286,15 @@ export default function CreatePostPage(): JSX.Element {
 
     setBusy(true);
     try {
+      await syncNonceReservation(acct, base);
+      await refresh();
+      await refreshAccountContext();
+
       const result = await tx.runTx({
         title: "Create post",
         pendingMessage: "Uploading media and preparing your post…",
         successMessage: (res: any) =>
-          res?.postId ? `Post created: ${res.postId}` : "Post submitted successfully.",
+          res?.postId ? `Post submitted: ${res.postId}` : "Post submitted successfully.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.postTxId,
         task: async () => {
@@ -247,10 +305,65 @@ export default function CreatePostPage(): JSX.Element {
           let finalPostTxId = "";
           let finalResult: any = null;
 
+          const sequence = await beginNonceSequence(acct, base);
+
           if (file) {
+            setStatus("Ensuring backend session");
+            try {
+              await ensureBackendSession({
+                account: acct,
+                ttlSeconds: 24 * 60 * 60,
+                base,
+              });
+            } catch (error: any) {
+              const repaired = await repairDevSessionIfNeeded();
+              if (!repaired) throw error;
+              await ensureBackendSession({
+                account: acct,
+                ttlSeconds: 24 * 60 * 60,
+                base,
+              });
+            }
+
             setStatus("Uploading media");
-            const headers = getAuthHeaders(acct);
-            const up: any = await weall.mediaUpload(file, base, headers);
+            let headers = getAuthHeaders(acct);
+            if (!headers["x-weall-account"] || !headers["x-weall-session-key"]) {
+              await ensureBackendSession({
+                account: acct,
+                ttlSeconds: 24 * 60 * 60,
+                base,
+              });
+              headers = getAuthHeaders(acct);
+            }
+            let up: any;
+            try {
+              up = await weall.mediaUpload(file, base, headers);
+            } catch (error: any) {
+              const status = Number(error?.status || 0);
+              const payloadCode = String(error?.payload?.error?.code || error?.payload?.code || "").trim();
+              const message = String(error?.message || "").trim();
+              const sessionish = status === 500 || status === 401 || status === 403 || payloadCode === "session_invalid" || payloadCode === "pubkey_not_authorized" || message === "session_invalid" || message === "pubkey is not an active key on this account";
+              if (sessionish) {
+                const repaired = await repairDevSessionIfNeeded();
+                if (repaired) {
+                  await ensureBackendSession({
+                    account: acct,
+                    ttlSeconds: 24 * 60 * 60,
+                    base,
+                  });
+                } else {
+                  await ensureBackendSession({
+                    account: acct,
+                    ttlSeconds: 24 * 60 * 60,
+                    base,
+                  });
+                }
+                headers = getAuthHeaders(acct);
+                up = await weall.mediaUpload(file, base, headers);
+              } else {
+                throw error;
+              }
+            }
             if (!up || up.ok !== true) throw up;
             finalUploadInfo = up;
             setUploadInfo(up);
@@ -264,20 +377,47 @@ export default function CreatePostPage(): JSX.Element {
 
             if (!cid) throw { message: "media_upload_missing_cid", data: up };
 
-            if (up?.pin_request_tx?.tx) {
+            const pinRequest = up?.pin_request || null;
+            const pinEnvelope = pinRequest?.envelope || null;
+            const pinSubmitted = pinRequest?.submitted === true;
+            const pinTxId = String(pinRequest?.tx_id || "").trim();
+
+            if (pinSubmitted && pinEnvelope) {
+              const submittedNonce = Number(pinEnvelope?.nonce || 0);
+              advanceSequencePastNonce(sequence, submittedNonce);
+
+              if (submittedNonce > 0) {
+                setStatus("Waiting for pin request to advance chain nonce");
+                await waitForAccountNonceAtLeast(acct, submittedNonce, base, {
+                  maxWaitMs: 25000,
+                  intervalMs: 500,
+                });
+                const refreshedChainNonce = await syncNonceReservation(acct, base);
+                sequence.nextNonce = Math.max(sequence.nextNonce, Math.floor(refreshedChainNonce) + 1);
+              }
+            } else if (pinEnvelope) {
               setStatus("Submitting pin request");
-              const pinReqTx = up.pin_request_tx.tx;
-              const pinPayload = { ...(pinReqTx.payload || {}) };
+              const pinPayload = { ...(pinEnvelope.payload || {}) };
               if (typeof pinPayload.ts_ms === "number" && pinPayload.ts_ms === 0) {
                 pinPayload.ts_ms = Date.now();
               }
-              await submitSignedTxWithNonce({
-                account: acct,
-                tx_type: String(pinReqTx.tx_type || "IPFS_PIN_REQUEST"),
+              const pinReq: any = await submitSignedTxInSequence({
+                sequence,
+                tx_type: String(pinEnvelope.tx_type || "IPFS_PIN_REQUEST"),
                 payloadFactory: () => pinPayload,
-                parent: pinReqTx.parent ?? null,
+                parent: pinEnvelope.parent ?? null,
                 base,
               });
+              const pinNonce = Number(pinReq?.env?.nonce || 0);
+              if (pinNonce > 0) {
+                setStatus("Waiting for pin request to advance chain nonce");
+                await waitForAccountNonceAtLeast(acct, pinNonce, base, {
+                  maxWaitMs: 25000,
+                  intervalMs: 500,
+                });
+                const refreshedChainNonce = await syncNonceReservation(acct, base);
+                sequence.nextNonce = Math.max(sequence.nextNonce, Math.floor(refreshedChainNonce) + 1);
+              }
             }
 
             setStatus("Checking durability");
@@ -286,8 +426,8 @@ export default function CreatePostPage(): JSX.Element {
             setMediaDurability(durable);
 
             setStatus("Declaring media");
-            const declare: any = await submitSignedTxWithNonce({
-              account: acct,
+            const declare: any = await submitSignedTxInSequence({
+              sequence,
               tx_type: "CONTENT_MEDIA_DECLARE",
               payloadFactory: (nonce) => {
                 const media_id = deterministicId("media", acct, nonce);
@@ -305,7 +445,30 @@ export default function CreatePostPage(): JSX.Element {
             });
 
             const declareTxId = String(declare?.result?.tx_id || "").trim();
-            if (declareTxId) await waitForTxConfirmed(base, declareTxId);
+            const declareNonce = Number(declare?.env?.nonce || 0);
+            if (declareNonce > 0) {
+              setStatus("Waiting for media declaration to advance chain nonce");
+              await waitForAccountNonceAtLeast(acct, declareNonce, base, {
+                maxWaitMs: 25000,
+                intervalMs: 500,
+              });
+              const refreshedChainNonce = await syncNonceReservation(acct, base);
+              sequence.nextNonce = Math.max(sequence.nextNonce, Math.floor(refreshedChainNonce) + 1);
+            } else if (declareTxId) {
+              const declareStatus: any = await waitForTxConfirmed(base, declareTxId, {
+                maxWaitMs: 5000,
+                intervalMs: 400,
+              });
+              if (!isSubmittedOrConfirmed(declareStatus)) {
+                throw {
+                  message: "media_declare_submit_failed",
+                  data: {
+                    tx_id: declareTxId,
+                    status: declareStatus || null,
+                  },
+                };
+              }
+            }
 
             const declaredId = String(declare?.env?.payload?.media_id || "").trim();
             if (!declaredId) throw { message: "media_declare_missing_media_id", data: declare };
@@ -313,8 +476,8 @@ export default function CreatePostPage(): JSX.Element {
           }
 
           setStatus("Submitting post");
-          const res: any = await submitSignedTxWithNonce({
-            account: acct,
+          const res: any = await submitSignedTxInSequence({
+            sequence,
             tx_type: "CONTENT_POST_CREATE",
             payloadFactory: (nonce) => {
               const post_id = deterministicId("post", acct, nonce);
@@ -331,7 +494,28 @@ export default function CreatePostPage(): JSX.Element {
           });
 
           const postTxId = String(res?.result?.tx_id || "").trim();
-          if (postTxId) await waitForTxConfirmed(base, postTxId);
+          const postNonce = Number(res?.env?.nonce || 0);
+          if (postNonce > 0) {
+            setStatus("Waiting for post submission to advance chain nonce");
+            await waitForAccountNonceAtLeast(acct, postNonce, base, {
+              maxWaitMs: 25000,
+              intervalMs: 500,
+            });
+          } else if (postTxId) {
+            const postSubmissionStatus: any = await waitForTxConfirmed(base, postTxId, {
+              maxWaitMs: 5000,
+              intervalMs: 400,
+            });
+            if (!isSubmittedOrConfirmed(postSubmissionStatus)) {
+              throw {
+                message: "post_create_submit_failed",
+                data: {
+                  tx_id: postTxId,
+                  status: postSubmissionStatus || null,
+                },
+              };
+            }
+          }
 
           finalPostId = String(res?.env?.payload?.post_id || "").trim();
           finalPostTxId = postTxId;
@@ -343,6 +527,7 @@ export default function CreatePostPage(): JSX.Element {
             postId: finalPostId,
             postTxId: finalPostTxId,
             result: finalResult,
+            submitted: true,
           };
         },
       });
@@ -360,7 +545,56 @@ export default function CreatePostPage(): JSX.Element {
       await refreshAccountContext();
     } catch (e: any) {
       setStatus("Error");
-      setErr(prettyErr(e));
+      const formatted = prettyErr(e);
+      if (
+        String(formatted?.msg || '').trim() === 'session_invalid' ||
+        String(formatted?.details?.message || '').trim() === 'session_invalid' ||
+        String(formatted?.details?.error?.code || '').trim() === 'session_invalid' ||
+        String(formatted?.details?.error?.code || '').trim() === 'pubkey_not_authorized' ||
+        String(formatted?.msg || '').trim() === 'pubkey is not an active key on this account'
+      ) {
+        try {
+          const repaired = await repairDevSessionIfNeeded();
+          if (!repaired) {
+            await ensureBackendSession({
+              account: acct,
+              ttlSeconds: 24 * 60 * 60,
+              base,
+            });
+          }
+          await refresh();
+          await refreshAccountContext();
+        } catch {
+          // keep original error visible
+        }
+        setErr({
+          msg: 'This browser is holding a stale backend session or an old local signer. We attempted to repair it; try publish again.',
+          details: formatted.details,
+        });
+      } else if (formatted?.details?.error?.code === "bad_nonce") {
+        await syncNonceReservation(acct, base);
+        await refresh();
+        await refreshAccountContext();
+        setErr({
+          msg: "Your local signing nonce was stale. We refreshed chain state; publish again.",
+          details: formatted.details,
+        });
+      } else if (
+        formatted?.msg === "pin_request_submit_failed" ||
+        formatted?.msg === "media_declare_submit_failed" ||
+        formatted?.msg === "post_create_submit_failed" ||
+        formatted?.msg === "account_nonce_not_advanced"
+      ) {
+        await syncNonceReservation(acct, base);
+        await refresh();
+        await refreshAccountContext();
+        setErr({
+          msg: "A publish step was submitted but the chain nonce did not advance in time. Wait a moment, refresh, and try again.",
+          details: formatted.details,
+        });
+      } else {
+        setErr(formatted);
+      }
       setLast(e?.payload || e?.body || e?.data || e);
     } finally {
       setBusy(false);
@@ -513,16 +747,12 @@ export default function CreatePostPage(): JSX.Element {
               </div>
             </div>
 
-            <div className="infoGrid">
+            <div className="surfaceSummaryGrid">
               {readinessChecks.map((item) => (
-                <div key={item.label} className="infoCard compact">
-                  <div className="infoCardHeader">
-                    <span className={`statusPill ${item.ok ? "ok" : ""}`}>
-                      {item.ok ? "Ready" : "Needs attention"}
-                    </span>
-                    <strong>{item.label}</strong>
-                  </div>
-                  <div className="infoCardText">{item.hint}</div>
+                <div key={item.label} className="surfaceSummaryCard">
+                  <span className="surfaceSummaryLabel">{item.label}</span>
+                  <strong className="surfaceSummaryValue">{item.ok ? "Ready" : "Needs attention"}</strong>
+                  <span className="surfaceSummaryHint">{item.hint}</span>
                 </div>
               ))}
             </div>
@@ -554,8 +784,17 @@ export default function CreatePostPage(): JSX.Element {
             </div>
 
             <div className="calloutInfo">
-              This deployment currently publishes public posts only. Followers-only, group-only, and
-              private composer options are hidden until the backend supports them end to end.
+              <strong>Current publishing truth</strong>
+              <div style={{ marginTop: 6 }}>
+                This deployment currently publishes public posts only. Followers-only, group-only, and private composer options stay hidden until the backend supports them end to end.
+              </div>
+            </div>
+
+            <div className="actionStateRow">
+              <span className="actionStateLabel">Submission model</span>
+              <span className="actionStateText">
+                Upload, media declaration, and post creation are separate protocol steps. Submission can succeed before every downstream read surface reflects the final result.
+              </span>
             </div>
 
             <label className="uploadZone">

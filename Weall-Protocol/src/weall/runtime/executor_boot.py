@@ -26,6 +26,11 @@ def boot_config_from_env() -> ExecutorBootConfig:
     chain_id = os.environ.get("WEALL_CHAIN_ID", "weall-dev")
     tx_index_path = os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json")
 
+    if str(os.environ.get("WEALL_MODE", "") or "").strip().lower() == "prod":
+        chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
+        if not chain_id:
+            raise RuntimeError("Missing required env for production: WEALL_CHAIN_ID")
+
     return ExecutorBootConfig(
         db_path=db_path,
         node_id=node_id,

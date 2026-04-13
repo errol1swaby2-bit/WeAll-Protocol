@@ -15,6 +15,7 @@ This script validates the real web-facing path:
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -335,8 +336,10 @@ def _wait_tx_confirmed(cfg: Cfg, tx_id: str) -> Json:
 
 def _make_keypair() -> tuple[str, str]:
     sk = Ed25519PrivateKey.generate()
-    priv_hex = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
-    pub_hex = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
+    seed_bytes = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
+    pub_bytes = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    priv_hex = seed_bytes.hex()
+    pub_hex = pub_bytes.hex()
     return priv_hex, pub_hex
 
 
@@ -553,6 +556,11 @@ def main() -> int:
             "account_feed_url": f"{cfg.api}/v1/accounts/{urllib.parse.quote(account, safe='')}/feed",
             "post_id": post_id,
             "media_id": media_id,
+            "pubkey_hex": pub_hex,
+            "secret_key_b64": base64.b64encode(bytes.fromhex(priv_hex) + bytes.fromhex(pub_hex)).decode("ascii"),
+            "pubkey_b64": base64.b64encode(bytes.fromhex(pub_hex)).decode("ascii"),
+            "session_key": session_key,
+            "session_ttl_seconds": 3600,
         },
     )
 

@@ -34,6 +34,17 @@ def certificate_fingerprint(cert: HelperExecutionCertificate) -> str:
     return _sha256_hex(cert.to_json())
 
 
+def _certificate_matches_context(cert: HelperExecutionCertificate, context: HelperDispatchContext) -> bool:
+    return (
+        str(cert.chain_id or "") == str(context.chain_id or "")
+        and int(cert.block_height) == int(context.block_height)
+        and int(cert.view) == int(context.view)
+        and str(cert.leader_id or "") == str(context.leader_id or "")
+        and int(cert.validator_epoch) == int(context.validator_epoch)
+        and str(cert.validator_set_hash or "") == str(context.validator_set_hash or "")
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class HelperDispatchContext:
     chain_id: str
@@ -144,6 +155,8 @@ class HelperCertificateStore:
                 except Exception:
                     continue
                 if self.current_plan_id and str(cert.plan_id or "") not in {"", self.current_plan_id}:
+                    continue
+                if self.context is not None and not _certificate_matches_context(cert, self.context):
                     continue
                 lane_id = str(cert.lane_id)
                 if not lane_id:
@@ -356,13 +369,6 @@ class HelperCertificateStore:
                 self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="manifest_hash_mismatch")
             return HelperDispatchStatus(False, "manifest_hash_mismatch", lane_id, helper_id)
 
-        helper_pubkey = self.helper_pubkeys.get(helper_id, "")
-        if helper_pubkey:
-            if not verify_helper_certificate_signature(cert, helper_pubkey=helper_pubkey):
-                if self.journal is not None:
-                    self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="bad_signature")
-                return HelperDispatchStatus(False, "bad_signature", lane_id, helper_id)
-
         ok, reason = verify_helper_certificate(
             cert=cert,
             lane_plan=lane_plan,
@@ -381,6 +387,16 @@ class HelperCertificateStore:
             if self.journal is not None:
                 self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason=str(reason or "invalid_certificate"))
             return HelperDispatchStatus(False, str(reason or "invalid_certificate"), lane_id, helper_id)
+
+        helper_pubkey = str(self.helper_pubkeys.get(helper_id, "") or "")
+        if not helper_pubkey:
+            if self.journal is not None:
+                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="helper_pubkey_missing")
+            return HelperDispatchStatus(False, "helper_pubkey_missing", lane_id, helper_id)
+        if not verify_helper_certificate_signature(cert, helper_pubkey=helper_pubkey):
+            if self.journal is not None:
+                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="bad_signature")
+            return HelperDispatchStatus(False, "bad_signature", lane_id, helper_id)
 
         self._certs[lane_id] = cert
         self.close_request(lane_id=lane_id, reason="accepted")

@@ -41,6 +41,24 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(default)
 
 
+def _strict_positive_int_from_state(value: Any, *, field_name: str) -> int:
+    try:
+        parsed = int(value)
+    except Exception as exc:
+        raise GroupsApplyError(
+            "invalid_state",
+            "state_param_not_integer",
+            {"field": field_name, "value": value},
+        ) from exc
+    if parsed <= 0:
+        raise GroupsApplyError(
+            "invalid_state",
+            "state_param_not_positive",
+            {"field": field_name, "value": value},
+        )
+    return parsed
+
+
 def _ensure_roles_root(state: Json) -> Json:
     ensure_roles_schema(state)
     roles = state.get("roles")
@@ -90,6 +108,35 @@ def _group_treasury_id(group_id: str) -> str:
     return f"TREASURY_GROUP::{gid}"
 
 
+def _active_emissary_election_for_group(state: Json, group_id: str) -> Json | None:
+    elections = _ensure_group_emissary_elections(state)
+    gid = _as_str(group_id).strip()
+    for election in elections.values():
+        if not isinstance(election, dict):
+            continue
+        if _as_str(election.get("group_id")).strip() != gid:
+            continue
+        if _as_str(election.get("status")).strip().lower() == "open":
+            return election
+    return None
+
+
+
+
+def _active_group_treasury_spend_for_group(state: Json, group_id: str) -> Json | None:
+    spends = _ensure_group_spends(state)
+    gid = _as_str(group_id).strip()
+    for spend in spends.values():
+        if not isinstance(spend, dict):
+            continue
+        if _as_str(spend.get("group_id")).strip() != gid:
+            continue
+        status = _as_str(spend.get("status")).strip().lower()
+        if status in ("executed", "canceled", "cancelled", "expired"):
+            continue
+        return spend
+    return None
+
 def _height_hint(state: Json, env: TxEnvelope) -> int:
     """Return the block height currently applying.
 
@@ -119,26 +166,24 @@ def _group_treasury_timelock_blocks(state: Json) -> int:
       3) 0
     """
     params = state.get("params")
-    if isinstance(params, dict):
+    if isinstance(params, dict) and "group_treasury_timelock_blocks" in params:
         v = params.get("group_treasury_timelock_blocks")
-        try:
-            iv = int(v)
-            if iv > 0:
-                return int(iv)
-        except Exception:
-            pass
+        if v is None or v == "":
+            return 0
+        return _strict_positive_int_from_state(
+            v, field_name="params.group_treasury_timelock_blocks"
+        )
 
     tre = state.get("treasury")
     if isinstance(tre, dict):
         tparams = tre.get("params")
-        if isinstance(tparams, dict):
+        if isinstance(tparams, dict) and "timelock_blocks" in tparams:
             v2 = tparams.get("timelock_blocks")
-            try:
-                iv2 = int(v2)
-                if iv2 > 0:
-                    return int(iv2)
-            except Exception:
-                pass
+            if v2 is None or v2 == "":
+                return 0
+            return _strict_positive_int_from_state(
+                v2, field_name="treasury.params.timelock_blocks"
+            )
 
     return 0
 
@@ -213,16 +258,13 @@ def _default_emissary_election_window_blocks(state: Json) -> int:
     Override via state.params.group_emissary_election_window_blocks.
     """
     params = state.get("params")
-    if isinstance(params, dict):
+    if isinstance(params, dict) and "group_emissary_election_window_blocks" in params:
         v = params.get("group_emissary_election_window_blocks")
-        if isinstance(v, int) and v > 0:
-            return int(v)
-        try:
-            iv = int(v)
-            if iv > 0:
-                return int(iv)
-        except Exception:
-            pass
+        if v is None or v == "":
+            return 1008
+        return _strict_positive_int_from_state(
+            v, field_name="params.group_emissary_election_window_blocks"
+        )
     return 1008
 
 
@@ -571,6 +613,29 @@ def _apply_group_signers_set(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
 
+    active_election = _active_emissary_election_for_group(state, group_id)
+    if isinstance(active_election, dict):
+        raise GroupsApplyError(
+            "forbidden",
+            "group_emissary_election_open",
+            {
+                "group_id": group_id,
+                "election_id": _as_str(active_election.get("election_id") or active_election.get("id")).strip(),
+            },
+        )
+
+    active_spend = _active_group_treasury_spend_for_group(state, group_id)
+    if isinstance(active_spend, dict):
+        raise GroupsApplyError(
+            "forbidden",
+            "group_treasury_spend_open",
+            {
+                "group_id": group_id,
+                "spend_id": _as_str(active_spend.get("spend_id")).strip(),
+                "status": _as_str(active_spend.get("status")).strip().lower() or "proposed",
+            },
+        )
+
     g["signers"] = list(signers)
     g["threshold"] = int(threshold)
     groups[group_id] = g
@@ -579,8 +644,12 @@ def _apply_group_signers_set(state: Json, env: TxEnvelope) -> Json:
     if treasury_id:
         try:
             set_treasury_signers(state, treasury_id, list(signers), threshold=int(threshold))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise GroupsApplyError(
+                "internal_error",
+                "treasury_signer_sync_failed",
+                {"group_id": group_id, "treasury_id": treasury_id},
+            ) from exc
 
     return {
         "applied": "GROUP_SIGNERS_SET",
@@ -602,6 +671,17 @@ def _apply_group_moderators_set(state: Json, env: TxEnvelope) -> Json:
     g = groups.get(group_id)
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
+
+    active_election = _active_emissary_election_for_group(state, group_id)
+    if isinstance(active_election, dict):
+        raise GroupsApplyError(
+            "forbidden",
+            "group_emissary_election_open",
+            {
+                "group_id": group_id,
+                "election_id": _as_str(active_election.get("election_id") or active_election.get("id")).strip(),
+            },
+        )
 
     g["moderators"] = [str(m).strip() for m in moderators if str(m).strip()]
     groups[group_id] = g
@@ -708,8 +788,12 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
     # Optional expiry scheduling (off unless params.group_treasury_spend_expiry_blocks > 0)
     try:
         maybe_enqueue_group_spend_expire(state, spend=spends[spend_id])
-    except Exception:
-        pass
+    except Exception as exc:
+        raise GroupsApplyError(
+            "internal_error",
+            "group_spend_expire_enqueue_failed",
+            {"group_id": group_id, "spend_id": spend_id},
+        ) from exc
 
     return {
         "applied": "GROUP_TREASURY_SPEND_PROPOSE",
@@ -763,8 +847,12 @@ def _apply_group_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
     # If threshold now satisfied, schedule EXECUTE at earliest_execute_height.
     try:
         maybe_enqueue_group_spend_execute(state, spend=spends[spend_id])
-    except Exception:
-        pass
+    except Exception as exc:
+        raise GroupsApplyError(
+            "internal_error",
+            "group_spend_execute_enqueue_failed",
+            {"spend_id": spend_id, "signer": signer},
+        ) from exc
 
     return {
         "applied": "GROUP_TREASURY_SPEND_SIGN",
@@ -889,6 +977,18 @@ def _apply_group_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:
     g = groups.get(gid)
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": gid})
+    active_spend = _active_group_treasury_spend_for_group(state, gid)
+    if isinstance(active_spend, dict):
+        raise GroupsApplyError(
+            "forbidden",
+            "group_treasury_spend_open",
+            {
+                "group_id": gid,
+                "spend_id": _as_str(active_spend.get("spend_id")).strip(),
+                "status": _as_str(active_spend.get("status")).strip().lower() or "proposed",
+            },
+        )
+
     g["treasury_policy"] = (
         payload.get("policy") if isinstance(payload.get("policy"), dict) else payload
     )

@@ -15,6 +15,22 @@ from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_finge
 Json = dict[str, Any]
 
 
+def _expected_helper_id_for_lane(lane_plans: dict[str, "LanePlan"], lane_id: str) -> str:
+    lane = lane_plans.get(str(lane_id or ""))
+    return str(getattr(lane, "helper_id", "") or "") if lane is not None else ""
+
+
+def _certificate_matches_context(cert: HelperExecutionCertificate, context: HelperDispatchContext) -> bool:
+    return (
+        str(cert.chain_id or "") == str(context.chain_id or "")
+        and int(cert.block_height) == int(context.block_height)
+        and int(cert.view) == int(context.view)
+        and str(cert.leader_id or "") == str(context.leader_id or "")
+        and int(cert.validator_epoch) == int(context.validator_epoch)
+        and str(cert.validator_set_hash or "") == str(context.validator_set_hash or "")
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class HelperLaneResolution:
     lane_id: str
@@ -82,28 +98,38 @@ class HelperProposalOrchestrator:
                     continue
                 if self.plan_id and str(getattr(cert, "plan_id", "") or "") not in {"", self.plan_id}:
                     continue
+                if not _certificate_matches_context(cert, self.context):
+                    continue
                 lane_id = str(record.get("lane_id") or cert.lane_id or "")
                 helper_id = str(record.get("helper_id") or cert.helper_id or "")
-                if lane_id:
-                    self._resolutions[lane_id] = HelperLaneResolution(
-                        lane_id=lane_id,
-                        helper_id=helper_id,
-                        mode="helper",
-                        certificate=cert,
-                    )
+                if not lane_id or lane_id not in self.lane_plans:
+                    continue
+                expected_helper_id = _expected_helper_id_for_lane(self.lane_plans, lane_id)
+                if expected_helper_id and helper_id and helper_id != expected_helper_id:
+                    continue
+                self._resolutions[lane_id] = HelperLaneResolution(
+                    lane_id=lane_id,
+                    helper_id=helper_id or expected_helper_id,
+                    mode="helper",
+                    certificate=cert,
+                )
             elif kind == "fallback_finalized":
                 lane_id = str(record.get("lane_id") or "")
                 helper_id = str(record.get("helper_id") or "")
                 plan_id = str(record.get("plan_id") or "")
                 if self.plan_id and plan_id and plan_id != self.plan_id:
                     continue
-                if lane_id:
-                    self._resolutions[lane_id] = HelperLaneResolution(
-                        lane_id=lane_id,
-                        helper_id=helper_id,
-                        mode="fallback",
-                        certificate=None,
-                    )
+                if not lane_id or lane_id not in self.lane_plans:
+                    continue
+                expected_helper_id = _expected_helper_id_for_lane(self.lane_plans, lane_id)
+                if expected_helper_id and helper_id and helper_id != expected_helper_id:
+                    continue
+                self._resolutions[lane_id] = HelperLaneResolution(
+                    lane_id=lane_id,
+                    helper_id=helper_id or expected_helper_id,
+                    mode="fallback",
+                    certificate=None,
+                )
 
     def start_collection(self, *, started_ms: int) -> None:
         for lane_id in sorted(self.lane_plans.keys()):

@@ -77,7 +77,11 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
 
-  const gate = useMemo(
+  const createGate = useMemo(
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 }),
+    [acct, canSign, acctState],
+  );
+  const membershipGate = useMemo(
     () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
     [acct, canSign, acctState],
   );
@@ -168,8 +172,8 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
       });
       return;
     }
-    if (!gate.ok) {
-      setErr({ msg: gate.reason || "gated", details: acctState });
+    if (!createGate.ok) {
+      setErr({ msg: createGate.reason || "gated", details: acctState });
       return;
     }
 
@@ -224,8 +228,8 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
       });
       return;
     }
-    if (!gate.ok) {
-      setErr({ msg: gate.reason || "gated", details: acctState });
+    if (!membershipGate.ok) {
+      setErr({ msg: membershipGate.reason || "gated", details: acctState });
       return;
     }
 
@@ -294,16 +298,17 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
               <h1 className="heroTitle heroTitleSm">Explore and form working circles</h1>
               <p className="heroText">
                 Groups let members organize around a charter, membership, and shared public output.
-                This page keeps discovery, creation, and membership actions in one place.
+                This page keeps discovery, creation, and membership actions in one place while separating what any reader can inspect from what a signed, eligible account can actually submit.
               </p>
             </div>
 
             <div className="heroInfoPanel">
               <div className="heroInfoTitle">Participation rules</div>
               <div className="heroInfoList">
-                <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
-                  {gate.ok ? "Tier 2 unlocked" : "Tier 2 required"}
+                <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
+                  {createGate.ok ? "Create unlocked" : "Create requires Tier 3"}
                 </span>
+                <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>{membershipGate.ok ? "Membership unlocked" : "Membership requires Tier 2"}</span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
               </div>
@@ -323,6 +328,10 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
               <span className="statLabel">Members listed</span>
               <span className="statValue">{members.length}</span>
             </div>
+            <div className="statCard">
+              <span className="statLabel">Membership gate</span>
+              <span className="statValue">{membershipGate.ok ? "Tier 2+ ready" : "Tier 2 required"}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -337,6 +346,19 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
         }}
         onDismiss={() => setErr(null)}
       />
+
+      <section className="summaryCardGrid">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Public vs governed</div>
+          <div className="summaryCardValue">Groups are more than chat rooms</div>
+          <div className="summaryCardText">Readers can inspect charters and membership signals, but the protocol also supports moderators, signers, emissaries, and treasury-linked actions that should remain legible as the surface expands.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Alignment fix</div>
+          <div className="summaryCardValue">Join uses Tier 2+, create uses Tier 3+</div>
+          <div className="summaryCardText">Membership request and group creation do not share the same gate. This surface now reflects the stricter split instead of collapsing them into one requirement.</div>
+        </article>
+      </section>
 
       <section className="grid2">
         <article className="card">
@@ -383,10 +405,11 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
               <div>
                 <div className="eyebrow">Create</div>
                 <h2 className="cardTitle">Start a new group</h2>
+              <div className="cardDesc">Creating a group is a higher-trust action than requesting membership. This form remains explicit about that distinction.</div>
               </div>
             </div>
 
-            {!gate.ok ? <div className="inlineError">Gated: {gate.reason}</div> : null}
+            {!createGate.ok ? <div className="inlineError">Gated: {createGate.reason}</div> : null}
 
             <label className="fieldLabel">
               Name
@@ -423,6 +446,7 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
             <div>
               <div className="eyebrow">Selected group</div>
               <h2 className="cardTitle">{detailName}</h2>
+              <div className="cardDesc">Membership actions submit protocol transactions. Group governance, moderator roles, and signer-controlled operations can expand from this same base surface over time.</div>
             </div>
             <div className="statusSummary">
               {selected ? <span className="statusPill mono">{selected}</span> : null}
@@ -446,9 +470,9 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
               <button
                 className="btn btnPrimary"
                 onClick={() => void joinOrLeave(isMember ? "leave" : "join")}
-                disabled={busy || !gate.ok}
+                disabled={busy || !membershipGate.ok}
               >
-                {busy ? "Working…" : isMember ? "Leave group" : "Join group"}
+                {busy ? "Working…" : isMember ? "Leave group" : "Request / join group"}
               </button>
             ) : null}
           </div>

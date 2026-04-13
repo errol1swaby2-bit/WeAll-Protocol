@@ -62,6 +62,16 @@ export default function Feed(): JSX.Element {
       ? ({ kind: "account", account: acct } as const)
       : ({ kind: "public" } as const);
 
+  const stageText = !snapshot.hasSession
+    ? "Read-only browsing is available now. Restore a device session when you want account-scoped actions."
+    : !snapshot.hasLocalSigner
+      ? "This device session exists, but signing is not ready on this machine yet."
+      : !snapshot.registered
+        ? "You can browse, but publishing and higher-trust actions still depend on account registration."
+        : snapshot.tier < 2
+          ? "The account is visible, but Tier 2 is still needed for broader feed interactions."
+          : "This account can browse and participate in the visible feed surfaces from this device.";
+
   return (
     <div className="pageStack">
       <section className="card heroCard">
@@ -69,10 +79,10 @@ export default function Feed(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Public activity</div>
-              <h1 className="heroTitle heroTitleSm">Follow what the network is doing</h1>
+              <h1 className="heroTitle heroTitleSm">Track visible protocol activity with clearer interaction truth</h1>
               <p className="heroText">
-                Browse public content first. Your account-scoped feed only loads after a local
-                session exists on this device.
+                Browse the public feed first, then move into account-scoped activity once a local session exists. Reactions, flags,
+                and posting are treated as protocol actions rather than instant consumer-app gestures.
               </p>
             </div>
 
@@ -88,38 +98,54 @@ export default function Feed(): JSX.Element {
                 <span className={`statusPill ${snapshot.registered ? "ok" : ""}`}>
                   {snapshot.registered ? "Registered" : "Registration needed"}
                 </span>
-                <span className={`statusPill ${snapshot.tier >= 1 ? "ok" : ""}`}>
+                <span className={`statusPill ${snapshot.tier >= 2 ? "ok" : ""}`}>
                   Tier {snapshot.tier}
                 </span>
               </div>
             </div>
           </div>
 
+          <div className="surfaceSummaryGrid">
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Browsing mode</span>
+              <strong className="surfaceSummaryValue">{tab === "mine" ? "Account scoped" : tab === "governance" ? "Governance-tagged" : "Public"}</strong>
+              <span className="surfaceSummaryHint">Switching tabs changes what the frontend asks the backend to return. It does not change chain truth.</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Current blocker</span>
+              <strong className="surfaceSummaryValue">{unmet.length ? unmet[0]?.label || "Needs attention" : "Feed participation unlocked"}</strong>
+              <span className="surfaceSummaryHint">{unmet.length ? unmet[0]?.hint : stageText}</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Interaction model</span>
+              <strong className="surfaceSummaryValue">Protocol-backed</strong>
+              <span className="surfaceSummaryHint">Like, flag, and post actions submit transactions and may finalize after initial submission succeeds.</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Next best move</span>
+              <strong className="surfaceSummaryValue">{snapshot.canPost ? "Create or inspect content" : snapshot.next.label}</strong>
+              <span className="surfaceSummaryHint">{snapshot.canPost ? "You can publish now or inspect thread and account surfaces." : snapshot.next.note}</span>
+            </div>
+          </div>
+
           <div className="heroActions">
-            <TabButton active={tab === "global"} onClick={() => setTab("global")}>
-              Global
-            </TabButton>
-            <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>
-              My feed
-            </TabButton>
-            <TabButton active={tab === "governance"} onClick={() => setTab("governance")}>
-              Governance
-            </TabButton>
+            <TabButton active={tab === "global"} onClick={() => setTab("global")}>Global</TabButton>
+            <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>My feed</TabButton>
+            <TabButton active={tab === "governance"} onClick={() => setTab("governance")}>Governance</TabButton>
 
             {!snapshot.canPost ? (
               <button className="btn" onClick={() => nav(snapshot.next.route)}>
                 {snapshot.next.label}
               </button>
             ) : (
-              <button className="btn btnPrimary" onClick={() => nav("/post")}>
-                Create post
-              </button>
+              <button className="btn btnPrimary" onClick={() => nav("/post")}>Create post</button>
             )}
+            <button className="btn" onClick={() => nav("/proposals")}>Open governance</button>
           </div>
 
           {!snapshot.canPost && unmet.length ? (
             <div className="calloutInfo">
-              <strong>Posting is still gated.</strong>
+              <strong>Feed browsing is available, but participation is still gated.</strong>
               <div style={{ marginTop: 6 }}>{unmet[0]?.hint || snapshot.next.note}</div>
             </div>
           ) : null}
@@ -128,7 +154,7 @@ export default function Feed(): JSX.Element {
             <div className="calloutInfo">
               <strong>No local session is active.</strong>
               <div style={{ marginTop: 6 }}>
-                Open Login to restore your device session, then return to inspect your account feed.
+                Open Login to restore your device session, then return to inspect your account feed and transaction-backed actions.
               </div>
             </div>
           ) : null}

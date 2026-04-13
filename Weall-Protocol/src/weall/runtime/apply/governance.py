@@ -55,8 +55,6 @@ def _ensure_root(state: Json) -> dict[str, Any]:
         state["gov_proposal_receipts"] = []
     if not isinstance(state.get("gov_execution_receipts"), list):
         state["gov_execution_receipts"] = []
-    if not isinstance(state.get("gov_delegations"), dict):
-        state["gov_delegations"] = {}
     if not isinstance(state.get("gov_config"), dict):
         state["gov_config"] = {}
     if not isinstance(state.get("gov_stage_set_receipts"), list):
@@ -77,6 +75,65 @@ def _proposal(root: dict[str, Any], proposal_id: str) -> dict[str, Any]:
 
 def _stage(pr: dict[str, Any]) -> str:
     return _s(pr.get("stage")).strip().lower() or "draft"
+
+
+def _is_terminal_governance_stage(stage: str) -> bool:
+    return stage in {"withdrawn", "tallied", "executed", "finalized"}
+
+
+def _close_like_governance_stage(stage: str) -> bool:
+    return stage in {"closed", "tallied", "executed", "finalized", "withdrawn"}
+
+
+def _allowed_stage_transitions() -> dict[str, frozenset[str]]:
+    # Forward-only governance progression with compatibility for existing
+    # system/operator flows that fast-forward proposals into later stages.
+    return {
+        "draft": frozenset({"poll", "revision", "validation", "voting", "vote", "closed", "tallied", "executed", "finalized"}),
+        "poll": frozenset({"revision", "validation", "voting", "vote", "closed", "tallied", "executed", "finalized"}),
+        "revision": frozenset({"validation", "voting", "vote", "closed", "tallied", "executed", "finalized"}),
+        "validation": frozenset({"voting", "vote", "closed", "tallied", "executed", "finalized"}),
+        "voting": frozenset({"closed", "tallied", "executed", "finalized"}),
+        "vote": frozenset({"closed", "tallied", "executed", "finalized"}),
+        "closed": frozenset({"tallied", "executed", "finalized"}),
+        "tallied": frozenset({"executed", "finalized"}),
+        "executed": frozenset({"finalized"}),
+        "withdrawn": frozenset(),
+        "finalized": frozenset(),
+    }
+
+
+def _assert_stage_transition_allowed(current_stage: str, next_stage: str, *, proposal_id: str) -> None:
+    cur = _s(current_stage).strip().lower() or "draft"
+    nxt = _s(next_stage).strip().lower()
+    if not nxt:
+        raise ApplyError("invalid_payload", "missing_stage", {"proposal_id": proposal_id})
+
+    if cur == nxt:
+        return
+
+    allowed = _allowed_stage_transitions().get(cur, frozenset())
+    if nxt not in allowed:
+        raise ApplyError(
+            "forbidden",
+            "invalid_stage_transition",
+            {"proposal_id": proposal_id, "current_stage": cur, "requested_stage": nxt},
+        )
+
+
+def _latest_tally_payload(pr: dict[str, Any]) -> dict[str, Any]:
+    tallies = pr.get("tallies")
+    if not isinstance(tallies, list) or not tallies:
+        return {}
+    last = tallies[-1]
+    if not isinstance(last, dict):
+        return {}
+    payload = last.get("payload")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _last_tally_passed(pr: dict[str, Any]) -> bool:
+    return bool(_latest_tally_payload(pr).get("passed") is True)
 
 
 def _extract_actions(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -279,10 +336,9 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
 def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """
-    Minimal claimable implementation:
-      - only creator may withdraw
-      - cannot withdraw if finalized
-      - sets stage="withdrawn"
+    Creator-driven withdraw is only valid before the proposal has been closed
+    into an outcome-bearing phase. Once closed/tallied/executed/finalized, the
+    historical proposal object is frozen.
     """
     root = _ensure_root(state)
     p = _d(env.payload)
@@ -295,8 +351,16 @@ def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> dict[str, Any]
         raise ApplyError("forbidden", "only_creator_can_withdraw", {"proposal_id": proposal_id})
 
     stg = _stage(pr)
+    if stg == "withdrawn":
+        return {"applied": True, "proposal_id": proposal_id, "deduped": True}
     if stg == "finalized":
         raise ApplyError("forbidden", "proposal_already_finalized", {"proposal_id": proposal_id})
+    if _close_like_governance_stage(stg):
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_withdrawable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
 
     h = _height_hint(state, env)
     pr["stage"] = "withdrawn"
@@ -309,7 +373,7 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
 
-    # ✅ Backward/forward compatibility: web UI used "choice"
+    # Backward/forward compatibility: web UI may send either vote or choice.
     vote = _s(p.get("vote") or p.get("choice")).strip().lower()
 
     if not proposal_id:
@@ -317,9 +381,16 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not vote:
         raise ApplyError("invalid_payload", "missing_vote", {})
 
+    allowed_votes = {"yes", "no", "abstain"}
+    if vote not in allowed_votes:
+        raise ApplyError(
+            "invalid_payload",
+            "invalid_vote_choice",
+            {"proposal_id": proposal_id, "vote": vote, "allowed": sorted(allowed_votes)},
+        )
+
     pr = _proposal(root, proposal_id)
     stg = _stage(pr)
-    # GOV_VOTE_CAST is used for both poll and final vote depending on stage.
     if stg not in {"poll", "voting", "vote"}:
         raise ApplyError(
             "forbidden", "proposal_not_voteable", {"proposal_id": proposal_id, "stage": stg}
@@ -336,12 +407,11 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     pr["updated_at_height"] = int(h)
     return {"applied": True, "proposal_id": proposal_id}
 
-
 def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """
-    Minimal claimable implementation:
-      - removes signer vote if present
-      - allowed during voting and closed (safe for tests)
+    Vote revoke remains backward-compatible for the post-close window, but once a
+    proposal has been withdrawn, tallied, executed, or finalized, vote state is
+    frozen and cannot be rewritten.
     """
     root = _ensure_root(state)
     p = _d(env.payload)
@@ -351,8 +421,15 @@ def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> dict[str, Any]:
     pr = _proposal(root, proposal_id)
 
     stg = _stage(pr)
+    if _is_terminal_governance_stage(stg):
+        raise ApplyError(
+            "forbidden",
+            "proposal_vote_state_frozen",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+
     # Revoke is allowed during poll/vote and is also tolerated post-close for
-    # test convenience, matching prior behavior.
+    # legacy compatibility.
     key = "poll_votes" if stg == "poll" else "votes"
     votes = pr.get(key)
     if not isinstance(votes, dict):
@@ -374,6 +451,22 @@ def _apply_gov_voting_close(state: Json, env: TxEnvelope) -> dict[str, Any]:
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
 
     pr = _proposal(root, proposal_id)
+    stg = _stage(pr)
+    if stg == "closed":
+        return {"applied": True, "proposal_id": proposal_id, "deduped": True}
+    if _is_terminal_governance_stage(stg):
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_closable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+    if stg not in {"poll", "voting", "vote"}:
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_closable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+
     h = _height_hint(state, env)
     pr["stage"] = "closed"
     pr["closed_at_height"] = int(h)
@@ -389,6 +482,16 @@ def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> dict[str, Any]:
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
 
     pr = _proposal(root, proposal_id)
+    stg = _stage(pr)
+    if stg == "tallied":
+        return {"applied": True, "proposal_id": proposal_id, "deduped": True}
+    if stg not in {"closed", "voting", "vote"}:
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_tallyable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+
     h = _height_hint(state, env)
 
     pr["stage"] = "tallied"
@@ -402,7 +505,6 @@ def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> dict[str, Any]:
     tallies.append({"height": int(h), "payload": dict(p)})
     return {"applied": True, "proposal_id": proposal_id}
 
-
 def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
     p = _d(env.payload)
@@ -411,6 +513,26 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
 
     pr = _proposal(root, proposal_id)
+    stg = _stage(pr)
+    if stg == "executed":
+        return {"applied": True, "proposal_id": proposal_id, "deduped": True}
+
+    is_legacy_system_path = bool(env.system and str(env.signer) == "SYSTEM")
+
+    if not is_legacy_system_path:
+        if stg != "tallied":
+            raise ApplyError(
+                "forbidden",
+                "proposal_not_executable",
+                {"proposal_id": proposal_id, "stage": stg},
+            )
+        if not _last_tally_passed(pr):
+            raise ApplyError(
+                "forbidden",
+                "proposal_did_not_pass",
+                {"proposal_id": proposal_id},
+            )
+
     h = _height_hint(state, env)
 
     actions = _extract_actions(p)
@@ -430,9 +552,6 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _assert_governance_actions_allowed(state, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
-    # Governance execution is allowed to emit validator lifecycle receipts, but the
-    # canonical active set still changes only through the existing system-only
-    # epoch-bound validator-set machinery downstream of those receipts.
     for a in actions:
         tx_type = _s(a.get("tx_type")).strip().upper()
         if not tx_type:
@@ -478,16 +597,6 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
-def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
-    _ensure_root(state)
-    p = _d(env.payload)
-    lst = state.get("gov_execution_receipts")
-    if not isinstance(lst, list):
-        lst = []
-        state["gov_execution_receipts"] = lst
-    lst.append(dict(p))
-    return {"applied": True}
-
 
 def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> dict[str, Any]:
     root = _ensure_root(state)
@@ -497,6 +606,24 @@ def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> dict[str, Any]
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
 
     pr = _proposal(root, proposal_id)
+    stg = _stage(pr)
+    if stg == "finalized":
+        return {"applied": True, "proposal_id": proposal_id, "deduped": True}
+    if stg == "withdrawn":
+        raise ApplyError(
+            "forbidden",
+            "withdrawn_proposal_cannot_finalize",
+            {"proposal_id": proposal_id},
+        )
+
+    is_legacy_system_path = bool(env.system and str(env.signer) == "SYSTEM")
+    if not is_legacy_system_path and stg != "executed":
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_finalizable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+
     h = _height_hint(state, env)
     pr["stage"] = "finalized"
     pr["finalized_at_height"] = int(h)
@@ -518,6 +645,16 @@ def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> dict[str, Any]
 
     return {"applied": True, "proposal_id": proposal_id}
 
+def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
+    _ensure_root(state)
+    p = _d(env.payload)
+    lst = state.get("gov_execution_receipts")
+    if not isinstance(lst, list):
+        lst = []
+        state["gov_execution_receipts"] = lst
+    lst.append(dict(p))
+    return {"applied": True}
+
 
 def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _ensure_root(state)
@@ -530,53 +667,29 @@ def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     return {"applied": True}
 
 
-def _apply_gov_delegation_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
-    _ensure_root(state)
-    p = _d(env.payload)
-    delegatee = _s(p.get("delegatee")).strip()
-    delegations = state.get("gov_delegations")
-    if not isinstance(delegations, dict):
-        delegations = {}
-        state["gov_delegations"] = delegations
-    if delegatee:
-        delegations[str(env.signer)] = delegatee
-    else:
-        delegations.pop(str(env.signer), None)
-    return {"applied": True}
-
-
 def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
-    """Apply GOV_STAGE_SET (receipt-only, SYSTEM origin).
-
-    Canon: receipt_only parent=GOV_PROPOSAL_CREATE.
-    Payload is expected (by schema) to include proposal_id and may include stage.
-
-    Minimal production-safe behavior:
-      - record receipt payload
-      - if proposal exists, optionally update its stage to payload.stage
-    """
+    """Apply GOV_STAGE_SET and enforce the canonical governance state machine."""
     root = _ensure_root(state)
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
     if not proposal_id:
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
 
-    # Record receipt
     rec = dict(p)
     rec.setdefault("proposal_id", proposal_id)
     rec["_height"] = _height_hint(state, env)
     rec["_parent"] = _s(env.parent) if env.parent is not None else ""
     state["gov_stage_set_receipts"].append(rec)
 
-    # Optionally update proposal stage if provided and proposal exists.
-    # This is the canonical way the deterministic lifecycle advances proposals.
     stage = _s(p.get("stage")).strip().lower()
     if proposal_id in root and stage:
         pr = _proposal(root, proposal_id)
+        current_stage = _stage(pr)
+        _assert_stage_transition_allowed(current_stage, stage, proposal_id=proposal_id)
+
         pr["stage"] = stage
         pr["updated_at_height"] = int(rec["_height"])
 
-        # Stamp stage entry heights so gov_engine can compute durations safely.
         h = int(rec["_height"])
         if stage == "poll" and int(_i(pr.get("poll_opened_at_height"), 0)) <= 0:
             pr["poll_opened_at_height"] = h
@@ -587,7 +700,6 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
         if stage in {"voting", "vote"} and int(_i(pr.get("voting_opened_at_height"), 0)) <= 0:
             pr["voting_opened_at_height"] = h
 
-        # Optional poll summary (emitted by gov_engine when transitioning poll->revision)
         if "poll_tally" in p or "poll_total_votes" in p:
             pt = pr.get("poll_tallies")
             if not isinstance(pt, list):
@@ -603,17 +715,7 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
                 }
             )
 
-    # Also store last stage change in gov_config (useful for diagnostics)
-    cfg = state.get("gov_config")
-    if isinstance(cfg, dict):
-        cfg["last_stage_set"] = {
-            "proposal_id": proposal_id,
-            "stage": stage or None,
-            "height": int(rec["_height"]),
-        }
-
     return {"applied": True, "proposal_id": proposal_id}
-
 
 def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     """Apply GOV_QUORUM_SET (receipt-only, SYSTEM origin).
@@ -689,7 +791,6 @@ _GOV_HANDLERS = {
     "GOV_PROPOSAL_CREATE": _apply_gov_proposal_create,
     "GOV_PROPOSAL_EDIT": _apply_gov_proposal_edit,
     "GOV_PROPOSAL_WITHDRAW": _apply_gov_proposal_withdraw,
-    "GOV_DELEGATION_SET": _apply_gov_delegation_set,
     "GOV_VOTE_CAST": _apply_gov_vote_cast,
     "GOV_VOTE_REVOKE": _apply_gov_vote_revoke,
     "GOV_VOTING_CLOSE": _apply_gov_voting_close,

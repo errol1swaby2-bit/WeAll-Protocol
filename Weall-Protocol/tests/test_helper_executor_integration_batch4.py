@@ -46,6 +46,7 @@ def test_scope_prefixes_infer_from_tx_type() -> None:
 
 def test_build_block_candidate_emits_helper_execution_metadata(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
 
     repo_root = _repo_root()
@@ -98,6 +99,7 @@ def test_build_block_candidate_emits_helper_execution_metadata(tmp_path: Path, m
 
 def test_commit_persists_helper_execution_replay_marker(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
 
     repo_root = _repo_root()

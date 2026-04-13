@@ -104,7 +104,7 @@ def _ensure_account_nonce(state: Json, signer: str, nonce: int) -> None:
             "balance": 0,
             "locked": False,
             "banned": False,
-            "reputation": 0.0,
+            "reputation": "0",
             "keys": [],
         },
     )

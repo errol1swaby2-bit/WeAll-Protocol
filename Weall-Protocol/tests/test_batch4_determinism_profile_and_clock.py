@@ -42,7 +42,7 @@ def test_migration_populates_reputation_milli_from_legacy_float() -> None:
         }
     )
     acct = st["accounts"]["@alice"]
-    assert acct["reputation"] == pytest.approx(1.25)
+    assert str(acct["reputation"]) == "1.25"
     assert int(acct["reputation_milli"]) == 1250
 
 

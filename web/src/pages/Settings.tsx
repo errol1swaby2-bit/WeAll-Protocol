@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, getEmailOracleBaseUrl, setApiBaseUrl } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
+import { useAppConfig } from "../lib/config";
 import {
   AccentTone,
   applySettingsToDocument,
@@ -41,6 +42,7 @@ function SettingSelect<T extends string>({
 }
 
 export default function Settings(): JSX.Element {
+  const config = useAppConfig();
   const session = getSession();
   const account = session?.account || "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
@@ -71,22 +73,18 @@ export default function Settings(): JSX.Element {
     const trimmed = String(apiBase || "").trim();
     if (!trimmed) return;
     setApiBaseUrl(trimmed);
-    flash("Network settings saved.");
+    flash("Connection target saved.");
   }
 
   function resetAppearance() {
-    setSettings({ ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap });
-    saveSettings({ ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap });
-    applySettingsToDocument({ ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap });
+    const next = { ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap };
+    setSettings(next);
+    saveSettings(next);
+    applySettingsToDocument(next);
     flash("Appearance reset.");
   }
 
-  function toggleGenesisBootstrap() {
-    const next = { ...settings, showGenesisBootstrap: !settings.showGenesisBootstrap };
-    setSettings(next);
-    saveSettings(next);
-    flash("Advanced setting saved.");
-  }
+  const apiChanged = String(apiBase || "").trim() !== String(config.defaultApiBase || "").trim();
 
   return (
     <div className="pageStack">
@@ -95,10 +93,9 @@ export default function Settings(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Settings</div>
-              <h1 className="heroTitle heroTitleSm">Customize the client, not the login flow</h1>
+              <h1 className="heroTitle heroTitleSm">Connection, environment, and client preferences</h1>
               <p className="heroText">
-                Device bootstrap now lives on the Login page. Settings is reserved for appearance,
-                accessibility, and real client / node targeting controls.
+                This page is for local client behavior and backend targeting. It should make clear what changes only this browser, what changes the connection target, and what leaves on-chain state untouched.
               </p>
             </div>
 
@@ -111,19 +108,86 @@ export default function Settings(): JSX.Element {
                 <span className={`statusPill ${keypair ? "ok" : ""}`}>
                   {keypair ? "Signer stored" : "No local signer"}
                 </span>
-                <span className="statusPill ok">{apiBase || "API base unset"}</span>
+                <span className="statusPill ok">{config.envLabel}</span>
               </div>
             </div>
           </div>
 
-          {saved ? <div className="calloutInfo"><strong>{saved}</strong></div> : null}
+          {saved ? (
+            <div className="calloutInfo"><strong>{saved}</strong></div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="summaryCardGrid">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Connection target</div>
+          <div className="summaryCardValue mono">{apiBase || "Unset"}</div>
+          <div className="summaryCardText">Changing this affects which backend and protocol environment this browser talks to. It does not alter on-chain data by itself.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Default environment</div>
+          <div className="summaryCardValue mono">{config.defaultApiBase}</div>
+          <div className="summaryCardText">Build-time default for this client: {config.appName} {config.clientVersion} ({config.envLabel}).</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Email relay</div>
+          <div className="summaryCardValue mono">{relayBase || "Unavailable"}</div>
+          <div className="summaryCardText">Used for backend-assisted verification steps. This is informational here, not an authority switch.</div>
+        </article>
+      </section>
+
+      <section className="card">
+        <div className="cardBody pageStack">
+          <div className="eyebrow">Connection & Environment</div>
+          <h2 style={{ marginTop: 8 }}>Treat backend changes as protocol-context changes</h2>
+          <p className="cardDesc">
+            Switching the API base changes what node or environment this browser trusts for reads, session workflows, and transaction submission. Use this deliberately.
+          </p>
+
+          <label className="pageStack" style={{ gap: 8 }}>
+            <span>API base URL</span>
+            <input
+              value={apiBase}
+              onChange={(e) => setApiBase(e.target.value)}
+              placeholder="http://127.0.0.1:8000"
+            />
+          </label>
+
+          <div className="progressList">
+            <div className="progressRow">
+              <span>Configured target differs from build default</span>
+              <span className={`statusPill ${apiChanged ? "" : "ok"}`}>{apiChanged ? "Custom target" : "Using default"}</span>
+            </div>
+            <div className="progressRow">
+              <span>Build environment label</span>
+              <span className="statusPill ok">{config.envLabel}</span>
+            </div>
+            <div className="progressRow">
+              <span>Client version</span>
+              <span className="statusPill ok">{config.clientVersion}</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="btn btnPrimary" onClick={saveNetwork}>
+              Save connection target
+            </button>
+            <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
+              Use build default
+            </button>
+            <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
+              Use local backend
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Appearance</div>
-          <h2 style={{ marginTop: 8 }}>Personalize the frontend</h2>
+          <h2 style={{ marginTop: 8 }}>Personalize this browser client</h2>
+          <p className="cardDesc">Appearance changes are local only. They do not change session state, account standing, or protocol behavior.</p>
 
           <SettingSelect<ThemeMode>
             label="Theme mode"
@@ -188,42 +252,10 @@ export default function Settings(): JSX.Element {
 
       <section className="card">
         <div className="cardBody pageStack">
-          <div className="eyebrow">Network</div>
-          <h2 style={{ marginTop: 8 }}>API and relay settings</h2>
-
-          <label className="pageStack" style={{ gap: 8 }}>
-            <span>API base URL</span>
-            <input
-              value={apiBase}
-              onChange={(e) => setApiBase(e.target.value)}
-              placeholder="http://127.0.0.1:8000"
-            />
-          </label>
-
-          <label className="pageStack" style={{ gap: 8 }}>
-            <span>Email relay base</span>
-            <input value={relayBase} readOnly />
-          </label>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="btn btnPrimary" onClick={saveNetwork}>
-              Save network settings
-            </button>
-            <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
-              Use local backend
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="cardBody pageStack">
-          <div className="eyebrow">Advanced</div>
-          <h2 style={{ marginTop: 8 }}>Local client behavior</h2>
-
+          <div className="eyebrow">Local state</div>
+          <h2 style={{ marginTop: 8 }}>What this page does not change</h2>
           <p className="cardDesc">
-            Founder-only bootstrap controls are hidden from the product surface for external testers.
-            This page keeps only user-facing network and appearance settings.
+            This page does not register accounts, upgrade PoH, assign roles, or modify consensus state. It only changes this browser’s client behavior and connection target.
           </p>
         </div>
       </section>

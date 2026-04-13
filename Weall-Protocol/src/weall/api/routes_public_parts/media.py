@@ -210,7 +210,11 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
       { ok, cid, name, mime, size, uri, gateway_url, pin_request, pinned_on_upload }
     """
     st = _snapshot(request)
-    viewer = require_account_session(request, st)
+    try:
+        viewer = require_account_session(request, st)
+    except PermissionError as e:
+        code = str(e) or "session_missing"
+        raise ApiError.forbidden(code, code.replace("_", " "), {})
     _require_tier3(st, viewer)
 
     max_bytes = _env_int("WEALL_IPFS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)

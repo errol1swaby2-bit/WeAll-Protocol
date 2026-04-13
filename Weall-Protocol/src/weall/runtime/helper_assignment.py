@@ -98,15 +98,84 @@ def choose_helper_from_candidates(
     if not candidate_pool:
         return None
 
-    def _score(helper_id: str) -> tuple[float, int, int]:
+    best_helper: Optional[str] = None
+    best_capacity_units = 1
+    best_projected_load = 0
+    best_overload = 0
+    best_count = 0
+    best_index = 0
+
+    for index, helper_id in enumerate(candidate_pool):
         capacity_units = max(1, capacities.get(helper_id, DEFAULT_HELPER_CAPACITY_UNITS))
         projected_load = loads.get(helper_id, 0) + lane_cost
         overload = max(0, projected_load - capacity_units)
-        ratio = projected_load / float(capacity_units)
-        return (float(ratio + overload), counts.get(helper_id, 0), candidate_pool.index(helper_id))
+        count = counts.get(helper_id, 0)
+        if best_helper is None:
+            best_helper = str(helper_id)
+            best_capacity_units = int(capacity_units)
+            best_projected_load = int(projected_load)
+            best_overload = int(overload)
+            best_count = int(count)
+            best_index = int(index)
+            continue
 
-    best = min(candidate_pool, key=_score)
-    return str(best)
+        left_overloaded = int(overload > 0)
+        right_overloaded = int(best_overload > 0)
+        if left_overloaded != right_overloaded:
+            if left_overloaded < right_overloaded:
+                best_helper = str(helper_id)
+                best_capacity_units = int(capacity_units)
+                best_projected_load = int(projected_load)
+                best_overload = int(overload)
+                best_count = int(count)
+                best_index = int(index)
+            continue
+
+        left_ratio_num = int(projected_load)
+        left_ratio_den = int(capacity_units)
+        right_ratio_num = int(best_projected_load)
+        right_ratio_den = int(best_capacity_units)
+        left_cross = left_ratio_num * right_ratio_den
+        right_cross = right_ratio_num * left_ratio_den
+        if left_cross != right_cross:
+            if left_cross < right_cross:
+                best_helper = str(helper_id)
+                best_capacity_units = int(capacity_units)
+                best_projected_load = int(projected_load)
+                best_overload = int(overload)
+                best_count = int(count)
+                best_index = int(index)
+            continue
+
+        if int(overload) != int(best_overload):
+            if int(overload) < int(best_overload):
+                best_helper = str(helper_id)
+                best_capacity_units = int(capacity_units)
+                best_projected_load = int(projected_load)
+                best_overload = int(overload)
+                best_count = int(count)
+                best_index = int(index)
+            continue
+
+        if int(count) != int(best_count):
+            if int(count) < int(best_count):
+                best_helper = str(helper_id)
+                best_capacity_units = int(capacity_units)
+                best_projected_load = int(projected_load)
+                best_overload = int(overload)
+                best_count = int(count)
+                best_index = int(index)
+            continue
+
+        if int(index) < int(best_index):
+            best_helper = str(helper_id)
+            best_capacity_units = int(capacity_units)
+            best_projected_load = int(projected_load)
+            best_overload = int(overload)
+            best_count = int(count)
+            best_index = int(index)
+
+    return str(best_helper) if best_helper is not None else None
 
 
 def summarize_assignment_counts(

@@ -37,9 +37,8 @@ def stable_tx_id(tx: Mapping[str, Any]) -> str:
     return _sha256_hex(tx)
 
 
-def canonical_tx_order_key(tx: Mapping[str, Any]) -> Tuple[int, str]:
-    received_ms = int(tx.get("received_ms", 0) or 0)
-    return (received_ms, stable_tx_id(tx))
+def canonical_tx_order_key(tx: Mapping[str, Any]) -> Tuple[str]:
+    return (stable_tx_id(tx),)
 
 
 def canonicalize_txs(txs: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:

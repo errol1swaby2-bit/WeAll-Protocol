@@ -61,6 +61,28 @@ class _FakeExecutor:
             "meta": {
                 "schema_version": "1",
                 "tx_index_hash": "txindexhash-obs",
+                "last_shutdown_clean": False,
+                "runtime_open": True,
+                "last_clean_shutdown_ms": 1700000000999,
+                "validator_signing_enabled": False,
+                "observer_mode": True,
+                "signing_block_reason": "unclean_shutdown",
+                "production_consensus_profile_hash": "profilehash-obs",
+                "startup_clock_sanity_required": True,
+                "startup_clock_hard_fail_ms": 600000,
+                "clock_warning": {
+                    "code": "tip_far_ahead_of_local_clock",
+                    "observer_mode_forced": True,
+                },
+                "mempool_selection_last": {
+                    "policy": "canonical",
+                    "requested_limit": 10,
+                    "fetched_count": 3,
+                    "selected_count": 2,
+                    "invalid_count": 1,
+                    "rejected_count": 0,
+                    "selected_tx_ids": ["tx:1", "tx:2"],
+                },
             },
             "accounts": {},
             "blocks": {},
@@ -73,6 +95,70 @@ class _FakeExecutor:
 
     def tx_index_hash(self) -> str:
         return "txindexhash-obs"
+
+    def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> dict[str, object]:
+        return {
+            "policy": "fifo",
+            "preview_limit": int(preview_limit),
+            "items": [{"tx_id": "tx:1"}, {"tx_id": "tx:2"}],
+            "last_candidate": {
+                "policy": "fifo",
+                "requested_limit": 10,
+                "fetched_count": 2,
+                "selected_count": 2,
+                "invalid_count": 0,
+                "rejected_count": 0,
+                "selected_tx_ids": ["tx:1", "tx:2"],
+            },
+        }
+
+    def helper_execution_diagnostics(self) -> dict[str, object]:
+        return {
+            "height": 17,
+            "block_id": "17:block",
+            "merge_summary": {
+                "attempted": True,
+                "receipt_equivalent": True,
+                "lane_decisions": [
+                    {"lane_id": "l1", "used_helper": True, "fallback_reason": "", "tx_ids": ["tx:1"]},
+                    {
+                        "lane_id": "l2",
+                        "used_helper": False,
+                        "fallback_reason": "plan_id_mismatch",
+                        "tx_ids": ["tx:2"],
+                    },
+                ],
+            },
+            "helper_reputation": {
+                "state": {
+                    "@helper-1": {"accepted": 4, "rejected": 0},
+                    "@helper-2": {"accepted": 1, "rejected": 1},
+                }
+            },
+            "summary": {
+                "lane_count": 2,
+                "helper_lane_count": 1,
+                "fallback_lane_count": 1,
+                "fallback_reason_counts": {"plan_id_mismatch": 1},
+                "fraud_suspected": False,
+            },
+        }
+
+    def transition_guardrail_diagnostics(self) -> dict[str, object]:
+        return {
+            "height": 17,
+            "block_id": "17:block",
+            "rejection_count": 2,
+            "reason_counts": {"group_treasury_spend_open": 1, "treasury_spend_open": 1},
+            "tx_type_counts": {
+                "GROUP_SIGNERS_SET": {"group_treasury_spend_open": 1},
+                "TREASURY_SIGNERS_SET": {"treasury_spend_open": 1},
+            },
+            "recent_events": [
+                {"tx_id": "tx:g1", "tx_type": "GROUP_SIGNERS_SET", "signer": "@alice", "reason": "group_treasury_spend_open", "code": "forbidden"},
+                {"tx_id": "tx:t1", "tx_type": "TREASURY_SIGNERS_SET", "signer": "alice", "reason": "treasury_spend_open", "code": "forbidden"},
+            ],
+        }
 
 
 class _FakeNetNode:
@@ -134,6 +220,14 @@ def test_status_consensus_exposes_bft_diagnostics(monkeypatch) -> None:
     assert body["locked_qc"]["block_id"] == "15:block"
     assert body["peer_counts"]["peers_total"] == 2
     assert body["tx_index_hash"] == "txindexhash-obs"
+    assert body["helper_reputation"]["@helper-2"]["rejected"] == 1
+    assert body["mempool_selection_last"]["policy"] == "canonical"
+    assert body["mempool_selection_last"]["selected_count"] == 2
+    assert body["startup_posture"]["observer_mode"] is True
+    assert body["startup_posture"]["signing_block_reason"] == "unclean_shutdown"
+    assert body["startup_posture"]["clock_warning"]["code"] == "tip_far_ahead_of_local_clock"
+    assert body["startup_posture"]["runtime_open"] is True
+    assert body["startup_posture"]["recovery_mode_active"] is True
 
     fp = body["startup_fingerprint"]
     assert fp["chain_id"] == "obs-test"
@@ -174,6 +268,15 @@ def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch) -> No
     assert len(body["net"]["peers"]) == 2
     assert body["consensus"]["bft_enabled"] is True
     assert body["consensus"]["validator_account"] == "@validator-2"
+    assert body["operator"]["helper_execution"]["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
+    assert body["operator"]["helper_reputation"]["@helper-1"]["accepted"] == 4
+    assert body["operator"]["mempool_selection_last"]["policy"] == "canonical"
+    assert body["operator"]["mempool_selection_last"]["invalid_count"] == 1
+    assert body["operator"]["startup_posture"]["last_shutdown_clean"] is False
+    assert body["operator"]["startup_posture"]["runtime_open"] is True
+    assert body["operator"]["startup_posture"]["recovery_mode_active"] is True
+    assert body["operator"]["startup_posture"]["observer_mode"] is True
+    assert body["operator"]["startup_posture"]["signing_block_reason"] == "unclean_shutdown"
 
     # Batch 4: operator surfaces should expose the effective production posture,
     # not the unsafe raw env override values.
@@ -196,3 +299,95 @@ def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch) -> No
     assert fp["tx_index_hash"] == "txindexhash-obs"
     assert isinstance(fp["fingerprint"], str)
     assert len(fp["fingerprint"]) == 64
+
+
+def test_status_mempool_exposes_selection_diagnostics(monkeypatch) -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/mempool")
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body["ok"] is True
+    assert body["size"] == 2
+    assert len(body["items"]) == 2
+    assert body["selection_diagnostics"]["policy"] == "fifo"
+    assert body["selection_diagnostics"]["last_candidate"]["selected_count"] == 2
+
+
+def test_status_consensus_exposes_helper_execution_diagnostics() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/consensus")
+    assert r.status_code == 200
+    body = r.json()
+
+    helper_exec = body["helper_execution"]
+    assert helper_exec["height"] == 17
+    assert helper_exec["summary"]["lane_count"] == 2
+    assert helper_exec["summary"]["helper_lane_count"] == 1
+    assert helper_exec["summary"]["fallback_lane_count"] == 1
+    assert helper_exec["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
+
+
+def test_status_consensus_forensics_exposes_helper_execution_diagnostics() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/consensus/forensics")
+    assert r.status_code == 200
+    body = r.json()
+
+    helper_exec = body["helper_execution"]
+    assert helper_exec["merge_summary"]["attempted"] is True
+    assert helper_exec["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
+
+
+def test_status_operator_exposes_transition_guardrail_diagnostics() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/operator")
+    assert r.status_code == 200
+    body = r.json()
+
+    guard = body["operator"]["transition_guardrails"]
+    assert guard["rejection_count"] == 2
+    assert guard["reason_counts"]["treasury_spend_open"] == 1
+    assert guard["tx_type_counts"]["GROUP_SIGNERS_SET"]["group_treasury_spend_open"] == 1
+
+
+def test_status_consensus_forensics_exposes_transition_guardrail_diagnostics() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/consensus/forensics")
+    assert r.status_code == 200
+    body = r.json()
+
+    guard = body["transition_guardrails"]
+    assert guard["reason_counts"]["group_treasury_spend_open"] == 1
+    assert guard["recent_events"][1]["tx_type"] == "TREASURY_SIGNERS_SET"
+    assert body["startup_posture"]["production_consensus_profile_hash"] == "profilehash-obs"
+    assert body["startup_posture"]["startup_clock_sanity_required"] is True
+
+
+def test_status_consensus_forensics_exposes_mempool_selection_last() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor()
+    client = TestClient(app)
+
+    r = client.get("/v1/status/consensus/forensics")
+    assert r.status_code == 200
+    body = r.json()
+
+    selection = body["mempool_selection_last"]
+    assert selection["policy"] == "canonical"
+    assert selection["selected_tx_ids"] == ["tx:1", "tx:2"]

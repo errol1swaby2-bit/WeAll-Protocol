@@ -11,9 +11,8 @@ from weall.runtime.helper_assembly_gate import (
 )
 from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_lane_journal import HelperLaneJournal
-from weall.runtime.helper_merge_admission import canonical_lane_plan_id
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
-from weall.runtime.parallel_execution import LanePlan
+from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
 
 
 Json = dict[str, Any]
@@ -31,6 +30,47 @@ def _sha256_hex(value: Any) -> str:
 
 def _lane_plan_map(lane_plans: Sequence[LanePlan]) -> dict[str, LanePlan]:
     return {str(plan.lane_id): plan for plan in tuple(lane_plans or ())}
+
+
+def _lane_plan_digest(lane_plans: Sequence[LanePlan]) -> tuple[dict[str, Any], ...]:
+    digest = []
+    for plan in sorted(tuple(lane_plans or ()), key=lambda item: str(item.lane_id)):
+        digest.append(
+            {
+                "lane_id": str(plan.lane_id),
+                "helper_id": str(plan.helper_id or ""),
+                "tx_ids": list(tuple(str(tx_id) for tx_id in tuple(plan.tx_ids or ()))),
+            }
+        )
+    return tuple(digest)
+
+
+def _journal_history_consistent(*, journal: HelperLaneJournal | None, plan_id: str, lane_plans: Sequence[LanePlan]) -> tuple[bool, str]:
+    if journal is None:
+        return True, ""
+    expected_lanes = _lane_plan_digest(lane_plans)
+    for record in journal.load():
+        if str(record.get("kind") or "") != "helper_plan":
+            continue
+        record_plan_id = str(record.get("plan_id") or "")
+        if record_plan_id and record_plan_id != str(plan_id or ""):
+            return False, "journal_history_plan_id_mismatch"
+        lanes = record.get("lanes")
+        if not isinstance(lanes, list):
+            return False, "journal_history_plan_shape_invalid"
+        normalized = []
+        for item in lanes:
+            if not isinstance(item, dict):
+                return False, "journal_history_plan_shape_invalid"
+            normalized.append({
+                "lane_id": str(item.get("lane_id") or ""),
+                "helper_id": str(item.get("helper_id") or ""),
+                "tx_ids": list(str(tx_id) for tx_id in list(item.get("tx_ids") or [])),
+            })
+        normalized.sort(key=lambda item: item["lane_id"])
+        if tuple(normalized) != expected_lanes:
+            return False, "journal_history_lane_plan_mismatch"
+    return True, ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,7 +121,6 @@ def build_helper_restart_snapshot(
         helper_timeout_ms=helper_timeout_ms,
     )
     resolutions = orchestrator.finalized_resolutions()
-    lane_plan_by_id = _lane_plan_map(lane_plans)
     journal_state = journal.load_resolution_state() if journal is not None else {}
     decision = decide_helper_block_assembly(
         profile=profile,
@@ -89,6 +128,24 @@ def build_helper_restart_snapshot(
         lane_results_by_id=lane_results_by_id,
         serial_equivalence_fn=serial_equivalence_fn,
     )
+    expected_plan_id = str(context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
+    journal_ok, journal_code = _journal_history_consistent(journal=journal, plan_id=expected_plan_id, lane_plans=lane_plans)
+    if not journal_ok:
+        return HelperRestartSnapshot(
+            unresolved_lanes=orchestrator.unresolved_lanes(),
+            finalized_modes=tuple(
+                (str(item.lane_id), str(item.mode))
+                for item in sorted(resolutions, key=lambda item: item.lane_id)
+            ),
+            assembly_mode="helper_assisted",
+            assembly_code=str(journal_code),
+            assembly_accepted=False,
+            receipts_root="",
+            merged_state_delta_hash="",
+            plan_id=expected_plan_id,
+            journal_plan_id=str(journal_state.get("plan_id") or ""),
+        )
+
     merge_decision = decision.merge_decision
     return HelperRestartSnapshot(
         unresolved_lanes=orchestrator.unresolved_lanes(),
@@ -103,6 +160,6 @@ def build_helper_restart_snapshot(
         merged_state_delta_hash=str(
             merge_decision.merged_state_delta_hash if merge_decision else ""
         ),
-        plan_id=canonical_lane_plan_id(lane_plan_by_id),
+        plan_id=expected_plan_id,
         journal_plan_id=str(journal_state.get("plan_id") or ""),
     )

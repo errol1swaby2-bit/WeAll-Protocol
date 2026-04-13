@@ -4,10 +4,11 @@ import logging
 import os
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
+from weall.runtime.runtime_authority import effective_bft_enabled, strict_runtime_authority_mode
 
 log = logging.getLogger("weall.block_loop")
 
@@ -217,7 +218,16 @@ class BlockProducerLoop:
         self._executor = executor
         self._mempool = mempool
         self._att_pool = attestation_pool
-        self._cfg = cfg or block_loop_config_from_env()
+        requested_cfg = cfg or block_loop_config_from_env()
+        if strict_runtime_authority_mode():
+            requested_cfg = replace(
+                requested_cfg,
+                bft_enabled=effective_bft_enabled(
+                    executor=self._executor,
+                    default=bool(getattr(requested_cfg, "bft_enabled", False)),
+                ),
+            )
+        self._cfg = requested_cfg
 
         self._lock = _FileLock(self._cfg.lock_path)
         self._t: threading.Thread | None = None

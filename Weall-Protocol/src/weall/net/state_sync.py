@@ -148,6 +148,7 @@ class StateSyncService:
     fallback_to_snapshot: bool = True
     require_trusted_anchor: bool = False
     enforce_finalized_anchor: bool = False
+    bft_enabled: bool | None = None
 
     def __post_init__(self) -> None:
         self.max_delta_blocks = max(
@@ -169,7 +170,7 @@ class StateSyncService:
         default_finalized = bool(self.enforce_finalized_anchor)
         if not default_finalized:
             mode = str(os.environ.get("WEALL_MODE") or "").strip().lower()
-            bft_enabled = _env_bool("WEALL_BFT_ENABLED", False)
+            bft_enabled = bool(self.bft_enabled) if self.bft_enabled is not None else _env_bool("WEALL_BFT_ENABLED", False)
             default_finalized = bool(mode == "prod" and bft_enabled)
         self.enforce_finalized_anchor = _finalized_anchor_env(default_finalized)
 

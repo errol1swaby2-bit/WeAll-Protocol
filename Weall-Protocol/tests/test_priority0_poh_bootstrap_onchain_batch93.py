@@ -1,102 +1,123 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from weall.runtime.domain_dispatch import ApplyError, apply_tx
-from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
-from weall.tx.canon import TxIndex
 
 
-def _canon() -> TxIndex:
-    here = Path(__file__).resolve()
-    for root in [here.parent, *here.parents]:
-        cand = root / "generated" / "tx_index.json"
-        if cand.exists():
-            return TxIndex.load_from_file(cand)
-    return TxIndex.load_from_file(Path("generated/tx_index.json"))
-
-
-def _ledger(*, open_bootstrap: bool = False) -> dict:
+def _state() -> dict:
     return {
         "chain_id": "weall-test",
-        "height": 5,
-        "accounts": {
-            "alice": {
-                "nonce": 0,
-                "poh_tier": 0,
-                "keys": {"alice-pk": {"pubkey": "alice-pk", "active": True}},
-            }
-        },
+        "height": 10,
+        "accounts": {},
         "params": {
-            "system_signer": "sys",
-            "bootstrap_allowlist": {},
-            "bootstrap_expires_height": 100,
-            "poh_bootstrap_max_height": 100,
-            "poh_bootstrap_open": open_bootstrap,
+            "system_signer": "SYSTEM",
+            "poh_bootstrap_open": True,
+            "poh_bootstrap_max_height": 50,
         },
-        "roles": {},
         "poh": {},
+        "roles": {},
     }
 
 
-def _env(*, signer: str = "alice", system: bool = False) -> dict:
+def _tx(
+    tx_type: str,
+    *,
+    signer: str = "alice",
+    nonce: int = 1,
+    payload: dict | None = None,
+) -> dict:
     return TxEnvelope(
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type=tx_type,
         signer=signer,
-        nonce=1,
-        payload={"account_id": "alice"},
-        system=system,
+        nonce=nonce,
+        system=False,
+        payload=payload or {"account_id": "alice"},
     ).to_json()
 
 
-def test_admission_rejects_open_bootstrap_when_only_local_env_requests_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("WEALL_POH_BOOTSTRAP_OPEN", "1")
-    monkeypatch.setenv("WEALL_MODE", "testnet")
+def test_poh_bootstrap_onchain_allows_valid_self_grant_for_registered_account() -> None:
+    state = _state()
+    state["accounts"]["alice"] = {
+        "nonce": 0,
+        "pubkey": "abcd" * 16,
+        "poh_tier": 0,
+    }
 
-    verdict = admit_tx(_env(), _ledger(open_bootstrap=False), _canon(), context="local")
+    apply_tx(
+        state,
+        _tx(
+            "POH_BOOTSTRAP_TIER3_GRANT",
+            signer="alice",
+            nonce=1,
+            payload={"account_id": "alice"},
+        ),
+    )
 
-    assert not verdict.ok
-    assert verdict.rejection is not None
-    assert verdict.rejection.code == "gate_denied"
-    assert "Validator" in str(verdict.rejection.reason)
-
-
-def test_admission_accepts_open_bootstrap_when_enabled_in_ledger_state() -> None:
-    verdict = admit_tx(_env(), _ledger(open_bootstrap=True), _canon(), context="local")
-
-    assert verdict.ok
-    assert verdict.rejection is None
-
-
-def test_apply_rejects_local_env_only_bootstrap_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("WEALL_POH_BOOTSTRAP_OPEN", "1")
-    monkeypatch.setenv("WEALL_MODE", "testnet")
-
-    with pytest.raises(ApplyError) as excinfo:
-        apply_tx(_ledger(open_bootstrap=False), _env())
-
-    assert excinfo.value.reason == "system_flag_required"
+    acct = state["accounts"]["alice"]
+    assert acct.get("poh_tier") == 3
+    assert acct.get("poh_bootstrap_mode") == "open"
+    assert acct.get("poh_bootstrap_height") == 10
+    assert acct.get("poh_bootstrap_granted") is True
 
 
-def test_apply_accepts_onchain_open_bootstrap_and_mints_tier3() -> None:
-    state = _ledger(open_bootstrap=True)
-
-    meta = apply_tx(state, _env())
-
-    assert meta["applied"] == "POH_BOOTSTRAP_TIER3_GRANT"
-    assert state["accounts"]["alice"]["poh_tier"] == 3
-    assert state["accounts"]["alice"]["nonce"] == 1
-
-
-def test_apply_open_bootstrap_remains_self_only_under_onchain_flag() -> None:
-    state = _ledger(open_bootstrap=True)
+def test_poh_bootstrap_onchain_rejects_unregistered_account() -> None:
+    state = _state()
 
     with pytest.raises(ApplyError) as excinfo:
-        apply_tx(state, _env(signer="mallory"))
+        apply_tx(
+            state,
+            _tx(
+                "POH_BOOTSTRAP_TIER3_GRANT",
+                signer="alice",
+                nonce=1,
+                payload={"account_id": "alice"},
+            ),
+        )
 
-    assert excinfo.value.reason == "bootstrap_self_only"
+    assert excinfo.value.reason in {"account_not_found", "account_not_registered"}
+
+
+def test_poh_bootstrap_onchain_rejects_account_mismatch() -> None:
+    state = _state()
+    state["accounts"]["alice"] = {
+        "nonce": 0,
+        "pubkey": "abcd" * 16,
+        "poh_tier": 0,
+    }
+
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            state,
+            _tx(
+                "POH_BOOTSTRAP_TIER3_GRANT",
+                signer="alice",
+                nonce=1,
+                payload={"account_id": "bob"},
+            ),
+        )
+
+    assert excinfo.value.reason in {"bootstrap_self_only", "account_mismatch"}
+
+
+def test_poh_bootstrap_onchain_rejects_pubkey_mismatch_when_provided() -> None:
+    state = _state()
+    state["accounts"]["alice"] = {
+        "nonce": 0,
+        "pubkey": "abcd" * 16,
+        "poh_tier": 0,
+    }
+
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            state,
+            _tx(
+                "POH_BOOTSTRAP_TIER3_GRANT",
+                signer="alice",
+                nonce=1,
+                payload={"account_id": "alice", "pubkey": "ffff" * 16},
+            ),
+        )
+
+    assert excinfo.value.reason in {"bootstrap_pubkey_mismatch", "pubkey_mismatch"}

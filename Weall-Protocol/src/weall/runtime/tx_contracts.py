@@ -97,7 +97,6 @@ GOVERNANCE_TX_TYPES: frozenset[str] = frozenset(
         "GOV_PROPOSAL_CREATE",
         "GOV_PROPOSAL_EDIT",
         "GOV_PROPOSAL_WITHDRAW",
-        "GOV_DELEGATION_SET",
         "GOV_VOTE_CAST",
         "GOV_VOTE_REVOKE",
         "GOV_VOTING_CLOSE",

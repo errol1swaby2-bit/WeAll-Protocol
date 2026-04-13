@@ -16,6 +16,7 @@ Json = dict[str, Any]
 @dataclass(frozen=True, slots=True)
 class HelperStartupConfig:
     helper_mode_requested: bool = False
+    helper_authority_ok: bool = True
     chain_id_ok: bool = True
     protocol_profile_ok: bool = True
     validator_set_ok: bool = True
@@ -72,6 +73,15 @@ def evaluate_helper_startup(
             startup_allowed=False,
             startup_mode="blocked",
             code=str(decision.code),
+            helper_mode_active=False,
+            helper_release_score=int(decision.release_score),
+        )
+
+    if bool(config.helper_mode_requested) and not bool(config.helper_authority_ok):
+        return HelperStartupStatus(
+            startup_allowed=False,
+            startup_mode="blocked",
+            code="helper_authority_not_ready",
             helper_mode_active=False,
             helper_release_score=int(decision.release_score),
         )

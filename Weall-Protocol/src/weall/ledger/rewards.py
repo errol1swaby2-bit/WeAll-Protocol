@@ -62,7 +62,7 @@ def _ensure_account(state: Json, account_id: str) -> Json:
             "poh_tier": 0,
             "banned": False,
             "locked": False,
-            "reputation": 0.0,
+            "reputation": "0",
             "balance": 0,
             "keys": [],
         }

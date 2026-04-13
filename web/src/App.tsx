@@ -3,11 +3,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import AppShell from "./components/AppShell";
 import { getKeypair, getSession } from "./auth/session";
 import { applySettingsToDocument, loadSettings } from "./lib/settings";
-import { matchRoute, nav } from "./lib/router";
+import { useAppConfig } from "./lib/config";
+import { maybeApplyDevBootstrap } from "./lib/devBootstrap";
+import { currentHashPath, getRouteMeta, isPublicRoute, matchRoute, nav, type RouteMatch } from "./lib/router";
 
-import Home from "./pages/Home";
+import HomeDashboard from "./pages/HomeDashboard";
 import Feed from "./pages/Feed";
-import PohPage from "./pages/PohPage";
+import Poh from "./pages/Poh";
 import JurorDashboard from "./pages/JurorDashboard";
 import Tools from "./pages/Tools";
 import Groups from "./pages/Groups";
@@ -16,48 +18,73 @@ import Proposal from "./pages/Proposal";
 import Account from "./pages/Account";
 import Content from "./pages/Content";
 import Thread from "./pages/Thread";
-import CreatePostPage from "./pages/CreatePostPage";
-import Settings from "./pages/Settings";
+import Post from "./pages/Post";
+import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
+import SessionDevicesPage from "./pages/SessionDevicesPage";
+import TransactionsPage from "./pages/TransactionsPage";
 
-function getHashPath(): string {
-  const raw = window.location.hash || "#/login";
-  const p = raw.startsWith("#") ? raw.slice(1) : raw;
-  return p.startsWith("/") ? p : `/${p}`;
-}
-
-function isPublicRoute(path: string): boolean {
-  return (
-    path === "/login" ||
-    path === "/feed" ||
-    path === "/groups" ||
-    path === "/proposals" ||
-    path === "/settings" ||
-    path.startsWith("/groups/") ||
-    path.startsWith("/proposal/") ||
-    path.startsWith("/account/") ||
-    path.startsWith("/content/") ||
-    path.startsWith("/thread/")
-  );
+function renderPage(route: RouteMatch, readyForApp: boolean): JSX.Element {
+  switch (route.path) {
+    case "/login":
+      return <LoginPage />;
+    case "/home":
+      return readyForApp ? <HomeDashboard /> : <LoginPage />;
+    case "/feed":
+      return <Feed />;
+    case "/post":
+      return readyForApp ? <Post /> : <LoginPage />;
+    case "/poh":
+      return readyForApp ? <Poh /> : <LoginPage />;
+    case "/juror":
+      return readyForApp ? <JurorDashboard /> : <LoginPage />;
+    case "/groups":
+      return <Groups />;
+    case "/groups/:id":
+      return <Groups groupId={route.id} />;
+    case "/proposals":
+      return <Proposals />;
+    case "/proposal/:id":
+      return <Proposal id={route.id} />;
+    case "/tools":
+      return readyForApp ? <Tools /> : <LoginPage />;
+    case "/settings":
+      return <SettingsPage />;
+    case "/session":
+      return readyForApp ? <SessionDevicesPage /> : <LoginPage />;
+    case "/transactions":
+      return readyForApp ? <TransactionsPage /> : <LoginPage />;
+    case "/account/:account":
+      return <Account account={route.account} />;
+    case "/content/:id":
+      return <Content id={route.id} />;
+    case "/thread/:id":
+      return <Thread id={route.id} />;
+    default:
+      return readyForApp ? <HomeDashboard /> : <Feed />;
+  }
 }
 
 export default function App(): JSX.Element {
-  const [path, setPath] = useState<string>(() => getHashPath());
+  const config = useAppConfig();
+  const [path, setPath] = useState<string>(() => currentHashPath());
   const [settingsVersion, setSettingsVersion] = useState<number>(0);
+  const [authVersion, setAuthVersion] = useState<number>(0);
 
-  const session = getSession();
+  const session = useMemo(() => getSession(), [authVersion, path]);
   const account = session?.account || "";
-  const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
+  const keypair = useMemo(() => (account ? getKeypair(account) : null), [account, authVersion]);
   const readyForApp = !!session?.account && !!keypair?.secretKeyB64;
 
   useEffect(() => {
-    const onHash = () => setPath(getHashPath());
+    const onHash = () => setPath(currentHashPath());
     const onStorage = (ev: StorageEvent) => {
       if (ev.key === "weall_client_settings_v2") {
-        setSettingsVersion((v) => v + 1);
+        setSettingsVersion((v: number) => v + 1);
       }
-      if (ev.key === "weall_session_v1") {
-        setPath(getHashPath());
+      if (ev.key === "weall_session_v1" || ev.key === "weall.account") {
+        setAuthVersion((v: number) => v + 1);
+        setPath(currentHashPath());
       }
     };
     window.addEventListener("hashchange", onHash);
@@ -73,7 +100,43 @@ export default function App(): JSX.Element {
   }, [settingsVersion]);
 
   useEffect(() => {
-    const current = getHashPath();
+    let cancelled = false;
+
+    const runBootstrapSync = async () => {
+      const applied = await maybeApplyDevBootstrap(config);
+      if (applied && !cancelled) {
+        setAuthVersion((v: number) => v + 1);
+        setPath(currentHashPath());
+      }
+    };
+
+    void runBootstrapSync();
+
+    if (!config.enableDevBootstrap) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const onFocus = () => {
+      void runBootstrapSync();
+    };
+    const onVisibility = () => {
+      if (!document.hidden) void runBootstrapSync();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [config]);
+
+  useEffect(() => {
+    const current = currentHashPath();
     if (!readyForApp && !isPublicRoute(current)) {
       nav("/login");
       return;
@@ -83,60 +146,16 @@ export default function App(): JSX.Element {
     }
   }, [readyForApp]);
 
-  const r = matchRoute(path);
+  const route = matchRoute(path);
+  const meta = getRouteMeta(route);
 
-  if (r.path === "/login") {
+  if (route.path === "/login") {
     return <LoginPage />;
   }
 
-  let page: JSX.Element;
-  switch (r.path) {
-    case "/home":
-      page = readyForApp ? <Home /> : <LoginPage />;
-      break;
-    case "/feed":
-      page = <Feed />;
-      break;
-    case "/post":
-      page = readyForApp ? <CreatePostPage /> : <LoginPage />;
-      break;
-    case "/poh":
-      page = readyForApp ? <PohPage /> : <LoginPage />;
-      break;
-    case "/juror":
-      page = readyForApp ? <JurorDashboard /> : <LoginPage />;
-      break;
-    case "/groups":
-      page = <Groups />;
-      break;
-    case "/groups/:id":
-      page = <Groups groupId={r.id} />;
-      break;
-    case "/proposals":
-      page = <Proposals />;
-      break;
-    case "/proposal/:id":
-      page = <Proposal id={r.id} />;
-      break;
-    case "/tools":
-      page = readyForApp ? <Tools /> : <LoginPage />;
-      break;
-    case "/settings":
-      page = <Settings />;
-      break;
-    case "/account/:account":
-      page = <Account account={r.account} />;
-      break;
-    case "/content/:id":
-      page = <Content id={r.id} />;
-      break;
-    case "/thread/:id":
-      page = <Thread id={r.id} />;
-      break;
-    default:
-      page = readyForApp ? <Home /> : <Feed />;
-      break;
-  }
-
-  return <AppShell>{page}</AppShell>;
+  return (
+    <AppShell section={meta.section} label={meta.label} description={meta.description}>
+      {renderPage(route, readyForApp)}
+    </AppShell>
+  );
 }

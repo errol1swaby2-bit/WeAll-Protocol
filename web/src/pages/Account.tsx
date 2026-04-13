@@ -204,6 +204,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const requirements = summarizeNextRequirements(snapshot);
 
+  const localOwnership = isSelf
+    ? localKeypair
+      ? "This browser holds the local signer for this account."
+      : "This is your account, but this browser does not currently hold the signer."
+    : "You are viewing this account publicly from outside its local session.";
+  const accountPosture = !registeredState
+    ? "Unregistered"
+    : banned
+      ? "Banned"
+      : locked
+        ? "Locked"
+        : "Active";
+  const nextUnlock = snapshot.next.label || "No immediate unlock action";
+
   async function runOperatorTx(kind: "register" | "enroll" | "activate") {
     if (!isSelf) return;
 
@@ -341,6 +355,41 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={load} onDismiss={() => setErr(null)} />
+
+      <section className="summaryCardGrid">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Account posture</div>
+          <div className="summaryCardValue">{accountPosture}</div>
+          <div className="summaryCardText">
+            {tone.note} Public account view and authoritative standing stay separate from local device state.
+          </div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Next unlock</div>
+          <div className="summaryCardValue">{nextUnlock}</div>
+          <div className="summaryCardText">
+            {snapshot.next.route
+              ? "Use the primary action above to continue the current protocol progression step."
+              : "This account currently has no required onboarding follow-up from this client."}
+          </div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Local ownership</div>
+          <div className="summaryCardValue">{isSelf ? "This device session" : "Public view"}</div>
+          <div className="summaryCardText">{localOwnership}</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Node operator prep</div>
+          <div className="summaryCardValue">{operatorReady ? "Ready" : canServe ? "Almost ready" : "Locked"}</div>
+          <div className="summaryCardText">
+            {operatorReady
+              ? "A matching node device is already present for the local signer."
+              : canServe
+                ? "Tier and account posture are sufficient, but the node device record or signer alignment is still incomplete."
+                : "Tier, account posture, or signer prerequisites are still blocking operator setup."}
+          </div>
+        </article>
+      </section>
 
       <section className="card">
         <div className="cardBody formStack">

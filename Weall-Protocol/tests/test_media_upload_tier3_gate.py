@@ -111,3 +111,25 @@ def test_media_upload_allows_tier3_user(monkeypatch) -> None:
     assert body["ok"] is True
     assert body["cid"] == "QmYwAPJzv5CZsnAzt8auVZRnGzr1rRkNvztNFVQVw1Gc7Y"
     assert body["size"] == 11
+
+
+def test_media_upload_rejects_missing_session_with_structured_403() -> None:
+    """
+    Missing session headers must fail as a structured 403 rather than an unhandled 500.
+    This protects the dev web surface when the browser has a stale or missing
+    backend-issued session key.
+    """
+    app = create_app(boot_runtime=False)
+    app.state.executor = _FakeExecutor(tier=3)
+
+    client = TestClient(app)
+
+    files = {
+        "file": ("hello.txt", BytesIO(b"hello world"), "text/plain"),
+    }
+    r = client.post("/v1/media/upload", files=files)
+
+    assert r.status_code == 403
+    body = r.json()
+    assert body["ok"] is False
+    assert body["error"]["code"] == "session_missing"

@@ -12,7 +12,7 @@ TX_INDEX = ROOT / "generated" / "tx_index.json"
 def test_every_canon_tx_has_helper_proof_status_batch4() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     summary = contract_map["summary"]
-    assert summary["tx_count"] == 214
+    assert summary["tx_count"] == len(contract_map["contracts"])
     assert summary["duplicate_name_count"] == 0
     for item in contract_map["contracts"]:
         assert item["proof_status"]

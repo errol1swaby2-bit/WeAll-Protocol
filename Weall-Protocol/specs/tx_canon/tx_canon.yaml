@@ -571,13 +571,6 @@ txs:
   gate: Tier3+
   context: mempool
   receipt_only: false
-- id: 405
-  name: GOV_DELEGATION_SET
-  domain: Governance
-  origin: USER
-  gate: Tier3+
-  context: mempool
-  receipt_only: false
 - id: 406
   name: GOV_QUORUM_SET
   domain: Governance

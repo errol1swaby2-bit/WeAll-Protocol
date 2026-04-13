@@ -58,7 +58,7 @@ def test_prod_build_block_candidate_fails_closed_on_system_emitter_error(
     assert new_state is None
     assert applied_ids == []
     assert invalid_ids == []
-    assert err == "system_emitter_post_failed:RuntimeError"
+    assert err == "system_emitter_pre_failed:RuntimeError"
 
 
 def test_prod_apply_block_fails_closed_on_poh_scheduler_error(

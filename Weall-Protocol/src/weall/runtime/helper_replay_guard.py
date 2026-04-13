@@ -13,6 +13,13 @@ from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrato
 Json = dict[str, Any]
 
 
+def _expected_helper_id(orchestrator: HelperProposalOrchestrator | None, lane_id: str) -> str:
+    if orchestrator is None:
+        return ""
+    lane = orchestrator.lane_plans.get(str(lane_id or ""))
+    return str(getattr(lane, "helper_id", "") or "") if lane is not None else ""
+
+
 def _canon_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -137,6 +144,11 @@ class HelperReplayGuard:
                     continue
                 if self.plan_id and str(cert.plan_id or "") not in {"", self.plan_id}:
                     continue
+                if self.orchestrator is not None and lane_id not in self.orchestrator.lane_plans:
+                    continue
+                expected_helper_id = _expected_helper_id(self.orchestrator, lane_id)
+                if expected_helper_id and str(cert.helper_id or "") not in {"", expected_helper_id}:
+                    continue
                 self._resolved_fingerprints[lane_id] = _certificate_fingerprint(cert)
                 self._resolved_modes[lane_id] = "helper"
             elif kind == "fallback_finalized":
@@ -147,8 +159,13 @@ class HelperReplayGuard:
                     continue
                 if self.plan_id and plan_id and plan_id != self.plan_id:
                     continue
+                if self.orchestrator is not None and lane_id not in self.orchestrator.lane_plans:
+                    continue
+                expected_helper_id = _expected_helper_id(self.orchestrator, lane_id)
+                if expected_helper_id and helper_id and helper_id != expected_helper_id:
+                    continue
                 self._resolved_fingerprints[lane_id] = _sha256_hex(
-                    {"lane_id": lane_id, "helper_id": helper_id, "mode": "fallback", "plan_id": plan_id}
+                    {"lane_id": lane_id, "helper_id": helper_id or expected_helper_id, "mode": "fallback", "plan_id": plan_id}
                 )
                 self._resolved_modes[lane_id] = "fallback"
 

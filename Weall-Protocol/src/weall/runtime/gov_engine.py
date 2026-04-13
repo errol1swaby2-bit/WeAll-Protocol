@@ -42,69 +42,33 @@ def _count_votes(prop: Json) -> dict[str, int]:
     return {"yes": yes, "no": no, "abstain": abstain}
 
 
-def _count_votes_with_delegation(
+def _count_votes_direct_only(
     prop: Json,
     *,
-    delegations: dict[str, Any] | None = None,
     votes_key: str = "votes",
 ) -> dict[str, int]:
-    """Count votes for a proposal, applying delegation in a deterministic way.
+    """Count direct votes only.
 
-    Rules:
-      - A signer who voted directly on this proposal ALWAYS counts their own vote.
-      - If a signer did not vote directly but has a delegation mapping, they inherit
-        their delegatee's vote *iff* the delegatee voted directly on this proposal.
-      - Each signer counts at most once.
-
-    NOTE: This does not attempt to count "all eligible PoH" (we do not have that
-    set here). It counts only direct votes + delegated weight where the delegatee
-    has cast a direct vote.
+    Civic voting power is intentionally non-delegable. A signer only counts when
+    they cast a direct vote on the proposal itself.
     """
 
     votes = prop.get(votes_key)
     if not isinstance(votes, dict):
         votes = {}
 
-    delmap = delegations if isinstance(delegations, dict) else {}
+    yes = no = abstain = 0
 
-    # Normalize choices for direct voters.
-    direct_choice: dict[str, str] = {}
-    for signer, v in votes.items():
+    for _, v in sorted(votes.items(), key=lambda item: str(item[0])):
         if not isinstance(v, dict):
             continue
         choice = str(v.get("vote") or "").strip().lower()
-        if choice:
-            direct_choice[str(signer)] = choice
-
-    yes = no = abstain = 0
-
-    def _add(choice: str) -> None:
-        nonlocal yes, no, abstain
-        c = (choice or "").strip().lower()
-        if c == "yes":
+        if choice == "yes":
             yes += 1
-        elif c == "no":
+        elif choice == "no":
             no += 1
-        else:
+        elif choice:
             abstain += 1
-
-    # 1) Count direct votes.
-    for _, choice in direct_choice.items():
-        _add(choice)
-
-    # 2) Count delegated weight for delegators who did not vote directly.
-    # Deterministic ordering.
-    for delegator in sorted(delmap.keys(), key=lambda x: str(x)):
-        delegator_s = str(delegator)
-        if delegator_s in direct_choice:
-            continue
-        delegatee = delmap.get(delegator)
-        if delegatee is None:
-            continue
-        delegatee_s = str(delegatee)
-        choice = direct_choice.get(delegatee_s)
-        if choice:
-            _add(choice)
 
     return {"yes": yes, "no": no, "abstain": abstain}
 
@@ -215,9 +179,6 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
 
     enq = 0
 
-    delegations = state.get("gov_delegations")
-    delegations_dict = delegations if isinstance(delegations, dict) else {}
-
     for pid, pr in list(props.items()):
         if not isinstance(pr, dict):
             continue
@@ -268,8 +229,8 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
             poll_period = _poll_period_blocks(pr)
             poll_close_h = int(poll_h) + int(poll_period)
             if int(next_height) >= int(poll_close_h):
-                tally = _count_votes_with_delegation(
-                    pr, delegations=delegations_dict, votes_key="poll_votes"
+                tally = _count_votes_direct_only(
+                    pr, votes_key="poll_votes"
                 )
                 yes = int(tally["yes"])
                 no = int(tally["no"])
@@ -364,8 +325,8 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
                 )
                 enq += 1
 
-                tally = _count_votes_with_delegation(
-                    pr, delegations=delegations_dict, votes_key="votes"
+                tally = _count_votes_direct_only(
+                    pr, votes_key="votes"
                 )
                 yes = int(tally["yes"])
                 no = int(tally["no"])

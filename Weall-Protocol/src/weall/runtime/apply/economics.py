@@ -252,7 +252,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
             "banned": False,
             "locked": False,
             "balance": 0,
-            "reputation": 0.0,
+            "reputation": "0",
             "keys": [],
         }
 

@@ -13,9 +13,7 @@ import {
 import { normalizeAccount, signDetachedB64 } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
-import {
-  getTier2VideoUploadEnabled,
-} from "../lib/capabilities";
+import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 
@@ -52,6 +50,17 @@ type RelayToken = {
     relay_pubkey?: string;
   };
   signature?: string;
+};
+
+type StageTone = "done" | "active" | "locked";
+
+type TimelineStep = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  tone: StageTone;
+  summary: string;
+  detail: string;
 };
 
 function canonicalEmailReceiptMessage(receipt: Record<string, unknown>): Uint8Array {
@@ -95,7 +104,7 @@ function prettyErr(e: any): { msg: string; details: any } {
   return { msg, details };
 }
 
-function statusTone(status: string): "done" | "active" | "locked" {
+function statusTone(status: string): StageTone {
   const s = String(status || "").toLowerCase();
   if (["complete", "completed", "finalized", "passed", "approved", "active"].includes(s)) return "done";
   if (["open", "pending", "review", "assigned", "scheduled", "accepted", "in_progress"].includes(s)) return "active";
@@ -129,6 +138,44 @@ function JsonDetails({ title, value }: { title: string; value: any }): JSX.Eleme
       <summary style={{ cursor: "pointer" }}>{title}</summary>
       <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{JSON.stringify(value, null, 2)}</pre>
     </details>
+  );
+}
+
+function StageSummaryCard({
+  eyebrow,
+  title,
+  tone,
+  summary,
+  detail,
+}: TimelineStep): JSX.Element {
+  return (
+    <div className={`stageSummaryCard stageTone-${tone}`}>
+      <div className="stageSummaryTop">
+        <div>
+          <div className="eyebrow">{eyebrow}</div>
+          <h3 className="stageSummaryTitle">{title}</h3>
+        </div>
+        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>
+          {tone === "done" ? "Ready" : tone === "active" ? "Current" : "Waiting"}
+        </span>
+      </div>
+      <div className="stageSummaryText">{summary}</div>
+      <div className="stageSummaryHint">{detail}</div>
+    </div>
+  );
+}
+
+function CaseCard({ item }: { item: any }): JSX.Element {
+  const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
+  const tone = statusTone(String(item?.status || ""));
+  return (
+    <div className="infoCard compact">
+      <div className="infoCardHeader">
+        <strong className="mono">{String(item?.case_id || "case")}</strong>
+        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>{String(item?.status || "unknown")}</span>
+      </div>
+      <div className="infoCardText">opened {created}</div>
+    </div>
   );
 }
 
@@ -240,9 +287,9 @@ export default function PohPage(): JSX.Element {
   const locked = snapshot.locked;
   const registered = snapshot.registered;
 
-  const tier1Status: "done" | "active" | "locked" = tier >= 1 ? "done" : "active";
-  const tier2Status: "done" | "active" | "locked" = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
-  const tier3Status: "done" | "active" | "locked" = tier >= 3 ? "done" : tier >= 2 ? "active" : "locked";
+  const tier1Status: StageTone = tier >= 1 ? "done" : "active";
+  const tier2Status: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
+  const tier3Status: StageTone = tier >= 3 ? "done" : tier >= 2 ? "active" : "locked";
 
   async function registerAccount(): Promise<void> {
     if (!acct) {
@@ -566,62 +613,105 @@ export default function PohPage(): JSX.Element {
     }
   }
 
+  const currentStage = useMemo<string>(() => {
+    if (!acct) return "Connect or restore a device session first.";
+    if (!hasLocalKeypair) return "Create or restore the local signer tied to this account.";
+    if (!registered) return "Register the account on-chain before starting PoH actions.";
+    if (tier < 1) return "Complete Tier 1 email verification to unlock interaction rights.";
+    if (tier < 2) return tier2VideoUploadEnabled ? "Upload video evidence and open the Tier 2 review request." : "Wait for a deployment with Tier 2 self-serve intake enabled.";
+    if (tier < 3) return "Open the Tier 3 live-session request and watch for assigned sessions.";
+    return "Tier 3 is complete. This account is ready for steward-class participation.";
+  }, [acct, hasLocalKeypair, registered, tier, tier2VideoUploadEnabled]);
+
+  const stageCards: TimelineStep[] = useMemo(() => [
+    {
+      id: "device",
+      eyebrow: "Stage 1",
+      title: "Device and session readiness",
+      tone: !acct || !hasLocalKeypair || !sessionKeyPresent ? "active" : "done",
+      summary: !acct
+        ? "No current browser session is loaded."
+        : hasLocalKeypair
+          ? sessionKeyPresent
+            ? "This device can sign and has an API session key."
+            : "This device can sign, but the API session key is still missing."
+          : "The account is known, but the local signer is missing on this device.",
+      detail: "Local signer and device session are local prerequisites. They are not the same thing as on-chain account state.",
+    },
+    {
+      id: "tier1",
+      eyebrow: "Stage 2",
+      title: "Tier 1 verified entry",
+      tone: tier1Status,
+      summary: tier >= 1 ? "Tier 1 is complete and basic interaction rights are unlocked." : "Register, begin email verification, then confirm the receipt path.",
+      detail: "Tier 1 combines local preparation, relay/oracle verification, and an on-chain submission path. Do not treat those as the same step.",
+    },
+    {
+      id: "tier2",
+      eyebrow: "Stage 3",
+      title: "Tier 2 participant review",
+      tone: tier2Status,
+      summary: tier >= 2 ? "Tier 2 is complete and participant access is active." : tier >= 1 ? "Tier 2 can start once evidence upload and review intake are available." : "Tier 2 remains locked until Tier 1 is complete.",
+      detail: "Tier 2 is a review workflow, not a single form submission. Evidence upload, request opening, and juror review are distinct events.",
+    },
+    {
+      id: "tier3",
+      eyebrow: "Stage 4",
+      title: "Tier 3 steward verification",
+      tone: tier3Status,
+      summary: tier >= 3 ? "Tier 3 is complete and full steward-class participation is available." : tier >= 2 ? "Open the Tier 3 request, then watch for live-session assignment." : "Tier 3 stays locked until Tier 2 is finalized.",
+      detail: "Tier 3 depends on scheduled live review state from the backend and network operators. The UI should show request state, not guess finality.",
+    },
+  ], [acct, hasLocalKeypair, sessionKeyPresent, tier, tier1Status, tier2Status, tier3Status]);
+
   return (
     <div className="pageStack">
       <section className="card heroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Identity and Proof of Humanity</div>
-              <h1 className="heroTitle heroTitleSm">Move from device setup into verified participation</h1>
+              <div className="eyebrow">Proof of Humanity lifecycle</div>
+              <h1 className="heroTitle heroTitleSm">Move deliberately from local setup into authoritative eligibility</h1>
               <p className="heroText">
-                This page is the canonical onboarding hub for account readiness, Tier 1 email
-                verification, Tier 2 request intake when enabled on the deployment, and Tier 3 case
-                visibility once the network has assigned a live review session.
+                This surface now treats PoH as a staged protocol workflow instead of a bag of forms. It separates local device readiness,
+                backend-assisted verification, on-chain registration state, and review-driven tier progression so the UI does not blur what is merely prepared,
+                what has been submitted, and what the network has actually finalized.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Current identity status</div>
+              <div className="heroInfoTitle">Current PoH posture</div>
               <div className="heroInfoList">
-                <span className={`statusPill ${!!acct ? "ok" : ""}`}>{acct ? "Account loaded" : "No session"}</span>
-                <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>
-                  {hasLocalKeypair ? "Local signing ready" : "No local signer"}
-                </span>
-                <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>
-                  {sessionKeyPresent ? "Session key present" : "Session key missing"}
-                </span>
-                <span className={`statusPill ${registered ? "ok" : ""}`}>
-                  {registered ? "Registered" : "Registration needed"}
-                </span>
-                <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>PoH tier {tier}</span>
+                <span className={`statusPill ${!!acct ? "ok" : ""}`}>{acct ? "Session loaded" : "No session"}</span>
+                <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Local signer ready" : "Local signer missing"}</span>
+                <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "API session ready" : "API session missing"}</span>
+                <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "On-chain account registered" : "Registration needed"}</span>
+                <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>Tier {tier}</span>
+              </div>
+              <div className="calloutInfo">
+                <strong>Next unlock:</strong> {currentStage}
               </div>
             </div>
           </div>
 
-          <div className="statsGrid">
+          <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Account</span>
-              <span className="statValue mono">{acct || "Not signed in"}</span>
+              <span className="statLabel">Local device</span>
+              <span className="statValue">{hasLocalKeypair ? "Can sign" : "Cannot sign yet"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">PoH tier</span>
-              <span className="statValue">{tier}</span>
+              <span className="statLabel">On-chain standing</span>
+              <span className="statValue">{registered ? `Registered · Tier ${tier}` : "Not registered"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Interaction access</span>
-              <span className="statValue">{tier >= 1 ? "Like and comment" : "Verify email first"}</span>
-            </div>
-            <div className="statCard">
-              <span className="statLabel">Posting access</span>
+              <span className="statLabel">Posting rights</span>
               <span className="statValue">{snapshot.canPost ? "Unlocked" : "Still gated"}</span>
             </div>
           </div>
 
           {(banned || locked) && (
             <div className="calloutDanger">
-              This account is currently {banned ? "banned" : "locked"}. Some actions will remain
-              unavailable until the account is restored through protocol rules.
+              This account is currently {banned ? "banned" : "locked"}. Protocol recovery or reinstatement must happen before normal PoH progression can continue.
             </div>
           )}
         </div>
@@ -642,33 +732,28 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Deployment capability</div>
-                <h2 className="cardTitle">What this client expects from the stack</h2>
+                <div className="eyebrow">Readiness model</div>
+                <h2 className="cardTitle">What this page separates on purpose</h2>
               </div>
             </div>
-
-            <div className="progressList">
-              <div className="progressRow">
-                <span>Tier 1 email verification</span>
-                <span className="statusPill ok">Live</span>
+            <div className="infoGrid">
+              <div className="infoCard compact">
+                <div className="infoCardHeader"><strong>Local device state</strong></div>
+                <div className="infoCardText">Keypair presence and browser session are local facts, not consensus facts.</div>
               </div>
-              <div className="progressRow">
-                <span>Tier 2 self-serve video intake</span>
-                <span className={`statusPill ${tier2VideoUploadEnabled ? "ok" : ""}`}>
-                  {tier2VideoUploadEnabled ? "Live" : "Unavailable here"}
-                </span>
+              <div className="infoCard compact">
+                <div className="infoCardHeader"><strong>Backend assistance</strong></div>
+                <div className="infoCardText">Email verification and case/session discovery depend on backend-assisted flows.</div>
               </div>
-              <div className="progressRow">
-                <span>Tier 3 request submit</span>
-                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                  {tier >= 2 ? "Available after Tier 2" : "Locked until Tier 2"}
-                </span>
+              <div className="infoCard compact">
+                <div className="infoCardHeader"><strong>On-chain standing</strong></div>
+                <div className="infoCardText">Registration and finalized PoH tiers are authoritative chain state.</div>
+              </div>
+              <div className="infoCard compact">
+                <div className="infoCardHeader"><strong>Review workflow</strong></div>
+                <div className="infoCardText">Tier 2 and Tier 3 are review processes, not instant unlock buttons.</div>
               </div>
             </div>
-            <p className="cardDesc">
-              Founder-only bootstrap shortcuts are intentionally removed from this product surface so
-              testers only see real user paths.
-            </p>
           </div>
         </article>
 
@@ -676,8 +761,8 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Readiness</div>
-                <h2 className="cardTitle">Backend-aligned onboarding checklist</h2>
+                <div className="eyebrow">Backend-aligned checklist</div>
+                <h2 className="cardTitle">Current requirements and blockers</h2>
               </div>
             </div>
 
@@ -685,9 +770,7 @@ export default function PohPage(): JSX.Element {
               {requirements.map((item) => (
                 <div key={item.label} className="infoCard compact">
                   <div className="infoCardHeader">
-                    <span className={`statusPill ${item.ok ? "ok" : ""}`}>
-                      {item.ok ? "Ready" : "Needed"}
-                    </span>
+                    <span className={`statusPill ${item.ok ? "ok" : ""}`}>{item.ok ? "Ready" : "Needed"}</span>
                     <strong>{item.label}</strong>
                   </div>
                   <div className="infoCardText">{item.hint}</div>
@@ -696,6 +779,12 @@ export default function PohPage(): JSX.Element {
             </div>
           </div>
         </article>
+      </section>
+
+      <section className="stageSummaryGrid">
+        {stageCards.map((step) => (
+          <StageSummaryCard key={step.id} {...step} />
+        ))}
       </section>
 
       <section className="grid3">
@@ -707,32 +796,34 @@ export default function PohPage(): JSX.Element {
         >
           <div className="milestoneList">
             <span className="miniTag">Register account</span>
-            <span className="miniTag">Email begin + confirm</span>
-            <span className="miniTag">Like/comment access</span>
+            <span className="miniTag">Begin verification</span>
+            <span className="miniTag">Confirm receipt path</span>
           </div>
         </TierCard>
 
         <TierCard
           tier={2}
-          title="Participant access"
+          title="Participant review"
           status={tier2Status}
-          description="Tier 2 adds video evidence, juror review, and unlocks broader participation."
+          description="Tier 2 adds evidence submission and review-driven participant access."
         >
           <div className="milestoneList">
-            <span className="miniTag">Video upload</span>
-            <span className="miniTag">Juror review queue</span>
+            <span className="miniTag">Evidence upload</span>
+            <span className="miniTag">Request intake</span>
+            <span className="miniTag">Juror review</span>
           </div>
         </TierCard>
 
         <TierCard
           tier={3}
-          title="Steward access"
+          title="Steward verification"
           status={tier3Status}
-          description="Tier 3 moves into live-session validation and unlocks full steward-class participation."
+          description="Tier 3 moves into live-session verification and unlocks higher-trust participation."
         >
           <div className="milestoneList">
-            <span className="miniTag">Live juror session</span>
-            <span className="miniTag">Creator / steward capabilities</span>
+            <span className="miniTag">Live-session request</span>
+            <span className="miniTag">Assigned session</span>
+            <span className="miniTag">Final verdict</span>
           </div>
         </TierCard>
       </section>
@@ -742,35 +833,25 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Device readiness</div>
-                <h2 className="cardTitle">Local account setup</h2>
+                <div className="eyebrow">Stage 1</div>
+                <h2 className="cardTitle">Local device and account readiness</h2>
               </div>
-              <button className="btn" onClick={() => nav("/login")}>
-                Open login
-              </button>
-            </div>
-
-            <div className="statusSummary">
-              <span className={`statusPill ${acct ? "ok" : ""}`}>
-                {acct ? "Session found" : "No session"}
-              </span>
-              <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>
-                {hasLocalKeypair ? "Signing key ready" : "Signing key missing"}
-              </span>
-              <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>
-                {sessionKeyPresent ? "API session ready" : "API session missing"}
-              </span>
-              <span className={`statusPill ${registered ? "ok" : ""}`}>
-                {registered ? "Registered" : "Not registered"}
-              </span>
+              <button className="btn" onClick={() => nav("/login")}>Open login</button>
             </div>
 
             <p className="cardDesc">
-              The account must exist on-chain before the rest of the flow feels reliable. If you
-              are missing a local keypair, device session, or registration state, handle that first.
+              Handle all local prerequisites first. This includes restoring the browser session, ensuring the local signer exists on this device,
+              and registering the account on-chain before the rest of the PoH lifecycle is attempted.
             </p>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div className="statusSummary">
+              <span className={`statusPill ${acct ? "ok" : ""}`}>{acct ? "Browser session loaded" : "No browser session"}</span>
+              <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Local signer ready" : "Signer missing"}</span>
+              <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "Session key present" : "Session key missing"}</span>
+              <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Registered on-chain" : "Registration needed"}</span>
+            </div>
+
+            <div className="buttonRowWide">
               <button
                 className="btn btnPrimary"
                 onClick={() => void registerAccount()}
@@ -778,11 +859,7 @@ export default function PohPage(): JSX.Element {
               >
                 {registerBusy ? "Registering…" : registered ? "Account registered" : "Register account"}
               </button>
-              <button
-                className="btn"
-                onClick={() => void issueSessionKey()}
-                disabled={!acct || !hasLocalKeypair || sessionBusy}
-              >
+              <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy}>
                 {sessionBusy ? "Issuing…" : "Issue session tx"}
               </button>
               <button
@@ -803,62 +880,43 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Tier 1</div>
-                <h2 className="cardTitle">Email verification</h2>
+                <div className="eyebrow">Stage 2</div>
+                <h2 className="cardTitle">Tier 1 email verification</h2>
               </div>
-              <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>
-                {tier >= 1 ? "Tier 1 complete" : "Pending"}
-              </span>
+              <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Tier 1 complete" : "Tier 1 pending"}</span>
             </div>
+
+            <p className="cardDesc">
+              This step has three parts: begin verification, receive a code, then confirm through the relay/oracle-backed receipt submission path.
+              The frontend should never pretend that merely entering a code is the same thing as finalized PoH state.
+            </p>
 
             <label className="formField">
               <span>Email address</span>
-              <input
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-              />
+              <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
             </label>
 
             <TurnstileWidget onToken={(token: string) => setTurnstileToken(token)} />
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                className="btn"
-                onClick={() => void beginEmailVerification()}
-                disabled={!acct || !registered || emailBusy || tier >= 1}
-              >
+            <div className="buttonRowWide">
+              <button className="btn" onClick={() => void beginEmailVerification()} disabled={!acct || !registered || emailBusy || tier >= 1}>
                 {emailBusy ? "Sending…" : "Send verification code"}
               </button>
             </div>
 
-            <label className="formField">
-              <span>Request ID</span>
-              <input
-                className="input mono"
-                value={requestId}
-                onChange={(e) => setRequestId(e.target.value)}
-                placeholder="Returned by /v1/poh/email/begin"
-              />
-            </label>
+            <div className="formGrid">
+              <label className="formField">
+                <span>Request ID</span>
+                <input className="input mono" value={requestId} onChange={(e) => setRequestId(e.target.value)} placeholder="Returned by verification begin" />
+              </label>
+              <label className="formField">
+                <span>Email code</span>
+                <input className="input mono" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="000000" />
+              </label>
+            </div>
 
-            <label className="formField">
-              <span>Email code</span>
-              <input
-                className="input mono"
-                value={emailCode}
-                onChange={(e) => setEmailCode(e.target.value)}
-                placeholder="000000"
-              />
-            </label>
-
-            <button
-              className="btn"
-              onClick={() => void confirmEmailVerification()}
-              disabled={!acct || !registered || confirmBusy || tier >= 1}
-            >
-              {confirmBusy ? "Confirming…" : "Confirm email code"}
+            <button className="btn btnPrimary" onClick={() => void confirmEmailVerification()} disabled={!acct || !registered || confirmBusy || tier >= 1}>
+              {confirmBusy ? "Confirming…" : "Confirm Tier 1 verification"}
             </button>
           </div>
         </article>
@@ -869,22 +927,21 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Tier 2</div>
-                <h2 className="cardTitle">Video evidence intake</h2>
+                <div className="eyebrow">Stage 3</div>
+                <h2 className="cardTitle">Tier 2 participant review</h2>
               </div>
-              <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                {tier >= 2 ? "Tier 2 complete" : tier2Upload ? "Upload ready" : "Awaiting upload"}
-              </span>
+              <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{tier >= 2 ? "Tier 2 complete" : tier2Upload ? "Evidence ready" : "Tier 2 pending"}</span>
             </div>
 
             {!tier2VideoUploadEnabled ? (
               <div className="calloutInfo">
-                Tier 2 self-serve video intake is not enabled on this deployment. That means a new
-                tester cannot start Tier 2 from this screen yet, so the UI stays explicit instead of
-                pretending the upload path is live.
+                Tier 2 self-serve video intake is not enabled on this deployment. The interface stays explicit about that instead of implying a live upload path the backend does not currently provide.
               </div>
             ) : (
               <>
+                <p className="cardDesc">
+                  Tier 2 is a review intake flow. Upload evidence first, then open the request. Finalization depends on the review pipeline, not on the upload completing.
+                </p>
                 <input
                   type="file"
                   accept="video/*"
@@ -895,11 +952,7 @@ export default function PohPage(): JSX.Element {
                   disabled={tier2UploadBusy || tier >= 2}
                 />
                 {tier2Upload ? <JsonDetails title="Latest upload payload" value={tier2Upload} /> : null}
-                <button
-                  className="btn"
-                  onClick={() => void submitTier2Request()}
-                  disabled={!acct || !tier2Upload || tier2RequestBusy || tier >= 2}
-                >
+                <button className="btn btnPrimary" onClick={() => void submitTier2Request()} disabled={!acct || !tier2Upload || tier2RequestBusy || tier >= 2}>
                   {tier2RequestBusy ? "Submitting…" : "Open Tier 2 request"}
                 </button>
               </>
@@ -911,24 +964,17 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Tier 3</div>
-                <h2 className="cardTitle">Live session request</h2>
+                <div className="eyebrow">Stage 4</div>
+                <h2 className="cardTitle">Tier 3 live-session request</h2>
               </div>
-              <span className={`statusPill ${tier >= 3 ? "ok" : ""}`}>
-                {tier >= 3 ? "Tier 3 complete" : "Request available"}
-              </span>
+              <span className={`statusPill ${tier >= 3 ? "ok" : ""}`}>{tier >= 3 ? "Tier 3 complete" : "Tier 3 pending"}</span>
             </div>
 
             <p className="cardDesc">
-              Tier 3 opens a live juror case after Tier 2. Once operators initialize the session,
-              the join URL and participant state will appear in your case timeline below.
+              Tier 3 opens a live juror case after Tier 2. Once the backend and operators assign a real session, the case and session payloads appear below. The UI should present that state as discovered and authoritative, not guessed.
             </p>
 
-            <button
-              className="btn"
-              onClick={() => void submitTier3Request()}
-              disabled={!acct || tier3RequestBusy || tier >= 3 || tier < 2}
-            >
+            <button className="btn btnPrimary" onClick={() => void submitTier3Request()} disabled={!acct || tier3RequestBusy || tier >= 3 || tier < 2}>
               {tier3RequestBusy ? "Submitting…" : tier < 2 ? "Finish Tier 2 first" : "Open Tier 3 request"}
             </button>
           </div>
@@ -940,30 +986,12 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">My cases</div>
-                <h2 className="cardTitle">Tier 2 request history</h2>
+                <div className="eyebrow">Observed state</div>
+                <h2 className="cardTitle">My Tier 2 cases</h2>
               </div>
               <span className="statusPill">{tier2Cases.length} case(s)</span>
             </div>
-            {tier2Cases.length ? (
-              <div className="infoGrid">
-                {tier2Cases.map((it: any) => (
-                  <div key={String(it?.case_id || Math.random())} className="infoCard compact">
-                    <div className="infoCardHeader">
-                      <strong className="mono">{String(it?.case_id || "case")}</strong>
-                      <span className={`statusPill ${statusTone(String(it?.status || "")) === "done" ? "ok" : ""}`}>
-                        {String(it?.status || "unknown")}
-                      </span>
-                    </div>
-                    <div className="infoCardText">opened {String(it?.created_at_ms ? new Date(it.created_at_ms).toLocaleString() : "—")}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="emptyState compactEmpty">
-                <div className="emptyTitle">No Tier 2 cases yet.</div>
-              </div>
-            )}
+            {tier2Cases.length ? <div className="infoGrid">{tier2Cases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No Tier 2 cases yet.</div></div>}
           </div>
         </article>
 
@@ -971,37 +999,50 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">My live sessions</div>
-                <h2 className="cardTitle">Tier 3 cases and sessions</h2>
+                <div className="eyebrow">Observed state</div>
+                <h2 className="cardTitle">My Tier 3 cases and sessions</h2>
               </div>
               <span className="statusPill">{tier3Cases.length} case(s)</span>
             </div>
-            {tier3Cases.length ? (
-              <div className="infoGrid">
-                {tier3Cases.map((it: any) => (
-                  <div key={String(it?.case_id || Math.random())} className="infoCard compact">
-                    <div className="infoCardHeader">
-                      <strong className="mono">{String(it?.case_id || "case")}</strong>
-                      <span className={`statusPill ${statusTone(String(it?.status || "")) === "done" ? "ok" : ""}`}>
-                        {String(it?.status || "unknown")}
-                      </span>
-                    </div>
-                    <div className="infoCardText">opened {String(it?.created_at_ms ? new Date(it.created_at_ms).toLocaleString() : "—")}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="emptyState compactEmpty">
-                <div className="emptyTitle">No Tier 3 cases yet.</div>
-              </div>
-            )}
-
+            {tier3Cases.length ? <div className="infoGrid">{tier3Cases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No Tier 3 cases yet.</div></div>}
             {tier3Sessions.length ? <JsonDetails title="Live session payloads" value={tier3Sessions} /> : null}
           </div>
         </article>
       </section>
 
-      {result ? <JsonDetails title="Last API result" value={result} /> : null}
+      <section className="grid2">
+        <article className="card">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Deployment capability</div>
+                <h2 className="cardTitle">What this stack currently exposes</h2>
+              </div>
+            </div>
+
+            <div className="progressList">
+              <div className="progressRow"><span>Tier 1 email verification</span><span className="statusPill ok">Live</span></div>
+              <div className="progressRow"><span>Tier 2 self-serve video intake</span><span className={`statusPill ${tier2VideoUploadEnabled ? "ok" : ""}`}>{tier2VideoUploadEnabled ? "Live" : "Unavailable here"}</span></div>
+              <div className="progressRow"><span>Tier 3 request submit</span><span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{tier >= 2 ? "Available after Tier 2" : "Locked until Tier 2"}</span></div>
+            </div>
+            <p className="cardDesc">Founder-only or bootstrap shortcuts stay off this surface so the UI remains aligned with real user-facing protocol behavior.</p>
+          </div>
+        </article>
+
+        <article className="card">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Advanced details</div>
+                <h2 className="cardTitle">Raw payloads and recent result</h2>
+              </div>
+            </div>
+            <JsonDetails title="Current account state payload" value={acctState} />
+            <JsonDetails title="Registration payload" value={registration} />
+            {result ? <JsonDetails title="Last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
+          </div>
+        </article>
+      </section>
     </div>
   );
 }

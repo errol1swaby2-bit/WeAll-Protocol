@@ -8,7 +8,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 Json = dict[str, Any]
-from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
+from weall.runtime.protocol_profile import (
+    PRODUCTION_CONSENSUS_PROFILE,
+    production_consensus_env_audit,
+)
 
 
 def _repo_root() -> Path:
@@ -408,11 +411,13 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
         )
 
     from weall.runtime.bootstrap_manifest import (
+        read_db_state,
         release_manifest_path,
         release_pubkey,
         signed_manifest_required,
         verify_local_manifest,
     )
+    from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
     manifest_required = signed_manifest_required(
         mode=mode, network_enabled=bool(net_enabled), bft_enabled=bool(bft_enabled)
@@ -440,12 +445,14 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
         except Exception as exc:
             issues.append(f"release manifest verification failed: {exc}")
 
-    startup_clock_sanity_required, startup_clock_sanity_required_invalid = _env_bool_status(
-        "WEALL_STARTUP_CLOCK_SANITY_REQUIRED",
-        PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required,
+    consensus_env_audit = production_consensus_env_audit()
+    issues.extend(
+        [
+            f"production_consensus_profile:{item}"
+            for item in list(consensus_env_audit.get("violations") or [])
+            if str(item) != "WEALL_STARTUP_CLOCK_SANITY_REQUIRED"
+        ]
     )
-    if startup_clock_sanity_required_invalid:
-        issues.append("invalid_boolean_env:WEALL_STARTUP_CLOCK_SANITY_REQUIRED")
 
     workers, workers_invalid = _env_int_status("GUNICORN_WORKERS", 1)
     if workers_invalid:
@@ -470,11 +477,13 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     net_enabled, net_enabled_invalid = _env_bool_status("WEALL_NET_ENABLED", False)
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
     from weall.runtime.bootstrap_manifest import (
+        read_db_state,
         release_manifest_path,
         release_pubkey,
         signed_manifest_required,
         verify_local_manifest,
     )
+    from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
     manifest_required = signed_manifest_required(
         mode=str(cfg.mode or "").strip().lower(),
@@ -484,6 +493,11 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     manifest_path_raw = release_manifest_path()
     manifest_pubkey = release_pubkey()
     manifest_report = None
+    local_state, _local_meta = read_db_state(cfg.db_path)
+    local_state_meta = local_state.get("meta") if isinstance(local_state.get("meta"), dict) else {}
+    local_lifecycle = local_state_meta.get("node_lifecycle") if isinstance(local_state_meta.get("node_lifecycle"), dict) else {}
+    authority_contract = authority_contract_from_lifecycle(local_lifecycle, source="runtime")
+    authority_contract_source = str(authority_contract.get("contract_source") or "runtime")
     if manifest_path_raw and manifest_pubkey and Path(manifest_path_raw).is_file():
         try:
             manifest_report = verify_local_manifest(
@@ -516,6 +530,7 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         ),
         "startup_clock_hard_fail_ms": int(PRODUCTION_CONSENSUS_PROFILE.startup_clock_hard_fail_ms),
+        "consensus_env_audit": production_consensus_env_audit(),
         "trusted_anchor_env_conflict": bool(anchor_conflict),
         "trusted_anchor_env_invalid": bool(anchor_invalid),
         "fetch_sources": fetch_sources,
@@ -526,10 +541,73 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
         "release_manifest_path": manifest_path_raw,
         "release_manifest_pubkey_present": bool(manifest_pubkey),
         "release_manifest": manifest_report,
+        "authority_contract": authority_contract,
+        "authority_contract_source": authority_contract_source,
+        "release_manifest_authority_contract": (
+            (manifest_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") if isinstance(manifest_report, dict) else {})
+            if isinstance(manifest_report, dict)
+            else {}
+        ),
+        "release_manifest_authority_contract_source": (
+            str(((manifest_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") or {}) if isinstance(manifest_report, dict) else {}).get("contract_source") or "runtime")
+        ),
         "observer_first_recommended": True,
         "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
         "issues": issues,
     }
+
+
+def _runtime_mode_from_env() -> str:
+    raw = str(os.environ.get("WEALL_MODE", "") or "").strip().lower()
+    return raw or ""
+
+
+def validate_runtime_env() -> None:
+    """Centralized fail-closed validation for runtime environment posture.
+
+    This hook validates environment-controlled production safety toggles so
+    startup paths can reject unsafe operator posture with actionable diagnostics
+    before runtime boot proceeds.
+    """
+    mode = _runtime_mode_from_env()
+    if not mode:
+        raise RuntimeError("Missing required env: WEALL_MODE")
+
+    if mode != "prod":
+        return
+
+    issues: list[str] = []
+
+    chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
+    if not chain_id:
+        issues.append("Missing required env for production: WEALL_CHAIN_ID")
+
+    allow_unsigned_txs = str(os.environ.get("WEALL_ALLOW_UNSIGNED_TXS", "") or "").strip()
+    if allow_unsigned_txs == "1":
+        issues.append("WEALL_ALLOW_UNSIGNED_TXS=1 is not allowed in production")
+
+    issues.extend(
+        [
+            f"production consensus profile mismatch: {item}"
+            for item in list(production_consensus_env_audit().get("violations") or [])
+            if str(item) != "WEALL_STARTUP_CLOCK_SANITY_REQUIRED"
+        ]
+    )
+
+    bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
+    observer_mode, observer_mode_invalid = _env_bool_status("WEALL_OBSERVER_MODE", False)
+    if bft_enabled_invalid:
+        issues.append("invalid_boolean_env:WEALL_BFT_ENABLED")
+    if observer_mode_invalid:
+        issues.append("invalid_boolean_env:WEALL_OBSERVER_MODE")
+    if bft_enabled and observer_mode:
+        issues.append(
+            "mixed posture is not allowed in production: "
+            "WEALL_BFT_ENABLED=1 with WEALL_OBSERVER_MODE=1"
+        )
+
+    if issues:
+        raise RuntimeError("; ".join(issues))
 
 
 _ALLOWED_MODES = {"dev", "testnet", "prod"}

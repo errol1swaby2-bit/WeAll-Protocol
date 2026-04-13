@@ -7,6 +7,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from weall.runtime.runtime_authority import authority_contract_from_lifecycle
+
 Json = dict[str, Any]
 
 
@@ -313,6 +315,8 @@ def verify_manifest_integrity(manifest: Json) -> list[str]:
         "startup_fingerprint",
         "chain_config_compatibility",
         "chain_config_compatibility_hash",
+        "authority_contract",
+        "authority_contract_hash",
     ):
         if key not in manifest:
             issues.append(f"missing manifest field: {key}")
@@ -400,6 +404,12 @@ def build_manifest(cfg: Any, *, db_path: Path, tx_index_path: Path) -> Json:
         validator_epoch=validator_epoch,
         validator_set_hash_value=validator_set_hash_value,
     )
+    state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
+    authority_contract_hash = _sha256_hex(canon_json(authority_contract).encode("utf-8"))
+    genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
+    genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
     manifest: Json = {
         "chain_id": str(cfg.chain_id or ""),
         "node_id": str(cfg.node_id or ""),
@@ -413,6 +423,10 @@ def build_manifest(cfg: Any, *, db_path: Path, tx_index_path: Path) -> Json:
         "startup_fingerprint": startup_fingerprint,
         "chain_config_compatibility": chain_config_compatibility_payload(cfg),
         "chain_config_compatibility_hash": chain_config_compatibility_hash(cfg),
+        "authority_contract": authority_contract,
+        "authority_contract_hash": authority_contract_hash,
+        "genesis_bootstrap_profile": genesis_bootstrap_profile,
+        "genesis_bootstrap_profile_hash": genesis_bootstrap_profile_hash,
     }
     manifest["manifest_hash"] = _computed_manifest_hash(manifest)
     return manifest
@@ -431,6 +445,9 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
 
     state, meta = read_db_state(cfg.db_path)
     tx_index_path = Path(cfg.tx_index_path).resolve()
+    state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    local_genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
+    local_genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
     local_tx_index_hash = _sha256_file(tx_index_path) if tx_index_path.is_file() else ""
     validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
         state
@@ -453,6 +470,10 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
     )
     local_chain_cfg = chain_config_compatibility_payload(cfg)
     local_chain_cfg_hash = chain_config_compatibility_hash(cfg)
+    state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    local_authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
+    local_authority_contract_hash = _sha256_hex(canon_json(local_authority_contract).encode("utf-8"))
 
     mismatches: list[str] = []
     field_status: Json = {}
@@ -500,6 +521,26 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
         list(normalized_validators),
         list(manifest.get("normalized_validators") or []),
     )
+    _check(
+        "authority_contract_payload",
+        local_authority_contract,
+        manifest.get("authority_contract"),
+    )
+    _check(
+        "authority_contract_hash",
+        local_authority_contract_hash,
+        str(manifest.get("authority_contract_hash") or ""),
+    )
+    _check(
+        "genesis_bootstrap_profile_payload",
+        local_genesis_bootstrap_profile,
+        manifest.get("genesis_bootstrap_profile"),
+    )
+    _check(
+        "genesis_bootstrap_profile_hash",
+        local_genesis_bootstrap_profile_hash,
+        str(manifest.get("genesis_bootstrap_profile_hash") or ""),
+    )
 
     anchor_issues = verify_anchor(
         expected=manifest.get("trusted_anchor")
@@ -520,6 +561,10 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
             "chain_config_compatibility": local_chain_cfg,
             "chain_config_compatibility_hash": local_chain_cfg_hash,
             "trusted_anchor": local_anchor,
+            "authority_contract": local_authority_contract,
+            "authority_contract_hash": local_authority_contract_hash,
+            "genesis_bootstrap_profile": local_genesis_bootstrap_profile,
+            "genesis_bootstrap_profile_hash": local_genesis_bootstrap_profile_hash,
         },
         "manifest": {
             "chain_id": str(manifest.get("chain_id") or ""),
@@ -530,6 +575,10 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
                 manifest.get("chain_config_compatibility_hash") or ""
             ),
             "trusted_anchor": manifest.get("trusted_anchor"),
+            "authority_contract": manifest.get("authority_contract"),
+            "authority_contract_hash": str(manifest.get("authority_contract_hash") or ""),
+            "genesis_bootstrap_profile": manifest.get("genesis_bootstrap_profile"),
+            "genesis_bootstrap_profile_hash": str(manifest.get("genesis_bootstrap_profile_hash") or ""),
         },
         "trusted_anchor_mismatches": list(anchor_issues),
     }

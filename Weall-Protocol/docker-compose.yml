@@ -46,7 +46,9 @@ services:
       WEALL_POH_BOOTSTRAP_OPEN: "1"
       WEALL_IPFS_API_BASE: http://kubo:5001
       PYTHONPATH: /app/src
-      GUNICORN_WORKERS: "2"
+      # SQLite-backed dev bootstrap must stay single-worker to avoid
+      # concurrent schema/WAL initialization races during first boot.
+      GUNICORN_WORKERS: "1"
       GUNICORN_TIMEOUT: "60"
       GUNICORN_GRACEFUL_TIMEOUT: "30"
       GUNICORN_KEEPALIVE: "5"
@@ -60,7 +62,7 @@ services:
         "-k",
         "uvicorn.workers.UvicornWorker",
         "-w",
-        "2",
+        "1",
         "-b",
         "0.0.0.0:8000",
         "--timeout",

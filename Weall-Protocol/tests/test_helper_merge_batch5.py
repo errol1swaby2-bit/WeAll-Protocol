@@ -220,3 +220,54 @@ def test_merge_materialized_lane_results_falls_back_on_overlap() -> None:
     assert merged.merged_state == base_state
     assert merged.accepted_lane_ids == ()
     assert merged.serialized_lane_ids == ("PARALLEL_CONTENT", "PARALLEL_ECONOMY")
+
+
+def test_verify_materialized_lane_result_rejects_delta_outside_declared_write_scope() -> None:
+    result = _materialized_result(
+        lane_id="PARALLEL_CONTENT",
+        helper_id="@helper-a",
+        tx_ids=["tx-1"],
+        namespace_prefixes=["content:"],
+        read_set=["content:post:1"],
+        write_set=["content:post:1"],
+        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:2", value={"body": "hello"})],
+        receipts=[{"tx_id": "tx-1", "ok": True}],
+    )
+    status = verify_materialized_lane_result(result)
+    assert status.ok is False
+    assert status.code == "delta_write_scope_mismatch"
+
+
+def test_verify_materialized_lane_result_rejects_delta_outside_namespace_scope() -> None:
+    result = _materialized_result(
+        lane_id="PARALLEL_CONTENT",
+        helper_id="@helper-a",
+        tx_ids=["tx-1"],
+        namespace_prefixes=["content:"],
+        read_set=["content:post:1"],
+        write_set=["social:feed:@alice"],
+        delta_ops=[HelperDeltaOp(op="set", path="namespaced/social:feed:@alice", value=["tx-1"])],
+        receipts=[{"tx_id": "tx-1", "ok": True}],
+    )
+    status = verify_materialized_lane_result(result)
+    assert status.ok is False
+    assert status.code == "delta_namespace_scope_invalid"
+
+
+def test_verify_materialized_lane_result_rejects_duplicate_delta_paths() -> None:
+    result = _materialized_result(
+        lane_id="PARALLEL_CONTENT",
+        helper_id="@helper-a",
+        tx_ids=["tx-1"],
+        namespace_prefixes=["content:"],
+        read_set=["content:post:1"],
+        write_set=["content:post:1"],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "hello"}),
+            HelperDeltaOp(op="delete", path="namespaced/content:post:1"),
+        ],
+        receipts=[{"tx_id": "tx-1", "ok": True}],
+    )
+    status = verify_materialized_lane_result(result)
+    assert status.ok is False
+    assert status.code == "delta_path_duplicate"

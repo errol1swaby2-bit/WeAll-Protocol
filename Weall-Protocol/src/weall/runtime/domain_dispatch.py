@@ -1,4 +1,3 @@
-# File: src/weall/runtime/domain_dispatch.py
 # src/weall/runtime/domain_dispatch.py
 
 from __future__ import annotations
@@ -49,6 +48,53 @@ def _consensus_bootstrap_open_enabled(state: Json) -> bool:
     if isinstance(raw, bool):
         return raw
     return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _bootstrap_allowlist_enabled(state: Json) -> bool:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    allowlist = params.get("bootstrap_allowlist")
+    return isinstance(allowlist, dict) and bool(allowlist)
+
+
+def _canonical_system_signers(state: Json) -> set[str]:
+    params = state.get("params", {}) or {}
+    configured = str(params.get("system_signer") or "").strip()
+    signers: set[str] = set()
+    if configured:
+        signers.add(configured)
+        if configured.upper() == "SYSTEM":
+            signers.add("SYSTEM")
+    else:
+        signers.add("SYSTEM")
+    return signers
+
+
+def _consensus_bootstrap_policy_mode(state: Json) -> tuple[str, bool]:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    raw_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    open_enabled = _consensus_bootstrap_open_enabled(state)
+    allowlist_enabled = _bootstrap_allowlist_enabled(state)
+
+    if raw_mode:
+        if raw_mode not in {"closed", "open", "allowlist"}:
+            return "invalid", True
+        if raw_mode == "closed" and (open_enabled or allowlist_enabled):
+            return raw_mode, True
+        if raw_mode == "open" and allowlist_enabled:
+            return raw_mode, True
+        if raw_mode == "allowlist" and open_enabled:
+            return raw_mode, True
+        return raw_mode, False
+
+    if open_enabled and allowlist_enabled:
+        return "implicit", True
+    if open_enabled:
+        return "open", False
+    if allowlist_enabled:
+        return "allowlist", False
+    return "closed", False
 
 
 def _get(env: Any, key: str, default: Any = None) -> Any:
@@ -166,12 +212,10 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
     # by replayable ledger state, not process-local environment configuration.
     origin = str(txdef.get("origin") or "").strip().upper()
     system_enforced = bool(txdef.get("system_only", False)) or origin == "SYSTEM"
-    if (
-        system_enforced
-        and t == "POH_BOOTSTRAP_TIER3_GRANT"
-        and _consensus_bootstrap_open_enabled(state)
-    ):
-        system_enforced = False
+    if system_enforced and t == "POH_BOOTSTRAP_TIER3_GRANT":
+        mode, conflict = _consensus_bootstrap_policy_mode(state)
+        if not conflict and mode == "open":
+            system_enforced = False
 
     if system_enforced:
         system_flag = bool(_get(env, "system", False))
@@ -179,12 +223,16 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
             raise ApplyError("forbidden", "system_flag_required", {"tx_type": t})
 
         signer = str(_get(env, "signer", "") or "").strip()
-        system_signer = str(state.get("params", {}).get("system_signer") or "").strip()
-        if signer not in {system_signer, "SYSTEM"}:
+        canonical_system_signers = _canonical_system_signers(state)
+        if signer not in canonical_system_signers:
             raise ApplyError(
                 "forbidden",
                 "system_signer_required",
-                {"tx_type": t, "signer": signer, "system_signer": system_signer},
+                {
+                    "tx_type": t,
+                    "signer": signer,
+                    "system_signers": sorted(canonical_system_signers),
+                },
             )
 
 
@@ -229,53 +277,31 @@ def apply_tx(state: Json, env: Any) -> Json:
     _enforce_apply_time_canon(state, env_norm)
 
     routed = resolve_applier_for_tx_type(t)
-    if routed is not None:
-        try:
-            out = routed(state, env_norm)
-        except ApplyError:
-            raise
-        except Exception as e:
-            code = getattr(e, "code", None)
-            reason = getattr(e, "reason", None)
-            details = getattr(e, "details", None)
+    if routed is None:
+        raise ApplyError("invalid_tx", "unknown_tx_type", {"tx_type": t})
 
-            if code is not None or reason is not None:
-                raise ApplyError(
-                    str(code or "domain_error"),
-                    str(reason or "exception"),
-                    details if isinstance(details, dict) else {"error": repr(e)},
-                )
+    try:
+        out = routed(state, env_norm)
+    except ApplyError:
+        raise
+    except Exception as e:
+        code = getattr(e, "code", None)
+        reason = getattr(e, "reason", None)
+        details = getattr(e, "details", None)
 
-            raise ApplyError("domain_error", "exception", {"error": repr(e)})
-
-        if out is None:
+        if code is not None or reason is not None:
             raise ApplyError(
-                "invalid_tx",
-                "unclaimed_tx_type",
-                {"tx_type": t, "handler": handler_name_for_tx_type(t) or routed.__name__},
+                str(code or "domain_error"),
+                str(reason or "exception"),
+                details if isinstance(details, dict) else {"error": repr(e)},
             )
-        return out
 
-    for fn in _APPLIERS:
-        try:
-            out = fn(state, env_norm)
-        except ApplyError:
-            raise
-        except Exception as e:
-            code = getattr(e, "code", None)
-            reason = getattr(e, "reason", None)
-            details = getattr(e, "details", None)
+        raise ApplyError("domain_error", "exception", {"error": repr(e)})
 
-            if code is not None or reason is not None:
-                raise ApplyError(
-                    str(code or "domain_error"),
-                    str(reason or "exception"),
-                    details if isinstance(details, dict) else {"error": repr(e)},
-                )
-
-            raise ApplyError("domain_error", "exception", {"error": repr(e)})
-
-        if out is not None:
-            return out
-
-    raise ApplyError("invalid_tx", "unknown_tx_type", {"tx_type": t})
+    if out is None:
+        raise ApplyError(
+            "invalid_tx",
+            "unclaimed_tx_type",
+            {"tx_type": t, "handler": handler_name_for_tx_type(t) or routed.__name__},
+        )
+    return out

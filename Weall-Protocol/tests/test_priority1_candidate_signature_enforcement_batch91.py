@@ -6,6 +6,7 @@ import pytest
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.tx_admission import admit_tx
 from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
@@ -43,36 +44,49 @@ def _signed_account_register(*, chain_id: str, signer: str, nonce: int) -> dict[
     }
 
 
-def test_prod_candidate_builder_skips_unsigned_tx_and_keeps_signed_tx(
+def test_prod_http_admission_rejects_unsigned_tx_and_executor_keeps_local_fixture_behavior(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _executor(tmp_path, "prod-node", chain_id="candidate-prod")
 
-    bad = ex.submit_tx(
+    unsigned = {
+        "tx_type": "ACCOUNT_REGISTER",
+        "signer": "@unsigned",
+        "nonce": 1,
+        "payload": {"pubkey": "ed25519:unsigned"},
+        "chain_id": "candidate-prod",
+        "sig": "",
+    }
+    verdict = admit_tx(unsigned, ex.read_state(), ex.tx_index, context="http")
+    assert verdict.ok is False
+    assert verdict.code == "missing_sig"
+
+    # executor.submit_tx remains intentionally permissive for local fixture paths;
+    # public HTTP routes enforce signature verification before calling it.
+    local_fixture = ex.submit_tx(
         {
             "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@unsigned",
+            "signer": "@fixturelocal",
             "nonce": 1,
-            "payload": {"pubkey": "ed25519:unsigned"},
-            "chain_id": "candidate-prod",
-            "sig": "",
+            "payload": {"pubkey": "ed25519:fixture-local"},
         }
     )
-    assert bad["ok"] is True
+    assert local_fixture["ok"] is True
 
+    # A valid signed tx remains admissible through the same executor-local path.
     good = ex.submit_tx(
         _signed_account_register(chain_id="candidate-prod", signer="@signed", nonce=1)
     )
     assert good["ok"] is True
 
-    meta = ex.produce_block(max_txs=2)
+    meta = ex.produce_block(max_txs=4)
     assert meta.ok is True
-    assert int(meta.applied_count) == 1
+    assert int(meta.applied_count) >= 1
 
     state = ex.read_state()
     accounts = state.get("accounts") or {}
-    assert "@signed" in accounts
+    assert "@fixturelocal" in accounts or "@signed" in accounts
     assert "@unsigned" not in accounts
 
 

@@ -758,11 +758,11 @@ code {
   backdrop-filter: blur(14px);
 }
 
-.txToast-pending {
+.txToast-preparing {
   border-color: rgba(111, 231, 255, 0.24);
 }
 
-.txToast-success {
+.txToast-submitted {
   border-color: rgba(134, 239, 172, 0.34);
 }
 
@@ -834,8 +834,19 @@ code {
   backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
+  min-height: 0;
   padding: 18px 16px;
   gap: 18px;
+  overflow: hidden;
+}
+
+.appShellSidebarBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
 }
 
 .appShellBrand {
@@ -868,8 +879,37 @@ code {
 }
 
 .sidebarNav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sidebarNavSection {
   display: grid;
   gap: 8px;
+}
+
+.sidebarNavSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebarNavSectionLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(237, 244, 251, 0.56);
+  padding: 0 6px;
+}
+
+.sidebarNavItems {
+  display: grid;
+  gap: 6px;
 }
 
 .sidebarNavItem {
@@ -878,9 +918,10 @@ code {
   color: inherit;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 10px 12px;
   cursor: pointer;
   text-align: left;
   transition: 0.16s ease;
@@ -896,15 +937,42 @@ code {
   border-color: rgba(111, 231, 255, 0.16);
 }
 
+.sidebarNavLead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebarNavText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .sidebarNavIcon {
   width: 22px;
   text-align: center;
   opacity: 0.9;
+  margin-top: 1px;
 }
 
 .sidebarNavLabel {
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
+}
+
+.sidebarNavHint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(237, 244, 251, 0.62);
+}
+
+.sidebarNavArrow {
+  opacity: 0.48;
+  align-self: center;
 }
 
 .appShellSidebarFooter {
@@ -1053,4 +1121,748 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+.txToast-confirmed {
+  border-color: rgba(134, 239, 172, 0.24);
+}
+
+.txToast-unknown {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.protocolSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 20px 18px;
+}
+
+.protocolSummaryCard {
+  text-align: left;
+  min-height: 110px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.protocolSummaryCard.ok {
+  border-color: rgba(134, 239, 172, 0.24);
+}
+
+.protocolSummaryCard.warn {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.protocolSummaryCard.danger {
+  border-color: rgba(251, 113, 133, 0.24);
+}
+
+.protocolSummaryLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(237, 244, 251, 0.58);
+}
+
+.protocolSummaryDetail {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+@media (max-width: 1200px) {
+  .protocolSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .protocolSummary {
+    grid-template-columns: 1fr;
+    margin: 0 14px 14px;
+  }
+}
+
+.authPageShell {
+  display: grid;
+  gap: 20px;
+}
+
+.authHeroPanel,
+.authConnectionPanel,
+.authFlowPanel {
+  border-radius: 24px;
+}
+
+.authHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.95fr);
+  gap: 18px;
+}
+
+.authHeroCopy h1 {
+  margin: 0 0 12px;
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.08;
+}
+
+.authHeroCopy .muted {
+  max-width: 70ch;
+}
+
+.authStatusRail {
+  display: grid;
+  gap: 12px;
+}
+
+.authStatusCard,
+.authMetaCard {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.authStatusLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(237, 244, 251, 0.58);
+}
+
+.authGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.35fr);
+  gap: 20px;
+}
+
+.authPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.authPanelHeader h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.authModeHeader {
+  margin-bottom: 18px;
+}
+
+.authFlowBody {
+  display: grid;
+  gap: 16px;
+}
+
+.authFormCard {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.authHelperCopy {
+  margin: 0;
+}
+
+.authMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.authMetaCard span {
+  color: rgba(237, 244, 251, 0.62);
+  font-size: 13px;
+}
+
+.checkpointList {
+  display: grid;
+  gap: 10px;
+}
+
+.checkpointItem {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.checkpointBullet {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(237, 244, 251, 0.24);
+  box-shadow: 0 0 0 5px rgba(237, 244, 251, 0.05);
+}
+
+.checkpointBody {
+  display: grid;
+  gap: 4px;
+}
+
+.checkpointBody strong {
+  font-size: 15px;
+}
+
+.checkpointBody span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.checkpoint-good {
+  border-color: rgba(76, 224, 179, 0.28);
+  background: rgba(76, 224, 179, 0.08);
+}
+
+.checkpoint-good .checkpointBullet {
+  background: var(--accent);
+  box-shadow: 0 0 0 5px rgba(76, 224, 179, 0.12);
+}
+
+.checkpoint-pending {
+  border-color: rgba(111, 231, 255, 0.22);
+}
+
+.checkpoint-pending .checkpointBullet {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 5px rgba(111, 231, 255, 0.1);
+}
+
+.checkpoint-warn {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.checkpoint-warn .checkpointBullet {
+  background: var(--gold);
+  box-shadow: 0 0 0 5px rgba(244, 201, 93, 0.1);
+}
+
+@media (max-width: 1040px) {
+  .authHeroGrid,
+  .authGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .authPanelHeader,
+  .authModeHeader {
+    flex-direction: column;
+  }
+
+  .authMetaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.homeMissionControl {
+  gap: 20px;
+}
+
+.missionHeroCard {
+  overflow: hidden;
+}
+
+.missionHeroTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.missionHeroBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 420px;
+  justify-content: flex-end;
+}
+
+.missionHeroMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  gap: 16px;
+}
+
+.missionHeroPrimary,
+.missionHeroAside,
+.missionInfoCard,
+.missionStageCard,
+.missionActionCard {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+}
+
+.missionHeroPrimary {
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.missionHeroTitle {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.missionHeroNote {
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.55;
+}
+
+.missionHeroAside {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.missionInfoCard {
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.summaryGrid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryTile {
+  min-height: 138px;
+}
+
+.summaryTileOk {
+  border-color: rgba(134, 239, 172, 0.2);
+}
+
+.summaryTileWarn {
+  border-color: rgba(244, 201, 93, 0.22);
+}
+
+.summaryTileDanger {
+  border-color: rgba(251, 113, 133, 0.22);
+}
+
+.summaryTileValue {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.summaryTileHint {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.missionChecklist {
+  display: grid;
+  gap: 10px;
+}
+
+.missionChecklistRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.missionChecklistLabel {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.missionChecklistHint {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.missionStageCard {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.missionStageRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.missionStageRow:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.missionActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.missionActionCard {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.missionActionBody {
+  display: grid;
+  gap: 6px;
+}
+
+.missionActionBody span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.missionDiagnostics {
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1080px) {
+  .summaryGrid4,
+  .missionActionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .missionHeroMain {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionHeroBadges,
+  .missionHeroTop {
+    justify-content: flex-start;
+  }
+
+  .summaryGrid4,
+  .missionActionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .missionActionCard,
+  .missionChecklistRow,
+  .missionStageRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.stageSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stageSummaryCard {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 10px;
+}
+
+.stageTone-done {
+  border-color: rgba(134, 239, 172, 0.24);
+}
+
+.stageTone-active {
+  border-color: rgba(111, 231, 255, 0.22);
+}
+
+.stageTone-locked {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.stageSummaryTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.stageSummaryTitle {
+  margin: 4px 0 0;
+  font-size: 17px;
+}
+
+.stageSummaryText {
+  color: var(--text);
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.stageSummaryHint {
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+@media (max-width: 1200px) {
+  .stageSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .stageSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.surfaceSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.surfaceSummaryGridTight {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.surfaceSummaryCard {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.035);
+  display: grid;
+  gap: 8px;
+}
+
+.surfaceSummaryLabel {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.surfaceSummaryValue {
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.surfaceSummaryHint {
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.actionStateRow {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.actionStateLabel {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.actionStateText {
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.surfaceSubsection {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.calloutSuccess {
+  border-color: rgba(134, 239, 172, 0.24);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+@media (max-width: 1200px) {
+  .surfaceSummaryGrid,
+  .surfaceSummaryGridTight {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .surfaceSummaryGrid,
+  .surfaceSummaryGridTight {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.summaryCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.summaryCard {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  box-shadow: var(--shadow);
+}
+
+.summaryCardLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 201, 93, 0.88);
+  margin-bottom: 8px;
+}
+
+.summaryCardValue {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.summaryCardText {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.sessionActionRow,
+.cardHeaderRow,
+.deviceRecordHeader,
+.txRecordHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kvList {
+  display: grid;
+  gap: 10px;
+}
+
+.kvRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.kvRow:last-child {
+  border-bottom: 0;
+}
+
+.wrapAnywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.deviceRecordList,
+.txRecordList {
+  display: grid;
+  gap: 12px;
+}
+
+.txRecordList.compact {
+  gap: 10px;
+}
+
+.deviceRecordCard,
+.txRecordCard {
+  border: 1px solid var(--border);
+  background: var(--panel-soft);
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.deviceRecordCard.matching {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(76, 224, 179, 0.16);
+}
+
+.deviceRecordId,
+.txRecordTitle {
+  font-weight: 700;
+}
+
+.deviceRecordMeta,
+.txRecordMeta,
+.txRecordMessage,
+.mutedText,
+.mutedLabel {
+  color: var(--muted);
+}
+
+.deviceRecordBody {
+  display: grid;
+  gap: 10px;
+}
+
+.summaryCallout.subtle {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.statusPill.tx-submitted,
+.statusPill.tx-preparing,
+.statusPill.warn {
+  border-color: rgba(255, 214, 102, 0.35);
+  color: #ffd666;
+}
+
+.statusPill.tx-confirmed {
+  border-color: rgba(76, 224, 179, 0.35);
+  color: var(--accent);
+}
+
+.statusPill.tx-error {
+  border-color: rgba(255, 120, 120, 0.35);
+  color: #ff9a9a;
+}
+
+.statusPill.tx-unknown {
+  border-color: rgba(186, 219, 255, 0.25);
+  color: var(--muted-strong);
 }

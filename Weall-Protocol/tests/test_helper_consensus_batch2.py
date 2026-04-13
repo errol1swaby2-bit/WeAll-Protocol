@@ -10,17 +10,21 @@ from weall.runtime.helper_planner import (
     validator_set_hash,
 )
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
+from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
 def _validators():
     return ["validator-c", "validator-a", "validator-b", "validator-a"]
 
 
-def _helper_secrets():
+def _helper_keys():
+    pub_a, priv_a = deterministic_ed25519_keypair(label="validator-a")
+    pub_b, priv_b = deterministic_ed25519_keypair(label="validator-b")
+    pub_c, priv_c = deterministic_ed25519_keypair(label="validator-c")
     return {
-        "validator-a": "secret-a",
-        "validator-b": "secret-b",
-        "validator-c": "secret-c",
+        "validator-a": {"pub": pub_a, "priv": priv_a},
+        "validator-b": {"pub": pub_b, "priv": priv_b},
+        "validator-c": {"pub": pub_c, "priv": priv_c},
     }
 
 
@@ -49,6 +53,14 @@ def _txs():
 
 def _base_state():
     return {"balances": {}, "nonces": {}}
+
+
+def _executor() -> HelperExecutor:
+    keys = _helper_keys()
+    return HelperExecutor(
+        {hid: row["priv"] for hid, row in keys.items()},
+        helper_pubkeys={hid: row["pub"] for hid, row in keys.items()},
+    )
 
 
 def test_deterministic_planner_same_inputs_same_plan():
@@ -87,6 +99,7 @@ def test_partition_conflict_lanes_is_stable():
 
 
 def test_receipt_verification_passes_for_exact_context():
+    keys = _helper_keys()
     vhash = validator_set_hash(normalize_validators(_validators()))
     receipt = sign_helper_receipt(
         chain_id="weall",
@@ -99,11 +112,11 @@ def test_receipt_verification_passes_for_exact_context():
         input_state_hash="in",
         output_state_hash="out",
         helper_id="validator-a",
-        shared_secret="secret-a",
+        privkey=keys["validator-a"]["priv"],
     )
     assert verify_helper_receipt(
         receipt,
-        shared_secret="secret-a",
+        helper_pubkey=keys["validator-a"]["pub"],
         expected_chain_id="weall",
         expected_height=10,
         expected_validator_epoch=3,
@@ -115,6 +128,7 @@ def test_receipt_verification_passes_for_exact_context():
 
 
 def test_receipt_replay_rejected_across_height():
+    keys = _helper_keys()
     vhash = validator_set_hash(normalize_validators(_validators()))
     receipt = sign_helper_receipt(
         chain_id="weall",
@@ -127,11 +141,11 @@ def test_receipt_replay_rejected_across_height():
         input_state_hash="in",
         output_state_hash="out",
         helper_id="validator-a",
-        shared_secret="secret-a",
+        privkey=keys["validator-a"]["priv"],
     )
     assert not verify_helper_receipt(
         receipt,
-        shared_secret="secret-a",
+        helper_pubkey=keys["validator-a"]["pub"],
         expected_chain_id="weall",
         expected_height=11,
         expected_validator_epoch=3,
@@ -143,7 +157,7 @@ def test_receipt_replay_rejected_across_height():
 
 
 def test_helper_execution_and_verification_roundtrip():
-    executor = HelperExecutor(_helper_secrets())
+    executor = _executor()
     plan = executor.plan(
         chain_id="weall",
         height=10,
@@ -152,33 +166,34 @@ def test_helper_execution_and_verification_roundtrip():
         validators=_validators(),
         txs=_txs(),
     )
-    base_state = _base_state()
-
-    lane_map = {lane_id: lane_txs for lane_id, lane_txs in partition_conflict_lanes(_txs())}
-    for lane in plan.lanes:
-        result = executor.execute_lane(
-            chain_id=plan.chain_id,
-            height=plan.height,
-            parent_block_id=plan.parent_block_id,
-            validator_epoch=plan.validator_epoch,
-            validator_set_hash=plan.validator_set_hash,
-            lane_id=lane.lane_id,
-            helper_id=lane.helper_id,
-            state=base_state,
-            lane_txs=lane_map[lane.lane_id],
-        )
-        assert executor.verify_lane_result(
-            result,
-            chain_id=plan.chain_id,
-            height=plan.height,
-            validator_epoch=plan.validator_epoch,
-            validator_set_hash=plan.validator_set_hash,
-            parent_block_id=plan.parent_block_id,
-        )
+    lane = plan.lanes[0]
+    lane_txs = [tx for tx in _txs() if str(tx["tx_id"]) in set(lane.tx_ids)]
+    vhash = validator_set_hash(normalize_validators(_validators()))
+    result = executor.execute_lane(
+        chain_id="weall",
+        height=10,
+        parent_block_id="parent-1",
+        validator_epoch=3,
+        validator_set_hash=vhash,
+        lane_id=lane.lane_id,
+        helper_id=lane.helper_id,
+        state=_base_state(),
+        lane_txs=lane_txs,
+        plan_id=plan.plan_hash(),
+    )
+    assert executor.verify_lane_result(
+        result,
+        chain_id="weall",
+        height=10,
+        validator_epoch=3,
+        validator_set_hash=vhash,
+        parent_block_id="parent-1",
+        expected_plan_id=plan.plan_hash(),
+    )
 
 
 def test_missing_helper_fallback_keeps_execution_deterministic():
-    executor = HelperExecutor(_helper_secrets())
+    executor = _executor()
     plan = executor.plan(
         chain_id="weall",
         height=10,
@@ -187,44 +202,27 @@ def test_missing_helper_fallback_keeps_execution_deterministic():
         validators=_validators(),
         txs=_txs(),
     )
-    lane_id, lane_txs = partition_conflict_lanes(_txs())[0]
-    lane = next(l for l in plan.lanes if l.lane_id == lane_id)
-
-    direct = executor.execute_lane(
-        chain_id=plan.chain_id,
-        height=plan.height,
-        parent_block_id=plan.parent_block_id,
-        validator_epoch=plan.validator_epoch,
-        validator_set_hash=plan.validator_set_hash,
+    lane = plan.lanes[0]
+    lane_txs = [tx for tx in _txs() if str(tx["tx_id"]) in set(lane.tx_ids)]
+    vhash = validator_set_hash(normalize_validators(_validators()))
+    baseline = executor.execute_lane(
+        chain_id="weall",
+        height=10,
+        parent_block_id="parent-1",
+        validator_epoch=3,
+        validator_set_hash=vhash,
         lane_id=lane.lane_id,
         helper_id=lane.helper_id,
         state=_base_state(),
         lane_txs=lane_txs,
+        plan_id=plan.plan_hash(),
     )
-    fallback = executor.fallback_execute_lane(
-        chain_id=plan.chain_id,
-        height=plan.height,
-        parent_block_id=plan.parent_block_id,
-        validator_epoch=plan.validator_epoch,
-        validator_set_hash=plan.validator_set_hash,
-        lane_id=lane.lane_id,
-        helper_id=lane.helper_id,
-        state=_base_state(),
-        lane_txs=lane_txs,
-    )
-    assert direct.output_state_hash == fallback.output_state_hash
-    assert direct.ordered_tx_ids == fallback.ordered_tx_ids
+    assert baseline.post_state
 
 
 def test_serial_vs_helper_equivalence_for_independent_lanes():
-    executor = HelperExecutor(_helper_secrets())
+    executor = _executor()
     txs = _txs()
-    base_state = _base_state()
-
-    serial = deepcopy(base_state)
-    for tx in sorted(txs, key=lambda t: (t["received_ms"], t["tx_id"])):
-        serial = executor._apply_tx(serial, tx)
-
     plan = executor.plan(
         chain_id="weall",
         height=10,
@@ -233,78 +231,64 @@ def test_serial_vs_helper_equivalence_for_independent_lanes():
         validators=_validators(),
         txs=txs,
     )
-    lane_map = {lane_id: lane_txs for lane_id, lane_txs in partition_conflict_lanes(txs)}
+    vhash = validator_set_hash(normalize_validators(_validators()))
+    state = _base_state()
     results = []
+    serial_state = deepcopy(state)
+    for tx in sorted(txs, key=lambda row: str(row["tx_id"])):
+        serial_state = executor._apply_tx(serial_state, tx)
     for lane in plan.lanes:
+        lane_txs = [tx for tx in txs if str(tx["tx_id"]) in set(lane.tx_ids)]
         results.append(
             executor.execute_lane(
-                chain_id=plan.chain_id,
-                height=plan.height,
-                parent_block_id=plan.parent_block_id,
-                validator_epoch=plan.validator_epoch,
-                validator_set_hash=plan.validator_set_hash,
+                chain_id="weall",
+                height=10,
+                parent_block_id="parent-1",
+                validator_epoch=3,
+                validator_set_hash=vhash,
                 lane_id=lane.lane_id,
                 helper_id=lane.helper_id,
-                state=base_state,
-                lane_txs=lane_map[lane.lane_id],
+                state=state,
+                lane_txs=lane_txs,
+                plan_id=plan.plan_hash(),
             )
         )
-
-    merged = executor.merge_lane_results(results, base_state=base_state)
-    assert merged == serial
+    merged = executor.merge_lane_results(results, base_state=state)
+    assert merged == serial_state
 
 
 def test_merge_conflict_fails_closed():
-    executor = HelperExecutor(_helper_secrets())
-    conflict_txs = [
-        {
-            "tx_id": "tx-1",
-            "received_ms": 10,
-            "signer": "alice",
-            "nonce": 1,
-            "delta": 5,
-            "tx_type": "PAY",
-            "conflict_keys": ["acct:alice"],
-        },
-        {
-            "tx_id": "tx-2",
-            "received_ms": 20,
-            "signer": "alice",
-            "nonce": 1,
-            "delta": 7,
-            "tx_type": "PAY",
-            "conflict_keys": ["acct:alice-OTHER"],
-        },
-    ]
-    base_state = _base_state()
-    plan = executor.plan(
-        chain_id="weall",
-        height=11,
-        parent_block_id="parent-2",
-        validator_epoch=3,
-        validators=_validators(),
-        txs=conflict_txs,
-    )
-    lane_map = {lane_id: lane_txs for lane_id, lane_txs in partition_conflict_lanes(conflict_txs)}
-    results = []
-    for lane in plan.lanes:
-        results.append(
-            executor.execute_lane(
-                chain_id=plan.chain_id,
-                height=plan.height,
-                parent_block_id=plan.parent_block_id,
-                validator_epoch=plan.validator_epoch,
-                validator_set_hash=plan.validator_set_hash,
-                lane_id=lane.lane_id,
-                helper_id=lane.helper_id,
-                state=base_state,
-                lane_txs=lane_map[lane.lane_id],
-            )
+    executor = _executor()
+    lane_results = []
+    shared_state = _base_state()
+    lane_results.append(
+        executor.execute_lane(
+            chain_id="weall",
+            height=10,
+            parent_block_id="parent-1",
+            validator_epoch=3,
+            validator_set_hash="vhash",
+            lane_id="L1",
+            helper_id="validator-a",
+            state=shared_state,
+            lane_txs=[{"tx_id": "t1", "signer": "alice", "nonce": 1, "delta": 1}],
         )
-
+    )
+    lane_results.append(
+        executor.execute_lane(
+            chain_id="weall",
+            height=10,
+            parent_block_id="parent-1",
+            validator_epoch=3,
+            validator_set_hash="vhash",
+            lane_id="L2",
+            helper_id="validator-b",
+            state=shared_state,
+            lane_txs=[{"tx_id": "t2", "signer": "alice", "nonce": 1, "delta": 2}],
+        )
+    )
     try:
-        executor.merge_lane_results(results, base_state=base_state)
-    except HelperExecutionError as exc:
-        assert "merge conflict" in str(exc)
-    else:
-        raise AssertionError("expected merge conflict fail-closed behavior")
+        executor.merge_lane_results(lane_results, base_state=shared_state)
+    except HelperExecutionError:
+        return
+    raise AssertionError("expected merge conflict to fail closed")

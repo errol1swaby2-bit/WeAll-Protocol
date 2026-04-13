@@ -73,6 +73,34 @@ def _env_str(name: str, default: str) -> str:
         return str(default)
 
 
+def _selection_policy_name(raw: Any) -> str:
+    s = str(raw or "").strip().lower()
+    if s in {"canonical", "canon", "stable", "deterministic"}:
+        return "canonical"
+    return "fifo"
+
+
+def _read_selection_policy(name: str = "WEALL_MEMPOOL_SELECTION_POLICY", *, default: str = "canonical") -> str:
+    raw = os.environ.get(name)
+    if raw is None:
+        normalized_default = _selection_policy_name(default)
+        if _mode() == "prod" and normalized_default != "canonical":
+            raise ValueError(f"invalid_mempool_selection_policy_env:{name}")
+        return normalized_default
+    s = str(raw).strip()
+    if not s:
+        if _mode() == "prod":
+            raise ValueError(f"invalid_mempool_selection_policy_env:{name}")
+        return _selection_policy_name(default)
+    normalized = _selection_policy_name(s)
+    if normalized == "fifo":
+        if _mode() == "prod":
+            raise ValueError(f"invalid_mempool_selection_policy_env:{name}")
+        if str(s).strip().lower() not in {"fifo", "first_seen", "arrival", "arrival_order"}:
+            raise ValueError(f"invalid_mempool_selection_policy_env:{name}")
+    return normalized
+
+
 def _envelope_for_id(env: Json) -> Json:
     """Return the subset of an envelope used to derive its tx_id.
 
@@ -115,12 +143,79 @@ def _expires_ms(env: Json, *, fallback_ttl_ms: int) -> int:
     return _now_ms() + fallback_ttl_ms
 
 
+def _extract_nonce(env: Json) -> int | None:
+    try:
+        if not isinstance(env, dict):
+            return None
+        raw = env.get("nonce")
+        if raw is None:
+            return None
+        return int(raw)
+    except Exception:
+        return None
+
+
+def _matching_signer_nonce_entry(*, con, signer: str, nonce: int) -> tuple[str, Json] | None:
+    """Return the mempool item for (signer, nonce), if any.
+
+    Production hardening: the mempool persists ``nonce`` as a first-class column and
+    maintains an index on ``(signer, nonce)`` so conflict checks remain bounded even
+    under large same-signer bursts. As a safety backstop for legacy rows created
+    before the nonce column existed or before a startup backfill completed, we still
+    perform a deterministic envelope scan only if the indexed lookup does not find a
+    match.
+    """
+
+    row = con.execute(
+        """
+        SELECT tx_id, envelope_json
+        FROM mempool
+        WHERE signer=? AND nonce=?
+        ORDER BY received_ms ASC, tx_id ASC
+        LIMIT 1;
+        """,
+        (str(signer), int(nonce)),
+    ).fetchone()
+    if row is not None:
+        try:
+            env_existing = json.loads(str(row["envelope_json"]))
+        except Exception:
+            env_existing = {}
+        return str(row["tx_id"]), env_existing
+
+    rows = con.execute(
+        """
+        SELECT tx_id, envelope_json
+        FROM mempool
+        WHERE signer=?
+        ORDER BY received_ms ASC, tx_id ASC;
+        """,
+        (str(signer),),
+    ).fetchall()
+    for row in rows:
+        if row is None:
+            continue
+        try:
+            env_existing = json.loads(str(row["envelope_json"]))
+        except Exception:
+            continue
+        existing_nonce = _extract_nonce(env_existing)
+        if existing_nonce is not None and int(existing_nonce) == int(nonce):
+            return str(row["tx_id"]), env_existing
+    return None
+
+
 @dataclass
 class PersistentMempool:
     """SQLite-backed mempool.
 
     Table schema:
-      mempool(tx_id PK, envelope_json, signer, tx_type, received_ms, expires_ms)
+      mempool(tx_id PK, envelope_json, signer, tx_type, nonce, received_ms, expires_ms)
+
+    Admission hardening:
+      - at most one pending tx per (signer, nonce) pair (indexed in SQLite)
+      - exact duplicates are rejected deterministically as tx_id_conflict
+      - conflicting same-signer/same-nonce envelopes are rejected
 
     Security/correctness guarantees:
       - tx_id is ALWAYS derived from envelope content (not trusted from user)
@@ -162,6 +257,7 @@ class PersistentMempool:
     evict_batch: int = 64
 
     _last_prune_ms: int = 0
+    _selection_policy: str = "canonical"
 
     def __post_init__(self) -> None:
         self.db.init_schema()
@@ -173,6 +269,10 @@ class PersistentMempool:
             self.chain_id = explicit_chain_id
         else:
             env_chain_id = _env_str("WEALL_CHAIN_ID", "").strip()
+            if _mode() == "prod":
+                raise ValueError(
+                    "PersistentMempool requires an explicit chain_id in production"
+                )
             if not env_chain_id:
                 raise ValueError(
                     "PersistentMempool requires an explicit chain_id or WEALL_CHAIN_ID"
@@ -192,6 +292,8 @@ class PersistentMempool:
         )
         self.evict_on_full = _env_bool("WEALL_MEMPOOL_EVICT_ON_FULL", self.evict_on_full)
         self.evict_batch = max(1, _env_int("WEALL_MEMPOOL_EVICT_BATCH", self.evict_batch))
+        self._selection_policy = _read_selection_policy()
+        self._ensure_nonce_index_ready()
 
     def _count_total(self, *, con) -> int:
         row = con.execute("SELECT COUNT(1) AS n FROM mempool;").fetchone()
@@ -206,6 +308,84 @@ class PersistentMempool:
             "SELECT COUNT(1) AS n FROM mempool WHERE tx_type=?;", (tx_type,)
         ).fetchone()
         return int(row["n"]) if row is not None else 0
+
+    def _mempool_has_nonce_column(self, *, con) -> bool:
+        rows = con.execute("PRAGMA table_info(mempool);").fetchall()
+        for row in rows:
+            try:
+                if str(row["name"]) == "nonce":
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _add_nonce_column_if_missing(self, *, con) -> None:
+        if self._mempool_has_nonce_column(con=con):
+            return
+        con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
+
+    def _backfill_nonce_column(self, *, con) -> None:
+        rows = con.execute(
+            """
+            SELECT tx_id, signer, envelope_json
+            FROM mempool
+            WHERE nonce IS NULL
+            ORDER BY received_ms ASC, tx_id ASC;
+            """
+        ).fetchall()
+        seen: dict[tuple[str, int], str] = {}
+        for row in rows:
+            if row is None:
+                continue
+            tx_id = str(row["tx_id"])
+            signer = str(row["signer"])
+            try:
+                env = json.loads(str(row["envelope_json"]))
+            except Exception as exc:
+                raise ValueError(f"mempool_nonce_backfill_bad_envelope:{tx_id}") from exc
+            nonce = _extract_nonce(env)
+            if nonce is None:
+                continue
+            key = (signer, int(nonce))
+            other_tx_id = seen.get(key)
+            if other_tx_id is not None and other_tx_id != tx_id:
+                raise ValueError(
+                    f"mempool_nonce_backfill_conflict:{signer}:{int(nonce)}:{other_tx_id}:{tx_id}"
+                )
+            existing = con.execute(
+                """
+                SELECT tx_id
+                FROM mempool
+                WHERE signer=? AND nonce=? AND tx_id<>?
+                ORDER BY received_ms ASC, tx_id ASC
+                LIMIT 1;
+                """,
+                (signer, int(nonce), tx_id),
+            ).fetchone()
+            if existing is not None:
+                raise ValueError(
+                    f"mempool_nonce_backfill_conflict:{signer}:{int(nonce)}:{str(existing['tx_id'])}:{tx_id}"
+                )
+            con.execute("UPDATE mempool SET nonce=? WHERE tx_id=?;", (int(nonce), tx_id))
+            seen[key] = tx_id
+
+    def _ensure_nonce_indexes(self, *, con) -> None:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);"
+        )
+        con.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_mempool_signer_nonce_unique
+            ON mempool(signer, nonce)
+            WHERE nonce IS NOT NULL;
+            """
+        )
+
+    def _ensure_nonce_index_ready(self) -> None:
+        with self.db.write_tx() as con:
+            self._add_nonce_column_if_missing(con=con)
+            self._backfill_nonce_column(con=con)
+            self._ensure_nonce_indexes(con=con)
 
     def _prune_expired_if_due(self, *, con, now_ms: int) -> None:
         if not self.prune_on_add:
@@ -326,6 +506,33 @@ class PersistentMempool:
             env_persist["expires_ms"] = expires_ms
             env_json = _canon_json(env_persist)
 
+            nonce = _extract_nonce(env)
+            if nonce is not None:
+                existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
+                if existing is not None:
+                    existing_tx_id, existing_env = existing
+                    existing_base = _canon_json(_envelope_for_id(existing_env))
+                    incoming_base = _canon_json(_envelope_for_id(env))
+                    if existing_base == incoming_base:
+                        return {
+                            "ok": False,
+                            "error": "tx_id_conflict",
+                            "details": {
+                                "signer": signer,
+                                "nonce": int(nonce),
+                                "existing_tx_id": existing_tx_id,
+                            },
+                        }
+                    return {
+                        "ok": False,
+                        "error": "mempool_signer_nonce_conflict",
+                        "details": {
+                            "signer": signer,
+                            "nonce": int(nonce),
+                            "existing_tx_id": existing_tx_id,
+                        },
+                    }
+
             # Enforce caps (if enabled). Reject by default. Optional deterministic eviction.
             if self.max_items > 0:
                 n_total = self._count_total(con=con)
@@ -390,10 +597,12 @@ class PersistentMempool:
             # Fast path: attempt insert.
             con.execute(
                 """
-                INSERT OR IGNORE INTO mempool(tx_id, envelope_json, signer, tx_type, received_ms, expires_ms)
-                VALUES(?, ?, ?, ?, ?, ?);
+                INSERT OR IGNORE INTO mempool(
+                    tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms
+                )
+                VALUES(?, ?, ?, ?, ?, ?, ?);
                 """,
-                (tx_id, env_json, signer, tx_type, int(received_ms), int(expires_ms)),
+                (tx_id, env_json, signer, tx_type, nonce, int(received_ms), int(expires_ms)),
             )
 
             row = con.execute(
@@ -452,27 +661,109 @@ class PersistentMempool:
         except Exception:
             return 0
 
-    def peek(self, *, limit: int = 1000) -> list[Json]:
+    def selection_policy(self) -> str:
+        return str(self._selection_policy or "canonical")
+
+    def _selection_key(self, env: Json) -> tuple[str, int, str, str, str]:
+        signer = str(env.get("signer") or "").strip()
+        nonce = _extract_nonce(env)
+        tx_type = str(env.get("tx_type") or "").strip()
+        tx_id = str(env.get("tx_id") or compute_tx_id(env, chain_id=self.chain_id)).strip()
+        chain_id = str(env.get("chain_id") or self.chain_id or "").strip()
+        return (chain_id, int(nonce or 0), signer, tx_type, tx_id)
+
+    def _decode_rows(self, rows: list[Any]) -> list[tuple[Json, int, str]]:
+        out: list[tuple[Json, int, str]] = []
+        for r in rows:
+            try:
+                env = json.loads(str(r["envelope_json"]))
+            except Exception:
+                env = {}
+            out.append((env, int(r["received_ms"]), str(r["tx_id"])))
+        return out
+
+    def _load_live_rows_fifo(self, *, now_ms: int, limit: int) -> list[tuple[Json, int, str]]:
         lim = int(limit) if int(limit) > 0 else 1000
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id
+                FROM mempool
+                WHERE expires_ms > ?
+                ORDER BY received_ms ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (int(now_ms), int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def _load_live_rows_canonical(self, *, now_ms: int, limit: int) -> list[tuple[Json, int, str]]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id
+                FROM mempool
+                WHERE expires_ms > ?
+                ORDER BY nonce ASC, signer ASC, tx_type ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (int(now_ms), int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def fetch_for_block(self, *, limit: int = 1000, policy: str | None = None) -> list[Json]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        pol = _selection_policy_name(policy or self.selection_policy())
         now = _now_ms()
-        out: list[Json] = []
         try:
-            with self.db.connection() as con:
-                rows = con.execute(
-                    """
-                    SELECT envelope_json
-                    FROM mempool
-                    WHERE expires_ms > ?
-                    ORDER BY received_ms ASC, tx_id ASC
-                    LIMIT ?;
-                    """,
-                    (int(now), int(lim)),
-                ).fetchall()
-            for r in rows:
-                try:
-                    out.append(json.loads(str(r["envelope_json"])))
-                except Exception:
-                    out.append({})
+            if pol == "canonical":
+                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+            else:
+                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception:
             return []
-        return out
+        if pol == "canonical":
+            rows.sort(key=lambda item: self._selection_key(item[0]))
+        return [dict(env) if isinstance(env, dict) else {} for env, _received_ms, _tx_id in rows]
+
+    def selection_diagnostics(self, *, limit: int = 10, policy: str | None = None) -> Json:
+        lim = int(limit) if int(limit) > 0 else 10
+        pol = _selection_policy_name(policy or self.selection_policy())
+        try:
+            if pol == "canonical":
+                rows = self._load_live_rows_canonical(now_ms=_now_ms(), limit=lim)
+            else:
+                rows = self._load_live_rows_fifo(now_ms=_now_ms(), limit=lim)
+        except Exception as exc:
+            return {
+                "policy": pol,
+                "preview_limit": lim,
+                "error": type(exc).__name__,
+                "items": [],
+            }
+        ordered = list(rows)
+        if pol == "canonical":
+            ordered.sort(key=lambda item: self._selection_key(item[0]))
+        items: list[Json] = []
+        for env, received_ms, tx_id in ordered:
+            base = dict(env) if isinstance(env, dict) else {}
+            items.append(
+                {
+                    "tx_id": str(base.get("tx_id") or tx_id),
+                    "tx_type": str(base.get("tx_type") or ""),
+                    "signer": str(base.get("signer") or ""),
+                    "nonce": int(_extract_nonce(base) or 0),
+                    "received_ms": int(base.get("received_ms") or received_ms),
+                    "order_key": list(self._selection_key(base)),
+                }
+            )
+        return {
+            "policy": pol,
+            "preview_limit": lim,
+            "size": self.size(),
+            "items": items,
+        }
+
+    def peek(self, *, limit: int = 1000) -> list[Json]:
+        return self.fetch_for_block(limit=limit, policy=self.selection_policy())

@@ -1,251 +1,171 @@
 # WeAll Protocol
 
-WeAll is a custom Layer 1 blockchain focused on deterministic social, identity, and governance systems.
+WeAll is a custom Layer 1 protocol focused on deterministic execution, HotStuff-style BFT finality, decentralized identity, governance, social content, groups, treasury flows, and operator-safe bootstrap-to-production lifecycle gating.
 
-The protocol is designed to eliminate trust assumptions wherever possible by enforcing:
-- deterministic execution
-- on-chain verifiability
-- reproducible state transitions
-- user-controlled identity and participation
+This repository is organized so a tester can go from a fresh clone to a working full-stack demo with one canonical dev boot command.
 
----
+## Repository layout
 
-# 🚀 Current Status
+- `scripts/` — repo-level bootstrap helpers, including the full dev flow
+- `Weall-Protocol/` — backend node, runtime, API, Docker Compose stack, tests, and operator scripts
+- `web/` — Vite + React frontend
+- `.weall-dev/` — transient local frontend runtime state created by the dev boot flow
 
-✅ Full test suite passing  
-✅ Fresh clone reproducible  
-✅ Full-stack golden path (account → PoH → media → post → feed) validated  
-✅ IPFS-backed media pipeline working  
+## Canonical local dev flow
 
----
+From the repository root:
 
-# 🧱 System Overview
+```bash
+./scripts/dev_boot_full_stack.sh
+```
 
-WeAll consists of:
+That command is the preferred tester path. It is designed to:
 
-- Backend (Python / FastAPI / Gunicorn)
-- Frontend (Vite / TypeScript)
-- IPFS (Kubo via Docker)
-- Custom L1 runtime (execution + consensus + state)
+- self-heal local port conflicts on `8000` and `5173`
+- normalize backend runtime directory permissions
+- reset deterministic local dev state
+- start the backend quickstart path
+- wait for backend readiness
+- run the canonical demo bootstrap
+- write the frontend dev bootstrap manifest
+- start the frontend dev server
 
----
+When it succeeds, the expected local URLs are:
 
-# ⚙️ Requirements
+- Frontend: `http://127.0.0.1:5173`
+- Backend readyz: `http://127.0.0.1:8000/v1/readyz`
+- Backend status: `http://127.0.0.1:8000/v1/status`
+- API docs: `http://127.0.0.1:8000/docs`
 
-### System Dependencies
+## What the full dev boot command produces
 
-You must have:
+The dev flow also runs a deterministic demo bootstrap for `@demo_tester` so a fresh tester does not need to hand-create a usable account before exploring the product surface.
 
-- Python 3.12+
-- Node.js 18+
-- npm
-- Git
-- Docker Desktop (with WSL2 integration enabled)
+Artifacts written by the flow include:
 
----
+- `Weall-Protocol/generated/demo_bootstrap_result.json`
+- `web/public/dev-bootstrap.json`
+- `.weall-dev/frontend.log`
 
-## ⚠️ WSL2 USERS (IMPORTANT)
+These artifacts let the frontend auto-repair the local dev browser session and surface the tester credentials in the UI.
 
-If you're on Windows:
+## Manual split flow
 
-1. Install Docker Desktop
-2. Go to:
-   - Settings → Resources → WSL Integration
-3. Enable your Ubuntu distro
+If you want to run the pieces separately instead of using the all-in-one script:
 
-Verify inside WSL:
+### 1) Backend quickstart
 
-docker version
-docker compose version
+From the repository root:
 
-If these fail, the golden path will NOT work.
+```bash
+./scripts/quickstart_tester.sh
+```
 
----
+Or from the backend directory:
 
-# 📦 Fresh Clone Setup
+```bash
+cd Weall-Protocol
+./scripts/quickstart_tester.sh
+```
 
-cd ~
-git clone https://github.com/errol1swaby2-bit/WeAll-Protocol.git
-cd WeAll-Protocol/Weall-Protocol
+### 2) Demo bootstrap
 
----
+```bash
+cd Weall-Protocol
+./scripts/demo_bootstrap_tester.sh
+```
 
-## 🐍 Python Setup
+### 3) Frontend only
 
-python3 -m venv .venv
-source .venv/bin/activate
-
-pip install -r requirements-dev.lock
-
----
-
-## 🌐 Frontend Setup
-
+```bash
 cd web
-npm install
-cd ..
+cp .env.example .env.local
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
+```
 
----
+## Dev environment requirements
 
-# 🧪 Validate Full System (GOLDEN PATH)
+### Backend
 
-This is the canonical validation command:
+- Python 3.12
+- Docker Desktop / Docker Engine with Compose
+- local access to ports `8000`, `5001`, and `8080`
 
-cd ~/WeAll-Protocol
-./scripts/golden_path_e2e_gate.sh
+### Frontend
 
----
+- Node.js 20+
+- npm
+- local access to port `5173`
 
-## ✅ What This Does
+## Common troubleshooting
 
-The golden path verifies:
+### Port already in use
 
-1. Starts IPFS (Kubo via Docker)
-2. Starts backend API
-3. Starts block producer
-4. Waits for readiness
-5. Runs frontend contract checks
-6. Executes full user flow:
+The dev boot script attempts automatic cleanup. If a port still remains busy, run:
 
-- account registration
-- PoH bootstrap
-- session issuance
-- media upload (IPFS)
-- content declaration
-- post creation
-- feed verification
+```bash
+lsof -i :8000 -P -n
+lsof -i :5173 -P -n
+ss -ltnp | grep -E ':8000|:5173'
+ps aux | grep -E 'vite|npm run dev|node.*5173' | grep -v grep
+docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Ports}}'
+```
 
----
+### Backend container health issues
 
-## ✅ Expected Result
+```bash
+cd Weall-Protocol
+docker compose ps
+docker compose logs weall_api --tail 200
+docker compose logs weall_producer --tail 200
+docker inspect weall-protocol-weall_api-1 --format '{{json .State.Health}}'
+```
 
-✅ FULL STACK GOLDEN PATH PASSED  
-✅ golden path e2e gate complete  
+### Reset local backend state
 
----
+```bash
+cd Weall-Protocol
+docker compose down -v
+rm -f data/weall.db data/weall.db-shm data/weall.db-wal
+rm -f data/weall.aux.sqlite data/weall.aux.sqlite-shm data/weall.aux.sqlite-wal
+rm -f data/weall.aux_helper_lanes data/weall.db.bft_journal.jsonl
+rm -f generated/demo_bootstrap_result.json
+```
 
-# 📡 IPFS (Kubo)
+### Blank white frontend screen during dev
 
-Media uploads depend on IPFS.
+A common cause is a frontend module import failure. Check the browser console first. The current codebase had a dev bootstrap import path expecting an exported session helper that was not actually exported, which causes Vite to render a blank page until fixed.
 
-The golden path automatically starts it via Docker:
+## Release hygiene before pushing to GitHub
 
-docker compose -f Weall-Protocol/docker-compose.ipfs.yml up -d
+Before publishing a fresh repo snapshot:
 
-Manual check:
+```bash
+cd Weall-Protocol
+./scripts/clean_local_artifacts.sh
+```
 
-curl -X POST http://127.0.0.1:5001/api/v0/version
+Also make sure:
 
----
+- the frontend is not carrying stale `.env.local` values you do not want committed
+- generated local demo artifacts are excluded
+- Docker runtime files are not being accidentally tracked
+- updated docs match the current dev flow, not an older manual setup path
 
-# 🧪 Run Tests
+## Consensus posture at a glance
 
-pytest -q
+The current repository posture is:
 
----
+- HotStuff-style BFT
+- deterministic validator normalization
+- deterministic round-robin leader selection
+- fail-closed runtime posture
+- helper execution beneath canonical consensus, never instead of it
+- deterministic bootstrap-to-production authority gating
 
-# 🧠 Dev vs Production Behavior
+## Current developer guidance
 
-### Dev / E2E Mode
+Use the repository root `README.md` for the tester-facing full-stack flow.
 
-- Open PoH bootstrap enabled
-- Self-registration allowed
-- No validator gating
-
-### Production Mode (Target)
-
-- Validator-controlled PoH issuance
-- Strict identity verification
-- Governance-controlled permissions
-
----
-
-# 📁 Key Scripts
-
-- scripts/golden_path_e2e_gate.sh → Full system validation
-- scripts/golden_path_full_stack.py → End-to-end flow
-- scripts/run_node.sh → Start backend
-- scripts/start_full_stack.sh → Full stack boot
-
----
-
-# 🔐 Determinism Goals
-
-WeAll is built around:
-
-- deterministic transaction execution
-- explicit read/write sets
-- replay-safe execution
-- verifiable state transitions
-- consensus-safe recovery
-
----
-
-# 🧩 Architecture Principles
-
-- No hidden state
-- No implicit trust
-- All critical flows auditable
-- Economic layer isolated from social layer during genesis phase
-
----
-
-# 📊 Genesis Phase
-
-WeAll launches with:
-
-- economics disabled
-- no fees
-- no rewards
-- governance locked for economic parameters
-
----
-
-# 🧭 Roadmap Focus
-
-- validator network hardening
-- consensus safety under adversarial conditions
-- PoH strengthening
-- DAO governance activation
-- economic layer unlock
-
----
-
-# 🧪 What Makes This Different
-
-Most projects validate:
-- builds
-- unit tests
-
-WeAll validates:
-- full user lifecycle
-- full runtime execution
-- cross-system integration
-- reproducibility from fresh clone
-
----
-
-# 🤝 Contributing
-
-We are actively looking for:
-
-- backend engineers (Python / distributed systems)
-- frontend engineers (TypeScript / Vite)
-- protocol researchers
-- systems engineers
-
----
-
-# 📜 License
-
-This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
-
-See the `LICENSE` file for the full text.
-
----
-
-# 🧠 Final Note
-
-If the golden path passes from a fresh clone, the system works.
-
-That is the standard.
+Use `Weall-Protocol/README.md` for backend-specific quickstart, runtime details, and operator diagnostics.

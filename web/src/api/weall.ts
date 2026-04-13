@@ -1,5 +1,6 @@
-const DEFAULT_API_BASE = "http://127.0.0.1:8000";
-const DEFAULT_EMAIL_ORACLE_BASE = DEFAULT_API_BASE;
+const ENV_API_BASE = String(((import.meta as any).env?.VITE_WEALL_API_BASE as string) || "").trim();
+const DEFAULT_API_BASE = ENV_API_BASE || "/";
+const DEFAULT_EMAIL_ORACLE_BASE = DEFAULT_API_BASE || "/";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -42,17 +43,56 @@ function readStoredEmailOracleBase(): string | null {
 }
 
 function trimTrailingSlash(value: string): string {
-  return value.trim().replace(/\/+$/, "");
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "/") return "/";
+  return trimmed.replace(/\/+$/, "");
+}
+
+function canUseWindowLocation(): boolean {
+  return typeof window !== "undefined" && !!window.location;
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const host = String(hostname || "").trim().toLowerCase();
+  return host === "127.0.0.1" || host === "localhost";
+}
+
+function isLoopbackBackendUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    if (!isLoopbackHostname(parsed.hostname)) return false;
+    return parsed.port === "8000" || parsed.port === "18000";
+  } catch {
+    return false;
+  }
+}
+
+function shouldUseDevProxyForBase(value: string): boolean {
+  const normalized = trimTrailingSlash(value);
+  if (!normalized || normalized === "/") return true;
+  if (!canUseWindowLocation()) return false;
+  if (!isLoopbackBackendUrl(normalized)) return false;
+  const current = window.location;
+  return isLoopbackHostname(current.hostname) && (current.port === "5173" || current.port === "4173");
+}
+
+function normalizeApiBaseForRuntime(value: string): string {
+  const normalized = trimTrailingSlash(value);
+  if (!normalized) return "/";
+  if (shouldUseDevProxyForBase(normalized)) return "";
+  return normalized;
 }
 
 export function getApiBase(): string {
-  return trimTrailingSlash(readStoredApiBase() || DEFAULT_API_BASE);
+  const stored = readStoredApiBase();
+  return normalizeApiBaseForRuntime(stored !== null ? stored : DEFAULT_API_BASE);
 }
 
 export function setApiBase(next: string): string {
   const normalized = trimTrailingSlash(next);
+  const runtimeValue = normalizeApiBaseForRuntime(normalized);
   localStorage.setItem("weall.api.base", normalized);
-  return normalized;
+  return runtimeValue;
 }
 
 export function getApiBaseUrl(): string {
@@ -64,13 +104,17 @@ export function setApiBaseUrl(next: string): string {
 }
 
 export function getEmailOracleBaseUrl(): string {
-  return trimTrailingSlash(readStoredEmailOracleBase() || getApiBase() || DEFAULT_EMAIL_ORACLE_BASE);
+  const stored = readStoredEmailOracleBase();
+  return normalizeApiBaseForRuntime(
+    stored !== null ? stored : (getApiBase() || DEFAULT_EMAIL_ORACLE_BASE),
+  );
 }
 
 export function setEmailOracleBaseUrl(next: string): string {
   const normalized = trimTrailingSlash(next);
+  const runtimeValue = normalizeApiBaseForRuntime(normalized);
   localStorage.setItem("weall.email.oracle.base", normalized);
-  return normalized;
+  return runtimeValue;
 }
 
 export function getAccount(): string | null {
@@ -132,7 +176,7 @@ function safeJsonParse(text: string): unknown {
 }
 
 function resolveBase(base?: string): string {
-  return trimTrailingSlash(base || getApiBase());
+  return normalizeApiBaseForRuntime(base || getApiBase());
 }
 
 async function request<T = any>(
@@ -258,13 +302,23 @@ export async function createBrowserSession(input: {
   issued_at_ms: number;
   device_id: string;
   pubkey: string;
-  sig: string;
+  sig?: string;
+  signature?: string;
 }, base?: string): Promise<SessionLoginResponse> {
+  const sig = String(input.sig || input.signature || "").trim();
   return request<SessionLoginResponse>(
     "/v1/session/login",
     {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        account: input.account,
+        session_key: input.session_key,
+        ttl_s: input.ttl_s,
+        issued_at_ms: input.issued_at_ms,
+        device_id: input.device_id,
+        pubkey: input.pubkey,
+        sig,
+      }),
     },
     base,
   );
@@ -675,7 +729,7 @@ export const weall = {
   },
 
   mediaGatewayUrl(cid: string, base?: string) {
-    return `${resolveBase(base)}/v1/media/${encodeURIComponent(cid)}`;
+    return `${resolveBase(base)}/v1/media/gateway/${encodeURIComponent(cid)}`;
   },
 
   txSubmit(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {

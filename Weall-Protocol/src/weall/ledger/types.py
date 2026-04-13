@@ -342,7 +342,7 @@ class LedgerState(MutableMapping[str, Any]):
                     "poh_tier": 3,
                     "banned": False,
                     "locked": False,
-                    "reputation": 0.0,
+                    "reputation": "0",
                     "reputation_milli": 0,
                 }
 

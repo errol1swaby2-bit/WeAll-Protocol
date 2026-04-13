@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { weall } from "../api/weall";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
+import { useAccount } from "../context/AccountContext";
 import { normalizeAccount } from "../auth/keys";
+import { useTxQueue } from "../hooks/useTxQueue";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
 import MediaGallery from "./MediaGallery";
@@ -36,8 +39,14 @@ function uniqById(items: any[]): any[] {
 }
 
 function prettyMsg(e: any): string {
-  const d = e?.data || e?.body || null;
-  return d?.message || e?.message || "error";
+  const payload = e?.payload || e?.body || e?.data || null;
+  const code = String(payload?.error?.code || payload?.code || "").trim();
+  const reason = String(payload?.error?.details?.reason || payload?.reason || "").trim();
+  const nested = payload?.error?.details?.details;
+  const nestedError = nested && typeof nested === "object" ? String(nested.error || nested.code || "").trim() : "";
+  const msg = String(payload?.error?.message || payload?.message || e?.message || "error").trim() || "error";
+  const detail = nestedError || reason || code;
+  return detail && detail !== msg ? `${msg} (${detail})` : msg;
 }
 
 function asArray<T = any>(v: any): T[] {
@@ -60,8 +69,28 @@ function itemTags(it: any): string[] {
   return asArray<string>(it?.tags).map((x) => String(x));
 }
 
-function itemMedia(it: any): any[] {
-  return asArray<any>(it?.media);
+function itemMedia(it: any, mediaIndex?: Record<string, any>): any[] {
+  const raw = asArray<any>(it?.media);
+  if (!raw.length) return raw;
+
+  const index = mediaIndex && typeof mediaIndex === "object" ? mediaIndex : {};
+  return raw.map((entry) => {
+    if (typeof entry !== "string") return entry;
+    const mediaId = entry.trim();
+    if (!mediaId || !mediaId.startsWith("media:")) return entry;
+    const resolved = index[mediaId];
+    if (!resolved || typeof resolved !== "object") return entry;
+    return {
+      media_id: mediaId,
+      cid: resolved?.cid || resolved?.payload?.cid || resolved?.payload?.upload_ref || "",
+      mime: resolved?.payload?.mime || resolved?.payload?.mime_type || resolved?.payload?.content_type || "",
+      name: resolved?.payload?.name || resolved?.payload?.filename || mediaId,
+      kind: resolved?.kind || resolved?.payload?.kind || "",
+      declared_by: resolved?.declared_by || "",
+      declared_at_nonce: resolved?.declared_at_nonce,
+      payload: resolved?.payload || {},
+    };
+  });
 }
 
 function itemVisibility(it: any): string {
@@ -94,6 +123,48 @@ function scopeLabel(scope: FeedScope): string {
   return "Feed";
 }
 
+function summarizeFeedScope(scope: FeedScope, count: number): string {
+  if (scope?.kind === "group") {
+    return count
+      ? `Showing ${count} visible items for this group scope.`
+      : "No group-scoped activity has been returned yet.";
+  }
+  if (scope?.kind === "account") {
+    return count
+      ? `Showing ${count} visible items for this account surface.`
+      : "This account has no visible items in the current view.";
+  }
+  return count
+    ? `Showing ${count} public items from the node's current feed view.`
+    : "No public items are visible in the current feed view yet.";
+}
+
+function summarizeInteractionState(args: {
+  viewer: string | null;
+  gateOk: boolean;
+  viewerSummary: string;
+}): { tone: string; title: string; text: string } {
+  if (!args.viewer) {
+    return {
+      tone: "",
+      title: "Read-only mode",
+      text: "You can browse public content now. Restore or create a local session before attempting reactions or flags.",
+    };
+  }
+  if (!args.gateOk) {
+    return {
+      tone: "",
+      title: "Interaction still gated",
+      text: `The current viewer is ${args.viewerSummary}. Tier 2 participation is required before reactions and flags are expected to succeed.`,
+    };
+  }
+  return {
+    tone: "ok",
+    title: "Tier 2 interaction unlocked",
+    text: `The current viewer is ${args.viewerSummary}. Reactions and flags still submit protocol transactions and may finalize asynchronously.`,
+  };
+}
+
 export default function FeedView({
   base,
   scope,
@@ -110,7 +181,9 @@ export default function FeedView({
   pageSize?: number;
 }): JSX.Element {
   void defaultSort;
+  const tx = useTxQueue();
   const [items, setItems] = useState<any[]>([]);
+  const [mediaIndex, setMediaIndex] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -126,6 +199,7 @@ export default function FeedView({
 
   const [flagBusyId, setFlagBusyId] = useState<string | null>(null);
   const [flagErr, setFlagErr] = useState<string | null>(null);
+  const { refresh: refreshAccountContext } = useAccount();
 
   const filters = useMemo(() => {
     return {
@@ -151,6 +225,35 @@ export default function FeedView({
   });
 
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
+  const signerSubmission = useSignerSubmissionBusy(viewer);
+  const signerBusy = signerSubmission.busy;
+  const interactionSummary = summarizeInteractionState({
+    viewer,
+    gateOk: gateTier2.ok,
+    viewerSummary,
+  });
+
+  async function loadMediaIndexFromSnapshot() {
+    try {
+      const headers = getAuthHeaders();
+      const r = await fetch(`${base}/v1/state/snapshot`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(headers || {}),
+        },
+      });
+      if (!r.ok) throw new Error(`snapshot_http_${r.status}`);
+      const body: any = await r.json();
+      const media =
+        body?.state?.content?.media && typeof body.state.content.media === "object"
+          ? body.state.content.media
+          : {};
+      setMediaIndex(media);
+    } catch {
+      setMediaIndex({});
+    }
+  }
 
   async function refreshViewerState() {
     if (!viewer) {
@@ -182,7 +285,8 @@ export default function FeedView({
           {
             limit,
             cursor,
-            visibility: filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
+            visibility:
+              filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
           },
@@ -195,7 +299,8 @@ export default function FeedView({
           {
             limit,
             cursor,
-            visibility: filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
+            visibility:
+              filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
           },
           base,
           headers,
@@ -205,7 +310,8 @@ export default function FeedView({
           {
             limit,
             cursor,
-            visibility: filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
+            visibility:
+              filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
           },
@@ -223,6 +329,7 @@ export default function FeedView({
         setItems(pageItems);
       }
       setNextCursor(nc);
+      await loadMediaIndexFromSnapshot();
     } catch (e: any) {
       setErr(prettyMsg(e));
       if (!opts?.append) setItems([]);
@@ -259,14 +366,22 @@ export default function FeedView({
 
     setLikeBusyId(String(targetId));
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_REACTION_SET",
-        payload: { target_id: String(targetId), reaction: "like" },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "React to content",
+        pendingMessage: "Submitting reaction transaction…",
+        successMessage: "Reaction submitted. The feed will refresh after submission and final confirmation may still be pending.",
+        errorMessage: (e) => prettyMsg(e),
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_REACTION_SET",
+            payload: { target_id: String(targetId), reaction: "like" },
+            parent: null,
+            base,
+          }),
       });
-      await loadPage({ cursor: null, append: false });
+      await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
     } catch (e: any) {
       setLikeErr(prettyMsg(e));
     } finally {
@@ -285,14 +400,22 @@ export default function FeedView({
 
     setFlagBusyId(String(targetId));
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_FLAG_SET",
-        payload: { target_id: String(targetId), reason: reason || null },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Flag content",
+        pendingMessage: "Submitting flag transaction…",
+        successMessage: "Flag submitted. Moderation and dispute outcomes are determined later by the network.",
+        errorMessage: (e) => prettyMsg(e),
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_FLAG",
+            payload: reason ? { target_id: String(targetId), reason } : { target_id: String(targetId) },
+            parent: null,
+            base,
+          }),
       });
-      await loadPage({ cursor: null, append: false });
+      await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
     } catch (e: any) {
       setFlagErr(prettyMsg(e));
     } finally {
@@ -330,29 +453,40 @@ export default function FeedView({
             </div>
           </div>
 
-          <div className="grid2 formGrid">
-            <div className="fieldLabel">
-              Ordering
-              <div className="statusSummary">
-                <span className="statusPill ok">Newest first</span>
-                <span className="statusPill">Server truth</span>
-              </div>
+          <div className="surfaceSummaryGrid">
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Feed scope</span>
+              <strong className="surfaceSummaryValue">{scopeLabel(scope)}</strong>
+              <span className="surfaceSummaryHint">{summarizeFeedScope(scope, items.length)}</span>
             </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Ordering</span>
+              <strong className="surfaceSummaryValue">Newest first</strong>
+              <span className="surfaceSummaryHint">Rendered from backend ordering, not a frontend-local ranking model.</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Viewer state</span>
+              <strong className="surfaceSummaryValue mono">{viewer || "Read-only"}</strong>
+              <span className="surfaceSummaryHint">{viewer ? viewerSummary : "Browse now. Restore a device session to interact."}</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Interaction status</span>
+              <strong className="surfaceSummaryValue">{interactionSummary.title}</strong>
+              <span className="surfaceSummaryHint">{interactionSummary.text}</span>
+            </div>
+          </div>
 
-            <div className="fieldLabel">
-              Participation
-              <div className="statusSummary">
-                <span className={`statusPill ${gateTier2.ok ? "ok" : ""}`}>
-                  {gateTier2.ok ? "Tier 2 actions unlocked" : "Tier 2 required"}
-                </span>
-                {viewer ? <span className="statusPill mono">{viewer}</span> : <span className="statusPill">Read-only</span>}
-              </div>
-            </div>
+          <div className={`calloutInfo ${interactionSummary.tone === "ok" ? "calloutSuccess" : ""}`}>
+            <strong>{interactionSummary.title}</strong>
+            <div style={{ marginTop: 6 }}>{interactionSummary.text}</div>
           </div>
 
           {err ? <div className="inlineError">{err}</div> : null}
           {likeErr ? <div className="inlineError">{likeErr}</div> : null}
           {flagErr ? <div className="inlineError">{flagErr}</div> : null}
+          {signerBusy ? (
+            <div className="inlineNote">A signed action is already being submitted for this account. New reactions and flags wait for that submission to finish so signer nonces stay monotonic.</div>
+          ) : null}
         </div>
       </section>
 
@@ -379,7 +513,7 @@ export default function FeedView({
           const author = itemAuthor(it);
           const body = itemBody(it);
           const tags = itemTags(it);
-          const media = itemMedia(it);
+          const media = itemMedia(it, mediaIndex);
           const visibility = itemVisibility(it);
           const likeCount = reactionCount(it, "like");
 
@@ -423,15 +557,22 @@ export default function FeedView({
 
                 <MediaGallery base={base} media={media} title="Attached media" compact />
 
+                <div className="actionStateRow">
+                  <span className="actionStateLabel">Action truth</span>
+                  <span className="actionStateText">
+                    Reactions and flags submit protocol transactions. Submission can succeed before final confirmation is visible.
+                  </span>
+                </div>
+
                 <div className="buttonRow buttonRowWide">
                   <button className="btn btnPrimary" onClick={() => nav(`/thread/${encodeURIComponent(id)}`)} disabled={!id}>
                     Open thread
                   </button>
-                  <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id}>
-                    {likeBusyId === id ? "Liking…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
+                  <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id || signerBusy}>
+                    {likeBusyId === id ? "Liking…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
-                  <button className="btn" onClick={() => void doFlag(id)} disabled={!id || flagBusyId === id}>
-                    {flagBusyId === id ? "Flagging…" : "Flag"}
+                  <button className="btn" onClick={() => void doFlag(id)} disabled={!id || flagBusyId === id || signerBusy}>
+                    {flagBusyId === id ? "Flagging…" : signerBusy ? "Waiting…" : "Flag"}
                   </button>
                 </div>
               </div>

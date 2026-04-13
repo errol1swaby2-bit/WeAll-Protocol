@@ -403,11 +403,7 @@ def _reputation_and_flags_ok(
 
 
 def _consensus_bootstrap_open_enabled(ledger: LedgerView) -> bool:
-    """Return True when ledger state explicitly enables open PoH bootstrap.
-
-    This gate is consensus-critical and therefore must be derived from replayable
-    chain state rather than process-local environment variables.
-    """
+    """Return True when ledger state explicitly enables open PoH bootstrap."""
     params = ledger.params if isinstance(ledger.params, dict) else {}
     raw = params.get("poh_bootstrap_open")
     if isinstance(raw, bool):
@@ -415,17 +411,44 @@ def _consensus_bootstrap_open_enabled(ledger: LedgerView) -> bool:
     return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _bootstrap_allowlist_enabled(ledger: LedgerView) -> bool:
+    params = ledger.params if isinstance(ledger.params, dict) else {}
+    allowlist = params.get("bootstrap_allowlist")
+    return isinstance(allowlist, dict) and bool(allowlist)
+
+
+def _consensus_bootstrap_policy_mode(ledger: LedgerView) -> tuple[str, bool]:
+    """Return (mode, conflict) for consensus-visible PoH bootstrap policy."""
+    params = ledger.params if isinstance(ledger.params, dict) else {}
+    raw_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    open_enabled = _consensus_bootstrap_open_enabled(ledger)
+    allowlist_enabled = _bootstrap_allowlist_enabled(ledger)
+
+    if raw_mode:
+        if raw_mode not in {"closed", "open", "allowlist"}:
+            return "invalid", True
+        if raw_mode == "closed" and (open_enabled or allowlist_enabled):
+            return raw_mode, True
+        if raw_mode == "open" and allowlist_enabled:
+            return raw_mode, True
+        if raw_mode == "allowlist" and open_enabled:
+            return raw_mode, True
+        return raw_mode, False
+
+    if open_enabled and allowlist_enabled:
+        return "implicit", True
+    if open_enabled:
+        return "open", False
+    if allowlist_enabled:
+        return "allowlist", False
+    return "closed", False
+
+
 def _bootstrap_open_gate_bypass(env: TxEnvelope, ledger: LedgerView, spec: Json) -> bool:
     """On-chain escape hatch for POH bootstrap.
 
-    Canon marks POH_BOOTSTRAP_TIER3_GRANT with a Validator subject gate and
-    SYSTEM origin. When the ledger state explicitly enables open bootstrap,
-    admission intentionally allows a freshly registered user account to submit
-    this tx so controlled bootstrap flows can run without pre-seeding a
-    validator identity or system signer plumbing.
-
-    Because this affects block validity, the bypass must be derived from the
-    replayable ledger state, not from local environment configuration.
+    Bypass is allowed only when the consensus-visible bootstrap policy resolves
+    unambiguously to the explicit/open mode.
     """
     tx_type = str(env.tx_type or "").strip().upper()
     gate = str(spec.get("subject_gate") or "").strip()
@@ -433,7 +456,57 @@ def _bootstrap_open_gate_bypass(env: TxEnvelope, ledger: LedgerView, spec: Json)
         return False
     if gate != "Validator":
         return False
-    return _consensus_bootstrap_open_enabled(ledger)
+    mode, conflict = _consensus_bootstrap_policy_mode(ledger)
+    if conflict:
+        return False
+    return mode == "open"
+
+
+def _canonical_system_signers(ledger: LedgerView) -> set[str]:
+    params = getattr(ledger, "params", {}) or {}
+    configured = str(params.get("system_signer") or "").strip()
+    signers: set[str] = set()
+    if configured:
+        signers.add(configured)
+        if configured.upper() == "SYSTEM":
+            signers.add("SYSTEM")
+    else:
+        signers.add("SYSTEM")
+    return signers
+
+
+def _system_origin_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdict | None:
+    tx_type = str(env.tx_type or "").strip().upper()
+    origin = str(spec.get("origin") or "").strip().upper()
+    system_enforced = bool(spec.get("system_only", False)) or origin == "SYSTEM"
+    if not system_enforced:
+        return None
+
+    if _bootstrap_open_gate_bypass(env, ledger, spec):
+        return None
+
+    canonical_system_signers = _canonical_system_signers(ledger)
+    signer = str(env.signer or "").strip()
+    system_flag = bool(getattr(env, "system", False))
+
+    if not system_flag:
+        return _rej(
+            "system_tx_forbidden",
+            "system_flag_required",
+            tx_type=tx_type,
+            signer=signer,
+        )
+
+    if signer not in canonical_system_signers:
+        return _rej(
+            "system_tx_forbidden",
+            "system_signer_required",
+            tx_type=tx_type,
+            signer=signer,
+            system_signers=sorted(canonical_system_signers),
+        )
+
+    return None
 
 
 def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdict | None:
@@ -464,22 +537,25 @@ def _tx_sigverify_enforced() -> bool:
 
 
 def _sig_ok(env: TxEnvelope, *, context: str) -> AdmissionVerdict | None:
-    """Enforce *presence* of a signature for untrusted ingress contexts.
+    """Enforce signature *presence* for public ingress when sigverify is enabled.
 
     Policy:
-      - context in {mempool, local, block}: signature presence is NOT enforced here.
-        Block-context cryptographic verification is handled separately by
-        `_block_sig_verify_ok(...)` so block validity does not rely on public
-        ingress checks.
-      - context in {gossip, peer, http}: required when WEALL_SIGVERIFY=1 (or default-prod behavior).
+      - context="local" remains permissive so deterministic internal/test paths
+        can continue to stage unsigned fixtures when desired.
+      - context="block" defers to `_block_sig_verify_ok(...)` so committed block
+        validity remains independent from public-ingress assumptions.
+      - context in {gossip, peer, http} requires a non-empty signature
+        whenever tx signature verification is enabled for the runtime mode.
+      - context="mempool" remains executor-local permissive because the public API
+        already performs signature and chain-id verification before calling
+        executor.submit_tx(...), while many internal tests and deterministic
+        fixture paths intentionally stage unsigned envelopes directly.
     """
     ctx = (context or "").strip().lower() or "mempool"
 
-    # Local/deterministic paths: presence-only checks are handled elsewhere.
-    if ctx in {"mempool", "local", "block"}:
+    if ctx in {"local", "mempool", "block"}:
         return None
 
-    # If a signature is present, let it through.
     if str(env.sig or "").strip():
         return None
 
@@ -487,6 +563,44 @@ def _sig_ok(env: TxEnvelope, *, context: str) -> AdmissionVerdict | None:
         return None
 
     return _rej("missing_sig", "sig_required")
+
+
+def _public_ingress_sig_verify_ok(env: TxEnvelope, ledger: LedgerView, *, context: str) -> AdmissionVerdict | None:
+    """Cryptographically verify public-ingress signatures when sigverify is enabled.
+
+    This closes the prod/public-ingress gap where malformed or forged txs could
+    sit in mempool until candidate assembly or block replay. The check mirrors
+    block-context verification closely enough to fail fast at the edge while
+    preserving existing local/test fixture paths.
+    """
+    ctx = (context or "").strip().lower() or "mempool"
+    if ctx not in {"gossip", "peer", "http"}:
+        return None
+
+    if not _tx_sigverify_enforced():
+        return None
+
+    signer = str(env.signer or "").strip()
+    if not signer:
+        return _rej("invalid_tx", "missing_signer")
+
+    if signer == "SYSTEM" or bool(getattr(env, "system", False)):
+        return _rej("system_tx_forbidden", "system_only_tx_not_allowed_in_public_ingress")
+
+    sig = str(getattr(env, "sig", "") or "").strip()
+    if not sig:
+        return _rej("missing_sig", "sig_required")
+
+    txj = env.to_json()
+    tx_chain_id = str(txj.get("chain_id") or "").strip()
+    if strict_tx_sig_domain_enabled() and not tx_chain_id:
+        return _rej("missing_chain_id", "chain_id_required")
+
+    state = ledger.to_ledger()
+    if not verify_tx_signature(state if isinstance(state, dict) else {}, txj):
+        return _rej("bad_sig", "signature_verification_failed")
+
+    return None
 
 
 def _block_sig_verify_ok(env: TxEnvelope, ledger: LedgerView) -> AdmissionVerdict | None:
@@ -541,14 +655,16 @@ def admit_tx(
 
     ctx = str(context or "").strip().lower() or "mempool"
 
-    # Keep SYSTEM txs out of public ingress.
+    # Keep canonical system-origin traffic out of public ingress.
     if ctx in {"mempool", "gossip", "peer"}:
-        if str(env.signer).strip() == "SYSTEM" or bool(getattr(env, "system", False)):
+        canonical_system_signers = _canonical_system_signers(lv)
+        if str(env.signer).strip() in canonical_system_signers or bool(getattr(env, "system", False)):
             return _rej(
                 "system_tx_forbidden",
                 "system_only_tx_not_allowed_in_public_ingress",
                 tx_type=str(env.tx_type),
                 signer=str(env.signer),
+                system_signers=sorted(canonical_system_signers),
             )
 
     if strict_account_ids_enabled() and not is_valid_account_id(env.signer):
@@ -585,7 +701,22 @@ def admit_tx(
     if bad is not None:
         return bad
 
+    bad = _public_ingress_sig_verify_ok(env, lv, context=ctx)
+    if bad is not None:
+        return bad
+
     if ctx == "block":
+        signer = str(env.signer or "").strip()
+        canonical_system_signers = _canonical_system_signers(lv)
+        if bool(getattr(env, "system", False)) and signer.upper() == "SYSTEM" and signer not in canonical_system_signers:
+            return _rej(
+                "system_tx_forbidden",
+                "system_signer_required",
+                tx_type=str(env.tx_type or "").strip().upper(),
+                signer=signer,
+                system_signers=sorted(canonical_system_signers),
+            )
+
         bad = _block_sig_verify_ok(env, lv)
         if bad is not None:
             return bad
@@ -599,6 +730,10 @@ def admit_tx(
         return bad
 
     bad = _gate_ok(env, lv, spec)
+    if bad is not None:
+        return bad
+
+    bad = _system_origin_ok(env, lv, spec)
     if bad is not None:
         return bad
 

@@ -39,18 +39,55 @@ def _proposals_by_id_from_snapshot(st: dict[str, Any]) -> dict[str, Any]:
     return by_id
 
 
+def _as_vote_map(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _count_map(m: dict[str, Any]) -> dict[str, int]:
+    out: dict[str, int] = {"yes": 0, "no": 0, "abstain": 0}
+    for _, v in sorted(m.items(), key=lambda item: str(item[0])):
+        if not isinstance(v, dict):
+            continue
+        k = str(v.get("vote") or "").strip().lower()
+        if k == "yes":
+            out["yes"] += 1
+        elif k == "no":
+            out["no"] += 1
+        elif k:
+            out["abstain"] += 1
+    return out
+
+
 def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     """Ensure a stable shape for API consumers.
 
-    Internally, governance uses "proposal_id".
-    Some clients expect "id".
+    Internally, governance uses "proposal_id" and "stage".
+    Some clients expect "id" and "status".
     """
 
-    pid = obj.get("proposal_id") or obj.get("id")
-    if pid and "id" not in obj:
-        obj = dict(obj)
-        obj["id"] = pid
-    return obj
+    out = dict(obj)
+    pid = out.get("proposal_id") or out.get("id")
+    stage = out.get("stage") or out.get("status") or "unknown"
+
+    if pid and "id" not in out:
+        out["id"] = pid
+    if stage and "status" not in out:
+        out["status"] = stage
+
+    poll_votes = _as_vote_map(out.get("poll_votes"))
+    votes = _as_vote_map(out.get("votes"))
+    poll_counts = _count_map(poll_votes)
+    counts = _count_map(votes)
+
+    out["poll_votes"] = poll_votes
+    out["votes"] = votes
+    out["poll_counts"] = poll_counts
+    out["counts"] = counts
+    out["poll_vote_total"] = int(sum(poll_counts.values()))
+    out["vote_total"] = int(sum(counts.values()))
+    out["has_actions"] = bool(isinstance(out.get("actions"), list) and out.get("actions"))
+    out["execution_count"] = len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    return out
 
 
 def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[str, Any]:
@@ -92,15 +129,14 @@ def v1_gov_proposals(request: Request):
     if not by_id:
         return {"ok": True, "items": []}
 
-    items: list[dict] = []
+    items: list[dict[str, Any]] = []
     for _, obj in by_id.items():
         if isinstance(obj, dict):
             items.append(_normalize_proposal(obj))
 
-    # stable most-recent-first if created_at_nonce exists
     items.sort(
         key=lambda x: (
-            int(x.get("created_at_nonce", 0) or 0),
+            int(x.get("created_at_height", 0) or 0),
             str(x.get("proposal_id") or x.get("id") or ""),
         ),
         reverse=True,
@@ -127,40 +163,18 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
 
     Mounted under /v1:
       GET /v1/gov/proposals/{proposal_id}/votes
-
-    Notes:
-      - Votes are stored within the proposal object as two maps:
-          - "poll_votes" (used during "poll" stage)
-          - "votes" (used during "voting"/"vote" stage)
-      - This endpoint returns both for simplicity.
     """
 
     st = _snapshot(request)
     obj = _proposal_obj_from_snapshot(st, proposal_id)
 
-    poll_votes = obj.get("poll_votes")
-    if not isinstance(poll_votes, dict):
-        poll_votes = {}
-
-    votes = obj.get("votes")
-    if not isinstance(votes, dict):
-        votes = {}
-
-    # Optional convenience counts
-    def _count_map(m: dict[str, Any]) -> dict[str, int]:
-        out: dict[str, int] = {}
-        for _, v in m.items():
-            if not isinstance(v, dict):
-                continue
-            k = str(v.get("vote") or "").strip().lower()
-            if not k:
-                continue
-            out[k] = out.get(k, 0) + 1
-        return out
+    poll_votes = _as_vote_map(obj.get("poll_votes"))
+    votes = _as_vote_map(obj.get("votes"))
 
     return {
         "ok": True,
         "proposal_id": str(obj.get("proposal_id") or obj.get("id") or proposal_id),
+        "stage": str(obj.get("stage") or obj.get("status") or "unknown"),
         "poll_votes": poll_votes,
         "votes": votes,
         "poll_counts": _count_map(poll_votes),

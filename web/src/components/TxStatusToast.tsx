@@ -1,13 +1,31 @@
 import React from "react";
 
+export type TxToastStatus = "preparing" | "submitted" | "confirmed" | "error" | "unknown";
+
 export type TxToastItem = {
   id: string;
   title: string;
-  status: "pending" | "success" | "error";
+  status: TxToastStatus;
   message?: string;
   txId?: string;
   createdAt: number;
+  updatedAt?: number;
 };
+
+function badgeLabel(status: TxToastStatus): string {
+  switch (status) {
+    case "preparing":
+      return "Preparing";
+    case "submitted":
+      return "Submitted";
+    case "confirmed":
+      return "Confirmed";
+    case "unknown":
+      return "Unknown";
+    default:
+      return "Failed";
+  }
+}
 
 export default function TxStatusToast({
   items,
@@ -30,9 +48,7 @@ export default function TxStatusToast({
           </div>
 
           <div className="txToastBody">
-            <div className="txToastBadge">
-              {item.status === "pending" ? "Pending" : item.status === "success" ? "Confirmed" : "Failed"}
-            </div>
+            <div className="txToastBadge">{badgeLabel(item.status)}</div>
 
             {item.message ? <div className="txToastMessage">{item.message}</div> : null}
 

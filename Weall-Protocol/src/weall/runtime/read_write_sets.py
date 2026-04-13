@@ -50,7 +50,10 @@ def _infer_lane_from_keys(keys: Iterable[str]) -> str:
         elif key.startswith(("storage:", "ipfs:", "network:")):
             prefixes.add(STORAGE_LANE)
         elif key.startswith(("consensus:", "authority:", "barrier:")):
-            return SERIAL_LANE
+            # Authority/barrier namespaces are scope metadata, not their own lane.
+            # Keep scanning other keys so explicit authority-bound txs can still
+            # resolve to their family lane when the scoped writes are materialized.
+            continue
         else:
             return SERIAL_LANE
     if len(prefixes) == 1:
@@ -93,16 +96,19 @@ def _explicit_access_set(tx: dict[str, Any]) -> TxAccessSet | None:
     subject_keys = _sorted_unique_strs(raw_subject if isinstance(raw_subject, valid_types) else ())
     authority_keys = _sorted_unique_strs(raw_authority if isinstance(raw_authority, valid_types) else ())
 
-    lane_hint = _infer_lane_from_keys(tuple(reads) + tuple(writes) + tuple(authority_keys))
-    if authority_keys:
+    lane_hint = _infer_lane_from_keys(tuple(reads) + tuple(writes) + tuple(subject_keys) + tuple(authority_keys))
+    fail_closed_serial = False
+    scoped_keys = tuple(sorted(set(subject_keys) | set(authority_keys)))
+    if scoped_keys and not set(scoped_keys).issubset(set(writes)):
         lane_hint = SERIAL_LANE
+        fail_closed_serial = True
 
     return TxAccessSet(
         tx_id=str(tx.get("tx_id", "")),
         lane_hint=lane_hint,
         reads=reads,
         writes=writes,
-        fail_closed_serial=False,
+        fail_closed_serial=fail_closed_serial,
         family=str(tx.get("family", TxFamily.UNKNOWN.value)),
         barrier_class=str(tx.get("barrier_class", BarrierClass.SCOPED_PARALLEL.value if lane_hint != SERIAL_LANE else BarrierClass.GLOBAL_BARRIER.value)),
         subject_keys=subject_keys,
@@ -130,6 +136,17 @@ def build_tx_access_set(tx: dict[str, Any]) -> TxAccessSet:
 
     reads = _sorted_unique_strs(descriptor.read_keys)
     writes = _sorted_unique_strs(tuple(descriptor.write_keys) + tuple(descriptor.subject_keys) + tuple(descriptor.authority_keys))
+
+    cross_domain_serial_types = {
+        "GROUP_SIGNERS_SET",
+        "GROUP_EMISSARY_ELECTION_FINALIZE",
+        "ROLE_EMISSARY_SEAT",
+        "ROLE_EMISSARY_REMOVE",
+    }
+    if descriptor.tx_type in cross_domain_serial_types:
+        inferred_lane = _infer_lane_from_keys(tuple(reads) + tuple(writes))
+        if inferred_lane == SERIAL_LANE:
+            lane_hint = SERIAL_LANE
 
     return TxAccessSet(
         tx_id=descriptor.tx_id,

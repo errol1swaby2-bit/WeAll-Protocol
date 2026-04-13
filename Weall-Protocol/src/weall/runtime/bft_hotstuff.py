@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -132,11 +131,14 @@ def quorum_threshold(n: int) -> int:
     We require a supermajority of at least ceil(2n/3), which matches the
     ``2f + 1`` HotStuff quorum when ``n = 3f + 1`` and remains conservative for
     intermediate validator-set sizes.
+
+    Consensus arithmetic must stay integer-only so the threshold cannot vary
+    across runtimes due to floating-point behavior.
     """
     n2 = max(0, int(n))
     if n2 <= 0:
         return 0
-    return int(math.ceil((2 * n2) / 3.0))
+    return ((2 * n2) + 2) // 3
 
 
 def leader_for_view(validators: list[str], view: int) -> str:

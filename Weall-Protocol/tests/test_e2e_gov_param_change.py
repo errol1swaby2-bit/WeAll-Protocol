@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair, sign_tx_dict
+from weall.testing.sigtools import deterministic_ed25519_keypair
 
 
 def _repo_root() -> Path:
@@ -38,13 +39,25 @@ def test_state_persists_across_blocks_and_restart(
     alice_pubkey, _ = deterministic_ed25519_keypair(label="@alice")
 
     # Create account with a seed pubkey so later txs can be signature-verified.
+    payload = {"pubkey": alice_pubkey}
     reg = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": "@alice",
         "nonce": 1,
-        "payload": {"pubkey": alice_pubkey},
+        "payload": payload,
+        "chain_id": "persist",
+        "sig": deterministic_ed25519_keypair(label="@alice")[1].sign(
+            canonical_tx_message(
+                chain_id="persist",
+                tx_type="ACCOUNT_REGISTER",
+                signer="@alice",
+                nonce=1,
+                payload=payload,
+                parent=None,
+            )
+        ).hex(),
     }
-    assert ex.submit_tx(sign_tx_dict(reg, label="@alice"))["ok"] is True
+    assert ex.submit_tx(reg)["ok"] is True
     assert ex.produce_block(max_txs=1).ok is True
 
     st1 = ex.read_state()

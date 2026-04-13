@@ -36,7 +36,7 @@ def _assert_minimal_shape(st: dict) -> None:
         assert isinstance(acct.get("poh_tier"), int)
         assert isinstance(acct.get("banned"), bool)
         assert isinstance(acct.get("locked"), bool)
-        assert isinstance(acct.get("reputation"), float)
+        assert isinstance(acct.get("reputation"), str)
 
 
 def test_migrate_non_dict_input_yields_current_skeleton() -> None:
@@ -95,7 +95,7 @@ def test_migrate_v0_accounts_are_normalized() -> None:
     assert st["accounts"]["alice"]["poh_tier"] == 2
     assert st["accounts"]["alice"]["banned"] is False
     assert st["accounts"]["alice"]["locked"] is False
-    assert st["accounts"]["alice"]["reputation"] == pytest.approx(0.25)
+    assert str(st["accounts"]["alice"]["reputation"]) == "0.25"
 
     assert isinstance(st["accounts"]["bob"], dict)
     assert st["accounts"]["bob"]["nonce"] == 0

@@ -126,6 +126,11 @@ class NetConfig:
     server_cert: str | None = None
     server_key: str | None = None
 
+    # Optional effective BFT posture supplied by the runtime/mesh loop.
+    # When omitted, NetNode falls back to legacy env-based behavior for
+    # backwards compatibility with older tests and direct callers.
+    bft_enabled: bool | None = None
+
 
 @dataclass(frozen=True, slots=True)
 class PeerPolicy:
@@ -480,6 +485,8 @@ class NetNode:
         return _env_bool("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", False)
 
     def _bft_enabled(self) -> bool:
+        if getattr(self.cfg, "bft_enabled", None) is not None:
+            return bool(self.cfg.bft_enabled)
         return _env_bool("WEALL_BFT_ENABLED", False)
 
     def _local_validator_posture(self) -> bool:
@@ -541,6 +548,40 @@ class NetNode:
         if not vals:
             return ""
         return _canonical_validator_set_hash(vals)
+
+
+    def _handshake_genesis_bootstrap_profile(self) -> Json:
+        ledger = self._get_ledger() or {}
+        meta = ledger.get("meta") if isinstance(ledger, dict) else {}
+        if isinstance(meta, dict):
+            profile = meta.get("genesis_bootstrap_profile")
+            if isinstance(profile, dict):
+                return dict(profile)
+        return {}
+
+    def _handshake_genesis_bootstrap_profile_hash(self) -> str:
+        profile = self._handshake_genesis_bootstrap_profile()
+        ledger = self._get_ledger() or {}
+        meta = ledger.get("meta") if isinstance(ledger, dict) else {}
+        if isinstance(meta, dict):
+            have = str(meta.get("genesis_bootstrap_profile_hash") or "").strip()
+            if have:
+                return have
+        return ""
+
+    def _handshake_genesis_bootstrap_enabled(self) -> bool:
+        profile = self._handshake_genesis_bootstrap_profile()
+        return bool(profile.get("enabled", False)) if isinstance(profile, dict) else False
+
+    def _handshake_genesis_bootstrap_mode(self) -> str:
+        profile = self._handshake_genesis_bootstrap_profile()
+        if isinstance(profile, dict):
+            mode = str(profile.get("mode") or "").strip()
+            if mode:
+                return mode
+            if bool(profile.get("enabled", False)):
+                return "enabled"
+        return "disabled"
 
     def _verify_inbound_hello_identity(self, rec: _PeerRec, hello: PeerHello) -> None:
         if not self._identity_required():
@@ -758,11 +799,17 @@ class NetNode:
                 validator_epoch=self._handshake_validator_epoch(),
                 validator_set_hash=self._handshake_validator_set_hash(),
                 bft_enabled=self._bft_enabled(),
+                genesis_bootstrap_profile_hash=self._handshake_genesis_bootstrap_profile_hash(),
+                genesis_bootstrap_enabled=self._handshake_genesis_bootstrap_enabled(),
+                genesis_bootstrap_mode=self._handshake_genesis_bootstrap_mode(),
                 require_protocol_profile_match=bool(
                     active_consensus_profile().handshake_requires_profile_match
                 ),
                 require_validator_epoch_match_for_bft=bool(
                     active_consensus_profile().handshake_requires_validator_epoch_match_for_bft
+                ),
+                require_genesis_bootstrap_profile_match=bool(
+                    active_consensus_profile().handshake_requires_profile_match
                 ),
             )
         )

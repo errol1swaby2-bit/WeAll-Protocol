@@ -99,7 +99,7 @@ def _ensure_account(ledger: Any, account_id: str) -> MutableMapping[str, Any]:
             "poh_tier": 0,
             "banned": False,
             "locked": False,
-            "reputation": 0,
+            "reputation": "0",
         }
         accounts[account_id] = acct
     acct.setdefault("nonce", 0)

@@ -49,6 +49,15 @@ finally:
 PY
 }
 
+dump_backend_diagnostics() {
+  echo >&2
+  echo "Try:" >&2
+  echo "  docker compose ps" >&2
+  echo "  docker compose logs weall_api --tail 200" >&2
+  echo "  docker compose logs weall_producer --tail 200" >&2
+  echo "  docker compose logs kubo --tail 200" >&2
+}
+
 need_cmd docker
 need_cmd python3
 need_cmd curl
@@ -75,12 +84,23 @@ docker compose up -d --build
 log "waiting for API readiness at ${API_URL}/v1/readyz"
 if ! wait_for_url "${API_URL}/v1/readyz" 120; then
   echo "ERROR: API did not become ready in time." >&2
-  echo >&2
-  echo "Try:" >&2
-  echo "  docker compose ps" >&2
-  echo "  docker compose logs weall_api --tail 200" >&2
-  echo "  docker compose logs weall_producer --tail 200" >&2
-  echo "  docker compose logs kubo --tail 200" >&2
+  dump_backend_diagnostics
+  exit 1
+fi
+
+log "verifying container health after readiness"
+if ! timeout 60 bash -lc '
+  for _ in $(seq 1 60); do
+    status="$(docker inspect weall-protocol-weall_api-1 --format "{{.State.Health.Status}}" 2>/dev/null || true)"
+    if [ "$status" = "healthy" ]; then
+      exit 0
+    fi
+    sleep 1
+  done
+  exit 1
+'; then
+  echo "ERROR: weall_api container did not report healthy status after readiness." >&2
+  dump_backend_diagnostics
   exit 1
 fi
 

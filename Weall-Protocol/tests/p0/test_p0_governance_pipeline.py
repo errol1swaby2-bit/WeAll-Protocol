@@ -167,10 +167,6 @@ def _proposal_withdraw(proposal_id: str, *, signer: str, nonce: int) -> Json:
     )
 
 
-def _delegation_set(delegatee: str, *, signer: str, nonce: int) -> Json:
-    return env(
-        "GOV_DELEGATION_SET", {"delegatee": delegatee}, signer=signer, nonce=nonce, system=False
-    )
 
 
 def test_gov_proposal_create_sets_creator_and_default_stage(base_state, txf) -> None:
@@ -353,15 +349,143 @@ def test_gov_proposal_withdraw_only_creator_and_not_if_finalized(base_state, txf
     assert err2.reason == "proposal_already_finalized"
 
 
-def test_gov_delegation_set_and_clear(base_state) -> None:
+
+def _tally_publish(
+    proposal_id: str,
+    *,
+    nonce: int,
+    passed: bool = True,
+    signer: str = "SYSTEM",
+) -> Json:
+    return env(
+        "GOV_TALLY_PUBLISH",
+        {
+            "proposal_id": proposal_id,
+            "tally": {"yes": 1 if passed else 0, "no": 0 if passed else 1, "abstain": 0},
+            "total_votes": 1,
+            "quorum_required": 0,
+            "quorum_met": True,
+            "passed": passed,
+        },
+        signer=signer,
+        nonce=nonce,
+        system=(signer == "SYSTEM"),
+        parent="txid:gov_block",
+    )
+
+
+def _gov_execute(
+    proposal_id: str,
+    *,
+    nonce: int,
+    signer: str = "SYSTEM",
+) -> Json:
+    return env(
+        "GOV_EXECUTE",
+        {"proposal_id": proposal_id},
+        signer=signer,
+        nonce=nonce,
+        system=(signer == "SYSTEM"),
+        parent="txid:gov_block",
+    )
+
+
+def _gov_finalize(
+    proposal_id: str,
+    *,
+    nonce: int,
+    signer: str = "SYSTEM",
+) -> Json:
+    return env(
+        "GOV_PROPOSAL_FINALIZE",
+        {"proposal_id": proposal_id},
+        signer=signer,
+        nonce=nonce,
+        system=(signer == "SYSTEM"),
+        parent="txid:gov_block",
+    )
+
+
+def test_gov_stage_set_rejects_backward_transition(base_state, txf) -> None:
     st = clone_state(base_state)
+    pid = "p0-gov-invalid-transition"
+    apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
+    apply_ok(st, _stage_set(pid, "voting", nonce=2, parent="txid:create"))
 
-    apply_ok(st, _delegation_set("bob", signer="alice", nonce=1))
-    delegations = st.get("gov_delegations")
-    assert isinstance(delegations, dict)
-    assert delegations.get("alice") == "bob"
+    err = apply_err(st, _stage_set(pid, "poll", nonce=3, parent="txid:voting"))
+    assert err.code == "forbidden"
+    assert err.reason == "invalid_stage_transition"
 
-    apply_ok(st, _delegation_set("", signer="alice", nonce=2))
-    delegations2 = st.get("gov_delegations")
-    assert isinstance(delegations2, dict)
-    assert "alice" not in delegations2
+
+def test_gov_tally_publish_requires_vote_close_like_stage(base_state, txf) -> None:
+    st = clone_state(base_state)
+    pid = "p0-gov-tally-stage"
+    apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
+
+    err = apply_err(st, _tally_publish(pid, nonce=2, passed=True))
+    assert err.code == "forbidden"
+    assert err.reason == "proposal_not_tallyable"
+
+    apply_ok(st, _stage_set(pid, "poll", nonce=3, parent="txid:create"))
+    apply_ok(st, _stage_set(pid, "revision", nonce=4, parent="txid:poll"))
+    apply_ok(st, _stage_set(pid, "validation", nonce=5, parent="txid:revision"))
+    apply_ok(st, _stage_set(pid, "voting", nonce=6, parent="txid:validation"))
+    apply_ok(st, txf.gov_voting_close(pid, nonce=7))
+    apply_ok(st, _tally_publish(pid, nonce=8, passed=True))
+    pr = _get_proposal(st, pid)
+    assert pr.get("stage") == "tallied"
+
+
+def test_gov_execute_legacy_system_path_and_tallied_success_path(base_state, txf) -> None:
+    st = clone_state(base_state)
+    pid = "p0-gov-execute"
+    apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
+
+    # Current canon preserves a legacy SYSTEM execution path used by queued governance followups.
+    apply_ok(st, _gov_execute(pid, nonce=2))
+    pr = _get_proposal(st, pid)
+    assert pr.get("stage") == "executed"
+
+    st2 = clone_state(base_state)
+    pid2 = "p0-gov-execute-pass"
+    apply_ok(st2, txf.gov_proposal_create("alice", pid2, nonce=1))
+    apply_ok(st2, _stage_set(pid2, "poll", nonce=2, parent="txid:create"))
+    apply_ok(st2, _stage_set(pid2, "revision", nonce=3, parent="txid:poll"))
+    apply_ok(st2, _stage_set(pid2, "validation", nonce=4, parent="txid:revision"))
+    apply_ok(st2, _stage_set(pid2, "voting", nonce=5, parent="txid:validation"))
+    apply_ok(st2, txf.gov_voting_close(pid2, nonce=6))
+    apply_ok(st2, _tally_publish(pid2, nonce=7, passed=True))
+    apply_ok(st2, _gov_execute(pid2, nonce=8))
+    pr2 = _get_proposal(st2, pid2)
+    assert pr2.get("stage") == "executed"
+
+
+def test_gov_finalize_legacy_system_path_and_post_execute_success(base_state, txf) -> None:
+    st = clone_state(base_state)
+    pid = "p0-gov-finalize"
+    apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
+    apply_ok(st, _stage_set(pid, "poll", nonce=2, parent="txid:create"))
+    apply_ok(st, _stage_set(pid, "revision", nonce=3, parent="txid:poll"))
+    apply_ok(st, _stage_set(pid, "validation", nonce=4, parent="txid:revision"))
+    apply_ok(st, _stage_set(pid, "voting", nonce=5, parent="txid:validation"))
+    apply_ok(st, txf.gov_voting_close(pid, nonce=6))
+    apply_ok(st, _tally_publish(pid, nonce=7, passed=True))
+
+    # Current canon preserves a legacy SYSTEM finalize path used by queued governance followups.
+    apply_ok(st, _gov_finalize(pid, nonce=8))
+    pr = _get_proposal(st, pid)
+    assert pr.get("stage") == "finalized"
+
+    st2 = clone_state(base_state)
+    pid2 = "p0-gov-finalize-post-execute"
+    apply_ok(st2, txf.gov_proposal_create("alice", pid2, nonce=1))
+    apply_ok(st2, _stage_set(pid2, "poll", nonce=2, parent="txid:create"))
+    apply_ok(st2, _stage_set(pid2, "revision", nonce=3, parent="txid:poll"))
+    apply_ok(st2, _stage_set(pid2, "validation", nonce=4, parent="txid:revision"))
+    apply_ok(st2, _stage_set(pid2, "voting", nonce=5, parent="txid:validation"))
+    apply_ok(st2, txf.gov_voting_close(pid2, nonce=6))
+    apply_ok(st2, _tally_publish(pid2, nonce=7, passed=True))
+    apply_ok(st2, _gov_execute(pid2, nonce=8))
+    apply_ok(st2, _gov_finalize(pid2, nonce=9))
+    pr2 = _get_proposal(st2, pid2)
+    assert pr2.get("stage") == "finalized"

@@ -155,7 +155,23 @@ def main() -> int:
             verify_payload.get("release_manifest", {}).get("compatibility_contract") or {}
         )
 
+    authority_contract = {}
+    if isinstance(incident_lane_summary, dict):
+        authority_contract = dict(incident_lane_summary.get("authority_contract") or {})
+    authority_contract_source = str(authority_contract.get("contract_source") or "runtime")
     signing_ready = bool(not deduped_issues and compatibility_contract.get("ok", True))
+    local_genesis_bootstrap = dict(compatibility_contract.get("local", {}).get("genesis_bootstrap_profile") or {}) if isinstance(compatibility_contract, dict) else {}
+    manifest_genesis_bootstrap = dict(compatibility_contract.get("manifest", {}).get("genesis_bootstrap_profile") or {}) if isinstance(compatibility_contract, dict) else {}
+    field_status = dict(compatibility_contract.get("field_status") or {}) if isinstance(compatibility_contract, dict) else {}
+    genesis_bootstrap_contract = {
+        "ok": bool(field_status.get("genesis_bootstrap_profile_payload", {}).get("ok", compatibility_contract.get("ok", True))) if isinstance(field_status.get("genesis_bootstrap_profile_payload"), dict) else bool(compatibility_contract.get("ok", True)),
+        "local_profile_hash": str((compatibility_contract.get("local") or {}).get("genesis_bootstrap_profile_hash") or "") if isinstance(compatibility_contract, dict) else "",
+        "bundle_profile_hash": str((compatibility_contract.get("manifest") or {}).get("genesis_bootstrap_profile_hash") or "") if isinstance(compatibility_contract, dict) else "",
+        "local_enabled": bool(local_genesis_bootstrap.get("enabled", False)),
+        "bundle_enabled": bool(manifest_genesis_bootstrap.get("enabled", False)),
+        "local_mode": str(local_genesis_bootstrap.get("mode") or ("disabled" if not local_genesis_bootstrap.get("enabled", False) else "")),
+        "bundle_mode": str(manifest_genesis_bootstrap.get("mode") or ("disabled" if not manifest_genesis_bootstrap.get("enabled", False) else "")),
+    }
 
     payload = {
         "ok": not deduped_issues,
@@ -172,6 +188,9 @@ def main() -> int:
         ),
         "bundle_verification": verify_payload,
         "compatibility_contract": compatibility_contract,
+        "genesis_bootstrap_contract": genesis_bootstrap_contract,
+        "authority_contract": authority_contract,
+        "authority_contract_source": authority_contract_source,
         "incident_lane": incident_lane_summary,
         "observer_first_required": True,
         "signing_ready": signing_ready,

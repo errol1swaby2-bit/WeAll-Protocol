@@ -39,15 +39,13 @@ def _expect_nonce(a: Json, env: TxEnvelope) -> int:
     want = _as_int(a.get("nonce"), 0) + 1
     got = _as_int(getattr(env, "nonce", None), 0)
 
-    # Policy B (protocol-aligned): nonce is monotonic and can advance even if
-    # prior attempts rejected. Apply-time therefore tolerates gaps.
-    #
+    # Consensus-critical rule: account nonces are strictly sequential at apply-time.
     # System receipts are often emitted with nonce=0; in that case we consume
     # the next expected nonce deterministically.
     if bool(getattr(env, "system", False)) and got == 0:
         got = want
 
-    if got < want:
+    if got != want:
         raise ApplyError("invalid_tx", "bad_nonce", {"want": want, "got": got})
     return got
 
@@ -76,6 +74,83 @@ def _mk_device_id_hash(device_id: str) -> str:
     h = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
     return f"d:{h[:16]}"
 
+def _extract_active_pubkeys(acct: Json) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def _add(pk: Any) -> None:
+        if not isinstance(pk, str):
+            return
+        p = pk.strip()
+        if not p or p in seen:
+            return
+        seen.add(p)
+        out.append(p)
+
+    keys = acct.get("keys")
+
+    # Canonical by_id wins when present because it carries revocation state.
+    if isinstance(keys, dict):
+        by_id = keys.get("by_id")
+        if isinstance(by_id, dict):
+            for rec in by_id.values():
+                if not isinstance(rec, dict):
+                    continue
+                if bool(rec.get("revoked", False)):
+                    continue
+                _add(rec.get("pubkey"))
+            out.sort()
+            return out
+
+    if isinstance(keys, list):
+        for item in keys:
+            if isinstance(item, str):
+                _add(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            if item.get("active", True) is False:
+                continue
+            _add(item.get("pubkey"))
+        out.sort()
+        return out
+
+    if isinstance(keys, dict):
+        for pk, rec in keys.items():
+            if not isinstance(pk, str):
+                continue
+            if isinstance(rec, dict):
+                if bool(rec.get("active", False)) and not bool(rec.get("revoked", False)):
+                    _add(pk)
+            elif bool(rec):
+                _add(pk)
+        if out:
+            out.sort()
+            return out
+
+    # Legacy mirrors are only consulted when canonical keys are absent.
+    _add(acct.get("pubkey"))
+
+    pubkeys = acct.get("pubkeys")
+    if isinstance(pubkeys, list):
+        for pk in pubkeys:
+            _add(pk)
+
+    active_keys = acct.get("active_keys")
+    if isinstance(active_keys, list):
+        for pk in active_keys:
+            _add(pk)
+
+    out.sort()
+    return out
+
+
+def _sync_account_key_views(a: Json) -> None:
+    active = _extract_active_pubkeys(a)
+    a["active_keys"] = list(active)
+    a["pubkeys"] = list(active)
+    a["pubkey"] = active[0] if active else ""
+
 
 def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
     accounts = _ensure(state, "accounts", {})
@@ -100,7 +175,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         "poh_tier": 1,
         "banned": False,
         "locked": False,
-        "reputation": 0,
+        "reputation": "0",
         "keys": {
             "by_id": {
                 _mk_key_id(pubkey): {
@@ -117,6 +192,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         # API security expects accounts[acct]["session_keys"][session_key] dicts.
         "session_keys": {},
     }
+    _sync_account_key_views(accounts[signer])
     return state
 
 
@@ -150,6 +226,7 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
         "revoked_at": None,
     }
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
+    _sync_account_key_views(a)
     return state
 
 
@@ -181,6 +258,7 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     by_id[match_kid]["revoked"] = True
     by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
+    _sync_account_key_views(a)
     return state
 
 
@@ -373,7 +451,7 @@ def _apply_account_lock(state: Json, env: TxEnvelope) -> Json:
             "poh_tier": 0,
             "banned": False,
             "locked": False,
-            "reputation": 0,
+            "reputation": "0",
         }
         a = accounts[target]
 
@@ -745,6 +823,7 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
     prop["executed"] = True
 
     a["nonce"] = exp
+    _sync_account_key_views(a)
     return state
 
 
@@ -952,20 +1031,14 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     if tx == "ACCOUNT_BAN":
         return _apply_account_ban(state, env)
 
-    if tx == "ACCOUNT_UNBAN":
-        return _apply_account_unban(state, env)
 
     if tx == "ACCOUNT_RECOVERY_CONFIG_SET":
         return _apply_account_recovery_config_set(state, env)
 
-    if tx == "ACCOUNT_RECOVERY_PROPOSE":
-        return _apply_account_recovery_propose(state, env)
 
     if tx == "ACCOUNT_RECOVERY_APPROVE":
         return _apply_account_recovery_approve(state, env)
 
-    if tx == "ACCOUNT_RECOVERY_EXECUTE":
-        return _apply_account_recovery_execute(state, env)
 
     if tx == "ACCOUNT_RECOVERY_REQUEST":
         return _apply_account_recovery_request(state, env)
@@ -979,8 +1052,9 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     if tx == "ACCOUNT_RECOVERY_RECEIPT":
         return _apply_account_recovery_receipt(state, env)
 
-    if tx == "ACCOUNT_RECOVERY_VOTE":
-        return _apply_account_recovery_vote(state, env)
+    if tx in {"ACCOUNT_UNBAN", "ACCOUNT_RECOVERY_PROPOSE", "ACCOUNT_RECOVERY_EXECUTE", "ACCOUNT_RECOVERY_VOTE"}:
+        raise ApplyError("invalid_tx", "noncanonical_legacy_tx_type", {"tx_type": tx})
+
 
     # Not an identity-domain tx; allow other domain appliers to claim it.
     return None

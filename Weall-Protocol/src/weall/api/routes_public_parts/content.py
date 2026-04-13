@@ -72,6 +72,37 @@ def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
     return sorted(items, key=k, reverse=True)
 
 
+def _reaction_counts_by_target(st: Json) -> dict[str, dict[str, int]]:
+    content = _content_root(st)
+    reactions = _as_dict(content.get("reactions"))
+    counts: dict[str, dict[str, int]] = {}
+    for _, raw in sorted(reactions.items(), key=lambda item: str(item[0])):
+        rec = _as_dict(raw)
+        target_id = str(rec.get("target_id") or "").strip()
+        reaction = str(rec.get("reaction") or "").strip().lower()
+        if not target_id or not reaction:
+            continue
+        target_counts = counts.setdefault(target_id, {})
+        target_counts[reaction] = int(target_counts.get(reaction, 0)) + 1
+    return counts
+
+
+def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]) -> Json:
+    out = dict(obj)
+    target_id = str(out.get("post_id") or out.get("comment_id") or out.get("content_id") or "").strip()
+    existing = _as_dict(out.get("reactions"))
+    merged: Json = {}
+    for key, value in existing.items():
+        if isinstance(value, (int, float)):
+            merged[str(key)] = int(value)
+    if target_id and target_id in counts_by_target:
+        for reaction, count in counts_by_target[target_id].items():
+            merged[str(reaction)] = int(count)
+    out["reactions"] = merged
+    out["reaction_total"] = int(sum(int(v) for v in merged.values())) if merged else 0
+    return out
+
+
 @router.get("/feed")
 def feed(request: Request) -> dict[str, object]:
     """Public feed.
@@ -85,10 +116,11 @@ def feed(request: Request) -> dict[str, object]:
 
     st = _snapshot(request)
     posts = _posts(st)
+    reaction_counts = _reaction_counts_by_target(st)
 
     out: list[Json] = []
     for _pid, p in posts.items():
-        post = _as_dict(p)
+        post = _with_reaction_counts(_as_dict(p), reaction_counts)
         if not _post_visible(post):
             continue
         out.append(post)
@@ -120,7 +152,7 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
 
     posts = _posts(st)
     if pid in posts:
-        post = _as_dict(posts.get(pid))
+        post = _with_reaction_counts(_as_dict(posts.get(pid)), _reaction_counts_by_target(st))
         if bool(post.get("deleted", False)):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
@@ -129,7 +161,7 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
 
     comments = _comments(st)
     if pid in comments:
-        com = _as_dict(comments.get(pid))
+        com = _with_reaction_counts(_as_dict(comments.get(pid)), _reaction_counts_by_target(st))
         if bool(com.get("deleted", False)):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
@@ -152,7 +184,8 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
     tid = str(thread_id or "").strip()
 
     posts = _posts(st)
-    root = _as_dict(posts.get(tid))
+    reaction_counts = _reaction_counts_by_target(st)
+    root = _with_reaction_counts(_as_dict(posts.get(tid)), reaction_counts)
     if not root or bool(root.get("deleted", False)):
         raise HTTPException(
             status_code=404, detail={"code": "not_found", "message": "thread not found"}
@@ -167,7 +200,7 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
     comments = _comments(st)
     out_comments: list[Json] = []
     for _cid, c in comments.items():
-        com = _as_dict(c)
+        com = _with_reaction_counts(_as_dict(c), reaction_counts)
         if bool(com.get("deleted", False)):
             continue
         if str(com.get("post_id") or "") != tid:

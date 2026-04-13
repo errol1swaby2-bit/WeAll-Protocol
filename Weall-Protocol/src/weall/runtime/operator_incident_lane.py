@@ -178,6 +178,7 @@ def build_operator_incident_lane_summary(lane: Json) -> Json:
     actions = _coerce_json_object(lane.get("actions"))
     next_steps_raw = lane.get("next_steps") if isinstance(lane.get("next_steps"), list) else []
     next_steps = [str(step) for step in next_steps_raw]
+    authority_contract = _coerce_json_object(report.get("authority_contract"))
     return {
         "ok": bool(lane.get("ok", False)),
         "severity": str(summary.get("severity") or "ok"),
@@ -189,6 +190,7 @@ def build_operator_incident_lane_summary(lane: Json) -> Json:
         "action_count": int(actions.get("action_count") or 0),
         "next_steps": next_steps,
         "lane_hash": str(lane.get("lane_hash") or ""),
+        "authority_contract": authority_contract,
     }
 
 

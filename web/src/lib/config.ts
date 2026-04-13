@@ -11,6 +11,8 @@ export type AppConfig = {
   envLabel: string;
   // When false, dev-only pages and mutation helpers MUST NOT render.
   enableDevTools: boolean;
+  // When true, the client may hydrate a local dev tester profile from a manifest.
+  enableDevBootstrap: boolean;
 
   // Client metadata attached to requests
   clientName: string;
@@ -23,6 +25,8 @@ export type AppConfig = {
   defaultApiBase: string;
   // Where to fetch initial seed node list (JSON). If empty, node selection falls back to user list / configured base.
   seedsUrl: string;
+  // Dev-only manifest used to preload a local tester account/signer/session.
+  devBootstrapManifestUrl: string;
 };
 
 function env(k: string): string {
@@ -46,6 +50,7 @@ export const config: AppConfig = {
   appName: env("VITE_WEALL_APP_NAME").trim() || "WeAll",
   envLabel: env("VITE_WEALL_ENV_LABEL").trim() || (isProd ? "prod" : "dev"),
   enableDevTools: truthy(env("VITE_WEALL_ENABLE_DEV_TOOLS")) || enableDevToolsDefault,
+  enableDevBootstrap: truthy(env("VITE_WEALL_ENABLE_DEV_BOOTSTRAP")),
 
   clientName: env("VITE_WEALL_CLIENT_NAME").trim() || "weall-web",
   // Prefer Vite-injected version to avoid manual drift; env can override if desired.
@@ -57,6 +62,7 @@ export const config: AppConfig = {
 
   // Default to same-origin /seeds.json so a Cloudflare-hosted webfront can ship its own seed list.
   seedsUrl: env("VITE_WEALL_SEEDS_URL").trim() || "/seeds.json",
+  devBootstrapManifestUrl: env("VITE_WEALL_DEV_BOOTSTRAP_MANIFEST").trim() || "/dev-bootstrap.json",
 };
 
 // Tiny hook wrapper to keep pages stable if we later swap to context-driven config.

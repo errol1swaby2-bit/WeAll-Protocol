@@ -4,14 +4,21 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { nav } from "../lib/router";
 import { getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { normalizeAccount } from "../auth/keys";
+import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import MediaGallery from "../components/MediaGallery";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.data || e?.body || e;
-  const msg = details?.message || e?.message || "error";
-  return { msg, details };
+  const details = e?.payload || e?.body || e?.data || e;
+  const code = String(details?.error?.code || details?.code || "").trim();
+  const reason = String(details?.error?.details?.reason || details?.reason || "").trim();
+  const nested = details?.error?.details?.details;
+  const nestedError = nested && typeof nested === "object" ? String(nested.error || nested.code || "").trim() : "";
+  const msg = String(details?.error?.message || details?.message || e?.message || "error").trim() || "error";
+  const detail = nestedError || reason || code;
+  return { msg: detail && detail !== msg ? `${msg} (${detail})` : msg, details };
 }
 
 function reactionCount(it: any, key: string): number {
@@ -43,6 +50,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
   const [flagTargetId, setFlagTargetId] = useState<string | null>(null);
   const [flagReason, setFlagReason] = useState("");
+  const { refresh: refreshAccountContext } = useAccount();
 
   function refreshSession() {
     const s = getSession();
@@ -104,6 +112,8 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
   const gate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 2 });
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
+  const signerSubmission = useSignerSubmissionBusy(viewer);
+  const signerBusy = signerSubmission.busy;
 
   async function likeTarget(targetId: string) {
     setTxErr(null);
@@ -126,7 +136,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
         parent: null,
         base,
       });
-      await load();
+      await Promise.allSettled([load(), refreshAccountContext()]);
     } catch (e: any) {
       const pe = prettyErr(e);
       setLikeErr(pe.msg);
@@ -154,7 +164,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
       });
 
       setReply("");
-      await load();
+      await Promise.allSettled([load(), refreshAccountContext()]);
     } catch (e: any) {
       setTxErr(prettyErr(e));
     } finally {
@@ -181,7 +191,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
         parent: null,
         base,
       });
-      await load();
+      await Promise.allSettled([load(), refreshAccountContext()]);
     } catch (e: any) {
       setTxErr(prettyErr(e));
     } finally {
@@ -263,6 +273,14 @@ export default function Thread({ id }: { id: string }): JSX.Element {
         </section>
       ) : null}
 
+      {signerBusy ? (
+        <section className="card">
+          <div className="cardBody">
+            <div className="inlineNote">A signed action is already in flight for this account. The next action will wait for the current submission to finish so signer nonces do not collide.</div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -298,10 +316,10 @@ export default function Thread({ id }: { id: string }): JSX.Element {
             <button
               className="btn"
               onClick={() => likeTarget(postId)}
-              disabled={!gate.ok || likeBusyId === postId}
+              disabled={!gate.ok || likeBusyId === postId || signerBusy}
               title="Set reaction=like"
             >
-              {likeBusyId === postId ? "Liking…" : `Like${reactionCount(post, "like") ? ` · ${reactionCount(post, "like")}` : ""}`}
+              {likeBusyId === postId ? "Liking…" : signerBusy ? "Waiting…" : `Like${reactionCount(post, "like") ? ` · ${reactionCount(post, "like")}` : ""}`}
             </button>
 
             {viewer && normalizeAccount(viewer) === postAuthor ? (
@@ -315,9 +333,9 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                   setFlagTargetId(postId);
                   setFlagReason("");
                 }}
-                disabled={!gate.ok}
+                disabled={!gate.ok || signerBusy}
               >
-                Flag
+                {signerBusy ? "Waiting…" : "Flag"}
               </button>
             )}
           </div>
@@ -334,10 +352,10 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               </label>
 
               <div className="buttonRow">
-                <button className="btn btnPrimary" onClick={() => flagTarget(postId)} disabled={busy}>
+                <button className="btn btnPrimary" onClick={() => flagTarget(postId)} disabled={busy || signerBusy}>
                   {busy ? "Submitting…" : "Submit flag"}
                 </button>
-                <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy}>
+                <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
                   Cancel
                 </button>
               </div>
@@ -363,12 +381,13 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               onChange={(e) => setReply(e.target.value)}
               placeholder="Write a thoughtful reply…"
               rows={6}
+              disabled={busy || signerBusy}
             />
           </label>
 
           <div className="buttonRow buttonRowWide">
-            <button className="btn btnPrimary" onClick={submitReply} disabled={!gate.ok || busy}>
-              {busy ? "Posting…" : "Post reply"}
+            <button className="btn btnPrimary" onClick={submitReply} disabled={!gate.ok || busy || signerBusy}>
+              {busy ? "Posting…" : signerBusy ? "Waiting…" : "Post reply"}
             </button>
           </div>
         </div>
@@ -406,14 +425,14 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                         <button
                           className="btn"
                           onClick={() => likeTarget(cid)}
-                          disabled={!gate.ok || likeBusyId === cid}
+                          disabled={!gate.ok || likeBusyId === cid || signerBusy}
                           title="Set reaction=like on this comment"
                         >
-                          {likeBusyId === cid ? "Liking…" : `Like${reactionCount(c, "like") ? ` · ${reactionCount(c, "like")}` : ""}`}
+                          {likeBusyId === cid ? "Liking…" : signerBusy ? "Waiting…" : `Like${reactionCount(c, "like") ? ` · ${reactionCount(c, "like")}` : ""}`}
                         </button>
 
                         {isOwner ? (
-                          <button className="btn" onClick={() => deleteComment(cid, ca)} disabled={!gate.ok || busy}>
+                          <button className="btn" onClick={() => deleteComment(cid, ca)} disabled={!gate.ok || busy || signerBusy}>
                             Delete
                           </button>
                         ) : viewer ? (
@@ -423,9 +442,9 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                               setFlagTargetId(cid);
                               setFlagReason("");
                             }}
-                            disabled={!gate.ok || busy}
+                            disabled={!gate.ok || busy || signerBusy}
                           >
-                            Flag
+                            {signerBusy ? "Waiting…" : "Flag"}
                           </button>
                         ) : null}
                       </div>
@@ -444,10 +463,10 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                           />
                         </label>
                         <div className="buttonRow">
-                          <button className="btn btnPrimary" onClick={() => flagTarget(cid)} disabled={busy}>
+                          <button className="btn btnPrimary" onClick={() => flagTarget(cid)} disabled={busy || signerBusy}>
                             {busy ? "Submitting…" : "Submit flag"}
                           </button>
-                          <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy}>
+                          <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
                             Cancel
                           </button>
                         </div>

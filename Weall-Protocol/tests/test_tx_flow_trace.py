@@ -24,6 +24,7 @@ _ALLOWED_CODES = {
     "forbidden",
     "receipt_only_tx_not_allowed_in_mempool",
     "tx_not_allowed_in_mempool",
+    "system_tx_forbidden",
     "parent_required_by_canon",
     "non_canonical_account_id",
     "invalid_account_id",

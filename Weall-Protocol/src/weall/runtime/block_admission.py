@@ -382,6 +382,7 @@ def admit_bft_block(
     *,
     block: Json,
     state: Json,
+    bft_enabled: bool | None = None,
 ) -> tuple[bool, BlockReject | None]:
     """BFT gating for incoming blocks.
 
@@ -397,7 +398,8 @@ def admit_bft_block(
           * verify justify_qc threshold + signatures
           * enforce deterministic proposal leader/view validity
     """
-    if not _env_bool("WEALL_BFT_ENABLED", False):
+    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    if not effective_bft_enabled:
         return True, None
 
     if not isinstance(block, dict):
@@ -590,6 +592,7 @@ def admit_bft_commit_block(
     block: Json,
     state: Json,
     blocks_map: dict[str, Any] | None = None,
+    bft_enabled: bool | None = None,
 ) -> tuple[bool, BlockReject | None]:
     """Final commit/apply admission for BFT mode.
 
@@ -598,11 +601,12 @@ def admit_bft_commit_block(
     The caller may supply a speculative ``blocks_map`` containing pending proposals so
     ancestry checks remain deterministic before all blocks are durably committed.
     """
-    ok, rej = admit_bft_block(block=block, state=state)
+    ok, rej = admit_bft_block(block=block, state=state, bft_enabled=bft_enabled)
     if not ok:
         return ok, rej
 
-    if not _env_bool("WEALL_BFT_ENABLED", False):
+    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    if not effective_bft_enabled:
         return True, None
 
     effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}

@@ -71,6 +71,7 @@ def test_production_bootstrap_report_exposes_profile_identity_and_clock_posture(
         report["startup_clock_hard_fail_ms"]
         == PRODUCTION_CONSENSUS_PROFILE.startup_clock_hard_fail_ms
     )
+    assert report["consensus_env_audit"]["ok"] is True
 
 
 def test_runtime_startup_fingerprint_commits_startup_clock_sanity_requirement() -> None:

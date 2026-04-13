@@ -6,6 +6,8 @@ import hmac
 import json
 from typing import Any, Dict, Mapping, Sequence
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
 
 def _canon_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -76,6 +78,22 @@ class HelperReceipt:
         return payload
 
 
+def _signing_material(unsigned: Mapping[str, Any]) -> bytes:
+    return _canon_json(dict(unsigned)).encode("utf-8")
+
+
+def _private_key_from_value(value: str | Ed25519PrivateKey) -> Ed25519PrivateKey:
+    if isinstance(value, Ed25519PrivateKey):
+        return value
+    return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(str(value)))
+
+
+def _public_key_from_value(value: str | Ed25519PublicKey) -> Ed25519PublicKey:
+    if isinstance(value, Ed25519PublicKey):
+        return value
+    return Ed25519PublicKey.from_public_bytes(bytes.fromhex(str(value)))
+
+
 def sign_helper_receipt(
     *,
     chain_id: str,
@@ -88,8 +106,10 @@ def sign_helper_receipt(
     input_state_hash: str,
     output_state_hash: str,
     helper_id: str,
-    shared_secret: str,
     plan_id: str = "",
+    privkey: str | Ed25519PrivateKey | None = None,
+    shared_secret: str | None = None,
+    allow_legacy_shared_secret: bool = False,
 ) -> HelperReceipt:
     normalized_tx_ids = _normalize_tx_ids(ordered_tx_ids)
     unsigned = {
@@ -106,8 +126,13 @@ def sign_helper_receipt(
         "helper_id": str(helper_id),
         "plan_id": str(plan_id or ""),
     }
-    payload = _canon_json(unsigned).encode("utf-8")
-    signature = hmac.new(shared_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
+    payload = _signing_material(unsigned)
+    if privkey is not None:
+        signature = _private_key_from_value(privkey).sign(payload).hex()
+    else:
+        if not allow_legacy_shared_secret or shared_secret is None:
+            raise ValueError("helper receipt signing requires privkey; legacy shared-secret signing is disabled unless explicitly allowed")
+        signature = hmac.new(shared_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
     return HelperReceipt(
         chain_id=str(chain_id),
         height=int(height),
@@ -127,7 +152,6 @@ def sign_helper_receipt(
 def verify_helper_receipt(
     receipt: HelperReceipt,
     *,
-    shared_secret: str,
     expected_chain_id: str,
     expected_height: int,
     expected_validator_epoch: int,
@@ -137,6 +161,9 @@ def verify_helper_receipt(
     expected_helper_id: str,
     expected_plan_id: str = "",
     expected_ordered_tx_ids: Sequence[str] | None = None,
+    helper_pubkey: str | Ed25519PublicKey | None = None,
+    shared_secret: str | None = None,
+    allow_legacy_shared_secret: bool = False,
 ) -> bool:
     if receipt.chain_id != str(expected_chain_id):
         return False
@@ -157,7 +184,15 @@ def verify_helper_receipt(
     if expected_ordered_tx_ids is not None and receipt.ordered_tx_ids != _normalize_tx_ids(expected_ordered_tx_ids):
         return False
 
-    payload = _canon_json(receipt.signing_payload()).encode("utf-8")
+    payload = _signing_material(receipt.signing_payload())
+    if helper_pubkey is not None:
+        try:
+            _public_key_from_value(helper_pubkey).verify(bytes.fromhex(receipt.signature), payload)
+            return True
+        except Exception:
+            return False
+    if not allow_legacy_shared_secret or shared_secret is None:
+        return False
     expected_sig = hmac.new(shared_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
     return hmac.compare_digest(expected_sig, receipt.signature)
 

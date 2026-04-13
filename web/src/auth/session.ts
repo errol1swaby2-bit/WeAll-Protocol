@@ -24,15 +24,22 @@ import {
 
 export type SessionV1 = {
   version: 1;
-  account: string; // canonical '@name'
-  // Opaque string used by backend require_account_session gate.
+  account: string;
   sessionKey?: string;
-  // Client-side expiry hint (backend enforces TTL using ledger time).
   expiresAtMs: number;
 };
 
 const LS_SESSION = "weall_session_v1";
 const LS_NONCE_RESERVATION_PREFIX = "weall_nonce_resv_v1::";
+
+type SignerSubmissionSnapshot = {
+  account: string;
+  pendingCount: number;
+};
+
+const signerSubmissionQueues = new Map<string, Promise<unknown>>();
+const signerPendingCounts = new Map<string, number>();
+const signerSubmissionListeners = new Map<string, Set<(snapshot: SignerSubmissionSnapshot) => void>>();
 
 function b64Encode(bytes: Uint8Array): string {
   let bin = "";
@@ -160,7 +167,6 @@ export function clearKeypair(account: string): void {
   deleteKeypair(account);
 }
 
-
 export function clearSession(): void {
   endSession();
 }
@@ -243,11 +249,218 @@ function setReservedNonce(account: string, nonce: number): void {
   }
 }
 
+function extractErrorCode(error: unknown): string {
+  const src = error && typeof error === "object" ? (error as Record<string, any>) : {};
+  const direct = String(src.code || "").trim();
+  if (direct) return direct;
+
+  const payload = src.payload && typeof src.payload === "object" ? (src.payload as Record<string, any>) : {};
+  const payloadCode = String(payload.error?.code || payload.code || "").trim();
+  if (payloadCode) return payloadCode;
+
+  const payloadDetails = payload.error?.details && typeof payload.error.details === "object"
+    ? (payload.error.details as Record<string, any>)
+    : {};
+  const nested = payloadDetails.details && typeof payloadDetails.details === "object"
+    ? (payloadDetails.details as Record<string, any>)
+    : {};
+  for (const candidate of [payloadDetails.error, payloadDetails.code, nested.error, nested.code, nested.reason]) {
+    const normalized = String(candidate || "").trim();
+    if (normalized) return normalized;
+  }
+
+  const body = src.body && typeof src.body === "object" ? (src.body as Record<string, any>) : {};
+  const bodyCode = String(body.error?.code || body.code || "").trim();
+  if (bodyCode) return bodyCode;
+
+  const bodyDetails = body.error?.details && typeof body.error.details === "object"
+    ? (body.error.details as Record<string, any>)
+    : {};
+  for (const candidate of [bodyDetails.error, bodyDetails.code, bodyDetails.reason]) {
+    const normalized = String(candidate || "").trim();
+    if (normalized) return normalized;
+  }
+
+  return "";
+}
+
+function isNonceReservationConflictError(error: unknown): boolean {
+  const code = extractErrorCode(error);
+  return code === "bad_nonce" || code === "mempool_signer_nonce_conflict" || code === "tx_id_conflict";
+}
+
+function pendingSnapshot(account: string): SignerSubmissionSnapshot {
+  const signer = normalizeAccount(account);
+  return {
+    account: signer,
+    pendingCount: signer ? Math.max(0, Math.floor(signerPendingCounts.get(signer) || 0)) : 0,
+  };
+}
+
+function emitSignerSubmissionSnapshot(account: string): void {
+  const signer = normalizeAccount(account);
+  if (!signer) return;
+  const listeners = signerSubmissionListeners.get(signer);
+  if (!listeners || !listeners.size) return;
+  const snapshot = pendingSnapshot(signer);
+  listeners.forEach((listener) => {
+    try {
+      listener(snapshot);
+    } catch {
+      // ignore listener failure
+    }
+  });
+}
+
+function setSignerPendingCount(account: string, nextCount: number): void {
+  const signer = normalizeAccount(account);
+  if (!signer) return;
+  const normalized = Math.max(0, Math.floor(nextCount));
+  if (normalized <= 0) signerPendingCounts.delete(signer);
+  else signerPendingCounts.set(signer, normalized);
+  emitSignerSubmissionSnapshot(signer);
+}
+
+export function isSignerSubmissionBusy(account: string): boolean {
+  return pendingSnapshot(account).pendingCount > 0;
+}
+
+export function getSignerSubmissionSnapshot(account: string): SignerSubmissionSnapshot {
+  return pendingSnapshot(account);
+}
+
+export function subscribeSignerSubmission(account: string, listener: (snapshot: SignerSubmissionSnapshot) => void): () => void {
+  const signer = normalizeAccount(account);
+  if (!signer) {
+    listener({ account: "", pendingCount: 0 });
+    return () => undefined;
+  }
+  const listeners = signerSubmissionListeners.get(signer) || new Set<(snapshot: SignerSubmissionSnapshot) => void>();
+  listeners.add(listener);
+  signerSubmissionListeners.set(signer, listeners);
+  listener(pendingSnapshot(signer));
+  return () => {
+    const current = signerSubmissionListeners.get(signer);
+    if (!current) return;
+    current.delete(listener);
+    if (!current.size) signerSubmissionListeners.delete(signer);
+  };
+}
+
+export async function syncNonceReservation(account: string, base?: string): Promise<number> {
+  const acct = normalizeAccount(account);
+  if (!acct) throw new Error("invalid_account");
+
+  try {
+    const a: any = await weall.account(acct, base);
+    const onChain = Number(a?.state?.nonce ?? 0);
+    if (Number.isFinite(onChain) && onChain >= 0) {
+      setReservedNonce(acct, Math.floor(onChain));
+      return Math.floor(onChain);
+    }
+  } catch {
+    // ignore and fall through to clear
+  }
+
+  clearNonceReservation(acct);
+  return 0;
+}
+
 type NonceClaim = {
   account: string;
   nonce: number;
   previousReserved: number;
 };
+
+export type NonceSequence = {
+  account: string;
+  nextNonce: number;
+};
+
+function runSignerSerialized<T>(account: string, task: () => Promise<T>): Promise<T> {
+  const signer = normalizeAccount(account);
+  if (!signer) return Promise.reject(new Error("invalid_account"));
+
+  const previous = signerSubmissionQueues.get(signer) || Promise.resolve();
+  const current = previous
+    .catch(() => undefined)
+    .then(async () => {
+      const currentCount = signerPendingCounts.get(signer) || 0;
+      setSignerPendingCount(signer, currentCount + 1);
+      try {
+        return await task();
+      } finally {
+        const nextCount = Math.max(0, (signerPendingCounts.get(signer) || 1) - 1);
+        setSignerPendingCount(signer, nextCount);
+      }
+    });
+
+  signerSubmissionQueues.set(signer, current);
+
+  return current.finally(() => {
+    if (signerSubmissionQueues.get(signer) === current) {
+      signerSubmissionQueues.delete(signer);
+    }
+  });
+}
+
+export async function beginNonceSequence(account: string, base?: string): Promise<NonceSequence> {
+  const acct = normalizeAccount(account);
+  if (!acct) throw new Error("invalid_account");
+  const synced = await syncNonceReservation(acct, base);
+  return {
+    account: acct,
+    nextNonce: Math.max(1, Math.floor(synced) + 1),
+  };
+}
+
+export async function submitSignedTxInSequence(args: {
+  sequence: NonceSequence;
+  tx_type: string;
+  payloadFactory: (nonce: number) => any;
+  parent?: string | null;
+  base?: string;
+}): Promise<{ env: TxEnvelope; result: any }> {
+  return runSignerSerialized(args.sequence.account, async () => {
+    const signer = normalizeAccount(args.sequence.account);
+    if (!signer) throw new Error("invalid_account");
+
+    const kp = loadKeypair(signer);
+    if (!kp) throw new Error("missing_local_keypair");
+
+    const chain_id = await resolveChainId();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const nonce = Math.max(1, Math.floor(args.sequence.nextNonce));
+      const payload = args.payloadFactory(nonce);
+      const unsigned = buildUnsignedEnvelope({
+        chain_id,
+        tx_type: args.tx_type,
+        signer,
+        nonce,
+        payload,
+        parent: args.parent ?? null,
+      });
+      const signed = signEnvelope(unsigned, kp);
+
+      try {
+        const result = await weall.txSubmit(signed, args.base);
+        args.sequence.nextNonce = nonce + 1;
+        setReservedNonce(signer, nonce);
+        return { env: signed, result };
+      } catch (error) {
+        if (attempt === 0 && isNonceReservationConflictError(error)) {
+          const synced = await syncNonceReservation(signer, args.base);
+          args.sequence.nextNonce = Math.max(1, synced + 1);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error("nonce_retry_exhausted");
+  });
+}
 
 async function claimNextNonce(account: string, base?: string): Promise<NonceClaim> {
   const acct = normalizeAccount(account);
@@ -259,7 +472,6 @@ async function claimNextNonce(account: string, base?: string): Promise<NonceClai
     const onChain = Number(a?.state?.nonce ?? 0);
     if (Number.isFinite(onChain)) chainNext = Math.max(1, Math.floor(onChain) + 1);
   } catch {
-    // If the account does not exist yet, nonce starts at 1.
     chainNext = 1;
   }
 
@@ -302,7 +514,7 @@ function buildUnsignedEnvelope(args: {
   payload: any;
   parent?: string | null;
 }): TxEnvelope {
-  const env: TxEnvelope = {
+  return {
     chain_id: args.chain_id,
     tx_type: String(args.tx_type),
     signer: normalizeAccount(args.signer) || String(args.signer),
@@ -310,7 +522,6 @@ function buildUnsignedEnvelope(args: {
     payload: args.payload ?? {},
     parent: args.parent ?? null,
   };
-  return env;
 }
 
 function signEnvelope(env: TxEnvelope, kp: KeypairB64): TxEnvelope {
@@ -341,30 +552,40 @@ export async function submitSignedTx(args: {
   parent?: string | null;
   base?: string;
 }): Promise<any> {
-  const signer = normalizeAccount(args.account);
-  if (!signer) throw new Error("invalid_account");
+  return runSignerSerialized(args.account, async () => {
+    const signer = normalizeAccount(args.account);
+    if (!signer) throw new Error("invalid_account");
 
-  const kp = loadKeypair(signer);
-  if (!kp) throw new Error("missing_local_keypair");
+    const kp = loadKeypair(signer);
+    if (!kp) throw new Error("missing_local_keypair");
 
-  const chain_id = await resolveChainId();
-  const claim = await claimNextNonce(signer, args.base);
+    const chain_id = await resolveChainId();
 
-  const unsigned = buildUnsignedEnvelope({
-    chain_id,
-    tx_type: args.tx_type,
-    signer,
-    nonce: claim.nonce,
-    payload: args.payload ?? {},
-    parent: args.parent ?? null,
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const claim = await claimNextNonce(signer, args.base);
+      const unsigned = buildUnsignedEnvelope({
+        chain_id,
+        tx_type: args.tx_type,
+        signer,
+        nonce: claim.nonce,
+        payload: args.payload ?? {},
+        parent: args.parent ?? null,
+      });
+      const signed = signEnvelope(unsigned, kp);
+      try {
+        return await weall.txSubmit(signed, args.base);
+      } catch (error) {
+        rollbackNonceClaim(claim);
+        if (attempt === 0 && isNonceReservationConflictError(error)) {
+          await syncNonceReservation(signer, args.base);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error("nonce_retry_exhausted");
   });
-  const signed = signEnvelope(unsigned, kp);
-  try {
-    return await weall.txSubmit(signed, args.base);
-  } catch (error) {
-    rollbackNonceClaim(claim);
-    throw error;
-  }
 }
 
 export async function submitSignedTxWithNonce(args: {
@@ -374,34 +595,44 @@ export async function submitSignedTxWithNonce(args: {
   parent?: string | null;
   base?: string;
 }): Promise<{ env: TxEnvelope; result: any }> {
-  const signer = normalizeAccount(args.account);
-  if (!signer) throw new Error("invalid_account");
+  return runSignerSerialized(args.account, async () => {
+    const signer = normalizeAccount(args.account);
+    if (!signer) throw new Error("invalid_account");
 
-  const kp = loadKeypair(signer);
-  if (!kp) throw new Error("missing_local_keypair");
+    const kp = loadKeypair(signer);
+    if (!kp) throw new Error("missing_local_keypair");
 
-  const chain_id = await resolveChainId();
-  const claim = await claimNextNonce(signer, args.base);
-  const payload = args.payloadFactory(claim.nonce);
+    const chain_id = await resolveChainId();
 
-  const unsigned = buildUnsignedEnvelope({
-    chain_id,
-    tx_type: args.tx_type,
-    signer,
-    nonce: claim.nonce,
-    payload,
-    parent: args.parent ?? null,
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const claim = await claimNextNonce(signer, args.base);
+      const payload = args.payloadFactory(claim.nonce);
+
+      const unsigned = buildUnsignedEnvelope({
+        chain_id,
+        tx_type: args.tx_type,
+        signer,
+        nonce: claim.nonce,
+        payload,
+        parent: args.parent ?? null,
+      });
+      const signed = signEnvelope(unsigned, kp);
+      try {
+        const result = await weall.txSubmit(signed, args.base);
+        return { env: signed, result };
+      } catch (error) {
+        rollbackNonceClaim(claim);
+        if (attempt === 0 && isNonceReservationConflictError(error)) {
+          await syncNonceReservation(signer, args.base);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error("nonce_retry_exhausted");
   });
-  const signed = signEnvelope(unsigned, kp);
-  try {
-    const result = await weall.txSubmit(signed, args.base);
-    return { env: signed, result };
-  } catch (error) {
-    rollbackNonceClaim(claim);
-    throw error;
-  }
 }
-
 
 export async function restoreAccountAndLoginOnThisDevice(args: {
   account: string;
@@ -409,43 +640,38 @@ export async function restoreAccountAndLoginOnThisDevice(args: {
   ttlSeconds?: number;
   base?: string;
 }): Promise<{ session: SessionV1; keypair: KeypairB64; result: any }> {
-  const acct = normalizeAccount(args.account)
-  const secretKeyB64 = String(args.secretKeyB64 || "").trim()
-  if (!acct) throw new Error("invalid_account")
-  if (!secretKeyB64) throw new Error("secret_key_required")
+  const acct = normalizeAccount(args.account);
+  const secretKeyB64 = String(args.secretKeyB64 || "").trim();
+  if (!acct) throw new Error("invalid_account");
+  if (!secretKeyB64) throw new Error("secret_key_required");
 
-  endSession()
-  clearNonceReservation(acct)
-  const keypair = saveKeypair(acct, { secretKeyB64 })
+  endSession();
+  clearNonceReservation(acct);
+  const keypair = saveKeypair(acct, { secretKeyB64 });
 
   try {
     const result = await loginOnThisDevice({
       account: acct,
       ttlSeconds: args.ttlSeconds,
       base: args.base,
-    })
-    const session = getSession()
-    if (!session || !session.sessionKey) throw new Error("session_issue_failed")
-    return { session, keypair, result }
+    });
+    const session = getSession();
+    if (!session || !session.sessionKey) throw new Error("session_issue_failed");
+    return { session, keypair, result };
   } catch (error) {
-    endSession()
-    throw error
+    endSession();
+    throw error;
   }
 }
-
-// ---------------------------------------------------------------------------
-// On-chain session keys (device login)
-// ---------------------------------------------------------------------------
 
 export async function loginOnThisDevice(args: { account: string; ttlSeconds?: number; base?: string }): Promise<any> {
   const acct = normalizeAccount(args.account);
   if (!acct) throw new Error("invalid_account");
 
   const ttlSeconds = Math.max(60, Math.floor(Number(args.ttlSeconds ?? 24 * 60 * 60)));
-  const sessionKey = randomSessionKeyB64(32);
+  const requestedSessionKey = randomSessionKeyB64(32);
   const deviceId = randomDeviceId(acct);
   const issuedAtMs = Date.now();
-  const expiresAtMs = issuedAtMs + ttlSeconds * 1000;
 
   const kp = loadKeypair(acct);
   if (!kp) throw new Error("missing_local_keypair");
@@ -454,45 +680,112 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     kp.secretKeyB64,
     canonicalSessionLoginMessage({
       account: acct,
-      sessionKey,
+      sessionKey: requestedSessionKey,
       ttlSeconds,
       issuedAtMs,
       deviceId,
     }),
   );
 
-  const res = await createBrowserSession(
+  const response = await createBrowserSession(
     {
       account: acct,
-      session_key: sessionKey,
+      session_key: requestedSessionKey,
       ttl_s: ttlSeconds,
       issued_at_ms: issuedAtMs,
       device_id: deviceId,
-      pubkey: kp.pubkeyB64,
       sig,
+      pubkey: kp.pubkeyB64,
     },
     args.base,
   );
 
-  setSession({ version: 1, account: acct, sessionKey, expiresAtMs });
-  return res;
+  const expiresAtMs = Date.now() + ttlSeconds * 1000;
+  setSession({
+    version: 1,
+    account: acct,
+    sessionKey: requestedSessionKey,
+    expiresAtMs,
+  });
+  return response;
 }
 
-export async function revokeSessionKeyOnChain(args: {
-  account: string;
-  sessionKey: string;
-  base?: string;
-}): Promise<any> {
+
+
+export async function ensureBackendSession(args: { account: string; ttlSeconds?: number; base?: string }): Promise<SessionV1> {
   const acct = normalizeAccount(args.account);
-  const sk = String(args.sessionKey || "").trim();
   if (!acct) throw new Error("invalid_account");
-  if (!sk) throw new Error("missing_session_key");
+
+  const ttlSeconds = Math.max(60, Math.floor(Number(args.ttlSeconds ?? 24 * 60 * 60)));
+  const current = getSession();
+  if (current?.account === acct && current.sessionKey && current.expiresAtMs > Date.now()) {
+    return current;
+  }
+
+  const kp = loadKeypair(acct);
+  if (!kp) throw new Error("missing_local_keypair");
+
+  await loginOnThisDevice({
+    account: acct,
+    ttlSeconds,
+    base: args.base,
+  });
+
+  const repaired = getSession();
+  if (!repaired?.account || repaired.account !== acct || !repaired.sessionKey) {
+    throw new Error("session_issue_failed");
+  }
+  return repaired;
+}
+
+export async function revokeSessionKeyOnChain(args: { account: string; sessionKey: string; base?: string }): Promise<any> {
+  const account = normalizeAccount(args.account);
+  const sessionKey = String(args.sessionKey || "").trim();
+  if (!account) throw new Error("invalid_account");
+  if (!sessionKey) throw new Error("session_key_required");
 
   return await submitSignedTx({
-    account: acct,
+    account,
     tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
-    payload: { session_key: sk },
+    payload: { session_key: sessionKey },
     parent: null,
     base: args.base,
   });
+}
+
+export async function revokeCurrentSessionKey(args?: { base?: string }): Promise<any> {
+  const s = getSession();
+  if (!s?.account || !s?.sessionKey) throw new Error("not_logged_in");
+  return await submitSignedTx({
+    account: s.account,
+    tx_type: "ACCOUNT_SESSION_KEY_REVOKE",
+    payload: { session_key: s.sessionKey },
+    parent: null,
+    base: args?.base,
+  });
+}
+
+export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: string }): Promise<any> {
+  const s = getSession();
+  if (!s?.account) throw new Error("not_logged_in");
+
+  const acct = normalizeAccount(s.account);
+  const ttlSeconds = Math.max(60, Math.floor(Number(args?.ttlSeconds ?? 24 * 60 * 60)));
+  const sessionKey = randomSessionKeyB64(32);
+
+  const result = await submitSignedTx({
+    account: acct,
+    tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+    payload: { session_key: sessionKey, ttl_s: ttlSeconds },
+    parent: null,
+    base: args?.base,
+  });
+
+  setSession({
+    version: 1,
+    account: acct,
+    sessionKey,
+    expiresAtMs: Date.now() + ttlSeconds * 1000,
+  });
+  return result;
 }

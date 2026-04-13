@@ -81,9 +81,53 @@ def _hash_delta_ops(delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...]) 
     return hash_json(list(_canon_delta_ops(delta_ops)))
 
 
+def _delta_op_scope_key(path: str) -> tuple[str, str]:
+    raw = str(path or "").strip()
+    if not raw:
+        return "", ""
+    if raw.startswith("namespaced/"):
+        return "namespaced", raw[len("namespaced/"):].strip()
+    return "legacy", raw
+
+
+def _delta_ops_scope_status(
+    *,
+    namespace_prefixes: tuple[str, ...],
+    write_set: tuple[str, ...],
+    delta_ops: tuple[HelperDeltaOp, ...],
+) -> str:
+    allowed_prefixes = tuple(str(item or "").strip().lower() for item in namespace_prefixes if str(item or "").strip())
+    allowed_writes = set(_canon_paths(write_set))
+    seen_paths: set[tuple[str, str]] = set()
+    for op in delta_ops:
+        mode, key = _delta_op_scope_key(op.path)
+        if not key:
+            return "delta_path_invalid"
+        seen_key = (mode, key)
+        if seen_key in seen_paths:
+            return "delta_path_duplicate"
+        if mode == "namespaced":
+            lowered = key.lower()
+            if not any(lowered == prefix or lowered.startswith(prefix) for prefix in allowed_prefixes):
+                return "delta_namespace_scope_invalid"
+            if key not in allowed_writes:
+                return "delta_write_scope_mismatch"
+            seen_paths.add(seen_key)
+            continue
+        if mode == "legacy":
+            if key not in allowed_writes:
+                return "delta_write_scope_mismatch"
+            seen_paths.add(seen_key)
+            continue
+        return "delta_path_invalid"
+    return "ok"
+
+
 def verify_materialized_lane_result(result: MaterializedLaneResult) -> MaterializedVerification:
     cert = result.cert
     lane_plan = result.lane_plan
+    if str(lane_plan.lane_id) != str(cert.lane_id):
+        return MaterializedVerification(ok=False, code="lane_id_mismatch")
     if tuple(lane_plan.tx_ids) != tuple(cert.tx_ids):
         return MaterializedVerification(ok=False, code="tx_set_mismatch")
     if tuple(result.receipts) and cert.receipts_root != hash_receipts(list(result.receipts)):
@@ -92,6 +136,13 @@ def verify_materialized_lane_result(result: MaterializedLaneResult) -> Materiali
         return MaterializedVerification(ok=False, code="read_set_hash_mismatch")
     if cert.write_set_hash != hash_ordered_strings(list(_canon_paths(result.write_set))):
         return MaterializedVerification(ok=False, code="write_set_hash_mismatch")
+    delta_scope_status = _delta_ops_scope_status(
+        namespace_prefixes=tuple(result.namespace_prefixes),
+        write_set=tuple(result.write_set),
+        delta_ops=tuple(result.delta_ops),
+    )
+    if delta_scope_status != "ok":
+        return MaterializedVerification(ok=False, code=delta_scope_status)
     if cert.lane_delta_hash != _hash_delta_ops(result.delta_ops):
         return MaterializedVerification(ok=False, code="lane_delta_hash_mismatch")
     if cert.namespace_hash != make_namespace_hash(list(result.namespace_prefixes)):

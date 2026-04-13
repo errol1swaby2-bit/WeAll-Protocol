@@ -31,6 +31,7 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
 
 def test_build_block_candidate_emits_recomputable_helper_plan_id_batch32(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
     ex = WeAllExecutor(
         db_path=str(tmp_path / "helper_exec.db"),
@@ -48,3 +49,4 @@ def test_build_block_candidate_emits_recomputable_helper_plan_id_batch32(tmp_pat
     assert isinstance(lanes, list)
     assert helper_execution.get("plan_id") == canonical_helper_execution_plan_fingerprint(lanes)
     assert all(isinstance(l, dict) and "descriptor_hash" in l for l in lanes)
+

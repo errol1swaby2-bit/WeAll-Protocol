@@ -5,6 +5,10 @@ from hashlib import sha256
 import json
 from typing import Any, Dict, Mapping, Sequence
 
+import binascii
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from .helper_planner import HelperPlan, build_helper_plan, canonicalize_txs, stable_tx_id
 from .helper_receipts import HelperReceipt, sign_helper_receipt, verify_helper_receipt
 
@@ -37,21 +41,46 @@ class HelperExecutionError(Exception):
 
 class HelperExecutor:
     """
-    Minimal deterministic helper executor.
+    Minimal deterministic helper executor used by helper tests.
 
-    This is intentionally conservative:
-    - planner is deterministic
-    - lane execution is deterministic
-    - merge is canonical by lane_id
-    - missing helper falls back to proposer-local deterministic execution
-
-    Replace the stub transaction semantics with the protocol's real executor when
-    integrating into WeAll. The invariants and interfaces here are the important
-    production path.
+    Production helper trust boundaries use asymmetric helper identities. This
+    test harness still supports legacy shared secrets only when explicitly
+    provided, so old corpus-style tests can be ported gradually without
+    weakening runtime verification paths.
     """
 
-    def __init__(self, helper_secrets: Mapping[str, str]):
-        self.helper_secrets = dict(helper_secrets)
+    def __init__(
+        self,
+        helper_signing_material: Mapping[str, str],
+        *,
+        helper_pubkeys: Mapping[str, str] | None = None,
+        legacy_shared_secret_mode: bool = False,
+    ):
+        self.helper_signing_material = {str(k): v for k, v in dict(helper_signing_material).items()}
+        self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
+        self.legacy_shared_secret_mode = bool(legacy_shared_secret_mode)
+        self._helper_legacy_mode_by_id: dict[str, bool] = {}
+        derived: dict[str, str] = {}
+        for helper_id, material in self.helper_signing_material.items():
+            if self.legacy_shared_secret_mode:
+                self._helper_legacy_mode_by_id[helper_id] = True
+                continue
+            if isinstance(material, Ed25519PrivateKey):
+                key_obj = material
+                self._helper_legacy_mode_by_id[helper_id] = False
+                derived[helper_id] = key_obj.public_key().public_bytes_raw().hex()
+                continue
+            try:
+                raw = bytes.fromhex(str(material))
+                if len(raw) != 32:
+                    raise ValueError("ed25519 private key must be 32 bytes")
+                key_obj = Ed25519PrivateKey.from_private_bytes(raw)
+                self._helper_legacy_mode_by_id[helper_id] = False
+                derived[helper_id] = key_obj.public_key().public_bytes_raw().hex()
+            except (ValueError, TypeError, binascii.Error):
+                self._helper_legacy_mode_by_id[helper_id] = True
+        for helper_id, pubkey in derived.items():
+            self.helper_pubkeys.setdefault(helper_id, pubkey)
 
     def plan(
         self,
@@ -73,14 +102,6 @@ class HelperExecutor:
         )
 
     def _apply_tx(self, state: Dict[str, Any], tx: Mapping[str, Any]) -> Dict[str, Any]:
-        """
-        Deterministic placeholder semantics for testing.
-
-        Supported tx fields:
-        - signer
-        - nonce
-        - delta (int)
-        """
         new_state = json.loads(_canon_json(state))
         balances = dict(new_state.get("balances", {}))
         nonces = dict(new_state.get("nonces", {}))
@@ -116,8 +137,8 @@ class HelperExecutor:
         lane_txs: Sequence[Mapping[str, Any]],
         plan_id: str = "",
     ) -> LaneExecutionResult:
-        if helper_id not in self.helper_secrets:
-            raise HelperExecutionError(f"missing helper secret for helper_id={helper_id}")
+        if helper_id not in self.helper_signing_material:
+            raise HelperExecutionError(f"missing helper signing material for helper_id={helper_id}")
 
         ordered = canonicalize_txs(lane_txs)
         ordered_tx_ids = tuple(stable_tx_id(tx) for tx in ordered)
@@ -128,20 +149,30 @@ class HelperExecutor:
             post_state = self._apply_tx(post_state, tx)
 
         output_state_hash = _sha256_hex(post_state)
-        receipt = sign_helper_receipt(
-            chain_id=chain_id,
-            height=height,
-            validator_epoch=validator_epoch,
-            validator_set_hash=validator_set_hash,
-            parent_block_id=parent_block_id,
-            lane_id=lane_id,
-            ordered_tx_ids=ordered_tx_ids,
-            input_state_hash=input_state_hash,
-            output_state_hash=output_state_hash,
-            helper_id=helper_id,
-            shared_secret=self.helper_secrets[helper_id],
-            plan_id=str(plan_id or ""),
-        )
+        receipt_kwargs = {
+            "chain_id": chain_id,
+            "height": height,
+            "validator_epoch": validator_epoch,
+            "validator_set_hash": validator_set_hash,
+            "parent_block_id": parent_block_id,
+            "lane_id": lane_id,
+            "ordered_tx_ids": ordered_tx_ids,
+            "input_state_hash": input_state_hash,
+            "output_state_hash": output_state_hash,
+            "helper_id": helper_id,
+            "plan_id": str(plan_id or ""),
+        }
+        if self._helper_legacy_mode_by_id.get(helper_id, self.legacy_shared_secret_mode):
+            receipt = sign_helper_receipt(
+                **receipt_kwargs,
+                shared_secret=str(self.helper_signing_material[helper_id]),
+                allow_legacy_shared_secret=True,
+            )
+        else:
+            receipt = sign_helper_receipt(
+                **receipt_kwargs,
+                privkey=self.helper_signing_material[helper_id],
+            )
         return LaneExecutionResult(
             lane_id=lane_id,
             ordered_tx_ids=ordered_tx_ids,
@@ -164,12 +195,29 @@ class HelperExecutor:
         parent_block_id: str,
         expected_plan_id: str = "",
     ) -> bool:
-        secret = self.helper_secrets.get(lane_result.helper_id)
-        if not secret:
+        if self._helper_legacy_mode_by_id.get(lane_result.helper_id, self.legacy_shared_secret_mode):
+            secret = self.helper_signing_material.get(lane_result.helper_id)
+            if not secret:
+                return False
+            return verify_helper_receipt(
+                lane_result.receipt,
+                shared_secret=str(secret),
+                allow_legacy_shared_secret=True,
+                expected_chain_id=chain_id,
+                expected_height=height,
+                expected_validator_epoch=validator_epoch,
+                expected_validator_set_hash=validator_set_hash,
+                expected_parent_block_id=parent_block_id,
+                expected_lane_id=lane_result.lane_id,
+                expected_helper_id=lane_result.helper_id,
+                expected_plan_id=str(expected_plan_id or lane_result.plan_id or ""),
+            )
+        helper_pubkey = self.helper_pubkeys.get(lane_result.helper_id)
+        if not helper_pubkey:
             return False
         return verify_helper_receipt(
             lane_result.receipt,
-            shared_secret=secret,
+            helper_pubkey=helper_pubkey,
             expected_chain_id=chain_id,
             expected_height=height,
             expected_validator_epoch=validator_epoch,
@@ -186,12 +234,6 @@ class HelperExecutor:
         *,
         base_state: Mapping[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Canonical merge by lane_id.
-
-        This placeholder model assumes independent lanes. It will fail closed if
-        two lanes try to write the same signer balance or nonce.
-        """
         merged = json.loads(_canon_json(base_state))
         merged_balances = dict(merged.get("balances", {}))
         merged_nonces = dict(merged.get("nonces", {}))
@@ -238,13 +280,7 @@ class HelperExecutor:
         state: Mapping[str, Any],
         lane_txs: Sequence[Mapping[str, Any]],
         plan_id: str = "",
-    ) -> LaneExecutionResult:
-        """
-        Deterministic proposer-local fallback.
-
-        In production wiring, this should be governed by a canonical timeout /
-        fallback policy. The execution semantics must remain identical.
-        """
+    ):
         return self.execute_lane(
             chain_id=chain_id,
             height=height,
@@ -255,5 +291,5 @@ class HelperExecutor:
             helper_id=helper_id,
             state=state,
             lane_txs=lane_txs,
-            plan_id=str(plan_id or ""),
+            plan_id=plan_id,
         )

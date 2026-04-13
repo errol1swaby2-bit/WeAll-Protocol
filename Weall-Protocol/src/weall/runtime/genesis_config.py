@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -36,7 +35,7 @@ def load_genesis(path: str) -> GenesisConfig:
 
     chain_id = str(obj.get("chain_id") or "").strip()
     if not chain_id:
-        chain_id = str(os.environ.get("WEALL_CHAIN_ID", "")).strip()
+        raise ValueError("genesis_config_missing_chain_id")
 
     vals = []
     for rec in obj.get("validators", []):
@@ -65,16 +64,20 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
 
     changed = False
 
-    # === NEW: Ensure params + open PoH bootstrap for dev/E2E ===
+    # Ensure params exist and make bootstrap policy explicit for fresh genesis state.
     params = state.get("params")
     if not isinstance(params, dict):
         params = {}
         state["params"] = params
         changed = True
 
-    if params.get("poh_bootstrap_open") is not True:
-        params["poh_bootstrap_open"] = True
-        changed = True
+    if "poh_bootstrap_mode" not in params:
+        if params.get("poh_bootstrap_open") is True:
+            params["poh_bootstrap_mode"] = "open"
+            changed = True
+        elif isinstance(params.get("bootstrap_allowlist"), dict) and params.get("bootstrap_allowlist"):
+            params["poh_bootstrap_mode"] = "allowlist"
+            changed = True
 
     # === Existing logic ===
 
@@ -98,7 +101,7 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         acct.setdefault("poh_tier", 0)
         acct.setdefault("banned", False)
         acct.setdefault("balance", 0)
-        acct.setdefault("reputation", 0.0)
+        acct.setdefault("reputation", "0")
 
         if not isinstance(acct.get("keys"), dict):
             acct["keys"] = {}

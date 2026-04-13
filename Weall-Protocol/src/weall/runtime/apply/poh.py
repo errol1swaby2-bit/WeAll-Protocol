@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from typing import Any
 
 from weall.poh.operator_email_receipts import validate_operator_email_receipt
@@ -136,12 +135,20 @@ def _mint_poh_nft(state: Json, *, owner: str, tier: int, source_id: str, ts_ms: 
     return token_id
 
 
-def _require_prod_no_auto_create(state: Json, account_id: str) -> None:
-    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
-    if mode == "prod":
-        accounts = state.get("accounts") or {}
-        if account_id not in accounts:
-            raise ApplyError("invalid_tx", "account_not_registered", {"account_id": account_id})
+def _require_registered_account(
+    state: Json,
+    account_id: str,
+    *,
+    code: str = "invalid_tx",
+    reason: str = "account_not_registered",
+) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        raise ApplyError("invalid_tx", "accounts_missing", {})
+    acct = accounts.get(account_id)
+    if not isinstance(acct, dict):
+        raise ApplyError(code, reason, {"account_id": account_id})
+    return acct
 
 
 def _require_account_exists(
@@ -165,34 +172,142 @@ def _consensus_bootstrap_open_enabled(state: Json) -> bool:
     return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _bootstrap_allowlist_enabled(params: Json) -> bool:
+    allowlist = params.get("bootstrap_allowlist")
+    return isinstance(allowlist, dict) and bool(allowlist)
+
+
+def _consensus_bootstrap_policy_mode(state: Json) -> str:
+    """Resolve the single active bootstrap policy mode.
+
+    Modes:
+      - closed
+      - open
+      - allowlist
+
+    `poh_bootstrap_mode` is the authoritative explicit selector when present.
+    Legacy fields (`poh_bootstrap_open`, `bootstrap_allowlist`) are still honored for
+    backward compatibility, but only when they do not create an ambiguous dual-mode
+    policy. Any conflicting combination fails closed.
+    """
+
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+
+    raw_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    open_enabled = _consensus_bootstrap_open_enabled(state)
+    allowlist_enabled = _bootstrap_allowlist_enabled(params)
+
+    if raw_mode:
+        if raw_mode not in {"closed", "open", "allowlist"}:
+            raise ApplyError(
+                "invalid_state",
+                "invalid_bootstrap_mode",
+                {"mode": raw_mode},
+            )
+        if raw_mode == "closed" and (open_enabled or allowlist_enabled):
+            raise ApplyError(
+                "invalid_state",
+                "bootstrap_mode_conflict",
+                {
+                    "mode": raw_mode,
+                    "open_enabled": open_enabled,
+                    "allowlist_enabled": allowlist_enabled,
+                },
+            )
+        if raw_mode == "open" and allowlist_enabled:
+            raise ApplyError(
+                "invalid_state",
+                "bootstrap_mode_conflict",
+                {
+                    "mode": raw_mode,
+                    "open_enabled": open_enabled,
+                    "allowlist_enabled": allowlist_enabled,
+                },
+            )
+        if raw_mode == "allowlist" and open_enabled:
+            raise ApplyError(
+                "invalid_state",
+                "bootstrap_mode_conflict",
+                {
+                    "mode": raw_mode,
+                    "open_enabled": open_enabled,
+                    "allowlist_enabled": allowlist_enabled,
+                },
+            )
+        return raw_mode
+
+    if open_enabled and allowlist_enabled:
+        raise ApplyError(
+            "invalid_state",
+            "bootstrap_mode_conflict",
+            {
+                "mode": "implicit",
+                "open_enabled": open_enabled,
+                "allowlist_enabled": allowlist_enabled,
+            },
+        )
+    if open_enabled:
+        return "open"
+    if allowlist_enabled:
+        return "allowlist"
+    return "closed"
+
+
 def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
-    """Return True if acct.keys contains pubkey in any supported schema shape."""
+    """Return True if acct exposes pubkey in any supported active-key schema."""
     if not pubkey:
         return False
     pk = str(pubkey).strip()
     if not pk:
         return False
 
-    keys = acct.get("keys")
-    # Shape A: { "<pubkey>": {...}, ... }
-    if isinstance(keys, dict) and pk in keys:
-        return True
+    seen: set[str] = set()
 
-    # Shape B: { "by_id": { "<kid>": {"pubkey": "<pubkey>", ...}, ... } }
+    def _add(candidate: Any, *, active: bool = True) -> None:
+        if not active or not isinstance(candidate, str):
+            return
+        c = candidate.strip()
+        if c:
+            seen.add(c)
+
+    _add(acct.get("pubkey"))
+
+    pubkeys = acct.get("pubkeys")
+    if isinstance(pubkeys, list):
+        for item in pubkeys:
+            _add(item)
+
+    active_keys = acct.get("active_keys")
+    if isinstance(active_keys, list):
+        for item in active_keys:
+            _add(item)
+
+    keys = acct.get("keys")
+    if isinstance(keys, dict) and pk in keys:
+        rec = keys.get(pk)
+        if isinstance(rec, dict):
+            _add(pk, active=bool(rec.get("active", False)) and not bool(rec.get("revoked", False)))
+        else:
+            _add(pk, active=bool(rec))
+
     if isinstance(keys, dict):
         by_id = keys.get("by_id")
         if isinstance(by_id, dict):
-            for _, rec in by_id.items():
-                if isinstance(rec, dict) and str(rec.get("pubkey") or "").strip() == pk:
-                    return True
+            for rec in by_id.values():
+                if isinstance(rec, dict):
+                    _add(rec.get("pubkey"), active=not bool(rec.get("revoked", False)))
 
-    # Shape C: [ "<pubkey>", ... ]
     if isinstance(keys, list):
-        for it in keys:
-            if str(it or "").strip() == pk:
-                return True
+        for item in keys:
+            if isinstance(item, str):
+                _add(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            _add(item.get("pubkey"), active=item.get("active", True) is not False)
 
-    return False
+    return pk in seen
 
 
 def _require_active_tier3(state: Json, account_id: str, *, case_id: str = "") -> Json:
@@ -301,25 +416,23 @@ def apply_poh_tier_set(state: Json, tx: Json) -> None:
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account", {})
 
-    _require_prod_no_auto_create(state, account_id)
-
-    accounts = state.setdefault("accounts", {})
-    acct = accounts.setdefault(account_id, {})
+    acct = _require_registered_account(state, account_id)
     acct["poh_tier"] = tier
 
 
 def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     """Bootstrap a Tier3 PoH grant.
 
-    Default policy:
-      - restricted to params.bootstrap_allowlist entries
-      - expires after params.bootstrap_expires_height
+    The active bootstrap mechanism must resolve to exactly one consensus-visible
+    policy mode:
+      - open      : self-bootstrap only, bounded by `poh_bootstrap_max_height`
+      - allowlist : account must be present in `bootstrap_allowlist`, bounded by
+                    `bootstrap_expires_height`
+      - closed    : no bootstrap path is active
 
-    Optional open bootstrap mode (opt-in, explicit, consensus-state driven):
-      - if params.poh_bootstrap_open is truthy
-      - signer must equal payload.account_id (self-bootstrap only)
-      - still requires the account to exist (must register first)
-      - respects params.poh_bootstrap_max_height if set (>0)
+    `poh_bootstrap_mode` is the authoritative selector when present. Legacy fields
+    remain backward-compatible only when they imply a single unambiguous mode.
+    Any conflicting combination fails closed.
     """
 
     payload = tx.get("payload") or {}
@@ -332,16 +445,25 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
 
     current_height = int(state.get("height") or 0)
     params = state.get("params") or {}
+    mode = _consensus_bootstrap_policy_mode(state)
 
-    # Optional global ceiling for any bootstrap mechanism (dev or allowlist).
-    max_h = int(params.get("poh_bootstrap_max_height") or 0)
-    if max_h > 0 and current_height > max_h:
-        raise ApplyError(
-            "forbidden", "bootstrap_expired", {"height": current_height, "expires_height": max_h}
-        )
+    if mode == "closed":
+        raise ApplyError("forbidden", "bootstrap_closed", {"account_id": account_id})
 
     # --- Open bootstrap (explicit on-chain opt-in) ---
-    if _consensus_bootstrap_open_enabled(state):
+    if mode == "open":
+        max_h = int(params.get("poh_bootstrap_max_height") or 0)
+        if max_h <= 0:
+            raise ApplyError(
+                "invalid_state",
+                "bootstrap_open_requires_max_height",
+                {"account_id": account_id},
+            )
+        if current_height > max_h:
+            raise ApplyError(
+                "forbidden", "bootstrap_expired", {"height": current_height, "expires_height": max_h}
+            )
+
         if signer != account_id:
             raise ApplyError(
                 "forbidden", "bootstrap_self_only", {"signer": signer, "account_id": account_id}
@@ -352,13 +474,14 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         if not isinstance(acct, dict):
             raise ApplyError("invalid_tx", "account_not_found", {"account_id": account_id})
 
-        # If caller included a pubkey, ensure the account actually has it registered.
         expected_pubkey = str(payload.get("pubkey") or "").strip()
         if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
             raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
         acct["poh_tier"] = 3
-        # Keep account nonce monotonic (bootstrap is still a signer-authored tx).
+        acct["poh_bootstrap_granted"] = True
+        acct["poh_bootstrap_mode"] = "open"
+        acct["poh_bootstrap_height"] = current_height
         try:
             acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
         except Exception:
@@ -369,6 +492,12 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     # --- Allowlist bootstrap ---
     allowlist = params.get("bootstrap_allowlist") or {}
     expires_height = int(params.get("bootstrap_expires_height") or 0)
+    if expires_height <= 0:
+        raise ApplyError(
+            "invalid_state",
+            "bootstrap_allowlist_requires_expiry",
+            {"account_id": account_id},
+        )
 
     if account_id not in allowlist:
         raise ApplyError("forbidden", "not_bootstrap_account", {"account_id": account_id})
@@ -392,6 +521,9 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
     acct["poh_tier"] = 3
+    acct["poh_bootstrap_granted"] = True
+    acct["poh_bootstrap_mode"] = "allowlist"
+    acct["poh_bootstrap_height"] = current_height
     try:
         acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
     except Exception:
@@ -480,7 +612,7 @@ def apply_poh_tier2_request_open(state: Json, env: Any) -> Json:
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
 
-    _require_prod_no_auto_create(state, account_id)
+    _require_registered_account(state, account_id)
 
     if target_tier == 3:
         case_id = _case_id("poh3", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0)))
@@ -613,6 +745,13 @@ def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "bad_verdict", {"verdict": verdict})
 
     case = _get_tier2_case(state, case_id)
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("awarded", "finalized", "rejected"):
+        raise ApplyError(
+            "forbidden",
+            "case_finalized",
+            {"case_id": case_id, "status": status},
+        )
     jm = case.get("jurors")
     if not isinstance(jm, dict):
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
@@ -681,8 +820,7 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
     if outcome == "pass":
         acct_id = _as_str(case.get("account_id") or "").strip()
         if acct_id:
-            accounts = state.setdefault("accounts", {})
-            acct = accounts.setdefault(acct_id, {})
+            acct = _require_registered_account(state, acct_id)
             acct["poh_tier"] = max(_as_int(acct.get("poh_tier") or 0), 2)
             token_id = _mint_poh_nft(
                 state, owner=acct_id, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
@@ -973,6 +1111,13 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
     _require_active_tier3(state, signer, case_id=case_id)
 
     case = _get_tier3_case(state, case_id)
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("awarded", "finalized", "rejected"):
+        raise ApplyError(
+            "forbidden",
+            "case_finalized",
+            {"case_id": case_id, "status": status},
+        )
 
     expected_sc = _as_str(case.get("session_commitment") or "").strip()
     sc = _as_str(p.get("session_commitment") or "").strip()
@@ -1022,6 +1167,13 @@ def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
     _require_active_tier3(state, signer, case_id=case_id)
 
     case = _get_tier3_case(state, case_id)
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("awarded", "finalized", "rejected"):
+        raise ApplyError(
+            "forbidden",
+            "case_finalized",
+            {"case_id": case_id, "status": status},
+        )
 
     expected_sc = _as_str(case.get("session_commitment") or "").strip()
     sc = _as_str(p.get("session_commitment") or "").strip()
@@ -1114,8 +1266,7 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
     if outcome == "pass":
         acct_id = _as_str(case.get("account_id") or "").strip()
         if acct_id:
-            accounts = state.setdefault("accounts", {})
-            acct = accounts.setdefault(acct_id, {})
+            acct = _require_registered_account(state, acct_id)
             acct["poh_tier"] = max(_as_int(acct.get("poh_tier") or 0), 3)
             token_id = _mint_poh_nft(
                 state, owner=acct_id, tier=3, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)

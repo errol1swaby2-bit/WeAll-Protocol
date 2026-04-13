@@ -28,6 +28,18 @@ def _state() -> dict[str, object]:
             "schema_version": "1",
             "production_consensus_profile_hash": "",
             "tx_index_hash": "",
+            "node_lifecycle": {
+                "requested_state": "production_service",
+                "effective_state": "production_service",
+                "helper_enabled_requested": False,
+                "helper_enabled_effective": False,
+                "bft_enabled_requested": True,
+                "bft_enabled_effective": True,
+                "service_roles_requested": ["validator"],
+                "service_roles_effective": ["validator"],
+                "startup_action": "allow",
+                "promotion_failure_reasons": [],
+            },
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
@@ -124,7 +136,13 @@ def test_public_validator_preflight_passes_with_bundle(tmp_path: Path) -> None:
     assert payload["bundle_verification"]["ok"] is True
     assert payload["recommended_sequence"][0] == "verify local prod posture"
     assert payload["compatibility_contract"]["ok"] is True
+    assert payload["authority_contract_source"] == "runtime"
+    assert payload["authority_contract"]["strict_runtime_authority_mode"] is True
+    assert payload["authority_contract"]["bft_requested"] is True
     assert payload["signing_ready"] is True
+    assert payload["bundle_verification"]["authority_contract"]["validator_effective"] is True
+    assert payload["bundle_verification"]["authority_contract_source"] == "runtime"
+    assert payload["bundle_verification"]["compatibility_contract"]["field_status"]["authority_contract_payload"]["ok"] is True
 
 
 def test_public_validator_preflight_fails_without_required_bundle(tmp_path: Path) -> None:
@@ -156,6 +174,7 @@ def test_bootstrap_prod_node_uses_single_preflight() -> None:
         encoding="utf-8"
     )
     assert "public_validator_preflight.py" in text
+    assert "authority contract" in text.lower()
     assert 'verify_validator_bootstrap.py --bundle "$BUNDLE_OUT"' not in text
 
 
@@ -203,4 +222,47 @@ def test_public_validator_preflight_surfaces_compatibility_drift(tmp_path: Path)
     payload = json.loads(proc.stdout)
     assert payload["compatibility_contract"]["ok"] is False
     assert "chain_config_compatibility_payload" in payload["compatibility_contract"]["mismatches"]
+    assert payload["authority_contract_source"] == "runtime"
+    assert payload["signing_ready"] is False
+
+
+def test_public_validator_preflight_surfaces_authority_contract_drift(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    db_path = tmp_path / "data" / "weall.db"
+    tx_index_path = tmp_path / "tx_index.json"
+    cfg_path = tmp_path / "prod.chain.json"
+    bundle_path = tmp_path / "bundle.json"
+    tx_index_path.write_text("{}", encoding="utf-8")
+    cfg_path.write_text(json.dumps(_cfg_payload(db_path, tx_index_path)), encoding="utf-8")
+    _write_db(db_path, _state())
+    env = _prod_env(cfg_path)
+
+    build = subprocess.run(
+        [sys.executable, "scripts/build_validator_bootstrap_bundle.py", "--out", str(bundle_path)],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["authority_contract"]["validator_effective"] = False
+    bundle["manifest_hash"] = "tampered"
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, "scripts/public_validator_preflight.py", "--bundle", str(bundle_path), "--json"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 1
+    payload = json.loads(proc.stdout)
+    contract = payload["bundle_verification"]["compatibility_contract"]
+    assert contract["field_status"]["authority_contract_payload"]["ok"] is False
+    assert "authority_contract_payload" in contract["mismatches"]
     assert payload["signing_ready"] is False

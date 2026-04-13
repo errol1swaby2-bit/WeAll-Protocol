@@ -23,6 +23,8 @@ from weall.runtime.helper_certificates import (
     hash_receipts,
     hash_state_delta_ops,
     make_namespace_hash,
+    make_tx_order_hash,
+    verify_helper_certificate_signature,
 )
 from weall.runtime.lane_assignment import assign_execution_lane
 from weall.runtime.read_write_sets import (
@@ -168,6 +170,42 @@ def _explicit_lane_override(tx: Mapping[str, Any], access: TxAccessSet) -> TxAcc
     )
 
 
+
+
+def _expected_parallel_lane_from_access(access: TxAccessSet) -> str | None:
+    base = lane_base_id(access.lane_hint)
+    if access.fail_closed_serial or access.barrier_class == "GLOBAL_BARRIER":
+        return SERIAL_LANE
+    if base == IDENTITY_LANE:
+        return "PARALLEL_IDENTITY"
+    if base == SOCIAL_LANE:
+        return "PARALLEL_SOCIAL"
+    if base in {CONTENT_LANE, STORAGE_LANE}:
+        return "PARALLEL_CONTENT"
+    if base == ECONOMICS_LANE:
+        return "PARALLEL_ECONOMY"
+    has_explicit_scope = bool(access.reads or access.writes or access.subject_keys or access.authority_keys)
+    return SERIAL_LANE if has_explicit_scope else None
+
+
+def _effective_parallel_lane_id(tx: Mapping[str, Any], access: TxAccessSet) -> str:
+    assigned_lane = str(assign_execution_lane(dict(tx), None) or SERIAL_LANE)
+    if (
+        assigned_lane != SERIAL_LANE
+        and str(access.family or "").upper() == "UNKNOWN"
+        and "read_set" not in tx
+        and "write_set" not in tx
+    ):
+        return assigned_lane
+    expected_lane = _expected_parallel_lane_from_access(access)
+    if expected_lane is None:
+        return assigned_lane
+    if assigned_lane == SERIAL_LANE or expected_lane == SERIAL_LANE:
+        return SERIAL_LANE
+    if assigned_lane != expected_lane:
+        return SERIAL_LANE
+    return assigned_lane
+
 def _access_conflicts(existing: Sequence[TxAccessSet], access: TxAccessSet) -> bool:
     reads = set(access.reads)
     writes = set(access.writes)
@@ -292,6 +330,7 @@ def _parallel_lane_groups(
     current_txs: list[Json] = []
     current_access: list[TxAccessSet] = []
     current_namespaces: list[str] = []
+    lane_counters: dict[str, int] = {}
 
     def flush() -> None:
         nonlocal current_lane_id, current_txs, current_access, current_namespaces
@@ -301,8 +340,11 @@ def _parallel_lane_groups(
             current_access = []
             current_namespaces = []
             return
+        lane_index = lane_counters.get(str(current_lane_id), 0)
+        lane_counters[str(current_lane_id)] = lane_index + 1
+        lane_id = str(current_lane_id) if lane_index == 0 else f"{str(current_lane_id)}#{lane_index}"
         lane_cost_units = compute_lane_cost_units(
-            lane_id=str(current_lane_id),
+            lane_id=lane_id,
             tx_count=len(current_txs),
             namespace_prefixes=tuple(sorted({p for p in current_namespaces if p})),
             override_units=lane_cost_overrides.get(str(current_lane_id)),
@@ -310,7 +352,7 @@ def _parallel_lane_groups(
         lane_tx_types = tuple(sorted({_tx_type(tx) for tx in current_txs if _tx_type(tx)}))
         lane_class = lane_class_for_plan(lane_id=str(current_lane_id), tx_types=lane_tx_types)
         helper_id, helper_candidates, original_helper_id, rerouted_from_helper_id, routing_mode, helper_capacity_units, capability_restricted = _plan_helper_assignment(
-            lane_id=str(current_lane_id),
+            lane_id=lane_id,
             normalized_validators=normalized_validators,
             validator_set_hash=validator_set_hash,
             view=int(view),
@@ -330,7 +372,7 @@ def _parallel_lane_groups(
             assignment_load_units[str(helper_id)] = int(assignment_load_units.get(str(helper_id), 0)) + int(lane_cost_units)
         plans.append(
             LanePlan(
-                lane_id=current_lane_id,
+                lane_id=lane_id,
                 helper_id=helper_id,
                 txs=tuple(dict(tx) for tx in current_txs),
                 tx_ids=tuple(_canonical_tx_id(tx) for tx in current_txs),
@@ -355,12 +397,12 @@ def _parallel_lane_groups(
 
     for tx in list(txs or []):
         txj = dict(tx)
-        lane_id = assign_execution_lane(txj, None)
         access = build_tx_access_set(txj)
+        lane_id = _effective_parallel_lane_id(txj, access)
         namespaces = list(_tx_namespace_prefixes(txj, access))
         if current_lane_id is None:
             current_lane_id = lane_id
-        elif lane_id != current_lane_id:
+        elif lane_id != current_lane_id or _access_conflicts(current_access, access):
             flush()
             current_lane_id = lane_id
         current_txs.append(txj)
@@ -530,6 +572,10 @@ def _cert_namespace_valid(cert: HelperExecutionCertificate, plan: LanePlan) -> b
     return cert.namespace_hash == make_namespace_hash(plan.namespace_prefixes)
 
 
+def _cert_tx_order_valid(cert: HelperExecutionCertificate, plan: LanePlan) -> bool:
+    return str(cert.tx_order_hash or "") == make_tx_order_hash(plan.tx_ids)
+
+
 def _helper_receipts_valid(lane_receipts: Sequence[Mapping[str, Any]], plan: LanePlan) -> bool:
     observed_ids = [str(item.get("tx_id", "")) for item in lane_receipts]
     return observed_ids == list(plan.tx_ids)
@@ -669,6 +715,10 @@ def verify_helper_certificate(
     manifest_hash: str = "",
     require_internal_consistency: bool = False,
     plan_id: str = "",
+    require_plan_id_match: bool = False,
+    require_manifest_hash_match: bool = False,
+    enforce_tx_order_hash: bool = False,
+    enforce_namespace_hash: bool = False,
 ) -> tuple[bool, str]:
     normalized = ensure_helper_execution_certificate(cert)
     if normalized.chain_id != str(chain_id):
@@ -685,15 +735,68 @@ def verify_helper_certificate(
         return False, "wrong_helper"
     if bool(require_internal_consistency) and not normalized.verify_internal_consistency():
         return False, "helper_certificate_inconsistent"
-    if str(manifest_hash or "") and str(normalized.manifest_hash or "") != str(manifest_hash):
-        return False, "manifest_hash_mismatch"
-    if str(plan_id or "") and str(getattr(normalized, "plan_id", "") or "") not in {"", str(plan_id)}:
-        return False, "plan_id_mismatch"
+    expected_manifest_hash = str(manifest_hash or "")
+    observed_manifest_hash = str(normalized.manifest_hash or "")
+    if expected_manifest_hash:
+        if bool(require_manifest_hash_match) and observed_manifest_hash != expected_manifest_hash:
+            return False, "manifest_hash_mismatch"
+        if observed_manifest_hash not in {"", expected_manifest_hash}:
+            return False, "manifest_hash_mismatch"
+    expected_plan_id = str(plan_id or "")
+    observed_plan_id = str(getattr(normalized, "plan_id", "") or "")
+    if expected_plan_id:
+        if bool(require_plan_id_match) and observed_plan_id != expected_plan_id:
+            return False, "plan_id_mismatch"
+        if observed_plan_id not in {"", expected_plan_id}:
+            return False, "plan_id_mismatch"
     if normalized.lane_id != str(lane_plan.lane_id):
         return False, "lane_id_mismatch"
     if tuple(str(x) for x in normalized.tx_ids) != tuple(str(x) for x in lane_plan.tx_ids):
         return False, "tx_id_subset_mismatch"
+    enforce_tx_order_hash2 = bool(require_internal_consistency or enforce_tx_order_hash)
+    if enforce_tx_order_hash2 and not _cert_tx_order_valid(normalized, lane_plan):
+        return False, "tx_order_hash_mismatch"
+    enforce_namespace_hash2 = bool(require_internal_consistency or enforce_namespace_hash)
+    if enforce_namespace_hash2 and not _cert_namespace_valid(normalized, lane_plan):
+        return False, "namespace_hash_mismatch"
     return True, "ok"
+
+
+def _canonical_tx_id_sequence(txs: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    return tuple(str(tx.get("tx_id", "")) for tx in list(txs or []))
+
+
+
+def _lane_plan_tx_id_sequence(lane_plans: Sequence[LanePlan]) -> tuple[str, ...]:
+    tx_ids: list[str] = []
+    for plan in tuple(lane_plans or ()):
+        tx_ids.extend(str(tx_id) for tx_id in tuple(plan.tx_ids or ()))
+    return tuple(tx_ids)
+
+
+
+def _has_duplicate_tx_ids(tx_ids: Sequence[str]) -> bool:
+    seen: set[str] = set()
+    for tx_id in tuple(str(v) for v in tx_ids):
+        if tx_id in seen:
+            return True
+        seen.add(tx_id)
+    return False
+
+
+
+def _lane_plan_contract_reason(
+    canonical_txs: Sequence[Mapping[str, Any]],
+    lane_plans: Sequence[LanePlan],
+) -> str | None:
+    canonical_ids = _canonical_tx_id_sequence(canonical_txs)
+    plan_ids = _lane_plan_tx_id_sequence(lane_plans)
+    if _has_duplicate_tx_ids(plan_ids):
+        return "lane_plan_duplicate_tx_id"
+    if canonical_ids != plan_ids:
+        return "lane_plan_contract_mismatch"
+    return None
+
 
 
 def merge_helper_lane_results(
@@ -704,8 +807,6 @@ def merge_helper_lane_results(
     serial_executor: Callable[..., Any],
     leader_context: Mapping[str, Any],
 ) -> MergeHelperLaneResults:
-    del canonical_txs
-
     chain_id = str(leader_context.get("chain_id", ""))
     block_height = int(leader_context.get("block_height", 0))
     view = int(leader_context.get("view", 0))
@@ -718,9 +819,29 @@ def merge_helper_lane_results(
     helper_state_deltas_by_lane = leader_context.get("helper_state_deltas", {})
     if not isinstance(helper_state_deltas_by_lane, Mapping):
         helper_state_deltas_by_lane = {}
+    helper_pubkeys_by_helper = leader_context.get("helper_pubkeys", {})
+    if not isinstance(helper_pubkeys_by_helper, Mapping):
+        helper_pubkeys_by_helper = {}
+    enforce_helper_signature = bool(leader_context.get("enforce_helper_signature", False))
 
     receipts: list[Json] = []
     decisions: list[LaneDecision] = []
+
+    plan_contract_reason = _lane_plan_contract_reason(canonical_txs, lane_plans)
+    if plan_contract_reason is not None:
+        serial_receipts = _serial_execute_lane(tuple(canonical_txs or ()), serial_executor, leader_context)
+        return MergeHelperLaneResults(
+            receipts=serial_receipts,
+            lane_decisions=tuple(
+                LaneDecision(
+                    lane_id=str(plan.lane_id),
+                    used_helper=False,
+                    fallback_reason=plan_contract_reason,
+                    tx_ids=tuple(str(tx_id) for tx_id in tuple(plan.tx_ids or ())),
+                )
+                for plan in tuple(lane_plans or ())
+            ),
+        )
 
     for plan in lane_plans:
         raw_cert = helper_certificates.get(plan.lane_id)
@@ -742,6 +863,20 @@ def merge_helper_lane_results(
             continue
 
         cert = ensure_helper_execution_certificate(raw_cert)
+        explicit_tx_order = "enforce_helper_tx_order_hash" in leader_context
+        require_internal_consistency = bool(leader_context.get("enforce_helper_certificate_consistency", False))
+        helper_signature_value = ""
+        if isinstance(raw_cert, Mapping):
+            helper_signature_value = str(raw_cert.get("helper_signature", raw_cert.get("signature", "")) or "")
+        elif raw_cert is not None:
+            helper_signature_value = str(getattr(raw_cert, "helper_signature", getattr(raw_cert, "signature", "")) or "")
+        enforce_tx_order_hash = bool(
+            leader_context.get(
+                "enforce_helper_tx_order_hash",
+                isinstance(raw_cert, Mapping) and not helper_signature_value,
+            )
+        )
+        enforce_namespace_hash = bool(leader_context.get("enforce_helper_namespace_hash", False))
         ok, reason = verify_helper_certificate(
             cert=cert,
             lane_plan=plan,
@@ -753,17 +888,49 @@ def merge_helper_lane_results(
             validator_epoch=validator_epoch,
             validator_set_hash=validator_set_hash,
             manifest_hash=str(leader_context.get("manifest_hash", "")),
-            require_internal_consistency=bool(leader_context.get("enforce_helper_certificate_consistency", False)),
+            require_internal_consistency=require_internal_consistency,
             plan_id=str(leader_context.get("plan_id", "")),
+            require_plan_id_match=bool(leader_context.get("enforce_helper_plan_id_match", False)),
+            require_manifest_hash_match=bool(leader_context.get("enforce_helper_manifest_hash_match", False)),
+            enforce_tx_order_hash=enforce_tx_order_hash,
+            enforce_namespace_hash=enforce_namespace_hash,
         )
         if not ok:
+            fallback_reason = reason
+            if (
+                reason == "tx_order_hash_mismatch"
+                and not require_internal_consistency
+                and not explicit_tx_order
+                and isinstance(raw_cert, Mapping)
+                and not helper_signature_value
+            ):
+                fallback_reason = "helper_certificate_inconsistent"
             receipts.extend(_serial_execute_lane(plan.txs, serial_executor, leader_context))
-            decisions.append(LaneDecision(plan.lane_id, False, reason, tuple(str(tx_id) for tx_id in plan.tx_ids)))
+            decisions.append(LaneDecision(plan.lane_id, False, fallback_reason, tuple(str(tx_id) for tx_id in plan.tx_ids)))
             continue
 
         if not _cert_namespace_valid(cert, plan):
             receipts.extend(_serial_execute_lane(plan.txs, serial_executor, leader_context))
             decisions.append(LaneDecision(plan.lane_id, False, "namespace_scope_invalid", tuple(str(tx_id) for tx_id in plan.tx_ids)))
+            continue
+
+        helper_pubkey = str(helper_pubkeys_by_helper.get(str(plan.helper_id or "")) or "")
+        helper_signature = str(getattr(cert, "helper_signature", "") or "")
+        if enforce_helper_signature and not helper_signature:
+            receipts.extend(_serial_execute_lane(plan.txs, serial_executor, leader_context))
+            decisions.append(LaneDecision(plan.lane_id, False, "helper_signature_missing", tuple(str(tx_id) for tx_id in plan.tx_ids)))
+            continue
+        if enforce_helper_signature and not helper_pubkey:
+            receipts.extend(_serial_execute_lane(plan.txs, serial_executor, leader_context))
+            decisions.append(LaneDecision(plan.lane_id, False, "helper_pubkey_missing", tuple(str(tx_id) for tx_id in plan.tx_ids)))
+            continue
+        should_verify_signature = bool(enforce_helper_signature)
+        if should_verify_signature and not verify_helper_certificate_signature(
+            cert,
+            helper_pubkey=helper_pubkey or None,
+        ):
+            receipts.extend(_serial_execute_lane(plan.txs, serial_executor, leader_context))
+            decisions.append(LaneDecision(plan.lane_id, False, "helper_signature_invalid", tuple(str(tx_id) for tx_id in plan.tx_ids)))
             continue
 
         lane_receipts = helper_receipts_by_lane.get(plan.lane_id)
@@ -796,6 +963,23 @@ def merge_helper_lane_results(
 
         receipts.extend(normalized_lane_receipts)
         decisions.append(LaneDecision(plan.lane_id, True, None, tuple(str(tx_id) for tx_id in plan.tx_ids)))
+
+    merged_tx_ids = tuple(str(item.get("tx_id", "")) for item in receipts)
+    canonical_tx_ids = _canonical_tx_id_sequence(canonical_txs)
+    if merged_tx_ids != canonical_tx_ids:
+        serial_receipts = _serial_execute_lane(tuple(canonical_txs or ()), serial_executor, leader_context)
+        return MergeHelperLaneResults(
+            receipts=serial_receipts,
+            lane_decisions=tuple(
+                LaneDecision(
+                    lane_id=str(plan.lane_id),
+                    used_helper=False,
+                    fallback_reason="merged_receipt_order_mismatch",
+                    tx_ids=tuple(str(tx_id) for tx_id in tuple(plan.tx_ids or ())),
+                )
+                for plan in tuple(lane_plans or ())
+            ),
+        )
 
     return MergeHelperLaneResults(receipts=receipts, lane_decisions=tuple(decisions))
 

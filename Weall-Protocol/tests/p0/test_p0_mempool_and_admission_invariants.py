@@ -128,10 +128,10 @@ def test_mempool_admission_rejects_replay_nonce_after_success(base_state) -> Non
     _admit_bad_nonce(st, tx_replay, context="mempool")
 
 
-def test_mempool_admission_rejects_replay_nonce_after_reject_consumes_nonce(base_state) -> None:
+def test_mempool_admission_allows_same_nonce_retry_after_apply_reject(base_state) -> None:
     """
-    Policy: nonce is consumed even when apply rejects.
-    Assert via admission replay rejection.
+    Policy: rejected applies leave signer nonce unchanged.
+    The same nonce remains admissible for a corrected retry.
     """
     st = clone_state(base_state)
     _ensure_canonical_accounts_for_admission(st, ["alice", "bob"])
@@ -147,13 +147,21 @@ def test_mempool_admission_rejects_replay_nonce_after_reject_consumes_nonce(base
     with pytest.raises(ApplyError):
         apply_tx_atomic(st, tx_fail)
 
-    tx_replay = _env(
+    tx_retry = _env(
         "BALANCE_TRANSFER",
         {"from": "@bob", "to": "@alice", "amount": 1},
         signer="bob",
         nonce=1,
     )
-    _admit_bad_nonce(st, tx_replay, context="mempool")
+    _admit_ok(st, tx_retry, context="mempool")
+
+    tx_gap = _env(
+        "BALANCE_TRANSFER",
+        {"from": "@bob", "to": "@alice", "amount": 1},
+        signer="bob",
+        nonce=2,
+    )
+    _admit_bad_nonce(st, tx_gap, context="mempool")
 
 
 def test_poh_tier1_view_only_gating_if_social_txs_exist(base_state) -> None:

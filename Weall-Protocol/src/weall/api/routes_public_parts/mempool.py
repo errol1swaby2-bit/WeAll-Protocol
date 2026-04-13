@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from pydantic import ValidationError
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
@@ -13,6 +14,7 @@ from weall.api.routes_public_parts.common import (
 from weall.crypto.sig import strict_tx_sig_domain_enabled
 from weall.ledger.state import LedgerView
 from weall.runtime.sigverify import verify_tx_signature
+from weall.runtime.tx_schema import validate_tx_envelope
 
 router = APIRouter()
 
@@ -63,6 +65,15 @@ async def mempool_submit(request: Request):
     )
     if not isinstance(body, dict):
         raise ApiError.bad_request("bad_request", "Body must be a tx envelope object", {})
+
+    try:
+        validate_tx_envelope(body)
+    except ValidationError as ve:
+        raise ApiError.bad_request(
+            "invalid_tx",
+            "tx envelope failed schema validation",
+            {"errors": ve.errors()},
+        )
 
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)

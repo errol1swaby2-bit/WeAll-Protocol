@@ -933,12 +933,6 @@ class GovVoteCastPayload(_StrictModel):
     choice: str | None = None
 
 
-class GovDelegationSetPayload(_StrictModel):
-    # Empty / missing clears delegation.
-    delegatee: str | None = None
-
-
-
 class GovProposalEditPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
     title: str | None = None
@@ -1597,7 +1591,6 @@ TxPayloadModel = (
     # Governance
     GovProposalCreatePayload,
     GovVoteCastPayload,
-    GovDelegationSetPayload,
     GovProposalEditPayload,
     GovProposalWithdrawPayload,
     GovStageSetPayload,
@@ -1822,7 +1815,6 @@ TX_PAYLOADS: dict[str, Any] = {
     # Governance
     "GOV_PROPOSAL_CREATE": GovProposalCreatePayload,
     "GOV_VOTE_CAST": GovVoteCastPayload,
-    "GOV_DELEGATION_SET": GovDelegationSetPayload,
     "GOV_PROPOSAL_EDIT": GovProposalEditPayload,
     "GOV_PROPOSAL_WITHDRAW": GovProposalWithdrawPayload,
     "GOV_STAGE_SET": GovStageSetPayload,

@@ -4,6 +4,7 @@ import pytest
 
 from weall.runtime.protocol_profile import (
     effective_runtime_consensus_posture,
+    production_consensus_env_audit,
     runtime_startup_fingerprint,
     validate_runtime_consensus_profile,
 )
@@ -30,6 +31,13 @@ def test_prod_rejects_unsafe_dev_escape(monkeypatch: pytest.MonkeyPatch) -> None
         validate_runtime_consensus_profile()
 
 
+def test_prod_rejects_unsigned_timeouts_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS", "1")
+    with pytest.raises(ValueError, match="WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS"):
+        validate_runtime_consensus_profile()
+
+
 def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -46,6 +54,21 @@ def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(
     assert posture["qc_less_blocks_allowed"] is False
     assert posture["unsafe_autocommit_allowed"] is False
     assert posture["trusted_anchor_required"] is True
+
+
+
+def test_production_consensus_env_audit_detects_alias_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR", "1")
+    monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "0")
+
+    audit = production_consensus_env_audit()
+
+    assert audit["ok"] is False
+    assert "env_alias_conflict:WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR" in audit["violations"]
+
 
 
 def test_startup_fingerprint_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -16,6 +16,9 @@ ARG ALLOW_UNLOCKED=0
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Keep source imports available during image build steps that run project scripts
+# before the package itself is installed.
+ENV PYTHONPATH=/app/src
 
 WORKDIR /app
 
@@ -76,7 +79,7 @@ RUN pip install --no-cache-dir -U pip setuptools wheel \
       fi; \
     fi \
  && mkdir -p /app/generated /app/data /tmp \
- && python /app/scripts/gen_tx_index.py \
+ && PYTHONPATH=/app/src python /app/scripts/gen_tx_index.py \
  && pip install --no-cache-dir . --no-deps
 
 # Ensure runtime dirs exist (data is typically mounted)

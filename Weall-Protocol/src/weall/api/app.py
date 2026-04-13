@@ -20,8 +20,14 @@ from weall.api.routes_public_parts.helper_readiness import (
 from weall.api.security import RateLimitMiddleware, RequestSizeLimitMiddleware
 from weall.net.net_loop import NetMeshLoop
 from weall.runtime.block_loop import BlockProducerLoop
-from weall.runtime.chain_config import load_chain_config, production_bootstrap_issues
+from weall.runtime.chain_config import (
+    load_chain_config,
+    production_bootstrap_issues,
+    validate_runtime_env,
+)
 from weall.runtime.executor_boot import build_executor as _build_executor
+from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.runtime.runtime_authority import strict_runtime_authority_mode
 
 
 class ApiRuntimeLifecycleError(RuntimeError):
@@ -30,6 +36,67 @@ class ApiRuntimeLifecycleError(RuntimeError):
 
 def build_executor():
     return _build_executor()
+
+
+def _executor_node_lifecycle(executor: Any) -> dict[str, Any]:
+    status_fn = getattr(executor, "node_lifecycle_status", None)
+    if callable(status_fn):
+        try:
+            out = status_fn()
+            if isinstance(out, dict):
+                return dict(out)
+        except Exception:
+            return {}
+    return {}
+
+
+def _startup_authority_contract(executor: Any) -> dict[str, Any]:
+    runtime_cfg = resolve_node_runtime_config_from_env()
+    lifecycle = _executor_node_lifecycle(executor)
+    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
+    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
+    helper_requested = bool(lifecycle.get("helper_enabled_requested", runtime_cfg.helper_enabled_requested))
+    helper_effective = bool(lifecycle.get("helper_enabled_effective", False))
+    bft_requested = bool(lifecycle.get("bft_enabled_requested", runtime_cfg.bft_enabled_requested))
+    bft_effective = bool(lifecycle.get("bft_enabled_effective", False))
+    validator_requested = bool("validator" in set(requested_roles) or bft_requested)
+    validator_effective = bool("validator" in set(effective_roles) and bft_effective)
+    return {
+        "strict_runtime_authority_mode": bool(strict_runtime_authority_mode()),
+        "requested_state": str(lifecycle.get("requested_state", runtime_cfg.requested_state)),
+        "effective_state": str(lifecycle.get("effective_state", "")),
+        "requested_roles": requested_roles,
+        "effective_roles": effective_roles,
+        "validator_requested": validator_requested,
+        "validator_effective": validator_effective,
+        "helper_requested": helper_requested,
+        "helper_effective": helper_effective,
+        "bft_requested": bft_requested,
+        "bft_effective": bft_effective,
+        "startup_action": str(lifecycle.get("startup_action", "allow")),
+        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else [],
+    }
+
+
+def _persist_startup_authority_contract(app: FastAPI, executor: Any) -> None:
+    app.state.startup_authority_contract = _startup_authority_contract(executor)
+
+
+def _enforce_executor_runtime_authority(executor: Any) -> None:
+    contract = _startup_authority_contract(executor)
+    if not bool(contract.get("strict_runtime_authority_mode", False)):
+        return
+    startup_action = str(contract.get("startup_action", "allow") or "allow")
+    if startup_action == "refuse_startup":
+        raise ApiRuntimeLifecycleError("api_runtime_authority_refused_startup")
+
+    bft_requested = bool(contract.get("bft_requested", False))
+    validator_requested = bool(contract.get("validator_requested", False))
+    validator_effective = bool(contract.get("validator_effective", False))
+    if (bft_requested or validator_requested) and _truthy_env("WEALL_BFT_ENABLED") and not validator_effective:
+        raise ApiRuntimeLifecycleError(
+            "api_runtime_authority_validator_not_effective"
+        )
 
 
 def _parse_cors_origins() -> list[str]:
@@ -372,13 +439,20 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
 
     if boot_runtime:
         cfg = load_chain_config()
+        if str(os.environ.get("WEALL_MODE", "") or "").strip().lower() == "prod" or str(
+            cfg.mode or ""
+        ).strip().lower() == "prod":
+            validate_runtime_env()
         _enforce_prod_runtime_topology()
         issues = production_bootstrap_issues(cfg)
         if issues:
             raise RuntimeError("Production bootstrap blocked: " + "; ".join(issues))
         app.state.executor = build_executor()
+        _persist_startup_authority_contract(app, app.state.executor)
+        _enforce_executor_runtime_authority(app.state.executor)
     else:
         app.state.executor = None
+        app.state.startup_authority_contract = {}
 
     app.state.block_loop = None
     app.state.net_loop = None

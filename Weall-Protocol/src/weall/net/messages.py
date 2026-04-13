@@ -62,6 +62,9 @@ class PeerHello(WireMessage):
     validator_epoch: int | None = None
     validator_set_hash: str | None = None
     bft_enabled: bool | None = None
+    genesis_bootstrap_profile_hash: str | None = None
+    genesis_bootstrap_enabled: bool | None = None
+    genesis_bootstrap_mode: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +79,9 @@ class PeerHelloAck(WireMessage):
     validator_epoch: int | None = None
     validator_set_hash: str | None = None
     bft_enabled: bool | None = None
+    genesis_bootstrap_profile_hash: str | None = None
+    genesis_bootstrap_enabled: bool | None = None
+    genesis_bootstrap_mode: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

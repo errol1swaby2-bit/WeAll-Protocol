@@ -129,10 +129,17 @@ class LedgerView:
             seen.add(p)
             out.append(p)
 
-        # Legacy: active_keys list
-        legacy = acct.get("active_keys")
-        if isinstance(legacy, list):
-            for pk in legacy:
+        # Legacy single + list mirrors
+        _add(acct.get("pubkey"))
+
+        pubkeys = acct.get("pubkeys")
+        if isinstance(pubkeys, list):
+            for pk in pubkeys:
+                _add(pk)
+
+        active_keys = acct.get("active_keys")
+        if isinstance(active_keys, list):
+            for pk in active_keys:
                 _add(pk)
 
         keys = acct.get("keys")
@@ -140,6 +147,9 @@ class LedgerView:
         # Legacy list-form keys
         if isinstance(keys, list):
             for rec in keys:
+                if isinstance(rec, str):
+                    _add(rec)
+                    continue
                 if not isinstance(rec, dict):
                     continue
                 if rec.get("active", True) is False:
@@ -149,11 +159,21 @@ class LedgerView:
 
         # Canonical dict-form keys
         if isinstance(keys, dict):
+            by_id = keys.get("by_id") if isinstance(keys.get("by_id"), dict) else None
+            if isinstance(by_id, dict):
+                for rec in by_id.values():
+                    if not isinstance(rec, dict):
+                        continue
+                    if bool(rec.get("revoked", False)):
+                        continue
+                    _add(rec.get("pubkey"))
+                return out
+
             for pk, rec in keys.items():
                 if not isinstance(pk, str) or not pk.strip():
                     continue
                 if isinstance(rec, dict):
-                    if bool(rec.get("active", False)):
+                    if bool(rec.get("active", False)) and not bool(rec.get("revoked", False)):
                         _add(pk)
                 else:
                     # tolerate older shape keys={pubkey: True/False}

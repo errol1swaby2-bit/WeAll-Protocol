@@ -72,8 +72,12 @@ class HandshakeConfig:
     validator_epoch: int = 0
     validator_set_hash: str = ""
     bft_enabled: bool = False
+    genesis_bootstrap_profile_hash: str = ""
+    genesis_bootstrap_enabled: bool = False
+    genesis_bootstrap_mode: str = ""
     require_protocol_profile_match: bool = False
     require_validator_epoch_match_for_bft: bool = False
+    require_genesis_bootstrap_profile_match: bool = False
 
 
 @dataclass(slots=True)
@@ -157,6 +161,9 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
         validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
         validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
         bft_enabled=bool(cfg.bft_enabled),
+        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip() or None,
+        genesis_bootstrap_enabled=bool(cfg.genesis_bootstrap_enabled),
+        genesis_bootstrap_mode=str(cfg.genesis_bootstrap_mode or "").strip() or None,
     )
 
 
@@ -194,6 +201,9 @@ def build_hello_ack(
         validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
         validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
         bft_enabled=bool(cfg.bft_enabled),
+        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip() or None,
+        genesis_bootstrap_enabled=bool(cfg.genesis_bootstrap_enabled),
+        genesis_bootstrap_mode=str(cfg.genesis_bootstrap_mode or "").strip() or None,
     )
 
 
@@ -214,6 +224,63 @@ def _check_protocol_profile(
         raise HandshakeRejected("protocol_version_mismatch")
     if local_hash and remote_hash and local_hash != remote_hash:
         raise HandshakeRejected("protocol_profile_hash_mismatch")
+
+
+
+
+def _normalize_opt_bool(v: Any) -> bool:
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return bool(v)
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in {"1", "true", "yes", "y", "on"}:
+            return True
+        if s in {"0", "false", "no", "n", "off", ""}:
+            return False
+    return False
+
+
+def _check_genesis_bootstrap_metadata(
+    cfg: HandshakeConfig,
+    *,
+    genesis_bootstrap_profile_hash: Any,
+    genesis_bootstrap_enabled: Any,
+    genesis_bootstrap_mode: Any,
+) -> None:
+    if not cfg.require_genesis_bootstrap_profile_match:
+        return
+
+    local_hash = _normalize_opt_str(cfg.genesis_bootstrap_profile_hash)
+    remote_hash = _normalize_opt_str(genesis_bootstrap_profile_hash)
+    local_enabled = bool(cfg.genesis_bootstrap_enabled)
+    remote_enabled = _normalize_opt_bool(genesis_bootstrap_enabled)
+    local_mode = _normalize_opt_str(cfg.genesis_bootstrap_mode)
+    remote_mode = _normalize_opt_str(genesis_bootstrap_mode)
+
+    local_has_meta = local_enabled or bool(local_hash) or bool(local_mode)
+    remote_has_meta = remote_enabled or bool(remote_hash) or bool(remote_mode)
+    if not local_has_meta and not remote_has_meta:
+        return
+
+    # Backwards-compatibility rule: when the local node is not bootstrap-enabled,
+    # allow peers that do not advertise any genesis-bootstrap metadata at all.
+    # Strict comparison still applies as soon as the remote side advertises the
+    # contract, or when the local node is bootstrap-enabled.
+    if not local_enabled and not remote_has_meta:
+        return
+
+    if local_enabled != remote_enabled:
+        raise HandshakeRejected("genesis_bootstrap_enabled_mismatch")
+    if local_mode and not remote_mode:
+        raise HandshakeRejected("genesis_bootstrap_mode_missing")
+    if local_mode and remote_mode and local_mode != remote_mode:
+        raise HandshakeRejected("genesis_bootstrap_mode_mismatch")
+    if local_hash and not remote_hash:
+        raise HandshakeRejected("genesis_bootstrap_profile_hash_missing")
+    if local_hash and remote_hash and local_hash != remote_hash:
+        raise HandshakeRejected("genesis_bootstrap_profile_hash_mismatch")
 
 
 def _check_validator_metadata(
@@ -293,6 +360,12 @@ def process_inbound_hello(state: HandshakeState, msg: PeerHello) -> PeerHelloAck
             validator_set_hash=getattr(msg, "validator_set_hash", None),
             bft_enabled=getattr(msg, "bft_enabled", None),
         )
+        _check_genesis_bootstrap_metadata(
+            cfg,
+            genesis_bootstrap_profile_hash=getattr(msg, "genesis_bootstrap_profile_hash", None),
+            genesis_bootstrap_enabled=getattr(msg, "genesis_bootstrap_enabled", None),
+            genesis_bootstrap_mode=getattr(msg, "genesis_bootstrap_mode", None),
+        )
         state.status = "ESTABLISHED"
         state.session_id = _new_session_id()
         state.last_error = None
@@ -334,6 +407,12 @@ def process_inbound_ack(state: HandshakeState, msg: PeerHelloAck) -> None:
         validator_epoch=getattr(msg, "validator_epoch", None),
         validator_set_hash=getattr(msg, "validator_set_hash", None),
         bft_enabled=getattr(msg, "bft_enabled", None),
+    )
+    _check_genesis_bootstrap_metadata(
+        state.config,
+        genesis_bootstrap_profile_hash=getattr(msg, "genesis_bootstrap_profile_hash", None),
+        genesis_bootstrap_enabled=getattr(msg, "genesis_bootstrap_enabled", None),
+        genesis_bootstrap_mode=getattr(msg, "genesis_bootstrap_mode", None),
     )
     state.status = "ESTABLISHED"
     state.session_id = _new_session_id()

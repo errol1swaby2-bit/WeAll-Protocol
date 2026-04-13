@@ -73,11 +73,6 @@ def _ensure_bool(root: Json, key: str, default: bool = False) -> bool:
     root[key] = bool(default)
     return bool(default)
 
-
-def _ensure_float(root: Json, key: str, default: float = 0.0) -> float:
-    if key not in root:
-        root[key] = float(default)
-        return float(default)
     try:
         root[key] = float(root.get(key))
         return float(root[key])
@@ -112,7 +107,7 @@ def _migrate_v0_to_v1(st: Json) -> Json:
             _ensure_int(acct, "poh_tier", 0)
             _ensure_bool(acct, "banned", False)
             _ensure_bool(acct, "locked", False)
-            acct.setdefault("reputation", 0.0)
+            acct.setdefault("reputation", "0")
             sync_account_reputation(acct, default_units=0)
 
     st["state_version"] = 1

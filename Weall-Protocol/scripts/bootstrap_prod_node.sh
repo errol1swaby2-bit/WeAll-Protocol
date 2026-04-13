@@ -56,8 +56,9 @@ Next steps:
    - GET /v1/status
    - GET /v1/status/consensus
    - GET /v1/status/operator
-6. Only after local bootstrap verification stays clean and the operator incident lane remains normal should validator signing / voting be enabled.
-7. Re-run:
+6. Review the requested-vs-effective authority contract in the verification report before enabling signing.
+7. Only after local bootstrap verification stays clean and the operator incident lane remains normal should validator signing / voting be enabled.
+8. Re-run:
    - python3 scripts/public_validator_preflight.py --bundle "$BUNDLE_OUT" --incident-lane-out "$INCIDENT_LANE_OUT"
    - python3 scripts/build_operator_incident_report.py --include-lane-summary --lane-out "$INCIDENT_LANE_OUT"
 MSG

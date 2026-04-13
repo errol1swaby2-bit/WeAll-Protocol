@@ -7,6 +7,7 @@ import { nav } from "../lib/router";
 import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { useTxQueue } from "../hooks/useTxQueue";
 
 function prettyErr(e: any): { msg: string; details: any } | null {
   if (!e) return null;
@@ -19,8 +20,39 @@ function asArray<T = any>(v: any): T[] {
   return Array.isArray(v) ? v : [];
 }
 
+function summarizeActionReadiness(args: {
+  viewer: string | null;
+  gateOk: boolean;
+  isOwner: boolean;
+  viewerSummary: string;
+}): { title: string; detail: string } {
+  if (!args.viewer) {
+    return {
+      title: "Read-only viewer",
+      detail: "You can inspect the content and attachments now. Create or restore a local session before attempting edits, deletion, or flags.",
+    };
+  }
+  if (!args.gateOk) {
+    return {
+      title: "Participation still gated",
+      detail: `The current viewer is ${args.viewerSummary}. Higher-trust actions may be rejected until Tier 2 participation is available.`,
+    };
+  }
+  if (args.isOwner) {
+    return {
+      title: "Author controls available",
+      detail: "Edits and deletion require the original author key on this device and still submit on-chain transactions rather than instant local edits.",
+    };
+  }
+  return {
+    title: "Viewer moderation action available",
+    detail: "Flags submit on-chain signals for later network review. Submission is not the same as a moderation outcome.",
+  };
+}
+
 export default function Content({ id }: { id: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
+  const tx = useTxQueue();
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -78,12 +110,12 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   useEffect(() => {
     refreshSession();
-    load();
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
-    refreshViewerState();
+    void refreshViewerState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewer]);
 
@@ -103,6 +135,13 @@ export default function Content({ id }: { id: string }): JSX.Element {
   const isOwner = Boolean(viewer && isPost && normalizeAccount(viewer) === author);
 
   const gate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 2 });
+  const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
+  const actionReadiness = summarizeActionReadiness({
+    viewer,
+    gateOk: gate.ok,
+    isOwner,
+    viewerSummary,
+  });
 
   async function doEdit() {
     setTxErr(null);
@@ -115,12 +154,20 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
     setTxBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_POST_EDIT",
-        payload: { post_id: postId, body: nextBody },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Edit post",
+        pendingMessage: "Submitting edit transaction…",
+        successMessage: "Edit submitted. Final confirmation and feed/index refresh may lag behind the initial submission.",
+        errorMessage: (e) => prettyErr(e)?.msg || "error",
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_POST_EDIT",
+            payload: { post_id: postId, body: nextBody },
+            parent: null,
+            base,
+          }),
       });
       setEditOpen(false);
       await load();
@@ -141,12 +188,20 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
     setTxBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_POST_DELETE",
-        payload: { post_id: postId },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Delete post",
+        pendingMessage: "Submitting delete transaction…",
+        successMessage: "Deletion submitted. Content surfaces may still reflect the old state briefly while indexes catch up.",
+        errorMessage: (e) => prettyErr(e)?.msg || "error",
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_POST_DELETE",
+            payload: { post_id: postId },
+            parent: null,
+            base,
+          }),
       });
       await load();
     } catch (e: any) {
@@ -166,15 +221,24 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
     setTxBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_FLAG",
-        payload: reason ? { target_id: postId, reason } : { target_id: postId },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Flag content",
+        pendingMessage: "Submitting flag transaction…",
+        successMessage: "Flag submitted. Moderation outcomes are resolved later by the network and may not be immediate.",
+        errorMessage: (e) => prettyErr(e)?.msg || "error",
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_FLAG",
+            payload: reason ? { target_id: postId, reason } : { target_id: postId },
+            parent: null,
+            base,
+          }),
       });
       setFlagOpen(false);
       setFlagReason("");
+      await load();
     } catch (e: any) {
       const parsed = prettyErr(e);
       if (parsed) setTxErr(parsed);
@@ -182,8 +246,6 @@ export default function Content({ id }: { id: string }): JSX.Element {
       setTxBusy(false);
     }
   }
-
-  const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
 
   return (
     <div className="pageStack pageNarrow">
@@ -194,8 +256,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
               <div className="eyebrow">Content</div>
               <h1 className="heroTitle heroTitleSm">{isPost ? "Post detail" : "Content detail"}</h1>
               <p className="heroText">
-                View the human-friendly version first, then expand the raw payload only when you need it. Declared media
-                renders inline, and actions stay close to the content itself.
+                View the readable record first, then use author or moderation actions with explicit transaction-state expectations.
+                Declared media renders inline, but final moderation or edit outcomes remain protocol-driven rather than instantaneous UI changes.
               </p>
             </div>
             <div className="heroInfoPanel">
@@ -205,23 +267,31 @@ export default function Content({ id }: { id: string }): JSX.Element {
                 {author ? <button className="btn" onClick={() => nav(`/account/${encodeURIComponent(author)}`)}>{author}</button> : null}
                 {groupId ? <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(groupId)}`)}>Open group</button> : null}
                 {isPost ? <button className="btn" onClick={() => nav(`/thread/${encodeURIComponent(postId)}`)}>Open thread</button> : null}
-                <button className="btn" onClick={load}>Refresh</button>
+                <button className="btn" onClick={() => void load()}>Refresh</button>
               </div>
             </div>
           </div>
 
-          <div className="statsGrid statsGridCompact">
-            <div className="statCard">
-              <span className="statLabel">Type</span>
-              <span className="statValue">{type || "—"}</span>
+          <div className="surfaceSummaryGrid">
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Viewer</span>
+              <strong className="surfaceSummaryValue mono">{viewer || "Read-only"}</strong>
+              <span className="surfaceSummaryHint">{viewer ? viewerSummary : "No local session is active on this device."}</span>
             </div>
-            <div className="statCard">
-              <span className="statLabel">Visibility</span>
-              <span className="statValue">{visibility}</span>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Action readiness</span>
+              <strong className="surfaceSummaryValue">{actionReadiness.title}</strong>
+              <span className="surfaceSummaryHint">{actionReadiness.detail}</span>
             </div>
-            <div className="statCard">
-              <span className="statLabel">Media</span>
-              <span className="statValue">{media.length}</span>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Visibility</span>
+              <strong className="surfaceSummaryValue">{visibility}</strong>
+              <span className="surfaceSummaryHint">{deleted ? "This item is marked deleted in the current payload." : "This record is visible under the current backend response."}</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Protocol truth</span>
+              <strong className="surfaceSummaryValue">Transaction-backed</strong>
+              <span className="surfaceSummaryHint">Edit, delete, and flag actions submit transactions. Submission and final state should not be treated as the same event.</span>
             </div>
           </div>
         </div>
@@ -261,33 +331,6 @@ export default function Content({ id }: { id: string }): JSX.Element {
             <div className="cardBody formStack">
               <div className="sectionHead">
                 <div>
-                  <div className="eyebrow">Viewer</div>
-                  <h2 className="cardTitle">Account gates</h2>
-                </div>
-                <div className="statusSummary">
-                  <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Tier 2 ready" : "Gated"}</span>
-                  {!viewer ? <button className="btn" onClick={() => nav("/poh")}>Go to PoH</button> : <button className="btn" onClick={refreshViewerState}>Refresh gates</button>}
-                </div>
-              </div>
-
-              <div className="feedMediaMeta">
-                {viewer ? (
-                  <>
-                    <b>{viewer}</b> — <b>{viewerSummary}</b>
-                  </>
-                ) : (
-                  <>Not logged in</>
-                )}
-              </div>
-
-              {txErr ? <ErrorBanner message={txErr.msg} details={txErr.details} onDismiss={() => setTxErr(null)} /> : null}
-            </div>
-          </section>
-
-          <section className="card">
-            <div className="cardBody formStack">
-              <div className="sectionHead">
-                <div>
                   <div className="eyebrow">Summary</div>
                   <h2 className="cardTitle">Content details</h2>
                 </div>
@@ -296,27 +339,19 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
               <div className="infoGrid">
                 <div className="infoCard compact">
-                  <div className="infoCardHeader">
-                    <strong>Author</strong>
-                  </div>
+                  <div className="infoCardHeader"><strong>Author</strong></div>
                   <div className="infoCardText">{author || "Unknown"}</div>
                 </div>
                 <div className="infoCard compact">
-                  <div className="infoCardHeader">
-                    <strong>Created</strong>
-                  </div>
+                  <div className="infoCardHeader"><strong>Created</strong></div>
                   <div className="infoCardText">{createdAt || "Unknown"}</div>
                 </div>
                 <div className="infoCard compact">
-                  <div className="infoCardHeader">
-                    <strong>Group scope</strong>
-                  </div>
+                  <div className="infoCardHeader"><strong>Group scope</strong></div>
                   <div className="infoCardText">{groupId || "No group scope"}</div>
                 </div>
                 <div className="infoCard compact">
-                  <div className="infoCardHeader">
-                    <strong>Status</strong>
-                  </div>
+                  <div className="infoCardHeader"><strong>Status</strong></div>
                   <div className="infoCardText">{deleted ? "Marked deleted" : "Active"}</div>
                 </div>
               </div>
@@ -328,7 +363,14 @@ export default function Content({ id }: { id: string }): JSX.Element {
                 </div>
               ) : null}
 
-              {body ? <div className="feedBodyText">{body}</div> : <div className="emptyPanel compact"><strong>No post body.</strong><span>This item currently has no readable text body.</span></div>}
+              {body ? (
+                <div className="feedBodyText">{body}</div>
+              ) : (
+                <div className="emptyPanel compact">
+                  <strong>No post body.</strong>
+                  <span>This item currently has no readable text body.</span>
+                </div>
+              )}
 
               {tags.length ? (
                 <div className="milestoneList">
@@ -338,6 +380,32 @@ export default function Content({ id }: { id: string }): JSX.Element {
                 </div>
               ) : null}
               <MediaGallery base={base} media={media} title="Attachment" />
+            </div>
+          </section>
+
+          <section className="card">
+            <div className="cardBody formStack">
+              <div className="sectionHead">
+                <div>
+                  <div className="eyebrow">Viewer</div>
+                  <h2 className="cardTitle">Account gates</h2>
+                </div>
+                <div className="statusSummary">
+                  <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Tier 2 ready" : "Gated"}</span>
+                  {!viewer ? (
+                    <button className="btn" onClick={() => nav("/poh")}>Go to PoH</button>
+                  ) : (
+                    <button className="btn" onClick={refreshViewerState}>Refresh gates</button>
+                  )}
+                </div>
+              </div>
+
+              <div className="calloutInfo">
+                <strong>{actionReadiness.title}</strong>
+                <div style={{ marginTop: 6 }}>{actionReadiness.detail}</div>
+              </div>
+
+              {txErr ? <ErrorBanner message={txErr.msg} details={txErr.details} onDismiss={() => setTxErr(null)} /> : null}
             </div>
           </section>
 
@@ -352,13 +420,22 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   <span className="statusPill">Gate: {gate.ok ? "ok" : gate.reason}</span>
                 </div>
 
-                <div className="emptyPanel compact">
-                  <strong>{isOwner ? "You authored this post." : "You are viewing someone else’s post."}</strong>
-                  <span>
-                    {isOwner
-                      ? "You can edit or delete with the original signing key on this device."
-                      : "Tier 2 viewers can submit on-chain flags when something needs moderator or juror attention."}
-                  </span>
+                <div className="surfaceSummaryGrid surfaceSummaryGridTight">
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">Edit</span>
+                    <strong className="surfaceSummaryValue">{isOwner ? "Author-only" : "Unavailable"}</strong>
+                    <span className="surfaceSummaryHint">Edits require the original author key and submit a post-edit transaction.</span>
+                  </div>
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">Delete</span>
+                    <strong className="surfaceSummaryValue">{isOwner ? "Author-only" : "Unavailable"}</strong>
+                    <span className="surfaceSummaryHint">Deletion submits a transaction. Read surfaces may lag until indexes catch up.</span>
+                  </div>
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">Flag</span>
+                    <strong className="surfaceSummaryValue">{isOwner ? "Usually unnecessary" : gate.ok ? "Available" : "Blocked"}</strong>
+                    <span className="surfaceSummaryHint">Flags are on-chain signals. They are not immediate moderation outcomes.</span>
+                  </div>
                 </div>
 
                 <div className="buttonRow buttonRowWide">
@@ -373,7 +450,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                 </div>
 
                 {editOpen && isOwner ? (
-                  <div className="formStack">
+                  <div className="formStack surfaceSubsection">
                     <textarea
                       className="textarea"
                       value={editBody}
@@ -384,12 +461,15 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       <button className="btn btnPrimary" onClick={doEdit} disabled={!gate.ok || txBusy}>{txBusy ? "Saving…" : "Save"}</button>
                       <button className="btn" onClick={() => setEditOpen(false)} disabled={txBusy}>Cancel</button>
                     </div>
-                    <div className="feedMediaMeta">Edit updates the on-chain post body and requires the original author key.</div>
+                    <div className="actionStateRow">
+                      <span className="actionStateLabel">Edit truth</span>
+                      <span className="actionStateText">Editing updates the on-chain post body and requires the original author key on this device.</span>
+                    </div>
                   </div>
                 ) : null}
 
                 {flagOpen && !isOwner ? (
-                  <div className="formStack">
+                  <div className="formStack surfaceSubsection">
                     <input
                       className="input"
                       value={flagReason}
@@ -400,7 +480,10 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       <button className="btn btnPrimary" onClick={doFlag} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Submit flag"}</button>
                       <button className="btn" onClick={() => setFlagOpen(false)} disabled={txBusy}>Cancel</button>
                     </div>
-                    <div className="feedMediaMeta">Flags are on-chain signals. Disputes and moderation outcomes are resolved by the network.</div>
+                    <div className="actionStateRow">
+                      <span className="actionStateLabel">Flag truth</span>
+                      <span className="actionStateText">Flags are on-chain signals. Disputes and moderation outcomes are resolved by the network later.</span>
+                    </div>
                   </div>
                 ) : null}
               </div>

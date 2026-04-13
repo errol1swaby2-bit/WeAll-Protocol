@@ -103,3 +103,40 @@ def test_operator_incident_report_escalates_remote_stall_to_critical(
     assert report["summary"]["severity"] == "critical"
     assert report["summary"]["remote_stalled"] is True
     assert report["summary"]["pending_fetch_requests_count"] == 2
+
+
+
+def test_operator_incident_report_surfaces_runtime_authority_contract_batch131(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
+    monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
+    monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
+
+    ex = _make_executor(tmp_path, chain_id="incident-authority")
+    cfg = load_chain_config()
+    cfg = cfg.__class__(
+        **{
+            **cfg.__dict__,
+            "db_path": str(tmp_path / "node.db"),
+            "tx_index_path": str(_repo_root() / "generated" / "tx_index.json"),
+            "chain_id": "incident-authority",
+            "node_id": "@validator",
+        }
+    )
+
+    report = build_operator_incident_report(
+        cfg=cfg,
+        db_path=Path(cfg.db_path),
+        tx_index_path=Path(cfg.tx_index_path),
+        remote_forensics=None,
+    )
+
+    contract = report["authority_contract"]
+    assert contract["contract_source"] == "runtime"
+    assert contract["strict_runtime_authority_mode"] is True
+    assert contract["requested_state"] == "production_service"
+    assert contract["requested_roles"] == ["validator", "helper"]
+    assert contract["validator_requested"] is True
+    assert contract["helper_requested"] is True
+    assert report["summary"]["strict_runtime_authority_mode"] is True

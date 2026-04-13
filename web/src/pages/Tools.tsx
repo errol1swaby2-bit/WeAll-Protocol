@@ -121,11 +121,10 @@ export default function Tools(): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Diagnostics</div>
-              <h1 className="heroTitle heroTitleSm">Live stack visibility</h1>
+              <div className="eyebrow">Protocol console</div>
+              <h1 className="heroTitle heroTitleSm">Node, readiness, and client diagnostics</h1>
               <p className="heroText">
-                Use this page to verify API health, readiness, feed access, account state,
-                PoH feature flags, and media durability expectations from inside the client.
+                Use this console to inspect what the backend is actually reporting: node reachability, readiness, shared account context, feed visibility, and media durability. It is a protocol console, not a normal product page.
               </p>
             </div>
 
@@ -163,6 +162,24 @@ export default function Tools(): JSX.Element {
         onRetry={() => void refreshAll()}
         onDismiss={() => setErr(null)}
       />
+
+      <section className="summaryCardGrid">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Backend status</div>
+          <div className="summaryCardValue">{!!statusRes?.ok ? "Reachable" : "Unavailable"}</div>
+          <div className="summaryCardText">Status reflects backend reachability and reported chain metadata. It is not the same as session readiness or role eligibility.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Readyz posture</div>
+          <div className="summaryCardValue">{!!readyzRes?.ok ? "Ready" : "Not ready"}</div>
+          <div className="summaryCardText">Use readyz to understand whether the node is prepared to serve the expected surfaces, not merely whether the server responds.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Shared account context</div>
+          <div className="summaryCardValue">{sharedAccount?.account || acct || "No account"}</div>
+          <div className="summaryCardText">The shared account panel below is the frontend’s current account model. Compare it against explicit backend reads when diagnosing drift.</div>
+        </article>
+      </section>
 
       <section className="grid2">
         <article className="card">
