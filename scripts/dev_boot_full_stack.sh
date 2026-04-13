@@ -234,6 +234,46 @@ self_heal_ports() {
   fi
 }
 
+
+ensure_backend_venv() {
+  if [ -x "$PYTHON_BIN" ]; then
+    return 0
+  fi
+
+  log "backend venv missing; creating ${BACKEND_DIR}/.venv"
+  (
+    cd "$BACKEND_DIR"
+    python3 -m venv .venv
+    "$PYTHON_BIN" -m pip install --upgrade pip setuptools wheel >/dev/null
+    "$PYTHON_BIN" -m pip install -e ".[test]" >/dev/null
+  ) || fail "failed to create backend virtualenv"
+}
+
+ensure_frontend_deps() {
+  local vite_bin="${FRONTEND_DIR}/node_modules/.bin/vite"
+  local pkg_lock="${FRONTEND_DIR}/package-lock.json"
+  local pkg_json="${FRONTEND_DIR}/package.json"
+  local install_needed=0
+
+  if [ ! -x "$vite_bin" ]; then
+    install_needed=1
+  elif [ -f "$pkg_lock" ] && [ "$pkg_lock" -nt "$vite_bin" ]; then
+    install_needed=1
+  elif [ -f "$pkg_json" ] && [ "$pkg_json" -nt "$vite_bin" ]; then
+    install_needed=1
+  fi
+
+  if [ "$install_needed" -eq 0 ]; then
+    return 0
+  fi
+
+  log "frontend dependencies missing or stale; running npm ci"
+  (
+    cd "$FRONTEND_DIR"
+    npm ci
+  ) || fail "frontend dependency install failed"
+}
+
 write_frontend_env() {
   mkdir -p "$FRONTEND_DIR"
   cat > "${FRONTEND_DIR}/.env.local" <<'ENV'
@@ -250,6 +290,7 @@ ENV
 start_frontend() {
   cleanup_frontend_process
   write_frontend_env
+  ensure_frontend_deps
   mkdir -p "$DEV_STATE_DIR"
 
   log "starting frontend"
@@ -278,6 +319,8 @@ main() {
   log "backend=${BACKEND_DIR}"
   log "frontend=${FRONTEND_DIR}"
   log "python=${PYTHON_BIN}"
+
+  ensure_backend_venv
 
   self_heal_ports
   reset_dev_state
