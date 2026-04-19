@@ -9,6 +9,7 @@ import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onb
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -217,6 +218,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
         ? "Locked"
         : "Active";
   const nextUnlock = snapshot.next.label || "No immediate unlock action";
+  const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
+  const signerBusy = signerSubmission.busy;
 
   async function runOperatorTx(kind: "register" | "enroll" | "activate") {
     if (!isSelf) return;
@@ -227,6 +230,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     try {
       if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
       if (tier < 3) throw new Error("tier3_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_local_keypair");
 

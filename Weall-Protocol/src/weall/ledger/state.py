@@ -35,6 +35,16 @@ class LedgerView:
     # optional protocol subtree used by gating (e.g. PoH juror assignments)
     poh: dict[str, Any] = field(default_factory=dict)
 
+    # dispute assignment state is needed at admission-time for juror-gated
+    # actions such as accept/decline/attendance/vote. Keep a minimal copy so
+    # gate evaluation can deterministically admit against the canonical dispute
+    # object rather than relying on separate global role registries.
+    disputes_by_id: dict[str, Any] = field(default_factory=dict)
+
+    # consensus/validator metadata is also needed by some gate checks and live
+    # bootstrap flows. Preserve the minimal subtree instead of dropping it.
+    consensus: dict[str, Any] = field(default_factory=dict)
+
     @classmethod
     def from_ledger(cls, state: dict[str, Any]) -> LedgerView:
         return cls(
@@ -46,6 +56,8 @@ class LedgerView:
             else {},
             last_block_ts_ms=int(state.get("last_block_ts_ms", 0) or 0),
             poh=copy.deepcopy(state.get("poh", {})) if isinstance(state.get("poh"), dict) else {},
+            disputes_by_id=copy.deepcopy(state.get("disputes_by_id", {})) if isinstance(state.get("disputes_by_id"), dict) else {},
+            consensus=copy.deepcopy(state.get("consensus", {})) if isinstance(state.get("consensus"), dict) else {},
         )
 
     def to_ledger(self) -> dict[str, Any]:
@@ -56,6 +68,8 @@ class LedgerView:
             "params": copy.deepcopy(self.params),
             "last_block_ts_ms": int(self.last_block_ts_ms),
             "poh": copy.deepcopy(self.poh),
+            "disputes_by_id": copy.deepcopy(self.disputes_by_id),
+            "consensus": copy.deepcopy(self.consensus),
         }
 
     @property

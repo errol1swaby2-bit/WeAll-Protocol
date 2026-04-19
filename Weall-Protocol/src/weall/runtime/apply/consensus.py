@@ -993,7 +993,14 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
 
     payload = _as_dict(env.payload)
     block_id = _as_str(payload.get("block_id") or payload.get("id"))
-    validator = _as_str(payload.get("validator") or env.signer)
+    validator = _as_str(env.signer)
+    payload_validator = _as_str(payload.get("validator"))
+    if payload_validator and payload_validator != validator:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_mismatch",
+            {"signer": validator, "payload_validator": payload_validator},
+        )
     att = _as_str(payload.get("attestation") or payload.get("vote") or "yes")
 
     height = _as_int(payload.get("height"), 0)

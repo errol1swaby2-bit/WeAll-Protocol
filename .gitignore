@@ -116,3 +116,6 @@ coverage.xml
 # Local Runtime Secrets
 # =========================
 secrets/
+
+web/playwright-report/
+web/test-results/

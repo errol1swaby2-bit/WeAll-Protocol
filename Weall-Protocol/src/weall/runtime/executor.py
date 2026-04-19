@@ -1900,7 +1900,42 @@ class WeAllExecutor:
         return self._mempool.add(env)
 
     def submit_attestation(self, env: Json) -> Json:
-        return self._att_pool.add(env)
+        if not isinstance(env, dict):
+            return {"ok": False, "error": "bad_env:not_object"}
+
+        ledger = LedgerView.from_ledger(self.read_state())
+        verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context="http")
+        if not verdict.ok:
+            return {
+                "ok": False,
+                "error": verdict.code,
+                "reason": verdict.reason,
+                "details": verdict.details,
+            }
+
+        tx_type = str(env.get("tx_type") or "").strip().upper()
+        if tx_type != "BLOCK_ATTEST":
+            return {"ok": False, "error": "invalid_tx_type", "reason": "attestation_requires_block_attest"}
+
+        signer = str(env.get("signer") or "").strip()
+        payload = env.get("payload") if isinstance(env.get("payload"), dict) else {}
+        payload_validator = str(payload.get("validator") or "").strip()
+        if payload_validator and payload_validator != signer:
+            return {
+                "ok": False,
+                "error": "validator_mismatch",
+                "reason": "payload_validator_must_match_signer",
+                "details": {"signer": signer, "payload_validator": payload_validator},
+            }
+
+        normalized_payload = dict(payload)
+        normalized_payload["validator"] = signer
+        normalized = dict(env)
+        normalized["payload"] = normalized_payload
+        normalized["block_id"] = str(
+            normalized_payload.get("block_id") or normalized_payload.get("id") or ""
+        ).strip()
+        return self._att_pool.add(normalized)
 
     # ----------------------------
     # Simple block producer (SQLite-backed)

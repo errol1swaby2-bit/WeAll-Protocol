@@ -6,13 +6,20 @@ import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
+import {
+  governanceProposalStageOf,
+  normalizeGovernanceProposal,
+  reconcileProposalEdit,
+  reconcileProposalVote,
+  reconcileProposalWithdrawal,
+} from "../lib/governance";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.data || e?.body || e;
-  const msg = details?.message || details?.error?.message || e?.message || "error";
-  return { msg, details };
+  return actionableTxError(e, "Governance action failed.");
 }
 
 type Props = { id: string };
@@ -89,7 +96,7 @@ function votingHelpText(params: {
   const { stage, gateOk, gateReason, canVote, currentChoice } = params;
   if (!gateOk) return gateReason || "Tier 3 and a local signer are required to vote.";
   if (canVote && currentChoice) {
-    return `Your current recorded vote is ${currentChoice.toUpperCase()}. Casting again replaces your prior choice deterministically.`;
+    return `Your current recorded vote is ${currentChoice.toUpperCase()}. This surface now treats proposal voting as one signer, one recorded vote.`;
   }
   if (canVote) {
     return stage === "poll"
@@ -107,6 +114,23 @@ function votingHelpText(params: {
   return "Voting is not open on this proposal right now.";
 }
 
+
+function accountVariants(value: string): string[] {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  const normalized = normalizeAccount(raw);
+  const base = normalized.startsWith("@") ? normalized.slice(1) : normalized;
+  const out = [normalized, base ? `@${base}` : "", base, raw].filter(Boolean);
+  return Array.from(new Set(out));
+}
+
+function voteForAccount(votes: VoteMap, account: string): { vote?: string; height?: number } | null {
+  for (const variant of accountVariants(account)) {
+    const rec = votes[variant];
+    if (rec && typeof rec === "object") return rec;
+  }
+  return null;
+}
 function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; height?: number }]> {
   return Object.entries(votes).sort((a, b) => a[0].localeCompare(b[0]));
 }
@@ -188,7 +212,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     setErr(null);
     try {
       const [r, vr] = await Promise.all([weall.proposal(id, base), weall.proposalVotes(id, base)]);
-      const p = (r as any)?.proposal || r || null;
+      const p = normalizeGovernanceProposal((r as any)?.proposal || r || null);
       setProposal(p);
       setProposalVotes(vr);
       setEditTitle(String(p?.title || ""));
@@ -234,7 +258,7 @@ export default function Proposal({ id }: Props): JSX.Element {
 
   const pid = String(proposal?.proposal_id || proposal?.id || id || "");
   const title = String(proposal?.title || pid || "(proposal)");
-  const stage = String(proposal?.stage || proposal?.status || "unknown").toLowerCase();
+  const stage = governanceProposalStageOf(proposal);
 
   const gate = checkGates({
     loggedIn: !!acct,
@@ -254,13 +278,23 @@ export default function Proposal({ id }: Props): JSX.Element {
 
     try {
       if (!gate.ok) throw new Error(gate.reason || "gated");
+      if (signerBusy) throw new Error("signer_submission_busy");
 
       const r = await tx.runTx({
         title: toastTitle,
+        pendingKey: txPendingKey(["proposal", tx_type, pid, acct]),
         pendingMessage: "Submitting governance action…",
         successMessage,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => {
+            if (tx_type === "GOV_PROPOSAL_WITHDRAW") return reconcileProposalWithdrawal({ proposalId: pid, base });
+            if (tx_type === "GOV_PROPOSAL_EDIT") return reconcileProposalEdit({ proposalId: pid, title: payload?.title, body: payload?.body, base });
+            return null;
+          },
+        },
         task: async () =>
           submitSignedTx({
             account: acct!,
@@ -288,13 +322,19 @@ export default function Proposal({ id }: Props): JSX.Element {
 
     try {
       if (!gate.ok) throw new Error(gate.reason || "gated");
+      if (signerBusy) throw new Error("signer_submission_busy");
 
       const r = await tx.runTx({
         title: "Cast vote",
+        pendingKey: txPendingKey(["proposal-vote", pid, acct, choice]),
         pendingMessage: `Submitting ${choice} vote…`,
         successMessage: `Vote recorded: ${choice}.`,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice, base }),
+        },
         task: async () =>
           submitSignedTx({
             account: acct!,
@@ -342,20 +382,30 @@ export default function Proposal({ id }: Props): JSX.Element {
 
   const pollCount = countFromMap(pollVotes);
   const finalCount = countFromMap(finalVotes);
-  const activeCount = stage === "poll" ? pollCount : finalCount;
+  const displayedVoteMap = stage === "poll"
+    ? pollVotes
+    : finalCount.total > 0
+      ? finalVotes
+      : pollCount.total > 0
+        ? pollVotes
+        : finalVotes;
+  const activeCount = countFromMap(displayedVoteMap);
 
   const yesPct = pct(activeCount.yes, activeCount.total);
   const noPct = pct(activeCount.no, activeCount.total);
   const abstainPct = pct(activeCount.abstain, activeCount.total);
   const life = lifecycleSteps(stage);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
+  const signerSubmission = useSignerSubmissionBusy(acct);
+  const signerBusy = signerSubmission.busy;
   const voteWindowOpen = ["poll", "voting", "vote"].includes(stage);
-  const canVote = gate.ok && voteWindowOpen;
+  const activeVoteMap = stage === "poll" ? pollVotes : displayedVoteMap;
+  const currentVoteRecord = acct ? (voteForAccount(activeVoteMap, acct) || voteForAccount(finalVotes, acct) || voteForAccount(pollVotes, acct)) : null;
+  const currentChoice = String(currentVoteRecord?.vote || "").trim().toLowerCase();
+  const canVote = gate.ok && voteWindowOpen && !currentChoice;
   const isCreator = gate.ok && acct === String(proposal?.creator || "");
   const canEdit = isCreator && ["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage);
   const canWithdraw = isCreator && !["withdrawn", "executed", "finalized"].includes(stage);
-  const activeVoteMap = stage === "poll" ? pollVotes : finalVotes;
-  const currentChoice = acct ? String(activeVoteMap[acct]?.vote || "").trim().toLowerCase() : "";
   const voteModeLabel = votingWindowLabel(stage);
   const voteHelp = votingHelpText({
     stage,
@@ -365,6 +415,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     currentChoice,
   });
   const readiness = actionReadinessLabel({ stage, canVote, canEdit, canWithdraw });
+  const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
 
   return (
     <div className="pageStack pageNarrow">
@@ -498,16 +549,16 @@ export default function Proposal({ id }: Props): JSX.Element {
           </div>
 
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote}>
+            <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
               Vote yes
             </button>
-            <button className="btn" onClick={() => void castVote("no")} disabled={!canVote}>
+            <button className="btn" onClick={() => void castVote("no")} disabled={!canVote || signerBusy}>
               Vote no
             </button>
-            <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote}>
+            <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
               Abstain
             </button>
-            <button className="btn" onClick={() => void revokeVote()} disabled={!gate.ok || !currentChoice}>
+            <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
               Revoke vote
             </button>
           </div>
@@ -571,9 +622,11 @@ export default function Proposal({ id }: Props): JSX.Element {
 
           <div className="buttonRow">
             {canVote ? (
-              <button className="btn btnPrimary" onClick={() => void castVote(currentChoice === "yes" ? "abstain" : "yes")}>
-                {currentChoice === "yes" ? "Switch to abstain" : "Quick vote yes"}
+              <button className="btn btnPrimary" onClick={() => void castVote("yes")}>
+                Quick vote yes
               </button>
+            ) : currentChoice ? (
+              <span className="statusPill ok">Vote already recorded</span>
             ) : null}
             {canEdit ? (
               <button className="btn" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>
@@ -620,7 +673,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div>
                 <div className="eyebrow">Vote summary</div>
                 <h2 className="cardTitle">
-                  {stage === "poll" ? "Poll votes" : "Final votes"}
+                  {displayedVoteMap === pollVotes ? "Poll votes" : "Final votes"}
                 </h2>
               </div>
             </div>
@@ -708,7 +761,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               </div>
 
               <div className="buttonRow">
-                <button className="btn" onClick={() => void withdrawProposal()} disabled={!canWithdraw}>
+                <button className="btn" onClick={() => void withdrawProposal()} disabled={!canWithdraw || signerBusy}>
                   Withdraw proposal
                 </button>
               </div>

@@ -2,6 +2,11 @@ import { setAccount, setApiBase } from "../api/weall";
 import { clearNonceReservation, clearSession, ensureBackendSession, getKeypair, getSession, issueSessionFromSecretKey, syncNonceReservation } from "../auth/session";
 import type { AppConfig } from "./config";
 
+export type DevBootstrapStep = {
+  label?: string;
+  href?: string;
+};
+
 export type DevBootstrapManifest = {
   profile?: string;
   generated_at?: string;
@@ -11,6 +16,12 @@ export type DevBootstrapManifest = {
   apiBase?: string;
   sessionTtlSeconds?: number;
   note?: string;
+  seededGroup?: { group_id?: string; member_visible?: boolean; visibility?: string };
+  seededProposal?: { proposal_id?: string; stage?: string };
+  seededDispute?: { dispute_id?: string; stage?: string; juror?: string; juror_status?: string; target_id?: string };
+  recommendedPath?: DevBootstrapStep[];
+  fallbackInstructions?: string[];
+  resetInstructions?: string[];
 };
 
 const LS_BOOTSTRAP_MARKER = "weall_dev_bootstrap_marker_v1";

@@ -20,6 +20,7 @@ import {
 import { signDetachedB64 } from "../auth/keys"
 import { nav } from "../lib/router"
 import { useAppConfig } from "../lib/config"
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy"
 
 function normalizeAccount(raw: string): string {
   const trimmed = raw.trim().toLowerCase()
@@ -93,6 +94,11 @@ function buildOperatorReceipt(
 }
 
 
+type DevBootstrapStep = {
+  label?: string
+  href?: string
+}
+
 type DevBootstrapManifest = {
   account?: string
   apiBase?: string
@@ -100,6 +106,17 @@ type DevBootstrapManifest = {
   secretKeyB64?: string
   sessionTtlSeconds?: number
   note?: string
+  seededGroup?: { group_id?: string; member_visible?: boolean; visibility?: string }
+  seededProposal?: { proposal_id?: string; stage?: string }
+  seededDispute?: { dispute_id?: string; stage?: string; juror?: string; juror_status?: string; target_id?: string }
+  recommendedPath?: DevBootstrapStep[]
+  fallbackInstructions?: string[]
+  resetInstructions?: string[]
+}
+
+function manifestSteps(value: DevBootstrapManifest | null): DevBootstrapStep[] {
+  const items = Array.isArray(value?.recommendedPath) ? value?.recommendedPath : []
+  return items.filter((item): item is DevBootstrapStep => !!item && typeof item === "object")
 }
 
 function maskSecret(value: string): string {
@@ -117,6 +134,103 @@ async function fetchDevBootstrapManifest(url: string): Promise<DevBootstrapManif
   } catch {
     return null
   }
+}
+
+function manifestLines(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => String(item || "").trim())
+    .filter((item) => !!item)
+}
+
+function DevBootstrapDetails({ manifest }: { manifest: DevBootstrapManifest }) {
+  return (
+    <>
+      <div className="stack-xs" data-testid="dev-bootstrap-summary">
+        <strong>Handle</strong>
+        <code data-testid="dev-bootstrap-account">{normalizeAccount(String(manifest.account || ""))}</code>
+        <strong>Private key</strong>
+        <code data-testid="dev-bootstrap-secret">{maskSecret(String(manifest.secretKeyB64 || ""))}</code>
+        {manifest.seededGroup?.group_id ? (
+          <>
+            <strong>Seeded group</strong>
+            <code data-testid="dev-bootstrap-seeded-group">{String(manifest.seededGroup.group_id || "")}</code>
+          </>
+        ) : null}
+        {manifest.seededProposal?.proposal_id ? (
+          <>
+            <strong>Seeded proposal</strong>
+            <code data-testid="dev-bootstrap-seeded-proposal">{String(manifest.seededProposal.proposal_id || "")}</code>
+          </>
+        ) : null}
+        {manifest.seededDispute?.dispute_id ? (
+          <>
+            <strong>Seeded dispute</strong>
+            <code data-testid="dev-bootstrap-seeded-dispute">{String(manifest.seededDispute.dispute_id || "")}</code>
+          </>
+        ) : null}
+      </div>
+      {manifestSteps(manifest).length ? (
+        <div className="stack-xs" data-testid="dev-bootstrap-path">
+          <strong>Suggested conference path</strong>
+          <ol className="muted" style={{ margin: 0, paddingLeft: "1.25rem" }}>
+            {manifestSteps(manifest).map((step, index) => (
+              <li key={`${String(step.href || step.label || index)}`}>
+                {step.href ? (
+                  <a data-testid={`dev-bootstrap-step-${index + 1}`} href={`/#${String(step.href)}`}>
+                    {String(step.label || `Step ${index + 1}`)}
+                  </a>
+                ) : (
+                  String(step.label || `Step ${index + 1}`)
+                )}
+                {step.href ? ` — ${String(step.href)}` : ""}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+      <div className="stack-xs" data-testid="dev-bootstrap-quick-links">
+        <strong>Quick links</strong>
+        <div className="stack-xs">
+          {manifest.seededGroup?.group_id ? (
+            <a href={`/#/groups/${encodeURIComponent(String(manifest.seededGroup.group_id || ""))}`} data-testid="dev-bootstrap-open-group">
+              Open seeded group
+            </a>
+          ) : null}
+          {manifest.seededDispute?.dispute_id ? (
+            <a href={`/#/disputes`} data-testid="dev-bootstrap-open-disputes">
+              Open disputes surface
+            </a>
+          ) : null}
+          {manifest.seededProposal?.proposal_id ? (
+            <a href={`/#/proposal/${encodeURIComponent(String(manifest.seededProposal.proposal_id || ""))}`} data-testid="dev-bootstrap-open-proposal">
+              Open seeded proposal
+            </a>
+          ) : null}
+        </div>
+      </div>
+      {manifestLines(manifest.fallbackInstructions).length ? (
+        <div className="stack-xs" data-testid="dev-bootstrap-fallback">
+          <strong>Fallback if something misbehaves</strong>
+          <ol className="muted" style={{ margin: 0, paddingLeft: "1.25rem" }}>
+            {manifestLines(manifest.fallbackInstructions).map((step, index) => (
+              <li key={`fallback-${index}`}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+      {manifestLines(manifest.resetInstructions).length ? (
+        <div className="stack-xs" data-testid="dev-bootstrap-reset">
+          <strong>Deterministic reset</strong>
+          <ol className="muted" style={{ margin: 0, paddingLeft: "1.25rem" }}>
+            {manifestLines(manifest.resetInstructions).map((step, index) => (
+              <li key={`reset-${index}`}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 function CheckpointList({ items }: { items: Checkpoint[] }) {
@@ -168,6 +282,9 @@ export default function LoginPage() {
   const existingAccount = useMemo(() => normalizeAccount(existingAccountInput), [existingAccountInput])
   const newAccountKeypair = useMemo(() => (account ? getKeypair(account) : null), [account])
   const emailOracleBase = useMemo(() => getEmailOracleBaseUrl(), [])
+  const createSignerSubmission = useSignerSubmissionBusy(account)
+  const existingSignerSubmission = useSignerSubmissionBusy(existingAccount)
+  const signerBusy = mode === "create" ? createSignerSubmission.busy : existingSignerSubmission.busy
 
   useEffect(() => {
     let cancelled = false
@@ -598,7 +715,7 @@ export default function LoginPage() {
                     existing-account form below with the surfaced credentials.
                   </p>
                   <div className="row gap-sm wrap">
-                    <button type="button" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
+                    <button type="button" data-testid="load-demo-tester-session" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
                       {devBootstrapBusy ? "Loading demo session…" : "Load demo tester session"}
                     </button>
                     <button type="button" className="secondary" onClick={handleCopyDevSecret}>
@@ -616,15 +733,16 @@ export default function LoginPage() {
                       Open restore form
                     </button>
                   </div>
-                  <div className="stack-xs">
-                    <strong>Handle</strong>
-                    <code>{normalizeAccount(String(devManifest.account || ""))}</code>
-                    <strong>Private key</strong>
-                    <code>{maskSecret(String(devManifest.secretKeyB64 || ""))}</code>
-                  </div>
+                  <DevBootstrapDetails manifest={devManifest} />
                 </div>
               ) : null}
               <CheckpointList items={createFlowCheckpoints} />
+
+              {createSignerSubmission.busy ? (
+                <div className="calloutInfo">
+                  Another signed action for {account || "this account"} is still settling. Wait for it to finish before requesting or confirming email verification on this device.
+                </div>
+              ) : null}
 
               <form onSubmit={step === "begin" ? handleBegin : handleConfirm} className="stack-md authFormCard">
                 <label className="field">
@@ -701,12 +819,12 @@ export default function LoginPage() {
 
                 <div className="row gap-sm wrap">
                   {step === "begin" ? (
-                    <button type="submit" disabled={busy || backendReachable === false}>
+                    <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
                       {busy ? "Sending code…" : "Request verification code"}
                     </button>
                   ) : (
                     <>
-                      <button type="submit" disabled={busy || backendReachable === false}>
+                      <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
                         {busy ? "Confirming…" : "Confirm code and submit Tier 1"}
                       </button>
                       <button
@@ -739,22 +857,23 @@ export default function LoginPage() {
                     or load the session with one click.
                   </p>
                   <div className="row gap-sm wrap">
-                    <button type="button" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
+                    <button type="button" data-testid="load-demo-tester-session" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
                       {devBootstrapBusy ? "Loading demo session…" : "Load demo tester session"}
                     </button>
                     <button type="button" className="secondary" onClick={handleCopyDevSecret}>
                       Copy private key
                     </button>
                   </div>
-                  <div className="stack-xs">
-                    <strong>Handle</strong>
-                    <code>{normalizeAccount(String(devManifest.account || ""))}</code>
-                    <strong>Private key</strong>
-                    <code>{maskSecret(String(devManifest.secretKeyB64 || ""))}</code>
-                  </div>
+                  <DevBootstrapDetails manifest={devManifest} />
                 </div>
               ) : null}
               <CheckpointList items={restoreFlowCheckpoints} />
+
+              {existingSignerSubmission.busy ? (
+                <div className="calloutInfo">
+                  Another signed action for {existingAccount || "this account"} is still settling. Wait for it to finish before restoring or reissuing a session here.
+                </div>
+              ) : null}
 
               <form onSubmit={handleExistingLogin} className="stack-md authFormCard">
                 <label className="field">
@@ -783,7 +902,7 @@ export default function LoginPage() {
                 </p>
 
                 <div className="row gap-sm wrap">
-                  <button type="submit" disabled={busy || backendReachable === false}>
+                  <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
                     {busy ? "Restoring…" : "Restore account and create session"}
                   </button>
                 </div>

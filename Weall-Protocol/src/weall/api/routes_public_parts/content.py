@@ -55,6 +55,12 @@ def _comments(st: Json) -> Json:
     return _as_dict(_content_root(st).get("comments"))
 
 
+def _moderation_targets(st: Json) -> Json:
+    content = _content_root(st)
+    moderation = _as_dict(content.get("moderation"))
+    return _as_dict(moderation.get("targets"))
+
+
 def _post_visible(post: Json) -> bool:
     if not isinstance(post, dict):
         return False
@@ -89,7 +95,7 @@ def _reaction_counts_by_target(st: Json) -> dict[str, dict[str, int]]:
 
 def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]) -> Json:
     out = dict(obj)
-    target_id = str(out.get("post_id") or out.get("comment_id") or out.get("content_id") or "").strip()
+    target_id = str(out.get("comment_id") or out.get("post_id") or out.get("content_id") or "").strip()
     existing = _as_dict(out.get("reactions"))
     merged: Json = {}
     for key, value in existing.items():
@@ -150,6 +156,8 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
             status_code=404, detail={"code": "not_found", "message": "content not found"}
         )
 
+    moderation = _moderation_targets(st)
+
     posts = _posts(st)
     if pid in posts:
         post = _with_reaction_counts(_as_dict(posts.get(pid)), _reaction_counts_by_target(st))
@@ -157,7 +165,12 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
-        return {"ok": True, "type": "post", "content": post}
+        return {
+            "ok": True,
+            "type": "post",
+            "content": post,
+            "moderation": _as_dict(moderation.get(pid)),
+        }
 
     comments = _comments(st)
     if pid in comments:
@@ -166,7 +179,12 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
-        return {"ok": True, "type": "comment", "content": com}
+        return {
+            "ok": True,
+            "type": "comment",
+            "content": com,
+            "moderation": _as_dict(moderation.get(pid)),
+        }
 
     raise HTTPException(
         status_code=404, detail={"code": "not_found", "message": "content not found"}

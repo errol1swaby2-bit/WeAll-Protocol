@@ -64,7 +64,7 @@ done
 
 log "creating local runtime directories"
 mkdir -p data generated data/ipfs
-chmod -R a+rwX data generated
+chmod -R u+rwX data generated || true
 
 log "generating tx index"
 python3 scripts/gen_tx_index.py
@@ -134,7 +134,7 @@ Recommended frontend env file:
 
 Demo bootstrap command:
   cd ${ROOT_DIR}
-  ./scripts/demo_bootstrap_tester.sh
+  bash ./scripts/demo_bootstrap_tester.sh
 
 Useful checks:
   docker compose ps

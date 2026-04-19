@@ -56,6 +56,23 @@ def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
         "GROUP_EMISSARY_ELECTION_FINALIZE",
         "ROLE_EMISSARY_SEAT",
         "ROLE_EMISSARY_REMOVE",
+        "CONTENT_ESCALATE_TO_DISPUTE",
+        "ROLE_EMISSARY_NOMINATE",
+        "ROLE_EMISSARY_VOTE",
+        "ROLE_GOV_EXECUTOR_SET",
+        "ROLE_JUROR_ACTIVATE",
+        "ROLE_JUROR_ENROLL",
+        "ROLE_JUROR_REINSTATE",
+        "ROLE_JUROR_SUSPEND",
+        "ROLE_NODE_OPERATOR_ACTIVATE",
+        "ROLE_NODE_OPERATOR_ENROLL",
+        "ROLE_NODE_OPERATOR_SUSPEND",
+        "ROLE_VALIDATOR_ACTIVATE",
+        "ROLE_VALIDATOR_SUSPEND",
+        "TREASURY_SIGNER_ADD",
+        "TREASURY_SIGNER_REMOVE",
+        "TREASURY_POLICY_SET",
+        "GROUP_TREASURY_POLICY_SET",
     }
     mismatches: list[tuple[str, str, str, str]] = []
     for row in _tx_index_rows():

@@ -6,6 +6,7 @@ export type MotionMode = "full" | "reduced";
 
 export type ClientSettings = {
   showGenesisBootstrap: boolean;
+  showAdvancedMode: boolean;
   themeMode: ThemeMode;
   accentTone: AccentTone;
   fontScale: FontScale;
@@ -13,10 +14,11 @@ export type ClientSettings = {
   motionMode: MotionMode;
 };
 
-const KEY = "weall_client_settings_v2";
+const KEY = "weall_client_settings_v3";
 
 export const DEFAULT_SETTINGS: ClientSettings = {
   showGenesisBootstrap: false,
+  showAdvancedMode: false,
   themeMode: "dark",
   accentTone: "mint",
   fontScale: "md",
@@ -51,6 +53,7 @@ export function loadSettings(): ClientSettings {
     const j = JSON.parse(raw);
     return {
       showGenesisBootstrap: Boolean(j?.showGenesisBootstrap),
+      showAdvancedMode: Boolean(j?.showAdvancedMode),
       themeMode: asThemeMode(j?.themeMode),
       accentTone: asAccentTone(j?.accentTone),
       fontScale: asFontScale(j?.fontScale),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -23,6 +24,42 @@ from weall.runtime.tx_schema import validate_tx_envelope
 router = APIRouter()
 
 Json = dict[str, Any]
+
+
+_TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
+    "BLOCK_ATTEST": ["/v1/consensus/attest/submit"],
+    "POH_TIER2_REQUEST_OPEN": ["/v1/poh/tier2/tx/request", "/v1/tx/submit"],
+    "POH_TIER2_JUROR_ACCEPT": ["/v1/poh/tier2/tx/juror-accept", "/v1/tx/submit"],
+    "POH_TIER2_JUROR_DECLINE": ["/v1/poh/tier2/tx/juror-decline", "/v1/tx/submit"],
+    "POH_TIER2_REVIEW_SUBMIT": ["/v1/poh/tier2/tx/review", "/v1/tx/submit"],
+    "POH_TIER3_JUROR_ACCEPT": ["/v1/poh/tier3/tx/juror-accept", "/v1/tx/submit"],
+    "POH_TIER3_JUROR_DECLINE": ["/v1/poh/tier3/tx/juror-decline", "/v1/tx/submit"],
+    "POH_TIER3_ATTENDANCE_MARK": ["/v1/poh/tier3/tx/attendance", "/v1/tx/submit"],
+    "POH_TIER3_VERDICT_SUBMIT": ["/v1/poh/tier3/tx/verdict", "/v1/tx/submit"],
+    "POH_TIER2_RECEIPT": ["/v1/poh/email/tx/receipt-submit", "/v1/tx/submit"],
+}
+
+
+def _default_public_entrypoints(origin: str, context: str) -> list[str]:
+    origin_norm = str(origin or "").strip().upper()
+    context_norm = str(context or "").strip().lower()
+    routes: list[str] = []
+    if context_norm == "mempool" and origin_norm in {"USER", "VALIDATOR"}:
+        routes.append("/v1/tx/submit")
+        routes.append("/v1/mempool/submit")
+    return routes
+
+
+def _tx_public_entrypoints(tx_type: str, origin: str, context: str) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for route in _TX_PUBLIC_ENTRYPOINTS.get(str(tx_type or "").strip(), []) + _default_public_entrypoints(origin, context):
+        norm = str(route or "").strip()
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        ordered.append(norm)
+    return ordered
 
 
 def _mode() -> str:
@@ -332,3 +369,92 @@ def tx_status(request: Request, tx_id: str) -> Json:
         }
 
     return {"ok": True, "tx_id": t, "status": "unknown"}
+
+
+_TX_INDEX_JSON_PATH = Path(__file__).resolve().parents[4] / "generated" / "tx_index.json"
+
+
+def _load_tx_catalog_rows() -> list[Json]:
+    try:
+        raw = json.loads(_TX_INDEX_JSON_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    tx_types = raw.get("tx_types")
+    if not isinstance(tx_types, list):
+        return []
+
+    rows: list[Json] = []
+    for item in tx_types:
+        if not isinstance(item, dict):
+            continue
+        gates = item.get("gates") if isinstance(item.get("gates"), dict) else {}
+        tx_name = str(item.get("name") or item.get("tx_type") or "").strip()
+        tx_origin = str(item.get("origin") or "").strip()
+        tx_context = str(item.get("context") or "").strip()
+        rows.append(
+            {
+                "id": str(item.get("id") or tx_name).strip(),
+                "name": tx_name,
+                "origin": tx_origin,
+                "context": tx_context,
+                "domain": str(item.get("domain") or "").strip(),
+                "receipt_only": bool(item.get("receipt_only", False)),
+                "subject_gate": str(item.get("subject_gate") or gates.get("subject_gate") or "").strip(),
+                "api_entrypoints": _tx_public_entrypoints(tx_name, tx_origin, tx_context),
+                "gates": gates,
+            }
+        )
+    rows.sort(key=lambda row: (str(row.get("domain") or ""), str(row.get("name") or "")))
+    return rows
+
+
+def _count_by(rows: list[Json], key: str) -> list[Json]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        label = str(row.get(key) or "").strip() or "Unknown"
+        counts[label] = int(counts.get(label, 0)) + 1
+    return [
+        {"name": name, "count": int(count)}
+        for name, count in sorted(counts.items(), key=lambda item: (-int(item[1]), str(item[0]).lower()))
+    ]
+
+
+@router.get("/tx/catalog")
+def tx_catalog(context: str | None = None, domain: str | None = None, search: str | None = None) -> Json:
+    rows = _load_tx_catalog_rows()
+
+    want_context = str(context or "").strip().lower()
+    want_domain = str(domain or "").strip().lower()
+    want_search = str(search or "").strip().lower()
+
+    filtered: list[Json] = []
+    for row in rows:
+        row_context = str(row.get("context") or "").strip().lower()
+        row_domain = str(row.get("domain") or "").strip().lower()
+        row_name = str(row.get("name") or "").strip().lower()
+        row_gate = str(row.get("subject_gate") or "").strip().lower()
+
+        if want_context and row_context != want_context:
+            continue
+        if want_domain and row_domain != want_domain:
+            continue
+        if want_search and want_search not in row_name and want_search not in row_gate and want_search not in row_domain:
+            continue
+        filtered.append(row)
+
+    return {
+        "ok": True,
+        "total": int(len(rows)),
+        "count": int(len(filtered)),
+        "filters": {
+            "context": str(context or "").strip(),
+            "domain": str(domain or "").strip(),
+            "search": str(search or "").strip(),
+        },
+        "summary": {
+            "by_context": _count_by(filtered, "context"),
+            "by_domain": _count_by(filtered, "domain"),
+        },
+        "items": filtered,
+    }

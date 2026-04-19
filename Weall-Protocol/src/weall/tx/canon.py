@@ -339,10 +339,41 @@ def ensure_tx_index_json(
     return generate_tx_index_json(spec_path=paths.spec_path, out_path=paths.out_path)
 
 
+def _resolve_existing_tx_index_path(path: str | Path) -> Path:
+    requested = Path(path)
+    if requested.exists():
+        return requested
+
+    search_relatives: list[Path] = []
+    if not requested.is_absolute():
+        search_relatives.append(requested)
+    else:
+        parts = requested.parts
+        for marker in ("generated", "tx_index.json"):
+            if marker in parts:
+                idx = parts.index(marker)
+                search_relatives.append(Path(*parts[idx:]))
+                break
+        if requested.name:
+            search_relatives.append(Path(requested.name))
+
+    module_path = Path(__file__).resolve()
+    candidate_bases = list(module_path.parents)
+    seen: set[Path] = set()
+    for rel in search_relatives:
+        for base in candidate_bases:
+            candidate = (base / rel).resolve()
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if candidate.exists():
+                return candidate
+
+    raise FileNotFoundError(f"tx index json not found: {requested}")
+
+
 def load_tx_index_json_raw(path: str | Path) -> Json:
-    p = Path(path)
-    if not p.exists():
-        raise FileNotFoundError(f"tx index json not found: {p}")
+    p = _resolve_existing_tx_index_path(path)
     with p.open("r", encoding="utf-8") as f:
         idx = json.load(f)
     _validate_index(idx)

@@ -410,6 +410,26 @@ def _upload_media(cfg: Cfg, *, account: str, session_key: str) -> Json:
     return body
 
 
+
+
+def _seed_demo_objects(cfg: Cfg, *, account: str, post_id: str) -> Json:
+    status, body = _http_json(
+        "POST",
+        f"{cfg.api}/v1/dev/demo-seed",
+        body={"account": account, "post_id": post_id},
+    )
+    if status == 404:
+        raise FlowError(
+            "POST /v1/dev/demo-seed returned 404. "
+            "The conference demo seed route is not enabled in the running API process. "
+            "Set WEALL_ENABLE_DEMO_SEED_ROUTE=1 in the weall_api container environment and reboot the stack."
+        )
+    if status >= 400:
+        raise FlowError(f"POST /v1/dev/demo-seed failed status={status} body={body}")
+    if not isinstance(body, dict):
+        raise FlowError(f"POST /v1/dev/demo-seed returned non-object: {body!r}")
+    return body
+
 def _verify_feed(cfg: Cfg, *, account: str, post_id: str, body_text: str, media_id: str) -> None:
     deadline = time.time() + cfg.wait_apply_s
     last_public: Any = None
@@ -545,6 +565,32 @@ def main() -> int:
     _verify_feed(cfg, account=account, post_id=post_id, body_text=cfg.post_body, media_id=media_id)
     print("    public feed + account feed verified")
 
+    print("[8] deterministic demo object seeding")
+    demo_seed = _seed_demo_objects(cfg, account=account, post_id=post_id)
+    if bool(demo_seed.get("ok")):
+        seeded_group = demo_seed.get("group") if isinstance(demo_seed.get("group"), dict) else {}
+        seeded_proposal = demo_seed.get("proposal") if isinstance(demo_seed.get("proposal"), dict) else {}
+        seeded_dispute = demo_seed.get("dispute") if isinstance(demo_seed.get("dispute"), dict) else {}
+        print(
+            "    seeded group={group} proposal={proposal} dispute={dispute}".format(
+                group=seeded_group.get("group_id") or "",
+                proposal=seeded_proposal.get("proposal_id") or "",
+                dispute=seeded_dispute.get("dispute_id") or "",
+            )
+        )
+    else:
+        print(f"    demo seeding skipped: {demo_seed.get('detail') or 'disabled'}")
+
+    seeded_group = demo_seed.get("group") if isinstance(demo_seed, dict) else None
+    seeded_proposal = demo_seed.get("proposal") if isinstance(demo_seed, dict) else None
+    seeded_dispute = demo_seed.get("dispute") if isinstance(demo_seed, dict) else None
+    recommended_path = [
+        {"label": "Open feed", "href": "/feed"},
+        {"label": "Open group", "href": f"/groups/{urllib.parse.quote(str((seeded_group or {}).get('group_id') or ''), safe='')}" if isinstance(seeded_group, dict) and seeded_group.get("group_id") else "/groups"},
+        {"label": "Open disputes", "href": "/disputes"},
+        {"label": "Open governance", "href": "/proposals"},
+    ]
+
     summary_path = _write_demo_summary(
         account=account,
         post_body=cfg.post_body,
@@ -561,6 +607,10 @@ def main() -> int:
             "pubkey_b64": base64.b64encode(bytes.fromhex(pub_hex)).decode("ascii"),
             "session_key": session_key,
             "session_ttl_seconds": 3600,
+            "seeded_group": seeded_group,
+            "seeded_proposal": seeded_proposal,
+            "seeded_dispute": seeded_dispute,
+            "recommended_path": recommended_path,
         },
     )
 

@@ -5,6 +5,8 @@ from fastapi import APIRouter
 from weall.api.routes_public_parts.accounts import router as accounts_router
 from weall.api.routes_public_parts.consensus import router as consensus_router
 from weall.api.routes_public_parts.content import router as content_router
+from weall.api.routes_public_parts.demo_seed import router as demo_seed_router
+from weall.api.routes_public_parts.disputes import router as disputes_router
 from weall.api.routes_public_parts.gov import router as gov_router
 from weall.api.routes_public_parts.groups import router as groups_router
 from weall.api.routes_public_parts.health import router as health_router
@@ -40,6 +42,7 @@ public_router.include_router(tx_router, prefix="/v1", tags=["tx"])
 public_router.include_router(consensus_router, prefix="/v1", tags=["consensus"])
 public_router.include_router(poh_router, prefix="/v1", tags=["poh"])
 public_router.include_router(content_router, prefix="/v1", tags=["content"])
+public_router.include_router(disputes_router, prefix="/v1", tags=["disputes"])
 public_router.include_router(gov_router, prefix="/v1", tags=["governance"])
 public_router.include_router(groups_router, prefix="/v1", tags=["groups"])
 public_router.include_router(media_router, prefix="/v1", tags=["media"])
@@ -54,3 +57,4 @@ public_router.include_router(net_debug_router, prefix="/v1", tags=["net"])
 public_router.include_router(net_self_router, prefix="/v1", tags=["net"])
 
 public_router.include_router(nodes_router, prefix="/v1", tags=["nodes"])
+public_router.include_router(demo_seed_router, prefix="/v1", tags=["demo"])

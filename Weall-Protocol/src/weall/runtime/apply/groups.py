@@ -251,6 +251,25 @@ def _group_member_snapshot(g: Json) -> list[str]:
     return sorted([_as_str(k).strip() for k in members.keys() if _as_str(k).strip()])
 
 
+def _group_is_private(g: Json) -> bool:
+    if bool(g.get("is_private", False)):
+        return True
+
+    visibility = _as_str(g.get("visibility") or g.get("privacy")).strip().lower()
+    if visibility in {"private", "closed", "members"}:
+        return True
+
+    meta = g.get("meta")
+    if isinstance(meta, dict):
+        if bool(meta.get("is_private", False)):
+            return True
+        visibility = _as_str(meta.get("visibility") or meta.get("privacy")).strip().lower()
+        if visibility in {"private", "closed", "members"}:
+            return True
+
+    return False
+
+
 def _default_emissary_election_window_blocks(state: Json) -> int:
     """Default election window length in blocks.
 
@@ -432,6 +451,7 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
         "threshold": int(threshold),
         "moderators": [],
         "emissaries": [],
+        "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
     }
     return {"applied": "GROUP_CREATE", "group_id": group_id, "treasury_id": treasury_id}
 
@@ -517,13 +537,50 @@ def _apply_group_membership_request(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
 
+    account = _as_str(env.signer).strip()
+    members = g.get("members")
+    if not isinstance(members, dict):
+        members = {}
+
+    if account in members:
+        return {
+            "applied": "GROUP_MEMBERSHIP_REQUEST",
+            "group_id": group_id,
+            "membership": "already_member",
+            "account": account,
+            "deduped": True,
+        }
+
+    # Public/demo groups should behave like an actual join surface, not a moderation queue.
+    # Private groups still retain the explicit request -> moderator decision pipeline.
+    if not _group_is_private(g):
+        members[account] = {"joined_at_nonce": int(env.nonce), "joined_via": "request_auto_accept"}
+        g["members"] = members
+        reqs = g.get("membership_requests")
+        if isinstance(reqs, dict) and account in reqs:
+            reqs.pop(account, None)
+            g["membership_requests"] = reqs
+        groups[group_id] = g
+        return {
+            "applied": "GROUP_MEMBERSHIP_REQUEST",
+            "group_id": group_id,
+            "membership": "accepted",
+            "account": account,
+            "auto_accepted": True,
+        }
+
     reqs = g.get("membership_requests")
     if not isinstance(reqs, dict):
         reqs = {}
-    reqs[_as_str(env.signer).strip()] = {"requested_at_nonce": int(env.nonce), "payload": payload}
+    reqs[account] = {"requested_at_nonce": int(env.nonce), "payload": payload}
     g["membership_requests"] = reqs
     groups[group_id] = g
-    return {"applied": "GROUP_MEMBERSHIP_REQUEST", "group_id": group_id}
+    return {
+        "applied": "GROUP_MEMBERSHIP_REQUEST",
+        "group_id": group_id,
+        "membership": "pending",
+        "account": account,
+    }
 
 
 def _apply_group_membership_decide(state: Json, env: TxEnvelope) -> Json:

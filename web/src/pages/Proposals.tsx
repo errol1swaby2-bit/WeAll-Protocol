@@ -6,39 +6,25 @@ import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { loadSettings } from "../lib/settings";
 import { nav } from "../lib/router";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
+import {
+  governanceProposalBodyOf,
+  governanceProposalCountsOf,
+  governanceProposalIdOf,
+  governanceProposalStageOf,
+  governanceProposalTitleOf,
+  loadGovernanceProposalSurface,
+  reconcileProposalVisible,
+  sortGovernanceProposals,
+  type GovernanceProposal,
+} from "../lib/governance";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.body || e?.data || e;
-  const msg = details?.message || details?.error?.message || e?.message || "error";
-  return { msg, details };
-}
-
-function asStage(value: any): string {
-  return String(value || "unknown").trim().toLowerCase() || "unknown";
-}
-
-function proposalIdOf(p: any): string {
-  return String(p?.proposal_id || p?.id || "").trim();
-}
-
-function proposalTitleOf(p: any): string {
-  return String(p?.title || proposalIdOf(p) || "Untitled proposal").trim();
-}
-
-function proposalBodyOf(p: any): string {
-  return String(p?.body || p?.description || "").trim();
-}
-
-function countMapOf(p: any): Record<string, number> {
-  const raw = p?.counts;
-  if (!raw || typeof raw !== "object") return { yes: 0, no: 0, abstain: 0 };
-  return {
-    yes: Number((raw as any).yes || 0),
-    no: Number((raw as any).no || 0),
-    abstain: Number((raw as any).abstain || 0),
-  };
+  return actionableTxError(e, "Governance action failed.");
 }
 
 function stageBadgeClass(stage: string): string {
@@ -100,27 +86,7 @@ function normalizeCreatePayload(input: {
   return payload;
 }
 
-function sortItems(items: any[], mode: string): any[] {
-  const copy = [...items];
-  if (mode === "updated_desc") {
-    copy.sort((a, b) => Number(b?.updated_at_height || 0) - Number(a?.updated_at_height || 0));
-    return copy;
-  }
-  if (mode === "votes_desc") {
-    copy.sort((a, b) => {
-      const ac = countMapOf(a);
-      const bc = countMapOf(b);
-      return (bc.yes + bc.no + bc.abstain) - (ac.yes + ac.no + ac.abstain);
-    });
-    return copy;
-  }
-  if (mode === "stage") {
-    copy.sort((a, b) => asStage(a?.stage || a?.status).localeCompare(asStage(b?.stage || b?.status)));
-    return copy;
-  }
-  copy.sort((a, b) => Number(b?.created_at_height || 0) - Number(a?.created_at_height || 0));
-  return copy;
-}
+
 
 function primaryActionLabel(stage: string): string {
   if (stage === "poll" || stage === "voting" || stage === "vote") return "Open and vote";
@@ -133,7 +99,8 @@ function primaryActionLabel(stage: string): string {
 
 export default function Proposals(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<GovernanceProposal[]>([]);
+  const [summary, setSummary] = useState<{ total: number; active: number; by_stage: Record<string, number> } | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [query, setQuery] = useState("");
@@ -165,6 +132,8 @@ export default function Proposals(): JSX.Element {
 
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
+  const signerSubmission = useSignerSubmissionBusy(acct);
+  const showAdvancedMode = loadSettings().showAdvancedMode;
 
   const gate = checkGates({
     loggedIn: !!acct,
@@ -173,14 +142,24 @@ export default function Proposals(): JSX.Element {
     requireTier: 3,
   });
 
+  const gateNextStep = !acct
+    ? { label: "Sign in first", detail: "Create or restore a device session from Login before you try to author governance actions." }
+    : !canSign
+      ? { label: "Restore local signer", detail: "This browser needs the account signer before it can author or sign governance proposals." }
+      : Number(acctState?.poh_tier ?? 0) < 3
+        ? { label: "Finish PoH progression", detail: "Governance authoring unlocks at Tier 3. Open PoH to see the exact blocker and the next required review step." }
+        : null;
+
   async function load(): Promise<void> {
     setErr(null);
     try {
-      const r: any = await weall.proposals({ limit: 200 }, base);
-      setItems(Array.isArray(r?.items) ? r.items : []);
+      const surface = await loadGovernanceProposalSurface(base, { limit: 200, includeSummary: true });
+      setItems(surface.items);
+      setSummary(surface.summary);
     } catch (e: any) {
       setErr(prettyErr(e));
       setItems([]);
+      setSummary(null);
     }
   }
 
@@ -220,30 +199,24 @@ export default function Proposals(): JSX.Element {
     const q = query.trim().toLowerCase();
     const stageNeedle = stageFilter.trim().toLowerCase();
     const subset = items.filter((p) => {
-      const stage = asStage(p?.stage || p?.status);
+      const stage = governanceProposalStageOf(p);
       if (stageNeedle !== "all" && stage !== stageNeedle) return false;
       if (!q) return true;
-      const id = proposalIdOf(p).toLowerCase();
-      const titleText = proposalTitleOf(p).toLowerCase();
-      const bodyText = proposalBodyOf(p).toLowerCase();
+      const id = governanceProposalIdOf(p).toLowerCase();
+      const titleText = governanceProposalTitleOf(p).toLowerCase();
+      const bodyText = governanceProposalBodyOf(p).toLowerCase();
       const creator = String(p?.creator || "").toLowerCase();
       return [id, titleText, bodyText, creator, stage].some((x) => x.includes(q));
     });
-    return sortItems(subset, sortMode);
+    return sortGovernanceProposals(subset as GovernanceProposal[], sortMode);
   }, [items, query, stageFilter, sortMode]);
 
-  const stageSummary = useMemo(() => {
-    const summary: Record<string, number> = {};
-    for (const p of items) {
-      const s = asStage(p?.stage || p?.status);
-      summary[s] = (summary[s] || 0) + 1;
-    }
-    return summary;
-  }, [items]);
+  const stageSummary = useMemo(() => summary?.by_stage || {}, [summary]);
 
   const totalOpenProposals = useMemo(() => {
-    return items.filter((p) => !["finalized", "withdrawn"].includes(asStage(p?.stage || p?.status))).length;
-  }, [items]);
+    if (summary) return Number(summary.active || 0);
+    return items.filter((p) => !["finalized", "withdrawn"].includes(governanceProposalStageOf(p))).length;
+  }, [items, summary]);
 
   async function createProposal(): Promise<void> {
     setCreateErr(null);
@@ -251,6 +224,7 @@ export default function Proposals(): JSX.Element {
 
     try {
       if (!gate.ok) throw new Error(gate.reason || "gated");
+      if (signerSubmission.busy) throw new Error("Another signed action is still settling for this account.");
 
       const payload = useAdvancedPayload
         ? JSON.parse(payloadJson)
@@ -266,10 +240,21 @@ export default function Proposals(): JSX.Element {
 
       const response = await tx.runTx({
         title: "Create governance proposal",
+        pendingKey: txPendingKey(["proposal-create", acct, resolvedProposalId || payload?.proposal_id || title]),
         pendingMessage: "Submitting proposal…",
-        successMessage: "Proposal submitted.",
+        successMessage: (res: any) => {
+          const id = String(payload?.proposal_id || resolvedProposalId || "").trim();
+          return id ? `Proposal submitted. Opening ${id}…` : "Proposal submitted.";
+        },
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => {
+            const createdProposalId = String(payload?.proposal_id || resolvedProposalId || "").trim();
+            return reconcileProposalVisible(createdProposalId, base);
+          },
+        },
         task: async () =>
           submitSignedTx({
             account: acct!,
@@ -320,6 +305,12 @@ export default function Proposals(): JSX.Element {
         </div>
       </section>
 
+      {signerSubmission.busy ? (
+        <div className="calloutInfo">
+          Another signed action for {acct || "this account"} is still settling. Proposal creation waits for the signer lane to clear before using the next nonce.
+        </div>
+      ) : null}
+
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={load} onDismiss={() => setErr(null)} />
       <ErrorBanner
         message={createErr?.msg}
@@ -327,6 +318,32 @@ export default function Proposals(): JSX.Element {
         onRetry={() => void createProposal()}
         onDismiss={() => setCreateErr(null)}
       />
+
+      {!gate.ok && gateNextStep ? (
+        <section className="card">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Authoring unlock</div>
+            <h2 className="cardTitle">What needs to happen before you can create proposals</h2>
+            <div className="summaryCardGrid">
+              <article className="summaryCard">
+                <div className="summaryCardLabel">Current blocker</div>
+                <div className="summaryCardValue" style={{ fontSize: "1.2rem" }}>{gateNextStep.label}</div>
+                <div className="summaryCardText">{gate.reason || gateNextStep.detail}</div>
+              </article>
+              <article className="summaryCard">
+                <div className="summaryCardLabel">Next route</div>
+                <div className="summaryCardValue" style={{ fontSize: "1.2rem" }}>{!acct ? "Login" : !canSign ? "Session & devices" : "PoH"}</div>
+                <div className="summaryCardText">{gateNextStep.detail}</div>
+              </article>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {!acct ? <button className="btn btnPrimary" onClick={() => nav("/login")}>Open login</button> : null}
+              {acct && !canSign ? <button className="btn btnPrimary" onClick={() => nav("/session")}>Open session & devices</button> : null}
+              {acct && canSign && Number(acctState?.poh_tier ?? 0) < 3 ? <button className="btn btnPrimary" onClick={() => nav("/poh")}>Open PoH</button> : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="card">
         <div className="cardBody formStack">
@@ -392,6 +409,7 @@ export default function Proposals(): JSX.Element {
                 <div className="summaryCardLabel">Lifecycle</div>
                 <div className="summaryCardValue">No proposals yet</div>
                 <div className="summaryCardText">Once proposals exist, this summary groups them by authoritative stage.</div>
+                {summary ? <div className="summaryCardText">Backend total: {summary.total} · backend active: {summary.active}</div> : null}
               </article>
             ) : (
               Object.entries(stageSummary)
@@ -411,11 +429,11 @@ export default function Proposals(): JSX.Element {
               <div className="cardDesc">No proposals returned yet.</div>
             ) : (
               filtered.map((p) => {
-                const id = proposalIdOf(p);
-                const titleText = proposalTitleOf(p);
-                const bodyText = proposalBodyOf(p);
-                const stage = asStage(p?.stage || p?.status);
-                const counts = countMapOf(p);
+                const id = governanceProposalIdOf(p);
+                const titleText = governanceProposalTitleOf(p);
+                const bodyText = governanceProposalBodyOf(p);
+                const stage = governanceProposalStageOf(p);
+                const counts = governanceProposalCountsOf(p);
                 const totalVotes = counts.yes + counts.no + counts.abstain;
 
                 return (
@@ -445,7 +463,7 @@ export default function Proposals(): JSX.Element {
                           <div className="summaryCardLabel">Vote tally</div>
                           <div className="summaryCardValue">{totalVotes}</div>
                           <div className="summaryCardText">
-                            YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}
+                            {stage === "poll" ? "POLL" : "FINAL"} · YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}
                           </div>
                         </article>
                         <article className="summaryCard">
@@ -515,7 +533,7 @@ export default function Proposals(): JSX.Element {
             Use advanced payload JSON
           </label>
 
-          {useAdvancedPayload ? (
+          {showAdvancedMode && useAdvancedPayload ? (
             <label className="fieldLabel">
               Proposal payload JSON
               <textarea
@@ -583,8 +601,8 @@ export default function Proposals(): JSX.Element {
           )}
 
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={!gate.ok}>
-              Create proposal and open it
+            <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={!gate.ok || signerSubmission.busy}>
+              {signerSubmission.busy ? "Waiting for signer…" : "Create proposal and open it"}
             </button>
             <button className="btn" onClick={() => void load()}>
               Reload proposals

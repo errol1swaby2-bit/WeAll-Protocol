@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { beginNonceSequence, ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTxInSequence, submitSignedTxWithNonce, syncNonceReservation } from "../auth/session";
+import { beginNonceSequence, ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTxInSequence, syncNonceReservation } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { useTxQueue } from "../hooks/useTxQueue";
 import {
   getDurableOperatorTarget,
@@ -18,16 +19,13 @@ import {
 import { nav } from "../lib/router";
 import { useAppConfig } from "../lib/config";
 import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
+import { reconcilePostVisible } from "../lib/contentRevalidation";
+import { refreshMutationSlices } from "../lib/revalidation";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.payload || e?.body || e?.data || e;
-  const msg =
-    details?.error?.message ||
-    details?.message ||
-    details?.detail?.message ||
-    e?.message ||
-    "error";
-  return { msg, details };
+  if (!e) return null as any;
+  return actionableTxError(e, "Post submission failed.");
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -134,6 +132,16 @@ function formatBytes(bytes: number): string {
 const MAX_MEDIA_UPLOAD_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_MEDIA_PREFIXES = ["image/", "video/", "audio/"];
 
+function readComposerGroupIdFromHash(): string {
+  if (typeof window === "undefined") return "";
+  const hash = String(window.location.hash || "");
+  const qidx = hash.indexOf("?");
+  if (qidx < 0) return "";
+  const qs = hash.slice(qidx + 1);
+  const params = new URLSearchParams(qs);
+  return String(params.get("group_id") || "").trim();
+}
+
 function validateSelectedFile(file: File | null): string | null {
   if (!file) return null;
   const mime = String(file.type || "").trim().toLowerCase();
@@ -156,6 +164,7 @@ export default function CreatePostPage(): JSX.Element {
   const canSign = !!kp?.secretKeyB64;
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
+  const signerSubmission = useSignerSubmissionBusy(acct);
 
   const replicationTarget = getMediaReplicationTarget();
   const durableOperatorTarget = getDurableOperatorTarget();
@@ -171,6 +180,7 @@ export default function CreatePostPage(): JSX.Element {
   );
   const [file, setFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string>("");
+  const [composerGroupId, setComposerGroupId] = useState<string>(() => readComposerGroupIdFromHash());
 
   const [busy, setBusy] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("");
@@ -178,6 +188,8 @@ export default function CreatePostPage(): JSX.Element {
   const [createdPostId, setCreatedPostId] = useState<string>("");
   const [uploadInfo, setUploadInfo] = useState<any | null>(null);
   const [mediaDurability, setMediaDurability] = useState<any | null>(null);
+
+  const signerBusyElsewhere = signerSubmission.busy && !busy;
 
   async function refresh(): Promise<void> {
     if (!acct) {
@@ -200,6 +212,13 @@ export default function CreatePostPage(): JSX.Element {
   useEffect(() => {
     void refresh();
   }, [acct]);
+
+  useEffect(() => {
+    const sync = () => setComposerGroupId(readComposerGroupIdFromHash());
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   useEffect(() => {
     if (!file) {
@@ -227,6 +246,23 @@ export default function CreatePostPage(): JSX.Element {
       await refreshAccountContext();
     }
     return repaired;
+  }
+
+  async function revalidateAfterSubmit(postId: string, body: string): Promise<void> {
+    await refreshMutationSlices(
+      async () => {
+        if (!acct || !postId) return;
+        await reconcilePostVisible({
+          postId,
+          account: acct,
+          body,
+          groupId: composerGroupId || null,
+          base,
+        });
+      },
+      refresh,
+      refreshAccountContext,
+    );
   }
 
   async function submit(): Promise<void> {
@@ -270,6 +306,18 @@ export default function CreatePostPage(): JSX.Element {
       return;
     }
 
+    if (signerBusyElsewhere) {
+      setErr({
+        msg: "Another signed action for this account is already running in this or another tab.",
+        details: {
+          account: acct,
+          pending_count: signerSubmission.pendingCount,
+          hint: "Wait for the other action to finish, then publish again.",
+        },
+      });
+      return;
+    }
+
     const body = text.trim();
     if (!body && !file) {
       setErr({ msg: "Write something or attach a file.", details: null });
@@ -290,13 +338,29 @@ export default function CreatePostPage(): JSX.Element {
       await refresh();
       await refreshAccountContext();
 
+      let expectedPostId = "";
       const result = await tx.runTx({
         title: "Create post",
+        pendingKey: txPendingKey(["content-post-create", acct, composerGroupId || "root"]),
         pendingMessage: "Uploading media and preparing your post…",
         successMessage: (res: any) =>
           res?.postId ? `Post submitted: ${res.postId}` : "Post submitted successfully.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.postTxId,
+        finality: {
+          timeoutMs: 20000,
+          reconcile: async () => {
+            return expectedPostId
+              ? reconcilePostVisible({
+                  postId: expectedPostId,
+                  account: acct,
+                  body,
+                  groupId: composerGroupId || null,
+                  base,
+                })
+              : null;
+          },
+        },
         task: async () => {
           let mediaIds: string[] = [];
           let finalUploadInfo: any | null = null;
@@ -484,9 +548,10 @@ export default function CreatePostPage(): JSX.Element {
               return {
                 post_id,
                 body: body || null,
-                visibility,
+                visibility: composerGroupId ? "group" : visibility,
                 tags: tagList.length ? tagList : null,
                 media: mediaIds.length ? mediaIds : null,
+                group_id: composerGroupId || null,
               };
             },
             parent: null,
@@ -518,6 +583,7 @@ export default function CreatePostPage(): JSX.Element {
           }
 
           finalPostId = String(res?.env?.payload?.post_id || "").trim();
+          expectedPostId = finalPostId;
           finalPostTxId = postTxId;
           finalResult = res;
 
@@ -541,8 +607,7 @@ export default function CreatePostPage(): JSX.Element {
       setTags("");
       setFile(null);
 
-      await refresh();
-      await refreshAccountContext();
+      await revalidateAfterSubmit(String(result.postId || ""), body);
     } catch (e: any) {
       setStatus("Error");
       const formatted = prettyErr(e);
@@ -570,6 +635,15 @@ export default function CreatePostPage(): JSX.Element {
         setErr({
           msg: 'This browser is holding a stale backend session or an old local signer. We attempted to repair it; try publish again.',
           details: formatted.details,
+        });
+      } else if (String(formatted?.msg || "").trim() === "signer_busy_elsewhere") {
+        setErr({
+          msg: "Another signed action for this account is already running in this or another tab.",
+          details: {
+            account: acct,
+            pending_count: signerSubmission.pendingCount,
+            hint: "Wait for the other action to finish, then try publish again.",
+          },
         });
       } else if (formatted?.details?.error?.code === "bad_nonce") {
         await syncNonceReservation(acct, base);
@@ -610,7 +684,7 @@ export default function CreatePostPage(): JSX.Element {
   const previewGateway = String(uploadInfo?.cid || "").trim()
     ? weall.mediaGatewayUrl(String(uploadInfo.cid), base)
     : "";
-  const canPublish = snapshot.canPost && !!(text.trim() || file) && !busy && !fileValidationError;
+  const canPublish = snapshot.canPost && !!(text.trim() || file) && !busy && !signerBusyElsewhere && !fileValidationError;
 
   const readinessChecks = summarizeNextRequirements(snapshot);
 
@@ -653,7 +727,9 @@ export default function CreatePostPage(): JSX.Element {
       detail: createdPostId
         ? createdPostId
         : canPublish
-          ? "Ready to sign and submit."
+          ? signerBusyElsewhere
+            ? "Another signed action must finish before publish can reserve the next nonce."
+            : "Ready to sign and submit."
           : "Complete the checks above to publish.",
     },
   ];
@@ -755,6 +831,15 @@ export default function CreatePostPage(): JSX.Element {
                   <span className="surfaceSummaryHint">{item.hint}</span>
                 </div>
               ))}
+              <div className="surfaceSummaryCard">
+                <span className="surfaceSummaryLabel">Signer lane</span>
+                <strong className="surfaceSummaryValue">{signerBusyElsewhere ? "Busy" : "Open"}</strong>
+                <span className="surfaceSummaryHint">
+                  {signerBusyElsewhere
+                    ? `Another signed action is already using this account (${signerSubmission.pendingCount} in flight).`
+                    : "This account can safely reserve the next nonce for publish."}
+                </span>
+              </div>
             </div>
 
             <label className="fieldLabel">
@@ -868,7 +953,7 @@ export default function CreatePostPage(): JSX.Element {
                 <h2 className="cardTitle">Before you submit</h2>
               </div>
               <span className={`statusPill ${createdPostId ? "ok" : canPublish ? "ok" : ""}`}>
-                {createdPostId ? "Published" : canPublish ? "Ready to publish" : "Draft in progress"}
+                {createdPostId ? "Published" : signerBusyElsewhere ? "Waiting for another action" : canPublish ? "Ready to publish" : "Draft in progress"}
               </span>
             </div>
 

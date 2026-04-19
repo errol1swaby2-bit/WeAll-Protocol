@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.param_policy import validate_param_blob
@@ -44,6 +45,217 @@ def _height_hint(state: Json, env: TxEnvelope) -> int:
     if isinstance(dh, int) and dh > 0:
         return int(dh)
     return int(_i(state.get("height"), 0) + 1)
+
+
+def _normalized_str_list(items: Any) -> list[str]:
+    if not isinstance(items, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        s = _s(item).strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    out.sort()
+    return out
+
+
+def _identity_variants(value: Any) -> list[str]:
+    s = _s(value).strip()
+    if not s:
+        return []
+    base = s[1:] if s.startswith("@") else s
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in (s, base, f"@{base}" if base else ""):
+        c = _s(candidate).strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _resolve_account_identity(state: Json, value: Any) -> str:
+    variants = _identity_variants(value)
+    if not variants:
+        return ""
+    accounts = _d(state.get("accounts"))
+    for variant in variants:
+        if variant in accounts:
+            return variant
+    return variants[0]
+
+
+def _normalize_identity_list(state: Json, items: Any) -> list[str]:
+    normalized = [_resolve_account_identity(state, item) for item in _normalized_str_list(items)]
+    return _normalized_str_list(normalized)
+
+
+def _alias_record(mapping: Any, identity: str) -> dict[str, Any] | None:
+    if not isinstance(mapping, dict):
+        return None
+    for variant in _identity_variants(identity):
+        rec = mapping.get(variant)
+        if isinstance(rec, dict):
+            return rec
+    return None
+
+
+def _canonical_actor_key(active_identities: list[str], signer: str, state: Json) -> str:
+    variants = set(_identity_variants(signer))
+    for identity in active_identities:
+        if variants.intersection(_identity_variants(identity)):
+            return identity
+    return _resolve_account_identity(state, signer)
+
+
+def _active_validator_ids(state: Json) -> list[str]:
+    roles = _d(state.get("roles"))
+    validators = _d(roles.get("validators"))
+    active_set = _normalize_identity_list(state, validators.get("active_set"))
+    if active_set:
+        return active_set
+
+    validators_by_id = _d(validators.get("by_id"))
+    if validators_by_id:
+        out: list[str] = []
+        for acct, rec in validators_by_id.items():
+            acct_s = _s(acct).strip()
+            if not acct_s or not isinstance(rec, dict):
+                continue
+            status = _s(rec.get("status")).strip().lower()
+            if status and status not in {"active", "activated", "validator"}:
+                continue
+            out.append(_resolve_account_identity(state, acct_s))
+        out = sorted(set(out))
+        if out:
+            return out
+
+    consensus = _d(state.get("consensus"))
+    validator_set = _d(consensus.get("validator_set"))
+    active_set = _normalize_identity_list(state, validator_set.get("active_set"))
+    if active_set:
+        return active_set
+
+    registry = _d(_d(consensus.get("validators")).get("registry"))
+    if registry:
+        out: list[str] = []
+        for acct, rec in registry.items():
+            acct_s = _s(acct).strip()
+            if not acct_s or not isinstance(rec, dict):
+                continue
+            status = _s(rec.get("status")).strip().lower()
+            if status and status not in {"active", "activated", "validator"}:
+                continue
+            out.append(_resolve_account_identity(state, acct_s))
+        out = sorted(set(out))
+        if out:
+            return out
+    return []
+
+
+def _proposal_eligible_validator_ids(state: Json, proposal: dict[str, Any], fallback_signer: str = "") -> list[str]:
+    snap = _normalize_identity_list(state, proposal.get("eligible_validator_ids"))
+    if snap:
+        proposal["eligible_validator_ids"] = list(snap)
+        proposal["eligible_validator_count"] = int(len(snap))
+        proposal["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
+        return snap
+
+    active = _active_validator_ids(state)
+    if active:
+        proposal["eligible_validator_ids"] = list(active)
+        proposal["eligible_validator_count"] = int(len(active))
+        proposal["required_votes"] = int(quorum_threshold(len(active))) if active else 0
+        return active
+
+    signer = _resolve_account_identity(state, fallback_signer or proposal.get("creator"))
+    if signer:
+        proposal["eligible_validator_ids"] = [signer]
+        proposal["eligible_validator_count"] = 1
+        proposal["required_votes"] = 1
+        return [signer]
+
+    proposal["eligible_validator_ids"] = []
+    proposal["eligible_validator_count"] = 0
+    proposal["required_votes"] = 0
+    return []
+
+
+def _active_validator_vote_snapshot(votes: Any, active_validators: list[str]) -> tuple[dict[str, dict[str, Any]], int, int]:
+    votes_d = votes if isinstance(votes, dict) else {}
+    eligible = sorted(set(_normalized_str_list(active_validators)))
+    eligible_count = len(eligible)
+    required_votes = quorum_threshold(eligible_count) if eligible_count > 0 else 0
+    active_votes: dict[str, dict[str, Any]] = {}
+    for acct in eligible:
+        rec = _alias_record(votes_d, acct)
+        if isinstance(rec, dict):
+            active_votes[acct] = rec
+    return active_votes, eligible_count, required_votes
+
+
+def _vote_choice_tally(votes: dict[str, dict[str, Any]]) -> dict[str, int]:
+    tally = {"yes": 0, "no": 0, "abstain": 0}
+    for rec in votes.values():
+        choice = _s(rec.get("vote") or rec.get("choice")).strip().lower()
+        if choice in tally:
+            tally[choice] += 1
+    return tally
+
+
+def _system_env(tx_type: str, payload: Json, *, height: int, parent_ref: str | None) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer="SYSTEM",
+        nonce=int(height),
+        payload=dict(payload),
+        sig="",
+        system=True,
+        parent=parent_ref,
+    )
+
+
+def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], proposal_id: str, *, current_height: int, parent_ref: str | None) -> None:
+    stage = _stage(pr)
+    if stage not in {"poll", "voting", "vote"}:
+        return
+
+    vote_key = "poll_votes" if stage == "poll" else "votes"
+    eligible_validators = _proposal_eligible_validator_ids(state, pr)
+    active_votes, eligible_count, required_votes = _active_validator_vote_snapshot(pr.get(vote_key), eligible_validators)
+    total_votes = len(active_votes)
+    if required_votes <= 0 or total_votes < required_votes:
+        return
+
+    tally = _vote_choice_tally(active_votes)
+    tally_payload = {
+        "proposal_id": proposal_id,
+        "vote_window": "poll" if stage == "poll" else "final",
+        "eligible_validator_count": int(eligible_count),
+        "required_votes": int(required_votes),
+        "total_votes": int(total_votes),
+        "yes": int(tally["yes"]),
+        "no": int(tally["no"]),
+        "abstain": int(tally["abstain"]),
+        "passed": bool(tally["yes"] >= required_votes),
+    }
+    if parent_ref:
+        tally_payload["_parent_ref"] = parent_ref
+
+    close_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
+    _apply_gov_voting_close(state, _system_env("GOV_VOTING_CLOSE", close_payload, height=int(current_height), parent_ref=parent_ref))
+    _apply_gov_tally_publish(state, _system_env("GOV_TALLY_PUBLISH", tally_payload, height=int(current_height), parent_ref=parent_ref))
+
+    if stage != "poll" and bool(tally_payload["passed"]):
+        exec_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
+        _apply_gov_execute(state, _system_env("GOV_EXECUTE", exec_payload, height=int(current_height), parent_ref=parent_ref))
+
+    finalize_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
+    _apply_gov_proposal_finalize(state, _system_env("GOV_PROPOSAL_FINALIZE", finalize_payload, height=int(current_height), parent_ref=parent_ref))
 
 
 def _ensure_root(state: Json) -> dict[str, Any]:
@@ -259,6 +471,8 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if start_stage not in {"draft", "poll", "revision", "validation", "voting", "vote"}:
         start_stage = "draft"
 
+    eligible_validators = _proposal_eligible_validator_ids(state, {"creator": str(env.signer)})
+
     root[proposal_id] = {
         "proposal_id": proposal_id,
         "creator": str(env.signer),
@@ -272,6 +486,9 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         # Poll vs final vote storage (both use GOV_VOTE_CAST)
         "poll_votes": {},
         "votes": {},
+        "eligible_validator_ids": list(eligible_validators),
+        "eligible_validator_count": int(len(eligible_validators)),
+        "required_votes": int(quorum_threshold(len(eligible_validators))) if eligible_validators else 0,
         "tallies": [],
         "poll_tallies": [],
         "executions": [],
@@ -403,8 +620,23 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
         pr[key] = votes
 
     h = _height_hint(state, env)
-    votes[str(env.signer)] = {"vote": vote, "height": int(h)}
+    eligible_validators = _proposal_eligible_validator_ids(state, pr, str(env.signer))
+    signer_key = _canonical_actor_key(eligible_validators, str(env.signer), state)
+    for alias in _identity_variants(env.signer):
+        if alias != signer_key:
+            votes.pop(alias, None)
+    votes[signer_key] = {"vote": vote, "height": int(h)}
     pr["updated_at_height"] = int(h)
+
+    parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or f"tx:{env.signer}:{int(env.nonce)}"
+    _maybe_schedule_governance_auto_progress(
+        state,
+        pr,
+        proposal_id,
+        current_height=int(h),
+        parent_ref=parent_ref,
+    )
+
     return {"applied": True, "proposal_id": proposal_id}
 
 def _apply_gov_vote_revoke(state: Json, env: TxEnvelope) -> dict[str, Any]:

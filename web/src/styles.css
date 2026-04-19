@@ -1866,3 +1866,333 @@ body {
   border-color: rgba(186, 219, 255, 0.25);
   color: var(--muted-strong);
 }
+
+.statusPill.warning,
+.calloutWarn,
+.inlineMessage-warn {
+  border-color: rgba(244, 201, 93, 0.28);
+  background: rgba(244, 201, 93, 0.1);
+  color: #ffe7aa;
+}
+
+.feedbackBanner {
+  border-width: 1px;
+}
+
+.feedbackBanner-danger {
+  border-color: rgba(251, 113, 133, 0.24);
+}
+
+.feedbackBanner-warn {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.feedbackBanner-neutral {
+  border-color: rgba(186, 219, 255, 0.16);
+}
+
+.feedbackBannerHead {
+  align-items: flex-start;
+}
+
+.inlineMessage {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.inlineMessage-danger {
+  border-color: rgba(251, 113, 133, 0.28);
+  background: rgba(251, 113, 133, 0.1);
+  color: #ffd6df;
+}
+
+.inlineMessage-warn {
+  border-color: rgba(244, 201, 93, 0.28);
+  background: rgba(244, 201, 93, 0.1);
+  color: #ffe7aa;
+}
+
+.inlineMessage-neutral {
+  border-color: rgba(186, 219, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted-strong);
+}
+
+.txToast-validating {
+  border-color: rgba(111, 231, 255, 0.24);
+}
+
+.txToast-submitting {
+  border-color: rgba(76, 224, 179, 0.24);
+}
+
+.txToast-recorded {
+  border-color: rgba(244, 201, 93, 0.26);
+}
+
+.txToast-refreshing {
+  border-color: rgba(186, 219, 255, 0.28);
+}
+
+.txToast-confirmed {
+  border-color: rgba(134, 239, 172, 0.24);
+}
+
+.txToast-failed {
+  border-color: rgba(252, 165, 165, 0.34);
+}
+
+.txToastBadgeRow {
+  display: grid;
+  gap: 6px;
+}
+
+.txToastBadge {
+  border: 1px solid transparent;
+}
+
+.txToastBadge-validating {
+  background: rgba(111, 231, 255, 0.12);
+  border-color: rgba(111, 231, 255, 0.18);
+}
+
+.txToastBadge-submitting {
+  background: rgba(76, 224, 179, 0.12);
+  border-color: rgba(76, 224, 179, 0.18);
+}
+
+.txToastBadge-recorded {
+  background: rgba(244, 201, 93, 0.12);
+  border-color: rgba(244, 201, 93, 0.18);
+}
+
+.txToastBadge-refreshing {
+  background: rgba(186, 219, 255, 0.12);
+  border-color: rgba(186, 219, 255, 0.18);
+}
+
+.txToastBadge-confirmed {
+  background: rgba(134, 239, 172, 0.12);
+  border-color: rgba(134, 239, 172, 0.18);
+}
+
+.txToastBadge-failed {
+  background: rgba(251, 113, 133, 0.12);
+  border-color: rgba(251, 113, 133, 0.18);
+}
+
+.txToastHint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.appShellBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+.appShellRightRail {
+  position: sticky;
+  top: 108px;
+  display: grid;
+  gap: 14px;
+}
+
+.rightRailPanel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.rightRailPanelLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(237, 244, 251, 0.54);
+}
+
+.rightRailPanelBody {
+  display: grid;
+  gap: 10px;
+}
+
+.railPrimaryLine,
+.rightRailListTitleRow,
+.railPendingMetaRow,
+.railActionRow,
+.railPendingSummary,
+.railPillRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.railMetaPill,
+.railCapabilityPill,
+.railListKind,
+.railUrgencyPill,
+.railSourceTag {
+  font-size: 11px;
+  line-height: 1;
+  padding: 7px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.railMetaPill-ready,
+.railUrgencyPill-high {
+  border-color: rgba(244, 201, 93, 0.24);
+  background: rgba(244, 201, 93, 0.12);
+  color: rgba(255, 228, 145, 0.98);
+}
+
+.railMetaPill-ok,
+.railUrgencyPill-low {
+  border-color: rgba(76, 224, 179, 0.24);
+  background: rgba(76, 224, 179, 0.1);
+  color: rgba(184, 255, 229, 0.98);
+}
+
+.railMetaPill-warn,
+.railUrgencyPill-medium {
+  border-color: rgba(111, 231, 255, 0.2);
+  background: rgba(111, 231, 255, 0.1);
+  color: rgba(203, 248, 255, 0.98);
+}
+
+.railSupportText,
+.railTimestamp,
+.railPendingSummary {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(237, 244, 251, 0.72);
+}
+
+.rightRailList {
+  display: grid;
+  gap: 8px;
+}
+
+.rightRailListItem {
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.rightRailListItem:hover {
+  border-color: rgba(111, 231, 255, 0.16);
+  background: rgba(111, 231, 255, 0.06);
+}
+
+.railSecondaryAction {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+
+.railSecondaryAction:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1200px) {
+  .appShellBody {
+    grid-template-columns: 1fr;
+  }
+
+  .appShellRightRail {
+    position: static;
+  }
+}
+
+.appShell.writesLocked .appShellContent {
+  position: relative;
+}
+
+.appShellLockPill {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 113, 133, 0.28);
+  background: rgba(251, 113, 133, 0.1);
+  color: #ffb4bf;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sessionRecoveryBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: var(--shadow);
+}
+
+.sessionRecoveryBanner.compact {
+  padding: 14px 16px;
+}
+
+.sessionRecoveryBanner-warning {
+  border-color: rgba(244, 201, 93, 0.28);
+  background: rgba(244, 201, 93, 0.08);
+}
+
+.sessionRecoveryBanner-danger {
+  border-color: rgba(251, 113, 133, 0.24);
+  background: rgba(251, 113, 133, 0.08);
+}
+
+.sessionRecoveryBanner-ok {
+  border-color: rgba(76, 224, 179, 0.24);
+  background: rgba(76, 224, 179, 0.08);
+}
+
+.sessionRecoveryBanner-neutral {
+  border-color: var(--border);
+}
+
+.sessionRecoveryBannerCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.sessionRecoveryBannerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .sessionRecoveryBanner {
+    flex-direction: column;
+  }
+
+  .sessionRecoveryBannerActions {
+    justify-content: flex-start;
+  }
+}

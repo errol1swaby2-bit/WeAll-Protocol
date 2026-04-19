@@ -1,6 +1,8 @@
 import React from "react";
 
-export type TxToastStatus = "preparing" | "submitted" | "confirmed" | "error" | "unknown";
+import { txStatusLabel, type TxLifecycleStatus } from "../lib/txFeedback";
+
+export type TxToastStatus = TxLifecycleStatus;
 
 export type TxToastItem = {
   id: string;
@@ -12,18 +14,21 @@ export type TxToastItem = {
   updatedAt?: number;
 };
 
-function badgeLabel(status: TxToastStatus): string {
+function statusHint(status: TxToastStatus): string {
   switch (status) {
-    case "preparing":
-      return "Preparing";
-    case "submitted":
-      return "Submitted";
+    case "validating":
+      return "Checking the action before a signed submission is attempted.";
+    case "submitting":
+      return "Submitting the signed action to the node.";
+    case "recorded":
+      return "The action was accepted, but the affected surface may still be catching up.";
+    case "refreshing":
+      return "Refreshing dependent state so the page can show the result visibly.";
     case "confirmed":
-      return "Confirmed";
-    case "unknown":
-      return "Unknown";
+      return "The action has been confirmed and the dependent surface reconciled.";
+    case "failed":
     default:
-      return "Failed";
+      return "The action did not complete successfully.";
   }
 }
 
@@ -39,16 +44,19 @@ export default function TxStatusToast({
   return (
     <div className="txToastStack" aria-live="polite" aria-atomic="false">
       {items.map((item) => (
-        <div key={item.id} className={`txToast txToast-${item.status}`}>
+        <div key={item.id} className={`txToast txToast-${item.status}`} data-tx-status={item.status}>
           <div className="txToastHead">
             <strong>{item.title}</strong>
-            <button className="txToastClose" onClick={() => onDismiss(item.id)} aria-label="Dismiss">
+            <button className="txToastClose" onClick={() => onDismiss(item.id)} aria-label="Dismiss transaction status">
               ×
             </button>
           </div>
 
           <div className="txToastBody">
-            <div className="txToastBadge">{badgeLabel(item.status)}</div>
+            <div className="txToastBadgeRow">
+              <div className={`txToastBadge txToastBadge-${item.status}`}>{txStatusLabel(item.status)}</div>
+              <div className="txToastHint">{statusHint(item.status)}</div>
+            </div>
 
             {item.message ? <div className="txToastMessage">{item.message}</div> : null}
 

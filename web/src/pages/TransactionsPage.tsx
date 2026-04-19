@@ -17,6 +17,31 @@ type TxHistoryItem = {
   updatedAt: number;
 };
 
+type TxCatalogSummaryRow = {
+  name: string;
+  count: number;
+};
+
+type TxCatalogItem = {
+  id: string;
+  name: string;
+  origin: string;
+  context: string;
+  domain: string;
+  receipt_only: boolean;
+  subject_gate?: string;
+  api_entrypoints?: string[];
+};
+
+type TxCatalogResponse = {
+  ok: boolean;
+  total: number;
+  count: number;
+  filters?: { context?: string; domain?: string; search?: string };
+  summary?: { by_context?: TxCatalogSummaryRow[]; by_domain?: TxCatalogSummaryRow[] };
+  items?: TxCatalogItem[];
+};
+
 const TX_HISTORY_KEY = "weall_tx_activity_v1";
 
 function loadHistory(): TxHistoryItem[] {
@@ -40,6 +65,22 @@ function fmtTs(value: number | undefined): string {
   }
 }
 
+function summarizeList(rows: TxCatalogSummaryRow[] | undefined, limit = 4): string {
+  if (!rows?.length) return "—";
+  return rows
+    .slice(0, limit)
+    .map((row) => `${row.name} (${row.count})`)
+    .join(" · ");
+}
+
+function summarizeEntrypoints(item: TxCatalogItem): string {
+  const routes = Array.isArray(item.api_entrypoints) ? item.api_entrypoints.filter(Boolean) : [];
+  if (!routes.length) {
+    return item.context === "block" ? "System or consensus-owned path" : "No public HTTP entrypoint exposed";
+  }
+  return routes.join(" · ");
+}
+
 export default function TransactionsPage(): JSX.Element {
   const tx = useTxQueue();
   const base = useMemo(() => getApiBaseUrl(), []);
@@ -48,6 +89,12 @@ export default function TransactionsPage(): JSX.Element {
   const [history, setHistory] = useState<TxHistoryItem[]>(() => loadHistory());
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<{ msg: string; details: any } | null>(null);
+  const [catalogError, setCatalogError] = useState<{ msg: string; details: any } | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalog, setCatalog] = useState<TxCatalogResponse | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogContext, setCatalogContext] = useState("");
+  const [catalogDomain, setCatalogDomain] = useState("");
 
   useEffect(() => {
     const sync = () => setHistory(loadHistory());
@@ -59,9 +106,43 @@ export default function TransactionsPage(): JSX.Element {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setCatalogLoading(true);
+      setCatalogError(null);
+      try {
+        const result = await weall.txCatalog(
+          {
+            context: catalogContext || undefined,
+            domain: catalogDomain || undefined,
+            search: catalogSearch.trim() || undefined,
+          },
+          base,
+        );
+        if (!cancelled) {
+          setCatalog(result as TxCatalogResponse);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setCatalogError({ msg: e?.message || "Failed to load transaction catalog.", details: e });
+        }
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [base, catalogContext, catalogDomain, catalogSearch]);
+
   const queueItems = tx.items;
   const pendingCount = history.filter((item) => item.status === "preparing" || item.status === "submitted").length;
   const terminalCount = history.filter((item) => item.status === "confirmed" || item.status === "error" || item.status === "unknown").length;
+
+  const availableContexts = useMemo(() => catalog?.summary?.by_context?.map((row) => row.name) || [], [catalog]);
+  const availableDomains = useMemo(() => catalog?.summary?.by_domain?.map((row) => row.name) || [], [catalog]);
 
   async function refreshPendingStatuses(): Promise<void> {
     setRefreshing(true);
@@ -107,7 +188,7 @@ export default function TransactionsPage(): JSX.Element {
             <div className="eyebrow">Protocol</div>
             <h1 className="surfaceTitle">Transaction activity</h1>
             <p className="surfaceSummaryHint">
-              This page keeps local submission history separate from backend-confirmed transaction status so the interface does not overstate finality.
+              This page keeps local submission history separate from backend-confirmed transaction status and now also exposes the canonical transaction catalog, including the public HTTP entrypoints that wire frontend flows to backend tx surfaces.
             </p>
           </div>
           <div className="statusRowWrap">
@@ -123,19 +204,20 @@ export default function TransactionsPage(): JSX.Element {
             <div className="summaryCardHint">Recent local submission history stored by this browser.</div>
           </article>
           <article className="summaryCard">
-            <span className="summaryCardLabel">Pending lifecycle</span>
-            <div className="summaryCardValue">{pendingCount}</div>
-            <div className="summaryCardHint">These items still need backend or later surface confirmation.</div>
+            <span className="summaryCardLabel">Canonical tx catalog</span>
+            <div className="summaryCardValue">{catalog?.count ?? "—"}</div>
+            <div className="summaryCardHint">Filtered backend tx surfaces currently visible through the catalog route.</div>
           </article>
           <article className="summaryCard">
-            <span className="summaryCardLabel">Terminal records</span>
-            <div className="summaryCardValue">{terminalCount}</div>
-            <div className="summaryCardHint">Confirmed, failed, or unknown outcomes already recorded by this client.</div>
+            <span className="summaryCardLabel">Top contexts</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{summarizeList(catalog?.summary?.by_context)}</div>
+            <div className="summaryCardHint">Useful for seeing which flows originate in mempool versus block/system phases.</div>
           </article>
         </div>
       </section>
 
       {error ? <ErrorBanner message={error.msg} details={error.details} /> : null}
+      {catalogError ? <ErrorBanner message={catalogError.msg} details={catalogError.details} /> : null}
 
       <section className="infoGrid twoCol">
         <article className="card">
@@ -184,10 +266,81 @@ export default function TransactionsPage(): JSX.Element {
               <strong>Local history:</strong> this browser remembers recent submission attempts and the last known lifecycle state.
             </div>
             <div className="summaryCallout subtle">
-              <strong>Not canonical history:</strong> a transaction appearing here does not by itself prove inclusion, execution, or long-term index retention. Use account, content, or protocol surfaces to verify authoritative outcome.
+              <strong>Canonical tx catalog:</strong> the backend now exposes transaction surface metadata so frontend work can be explicitly aligned to real protocol tx types, contexts, gate expectations, and concrete public HTTP entrypoints.
             </div>
           </div>
         </article>
+      </section>
+
+      <section className="card">
+        <div className="cardHeaderRow">
+          <div>
+            <div className="eyebrow">Transaction catalog</div>
+            <h2 className="cardTitle">Backend tx surface map</h2>
+          </div>
+          <div className="miniTag">{catalog?.count ?? 0} shown / {catalog?.total ?? 0} total</div>
+        </div>
+        <p className="cardDesc">
+          Use this to connect frontend builders and review flows to canonical backend transaction types instead of relying on implicit assumptions.
+        </p>
+        <div className="row gap8 wrap" style={{ marginBottom: 12 }}>
+          <input
+            className="input"
+            placeholder="Search tx type, domain, or gate"
+            value={catalogSearch}
+            onChange={(ev) => setCatalogSearch(ev.target.value)}
+            style={{ minWidth: 260 }}
+          />
+          <select className="input" value={catalogContext} onChange={(ev) => setCatalogContext(ev.target.value)} style={{ minWidth: 160 }}>
+            <option value="">All contexts</option>
+            {availableContexts.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <select className="input" value={catalogDomain} onChange={(ev) => setCatalogDomain(ev.target.value)} style={{ minWidth: 180 }}>
+            <option value="">All domains</option>
+            {availableDomains.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          {catalogLoading ? <span className="statusPill warn">Loading catalog…</span> : null}
+        </div>
+        <div className="summaryCardGrid summaryCardGridThree" style={{ marginBottom: 16 }}>
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Top domains</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{summarizeList(catalog?.summary?.by_domain)}</div>
+            <div className="summaryCardHint">Shows where the biggest transaction surface areas live.</div>
+          </article>
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Top contexts</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{summarizeList(catalog?.summary?.by_context)}</div>
+            <div className="summaryCardHint">Mempool and block context are the primary execution entry points.</div>
+          </article>
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Frontend connection</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{catalogContext || catalogDomain || catalogSearch ? "Filtered" : "Full map"}</div>
+            <div className="summaryCardHint">Use filters to focus implementation work on a single domain or flow family.</div>
+          </article>
+        </div>
+        {catalog?.items?.length ? (
+          <div className="txRecordList compact">
+            {catalog.items.slice(0, 80).map((item) => (
+              <article key={item.id || item.name} className="txRecordCard unknown">
+                <div className="txRecordHeader">
+                  <strong>{item.name}</strong>
+                  <span className="statusPill ok">{item.context || "—"}</span>
+                </div>
+                <div className="txRecordMeta">
+                  Domain: {item.domain || "—"} · Origin: {item.origin || "—"} · Gate: {item.subject_gate || "—"}
+                </div>
+                <div className="mutedText">HTTP entrypoints: {summarizeEntrypoints(item)}</div>
+                <div className="mutedText">{item.receipt_only ? "Receipt/system surface" : "Client-signable or validator surface"}</div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState">No catalog entries matched the current filters.</div>
+        )}
       </section>
 
       <section className="card">

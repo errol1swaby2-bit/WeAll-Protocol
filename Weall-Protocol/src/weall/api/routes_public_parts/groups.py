@@ -96,6 +96,67 @@ def _iter_group_posts(st: dict[str, Any], *, group_id: str) -> list[dict[str, An
     return out
 
 
+def _group_record(st: dict[str, Any], group_id: str) -> dict[str, Any] | None:
+    by_state = _groups_by_id(st)
+    by_roles = _group_roles_by_id(st)
+
+    g_state = by_state.get(group_id)
+    g_roles = by_roles.get(group_id)
+
+    if not isinstance(g_state, dict) and not isinstance(g_roles, dict):
+        return None
+
+    out: dict[str, Any] = dict(g_state) if isinstance(g_state, dict) else {"id": group_id}
+    out.setdefault("id", str(out.get("id") or group_id))
+    if isinstance(g_roles, dict):
+        out["roles"] = g_roles
+        if "members" not in out and isinstance(g_roles.get("members"), dict):
+            out["members"] = g_roles.get("members")
+    return out
+
+
+def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None) -> dict[str, Any]:
+    group = _group_record(st, group_id)
+    if not isinstance(group, dict):
+        return {
+            "ok": True,
+            "group_id": group_id,
+            "account": account,
+            "group_exists": False,
+            "phase": "missing",
+            "is_member": False,
+            "is_pending": False,
+        }
+
+    members = group.get("members") if isinstance(group.get("members"), dict) else {}
+    reqs = group.get("membership_requests") if isinstance(group.get("membership_requests"), dict) else {}
+    phase = "anonymous"
+    is_member = False
+    is_pending = False
+    if account:
+        acct = str(account).strip()
+        is_member = acct in members
+        is_pending = acct in reqs and not is_member
+        if is_member:
+            phase = "member"
+        elif is_pending:
+            phase = "pending"
+        else:
+            phase = "eligible" if not _group_is_private(group) else "not_member"
+
+    visibility = "private" if _group_is_private(group) else "public"
+    return {
+        "ok": True,
+        "group_id": group_id,
+        "account": account,
+        "group_exists": True,
+        "phase": phase,
+        "is_member": is_member,
+        "is_pending": is_pending,
+        "visibility": visibility,
+    }
+
+
 def _require_group_access(
     request: Request, st: dict[str, Any], *, group_id: str, group_meta: dict[str, Any]
 ) -> str:
@@ -171,19 +232,28 @@ def v1_groups_list(request: Request):
 @router.get("/groups/{group_id}")
 def v1_group_get(group_id: str, request: Request):
     st = _snapshot(request)
-    by_state = _groups_by_id(st)
-    by_roles = _group_roles_by_id(st)
-
-    g = by_state.get(group_id)
+    g = _group_record(st, group_id)
     if not isinstance(g, dict):
-        g = {"id": group_id}
+        return {"ok": True, "group": {"id": group_id}, "membership": _membership_status(st, group_id=group_id, account=None)}
 
-    roles = by_roles.get(group_id)
-    if isinstance(roles, dict):
-        g = dict(g)
-        g["roles"] = roles
+    account = None
+    try:
+        account = require_account_session(request, st)
+    except Exception:
+        account = None
 
-    return {"ok": True, "group": g}
+    return {"ok": True, "group": g, "membership": _membership_status(st, group_id=group_id, account=account)}
+
+
+@router.get("/groups/{group_id}/membership")
+def v1_group_membership(group_id: str, request: Request):
+    st = _snapshot(request)
+    account = None
+    try:
+        account = require_account_session(request, st)
+    except Exception:
+        account = _str_param(request.query_params.get("account")).strip() or None
+    return _membership_status(st, group_id=group_id, account=account)
 
 
 @router.get("/groups/{group_id}/members")
@@ -232,8 +302,7 @@ def v1_group_join(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRes
         raise ApiError.bad_request("bad_request", "missing group_id", {})
 
     # Validate group exists (public API should fail fast)
-    by_state = _groups_by_id(st)
-    if group_id not in by_state:
+    if not isinstance(_group_record(st, group_id), dict):
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
 
     payload: dict[str, Any] = {"group_id": group_id}
@@ -262,8 +331,7 @@ def v1_group_leave(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRe
     if not group_id:
         raise ApiError.bad_request("bad_request", "missing group_id", {})
 
-    by_state = _groups_by_id(st)
-    if group_id not in by_state:
+    if not isinstance(_group_record(st, group_id), dict):
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
 
     # GROUP_MEMBERSHIP_REMOVE requires the account being removed.

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl } from "../api/weall";
+import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -8,11 +8,14 @@ import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
+import { reconcileGroupVisible, reconcileMembershipPending, reconcileMembershipState } from "../lib/groupsRevalidation";
+import { refreshMutationSlices } from "../lib/revalidation";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  const details = e?.body || e?.data || e;
-  const msg = details?.message || e?.error?.message || e?.message || "error";
-  return { msg, details };
+  if (!e) return null as any;
+  return actionableTxError(e, "Group action failed.");
 }
 
 function slugifyGroupId(s: string): string {
@@ -34,14 +37,41 @@ type GroupListItem = {
   raw: any;
 };
 
+type MembershipStatus = {
+  ok?: boolean;
+  group_id?: string;
+  account?: string | null;
+  phase?: string;
+  is_member?: boolean;
+  is_pending?: boolean;
+  group_exists?: boolean;
+  visibility?: string;
+};
+
+function memberMatchesAccount(member: any, account: string | null | undefined): boolean {
+  const needle = String(account || "").trim().toLowerCase();
+  if (!needle) return false;
+  return [member?.account, member?.account_id, member?.id, member?.member_account_id]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .some((value) => value === needle);
+}
+
+function shouldFallbackDirectMembershipSubmit(e: any): boolean {
+  const status = Number(e?.status || e?.payload?.status || e?.body?.status || 0);
+  const msg = String(e?.message || e?.payload?.message || e?.body?.message || e?.payload || "").toLowerCase();
+  return status >= 500 || msg.includes("internal server error") || msg.includes("unexpected error");
+}
+
 function mapGroup(obj: any): GroupListItem {
   const id = String(obj?.group_id || obj?.id || "").trim();
   const charter = obj?.charter && typeof obj.charter === "object" ? obj.charter : null;
+  const charterText = typeof obj?.charter === "string" ? obj.charter.trim() : "";
   const meta = obj?.meta && typeof obj.meta === "object" ? obj.meta : null;
   const roles = obj?.roles && typeof obj.roles === "object" ? obj.roles : null;
   const members = obj?.members && typeof obj.members === "object" ? obj.members : roles?.members;
-  const name = String(charter?.name || meta?.name || obj?.name || id);
-  const description = String(charter?.description || meta?.description || obj?.description || "");
+  const charterLines = charterText ? charterText.split(/\n{2,}|\r\n\r\n/).map((part: string) => part.trim()).filter(Boolean) : [];
+  const name = String(charter?.name || meta?.name || obj?.name || charterLines[0] || id);
+  const description = String(charter?.description || meta?.description || obj?.description || charterLines.slice(1).join("\n\n") || "");
   const visibility = String(
     obj?.visibility || obj?.privacy || meta?.visibility || meta?.privacy || "public",
   ).toLowerCase();
@@ -64,6 +94,8 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
   const [selected, setSelected] = useState<string>(initialGroupId);
   const [detail, setDetail] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [groupPosts, setGroupPosts] = useState<any[]>([]);
+  const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
   const [createName, setCreateName] = useState<string>("");
   const [createDesc, setCreateDesc] = useState<string>("");
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
@@ -76,6 +108,7 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
   const [acctState, setAcctState] = useState<any | null>(null);
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
+  const signerSubmission = useSignerSubmissionBusy(acct);
 
   const createGate = useMemo(
     () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 }),
@@ -102,6 +135,20 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
     }
   }
 
+  async function loadMembershipStatus(groupId: string): Promise<void> {
+    if (!groupId || !acct) {
+      setMembershipStatus(null);
+      return;
+    }
+    try {
+      const headers = getAuthHeaders(acct);
+      const r: any = await api.groups.membership(groupId, base, headers);
+      setMembershipStatus(r || null);
+    } catch {
+      setMembershipStatus(null);
+    }
+  }
+
   async function refreshGroups(): Promise<void> {
     setErr(null);
     try {
@@ -125,6 +172,8 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
     if (!id) {
       setDetail(null);
       setMembers([]);
+      setGroupPosts([]);
+      setMembershipStatus(null);
       return;
     }
 
@@ -135,10 +184,16 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
 
       const m: any = await api.groups.members(id, base).catch(() => ({ members: [] }));
       setMembers(Array.isArray(m?.members) ? m.members : []);
+      const feedHeaders = acct ? getAuthHeaders(acct) : undefined;
+      const feedRes: any = await weall.groupFeed(id, { limit: 25 }, base, feedHeaders).catch(() => ({ items: [] }));
+      setGroupPosts(Array.isArray(feedRes?.items) ? feedRes.items : []);
+      await loadMembershipStatus(id);
     } catch (e: any) {
       setErr(prettyErr(e));
       setDetail(null);
       setMembers([]);
+      setGroupPosts([]);
+      setMembershipStatus(null);
     }
   }
 
@@ -183,20 +238,24 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
 
       await tx.runTx({
         title: "Create group",
+        pendingKey: txPendingKey(["group-create", acct, group_id]),
         pendingMessage: "Submitting group creation…",
         successMessage: "Group created.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => reconcileGroupVisible(group_id, base),
+        },
         task: async () =>
           submitSignedTx({
             account: acct,
             tx_type: "GROUP_CREATE",
             payload: {
               group_id,
-              charter: {
-                name,
-                description: description || null,
-              },
+              charter: description ? `${name}
+
+${description}` : name,
             },
             parent: null,
             base,
@@ -205,10 +264,13 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
 
       setCreateName("");
       setCreateDesc("");
-      await refreshGroups();
-      setSelected(group_id);
-      await refreshSelected(group_id);
-      await refreshAccountContext();
+      await refreshMutationSlices(
+        refreshGroups,
+        async () => setSelected(group_id),
+        async () => refreshSelected(group_id),
+        refreshAccountContext,
+      );
+      nav(`/groups/${encodeURIComponent(group_id)}`);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -236,20 +298,46 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
     setBusy(true);
     try {
       const headers = getAuthHeaders(acct);
-      const skel: any =
-        kind === "join"
-          ? await api.groups.join({ group_id: selected }, base, headers)
-          : await api.groups.leave({ group_id: selected }, base, headers);
+      let skeletonTx: any = null;
+      try {
+        const skel: any =
+          kind === "join"
+            ? await api.groups.join({ group_id: selected, message: "" }, base, headers)
+            : await api.groups.leave({ group_id: selected }, base, headers);
+        skeletonTx = skel?.tx;
+        if (!skel || skel.ok !== true || !skeletonTx?.tx_type) throw skel;
+      } catch (e: any) {
+        if (!(kind === "join" && shouldFallbackDirectMembershipSubmit(e))) throw e;
+        skeletonTx = {
+          tx_type: "GROUP_MEMBERSHIP_REQUEST",
+          parent: null,
+          payload: { group_id: selected },
+        };
+      }
 
-      const skeletonTx = skel?.tx;
-      if (!skel || skel.ok !== true || !skeletonTx?.tx_type) throw skel;
+      const joinWillAutoAccept = kind === "join" && !detailIsPrivate;
 
       await tx.runTx({
         title: kind === "join" ? "Join group" : "Leave group",
-        pendingMessage: kind === "join" ? "Joining group…" : "Leaving group…",
-        successMessage: kind === "join" ? "Joined group." : "Left group.",
+        pendingKey: txPendingKey(["group-membership", kind, selected, acct]),
+        pendingMessage: kind === "join" ? (joinWillAutoAccept ? "Joining group…" : "Submitting membership request…") : "Leaving group…",
+        successMessage: kind === "join" ? (joinWillAutoAccept ? "Joined group." : "Membership request submitted.") : "Left group.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => {
+            if (kind === "join" && detailIsPrivate) {
+              return reconcileMembershipPending({ groupId: selected, account: acct, base });
+            }
+            return reconcileMembershipState({
+              groupId: selected,
+              account: acct,
+              expectMember: kind === "join",
+              base,
+            });
+          },
+        },
         task: async () =>
           submitSignedTx({
             account: acct,
@@ -260,9 +348,13 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
           }),
       });
 
-      await refreshSelected(selected);
-      await refreshGroups();
-      await refreshAccountContext();
+      await refreshMutationSlices(
+        async () => refreshSelected(selected),
+        async () => loadMembershipStatus(selected),
+        refreshGroups,
+        refreshAccountContext,
+      );
+      nav(`/groups/${encodeURIComponent(selected)}`);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -270,11 +362,15 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
     }
   }
 
+  const detailCharterText = typeof detail?.charter === "string" ? detail.charter.trim() : "";
+  const detailCharterParts = detailCharterText
+    ? detailCharterText.split(/\n{2,}|\r\n\r\n/).map((part: string) => part.trim()).filter(Boolean)
+    : [];
   const detailName = String(
-    detail?.charter?.name || detail?.meta?.name || detail?.name || selectedItem?.name || "No group selected",
+    detail?.charter?.name || detail?.meta?.name || detail?.name || detailCharterParts[0] || selectedItem?.name || "No group selected",
   );
   const detailDescription = String(
-    detail?.charter?.description || detail?.meta?.description || detail?.description || "",
+    detail?.charter?.description || detail?.meta?.description || detail?.description || detailCharterParts.slice(1).join("\n\n") || "",
   );
   const detailVisibility = String(
     detail?.visibility ||
@@ -284,9 +380,12 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
       (selectedItem?.isPrivate ? "private" : "public"),
   ).toLowerCase();
   const detailIsPrivate = ["private", "closed", "members"].includes(detailVisibility);
+  const membershipPhase = String(membershipStatus?.phase || "").trim().toLowerCase();
+  const isPendingMembership = membershipPhase === "pending";
   const isMember =
-    !!acct &&
-    members.some((m: any) => String(m?.account || "").toLowerCase() === String(acct).toLowerCase());
+    (!!acct && !!membershipStatus?.is_member) ||
+    (!!acct &&
+      members.some((m: any) => String(m?.account || "").toLowerCase() === String(acct).toLowerCase()));
 
   return (
     <div className="pageStack">
@@ -336,6 +435,12 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
         </div>
       </section>
 
+      {signerSubmission.busy ? (
+        <div className="calloutInfo">
+          Another signed action for {acct || "this account"} is still settling. Group create and membership actions wait for the signer lane to clear so nonces stay ordered.
+        </div>
+      ) : null}
+
       <ErrorBanner
         message={err?.msg}
         details={err?.details}
@@ -383,7 +488,7 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
                   <button
                     key={g.id}
                     className={`quickCard ${selected === g.id ? "quickCardActive" : ""}`}
-                    onClick={() => setSelected(g.id)}
+                    onClick={() => nav(`/groups/${encodeURIComponent(g.id)}`)}
                   >
                     <span>
                       <strong>{g.name}</strong>
@@ -432,8 +537,8 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
             </div>
 
             <div className="buttonRow">
-              <button className="btn btnPrimary" onClick={() => void createGroup()} disabled={busy}>
-                {busy ? "Creating…" : "Create group"}
+              <button className="btn btnPrimary" onClick={() => void createGroup()} disabled={busy || signerSubmission.busy}>
+                {busy ? "Creating…" : signerSubmission.busy ? "Waiting for signer…" : "Create group"}
               </button>
             </div>
           </div>
@@ -462,17 +567,32 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
 
           <div className="buttonRow buttonRowWide">
             {selected ? (
-              <button className="btn" onClick={() => nav(`/group/${encodeURIComponent(selected)}`)}>
+              <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(selected)}`)}>
                 Open full group page
+              </button>
+            ) : null}
+            {selected && acct && (isMember || !detailIsPrivate) ? (
+              <button className="btn" onClick={() => nav(`/post?group_id=${encodeURIComponent(selected)}`)}>
+                Create group post
               </button>
             ) : null}
             {selected && acct ? (
               <button
                 className="btn btnPrimary"
                 onClick={() => void joinOrLeave(isMember ? "leave" : "join")}
-                disabled={busy || !membershipGate.ok}
+                disabled={busy || signerSubmission.busy || !membershipGate.ok || isPendingMembership}
               >
-                {busy ? "Working…" : isMember ? "Leave group" : "Request / join group"}
+                {busy
+                  ? "Working…"
+                  : signerSubmission.busy
+                    ? "Waiting for signer…"
+                    : isMember
+                      ? "Leave group"
+                      : isPendingMembership
+                        ? "Membership pending"
+                        : detailIsPrivate
+                          ? "Request membership"
+                          : "Join group"}
               </button>
             ) : null}
           </div>
@@ -484,9 +604,15 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Your membership</span>
-              <span className="statValue">{acct ? (isMember ? "Member" : "Not a member") : "Read-only"}</span>
+              <span className="statValue">{acct ? (isMember ? "Member" : isPendingMembership ? "Pending" : "Not a member") : "Read-only"}</span>
             </div>
           </div>
+
+          {isPendingMembership ? (
+            <div className="calloutInfo">
+              Your membership request is already pending on the authoritative group state. This detail page stays on the group route instead of bouncing you away while the request settles.
+            </div>
+          ) : null}
 
           {members.length ? (
             <div className="milestoneList">
@@ -498,6 +624,30 @@ export default function Groups(props: { groupId?: string }): JSX.Element {
             </div>
           ) : (
             <div className="cardDesc">No member list returned yet.</div>
+          )}
+
+          <div className="sectionHead" style={{ marginTop: 16 }}>
+            <div>
+              <div className="eyebrow">Activity</div>
+              <h3 className="cardTitle">Group feed</h3>
+            </div>
+          </div>
+          {groupPosts.length ? (
+            <div className="pageStack">
+              {groupPosts.map((post: any) => {
+                const pid = String(post?.post_id || post?.id || "").trim();
+                return (
+                  <button key={pid} className="quickCard" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
+                    <span>
+                      <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
+                      <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="cardDesc">No posts in this group yet. Use “Create group post” to publish directly into this group.</div>
           )}
         </div>
       </section>

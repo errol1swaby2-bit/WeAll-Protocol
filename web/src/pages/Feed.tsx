@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import FeedView from "../components/FeedView";
 import { getApiBaseUrl } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
+import { governanceProposalCountsOf, governanceProposalStageOf, loadActiveGovernanceProposals, type GovernanceProposal, type GovernanceProposalSummary } from "../lib/governance";
 
 type FeedTab = "global" | "mine" | "governance";
 
@@ -24,6 +25,7 @@ function TabButton({
   );
 }
 
+
 export default function Feed(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
@@ -31,6 +33,37 @@ export default function Feed(): JSX.Element {
   const kp = acct ? getKeypair(acct) : null;
 
   const [tab, setTab] = useState<FeedTab>("global");
+  const [govItems, setGovItems] = useState<GovernanceProposal[]>([]);
+  const [govLoading, setGovLoading] = useState(false);
+  const [govErr, setGovErr] = useState<string | null>(null);
+  const [govSummary, setGovSummary] = useState<GovernanceProposalSummary | null>(null);
+  const [govReloadKey, setGovReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadGovernance() {
+      if (tab !== "governance") return;
+      setGovLoading(true);
+      setGovErr(null);
+      try {
+        const surface = await loadActiveGovernanceProposals(base, 200);
+        if (!cancelled) {
+          setGovItems(surface.items);
+          setGovSummary(surface.summary);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setGovErr(String(e?.message || e?.payload?.message || "Failed to load proposals."));
+          setGovItems([]);
+          setGovSummary(null);
+        }
+      } finally {
+        if (!cancelled) setGovLoading(false);
+      }
+    }
+    void loadGovernance();
+    return () => { cancelled = true; };
+  }, [tab, base, govReloadKey]);
 
   const snapshot = resolveOnboardingSnapshot({
     account: acct,
@@ -108,7 +141,7 @@ export default function Feed(): JSX.Element {
           <div className="surfaceSummaryGrid">
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Browsing mode</span>
-              <strong className="surfaceSummaryValue">{tab === "mine" ? "Account scoped" : tab === "governance" ? "Governance-tagged" : "Public"}</strong>
+              <strong className="surfaceSummaryValue">{tab === "mine" ? "Account scoped" : tab === "governance" ? "Active proposals" : "Public"}</strong>
               <span className="surfaceSummaryHint">Switching tabs changes what the frontend asks the backend to return. It does not change chain truth.</span>
             </div>
             <div className="surfaceSummaryCard">
@@ -161,13 +194,91 @@ export default function Feed(): JSX.Element {
         </div>
       </section>
 
-      <FeedView
-        base={base}
-        title={title}
-        scope={scope}
-        defaultSort="new"
-        defaultFilters={defaultFilters}
-      />
+      {tab === "governance" ? (
+        <section className="pageStack">
+          <section className="card">
+            <div className="cardBody formStack">
+              <div className="sectionHead">
+                <div>
+                  <div className="eyebrow">Governance</div>
+                  <h2 className="cardTitle">Active proposals</h2>
+                </div>
+                <div className="statusSummary">
+                  <button className="btn" onClick={() => setGovReloadKey((v) => v + 1)} disabled={govLoading}>{govLoading ? "Refreshing…" : "Refresh"}</button>
+                  <button className="btn btnPrimary" onClick={() => nav("/proposals")}>Open full governance surface</button>
+                </div>
+              </div>
+              <div className="cardDesc">Governance mode now shows active proposals instead of reusing the social content feed. Proposal detail remains the authoritative place to inspect execution payloads and final tallies.</div>
+              {govSummary ? (
+                <div className="surfaceSummaryGrid">
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">Visible active proposals</span>
+                    <strong className="surfaceSummaryValue">{govItems.length}</strong>
+                    <span className="surfaceSummaryHint">This feed only renders proposals the backend marks active.</span>
+                  </div>
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">All proposals</span>
+                    <strong className="surfaceSummaryValue">{govSummary.total}</strong>
+                    <span className="surfaceSummaryHint">The full governance surface includes drafts, finalized, and withdrawn items too.</span>
+                  </div>
+                  <div className="surfaceSummaryCard">
+                    <span className="surfaceSummaryLabel">Active by backend summary</span>
+                    <strong className="surfaceSummaryValue">{govSummary.active}</strong>
+                    <span className="surfaceSummaryHint">This count comes directly from the governance API summary.</span>
+                  </div>
+                </div>
+              ) : null}
+              {govErr ? <div className="inlineError">{govErr}</div> : null}
+            </div>
+          </section>
+          {govLoading && !govItems.length ? (
+            <section className="card"><div className="cardBody"><div className="cardDesc">Loading active proposals…</div></div></section>
+          ) : null}
+          {!govLoading && !govItems.length ? (
+            <section className="card"><div className="cardBody"><div className="cardDesc">No active proposals are visible right now.</div></div></section>
+          ) : null}
+          {govItems.map((p: any) => {
+            const counts = governanceProposalCountsOf(p);
+            const total = counts.yes + counts.no + counts.abstain;
+            const proposalId = String(p?.proposal_id || p?.id || "");
+            return (
+              <article key={proposalId} className="card">
+                <div className="cardBody formStack">
+                  <div className="sectionHead">
+                    <div>
+                      <div className="eyebrow">{String(p?.stage || "draft").toUpperCase()}</div>
+                      <h3 className="cardTitle">{String(p?.title || proposalId || "Untitled proposal")}</h3>
+                    </div>
+                    <div className="statusSummary">
+                      {proposalId ? <span className="statusPill mono">{proposalId}</span> : null}
+                      <span className="statusPill">Votes {total}</span>
+                    </div>
+                  </div>
+                  {p?.summary ? <div className="feedBodyText">{String(p.summary)}</div> : p?.description ? <div className="feedBodyText">{String(p.description)}</div> : null}
+                  <div className="surfaceSummaryGrid">
+                    <div className="surfaceSummaryCard"><span className="surfaceSummaryLabel">YES</span><strong className="surfaceSummaryValue">{counts.yes}</strong></div>
+                    <div className="surfaceSummaryCard"><span className="surfaceSummaryLabel">NO</span><strong className="surfaceSummaryValue">{counts.no}</strong></div>
+                    <div className="surfaceSummaryCard"><span className="surfaceSummaryLabel">ABSTAIN</span><strong className="surfaceSummaryValue">{counts.abstain}</strong></div>
+                    <div className="surfaceSummaryCard"><span className="surfaceSummaryLabel">Author</span><strong className="surfaceSummaryValue mono">{String(p?.proposer || p?.author || p?.created_by || "unknown")}</strong></div>
+                  </div>
+                  <div className="buttonRow buttonRowWide">
+                    <button className="btn btnPrimary" onClick={() => nav(`/proposal/${encodeURIComponent(proposalId)}`)} disabled={!proposalId}>Open proposal</button>
+                    <button className="btn" onClick={() => nav("/proposals")}>View all proposals</button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : (
+        <FeedView
+          base={base}
+          title={title}
+          scope={scope}
+          defaultSort="new"
+          defaultFilters={defaultFilters}
+        />
+      )}
     </div>
   );
 }

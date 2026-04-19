@@ -328,7 +328,7 @@ main() {
   log "starting canonical backend quickstart with explicit PYTHONPATH"
   (
     cd "$BACKEND_DIR"
-    PYTHONPATH=src ./scripts/quickstart_tester.sh
+    WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" PYTHONPATH=src bash ./scripts/quickstart_tester.sh
   ) || fail "canonical backend quickstart failed; inspect diagnostics printed above"
 
   log "verifying backend ready"
@@ -337,7 +337,7 @@ main() {
   log "running canonical demo bootstrap"
   (
     cd "$BACKEND_DIR"
-    PYTHONPATH=src ./scripts/demo_bootstrap_tester.sh
+    PYTHONPATH=src bash ./scripts/demo_bootstrap_tester.sh
   ) || fail "canonical demo bootstrap failed"
 
   log "writing frontend dev bootstrap manifest from canonical demo summary"
@@ -354,8 +354,23 @@ manifest = {
     "account": summary.get("account"),
     "secretKeyB64": summary.get("secret_key_b64"),
     "secret_key_b64": summary.get("secret_key_b64"),
+    "pubkeyB64": summary.get("pubkey_b64"),
     "post_body": summary.get("post_body") or summary.get("demo_post_body") or "External tester demo post",
     "summary_path": str(summary_path),
+    "seededGroup": summary.get("seeded_group"),
+    "seededProposal": summary.get("seeded_proposal"),
+    "seededDispute": summary.get("seeded_dispute"),
+    "recommendedPath": summary.get("recommended_path"),
+    "fallbackInstructions": [
+        "If a screen looks stale, use the page-level Refresh button before retrying the action.",
+        "If a signed action appears stuck, wait for the signer busy notice to clear so the next nonce stays monotonic.",
+        "If the browser session drifts, return to Login and press Load demo tester session again.",
+    ],
+    "resetInstructions": [
+        "Run ./scripts/dev_boot_full_stack.sh from the repo root to rebuild the deterministic demo state.",
+        "Use the generated dev bootstrap card on Login to restore the seeded tester instantly after reset.",
+        "The canonical seeded ids also remain in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json.",
+    ],
     "apiBase": "/",
     "api_base": "/",
 }
@@ -373,6 +388,8 @@ PY
   log "manifest=${FRONTEND_DIR}/public/dev-bootstrap.json"
   log "demo_summary=${BACKEND_DIR}/generated/demo_bootstrap_result.json"
   log "frontend_log=${FRONTEND_LOG}"
+  log "run ./scripts/demo_rehearsal_check.sh before the conference demo"
+  log "operator runbook=docs/CONFERENCE_DEMO_RUNBOOK.md"
   log "demo tester handle and private key are now surfaced in:"
   log "  1) the login page dev bootstrap card"
   log "  2) ${BACKEND_DIR}/generated/demo_bootstrap_result.json"

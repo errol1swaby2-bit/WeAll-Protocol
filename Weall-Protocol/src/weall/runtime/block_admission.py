@@ -7,6 +7,7 @@ from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
+from weall.runtime.tx_id import compute_tx_id_from_envelope
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -308,6 +309,11 @@ def admit_block_txs(
     # Enforce monotonic per-signer sequencing within this block for non-system txs.
     per_signer_next: dict[str, int] = {}
     seen_signer_nonce: set[tuple[str, int]] = set()
+    seen_tx_ids: set[str] = set()
+
+    chain_id = _as_str(ledger.to_ledger().get("chain_id") or "")
+    if not chain_id:
+        chain_id = _as_str(_as_dict(ledger.to_ledger().get("params")).get("chain_id") or "")
 
     for i, env in enumerate(txs):
         # Fail closed but deterministic: if the element isn't a TxEnvelope, mark rejected.
@@ -328,6 +334,22 @@ def admit_block_txs(
         if not verdict.ok:
             rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
             continue
+
+        tx_id = ""
+        if chain_id:
+            try:
+                tx_id = str(compute_tx_id_from_envelope(chain_id, env) or "").strip()
+            except Exception:
+                tx_id = ""
+        if tx_id:
+            if tx_id in seen_tx_ids:
+                rejects[i] = TxReject(
+                    code="duplicate",
+                    reason="duplicate_tx_id_in_block",
+                    details={"tx_id": tx_id, "index": i},
+                )
+                continue
+            seen_tx_ids.add(tx_id)
 
         # SYSTEM txs: allow nonce=0 and skip sequencing rules.
         if bool(getattr(env, "system", False)):

@@ -493,6 +493,9 @@ export const weall = {
     return apiGet(
       withSearch(`/v1/accounts/${encodeURIComponent(account)}/feed`, {
         limit: params?.limit as number | undefined,
+        stage: (params as any)?.stage as string | undefined,
+        active_only: (params as any)?.activeOnly ? 1 : undefined,
+        include_summary: (params as any)?.includeSummary ? 1 : undefined,
         visibility: params?.visibility as string | undefined,
         cursor: params?.cursor as string | null | undefined,
         tags: normalizeTagsParam(params?.tags as string[] | string | undefined),
@@ -526,7 +529,7 @@ export const weall = {
   },
 
   proposals(
-    a?: { limit?: number } | string,
+    a?: { limit?: number; stage?: string; activeOnly?: boolean; includeSummary?: boolean } | string,
     b?: string | HeadersInit,
     c?: HeadersInit,
   ): Promise<any> {
@@ -534,6 +537,9 @@ export const weall = {
     return apiGet(
       withSearch("/v1/gov/proposals", {
         limit: params?.limit as number | undefined,
+        stage: (params as any)?.stage as string | undefined,
+        active_only: (params as any)?.activeOnly ? 1 : undefined,
+        include_summary: (params as any)?.includeSummary ? 1 : undefined,
       }),
       base,
       headers,
@@ -546,6 +552,37 @@ export const weall = {
 
   proposalVotes(id: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/gov/proposals/${encodeURIComponent(id)}/votes`, base, headers);
+  },
+
+  stateSnapshot(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/state/snapshot", base, headers);
+  },
+
+  disputes(
+    a?: { limit?: number; targetId?: string } | string,
+    b?: string | HeadersInit,
+    c?: HeadersInit,
+  ): Promise<any> {
+    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
+    return apiGet(
+      withSearch("/v1/disputes", {
+        limit: params?.limit as number | undefined,
+        stage: (params as any)?.stage as string | undefined,
+        active_only: (params as any)?.activeOnly ? 1 : undefined,
+        include_summary: (params as any)?.includeSummary ? 1 : undefined,
+        target_id: params?.targetId as string | undefined,
+      }),
+      base,
+      headers,
+    );
+  },
+
+  dispute(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/disputes/${encodeURIComponent(id)}`, base, headers);
+  },
+
+  disputeVotes(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/disputes/${encodeURIComponent(id)}/votes`, base, headers);
   },
 
   content(id: string, base?: string, headers?: HeadersInit): Promise<any> {
@@ -562,6 +599,9 @@ export const weall = {
     return apiGet(
       withSearch(`/v1/groups/${encodeURIComponent(id)}/feed`, {
         limit: params?.limit as number | undefined,
+        stage: (params as any)?.stage as string | undefined,
+        active_only: (params as any)?.activeOnly ? 1 : undefined,
+        include_summary: (params as any)?.includeSummary ? 1 : undefined,
         visibility: params?.visibility as string | undefined,
         cursor: params?.cursor as string | null | undefined,
         tags: normalizeTagsParam(params?.tags as string[] | string | undefined),
@@ -739,6 +779,18 @@ export const weall = {
   txStatus(txId: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/tx/status/${encodeURIComponent(txId)}`, base, headers);
   },
+
+  txCatalog(
+    params?: { context?: string; domain?: string; search?: string },
+    base?: string,
+    headers?: HeadersInit,
+  ): Promise<any> {
+    return apiGet(
+      withSearch("/v1/tx/catalog", params as Record<string, string | number | boolean | null | undefined>),
+      base,
+      headers,
+    );
+  },
 };
 
 export const api = {
@@ -758,6 +810,9 @@ export const api = {
     },
     members(id: string, base?: string, headers?: HeadersInit) {
       return apiGet(`/v1/groups/${encodeURIComponent(id)}/members`, base, headers);
+    },
+    membership(id: string, base?: string, headers?: HeadersInit) {
+      return apiGet(`/v1/groups/${encodeURIComponent(id)}/membership`, base, headers);
     },
     join(payload: unknown, base?: string, headers?: HeadersInit) {
       return apiPost("/v1/groups/join", payload, base, headers);

@@ -13,6 +13,7 @@ import {
 import { normalizeAccount, signDetachedB64 } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
@@ -165,6 +166,108 @@ function StageSummaryCard({
   );
 }
 
+async function reconcileRegisteredState(account: string, base: string): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  try {
+    const registration = await weall.accountRegistered(account, base);
+    if (registration?.registered === true) {
+      return {
+        phase: "confirmed",
+        detail: "The account is already visible as registered on-chain.",
+      };
+    }
+  } catch {
+    // ignore and fall back to account view
+  }
+  try {
+    const accountView = await weall.account(account, base);
+    const state = accountView?.account?.state ?? accountView?.state ?? null;
+    if (state && typeof state === "object") {
+      const nonce = Number((state as any)?.nonce || 0);
+      const pubkey = String((state as any)?.pubkey || "").trim();
+      if (nonce > 0 || !!pubkey) {
+        return {
+          phase: "confirmed",
+          detail: "The authoritative account record is already visible on-chain.",
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function reconcileSessionKeyVisible(account: string, expectedSessionKey: string, base: string): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  if (!expectedSessionKey.trim()) return null;
+  try {
+    const accountView = await weall.account(account, base);
+    const state = accountView?.account?.state ?? accountView?.state ?? null;
+    const byId = (state?.session_keys?.by_id ?? state?.session_keys) as Record<string, any> | undefined;
+    if (byId && typeof byId === "object") {
+      const records = Object.values(byId);
+      const matched = records.some((item: any) => String(item?.session_key || item?.key || item?.id || "").trim() === expectedSessionKey.trim());
+      if (matched) {
+        return {
+          phase: "confirmed",
+          detail: "The issued session key is already visible in authoritative account state.",
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function reconcileTierVisible(account: string, minimumTier: number, base: string): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  try {
+    const accountView = await weall.account(account, base);
+    const state = accountView?.account?.state ?? accountView?.state ?? null;
+    const tier = Math.max(0, Number((state as any)?.poh_tier || 0));
+    if (Number.isFinite(tier) && tier >= minimumTier) {
+      return {
+        phase: "confirmed",
+        detail: `Authoritative account state now reports Tier ${tier}.`,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function reconcileTier2CaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  try {
+    const cases = await weall.pohTier2MyCases(account, base, headers);
+    const items = Array.isArray(cases?.cases) ? cases.cases : [];
+    if (items.length > 0) {
+      return {
+        phase: "confirmed",
+        detail: "Your Tier 2 case is already visible on the authoritative PoH surface.",
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return reconcileTierVisible(account, 2, base);
+}
+
+async function reconcileTier3CaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+  try {
+    const assigned = await weall.pohTier3Assigned(account, base, headers);
+    const cases = Array.isArray(assigned?.cases) ? assigned.cases : [];
+    if (cases.length > 0) {
+      return {
+        phase: "confirmed",
+        detail: "Your Tier 3 case is already visible on the authoritative PoH surface.",
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return reconcileTierVisible(account, 3, base);
+}
+
 function CaseCard({ item }: { item: any }): JSX.Element {
   const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
   const tone = statusTone(String(item?.status || ""));
@@ -188,6 +291,7 @@ export default function PohPage(): JSX.Element {
   const kp = acct ? getKeypair(acct) : null;
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
+  const signerSubmission = useSignerSubmissionBusy(acct);
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
@@ -310,6 +414,10 @@ export default function PohPage(): JSX.Element {
         successMessage: "Account registration submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => reconcileRegisteredState(acct, base),
+        },
         task: async () =>
           submitSignedTx({
             account: acct,
@@ -336,6 +444,15 @@ export default function PohPage(): JSX.Element {
       return;
     }
 
+    const requestedSessionKey = (window.prompt(
+      "Paste the session key you want stored for authenticated UI calls.",
+      session?.sessionKey || "",
+    ) || "").trim();
+    if (!requestedSessionKey) {
+      setErr({ msg: "session_key_required", details: "Paste the session key you want linked to this device before submitting the issuance tx." });
+      return;
+    }
+
     setSessionBusy(true);
     setErr(null);
     setResult(null);
@@ -347,21 +464,21 @@ export default function PohPage(): JSX.Element {
         successMessage: "Session-key issuance submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          timeoutMs: 16000,
+          reconcile: async () => reconcileSessionKeyVisible(acct, requestedSessionKey, base),
+        },
         task: async () =>
           submitSignedTx({
             account: acct,
             tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
-            payload: {},
+            payload: { session_key: requestedSessionKey },
             parent: null,
             base,
           }),
       });
 
-      const sessionKey =
-        window.prompt(
-          "Paste the session key you want stored for authenticated UI calls.",
-          session?.sessionKey || "",
-        ) || "";
+      const sessionKey = requestedSessionKey;
       if (sessionKey.trim() && session) {
         setSession({ ...session, sessionKey: sessionKey.trim() });
       }
@@ -395,6 +512,7 @@ export default function PohPage(): JSX.Element {
       return;
     }
 
+    const headers = getAuthHeaders(acct);
     setEmailBusy(true);
     setErr(null);
     try {
@@ -421,7 +539,7 @@ export default function PohPage(): JSX.Element {
                   turnstile_token: turnstileToken || undefined,
                 },
                 base,
-                getAuthHeaders(acct),
+                headers,
               ),
       });
       setRequestId(String(r?.challenge_id || r?.request_id || ""));
@@ -455,6 +573,10 @@ export default function PohPage(): JSX.Element {
         successMessage: "Email verification confirmed.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
+        finality: {
+          timeoutMs: 20000,
+          reconcile: async () => reconcileTierVisible(acct, 1, base),
+        },
         task: async () => {
           if (!useEmailOracle) {
             throw new Error("email_oracle_base_url_required");
@@ -526,12 +648,17 @@ export default function PohPage(): JSX.Element {
     setTier2RequestBusy(true);
     setErr(null);
     try {
+      const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
         title: "Open Tier 2 request",
         pendingMessage: "Submitting Tier 2 request…",
         successMessage: "Tier 2 request submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
+        finality: {
+          timeoutMs: 20000,
+          reconcile: async () => reconcileTier2CaseVisible(acct, base, headers),
+        },
         task: async () => {
           const skel: any = await weall.pohTier2TxRequest(
             {
@@ -541,7 +668,7 @@ export default function PohPage(): JSX.Element {
               target_tier: 2,
             },
             base,
-            getAuthHeaders(acct),
+            headers,
           );
           const skeletonTx = skel?.tx;
           if (!skeletonTx) throw new Error("invalid_skeleton");
@@ -577,17 +704,22 @@ export default function PohPage(): JSX.Element {
     setTier3RequestBusy(true);
     setErr(null);
     try {
+      const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
         title: "Open Tier 3 request",
         pendingMessage: "Submitting Tier 3 request…",
         successMessage: "Tier 3 request submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
+        finality: {
+          timeoutMs: 20000,
+          reconcile: async () => reconcileTier3CaseVisible(acct, base, headers),
+        },
         task: async () => {
           const skel: any = await weall.pohTier3TxRequest(
             { account_id: acct },
             base,
-            getAuthHeaders(acct),
+            headers,
           );
           const skeletonTx = skel?.tx;
           if (!skeletonTx) throw new Error("invalid_skeleton");
@@ -622,6 +754,35 @@ export default function PohPage(): JSX.Element {
     if (tier < 3) return "Open the Tier 3 live-session request and watch for assigned sessions.";
     return "Tier 3 is complete. This account is ready for steward-class participation.";
   }, [acct, hasLocalKeypair, registered, tier, tier2VideoUploadEnabled]);
+
+
+
+  const nextOwner = useMemo<string>(() => {
+    if (!acct) return "You";
+    if (!hasLocalKeypair || !sessionKeyPresent) return "You";
+    if (!registered) return "You";
+    if (tier < 1) return requestId.trim() ? "You → relay worker → chain" : "You";
+    if (tier < 2) return tier2Cases.length ? "Assigned jurors" : tier2VideoUploadEnabled ? "You" : "Protocol operators";
+    if (tier < 3) return tier3Cases.length || tier3Sessions.length ? "Assigned jurors / session operators" : "You";
+    return "No pending owner";
+  }, [acct, hasLocalKeypair, sessionKeyPresent, registered, tier, requestId, tier2Cases.length, tier2VideoUploadEnabled, tier3Cases.length, tier3Sessions.length]);
+
+  const pendingExpectation = useMemo<string>(() => {
+    if (!acct) return "Connect this device to an account before the protocol can track your PoH status.";
+    if (!hasLocalKeypair) return "Restore or create the local signer on this device. Nothing has been submitted to the chain yet.";
+    if (!registered) return "Register the account on-chain first. PoH review state does not begin until the account exists authoritatively.";
+    if (tier < 1) return requestId.trim() ? "A verification request exists. The next successful action is confirming the email code and submitting the receipt path." : "Start Tier 1 by requesting an email verification code.";
+    if (tier < 2) return tier2Cases.length ? "Tier 2 is now waiting on juror review and finalization. Avoid re-submitting unless the case is explicitly rejected." : tier2VideoUploadEnabled ? "Upload evidence and open the Tier 2 request. After that, expect a juror-driven review period." : "Tier 2 self-serve intake is not enabled on this deployment yet.";
+    if (tier < 3) return tier3Cases.length || tier3Sessions.length ? "Tier 3 has moved into assigned review or live-session scheduling. Watch the case/session cards rather than guessing completion timing." : "Open the Tier 3 request. After submission, the next move comes from session assignment and juror coordination.";
+    return "PoH is fully complete for this account.";
+  }, [acct, hasLocalKeypair, registered, requestId, sessionKeyPresent, tier, tier2Cases.length, tier2VideoUploadEnabled, tier3Cases.length, tier3Sessions.length]);
+
+  const successDefinition = useMemo<string>(() => {
+    if (tier >= 3) return "Success means Tier 3 remains finalized and the account stays eligible for steward-class participation.";
+    if (tier >= 2) return "Success means a Tier 3 request becomes scheduled, reviewed, and finalized.";
+    if (tier >= 1) return "Success means the Tier 2 request is accepted, reviewed, and finalized by jurors.";
+    return "Success means the account is registered, the email code is confirmed, and Tier 1 appears in authoritative account state.";
+  }, [tier]);
 
   const stageCards: TimelineStep[] = useMemo(() => [
     {
@@ -855,12 +1016,12 @@ export default function PohPage(): JSX.Element {
               <button
                 className="btn btnPrimary"
                 onClick={() => void registerAccount()}
-                disabled={!acct || !hasLocalKeypair || registered || registerBusy}
+                disabled={!acct || !hasLocalKeypair || registered || registerBusy || signerSubmission.busy}
               >
-                {registerBusy ? "Registering…" : registered ? "Account registered" : "Register account"}
+                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting for signer…" : registered ? "Account registered" : "Register account"}
               </button>
-              <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy}>
-                {sessionBusy ? "Issuing…" : "Issue session tx"}
+              <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy || signerSubmission.busy}>
+                {sessionBusy ? "Issuing…" : signerSubmission.busy ? "Waiting for signer…" : "Issue session tx"}
               </button>
               <button
                 className="btn btnGhost"
@@ -899,8 +1060,8 @@ export default function PohPage(): JSX.Element {
             <TurnstileWidget onToken={(token: string) => setTurnstileToken(token)} />
 
             <div className="buttonRowWide">
-              <button className="btn" onClick={() => void beginEmailVerification()} disabled={!acct || !registered || emailBusy || tier >= 1}>
-                {emailBusy ? "Sending…" : "Send verification code"}
+              <button className="btn" onClick={() => void beginEmailVerification()} disabled={!acct || !registered || emailBusy || tier >= 1 || signerSubmission.busy}>
+                {emailBusy ? "Sending…" : signerSubmission.busy ? "Waiting for signer…" : "Send verification code"}
               </button>
             </div>
 
@@ -915,8 +1076,8 @@ export default function PohPage(): JSX.Element {
               </label>
             </div>
 
-            <button className="btn btnPrimary" onClick={() => void confirmEmailVerification()} disabled={!acct || !registered || confirmBusy || tier >= 1}>
-              {confirmBusy ? "Confirming…" : "Confirm Tier 1 verification"}
+            <button className="btn btnPrimary" onClick={() => void confirmEmailVerification()} disabled={!acct || !registered || confirmBusy || tier >= 1 || signerSubmission.busy}>
+              {confirmBusy ? "Confirming…" : signerSubmission.busy ? "Waiting for signer…" : "Confirm Tier 1 verification"}
             </button>
           </div>
         </article>
@@ -952,8 +1113,8 @@ export default function PohPage(): JSX.Element {
                   disabled={tier2UploadBusy || tier >= 2}
                 />
                 {tier2Upload ? <JsonDetails title="Latest upload payload" value={tier2Upload} /> : null}
-                <button className="btn btnPrimary" onClick={() => void submitTier2Request()} disabled={!acct || !tier2Upload || tier2RequestBusy || tier >= 2}>
-                  {tier2RequestBusy ? "Submitting…" : "Open Tier 2 request"}
+                <button className="btn btnPrimary" onClick={() => void submitTier2Request()} disabled={!acct || !tier2Upload || tier2RequestBusy || tier >= 2 || signerSubmission.busy}>
+                  {tier2RequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : "Open Tier 2 request"}
                 </button>
               </>
             )}
@@ -974,8 +1135,8 @@ export default function PohPage(): JSX.Element {
               Tier 3 opens a live juror case after Tier 2. Once the backend and operators assign a real session, the case and session payloads appear below. The UI should present that state as discovered and authoritative, not guessed.
             </p>
 
-            <button className="btn btnPrimary" onClick={() => void submitTier3Request()} disabled={!acct || tier3RequestBusy || tier >= 3 || tier < 2}>
-              {tier3RequestBusy ? "Submitting…" : tier < 2 ? "Finish Tier 2 first" : "Open Tier 3 request"}
+            <button className="btn btnPrimary" onClick={() => void submitTier3Request()} disabled={!acct || tier3RequestBusy || tier >= 3 || tier < 2 || signerSubmission.busy}>
+              {tier3RequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : tier < 2 ? "Finish Tier 2 first" : "Open Tier 3 request"}
             </button>
           </div>
         </article>

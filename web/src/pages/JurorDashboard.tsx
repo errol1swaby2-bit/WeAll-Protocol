@@ -9,6 +9,7 @@ import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -90,6 +91,7 @@ export default function JurorDashboard(): JSX.Element {
   const account = session ? normalizeAccount(session.account) : "";
   const { refresh: refreshAccountContext } = useAccount();
   const tx = useTxQueue();
+  const signerSubmission = useSignerSubmissionBusy(account);
 
   const [acctState, setAcctState] = useState<any | null>(null);
   const [tier2Cases, setTier2Cases] = useState<any[]>([]);
@@ -195,6 +197,7 @@ export default function JurorDashboard(): JSX.Element {
     successMessage: string,
   ): Promise<void> {
     if (!account) throw new Error("not_logged_in");
+    if (signerSubmission.busy) throw new Error("Another signed action is still settling for this juror account.");
     if (!skel?.tx) throw new Error("invalid_tx_skeleton");
 
     const r = await tx.runTx({
@@ -339,8 +342,8 @@ export default function JurorDashboard(): JSX.Element {
             <button className={`btn ${tab === "tier3" ? "btnPrimary" : ""}`} onClick={() => setTab("tier3")}>
               Tier 3 live cases
             </button>
-            <button className="btn" onClick={() => void loadQueues()} disabled={busy || !account}>
-              {busy ? "Refreshing…" : "Refresh"}
+            <button className="btn" onClick={() => void loadQueues()} disabled={busy || signerSubmission.busy || !account}>
+              {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
             </button>
             <button className="btn" onClick={() => nav("/poh")}>
               Open PoH
@@ -348,6 +351,12 @@ export default function JurorDashboard(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {signerSubmission.busy ? (
+        <div className="calloutInfo">
+          Another signed action for this juror account is still settling. Juror decisions stay serialized so case actions do not collide on nonce.
+        </div>
+      ) : null}
 
       <ErrorBanner
         message={err?.msg}
@@ -437,17 +446,17 @@ export default function JurorDashboard(): JSX.Element {
                         <button className="btn" onClick={() => void loadCase("tier2", caseId)} disabled={busy || !caseId}>
                           Load details
                         </button>
-                        <button className="btn" onClick={() => void tier2Accept(caseId)} disabled={busy || !gate.ok}>
-                          Accept
+                        <button className="btn" onClick={() => void tier2Accept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Accept"}
                         </button>
-                        <button className="btn" onClick={() => void tier2Decline(caseId)} disabled={busy || !gate.ok}>
-                          Decline
+                        <button className="btn" onClick={() => void tier2Decline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Decline"}
                         </button>
-                        <button className="btn btnPrimary" onClick={() => void tier2Review(caseId, "pass")} disabled={busy || !gate.ok}>
-                          Pass
+                        <button className="btn btnPrimary" onClick={() => void tier2Review(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Pass"}
                         </button>
-                        <button className="btn" onClick={() => void tier2Review(caseId, "fail")} disabled={busy || !gate.ok}>
-                          Fail
+                        <button className="btn" onClick={() => void tier2Review(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Fail"}
                         </button>
                       </div>
                     ) : (
@@ -455,23 +464,23 @@ export default function JurorDashboard(): JSX.Element {
                         <button className="btn" onClick={() => void loadCase("tier3", caseId)} disabled={busy || !caseId}>
                           Load details
                         </button>
-                        <button className="btn" onClick={() => void tier3Accept(caseId)} disabled={busy || !gate.ok}>
-                          Accept
+                        <button className="btn" onClick={() => void tier3Accept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Accept"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Decline(caseId)} disabled={busy || !gate.ok}>
-                          Decline
+                        <button className="btn" onClick={() => void tier3Decline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Decline"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Attendance(caseId, true)} disabled={busy || !gate.ok}>
-                          Mark attended
+                        <button className="btn" onClick={() => void tier3Attendance(caseId, true)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Mark attended"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Attendance(caseId, false)} disabled={busy || !gate.ok}>
-                          Mark absent
+                        <button className="btn" onClick={() => void tier3Attendance(caseId, false)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Mark absent"}
                         </button>
-                        <button className="btn btnPrimary" onClick={() => void tier3Verdict(caseId, "pass")} disabled={busy || !gate.ok}>
-                          Pass
+                        <button className="btn btnPrimary" onClick={() => void tier3Verdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Pass"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Verdict(caseId, "fail")} disabled={busy || !gate.ok}>
-                          Fail
+                        <button className="btn" onClick={() => void tier3Verdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Fail"}
                         </button>
                       </div>
                     )}

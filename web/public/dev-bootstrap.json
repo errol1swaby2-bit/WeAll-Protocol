@@ -1,9 +1,54 @@
 {
   "account": "@demo_tester",
-  "secretKeyB64": "Mblu6i+P/3kZoKpJzd2pRvCKIPtZRf7b4+VqgQ6TdQLj4SFgHetNAlsb9SnATdI0Ha+fxH2TVneZFrkBni8iEg==",
-  "secret_key_b64": "Mblu6i+P/3kZoKpJzd2pRvCKIPtZRf7b4+VqgQ6TdQLj4SFgHetNAlsb9SnATdI0Ha+fxH2TVneZFrkBni8iEg==",
+  "secretKeyB64": "uiCR0rpM0nLOopwfzzDCE/RGjyJDeGJtWI9iEV6EGY6lk1JQoqim72Q51iQx/93IozkB3Gw4z1mTTOP9EE2C3Q==",
+  "secret_key_b64": "uiCR0rpM0nLOopwfzzDCE/RGjyJDeGJtWI9iEV6EGY6lk1JQoqim72Q51iQx/93IozkB3Gw4z1mTTOP9EE2C3Q==",
+  "pubkeyB64": "pZNSUKKopu9kOdYkMf/dyKM5AdxsOM9Zk0zj/RBNgt0=",
   "post_body": "External tester demo post",
   "summary_path": "/home/errol/WeAll-Protocol/Weall-Protocol/generated/demo_bootstrap_result.json",
+  "seededGroup": {
+    "group_id": "g:demo-tester:demo-public",
+    "member_visible": true,
+    "visibility": "public"
+  },
+  "seededProposal": {
+    "proposal_id": "proposal:demo-tester:demo-vote",
+    "stage": "voting"
+  },
+  "seededDispute": {
+    "dispute_id": "dispute:demo-tester:demo-post",
+    "juror": "@demo_tester",
+    "juror_status": "assigned",
+    "stage": "juror_review",
+    "target_id": "post:@demo_tester:5"
+  },
+  "recommendedPath": [
+    {
+      "href": "/feed",
+      "label": "Open feed"
+    },
+    {
+      "href": "/groups/g%3Ademo-tester%3Ademo-public",
+      "label": "Open group"
+    },
+    {
+      "href": "/disputes",
+      "label": "Open disputes"
+    },
+    {
+      "href": "/proposals",
+      "label": "Open governance"
+    }
+  ],
+  "fallbackInstructions": [
+    "If a screen looks stale, use the page-level Refresh button before retrying the action.",
+    "If a signed action appears stuck, wait for the signer busy notice to clear so the next nonce stays monotonic.",
+    "If the browser session drifts, return to Login and press Load demo tester session again."
+  ],
+  "resetInstructions": [
+    "Run ./scripts/dev_boot_full_stack.sh from the repo root to rebuild the deterministic demo state.",
+    "Use the generated dev bootstrap card on Login to restore the seeded tester instantly after reset.",
+    "The canonical seeded ids also remain in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json."
+  ],
   "apiBase": "/",
   "api_base": "/"
 }

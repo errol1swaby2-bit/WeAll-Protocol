@@ -133,6 +133,7 @@ def run_attester_loop(
             tip_proposal_id = str(snap.get("tip_proposal_id") or "").strip()
             tip_round = int(snap.get("tip_round", 0) or 0)
             height = int(snap.get("height", 0) or 0)
+            chain_id = str(snap.get("chain_id") or "weall").strip() or "weall"
         except Exception as e:
             raise ValidatorAttesterError(f"attester_snapshot_invalid:{type(e).__name__}:{e}") from e
 
@@ -198,6 +199,7 @@ def run_attester_loop(
 
         tx: Json = {
             "tx_type": "BLOCK_ATTEST",
+            "chain_id": chain_id,
             "signer": signer,
             "nonce": next_nonce,
             "payload": payload,

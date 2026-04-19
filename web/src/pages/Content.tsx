@@ -3,21 +3,40 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import MediaGallery from "../components/MediaGallery";
+import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { nav } from "../lib/router";
 import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
 
 function prettyErr(e: any): { msg: string; details: any } | null {
-  if (!e) return null;
-  const details = e?.data || e?.body || e;
-  const msg = details?.message || e?.message || "error";
-  return { msg, details };
+  if (!e) return null as any;
+  return actionableTxError(e, "Content action failed.");
 }
 
 function asArray<T = any>(v: any): T[] {
   return Array.isArray(v) ? v : [];
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForDisputeForTarget(base: string, targetId: string, attempts = 8, delayMs = 300): Promise<any | null> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const disputesRes: any = await weall.disputes({ targetId, limit: 5 }, base);
+      const items = asArray<any>(disputesRes?.items);
+      const found = items.find((item) => String(item?.target_id || "") === String(targetId));
+      if (found) return found;
+    } catch {
+      // ignore and keep polling
+    }
+    if (attempt < attempts - 1) await sleep(delayMs);
+  }
+  return null;
 }
 
 function summarizeActionReadiness(args: {
@@ -65,6 +84,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
   const [editBody, setEditBody] = useState("");
   const [txBusy, setTxBusy] = useState(false);
   const [txErr, setTxErr] = useState<{ msg: string; details: any } | null>(null);
+  const [txInfo, setTxInfo] = useState<{ msg: string; details?: any; ctaLabel?: string; ctaHref?: string } | null>(null);
 
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagReason, setFlagReason] = useState("");
@@ -130,12 +150,16 @@ export default function Content({ id }: { id: string }): JSX.Element {
   const createdAt = String(c?.created_at || c?.timestamp || "");
   const groupId = String(c?.group_id || c?.scope_id || "");
   const deleted = Boolean(c?.deleted);
+  const moderation = data?.moderation && typeof data.moderation === "object" ? data.moderation : null;
+  const linkedDisputeId = String(moderation?.dispute_id || "").trim();
 
   const isPost = type === "post";
   const isOwner = Boolean(viewer && isPost && normalizeAccount(viewer) === author);
 
   const gate = checkGates({ loggedIn: !!viewer, canSign, accountState: viewerState, requireTier: 2 });
   const viewerSummary = viewerState ? summarizeAccountState(viewerState) : "(state unknown)";
+  const signerSubmission = useSignerSubmissionBusy(viewer);
+  const signerBusy = signerSubmission.busy;
   const actionReadiness = summarizeActionReadiness({
     viewer,
     gateOk: gate.ok,
@@ -145,6 +169,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   async function doEdit() {
     setTxErr(null);
+    setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
     if (!gate.ok) return setTxErr({ msg: gate.reason || "gated", details: viewerState });
     if (!isOwner) return setTxErr({ msg: "not_author", details: { author, viewer } });
@@ -156,6 +181,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Edit post",
+        pendingKey: txPendingKey(["content-edit", postId, viewer]),
         pendingMessage: "Submitting edit transaction…",
         successMessage: "Edit submitted. Final confirmation and feed/index refresh may lag behind the initial submission.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
@@ -181,6 +207,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   async function doDelete() {
     setTxErr(null);
+    setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
     if (!gate.ok) return setTxErr({ msg: gate.reason || "gated", details: viewerState });
     if (!isOwner) return setTxErr({ msg: "not_author", details: { author, viewer } });
@@ -190,6 +217,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Delete post",
+        pendingKey: txPendingKey(["content-delete", postId, viewer]),
         pendingMessage: "Submitting delete transaction…",
         successMessage: "Deletion submitted. Content surfaces may still reflect the old state briefly while indexes catch up.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
@@ -214,6 +242,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   async function doFlag() {
     setTxErr(null);
+    setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
     if (!gate.ok) return setTxErr({ msg: gate.reason || "gated", details: viewerState });
 
@@ -223,8 +252,9 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Flag content",
+        pendingKey: txPendingKey(["content-flag", postId, viewer]),
         pendingMessage: "Submitting flag transaction…",
-        successMessage: "Flag submitted. Moderation outcomes are resolved later by the network and may not be immediate.",
+        successMessage: "Flag committed. Checking whether the dispute is already visible in the moderation surface…",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         task: async () =>
@@ -239,6 +269,26 @@ export default function Content({ id }: { id: string }): JSX.Element {
       setFlagOpen(false);
       setFlagReason("");
       await load();
+      const dispute = linkedDisputeId
+        ? { id: linkedDisputeId, target_id: postId }
+        : await waitForDisputeForTarget(base, postId);
+      await load();
+      if (dispute?.id) {
+        const disputeId = String(dispute.id);
+        setTxInfo({
+          msg: `Flag accepted and dispute ${disputeId} is now visible. Open it directly to continue the review flow.`,
+          details: dispute,
+          ctaLabel: "Open dispute",
+          ctaHref: `/disputes/${encodeURIComponent(disputeId)}`,
+        });
+      } else {
+        setTxInfo({
+          msg: "Flag accepted. Dispute escalation may still be settling in the next block; reopen this page or refresh the dispute route if it does not appear immediately.",
+          details: { target_id: postId },
+          ctaLabel: "Open disputes",
+          ctaHref: "/disputes",
+        });
+      }
     } catch (e: any) {
       const parsed = prettyErr(e);
       if (parsed) setTxErr(parsed);
@@ -406,6 +456,16 @@ export default function Content({ id }: { id: string }): JSX.Element {
               </div>
 
               {txErr ? <ErrorBanner message={txErr.msg} details={txErr.details} onDismiss={() => setTxErr(null)} /> : null}
+
+              {txInfo ? (
+                <div className="calloutInfo">
+                  <div>{txInfo.msg}</div>
+                  <div className="buttonRow" style={{ marginTop: 8 }}>
+                    {txInfo.ctaHref ? <button className="btn" onClick={() => nav(String(txInfo.ctaHref))}>{txInfo.ctaLabel || "Open"}</button> : null}
+                    <button className="btn" onClick={() => setTxInfo(null)}>Dismiss</button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
 

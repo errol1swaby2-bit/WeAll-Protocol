@@ -29,8 +29,26 @@ export type SessionV1 = {
   expiresAtMs: number;
 };
 
+export type SessionHealthState = "anonymous" | "active" | "expiring_soon" | "expired" | "missing_local_signer" | "invalid";
+
+export type SessionHealth = {
+  state: SessionHealthState;
+  account: string;
+  sessionKeyPresent: boolean;
+  expiresAtMs: number;
+  msRemaining: number;
+  hasLocalSigner: boolean;
+  recoverableAccount: boolean;
+  message: string;
+};
+
 const LS_SESSION = "weall_session_v1";
 const LS_NONCE_RESERVATION_PREFIX = "weall_nonce_resv_v1::";
+const LS_SIGNER_LOCK_PREFIX = "weall_signer_lock_v1::";
+const SIGNER_LOCK_TTL_MS = 15000;
+const SIGNER_LOCK_WAIT_MS = 20000;
+const SIGNER_LOCK_POLL_MS = 120;
+const SIGNER_LOCK_HEARTBEAT_MS = 4000;
 
 type SignerSubmissionSnapshot = {
   account: string;
@@ -40,6 +58,18 @@ type SignerSubmissionSnapshot = {
 const signerSubmissionQueues = new Map<string, Promise<unknown>>();
 const signerPendingCounts = new Map<string, number>();
 const signerSubmissionListeners = new Map<string, Set<(snapshot: SignerSubmissionSnapshot) => void>>();
+const signerLockOwnerId = (() => {
+  const u = new Uint8Array(12);
+  crypto.getRandomValues(u);
+  return Array.from(u).map((b) => b.toString(16).padStart(2, "0")).join("");
+})();
+
+type SignerLockRecord = {
+  owner: string;
+  expiresAtMs: number;
+};
+
+let signerStorageListenerInstalled = false;
 
 function b64Encode(bytes: Uint8Array): string {
   let bin = "";
@@ -100,6 +130,117 @@ function canonicalSessionLoginMessage(args: {
     device_id: String(args.deviceId || ""),
   };
   return new TextEncoder().encode(JSON.stringify(obj, Object.keys(obj).sort()));
+}
+
+function readStoredSessionUnsafe(): Partial<SessionV1> | null {
+  try {
+    const raw = localStorage.getItem(LS_SESSION);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return null;
+    return obj as Partial<SessionV1>;
+  } catch {
+    return null;
+  }
+}
+
+function localSignerPresent(account: string): boolean {
+  const acct = normalizeAccount(account);
+  if (!acct) return false;
+  const kp = loadKeypair(acct);
+  return !!kp?.secretKeyB64;
+}
+
+export function getSessionHealth(): SessionHealth {
+  const raw = readStoredSessionUnsafe();
+  const account = normalizeAccount(String(raw?.account || ""));
+  const expiresAtMs = Number(raw?.expiresAtMs || 0);
+  const sessionKeyPresent = !!String(raw?.sessionKey || "").trim();
+  const hasLocalSigner = localSignerPresent(account);
+  const msRemaining = Number.isFinite(expiresAtMs) ? Math.max(0, expiresAtMs - Date.now()) : 0;
+  const recoverableAccount = !!account;
+
+  if (!raw || !account) {
+    return {
+      state: "anonymous",
+      account: "",
+      sessionKeyPresent: false,
+      expiresAtMs: 0,
+      msRemaining: 0,
+      hasLocalSigner: false,
+      recoverableAccount: false,
+      message: "No protected browser session is currently active on this device.",
+    };
+  }
+
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0) {
+    return {
+      state: "invalid",
+      account,
+      sessionKeyPresent,
+      expiresAtMs: 0,
+      msRemaining: 0,
+      hasLocalSigner,
+      recoverableAccount,
+      message: "The stored browser session is malformed or incomplete. Open session recovery and renew it from an authoritative account state.",
+    };
+  }
+
+  if (Date.now() >= expiresAtMs) {
+    return {
+      state: "expired",
+      account,
+      sessionKeyPresent,
+      expiresAtMs,
+      msRemaining: 0,
+      hasLocalSigner,
+      recoverableAccount,
+      message: "This browser session has expired. Protected write controls should stay locked until the session is renewed or a fresh login is established.",
+    };
+  }
+
+  if (!hasLocalSigner) {
+    return {
+      state: "missing_local_signer",
+      account,
+      sessionKeyPresent,
+      expiresAtMs,
+      msRemaining,
+      hasLocalSigner,
+      recoverableAccount,
+      message: "A browser session exists for this account, but the signing key is not present on this device. Open session recovery before attempting new writes.",
+    };
+  }
+
+  if (msRemaining <= 10 * 60 * 1000) {
+    return {
+      state: "expiring_soon",
+      account,
+      sessionKeyPresent,
+      expiresAtMs,
+      msRemaining,
+      hasLocalSigner,
+      recoverableAccount,
+      message: "This session is still valid but nearing expiry. Finish the current task or renew the session before starting another one-shot action.",
+    };
+  }
+
+  return {
+    state: "active",
+    account,
+    sessionKeyPresent,
+    expiresAtMs,
+    msRemaining,
+    hasLocalSigner,
+    recoverableAccount,
+    message: "This device has both a local signer and an active browser session.",
+  };
+}
+
+export function isWriteSessionReady(account?: string): boolean {
+  const health = getSessionHealth();
+  if (account && normalizeAccount(account) !== health.account) return false;
+  return (health.state === "active" || health.state === "expiring_soon") && health.hasLocalSigner && health.sessionKeyPresent;
 }
 
 export function getSession(): SessionV1 | null {
@@ -222,6 +363,111 @@ function nonceReservationKey(account: string): string {
   return `${LS_NONCE_RESERVATION_PREFIX}${normalizeAccount(account)}`;
 }
 
+function signerLockKey(account: string): string {
+  return `${LS_SIGNER_LOCK_PREFIX}${normalizeAccount(account)}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function readSignerLock(account: string): SignerLockRecord | null {
+  try {
+    const raw = localStorage.getItem(signerLockKey(account));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SignerLockRecord> | null;
+    const owner = String(parsed?.owner || "").trim();
+    const expiresAtMs = Number(parsed?.expiresAtMs || 0);
+    if (!owner || !Number.isFinite(expiresAtMs) || expiresAtMs <= 0) return null;
+    if (Date.now() >= expiresAtMs) return null;
+    return { owner, expiresAtMs };
+  } catch {
+    return null;
+  }
+}
+
+function writeSignerLock(account: string, record: SignerLockRecord): void {
+  try {
+    localStorage.setItem(signerLockKey(account), JSON.stringify(record));
+  } catch {
+    // ignore
+  }
+}
+
+function clearSignerLock(account: string, owner?: string): void {
+  try {
+    const current = readSignerLock(account);
+    if (owner && current && current.owner && current.owner !== owner) return;
+    localStorage.removeItem(signerLockKey(account));
+  } catch {
+    // ignore
+  }
+}
+
+function isSignerLockHeldByAnotherTab(account: string): boolean {
+  const signer = normalizeAccount(account);
+  if (!signer) return false;
+  const current = readSignerLock(signer);
+  return !!current && current.owner !== signerLockOwnerId;
+}
+
+function ensureSignerStorageListener(): void {
+  if (signerStorageListenerInstalled || typeof window === "undefined") return;
+  window.addEventListener("storage", (event) => {
+    const key = String(event.key || "");
+    if (key.startsWith(LS_SIGNER_LOCK_PREFIX)) {
+      const signer = normalizeAccount(key.slice(LS_SIGNER_LOCK_PREFIX.length));
+      if (signer) emitSignerSubmissionSnapshot(signer);
+      return;
+    }
+    if (key.startsWith(LS_NONCE_RESERVATION_PREFIX)) {
+      const signer = normalizeAccount(key.slice(LS_NONCE_RESERVATION_PREFIX.length));
+      if (signer) emitSignerSubmissionSnapshot(signer);
+    }
+  });
+  signerStorageListenerInstalled = true;
+}
+
+async function acquireSignerLock(account: string): Promise<() => void> {
+  const signer = normalizeAccount(account);
+  if (!signer) throw new Error("invalid_account");
+
+  const started = Date.now();
+  while (Date.now() - started < SIGNER_LOCK_WAIT_MS) {
+    const current = readSignerLock(signer);
+    if (!current || current.owner === signerLockOwnerId) {
+      const next: SignerLockRecord = {
+        owner: signerLockOwnerId,
+        expiresAtMs: Date.now() + SIGNER_LOCK_TTL_MS,
+      };
+      writeSignerLock(signer, next);
+      const confirmed = readSignerLock(signer);
+      if (confirmed?.owner === signerLockOwnerId) {
+        emitSignerSubmissionSnapshot(signer);
+        const heartbeatId = window.setInterval(() => {
+          const existing = readSignerLock(signer);
+          if (!existing || existing.owner !== signerLockOwnerId) return;
+          writeSignerLock(signer, {
+            owner: signerLockOwnerId,
+            expiresAtMs: Date.now() + SIGNER_LOCK_TTL_MS,
+          });
+          emitSignerSubmissionSnapshot(signer);
+        }, SIGNER_LOCK_HEARTBEAT_MS);
+
+        return () => {
+          window.clearInterval(heartbeatId);
+          clearSignerLock(signer, signerLockOwnerId);
+          emitSignerSubmissionSnapshot(signer);
+        };
+      }
+    }
+
+    await sleep(SIGNER_LOCK_POLL_MS);
+  }
+
+  throw new Error("signer_busy_elsewhere");
+}
+
 export function clearNonceReservation(account: string): void {
   try {
     localStorage.removeItem(nonceReservationKey(account));
@@ -286,14 +532,25 @@ function extractErrorCode(error: unknown): string {
 
 function isNonceReservationConflictError(error: unknown): boolean {
   const code = extractErrorCode(error);
-  return code === "bad_nonce" || code === "mempool_signer_nonce_conflict" || code === "tx_id_conflict";
+  if (code === "bad_nonce" || code === "mempool_signer_nonce_conflict" || code === "tx_id_conflict" || code === "nonce_retry_exhausted") return true;
+  const message = String((error as any)?.message || (error as any)?.body?.message || (error as any)?.body?.error?.message || "").toLowerCase();
+  return message.includes("nonce") || message.includes("already used") || message.includes("stale") || message.includes("conflict");
+}
+
+function friendlyNonceError(error: unknown): Error {
+  const err = new Error("Another signed action is still settling or the backend is catching up on nonce state. Refresh the affected object, wait a moment, and try again.");
+  (err as any).cause = error;
+  (err as any).code = "bad_nonce";
+  return err;
 }
 
 function pendingSnapshot(account: string): SignerSubmissionSnapshot {
   const signer = normalizeAccount(account);
+  const localCount = signer ? Math.max(0, Math.floor(signerPendingCounts.get(signer) || 0)) : 0;
+  const remoteBusy = signer && localCount <= 0 ? isSignerLockHeldByAnotherTab(signer) : false;
   return {
     account: signer,
-    pendingCount: signer ? Math.max(0, Math.floor(signerPendingCounts.get(signer) || 0)) : 0,
+    pendingCount: signer ? (localCount > 0 ? localCount : remoteBusy ? 1 : 0) : 0,
   };
 }
 
@@ -330,6 +587,7 @@ export function getSignerSubmissionSnapshot(account: string): SignerSubmissionSn
 }
 
 export function subscribeSignerSubmission(account: string, listener: (snapshot: SignerSubmissionSnapshot) => void): () => void {
+  ensureSignerStorageListener();
   const signer = normalizeAccount(account);
   if (!signer) {
     listener({ account: "", pendingCount: 0 });
@@ -378,6 +636,7 @@ export type NonceSequence = {
 };
 
 function runSignerSerialized<T>(account: string, task: () => Promise<T>): Promise<T> {
+  ensureSignerStorageListener();
   const signer = normalizeAccount(account);
   if (!signer) return Promise.reject(new Error("invalid_account"));
 
@@ -387,11 +646,17 @@ function runSignerSerialized<T>(account: string, task: () => Promise<T>): Promis
     .then(async () => {
       const currentCount = signerPendingCounts.get(signer) || 0;
       setSignerPendingCount(signer, currentCount + 1);
+      let releaseLock: (() => void) | null = null;
       try {
+        releaseLock = await acquireSignerLock(signer);
         return await task();
       } finally {
-        const nextCount = Math.max(0, (signerPendingCounts.get(signer) || 1) - 1);
-        setSignerPendingCount(signer, nextCount);
+        try {
+          releaseLock?.();
+        } finally {
+          const nextCount = Math.max(0, (signerPendingCounts.get(signer) || 1) - 1);
+          setSignerPendingCount(signer, nextCount);
+        }
       }
     });
 
@@ -430,7 +695,7 @@ export async function submitSignedTxInSequence(args: {
 
     const chain_id = await resolveChainId();
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       const nonce = Math.max(1, Math.floor(args.sequence.nextNonce));
       const payload = args.payloadFactory(nonce);
       const unsigned = buildUnsignedEnvelope({
@@ -449,16 +714,17 @@ export async function submitSignedTxInSequence(args: {
         setReservedNonce(signer, nonce);
         return { env: signed, result };
       } catch (error) {
-        if (attempt === 0 && isNonceReservationConflictError(error)) {
+        if (attempt < 3 && isNonceReservationConflictError(error)) {
           const synced = await syncNonceReservation(signer, args.base);
           args.sequence.nextNonce = Math.max(1, synced + 1);
+          await sleep(250 * (attempt + 1));
           continue;
         }
-        throw error;
+        throw isNonceReservationConflictError(error) ? friendlyNonceError(error) : error;
       }
     }
 
-    throw new Error("nonce_retry_exhausted");
+    throw friendlyNonceError(new Error("nonce_retry_exhausted"));
   });
 }
 
@@ -561,7 +827,7 @@ export async function submitSignedTx(args: {
 
     const chain_id = await resolveChainId();
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
       const unsigned = buildUnsignedEnvelope({
         chain_id,
@@ -576,15 +842,16 @@ export async function submitSignedTx(args: {
         return await weall.txSubmit(signed, args.base);
       } catch (error) {
         rollbackNonceClaim(claim);
-        if (attempt === 0 && isNonceReservationConflictError(error)) {
+        if (attempt < 3 && isNonceReservationConflictError(error)) {
           await syncNonceReservation(signer, args.base);
+          await sleep(250 * (attempt + 1));
           continue;
         }
-        throw error;
+        throw isNonceReservationConflictError(error) ? friendlyNonceError(error) : error;
       }
     }
 
-    throw new Error("nonce_retry_exhausted");
+    throw friendlyNonceError(new Error("nonce_retry_exhausted"));
   });
 }
 
@@ -604,7 +871,7 @@ export async function submitSignedTxWithNonce(args: {
 
     const chain_id = await resolveChainId();
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
       const payload = args.payloadFactory(claim.nonce);
 
@@ -622,15 +889,16 @@ export async function submitSignedTxWithNonce(args: {
         return { env: signed, result };
       } catch (error) {
         rollbackNonceClaim(claim);
-        if (attempt === 0 && isNonceReservationConflictError(error)) {
+        if (attempt < 3 && isNonceReservationConflictError(error)) {
           await syncNonceReservation(signer, args.base);
+          await sleep(250 * (attempt + 1));
           continue;
         }
-        throw error;
+        throw isNonceReservationConflictError(error) ? friendlyNonceError(error) : error;
       }
     }
 
-    throw new Error("nonce_retry_exhausted");
+    throw friendlyNonceError(new Error("nonce_retry_exhausted"));
   });
 }
 

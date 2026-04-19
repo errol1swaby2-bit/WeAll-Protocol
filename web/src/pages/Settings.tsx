@@ -16,6 +16,30 @@ import {
   ThemeMode,
 } from "../lib/settings";
 
+
+
+function SettingToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}): JSX.Element {
+  return (
+    <label className="progressRow" style={{ alignItems: "flex-start", gap: 14, cursor: "pointer" }}>
+      <span style={{ flex: 1 }}>
+        <strong style={{ display: "block", marginBottom: 4 }}>{label}</strong>
+        <span className="cardDesc">{description}</span>
+      </span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
+}
+
 function SettingSelect<T extends string>({
   label,
   value,
@@ -77,7 +101,7 @@ export default function Settings(): JSX.Element {
   }
 
   function resetAppearance() {
-    const next = { ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap };
+    const next = { ...DEFAULT_SETTINGS, showGenesisBootstrap: settings.showGenesisBootstrap, showAdvancedMode: settings.showAdvancedMode };
     setSettings(next);
     saveSettings(next);
     applySettingsToDocument(next);
@@ -247,6 +271,24 @@ export default function Settings(): JSX.Element {
               Reset appearance
             </button>
           </div>
+        </div>
+      </section>
+
+
+      <section className="card">
+        <div className="cardBody pageStack">
+          <div className="eyebrow">Experience mode</div>
+          <h2 style={{ marginTop: 8 }}>Keep protocol workbench tools behind an explicit toggle</h2>
+          <p className="cardDesc">
+            Advanced mode reveals tester-oriented surfaces such as the protocol console, transaction catalog views, and raw payload authoring controls. Leave it off for a cleaner end-user experience.
+          </p>
+
+          <SettingToggle
+            label="Show advanced and tester surfaces"
+            description="Use this only when you are intentionally auditing the protocol, debugging a flow, or exercising expert-only authoring controls."
+            checked={settings.showAdvancedMode}
+            onChange={(value) => update("showAdvancedMode", value)}
+          />
         </div>
       </section>
 

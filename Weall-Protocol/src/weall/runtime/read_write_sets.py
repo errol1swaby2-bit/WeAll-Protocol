@@ -137,16 +137,31 @@ def build_tx_access_set(tx: dict[str, Any]) -> TxAccessSet:
     reads = _sorted_unique_strs(descriptor.read_keys)
     writes = _sorted_unique_strs(tuple(descriptor.write_keys) + tuple(descriptor.subject_keys) + tuple(descriptor.authority_keys))
 
-    cross_domain_serial_types = {
+    serial_override_types = {
         "GROUP_SIGNERS_SET",
         "GROUP_EMISSARY_ELECTION_FINALIZE",
         "ROLE_EMISSARY_SEAT",
         "ROLE_EMISSARY_REMOVE",
+        "CONTENT_ESCALATE_TO_DISPUTE",
+        "ROLE_EMISSARY_NOMINATE",
+        "ROLE_EMISSARY_VOTE",
+        "ROLE_GOV_EXECUTOR_SET",
+        "ROLE_JUROR_ACTIVATE",
+        "ROLE_JUROR_ENROLL",
+        "ROLE_JUROR_REINSTATE",
+        "ROLE_JUROR_SUSPEND",
+        "ROLE_NODE_OPERATOR_ACTIVATE",
+        "ROLE_NODE_OPERATOR_ENROLL",
+        "ROLE_NODE_OPERATOR_SUSPEND",
+        "ROLE_VALIDATOR_ACTIVATE",
+        "ROLE_VALIDATOR_SUSPEND",
+        "TREASURY_SIGNER_ADD",
+        "TREASURY_SIGNER_REMOVE",
+        "TREASURY_POLICY_SET",
+        "GROUP_TREASURY_POLICY_SET",
     }
-    if descriptor.tx_type in cross_domain_serial_types:
-        inferred_lane = _infer_lane_from_keys(tuple(reads) + tuple(writes))
-        if inferred_lane == SERIAL_LANE:
-            lane_hint = SERIAL_LANE
+    if descriptor.tx_type in serial_override_types:
+        lane_hint = SERIAL_LANE
 
     return TxAccessSet(
         tx_id=descriptor.tx_id,

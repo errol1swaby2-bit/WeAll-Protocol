@@ -6,6 +6,7 @@ Supports:
 Atoms:
   TierN+              (e.g. Tier3+)
   Validator
+  Juror
   Signer
   Emissary
 
@@ -174,18 +175,130 @@ def _tier_ok(acct: Json, n: int) -> bool:
     return tier >= n
 
 
+def _identity_variants(value: Any) -> list[str]:
+    s = str(value or "").strip()
+    if not s:
+        return []
+    base = s[1:] if s.startswith("@") else s
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in (s, base, f"@{base}" if base else ""):
+        c = str(candidate or "").strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _matches_identity_collection(signer: str, values: Any) -> bool:
+    variants = set(_identity_variants(signer))
+    for value in values or []:
+        if variants.intersection(_identity_variants(value)):
+            return True
+    return False
+
+
+def _active_by_id(mapping: Json, signer: str) -> bool:
+    variants = _identity_variants(signer)
+    for variant in variants:
+        rec = mapping.get(variant)
+        if not isinstance(rec, dict):
+            continue
+        if bool(rec.get("active", False)):
+            return True
+        status = str(rec.get("status") or "").strip().lower()
+        if status in {"active", "activated", "validator", "juror"}:
+            return True
+    return False
+
+
 def _is_validator(ledger: Json, signer: str) -> bool:
     roles = _as_dict(ledger.get("roles"))
     validators = _as_dict(ledger.get("validators"))
 
-    if signer in _as_dict(validators.get("registry")):
+    if _matches_identity_collection(signer, _as_dict(validators.get("registry")).keys()):
         return True
 
     rv = _as_dict(roles.get("validators"))
-    if signer in {str(x) for x in rv.get("active_set", [])}:
+    if _matches_identity_collection(signer, rv.get("active_set", [])):
+        return True
+    if _active_by_id(_as_dict(rv.get("by_id")), signer):
+        return True
+
+    consensus = _as_dict(ledger.get("consensus"))
+    validator_set = _as_dict(consensus.get("validator_set"))
+    if _matches_identity_collection(signer, validator_set.get("active_set", [])):
+        return True
+    registry = _as_dict(_as_dict(consensus.get("validators")).get("registry"))
+    if _active_by_id(registry, signer) or _matches_identity_collection(signer, registry.keys()):
         return True
 
     return False
+
+
+def _payload_dispute_id(payload: Json) -> str:
+    payload = _as_dict(payload)
+    direct = str(payload.get("dispute_id") or "").strip()
+    if direct:
+        return direct
+    for key in ("data", "args", "body", "payload"):
+        nested = _as_dict(payload.get(key))
+        dispute_id = str(nested.get("dispute_id") or "").strip()
+        if dispute_id:
+            return dispute_id
+    return ""
+
+
+def _dispute_assignment_match(ledger: Json, signer: str, payload: Json) -> bool:
+    dispute_id = _payload_dispute_id(payload)
+    if not dispute_id:
+        return False
+    disputes = _as_dict(ledger.get("disputes_by_id"))
+    dispute = _as_dict(disputes.get(dispute_id))
+    if not dispute:
+        return False
+
+    jurors = _as_dict(dispute.get("jurors"))
+    signer_variants = set(_identity_variants(signer))
+    for juror_id, rec in jurors.items():
+        if not signer_variants.intersection(_identity_variants(juror_id)):
+            continue
+        if isinstance(rec, dict):
+            status = str(rec.get("status") or "").strip().lower()
+            if status in {"assigned", "accepted", "present", "attendance_marked", "voted"}:
+                return True
+        return True
+
+    if _matches_identity_collection(signer, dispute.get("assigned_jurors", [])):
+        return True
+
+    if _matches_identity_collection(signer, dispute.get("eligible_juror_ids", [])):
+        return True
+
+    return False
+
+
+def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
+    roles = _as_dict(ledger.get("roles"))
+    jurors = _as_dict(roles.get("jurors"))
+
+    if _matches_identity_collection(signer, jurors.get("active_set", [])):
+        return True
+    if _active_by_id(_as_dict(jurors.get("by_id")), signer):
+        return True
+
+    # Live dispute posture: when a dispute has already deterministically assigned
+    # this signer as a juror/reviewer, juror-gated actions on that dispute must
+    # admit against the canonical dispute assignment state even if the separate
+    # global juror registry is not populated yet during bootstrap.
+    if _dispute_assignment_match(ledger, signer, payload):
+        return True
+
+    # Bootstrap posture: a live active validator may need to perform
+    # juror-gated review actions while the network is still operated by a
+    # one-account validator set. Keep this deterministic and identity-normalized.
+    return _is_validator(ledger, signer)
 
 
 def _is_scoped_signer(ledger: Json, signer: str, payload: Json) -> bool:
@@ -229,6 +342,9 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
 
     if atom == "Validator":
         return _is_validator(ledger, signer)
+
+    if atom == "Juror":
+        return _is_juror(ledger, signer, payload)
 
     if atom == "Signer":
         return _is_scoped_signer(ledger, signer, payload)

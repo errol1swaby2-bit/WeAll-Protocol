@@ -248,7 +248,11 @@ def _ensure_fixture_post(cfg: Cfg, *, priv_hex: str) -> None:
     _wait_account(cfg, cfg.account, nonce_at_least=3)
 
 
-def _write_manifest(cfg: Cfg, *, secret_key_b64: str, pub_hex: str) -> Path:
+def _seed_demo_objects(cfg: Cfg) -> Json:
+    return _post(cfg, "/v1/dev/demo-seed", {"account": cfg.account, "post_id": cfg.fixture_post_id})
+
+
+def _write_manifest(cfg: Cfg, *, secret_key_b64: str, pub_hex: str, seeded_demo: Json | None = None) -> Path:
     manifest = {
         "profile": "dev_full_surface",
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -259,6 +263,8 @@ def _write_manifest(cfg: Cfg, *, secret_key_b64: str, pub_hex: str) -> Path:
         "sessionTtlSeconds": 24 * 60 * 60,
         "note": "Local dev bootstrap profile. Not production authority.",
     }
+    if isinstance(seeded_demo, dict) and seeded_demo:
+        manifest["seededDemo"] = seeded_demo
     cfg.bootstrap_manifest_path.parent.mkdir(parents=True, exist_ok=True)
     cfg.bootstrap_manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return cfg.bootstrap_manifest_path
@@ -272,7 +278,8 @@ def main() -> int:
     _ensure_account_registered(cfg, priv_hex=priv_hex, pub_hex=pub_hex)
     state = _ensure_tier3(cfg, priv_hex=priv_hex)
     _ensure_fixture_post(cfg, priv_hex=priv_hex)
-    manifest_path = _write_manifest(cfg, secret_key_b64=secret_key_b64, pub_hex=pub_hex)
+    seeded_demo = _seed_demo_objects(cfg)
+    manifest_path = _write_manifest(cfg, secret_key_b64=secret_key_b64, pub_hex=pub_hex, seeded_demo=seeded_demo)
 
     summary = {
         "ok": True,
@@ -283,6 +290,7 @@ def main() -> int:
         "poh_tier": int(state.get("poh_tier") or state.get("tier") or 0),
         "manifest_path": str(manifest_path),
         "fixture_post_id": cfg.fixture_post_id,
+        "seeded_demo": seeded_demo,
     }
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0

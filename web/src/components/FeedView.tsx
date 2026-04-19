@@ -8,6 +8,7 @@ import { normalizeAccount } from "../auth/keys";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
 import MediaGallery from "./MediaGallery";
 
 type FeedScope =
@@ -39,18 +40,30 @@ function uniqById(items: any[]): any[] {
 }
 
 function prettyMsg(e: any): string {
-  const payload = e?.payload || e?.body || e?.data || null;
-  const code = String(payload?.error?.code || payload?.code || "").trim();
-  const reason = String(payload?.error?.details?.reason || payload?.reason || "").trim();
-  const nested = payload?.error?.details?.details;
-  const nestedError = nested && typeof nested === "object" ? String(nested.error || nested.code || "").trim() : "";
-  const msg = String(payload?.error?.message || payload?.message || e?.message || "error").trim() || "error";
-  const detail = nestedError || reason || code;
-  return detail && detail !== msg ? `${msg} (${detail})` : msg;
+  return actionableTxError(e, "Content action failed.").msg;
 }
 
 function asArray<T = any>(v: any): T[] {
   return Array.isArray(v) ? v : [];
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForDisputeForTarget(base: string, targetId: string, attempts = 8, delayMs = 300): Promise<any | null> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const disputesRes: any = await weall.disputes({ targetId, limit: 5 }, base);
+      const items = asArray<any>(disputesRes?.items);
+      const found = items.find((item) => String(item?.target_id || "") === String(targetId));
+      if (found) return found;
+    } catch {
+      // ignore and keep polling
+    }
+    if (attempt < attempts - 1) await sleep(delayMs);
+  }
+  return null;
 }
 
 function itemId(it: any): string {
@@ -199,6 +212,7 @@ export default function FeedView({
 
   const [flagBusyId, setFlagBusyId] = useState<string | null>(null);
   const [flagErr, setFlagErr] = useState<string | null>(null);
+  const [flagInfo, setFlagInfo] = useState<{ msg: string; details?: any; ctaLabel?: string; ctaHref?: string } | null>(null);
   const { refresh: refreshAccountContext } = useAccount();
 
   const filters = useMemo(() => {
@@ -361,6 +375,7 @@ export default function FeedView({
 
   async function doLike(targetId: string) {
     setLikeErr(null);
+    setFlagInfo(null);
     if (!viewer) return setLikeErr("Sign in first to react.");
     if (!gateTier2.ok) return setLikeErr(gateTier2.reason || `Gated (${viewerSummary}).`);
 
@@ -368,6 +383,7 @@ export default function FeedView({
     try {
       await tx.runTx({
         title: "React to content",
+        pendingKey: txPendingKey(["content-reaction", targetId, viewer, "like"]),
         pendingMessage: "Submitting reaction transaction…",
         successMessage: "Reaction submitted. The feed will refresh after submission and final confirmation may still be pending.",
         errorMessage: (e) => prettyMsg(e),
@@ -391,6 +407,7 @@ export default function FeedView({
 
   async function doFlag(targetId: string) {
     setFlagErr(null);
+    setFlagInfo(null);
     if (!viewer) return setFlagErr("Sign in first to flag content.");
     if (!gateTier2.ok) return setFlagErr(gateTier2.reason || `Gated (${viewerSummary}).`);
 
@@ -402,8 +419,9 @@ export default function FeedView({
     try {
       await tx.runTx({
         title: "Flag content",
+        pendingKey: txPendingKey(["content-flag", targetId, viewer]),
         pendingMessage: "Submitting flag transaction…",
-        successMessage: "Flag submitted. Moderation and dispute outcomes are determined later by the network.",
+        successMessage: "Flag committed. Checking whether a dispute is already visible for this content…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         task: async () =>
@@ -416,6 +434,23 @@ export default function FeedView({
           }),
       });
       await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
+      const dispute = await waitForDisputeForTarget(base, String(targetId));
+      await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
+      if (dispute?.id) {
+        setFlagInfo({
+          msg: `Flag accepted and dispute ${String(dispute.id)} is now visible in the disputes surface.`,
+          details: dispute,
+          ctaLabel: "Open disputes",
+          ctaHref: "/disputes",
+        });
+      } else {
+        setFlagInfo({
+          msg: "Flag accepted. Dispute escalation may still be settling in the next block; refresh the disputes page if it does not appear immediately.",
+          details: { target_id: String(targetId) },
+          ctaLabel: "Open disputes",
+          ctaHref: "/disputes",
+        });
+      }
     } catch (e: any) {
       setFlagErr(prettyMsg(e));
     } finally {
@@ -484,6 +519,15 @@ export default function FeedView({
           {err ? <div className="inlineError">{err}</div> : null}
           {likeErr ? <div className="inlineError">{likeErr}</div> : null}
           {flagErr ? <div className="inlineError">{flagErr}</div> : null}
+          {flagInfo ? (
+            <div className="inlineNote">
+              <div>{flagInfo.msg}</div>
+              <div className="buttonRow" style={{ marginTop: 8 }}>
+                {flagInfo.ctaHref ? <button className="btn" onClick={() => nav(String(flagInfo.ctaHref))}>{flagInfo.ctaLabel || "Open"}</button> : null}
+                <button className="btn" onClick={() => setFlagInfo(null)}>Dismiss</button>
+              </div>
+            </div>
+          ) : null}
           {signerBusy ? (
             <div className="inlineNote">A signed action is already being submitted for this account. New reactions and flags wait for that submission to finish so signer nonces stay monotonic.</div>
           ) : null}

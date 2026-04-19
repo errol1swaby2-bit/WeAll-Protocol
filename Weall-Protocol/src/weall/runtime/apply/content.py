@@ -28,6 +28,7 @@ from typing import Any
 # We import the dispute opener directly to avoid duplicating dispute schema.
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open  # type: ignore
+from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -61,6 +62,96 @@ def _as_int(x: Any, default: int = 0) -> int:
         return int(x)
     except Exception:
         return default
+
+
+def _canonical_account_list(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        acct = _as_str(raw).strip()
+        if not acct or acct in seen:
+            continue
+        seen.add(acct)
+        out.append(acct)
+    out.sort()
+    return out
+
+
+def _identity_variants(value: Any) -> list[str]:
+    s = _as_str(value).strip()
+    if not s:
+        return []
+    base = s[1:] if s.startswith("@") else s
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in (s, base, f"@{base}" if base else ""):
+        c = _as_str(candidate).strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _resolve_account_identity(state: Json, value: Any) -> str:
+    variants = _identity_variants(value)
+    if not variants:
+        return ""
+    accounts = state.get("accounts")
+    if isinstance(accounts, dict):
+        for variant in variants:
+            if variant in accounts:
+                return variant
+    return variants[0]
+
+
+def _active_validator_accounts(state: Json) -> list[str]:
+    roles = state.get("roles")
+    if isinstance(roles, dict):
+        validators = roles.get("validators")
+        if isinstance(validators, dict):
+            active = _canonical_account_list([_resolve_account_identity(state, item) for item in _canonical_account_list(validators.get("active_set"))])
+            if active:
+                return active
+            by_id = validators.get("by_id")
+            if isinstance(by_id, dict):
+                out: list[str] = []
+                for account, rec in by_id.items():
+                    acct = _as_str(account).strip()
+                    if not acct or not isinstance(rec, dict):
+                        continue
+                    status = _as_str(rec.get("status")).strip().lower()
+                    if status and status not in {"active", "activated", "validator"}:
+                        continue
+                    out.append(_resolve_account_identity(state, acct))
+                out = _canonical_account_list(out)
+                if out:
+                    return out
+
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict):
+            active = _canonical_account_list([_resolve_account_identity(state, item) for item in _canonical_account_list(validator_set.get("active_set"))])
+            if active:
+                return active
+        validators = consensus.get("validators")
+        if isinstance(validators, dict):
+            registry = validators.get("registry")
+            if isinstance(registry, dict):
+                out: list[str] = []
+                for account, rec in registry.items():
+                    acct = _as_str(account).strip()
+                    if not acct or not isinstance(rec, dict):
+                        continue
+                    status = _as_str(rec.get("status")).strip().lower()
+                    if status and status not in {"active", "activated", "validator"}:
+                        continue
+                    out.append(_resolve_account_identity(state, acct))
+                return _canonical_account_list(out)
+    return []
 
 
 def _require_system(env: TxEnvelope) -> None:
@@ -433,15 +524,46 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
         raise ContentApplyError("invalid_payload", "missing_target_id", {})
 
     flag_id = _as_str(payload.get("flag_id")).strip() or f"flag:{env.signer}:{env.nonce}"
+    reason = _as_str(payload.get("reason"))
     flags[flag_id] = {
         "flag_id": flag_id,
         "target_id": target_id,
         "by": env.signer,
-        "reason": _as_str(payload.get("reason")),
+        "reason": reason,
         "nonce": int(env.nonce),
     }
 
     _ensure_account_nonce(state, env.signer, env.nonce)
+
+    # Demo-safe deterministic posture: a content flag is not just a dead moderation marker.
+    # When the target has not already been escalated, enqueue the canonical escalation tx for
+    # the next block so the disputes surface becomes authoritative without client-side synthesis.
+    try:
+        targets = _mod_targets(state)
+        existing = targets.get(target_id)
+        existing_dispute_id = _as_str(existing.get("dispute_id") if isinstance(existing, dict) else "").strip()
+        if not existing_dispute_id:
+            height = _as_int(state.get("height") or 0)
+            enqueue_system_tx(
+                state,
+                tx_type="CONTENT_ESCALATE_TO_DISPUTE",
+                payload={
+                    "target_type": "content",
+                    "target_id": target_id,
+                    "reason": reason,
+                    "flag_id": flag_id,
+                    "flagged_by": env.signer,
+                },
+                due_height=height + 1,
+                signer="SYSTEM",
+                once=True,
+                parent=f"CONTENT_FLAG:{flag_id}",
+                phase="post",
+            )
+    except Exception:
+        # The flag itself remains authoritative even if audit receipt scheduling fails.
+        pass
+
     return {"applied": "CONTENT_FLAG", "flag_id": flag_id}
 
 
@@ -784,6 +906,44 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         target_id=target_id,
         changes={"dispute_id": did, "escalated_at_nonce": int(env.nonce)},
     )
+
+    disputes_root = _as_dict(state.get("disputes_by_id"))
+    dispute_obj = _as_dict(disputes_root.get(did))
+    active_validators = _canonical_account_list(dispute_obj.get("eligible_juror_ids")) or _active_validator_accounts(state)
+    if not active_validators:
+        content_root = _ensure_root(state)
+        target_author = ""
+        posts = content_root.get("posts")
+        comments = content_root.get("comments")
+        post_obj = posts.get(target_id) if isinstance(posts, dict) else None
+        comment_obj = comments.get(target_id) if isinstance(comments, dict) else None
+        if isinstance(post_obj, dict):
+            target_author = _resolve_account_identity(state, post_obj.get("author"))
+        elif isinstance(comment_obj, dict):
+            target_author = _resolve_account_identity(state, comment_obj.get("author"))
+        if target_author:
+            active_validators = _canonical_account_list([target_author])
+    if not active_validators:
+        active_validators = _canonical_account_list([_resolve_account_identity(state, env.signer)])
+    if active_validators:
+        jurors = _as_dict(dispute_obj.get("jurors"))
+        for juror in active_validators:
+            existing = _as_dict(jurors.get(juror))
+            jurors[juror] = {
+                "status": _as_str(existing.get("status") or "assigned") or "assigned",
+                "assigned_at_nonce": _as_int(existing.get("assigned_at_nonce"), int(env.nonce)),
+            }
+            if isinstance(existing.get("attendance"), dict):
+                jurors[juror]["attendance"] = dict(_as_dict(existing.get("attendance")))
+        dispute_obj["jurors"] = jurors
+        dispute_obj["stage"] = "juror_review"
+        dispute_obj["stage_set_at_nonce"] = int(env.nonce)
+        dispute_obj["eligible_validator_count"] = len(active_validators)
+        dispute_obj["required_votes"] = quorum_threshold(len(active_validators)) if active_validators else 0
+        dispute_obj["eligible_juror_ids"] = list(active_validators)
+        dispute_obj["assigned_jurors"] = list(active_validators)
+        disputes_root[did] = dispute_obj
+        state["disputes_by_id"] = disputes_root
 
     # Enqueue a receipt-only audit record (system-emitted) for downstream tooling.
     try:

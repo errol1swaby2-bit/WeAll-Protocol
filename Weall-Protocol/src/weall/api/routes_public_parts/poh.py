@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from weall.api.errors import ApiError
 from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
+from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.poh.email_verification import EmailVerificationService, OracleCallerIdentity
 from weall.util.ipfs_cid import validate_ipfs_cid
 
@@ -1016,7 +1017,7 @@ def operator_poh_tier3_init(
 
     enqueue_system_tx(
         st,
-        tx_type="POH_TIER3_SESSION_INIT",
+        tx_type="POH_TIER3_INIT",
         payload={"case_id": case_id, "join_url": join_url, "ts_ms": 0},
         due_height=height + 1,
         signer="SYSTEM",

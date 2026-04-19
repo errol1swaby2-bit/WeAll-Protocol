@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
+_ACTIVE_STAGES = frozenset({"draft", "poll", "voting", "open", "queued", "finalizing", "revision", "validation", "vote", "closed", "tallied"})
+
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
@@ -58,6 +60,41 @@ def _count_map(m: dict[str, Any]) -> dict[str, int]:
     return out
 
 
+
+
+def _proposal_stage(obj: dict[str, Any]) -> str:
+    return str(obj.get("stage") or obj.get("status") or "unknown").strip().lower() or "unknown"
+
+
+def _proposal_counts_current(obj: dict[str, Any]) -> dict[str, int]:
+    stage = _proposal_stage(obj)
+    return _count_map(obj.get("poll_votes") if stage == "poll" else obj.get("votes"))
+
+
+def _is_active_stage(stage: str) -> bool:
+    return str(stage or "").strip().lower() in _ACTIVE_STAGES
+
+
+def _bool_param(value: Any) -> bool:
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "active"}
+
+
+def _summary_from_items(items: list[dict[str, Any]]) -> dict[str, Any]:
+    by_stage: dict[str, int] = {}
+    active = 0
+    for item in items:
+        stage = _proposal_stage(item)
+        by_stage[stage] = int(by_stage.get(stage, 0)) + 1
+        if _is_active_stage(stage):
+            active += 1
+    return {
+        "total": len(items),
+        "active": active,
+        "by_stage": dict(sorted(by_stage.items(), key=lambda kv: kv[0])),
+    }
+
 def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     """Ensure a stable shape for API consumers.
 
@@ -87,6 +124,9 @@ def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     out["vote_total"] = int(sum(counts.values()))
     out["has_actions"] = bool(isinstance(out.get("actions"), list) and out.get("actions"))
     out["execution_count"] = len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    out["counts_current"] = _proposal_counts_current(out)
+    out["vote_window"] = "poll" if _proposal_stage(out) == "poll" else "final"
+    out["is_active"] = _is_active_stage(_proposal_stage(out))
     return out
 
 
@@ -124,24 +164,41 @@ def v1_gov_proposals(request: Request):
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 50)
     limit = max(1, min(200, limit))
+    active_only = _bool_param(qp.get("active_only"))
+    include_summary = _bool_param(qp.get("include_summary"))
+    stage_filter = str(qp.get("stage") or "").strip().lower()
 
     by_id = _proposals_by_id_from_snapshot(st)
     if not by_id:
-        return {"ok": True, "items": []}
+        payload: dict[str, Any] = {"ok": True, "items": []}
+        if include_summary:
+            payload["summary"] = {"total": 0, "active": 0, "by_stage": {}}
+        return payload
 
-    items: list[dict[str, Any]] = []
+    all_items: list[dict[str, Any]] = []
     for _, obj in by_id.items():
         if isinstance(obj, dict):
-            items.append(_normalize_proposal(obj))
+            all_items.append(_normalize_proposal(obj))
 
-    items.sort(
+    all_items.sort(
         key=lambda x: (
             int(x.get("created_at_height", 0) or 0),
+            int(x.get("updated_at_height", 0) or x.get("created_at_height", 0) or 0),
             str(x.get("proposal_id") or x.get("id") or ""),
         ),
         reverse=True,
     )
-    return {"ok": True, "items": items[:limit]}
+
+    items = all_items
+    if stage_filter:
+        items = [item for item in items if _proposal_stage(item) == stage_filter]
+    if active_only:
+        items = [item for item in items if _is_active_stage(_proposal_stage(item))]
+
+    payload = {"ok": True, "items": items[:limit]}
+    if include_summary:
+        payload["summary"] = _summary_from_items(all_items)
+    return payload
 
 
 @router.get("/gov/proposals/{proposal_id}")

@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { endSession, getKeypair, getSession, loginOnThisDevice, revokeSessionKeyOnChain } from "../auth/session";
+import SessionRecoveryBanner from "../components/SessionRecoveryBanner";
+import { clearSession, endSession, getKeypair, getSession, getSessionHealth, loginOnThisDevice, revokeSessionKeyOnChain } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { nav } from "../lib/router";
 import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
 import { useAppConfig } from "../lib/config";
 import { summarizeAccountStanding, summarizeSessionState } from "../lib/status";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useSessionHealth } from "../hooks/useSessionHealth";
 
 type DeviceRecord = {
   deviceId: string;
@@ -46,6 +48,7 @@ export default function SessionDevicesPage(): JSX.Element {
   const session = getSession();
   const account = session?.account ? normalizeAccount(session.account) : "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
+  const sessionHealth = useSessionHealth();
 
   const [accountView, setAccountView] = useState<any>(null);
   const [registrationView, setRegistrationView] = useState<any>(null);
@@ -53,6 +56,7 @@ export default function SessionDevicesPage(): JSX.Element {
   const [error, setError] = useState<{ msg: string; details: any } | null>(null);
   const [actionError, setActionError] = useState<string>("");
   const [renewing, setRenewing] = useState(false);
+  const [validating, setValidating] = useState(false);
 
   const load = useCallback(async () => {
     if (!account) {
@@ -95,9 +99,7 @@ export default function SessionDevicesPage(): JSX.Element {
   const matchingDevice = useMemo(() => {
     const localPubkey = String(keypair?.pubkeyB64 || "").trim();
     if (!localPubkey) return null;
-    return (
-      activeDevices.find((rec) => String(rec.pubkey || "").trim() === localPubkey) || null
-    );
+    return activeDevices.find((rec) => String(rec.pubkey || "").trim() === localPubkey) || null;
   }, [activeDevices, keypair?.pubkeyB64]);
 
   const sessionKeyEntries = useMemo(() => {
@@ -144,8 +146,28 @@ export default function SessionDevicesPage(): JSX.Element {
         task: async () => revokeSessionKeyOnChain({ account, sessionKey: session.sessionKey!, base }),
         getTxId: (result: any) => result?.tx_id || result?.result?.tx_id,
       });
+      clearSession();
+      setActionError("The current local session was cleared after submitting the revoke. Re-open session recovery if you need to renew from this device.");
     } catch (e: any) {
       setActionError(e?.message || "Failed to revoke session key.");
+    }
+  }
+
+  async function handleValidateCurrentPosture(): Promise<void> {
+    setValidating(true);
+    setActionError("");
+    try {
+      const next = getSessionHealth();
+      if (next.state === "active" || next.state === "expiring_soon") {
+        setActionError("Local session posture looks valid on this device. Refresh the route data if you were waiting for the account view to catch up.");
+      } else if (next.recoverableAccount) {
+        setActionError(next.message);
+      } else {
+        setActionError("No recoverable local session is currently stored. Open login to start a fresh browser session.");
+      }
+      await load();
+    } finally {
+      setValidating(false);
     }
   }
 
@@ -156,6 +178,8 @@ export default function SessionDevicesPage(): JSX.Element {
 
   return (
     <div className="stack pageStack">
+      <SessionRecoveryBanner health={sessionHealth} />
+
       <section className="surfaceSummary surfaceSummarySpacious">
         <div className="surfaceSummaryHeader">
           <div>
@@ -207,6 +231,7 @@ export default function SessionDevicesPage(): JSX.Element {
             </div>
             <div className="row gap8">
               <button className="btn" onClick={() => void load()} disabled={loading}>Refresh</button>
+              <button className="btn" onClick={() => void handleValidateCurrentPosture()} disabled={validating}>Validate posture</button>
               <button className="btn" onClick={() => void handleRenewSession()} disabled={renewing || !account || !keypair}>Renew browser session</button>
               <button className="btn ghost" onClick={handleClearLocalSession}>Clear local session</button>
             </div>
@@ -217,6 +242,7 @@ export default function SessionDevicesPage(): JSX.Element {
               <div className="kvRow"><span>Local signer pubkey</span><strong className="mono wrapAnywhere">{keypair?.pubkeyB64 || "Not present on this device"}</strong></div>
               <div className="kvRow"><span>Browser session key</span><strong className="mono wrapAnywhere">{session?.sessionKey || "Not present"}</strong></div>
               <div className="kvRow"><span>Session expiry</span><strong>{fmtTs(session?.expiresAtMs)}</strong></div>
+              <div className="kvRow"><span>Session health</span><strong>{sessionHealth.state.replace(/_/g, " ")}</strong></div>
             </div>
             <p className="cardDesc">
               The local signer and browser session key are device-local facts. They can exist even when the network has not yet confirmed or matched an on-chain device record.
