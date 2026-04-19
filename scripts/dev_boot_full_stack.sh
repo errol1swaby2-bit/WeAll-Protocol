@@ -139,18 +139,32 @@ cleanup_frontend_process() {
   wait_for_port_release 5173 8 1 >/dev/null 2>&1 || true
 }
 
+ensure_backend_state_dirs() {
+  mkdir -p \
+    "${BACKEND_DIR}/data" \
+    "${BACKEND_DIR}/data/ipfs" \
+    "${BACKEND_DIR}/generated" \
+    "$DEV_STATE_DIR"
+  chmod u+rwx "${BACKEND_DIR}/data" "${BACKEND_DIR}/generated" >/dev/null 2>&1 || true
+}
+
 normalize_repo_permissions() {
   log "normalizing repo permissions for backend state"
 
-  mkdir -p "${BACKEND_DIR}/data" "${BACKEND_DIR}/generated" "$DEV_STATE_DIR"
+  ensure_backend_state_dirs
+
+  local host_uid host_gid
+  host_uid="$(id -u)"
+  host_gid="$(id -g)"
 
   if command -v docker >/dev/null 2>&1; then
     docker run --rm \
+      -u 0:0 \
       -v "${BACKEND_DIR}:/repo" \
       alpine:3.20 \
       /bin/sh -lc "
-        mkdir -p /repo/data /repo/generated &&
-        chown -R $(id -u):$(id -g) /repo/data /repo/generated 2>/dev/null || true &&
+        mkdir -p /repo/data /repo/data/ipfs /repo/generated &&
+        chown -R ${host_uid}:${host_gid} /repo/data /repo/generated 2>/dev/null || true &&
         chmod -R u+rwX /repo/data /repo/generated 2>/dev/null || true
       " >/dev/null 2>&1 || true
   fi
@@ -164,6 +178,7 @@ reset_dev_state() {
 
   if command -v docker >/dev/null 2>&1; then
     docker run --rm \
+      -u 0:0 \
       -v "${BACKEND_DIR}:/repo" \
       alpine:3.20 \
       /bin/sh -lc "

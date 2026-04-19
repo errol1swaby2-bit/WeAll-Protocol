@@ -74,10 +74,38 @@ done
 
 log "creating local runtime directories"
 mkdir -p data generated data/ipfs
-chmod -R u+rwX data generated || true
+chmod u+rwx data generated >/dev/null 2>&1 || true
+
+local_host_uid="$(id -u)"
+local_host_gid="$(id -g)"
+
+if command -v docker >/dev/null 2>&1; then
+  docker run --rm \
+    -u 0:0 \
+    -v "$(pwd):/repo" \
+    alpine:3.20 \
+    /bin/sh -lc "
+      mkdir -p /repo/data /repo/data/ipfs /repo/generated &&
+      chown -R ${local_host_uid}:${local_host_gid} /repo/generated /repo/data 2>/dev/null || true &&
+      chmod -R u+rwX /repo/generated /repo/data 2>/dev/null || true
+    " >/dev/null 2>&1 || true
+fi
 
 log "generating tx index"
 python3 scripts/gen_tx_index.py
+
+log "preparing mounted runtime state for container user"
+if command -v docker >/dev/null 2>&1; then
+  docker run --rm \
+    -u 0:0 \
+    -v "$(pwd):/repo" \
+    alpine:3.20 \
+    /bin/sh -lc "
+      mkdir -p /repo/data /repo/data/ipfs &&
+      chown -R 10001:10001 /repo/data 2>/dev/null || true &&
+      chmod -R u+rwX /repo/data 2>/dev/null || true
+    " >/dev/null 2>&1 || true
+fi
 
 log "starting backend stack"
 docker compose up -d --build
