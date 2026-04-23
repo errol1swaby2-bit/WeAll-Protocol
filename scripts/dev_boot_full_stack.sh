@@ -367,8 +367,6 @@ summary_path = backend / "generated" / "demo_bootstrap_result.json"
 summary = json.loads(summary_path.read_text(encoding="utf-8"))
 manifest = {
     "account": summary.get("account"),
-    "secretKeyB64": summary.get("secret_key_b64"),
-    "secret_key_b64": summary.get("secret_key_b64"),
     "pubkeyB64": summary.get("pubkey_b64"),
     "post_body": summary.get("post_body") or summary.get("demo_post_body") or "External tester demo post",
     "summary_path": str(summary_path),
@@ -384,7 +382,7 @@ manifest = {
     "resetInstructions": [
         "Run ./scripts/dev_boot_full_stack.sh from the repo root to rebuild the deterministic demo state.",
         "Use the generated dev bootstrap card on Login to restore the seeded tester instantly after reset.",
-        "The canonical seeded ids also remain in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json.",
+        "Canonical public metadata remains in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json, while the private key stays local-only.",
     ],
     "apiBase": "/",
     "api_base": "/",
@@ -392,6 +390,11 @@ manifest = {
 out_path = frontend / "public" / "dev-bootstrap.json"
 out_path.parent.mkdir(parents=True, exist_ok=True)
 out_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+secret_summary_path = backend / "generated" / "demo_bootstrap_secret.json"
+secret_local_path = repo / ".weall-dev" / "dev-bootstrap-secret.json"
+if secret_summary_path.exists():
+    secret_local_path.parent.mkdir(parents=True, exist_ok=True)
+    secret_local_path.write_text(secret_summary_path.read_text(encoding="utf-8"), encoding="utf-8")
 print(out_path)
 PY
 
@@ -405,15 +408,18 @@ PY
   log "frontend_log=${FRONTEND_LOG}"
   log "run ./scripts/demo_rehearsal_check.sh before the conference demo"
   log "operator runbook=docs/CONFERENCE_DEMO_RUNBOOK.md"
-  log "demo tester handle and private key are now surfaced in:"
+  log "demo tester handle is surfaced publicly in the login page dev bootstrap card and public manifest:"
   log "  1) the login page dev bootstrap card"
   log "  2) ${BACKEND_DIR}/generated/demo_bootstrap_result.json"
   log "  3) ${FRONTEND_DIR}/public/dev-bootstrap.json"
-  log "print exact credentials with:"
+  log "demo tester private key now remains local-only in:"
+  log "  4) ${BACKEND_DIR}/generated/demo_bootstrap_secret.json"
+  log "  5) ${ROOT_DIR}/.weall-dev/dev-bootstrap-secret.json"
+  log "print exact credentials locally with:"
   log "  python3 - <<'PY'"
   log "  import json"
   log "  from pathlib import Path"
-  log "  data=json.loads(Path('${BACKEND_DIR}/generated/demo_bootstrap_result.json').read_text())"
+  log "  data=json.loads(Path('${BACKEND_DIR}/generated/demo_bootstrap_secret.json').read_text())"
   log "  print('HANDLE:', data['account'])"
   log "  print('PRIVATE_KEY_BASE64:', data['secret_key_b64'])"
   log "  PY"

@@ -1,8 +1,6 @@
 {
   "account": "@demo_tester",
-  "secretKeyB64": "uiCR0rpM0nLOopwfzzDCE/RGjyJDeGJtWI9iEV6EGY6lk1JQoqim72Q51iQx/93IozkB3Gw4z1mTTOP9EE2C3Q==",
-  "secret_key_b64": "uiCR0rpM0nLOopwfzzDCE/RGjyJDeGJtWI9iEV6EGY6lk1JQoqim72Q51iQx/93IozkB3Gw4z1mTTOP9EE2C3Q==",
-  "pubkeyB64": "pZNSUKKopu9kOdYkMf/dyKM5AdxsOM9Zk0zj/RBNgt0=",
+  "pubkeyB64": "4ReBCv94TiW94y5rrOnK42OC+Yh6I8UvbkVAdifPxC4=",
   "post_body": "External tester demo post",
   "summary_path": "/home/errol/WeAll-Protocol/Weall-Protocol/generated/demo_bootstrap_result.json",
   "seededGroup": {
@@ -47,7 +45,7 @@
   "resetInstructions": [
     "Run ./scripts/dev_boot_full_stack.sh from the repo root to rebuild the deterministic demo state.",
     "Use the generated dev bootstrap card on Login to restore the seeded tester instantly after reset.",
-    "The canonical seeded ids also remain in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json."
+    "Canonical public metadata remains in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json, while the private key stays local-only."
   ],
   "apiBase": "/",
   "api_base": "/"

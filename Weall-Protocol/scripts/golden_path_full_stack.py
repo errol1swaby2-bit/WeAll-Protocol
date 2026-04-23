@@ -107,7 +107,7 @@ class FlowError(RuntimeError):
 
 
 def _write_demo_summary(
-    account: str, post_body: str, media_name: str, extra: dict[str, Any]
+    account: str, post_body: str, media_name: str, extra: dict[str, Any], *, secret_payload: dict[str, Any] | None = None
 ) -> str:
     out_dir = Path(__file__).resolve().parent.parent / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -119,6 +119,13 @@ def _write_demo_summary(
         **extra,
     }
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if secret_payload:
+        secret_path = out_dir / "demo_bootstrap_secret.json"
+        secret_path.write_text(json.dumps(secret_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        try:
+            secret_path.chmod(0o600)
+        except Exception:
+            pass
     return str(out_path)
 
 
@@ -591,6 +598,9 @@ def main() -> int:
         {"label": "Open governance", "href": "/proposals"},
     ]
 
+    secret_key_b64 = base64.b64encode(bytes.fromhex(priv_hex) + bytes.fromhex(pub_hex)).decode("ascii")
+    pubkey_b64 = base64.b64encode(bytes.fromhex(pub_hex)).decode("ascii")
+
     summary_path = _write_demo_summary(
         account=account,
         post_body=cfg.post_body,
@@ -603,14 +613,19 @@ def main() -> int:
             "post_id": post_id,
             "media_id": media_id,
             "pubkey_hex": pub_hex,
-            "secret_key_b64": base64.b64encode(bytes.fromhex(priv_hex) + bytes.fromhex(pub_hex)).decode("ascii"),
-            "pubkey_b64": base64.b64encode(bytes.fromhex(pub_hex)).decode("ascii"),
+            "pubkey_b64": pubkey_b64,
             "session_key": session_key,
             "session_ttl_seconds": 3600,
             "seeded_group": seeded_group,
             "seeded_proposal": seeded_proposal,
             "seeded_dispute": seeded_dispute,
             "recommended_path": recommended_path,
+        },
+        secret_payload={
+            "account": account,
+            "secret_key_b64": secret_key_b64,
+            "pubkey_b64": pubkey_b64,
+            "session_ttl_seconds": 3600,
         },
     )
 

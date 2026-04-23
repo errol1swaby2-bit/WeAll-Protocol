@@ -119,3 +119,9 @@ secrets/
 
 web/playwright-report/
 web/test-results/
+
+# =========================
+# Local Dev Bootstrap Secrets
+# =========================
+.weall-dev/
+Weall-Protocol/generated/demo_bootstrap_secret.json

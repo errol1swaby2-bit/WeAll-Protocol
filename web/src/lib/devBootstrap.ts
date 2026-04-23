@@ -12,7 +12,6 @@ export type DevBootstrapManifest = {
   generated_at?: string;
   account?: string;
   pubkeyB64?: string;
-  secretKeyB64?: string;
   apiBase?: string;
   sessionTtlSeconds?: number;
   note?: string;
@@ -60,18 +59,50 @@ async function fetchManifest(url: string): Promise<DevBootstrapManifest | null> 
   }
 }
 
-function manifestSessionTtlSeconds(manifest: DevBootstrapManifest): number {
+type DevBootstrapSecretResponse = {
+  account?: string;
+  pubkeyB64?: string;
+  secretKeyB64?: string;
+  secret_key_b64?: string;
+  sessionTtlSeconds?: number;
+};
+
+function manifestSessionTtlSeconds(manifest: DevBootstrapManifest | DevBootstrapSecretResponse): number {
   return Math.max(300, Number(manifest.sessionTtlSeconds || 24 * 60 * 60));
+}
+
+function apiJoin(base: string, path: string): string {
+  const normalizedBase = String(base || "").trim();
+  if (!normalizedBase || normalizedBase === "/") return path;
+  return `${normalizedBase.replace(/\/+$|$/g, "")}${path}`;
+}
+
+async function fetchSecret(config: AppConfig, manifest: DevBootstrapManifest): Promise<DevBootstrapSecretResponse | null> {
+  const account = String(manifest.account || "").trim();
+  if (!account) return null;
+  const base = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/";
+  const url = apiJoin(base, `/v1/dev/bootstrap-secret?account=${encodeURIComponent(account)}`);
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = (await res.json()) as DevBootstrapSecretResponse;
+    return body && typeof body === "object" ? body : null;
+  } catch {
+    return null;
+  }
 }
 
 async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest): Promise<boolean> {
   const account = String(manifest.account || "").trim();
-  const secretKeyB64 = String(manifest.secretKeyB64 || "").trim();
-  if (!account || !secretKeyB64) return false;
+  if (!account) return false;
+
+  const secret = await fetchSecret(config, manifest);
+  const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim();
+  if (!secretKeyB64) return false;
 
   const marker = buildMarker(manifest);
   const normalizedBase = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/";
-  const ttlSeconds = manifestSessionTtlSeconds(manifest);
+  const ttlSeconds = manifestSessionTtlSeconds(secret || manifest);
 
   setApiBase(normalizedBase);
   setAccount(account);
@@ -105,8 +136,7 @@ export async function maybeApplyDevBootstrap(config: AppConfig): Promise<boolean
   if (!manifest) return false;
 
   const account = String(manifest.account || "").trim();
-  const secretKeyB64 = String(manifest.secretKeyB64 || "").trim();
-  if (!account || !secretKeyB64) return false;
+  if (!account) return false;
 
   const marker = buildMarker(manifest);
   const session = getSession();
@@ -125,8 +155,9 @@ export async function maybeRepairDevBootstrapSession(config: AppConfig): Promise
   if (!manifest) return false;
 
   const account = String(manifest.account || "").trim();
-  const secretKeyB64 = String(manifest.secretKeyB64 || "").trim();
   const pubkeyB64 = String(manifest.pubkeyB64 || "").trim();
+  const secret = await fetchSecret(config, manifest);
+  const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim();
   if (!account || !secretKeyB64) return false;
 
   const session = getSession();

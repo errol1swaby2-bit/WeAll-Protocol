@@ -18,7 +18,7 @@ import {
   submitSignedTx,
 } from "../auth/session"
 import { signDetachedB64 } from "../auth/keys"
-import { nav } from "../lib/router"
+import { consumeReturnTo, nav } from "../lib/router"
 import { useAppConfig } from "../lib/config"
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy"
 
@@ -103,7 +103,6 @@ type DevBootstrapManifest = {
   account?: string
   apiBase?: string
   pubkeyB64?: string
-  secretKeyB64?: string
   sessionTtlSeconds?: number
   note?: string
   seededGroup?: { group_id?: string; member_visible?: boolean; visibility?: string }
@@ -136,6 +135,29 @@ async function fetchDevBootstrapManifest(url: string): Promise<DevBootstrapManif
   }
 }
 
+type DevBootstrapSecretResponse = {
+  account?: string
+  pubkeyB64?: string
+  secretKeyB64?: string
+  secret_key_b64?: string
+  sessionTtlSeconds?: number
+}
+
+function apiJoin(base: string, path: string): string {
+  const normalized = String(base || "").trim()
+  if (!normalized || normalized === "/") return path
+  return `${normalized.replace(/\/+$/, "")}${path}`
+}
+
+async function fetchDevBootstrapSecret(account: string, apiBase: string): Promise<DevBootstrapSecretResponse | null> {
+  const normalized = normalizeAccount(account)
+  if (!normalized) return null
+  const res = await fetch(apiJoin(apiBase, `/v1/dev/bootstrap-secret?account=${encodeURIComponent(normalized)}`), { cache: "no-store" })
+  if (!res.ok) return null
+  const body = (await res.json()) as DevBootstrapSecretResponse
+  return body && typeof body === "object" ? body : null
+}
+
 function manifestLines(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value
@@ -149,8 +171,8 @@ function DevBootstrapDetails({ manifest }: { manifest: DevBootstrapManifest }) {
       <div className="stack-xs" data-testid="dev-bootstrap-summary">
         <strong>Handle</strong>
         <code data-testid="dev-bootstrap-account">{normalizeAccount(String(manifest.account || ""))}</code>
-        <strong>Private key</strong>
-        <code data-testid="dev-bootstrap-secret">{maskSecret(String(manifest.secretKeyB64 || ""))}</code>
+        <strong>Local dev signer</strong>
+        <code data-testid="dev-bootstrap-secret">Fetched on demand from the local dev backend</code>
         {manifest.seededGroup?.group_id ? (
           <>
             <strong>Seeded group</strong>
@@ -313,17 +335,15 @@ export default function LoginPage() {
       if (cancelled || !manifest) return
       setDevManifest(manifest)
       const manifestAccount = normalizeAccount(String(manifest.account || ""))
-      const manifestSecret = String(manifest.secretKeyB64 || "").trim()
       const manifestApiBase = String(manifest.apiBase || "").trim()
       if (manifestAccount && !existingAccountInput.trim()) setExistingAccountInput(manifestAccount)
-      if (manifestSecret && !privateKey.trim()) setPrivateKey(manifestSecret)
       if (manifestApiBase && !apiBaseInput.trim()) setApiBaseInput(manifestApiBase)
     })
 
     return () => {
       cancelled = true
     }
-  }, [config, existingAccountInput, privateKey, apiBaseInput])
+  }, [config, existingAccountInput, apiBaseInput])
 
   async function handleSaveApiBase() {
     setApiBase(apiBaseInput)
@@ -451,7 +471,7 @@ export default function LoginPage() {
       })
 
       setNotice("Email confirmed, Tier 1 submission sent, and this device session is now active.")
-      nav("/home")
+      nav(consumeReturnTo("/home"))
     } catch (err) {
       setError(
         humanizeApiError(
@@ -484,8 +504,8 @@ export default function LoginPage() {
         account: existingAccount,
         secretKeyB64: privateKey.trim(),
       })
-      setNotice("Fresh device session created. Redirecting to your home dashboard.")
-      nav("/home")
+      setNotice("Fresh device session created. Redirecting to your intended route.")
+      nav(consumeReturnTo("/home"))
     } catch (err) {
       setError(
         humanizeApiError(
@@ -502,19 +522,22 @@ export default function LoginPage() {
   async function handleUseDevBootstrap() {
     setError("")
     setNotice("")
-    if (!devManifest?.account || !devManifest?.secretKeyB64) {
-      setError("Dev bootstrap manifest is missing the account or private key.")
+    if (!devManifest?.account) {
+      setError("Dev bootstrap manifest is missing the account handle.")
       return
     }
 
     setDevBootstrapBusy(true)
     try {
+      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), String(devManifest.apiBase || apiBaseInput || getApiBase()))
+      const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
+      if (!secretKeyB64) throw new Error("Dev bootstrap secret is not available from the local backend.")
       await restoreAccountAndLoginOnThisDevice({
         account: normalizeAccount(devManifest.account),
-        secretKeyB64: String(devManifest.secretKeyB64 || "").trim(),
+        secretKeyB64,
       })
       setNotice("Loaded the canonical demo tester credentials and created a fresh device session.")
-      nav("/home")
+      nav(consumeReturnTo("/home"))
     } catch (err) {
       setError(
         humanizeApiError(
@@ -528,12 +551,15 @@ export default function LoginPage() {
   }
 
   async function handleCopyDevSecret() {
-    if (!devManifest?.secretKeyB64) return
+    if (!devManifest?.account) return
     try {
-      await navigator.clipboard.writeText(String(devManifest.secretKeyB64))
-      setNotice("Demo private key copied to clipboard.")
+      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), String(devManifest.apiBase || apiBaseInput || getApiBase()))
+      const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
+      if (!secretKeyB64) throw new Error("missing_secret")
+      await navigator.clipboard.writeText(secretKeyB64)
+      setNotice("Demo private key copied from the local dev backend.")
     } catch {
-      setNotice("Could not copy automatically. Select the prefilled private key field below and copy it manually.")
+      setNotice("Could not copy automatically. Use the one-click demo session loader instead.")
     }
   }
 
@@ -644,6 +670,23 @@ export default function LoginPage() {
         </div>
       </section>
 
+      <section className="surfaceBoundaryBar authBoundaryBar">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Access contract</h2>
+            <p className="surfaceBoundaryText">
+              This route is a deliberate access surface. It should make environment selection, local signer setup, browser session issuance, and first-step onboarding legible without blending them into the main product hubs.
+            </p>
+          </div>
+          <div className="surfaceBoundaryList">
+            <span className="surfaceBoundaryTag">Environment targeting</span>
+            <span className="surfaceBoundaryTag">Local signer custody</span>
+            <span className="surfaceBoundaryTag">Browser session issuance</span>
+            <span className="surfaceBoundaryTag">On-chain follow-through</span>
+          </div>
+        </div>
+      </section>
+
       <section className="authGrid">
         <article className="panel authConnectionPanel">
           <div className="authPanelHeader">
@@ -711,8 +754,8 @@ export default function LoginPage() {
                   <p className="eyebrow">Dev bootstrap</p>
                   <h3>Canonical demo tester is ready</h3>
                   <p className="muted">
-                    This local environment already generated a demo tester account. You can load it with one click or use the
-                    existing-account form below with the surfaced credentials.
+                    This local environment already generated a demo tester account. You can load it with one click, or fetch the
+                    local-only private key on demand without serving it from a public frontend file.
                   </p>
                   <div className="row gap-sm wrap">
                     <button type="button" data-testid="load-demo-tester-session" onClick={handleUseDevBootstrap} disabled={busy || devBootstrapBusy}>
@@ -727,7 +770,8 @@ export default function LoginPage() {
                       onClick={() => {
                         setMode("existing")
                         setExistingAccountInput(normalizeAccount(String(devManifest.account || "")))
-                        setPrivateKey(String(devManifest.secretKeyB64 || "").trim())
+                        setPrivateKey("")
+                        setNotice("Demo handle copied into the restore form. Use Copy private key to fetch the local dev signer on demand if you need manual restore.")
                       }}
                     >
                       Open restore form

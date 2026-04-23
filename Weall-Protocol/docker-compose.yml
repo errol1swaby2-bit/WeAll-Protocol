@@ -55,6 +55,7 @@ services:
       GUNICORN_KEEPALIVE: "5"
     volumes:
       - ./data:/app/data
+      - ./generated:/app/generated
     ports:
       - "8000:8000"
     command:

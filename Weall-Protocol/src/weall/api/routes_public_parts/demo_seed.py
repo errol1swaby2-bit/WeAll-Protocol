@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -34,6 +35,54 @@ class _LedgerStoreWriter:
 
 def _demo_seed_enabled() -> bool:
     return str(os.getenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "0")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dev_bootstrap_secret_enabled() -> bool:
+    return str(os.getenv("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE", os.getenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "0"))).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dev_bootstrap_secret_path() -> Path:
+    configured = str(os.getenv("WEALL_DEV_BOOTSTRAP_SECRET_PATH", "")).strip()
+    if configured:
+        return Path(configured).expanduser()
+
+    default_name = "demo_bootstrap_secret.json"
+    repo_root = Path(__file__).resolve().parents[4]
+    candidates = [
+        Path("/app/generated") / default_name,
+        repo_root / "generated" / default_name,
+        Path.cwd() / "generated" / default_name,
+    ]
+    for candidate in candidates:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        except Exception:
+            continue
+    return candidates[0]
+
+
+def _load_dev_bootstrap_secret(account: str) -> Json:
+    path = _dev_bootstrap_secret_path()
+    if not path.exists() or not path.is_file():
+        raise ApiError.not_found("dev_bootstrap_secret_missing", "Dev bootstrap secret not available")
+    try:
+        payload = Json(__import__("json").loads(path.read_text(encoding="utf-8")))
+    except Exception as exc:
+        raise ApiError.server_error("dev_bootstrap_secret_invalid", "Dev bootstrap secret file is invalid") from exc
+    secret_account = str(payload.get("account") or "").strip()
+    if secret_account and secret_account != account:
+        raise ApiError.not_found("dev_bootstrap_secret_account_mismatch", "Dev bootstrap secret not available for that account")
+    secret_key_b64 = str(payload.get("secret_key_b64") or "").strip()
+    if not secret_key_b64:
+        raise ApiError.server_error("dev_bootstrap_secret_invalid", "Dev bootstrap secret file is missing the private key")
+    return {
+        "account": secret_account or account,
+        "secretKeyB64": secret_key_b64,
+        "secret_key_b64": secret_key_b64,
+        "pubkeyB64": str(payload.get("pubkey_b64") or "").strip(),
+        "sessionTtlSeconds": int(payload.get("session_ttl_seconds") or 3600),
+    }
 
 
 def _slug(value: str) -> str:
@@ -294,6 +343,18 @@ def seed_demo_state(
             "target_id": str(final_dispute.get("target_id") or ""),
         },
     }
+
+
+
+
+@router.get("/dev/bootstrap-secret")
+def v1_dev_bootstrap_secret(account: str):
+    if not _dev_bootstrap_secret_enabled():
+        raise HTTPException(status_code=404, detail="Route not found")
+    account_norm = str(account).strip()
+    if not account_norm:
+        raise ApiError.bad_request("account_required", "Account is required")
+    return _load_dev_bootstrap_secret(account_norm)
 
 
 @router.post("/dev/demo-seed")

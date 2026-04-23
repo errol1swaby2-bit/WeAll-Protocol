@@ -101,9 +101,9 @@ if command -v docker >/dev/null 2>&1; then
     -v "$(pwd):/repo" \
     alpine:3.20 \
     /bin/sh -lc "
-      mkdir -p /repo/data /repo/data/ipfs &&
-      chown -R 10001:10001 /repo/data 2>/dev/null || true &&
-      chmod -R u+rwX /repo/data 2>/dev/null || true
+      mkdir -p /repo/data /repo/data/ipfs /repo/generated &&
+      chown -R 10001:10001 /repo/data /repo/generated 2>/dev/null || true &&
+      chmod -R a+rwX /repo/data /repo/generated 2>/dev/null || true
     " >/dev/null 2>&1 || true
 fi
 
