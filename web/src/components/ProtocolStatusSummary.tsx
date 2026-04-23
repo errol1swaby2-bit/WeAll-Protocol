@@ -12,6 +12,7 @@ import {
   type SessionStateSummary,
 } from "../lib/status";
 import { nav } from "../lib/router";
+import { refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
 
 type SummaryState = {
   node: NodeConnectionState;
@@ -74,9 +75,15 @@ export default function ProtocolStatusSummary(): JSX.Element {
     const timer = window.setInterval(() => {
       void load();
     }, 15000);
+    const unsubscribe = subscribeGlobalRefresh((request) => {
+      if (refreshTouches(request, ["account", "session", "node", "route"])) {
+        void load();
+      }
+    });
 
     return () => {
       cancelled = true;
+      unsubscribe();
       window.clearInterval(timer);
     };
   }, [account, base]);

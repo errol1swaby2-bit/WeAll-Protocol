@@ -17,6 +17,7 @@ import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
+import { refreshMutationSlices } from "../lib/revalidation";
 
 type TierCardProps = {
   tier: number;
@@ -345,6 +346,10 @@ export default function PohPage(): JSX.Element {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function refreshPohSurface(): Promise<void> {
+    await refreshMutationSlices(refresh, refreshAccountContext, loadPohData);
   }
 
   async function loadPohData(): Promise<void> {
@@ -882,8 +887,7 @@ export default function PohPage(): JSX.Element {
         message={err?.msg}
         details={err?.details}
         onRetry={() => {
-          void refresh();
-          void loadPohData();
+          void refreshPohSurface();
         }}
         onDismiss={() => setErr(null)}
       />
@@ -1026,8 +1030,7 @@ export default function PohPage(): JSX.Element {
               <button
                 className="btn btnGhost"
                 onClick={() => {
-                  void refresh();
-                  void loadPohData();
+                  void refreshPohSurface();
                 }}
                 disabled={loading || casesBusy}
               >

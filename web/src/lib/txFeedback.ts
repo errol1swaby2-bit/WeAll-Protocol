@@ -191,7 +191,10 @@ export function inferFeedbackFromUnknown(error: unknown, fallback = "Something f
     needle.includes("login") ||
     needle.includes("session expired") ||
     needle.includes("revoked") ||
-    needle.includes("unauthorized")
+    needle.includes("unauthorized") ||
+    needle.includes("local signer") ||
+    needle.includes("device signer") ||
+    needle.includes("active key on this account")
   ) {
     return createFeedback("auth_session_expired", rawMessage, payload, { retryable: true, safeToRetry: true });
   }
@@ -206,8 +209,27 @@ export function inferFeedbackFromUnknown(error: unknown, fallback = "Something f
     return createFeedback("node_not_ready", rawMessage, payload, { retryable: true, safeToRetry: true });
   }
 
-  if (needle.includes("not yet visible") || needle.includes("recorded") || needle.includes("check the affected object")) {
-    return createFeedback("recorded_not_yet_visible", rawMessage, payload, { retryable: false, safeToRetry: false });
+  if (
+    code.includes("nonce") ||
+    code.includes("duplicate_submission_blocked") ||
+    code.includes("signer_submission_busy") ||
+    code.includes("tx_id_conflict") ||
+    needle.includes("already submitting") ||
+    needle.includes("signed action") ||
+    needle.includes("signer is busy") ||
+    needle.includes("still settling") ||
+    needle.includes("already used") ||
+    needle.includes("stale") ||
+    needle.includes("nonce") ||
+    needle.includes("not yet visible") ||
+    needle.includes("check the affected object")
+  ) {
+    return createFeedback(
+      "recorded_not_yet_visible",
+      rawMessage,
+      payload,
+      { retryable: true, safeToRetry: false },
+    );
   }
 
   if (

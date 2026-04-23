@@ -7,6 +7,7 @@ import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import {
   getDurableOperatorTarget,
   getMediaReplicationTarget,
@@ -191,6 +192,15 @@ export default function CreatePostPage(): JSX.Element {
 
   const signerBusyElsewhere = signerSubmission.busy && !busy;
 
+  useMutationRefresh({
+    entityTypes: ["content"],
+    account: acct,
+    onRefresh: async () => {
+      await refresh();
+      await refreshAccountContext();
+    },
+  });
+
   async function refresh(): Promise<void> {
     if (!acct) {
       setAcctState(null);
@@ -349,6 +359,7 @@ export default function CreatePostPage(): JSX.Element {
         getTxId: (res: any) => res?.postTxId,
         finality: {
           timeoutMs: 20000,
+          mutation: { entityType: "content", account: acct || undefined, routeHint: composerGroupId ? `/groups/${encodeURIComponent(composerGroupId)}` : "/feed", txType: "CONTENT_POST_CREATE" },
           reconcile: async () => {
             return expectedPostId
               ? reconcilePostVisible({
@@ -751,8 +762,8 @@ export default function CreatePostPage(): JSX.Element {
   const observedOperators = Number(mediaDurability?.ok_unique_ops ?? 0);
 
   return (
-    <div className="pageStack pageNarrow">
-      <section className="card heroCard">
+    <div className="pageStack pageNarrow actionPage createPostPage">
+      <section className="card heroCard actionHeroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
@@ -805,7 +816,25 @@ export default function CreatePostPage(): JSX.Element {
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onRetry={refresh} onDismiss={() => setErr(null)} />
+      <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(refresh, refreshAccountContext)} onDismiss={() => setErr(null)} />
+
+      <section className="detailFocusStrip actionFocusStrip">
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Primary object</div>
+          <div className="detailFocusValue">Post composer</div>
+          <div className="detailFocusText">This route exists to complete one publish flow. Feed browsing and discussion belong back on the hub.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Current publish posture</div>
+          <div className="detailFocusValue">{canPublish ? "Ready to submit" : signerBusyElsewhere ? "Signer lane busy" : "Needs attention"}</div>
+          <div className="detailFocusText">{canPublish ? "The signer lane is open and the account posture is sufficient for post submission." : String(readinessChecks.find((item) => !item.ok)?.hint || "Resolve the unmet posting prerequisites shown below before publishing.")}</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Truth model</div>
+          <div className="detailFocusValue">Submission ≠ visibility</div>
+          <div className="detailFocusText">The composer reports upload, declaration, and publish separately so the page stays honest about what is confirmed right now.</div>
+        </article>
+      </section>
 
       <section className="grid2">
         <article className="card">

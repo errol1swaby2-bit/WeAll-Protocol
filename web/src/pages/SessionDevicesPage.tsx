@@ -5,12 +5,14 @@ import ErrorBanner from "../components/ErrorBanner";
 import SessionRecoveryBanner from "../components/SessionRecoveryBanner";
 import { clearSession, endSession, getKeypair, getSession, getSessionHealth, loginOnThisDevice, revokeSessionKeyOnChain } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
-import { nav } from "../lib/router";
+import { consumeReturnTo, nav, peekReturnTo } from "../lib/router";
 import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
 import { useAppConfig } from "../lib/config";
 import { summarizeAccountStanding, summarizeSessionState } from "../lib/status";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSessionHealth } from "../hooks/useSessionHealth";
+import { useAccount } from "../context/AccountContext";
+import { refreshMutationSlices } from "../lib/revalidation";
 
 type DeviceRecord = {
   deviceId: string;
@@ -49,6 +51,7 @@ export default function SessionDevicesPage(): JSX.Element {
   const account = session?.account ? normalizeAccount(session.account) : "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
   const sessionHealth = useSessionHealth();
+  const { refresh: refreshAccountContext } = useAccount();
 
   const [accountView, setAccountView] = useState<any>(null);
   const [registrationView, setRegistrationView] = useState<any>(null);
@@ -79,12 +82,17 @@ export default function SessionDevicesPage(): JSX.Element {
     }
   }, [account, base]);
 
+  async function refreshSessionSurface(): Promise<void> {
+    await refreshMutationSlices(load, refreshAccountContext);
+  }
+
   useEffect(() => {
     void load();
   }, [load]);
 
   const standing = summarizeAccountStanding({ accountView, registrationView });
   const sessionSummary = summarizeSessionState({ accountView, registrationView });
+  const pendingReturnTo = peekReturnTo();
 
   const devicesById = useMemo(() => asRecord(asRecord(accountView?.state?.devices).by_id), [accountView]);
   const activeDevices = useMemo<DeviceRecord[]>(() => {
@@ -117,6 +125,11 @@ export default function SessionDevicesPage(): JSX.Element {
     try {
       await loginOnThisDevice({ account, base });
       await load();
+      const target = consumeReturnTo("");
+      if (target) {
+        nav(target);
+        return;
+      }
     } catch (e: any) {
       const msg = String(e?.message || "").trim();
       if (msg === "pubkey is not an active key on this account" || msg === "pubkey_not_authorized" || msg === "session_invalid") {
@@ -177,7 +190,7 @@ export default function SessionDevicesPage(): JSX.Element {
   }
 
   return (
-    <div className="stack pageStack">
+    <div className="stack pageStack utilityPage sessionDevicesPage">
       <SessionRecoveryBanner health={sessionHealth} />
 
       <section className="surfaceSummary surfaceSummarySpacious">
@@ -219,8 +232,32 @@ export default function SessionDevicesPage(): JSX.Element {
         </div>
       </section>
 
-      {error ? <ErrorBanner message={error.msg} details={error.details} /> : null}
+      <section className="detailFocusStrip utilityFocusStrip">
+        <article className="detailFocusCard utilityFocusCard">
+          <div className="detailFocusLabel">Utility contract</div>
+          <div className="detailFocusValue">Repair local access posture</div>
+          <div className="detailFocusText">This page exists to reconcile three separate layers: browser session, local signer storage, and authoritative on-chain device records.</div>
+        </article>
+        <article className="detailFocusCard utilityFocusCard">
+          <div className="detailFocusLabel">Safe recovery</div>
+          <div className="detailFocusValue">Validate before you mutate</div>
+          <div className="detailFocusText">Renew, revoke, and clear actions live here so recovery stays deliberate instead of being scattered across unrelated product pages.</div>
+        </article>
+        <article className="detailFocusCard utilityFocusCard">
+          <div className="detailFocusLabel">Return path</div>
+          <div className="detailFocusValue">{pendingReturnTo ? pendingReturnTo : "Stay in utility mode"}</div>
+          <div className="detailFocusText">Recovery should preserve context. If a route sent you here, use the return action after signer posture is valid again.</div>
+        </article>
+      </section>
+
+      {error ? <ErrorBanner message={error.msg} details={error.details} onRetry={() => void refreshSessionSurface()} onDismiss={() => setError(null)} /> : null}
       {actionError ? <div className="inlineError">{actionError}</div> : null}
+
+      {pendingReturnTo ? (
+        <div className="calloutInfo">
+          After recovering the signer or renewing the browser session, this page can return you to <strong>{pendingReturnTo}</strong> instead of dropping you back at Home.
+        </div>
+      ) : null}
 
       <section className="infoGrid twoCol">
         <article className="card">
@@ -230,9 +267,10 @@ export default function SessionDevicesPage(): JSX.Element {
               <h2 className="cardTitle">What this browser currently has</h2>
             </div>
             <div className="row gap8">
-              <button className="btn" onClick={() => void load()} disabled={loading}>Refresh</button>
+              <button className="btn" onClick={() => void refreshSessionSurface()} disabled={loading}>Refresh</button>
               <button className="btn" onClick={() => void handleValidateCurrentPosture()} disabled={validating}>Validate posture</button>
               <button className="btn" onClick={() => void handleRenewSession()} disabled={renewing || !account || !keypair}>Renew browser session</button>
+              {pendingReturnTo ? <button className="btn" onClick={() => nav(consumeReturnTo("/home"))}>Return to previous route</button> : null}
               <button className="btn ghost" onClick={handleClearLocalSession}>Clear local session</button>
             </div>
           </div>

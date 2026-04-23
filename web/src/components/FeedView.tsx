@@ -6,8 +6,10 @@ import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { useAccount } from "../context/AccountContext";
 import { normalizeAccount } from "../auth/keys";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
+import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import MediaGallery from "./MediaGallery";
 
@@ -353,9 +355,13 @@ export default function FeedView({
     }
   }
 
-  function refresh() {
+  async function refresh(): Promise<void> {
     setNextCursor(null);
-    void loadPage({ cursor: null, append: false });
+    await refreshMutationSlices(
+      () => loadPage({ cursor: null, append: false }),
+      refreshViewerState,
+      refreshAccountContext,
+    );
   }
 
   function loadMore() {
@@ -373,6 +379,15 @@ export default function FeedView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewer]);
 
+  useMutationRefresh({
+    entityTypes: ["content", "dispute"],
+    account: viewer,
+    onRefresh: async () => {
+      await loadPage({ cursor: null, append: false });
+      await refreshAccountContext();
+    },
+  });
+
   async function doLike(targetId: string) {
     setLikeErr(null);
     setFlagInfo(null);
@@ -388,6 +403,7 @@ export default function FeedView({
         successMessage: "Reaction submitted. The feed will refresh after submission and final confirmation may still be pending.",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
@@ -424,6 +440,7 @@ export default function FeedView({
         successMessage: "Flag committed. Checking whether a dispute is already visible for this content…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
@@ -482,7 +499,11 @@ export default function FeedView({
               <h2 className="cardTitle">{headerTitle}</h2>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={refresh} disabled={loading}>
+              <button
+                className="btn"
+                onClick={() => void refreshMutationSlices(refresh, refreshViewerState, refreshAccountContext)}
+                disabled={loading}
+              >
                 {loading ? "Refreshing…" : "Refresh"}
               </button>
             </div>

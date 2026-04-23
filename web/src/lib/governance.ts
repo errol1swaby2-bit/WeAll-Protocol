@@ -1,4 +1,5 @@
 import { weall } from "../api/weall";
+import { voteForAccount } from "./accountSurface";
 
 export type GovernanceVoteCounts = {
   yes: number;
@@ -277,7 +278,7 @@ export async function reconcileProposalVote(args: {
     const raw: any = await weall.proposalVotes(args.proposalId, args.base);
     const stage = governanceProposalStageOf(raw?.stage);
     const voteMap = asRecord((stage === "poll" ? raw?.poll_votes : raw?.votes) || raw?.votes || raw?.poll_votes);
-    const current = String(voteMap[String(args.account)]?.vote || "").trim().toLowerCase();
+    const current = String(voteForAccount(voteMap, args.account)?.vote || "").trim().toLowerCase();
     if (current === args.choice) {
       return {
         phase: "confirmed",

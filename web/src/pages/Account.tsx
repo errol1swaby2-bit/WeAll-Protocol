@@ -6,6 +6,7 @@ import FeedView from "../components/FeedView";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
+import { refreshMutationSlices } from "../lib/revalidation";
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -145,6 +146,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }, [acct, nodeDeviceId]);
 
   const state = acctView?.state ?? null;
+  const refreshAccountSurface = async () => {
+    await refreshMutationSlices(load, refreshAccountContext);
+  };
   const tier = num(state?.poh_tier ?? poh?.poh_tier, 0);
   const reputation = num(state?.reputation ?? poh?.reputation, 0);
   const banned = !!state?.banned;
@@ -292,7 +296,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   return (
-    <div className="pageStack pageNarrow">
+    <div className="pageStack pageNarrow utilityPage accountPage">
       <section className="card heroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
@@ -355,10 +359,28 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <span className="statValue">{canServe ? "Eligible" : "Locked"}</span>
             </div>
           </div>
+
+          <div className="detailFocusStrip utilityFocusStrip">
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Utility contract</div>
+              <div className="detailFocusValue">Authoritative identity posture</div>
+              <div className="detailFocusText">Read this page as the steady account utility surface: it translates backend account truth into clear eligibility and next-step posture.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Local vs chain</div>
+              <div className="detailFocusValue">{isSelf ? (localKeypair ? "Local signer present" : "Viewer only") : "Public view"}</div>
+              <div className="detailFocusText">Local signer storage, browser session state, and on-chain standing remain separate so the UI does not imply authority that the chain has not granted.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Current next step</div>
+              <div className="detailFocusValue">{nextUnlock}</div>
+              <div className="detailFocusText">Use the primary action only when there is a real unlock step. Otherwise this page remains a steady inspection surface.</div>
+            </article>
+          </div>
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onRetry={load} onDismiss={() => setErr(null)} />
+      <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
@@ -522,7 +544,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <ErrorBanner
               message={opErr?.msg}
               details={opErr?.details}
-              onRetry={load}
+              onRetry={refreshAccountSurface}
               onDismiss={() => setOpErr(null)}
             />
 

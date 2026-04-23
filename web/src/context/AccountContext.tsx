@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getAccount, weall } from "../api/weall";
+import { ACCOUNT_REFRESH_INTERVAL_MS, refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
 
 type AccountState = {
   account?: string;
@@ -50,8 +51,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AccountState | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const acct = getAccount();
     if (!acct) {
       setState(null);
@@ -59,45 +61,63 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const res = await weall.account(acct);
-      const rawState =
-        res && typeof res === "object" && "state" in res && res.state && typeof res.state === "object"
-          ? (res.state as Record<string, unknown>)
-          : {};
-      setState(mapAccountState(acct, rawState));
-      setLastUpdatedAt(Date.now());
-    } catch {
-      setState({
-        account: acct,
-      });
-      setLastUpdatedAt(Date.now());
-    } finally {
-      setLoading(false);
+    if (refreshInFlight.current) {
+      await refreshInFlight.current;
+      return;
     }
-  }
+
+    const run = (async () => {
+      setLoading(true);
+      try {
+        const res = await weall.account(acct);
+        const rawState =
+          res && typeof res === "object" && "state" in res && res.state && typeof res.state === "object"
+            ? (res.state as Record<string, unknown>)
+            : {};
+        setState(mapAccountState(acct, rawState));
+        setLastUpdatedAt(Date.now());
+      } catch {
+        setState({ account: acct });
+        setLastUpdatedAt(Date.now());
+      } finally {
+        setLoading(false);
+        refreshInFlight.current = null;
+      }
+    })();
+
+    refreshInFlight.current = run;
+    await run;
+  }, []);
 
   useEffect(() => {
     void refresh();
 
     const onStorage = (ev: StorageEvent) => {
       if (!ev.key) return;
-      if (ev.key === "weall_session_v1" || ev.key.startsWith("weall_kp_v1::")) {
+      if (ev.key === "weall_session_v1" || ev.key === "weall.account" || ev.key.startsWith("weall_kp_v1::")) {
         void refresh();
       }
     };
 
-    window.addEventListener("storage", onStorage);
     const poll = window.setInterval(() => {
-      void refresh();
-    }, 15000);
+      if (!document.hidden) void refresh();
+    }, ACCOUNT_REFRESH_INTERVAL_MS);
+    const unsubscribe = subscribeGlobalRefresh((request) => {
+      if (refreshTouches(request, ["account", "session", "route"])) {
+        void refresh();
+      }
+    });
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", refresh);
 
     return () => {
+      unsubscribe();
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", refresh);
       window.clearInterval(poll);
     };
-  }, []);
+  }, [refresh]);
 
   const value = useMemo<AccountContextValue>(
     () => ({
@@ -107,7 +127,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       refresh,
       setState,
     }),
-    [state, loading, lastUpdatedAt],
+    [state, loading, lastUpdatedAt, refresh],
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

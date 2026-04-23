@@ -10,6 +10,7 @@ import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
+import { refreshMutationSlices } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -191,6 +192,10 @@ export default function JurorDashboard(): JSX.Element {
     return null;
   }
 
+  async function refreshJurorSurface(): Promise<void> {
+    await refreshMutationSlices(loadQueues, refreshAccountContext);
+  }
+
   async function submitSkeletonTx(
     skel: any,
     title: string,
@@ -342,7 +347,7 @@ export default function JurorDashboard(): JSX.Element {
             <button className={`btn ${tab === "tier3" ? "btnPrimary" : ""}`} onClick={() => setTab("tier3")}>
               Tier 3 live cases
             </button>
-            <button className="btn" onClick={() => void loadQueues()} disabled={busy || signerSubmission.busy || !account}>
+            <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
             </button>
             <button className="btn" onClick={() => nav("/poh")}>
@@ -361,7 +366,7 @@ export default function JurorDashboard(): JSX.Element {
       <ErrorBanner
         message={err?.msg}
         details={err?.details}
-        onRetry={() => void loadQueues()}
+        onRetry={() => void refreshJurorSurface()}
         onDismiss={() => setErr(null)}
       />
 

@@ -92,7 +92,7 @@ export function actionableTxError(error: any, fallback = "Transaction failed."):
       {
         title: "Signed action still settling",
         retryable: true,
-        safeToRetry: true,
+        safeToRetry: false,
       },
     );
     return { msg: feedback.message, details: feedback.details, category: feedback.category, retryable: feedback.retryable, safeToRetry: feedback.safeToRetry, title: feedback.title };
@@ -105,7 +105,7 @@ export function actionableTxError(error: any, fallback = "Transaction failed."):
       details,
       {
         title: "Signer is busy",
-        retryable: false,
+        retryable: true,
         safeToRetry: false,
       },
     );

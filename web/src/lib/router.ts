@@ -1,19 +1,24 @@
 export type PageMode = "hub" | "detail" | "action" | "utility";
-export type FabAction = "post" | "group" | "proposal" | "none";
+export type FabAction = "post" | "group" | "proposal" | "message" | "none";
 export type RightRailContext =
   | "login"
   | "home"
   | "feed"
   | "groups"
   | "group_detail"
+  | "group_create"
   | "proposals"
   | "proposal_detail"
+  | "proposal_create"
   | "disputes"
   | "dispute_detail"
+  | "dispute_review"
   | "post_create"
+  | "messaging"
   | "poh"
   | "juror"
   | "account"
+  | "profile"
   | "session_devices"
   | "settings"
   | "tools"
@@ -59,11 +64,16 @@ export type RouteMatch =
   | { path: "/juror" }
   | { path: "/tools" }
   | { path: "/feed" }
+  | { path: "/messages" }
+  | { path: "/profile" }
   | { path: "/groups" }
+  | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
   | { path: "/proposals" }
+  | { path: "/proposals/create" }
   | { path: "/disputes" }
   | { path: "/disputes/:id"; id: string }
+  | { path: "/disputes/:id/review"; id: string }
   | { path: "/proposal/:id"; id: string }
   | { path: "/proposals/:id"; id: string }
   | { path: "/settings" }
@@ -133,16 +143,16 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Home",
     label: "Home",
     title: "Home",
-    description: "Mission control for the current session, on-chain standing, and onboarding progress.",
+    description: "Lightweight protocol directory and notification hub. Use this route to orient, review pending work, and jump into the correct coordination surface.",
     public: false,
     authRequired: true,
     requiresReady: true,
     mode: "hub",
-    fab: "post",
+    fab: "none",
     rightRail: "home",
     dataContract: contract({
-      primaryObject: "Home dashboard",
-      contextPanelData: "Account posture and quick starts",
+      primaryObject: "Home directory",
+      contextPanelData: "Directory shortcuts, notifications, and protocol orientation",
       blockingDependencies: ["Auth hydration", "Local signer", "Browser session"],
     }),
   },
@@ -216,19 +226,55 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: ["Auth hydration", "Node reachability"],
     }),
   },
+
+  "/messages": {
+    section: "Messaging",
+    label: "Messaging",
+    title: "Messaging",
+    description: "Protocol-native direct messages belong on their own communication surface rather than leaking into the content, governance, or dispute feeds.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "hub",
+    fab: "message",
+    rightRail: "messaging",
+    dataContract: contract({
+      primaryObject: "Direct message inbox",
+      contextPanelData: "Conversation readiness and direct-message posture",
+      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 1 messaging eligibility"],
+    }),
+  },
+  "/profile": {
+    section: "Profile",
+    label: "Profile",
+    title: "Profile",
+    description: "Inspect the current account as a first-class profile surface without forcing profile access into a footer-only utility escape hatch.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "utility",
+    fab: "none",
+    rightRail: "profile",
+    dataContract: contract({
+      primaryObject: "Current account profile",
+      contextPanelData: "Account standing, PoH posture, and role visibility",
+      blockingDependencies: ["Auth hydration", "Current account"],
+    }),
+  },
   "/feed": {
     section: "Social",
     label: "Feed",
     title: "Feed",
-    description: "Browse public content and community activity on the protocol.",
-    public: true,
-    authRequired: false,
+    description: "Browse the dedicated content feed without mixing governance or dispute controls into the primary feed surface.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
     mode: "hub",
     fab: "post",
     rightRail: "feed",
     dataContract: contract({
-      primaryObject: "Feed list",
-      contextPanelData: "Feed scope and recent protocol posture",
+      primaryObject: "Content feed",
+      contextPanelData: "Content scope, feed freshness, and interaction posture",
       blockingDependencies: [],
     }),
   },
@@ -246,6 +292,24 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Group list",
       contextPanelData: "Membership summary and discovery posture",
       blockingDependencies: [],
+    }),
+  },
+  "/groups/create": {
+    section: "Groups",
+    label: "Create group",
+    title: "Create group",
+    description: "Open a dedicated group-creation workflow without mixing creation controls into the groups hub.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "group_create",
+    breadcrumbs: [{ label: "Groups", href: "/groups" }],
+    dataContract: contract({
+      primaryObject: "Group creation workflow",
+      contextPanelData: "Creation eligibility and submission posture",
+      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 3 group creation eligibility"],
     }),
   },
   "/groups/:id": {
@@ -279,6 +343,24 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Proposal list",
       contextPanelData: "Proposal counts and vote eligibility",
       blockingDependencies: [],
+    }),
+  },
+  "/proposals/create": {
+    section: "Governance",
+    label: "Create proposal",
+    title: "Create proposal",
+    description: "Author a proposal in a dedicated action workspace rather than inside the governance list hub.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "proposal_create",
+    breadcrumbs: [{ label: "Proposals", href: "/proposals" }],
+    dataContract: contract({
+      primaryObject: "Proposal creation workflow",
+      contextPanelData: "Authoring eligibility and submission posture",
+      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 3 governance eligibility"],
     }),
   },
   "/proposal/:id": {
@@ -335,7 +417,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Juror work",
     label: "Dispute detail",
     title: "Dispute detail",
-    description: "Review one dispute, inspect the flagged content and reason, accept juror work, and cast a single juror vote.",
+    description: "Inspect one dispute, verify the flagged content and reason, and prepare the juror action flow without mixing final vote controls into detail.",
     public: true,
     authRequired: false,
     mode: "detail",
@@ -344,8 +426,29 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     breadcrumbs: [{ label: "Disputes", href: "/disputes" }],
     dataContract: contract({
       primaryObject: "Dispute object",
-      contextPanelData: "Assignment, attendance, and vote lock state",
-      blockingDependencies: ["Authoritative juror eligibility before review action"],
+      contextPanelData: "Case summary, assignment state, and review-entry posture",
+      blockingDependencies: ["Authoritative juror eligibility before review entry"],
+    }),
+  },
+
+  "/disputes/:id/review": {
+    section: "Juror work",
+    label: "Dispute review",
+    title: "Dispute review",
+    description: "Complete the flagged-content review flow, inspect evidence, and cast a single juror vote from an action-focused workspace.",
+    public: true,
+    authRequired: false,
+    mode: "action",
+    fab: "none",
+    rightRail: "dispute_review",
+    breadcrumbs: [
+      { label: "Disputes", href: "/disputes" },
+      { label: "Dispute detail", href: "/disputes/:id" },
+    ],
+    dataContract: contract({
+      primaryObject: "Dispute review workspace",
+      contextPanelData: "Assignment, attendance, evidence, and vote lock state",
+      blockingDependencies: ["Authoritative juror eligibility before vote submission"],
     }),
   },
   "/settings": {
@@ -451,141 +554,22 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
   },
 };
 
+
+const LS_RETURN_TO = "weall_return_to_v1";
+
 const NAV_SECTIONS: NavSection[] = [
   {
-    key: "home",
-    label: "Home",
-    description: "Primary landing and personal posture.",
+    key: "primary",
+    label: "Primary routes",
+    description: "Core coordination domains only.",
     items: [
-      {
-        href: "/home",
-        label: "Home",
-        description: "Mission control for this account.",
-        icon: "⌂",
-        public: false,
-        requiresReady: true,
-      },
-    ],
-  },
-  {
-    key: "social",
-    label: "Social",
-    description: "Content, publishing, and communities.",
-    items: [
-      {
-        href: "/feed",
-        label: "Feed",
-        description: "Browse protocol-native content.",
-        icon: "≋",
-        public: true,
-      },
-      {
-        href: "/groups",
-        label: "Groups",
-        description: "Browse communities and membership state.",
-        icon: "◌",
-        public: true,
-      },
-      {
-        href: "/post",
-        label: "Create post",
-        description: "Publish a signed post transaction.",
-        icon: "+",
-        public: false,
-        requiresReady: true,
-      },
-    ],
-  },
-  {
-    key: "governance",
-    label: "Governance",
-    description: "Governance actions and decisions.",
-    items: [
-      {
-        href: "/proposals",
-        label: "Proposals",
-        description: "Review proposals and vote state.",
-        icon: "▣",
-        public: true,
-      },
-    ],
-  },
-  {
-    key: "juror",
-    label: "Juror work",
-    description: "Disputes, reviews, and role-gated queues.",
-    items: [
-      {
-        href: "/disputes",
-        label: "Disputes",
-        description: "Inspect active disputes and review posture.",
-        icon: "!",
-        public: true,
-      },
-      {
-        href: "/juror",
-        label: "Juror dashboard",
-        description: "Role-gated operational juror workspace.",
-        icon: "⚖",
-        public: false,
-        requiresReady: true,
-        minPohTier: 3,
-      },
-    ],
-  },
-  {
-    key: "identity",
-    label: "Identity",
-    description: "Identity, PoH, and device state.",
-    items: [
-      {
-        href: "/poh",
-        label: "Proof of Humanity",
-        description: "Identity progression and unlocks.",
-        icon: "◎",
-        public: false,
-        requiresReady: true,
-      },
-      {
-        href: "/session",
-        label: "Session & devices",
-        description: "Inspect signer and device state.",
-        icon: "☍",
-        public: false,
-        requiresReady: true,
-      },
-    ],
-  },
-  {
-    key: "system",
-    label: "System",
-    description: "Diagnostics and local environment.",
-    items: [
-      {
-        href: "/transactions",
-        label: "Transactions",
-        description: "Track recent submissions.",
-        icon: "⇄",
-        public: false,
-        requiresReady: true,
-        advancedOnly: true,
-      },
-      {
-        href: "/tools",
-        label: "Console",
-        description: "Inspect backend status.",
-        icon: "⌘",
-        public: false,
-        requiresReady: true,
-        advancedOnly: true,
-      },
-      {
-        href: "/settings",
-        label: "Settings",
-        description: "Connection target and client behavior.",
-        icon: "⚙",
-        public: true,
-      },
+      { href: "/home", label: "Home", description: "Directory, notifications, and route shortcuts.", icon: "⌂", public: false, requiresReady: true },
+      { href: "/feed", label: "Feed", description: "Dedicated content surface.", icon: "≋", public: false, requiresReady: true },
+      { href: "/groups", label: "Groups", description: "Communities and membership state.", icon: "◌", public: true },
+      { href: "/proposals", label: "Governance", description: "Proposal list and vote state.", icon: "▣", public: true },
+      { href: "/disputes", label: "Disputes", description: "Flagged-content case queue.", icon: "⚖", public: true },
+      { href: "/messages", label: "Messaging", description: "Direct message conversations.", icon: "✉", public: false, requiresReady: true },
+      { href: "/profile", label: "Profile", description: "Current account profile and standing.", icon: "☺", public: false, requiresReady: true },
     ],
   },
 ];
@@ -610,15 +594,24 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/juror") return { path: "/juror" };
   if (r === "/tools") return { path: "/tools" };
   if (r === "/feed") return { path: "/feed" };
+  if (r === "/messages") return { path: "/messages" };
+  if (r === "/profile") return { path: "/profile" };
   if (r === "/groups") return { path: "/groups" };
+  if (r === "/groups/create") return { path: "/groups/create" };
   if (r === "/proposals") return { path: "/proposals" };
+  if (r === "/proposals/create") return { path: "/proposals/create" };
   if (r === "/disputes") return { path: "/disputes" };
   if (r === "/settings") return { path: "/settings" };
   if (r === "/session") return { path: "/session" };
   if (r === "/transactions") return { path: "/transactions" };
 
   if (r.startsWith("/disputes/")) {
-    const id = decodeRoutePart(r.slice("/disputes/".length));
+    const tail = r.slice("/disputes/".length);
+    if (tail.endsWith("/review")) {
+      const id = decodeRoutePart(tail.slice(0, -"/review".length));
+      if (id) return { path: "/disputes/:id/review", id };
+    }
+    const id = decodeRoutePart(tail);
     if (id) return { path: "/disputes/:id", id };
   }
 
@@ -689,6 +682,9 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   if (href === "/home") {
     return currentPath === "/" || currentPath === "/home";
   }
+  if (href === "/feed") {
+    return currentPath === "/feed" || currentPath.startsWith("/content/") || currentPath.startsWith("/thread/");
+  }
   return currentPath === href || currentPath.startsWith(`${href}/`);
 }
 
@@ -707,10 +703,59 @@ export function getFabHref(route: RouteMatch): string | null {
     case "post":
       return "/post";
     case "group":
-      return null;
+      return "/groups/create";
     case "proposal":
-      return null;
+      return "/proposals/create";
+    case "message":
+      return "/messages";
     default:
       return null;
   }
+}
+
+
+export function canPreserveReturnPath(path: string): boolean {
+  const normalized = String(path || "").trim();
+  return !!normalized && normalized.startsWith("/") && normalized !== "/login";
+}
+
+export function stashReturnTo(path: string): void {
+  if (typeof window === "undefined") return;
+  const normalized = String(path || "").trim();
+  if (!canPreserveReturnPath(normalized)) return;
+  try {
+    localStorage.setItem(LS_RETURN_TO, normalized);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function peekReturnTo(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const value = String(localStorage.getItem(LS_RETURN_TO) || "").trim();
+    return canPreserveReturnPath(value) ? value : "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearReturnTo(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(LS_RETURN_TO);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function consumeReturnTo(fallback = "/home"): string {
+  const target = peekReturnTo();
+  clearReturnTo();
+  return target || fallback;
+}
+
+export function navWithReturn(target: string, returnTo: string): void {
+  stashReturnTo(returnTo);
+  nav(target);
 }

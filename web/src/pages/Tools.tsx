@@ -12,6 +12,7 @@ import {
   getTier2VideoUploadEnabled,
 } from "../lib/capabilities";
 import { nav } from "../lib/router";
+import { requestGlobalRefresh } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -107,6 +108,11 @@ export default function Tools(): JSX.Element {
     }
   }
 
+  async function refreshDiagnostics(): Promise<void> {
+    requestGlobalRefresh({ reason: "tools-manual-refresh", scopes: ["account", "session", "node", "pending_work", "route"] });
+    await refreshAll();
+  }
+
   useEffect(() => {
     void refreshAll();
   }, [base]);
@@ -116,7 +122,7 @@ export default function Tools(): JSX.Element {
   const sharedRep = Number(sharedAccount?.reputation || 0);
 
   return (
-    <div className="pageStack">
+    <div className="pageStack utilityPage toolsPage">
       <section className="card heroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
@@ -140,18 +146,36 @@ export default function Tools(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => void refreshAll()} disabled={busy}>
+            <button className="btn btnPrimary" onClick={() => void refreshDiagnostics()} disabled={busy}>
               {busy ? "Refreshing…" : "Refresh diagnostics"}
             </button>
-            <button className="btn" onClick={() => nav("/poh")}>
-              Open PoH
+            <button className="btn" onClick={() => nav("/session-devices")}>
+              Session utility
             </button>
-            <button className="btn" onClick={() => nav("/post")}>
-              Create post
+            <button className="btn" onClick={() => nav("/settings")}>
+              Open settings
             </button>
             <button className="btn" onClick={() => nav("/feed")}>
               Open feed
             </button>
+          </div>
+
+          <div className="detailFocusStrip utilityFocusStrip">
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Utility contract</div>
+              <div className="detailFocusValue">Inspect backend truth</div>
+              <div className="detailFocusText">Use this console for explicit diagnostics, not day-to-day flow. It should clarify what the backend is saying without blurring into normal product surfaces.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Read model</div>
+              <div className="detailFocusValue">Status, readyz, feed, media</div>
+              <div className="detailFocusText">These checks help you separate transport reachability, node readiness, shared account state, and media durability when chasing drift or demo issues.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Operational posture</div>
+              <div className="detailFocusValue">Use with care</div>
+              <div className="detailFocusText">This page should remain concise and explicit so operators can verify conditions quickly without turning the center column into a dense debug dump.</div>
+            </article>
           </div>
         </div>
       </section>
@@ -159,7 +183,7 @@ export default function Tools(): JSX.Element {
       <ErrorBanner
         message={err?.msg}
         details={err?.details}
-        onRetry={() => void refreshAll()}
+        onRetry={() => void refreshDiagnostics()}
         onDismiss={() => setErr(null)}
       />
 

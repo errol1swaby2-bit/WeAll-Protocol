@@ -5,12 +5,14 @@ import ErrorBanner from "../components/ErrorBanner";
 import { getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useAccount } from "../context/AccountContext";
+import { requestGlobalRefresh } from "../lib/revalidation";
 import { normalizeTxStatus } from "../lib/status";
 
 type TxHistoryItem = {
   id: string;
   title: string;
-  status: "preparing" | "submitted" | "confirmed" | "error" | "unknown";
+  status: "validating" | "submitting" | "recorded" | "refreshing" | "confirmed" | "failed";
   message?: string;
   txId?: string;
   createdAt: number;
@@ -42,11 +44,11 @@ type TxCatalogResponse = {
   items?: TxCatalogItem[];
 };
 
-const TX_HISTORY_KEY = "weall_tx_activity_v1";
+const TX_HISTORY_KEYS = ["weall_tx_activity_v3", "weall_tx_activity_v2", "weall_tx_activity_v1"];
 
 function loadHistory(): TxHistoryItem[] {
   try {
-    const raw = localStorage.getItem(TX_HISTORY_KEY);
+    const raw = TX_HISTORY_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -95,6 +97,7 @@ export default function TransactionsPage(): JSX.Element {
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogContext, setCatalogContext] = useState("");
   const [catalogDomain, setCatalogDomain] = useState("");
+  const [catalogReloadNonce, setCatalogReloadNonce] = useState(0);
 
   useEffect(() => {
     const sync = () => setHistory(loadHistory());
@@ -135,11 +138,13 @@ export default function TransactionsPage(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [base, catalogContext, catalogDomain, catalogSearch]);
+  }, [base, catalogContext, catalogDomain, catalogSearch, catalogReloadNonce]);
+
+  const { refresh: refreshAccountContext } = useAccount();
 
   const queueItems = tx.items;
-  const pendingCount = history.filter((item) => item.status === "preparing" || item.status === "submitted").length;
-  const terminalCount = history.filter((item) => item.status === "confirmed" || item.status === "error" || item.status === "unknown").length;
+  const pendingCount = history.filter((item) => ["validating", "submitting", "recorded", "refreshing"].includes(item.status)).length;
+  const terminalCount = history.filter((item) => item.status === "confirmed" || item.status === "failed").length;
 
   const availableContexts = useMemo(() => catalog?.summary?.by_context?.map((row) => row.name) || [], [catalog]);
   const availableDomains = useMemo(() => catalog?.summary?.by_domain?.map((row) => row.name) || [], [catalog]);
@@ -152,13 +157,13 @@ export default function TransactionsPage(): JSX.Element {
       for (let idx = 0; idx < next.length; idx += 1) {
         const item = next[idx];
         if (!item?.txId) continue;
-        if (!(item.status === "submitted" || item.status === "unknown")) continue;
+        if (!(["submitting", "recorded", "refreshing"] as string[]).includes(item.status)) continue;
         try {
           const raw = await weall.txStatus(item.txId, base);
           const normalized = normalizeTxStatus(raw, item.txId);
           next[idx] = {
             ...item,
-            status: normalized.phase === "failed" ? "error" : normalized.phase,
+            status: normalized.phase === "failed" ? "failed" : (normalized.phase as TxHistoryItem["status"]),
             message: normalized.detail,
             updatedAt: Date.now(),
           };
@@ -166,8 +171,10 @@ export default function TransactionsPage(): JSX.Element {
           // keep previous state
         }
       }
-      localStorage.setItem(TX_HISTORY_KEY, JSON.stringify(next));
+      localStorage.setItem(TX_HISTORY_KEYS[0], JSON.stringify(next));
       setHistory(next);
+      requestGlobalRefresh({ reason: "transactions-status-refresh", scopes: ["account", "pending_work", "route"] });
+      await refreshAccountContext();
     } catch (e: any) {
       setError({ msg: e?.message || "Failed to refresh pending transaction statuses.", details: e });
     } finally {
@@ -175,8 +182,14 @@ export default function TransactionsPage(): JSX.Element {
     }
   }
 
+  async function refreshCatalogSurface(): Promise<void> {
+    requestGlobalRefresh({ reason: "transactions-catalog-refresh", scopes: ["account", "pending_work", "route"] });
+    setCatalogReloadNonce((n) => n + 1);
+    await refreshAccountContext();
+  }
+
   function clearHistory(): void {
-    localStorage.removeItem(TX_HISTORY_KEY);
+    TX_HISTORY_KEYS.forEach((key) => localStorage.removeItem(key));
     setHistory([]);
   }
 
@@ -216,8 +229,8 @@ export default function TransactionsPage(): JSX.Element {
         </div>
       </section>
 
-      {error ? <ErrorBanner message={error.msg} details={error.details} /> : null}
-      {catalogError ? <ErrorBanner message={catalogError.msg} details={catalogError.details} /> : null}
+      {error ? <ErrorBanner message={error.msg} details={error.details} onRetry={() => void refreshPendingStatuses()} onDismiss={() => setError(null)} /> : null}
+      {catalogError ? <ErrorBanner message={catalogError.msg} details={catalogError.details} onRetry={() => void refreshCatalogSurface()} onDismiss={() => setCatalogError(null)} /> : null}
 
       <section className="infoGrid twoCol">
         <article className="card">
@@ -228,7 +241,7 @@ export default function TransactionsPage(): JSX.Element {
             </div>
           </div>
           <p className="cardDesc">
-            This is the same live queue surfaced through toast notifications. It reflects the current browser runtime, not canonical chain history.
+            This is the same live queue surfaced through toast notifications. It reflects the current browser runtime, not canonical chain history. Nonce collisions, duplicate submissions, and signer-busy responses now stay in a recorded state instead of being flattened into a generic failure.
           </p>
           {queueItems.length ? (
             <div className="txRecordList compact">
@@ -303,6 +316,9 @@ export default function TransactionsPage(): JSX.Element {
               <option key={name} value={name}>{name}</option>
             ))}
           </select>
+          <button className="btn ghost" onClick={() => void refreshCatalogSurface()} disabled={catalogLoading}>
+            {catalogLoading ? "Refreshing catalog…" : "Refresh catalog"}
+          </button>
           {catalogLoading ? <span className="statusPill warn">Loading catalog…</span> : null}
         </div>
         <div className="summaryCardGrid summaryCardGridThree" style={{ marginBottom: 16 }}>

@@ -1032,6 +1032,23 @@ code {
   flex-wrap: wrap;
 }
 
+.appShellSkipLink {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 40;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(76, 224, 179, 0.28);
+  background: rgba(7, 17, 27, 0.96);
+  color: var(--text);
+  transition: top 160ms ease;
+}
+
+.appShellSkipLink:focus {
+  top: 14px;
+}
+
 .appShellContent {
   padding: 24px;
   min-width: 0;
@@ -1060,6 +1077,10 @@ code {
 
   .appShellContent {
     padding: 18px;
+  }
+
+  .appShellRouteStrip {
+    padding: 12px 18px 0;
   }
 }
 
@@ -1991,8 +2012,8 @@ body {
 
 .appShellBody {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 28px;
   align-items: start;
 }
 
@@ -2114,6 +2135,14 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.railActionRow-compact .railSecondaryAction {
+  padding-inline: 10px;
+}
+
+.authBoundaryBar {
+  margin-top: -4px;
+}
+
 @media (max-width: 1200px) {
   .appShellBody {
     grid-template-columns: 1fr;
@@ -2121,6 +2150,14 @@ body {
 
   .appShellRightRail {
     position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 860px) {
+  .appShellRightRail {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2194,5 +2231,346 @@ body {
 
   .sessionRecoveryBannerActions {
     justify-content: flex-start;
+  }
+}
+
+
+.routeTransitionFallback {
+  min-height: 280px;
+}
+
+.routeTransitionSkeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.routeTransitionSkeletonBar,
+.routeTransitionSkeletonCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.routeTransitionSkeletonBar::after,
+.routeTransitionSkeletonCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  animation: routeSkeletonSweep 1.4s ease-in-out infinite;
+}
+
+.routeTransitionSkeletonBar {
+  height: 12px;
+  width: min(360px, 100%);
+}
+
+.routeTransitionSkeletonBar-wide {
+  height: 16px;
+  width: min(520px, 100%);
+}
+
+.routeTransitionSkeletonCard {
+  min-height: 78px;
+}
+
+@keyframes routeSkeletonSweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+
+.appShellRouteStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 24px 0;
+}
+
+.appShellRouteStripSummary,
+.appShellRouteStripActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.appShellRouteStripSummary {
+  min-width: 0;
+  flex: 1 1 520px;
+}
+
+.appShellRouteStripActions {
+  justify-content: flex-end;
+  flex: 0 1 auto;
+}
+
+.appShellRouteStripPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 244, 251, 0.84);
+}
+
+.appShellRouteStripPill-accent {
+  border-color: rgba(76, 224, 179, 0.22);
+  background: rgba(76, 224, 179, 0.1);
+  color: #c8ffef;
+}
+
+.appShellRouteStripText,
+.appShellRouteStripDivider {
+  font-size: 13px;
+  color: rgba(237, 244, 251, 0.7);
+}
+
+.appShellRouteStripAction {
+  margin-left: auto;
+  border-radius: 12px;
+}
+
+.appShellRouteStripAction-secondary {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.surfaceBoundaryBar {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.surfaceBoundaryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.surfaceBoundaryTitle {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.surfaceBoundaryText {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.surfaceBoundaryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.surfaceBoundaryTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 12px;
+  color: rgba(237, 244, 251, 0.82);
+}
+
+@media (max-width: 960px) {
+  .appShellRouteStrip {
+    padding: 12px 18px 0;
+  }
+
+  .appShellRouteStripSummary,
+  .appShellRouteStripActions {
+    width: 100%;
+  }
+
+  .appShellRouteStripActions {
+    justify-content: flex-start;
+  }
+
+  .appShellRouteStripAction {
+    margin-left: 0;
+  }
+
+  .surfaceBoundaryHeader {
+    flex-direction: column;
+  }
+}
+
+
+.detailHeroCard,
+.actionHeroCard {
+  border-color: rgba(111, 231, 255, 0.18);
+  background: linear-gradient(180deg, rgba(10, 18, 31, 0.98), rgba(9, 14, 24, 0.98));
+}
+
+.detailFocusStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detailFocusCard {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.detailFocusLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.detailFocusValue {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.detailFocusText {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.actionPage .grid2,
+.actionPage .pageNarrow.grid2 {
+  align-items: start;
+}
+
+.createPostPage .grid2 {
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+}
+
+.actionPage .card.pageNarrow,
+.actionPage .pageNarrow .card,
+.proposalCreatePage .pageNarrow,
+.createPostPage .pageNarrow {
+  max-width: 100%;
+}
+
+.proposalDetailPage > .grid2,
+.disputeDetailPage > .grid2 {
+  align-items: start;
+}
+
+.proposalDetailPage .summaryCardGrid:first-of-type,
+.disputeDetailPage .summaryCardGrid:first-of-type,
+.disputeReviewPage .summaryCardGrid:first-of-type {
+  margin-top: 4px;
+}
+
+.actionFocusStrip .detailFocusCard {
+  background: rgba(8, 15, 28, 0.72);
+}
+
+@media (max-width: 1100px) {
+  .detailFocusStrip,
+  .createPostPage .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .detailFocusCard {
+    padding: 12px 14px;
+  }
+
+  .detailFocusValue {
+    font-size: 16px;
+  }
+}
+
+
+.utilityPage .heroCard,
+.utilityPage .surfaceSummary {
+  border-color: rgba(147, 197, 253, 0.18);
+}
+
+.utilityFocusStrip {
+  margin-top: 4px;
+}
+
+.utilityFocusCard {
+  background: rgba(9, 15, 26, 0.78);
+  border-color: rgba(125, 211, 252, 0.14);
+}
+
+.utilityPage .summaryCardGrid:first-of-type {
+  margin-top: 4px;
+}
+
+.utilityPage .heroActions {
+  align-items: center;
+}
+
+.utilityPage .calloutInfo {
+  margin-top: 2px;
+}
+
+@media (max-width: 1100px) {
+  .utilityFocusStrip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.groupDetailPage .surfaceBoundaryBar,
+.groupCreatePage .surfaceBoundaryBar {
+  margin-top: 2px;
+}
+
+.groupDetailPage .detailFocusStrip,
+.groupCreatePage .detailFocusStrip {
+  margin-top: -2px;
+}
+
+.groupDetailPage .statsGridCompact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .groupDetailPage .statsGridCompact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .groupDetailPage .statsGridCompact {
+    grid-template-columns: 1fr;
+  }
+
+  .appShellRouteStripActions {
+    display: grid;
+    width: 100%;
+  }
+
+  .appShellRouteStripAction-secondary,
+  .appShellRouteStripAction {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .railActionRow-compact .railSecondaryAction {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 }

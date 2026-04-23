@@ -10,6 +10,7 @@ import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import MediaGallery from "../components/MediaGallery";
 import { actionableTxError } from "../lib/txAction";
+import { refreshMutationSlices } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Content action failed.");
@@ -287,7 +288,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
             <button className="btn" onClick={() => nav("/feed")}>
               Back to feed
             </button>
-            <button className="btn" onClick={() => void load()}>
+            <button className="btn" onClick={() => void refreshMutationSlices(load, refreshViewerState, refreshAccountContext)}>
               Refresh
             </button>
             <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(postId)}`)}>
@@ -297,7 +298,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void load()} onDismiss={() => setErr(null)} />
+      <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(load, refreshViewerState, refreshAccountContext)} onDismiss={() => setErr(null)} />
 
       {txErr ? <ErrorBanner message={txErr.msg} details={txErr.details} onDismiss={() => setTxErr(null)} /> : null}
 

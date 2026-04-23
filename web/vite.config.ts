@@ -73,6 +73,20 @@ export default defineConfig({
       "/ipfs": { target: "http://127.0.0.1:8080", changeOrigin: true },
     },
   },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("react-router-dom")) return "router-vendor";
+          if (id.includes("react") || id.includes("react-dom")) return "react-vendor";
+          if (id.includes("tweetnacl")) return "crypto-vendor";
+          return "vendor";
+        },
+      },
+    },
+  },
   preview: {
     headers: {
       "X-Content-Type-Options": "nosniff",

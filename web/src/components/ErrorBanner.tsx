@@ -1,5 +1,6 @@
 import React from "react";
 
+import { currentHashPath, navWithReturn } from "../lib/router";
 import { feedbackBadgeLabel, inferFeedbackFromUnknown, type FrontendErrorCategory } from "../lib/txFeedback";
 
 type Props = {
@@ -18,7 +19,7 @@ function normalizeCategory(category?: FrontendErrorCategory, message?: string | 
       title: titleForCategory(category),
       message: message || "Something needs attention.",
       details,
-      retryable: category !== "capability_blocked" && category !== "structurally_unavailable" && category !== "recorded_not_yet_visible",
+      retryable: category !== "capability_blocked" && category !== "structurally_unavailable",
       safeToRetry: category === "auth_session_expired" || category === "node_not_ready" || category === "object_missing",
     };
   }
@@ -61,6 +62,7 @@ export default function ErrorBanner({ message, details, onRetry, onDismiss, cate
   const effectiveTitle = title || normalized.title;
   const allowRetry = !!onRetry && normalized.retryable;
   const tone = toneClass(normalized.category);
+  const returnTo = currentHashPath();
 
   return (
     <div className={`card feedbackBanner feedbackBanner-${tone}`} data-feedback-category={normalized.category}>
@@ -83,6 +85,16 @@ export default function ErrorBanner({ message, details, onRetry, onDismiss, cate
           {allowRetry ? (
             <button className="btn btnPrimary" onClick={onRetry}>
               {normalized.safeToRetry ? "Retry" : "Reload and retry"}
+            </button>
+          ) : null}
+          {normalized.category === "auth_session_expired" ? (
+            <button className="btn" onClick={() => navWithReturn("/session", returnTo)}>
+              Open session recovery
+            </button>
+          ) : null}
+          {normalized.category === "recorded_not_yet_visible" ? (
+            <button className="btn" onClick={() => navWithReturn("/transactions", returnTo)}>
+              Open transaction queue
             </button>
           ) : null}
           {onDismiss ? (

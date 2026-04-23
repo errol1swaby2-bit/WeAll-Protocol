@@ -1,11 +1,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
+import { ensureBackendSession, getSession } from "../auth/session";
 import { normalizeTxStatus } from "../lib/status";
-import { inferFeedbackFromUnknown, normalizeStoredTxStatus, type TxLifecycleStatus } from "../lib/txFeedback";
+import { emitMutationSignal, type MutationEntityType } from "../lib/mutationSignals";
+import { inferFeedbackFromUnknown, normalizeStoredTxStatus, type FrontendFeedback, type TxLifecycleStatus } from "../lib/txFeedback";
 import TxStatusToast, { type TxToastItem } from "./TxStatusToast";
 
 type ReconcilePhase = "confirmed" | "submitted" | "failed" | "unknown";
+
+type MutationDescriptor = {
+  entityType: MutationEntityType;
+  entityId?: string;
+  account?: string;
+  routeHint?: string;
+  txType?: string;
+};
 
 type TxLifecycleArgs<T> = {
   title: string;
@@ -22,6 +32,7 @@ type TxLifecycleArgs<T> = {
     pollEveryMs?: number;
     timeoutMs?: number;
     reconcile?: () => Promise<{ phase: ReconcilePhase; detail?: string; txId?: string } | null>;
+    mutation?: MutationDescriptor;
   };
 };
 
@@ -34,8 +45,8 @@ type TxQueueContextValue = {
   runTx: <T>(args: TxLifecycleArgs<T>) => Promise<T>;
 };
 
-const TX_HISTORY_KEY = "weall_tx_activity_v2";
-const TX_HISTORY_FALLBACK_KEY = "weall_tx_activity_v1";
+const TX_HISTORY_KEY = "weall_tx_activity_v3";
+const TX_HISTORY_FALLBACK_KEYS = ["weall_tx_activity_v2", "weall_tx_activity_v1"];
 const TX_HISTORY_LIMIT = 40;
 const TxQueueContext = createContext<TxQueueContextValue | null>(null);
 
@@ -47,9 +58,82 @@ function normalizeErrorMessage(error: unknown): string {
   return inferFeedbackFromUnknown(error, "Transaction failed.").message;
 }
 
+function extractTxIdCandidate(value: unknown, depth = 0, seen?: Set<unknown>): string | undefined {
+  if (depth > 4 || value == null) return undefined;
+  const visit = seen || new Set<unknown>();
+  if (typeof value === "object") {
+    if (visit.has(value)) return undefined;
+    visit.add(value);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = extractTxIdCandidate(item, depth + 1, visit);
+      if (nested) return nested;
+    }
+    return undefined;
+  }
+
+  if (typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const directKeys = ["tx_id", "txId", "existing_tx_id", "existingTxId"];
+  for (const key of directKeys) {
+    const nested = extractTxIdCandidate(record[key], depth + 1, visit);
+    if (nested) return nested;
+  }
+
+  const nestedKeys = ["result", "submit", "payload", "data", "error", "detail", "details", "body", "response"];
+  for (const key of nestedKeys) {
+    const nested = extractTxIdCandidate(record[key], depth + 1, visit);
+    if (nested) return nested;
+  }
+
+  return undefined;
+}
+
+function txIdFromUnknown(value: unknown): string | undefined {
+  return extractTxIdCandidate(value, 0);
+}
+
+function txIdFromError(error: unknown): string | undefined {
+  const payload: any = (error as any)?.body || (error as any)?.data || (error as any)?.payload || error;
+  return txIdFromUnknown(payload) || txIdFromUnknown(error);
+}
+
+function shouldAttemptSessionRepair(error: unknown): boolean {
+  const payload: any = (error as any)?.body || (error as any)?.data || (error as any)?.payload || error;
+  const message = String(
+    payload?.error?.message || payload?.message || payload?.detail?.message || (error as any)?.message || "",
+  )
+    .trim()
+    .toLowerCase();
+  const code = String(
+    payload?.error?.code || payload?.code || payload?.detail?.code || payload?.details?.code || "",
+  )
+    .trim()
+    .toLowerCase();
+  const status = Number((error as any)?.status || payload?.status || payload?.error?.status || 0);
+  return (
+    code === "session_invalid" ||
+    code === "pubkey_not_authorized" ||
+    message === "session_invalid" ||
+    message.includes("session invalid") ||
+    message.includes("session expired") ||
+    message.includes("pubkey is not an active key on this account") ||
+    status === 401 ||
+    status === 403
+  );
+}
+
 function safeLoadHistory(): TxToastItem[] {
   try {
-    const raw = localStorage.getItem(TX_HISTORY_KEY) || localStorage.getItem(TX_HISTORY_FALLBACK_KEY);
+    const raw = localStorage.getItem(TX_HISTORY_KEY) || TX_HISTORY_FALLBACK_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -77,6 +161,21 @@ function persistHistory(items: TxToastItem[]): void {
     // ignore persistence failures
   }
 }
+function mutationFromArgs(mutation: MutationDescriptor | undefined, status: "recorded" | "confirmed" | "failed" | "submitted", args: { title: string; txId?: string; detail?: string }): void {
+  if (!mutation) return;
+  emitMutationSignal({
+    entityType: mutation.entityType,
+    entityId: mutation.entityId,
+    account: mutation.account,
+    routeHint: mutation.routeHint,
+    txType: mutation.txType,
+    txId: args.txId,
+    title: args.title,
+    detail: args.detail,
+    status,
+  });
+}
+
 
 export function TxQueueProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [items, setItems] = useState<TxToastItem[]>(() => safeLoadHistory().slice(0, 8));
@@ -151,33 +250,45 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
   }, [updateItem]);
 
   const applyReconciledPhase = useCallback(
-    (id: string, txId: string, reconciled: { phase: ReconcilePhase; detail?: string; txId?: string } | null): boolean => {
+    (id: string, txId: string, mutation: MutationDescriptor | undefined, title: string, reconciled: { phase: ReconcilePhase; detail?: string; txId?: string } | null): boolean => {
       if (!reconciled) return false;
       if (reconciled.phase === "confirmed") {
+        const finalTxId = reconciled.txId || txId;
+        const detail = reconciled.detail || "The affected surface has reconciled the recorded action.";
         markSuccess(id, {
-          message: reconciled.detail || "The affected surface has reconciled the recorded action.",
-          txId: reconciled.txId || txId,
+          message: detail,
+          txId: finalTxId,
         });
+        mutationFromArgs(mutation, "confirmed", { title, txId: finalTxId, detail });
         return true;
       }
       if (reconciled.phase === "failed") {
+        const finalTxId = reconciled.txId || txId;
+        const detail = reconciled.detail || "The affected surface reports that the action failed.";
         markError(id, {
-          message: reconciled.detail || "The affected surface reports that the action failed.",
-          txId: reconciled.txId || txId,
+          message: detail,
+          txId: finalTxId,
         });
+        mutationFromArgs(mutation, "failed", { title, txId: finalTxId, detail });
         return true;
       }
       if (reconciled.phase === "submitted") {
+        const finalTxId = reconciled.txId || txId;
+        const detail = reconciled.detail || "The action is recorded. Refreshing the affected surface so it becomes visible.";
         markRefreshing(id, {
-          message: reconciled.detail || "The action is recorded. Refreshing the affected surface so it becomes visible.",
-          txId: reconciled.txId || txId,
+          message: detail,
+          txId: finalTxId,
         });
+        mutationFromArgs(mutation, "submitted", { title, txId: finalTxId, detail });
         return false;
       }
+      const finalTxId = reconciled.txId || txId;
+      const detail = reconciled.detail || "The action was recorded, but the affected surface has not confirmed visibility yet.";
       markRecorded(id, {
-        message: reconciled.detail || "The action was recorded, but the affected surface has not confirmed visibility yet.",
-        txId: reconciled.txId || txId,
+        message: detail,
+        txId: finalTxId,
       });
+      mutationFromArgs(mutation, "recorded", { title, txId: finalTxId, detail });
       return false;
     },
     [markError, markRecorded, markRefreshing, markSuccess],
@@ -191,6 +302,8 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       pollEveryMs?: number;
       timeoutMs?: number;
       reconcile?: () => Promise<{ phase: ReconcilePhase; detail?: string; txId?: string } | null>;
+      mutation?: MutationDescriptor;
+      title: string;
     }) => {
       const base = args.base || getApiBaseUrl();
       const pollEveryMs = Math.max(250, Number(args.pollEveryMs ?? 1200));
@@ -205,27 +318,32 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
           const normalized = normalizeTxStatus(raw, args.txId);
           if (normalized.phase === "confirmed") {
             markSuccess(args.id, { message: normalized.detail, txId: args.txId });
+            mutationFromArgs(args.mutation, "confirmed", { title: args.title, txId: args.txId, detail: normalized.detail });
             return;
           }
           if (normalized.phase === "unknown") {
             if (args.reconcile) {
               const reconciled = await args.reconcile().catch(() => null);
-              const terminal = applyReconciledPhase(args.id, args.txId, reconciled);
+              const terminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
               if (terminal) return;
               if (reconciled?.phase === "submitted") {
                 sawSubmittedReconcile = true;
               } else {
+                const detail = `${normalized.detail} The action may already be recorded, but the visible surface has not caught up yet.`;
                 markRecorded(args.id, {
-                  message: `${normalized.detail} The action may already be recorded, but the visible surface has not caught up yet.`,
+                  message: detail,
                   txId: args.txId,
                 });
+                mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
                 return;
               }
             } else {
+              const detail = `${normalized.detail} Check the affected object before attempting another submission.`;
               markRecorded(args.id, {
-                message: `${normalized.detail} Check the affected object before attempting another submission.`,
+                message: detail,
                 txId: args.txId,
               });
+              mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
               return;
             }
           }
@@ -237,7 +355,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
       if (args.reconcile) {
         const reconciled = await args.reconcile().catch(() => null);
-        const terminal = applyReconciledPhase(args.id, args.txId, reconciled);
+        const terminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, reconciled);
         if (terminal) {
           return;
         }
@@ -245,19 +363,21 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
           sawSubmittedReconcile = true;
           await new Promise((resolve) => window.setTimeout(resolve, lateReconcileWindowMs));
           const secondReconcile = await args.reconcile().catch(() => null);
-          const secondTerminal = applyReconciledPhase(args.id, args.txId, secondReconcile);
+          const secondTerminal = applyReconciledPhase(args.id, args.txId, args.mutation, args.title, secondReconcile);
           if (secondTerminal) {
             return;
           }
         }
       }
 
+      const detail = sawSubmittedReconcile
+        ? "The action is recorded and partially visible, but final visibility has not arrived yet. Re-open the affected object before retrying."
+        : "Submission appears recorded, but the frontend timed out before the dependent surface confirmed visibility. Open the affected object before retrying.";
       markRecorded(args.id, {
-        message: sawSubmittedReconcile
-          ? "The action is recorded and partially visible, but final visibility has not arrived yet. Re-open the affected object before retrying."
-          : "Submission appears recorded, but the frontend timed out before the dependent surface confirmed visibility. Open the affected object before retrying.",
+        message: detail,
         txId: args.txId,
       });
+      mutationFromArgs(args.mutation, "recorded", { title: args.title, txId: args.txId, detail });
     },
     [applyReconciledPhase, markRecorded, markSuccess],
   );
@@ -289,13 +409,29 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         activePendingKeysRef.current.set(pendingKey, id);
       }
 
+      let attemptedSessionRepair = false;
       try {
         markSubmitting(id, {
           message: "Submitting the signed action to the node.",
         });
 
-        const result = await args.task();
-        const txId = args.finality?.txId || (args.getTxId ? args.getTxId(result) : undefined);
+        let result: T;
+        try {
+          result = await args.task();
+        } catch (error) {
+          const session = getSession();
+          if (!attemptedSessionRepair && shouldAttemptSessionRepair(error) && session?.account) {
+            attemptedSessionRepair = true;
+            await ensureBackendSession({
+              account: session.account,
+              base: args.finality?.base,
+            });
+            result = await args.task();
+          } else {
+            throw error;
+          }
+        }
+        const txId = args.finality?.txId || (args.getTxId ? args.getTxId(result) : undefined) || txIdFromUnknown(result);
         const successMessage =
           typeof args.successMessage === "function"
             ? args.successMessage(result)
@@ -309,26 +445,43 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
         const shouldTrack = args.finality?.track !== false && !!txId;
         if (shouldTrack && txId) {
+          mutationFromArgs(args.finality?.mutation, "recorded", { title: args.title, txId, detail: successMessage });
           void monitorFinality({
             id,
             txId,
+            title: args.title,
             base: args.finality?.base,
             pollEveryMs: args.finality?.pollEveryMs,
             timeoutMs: args.finality?.timeoutMs,
             reconcile: args.finality?.reconcile,
+            mutation: args.finality?.mutation,
           });
         } else if (!txId) {
+          const detail = "Action finished without a trackable tx id. The affected surface should already reflect the change.";
           markSuccess(id, {
-            message: "Action finished without a trackable tx id. The affected surface should already reflect the change.",
+            message: detail,
           });
+          mutationFromArgs(args.finality?.mutation, "confirmed", { title: args.title, detail });
         }
         return result;
       } catch (error) {
+        const feedback: FrontendFeedback = inferFeedbackFromUnknown(error, typeof args.errorMessage === "string" ? args.errorMessage : "Transaction failed.");
         const errorMessage =
           typeof args.errorMessage === "function"
             ? args.errorMessage(error)
-            : args.errorMessage || normalizeErrorMessage(error);
-        markError(id, { message: errorMessage });
+            : args.errorMessage || feedback.message || normalizeErrorMessage(error);
+        const knownTxId = txIdFromError(error);
+
+        if (feedback.category === "recorded_not_yet_visible") {
+          markRecorded(id, {
+            message: errorMessage,
+            txId: knownTxId,
+          });
+          mutationFromArgs(args.finality?.mutation, "recorded", { title: args.title, txId: knownTxId, detail: errorMessage });
+        } else {
+          markError(id, { message: errorMessage, txId: knownTxId });
+          mutationFromArgs(args.finality?.mutation, "failed", { title: args.title, txId: knownTxId, detail: errorMessage });
+        }
         throw error;
       } finally {
         if (pendingKey && activePendingKeysRef.current.get(pendingKey) === id) {

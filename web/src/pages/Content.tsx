@@ -9,7 +9,10 @@ import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useMutationRefresh } from "../hooks/useMutationRefresh";
+import { useAccount } from "../context/AccountContext";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
+import { refreshMutationSlices } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } | null {
   if (!e) return null as any;
@@ -72,6 +75,7 @@ function summarizeActionReadiness(args: {
 export default function Content({ id }: { id: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const tx = useTxQueue();
+  const { refresh: refreshAccountContext } = useAccount();
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -88,6 +92,17 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagReason, setFlagReason] = useState("");
+
+  const routeContentId = String(id || "").trim();
+
+  useMutationRefresh({
+    entityTypes: ["content", "dispute"],
+    entityIds: [routeContentId],
+    account: viewer,
+    onRefresh: async () => {
+      await load();
+    },
+  });
 
   function refreshSession() {
     const s = getSession();
@@ -141,7 +156,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
 
   const c = data?.content;
   const type = String(data?.type || "");
-  const postId = String(c?.post_id || id);
+  const loadedPostId = String(c?.post_id || id);
   const author = normalizeAccount(String(c?.author || ""));
   const body = String(c?.body || c?.text || "");
   const tags = asArray<string>(c?.tags).map((t) => String(t)).filter(Boolean);
@@ -181,16 +196,17 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Edit post",
-        pendingKey: txPendingKey(["content-edit", postId, viewer]),
+        pendingKey: txPendingKey(["content-edit", loadedPostId, viewer]),
         pendingMessage: "Submitting edit transaction…",
         successMessage: "Edit submitted. Final confirmation and feed/index refresh may lag behind the initial submission.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: loadedPostId, account: viewer || undefined, routeHint: `/content/${encodeURIComponent(loadedPostId)}`, txType: "CONTENT_POST_EDIT" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
             tx_type: "CONTENT_POST_EDIT",
-            payload: { post_id: postId, body: nextBody },
+            payload: { post_id: loadedPostId, body: nextBody },
             parent: null,
             base,
           }),
@@ -217,16 +233,17 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Delete post",
-        pendingKey: txPendingKey(["content-delete", postId, viewer]),
+        pendingKey: txPendingKey(["content-delete", loadedPostId, viewer]),
         pendingMessage: "Submitting delete transaction…",
         successMessage: "Deletion submitted. Content surfaces may still reflect the old state briefly while indexes catch up.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: loadedPostId, account: viewer || undefined, routeHint: `/content/${encodeURIComponent(loadedPostId)}`, txType: "CONTENT_POST_DELETE" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
             tx_type: "CONTENT_POST_DELETE",
-            payload: { post_id: postId },
+            payload: { post_id: loadedPostId },
             parent: null,
             base,
           }),
@@ -252,16 +269,17 @@ export default function Content({ id }: { id: string }): JSX.Element {
     try {
       await tx.runTx({
         title: "Flag content",
-        pendingKey: txPendingKey(["content-flag", postId, viewer]),
+        pendingKey: txPendingKey(["content-flag", loadedPostId, viewer]),
         pendingMessage: "Submitting flag transaction…",
         successMessage: "Flag committed. Checking whether the dispute is already visible in the moderation surface…",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: loadedPostId, account: viewer || undefined, routeHint: `/content/${encodeURIComponent(loadedPostId)}`, txType: "CONTENT_FLAG" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
             tx_type: "CONTENT_FLAG",
-            payload: reason ? { target_id: postId, reason } : { target_id: postId },
+            payload: reason ? { target_id: loadedPostId, reason } : { target_id: loadedPostId },
             parent: null,
             base,
           }),
@@ -270,8 +288,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
       setFlagReason("");
       await load();
       const dispute = linkedDisputeId
-        ? { id: linkedDisputeId, target_id: postId }
-        : await waitForDisputeForTarget(base, postId);
+        ? { id: linkedDisputeId, target_id: loadedPostId }
+        : await waitForDisputeForTarget(base, loadedPostId);
       await load();
       if (dispute?.id) {
         const disputeId = String(dispute.id);
@@ -284,7 +302,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
       } else {
         setTxInfo({
           msg: "Flag accepted. Dispute escalation may still be settling in the next block; reopen this page or refresh the dispute route if it does not appear immediately.",
-          details: { target_id: postId },
+          details: { target_id: loadedPostId },
           ctaLabel: "Open disputes",
           ctaHref: "/disputes",
         });
@@ -316,8 +334,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
                 <button className="btn" onClick={() => nav("/feed")}>← Feed</button>
                 {author ? <button className="btn" onClick={() => nav(`/account/${encodeURIComponent(author)}`)}>{author}</button> : null}
                 {groupId ? <button className="btn" onClick={() => nav(`/groups/${encodeURIComponent(groupId)}`)}>Open group</button> : null}
-                {isPost ? <button className="btn" onClick={() => nav(`/thread/${encodeURIComponent(postId)}`)}>Open thread</button> : null}
-                <button className="btn" onClick={() => void load()}>Refresh</button>
+                {isPost ? <button className="btn" onClick={() => nav(`/thread/${encodeURIComponent(loadedPostId)}`)}>Open thread</button> : null}
+                <button className="btn" onClick={() => void refreshMutationSlices(load, refreshViewerState, refreshAccountContext)}>Refresh</button>
               </div>
             </div>
           </div>
@@ -347,7 +365,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onRetry={load} onDismiss={() => setErr(null)} />
+      <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(load, refreshViewerState, refreshAccountContext)} onDismiss={() => setErr(null)} />
 
       {loading ? (
         <section className="card">
@@ -367,7 +385,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
               <strong>Content not available.</strong>
               <span>This item may not exist yet, may have been removed, or the node may still be syncing.</span>
               <div className="buttonRow buttonRowWide">
-                <button className="btn" onClick={load}>Try again</button>
+                <button className="btn" onClick={() => void refreshMutationSlices(load, refreshViewerState, refreshAccountContext)}>Try again</button>
                 <button className="btn" onClick={() => nav("/feed")}>Back to feed</button>
               </div>
             </div>
@@ -384,7 +402,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   <div className="eyebrow">Summary</div>
                   <h2 className="cardTitle">Content details</h2>
                 </div>
-                <span className="statusPill mono">{postId}</span>
+                <span className="statusPill mono">{loadedPostId}</span>
               </div>
 
               <div className="infoGrid">
@@ -445,7 +463,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   {!viewer ? (
                     <button className="btn" onClick={() => nav("/poh")}>Go to PoH</button>
                   ) : (
-                    <button className="btn" onClick={refreshViewerState}>Refresh gates</button>
+                    <button className="btn" onClick={() => void refreshMutationSlices(refreshViewerState, refreshAccountContext, load)}>Refresh gates</button>
                   )}
                 </div>
               </div>

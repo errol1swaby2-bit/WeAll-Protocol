@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, getEmailOracleBaseUrl, setApiBaseUrl } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
+import { nav } from "../lib/router";
 import {
   AccentTone,
   applySettingsToDocument,
@@ -111,7 +112,7 @@ export default function Settings(): JSX.Element {
   const apiChanged = String(apiBase || "").trim() !== String(config.defaultApiBase || "").trim();
 
   return (
-    <div className="pageStack">
+    <div className="pageStack utilityPage settingsPage">
       <section className="card heroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
@@ -137,9 +138,39 @@ export default function Settings(): JSX.Element {
             </div>
           </div>
 
+          <div className="heroActions">
+            <button className="btn btnPrimary" onClick={saveNetwork}>
+              Save connection target
+            </button>
+            <button className="btn" onClick={() => nav("/session-devices")}>
+              Open session utility
+            </button>
+            <button className="btn" onClick={() => nav("/tools")}>
+              Open diagnostics
+            </button>
+          </div>
+
           {saved ? (
             <div className="calloutInfo"><strong>{saved}</strong></div>
           ) : null}
+
+          <div className="detailFocusStrip utilityFocusStrip">
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Utility contract</div>
+              <div className="detailFocusValue">Local client preferences only</div>
+              <div className="detailFocusText">Treat this page as a browser-side control surface. It changes how this client behaves and which backend it talks to, not the chain itself.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Protocol context</div>
+              <div className="detailFocusValue">{apiChanged ? "Custom backend target" : "Using build default"}</div>
+              <div className="detailFocusText">Changing the API base changes the protocol context for reads, session workflows, and submissions. It should always feel deliberate.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Chain safety</div>
+              <div className="detailFocusValue">On-chain state untouched</div>
+              <div className="detailFocusText">Nothing on this page grants roles, changes balances, or edits protocol state by itself. It only changes local client posture.</div>
+            </article>
+          </div>
         </div>
       </section>
 

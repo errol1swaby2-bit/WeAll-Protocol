@@ -6,9 +6,12 @@ import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
+import { voteForAccount } from "../lib/accountSurface";
+import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import {
   governanceProposalStageOf,
@@ -115,22 +118,6 @@ function votingHelpText(params: {
 }
 
 
-function accountVariants(value: string): string[] {
-  const raw = String(value || "").trim();
-  if (!raw) return [];
-  const normalized = normalizeAccount(raw);
-  const base = normalized.startsWith("@") ? normalized.slice(1) : normalized;
-  const out = [normalized, base ? `@${base}` : "", base, raw].filter(Boolean);
-  return Array.from(new Set(out));
-}
-
-function voteForAccount(votes: VoteMap, account: string): { vote?: string; height?: number } | null {
-  for (const variant of accountVariants(account)) {
-    const rec = votes[variant];
-    if (rec && typeof rec === "object") return rec;
-  }
-  return null;
-}
 function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; height?: number }]> {
   return Object.entries(votes).sort((a, b) => a[0].localeCompare(b[0]));
 }
@@ -200,7 +187,6 @@ export default function Proposal({ id }: Props): JSX.Element {
 
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
-  const [refreshTick, setRefreshTick] = useState(0);
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -242,21 +228,18 @@ export default function Proposal({ id }: Props): JSX.Element {
     void loadAccountState();
   }, [id, acct, base]);
 
-  useEffect(() => {
-    if (!refreshTick) return undefined;
-    let remaining = 8;
-    const timer = window.setInterval(() => {
-      void load();
-      remaining -= 1;
-      if (remaining <= 0) {
-        window.clearInterval(timer);
-        setRefreshTick(0);
-      }
-    }, 1500);
-    return () => window.clearInterval(timer);
-  }, [refreshTick]);
 
   const pid = String(proposal?.proposal_id || proposal?.id || id || "");
+
+  useMutationRefresh({
+    entityTypes: ["proposal"],
+    entityIds: [pid],
+    account: acct,
+    onRefresh: async () => {
+      await load();
+      await loadAccountState();
+    },
+  });
   const title = String(proposal?.title || pid || "(proposal)");
   const stage = governanceProposalStageOf(proposal);
 
@@ -289,6 +272,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
+          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/proposal/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
           reconcile: async () => {
             if (tx_type === "GOV_PROPOSAL_WITHDRAW") return reconcileProposalWithdrawal({ proposalId: pid, base });
             if (tx_type === "GOV_PROPOSAL_EDIT") return reconcileProposalEdit({ proposalId: pid, title: payload?.title, body: payload?.body, base });
@@ -306,10 +290,7 @@ export default function Proposal({ id }: Props): JSX.Element {
       });
 
       setAdminRes(r);
-      setRefreshTick(Date.now());
-      await load();
-      await loadAccountState();
-      await refreshAccountContext();
+      await refreshMutationSlices(load, loadAccountState, refreshAccountContext);
     } catch (e: any) {
       setAdminErr(prettyErr(e));
       setAdminRes(e?.data || e?.body || null);
@@ -333,6 +314,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
+          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/proposal/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
           reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice, base }),
         },
         task: async () =>
@@ -346,10 +328,7 @@ export default function Proposal({ id }: Props): JSX.Element {
       });
 
       setVoteRes(r);
-      setRefreshTick(Date.now());
-      await load();
-      await loadAccountState();
-      await refreshAccountContext();
+      await refreshMutationSlices(load, loadAccountState, refreshAccountContext);
     } catch (e: any) {
       setVoteErr(prettyErr(e));
       setVoteRes(e?.data || e?.body || null);
@@ -418,15 +397,15 @@ export default function Proposal({ id }: Props): JSX.Element {
   const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
 
   return (
-    <div className="pageStack pageNarrow">
-      <section className="card heroCard">
+    <div className="pageStack pageNarrow detailPage proposalDetailPage">
+      <section className="card heroCard detailHeroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Governance</div>
               <h1 className="heroTitle heroTitleSm">{title}</h1>
               <p className="heroText">
-                Proposal detail keeps lifecycle state, direct vote activity, and proposer controls in one place. It is designed to show the difference between submitting an action and the chain later recognizing a stage change or execution outcome.
+                Proposal detail keeps lifecycle state, direct vote activity, and proposer controls in one place. It is designed to show the difference between submitting an action and the chain later recognizing a stage change, tally publication, or execution outcome.
               </p>
             </div>
             <div className="heroInfoPanel">
@@ -446,7 +425,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             <button className="btn" onClick={() => nav("/proposals")}>
               Back to proposals
             </button>
-            <button className="btn" onClick={() => void load()}>
+            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>
               Refresh detail
             </button>
           </div>
@@ -472,9 +451,27 @@ export default function Proposal({ id }: Props): JSX.Element {
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onRetry={load} onDismiss={() => setErr(null)} />
+      <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)} onDismiss={() => setErr(null)} />
       <ErrorBanner message={voteErr?.msg} details={voteErr?.details} onDismiss={() => setVoteErr(null)} />
       <ErrorBanner message={adminErr?.msg} details={adminErr?.details} onDismiss={() => setAdminErr(null)} />
+
+      <section className="detailFocusStrip">
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Primary object</div>
+          <div className="detailFocusValue">Proposal detail</div>
+          <div className="detailFocusText">This route is for one proposal only. Queue browsing belongs on the proposals hub.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Current dominant action</div>
+          <div className="detailFocusValue">{canVote ? "Vote now" : canEdit ? "Author controls" : "Read-only review"}</div>
+          <div className="detailFocusText">{voteHelp}</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Chain posture</div>
+          <div className="detailFocusValue">{readiness}</div>
+          <div className="detailFocusText">{nextLifecycleHint(stage)}</div>
+        </article>
+      </section>
 
       {stage === "draft" ? (
         <section className="card">
@@ -492,7 +489,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               Draft should normally end on the create surface. For tester-facing governance runs, create proposals with <span className="mono">start_stage=poll</span> so direct voting is available immediately after creation.
             </div>
             <div className="buttonRow">
-              <button className="btn btnPrimary" onClick={() => nav("/proposals")}>Back to create flow</button>
+              <button className="btn btnPrimary" onClick={() => nav("/proposals/create")}>Open proposal composer</button>
             </div>
           </div>
         </section>
@@ -633,9 +630,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 Jump to author controls
               </button>
             ) : null}
-            <button className="btn" onClick={() => void load()}>
-              Reload chain state
-            </button>
+            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>{signerBusy ? "Waiting for signer…" : "Reload chain state"}</button>
           </div>
         </div>
       </section>
@@ -778,11 +773,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <div className="eyebrow">Latest result</div>
                 <h2 className="cardTitle">Submission response</h2>
               </div>
-              {refreshTick ? (
-                <div className="statusSummary">
-                  <span className="statusPill ok">Auto-refreshing</span>
-                </div>
-              ) : null}
+              
             </div>
 
             <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>

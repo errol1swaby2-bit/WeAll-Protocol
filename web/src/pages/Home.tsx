@@ -1,198 +1,125 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { weall } from "../api/weall";
-import { getKeypair, getSession } from "../auth/session";
+import { api, getApiBaseUrl, weall } from "../api/weall";
+import { getSession } from "../auth/session";
 import { useTxQueue } from "../hooks/useTxQueue";
-import { config } from "../lib/config";
-import {
-  POSTING_MIN_TIER,
-  resolveOnboardingSnapshot,
-  summarizeNextRequirements,
-} from "../lib/onboarding";
 import { nav } from "../lib/router";
-import {
-  summarizeAccountStanding,
-  summarizeNodeConnection,
-  summarizeSessionState,
-} from "../lib/status";
+import { refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
+import { summarizeNodeConnection } from "../lib/status";
 
-type ChecklistItem = {
-  label: string;
-  ok: boolean;
-  hint: string;
+type PendingSummary = {
+  activeProposals: number;
+  assignedDisputes: number;
+  availableDisputes: number;
+  unreadLikeItems: number;
 };
 
-function statusTone(ok: boolean): string {
-  return ok ? "ok" : "";
-}
-
-function SummaryTile({
-  label,
-  value,
-  hint,
+function DirectoryCard({
+  eyebrow,
+  title,
+  body,
+  cta,
+  href,
   tone,
 }: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: "ok" | "warn" | "danger";
+  eyebrow: string;
+  title: string;
+  body: string;
+  cta: string;
+  href: string;
+  tone?: "primary" | "neutral";
 }): JSX.Element {
   return (
-    <article className={`card summaryTile ${tone ? `summaryTile${tone[0].toUpperCase()}${tone.slice(1)}` : ""}`}>
+    <article className="card summaryTile">
       <div className="cardBody formStack">
-        <span className="statLabel">{label}</span>
-        <strong className="summaryTileValue">{value}</strong>
-        <span className="summaryTileHint">{hint}</span>
+        <span className="statLabel">{eyebrow}</span>
+        <strong className="summaryTileValue">{title}</strong>
+        <span className="summaryTileHint">{body}</span>
+        <div>
+          <button className={`btn ${tone === "primary" ? "btnPrimary" : ""}`.trim()} onClick={() => nav(href)}>
+            {cta}
+          </button>
+        </div>
       </div>
     </article>
   );
 }
 
-function ReadinessItem({ item }: { item: ChecklistItem }): JSX.Element {
+function HomeNotificationRow({ label, detail, href }: { label: string; detail: string; href: string }): JSX.Element {
   return (
-    <div className="missionChecklistRow">
+    <button className="missionChecklistRow missionActionCard" onClick={() => nav(href)}>
       <div>
-        <div className="missionChecklistLabel">{item.label}</div>
-        <div className="missionChecklistHint">{item.hint}</div>
+        <div className="missionChecklistLabel">{label}</div>
+        <div className="missionChecklistHint">{detail}</div>
       </div>
-      <span className={`statusPill ${statusTone(item.ok)}`}>{item.ok ? "Ready" : "Needed"}</span>
-    </div>
-  );
-}
-
-function MissionAction({
-  title,
-  detail,
-  cta,
-  onClick,
-  tone,
-}: {
-  title: string;
-  detail: string;
-  cta: string;
-  onClick: () => void;
-  tone?: "primary" | "neutral";
-}): JSX.Element {
-  return (
-    <div className="missionActionCard">
-      <div className="missionActionBody">
-        <strong>{title}</strong>
-        <span>{detail}</span>
-      </div>
-      <button className={`btn ${tone === "primary" ? "btnPrimary" : ""}`} onClick={onClick}>
-        {cta}
-      </button>
-    </div>
+      <span className="statusPill">Open</span>
+    </button>
   );
 }
 
 export default function Home(): JSX.Element {
-  const [status, setStatus] = useState<any>(null);
-  const [readyz, setReadyz] = useState<any>(null);
-  const [acctState, setAcctState] = useState<any>(null);
-  const [registration, setRegistration] = useState<any>(null);
-  const [acctErr, setAcctErr] = useState<string>("");
-  const [loadingAccount, setLoadingAccount] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
-
+  const base = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
-  const account = session?.account || "";
-  const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
+  const account = String(session?.account || "").trim();
   const { items: txItems } = useTxQueue();
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [statusView, readyzView] = await Promise.allSettled([weall.status(), weall.readyz()]);
-        if (cancelled) return;
-        setStatus(statusView.status === "fulfilled" ? statusView.value : { ok: false });
-        setReadyz(readyzView.status === "fulfilled" ? readyzView.value : { ok: false });
-      } catch {
-        if (cancelled) return;
-        setStatus({ ok: false });
-        setReadyz({ ok: false });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!account) {
-        setAcctState(null);
-        setRegistration(null);
-        setAcctErr("");
-        return;
-      }
-
-      setLoadingAccount(true);
-      try {
-        const [accountView, registrationView] = await Promise.all([
-          weall.account(account),
-          weall.accountRegistered(account),
-        ]);
-        if (cancelled) return;
-        setAcctState(accountView);
-        setRegistration(registrationView);
-        setAcctErr("");
-      } catch (e: any) {
-        if (cancelled) return;
-        setAcctErr(String(e?.message || e));
-      } finally {
-        if (!cancelled) setLoadingAccount(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [account]);
-
-  const snapshot = resolveOnboardingSnapshot({
-    account,
-    session,
-    keypair,
-    accountView: acctState,
-    registrationView: registration,
+  const [statusView, setStatusView] = useState<any>(null);
+  const [pending, setPending] = useState<PendingSummary>({
+    activeProposals: 0,
+    assignedDisputes: 0,
+    availableDisputes: 0,
+    unreadLikeItems: 0,
   });
+  const [groupCount, setGroupCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const checklist = summarizeNextRequirements(snapshot);
-  const nodeSummary = summarizeNodeConnection(status, config.defaultApiBase);
-  const sessionSummary = summarizeSessionState({ accountView: acctState, registrationView: registration });
-  const standingSummary = summarizeAccountStanding({ accountView: acctState, registrationView: registration });
+  const pendingTx = txItems.filter((item) => ["validating", "submitting", "recorded", "refreshing"].includes(item.status)).length;
+  const failedTx = txItems.filter((item) => item.status === "failed").length;
 
-  const pendingTxCount = txItems.filter((item) => item.status === "preparing" || item.status === "submitted").length;
-  const unresolvedTxCount = txItems.filter((item) => item.status === "unknown" || item.status === "error").length;
+  async function loadHomeState(): Promise<void> {
+    setLoading(true);
+    try {
+      const [statusRes, proposalsRes, disputesRes, groupsRes] = await Promise.all([
+        weall.status(base).catch(() => null),
+        weall.proposals({ limit: 100, activeOnly: true, includeSummary: true }, base).catch(() => ({ items: [] })),
+        weall.disputes({ limit: 100, activeOnly: true, includeSummary: true } as any, base).catch(() => ({ items: [] })),
+        api.groups.list({ limit: 100 }, base).catch(() => ({ items: [] })),
+      ]);
+      setStatusView(statusRes);
+      const proposalItems = Array.isArray((proposalsRes as any)?.items) ? (proposalsRes as any).items : [];
+      const disputeItems = Array.isArray((disputesRes as any)?.items) ? (disputesRes as any).items : [];
+      const groups = Array.isArray((groupsRes as any)?.items) ? (groupsRes as any).items : [];
+      const accountLower = account.toLowerCase();
+      const assignedDisputes = disputeItems.filter((item: any) => {
+        const jurors = Array.isArray(item?.jurors) ? item.jurors : [];
+        return jurors.some((juror: any) => String(juror?.account || juror?.juror || "").trim().toLowerCase() === accountLower);
+      }).length;
+      setPending({
+        activeProposals: proposalItems.length,
+        assignedDisputes,
+        availableDisputes: disputeItems.length,
+        unreadLikeItems: pendingTx + failedTx,
+      });
+      setGroupCount(groups.length);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const nextSteps: ChecklistItem[] = [
-    {
-      label: "Node connection",
-      ok: nodeSummary.phase === "online",
-      hint:
-        nodeSummary.phase === "online"
-          ? `Backend reachable${nodeSummary.detail ? ` · ${nodeSummary.detail}` : ""}`
-          : "The frontend cannot safely assume protocol state while the backend is unreachable.",
-    },
-    {
-      label: "Device session",
-      ok: snapshot.hasSession,
-      hint: snapshot.hasSession
-        ? "A browser session is active for the current account."
-        : "Create or restore a browser session before attempting signed actions.",
-    },
-    ...checklist,
-  ];
+  useEffect(() => {
+    void loadHomeState();
+  }, [base, account]);
 
-  const authorityLabel = status?.node_lifecycle || status?.mode || readyz?.node_lifecycle || "unknown";
-  const nextPrimaryRoute = snapshot.canPost ? "/post" : snapshot.next.route;
-  const nextPrimaryLabel = snapshot.canPost ? "Create your first post" : snapshot.next.label;
-  const nextPrimaryNote = snapshot.canPost
-    ? "This account currently satisfies the frontend creator gate and can move into the signed posting flow."
-    : snapshot.next.note;
+  useEffect(() => {
+    const unsubscribe = subscribeGlobalRefresh((request) => {
+      if (refreshTouches(request, ["node", "pending_work", "route", "account"])) {
+        void loadHomeState();
+      }
+    });
+    return unsubscribe;
+  }, [base, account]);
+
+  const nodeSummary = summarizeNodeConnection(statusView, base);
+  const notificationCount = pending.activeProposals + pending.assignedDisputes + pendingTx + failedTx;
 
   return (
     <div className="pageStack homeMissionControl">
@@ -200,214 +127,65 @@ export default function Home(): JSX.Element {
         <div className="cardBody formStack">
           <div className="missionHeroTop">
             <div>
-              <div className="eyebrow">{config.envLabel} · mission control</div>
-              <h1 className="heroTitle heroTitleSm">Home</h1>
+              <div className="eyebrow">Home directory</div>
+              <h1 className="heroTitle heroTitleSm">Protocol orientation and pending work</h1>
               <p className="heroText">
-                This dashboard should tell the truth about the current device, the current account,
-                and the current node. It is the place to verify readiness before moving into PoH,
-                governance, content, or other signed protocol actions.
+                Home is now a lightweight directory and notification hub. Use it to see what needs attention, then jump into the correct domain surface without mixing feeds, governance, and disputes in one center column.
               </p>
             </div>
             <div className="missionHeroBadges">
-              <span className={`statusPill ${statusTone(nodeSummary.phase === "online")}`}>{nodeSummary.label}</span>
-              <span className={`statusPill ${statusTone(snapshot.registered)}`}>
-                {snapshot.registered ? "On-chain account visible" : "On-chain account not visible"}
-              </span>
-              <span className={`statusPill ${statusTone(snapshot.tier >= POSTING_MIN_TIER)}`}>
-                Tier {snapshot.tier}
-              </span>
-              <span className={`statusPill ${statusTone(snapshot.canPost)}`}>
-                {snapshot.canPost ? "Creator path ready" : `Posting requires Tier ${POSTING_MIN_TIER}`}
-              </span>
+              <span className={`statusPill ${nodeSummary.phase === "online" ? "ok" : ""}`}>{nodeSummary.label}</span>
+              <span className={`statusPill ${notificationCount ? "warning" : "ok"}`}>{notificationCount ? `${notificationCount} items need attention` : "No urgent items"}</span>
+              <span className="statusPill mono">{account || "No active account"}</span>
             </div>
           </div>
 
-          <div className="missionHeroMain">
-            <div className="missionHeroPrimary">
-              <div className="eyebrow">Recommended next action</div>
-              <h2 className="missionHeroTitle">{nextPrimaryLabel}</h2>
-              <p className="missionHeroNote">{nextPrimaryNote}</p>
-              <div className="buttonRow">
-                <button className="btn btnPrimary" onClick={() => nav(nextPrimaryRoute)}>
-                  {nextPrimaryLabel}
-                </button>
-                <button className="btn" onClick={() => nav("/feed")}>Browse feed</button>
-                <button className="btn" onClick={() => nav("/proposals")}>Open governance</button>
-                <button className="btn" onClick={() => nav(account ? `/account/${encodeURIComponent(account)}` : "/login")}>
-                  {account ? "Open my account" : "Open login"}
-                </button>
+          <section className="surfaceBoundaryBar" aria-label="Home route contract">
+            <div className="surfaceBoundaryHeader">
+              <div>
+                <h2 className="surfaceBoundaryTitle">Home is not the content feed anymore.</h2>
+                <p className="surfaceBoundaryText">
+                  This route stays light: shortcuts, notifications, route directory, and transaction awareness. The dedicated content surface lives on Feed.
+                </p>
               </div>
+              <span className="statusPill">Hub surface</span>
             </div>
-
-            <div className="missionHeroAside">
-              <div className="missionInfoCard">
-                <span className="statLabel">Authority posture</span>
-                <strong>{String(authorityLabel).replaceAll("_", " ")}</strong>
-                <span className="summaryTileHint">
-                  The frontend should distinguish general backend reachability from the node lifecycle
-                  and production authority posture.
-                </span>
-              </div>
-              <div className="missionInfoCard">
-                <span className="statLabel">Account summary</span>
-                <strong className="mono">{account || "No active account"}</strong>
-                <span className="summaryTileHint">{standingSummary.detail}</span>
-              </div>
+            <div className="surfaceBoundaryList">
+              <span className="surfaceBoundaryTag">Center: directory and notification summary</span>
+              <span className="surfaceBoundaryTag">Feed stays separate</span>
+              <span className="surfaceBoundaryTag">Governance and disputes stay separate</span>
             </div>
-          </div>
+          </section>
         </div>
       </section>
 
-      <section className="summaryGrid4">
-        <SummaryTile
-          label="Backend"
-          value={nodeSummary.label}
-          hint={nodeSummary.detail || config.defaultApiBase}
-          tone={nodeSummary.phase === "online" ? "ok" : "warn"}
-        />
-        <SummaryTile
-          label="Local session"
-          value={sessionSummary.account || "Missing"}
-          hint={sessionSummary.detail}
-          tone={snapshot.hasSession && snapshot.hasLocalSigner ? "ok" : "warn"}
-        />
-        <SummaryTile
-          label="On-chain standing"
-          value={standingSummary.label}
-          hint={standingSummary.detail}
-          tone={snapshot.banned || snapshot.locked ? "danger" : snapshot.registered ? "ok" : "warn"}
-        />
-        <SummaryTile
-          label="Pending activity"
-          value={pendingTxCount > 0 ? `${pendingTxCount} pending` : "No pending tx"}
-          hint={
-            unresolvedTxCount > 0
-              ? `${unresolvedTxCount} transaction result${unresolvedTxCount === 1 ? "" : "s"} still need review.`
-              : "Use this area to distinguish submission from confirmed protocol outcome."
-          }
-          tone={pendingTxCount === 0 && unresolvedTxCount === 0 ? "ok" : "warn"}
-        />
-      </section>
-
-      {(snapshot.banned || snapshot.locked || acctErr) && (
-        <section className="card">
-          <div className="cardBody formStack">
-            <div className={snapshot.banned || snapshot.locked ? "calloutDanger" : "inlineError"}>
-              {acctErr ||
-                `This account is currently ${snapshot.banned ? "banned" : "locked"}. Some actions will remain unavailable until protocol rules restore standing.`}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="gridCards grid2">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Readiness checklist</div>
-                <h2 className="cardTitle">Backend-aligned next requirements</h2>
-              </div>
-              {loadingAccount ? <span className="statusPill">Refreshing…</span> : null}
-            </div>
-            <div className="missionChecklist">
-              {nextSteps.map((item, idx) => (
-                <ReadinessItem key={`${item.label}-${idx}`} item={item} />
-              ))}
-            </div>
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Protocol meaning</div>
-                <h2 className="cardTitle">Current progression</h2>
-              </div>
-            </div>
-            <div className="missionStageCard">
-              <div className="missionStageRow">
-                <span className="statLabel">Current stage</span>
-                <strong>{snapshot.stage.replaceAll("_", " ")}</strong>
-              </div>
-              <div className="missionStageRow">
-                <span className="statLabel">PoH tier</span>
-                <strong>{snapshot.tier}</strong>
-              </div>
-              <div className="missionStageRow">
-                <span className="statLabel">Reputation</span>
-                <strong>{snapshot.reputation}</strong>
-              </div>
-              <div className="missionStageRow">
-                <span className="statLabel">Creator gate</span>
-                <strong>{snapshot.canPost ? "Unlocked" : `Blocked until Tier ${POSTING_MIN_TIER}`}</strong>
-              </div>
-            </div>
-            <p className="cardDesc">
-              This panel should explain protocol state in plain language. It should never force the
-              user to infer the difference between local preparation and authoritative on-chain state.
-            </p>
-          </div>
-        </article>
+      <section className="surfaceSummaryGrid">
+        <DirectoryCard eyebrow="Feed" title="Content" body="Open the dedicated content surface for posts, comments, likes, and flags." cta="Open feed" href="/feed" tone="primary" />
+        <DirectoryCard eyebrow="Groups" title={`${groupCount} visible groups`} body="Group discovery and membership live on their own hub." cta="Open groups" href="/groups" />
+        <DirectoryCard eyebrow="Governance" title={`${pending.activeProposals} active proposals`} body="Proposal review and voting stay structured and separate from social browsing." cta="Open governance" href="/proposals" />
+        <DirectoryCard eyebrow="Disputes" title={`${pending.availableDisputes} open disputes`} body="Flagged-content adjudication remains a formal case workflow." cta="Open disputes" href="/disputes" />
       </section>
 
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Recommended actions</div>
-              <h2 className="cardTitle">Move directly to the correct surface</h2>
+              <div className="eyebrow">Notifications</div>
+              <h2 className="cardTitle">What needs attention now</h2>
+              <div className="cardDesc">This list is intentionally lightweight. It should route you to the correct surface instead of embedding the workflow here.</div>
+            </div>
+            <div className="statusSummary">
+              <button className="btn" onClick={() => void loadHomeState()} disabled={loading}>{loading ? "Refreshing…" : "Refresh home"}</button>
             </div>
           </div>
-          <div className="missionActionsGrid">
-            <MissionAction
-              title="Continue onboarding"
-              detail="Use the staged login and onboarding surface for device/session restoration and Tier 1 entry."
-              cta="Open login"
-              onClick={() => nav("/login")}
-              tone="primary"
-            />
-            <MissionAction
-              title="Continue PoH"
-              detail="Progress through the current PoH gate without mixing it up with general account setup."
-              cta="Open PoH"
-              onClick={() => nav("/poh")}
-            />
-            <MissionAction
-              title="Inspect account standing"
-              detail="Open the account surface to compare public-facing profile data with on-chain standing."
-              cta={account ? "Open account" : "Sign in first"}
-              onClick={() => nav(account ? `/account/${encodeURIComponent(account)}` : "/login")}
-            />
-            <MissionAction
-              title="Create public content"
-              detail={snapshot.canPost ? "The current account can move into the signed create-post flow." : `Posting remains blocked until the current creator gate is satisfied.`}
-              cta={snapshot.canPost ? "Open composer" : snapshot.next.label}
-              onClick={() => nav(snapshot.canPost ? "/post" : snapshot.next.route)}
-            />
-          </div>
-        </div>
-      </section>
 
-      <section className="card">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">Protocol diagnostics</div>
-              <h2 className="cardTitle">Advanced details</h2>
-            </div>
-            <button className="btn" onClick={() => setShowDiagnostics((value) => !value)}>
-              {showDiagnostics ? "Hide diagnostics" : "Show diagnostics"}
-            </button>
+          <div className="formStack">
+            <HomeNotificationRow label="Feed route" detail="Browse or publish from the dedicated expression surface." href="/feed" />
+            <HomeNotificationRow label="Pending governance work" detail={pending.activeProposals ? `${pending.activeProposals} active proposal${pending.activeProposals === 1 ? "" : "s"} may need review.` : "No active proposals are surfaced right now."} href="/proposals" />
+            <HomeNotificationRow label="Juror work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} dispute assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open dispute${pending.availableDisputes === 1 ? "" : "s"} are visible on the queue.` : "No active disputes are visible right now."} href="/disputes" />
+            <HomeNotificationRow label="Transaction queue" detail={pendingTx ? `${pendingTx} signed action${pendingTx === 1 ? "" : "s"} still settling.` : failedTx ? `${failedTx} recent action${failedTx === 1 ? "" : "s"} failed and may need review.` : "No local transaction backlog is visible right now."} href="/transactions" />
+            <HomeNotificationRow label="Session and devices" detail="Use the session utility page whenever write posture, signer posture, or device validity needs attention." href="/session" />
           </div>
-          <p className="cardDesc">
-            This section is intentionally secondary. Advanced state is useful, but it should not crowd
-            out plain-language readiness guidance.
-          </p>
-          {showDiagnostics ? (
-            <pre className="missionDiagnostics">{JSON.stringify({ status, readyz, acctState, registration, snapshot, txQueue: txItems }, null, 2)}</pre>
-          ) : null}
         </div>
       </section>
     </div>

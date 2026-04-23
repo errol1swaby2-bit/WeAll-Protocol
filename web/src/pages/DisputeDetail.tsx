@@ -8,8 +8,17 @@ import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
+import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { reconcileDisputeMutation } from "../lib/disputeRevalidation";
+import {
+  disputeAttendancePresent,
+  disputeCurrentVote,
+  disputeJurorStatus,
+  disputeReviewUnlocked,
+  disputeStageClass,
+  disputeVoteCountSummary,
+} from "../lib/disputeSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
@@ -21,64 +30,11 @@ function asRecord(value: any): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function accountVariants(value: string): string[] {
-  const raw = String(value || "").trim();
-  if (!raw) return [];
-  const normalized = normalizeAccount(raw);
-  const base = normalized.startsWith("@") ? normalized.slice(1) : normalized;
-  const out = [normalized, base ? `@${base}` : "", base, raw].filter(Boolean);
-  return Array.from(new Set(out));
-}
-
-function recordForAccount(mapping: any, account: string): Record<string, any> | null {
-  const recs = asRecord(mapping);
-  for (const variant of accountVariants(account)) {
-    const rec = recs[variant];
-    if (rec && typeof rec === "object" && !Array.isArray(rec)) return rec as Record<string, any>;
-  }
-  return null;
-}
-
 function fmtNonce(v: any): string {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? String(Math.floor(n)) : "—";
 }
 
-function jurorStatusOf(dispute: any, account: string): string {
-  const rec = recordForAccount(dispute?.jurors, account);
-  return String(rec?.status || "unassigned");
-}
-
-function jurorAttendancePresent(dispute: any, account: string): boolean {
-  const rec = recordForAccount(dispute?.jurors, account);
-  return !!asRecord(rec?.attendance).present;
-}
-
-function voteCountSummary(dispute: any): { yes: number; no: number; abstain: number; total: number } {
-  const votes = asRecord(dispute?.votes);
-  let yes = 0;
-  let no = 0;
-  let abstain = 0;
-  for (const key of Object.keys(votes).sort()) {
-    const vote = String(votes[key]?.vote || "").trim().toLowerCase();
-    if (vote === "yes") yes += 1;
-    else if (vote === "no") no += 1;
-    else if (vote) abstain += 1;
-  }
-  return { yes, no, abstain, total: yes + no + abstain };
-}
-
-function stageClass(stage: string): string {
-  const s = String(stage || "").toLowerCase();
-  if (["resolved", "closed", "finalized"].includes(s)) return "statusPill ok";
-  if (["open", "review", "voting", "assigned", "juror_review"].includes(s)) return "statusPill";
-  return "statusPill";
-}
-
-function currentDisputeVote(dispute: any, account: string): string {
-  if (!account) return "";
-  return String(recordForAccount(dispute?.votes, account)?.vote || "").trim().toLowerCase();
-}
 
 function disputeActionHint(args: {
   account: string;
@@ -95,10 +51,10 @@ function disputeActionHint(args: {
   if (!tierGateOk) return tierGateReason || "Tier 3 access and a local signer are required for juror actions.";
   if (jurorStatus === "unassigned") return "This dispute is visible, but your account is not assigned as a juror on it.";
   if (jurorStatus === "declined") return "You declined this juror assignment. No further actions are available from this account.";
-  if (jurorStatus === "assigned") return "Accept or decline the dispute before voting. Acceptance will also mark you present.";
-  if (jurorStatus === "accepted" && !attendancePresent) return "Presence should be recorded automatically after acceptance. Refresh if the vote controls do not unlock yet.";
-  if (currentVote) return `Your recorded dispute vote is ${currentVote.toUpperCase()}. This surface now treats dispute voting as one signer, one recorded vote.`;
-  return "Juror action unlocked. Review the flagged content and reason, then cast one vote.";
+  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final voting stays on the dedicated review page.";
+  if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return "Step 2 of 3: accepted attendance must appear in authoritative dispute state before the final vote unlocks.";
+  if (currentVote) return `Step 3 of 3 is complete. Your recorded dispute vote is ${currentVote.toUpperCase()}, and this signer is now locked for further voting.`;
+  return "Step 3 of 3: inspect the flagged content and reason here, then continue into the dedicated review workspace for the final vote.";
 }
 
 export default function DisputeDetail({ id }: { id: string }): JSX.Element {
@@ -171,15 +127,25 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
     void load();
   }, [id, account]);
 
-  const selectedJurorStatus = account && dispute ? jurorStatusOf(dispute, account) : "unassigned";
-  const attendancePresent = account && dispute ? jurorAttendancePresent(dispute, account) : false;
-  const counts = voteSurface?.vote_counts || (dispute ? voteCountSummary(dispute) : { yes: 0, no: 0, abstain: 0, total: 0 });
+  useMutationRefresh({
+    entityTypes: ["dispute", "content"],
+    account: account,
+    entityIds: [id],
+    onRefresh: async () => {
+      await load();
+      await refreshAccount();
+      await refreshAccountContext();
+    },
+  });
+
+  const selectedJurorStatus = account && dispute ? disputeJurorStatus(dispute, account) : "unassigned";
+  const attendancePresent = account && dispute ? disputeAttendancePresent(dispute, account) : false;
+  const counts = voteSurface?.vote_counts || (dispute ? disputeVoteCountSummary(dispute) : { yes: 0, no: 0, abstain: 0, total: 0 });
   const summary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
-  const currentVote = dispute ? currentDisputeVote(dispute, account) : "";
+  const currentVote = dispute ? disputeCurrentVote(dispute, account) : "";
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canDecline = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
-  const canAttend = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && false;
-  const canVote = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && (selectedJurorStatus === "assigned" || selectedJurorStatus === "accepted") && attendancePresent && !currentVote;
+  const reviewUnlocked = disputeReviewUnlocked({ dispute, account, tierGateOk: tierGate.ok, signerBusy: signerSubmission.busy });
   const hint = disputeActionHint({
     account,
     tierGateOk: tierGate.ok,
@@ -208,6 +174,13 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       finality: {
         track: true,
         timeoutMs: 18000,
+        mutation: {
+          entityType: "dispute",
+          entityId: String(payload?.dispute_id || id || "").trim() || undefined,
+          account: account || undefined,
+          routeHint: `/disputes/${encodeURIComponent(id)}`,
+          txType,
+        },
         reconcile: async () =>
           reconcileDisputeMutation({
             disputeId: String(payload?.dispute_id || id || ""),
@@ -223,14 +196,14 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   }
 
   return (
-    <div className="pageStack pageNarrow">
-      <section className="card heroCard compact">
+    <div className="pageStack pageNarrow detailPage disputeDetailPage">
+      <section className="card heroCard compact detailHeroCard">
         <div className="cardBody heroBody pageStack">
           <div className="surfaceSummaryRow">
             <div>
               <div className="eyebrow">Juror review</div>
               <h1 className="heroTitle heroTitleSm">Dispute detail</h1>
-              <p className="heroSubtitle">Review the flagged content, inspect the recorded reason, accept the assignment, and cast a single juror vote from a dedicated dispute page.</p>
+              <p className="heroSubtitle">Inspect the case, verify the flagged content, and handle assignment posture here. Final juror voting stays in the dedicated review workspace.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">dispute id</span></div>
@@ -239,7 +212,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           </div>
           <div className="buttonRow">
             <button className="btn" onClick={() => nav("/disputes")}>Back to disputes</button>
-            <button className="btn" onClick={() => void load()}>{signerSubmission.busy ? "Waiting for signer…" : "Refresh dispute"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting for signer…" : "Refresh dispute"}</button>
             {String(dispute?.target_id || "") ? (
               <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(String(dispute?.target_id || ""))}`)}>Open content page</button>
             ) : null}
@@ -247,14 +220,32 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         </div>
       </section>
 
-      <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void load()} />
+      <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)} />
 
       {signerSubmission.busy ? <div className="calloutInfo">Another signed action is still settling. Juror actions stay serialized so signer nonces remain monotonic.</div> : null}
+
+      <section className="detailFocusStrip">
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Primary object</div>
+          <div className="detailFocusValue">Dispute detail</div>
+          <div className="detailFocusText">Inspect the case, confirm the target, and resolve assignment posture before moving into the final review workspace.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Next action</div>
+          <div className="detailFocusValue">{currentVote ? "Review already recorded" : reviewUnlocked ? "Open review workspace" : canAccept || canDecline ? "Resolve assignment" : "Refresh and inspect"}</div>
+          <div className="detailFocusText">{hint}</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Current route rule</div>
+          <div className="detailFocusValue">No final vote here</div>
+          <div className="detailFocusText">This page explains the case. Final juror voting is intentionally isolated to the review action route.</div>
+        </article>
+      </section>
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Stage</div>
-          <div className="summaryCardValue"><span className={stageClass(String(dispute?.stage || "open"))}>{String(dispute?.stage || "open")}</span></div>
+          <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{String(dispute?.stage || "open")}</span></div>
           <div className="summaryCardText">resolved: {String(!!dispute?.resolved)}</div>
         </article>
         <article className="summaryCard">
@@ -270,7 +261,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         <article className="summaryCard">
           <div className="summaryCardLabel">Current signer vote</div>
           <div className="summaryCardValue">{currentVote ? currentVote.toUpperCase() : "None"}</div>
-          <div className="summaryCardText">One signer, one recorded vote</div>
+          <div className="summaryCardText">Final vote status should remain visible here even though this page no longer owns vote submission.</div>
         </article>
       </section>
 
@@ -334,8 +325,8 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Juror actions</div>
-                <h2 className="cardTitle">Accept, attend, then vote</h2>
+                <div className="eyebrow">Juror next step</div>
+                <h2 className="cardTitle">Detail explains the case. Review owns the final action.</h2>
               </div>
             </div>
             <div className="infoCard">
@@ -347,15 +338,11 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
               </div>
             </div>
             <div className="buttonRow buttonRowWide">
-              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: id }, "Accept dispute", "Dispute accepted.")} disabled={!canAccept}>Accept</button>
-              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: id }, "Decline dispute", "Dispute declined.")} disabled={!canDecline}>Decline</button>
-              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ATTENDANCE", { dispute_id: id, present: true }, "Mark present", "Attendance recorded.")} disabled={!canAttend}>{attendancePresent ? "Present" : "Mark present"}</button>
+              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: id }, "Accept dispute", "Dispute accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
+              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: id }, "Decline dispute", "Dispute declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+              <button className="btn btnPrimary" onClick={() => nav(`/disputes/${encodeURIComponent(String(dispute?.id || id))}/review`)} disabled={!reviewUnlocked && !currentVote}>{currentVote ? "Open recorded review" : reviewUnlocked ? "Open review workspace" : "Review locked"}</button>
             </div>
-            <div className="buttonRow buttonRowWide">
-              <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: id, vote: "yes" }, "Vote yes", "YES vote submitted.")} disabled={!canVote}>Vote yes</button>
-              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: id, vote: "no" }, "Vote no", "NO vote submitted.")} disabled={!canVote}>Vote no</button>
-              <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: id, vote: "abstain" }, "Vote abstain", "Abstain vote submitted.")} disabled={!canVote}>Vote abstain</button>
-            </div>
+            <div className="cardDesc">Queue pages list work, detail pages explain the case, and the dedicated review page owns the final vote controls. Use this page to resolve assignment posture and verify the target before moving forward.</div>
             {currentVote ? <div className="statusPill ok">Vote already recorded for this signer</div> : null}
           </div>
         </article>
