@@ -86,6 +86,7 @@ Helpers are treated as a throughput optimization layer, not as a second consensu
 
 ## Repository layout
 
+- `.github/workflows/` — backend, web, and auxiliary CI checks
 - `scripts/` — repo-level bootstrap helpers, including the canonical full demo flow
 - `Weall-Protocol/` — backend node, runtime, API, Docker Compose stack, tests, generated artifacts, and operator tooling
 - `web/` — Vite + React frontend
@@ -321,14 +322,15 @@ The goal is not just to make the system run — it is to make it hard for honest
 
 ---
 
-## Important documentation
+## Repository documentation
 
-For deeper implementation detail, use these next:
+For deeper implementation detail, use these repository-tracked files:
 
 - `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
-- `WeAll_Public_Protocol_Spec_Expanded_2026-04-09.docx` — readable public protocol specification
-- `WeAll_Helper_Consensus_Safety_Spec_v1.pdf` — helper safety invariants
-- `WeAll_Helper_Production_Readiness_Plan_v1.docx` — helper release gates and production readiness posture
+- `Weall-Protocol/docs/testnet_runbook.md` — local tester and protocol-review runbook
+- `RELEASE_CHECKLIST.md` — external tester release checklist
+- `CONTRIBUTING.md` — contribution workflow and review expectations
+- `SECURITY.md` — security reporting and supported security posture
 
 ---
 
@@ -388,6 +390,12 @@ Also verify that:
 - unwanted frontend `.env.local` values are not tracked
 - Docker runtime files are not being committed
 - docs still match the actual current demo path
+
+---
+
+## License
+
+WeAll Protocol is licensed under the **Mozilla Public License 2.0**. See `LICENSE`.
 
 ---
 

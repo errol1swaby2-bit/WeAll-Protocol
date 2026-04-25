@@ -38,6 +38,8 @@ Confirm none of these are staged:
 - `Weall-Protocol/secrets/*`
 - `Weall-Protocol/cloudflare/email_oracle/.dev.vars`
 - `web/.env.local`
+- `.weall-dev/`
+- `Weall-Protocol/.weall-devnet/`
 
 ## 2. Verify canonical startup path still works
 
@@ -59,6 +61,9 @@ Frontend:
 cd web
 cp .env.example .env.local
 npm ci
+npm run typecheck
+npm run contract-check
+npm run build
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
@@ -91,11 +96,13 @@ Confirm all of the following:
 
 ## 4. Verify documentation matches reality
 
-Check that these files all describe the same startup path:
+Check that these files all describe the same startup path and current proof posture:
 
 - `README.md`
 - `Weall-Protocol/README.md`
 - `Weall-Protocol/docs/testnet_runbook.md`
+
+The root README should only reference files that are actually tracked in this repository.
 
 ## 5. Verify environment examples are present
 
@@ -105,7 +112,24 @@ Confirm these files exist and are current:
 - `Weall-Protocol/.env.example`
 - `web/.env.example`
 
-## 6. Known release policy
+## 6. Verify public trust files are present
+
+Confirm these files exist before broad external review:
+
+- `LICENSE`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+
+## 7. Verify CI coverage
+
+Confirm the repository has active GitHub Actions coverage for:
+
+- backend lint, dependency audit, canon lint, generated-artifact check, tx coverage report, and pytest
+- web install, typecheck, contract check, and build
+- email-oracle worker checks, if that surface is part of the published snapshot
+
+## 8. Known release policy
 
 For external testers, the supported walkthrough is:
 

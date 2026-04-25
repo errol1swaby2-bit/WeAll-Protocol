@@ -113,13 +113,9 @@ The local tester path assumes these effective values:
 
 The Compose stack provides these defaults for the local quickstart.
 
-## Backend dependency audit result
+## Backend dependency note
 
-The runtime dependency set in `requirements.in` is almost complete, but one direct import used by the backend was missing from the runtime requirements list:
-
-- `python-dotenv`
-
-The backend imports it through `src/weall/env.py` when `.env` loading is enabled, so it should be treated as a first-class runtime dependency rather than an accidental transitive dependency.
+The backend declares `python-dotenv` as a direct runtime dependency because `src/weall/env.py` supports `.env` loading. Keeping this dependency explicit avoids relying on accidental transitive installs in fresh clones, CI, or tester environments.
 
 ## Runtime posture summary
 

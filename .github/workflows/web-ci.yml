@@ -32,9 +32,13 @@ jobs:
         run: |
           npm ci
 
-      - name: Typecheck (if present)
+      - name: Typecheck
         run: |
-          if npm run | grep -q " typecheck"; then npm run typecheck; fi
+          npm run typecheck
+
+      - name: Contract check
+        run: |
+          npm run contract-check
 
       - name: Build
         run: |
