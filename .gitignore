@@ -125,3 +125,6 @@ web/test-results/
 # =========================
 .weall-dev/
 Weall-Protocol/generated/demo_bootstrap_secret.json
+
+# WeAll controlled devnet local runtime artifacts
+Weall-Protocol/.weall-devnet/

@@ -1,4 +1,4 @@
-# Monday External Tester Release Checklist
+# External Tester Release Checklist
 
 Use this checklist before publishing the repository for external testers.
 
@@ -41,7 +41,13 @@ Confirm none of these are staged:
 
 ## 2. Verify canonical startup path still works
 
-Backend from the repository root:
+Preferred full-stack path from the repository root:
+
+```bash
+./scripts/dev_boot_full_stack.sh
+```
+
+Manual backend path from the repository root:
 
 ```bash
 ./scripts/quickstart_tester.sh
@@ -61,6 +67,16 @@ Demo bootstrap:
 ```bash
 cd Weall-Protocol
 ./scripts/demo_bootstrap_tester.sh
+```
+
+Controlled-devnet non-seeded onboarding proof:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+
+PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
+WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
 ```
 
 ## 3. Verify browser-visible demo
@@ -91,10 +107,14 @@ Confirm these files exist and are current:
 
 ## 6. Known release policy
 
-For Monday, the supported walkthrough is:
+For external testers, the supported walkthrough is:
 
 - backend via Docker Compose
 - frontend via Vite dev server
-- demo state via `scripts/demo_bootstrap_tester.sh`
+- demo state via `scripts/demo_bootstrap_tester.sh` or the repository root `scripts/dev_boot_full_stack.sh`
 
-Do not claim that browser email onboarding is part of the required tester flow unless the local email oracle has been included and documented in the same quickstart path.
+For protocol reviewers, the supported non-seeded onboarding proof is:
+
+- `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh`
+
+Do not claim that browser email onboarding is part of the required general tester flow. The current email-oracle path is documented as a controlled-devnet proof harness, not as the default browser onboarding path.

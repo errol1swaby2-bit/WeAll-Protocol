@@ -343,7 +343,7 @@ main() {
   log "starting canonical backend quickstart with explicit PYTHONPATH"
   (
     cd "$BACKEND_DIR"
-    WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" PYTHONPATH=src bash ./scripts/quickstart_tester.sh
+    WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}" PYTHONPATH=src bash ./scripts/quickstart_tester.sh
   ) || fail "canonical backend quickstart failed; inspect diagnostics printed above"
 
   log "verifying backend ready"

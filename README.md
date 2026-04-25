@@ -52,6 +52,15 @@ The current codebase already supports a real local full-stack demo flow with:
 - helper-safety posture beneath canonical consensus
 - local tester bootstrapping through a single canonical dev flow
 
+The current controlled-devnet onboarding proof also runs without demo-seed shortcuts:
+
+- fresh account registration through normal tx submission
+- bounded Tier-1 email-oracle attestation using an opaque email commitment
+- joining-node sync from a trusted anchor
+- cross-node account, tx-status, tip, and state-root parity checks
+- a Tier-1-gated transaction submitted on node 2 and synced back to node 1
+- Tier-2 async PoH request, juror accept, review, finalization, and cross-node convergence
+
 This is not a slide deck or mock frontend.  
 It is a working protocol + node + frontend repository.
 
@@ -111,6 +120,26 @@ When successful, the main local URLs are:
 - **Backend readyz:** `http://127.0.0.1:8000/v1/readyz`
 - **Backend status:** `http://127.0.0.1:8000/v1/status`
 - **API docs:** `http://127.0.0.1:8000/docs`
+
+---
+
+## Controlled-devnet onboarding proof
+
+For a deeper protocol-native proof that does not rely on the deterministic demo seed route, run the backend controlled-devnet onboarding harness:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+
+PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
+WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+```
+
+Use an email address you control when you want to test the local email-oracle path. The plaintext email is not submitted on-chain; the devnet helper submits a chain-bound commitment and a bounded operator receipt.
+
+This harness is the conference-grade non-seeded proof path. It boots a controlled two-node devnet, registers a fresh account, confirms Tier-1 email PoH, proves cross-node sync, submits a Tier-1-gated action from node 2, then completes a Tier-2 async PoH review and reconverges both nodes.
+
+The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,429 passed**.
 
 ---
 

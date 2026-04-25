@@ -1,8 +1,0 @@
-{
-  "account": "@devnet_1777153451_11076",
-  "api": "http://127.0.0.1:8001",
-  "chain_id": "weall-controlled-devnet",
-  "mode": "local_devnet_bounded_oracle_request",
-  "ok": true,
-  "request_id": "email:e546c41262c71e174acbcd766a256e59"
-}
