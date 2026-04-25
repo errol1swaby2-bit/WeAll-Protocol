@@ -38,6 +38,7 @@ def canonical_relay_token_payload(payload: Json) -> Json:
     return {
         "version": int(payload.get("version") or RELAY_TOKEN_VERSION),
         "type": _as_str(payload.get("type") or RELAY_TOKEN_KIND),
+        "chain_id": _as_str(payload.get("chain_id") or ""),
         "challenge_id": _as_str(payload.get("challenge_id") or ""),
         "account_id": _as_str(payload.get("account_id") or ""),
         "operator_account_id": _as_str(payload.get("operator_account_id") or ""),
@@ -58,6 +59,7 @@ def canonical_receipt_payload(receipt: Json) -> Json:
     return {
         "version": int(receipt.get("version") or RECEIPT_VERSION),
         "kind": _as_str(receipt.get("kind") or RECEIPT_KIND),
+        "chain_id": _as_str(receipt.get("chain_id") or ""),
         "worker_account_id": _as_str(receipt.get("worker_account_id") or ""),
         "worker_pubkey": _as_str(receipt.get("worker_pubkey") or ""),
         "subject_account_id": _as_str(receipt.get("subject_account_id") or ""),
@@ -129,6 +131,7 @@ def validate_relay_completion_token(
     *,
     account_id: str,
     operator_account_id: str,
+    chain_id: str,
     max_ttl_ms: int = 15 * 60 * 1000,
     now_ms: int | None = None,
 ) -> tuple[bool, str, Json | None]:
@@ -142,6 +145,8 @@ def validate_relay_completion_token(
         return False, "missing_relay_signature", None
 
     payload = canonical_relay_token_payload(payload_any)
+    token_chain_id = _as_str(payload.get("chain_id") or "")
+    expected_chain_id = _as_str(chain_id or "")
     challenge_id = _as_str(payload.get("challenge_id") or "")
     subject_account_id = _as_str(payload.get("account_id") or "")
     operator_account = _as_str(payload.get("operator_account_id") or "")
@@ -155,6 +160,10 @@ def validate_relay_completion_token(
         return False, "bad_relay_version", None
     if _as_str(payload.get("type") or "") != RELAY_TOKEN_KIND:
         return False, "bad_relay_kind", None
+    if not token_chain_id:
+        return False, "missing_relay_chain_id", None
+    if expected_chain_id and token_chain_id != expected_chain_id:
+        return False, "relay_chain_id_mismatch", None
     if not challenge_id:
         return False, "missing_relay_challenge_id", None
     if subject_account_id != _as_str(account_id or ""):
@@ -191,6 +200,7 @@ def validate_operator_email_receipt(
     *,
     subject_account_id: str,
     receipt: Json,
+    chain_id: str | None = None,
     max_ttl_ms: int = 15 * 60 * 1000,
     now_ms: int | None = None,
 ) -> tuple[bool, str, Json | None]:
@@ -207,6 +217,13 @@ def validate_operator_email_receipt(
         return False, "bad_version", None
     if _as_str(payload.get("kind") or "") != RECEIPT_KIND:
         return False, "bad_kind", None
+
+    receipt_chain_id = _as_str(payload.get("chain_id") or "")
+    expected_chain_id = _as_str(chain_id or state.get("chain_id") or "")
+    if not receipt_chain_id:
+        return False, "missing_chain_id", None
+    if expected_chain_id and receipt_chain_id != expected_chain_id:
+        return False, "chain_id_mismatch", None
 
     worker_account_id = _as_str(payload.get("worker_account_id") or "")
     worker_pubkey = _as_str(payload.get("worker_pubkey") or "")
@@ -241,11 +258,14 @@ def validate_operator_email_receipt(
         relay_token,
         account_id=subject_account_id,
         operator_account_id=worker_account_id,
+        chain_id=expected_chain_id,
         max_ttl_ms=max_ttl_ms,
         now_ms=now,
     )
     if not relay_ok or not isinstance(relay_payload, dict):
         return False, relay_code, None
+    if receipt_chain_id != _as_str(relay_payload.get("chain_id") or ""):
+        return False, "relay_chain_id_mismatch", None
     if request_id != _as_str(relay_payload.get("challenge_id") or ""):
         return False, "relay_request_id_mismatch", None
     if email_commitment != _as_str(relay_payload.get("email_commitment") or ""):

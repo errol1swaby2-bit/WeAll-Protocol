@@ -45,6 +45,7 @@ services:
       WEALL_ALLOW_UNSIGNED_TXS: "0"
       WEALL_POH_BOOTSTRAP_OPEN: "1"
       WEALL_ENABLE_DEMO_SEED_ROUTE: "1"
+      WEALL_RUNTIME_PROFILE: seeded_demo
       WEALL_IPFS_API_BASE: http://kubo:5001
       PYTHONPATH: /app/src
       # SQLite-backed dev bootstrap must stay single-worker to avoid

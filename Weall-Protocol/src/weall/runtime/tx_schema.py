@@ -189,6 +189,10 @@ class PohTier2ReviewSubmitPayload(_StrictModel):
 
 class PohTier2FinalizePayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
+    ts_ms: int | None = Field(default=None, ge=0)
+    min_total_reviews: int | None = Field(default=None, ge=0)
+    pass_threshold: int | None = Field(default=None, ge=0)
+    fail_max: int | None = Field(default=None, ge=0)
 
 
 class PohTier2ReceiptPayload(_StrictModel):

@@ -509,12 +509,45 @@ def _system_origin_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> Admiss
     return None
 
 
+def _system_origin_enforced(spec: Json) -> bool:
+    origin = str(spec.get("origin") or "").strip().upper()
+    return bool(spec.get("system_only", False)) or origin == "SYSTEM"
+
+
+def _canonical_system_tx_signer_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> bool:
+    """Return True only for canonically authorized system-origin envelopes.
+
+    Some tx-canon rows carry a subject_gate for documentation / domain grouping
+    even though the envelope signer is the protocol system signer. During block
+    replay those rows must be authorized by system-origin rules, not by asking
+    whether the literal signer ``SYSTEM`` satisfies a human role gate such as
+    ``Juror``. Apply-time canon guards still require the system flag and signer,
+    so this skip does not make public user ingress permissive.
+    """
+
+    if not _system_origin_enforced(spec):
+        return False
+    if _bootstrap_open_gate_bypass(env, ledger, spec):
+        return False
+    if not bool(getattr(env, "system", False)):
+        return False
+    signer = str(env.signer or "").strip()
+    return signer in _canonical_system_signers(ledger)
+
+
 def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdict | None:
     gate = str(spec.get("subject_gate") or "").strip()
     if not gate:
         return None
 
     if _bootstrap_open_gate_bypass(env, ledger, spec):
+        return None
+
+    # System-origin txs are authorized by _system_origin_ok/apply-time system
+    # guards. Do not evaluate user/human role gates against the literal SYSTEM
+    # signer during block replay, or follower nodes reject valid system txs that
+    # proposers emitted deterministically.
+    if _canonical_system_tx_signer_ok(env, ledger, spec):
         return None
 
     ok, meta = eval_gate(
@@ -667,9 +700,6 @@ def admit_tx(
                 system_signers=sorted(canonical_system_signers),
             )
 
-    if strict_account_ids_enabled() and not is_valid_account_id(env.signer):
-        return _rej("invalid_tx", "bad_signer_format", signer=str(env.signer))
-
     if canon is None:
         spec = {}
     else:
@@ -677,6 +707,20 @@ def admit_tx(
             spec = canon.get(env.tx_type.upper(), {})
         except Exception:
             spec = {}
+
+    # Canonical system-origin envelopes use the protocol system signer (usually
+    # "SYSTEM"), not a user account id. In block replay they must pass signer
+    # shape validation so _system_origin_ok/apply-time system guards can authorize
+    # them. Public ingress is still protected above: mempool/gossip/peer reject
+    # system-flagged or system-signed envelopes before this point. This exception
+    # is intentionally limited to tx-canon rows that are actually system-origin.
+    if strict_account_ids_enabled() and not is_valid_account_id(env.signer):
+        signer_s = str(env.signer or "").strip()
+        is_canonical_system_signer = signer_s in _canonical_system_signers(lv)
+        is_block_system_envelope = ctx == "block" and bool(getattr(env, "system", False))
+        is_system_origin_tx = _system_origin_enforced(spec) or _bootstrap_open_gate_bypass(env, lv, spec)
+        if not (is_block_system_envelope and is_canonical_system_signer and is_system_origin_tx):
+            return _rej("invalid_tx", "bad_signer_format", signer=str(env.signer))
 
     bad = _payload_limits_ok(env, spec)
     if bad is not None:

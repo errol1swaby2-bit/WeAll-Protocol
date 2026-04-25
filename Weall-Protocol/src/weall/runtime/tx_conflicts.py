@@ -351,6 +351,7 @@ _register_many(
 _register_many(
     [
         "POH_APPLICATION_SUBMIT",
+        "POH_EMAIL_RECEIPT_SUBMIT",
         "POH_EVIDENCE_DECLARE",
         "POH_EVIDENCE_BIND",
         "POH_CHALLENGE_OPEN",

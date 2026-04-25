@@ -8,6 +8,8 @@ from typing import Any, Mapping
 from fastapi import APIRouter, Request
 
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
+from weall.runtime.state_hash import compute_state_root
+from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
 from weall.runtime.helper_startup_integration import (
     HelperStartupConfig,
@@ -906,6 +908,109 @@ def status_attestations(request: Request) -> dict[str, Any]:
     }
 
 
+
+
+def _chain_identity_payload(request: Request) -> dict[str, Any]:
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    finalized = state.get("finalized") if isinstance(state.get("finalized"), dict) else {}
+
+    chain_id = _safe_str(state.get("chain_id") or getattr(ex, "chain_id", ""), "")
+    height = _safe_int(state.get("height"), 0)
+    tip = _safe_str(state.get("tip"), "")
+    tip_hash = _safe_str(state.get("tip_hash") or tip, "")
+    state_root = compute_state_root(state if isinstance(state, dict) else {})
+
+    try:
+        snapshot_anchor = build_snapshot_anchor(state if isinstance(state, dict) else {})
+    except Exception:
+        snapshot_anchor = {
+            "height": height,
+            "tip_hash": tip_hash,
+            "state_root": state_root,
+            "finalized_height": _safe_int(finalized.get("height"), 0),
+            "finalized_block_id": _safe_str(finalized.get("block_id"), ""),
+            "snapshot_hash": "",
+        }
+
+    consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
+    epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
+    validator_set = consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    genesis_bootstrap = _genesis_bootstrap_diagnostics(state if isinstance(state, dict) else {})
+
+    return {
+        "ok": True,
+        "chain_id": chain_id,
+        "height": height,
+        "tip": tip,
+        "tip_hash": tip_hash,
+        "state_root": state_root,
+        "snapshot_anchor": snapshot_anchor,
+        "finalized": {
+            "height": _safe_int(finalized.get("height"), 0),
+            "block_id": _safe_str(finalized.get("block_id"), ""),
+        },
+        "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
+        "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
+        "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
+        "protocol_version": _safe_str(meta.get("protocol_version"), ""),
+        "protocol_profile_hash": runtime_protocol_profile_hash(),
+        "genesis_bootstrap": {
+            "enabled": bool(genesis_bootstrap.get("enabled", False)),
+            "mode": _safe_str(genesis_bootstrap.get("mode"), ""),
+            "profile_hash": _safe_str(genesis_bootstrap.get("profile_hash"), ""),
+        },
+        "validator_epoch": _safe_int(epochs.get("current"), 0),
+        "validator_set_hash": _safe_str(validator_set.get("set_hash"), ""),
+    }
+
+
+@router.get("/chain/identity")
+def chain_identity(request: Request) -> dict[str, Any]:
+    """Return this node's current canonical chain identity and sync anchor.
+
+    Joining-node scripts can compare this response before trusting a peer for
+    state sync. The endpoint reports commitments only; it never grants authority
+    and never mutates state.
+    """
+    return _chain_identity_payload(request)
+
+
+@router.get("/chain/state-root")
+def chain_state_root(request: Request) -> dict[str, Any]:
+    ident = _chain_identity_payload(request)
+    return {
+        "ok": True,
+        "chain_id": ident["chain_id"],
+        "height": ident["height"],
+        "tip": ident["tip"],
+        "tip_hash": ident["tip_hash"],
+        "state_root": ident["state_root"],
+        "snapshot_anchor": ident["snapshot_anchor"],
+    }
+
+
+@router.get("/chain/genesis")
+def chain_genesis(request: Request) -> dict[str, Any]:
+    """Expose stable genesis/bootstrap commitments used for devnet joining.
+
+    A joining node must still validate chain_id, tx_index_hash, schema/profile
+    hashes, and its configured trusted anchor. This endpoint is observability,
+    not authority.
+    """
+    ident = _chain_identity_payload(request)
+    return {
+        "ok": True,
+        "chain_id": ident["chain_id"],
+        "schema_version": ident["schema_version"],
+        "tx_index_hash": ident["tx_index_hash"],
+        "production_consensus_profile_hash": ident["production_consensus_profile_hash"],
+        "protocol_profile_hash": ident["protocol_profile_hash"],
+        "genesis_bootstrap": ident["genesis_bootstrap"],
+        "trusted_anchor": ident["snapshot_anchor"],
+    }
+
 @router.get("/chain/head")
 def chain_head(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
@@ -915,4 +1020,6 @@ def chain_head(request: Request) -> dict[str, Any]:
         "chain_id": _safe_str(state.get("chain_id"), ""),
         "height": _safe_int(state.get("height"), 0),
         "tip": _safe_str(state.get("tip"), ""),
+        "tip_hash": _safe_str(state.get("tip_hash") or state.get("tip"), ""),
+        "state_root": compute_state_root(state if isinstance(state, dict) else {}),
     }

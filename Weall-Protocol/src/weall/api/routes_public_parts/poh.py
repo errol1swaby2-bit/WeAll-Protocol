@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from fastapi import APIRouter, File, Request, UploadFile
+from nacl.signing import SigningKey
 from pydantic import BaseModel, Field
 
 from weall.api.errors import ApiError
@@ -13,6 +14,11 @@ from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.poh.email_verification import EmailVerificationService, OracleCallerIdentity
+from weall.poh.operator_email_receipts import (
+    RECEIPT_KIND,
+    RECEIPT_VERSION,
+    canonical_receipt_message,
+)
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 router = APIRouter()
@@ -49,6 +55,22 @@ class PohEmailBeginResponse(BaseModel):
     ok: bool
     request_id: str
     expires_ms: int
+
+
+class PohEmailCompleteRequest(BaseModel):
+    account: str = Field(..., min_length=1, max_length=128)
+    email: str = Field(..., min_length=3, max_length=320)
+    code: str = Field(..., min_length=1, max_length=128)
+    request_id: str = Field(..., min_length=1, max_length=256)
+    turnstile_token: str | None = Field(default=None, max_length=4096)
+
+
+class PohEmailCompleteResponse(BaseModel):
+    ok: bool
+    request_id: str
+    completed: bool
+    receipt: Json
+    tx: Json
 
 
 class PohEmailOracleAuthorityResponse(BaseModel):
@@ -295,6 +317,71 @@ def _svc(request: Request) -> EmailVerificationService:
     return EmailVerificationService(secret=secret, ttl_ms=ttl_ms, caller_identity=caller_identity)
 
 
+def _sign_local_operator_receipt(*, svc: EmailVerificationService, chain_id: str, account: str, relay_token: Json) -> Json:
+    if not isinstance(relay_token, dict):
+        raise ApiError.bad_request("missing_relay_token", "email oracle did not return a relay token", {})
+
+    relay_payload = relay_token.get("payload")
+    if not isinstance(relay_payload, dict):
+        raise ApiError.bad_request("missing_relay_payload", "email relay token payload is missing", {})
+
+    caller = svc.caller_identity
+    worker_account = str(caller.operator_account or "").strip()
+    worker_pubkey = str(caller.node_pubkey or "").strip().lower()
+    worker_privkey = str(caller.node_privkey or "").strip().lower()
+    chain_id_norm = str(chain_id or "").strip()
+
+    if not worker_account or not worker_pubkey or not worker_privkey:
+        raise ApiError.bad_request(
+            "missing_oracle_signing_identity",
+            "authorized local node signing identity is incomplete",
+            {},
+        )
+
+    receipt: Json = {
+        "version": RECEIPT_VERSION,
+        "kind": RECEIPT_KIND,
+        "chain_id": chain_id_norm,
+        "worker_account_id": worker_account,
+        "worker_pubkey": worker_pubkey,
+        "subject_account_id": str(account or "").strip(),
+        "email_commitment": str(relay_payload.get("email_commitment") or "").strip(),
+        "request_id": str(relay_payload.get("challenge_id") or "").strip(),
+        "nonce": str(relay_token.get("signature") or "").strip(),
+        "issued_at_ms": int(relay_payload.get("issued_at_ms") or 0),
+        "expires_at_ms": int(relay_payload.get("expires_at_ms") or 0),
+        "relay_token": relay_token,
+    }
+
+    relay_chain_id = str(relay_payload.get("chain_id") or "").strip()
+    if not relay_chain_id:
+        raise ApiError.bad_request(
+            "missing_relay_chain_id",
+            "email relay token must be bound to this chain",
+            {"expected_chain_id": chain_id_norm},
+        )
+    if relay_chain_id != chain_id_norm:
+        raise ApiError.bad_request(
+            "relay_chain_id_mismatch",
+            "email relay token is bound to a different chain",
+            {"expected_chain_id": chain_id_norm, "relay_chain_id": relay_chain_id},
+        )
+    if not receipt["email_commitment"]:
+        raise ApiError.bad_request("missing_email_commitment", "email relay token is missing email commitment", {})
+    if not receipt["request_id"]:
+        raise ApiError.bad_request("missing_request_id", "email relay token is missing challenge id", {})
+    if not receipt["nonce"]:
+        raise ApiError.bad_request("missing_relay_signature", "email relay token is missing signature", {})
+
+    try:
+        signing_key = SigningKey(bytes.fromhex(worker_privkey))
+    except Exception as exc:
+        raise ApiError.bad_request("invalid_oracle_node_privkey", "oracle node private key is invalid", {}) from exc
+
+    receipt["signature"] = signing_key.sign(canonical_receipt_message(receipt)).signature.hex()
+    return receipt
+
+
 @router.get("/poh/email/oracle-authority", response_model=PohEmailOracleAuthorityResponse, name="poh_email_oracle_authority")
 def poh_email_oracle_authority(request: Request) -> PohEmailOracleAuthorityResponse:
     st = _snapshot(request)
@@ -324,8 +411,30 @@ def poh_email_begin(req: PohEmailBeginRequest, request: Request) -> PohEmailBegi
     if not email:
         raise ApiError.bad_request("invalid_email", "email is required")
 
+    # In a fully booted node, bind the email challenge request to the local
+    # chain. In route-shape tests and lightweight app construction
+    # (boot_runtime=False), app.state.executor is intentionally absent; keep the
+    # begin route backward-compatible so test doubles can still validate the
+    # response contract without requiring a live executor.
+    chain_id = ""
+    try:
+        st = _snapshot(request)
+        chain_id = str(st.get("chain_id") or "").strip()
+    except ApiError as exc:
+        if exc.code != "not_ready":
+            raise
+
     svc = _svc(request)
-    result = svc.begin(account=account, email=email, turnstile_token=req.turnstile_token)
+    try:
+        result = svc.begin(account=account, email=email, turnstile_token=req.turnstile_token, chain_id=chain_id)
+    except TypeError as exc:
+        # Test doubles and older in-process dev adapters may not yet accept the
+        # chain_id keyword. Keep the public route backward-compatible while the
+        # real EmailVerificationService remains chain-bound whenever a real
+        # executor/chain identity is available.
+        if "chain_id" not in str(exc):
+            raise
+        result = svc.begin(account=account, email=email, turnstile_token=req.turnstile_token)
 
     request_id = str(result.get("request_id") or result.get("challenge_id") or "").strip()
     expires_ms_raw = result.get("expires_ms")
@@ -342,6 +451,66 @@ def poh_email_begin(req: PohEmailBeginRequest, request: Request) -> PohEmailBegi
         raise ApiError.internal("poh_email_begin_invalid_response", "missing expires_ms")
 
     return PohEmailBeginResponse(ok=True, request_id=request_id, expires_ms=expires_ms)
+
+
+@router.post("/poh/email/complete", response_model=PohEmailCompleteResponse, name="poh_email_complete")
+def poh_email_complete(req: PohEmailCompleteRequest, request: Request) -> PohEmailCompleteResponse:
+    account = str(req.account or "").strip()
+    email = str(req.email or "").strip()
+    code = str(req.code or "").strip()
+    request_id = str(req.request_id or "").strip()
+
+    if not account:
+        raise ApiError.bad_request("invalid_account", "account is required")
+    if not email:
+        raise ApiError.bad_request("invalid_email", "email is required")
+    if not code:
+        raise ApiError.bad_request("invalid_code", "code is required")
+    if not request_id:
+        raise ApiError.bad_request("invalid_request_id", "request_id is required")
+
+    st = _snapshot(request)
+    chain_id = str(st.get("chain_id") or "").strip()
+    svc = _svc(request)
+    try:
+        result = svc.complete(
+            account=account,
+            email=email,
+            code=code,
+            request_id=request_id,
+            turnstile_token=req.turnstile_token,
+            chain_id=chain_id,
+        )
+    except TypeError as exc:
+        if "chain_id" not in str(exc):
+            raise
+        result = svc.complete(
+            account=account,
+            email=email,
+            code=code,
+            request_id=request_id,
+            turnstile_token=req.turnstile_token,
+        )
+    relay_token = result.get("relay_token") if isinstance(result, dict) else None
+    receipt = _sign_local_operator_receipt(
+        svc=svc,
+        chain_id=chain_id,
+        account=account,
+        relay_token=relay_token if isinstance(relay_token, dict) else {},
+    )
+
+    return PohEmailCompleteResponse(
+        ok=True,
+        request_id=request_id,
+        completed=bool(result.get("completed", True)) if isinstance(result, dict) else True,
+        receipt=receipt,
+        tx={
+            "tx_type": "POH_EMAIL_RECEIPT_SUBMIT",
+            "signer_hint": account,
+            "parent": None,
+            "payload": {"account_id": account, "receipt": receipt},
+        },
+    )
 
 
 
@@ -1125,15 +1294,14 @@ def poh_tier2_tx_request(
     cid = (req.video_cid or "").strip()
 
     # For Tier3 requests, you may not have video evidence at the time of opening the case.
-    # We allow it to be absent when target_tier==3.
-    target_tier = int(req.target_tier) if req.target_tier is not None else None
+    # We allow it to be absent when target_tier==3. The canonical tx schema requires
+    # target_tier, so Tier-2 request skeletons must default it explicitly to 2.
+    target_tier = int(req.target_tier) if req.target_tier is not None else 2
 
-    if (target_tier or 2) == 2 and not vc and not cid:
+    if target_tier == 2 and not vc and not cid:
         raise ApiError.bad_request("bad_request", "missing video_commitment or video_cid", {})
 
-    payload: Json = {"account_id": acct}
-    if target_tier is not None:
-        payload["target_tier"] = int(target_tier)
+    payload: Json = {"account_id": acct, "target_tier": int(target_tier)}
     if vc:
         payload["video_commitment"] = vc
     if cid:
@@ -1425,4 +1593,5 @@ def poh_tier3_tx_verdict(
             payload=payload,
         ),
     )
+
 

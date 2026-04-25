@@ -1,0 +1,74 @@
+{
+  "account": "@devnet_1777153451_11076",
+  "account_state": {
+    "active_keys": [
+      "56a8e9c2d1a624eb4319d2aea9b6e3afbc95f28f096058dc1db8b6991a4a9794"
+    ],
+    "banned": false,
+    "devices": {
+      "by_id": {}
+    },
+    "keys": {
+      "by_id": {
+        "k:0a8c4213c54cdcdc": {
+          "key_type": "main",
+          "pubkey": "56a8e9c2d1a624eb4319d2aea9b6e3afbc95f28f096058dc1db8b6991a4a9794",
+          "revoked": false,
+          "revoked_at": null
+        }
+      }
+    },
+    "locked": false,
+    "nonce": 4,
+    "poh_tier": 1,
+    "pubkey": "56a8e9c2d1a624eb4319d2aea9b6e3afbc95f28f096058dc1db8b6991a4a9794",
+    "pubkeys": [
+      "56a8e9c2d1a624eb4319d2aea9b6e3afbc95f28f096058dc1db8b6991a4a9794"
+    ],
+    "recovery": {
+      "config": null,
+      "proposals": {}
+    },
+    "reputation": "0",
+    "session_keys": {}
+  },
+  "api": "http://127.0.0.1:8001",
+  "case": {
+    "account_id": "@devnet_1777153451_11076",
+    "case_id": "poh2:@devnet_1777153451_11076:4",
+    "created_ts_ms": null,
+    "evidence": {},
+    "finalized_ts_ms": null,
+    "jurors": {
+      "@devnet-genesis": {
+        "ts_ms": null,
+        "verdict": null
+      }
+    },
+    "outcome": null,
+    "requested_by": "@devnet_1777153451_11076",
+    "status": "assigned",
+    "tier_awarded": null
+  },
+  "case_id": "poh2:@devnet_1777153451_11076:4",
+  "chain_id": "weall-controlled-devnet",
+  "ok": true,
+  "submit": {
+    "mempool_size": 1,
+    "ok": true,
+    "status": "accepted",
+    "tx_id": "tx:9b646965c1e7fff40fc85848fd2802c30d65634755c440796479ba0c993509c7"
+  },
+  "tx_id": "tx:9b646965c1e7fff40fc85848fd2802c30d65634755c440796479ba0c993509c7",
+  "tx_status": {
+    "block_id": "d8b736052e9917b7a6ccd3dd7ff2f446e22ac7c4bc521c2f86d5e7a77321b909",
+    "height": 4,
+    "included_ts_ms": 4,
+    "ok": true,
+    "signer": "@devnet_1777153451_11076",
+    "status": "confirmed",
+    "tx_id": "tx:9b646965c1e7fff40fc85848fd2802c30d65634755c440796479ba0c993509c7",
+    "tx_type": "POH_TIER2_REQUEST_OPEN"
+  },
+  "video_commitment": "sha256:0c4448d9961053e8ef651626223ce2e262aea4f79eaf2bd7b2bf3320621af39f"
+}

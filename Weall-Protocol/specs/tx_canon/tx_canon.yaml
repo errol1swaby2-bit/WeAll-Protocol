@@ -196,6 +196,13 @@ txs:
   receipt_only: true
   parent: DISPUTE_RESOLVE
   system_only: true
+- id: 106
+  name: POH_EMAIL_RECEIPT_SUBMIT
+  domain: PoH
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
 - id: 110
   name: POH_TIER2_REQUEST_OPEN
   domain: PoH

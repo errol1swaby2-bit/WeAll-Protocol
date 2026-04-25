@@ -140,3 +140,35 @@ def test_group_signers_set_and_moderators_set_require_scoped_signer() -> None:
     assert ok2 is False
     assert rej2 is not None
     assert rej2.code == "gate_denied"
+
+
+def test_system_origin_subject_gate_skips_literal_system_signer_in_block_replay() -> None:
+    canon = _canon(
+        {
+            "POH_TIER2_FINALIZE": {
+                "origin": "SYSTEM",
+                "subject_gate": "Juror",
+            }
+        }
+    )
+    ledger = LedgerView(
+        accounts={},
+        roles={"jurors": {"by_id": {}, "active_set": []}},
+        params={"system_signer": "SYSTEM"},
+    )
+
+    ok, rej = admit_tx(
+        {
+            "tx_type": "POH_TIER2_FINALIZE",
+            "signer": "SYSTEM",
+            "nonce": 0,
+            "system": True,
+            "payload": {"case_id": "poh2:@subject:1", "ts_ms": 0},
+            "sig": "",
+        },
+        ledger,
+        canon,
+        context="block",
+    )
+    assert ok is True
+    assert rej is None

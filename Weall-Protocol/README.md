@@ -46,6 +46,22 @@ cd ..
 
 That root-level flow wraps backend startup, demo bootstrap, frontend startup, and local session bootstrap into one path.
 
+## Controlled-devnet onboarding proof
+
+For protocol-review sessions, the backend also includes a non-seeded two-node onboarding proof:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+
+PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
+WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+```
+
+This flow uses normal public transaction submission paths. It auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 email PoH through an opaque commitment, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, then completes Tier-2 async PoH and proves both nodes converge on the same tip and state root.
+
+This script intentionally never calls `/v1/dev/demo-seed`.
+
 ## Important URLs
 
 When the backend is healthy, these should work:

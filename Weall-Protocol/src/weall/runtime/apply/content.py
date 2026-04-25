@@ -107,28 +107,59 @@ def _resolve_account_identity(state: Json, value: Any) -> str:
     return variants[0]
 
 
-def _active_validator_accounts(state: Json) -> list[str]:
+def _active_role_accounts(state: Json, role_name: str, active_statuses: set[str]) -> list[str]:
     roles = state.get("roles")
-    if isinstance(roles, dict):
-        validators = roles.get("validators")
-        if isinstance(validators, dict):
-            active = _canonical_account_list([_resolve_account_identity(state, item) for item in _canonical_account_list(validators.get("active_set"))])
-            if active:
-                return active
-            by_id = validators.get("by_id")
-            if isinstance(by_id, dict):
-                out: list[str] = []
-                for account, rec in by_id.items():
-                    acct = _as_str(account).strip()
-                    if not acct or not isinstance(rec, dict):
-                        continue
-                    status = _as_str(rec.get("status")).strip().lower()
-                    if status and status not in {"active", "activated", "validator"}:
-                        continue
-                    out.append(_resolve_account_identity(state, acct))
-                out = _canonical_account_list(out)
-                if out:
-                    return out
+    if not isinstance(roles, dict):
+        return []
+    role_root = roles.get(role_name)
+    if not isinstance(role_root, dict):
+        return []
+
+    active = _canonical_account_list(
+        [_resolve_account_identity(state, item) for item in _canonical_account_list(role_root.get("active_set"))]
+    )
+    if active:
+        return active
+
+    by_id = role_root.get("by_id")
+    if isinstance(by_id, dict):
+        out: list[str] = []
+        for account, rec in by_id.items():
+            acct = _as_str(account).strip()
+            if not acct or not isinstance(rec, dict):
+                continue
+            enrolled = rec.get("enrolled")
+            if enrolled is not None and not bool(enrolled):
+                continue
+            if rec.get("active") is not None and not bool(rec.get("active")):
+                continue
+            status = _as_str(rec.get("status")).strip().lower()
+            if status and status not in active_statuses:
+                continue
+            out.append(_resolve_account_identity(state, acct))
+        out = _canonical_account_list(out)
+        if out:
+            return out
+
+    return []
+
+
+def _active_juror_accounts(state: Json) -> list[str]:
+    return _active_role_accounts(
+        state,
+        "jurors",
+        {"active", "activated", "juror", "enrolled"},
+    )
+
+
+def _active_validator_accounts(state: Json) -> list[str]:
+    active_from_roles = _active_role_accounts(
+        state,
+        "validators",
+        {"active", "activated", "validator"},
+    )
+    if active_from_roles:
+        return active_from_roles
 
     consensus = state.get("consensus")
     if isinstance(consensus, dict):
@@ -152,7 +183,6 @@ def _active_validator_accounts(state: Json) -> list[str]:
                     out.append(_resolve_account_identity(state, acct))
                 return _canonical_account_list(out)
     return []
-
 
 def _require_system(env: TxEnvelope) -> None:
     if not bool(getattr(env, "system", False)):
@@ -909,8 +939,12 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     disputes_root = _as_dict(state.get("disputes_by_id"))
     dispute_obj = _as_dict(disputes_root.get(did))
-    active_validators = _canonical_account_list(dispute_obj.get("eligible_juror_ids")) or _active_validator_accounts(state)
-    if not active_validators:
+    assigned_jurors = (
+        _canonical_account_list(dispute_obj.get("eligible_juror_ids"))
+        or _active_juror_accounts(state)
+        or _active_validator_accounts(state)
+    )
+    if not assigned_jurors:
         content_root = _ensure_root(state)
         target_author = ""
         posts = content_root.get("posts")
@@ -922,12 +956,16 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         elif isinstance(comment_obj, dict):
             target_author = _resolve_account_identity(state, comment_obj.get("author"))
         if target_author:
-            active_validators = _canonical_account_list([target_author])
-    if not active_validators:
-        active_validators = _canonical_account_list([_resolve_account_identity(state, env.signer)])
-    if active_validators:
+            assigned_jurors = _canonical_account_list([target_author])
+    if not assigned_jurors:
+        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, env.signer)])
+
+    current_height = _as_int(payload.get("_due_height"), _as_int(state.get("height") or 0))
+    followup_height = int(current_height) + 1
+
+    if assigned_jurors:
         jurors = _as_dict(dispute_obj.get("jurors"))
-        for juror in active_validators:
+        for juror in assigned_jurors:
             existing = _as_dict(jurors.get(juror))
             jurors[juror] = {
                 "status": _as_str(existing.get("status") or "assigned") or "assigned",
@@ -938,21 +976,44 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         dispute_obj["jurors"] = jurors
         dispute_obj["stage"] = "juror_review"
         dispute_obj["stage_set_at_nonce"] = int(env.nonce)
-        dispute_obj["eligible_validator_count"] = len(active_validators)
-        dispute_obj["required_votes"] = quorum_threshold(len(active_validators)) if active_validators else 0
-        dispute_obj["eligible_juror_ids"] = list(active_validators)
-        dispute_obj["assigned_jurors"] = list(active_validators)
+        dispute_obj["eligible_validator_count"] = len(assigned_jurors)
+        dispute_obj["required_votes"] = quorum_threshold(len(assigned_jurors)) if assigned_jurors else 0
+        dispute_obj["eligible_juror_ids"] = list(assigned_jurors)
+        dispute_obj["assigned_jurors"] = list(assigned_jurors)
         disputes_root[did] = dispute_obj
         state["disputes_by_id"] = disputes_root
 
+        # Preserve the older queued-system-tx surface while also keeping the
+        # immediate assignment state used by the demo/read-model. The queued
+        # DISPUTE_JUROR_ASSIGN is idempotent for already-assigned jurors and
+        # gives block-level observers a canonical assignment tx to inspect.
+        #
+        # The CONTENT_ESCALATE_TO_DISPUTE envelope may be applied in tests
+        # without mutating state["height"]. Use the emitter's _due_height when
+        # present so follow-up txs land in the next block after escalation, not
+        # the stale local state height.
+        try:
+            for juror in assigned_jurors:
+                enqueue_system_tx(
+                    state,
+                    tx_type="DISPUTE_JUROR_ASSIGN",
+                    payload={"dispute_id": did, "juror": juror},
+                    due_height=followup_height,
+                    signer="SYSTEM",
+                    once=True,
+                    parent="CONTENT_ESCALATE_TO_DISPUTE",
+                    phase="post",
+                )
+        except Exception:
+            pass
+
     # Enqueue a receipt-only audit record (system-emitted) for downstream tooling.
     try:
-        height = _as_int(state.get("height") or 0)
         enqueue_system_tx(
             state,
             tx_type="FLAG_ESCALATION_RECEIPT",
             payload={"target_id": target_id, "dispute_id": did, "reason": reason, "by": env.signer},
-            due_height=height + 1,
+            due_height=followup_height,
             signer="SYSTEM",
             once=True,
             parent="CONTENT_ESCALATE_TO_DISPUTE",

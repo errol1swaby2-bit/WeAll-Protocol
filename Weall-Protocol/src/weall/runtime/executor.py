@@ -1333,6 +1333,27 @@ class WeAllExecutor:
             params["poh_bootstrap_mode"] = "open"
             params["poh_bootstrap_max_height"] = bootstrap_max_height
 
+        poh_params: Json = {}
+        _tier2_env_map = {
+            "tier2_n_jurors": "WEALL_POH_TIER2_N_JURORS",
+            "tier2_min_total_reviews": "WEALL_POH_TIER2_MIN_TOTAL_REVIEWS",
+            "tier2_pass_threshold": "WEALL_POH_TIER2_PASS_THRESHOLD",
+            "tier2_fail_max": "WEALL_POH_TIER2_FAIL_MAX",
+            "tier2_min_rep_milli": "WEALL_POH_TIER2_MIN_REP_MILLI",
+        }
+        for _param_key, _env_key in _tier2_env_map.items():
+            _raw = os.environ.get(_env_key)
+            if _raw is None or str(_raw).strip() == "":
+                continue
+            try:
+                poh_params[_param_key] = max(0, int(str(_raw).strip()))
+            except Exception:
+                raise ExecutorError(
+                    f"genesis_config_error: {_env_key} must be an integer when set"
+                )
+        if poh_params:
+            params["poh"] = poh_params
+
         return {
             "chain_id": self.chain_id,
             "created_ms": GENESIS_CREATED_MS,
@@ -1435,7 +1456,14 @@ class WeAllExecutor:
             )
 
         node_id = str(os.environ.get("WEALL_NODE_ID") or self.node_id or "").strip()
-        if node_id and node_id != acct:
+        # In genesis-node mode, the local node identity is the bootstrap authority
+        # and must match the bootstrap account.  In explicit genesis-bootstrap
+        # mode, non-authoritative joining nodes must be able to derive the exact
+        # same genesis state from the same bootstrap profile while keeping their
+        # own node_id, so do not require WEALL_NODE_ID to equal the bootstrap
+        # account there.  Validator authority is still gated below by
+        # WEALL_VALIDATOR_ACCOUNT and local signing material.
+        if genesis_mode_enabled and node_id and node_id != acct:
             raise ExecutorError(
                 "genesis_bootstrap_config_error: WEALL_NODE_ID does not match bootstrap account."
             )
@@ -1551,6 +1579,31 @@ class WeAllExecutor:
         if acct not in aset:
             aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
         node_ops["active_set"] = aset
+
+        if _env_bool("WEALL_GENESIS_BOOTSTRAP_JUROR_ENABLE", False):
+            jurors_role = roles.get("jurors")
+            if not isinstance(jurors_role, dict):
+                jurors_role = {"by_id": {}, "active_set": []}
+                roles["jurors"] = jurors_role
+            jur_by_id = jurors_role.get("by_id")
+            if not isinstance(jur_by_id, dict):
+                jur_by_id = {}
+                jurors_role["by_id"] = jur_by_id
+            jur_rec = jur_by_id.get(acct)
+            if not isinstance(jur_rec, dict):
+                jur_rec = {}
+            jur_rec["enrolled"] = True
+            jur_rec["active"] = True
+            jur_rec.setdefault("enrolled_at_nonce", 0)
+            jur_rec.setdefault("activated_at_nonce", 0)
+            jur_rec.setdefault("source", "genesis_bootstrap")
+            jur_by_id[acct] = jur_rec
+            jur_active = jurors_role.get("active_set")
+            if not isinstance(jur_active, list):
+                jur_active = []
+            if acct not in jur_active:
+                jur_active = sorted({*(str(x) for x in jur_active if str(x).strip()), acct})
+            jurors_role["active_set"] = jur_active
 
         validators_role = roles.get("validators")
         if not isinstance(validators_role, dict):
@@ -2585,6 +2638,18 @@ class WeAllExecutor:
                     f"system_emitter_post_failed:{type(exc).__name__}",
                 )
 
+        # System queue items are consensus scheduling scratch. Once their
+        # envelopes have been emitted into this block and applied, the leader
+        # prunes them before committing the ledger snapshot. The state root must
+        # commit to that same durable post-prune state; otherwise followers can
+        # verify the block against a transient pre-prune root and then diverge
+        # when replaying later blocks from the durable committed state.
+        try:
+            prune_emitted_system_queue(working)
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return None, None, [], invalid_ids, f"system_queue_prune_failed:{type(exc).__name__}"
+
         self._last_mempool_selection_diag["selected_count"] = int(len(applied_ids))
         self._last_mempool_selection_diag["invalid_count"] = int(len(invalid_ids))
         self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
@@ -3286,6 +3351,21 @@ class WeAllExecutor:
                         height=0,
                         block_id="",
                     )
+
+        # Match leader-side durable state before verifying commitments. Emitted
+        # system queue entries are scheduling scratch once the corresponding
+        # system envelopes are in the block. Prune them here before computing the
+        # state root, then commit_block_candidate() will prune again as a no-op.
+        try:
+            prune_emitted_system_queue(working)
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:system_queue_prune_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id="",
+                )
 
         # Verify block commitments fail-closed.
         receipts_root = compute_receipts_root(receipts=receipts)

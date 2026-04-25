@@ -22,7 +22,7 @@ source "${VENV_DIR}/bin/activate"
 python -m pip install --upgrade pip wheel >/dev/null
 python -m pip install -e . >/dev/null
 
-PYTHONPATH=src WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" WEALL_API="${API_URL}" WEALL_CHAIN_ID="${CHAIN_ID}" WEALL_ACCOUNT="${ACCOUNT}" WEALL_POST_BODY="${POST_BODY}" WEALL_MEDIA_TEXT="${MEDIA_TEXT}" python scripts/golden_path_full_stack.py
+PYTHONPATH=src WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}" WEALL_API="${API_URL}" WEALL_CHAIN_ID="${CHAIN_ID}" WEALL_ACCOUNT="${ACCOUNT}" WEALL_POST_BODY="${POST_BODY}" WEALL_MEDIA_TEXT="${MEDIA_TEXT}" python scripts/golden_path_full_stack.py
 
 deactivate
 

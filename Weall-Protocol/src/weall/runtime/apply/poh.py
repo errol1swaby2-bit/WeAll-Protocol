@@ -358,6 +358,15 @@ def _email_receipts(state: Json) -> Json:
     return receipts
 
 
+def _email_commitment_index(state: Json) -> Json:
+    poh = _poh_root(state)
+    index = poh.get("email_commitment_index")
+    if not isinstance(index, dict):
+        index = {}
+        poh["email_commitment_index"] = index
+    return index
+
+
 def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
     p = _payload(env)
     account_id = _as_str(p.get("account_id") or _signer(env)).strip()
@@ -366,16 +375,30 @@ def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
     acct = _require_account_exists(state, account_id)
+    chain_id = _as_str(state.get("chain_id") or "").strip()
     ok, code, payload = validate_operator_email_receipt(
-        state, subject_account_id=account_id, receipt=receipt if isinstance(receipt, dict) else {}
+        state,
+        subject_account_id=account_id,
+        receipt=receipt if isinstance(receipt, dict) else {},
+        chain_id=chain_id,
     )
     if not ok or not isinstance(payload, dict):
         raise ApplyError("invalid_tx", code, {"account_id": account_id})
 
     receipts = _email_receipts(state)
     receipt_key = _as_str(payload.get("request_id") or "")
+    email_commitment = _as_str(payload.get("email_commitment") or "")
     if receipt_key in receipts:
         raise ApplyError("invalid_tx", "receipt_replayed", {"receipt_key": receipt_key})
+
+    commitment_index = _email_commitment_index(state)
+    existing_account = _as_str(commitment_index.get(email_commitment) or "").strip()
+    if existing_account and existing_account != account_id:
+        raise ApplyError(
+            "invalid_tx",
+            "email_commitment_already_bound",
+            {"account_id": account_id, "existing_account": existing_account},
+        )
 
     acct["poh_tier"] = max(_as_int(acct.get("poh_tier") or 0), 1)
     token_id = _mint_poh_nft(
@@ -390,8 +413,9 @@ def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
         "receipt_key": receipt_key,
         "account_id": account_id,
         "worker_account_id": _as_str(payload.get("worker_account_id") or ""),
+        "chain_id": chain_id,
         "worker_pubkey": _as_str(payload.get("worker_pubkey") or ""),
-        "email_commitment": _as_str(payload.get("email_commitment") or ""),
+        "email_commitment": email_commitment,
         "request_id": _as_str(payload.get("request_id") or ""),
         "nonce": _as_str(payload.get("nonce") or ""),
         "issued_at_ms": _as_int(payload.get("issued_at_ms") or 0),
@@ -399,6 +423,7 @@ def apply_poh_email_receipt_submit(state: Json, env: Any) -> Json:
         "poh_nft_token_id": token_id,
         "accepted_at_height": int(state.get("height") or 0),
     }
+    commitment_index[email_commitment] = account_id
 
     return {
         "applied": "POH_EMAIL_RECEIPT_SUBMIT",
@@ -710,10 +735,17 @@ def apply_poh_tier2_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    if signer not in jm:
+    jrec = jm.get(signer)
+    if not isinstance(jrec, dict):
         raise ApplyError("forbidden", "juror_required", {"case_id": case_id})
+    if _as_str(jrec.get("status") or "").strip().lower() == "declined":
+        raise ApplyError("forbidden", "juror_already_declined", {"case_id": case_id})
 
-    return {"applied": "POH_TIER2_JUROR_ACCEPT", "case_id": case_id}
+    jrec["accepted"] = True
+    jrec["status"] = "accepted"
+    jrec["accepted_ts_ms"] = _as_int(p.get("ts_ms") or 0)
+
+    return {"applied": "POH_TIER2_JUROR_ACCEPT", "case_id": case_id, "juror": signer}
 
 
 def apply_poh_tier2_juror_decline(state: Json, env: Any) -> Json:
@@ -728,10 +760,17 @@ def apply_poh_tier2_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    if signer not in jm:
+    jrec = jm.get(signer)
+    if not isinstance(jrec, dict):
         raise ApplyError("forbidden", "juror_required", {"case_id": case_id})
+    if _as_str(jrec.get("verdict") or "").strip().lower() in ("pass", "fail"):
+        raise ApplyError("forbidden", "juror_already_reviewed", {"case_id": case_id})
 
-    return {"applied": "POH_TIER2_JUROR_DECLINE", "case_id": case_id}
+    jrec["accepted"] = False
+    jrec["status"] = "declined"
+    jrec["declined_ts_ms"] = _as_int(p.get("ts_ms") or 0)
+
+    return {"applied": "POH_TIER2_JUROR_DECLINE", "case_id": case_id, "juror": signer}
 
 
 def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
@@ -760,7 +799,13 @@ def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
     jrec = jm.get(signer)
     if not isinstance(jrec, dict):
         raise ApplyError("forbidden", "juror_required", {"case_id": case_id})
+    if _as_str(jrec.get("status") or "").strip().lower() == "declined":
+        raise ApplyError("forbidden", "juror_declined", {"case_id": case_id})
+    if _as_str(jrec.get("verdict") or "").strip().lower() in ("pass", "fail"):
+        raise ApplyError("forbidden", "review_already_submitted", {"case_id": case_id})
 
+    jrec["accepted"] = True
+    jrec["status"] = "reviewed"
     jrec["verdict"] = verdict
     jrec["ts_ms"] = _as_int(p.get("ts_ms") or 0)
 

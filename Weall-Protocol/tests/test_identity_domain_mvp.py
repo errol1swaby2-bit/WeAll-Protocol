@@ -22,6 +22,21 @@ def _apply_ok(env: dict, state: dict) -> dict:
     return st2
 
 
+def test_account_register_starts_tier0_until_email_receipt() -> None:
+    st = _empty_state()
+    st = _apply_ok(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@newbie",
+            "nonce": 1,
+            "payload": {"pubkey": "k:newbie"},
+            "sig": "x",
+        },
+        st,
+    )
+    assert st["accounts"]["@newbie"]["poh_tier"] == 0
+
+
 def test_device_register_and_revoke_roundtrip() -> None:
     st = _empty_state()
 

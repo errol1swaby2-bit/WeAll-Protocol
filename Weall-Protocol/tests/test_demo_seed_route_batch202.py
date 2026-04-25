@@ -86,6 +86,8 @@ def test_seed_demo_state_creates_group_proposal_and_juror_ready_dispute() -> Non
 
 def test_demo_seed_route_persists_seeded_state_when_enabled(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
+    monkeypatch.setenv("WEALL_MODE", "dev")
     app = FastAPI()
     ex = _Executor(_mk_state())
     app.state.executor = ex
@@ -105,6 +107,18 @@ def test_demo_seed_route_persists_seeded_state_when_enabled(monkeypatch) -> None
 
 def test_demo_seed_route_hidden_when_disabled(monkeypatch) -> None:
     monkeypatch.delenv("WEALL_ENABLE_DEMO_SEED_ROUTE", raising=False)
+    app = FastAPI()
+    app.state.executor = _Executor(_mk_state())
+    app.include_router(router, prefix="/v1")
+    client = TestClient(app, raise_server_exceptions=False)
+    res = client.post("/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"})
+    assert res.status_code == 404
+
+
+def test_demo_seed_route_hidden_when_env_enabled_without_seeded_demo_profile(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "multi_node_devnet")
+    monkeypatch.setenv("WEALL_MODE", "dev")
     app = FastAPI()
     app.state.executor = _Executor(_mk_state())
     app.include_router(router, prefix="/v1")

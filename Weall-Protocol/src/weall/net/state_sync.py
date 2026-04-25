@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
+from weall.runtime.block_hash import compute_block_hash
 from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
@@ -105,6 +106,45 @@ def _as_int(v: Any, default: int = 0) -> int:
 
 def _as_str(v: Any) -> str:
     return str(v or "").strip()
+
+
+def _block_hash_for_sync_chain(block: Json) -> str:
+    """Return the block hash used by prev_block_hash ancestry checks.
+
+    Runtime blocks use two identifiers: block_id for proposal/execution
+    identity, and block_hash as the canonical header hash threaded through
+    prev_block_hash. Delta state-sync validation must compare a block's
+    prev_block_hash with the previous block's block_hash when available, while
+    still accepting legacy/minimal blocks that only carry block_id ancestry.
+    """
+
+    if not isinstance(block, dict):
+        return ""
+    existing = block.get("block_hash")
+    if isinstance(existing, str) and existing.strip():
+        return existing.strip()
+    header = block.get("header")
+    if isinstance(header, dict) and header:
+        try:
+            return str(compute_block_hash(header=header) or "").strip()
+        except Exception:
+            return ""
+    legacy = block.get("hash")
+    if isinstance(legacy, str) and legacy.strip():
+        return legacy.strip()
+    return ""
+
+
+def _block_id_for_sync_chain(block: Json) -> str:
+    """Return the execution/proposal block identifier for parent-id links."""
+
+    if not isinstance(block, dict):
+        return ""
+    for key in ("block_id", "id"):
+        value = block.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
 
 
 def build_snapshot_anchor(snapshot: Json) -> Json:
@@ -461,7 +501,10 @@ class StateSyncService:
             if not isinstance(resp.blocks, (tuple, list)):
                 raise StateSyncVerifyError("blocks_not_sequence")
             last_h: int | None = None
-            last_bid: str | None = None
+            last_bid: str = ""
+            last_parent_id: str = ""
+            response_height = int(resp.height or 0)
+            trusted_height = _as_int(trusted_anchor.get("height"), 0) if trusted_anchor is not None else 0
             for blk in resp.blocks:
                 if not isinstance(blk, dict):
                     raise StateSyncVerifyError("block_not_object")
@@ -476,21 +519,42 @@ class StateSyncService:
                     raise StateSyncVerifyError("block_height_bad")
                 if last_h is not None and bh_i != last_h + 1:
                     raise StateSyncVerifyError("block_height_not_contiguous")
-                prev = _as_str(blk.get("prev_block_hash") or blk.get("parent_block_id") or "")
-                if last_bid is not None and prev and prev != last_bid:
-                    raise StateSyncVerifyError("block_prev_hash_mismatch")
-                last_h = bh_i
-                last_bid = _as_str(blk.get("block_id") or blk.get("block_hash") or "")
-            if last_h is not None and int(resp.height or 0) > 0 and last_h > int(resp.height):
-                raise StateSyncVerifyError("block_height_exceeds_response_height")
-            if trusted_anchor is not None:
-                trusted_height = _as_int(trusted_anchor.get("height"), 0)
-                if trusted_height > 0 and last_h is not None and last_h > trusted_height:
+
+                # Bound checks intentionally run before ancestry checks so a
+                # response that extends past the announced/trusted/finalized
+                # height reports the safety-bound violation, not a secondary
+                # parent-link mismatch from blocks that should never be accepted.
+                if response_height > 0 and bh_i > response_height:
+                    raise StateSyncVerifyError("block_height_exceeds_response_height")
+                if trusted_height > 0 and bh_i > trusted_height:
                     raise StateSyncVerifyError("block_height_exceeds_trusted_anchor")
                 if (
                     self.enforce_finalized_anchor
                     and trusted_finalized_height > 0
-                    and last_h is not None
-                    and last_h > trusted_finalized_height
+                    and bh_i > trusted_finalized_height
                 ):
                     raise StateSyncVerifyError("block_height_exceeds_finalized_anchor")
+
+                if last_h is not None:
+                    prev_hash = _as_str(blk.get("prev_block_hash") or "")
+                    parent_id = _as_str(
+                        blk.get("parent_block_id") or blk.get("prev_block_id") or ""
+                    )
+
+                    if prev_hash:
+                        if last_bid:
+                            if prev_hash != last_bid:
+                                raise StateSyncVerifyError("block_prev_hash_mismatch")
+                        elif last_parent_id and prev_hash != last_parent_id:
+                            # Legacy/minimal fixtures sometimes use prev_block_hash
+                            # to thread block_id ancestry. Accept that only when
+                            # no canonical block hash is available for the prior
+                            # block.
+                            raise StateSyncVerifyError("block_prev_hash_mismatch")
+
+                    if parent_id and last_parent_id and parent_id != last_parent_id:
+                        raise StateSyncVerifyError("block_prev_hash_mismatch")
+
+                last_h = bh_i
+                last_bid = _block_hash_for_sync_chain(blk)
+                last_parent_id = _block_id_for_sync_chain(blk)

@@ -1,0 +1,7 @@
+{
+  "account": "@devnet-genesis",
+  "last_poh_tier2_case_id": "poh2:@devnet_1777153451_11076:4",
+  "last_poh_tier2_review_tx_id": "tx:f717c4a454783b83647840808913670056a2dfc4525b388e4aac05612832975f",
+  "private_key_hex": "2f5497124786a0032f03bead0396f488ab71015b8f4edb44d8577cbe0bd9cf5f",
+  "public_key_hex": "afee8d65594b01338738af8b55b35c04019c59a9f7c4f1c7d46c5e0318673227"
+}

@@ -113,8 +113,14 @@ def _canonical_actor_key(active_identities: list[str], signer: str, state: Json)
 
 
 def _active_validator_ids(state: Json) -> list[str]:
+    roles_present = isinstance(state.get("roles"), dict)
+    consensus_present = isinstance(state.get("consensus"), dict)
+
     roles = _d(state.get("roles"))
     validators = _d(roles.get("validators"))
+    roles_validator_config_present = roles_present and "validators" in roles
+    validators_active_declared = isinstance(validators.get("active_set"), list)
+
     active_set = _normalize_identity_list(state, validators.get("active_set"))
     if active_set:
         return active_set
@@ -136,6 +142,9 @@ def _active_validator_ids(state: Json) -> list[str]:
 
     consensus = _d(state.get("consensus"))
     validator_set = _d(consensus.get("validator_set"))
+    consensus_validator_config_present = consensus_present and ("validator_set" in consensus or "validators" in consensus)
+    consensus_active_declared = isinstance(validator_set.get("active_set"), list)
+
     active_set = _normalize_identity_list(state, validator_set.get("active_set"))
     if active_set:
         return active_set
@@ -154,6 +163,24 @@ def _active_validator_ids(state: Json) -> list[str]:
         out = sorted(set(out))
         if out:
             return out
+    explicit_empty_active_set = (roles_validator_config_present and validators_active_declared) or (consensus_validator_config_present and consensus_active_declared)
+    if not explicit_empty_active_set and not roles_validator_config_present and not consensus_validator_config_present:
+        accounts = _d(state.get("accounts"))
+        inferred: list[str] = []
+        for acct, rec in accounts.items():
+            if not isinstance(rec, dict):
+                continue
+            if _i(rec.get("poh_tier"), 0) < 3:
+                continue
+            if bool(rec.get("banned")) or bool(rec.get("locked")):
+                continue
+            acct_s = _s(acct).strip()
+            if acct_s:
+                inferred.append(_resolve_account_identity(state, acct_s))
+        inferred = sorted(set(inferred))
+        if inferred:
+            return inferred
+
     return []
 
 
@@ -228,6 +255,8 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
     eligible_validators = _proposal_eligible_validator_ids(state, pr)
     active_votes, eligible_count, required_votes = _active_validator_vote_snapshot(pr.get(vote_key), eligible_validators)
     total_votes = len(active_votes)
+    if not bool(pr.get("auto_progress_enabled")):
+        return
     if required_votes <= 0 or total_votes < required_votes:
         return
 
@@ -465,9 +494,8 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     # Spec lifecycle: Draft → Poll → Revision → Validation → Vote → Execution.
     # Backward compatibility: allow rules.start_stage="voting" to preserve older flows.
-    start_stage = (
-        _s(rules.get("start_stage") if isinstance(rules, dict) else "").strip().lower() or "draft"
-    )
+    raw_start_stage = _s(rules.get("start_stage") if isinstance(rules, dict) else "").strip().lower()
+    start_stage = raw_start_stage or "draft"
     if start_stage not in {"draft", "poll", "revision", "validation", "voting", "vote"}:
         start_stage = "draft"
 
@@ -489,6 +517,11 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         "eligible_validator_ids": list(eligible_validators),
         "eligible_validator_count": int(len(eligible_validators)),
         "required_votes": int(quorum_threshold(len(eligible_validators))) if eligible_validators else 0,
+        # Auto-progress is intentionally opt-in at proposal creation time.
+        # Legacy/manual tests and operator flows may stage a draft into voting and
+        # then close/tally explicitly; those paths must not be silently finalized
+        # by the apply function after the first threshold-sized vote set.
+        "auto_progress_enabled": bool(raw_start_stage in {"poll", "voting", "vote"}),
         "tallies": [],
         "poll_tallies": [],
         "executions": [],

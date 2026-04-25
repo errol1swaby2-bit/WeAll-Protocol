@@ -11,7 +11,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "ACCOUNT_BAN"
     },
@@ -221,7 +221,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "ACCOUNT_REINSTATE"
     },
@@ -291,7 +291,7 @@
       "handler": "economics",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "BALANCE_TRANSFER"
     },
@@ -305,7 +305,7 @@
       "handler": "consensus",
       "origin": "VALIDATOR",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "BLOCK_ATTEST"
     },
@@ -319,7 +319,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "BLOCK_FINALIZE"
     },
@@ -333,7 +333,7 @@
       "handler": "consensus",
       "origin": "VALIDATOR",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "BLOCK_PROPOSE"
     },
@@ -347,7 +347,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "BLOCK_REWARD_DISTRIBUTE"
     },
@@ -361,7 +361,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "BLOCK_REWARD_MINT"
     },
@@ -375,7 +375,7 @@
       "handler": "social",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "BLOCK_SET"
     },
@@ -389,7 +389,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "CASE_BIND_TO_DISPUTE"
     },
@@ -403,7 +403,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "CASE_OUTCOME_RECEIPT"
     },
@@ -417,7 +417,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "CASE_TYPE_REGISTER"
     },
@@ -431,7 +431,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "COLD_SYNC_COMPLETE"
     },
@@ -445,7 +445,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "COLD_SYNC_REQUEST"
     },
@@ -487,7 +487,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "CONTENT_ESCALATE_TO_DISPUTE"
     },
@@ -515,7 +515,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "CONTENT_LABEL_SET"
     },
@@ -557,7 +557,7 @@
       "handler": "content",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "CONTENT_MEDIA_REPLACE"
     },
@@ -571,7 +571,7 @@
       "handler": "content",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "CONTENT_MEDIA_UNBIND"
     },
@@ -641,7 +641,7 @@
       "handler": "social",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "CONTENT_SHARE_CREATE"
     },
@@ -655,7 +655,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "CONTENT_THREAD_LOCK_SET"
     },
@@ -669,7 +669,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "CONTENT_VISIBILITY_SET"
     },
@@ -683,7 +683,7 @@
       "handler": "rewards",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "CREATOR_PERFORMANCE_REPORT"
     },
@@ -697,7 +697,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "CREATOR_REWARD_ALLOCATE"
     },
@@ -711,7 +711,7 @@
       "handler": "messaging",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "DIRECT_MESSAGE_REDACT"
     },
@@ -725,7 +725,7 @@
       "handler": "messaging",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "DIRECT_MESSAGE_SEND"
     },
@@ -739,7 +739,7 @@
       "handler": "dispute",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "DISPUTE_APPEAL"
     },
@@ -781,7 +781,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "DISPUTE_FINAL_RECEIPT"
     },
@@ -823,7 +823,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "DISPUTE_JUROR_ATTENDANCE"
     },
@@ -865,7 +865,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "DISPUTE_RESOLVE"
     },
@@ -879,7 +879,7 @@
       "handler": "dispute",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "DISPUTE_STAGE_SET"
     },
@@ -907,7 +907,7 @@
       "handler": "economics",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ECONOMICS_ACTIVATION"
     },
@@ -921,7 +921,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "EPOCH_CLOSE"
     },
@@ -935,7 +935,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "EPOCH_OPEN"
     },
@@ -949,7 +949,7 @@
       "handler": "economics",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "FEE_PAY"
     },
@@ -963,7 +963,7 @@
       "handler": "economics",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "FEE_POLICY_SET"
     },
@@ -977,7 +977,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "FLAG_ESCALATION_RECEIPT"
     },
@@ -991,7 +991,7 @@
       "handler": "social",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "FOLLOW_SET"
     },
@@ -1005,23 +1005,9 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "FORFEITURE_APPLY"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "governance"
-      ],
-      "context": "mempool",
-      "domain": "Governance",
-      "handler": "governance",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier3+",
-      "tx_type": "GOV_DELEGATION_SET"
     },
     {
       "claim_count": 1,
@@ -1033,7 +1019,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_EXECUTE"
     },
@@ -1047,7 +1033,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "GOV_EXECUTION_RECEIPT"
     },
@@ -1075,7 +1061,7 @@
       "handler": "governance",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "GOV_PROPOSAL_EDIT"
     },
@@ -1089,7 +1075,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_PROPOSAL_FINALIZE"
     },
@@ -1103,7 +1089,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "GOV_PROPOSAL_RECEIPT"
     },
@@ -1117,7 +1103,7 @@
       "handler": "governance",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "GOV_PROPOSAL_WITHDRAW"
     },
@@ -1131,7 +1117,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_QUORUM_SET"
     },
@@ -1145,7 +1131,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_RULES_SET"
     },
@@ -1159,7 +1145,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_STAGE_SET"
     },
@@ -1173,7 +1159,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_TALLY_PUBLISH"
     },
@@ -1201,7 +1187,7 @@
       "handler": "governance",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "GOV_VOTE_REVOKE"
     },
@@ -1215,7 +1201,7 @@
       "handler": "governance",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GOV_VOTING_CLOSE"
     },
@@ -1229,7 +1215,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "GROUP_CREATE"
     },
@@ -1243,7 +1229,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "GROUP_EMISSARY_BALLOT_CAST"
     },
@@ -1257,7 +1243,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_EMISSARY_ELECTION_CREATE"
     },
@@ -1271,7 +1257,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE"
     },
@@ -1285,7 +1271,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GroupModerator",
       "tx_type": "GROUP_MEMBERSHIP_DECIDE"
     },
@@ -1299,7 +1285,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GroupModerator",
       "tx_type": "GROUP_MEMBERSHIP_REMOVE"
     },
@@ -1313,7 +1299,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "GROUP_MEMBERSHIP_REQUEST"
     },
@@ -1327,7 +1313,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_MODERATORS_SET"
     },
@@ -1341,7 +1327,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_ROLE_GRANT"
     },
@@ -1355,7 +1341,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_ROLE_REVOKE"
     },
@@ -1369,7 +1355,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_SIGNERS_SET"
     },
@@ -1383,7 +1369,7 @@
       "handler": "groups",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET"
     },
@@ -1397,7 +1383,7 @@
       "handler": "groups",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GROUP_TREASURY_CREATE"
     },
@@ -1411,7 +1397,7 @@
       "handler": "groups",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GROUP_TREASURY_POLICY_SET"
     },
@@ -1425,7 +1411,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Emissary",
       "tx_type": "GROUP_TREASURY_SPEND_CANCEL"
     },
@@ -1439,7 +1425,7 @@
       "handler": "groups",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GROUP_TREASURY_SPEND_EXECUTE"
     },
@@ -1453,7 +1439,7 @@
       "handler": "groups",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "GROUP_TREASURY_SPEND_EXPIRE"
     },
@@ -1467,7 +1453,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Emissary",
       "tx_type": "GROUP_TREASURY_SPEND_PROPOSE"
     },
@@ -1481,7 +1467,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GroupSigner",
       "tx_type": "GROUP_TREASURY_SPEND_SIGN"
     },
@@ -1495,7 +1481,7 @@
       "handler": "groups",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "GROUP_UPDATE"
     },
@@ -1509,7 +1495,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "INDEX_ANCHOR_SET"
     },
@@ -1523,7 +1509,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "INDEX_TOPIC_ANCHOR_SET"
     },
@@ -1537,7 +1523,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "INDEX_TOPIC_REGISTER"
     },
@@ -1551,7 +1537,7 @@
       "handler": "storage",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "IPFS_PIN_CONFIRM"
     },
@@ -1565,7 +1551,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "IPFS_PIN_REQUEST"
     },
@@ -1579,7 +1565,7 @@
       "handler": "economics",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "MEMPOOL_REJECT_RECEIPT"
     },
@@ -1593,7 +1579,7 @@
       "handler": "content",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "MOD_ACTION_RECEIPT"
     },
@@ -1607,7 +1593,7 @@
       "handler": "social",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier1+",
       "tx_type": "MUTE_SET"
     },
@@ -1621,7 +1607,7 @@
       "handler": "rewards",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT"
     },
@@ -1635,7 +1621,7 @@
       "handler": "notifications",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "NOTIFICATION_EMIT_RECEIPT"
     },
@@ -1649,7 +1635,7 @@
       "handler": "notifications",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "NOTIFICATION_SUBSCRIBE"
     },
@@ -1663,7 +1649,7 @@
       "handler": "notifications",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "NOTIFICATION_UNSUBSCRIBE"
     },
@@ -1677,7 +1663,7 @@
       "handler": "networking",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "PEER_ADVERTISE"
     },
@@ -1691,7 +1677,7 @@
       "handler": "networking",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "PEER_BAN_SET"
     },
@@ -1705,7 +1691,7 @@
       "handler": "networking",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE"
     },
@@ -1719,7 +1705,7 @@
       "handler": "networking",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE"
     },
@@ -1733,7 +1719,7 @@
       "handler": "networking",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "PEER_REPUTATION_SIGNAL"
     },
@@ -1747,7 +1733,7 @@
       "handler": "networking",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "PEER_REQUEST_CONNECT"
     },
@@ -1761,7 +1747,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "PERFORMANCE_EVALUATE"
     },
@@ -1775,7 +1761,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "PERFORMANCE_SCORE_APPLY"
     },
@@ -1834,6 +1820,20 @@
       "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "POH_CHALLENGE_RESOLVE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier0+",
+      "tx_type": "POH_EMAIL_RECEIPT_SUBMIT"
     },
     {
       "claim_count": 1,
@@ -2097,7 +2097,7 @@
       "handler": "social",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier0+",
       "tx_type": "PROFILE_UPDATE"
     },
@@ -2111,7 +2111,7 @@
       "handler": "protocol",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "PROTOCOL_UPGRADE_ACTIVATE"
     },
@@ -2125,7 +2125,7 @@
       "handler": "protocol",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "PROTOCOL_UPGRADE_DECLARE"
     },
@@ -2139,7 +2139,7 @@
       "handler": "economics",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "RATE_LIMIT_POLICY_SET"
     },
@@ -2153,7 +2153,7 @@
       "handler": "economics",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "RATE_LIMIT_STRIKE_APPLY"
     },
@@ -2167,7 +2167,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "REPUTATION_DELTA_APPLY"
     },
@@ -2181,7 +2181,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "REPUTATION_THRESHOLD_CROSS"
     },
@@ -2195,7 +2195,7 @@
       "handler": "rewards",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "REWARD_POOL_OPT_IN_SET"
     },
@@ -2209,7 +2209,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "ROLE_ELIGIBILITY_REVOKE"
     },
@@ -2223,7 +2223,7 @@
       "handler": "reputation",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "ROLE_ELIGIBILITY_SET"
     },
@@ -2237,7 +2237,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "ROLE_EMISSARY_NOMINATE"
     },
@@ -2251,7 +2251,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_EMISSARY_REMOVE"
     },
@@ -2265,7 +2265,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_EMISSARY_SEAT"
     },
@@ -2279,7 +2279,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "ROLE_EMISSARY_VOTE"
     },
@@ -2293,7 +2293,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_GOV_EXECUTOR_SET"
     },
@@ -2307,7 +2307,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_JUROR_ACTIVATE"
     },
@@ -2321,7 +2321,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "ROLE_JUROR_ENROLL"
     },
@@ -2335,7 +2335,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_JUROR_REINSTATE"
     },
@@ -2349,7 +2349,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_JUROR_SUSPEND"
     },
@@ -2363,7 +2363,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE"
     },
@@ -2377,7 +2377,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "ROLE_NODE_OPERATOR_ENROLL"
     },
@@ -2391,7 +2391,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_NODE_OPERATOR_SUSPEND"
     },
@@ -2405,7 +2405,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_VALIDATOR_ACTIVATE"
     },
@@ -2419,7 +2419,7 @@
       "handler": "roles",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "ROLE_VALIDATOR_SUSPEND"
     },
@@ -2433,7 +2433,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "SLASH_EXECUTE"
     },
@@ -2447,7 +2447,7 @@
       "handler": "consensus",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "SLASH_PROPOSE"
     },
@@ -2461,7 +2461,7 @@
       "handler": "consensus",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "SLASH_VOTE"
     },
@@ -2475,7 +2475,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STATE_SNAPSHOT_ACCEPT"
     },
@@ -2489,7 +2489,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STATE_SNAPSHOT_DECLARE"
     },
@@ -2503,7 +2503,7 @@
       "handler": "storage",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STORAGE_CHALLENGE_ISSUE"
     },
@@ -2517,7 +2517,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "STORAGE_CHALLENGE_RESPOND"
     },
@@ -2531,7 +2531,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "STORAGE_LEASE_CREATE"
     },
@@ -2545,7 +2545,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier2+",
       "tx_type": "STORAGE_LEASE_RENEW"
     },
@@ -2559,7 +2559,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "STORAGE_LEASE_REVOKE"
     },
@@ -2573,7 +2573,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "STORAGE_OFFER_CREATE"
     },
@@ -2587,7 +2587,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "STORAGE_OFFER_WITHDRAW"
     },
@@ -2601,7 +2601,7 @@
       "handler": "storage",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STORAGE_PAYOUT_EXECUTE"
     },
@@ -2615,7 +2615,7 @@
       "handler": "storage",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "NodeOperator",
       "tx_type": "STORAGE_PROOF_SUBMIT"
     },
@@ -2629,7 +2629,7 @@
       "handler": "storage",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STORAGE_REPORT_ANCHOR"
     },
@@ -2643,7 +2643,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_AUDIT_ANCHOR_SET"
     },
@@ -2657,7 +2657,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "TREASURY_CREATE"
     },
@@ -2671,7 +2671,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_POLICY_SET"
     },
@@ -2685,7 +2685,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_PROGRAM_CLOSE"
     },
@@ -2699,7 +2699,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_PROGRAM_CREATE"
     },
@@ -2713,7 +2713,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_PROGRAM_UPDATE"
     },
@@ -2727,7 +2727,7 @@
       "handler": "rewards",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "TREASURY_REWARD_ALLOCATE"
     },
@@ -2741,7 +2741,7 @@
       "handler": "roles",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "TREASURY_SIGNERS_SET"
     },
@@ -2755,7 +2755,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_SIGNER_ADD"
     },
@@ -2769,7 +2769,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_SIGNER_REMOVE"
     },
@@ -2783,7 +2783,7 @@
       "handler": "treasury",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Emissary",
       "tx_type": "TREASURY_SPEND_CANCEL"
     },
@@ -2797,7 +2797,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_SPEND_EXECUTE"
     },
@@ -2811,7 +2811,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_SPEND_EXPIRE"
     },
@@ -2825,7 +2825,7 @@
       "handler": "treasury",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Emissary",
       "tx_type": "TREASURY_SPEND_PROPOSE"
     },
@@ -2839,7 +2839,7 @@
       "handler": "treasury",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Signer",
       "tx_type": "TREASURY_SPEND_SIGN"
     },
@@ -2853,7 +2853,7 @@
       "handler": "treasury",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "TREASURY_WALLET_CREATE"
     },
@@ -2867,7 +2867,7 @@
       "handler": "indexing",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "",
       "tx_type": "TX_RECEIPT_EMIT"
     },
@@ -2881,7 +2881,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "VALIDATOR_CANDIDATE_APPROVE"
     },
@@ -2895,7 +2895,7 @@
       "handler": "consensus",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "VALIDATOR_CANDIDATE_REGISTER"
     },
@@ -2909,7 +2909,7 @@
       "handler": "consensus",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "VALIDATOR_DEREGISTER"
     },
@@ -2923,7 +2923,7 @@
       "handler": "consensus",
       "origin": "VALIDATOR",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "VALIDATOR_HEARTBEAT"
     },
@@ -2937,7 +2937,7 @@
       "handler": "consensus",
       "origin": "VALIDATOR",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "VALIDATOR_PERFORMANCE_REPORT"
     },
@@ -2951,7 +2951,7 @@
       "handler": "consensus",
       "origin": "USER",
       "receipt_only": false,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "Tier3+",
       "tx_type": "VALIDATOR_REGISTER"
     },
@@ -2965,7 +2965,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "VALIDATOR_REMOVE"
     },
@@ -2979,7 +2979,7 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "VALIDATOR_SET_UPDATE"
     },
@@ -2993,12 +2993,12 @@
       "handler": "consensus",
       "origin": "SYSTEM",
       "receipt_only": true,
-      "schema_covered": false,
+      "schema_covered": true,
       "subject_gate": "GovExecutor",
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 59,
+  "schema_covered_count": 214,
   "single_claim_count": 214,
   "tx_count": 214,
   "unclaimed_count": 0

@@ -56,11 +56,13 @@ def _make_relay_token(
     relay_privkey,
     subject_account_id: str,
     operator_account_id: str,
+    chain_id: str = "test",
 ) -> dict:
     now = int(time.time() * 1000)
     payload = {
         "version": 1,
         "type": "email_challenge_completed",
+        "chain_id": chain_id,
         "challenge_id": "challenge:demo",
         "account_id": subject_account_id,
         "operator_account_id": operator_account_id,
@@ -88,6 +90,7 @@ def _make_receipt(
     receipt = {
         "version": 1,
         "kind": "poh_email_tier1",
+        "chain_id": rp["chain_id"],
         "worker_account_id": worker_account_id,
         "worker_pubkey": worker_pubkey,
         "subject_account_id": subject_account_id,
@@ -168,3 +171,35 @@ def test_bad_relay_signature_is_rejected(monkeypatch: pytest.MonkeyPatch) -> Non
             state, {"payload": {"account_id": "@subject", "receipt": receipt}, "signer": "@subject"}
         )
     assert ei.value.reason == "bad_relay_signature"
+
+
+def test_email_receipt_rejects_wrong_chain_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    state = _base_state()
+    rpub, rsk = deterministic_ed25519_keypair(label="@relay")
+    wpub, wsk = deterministic_ed25519_keypair(label="@worker")
+    spub, _ = deterministic_ed25519_keypair(label="@subject")
+    monkeypatch.setenv("WEALL_EMAIL_RELAY_ACCOUNT_ID", "@relay")
+    monkeypatch.setenv("WEALL_EMAIL_RELAY_PUBKEY", rpub)
+    _register_account(state, "@worker", wpub, tier=3, reputation=1.0)
+    _register_account(state, "@subject", spub, tier=0, reputation=0.0)
+    _activate_operator(state, "@worker")
+    relay_token = _make_relay_token(
+        relay_account_id="@relay",
+        relay_pubkey=rpub,
+        relay_privkey=rsk,
+        subject_account_id="@subject",
+        operator_account_id="@worker",
+        chain_id="wrong-chain",
+    )
+    receipt = _make_receipt(
+        worker_account_id="@worker",
+        worker_pubkey=wpub,
+        worker_privkey=wsk,
+        subject_account_id="@subject",
+        relay_token=relay_token,
+    )
+    with pytest.raises(ApplyError) as ei:
+        apply_poh_email_receipt_submit(
+            state, {"payload": {"account_id": "@subject", "receipt": receipt}, "signer": "@subject"}
+        )
+    assert ei.value.reason == "chain_id_mismatch"

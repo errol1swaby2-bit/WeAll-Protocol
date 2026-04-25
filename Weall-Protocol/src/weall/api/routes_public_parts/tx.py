@@ -17,6 +17,7 @@ from weall.api.routes_public_parts.common import (
     _snapshot,
 )
 from weall.ledger.state import LedgerView
+from weall.crypto.sig import strict_tx_sig_domain_enabled
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_schema import validate_tx_envelope
@@ -36,7 +37,7 @@ _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
     "POH_TIER3_JUROR_DECLINE": ["/v1/poh/tier3/tx/juror-decline", "/v1/tx/submit"],
     "POH_TIER3_ATTENDANCE_MARK": ["/v1/poh/tier3/tx/attendance", "/v1/tx/submit"],
     "POH_TIER3_VERDICT_SUBMIT": ["/v1/poh/tier3/tx/verdict", "/v1/tx/submit"],
-    "POH_TIER2_RECEIPT": ["/v1/poh/email/tx/receipt-submit", "/v1/tx/submit"],
+    "POH_EMAIL_RECEIPT_SUBMIT": ["/v1/poh/email/tx/receipt-submit", "/v1/tx/submit"],
 }
 
 
@@ -78,6 +79,30 @@ def _safe_executor(request: Request):
         return _executor(request)
     except Exception:
         return None
+
+
+def _net_node(request: Request):
+    return getattr(request.app.state, "net_node", None)
+
+
+def _validate_public_tx_chain_id(*, body: Json, expected_chain_id: str) -> None:
+    expected = str(expected_chain_id or "").strip()
+    actual = body.get("chain_id")
+    actual2 = str(actual).strip() if isinstance(actual, str) else ""
+
+    if strict_tx_sig_domain_enabled() and not actual2:
+        raise ApiError.forbidden(
+            "missing_chain_id",
+            "chain_id is required for public tx submission",
+            {"expected_chain_id": expected},
+        )
+
+    if actual2 and expected and actual2 != expected:
+        raise ApiError.forbidden(
+            "chain_id_mismatch",
+            "tx chain_id does not match this node",
+            {"expected_chain_id": expected, "chain_id": actual2},
+        )
 
 
 def _tx_index_lookup(request: Request, tx_id: str) -> Json | None:
@@ -255,6 +280,9 @@ async def tx_submit(request: Request) -> Json:
 
     tx_type = str(body.get("tx_type") or "").strip()
     signer = str(body.get("signer") or "").strip()
+    _validate_public_tx_chain_id(
+        body=body, expected_chain_id=str(getattr(ex, "chain_id", "") or "")
+    )
 
     # Hard fail-closed: receipts are block/system-only, and must not come from public HTTP.
     if signer == "SYSTEM" or bool(body.get("system", False)):
@@ -310,6 +338,16 @@ async def tx_submit(request: Request) -> Json:
 
     out_tx_id = str(meta.get("tx_id") or tx_id).strip() or tx_id
     mp_size = int(getattr(mp, "size", lambda: 0)() if mp is not None else 0)
+
+    # Public /tx/submit must not become a local-only trap during multi-node devnet.
+    # Mirror /mempool/submit gossip behavior after successful local admission.
+    try:
+        nn = _net_node(request)
+        if nn is not None and out_tx_id:
+            msg = nn.build_tx_envelope_msg(body, client_tx_id=out_tx_id)
+            nn.gossip_announce_tx(msg)
+    except Exception:
+        pass
 
     return {
         "ok": True,

@@ -169,10 +169,12 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
-    # NOTE: PoH tier bootstraps to 1 on register (email-verified identity layer is enforced elsewhere).
+    # New accounts start as Tier 0. Tier 1 must be earned through the bounded
+    # email-oracle receipt flow (POH_EMAIL_RECEIPT_SUBMIT) so backend gates
+    # cannot be bypassed by registering a fresh account.
     accounts[signer] = {
         "nonce": _as_int(getattr(env, "nonce", 0), 0),
-        "poh_tier": 1,
+        "poh_tier": 0,
         "banned": False,
         "locked": False,
         "reputation": "0",

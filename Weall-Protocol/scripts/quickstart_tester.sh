@@ -8,6 +8,7 @@ API_URL="${WEALL_API_URL:-http://127.0.0.1:8000}"
 FRONTEND_URL="${WEALL_FRONTEND_URL:-http://127.0.0.1:5173}"
 FRONTEND_ENV_FILE="${WEALL_FRONTEND_ENV_FILE:-../web/.env.local}"
 export WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}"
+export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}"
 
 log() {
   printf '\n[%s] %s\n' "quickstart" "$*"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
@@ -68,6 +69,39 @@ def _normalize_keys(acct: dict[str, Any]) -> list[dict]:
         return out
 
     return out
+
+
+class AccountRegisterTxRequest(BaseModel):
+    account_id: str = Field(..., min_length=1, max_length=128)
+    pubkey: str = Field(..., min_length=1, max_length=256)
+    parent: str | None = Field(default=None, max_length=256)
+
+
+@router.post("/accounts/tx/register")
+def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
+    """Return a canonical ACCOUNT_REGISTER tx skeleton.
+
+    This route does not create an account and does not bypass signature, nonce,
+    mempool, consensus, or execution. It exists so controlled devnet scripts and
+    external clients can construct the same normal onboarding transaction without
+    depending on seeded-demo helpers.
+    """
+    account_id = str(req.account_id or "").strip()
+    pubkey = str(req.pubkey or "").strip()
+    parent = str(req.parent).strip() if req.parent is not None else None
+    if not account_id:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+    if not pubkey:
+        raise ApiError.bad_request("bad_request", "missing pubkey", {})
+    return {
+        "ok": True,
+        "tx": {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer_hint": account_id,
+            "parent": parent,
+            "payload": {"pubkey": pubkey},
+        },
+    }
 
 
 @router.get("/accounts/{account}")

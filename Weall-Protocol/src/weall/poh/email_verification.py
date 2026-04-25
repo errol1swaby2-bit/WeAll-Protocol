@@ -217,13 +217,23 @@ class EmailVerificationService:
         }
         return _post_json(f"{self._oracle_base}{path}", payload, timeout_s=timeout_s, headers=headers)
 
-    def begin(self, *, account: str, email: str, turnstile_token: str | None = None) -> Json:
+    def begin(
+        self,
+        *,
+        account: str,
+        email: str,
+        turnstile_token: str | None = None,
+        chain_id: str | None = None,
+    ) -> Json:
         normalized_email = str(email or "").strip().lower()
         payload: Json = {
             "account_id": account,
             "operator_account_id": self._operator_account,
             "email": normalized_email,
         }
+        chain_id_norm = str(chain_id or "").strip()
+        if chain_id_norm:
+            payload["chain_id"] = chain_id_norm
         if turnstile_token:
             payload["turnstile_token"] = turnstile_token
 
@@ -254,12 +264,20 @@ class EmailVerificationService:
         code: str,
         request_id: str | None = None,
         turnstile_token: str | None = None,
+        chain_id: str | None = None,
     ) -> Json:
         challenge_id = (request_id or "").strip()
         if not challenge_id:
             raise OracleRequestError("missing_request_id")
 
         payload: Json = {"challenge_id": challenge_id, "code": code}
+        chain_id_norm = str(chain_id or "").strip()
+        if chain_id_norm:
+            payload["chain_id"] = chain_id_norm
+        if account:
+            payload["account_id"] = str(account).strip()
+        if self._operator_account:
+            payload["operator_account_id"] = self._operator_account
         if turnstile_token:
             payload["turnstile_token"] = turnstile_token
 
@@ -276,8 +294,20 @@ class EmailVerificationService:
             "relay_token": {"payload": relay_token.payload, "signature": relay_token.signature} if relay_token else data.get("relay_token"),
         }
 
-    def begin_legacy(self, *, account_id: str, email: str, turnstile_token: str | None = None) -> Json:
-        return self.begin(account=account_id, email=email, turnstile_token=turnstile_token)
+    def begin_legacy(
+        self,
+        *,
+        account_id: str,
+        email: str,
+        turnstile_token: str | None = None,
+        chain_id: str | None = None,
+    ) -> Json:
+        return self.begin(
+            account=account_id,
+            email=email,
+            turnstile_token=turnstile_token,
+            chain_id=chain_id,
+        )
 
     def verify_legacy(
         self,
@@ -287,6 +317,7 @@ class EmailVerificationService:
         code: str,
         challenge_id: str,
         turnstile_token: str | None = None,
+        chain_id: str | None = None,
     ) -> Json:
         return self.complete(
             account=account_id,
@@ -294,6 +325,7 @@ class EmailVerificationService:
             code=code,
             request_id=challenge_id,
             turnstile_token=turnstile_token,
+            chain_id=chain_id,
         )
 
 

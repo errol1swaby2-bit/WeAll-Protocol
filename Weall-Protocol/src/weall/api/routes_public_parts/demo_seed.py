@@ -33,12 +33,44 @@ class _LedgerStoreWriter:
         self.last_written = state
 
 
+def _env_true(name: str, default: str = "0") -> bool:
+    return str(os.getenv(name, default)).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _runtime_profile() -> str:
+    return (
+        os.getenv("WEALL_RUNTIME_PROFILE")
+        or os.getenv("WEALL_PROTOCOL_PROFILE")
+        or os.getenv("WEALL_PROFILE")
+        or ""
+    ).strip().lower()
+
+
+def _runtime_mode() -> str:
+    return str(os.getenv("WEALL_MODE", "") or "").strip().lower()
+
+
+def _seeded_demo_profile_enabled() -> bool:
+    profile = _runtime_profile()
+    mode = _runtime_mode()
+    if profile != "seeded_demo":
+        return False
+    if mode in {"prod", "production", "production_like", "devnet", "multi_node_devnet"}:
+        return False
+    return True
+
+
 def _demo_seed_enabled() -> bool:
-    return str(os.getenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "0")).strip().lower() in {"1", "true", "yes", "on"}
+    # This route directly mutates canonical state and forces demo authority.
+    # It is intentionally available only in the explicit seeded_demo profile,
+    # never in multi-node devnet or production-like modes.
+    return _env_true("WEALL_ENABLE_DEMO_SEED_ROUTE") and _seeded_demo_profile_enabled()
 
 
 def _dev_bootstrap_secret_enabled() -> bool:
-    return str(os.getenv("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE", os.getenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "0"))).strip().lower() in {"1", "true", "yes", "on"}
+    # Do not inherit the powerful bootstrap-secret route from demo-seed by
+    # default. It must be independently enabled and fenced to seeded_demo.
+    return _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE") and _seeded_demo_profile_enabled()
 
 
 def _dev_bootstrap_secret_path() -> Path:

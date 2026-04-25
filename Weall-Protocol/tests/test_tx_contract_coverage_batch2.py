@@ -67,7 +67,6 @@ def test_registry_exposes_only_known_legacy_extras() -> None:
         "ACCOUNT_RECOVERY_PROPOSE",
         "ACCOUNT_RECOVERY_VOTE",
         "ACCOUNT_UNBAN",
-        "POH_EMAIL_RECEIPT_SUBMIT",
         "POH_TIER3_JUROR_REPLACE",
         "POST_CREATE",
         "POST_DELETE",
