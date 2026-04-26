@@ -44,19 +44,22 @@ cd Weall-Protocol
 ./scripts/demo_bootstrap_tester.sh
 ```
 
-## Non-seeded controlled-devnet onboarding proof
+## Non-seeded controlled-devnet readiness proof
 
-Use this path when the reviewer wants to see protocol-native onboarding without seeded demo state:
+Use this path when the reviewer wants to see protocol-native onboarding and cross-node convergence without seeded demo state:
 
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
 
-PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
-WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+pytest -q
+WEALL_EMAIL="you@example.com" \
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This proof covers fresh account registration, Tier-1 email PoH, joining-node trusted-anchor sync, cross-node account and tx-status parity, a Tier-1-gated node-2 transaction, node-1 catch-up from node 2, Tier-2 async PoH review, and final cross-node convergence.
+This proof covers direct API permission gating, fresh account registration, Tier-1 email PoH, joining-node trusted-anchor sync, cross-node account and tx-status parity, a Tier-1-gated node-2 transaction, node-1 catch-up from node 2, Tier-2 async PoH review, Tier-3 protocol-native live PoH review, final cross-node convergence, and restart/catch-up.
 
 ## Verification
 
@@ -72,7 +75,7 @@ Check all of the following:
 ## Notes
 
 - the deterministic demo bootstrap is the fastest reviewer path
-- the controlled-devnet onboarding proof is the deeper protocol-native path
-- email-oracle onboarding remains optional for general testers, but it is now documented and testable through `scripts/devnet_full_onboarding_e2e.sh`
+- the controlled-devnet readiness suite is the deeper protocol-native path
+- email-oracle onboarding remains optional for general testers, but it is now documented and testable through `scripts/devnet_controlled_readiness_suite.sh` and `scripts/devnet_full_onboarding_e2e.sh`
 - `generated/tx_index.json` is created automatically by the backend helper
 - founder-local files must be removed before release with `Weall-Protocol/scripts/clean_local_artifacts.sh`

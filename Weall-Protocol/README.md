@@ -46,21 +46,24 @@ cd ..
 
 That root-level flow wraps backend startup, demo bootstrap, frontend startup, and local session bootstrap into one path.
 
-## Controlled-devnet onboarding proof
+## Controlled-devnet readiness proof
 
-For protocol-review sessions, the backend also includes a non-seeded two-node onboarding proof:
+For protocol-review sessions, the backend also includes a non-seeded controlled-devnet readiness suite:
 
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
 
-PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
-WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+pytest -q
+WEALL_EMAIL="you@example.com" \
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This flow uses normal public transaction submission paths. It auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 email PoH through an opaque commitment, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, then completes Tier-2 async PoH and proves both nodes converge on the same tip and state root.
+This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 email PoH through an opaque commitment, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 async PoH, completes Tier-3 protocol-native live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
 
-This script intentionally never calls `/v1/dev/demo-seed`.
+The readiness suite intentionally never calls `/v1/dev/demo-seed`.
 
 ## Important URLs
 
@@ -125,6 +128,7 @@ This repository currently targets:
 - deterministic execution
 - fail-closed startup posture
 - deterministic mempool and block application rules
+- controlled-devnet onboarding and convergence proof paths
 - helper execution strictly subordinate to canonical consensus
 - explicit bootstrap-registration to production-service promotion
 

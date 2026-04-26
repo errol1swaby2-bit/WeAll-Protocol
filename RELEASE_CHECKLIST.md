@@ -74,14 +74,17 @@ cd Weall-Protocol
 ./scripts/demo_bootstrap_tester.sh
 ```
 
-Controlled-devnet non-seeded onboarding proof:
+Controlled-devnet non-seeded readiness proof:
 
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
 
-PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
-WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+pytest -q
+WEALL_EMAIL="you@example.com" \
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
 ## 3. Verify browser-visible demo
@@ -137,8 +140,9 @@ For external testers, the supported walkthrough is:
 - frontend via Vite dev server
 - demo state via `scripts/demo_bootstrap_tester.sh` or the repository root `scripts/dev_boot_full_stack.sh`
 
-For protocol reviewers, the supported non-seeded onboarding proof is:
+For protocol reviewers, the supported non-seeded readiness proof is:
 
+- `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh`
 - `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh`
 
-Do not claim that browser email onboarding is part of the required general tester flow. The current email-oracle path is documented as a controlled-devnet proof harness, not as the default browser onboarding path.
+Do not claim that browser email onboarding is part of the required general tester flow. The current email-oracle path is documented as a controlled-devnet proof harness, not as the default browser onboarding path. The conference-grade readiness proof should be described as protocol-native and non-seeded, not as the normal end-user onboarding UX.

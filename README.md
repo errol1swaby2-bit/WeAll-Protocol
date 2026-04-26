@@ -15,7 +15,7 @@ The current implementation is built around:
 - **bootstrap-to-production authority gating**
 - **helper-assisted execution beneath consensus, never instead of it**
 
-The current audited transaction canon contains **214 transaction types across 21 domains**.
+The current audited transaction canon contains **215 transaction types across 21 domains**.
 
 ---
 
@@ -52,7 +52,7 @@ The current codebase already supports a real local full-stack demo flow with:
 - helper-safety posture beneath canonical consensus
 - local tester bootstrapping through a single canonical dev flow
 
-The current controlled-devnet onboarding proof also runs without demo-seed shortcuts:
+The current controlled-devnet readiness proof also runs without demo-seed shortcuts:
 
 - fresh account registration through normal tx submission
 - bounded Tier-1 email-oracle attestation using an opaque email commitment
@@ -60,6 +60,7 @@ The current controlled-devnet onboarding proof also runs without demo-seed short
 - cross-node account, tx-status, tip, and state-root parity checks
 - a Tier-1-gated transaction submitted on node 2 and synced back to node 1
 - Tier-2 async PoH request, juror accept, review, finalization, and cross-node convergence
+- Tier-3 protocol-native live PoH request, reviewer assignment, attendance, verdicts, finalization, and cross-node convergence
 
 This is not a slide deck or mock frontend.  
 It is a working protocol + node + frontend repository.
@@ -124,23 +125,24 @@ When successful, the main local URLs are:
 
 ---
 
-## Controlled-devnet onboarding proof
+## Controlled-devnet readiness proof
 
-For a deeper protocol-native proof that does not rely on the deterministic demo seed route, run the backend controlled-devnet onboarding harness:
+For a deeper protocol-native proof that does not rely on the deterministic demo seed route, run the backend controlled-devnet readiness suite:
 
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
 
-PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
-WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+pytest -q
+WEALL_EMAIL="you@example.com" \
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-Use an email address you control when you want to test the local email-oracle path. The plaintext email is not submitted on-chain; the devnet helper submits a chain-bound commitment and a bounded operator receipt.
+This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 email PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Tier-3 protocol-native live PoH finalization, cross-node convergence, and restart/catch-up.
 
-This harness is the conference-grade non-seeded proof path. It boots a controlled two-node devnet, registers a fresh account, confirms Tier-1 email PoH, proves cross-node sync, submits a Tier-1-gated action from node 2, then completes a Tier-2 async PoH review and reconverges both nodes.
-
-The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,429 passed**.
+The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,514 passed, 1 warning**, followed by a green controlled-devnet readiness suite.
 
 ---
 
@@ -227,7 +229,7 @@ The current audited transaction surface spans 21 domains, including:
 - notifications
 - indexing
 
-Total current transaction types: **214**.
+Total current transaction types: **215**.
 
 ---
 
@@ -327,7 +329,7 @@ The goal is not just to make the system run — it is to make it hard for honest
 For deeper implementation detail, use these repository-tracked files:
 
 - `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
-- `Weall-Protocol/docs/testnet_runbook.md` — local tester and protocol-review runbook
+- `Weall-Protocol/docs/testnet_runbook.md` — local tester, conference, and protocol-review runbook
 - `RELEASE_CHECKLIST.md` — external tester release checklist
 - `CONTRIBUTING.md` — contribution workflow and review expectations
 - `SECURITY.md` — security reporting and supported security posture
