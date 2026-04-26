@@ -213,7 +213,8 @@
     "902": 118,
     "903": 119,
     "904": 120,
-    "905": 121
+    "905": 121,
+    "117": 214
   },
   "by_name": {
     "ACCOUNT_BAN": 120,
@@ -429,14 +430,16 @@
     "VALIDATOR_REGISTER": 84,
     "VALIDATOR_REMOVE": 213,
     "VALIDATOR_SET_UPDATE": 89,
-    "VALIDATOR_SUSPEND": 212
+    "VALIDATOR_SUSPEND": 212,
+    "POH_TIER3_REQUEST_OPEN": 214
   },
   "meta": {
     "law": "append-only",
     "source": "WeAll Transaction Canon v1.22 \u2014 Full Enforceable Production Canon",
-    "version": "1.22.1"
+    "version": "1.22.1",
+    "count": 215
   },
-  "source_sha256": "c0335233a21bd804322ddde6a97cefdbe79a3294266b57d8b6c42ea33dfafa59",
+  "source_sha256": "ec86462cbf0bb1f37bf8aa9d2fe586bb59b410456f92383ae6b92e48b6cf511f",
   "tx_types": [
     {
       "context": "mempool",
@@ -2921,6 +2924,18 @@
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "GovExecutor"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "63e6f9a70cd8325c",
+      "name": "POH_TIER3_REQUEST_OPEN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
     }
   ]
 }

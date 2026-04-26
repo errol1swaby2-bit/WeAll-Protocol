@@ -257,6 +257,13 @@ txs:
   receipt_only: true
   parent: POH_TIER2_FINALIZE
   system_only: true
+- id: 117
+  name: POH_TIER3_REQUEST_OPEN
+  domain: PoH
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
 - id: 120
   name: POH_TIER3_INIT
   domain: PoH

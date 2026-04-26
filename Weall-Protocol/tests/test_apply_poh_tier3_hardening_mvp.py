@@ -234,3 +234,83 @@ def test_tier3_replace_system_only_and_keeps_role() -> None:
     case = st["poh"]["tier3_cases"][case_id]
     assert case["jurors"]["j1"]["replaced"] is True
     assert case["jurors"]["j11"]["role"] == "interacting"
+
+
+def test_tier3_decline_after_accept_is_rejected() -> None:
+    st = _mk_state()
+    case_id = _open_tier3_case(st)
+    _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
+
+    apply_tx(
+        st,
+        _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 30}, signer="j1", nonce=4),
+    )
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 31}, signer="j1", nonce=5),
+        )
+    assert ei.value.code == "forbidden"
+    assert ei.value.reason == "juror_already_accepted"
+
+
+def test_tier3_accept_after_decline_is_rejected() -> None:
+    st = _mk_state()
+    case_id = _open_tier3_case(st)
+    _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
+
+    apply_tx(
+        st,
+        _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 32}, signer="j1", nonce=4),
+    )
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 33}, signer="j1", nonce=5),
+        )
+    assert ei.value.code == "forbidden"
+    assert ei.value.reason == "juror_already_declined"
+
+
+def test_tier3_verdict_cannot_be_changed_after_submission() -> None:
+    st = _mk_state()
+    case_id = _open_tier3_case(st)
+    _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
+
+    apply_tx(
+        st,
+        _env("POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 40}, signer="j1", nonce=4),
+    )
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER3_ATTENDANCE_MARK",
+            {"case_id": case_id, "juror_id": "j1", "attended": True, "session_commitment": "sc:1", "ts_ms": 41},
+            signer="j1",
+            nonce=5,
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER3_VERDICT_SUBMIT",
+            {"case_id": case_id, "verdict": "pass", "session_commitment": "sc:1", "ts_ms": 42},
+            signer="j1",
+            nonce=6,
+        ),
+    )
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env(
+                "POH_TIER3_VERDICT_SUBMIT",
+                {"case_id": case_id, "verdict": "fail", "session_commitment": "sc:1", "ts_ms": 43},
+                signer="j1",
+                nonce=7,
+            ),
+        )
+    assert ei.value.code == "forbidden"
+    assert ei.value.reason == "verdict_already_submitted"

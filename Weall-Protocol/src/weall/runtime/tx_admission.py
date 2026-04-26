@@ -414,7 +414,23 @@ def _consensus_bootstrap_open_enabled(ledger: LedgerView) -> bool:
 def _bootstrap_allowlist_enabled(ledger: LedgerView) -> bool:
     params = ledger.params if isinstance(ledger.params, dict) else {}
     allowlist = params.get("bootstrap_allowlist")
-    return isinstance(allowlist, dict) and bool(allowlist)
+    if not isinstance(allowlist, dict) or not allowlist:
+        return False
+
+    # Genesis bootstrap records the initial operator/founder in
+    # ``bootstrap_allowlist`` for oracle/identity discovery and legacy status
+    # surfaces.  That metadata must not accidentally make an explicitly-open
+    # controlled-devnet bootstrap policy look like a dual open+allowlist policy.
+    # Any non-genesis-bootstrap entry still activates allowlist mode and therefore
+    # conflicts with explicit open mode as before.
+    raw_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    if raw_mode == "open":
+        for rec in allowlist.values():
+            if not (isinstance(rec, dict) and str(rec.get("source") or "") == "genesis_bootstrap"):
+                return True
+        return False
+
+    return True
 
 
 def _consensus_bootstrap_policy_mode(ledger: LedgerView) -> tuple[str, bool]:

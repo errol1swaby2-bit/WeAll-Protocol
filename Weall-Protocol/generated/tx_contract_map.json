@@ -1994,6 +1994,20 @@
       "claim_handlers": [
         "poh"
       ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "POH_TIER3_REQUEST_OPEN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
       "context": "block",
       "domain": "PoH",
       "handler": "poh",
@@ -2998,8 +3012,8 @@
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 214,
-  "single_claim_count": 214,
-  "tx_count": 214,
+  "schema_covered_count": 215,
+  "single_claim_count": 215,
+  "tx_count": 215,
   "unclaimed_count": 0
 }

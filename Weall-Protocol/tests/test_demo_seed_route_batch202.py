@@ -125,3 +125,24 @@ def test_demo_seed_route_hidden_when_env_enabled_without_seeded_demo_profile(mon
     client = TestClient(app, raise_server_exceptions=False)
     res = client.post("/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"})
     assert res.status_code == 404
+
+
+
+def test_demo_mode_isolation_fails_when_demo_seed_is_enabled_in_devnet(monkeypatch) -> None:
+    from weall.api.mode_isolation import demo_mode_isolation_issue
+
+    monkeypatch.setenv("WEALL_MODE", "devnet")
+    monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "multi_node_devnet")
+
+    assert demo_mode_isolation_issue() == "demo_seed_route_forbidden_in_devnet_or_prod"
+
+
+def test_demo_mode_isolation_fails_when_seeded_demo_profile_is_used_in_devnet(monkeypatch) -> None:
+    from weall.api.mode_isolation import demo_mode_isolation_issue
+
+    monkeypatch.setenv("WEALL_MODE", "multi_node_devnet")
+    monkeypatch.delenv("WEALL_ENABLE_DEMO_SEED_ROUTE", raising=False)
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
+
+    assert demo_mode_isolation_issue() == "seeded_demo_profile_forbidden_in_devnet_or_prod"

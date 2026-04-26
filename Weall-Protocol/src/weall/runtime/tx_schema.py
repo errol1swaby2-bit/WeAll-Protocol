@@ -203,6 +203,17 @@ class PohTier2ReceiptPayload(_StrictModel):
     ts_ms: int | None = Field(default=None, ge=0)
 
 
+class PohTier3RequestOpenPayload(_StrictModel):
+    account_id: str = Field(..., min_length=1)
+    session_commitment: str | None = Field(default=None, min_length=1)
+    room_commitment: str | None = Field(default=None, min_length=1)
+    prompt_commitment: str | None = Field(default=None, min_length=1)
+    device_pairing_commitment: str | None = Field(default=None, min_length=1)
+    relay_commitment: str | None = Field(default=None, min_length=1)
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
 class PohTier3InitPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     session_commitment: str | None = None
@@ -1722,6 +1733,7 @@ TX_PAYLOADS: dict[str, Any] = {
     "POH_TIER2_REVIEW_SUBMIT": PohTier2ReviewSubmitPayload,
     "POH_TIER2_FINALIZE": PohTier2FinalizePayload,
     "POH_TIER2_RECEIPT": PohTier2ReceiptPayload,
+    "POH_TIER3_REQUEST_OPEN": PohTier3RequestOpenPayload,
     "POH_TIER3_INIT": PohTier3InitPayload,
     "POH_TIER3_JUROR_ASSIGN": PohTier3JurorAssignPayload,
     "POH_TIER3_JUROR_ACCEPT": PohTier3JurorAcceptPayload,

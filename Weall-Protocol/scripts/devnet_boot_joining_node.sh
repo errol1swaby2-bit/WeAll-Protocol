@@ -17,6 +17,25 @@ RELAY_ACCOUNT="${WEALL_EMAIL_RELAY_ACCOUNT_ID:-@devnet-email-relay}"
 RELAY_KEYFILE="${WEALL_EMAIL_RELAY_KEYFILE:-${DEVNET_DIR}/email-relay.json}"
 
 cd "${REPO_ROOT}"
+activate_repo_venv() {
+  if [[ "${WEALL_DEVNET_AUTO_VENV:-1}" =~ ^(0|false|FALSE|no|NO|off|OFF)$ ]]; then
+    return 0
+  fi
+  if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    return 0
+  fi
+  local activate_path="${REPO_ROOT}/.venv/bin/activate"
+  if [[ -f "${activate_path}" ]]; then
+    # shellcheck disable=SC1090
+    source "${activate_path}"
+    return 0
+  fi
+  echo "ERROR: Python virtualenv not active and ${activate_path} was not found." >&2
+  echo "Run: cd ${REPO_ROOT} && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt" >&2
+  exit 2
+}
+
+activate_repo_venv
 python3 scripts/devnet_tx.py ensure-keyfile --account "${OPERATOR_ACCOUNT}" --keyfile "${OPERATOR_KEYFILE}" >/dev/null
 python3 scripts/devnet_tx.py ensure-keyfile --account "${RELAY_ACCOUNT}" --keyfile "${RELAY_KEYFILE}" >/dev/null
 
@@ -53,6 +72,7 @@ export WEALL_GENESIS_BOOTSTRAP_ACCOUNT="${OPERATOR_ACCOUNT}"
 export WEALL_GENESIS_BOOTSTRAP_PUBKEY="${OPERATOR_PUBKEY}"
 export WEALL_GENESIS_BOOTSTRAP_REPUTATION="${WEALL_GENESIS_BOOTSTRAP_REPUTATION:-1.0}"
 export WEALL_GENESIS_BOOTSTRAP_JUROR_ENABLE="${WEALL_GENESIS_BOOTSTRAP_JUROR_ENABLE:-1}"
+export WEALL_POH_BOOTSTRAP_MAX_HEIGHT="${WEALL_POH_BOOTSTRAP_MAX_HEIGHT:-500}"
 export WEALL_POH_TIER2_N_JURORS="${WEALL_POH_TIER2_N_JURORS:-1}"
 export WEALL_POH_TIER2_MIN_TOTAL_REVIEWS="${WEALL_POH_TIER2_MIN_TOTAL_REVIEWS:-1}"
 export WEALL_POH_TIER2_PASS_THRESHOLD="${WEALL_POH_TIER2_PASS_THRESHOLD:-1}"
@@ -66,10 +86,27 @@ export WEALL_EMAIL_RELAY_PUBKEY="${RELAY_PUBKEY}"
 export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE="${WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE:-1}"
 export GUNICORN_BIND="${GUNICORN_BIND:-127.0.0.1:8002}"
 
+JOIN_ANCHOR_PATH="${WEALL_JOIN_ANCHOR_PATH:-}"
+REQUIRE_JOIN_ANCHOR="${WEALL_DEVNET_REQUIRE_JOIN_ANCHOR:-0}"
+_bool_true() {
+  case "${1:-0}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 if command -v curl >/dev/null 2>&1; then
   echo "==> Expected peer identity from ${NODE1_API}/v1/chain/genesis"
   curl -fsS "${NODE1_API}/v1/chain/genesis" || true
   echo
+fi
+
+if [[ -n "${JOIN_ANCHOR_PATH}" && -f "${JOIN_ANCHOR_PATH}" ]]; then
+  echo "==> Verifying expected peer against pinned join anchor: ${JOIN_ANCHOR_PATH}"
+  bash ./scripts/devnet_verify_join_anchor.sh "${NODE1_API}" "${JOIN_ANCHOR_PATH}"
+elif _bool_true "${REQUIRE_JOIN_ANCHOR}"; then
+  echo "ERROR: WEALL_DEVNET_REQUIRE_JOIN_ANCHOR=1 but WEALL_JOIN_ANCHOR_PATH is missing or unreadable: ${JOIN_ANCHOR_PATH:-<unset>}" >&2
+  exit 2
 fi
 
 cat <<EOF
@@ -79,6 +116,7 @@ chain_id=${WEALL_CHAIN_ID}
 node_id=${WEALL_NODE_ID}
 bootstrap_operator=${WEALL_GENESIS_BOOTSTRAP_ACCOUNT}
 bootstrap_juror=${WEALL_GENESIS_BOOTSTRAP_JUROR_ENABLE}
+poh_bootstrap_max_height=${WEALL_POH_BOOTSTRAP_MAX_HEIGHT}
 tier2_jurors=${WEALL_POH_TIER2_N_JURORS}
 tier2_min_reviews=${WEALL_POH_TIER2_MIN_TOTAL_REVIEWS}
 operator_keyfile=${OPERATOR_KEYFILE}

@@ -14,6 +14,8 @@ NODE2_API="${2:-${NODE2_API:-http://127.0.0.1:8002}}"
 MAX_ROUNDS="${WEALL_DEVNET_SYNC_MAX_ROUNDS:-8}"
 SLEEP_S="${WEALL_DEVNET_SYNC_SLEEP:-0.5}"
 BOOTSTRAP_MODE="${WEALL_DEVNET_SYNC_BOOTSTRAP_MODE:-delta}"
+JOIN_ANCHOR_PATH="${WEALL_JOIN_ANCHOR_PATH:-}"
+REQUIRE_JOIN_ANCHOR="${WEALL_DEVNET_REQUIRE_JOIN_ANCHOR:-0}"
 TMP_DIR="${TMPDIR:-/tmp}/weall-devnet-sync.$$"
 mkdir -p "${TMP_DIR}"
 trap 'rm -rf "${TMP_DIR}"' EXIT
@@ -21,6 +23,21 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 2; }; }
 need curl
 need python3
+
+_bool_true() {
+  case "${1:-0}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if [[ -n "${JOIN_ANCHOR_PATH}" && -f "${JOIN_ANCHOR_PATH}" ]]; then
+  echo "==> Verifying node 1 against pinned join anchor: ${JOIN_ANCHOR_PATH}"
+  bash "$(dirname "$0")/devnet_verify_join_anchor.sh" "${NODE1_API}" "${JOIN_ANCHOR_PATH}"
+elif _bool_true "${REQUIRE_JOIN_ANCHOR}"; then
+  echo "ERROR: WEALL_DEVNET_REQUIRE_JOIN_ANCHOR=1 but WEALL_JOIN_ANCHOR_PATH is missing or unreadable: ${JOIN_ANCHOR_PATH:-<unset>}" >&2
+  exit 2
+fi
 
 _fetch_identity() {
   local api="$1"
@@ -58,11 +75,11 @@ PY
 )
 
   if [[ "${NODE1_HEIGHT}" == "${NODE2_HEIGHT}" && "${NODE1_ROOT}" == "${NODE2_ROOT}" ]]; then
-    echo "==> OK: node 2 synced to node 1 height=${NODE1_HEIGHT} state_root=${NODE1_ROOT}"
+    echo "==> OK: target synced to source height=${NODE1_HEIGHT} state_root=${NODE1_ROOT} source=${NODE1_API} target=${NODE2_API}"
     exit 0
   fi
 
-  echo "==> Sync round ${round}: node1_height=${NODE1_HEIGHT} node2_height=${NODE2_HEIGHT}"
+  echo "==> Sync round ${round}: source_height=${NODE1_HEIGHT} target_height=${NODE2_HEIGHT} source=${NODE1_API} target=${NODE2_API}"
   python3 - "${TMP_DIR}/node1.json" "${TMP_DIR}/node2.json" "${BOOTSTRAP_MODE}" > "${TMP_DIR}/request.json" <<'PY'
 import json, sys
 node1 = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
@@ -104,6 +121,6 @@ PY
   sleep "${SLEEP_S}"
 done
 
-echo "ERROR: node 2 did not sync to node 1 within ${MAX_ROUNDS} rounds" >&2
+echo "ERROR: target did not sync to source within ${MAX_ROUNDS} rounds source=${NODE1_API} target=${NODE2_API}" >&2
 bash "$(dirname "$0")/devnet_compare_state_roots.sh" "${NODE1_API}" "${NODE2_API}" || true
 exit 1

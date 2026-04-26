@@ -279,6 +279,79 @@ def _dispute_assignment_match(ledger: Json, signer: str, payload: Json) -> bool:
     return False
 
 
+def _payload_case_id(payload: Json) -> str:
+    payload = _as_dict(payload)
+    direct = str(payload.get("case_id") or "").strip()
+    if direct:
+        return direct
+    for key in ("data", "args", "body", "payload"):
+        nested = _as_dict(payload.get(key))
+        case_id = str(nested.get("case_id") or "").strip()
+        if case_id:
+            return case_id
+    return ""
+
+
+def _poh_juror_assignment_match(ledger: Json, signer: str, payload: Json) -> bool:
+    """Return True when ``signer`` is assigned on a canonical PoH case.
+
+    Tier-2 and Tier-3 PoH reviewer actions are Juror-gated at admission so
+    under-qualified accounts cannot submit review transactions directly. A
+    protocol-assigned PoH reviewer, however, may not also be enrolled in the
+    global juror role during controlled bootstrap/devnet flows. The canonical
+    case assignment is enough to admit the transaction; execution still
+    re-checks assignment, tier, attendance, role, double-vote, and finalization
+    rules fail-closed.
+    """
+
+    case_id = _payload_case_id(payload)
+    if not case_id:
+        return False
+
+    poh = _as_dict(ledger.get("poh"))
+    signer_variants = set(_identity_variants(signer))
+
+    for cases_key in ("tier2_cases", "tier3_cases"):
+        case = _as_dict(_as_dict(poh.get(cases_key)).get(case_id))
+        if not case:
+            continue
+        jurors = case.get("jurors")
+
+        if isinstance(jurors, dict):
+            for juror_id, rec in jurors.items():
+                if not signer_variants.intersection(_identity_variants(juror_id)):
+                    continue
+                if isinstance(rec, dict):
+                    if bool(rec.get("replaced", False)):
+                        return False
+                    status = str(rec.get("status") or "").strip().lower()
+                    if status in {"declined", "replaced", "removed"}:
+                        return False
+                return True
+
+        if isinstance(jurors, list):
+            for item in jurors:
+                if isinstance(item, dict):
+                    juror_id = str(
+                        item.get("juror_id")
+                        or item.get("account_id")
+                        or item.get("juror")
+                        or ""
+                    ).strip()
+                    status = str(item.get("status") or "").strip().lower()
+                    if status in {"declined", "replaced", "removed"}:
+                        continue
+                else:
+                    juror_id = str(item or "").strip()
+                if juror_id and signer_variants.intersection(_identity_variants(juror_id)):
+                    return True
+
+        assigned = case.get("assigned_jurors") or case.get("eligible_juror_ids")
+        if _matches_identity_collection(signer, assigned):
+            return True
+
+    return False
+
 def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     roles = _as_dict(ledger.get("roles"))
     jurors = _as_dict(roles.get("jurors"))
@@ -293,6 +366,13 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     # admit against the canonical dispute assignment state even if the separate
     # global juror registry is not populated yet during bootstrap.
     if _dispute_assignment_match(ledger, signer, payload):
+        return True
+
+    # Protocol-native PoH posture: reviewer authority is case-scoped. A Tier-2
+    # or Tier-3 account that was assigned on the canonical PoH case may submit
+    # the corresponding juror-gated reviewer transactions without requiring a
+    # separate global role enrollment.
+    if _poh_juror_assignment_match(ledger, signer, payload):
         return True
 
     # Bootstrap posture: a live active validator may need to perform

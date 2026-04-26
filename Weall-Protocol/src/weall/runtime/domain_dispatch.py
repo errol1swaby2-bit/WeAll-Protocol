@@ -54,7 +54,21 @@ def _bootstrap_allowlist_enabled(state: Json) -> bool:
     params = state.get("params")
     params = params if isinstance(params, dict) else {}
     allowlist = params.get("bootstrap_allowlist")
-    return isinstance(allowlist, dict) and bool(allowlist)
+    if not isinstance(allowlist, dict) or not allowlist:
+        return False
+
+    # Genesis bootstrap stores founder/operator metadata here for discovery, but
+    # that metadata is not an active allowlist policy when the consensus-visible
+    # selector is explicitly open.  Non-genesis entries still count as an active
+    # allowlist and keep the existing fail-closed conflict behavior.
+    raw_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    if raw_mode == "open":
+        for rec in allowlist.values():
+            if not (isinstance(rec, dict) and str(rec.get("source") or "") == "genesis_bootstrap"):
+                return True
+        return False
+
+    return True
 
 
 def _canonical_system_signers(state: Json) -> set[str]:

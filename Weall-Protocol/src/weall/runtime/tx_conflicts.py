@@ -356,6 +356,7 @@ _register_many(
         "POH_EVIDENCE_BIND",
         "POH_CHALLENGE_OPEN",
         "POH_TIER2_REQUEST_OPEN",
+        "POH_TIER3_REQUEST_OPEN",
         "POH_TIER2_JUROR_ACCEPT",
         "POH_TIER2_JUROR_DECLINE",
         "POH_TIER2_REVIEW_SUBMIT",

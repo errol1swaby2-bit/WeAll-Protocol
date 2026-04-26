@@ -23,6 +23,8 @@ KEYFILE="${WEALL_KEYFILE:-${REPO_ROOT}/.weall-devnet/accounts/devnet-account.jso
 ACCOUNT="${WEALL_ACCOUNT:-}"
 FRESH_ACCOUNT="${WEALL_DEVNET_FRESH_ACCOUNT:-1}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
+OPERATOR_ACCOUNT="${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-${WEALL_VALIDATOR_ACCOUNT:-@devnet-genesis}}"
+OPERATOR_KEYFILE="${WEALL_GENESIS_OPERATOR_KEYFILE:-${DEVNET_DIR}/genesis-operator.json}"
 LOG_DIR="${WEALL_DEVNET_LOG_DIR:-${DEVNET_DIR}/logs}"
 AUTOSTART_NODE1="${WEALL_DEVNET_AUTOSTART_NODE1:-1}"
 RESET_ON_AUTOSTART="${WEALL_DEVNET_RESET_ON_AUTOSTART:-1}"
@@ -34,6 +36,35 @@ NODE2_PID=""
 AUTOSTART_NODE2="${WEALL_DEVNET_AUTOSTART_NODE2:-1}"
 
 cd "${REPO_ROOT}"
+
+_bool_true() {
+  case "${1:-0}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+activate_repo_venv() {
+  if ! _bool_true "${WEALL_DEVNET_AUTO_VENV:-1}"; then
+    return 0
+  fi
+  if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    echo "==> Using active Python virtualenv: ${VIRTUAL_ENV}"
+    return 0
+  fi
+  local activate_path="${REPO_ROOT}/.venv/bin/activate"
+  if [[ -f "${activate_path}" ]]; then
+    # shellcheck disable=SC1090
+    source "${activate_path}"
+    echo "==> Activated Python virtualenv: ${VIRTUAL_ENV:-${REPO_ROOT}/.venv}"
+    return 0
+  fi
+  echo "ERROR: Python virtualenv not active and ${activate_path} was not found." >&2
+  echo "Run: cd ${REPO_ROOT} && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt" >&2
+  exit 2
+}
+
+activate_repo_venv
 mkdir -p "${LOG_DIR}"
 
 _is_node_ready() {
@@ -100,53 +131,179 @@ print('==> OK: cross-node account/tx parity after %s account=%s tx_count=%d' % (
 PY
 }
 
+_tx_status_json() {
+  local api="$1"
+  local tx_id="$2"
+  python3 - "${api}" "${tx_id}" <<'PY_TX_STATUS'
+import json, sys, urllib.parse, urllib.request
+api, tx_id = sys.argv[1].rstrip('/'), sys.argv[2]
+with urllib.request.urlopen(api + '/v1/tx/status/' + urllib.parse.quote(tx_id, safe=''), timeout=15) as resp:
+    raw = resp.read().decode('utf-8')
+print(raw.strip() or '{}')
+PY_TX_STATUS
+}
+
+_tx_status_field() {
+  local file="$1"
+  local field="$2"
+  python3 - "${file}" "${field}" <<'PY_TX_STATUS_FIELD'
+import json, sys
+path, field = sys.argv[1], sys.argv[2]
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+cur = data
+for part in field.split('.'):
+    if isinstance(cur, dict):
+        cur = cur.get(part)
+    else:
+        cur = None
+        break
+print(str(cur or '').strip())
+PY_TX_STATUS_FIELD
+}
+
+_node2_convergence_tx_id_from_file() {
+  local file="$1"
+  python3 - "${file}" <<'PY_NODE2_CONVERGENCE_TX_ID'
+import json, sys
+
+raw = open(sys.argv[1], 'r', encoding='utf-8').read()
+decoder = json.JSONDecoder()
+tx_id = ''
+idx = 0
+while idx < len(raw):
+    while idx < len(raw) and raw[idx].isspace():
+        idx += 1
+    if idx >= len(raw):
+        break
+    try:
+        obj, end = decoder.raw_decode(raw, idx)
+    except json.JSONDecodeError:
+        idx += 1
+        continue
+    if isinstance(obj, dict):
+        tx_id = str(obj.get('tx_id') or '').strip()
+        if tx_id:
+            break
+    idx = max(end, idx + 1)
+print(tx_id)
+PY_NODE2_CONVERGENCE_TX_ID
+}
+
+_submit_signed_tx_file_and_wait() {
+  local api="$1"
+  local tx_path="$2"
+  local out_file="$3"
+  python3 - "${api}" "${tx_path}" "${out_file}" "${WEALL_TX_WAIT_TIMEOUT:-30}" "${WEALL_TX_WAIT_POLL:-0.5}" <<'PY_SIGNED_RELAY'
+import json, sys, time, urllib.parse, urllib.request
+api, tx_path, out_file, timeout_s, poll_s = sys.argv[1].rstrip('/'), sys.argv[2], sys.argv[3], float(sys.argv[4]), float(sys.argv[5])
+with open(tx_path, 'r', encoding='utf-8') as f:
+    tx = json.load(f)
+body = json.dumps(tx, sort_keys=True, separators=(',', ':')).encode('utf-8')
+req = urllib.request.Request(api + '/v1/tx/submit', data=body, method='POST', headers={'content-type': 'application/json'})
+with urllib.request.urlopen(req, timeout=15) as resp:
+    submitted = json.loads(resp.read().decode('utf-8') or '{}')
+tx_id = str(submitted.get('tx_id') or '').strip()
+result = {'ok': bool(submitted.get('ok')), 'api': api, 'tx_id': tx_id, 'submit': submitted}
+if tx_id:
+    deadline = time.time() + timeout_s
+    status = {'ok': True, 'status': 'pending', 'tx_id': tx_id}
+    while time.time() <= deadline:
+        url = api + '/v1/tx/status/' + urllib.parse.quote(tx_id, safe='')
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            status = json.loads(resp.read().decode('utf-8') or '{}')
+        if str(status.get('status') or '').lower() in {'confirmed', 'invalid', 'rejected', 'failed'}:
+            break
+        time.sleep(poll_s)
+    result['tx_status'] = status
+with open(out_file, 'w', encoding='utf-8') as f:
+    json.dump(result, f, sort_keys=True)
+    f.write('\n')
+print(json.dumps(result, sort_keys=True))
+PY_SIGNED_RELAY
+}
+
 _submit_node2_convergence_tx() {
   local account="$1"
-  local payload_file="${DEVNET_DIR}/node2-follow-payload.json"
-  local out_file="${DEVNET_DIR}/node2-follow-submit.json"
+  local payload_file="${DEVNET_DIR}/node2-convergence-payload.json"
+  local out_file="${DEVNET_DIR}/node2-convergence-submit.json"
+  local tx_file="${DEVNET_DIR}/node2-convergence.signed-tx.json"
+  local relay_out_file="${DEVNET_DIR}/node2-convergence-relay-submit.json"
+  local node2_status_file="${DEVNET_DIR}/node2-convergence-status.json"
   mkdir -p "${DEVNET_DIR}"
-  python3 - "${payload_file}" <<'PY'
+
+  local tx_type
+  local label
+  if [[ -n "${WEALL_EMAIL:-}" ]]; then
+    tx_type="FOLLOW_SET"
+    label="Tier-1-gated FOLLOW_SET"
+    python3 - "${payload_file}" <<'PY_NODE2_FOLLOW_PAYLOAD'
 import json, sys
 payload = {"target": "@devnet-genesis", "active": True}
 with open(sys.argv[1], 'w', encoding='utf-8') as f:
     json.dump(payload, f, sort_keys=True)
-PY
-  echo "==> Submitting Tier-1-gated FOLLOW_SET through node 2 normal tx flow" >&2
+PY_NODE2_FOLLOW_PAYLOAD
+  else
+    tx_type="PROFILE_UPDATE"
+    label="Tier-0 PROFILE_UPDATE"
+    python3 - "${payload_file}" <<'PY_NODE2_PROFILE_PAYLOAD'
+import json, sys, time
+payload = {"bio": "controlled devnet edge convergence " + str(int(time.time() * 1000))}
+with open(sys.argv[1], 'w', encoding='utf-8') as f:
+    json.dump(payload, f, sort_keys=True)
+PY_NODE2_PROFILE_PAYLOAD
+  fi
+
+  if [[ "${tx_type}" == "FOLLOW_SET" ]]; then
+    echo "==> Submitting Tier-1-gated FOLLOW_SET through node 2 normal tx flow" >&2
+  else
+    echo "==> Submitting Tier-0 PROFILE_UPDATE through node 2 normal tx flow" >&2
+  fi
   WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_submit_tx_node2.sh \
     --keyfile "${KEYFILE}" \
-    --tx-type FOLLOW_SET \
+    --tx-type "${tx_type}" \
     --payload-json "@${payload_file}" \
+    --tx-out "${tx_file}" \
     --wait \
-    --timeout "${WEALL_TX_WAIT_TIMEOUT:-30}" \
-    --poll "${WEALL_TX_WAIT_POLL:-0.5}" | tee "${out_file}" >&2
-  python3 - "${out_file}" <<'PY'
-import json, sys
-raw = open(sys.argv[1], 'r', encoding='utf-8').read()
-try:
-    data = json.loads(raw)
-except json.JSONDecodeError:
-    decoder = json.JSONDecoder()
-    data = None
-    for idx, ch in enumerate(raw):
-        if ch != '{':
-            continue
-        try:
-            candidate, _end = decoder.raw_decode(raw[idx:])
-        except json.JSONDecodeError:
-            continue
-        if isinstance(candidate, dict) and candidate.get('tx_id'):
-            data = candidate
-            break
-    if data is None:
-        raise
-tx_id = str(data.get('tx_id') or '').strip()
-status = (data.get('tx_status') or {}).get('status') if isinstance(data.get('tx_status'), dict) else ''
-if not tx_id:
-    raise SystemExit('node2 convergence tx missing tx_id')
-if str(status or '').lower() != 'confirmed':
-    raise SystemExit('node2 convergence tx was not confirmed: ' + json.dumps(data, sort_keys=True))
-print(tx_id)
-PY
+    --timeout "${WEALL_NODE2_CONVERGENCE_WAIT_TIMEOUT:-5}" \
+    --poll "${WEALL_TX_WAIT_POLL:-0.5}" > "${out_file}"
+  cat "${out_file}" >&2
+
+  local tx_id
+  tx_id="$(_node2_convergence_tx_id_from_file "${out_file}")"
+  local status
+  status="$(_tx_status_field "${out_file}" tx_status.status)"
+  if [[ -z "${tx_id}" ]]; then
+    echo "ERROR: node2 convergence tx missing tx_id" >&2
+    cat "${out_file}" >&2
+    exit 1
+  fi
+
+  if [[ "${status}" == "confirmed" ]]; then
+    echo "==> Node 2 confirmed convergence tx locally; Syncing node 1 from node 2 after node-2-submitted tx" >&2
+    bash ./scripts/devnet_sync_from_peer.sh "${NODE2_API}" "${NODE1_API}" >&2
+    echo "==> Comparing node roots after node-2-submitted tx" >&2
+    bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}" >&2
+    printf '%s\n' "${tx_id}"
+    return 0
+  fi
+
+  echo "==> Node 2 accepted convergence tx but did not confirm it locally; relaying exact signed tx to canonical producer" >&2
+  _submit_signed_tx_file_and_wait "${NODE1_API}" "${tx_file}" "${relay_out_file}" >&2
+  local relay_status
+  relay_status="$(_tx_status_field "${relay_out_file}" tx_status.status)"
+  if [[ "${relay_status}" != "confirmed" ]]; then
+    echo "ERROR: relayed node2-signed convergence tx was not confirmed by node 1: status=${relay_status}" >&2
+    cat "${relay_out_file}" >&2
+    exit 1
+  fi
+
+  _tx_status_json "${NODE2_API}" "${tx_id}" > "${node2_status_file}" || true
+  echo "==> Syncing node 2 from node 1 after edge relay confirmation" >&2
+  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}" >&2
+  echo "==> Comparing node roots after edge-relayed node-2-submitted tx" >&2
+  bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}" >&2
+  printf '%s\n' "${tx_id}"
 }
 
 _json_file_field() {
@@ -279,6 +436,129 @@ _run_tier2_devnet_flow() {
   bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
   echo "==> Verifying Tier-2 account/tx parity across nodes"
   _assert_cross_node_account_and_tx_parity "${account}" "tier2-finalization" "${request_tx_id}" "${accept_tx_id}" "${review_tx_id}"
+}
+
+_wait_tier3_case_assigned() {
+  local api="$1"
+  local case_id="$2"
+  local tick_api="$3"
+  local attempts="${WEALL_TIER3_ASSIGN_ATTEMPTS:-10}"
+  local i
+  for ((i=1; i<=attempts; i++)); do
+    if python3 - "${api}" "${case_id}" <<'PY_TIER3_ASSIGNED'
+import json, sys, urllib.parse, urllib.request
+api, case_id = sys.argv[1].rstrip('/'), sys.argv[2]
+try:
+    with urllib.request.urlopen(api + '/v1/poh/tier3/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
+        out = json.loads(resp.read().decode('utf-8'))
+except Exception:
+    raise SystemExit(1)
+case = out.get('case') if isinstance(out, dict) else {}
+jurors = case.get('jurors') if isinstance(case, dict) else []
+status = str((case or {}).get('status') or '').lower()
+session_commitment = str((case or {}).get('session_commitment') or '').strip()
+if isinstance(jurors, list) and len(jurors) == 10 and status in {'init', 'open', 'awarded', 'rejected'} and session_commitment:
+    raise SystemExit(0)
+raise SystemExit(1)
+PY_TIER3_ASSIGNED
+    then
+      return 0
+    fi
+    echo "==> Tier-3 case ${case_id} not ready yet; advancing system queue tick ${i}/${attempts}"
+    _submit_devnet_tick "${tick_api}" "tier3-assign-${i}"
+  done
+  echo "ERROR: Tier-3 case was not initialized/assigned: ${case_id}" >&2
+  python3 scripts/devnet_tx.py --api "${api}" tier3-case "${case_id}" || true
+  exit 1
+}
+
+_tier3_juror_keyfile() {
+  local juror="$1"
+  if [[ "${juror}" == "${OPERATOR_ACCOUNT}" ]]; then
+    echo "${OPERATOR_KEYFILE}"
+    return 0
+  fi
+  local prefix="${WEALL_TIER3_JUROR_PREFIX:-@devnet-tier3-juror-}"
+  local key_prefix="${WEALL_TIER3_JUROR_KEY_PREFIX:-tier3-juror-}"
+  if [[ "${juror}" == "${prefix}"* ]]; then
+    local suffix="${juror#${prefix}}"
+    echo "${DEVNET_DIR}/accounts/${key_prefix}${suffix}.json"
+    return 0
+  fi
+  echo "ERROR: no controlled-devnet keyfile mapping for assigned Tier-3 juror ${juror}" >&2
+  return 1
+}
+
+_tier3_case_juror_lines() {
+  local api="$1"
+  local case_id="$2"
+  python3 - "${api}" "${case_id}" <<'PY_TIER3_JUROR_LINES'
+import json, sys, urllib.parse, urllib.request
+api, case_id = sys.argv[1].rstrip('/'), sys.argv[2]
+with urllib.request.urlopen(api + '/v1/poh/tier3/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
+    out = json.loads(resp.read().decode('utf-8'))
+case = out.get('case') if isinstance(out, dict) else {}
+for j in case.get('jurors') or []:
+    if not isinstance(j, dict):
+        continue
+    jid = str(j.get('juror_id') or '').strip()
+    role = str(j.get('role') or '').strip()
+    if jid and role:
+        print(jid + '\t' + role)
+PY_TIER3_JUROR_LINES
+}
+
+_run_tier3_devnet_flow() {
+  local account="$1"
+  local t3_out="${DEVNET_DIR}/tier3-request.json"
+  local review_dir="${DEVNET_DIR}/tier3-reviews"
+  mkdir -p "${review_dir}"
+
+  echo "==> Preparing 10 controlled-devnet Tier-3 reviewer accounts through normal tx flow"
+  WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" bash ./scripts/devnet_prepare_tier3_jurors.sh
+
+  echo "==> Requesting protocol-native Tier-3 live PoH through node 1 normal tx flow"
+  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_tier3.sh | tee "${t3_out}"
+  local case_id
+  case_id="$(_json_file_field "${t3_out}" case_id)"
+  local request_tx_id
+  request_tx_id="$(_json_file_field "${t3_out}" tx_id)"
+  if [[ -z "${case_id}" ]]; then
+    echo "ERROR: Tier-3 request did not return case_id" >&2
+    cat "${t3_out}" >&2
+    exit 1
+  fi
+
+  _wait_tier3_case_assigned "${NODE1_API}" "${case_id}" "${NODE1_API}"
+
+  echo "==> Submitting assigned Tier-3 reviewer attendance/verdict txs through normal tx flow"
+  while IFS=$'\t' read -r juror role; do
+    [[ -n "${juror}" ]] || continue
+    local juror_keyfile
+    juror_keyfile="$(_tier3_juror_keyfile "${juror}")"
+    local safe_juror
+    safe_juror="$(printf '%s' "${juror}" | tr -c 'A-Za-z0-9_.@-' '_')"
+    local out_file="${review_dir}/${safe_juror}.json"
+    if [[ "${role}" == "interacting" ]]; then
+      WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" WEALL_TIER3_JUROR_ACCOUNT="${juror}" WEALL_TIER3_JUROR_KEYFILE="${juror_keyfile}" WEALL_TIER3_VERDICT="pass" \
+        bash ./scripts/devnet_review_tier3.sh | tee "${out_file}"
+    else
+      WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" WEALL_TIER3_JUROR_ACCOUNT="${juror}" WEALL_TIER3_JUROR_KEYFILE="${juror_keyfile}" WEALL_TIER3_SUBMIT_VERDICT="0" \
+        bash ./scripts/devnet_review_tier3.sh | tee "${out_file}"
+    fi
+  done < <(_tier3_case_juror_lines "${NODE1_API}" "${case_id}")
+
+  echo "==> Tier-3 live session state after reviewer attestations"
+  WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" bash ./scripts/devnet_tier3_session.sh
+
+  _wait_account_tier_at_least "${NODE1_API}" "${account}" 3 "${NODE1_API}" "tier3-finalize"
+
+  echo "==> Syncing node 2 from node 1 after Tier-3 finalization"
+  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
+  echo "==> Comparing node roots after Tier-3 finalization"
+  bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
+  echo "==> Verifying Tier-3 account/tx parity across nodes"
+  _assert_cross_node_account_and_tx_parity "${account}" "tier3-finalization" "${request_tx_id}"
 }
 _cleanup() {
   local status=$?
@@ -415,17 +695,22 @@ if _is_node_ready "${NODE2_API}" || _start_node2_if_needed; then
     _assert_cross_node_account_and_tx_parity "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}" "initial-node2-sync" "${REGISTER_TX_ID}" "${EMAIL_TX_ID}"
 
     NODE2_CONVERGENCE_TX_ID="$(_submit_node2_convergence_tx "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}")"
-    echo "==> Syncing node 1 from node 2 after node-2-submitted tx"
-    bash ./scripts/devnet_sync_from_peer.sh "${NODE2_API}" "${NODE1_API}"
-    echo "==> Comparing node roots after node-2-submitted tx"
-    bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
-    echo "==> Verifying node 1 can read node-2-submitted tx and updated account state"
+    echo "==> Verifying both nodes can read node-2-submitted tx and updated account state"
     _assert_cross_node_account_and_tx_parity "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}" "node2-submit-convergence" "${REGISTER_TX_ID}" "${EMAIL_TX_ID}" "${NODE2_CONVERGENCE_TX_ID}"
 
     if [[ "${WEALL_DEVNET_RUN_TIER2:-1}" == "1" ]]; then
       _run_tier2_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
+      if [[ "${WEALL_DEVNET_RUN_TIER3:-0}" == "1" ]]; then
+        _run_tier3_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
+      else
+        echo "==> WEALL_DEVNET_RUN_TIER3=0; skipped Tier-3 devnet PoH flow"
+      fi
     else
       echo "==> WEALL_DEVNET_RUN_TIER2=0; skipped Tier-2 devnet PoH flow"
+      if [[ "${WEALL_DEVNET_RUN_TIER3:-0}" == "1" ]]; then
+        echo "ERROR: WEALL_DEVNET_RUN_TIER3=1 requires WEALL_DEVNET_RUN_TIER2=1 in this full onboarding harness" >&2
+        exit 1
+      fi
     fi
   fi
 else

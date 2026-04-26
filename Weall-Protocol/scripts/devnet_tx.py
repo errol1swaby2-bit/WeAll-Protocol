@@ -357,15 +357,28 @@ def cmd_submit_tx(args: argparse.Namespace) -> int:
         parent=args.parent,
         privkey=priv,
     )
+    tx_out = str(getattr(args, "tx_out", "") or "").strip()
+    if tx_out:
+        out_path = Path(tx_out).expanduser()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(_json_dumps(tx) + "\n", encoding="utf-8")
     submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
     tx_id = str(submitted.get("tx_id") or "").strip()
-    result: Json = {"ok": bool(submitted.get("ok", False)), "api": args.api, "chain_id": chain_id, "account": account, "tx_id": tx_id, "submit": submitted}
+    result: Json = {
+        "ok": bool(submitted.get("ok", False)),
+        "api": args.api,
+        "chain_id": chain_id,
+        "account": account,
+        "tx_id": tx_id,
+        "submit": submitted,
+    }
+    if tx_out:
+        result["tx_out"] = str(Path(tx_out).expanduser())
     if args.wait and tx_id:
         result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
         result["account_state"] = _account_state(args.api, account)
     print(_json_dumps(result))
     return 0
-
 
 def cmd_email_tier1(args: argparse.Namespace) -> int:
     """Build and submit a bounded Tier-1 email oracle receipt tx.
@@ -480,6 +493,34 @@ def _tier2_case_id(*, account: str, nonce: int) -> str:
     return f"poh2:{str(account or '').strip()}:{max(0, int(nonce))}"
 
 
+def _tier3_case(api: str, case_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/tier3/case/{urllib.parse.quote(case_id, safe='')}")
+
+
+def _tier3_case_payload(api: str, case_id: str) -> Json:
+    out = _tier3_case(api, case_id)
+    case = out.get("case") if isinstance(out, dict) else None
+    return case if isinstance(case, dict) else {}
+
+
+def _tier3_session(api: str, session_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/tier3/session/{urllib.parse.quote(session_id, safe='')}")
+
+
+def _tier3_session_payload(api: str, session_id: str) -> Json:
+    out = _tier3_session(api, session_id)
+    session = out.get("session") if isinstance(out, dict) else None
+    return session if isinstance(session, dict) else {}
+
+
+def _tier3_session_participants(api: str, session_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/tier3/session/{urllib.parse.quote(session_id, safe='')}/participants")
+
+
+def _tier3_case_id(*, account: str, nonce: int) -> str:
+    return f"poh3:{str(account or '').strip()}:{max(0, int(nonce))}"
+
+
 def _devnet_video_commitment(*, chain_id: str, account: str) -> str:
     material = "\n".join(
         [
@@ -591,6 +632,63 @@ def _sign_and_submit_skeleton_tx(
     return out
 
 
+def cmd_tier3_request(args: argparse.Namespace) -> int:
+    keyfile = Path(args.keyfile).expanduser()
+    account, priv, _pub, keydata = _key_material(keyfile, account=args.account)
+    chain_id = _chain_id(args.api)
+    nonce = int(args.nonce) if args.nonce is not None else _next_nonce(args.api, account)
+
+    body: Json = {"account_id": account}
+    for key, value in (
+        ("session_commitment", args.session_commitment),
+        ("room_commitment", args.room_commitment),
+        ("prompt_commitment", args.prompt_commitment),
+        ("device_pairing_commitment", args.device_pairing_commitment),
+    ):
+        v = str(value or "").strip()
+        if v:
+            body[key] = v
+
+    skeleton = _http_json("POST", args.api, "/v1/poh/tier3/tx/request", body)
+    tx_skel = skeleton.get("tx") if isinstance(skeleton, dict) else None
+    if not isinstance(tx_skel, dict):
+        raise SystemExit(f"Unexpected tier3 request skeleton response: {_json_dumps(skeleton)}")
+    payload = tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else body
+    tx_type = str(tx_skel.get("tx_type") or "POH_TIER3_REQUEST_OPEN").strip() or "POH_TIER3_REQUEST_OPEN"
+
+    tx = _sign_tx(
+        chain_id=chain_id,
+        tx_type=tx_type,
+        signer=account,
+        nonce=nonce,
+        payload=payload,
+        parent=args.parent,
+        privkey=priv,
+    )
+    submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
+    tx_id = str(submitted.get("tx_id") or "").strip()
+    case_id = _tier3_case_id(account=account, nonce=nonce)
+    result: Json = {
+        "ok": bool(submitted.get("ok", False)),
+        "api": args.api,
+        "chain_id": chain_id,
+        "account": account,
+        "case_id": case_id,
+        "tx_id": tx_id,
+        "tx_type": tx_type,
+        "submit": submitted,
+    }
+    if args.wait and tx_id:
+        result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
+        result["case"] = _tier3_case_payload(args.api, case_id)
+        result["account_state"] = _account_state(args.api, account)
+    keydata["last_poh_tier3_request_tx_id"] = tx_id
+    keydata["last_poh_tier3_case_id"] = case_id
+    keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
+    print(_json_dumps(result))
+    return 0
+
+
 def cmd_tier2_review(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
     juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
@@ -647,6 +745,167 @@ def cmd_tier2_review(args: argparse.Namespace) -> int:
         result["ok"] = False
         print(_json_dumps(result))
         return 2
+    print(_json_dumps(result))
+    return 0
+
+
+def cmd_tier3_review(args: argparse.Namespace) -> int:
+    """Accept, attend, and optionally verdict a Tier-3 live verification case.
+
+    This is a controlled-devnet harness over normal public tx skeleton routes.
+    It signs each reviewer action with the juror key and submits through
+    /v1/tx/submit; it never calls operator or demo-only mutation routes.
+    """
+
+    keyfile = Path(args.keyfile).expanduser()
+    juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
+    chain_id = _chain_id(args.api)
+    case_id = str(args.case_id or "").strip() or str(keydata.get("last_poh_tier3_case_id") or "").strip()
+    if not case_id:
+        raise SystemExit("missing --case-id")
+
+    verdict = str(args.verdict or "").strip().lower()
+    if verdict and verdict not in {"pass", "fail"}:
+        raise SystemExit("--verdict must be pass, fail, or empty with --no-verdict")
+
+    result: Json = {
+        "ok": True,
+        "api": args.api,
+        "chain_id": chain_id,
+        "juror": juror,
+        "case_id": case_id,
+    }
+
+    if args.accept:
+        accept = _sign_and_submit_skeleton_tx(
+            api=args.api,
+            chain_id=chain_id,
+            keyfile=keyfile,
+            account=juror,
+            priv=priv,
+            route="/v1/poh/tier3/tx/juror-accept",
+            request_body={"case_id": case_id},
+            fallback_tx_type="POH_TIER3_JUROR_ACCEPT",
+            fallback_payload={"case_id": case_id},
+            parent=args.parent,
+            timeout=args.timeout,
+            poll=args.poll,
+        )
+        result["accept"] = accept
+        if str((accept.get("tx_status") or {}).get("status") or "").lower() != "confirmed":
+            result["ok"] = False
+            print(_json_dumps(result))
+            return 2
+
+    if args.attendance:
+        attendance = _sign_and_submit_skeleton_tx(
+            api=args.api,
+            chain_id=chain_id,
+            keyfile=keyfile,
+            account=juror,
+            priv=priv,
+            route="/v1/poh/tier3/tx/attendance",
+            request_body={"case_id": case_id, "juror_id": juror, "attended": True},
+            fallback_tx_type="POH_TIER3_ATTENDANCE_MARK",
+            fallback_payload={"case_id": case_id, "juror_id": juror, "attended": True, "ts_ms": 0},
+            parent=args.parent,
+            timeout=args.timeout,
+            poll=args.poll,
+        )
+        result["attendance"] = attendance
+        if str((attendance.get("tx_status") or {}).get("status") or "").lower() != "confirmed":
+            result["ok"] = False
+            print(_json_dumps(result))
+            return 2
+
+    if args.submit_verdict and verdict:
+        review = _sign_and_submit_skeleton_tx(
+            api=args.api,
+            chain_id=chain_id,
+            keyfile=keyfile,
+            account=juror,
+            priv=priv,
+            route="/v1/poh/tier3/tx/verdict",
+            request_body={"case_id": case_id, "verdict": verdict},
+            fallback_tx_type="POH_TIER3_VERDICT_SUBMIT",
+            fallback_payload={"case_id": case_id, "verdict": verdict, "ts_ms": 0},
+            parent=args.parent,
+            timeout=args.timeout,
+            poll=args.poll,
+        )
+        result["verdict"] = review
+        if str((review.get("tx_status") or {}).get("status") or "").lower() != "confirmed":
+            result["ok"] = False
+            print(_json_dumps(result))
+            return 2
+
+    case_payload = _tier3_case_payload(args.api, case_id)
+    result["case"] = case_payload
+    session_id = str(case_payload.get("session_id") or "").strip() or f"session:{case_id}"
+    try:
+        result["session"] = _tier3_session_payload(args.api, session_id)
+    except SystemExit:
+        result["session"] = {}
+    try:
+        result["participants"] = _tier3_session_participants(args.api, session_id).get("participants", [])
+    except SystemExit:
+        result["participants"] = []
+
+    keydata["last_poh_tier3_review_tx_id"] = str(((result.get("verdict") or {}) if isinstance(result.get("verdict"), dict) else {}).get("tx_id") or "")
+    keydata["last_poh_tier3_case_id"] = case_id
+    keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
+    print(_json_dumps(result))
+    return 0
+
+
+def cmd_tier3_session(args: argparse.Namespace) -> int:
+    print(_json_dumps(_tier3_session(args.api, args.session_id)))
+    return 0
+
+
+def cmd_tier3_participants(args: argparse.Namespace) -> int:
+    print(_json_dumps(_tier3_session_participants(args.api, args.session_id)))
+    return 0
+
+
+def cmd_bootstrap_tier3(args: argparse.Namespace) -> int:
+    """Submit a bounded open-bootstrap POH_BOOTSTRAP_TIER3_GRANT tx.
+
+    This command is intended for controlled devnet reviewer preparation only.
+    It uses the normal public tx submission path and succeeds only while the
+    consensus-visible bootstrap policy is open and height-bounded.
+    """
+
+    keyfile = Path(args.keyfile).expanduser()
+    account, priv, pub, keydata = _key_material(keyfile, account=args.account)
+    chain_id = _chain_id(args.api)
+    nonce = int(args.nonce) if args.nonce is not None else _next_nonce(args.api, account)
+    payload: Json = {"account_id": account}
+    tx = _sign_tx(
+        chain_id=chain_id,
+        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        signer=account,
+        nonce=nonce,
+        payload=payload,
+        parent=args.parent,
+        privkey=priv,
+    )
+    submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
+    tx_id = str(submitted.get("tx_id") or "").strip()
+    result: Json = {
+        "ok": bool(submitted.get("ok", False)),
+        "api": args.api,
+        "chain_id": chain_id,
+        "account": account,
+        "tx_id": tx_id,
+        "tx_type": "POH_BOOTSTRAP_TIER3_GRANT",
+        "submit": submitted,
+    }
+    if args.wait and tx_id:
+        result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
+        result["account_state"] = _account_state(args.api, account)
+    keydata["last_poh_bootstrap_tier3_tx_id"] = tx_id
+    keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
 
@@ -726,6 +985,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--payload-json", required=True, help="JSON object string or @path")
     s.add_argument("--nonce", type=int, default=None)
     s.add_argument("--parent", default=None)
+    s.add_argument("--tx-out", default="", help="optional path to write the signed tx envelope before submission")
     s.add_argument("--wait", action="store_true")
     s.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
     s.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
@@ -784,6 +1044,60 @@ def build_parser() -> argparse.ArgumentParser:
     c2 = sub.add_parser("tier2-case", help="Read a Tier-2 PoH case")
     c2.add_argument("case_id")
     c2.set_defaults(func=cmd_tier2_case)
+
+    b3 = sub.add_parser("bootstrap-tier3", help="Submit bounded devnet POH_BOOTSTRAP_TIER3_GRANT")
+    b3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
+    b3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    b3.add_argument("--nonce", type=int, default=None)
+    b3.add_argument("--parent", default=None)
+    b3.add_argument("--wait", action="store_true", default=True)
+    b3.add_argument("--no-wait", dest="wait", action="store_false")
+    b3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    b3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    b3.set_defaults(func=cmd_bootstrap_tier3)
+
+    t3 = sub.add_parser("tier3-request", help="Submit a dedicated POH_TIER3_REQUEST_OPEN tx")
+    t3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
+    t3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    t3.add_argument("--session-commitment", default=os.environ.get("WEALL_POH_TIER3_SESSION_COMMITMENT", ""))
+    t3.add_argument("--room-commitment", default=os.environ.get("WEALL_POH_TIER3_ROOM_COMMITMENT", ""))
+    t3.add_argument("--prompt-commitment", default=os.environ.get("WEALL_POH_TIER3_PROMPT_COMMITMENT", ""))
+    t3.add_argument("--device-pairing-commitment", default=os.environ.get("WEALL_POH_TIER3_DEVICE_PAIRING_COMMITMENT", ""))
+    t3.add_argument("--nonce", type=int, default=None)
+    t3.add_argument("--parent", default=None)
+    t3.add_argument("--wait", action="store_true", default=True)
+    t3.add_argument("--no-wait", dest="wait", action="store_false")
+    t3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    t3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    t3.set_defaults(func=cmd_tier3_request)
+
+    c3 = sub.add_parser("tier3-case", help="Read a Tier-3 PoH case")
+    c3.add_argument("case_id")
+    c3.set_defaults(func=lambda args: (print(_json_dumps(_tier3_case(args.api, args.case_id))) or 0))
+
+    s3 = sub.add_parser("tier3-session", help="Read a Tier-3 live session")
+    s3.add_argument("session_id")
+    s3.set_defaults(func=cmd_tier3_session)
+
+    p3 = sub.add_parser("tier3-participants", help="Read Tier-3 live session participants")
+    p3.add_argument("session_id")
+    p3.set_defaults(func=cmd_tier3_participants)
+
+    r3 = sub.add_parser("tier3-review", help="Accept, attend, and optionally verdict a Tier-3 case")
+    r3.add_argument("--account", default=os.environ.get("WEALL_TIER3_JUROR_ACCOUNT", os.environ.get("WEALL_ACCOUNT", "")))
+    r3.add_argument("--keyfile", default=os.environ.get("WEALL_TIER3_JUROR_KEYFILE", os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "tier3-juror.json"))))
+    r3.add_argument("--case-id", default=os.environ.get("WEALL_TIER3_CASE_ID", ""))
+    r3.add_argument("--verdict", default=os.environ.get("WEALL_TIER3_VERDICT", "pass"))
+    r3.add_argument("--accept", action="store_true", default=True)
+    r3.add_argument("--no-accept", dest="accept", action="store_false")
+    r3.add_argument("--attendance", action="store_true", default=True)
+    r3.add_argument("--no-attendance", dest="attendance", action="store_false")
+    r3.add_argument("--submit-verdict", action="store_true", default=True)
+    r3.add_argument("--no-verdict", dest="submit_verdict", action="store_false")
+    r3.add_argument("--parent", default=None)
+    r3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    r3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    r3.set_defaults(func=cmd_tier3_review)
 
     tick = sub.add_parser("tick", help="Submit a harmless PROFILE_UPDATE to advance block/system queues")
     tick.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))

@@ -74,6 +74,7 @@ POH_TX_TYPES: frozenset[str] = frozenset(
         "POH_CHALLENGE_OPEN",
         "POH_CHALLENGE_RESOLVE",
         "POH_TIER2_REQUEST_OPEN",
+        "POH_TIER3_REQUEST_OPEN",
         "POH_TIER2_JUROR_ASSIGN",
         "POH_TIER2_JUROR_ACCEPT",
         "POH_TIER2_JUROR_DECLINE",

@@ -73,6 +73,17 @@ def _dev_bootstrap_secret_enabled() -> bool:
     return _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE") and _seeded_demo_profile_enabled()
 
 
+def demo_seed_router_should_mount() -> bool:
+    """Return True only when powerful demo-only routes should be mounted.
+
+    The route handlers still fail closed at call time, but conditional mounting
+    keeps seeded-demo endpoints out of the production/devnet OpenAPI surface and
+    avoids accidental discovery in controlled multi-node tests.
+    """
+
+    return _demo_seed_enabled() or _dev_bootstrap_secret_enabled()
+
+
 def _dev_bootstrap_secret_path() -> Path:
     configured = str(os.getenv("WEALL_DEV_BOOTSTRAP_SECRET_PATH", "")).strip()
     if configured:
@@ -415,4 +426,4 @@ def v1_demo_seed(request: Request, body: DemoSeedRequest):
     return {"ok": True, **result}
 
 
-__all__ = ["router", "seed_demo_state", "DemoSeedRequest", "_LedgerStoreWriter"]
+__all__ = ["router", "seed_demo_state", "DemoSeedRequest", "_LedgerStoreWriter", "demo_seed_router_should_mount"]

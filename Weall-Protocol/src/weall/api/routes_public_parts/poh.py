@@ -848,6 +848,11 @@ class PohTier3CaseModel(BaseModel):
     status: str
     requested_by: str | None = None
     session_commitment: str | None = None
+    room_commitment: str | None = None
+    prompt_commitment: str | None = None
+    device_pairing_commitment: str | None = None
+    relay_commitment: str | None = None
+    relay_authority: str | None = None
     init_ts_ms: int | None = None
     finalized_ts_ms: int | None = None
     outcome: str | None = None
@@ -903,6 +908,11 @@ def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
         status=status,
         requested_by=str(r.get("requested_by") or "").strip() or None,
         session_commitment=str(r.get("session_commitment") or "").strip() or None,
+        room_commitment=str(r.get("room_commitment") or "").strip() or None,
+        prompt_commitment=str(r.get("prompt_commitment") or "").strip() or None,
+        device_pairing_commitment=str(r.get("device_pairing_commitment") or "").strip() or None,
+        relay_commitment=str(r.get("relay_commitment") or "").strip() or None,
+        relay_authority=str(r.get("relay_authority") or "").strip() or None,
         init_ts_ms=_opt_int(r.get("init_ts_ms")),
         finalized_ts_ms=_opt_int(r.get("finalized_ts_ms")),
         outcome=str(r.get("outcome") or "").strip() or None,
@@ -964,6 +974,14 @@ class PohTier3SessionModel(BaseModel):
     created_ts_ms: int | None = None
     started_ts_ms: int | None = None
     ended_ts_ms: int | None = None
+    session_commitment: str | None = None
+    room_commitment: str | None = None
+    prompt_commitment: str | None = None
+    device_pairing_commitment: str | None = None
+    relay_commitment: str | None = None
+    relay_authority: str | None = None
+    # Kept for response compatibility. New protocol-native Tier3 state should
+    # expose commitments, not raw relay URLs.
     join_url: str | None = None
 
 
@@ -991,6 +1009,12 @@ def _as_tier3_session(session_id: str, r: dict[str, object]) -> PohTier3SessionM
         created_ts_ms=_opt_int(r.get("created_ts_ms")),
         started_ts_ms=_opt_int(r.get("started_ts_ms")),
         ended_ts_ms=_opt_int(r.get("ended_ts_ms")),
+        session_commitment=str(r.get("session_commitment") or "").strip() or None,
+        room_commitment=str(r.get("room_commitment") or "").strip() or None,
+        prompt_commitment=str(r.get("prompt_commitment") or "").strip() or None,
+        device_pairing_commitment=str(r.get("device_pairing_commitment") or "").strip() or None,
+        relay_commitment=str(r.get("relay_commitment") or "").strip() or None,
+        relay_authority=str(r.get("relay_authority") or "").strip() or None,
         join_url=str(r.get("join_url") or "").strip() or None,
     )
 
@@ -1030,6 +1054,7 @@ def poh_tier3_sessions(request: Request) -> PohTier3SessionListResponse:
 class PohTier3SessionParticipantModel(BaseModel):
     session_id: str
     juror_id: str
+    role: str | None = None
     status: str
     joined_ts_ms: int | None = None
     left_ts_ms: int | None = None
@@ -1052,6 +1077,7 @@ def _as_participant(
     return PohTier3SessionParticipantModel(
         session_id=str(session_id),
         juror_id=str(juror_id),
+        role=str(r.get("role") or "").strip() or None,
         status=str(r.get("status") or "").strip() or "unknown",
         joined_ts_ms=_opt_int(r.get("joined_ts_ms")),
         left_ts_ms=_opt_int(r.get("left_ts_ms")),
@@ -1187,7 +1213,7 @@ def operator_poh_tier3_init(
     enqueue_system_tx(
         st,
         tx_type="POH_TIER3_INIT",
-        payload={"case_id": case_id, "join_url": join_url, "ts_ms": 0},
+        payload={"case_id": case_id, "relay_commitment": _sha256_hex(join_url.encode("utf-8")), "ts_ms": 0},
         due_height=height + 1,
         signer="SYSTEM",
         once=True,
@@ -1408,6 +1434,10 @@ class TxSkeletonResponse(BaseModel):
 
 class PohTier3RequestSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
+    session_commitment: str | None = Field(default=None, max_length=128)
+    room_commitment: str | None = Field(default=None, max_length=128)
+    prompt_commitment: str | None = Field(default=None, max_length=128)
+    device_pairing_commitment: str | None = Field(default=None, max_length=128)
 
 
 class PohTier3JurorCaseSkeletonRequest(BaseModel):
@@ -1450,13 +1480,21 @@ def poh_tier3_tx_request(
     if not acct:
         raise ApiError.bad_request("bad_request", "missing account_id", {})
 
-    # Tier-3 request is expressed via Tier-2 open request with target_tier=3
-    payload: Json = {"account_id": acct, "target_tier": 3}
+    payload: Json = {"account_id": acct}
+    for key, value in (
+        ("session_commitment", req.session_commitment),
+        ("room_commitment", req.room_commitment),
+        ("prompt_commitment", req.prompt_commitment),
+        ("device_pairing_commitment", req.device_pairing_commitment),
+    ):
+        v = str(value or "").strip()
+        if v:
+            payload[key] = v
 
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER2_REQUEST_OPEN",
+            tx_type="POH_TIER3_REQUEST_OPEN",
             signer_hint=acct,
             parent=None,
             payload=payload,

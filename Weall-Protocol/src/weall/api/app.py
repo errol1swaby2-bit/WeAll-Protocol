@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from weall.api.config import load_api_config
 from weall.api.errors import ApiError
+from weall.api.mode_isolation import demo_mode_isolation_issue
 from weall.api.routes_public import public_router
 from weall.api.routes_public_parts.helper_readiness import (
     router as helper_readiness_router,
@@ -129,6 +130,12 @@ def _truthy_env(name: str) -> bool:
     if not v:
         return False
     return v in {"1", "true", "yes", "y", "on"}
+
+
+def _enforce_demo_mode_isolation() -> None:
+    issue = demo_mode_isolation_issue()
+    if issue:
+        raise ApiRuntimeLifecycleError(issue)
 
 
 def _running_under_pytest() -> bool:
@@ -417,6 +424,7 @@ async def _lifespan(app: FastAPI):
 
 
 def create_app(*, boot_runtime: bool) -> FastAPI:
+    _enforce_demo_mode_isolation()
     if _truthy_env("WEALL_DISABLE_OPENAPI"):
         app = FastAPI(
             title="WeAll Node API",
