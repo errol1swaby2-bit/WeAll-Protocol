@@ -1,0 +1,132 @@
+services:
+  kubo:
+    image: ipfs/kubo:v0.40.1
+    restart: unless-stopped
+    init: true
+    environment:
+      IPFS_PROFILE: server
+    volumes:
+      - ./data/ipfs:/data/ipfs
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "wget -q -O - --post-data='' http://127.0.0.1:5001/api/v0/version >/dev/null 2>&1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  weall_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ALLOW_UNLOCKED: "1"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      kubo:
+        condition: service_healthy
+    environment:
+      WEALL_MODE: ${WEALL_MODE:-dev}
+      WEALL_CHAIN_ID: ${WEALL_CHAIN_ID:-weall-dev}
+      WEALL_CHAIN_MANIFEST_PATH: ${WEALL_CHAIN_MANIFEST_PATH:-}
+      WEALL_REQUIRE_CHAIN_MANIFEST: ${WEALL_REQUIRE_CHAIN_MANIFEST:-0}
+      WEALL_ORACLE_PROFILE: ${WEALL_ORACLE_PROFILE:-}
+      WEALL_NODE_ID: ${WEALL_NODE_ID:-genesis-api}
+      WEALL_DB_PATH: ./data/weall.db
+      WEALL_TX_INDEX_PATH: ./generated/tx_index.json
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: ${WEALL_POH_BOOTSTRAP_OPEN:-1}
+      WEALL_ENABLE_DEMO_SEED_ROUTE: ${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}
+      WEALL_RUNTIME_PROFILE: ${WEALL_RUNTIME_PROFILE:-seeded_demo}
+      WEALL_IPFS_API_BASE: http://kubo:5001
+      WEALL_EMAIL_TRANSPORT: ${WEALL_EMAIL_TRANSPORT:-mock}
+      WEALL_SMTP_HOST: ${WEALL_SMTP_HOST:-stalwart}
+      WEALL_SMTP_PORT: ${WEALL_SMTP_PORT:-587}
+      WEALL_SMTP_USERNAME: ${WEALL_SMTP_USERNAME:-verify@poh.weall.org}
+      WEALL_SMTP_PASSWORD: ${WEALL_SMTP_PASSWORD:-}
+      WEALL_SMTP_FROM: ${WEALL_SMTP_FROM:-verify@poh.weall.org}
+      WEALL_POH_EMAIL_CHALLENGE_STORE: ${WEALL_POH_EMAIL_CHALLENGE_STORE:-./data/poh_email_challenges.json}
+      WEALL_MOCK_EMAIL_OUTBOX: ${WEALL_MOCK_EMAIL_OUTBOX:-./data/poh_email_outbox.jsonl}
+      PYTHONPATH: /app/src
+      # SQLite-backed dev bootstrap must stay single-worker to avoid
+      # concurrent schema/WAL initialization races during first boot.
+      GUNICORN_WORKERS: "1"
+      GUNICORN_TIMEOUT: "60"
+      GUNICORN_GRACEFUL_TIMEOUT: "30"
+      GUNICORN_KEEPALIVE: "5"
+    volumes:
+      - ./data:/app/data
+      - ./generated:/app/generated
+    ports:
+      - "8000:8000"
+    command:
+      [
+        "gunicorn",
+        "-k",
+        "uvicorn.workers.UvicornWorker",
+        "-w",
+        "1",
+        "-b",
+        "0.0.0.0:8000",
+        "--timeout",
+        "60",
+        "--graceful-timeout",
+        "30",
+        "--keep-alive",
+        "5",
+        "weall.api.app:app"
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/readyz', timeout=3).read()"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  weall_producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ALLOW_UNLOCKED: "1"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      weall_api:
+        condition: service_healthy
+    environment:
+      WEALL_MODE: ${WEALL_MODE:-dev}
+      WEALL_CHAIN_ID: ${WEALL_CHAIN_ID:-weall-dev}
+      WEALL_CHAIN_MANIFEST_PATH: ${WEALL_CHAIN_MANIFEST_PATH:-}
+      WEALL_REQUIRE_CHAIN_MANIFEST: ${WEALL_REQUIRE_CHAIN_MANIFEST:-0}
+      WEALL_ORACLE_PROFILE: ${WEALL_ORACLE_PROFILE:-}
+      WEALL_NODE_ID: ${WEALL_PRODUCER_NODE_ID:-genesis-producer}
+      WEALL_DB_PATH: ./data/weall.db
+      WEALL_TX_INDEX_PATH: ./generated/tx_index.json
+      WEALL_ALLOW_UNSIGNED_TXS: "0"
+      WEALL_POH_BOOTSTRAP_OPEN: ${WEALL_POH_BOOTSTRAP_OPEN:-1}
+      WEALL_PRODUCER_INTERVAL_MS: "20000"
+      WEALL_PRODUCER_MAX_TXS: "1000"
+      WEALL_PRODUCER_ALLOW_EMPTY: "0"
+      PYTHONPATH: /app/src
+    volumes:
+      - ./data:/app/data
+    command: ["python", "-m", "weall.services.block_producer"]

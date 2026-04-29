@@ -1,0 +1,101 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import path from "node:path";
+
+// Dev CSP must allow Vite's inline preamble (and sometimes eval for tooling).
+// Production/preview should remain strict and should ideally be enforced by deployment headers.
+const DEV_CSP =
+  "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
+  "connect-src 'self' http: https: ws: wss:; frame-src 'self';";
+
+const PREVIEW_CSP =
+  "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
+  "script-src 'self'; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
+  "connect-src 'self' http: https: ws: wss:; frame-src 'self';";
+
+function safeReadPackageVersion(): string {
+  try {
+    const p = path.resolve(process.cwd(), "package.json");
+    const raw = readFileSync(p, "utf-8");
+    const pkg = JSON.parse(raw);
+    return String(pkg?.version || "0.0.0");
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function safeGitSha(): string {
+  try {
+    const out = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+    return out || "nogit";
+  } catch {
+    return "nogit";
+  }
+}
+
+const PKG_VERSION = safeReadPackageVersion();
+const GIT_SHA = safeGitSha();
+
+// Vite dev proxy: /v1 -> localhost:8000 to avoid CORS in dev.
+// In production, you can either:
+// - Serve UI and API behind the same origin (recommended), OR
+// - Allow CORS and keep connect-src open as above.
+export default defineConfig({
+  plugins: [react()],
+  define: {
+    __WEALL_WEB_VERSION__: JSON.stringify(PKG_VERSION),
+    __WEALL_WEB_GIT_SHA__: JSON.stringify(GIT_SHA),
+  },
+  optimizeDeps: {
+    entries: ["index.html"],
+  },
+  server: {
+    host: true,
+    port: 5173,
+    headers: {
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
+      "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "Content-Security-Policy": DEV_CSP,
+    },
+    proxy: {
+      "/v1": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/ipfs": { target: "http://127.0.0.1:8080", changeOrigin: true },
+    },
+  },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("react-router-dom")) return "router-vendor";
+          if (id.includes("react") || id.includes("react-dom")) return "react-vendor";
+          if (id.includes("tweetnacl")) return "crypto-vendor";
+          return "vendor";
+        },
+      },
+    },
+  },
+  preview: {
+    headers: {
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
+      "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "Content-Security-Policy": PREVIEW_CSP,
+    },
+  },
+});

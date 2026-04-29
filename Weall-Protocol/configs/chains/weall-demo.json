@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "name": "WeAll Deterministic Demo Chain",
+  "chain_id": "weall-demo",
+  "profile": "seeded_demo",
+  "mode": "demo",
+  "schema_version": "1",
+  "genesis_hash": "4f1be7d7ad64c130a63f0b01b12bd7f3f92afc7e0632df7b39e7a8daff3e8d41",
+  "genesis_state_root": "812d7f31e684ec6d7d229f69ec0e6ea78aa36c9b73dcd2d4cb12f9ed8d4e2f8c",
+  "tx_index_hash": "d117fb1959f11b748dc52d31f0f0992d98ff1d035a65e817780e24147c9563f3",
+  "protocol_profile_hash": "",
+  "authority_snapshot_version": 1,
+  "trusted_authority_pubkeys": [
+    "1111111111111111111111111111111111111111111111111111111111111111"
+  ],
+  "oracle": {
+    "expected_profile": "demo",
+    "authority_snapshot_required": false,
+    "signed_snapshot_required": false,
+    "demo_authority_account": "@demo-oracle-node"
+  },
+  "notes": "Deterministic conference/demo manifest. Demo oracle environments must pin this chain_id, genesis_hash, tx_index_hash, and demo authority pubkey. This file is intentionally separate from configs/chains/weall-genesis.json."
+}

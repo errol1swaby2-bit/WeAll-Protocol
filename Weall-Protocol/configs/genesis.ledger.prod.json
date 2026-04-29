@@ -1,0 +1,64 @@
+{
+  "chain_id": "weall-prod",
+  "height": 0,
+  "tip": "",
+  "time": 1700000000,
+  "last_block_ts_ms": 0,
+  "accounts": {
+    "SYSTEM": {
+      "nonce": 0,
+      "poh_tier": 0,
+      "banned": false,
+      "locked": false,
+      "balance": 0,
+      "reputation": 0.0,
+      "keys": []
+    },
+    "FOUNDING_NODE_ID": {
+      "nonce": 0,
+      "poh_tier": 3,
+      "banned": false,
+      "locked": false,
+      "balance": 0,
+      "reputation": 0.0,
+      "keys": {
+        "PUT_FOUNDING_PUBKEY_HEX_HERE": {
+          "active": true,
+          "label": "bootstrap"
+        }
+      },
+      "devices": {
+        "node:founding": {
+          "active": true,
+          "device_type": "node",
+          "label": "node_bootstrap"
+        }
+      }
+    }
+  },
+  "roles": {
+    "validators": {
+      "active_set": [
+        "FOUNDING_NODE_ID"
+      ]
+    }
+  },
+  "finalized": false,
+  "economics": {},
+  "params": {
+    "economics_enabled": false,
+    "genesis_time": 1700000000,
+    "economic_unlock_time": 1707776000,
+
+    "bootstrap_allowlist": {
+      "FOUNDING_NODE_ID": {
+        "pubkey": "PUT_FOUNDING_PUBKEY_HEX_HERE"
+      }
+    },
+
+    "bootstrap_founder_account": "FOUNDING_NODE_ID",
+    "bootstrap_expires_height": 1008,
+    "poh_bootstrap_max_height": 0
+  },
+  "blocks": {}
+}

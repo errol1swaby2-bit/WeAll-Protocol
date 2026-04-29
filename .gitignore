@@ -1,0 +1,130 @@
+# =========================
+# Virtual Environments
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Python Cache / Bytecode
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# =========================
+# Pytest / Coverage
+# =========================
+.pytest_cache/
+.coverage
+coverage.json
+htmlcov/
+
+# =========================
+# Local Test Artifacts
+# =========================
+.pytest*
+*.aux.sqlite
+*.bft_journal.jsonl
+*.aux_helper_lanes/
+
+# Nested audit/runtime clutter
+**/.pytest-b*
+**/*.bft_journal.jsonl
+**/*.aux_helper_lanes/
+**/*.aux.sqlite
+
+# =========================
+# SQLite / Local Databases
+# =========================
+*.sqlite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# =========================
+# Logs / Runtime Files
+# =========================
+*.log
+*.tmp
+*.pid
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# Packaging / Installer
+# =========================
+pip-wheel-metadata/
+*.whl
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.key
+*.pem
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Node / Frontend (if present)
+# =========================
+node_modules/
+**/tsconfig.tsbuildinfo
+**/.env.local
+
+# =========================
+# IPFS / Local Storage (if used locally)
+# =========================
+.ipfs/
+data/
+storage/
+
+# =========================
+# Coverage / Reports
+# =========================
+*.coverage
+coverage.xml
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.swp
+*.swo
+
+# =========================
+# Local Runtime Secrets
+# =========================
+secrets/
+
+web/playwright-report/
+web/test-results/
+
+# =========================
+# Local Dev Bootstrap Secrets
+# =========================
+.weall-dev/
+Weall-Protocol/generated/demo_bootstrap_secret.json
+
+# WeAll controlled devnet local runtime artifacts
+Weall-Protocol/.weall-devnet/

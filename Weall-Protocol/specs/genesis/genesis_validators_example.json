@@ -1,0 +1,25 @@
+{
+  "chain_id": "weall-testnet-0",
+  "validators": [
+    {
+      "account": "val1",
+      "pubkey": "<hex_or_b64_pubkey>",
+      "active": true
+    },
+    {
+      "account": "val2",
+      "pubkey": "<hex_or_b64_pubkey>",
+      "active": true
+    },
+    {
+      "account": "val3",
+      "pubkey": "<hex_or_b64_pubkey>",
+      "active": true
+    }
+  ],
+  "active_set": [
+    "val1",
+    "val2",
+    "val3"
+  ]
+}

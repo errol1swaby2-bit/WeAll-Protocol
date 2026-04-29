@@ -1,0 +1,195 @@
+# tests/test_apply_poh_tier2_flows_mvp.py
+from __future__ import annotations
+
+from weall.runtime.domain_apply import apply_tx
+from weall.runtime.tx_admission import TxEnvelope
+
+
+def _env(
+    tx_type: str,
+    payload: dict,
+    signer: str = "alice",
+    nonce: int = 1,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    # Receipt-only SYSTEM txs must carry a parent. For tests, default to a deterministic stub.
+    if system and not parent:
+        parent = f"p:{max(0, int(nonce) - 1)}"
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="sig",
+        parent=parent,
+        system=system,
+    )
+
+
+def test_poh_tier2_happy_path_majority_pass_upgrades_to_tier2() -> None:
+    st = {
+        "chain_id": "test",
+        "params": {
+            "poh": {
+                "tier2_n_jurors": 3,
+                "tier2_min_total_reviews": 3,
+                "tier2_pass_threshold": 2,
+                "tier2_fail_max": 1,
+            }
+        },
+        "accounts": {
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
+            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+            "j2": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+            "j3": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+        },
+    }
+
+    m0 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "video_commitment": "cmt:vid"},
+            signer="alice",
+            nonce=1,
+        ),
+    )
+    assert m0 and m0["applied"] == "POH_TIER2_REQUEST_OPEN"
+    case_id = str(m0["case_id"])
+
+    m1 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_JUROR_ASSIGN",
+            {
+                "case_id": case_id,
+                "jurors": ["j1", "j2", "j3"],
+                "n_jurors": 3,
+                "min_total_reviews": 3,
+                "pass_threshold": 2,
+                "fail_max": 1,
+            },
+            signer="SYSTEM",
+            nonce=2,
+            system=True,
+            parent="POH_TIER2_REQUEST_OPEN",
+        ),
+    )
+    assert m1 and m1["applied"] == "POH_TIER2_JUROR_ASSIGN"
+
+    # Swipe votes do not require an explicit accept step.
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=2
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j2", nonce=2
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "fail"}, signer="j3", nonce=2
+        ),
+    )
+
+    m2 = apply_tx(
+        st,
+        _env(
+            "POH_TIER2_FINALIZE",
+            {"case_id": case_id, "ts_ms": 2},
+            signer="SYSTEM",
+            nonce=3,
+            system=True,
+            parent="POH_TIER2_REVIEW_SUBMIT",
+        ),
+    )
+    assert m2 and m2["applied"] == "POH_TIER2_FINALIZE"
+    assert m2["outcome"] == "pass"
+    assert int(m2["tier_awarded"]) == 2
+
+    assert int(st["accounts"]["alice"]["poh_tier"]) == 2
+    assert st["poh"]["tier2_cases"][case_id]["status"] == "awarded"
+
+    # NFT minted and indexed
+    token_id = str(st["poh"]["tier2_cases"][case_id].get("poh_nft_token_id") or "")
+    assert token_id
+    assert token_id in st["poh_nfts"]["by_id"]
+    assert st["poh_nfts"]["by_owner"]["alice"].get(token_id) is True
+
+    # Privacy: raw video CID is not stored on-chain
+    assert "video_cid" not in st["poh"]["tier2_cases"][case_id]
+    assert "video_commitment" in st["poh"]["tier2_cases"][case_id]
+
+
+def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
+    st = {
+        "chain_id": "test",
+        "params": {
+            "poh": {
+                "tier2_n_jurors": 2,
+                "tier2_min_total_reviews": 1,
+                "tier2_pass_threshold": 1,
+                "tier2_fail_max": 1,
+            }
+        },
+        "accounts": {
+            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+            "j2": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+        },
+    }
+
+    m0 = apply_tx(
+        st,
+        _env("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "video_commitment": "cmt:vid2"}, signer="alice", nonce=1),
+    )
+    case_id = str(m0["case_id"])
+
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER2_JUROR_ASSIGN",
+            {"case_id": case_id, "jurors": ["j1", "j2"], "n_jurors": 2, "min_total_reviews": 1, "pass_threshold": 1, "fail_max": 1},
+            signer="SYSTEM",
+            nonce=2,
+            system=True,
+            parent="POH_TIER2_REQUEST_OPEN",
+        ),
+    )
+
+    apply_tx(st, _env("POH_TIER2_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=1))
+    apply_tx(st, _env("POH_TIER2_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 11}, signer="j2", nonce=1))
+
+    j1 = st["poh"]["tier2_cases"][case_id]["jurors"]["j1"]
+    j2 = st["poh"]["tier2_cases"][case_id]["jurors"]["j2"]
+    assert j1["status"] == "accepted"
+    assert j1["accepted"] is True
+    assert j2["status"] == "declined"
+    assert j2["accepted"] is False
+
+    apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=2))
+    try:
+        apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "fail"}, signer="j1", nonce=3))
+    except Exception as exc:  # noqa: BLE001
+        assert str(getattr(exc, "reason", "")) == "review_already_submitted"
+    else:
+        raise AssertionError("Tier2 review vote overwrite should be rejected")
+
+    try:
+        apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j2", nonce=2))
+    except Exception as exc:  # noqa: BLE001
+        assert str(getattr(exc, "reason", "")) == "juror_declined"
+    else:
+        raise AssertionError("Declined Tier2 juror should not be allowed to review")

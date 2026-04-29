@@ -1,0 +1,19 @@
+services:
+  ipfs:
+    image: ipfs/kubo:v0.29.0
+    container_name: weall-ipfs
+    restart: unless-stopped
+
+    volumes:
+      - ${WEALL_IPFS_PARTITION_PATH:-./data/ipfs_partition}:/data/ipfs
+
+    environment:
+      - IPFS_PATH=/data/ipfs
+      - IPFS_PROFILE=server
+      - IPFS_LOGGING=info
+
+    ports:
+      - "4001:4001"
+      - "4001:4001/udp"
+      - "127.0.0.1:5001:5001"
+      - "127.0.0.1:8080:8080"

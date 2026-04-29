@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+
+def _find_rate_limit_instance(app: FastAPI):
+    """Walk the middleware stack to find the live RateLimitMiddleware instance."""
+
+    cur = app.middleware_stack
+    while cur is not None:
+        if cur.__class__.__name__ == "RateLimitMiddleware":
+            return cur
+        cur = getattr(cur, "app", None)
+    return None
+
+
+def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
+    """TTL eviction prevents unbounded key growth under churn."""
+
+    import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware
+
+    # Force proxy header trust so we can fake per-request IPs.
+    monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
+    monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
+
+    t_ns = 1_000 * 1_000_000_000
+
+    def _now_ns() -> int:
+        return int(t_ns)
+
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
+
+    app = FastAPI()
+
+    @app.get("/ping")
+    def _ping():
+        return {"ok": True}
+
+    # Very small TTL and frequent pruning for determinism.
+    app.add_middleware(RateLimitMiddleware, ttl_s=10, max_keys=1000, prune_every=1)
+
+    with TestClient(app) as client:
+        # Create many buckets.
+        for i in range(50):
+            r = client.get("/ping", headers={"x-forwarded-for": f"203.0.113.{i}"})
+            assert r.status_code == 200
+
+        rl = _find_rate_limit_instance(app)
+        assert rl is not None
+
+        before = len(rl._buckets)
+        assert before >= 50
+
+        # Advance beyond TTL for all existing keys.
+        t_ns += 60 * 1_000_000_000
+
+        # One more request triggers prune_every=1.
+        r = client.get("/ping", headers={"x-forwarded-for": "203.0.113.250"})
+        assert r.status_code == 200
+
+        after = len(rl._buckets)
+        assert after < before
+        # Typically only the new key remains.
+        assert after <= 5
+
+
+def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Size-cap eviction drops oldest keys when max_keys is exceeded."""
+
+    import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware
+
+    monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
+    monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
+
+    t_ns = 5_000 * 1_000_000_000
+
+    def _now_ns() -> int:
+        return int(t_ns)
+
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
+
+    app = FastAPI()
+
+    @app.get("/ping")
+    def _ping():
+        return {"ok": True}
+
+    app.add_middleware(RateLimitMiddleware, ttl_s=0, max_keys=3, prune_every=1)
+
+    with TestClient(app) as client:
+        # Touch 4 distinct keys, forcing eviction down to 3.
+        for i in range(4):
+            t_ns += 1_000_000_000
+            r = client.get("/ping", headers={"x-forwarded-for": f"198.51.100.{i}"})
+            assert r.status_code == 200
+
+        rl = _find_rate_limit_instance(app)
+        assert rl is not None
+
+        assert len(rl._buckets) == 3
+
+
+def test_rate_limit_refill_uses_monotonic_integer_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    import weall.api.security as sec
+    from weall.api.security import RateLimitMiddleware, TokenBucket
+
+    monkeypatch.setenv("WEALL_TRUST_PROXY_HEADERS", "1")
+    monkeypatch.delenv("WEALL_TRUSTED_PROXY_IPS", raising=False)
+
+    t_ns = 10_000 * 1_000_000_000
+
+    def _now_ns() -> int:
+        return int(t_ns)
+
+    monkeypatch.setattr(sec.time, "monotonic_ns", _now_ns)
+
+    app = FastAPI()
+
+    @app.get("/ping")
+    def _ping():
+        return {"ok": True}
+
+    app.add_middleware(
+        RateLimitMiddleware,
+        read_bucket=TokenBucket(rate_per_sec=1, burst=2),
+        ttl_s=60,
+        max_keys=100,
+        prune_every=1,
+    )
+
+    with TestClient(app) as client:
+        headers = {"x-forwarded-for": "203.0.113.10"}
+
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 429
+
+        t_ns += 1_000_000_000
+        assert client.get("/ping", headers=headers).status_code == 200
+        assert client.get("/ping", headers=headers).status_code == 429
