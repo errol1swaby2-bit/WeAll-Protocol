@@ -49,7 +49,6 @@ if [ "${STRICT}" = "1" ]; then
   [ -n "${WEALL_EMAIL_ORACLE_ID:-}" ] || fail "WEALL_EMAIL_ORACLE_ID must be set"
   read_secret_or_file WEALL_EMAIL_ORACLE_PRIVATE_KEY >/dev/null || fail "WEALL_EMAIL_ORACLE_PRIVATE_KEY or WEALL_EMAIL_ORACLE_PRIVATE_KEY_FILE must be set"
   secret_must_not_be_plain_var WEALL_SMTP_PASSWORD
-  secret_must_not_be_plain_var WEALL_EMAIL_PASS
   production_var_mismatch WEALL_CHAIN_ID "weall-prod"
   production_var_mismatch WEALL_EXPECTED_CHAIN_ID "weall-prod"
   case "${WEALL_EMAIL_TRANSPORT}" in
@@ -57,11 +56,11 @@ if [ "${STRICT}" = "1" ]; then
       fail "mock transport is not allowed for strict production oracle service"
       ;;
     stalwart_smtp|external_smtp|smtp)
-      [ -n "${WEALL_SMTP_HOST:-${WEALL_EMAIL_HOST:-}}" ] || fail "SMTP host missing"
-      [ -n "${WEALL_SMTP_PORT:-${WEALL_EMAIL_PORT:-587}}" ] || fail "SMTP port missing"
-      [ -n "${WEALL_SMTP_FROM:-${WEALL_EMAIL_FROM:-}}" ] || fail "SMTP sender missing"
-      [ -n "${WEALL_SMTP_USERNAME:-${WEALL_EMAIL_USER:-}}" ] || fail "SMTP username missing"
-      read_secret_or_file WEALL_SMTP_PASSWORD >/dev/null || read_secret_or_file WEALL_EMAIL_PASS >/dev/null || fail "SMTP password file missing"
+      [ -n "${WEALL_SMTP_HOST:-}" ] || fail "SMTP host missing"
+      [ -n "${WEALL_SMTP_PORT:-587}" ] || fail "SMTP port missing"
+      [ -n "${WEALL_SMTP_FROM:-}" ] || fail "SMTP sender missing"
+      [ -n "${WEALL_SMTP_USERNAME:-}" ] || fail "SMTP username missing"
+      read_secret_or_file WEALL_SMTP_PASSWORD >/dev/null || fail "SMTP password file missing"
       ;;
     *) fail "unsupported WEALL_EMAIL_TRANSPORT=${WEALL_EMAIL_TRANSPORT}" ;;
   esac

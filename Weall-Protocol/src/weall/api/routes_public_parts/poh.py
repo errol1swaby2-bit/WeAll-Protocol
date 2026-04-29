@@ -545,7 +545,7 @@ def _svc(request: Request) -> EmailVerificationService:
     - This API route layer should not introduce new plaintext-email key literals.
     """
 
-    secret = (os.getenv("WEALL_POH_EMAIL_HASH_SALT") or os.getenv("WEALL_POH_EMAIL_SECRET") or "").strip()
+    secret = (os.getenv("WEALL_POH_EMAIL_HASH_SALT") or "").strip()
     if not secret and _is_prod():
         raise ApiError.bad_request(
             "missing_email_hash_salt",
@@ -554,13 +554,16 @@ def _svc(request: Request) -> EmailVerificationService:
     if not secret:
         secret = "weall-local-dev-email-secret"
 
-    ttl_ms_raw = os.getenv("WEALL_POH_EMAIL_TTL_MS", "").strip()
+    ttl_seconds_raw = os.getenv("WEALL_POH_EMAIL_CHALLENGE_TTL_SECONDS", "").strip()
     ttl_ms = 15 * 60 * 1000  # default 15 minutes
-    if ttl_ms_raw:
+    if ttl_seconds_raw:
         try:
-            ttl_ms = int(ttl_ms_raw)
+            ttl_seconds = int(ttl_seconds_raw)
         except ValueError:
-            raise ApiError.bad_request("invalid_ttl_ms", "WEALL_POH_EMAIL_TTL_MS must be an int")
+            raise ApiError.bad_request("invalid_challenge_ttl_seconds", "WEALL_POH_EMAIL_CHALLENGE_TTL_SECONDS must be an int")
+        if ttl_seconds <= 0:
+            raise ApiError.bad_request("invalid_challenge_ttl_seconds", "WEALL_POH_EMAIL_CHALLENGE_TTL_SECONDS must be positive")
+        ttl_ms = ttl_seconds * 1000
 
     st = _snapshot(request)
     caller_identity = _oracle_caller_identity(request, st)
@@ -595,7 +598,10 @@ def _sign_email_control_attestation(
 ) -> Json:
     caller = svc.caller_identity
     oracle_id = (os.getenv("WEALL_EMAIL_ORACLE_ID") or caller.operator_account or "").strip()
-    oracle_privkey = (os.getenv("WEALL_EMAIL_ORACLE_PRIVATE_KEY") or caller.node_privkey or "").strip().lower()
+    dedicated_oracle_privkey = _read_env_or_file("WEALL_EMAIL_ORACLE_PRIVATE_KEY").strip().lower()
+    if _is_prod() and not dedicated_oracle_privkey:
+        raise ApiError.bad_request("missing_email_oracle_private_key", "production email oracle signing requires WEALL_EMAIL_ORACLE_PRIVATE_KEY or WEALL_EMAIL_ORACLE_PRIVATE_KEY_FILE", {})
+    oracle_privkey = (dedicated_oracle_privkey or caller.node_privkey or "").strip().lower()
     salt = (os.getenv("WEALL_POH_EMAIL_HASH_SALT") or "").strip()
 
     if not oracle_id:

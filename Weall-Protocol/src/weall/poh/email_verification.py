@@ -10,8 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from nacl.signing import SigningKey
-
 from weall.oracle_service.transports.base import EmailMessage, EmailSendResult, EmailTransport
 from weall.oracle_service.transports.external_smtp import ExternalSMTPTransport
 from weall.oracle_service.transports.mock import MockDevTransport
@@ -31,29 +29,8 @@ class OracleCallerIdentity:
     node_privkey: str
 
 
-@dataclass(frozen=True)
-class RelayCompletionToken:
-    payload: Json
-    signature: str
-
-    @classmethod
-    def from_response(cls, data: Json) -> "RelayCompletionToken | None":
-        relay = data.get("relay_token")
-        if not isinstance(relay, dict):
-            return None
-        payload = relay.get("payload")
-        signature = relay.get("signature")
-        if not isinstance(payload, dict) or not isinstance(signature, str):
-            return None
-        return cls(payload=payload, signature=signature)
-
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
-
-
-def _json_dumps(payload: Json) -> str:
-    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
 
 def _sha256_hex(data: bytes) -> str:
@@ -82,11 +59,11 @@ def _mask_email(email: str) -> str:
 
 
 def _challenge_secret() -> str:
-    secret = (os.environ.get("WEALL_POH_EMAIL_SECRET") or "").strip()
+    secret = (os.environ.get("WEALL_POH_EMAIL_HASH_SALT") or "").strip()
     if secret:
         return secret
     if (os.environ.get("WEALL_MODE") or "").strip().lower() == "prod":
-        raise OracleRequestError("missing_email_secret")
+        raise OracleRequestError("missing_email_hash_salt")
     return "weall-local-dev-email-secret"
 
 
@@ -165,10 +142,6 @@ def _save_store(store: Json) -> None:
     tmp.replace(path)
 
 
-def _relay_token_message(payload: Json) -> bytes:
-    return _json_dumps(payload).encode("utf-8")
-
-
 def _read_env_or_file(name: str) -> str:
     value = (os.environ.get(name) or "").strip()
     if value:
@@ -182,30 +155,42 @@ def _read_env_or_file(name: str) -> str:
         return ""
 
 
+def _smtp_port_from_env() -> int:
+    raw = (os.environ.get("WEALL_SMTP_PORT") or "587").strip()
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise OracleRequestError("invalid_smtp_port") from exc
+
+
+def _ttl_ms_from_env() -> int:
+    raw_seconds = (os.environ.get("WEALL_POH_EMAIL_CHALLENGE_TTL_SECONDS") or "").strip()
+    if raw_seconds:
+        try:
+            seconds = int(raw_seconds)
+        except ValueError as exc:
+            raise OracleRequestError("invalid_challenge_ttl_seconds") from exc
+        if seconds <= 0:
+            raise OracleRequestError("invalid_challenge_ttl_seconds")
+        return seconds * 1000
+    return 15 * 60 * 1000
+
+
 def _default_transport_from_env() -> EmailTransport:
     transport = (os.environ.get("WEALL_EMAIL_TRANSPORT") or "mock").strip().lower()
     if transport in {"mock", "dev_mock"}:
         return MockDevTransport(outbox_path=_outbox_path())
 
+    cfg = StalwartSMTPConfig(
+        host=(os.environ.get("WEALL_SMTP_HOST") or "").strip(),
+        port=_smtp_port_from_env(),
+        username=(os.environ.get("WEALL_SMTP_USERNAME") or "").strip(),
+        password=_read_env_or_file("WEALL_SMTP_PASSWORD"),
+    )
     if transport == "stalwart_smtp":
-        return StalwartSMTPTransport(
-            StalwartSMTPConfig(
-                host=(os.environ.get("WEALL_SMTP_HOST") or os.environ.get("WEALL_EMAIL_HOST") or "").strip(),
-                port=int((os.environ.get("WEALL_SMTP_PORT") or os.environ.get("WEALL_EMAIL_PORT") or "587").strip()),
-                username=(os.environ.get("WEALL_SMTP_USERNAME") or os.environ.get("WEALL_EMAIL_USER") or "").strip(),
-                password=_read_env_or_file("WEALL_SMTP_PASSWORD") or _read_env_or_file("WEALL_EMAIL_PASS"),
-            )
-        )
-
+        return StalwartSMTPTransport(cfg)
     if transport in {"smtp", "external_smtp"}:
-        return ExternalSMTPTransport(
-            StalwartSMTPConfig(
-                host=(os.environ.get("WEALL_SMTP_HOST") or os.environ.get("WEALL_EMAIL_HOST") or "").strip(),
-                port=int((os.environ.get("WEALL_SMTP_PORT") or os.environ.get("WEALL_EMAIL_PORT") or "587").strip()),
-                username=(os.environ.get("WEALL_SMTP_USERNAME") or os.environ.get("WEALL_EMAIL_USER") or "").strip(),
-                password=_read_env_or_file("WEALL_SMTP_PASSWORD") or _read_env_or_file("WEALL_EMAIL_PASS"),
-            )
-        )
+        return ExternalSMTPTransport(cfg)
 
     raise OracleRequestError(f"unsupported_email_transport:{transport}")
 
@@ -215,8 +200,8 @@ class EmailVerificationService:
 
     This service intentionally has no provider-specific runtime dependency. It
     owns challenge generation, local challenge persistence, email template
-    creation, transport selection, completion verification, and relay-token
-    signing. SMTP/Stalwart are only transport choices; they do not decide PoH.
+    creation, transport selection, and completion verification. SMTP/Stalwart
+    are only transport choices; they do not decide PoH or sign attestations.
     """
 
     def __init__(
@@ -224,20 +209,13 @@ class EmailVerificationService:
         secret: str | None = None,
         ttl_ms: int | None = None,
         caller_identity: OracleCallerIdentity | None = None,
-        email_verify_base_url: str | None = None,
         transport: EmailTransport | None = None,
         official_sender: str | None = None,
     ) -> None:
-        _ = email_verify_base_url  # preserved for old constructor callers; ignored by design.
         self.secret = secret if secret is not None else _challenge_secret()
         self._transport = transport if transport is not None else _default_transport_from_env()
-        self._official_sender = (
-            official_sender
-            or os.environ.get("WEALL_SMTP_FROM")
-            or os.environ.get("WEALL_EMAIL_FROM")
-            or "verify@poh.weall.org"
-        ).strip()
-        self.ttl_ms = int(ttl_ms) if ttl_ms is not None else int((os.environ.get("WEALL_POH_EMAIL_TTL_MS") or "900000").strip())
+        self._official_sender = (official_sender or os.environ.get("WEALL_SMTP_FROM") or "verify@poh.weall.org").strip()
+        self.ttl_ms = int(ttl_ms) if ttl_ms is not None else _ttl_ms_from_env()
         self._mode = (os.environ.get("WEALL_MODE") or "").strip().lower()
 
         env_operator = (_read_env_or_file("WEALL_VALIDATOR_ACCOUNT") or _read_env_or_file("WEALL_NODE_ID")).strip()
@@ -272,22 +250,7 @@ class EmailVerificationService:
             return
         raise OracleRequestError("email_transport_not_configured")
 
-    def _require_oracle_auth_material(self) -> None:
-        if not self._operator_account:
-            raise OracleRequestError("missing_oracle_operator_account")
-        if not self._node_pubkey:
-            raise OracleRequestError("missing_oracle_node_pubkey")
-        if not self._node_privkey:
-            raise OracleRequestError("missing_oracle_node_privkey")
-
-    def _signing_key(self) -> SigningKey:
-        self._require_oracle_auth_material()
-        try:
-            return SigningKey(bytes.fromhex(self._node_privkey))
-        except Exception as exc:
-            raise OracleRequestError("invalid_oracle_node_privkey") from exc
-
-    def _send_verification_email(
+    def _send_email_challenge_via_transport(
         self,
         *,
         to_email: str,
@@ -332,6 +295,8 @@ class EmailVerificationService:
     ) -> Json:
         _ = genesis_hash
         self.require_configured()
+        if os.environ.get("WEALL_POH_EMAIL_EXPOSE_DEV_CODE", "").strip().lower() in {"1", "true", "yes"} and self._mode == "prod":
+            raise OracleRequestError("dev_code_exposure_forbidden_in_prod")
         account_norm = str(account or "").strip()
         normalized_email = _normalize_email(email)
         chain_id_norm = str(chain_id or "").strip()
@@ -341,6 +306,13 @@ class EmailVerificationService:
         issued_at_ms = _now_ms()
         expires_at_ms = issued_at_ms + int(self.ttl_ms)
         commitment = _email_commitment(account=account_norm, email=normalized_email, chain_id=chain_id_norm, secret=self.secret)
+
+        send_meta = self._send_email_challenge_via_transport(
+            to_email=normalized_email,
+            security_phrase=phrase,
+            code=code,
+            expires_at_ms=expires_at_ms,
+        )
 
         store = _load_store()
         challenges = store.setdefault("challenges", {})
@@ -356,14 +328,10 @@ class EmailVerificationService:
             "expires_at_ms": expires_at_ms,
             "attempts": 0,
             "completed": False,
+            "delivery_provider": send_meta.get("provider"),
+            "delivery_message_id": send_meta.get("message_id"),
         }
         _save_store(store)
-        send_meta = self._send_verification_email(
-            to_email=normalized_email,
-            security_phrase=phrase,
-            code=code,
-            expires_at_ms=expires_at_ms,
-        )
 
         result: Json = {
             "ok": True,
@@ -377,7 +345,7 @@ class EmailVerificationService:
             "official_sender": self._official_sender,
             "provider": send_meta.get("provider"),
         }
-        if os.environ.get("WEALL_POH_EMAIL_EXPOSE_DEV_CODE", "").strip() in {"1", "true", "yes"}:
+        if os.environ.get("WEALL_POH_EMAIL_EXPOSE_DEV_CODE", "").strip().lower() in {"1", "true", "yes"}:
             result["dev_code"] = code
         return result
 
@@ -425,22 +393,6 @@ class EmailVerificationService:
             _save_store(store)
             raise OracleRequestError("invalid_code")
 
-        self._require_oracle_auth_material()
-        payload: Json = {
-            "version": 1,
-            "type": "email_challenge_completed",
-            "chain_id": str(record.get("chain_id") or chain_id_norm),
-            "challenge_id": challenge_id,
-            "account_id": account_norm,
-            "operator_account_id": self._operator_account,
-            "email_commitment": str(record.get("email_commitment") or ""),
-            "issued_at_ms": now,
-            "expires_at_ms": now + int(self.ttl_ms),
-            "relay_account_id": self._operator_account,
-            "relay_pubkey": self._node_pubkey,
-        }
-        signature = self._signing_key().sign(_relay_token_message(payload)).signature.hex()
-        relay_token = {"payload": payload, "signature": signature}
         record["completed"] = True
         record["completed_at_ms"] = now
         _save_store(store)
@@ -449,39 +401,9 @@ class EmailVerificationService:
             "request_id": challenge_id,
             "challenge_id": challenge_id,
             "completed": True,
-            "relay_token": relay_token,
             "email_commitment": str(record.get("email_commitment") or ""),
             "security_phrase": str(record.get("security_phrase") or ""),
         }
-
-    def begin_legacy(
-        self,
-        *,
-        account_id: str,
-        email: str,
-        chain_id: str | None = None,
-        genesis_hash: str | None = None,
-    ) -> Json:
-        return self.begin(account=account_id, email=email, chain_id=chain_id, genesis_hash=genesis_hash)
-
-    def verify_legacy(
-        self,
-        *,
-        account_id: str,
-        email: str,
-        code: str,
-        challenge_id: str,
-        chain_id: str | None = None,
-        genesis_hash: str | None = None,
-    ) -> Json:
-        return self.complete(
-            account=account_id,
-            email=email,
-            code=code,
-            request_id=challenge_id,
-            chain_id=chain_id,
-            genesis_hash=genesis_hash,
-        )
 
 
 _SERVICE_SINGLETON: EmailVerificationService | None = None

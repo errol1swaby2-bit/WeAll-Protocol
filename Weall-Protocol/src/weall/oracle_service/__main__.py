@@ -7,7 +7,9 @@ random challenge generation, local challenge persistence, and SMTP transport, bu
 normal WeAll nodes only verify signed attestations against chain state.
 """
 
+import json
 import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -77,9 +79,41 @@ def _hash_salt() -> str:
     return "weall-local-dev-email-secret"
 
 
+def _default_manifest_path() -> Path:
+    configured = (os.environ.get("WEALL_CHAIN_MANIFEST_PATH") or "").strip()
+    if configured:
+        return Path(configured)
+    root = Path(__file__).resolve().parents[3]
+    mode = (os.environ.get("WEALL_MODE") or "").strip().lower()
+    if mode == "demo":
+        return root / "configs" / "chains" / "weall-demo.json"
+    return root / "configs" / "chains" / "weall-genesis.json"
+
+
+def _manifest_health_fields() -> Json:
+    path = _default_manifest_path()
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            manifest = {}
+    except Exception:
+        manifest = {}
+    oracle = manifest.get("oracle") if isinstance(manifest.get("oracle"), dict) else {}
+    profile = (os.environ.get("WEALL_ORACLE_PROFILE") or oracle.get("expected_profile") or manifest.get("mode") or "").strip()
+    return {
+        "profile": profile,
+        "chain_id": str(manifest.get("chain_id") or ""),
+        "expected_genesis_hash": str(manifest.get("genesis_hash") or ""),
+        "expected_tx_index_hash": str(manifest.get("tx_index_hash") or ""),
+    }
+
+
 @app.get("/healthz")
 def healthz() -> Json:
-    return {"ok": True, "service": "weall-poh-email-oracle"}
+    cfg = _cfg()
+    payload: Json = {"ok": True, "service": "weall-poh-email-oracle", "transport": cfg.email_transport}
+    payload.update(_manifest_health_fields())
+    return payload
 
 
 @app.get("/readyz")

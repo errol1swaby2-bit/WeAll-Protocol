@@ -35,7 +35,7 @@ export WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR="${WEALL_STATE_SYNC_REQUIRE_TRUST
 bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST}" >/tmp/weall_prod_chain_manifest_preflight.json
 
 if [ -n "${WEALL_POH_EMAIL_ORACLE_URL:-}" ] || [ -n "${WEALL_CHAIN_AUTHORITY_URL:-}" ] || [ -n "${WEALL_ORACLE_AUTHORITY_PUBKEYS:-${WEALL_TRUSTED_AUTHORITY_PUBKEYS:-}}" ]; then
-  bash "${ROOT_DIR}/scripts/prod_node_operator_oracle_preflight.sh"
+  bash "${ROOT_DIR}/scripts/prod_poh_email_oracle_operator_preflight.sh"
 else
   echo "WARN: oracle operator variables not fully configured; skipped node-operator oracle preflight" >&2
 fi

@@ -153,7 +153,7 @@ def test_prod_oracle_authority_snapshot_check_accepts_signed_fixture(tmp_path: P
 
 
 def test_node_operator_preflight_script_does_not_require_oracle_service_secrets() -> None:
-    script = (ROOT / "scripts/prod_node_operator_oracle_preflight.sh").read_text(encoding="utf-8")
+    script = (ROOT / "scripts/prod_poh_email_oracle_operator_preflight.sh").read_text(encoding="utf-8")
     assert "WEALL_EMAIL_ORACLE_PRIVATE_KEY" in script or "oracle-service" in script
     assert "authority-signer private keys" in script
     assert "provider-cli" not in script
@@ -161,4 +161,4 @@ def test_node_operator_preflight_script_does_not_require_oracle_service_secrets(
 
 def test_prod_oracle_tooling_shell_syntax() -> None:
     subprocess.run(["bash", "-n", "scripts/prod_oracle_authority_snapshot_check.sh"], cwd=ROOT, check=True)
-    subprocess.run(["bash", "-n", "scripts/prod_node_operator_oracle_preflight.sh"], cwd=ROOT, check=True)
+    subprocess.run(["bash", "-n", "scripts/prod_poh_email_oracle_operator_preflight.sh"], cwd=ROOT, check=True)

@@ -39,11 +39,11 @@ class OracleServiceConfig:
     def from_env(cls) -> "OracleServiceConfig":
         return cls(
             email_transport=str(os.environ.get("WEALL_EMAIL_TRANSPORT") or "mock").strip().lower(),
-            smtp_host=str(os.environ.get("WEALL_SMTP_HOST") or os.environ.get("WEALL_EMAIL_HOST") or "").strip(),
-            smtp_port=int(str(os.environ.get("WEALL_SMTP_PORT") or os.environ.get("WEALL_EMAIL_PORT") or "587").strip()),
-            smtp_username=str(os.environ.get("WEALL_SMTP_USERNAME") or os.environ.get("WEALL_EMAIL_USER") or "").strip(),
-            smtp_password=_read_env_or_file("WEALL_SMTP_PASSWORD") or _read_env_or_file("WEALL_EMAIL_PASS"),
-            smtp_from=str(os.environ.get("WEALL_SMTP_FROM") or os.environ.get("WEALL_EMAIL_FROM") or "verify@poh.weall.org").strip(),
+            smtp_host=str(os.environ.get("WEALL_SMTP_HOST") or "").strip(),
+            smtp_port=int(str(os.environ.get("WEALL_SMTP_PORT") or "587").strip()),
+            smtp_username=str(os.environ.get("WEALL_SMTP_USERNAME") or "").strip(),
+            smtp_password=_read_env_or_file("WEALL_SMTP_PASSWORD"),
+            smtp_from=str(os.environ.get("WEALL_SMTP_FROM") or "verify@poh.weall.org").strip(),
             oracle_id=str(os.environ.get("WEALL_EMAIL_ORACLE_ID") or "").strip(),
             oracle_private_key=_read_env_or_file("WEALL_EMAIL_ORACLE_PRIVATE_KEY"),
             oracle_public_key_id=str(os.environ.get("WEALL_EMAIL_ORACLE_PUBLIC_KEY_ID") or "").strip(),

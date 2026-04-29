@@ -48,3 +48,19 @@ def test_cloudflare_named_transport_is_not_registered(monkeypatch: pytest.Monkey
         cfg.build_transport()
 
     assert str(exc.value) == "unsupported_email_transport:cloudflare_optional"
+
+
+def test_legacy_generic_smtp_aliases_do_not_configure_transport(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEALL_EMAIL_TRANSPORT", "stalwart_smtp")
+    monkeypatch.delenv("WEALL_SMTP_HOST", raising=False)
+    monkeypatch.delenv("WEALL_SMTP_USERNAME", raising=False)
+    monkeypatch.delenv("WEALL_SMTP_PASSWORD", raising=False)
+    monkeypatch.setenv("WEALL_EMAIL_HOST", "legacy-host")
+    monkeypatch.setenv("WEALL_EMAIL_USER", "legacy-user")
+    monkeypatch.setenv("WEALL_EMAIL_PASS", "legacy-pass")
+
+    cfg = OracleServiceConfig.from_env()
+
+    assert cfg.smtp_host == ""
+    assert cfg.smtp_username == ""
+    assert cfg.smtp_password == ""

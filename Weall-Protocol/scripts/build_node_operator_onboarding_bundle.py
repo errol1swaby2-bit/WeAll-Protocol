@@ -81,7 +81,7 @@ def _build(args: argparse.Namespace) -> Json:
         },
         "oracle": {
             "profile": oracle_profile,
-            "oracle_url": str(args.oracle_url or os.environ.get("WEALL_POH_EMAIL_ORACLE_URL") or os.environ.get("WEALL_EMAIL_ORACLE_URL") or "").rstrip("/"),
+            "oracle_url": str(args.oracle_url or os.environ.get("WEALL_POH_EMAIL_ORACLE_URL") or "").rstrip("/"),
             "authority_url": str(args.authority_url or os.environ.get("WEALL_CHAIN_AUTHORITY_URL") or os.environ.get("WEALL_API_BASE") or "").rstrip("/"),
             "trusted_authority_pubkeys": authority_pubkeys,
             "min_authority_height": int(args.min_authority_height),

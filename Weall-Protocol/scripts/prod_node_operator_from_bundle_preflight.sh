@@ -39,7 +39,7 @@ bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST_PATH}" >/tmp
 if [ -n "${WEALL_ORACLE_OPERATOR_ACCOUNT:-${WEALL_VALIDATOR_ACCOUNT:-}}" ] && \
    [ -n "${WEALL_NODE_PUBKEY:-}" ] && \
    { [ -n "${WEALL_NODE_PRIVKEY:-}" ] || [ -n "${WEALL_NODE_PRIVKEY_FILE:-}" ]; }; then
-  bash "${ROOT_DIR}/scripts/prod_node_operator_oracle_preflight.sh"
+  bash "${ROOT_DIR}/scripts/prod_poh_email_oracle_operator_preflight.sh"
 else
   echo "WARN: node key/account variables not fully configured; skipped live oracle authority/key preflight" >&2
 fi

@@ -16,6 +16,7 @@ def test_batch246_preflight_scripts_exist_and_parse_shell() -> None:
         "scripts/prod_oracle_env_check.sh",
         "scripts/prod_oracle_smoke.sh",
         "scripts/prod_node_preflight.sh",
+        "scripts/prod_poh_email_oracle_operator_preflight.sh",
         "scripts/demo_full_oracle_preflight.sh",
     ]
     for script in scripts:
@@ -78,7 +79,7 @@ def test_batch246_prod_scripts_keep_node_operators_separate_from_oracle_operator
 
     assert "authority snapshot signer private key must not be present" in node_preflight
     assert "prod_chain_manifest_check.sh" in node_preflight
-    assert "prod_node_operator_oracle_preflight.sh" in node_preflight
+    assert "prod_poh_email_oracle_operator_preflight.sh" in node_preflight
 
     assert "secret_must_not_be_plain_var" in env_check
     assert "WEALL_TRUSTED_AUTHORITY_PUBKEYS" in env_check

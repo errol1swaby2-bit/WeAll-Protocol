@@ -6,11 +6,11 @@ set -euo pipefail
 # production chain manifest.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ORACLE_URL="${WEALL_PROD_ORACLE_URL:-${WEALL_EMAIL_ORACLE_URL:-${WEALL_POH_EMAIL_ORACLE_URL:-}}}"
+ORACLE_URL="${WEALL_PROD_ORACLE_URL:-${WEALL_POH_EMAIL_ORACLE_URL:-}}"
 MANIFEST="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-genesis.json}"
 
 if [ -z "${ORACLE_URL}" ]; then
-  echo "ERROR: set WEALL_PROD_ORACLE_URL, WEALL_EMAIL_ORACLE_URL, or WEALL_POH_EMAIL_ORACLE_URL to the production oracle base URL" >&2
+  echo "ERROR: set WEALL_PROD_ORACLE_URL or WEALL_POH_EMAIL_ORACLE_URL to the production oracle base URL" >&2
   exit 2
 fi
 if [ ! -f "${MANIFEST}" ]; then

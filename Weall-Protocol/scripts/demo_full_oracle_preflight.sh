@@ -24,7 +24,7 @@ export WEALL_ORACLE_PROFILE="demo"
 
 bash "${ROOT_DIR}/scripts/demo_oracle_env_check.sh"
 
-if [ -n "${WEALL_DEMO_ORACLE_URL:-${WEALL_EMAIL_ORACLE_URL:-}}" ]; then
+if [ -n "${WEALL_DEMO_ORACLE_URL:-${WEALL_POH_EMAIL_ORACLE_URL:-}}" ]; then
   bash "${ROOT_DIR}/scripts/demo_oracle_smoke.sh"
 else
   echo "WARN: no demo oracle URL set; skipped remote /healthz smoke" >&2

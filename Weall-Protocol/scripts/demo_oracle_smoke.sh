@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ORACLE_URL="${WEALL_DEMO_ORACLE_URL:-${WEALL_EMAIL_ORACLE_URL:-}}"
+ORACLE_URL="${WEALL_DEMO_ORACLE_URL:-${WEALL_POH_EMAIL_ORACLE_URL:-}}"
 if [[ -z "${ORACLE_URL}" ]]; then
-  echo "ERROR: set WEALL_DEMO_ORACLE_URL or WEALL_EMAIL_ORACLE_URL to the demo oracle base URL" >&2
+  echo "ERROR: set WEALL_DEMO_ORACLE_URL or WEALL_POH_EMAIL_ORACLE_URL to the demo oracle base URL" >&2
   exit 2
 fi
 ORACLE_URL="${ORACLE_URL%/}"

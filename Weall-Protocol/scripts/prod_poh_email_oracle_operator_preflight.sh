@@ -34,11 +34,11 @@ fi
 case "${WEALL_EMAIL_TRANSPORT}" in
   mock) ;;
   stalwart_smtp|external_smtp|smtp)
-    [ -n "${WEALL_SMTP_HOST:-${WEALL_EMAIL_HOST:-}}" ] || fail "set WEALL_SMTP_HOST or WEALL_EMAIL_HOST"
-    [ -n "${WEALL_SMTP_PORT:-${WEALL_EMAIL_PORT:-}}" ] || warn "SMTP port not set; default 587 will be used"
-    [ -n "${WEALL_SMTP_USERNAME:-${WEALL_EMAIL_USER:-}}" ] || fail "set WEALL_SMTP_USERNAME or WEALL_EMAIL_USER"
-    [ -n "${WEALL_SMTP_PASSWORD:-${WEALL_EMAIL_PASS:-}}" ] || fail "set WEALL_SMTP_PASSWORD or WEALL_EMAIL_PASS"
-    [ -n "${WEALL_SMTP_FROM:-${WEALL_EMAIL_FROM:-}}" ] || fail "set WEALL_SMTP_FROM or WEALL_EMAIL_FROM"
+    [ -n "${WEALL_SMTP_HOST:-}" ] || fail "set WEALL_SMTP_HOST "
+    [ -n "${WEALL_SMTP_PORT:-}" ] || warn "SMTP port not set; default 587 will be used"
+    [ -n "${WEALL_SMTP_USERNAME:-}" ] || fail "set WEALL_SMTP_USERNAME "
+    [ -n "${WEALL_SMTP_PASSWORD:-}" ] || fail "set WEALL_SMTP_PASSWORD "
+    [ -n "${WEALL_SMTP_FROM:-}" ] || fail "set WEALL_SMTP_FROM "
     ;;
   *) fail "unsupported WEALL_EMAIL_TRANSPORT=${WEALL_EMAIL_TRANSPORT}" ;;
 esac

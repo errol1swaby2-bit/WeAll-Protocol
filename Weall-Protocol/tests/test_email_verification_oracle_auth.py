@@ -22,7 +22,7 @@ class CapturingTransport:
 
 def test_begin_uses_injected_provider_neutral_transport(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("WEALL_POH_EMAIL_CHALLENGE_STORE", str(tmp_path / "challenges.json"))
-    monkeypatch.setenv("WEALL_POH_EMAIL_SECRET", "local-secret")
+    monkeypatch.setenv("WEALL_POH_EMAIL_HASH_SALT", "local-secret")
 
     transport = CapturingTransport()
     svc = EmailVerificationService(

@@ -2,9 +2,8 @@
 set -euo pipefail
 
 # Controlled-devnet email request helper.
-# Default mode is local-devnet: generate a chain-bound request id without
-# contacting demo/seed routes. Set WEALL_USE_NODE_EMAIL_ORACLE=1 to call the
-# node's bounded email oracle /v1/poh/email/begin route instead.
+# This always uses the node's bounded WeAll-hosted PoH email oracle route:
+# /v1/poh/email/begin. It does not synthesize local request IDs.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API="${WEALL_API:-${NODE_API:-http://127.0.0.1:8001}}"
@@ -25,7 +24,7 @@ if [[ ! -f "${KEYFILE}" ]]; then
   exit 2
 fi
 
-ACCOUNT_FROM_FILE="$(python3 - "${KEYFILE}" <<'PY'
+ACCOUNT_FROM_FILE="$(python3 -S - "${KEYFILE}" <<'PY'
 import json, sys
 with open(sys.argv[1], 'r', encoding='utf-8') as f:
     data = json.load(f)
@@ -35,8 +34,7 @@ PY
 ACCOUNT="${ACCOUNT:-${ACCOUNT_FROM_FILE}}"
 mkdir -p "$(dirname "${OUT}")"
 
-if [[ "${WEALL_USE_NODE_EMAIL_ORACLE:-0}" == "1" ]]; then
-  python3 - "${API}" "${ACCOUNT}" "${EMAIL}" "${OUT}" <<'PY'
+python3 -S - "${API}" "${ACCOUNT}" "${EMAIL}" "${OUT}" <<'PY'
 import json, sys, urllib.request
 api, account, email, out = sys.argv[1:5]
 body = json.dumps({"account": account, "email": email}).encode("utf-8")
@@ -57,29 +55,3 @@ with open(out, 'w', encoding='utf-8') as f:
     f.write('\n')
 print(json.dumps(record, indent=2, sort_keys=True))
 PY
-else
-  python3 - "${API}" "${ACCOUNT}" "${EMAIL}" "${OUT}" <<'PY'
-import hashlib, json, sys, time, urllib.request
-api, account, email, out = sys.argv[1:5]
-with urllib.request.urlopen(api.rstrip('/') + '/v1/chain/identity', timeout=15) as resp:
-    ident = json.loads(resp.read().decode('utf-8'))
-chain_id = str(ident.get('chain_id') or '').strip()
-if not chain_id:
-    raise SystemExit('node did not expose chain_id')
-email_norm = email.strip().lower()
-material = f"{chain_id}|{account}|{email_norm}|{int(time.time() * 1000)}".encode('utf-8')
-request_id = 'email:' + hashlib.sha256(material).hexdigest()[:32]
-record = {
-    "ok": True,
-    "mode": "local_devnet_bounded_oracle_request",
-    "api": api,
-    "chain_id": chain_id,
-    "account": account,
-    "request_id": request_id,
-}
-with open(out, 'w', encoding='utf-8') as f:
-    json.dump(record, f, indent=2, sort_keys=True)
-    f.write('\n')
-print(json.dumps(record, indent=2, sort_keys=True))
-PY
-fi
