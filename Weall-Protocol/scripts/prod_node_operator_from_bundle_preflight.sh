@@ -14,7 +14,7 @@ fail() {
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
 
-# A normal node operator must never need PoH email oracle service or authority signer secrets.
+# A normal node operator must never need external identity-provider service or authority signer secrets.
 [ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
 [ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
 

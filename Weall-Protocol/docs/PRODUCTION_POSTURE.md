@@ -76,7 +76,6 @@ Node startup MUST FAIL if any of the following are missing:
 - node identity (public + private key) when network/BFT/signing are enabled
 - chain_id
 - trusted anchor configuration when production profile requires it
-- PoH email secret when PoH email flow is enabled
 - validator account when validator/BFT mode is enabled
 
 ### 3.3 Forbidden Runtime Flags in Production
@@ -115,7 +114,6 @@ Not allowed:
 ### 4.2 Required Secret Inventory
 
 - node private key
-- PoH email secret
 - oracle authority keys
 - ingress/tunnel credentials where applicable
 

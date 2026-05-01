@@ -72,14 +72,14 @@ This checks:
 - oracle-service and authority-signer secrets are absent from the normal node environment;
 - optional live authority/key checks if node account/key variables are configured.
 
-## Email oracle use
+## Proof-of-Humanity use
 
-
-The default PoH email path is:
-
-```text
-```
+Normal node operators do not run external identity-provider verification services.
+Proof-of-Humanity is protocol-native: Tier 1 is async juror-attested review, and
+Tier 2 is live juror-attested review. Nodes verify committed chain state and submit
+normal signed transactions. No external identity-provider service is part of the
+required PoH architecture.
 
 ## Trust boundary
 
-A node operator does not prove authority by knowing an oracle URL. The chain accepts PoH email-control results only when the submitted proof is bound to the expected chain context and signed by an allowed oracle authority for the active deployment profile.
+A node operator does not prove authority by knowing any external service endpoint. PoH authority comes from protocol rules, chain state, and native juror-attested review.

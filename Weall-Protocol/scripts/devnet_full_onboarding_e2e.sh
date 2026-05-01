@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Controlled-devnet smoke for non-seeded onboarding and convergence:
 # clean genesis node boot, account creation through normal tx submission,
-# optional Tier-1 email verification through a bounded oracle receipt, node 2
+# native async Tier 1 verification and optional native live Tier 2 verification, node 2
 # trusted-anchor sync, cross-node state-root comparison, account/tx parity,
 # a Tier-1-gated transaction submitted through node 2 then synced back to node 1,
 # and an optional Tier-2 async PoH review/finalization convergence proof.

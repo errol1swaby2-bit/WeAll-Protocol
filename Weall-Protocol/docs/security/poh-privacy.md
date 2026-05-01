@@ -13,12 +13,7 @@ WeAll uses chain-verified eligibility, not surveillance identity.
 
 ## Commitment model
 
-The email oracle may compute:
-
-```text
-email_hash = H(normalized_email || salt || account_id)
-domain_hash = H(domain || salt || account_id)
-proof_commitment = H(canonical_attestation_payload_without_signature)
-```
-
-Only commitments are submitted to chain state.
+Native PoH verification may compute private off-chain review artifacts, but public
+chain state must contain only protocol-required commitments, case identifiers,
+juror decisions, and deterministic status fields. Raw identity-provider data is
+not part of the protocol.

@@ -75,7 +75,7 @@ def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> t
     """Load or create controlled-devnet Ed25519 key material.
 
     The helper is intentionally file-backed so shell harnesses can share one
-    account/key across create-account, PoH email attestation, Tier-2/Live, and
+    account/key across create-account, native PoH verification, and
     tick commands without relying on seeded-demo mutation routes.
     """
 
@@ -335,84 +335,6 @@ def cmd_submit_tx(args: argparse.Namespace) -> int:
     print(_json_dumps(result))
     return 0
 
-def cmd_email_tier1(args: argparse.Namespace) -> int:
-    """Submit a Tier-1 email-control attestation through normal public APIs.
-
-    Controlled devnet uses the WeAll-hosted oracle/API flow: begin challenge,
-    the tx through /v1/tx/submit.
-    """
-
-    subject_keyfile = Path(args.keyfile).expanduser()
-    account, priv, _pub, keydata = _key_material(subject_keyfile, account=args.account)
-    chain_id = _chain_id(args.api)
-
-    begin = _http_json(
-        "POST",
-        args.api,
-        {"account": account, "email": args.email},
-    )
-    request_id = str(begin.get("request_id") or begin.get("challenge_id") or args.request_id or "").strip()
-    if not request_id:
-        raise SystemExit(f"Unexpected email begin response: {_json_dumps(begin)}")
-
-    code = str(args.code or begin.get("dev_code") or "").strip()
-    if not code:
-        raise SystemExit(
-        )
-
-    completed = _http_json(
-        "POST",
-        args.api,
-        {"account": account, "email": args.email, "request_id": request_id, "code": code},
-    )
-    tx_skel = completed.get("tx") if isinstance(completed, dict) else None
-    if not isinstance(tx_skel, dict):
-        attestation = completed.get("attestation") if isinstance(completed, dict) else None
-        if not isinstance(attestation, dict):
-            raise SystemExit(f"Unexpected email complete response: {_json_dumps(completed)}")
-        tx_skel = {
-            "payload": {"account_id": account, "attestation": attestation},
-            "parent": None,
-        }
-
-        raise SystemExit(f"unsupported email Tier-1 tx_type from oracle: {tx_type}")
-
-    if args.attestation_out:
-        out_path = Path(args.attestation_out).expanduser()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(_json_dumps(completed.get("attestation") or tx_skel.get("payload") or {}) + "\n", encoding="utf-8")
-
-    nonce = int(args.nonce) if args.nonce is not None else _next_nonce(args.api, account)
-    tx = _sign_tx(
-        chain_id=chain_id,
-        signer=account,
-        nonce=nonce,
-        payload=tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else {},
-        parent=args.parent,
-        privkey=priv,
-    )
-    submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
-    tx_id = str(submitted.get("tx_id") or "").strip()
-    result: Json = {
-        "ok": bool(submitted.get("ok", False)),
-        "api": args.api,
-        "chain_id": chain_id,
-        "account": account,
-        "request_id": request_id,
-        "tx_id": tx_id,
-        "submit": submitted,
-        "security_phrase": str(begin.get("security_phrase") or completed.get("security_phrase") or ""),
-        "official_sender": str(begin.get("official_sender") or ""),
-    }
-    if args.wait and tx_id:
-        result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
-        result["account_state"] = _account_state(args.api, account)
-    keydata["last_poh_email_attestation_tx_id"] = tx_id
-    keydata["last_poh_email_request_id"] = request_id
-    keydata["chain_id"] = chain_id
-    subject_keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
-    print(_json_dumps(result))
-    return 0
 
 
 def _tier2_case(api: str, case_id: str) -> Json:
