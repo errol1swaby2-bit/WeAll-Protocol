@@ -252,19 +252,11 @@ export default function PohPage(): JSX.Element {
 
   const [sessionBusy, setSessionBusy] = useState(false);
   const [registerBusy, setRegisterBusy] = useState(false);
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [confirmBusy, setConfirmBusy] = useState(false);
   const [tier2UploadBusy, setTier2UploadBusy] = useState(false);
   const [tier2RequestBusy, setTier2RequestBusy] = useState(false);
   const [tier3RequestBusy, setTier3RequestBusy] = useState(false);
   const [casesBusy, setCasesBusy] = useState(false);
 
-  const [email, setEmail] = useState("");
-  const [requestId, setRequestId] = useState("");
-  const [emailCode, setEmailCode] = useState("");
-  const [securityPhrase, setSecurityPhrase] = useState("");
-  const [officialSender, setOfficialSender] = useState("verify@poh.weall.org");
-  const [emailMasked, setEmailMasked] = useState("");
   const [tier2Upload, setTier2Upload] = useState<UploadState | null>(null);
   const [tier2Cases, setTier2Cases] = useState<any[]>([]);
   const [tier3Cases, setTier3Cases] = useState<any[]>([]);
@@ -450,108 +442,20 @@ export default function PohPage(): JSX.Element {
     }
   }
 
-  async function beginEmailVerification(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
-      return;
-    }
-    if (!registered) {
-      setErr({ msg: "registration_required_first", details: null });
-      return;
-    }
-    if (!email.trim()) {
-      setErr({ msg: "email_required", details: null });
-      return;
-    }
-    const headers = getAuthHeaders(acct);
-    setEmailBusy(true);
+  function explainNativeAsyncVerification(): void {
     setErr(null);
-    try {
-      const r: any = await tx.runTx({
-        title: "Begin legacy async adapter",
-        pendingMessage: "Sending legacy verification code…",
-        successMessage: "Legacy verification code sent.",
-        errorMessage: (e) => prettyErr(e).msg,
-        task: async () =>
-          weall.pohEmailBegin(
-            {
-              account: acct,
-              email: email.trim(),
-            },
-            base,
-            headers,
-          ),
-      });
-      setRequestId(String(r?.challenge_id || r?.request_id || ""));
-      setSecurityPhrase(String(r?.security_phrase || ""));
-      setOfficialSender(String(r?.official_sender || "verify@poh.weall.org"));
-      setEmailMasked(String(r?.email_masked || ""));
-      setResult(r);
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setEmailBusy(false);
-    }
+    setResult({
+      ok: true,
+      path: "native_async_human_verification",
+      message: "The primary Tier 1 path is protocol-native async juror-attested verification finalized on-chain. This frontend no longer calls removed external-identity routes.",
+      next_steps: registered
+        ? ["Open or inspect native async PoH cases when POH_ASYNC_* surfaces are enabled.", "Refresh PoH state after juror finalization."]
+        : ["Register the account on-chain first.", "Return here to inspect native async/live PoH readiness."],
+    });
   }
 
-  async function confirmEmailVerification(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
-      return;
-    }
-    if (!requestId.trim() || !emailCode.trim()) {
-      setErr({ msg: "request_id_and_code_required", details: null });
-      return;
-    }
-    if (!kp?.secretKeyB64 || !kp?.pubkeyB64) {
-      setErr({ msg: "local_signer_required", details: null });
-      return;
-    }
-    setConfirmBusy(true);
-    setErr(null);
-    try {
-      const r = await tx.runTx({
-        title: "Submit legacy async adapter",
-        pendingMessage: "Confirming legacy code…",
-        successMessage: "Legacy async adapter confirmed.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: {
-          timeoutMs: 20000,
-          reconcile: async () => reconcileTierVisible(acct, 1, base),
-        },
-        task: async () => {
-          const verifyRes: any = await weall.emailOracleVerify(
-            {
-              account: acct,
-              email: email.trim(),
-              request_id: requestId.trim(),
-              code: emailCode.trim(),
-            },
-            base,
-            getAuthHeaders(acct),
-          );
-          const skeletonTx = verifyRes?.tx;
-          if (!skeletonTx) throw new Error("invalid_skeleton");
-          const submit = await submitSignedTx({
-            account: acct,
-            tx_type: String(skeletonTx.tx_type || ""),
-            payload: skeletonTx.payload || {},
-            parent: skeletonTx.parent ?? null,
-            base,
-          });
-          return { verify: verifyRes, submit };
-        },
-      });
-      setResult(r);
-      await refresh();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setConfirmBusy(false);
-    }
-  }
+
+  async function uploadTier2Video
 
   async function uploadTier2Video(file: File): Promise<void> {
     setTier2UploadBusy(true);
@@ -709,7 +613,7 @@ export default function PohPage(): JSX.Element {
     if (!acct) return "Connect this device to an account before the protocol can track your PoH status.";
     if (!hasLocalKeypair) return "Restore or create the local signer on this device. Nothing has been submitted to the chain yet.";
     if (!registered) return "Register the account on-chain first. PoH review state does not begin until the account exists authoritatively.";
-    if (tier < 1) return requestId.trim() ? "A legacy compatibility request exists. The target path is native async juror-attested verification finalized on-chain." : "Start Async Human Verification. Legacy email controls remain compatibility-only until POH_ASYNC_* lands.";
+    if (tier < 1) return "Start native Async Human Verification when the protocol-native POH_ASYNC_* surface is available on this deployment.";
     if (tier < 2) return tier3Cases.length || tier3Sessions.length ? "Live Verification has moved into assigned review or live-session scheduling. Watch the case/session cards rather than guessing completion timing." : "Open the Live Verification request. After submission, the next move comes from session assignment and juror coordination.";
     return "PoH is complete for the two-tier model. Service authority is handled separately through badges and roles.";
   }, [acct, hasLocalKeypair, registered, requestId, sessionKeyPresent, tier, tier3Cases.length, tier3Sessions.length]);
@@ -978,56 +882,46 @@ export default function PohPage(): JSX.Element {
                 <div className="eyebrow">Stage 2</div>
                 <h2 className="cardTitle">Async Human Verification</h2>
               </div>
-              <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Async verified" : "Async pending"}</span>
+              <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Async verified" : "Native review pending"}</span>
             </div>
 
             <p className="cardDesc">
-              The v2.1 target path is native async juror-attested verification finalized on-chain. The email controls below are retained only as a legacy compatibility adapter while POH_ASYNC_* is introduced.
+              Tier 1 is the protocol-native async human verification path. It is finalized by WeAll protocol state and juror attestations, not by inbox control or an external identity provider.
             </p>
 
-            <label className="formField">
-              <span>Legacy adapter email address</span>
-              <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
-            </label>
+            <div className="progressList">
+              <div className="progressRow"><span>Account registered</span><span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Ready" : "Required first"}</span></div>
+              <div className="progressRow"><span>Async verification level</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Complete" : "Awaiting native case"}</span></div>
+              <div className="progressRow"><span>External identity provider</span><span className="statusPill">Not required</span></div>
+            </div>
 
-            <div className="muted">
-              Legacy email verification is not protocol authority in the v2.1 model. Use this adapter only while migrating deployments that have not yet enabled native async juror review.
+            <div className="calloutInfo">
+              This frontend intentionally does not expose the removed external-attestation adapter. Once native async request/review endpoints are enabled, this card should open that protocol-native flow directly.
             </div>
 
             <div className="buttonRowWide">
-              <button className="btn" onClick={() => void beginEmailVerification()} disabled={!acct || !registered || emailBusy || tier >= 1 || signerSubmission.busy}>
-                {emailBusy ? "Sending…" : signerSubmission.busy ? "Waiting for signer…" : "Send legacy code"}
+              <button className="btn" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
+                Show native async next steps
+              </button>
+              <button
+                className="btn btnGhost"
+                onClick={() => {
+                  void refreshPohSurface();
+                }}
+                disabled={loading || casesBusy}
+              >
+                {loading || casesBusy ? "Refreshing…" : "Refresh PoH state"}
               </button>
             </div>
-
-            <div className="formGrid">
-              {(securityPhrase || emailMasked) ? (
-                <div className="calloutInfo formStack">
-                  <div><strong>Official sender:</strong> {officialSender}</div>
-                  {securityPhrase ? <div><strong>Security phrase:</strong> {securityPhrase}</div> : null}
-                  {emailMasked ? <div><strong>Sent to:</strong> {emailMasked}</div> : null}
-                  <div className="muted">Only trust the email if the phrase matches what is shown inside WeAll.</div>
-                </div>
-              ) : null}
-              <label className="formField">
-                <span>Request ID</span>
-                <input className="input mono" value={requestId} onChange={(e) => setRequestId(e.target.value)} placeholder="Returned by verification begin" />
-              </label>
-              <label className="formField">
-                <span>Legacy code</span>
-                <input className="input mono" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="000000" />
-              </label>
-            </div>
-
-            <button className="btn btnPrimary" onClick={() => void confirmEmailVerification()} disabled={!acct || !registered || confirmBusy || tier >= 1 || signerSubmission.busy}>
-              {confirmBusy ? "Confirming…" : signerSubmission.busy ? "Waiting for signer…" : "Submit legacy Tier 1 adapter"}
-            </button>
           </div>
         </article>
-      </section>
 
-      <section className="grid2">
         <article className="card">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Stage 3</div>
+                <h2 className="cardTitle">Async escalation compatibility review</h2>        <article className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
@@ -1125,7 +1019,7 @@ export default function PohPage(): JSX.Element {
             </div>
 
             <div className="progressList">
-              <div className="progressRow"><span>Native async Tier 1</span><span className="statusPill">Target migration</span></div>
+              <div className="progressRow"><span>Native async Tier 1</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Complete" : "Primary path"}</span></div>
               <div className="progressRow"><span>Legacy async escalation intake</span><span className={`statusPill ${tier2VideoUploadEnabled ? "ok" : ""}`}>{tier2VideoUploadEnabled ? "Compatibility on" : "Unavailable here"}</span></div>
               <div className="progressRow"><span>Live Verification request submit</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Available after Async Verification" : "Locked until Async Verification"}</span></div>
             </div>

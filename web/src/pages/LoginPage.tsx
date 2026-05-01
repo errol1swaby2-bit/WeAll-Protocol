@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react"
 
 import {
   ApiError,
-  beginPohEmailVerification,
   fetchStatus,
   getApiBase,
   setApiBase,
@@ -12,8 +11,8 @@ import {
   ensureKeypair,
   getKeypair,
   getSession,
+  issueSessionFromSecretKey,
   restoreAccountAndLoginOnThisDevice,
-  submitSignedTx,
 } from "../auth/session"
 import { consumeReturnTo, nav } from "../lib/router"
 import { useAppConfig } from "../lib/config"
@@ -223,17 +222,9 @@ export default function LoginPage() {
   const [mode, setMode] = useState<LoginMode>("create")
 
   const [accountInput, setAccountInput] = useState("")
-  const [email, setEmail] = useState("")
-  const [code, setCode] = useState("")
-  const [securityPhrase, setSecurityPhrase] = useState("")
-  const [officialSender, setOfficialSender] = useState("verify@poh.weall.org")
-  const [emailMasked, setEmailMasked] = useState("")
 
   const [existingAccountInput, setExistingAccountInput] = useState("")
   const [privateKey, setPrivateKey] = useState("")
-
-  const [requestId, setRequestId] = useState("")
-  const [step, setStep] = useState<"begin" | "confirm">("begin")
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -303,7 +294,7 @@ export default function LoginPage() {
     }
   }
 
-  async function handleBegin(e: FormEvent) {
+  async function handleCreateAccount(e: FormEvent) {
     e.preventDefault()
     setError("")
     setNotice("")
@@ -313,107 +304,35 @@ export default function LoginPage() {
       return
     }
 
-    if (!email.trim()) {
-      setError("Enter an email address.")
-      return
-    }
-
-
-    setBusy(true)
-    try {
-      ensureKeypair(account)
-      const res = await beginPohEmailVerification({
-        account,
-        email: email.trim(),
-      })
-
-      const nextRequestId =
-        typeof res.request_id === "string"
-          ? res.request_id.trim()
-          : typeof res.challenge_id === "string"
-            ? res.challenge_id.trim()
-            : ""
-
-      setRequestId(nextRequestId)
-      setSecurityPhrase(String(res.security_phrase || ""))
-      setOfficialSender(String(res.official_sender || "verify@poh.weall.org"))
-      setEmailMasked(String(res.email_masked || ""))
-      setStep("confirm")
-      setNotice("Verification code requested. Check your email and confirm the security phrase before entering the code.")
-    } catch (err) {
-      setError(
-        humanizeApiError(
-          err,
-          "Could not start email verification. Check the backend response and try again.",
-        ),
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleConfirm(e: FormEvent) {
-    e.preventDefault()
-    setError("")
-    setNotice("")
-
-    if (!account) {
-      setError("Enter a handle.")
-      return
-    }
-    if (!email.trim()) {
-      setError("Enter an email address.")
-      return
-    }
-    if (!code.trim()) {
-      setError("Enter the verification code.")
-      return
-    }
-    if (!requestId.trim()) {
-      setError("Missing verification request id. Request a new code and try again.")
+    if (backendReachable === false) {
+      setError("The selected backend is unreachable. Save a reachable API target before continuing.")
       return
     }
 
     setBusy(true)
     try {
       const keypair = ensureKeypair(account)
-      const verifyRes: any = await weall.emailOracleVerify({
-        account,
-        email: email.trim(),
-        request_id: requestId.trim(),
-        code: code.trim(),
-      })
-
-      const txSkeleton = verifyRes?.tx
-      if (!txSkeleton?.tx_type || !txSkeleton?.payload) {
-        throw new Error("Backend did not return a valid email-attestation transaction skeleton.")
-      }
-
-      await submitSignedTx({
-        account,
-        tx_type: String(txSkeleton.tx_type),
-        payload: txSkeleton.payload,
-        parent: txSkeleton.parent ?? null,
-      })
-
-      await restoreAccountAndLoginOnThisDevice({
+      issueSessionFromSecretKey({
         account,
         secretKeyB64: keypair.secretKeyB64,
       })
 
-      setNotice("Email confirmed, Tier 1 submission sent, and this device session is now active.")
-      nav(consumeReturnTo("/home"))
+      setNotice("Local account signer created. Continue on the PoH page to register the account on-chain and start native async/live verification.")
+      nav(consumeReturnTo("/poh"))
     } catch (err) {
       setError(
         humanizeApiError(
           err,
-          "Could not finish email verification. Check the code and backend PoH email route.",
+          "Could not create the local account signer. Confirm the handle and browser storage permissions, then try again.",
         ),
       )
     } finally {
       setBusy(false)
     }
   }
+
+
+  async function handleExistingLogin
 
   async function handleExistingLogin(e: FormEvent) {
     e.preventDefault()
@@ -524,28 +443,24 @@ export default function LoginPage() {
     {
       title: "1. Create local identity",
       detail: account
-        ? `${account} will get a browser-local signer before email confirmation finishes.`
+        ? `${account} will get a browser-local signer on this device.`
         : "Enter a handle to generate a browser-local signer for the new account.",
       tone: account ? "good" : "pending",
     },
     {
-      title: "2. Verify email",
-      detail: step === "begin"
-        ? "Request a verification code from the WeAll-hosted PoH email oracle."
-        : "A verification request exists. Match the security phrase, then enter the code from your email.",
-      tone: requestId ? "good" : "pending",
+      title: "2. Establish browser session",
+      detail: "The first session is local and signer-backed. On-chain registration happens from the PoH page.",
+      tone: account ? "pending" : "warn",
     },
     {
-      title: "3. Submit Tier 1 attestation on-chain",
-      detail: "The backend returns a signed email_control_attestation_v1 transaction after the WeAll oracle verifies the code.",
-      tone: step === "confirm" ? "pending" : "warn",
-    },
-    {
-      title: "4. Establish this device session",
-      detail: "After the attestation transaction is submitted, the client creates a fresh device session for the same account.",
-      tone: requestId ? "pending" : "warn",
+      title: "3. Continue to native PoH",
+      detail: "Use the PoH page to register the account, open native async verification, and request live verification when eligible.",
+      tone: account ? "pending" : "warn",
     },
   ]
+
+
+  const restoreFlowCheckpoints
 
   const restoreFlowCheckpoints: Checkpoint[] = [
     {
@@ -573,9 +488,8 @@ export default function LoginPage() {
             <p className="eyebrow">Start</p>
             <h1>Connect this device, then continue onboarding with clear state boundaries.</h1>
             <p className="muted">
-              This page is where local identity, device session, and the first on-chain onboarding steps come together.
-              It should be obvious what is local to this browser, what is verified by the WeAll PoH email oracle, and what still
-              depends on on-chain processing.
+              This page is where local identity and device session setup begin. It should be obvious what is local to this
+              browser, what must be registered on-chain, and what belongs to the native async/live PoH workflow.
             </p>
           </div>
 
@@ -586,9 +500,9 @@ export default function LoginPage() {
               <span>{apiBaseInput || "No API base configured."}</span>
             </div>
             <div className="authStatusCard">
-              <span className="authStatusLabel">PoH email oracle</span>
-              <strong>WeAll-hosted</strong>
-              <span>Used for the email verification step before the attestation transaction is submitted.</span>
+              <span className="authStatusLabel">Native PoH path</span>
+              <strong>Async / Live</strong>
+              <span>Verification is handled through protocol-native PoH surfaces, not a browser-configured external endpoint.</span>
             </div>
             <div className="authStatusCard">
               <span className="authStatusLabel">Active device state</span>
@@ -715,11 +629,11 @@ export default function LoginPage() {
 
               {createSignerSubmission.busy ? (
                 <div className="calloutInfo">
-                  Another signed action for {account || "this account"} is still settling. Wait for it to finish before requesting or confirming email verification on this device.
+                  Another signed action for {account || "this account"} is still settling. Wait for it to finish before creating a new local session on this device.
                 </div>
               ) : null}
 
-              <form onSubmit={step === "begin" ? handleBegin : handleConfirm} className="stack-md authFormCard">
+              <form onSubmit={handleCreateAccount} className="stack-md authFormCard">
                 <label className="field">
                   <span>Handle</span>
                   <input
@@ -730,45 +644,9 @@ export default function LoginPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Email address</span>
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    type="email"
-                  />
-                </label>
-
-                {step === "begin" ? (
-                  <div className="calloutInfo">
-                    The verification email is sent by the WeAll-hosted PoH email oracle. No third-party challenge widget is required.
-                  </div>
-                ) : null}
-
-                {step === "confirm" ? (
-                  <>
-                    <div className="calloutInfo stack-sm">
-                      <p className="eyebrow">Email safety check</p>
-                      <p>Only trust the message if the sender and phrase match this screen.</p>
-                      <p><strong>Official sender:</strong> {officialSender}</p>
-                      {securityPhrase ? <p><strong>Security phrase:</strong> {securityPhrase}</p> : null}
-                      {emailMasked ? <p><strong>Sent to:</strong> {emailMasked}</p> : null}
-                      <p className="muted">WeAll will never ask for your password, private key, seed phrase, wallet secret, or payment.</p>
-                    </div>
-                    <label className="field">
-                      <span>Verification code</span>
-                      <input
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        placeholder="123456"
-                        autoComplete="one-time-code"
-                        inputMode="numeric"
-                      />
-                    </label>
-                  </>
-                ) : null}
+                <div className="calloutInfo">
+                  This creates a browser-local signer and local session only. Open the PoH page next to submit ACCOUNT_REGISTER and continue through native async/live verification.
+                </div>
 
                 <div className="authMetaGrid">
                   <div className="authMetaCard">
@@ -776,37 +654,15 @@ export default function LoginPage() {
                     <strong>{newAccountKeypair?.pubkeyB64 ? "Prepared" : account ? "Will be generated" : "Waiting for handle"}</strong>
                   </div>
                   <div className="authMetaCard">
-                    <span>Verification request</span>
-                    <strong>{requestId || "Not created yet"}</strong>
+                    <span>Next protocol step</span>
+                    <strong>{account ? "Register on PoH page" : "Enter handle first"}</strong>
                   </div>
                 </div>
 
                 <div className="row gap-sm wrap">
-                  {step === "begin" ? (
-                    <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
-                      {busy ? "Sending code…" : "Request verification code"}
-                    </button>
-                  ) : (
-                    <>
-                      <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
-                        {busy ? "Confirming…" : "Confirm code and submit Tier 1"}
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => {
-                          setStep("begin")
-                          setCode("")
-                          setError("")
-                          setNotice("")
-                          setSecurityPhrase("")
-                          setEmailMasked("")
-                        }}
-                      >
-                        Start over
-                      </button>
-                    </>
-                  )}
+                  <button type="submit" disabled={busy || backendReachable === false || signerBusy}>
+                    {busy ? "Creating…" : "Create local account session"}
+                  </button>
                 </div>
               </form>
             </div>

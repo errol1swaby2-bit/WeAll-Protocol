@@ -185,9 +185,9 @@ export default function Settings(): JSX.Element {
           <div className="summaryCardText">Build-time default for this client: {config.appName} {config.clientVersion} ({config.envLabel}).</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">PoH email oracle</div>
-          <div className="summaryCardValue mono">WeAll API mediated</div>
-          <div className="summaryCardText">Email verification is handled through the selected backend API and its WeAll-hosted oracle flow, not by a browser-configured external endpoint.</div>
+          <div className="summaryCardLabel">Native PoH path</div>
+          <div className="summaryCardValue mono">Async / Live</div>
+          <div className="summaryCardText">Human verification is handled through protocol-native PoH surfaces and chain state, not by a browser-configured external identity endpoint.</div>
         </article>
       </section>
 

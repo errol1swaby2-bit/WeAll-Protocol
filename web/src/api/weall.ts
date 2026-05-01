@@ -247,44 +247,6 @@ export type FeedResponse = {
   next_cursor?: string | null;
 };
 
-export type PohEmailBeginResponse = {
-  ok?: boolean;
-  request_id?: string;
-  challenge_id?: string;
-  expires_ms?: number;
-  security_phrase?: string;
-  official_sender?: string;
-  email_masked?: string | null;
-  status?: string;
-  message?: string;
-};
-
-export type PohEmailControlAttestationV1 = {
-  type: "email_control_attestation_v1";
-  chain_id?: string;
-  account_id: string;
-  email_hash: string;
-  domain_hash: string;
-  challenge_id: string;
-  issued_at_height: number;
-  expires_at_height: number;
-  oracle_id: string;
-  proof_commitment: string;
-  oracle_signature: string;
-};
-
-export type PohEmailCompleteResponse = {
-  ok?: boolean;
-  request_id?: string;
-  completed?: boolean;
-  attestation?: PohEmailControlAttestationV1;
-  tx?: { tx_type?: string; signer_hint?: string; parent?: string | null; payload?: Record<string, unknown> };
-  security_phrase?: string;
-  status?: string;
-  message?: string;
-};
-
-
 
 export type SessionLoginResponse = {
   ok?: boolean;
@@ -345,28 +307,7 @@ export async function fetchFeed(params?: FeedParams, base?: string): Promise<Fee
   return request<FeedResponse>(qs, { method: "GET" }, base);
 }
 
-export async function beginPohEmailVerification(input: {
-  account?: string;
-  account_id?: string;
-  operator_account_id?: string;
-  email: string;
-}): Promise<PohEmailBeginResponse> {
-  const account = normalizeAccountField(input);
-  return request<PohEmailBeginResponse>(
-    "/v1/poh/email/begin",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        account,
-        email: input.email,
-      }),
-    },
-    undefined,
-  );
-}
-
-
-function withSearch(
+function withSearch(function withSearch(
   path: string,
   params?: Record<string, string | number | boolean | null | undefined>,
 ): string {
@@ -663,68 +604,7 @@ export const weall = {
     return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/participants`, base, headers);
   },
 
-  emailOracleStart(
-    payload: { account?: string; account_id?: string; operator_account_id?: string; email: string },
-    base?: string,
-    headers?: HeadersInit,
-  ): Promise<any> {
-    return apiPost(
-      "/v1/poh/email/begin",
-      {
-        account: normalizeAccountField(payload),
-        email: payload.email,
-      },
-      base,
-      headers,
-    );
-  },
-
-  emailOracleVerify(
-    payload: {
-      account?: string;
-      account_id?: string;
-      email: string;
-      code: string;
-      request_id?: string;
-      challenge_id?: string;
-    },
-    base?: string,
-    headers?: HeadersInit,
-  ): Promise<PohEmailCompleteResponse> {
-    return apiPost(
-      "/v1/poh/email/complete",
-      {
-        account: normalizeAccountField(payload),
-        email: payload.email,
-        request_id: payload.request_id || payload.challenge_id || "",
-        code: payload.code,
-      },
-      base,
-      headers,
-    );
-  },
-
-  pohEmailBegin(
-    payload: { account?: string; account_id?: string; operator_account_id?: string; email: string },
-    base?: string,
-    headers?: HeadersInit,
-  ): Promise<any> {
-    return apiPost(
-      "/v1/poh/email/begin",
-      {
-        account: normalizeAccountField(payload),
-        email: payload.email,
-      },
-      base,
-      headers,
-    );
-  },
-
-
-  pohEmailAttestationTxSubmit(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/email/tx/attestation-submit", payload, base, headers);
-  },
-
+  pohTier2TxRequest(
   pohTier2TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/tier2/tx/request", payload, base, headers);
   },

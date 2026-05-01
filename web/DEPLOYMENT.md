@@ -84,6 +84,6 @@ weall.example.com {
 
 native PoH verification
 
-Tier 1 native async verification routes through the active WeAll API target and protocol-native PoH surfaces. The frontend does not load a third-party challenge widget, email oracle, or external identity-provider endpoint for the primary PoH path.
+Tier 1 native async verification routes through the active WeAll API target and protocol-native PoH surfaces. The frontend does not load a third-party challenge widget or external identity-provider endpoint for the primary PoH path.
 
 The CSP permits only the app itself plus normal API/media connections configured by deployment headers.
