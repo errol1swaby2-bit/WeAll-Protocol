@@ -21,8 +21,10 @@ esac
 
 [ -z "${WEALL_ENABLE_DEMO_SEED_ROUTE:-}" ] || fail "WEALL_ENABLE_DEMO_SEED_ROUTE must not be set for production node preflight"
 [ -z "${WEALL_AUTHORITY_PROFILE:-}" ] || [ "${WEALL_AUTHORITY_PROFILE}" = "production" ] || fail "WEALL_AUTHORITY_PROFILE must be production or unset"
-[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
-[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
+[ -z "${WEALL_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
+[ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present in a normal node environment"
+[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy authority signer private key must not be present in a normal node environment"
+[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy authority private key must not be present in a normal node environment"
 
 export WEALL_MODE="prod"
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST}"

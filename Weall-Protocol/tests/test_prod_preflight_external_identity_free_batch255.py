@@ -27,3 +27,18 @@ def test_removed_external_identity_operator_scripts_are_absent() -> None:
         join("scripts/rollback_testnet_", "email_", "rate_limit.sh"),
     ]:
         assert not (ROOT / rel).exists(), rel
+
+def test_prod_preflight_rejects_current_and_legacy_authority_private_key_envs() -> None:
+    checks = {
+        "WEALL_AUTHORITY_SIGNER_PRIVKEY",
+        "WEALL_AUTHORITY_PRIVKEY",
+        "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
+        "WEALL_ORACLE_AUTHORITY_PRIVKEY",
+    }
+    for rel in [
+        "scripts/prod_node_preflight.sh",
+        "scripts/prod_node_operator_from_bundle_preflight.sh",
+    ]:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        missing = sorted(key for key in checks if key not in text)
+        assert not missing, f"{rel} missing authority secret guards: {missing}"
