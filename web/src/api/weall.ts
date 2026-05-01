@@ -588,28 +588,27 @@ export const weall = {
     return apiGet(`/v1/poh/tier2/case/${encodeURIComponent(caseId)}`, base, headers);
   },
 
-  pohTier3Assigned(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveAssigned(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(withSearch('/v1/poh/live/assigned', { juror: account }), base, headers);
   },
 
-  pohTier3Sessions(base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveSessions(base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet("/v1/poh/live/sessions", base, headers);
   },
 
-  pohTier3Case(caseId: string, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveCase(caseId: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/poh/live/case/${encodeURIComponent(caseId)}`, base, headers);
   },
 
-  pohTier3SessionParticipants(sessionId: string, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveSessionParticipants(sessionId: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/participants`, base, headers);
   },
 
-  pohTier2TxRequest(
   pohTier2TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/tier2/tx/request", payload, base, headers);
   },
 
-  pohTier3TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveTxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/request", payload, base, headers);
   },
 
@@ -625,24 +624,24 @@ export const weall = {
     return apiPost("/v1/poh/tier2/tx/review", payload, base, headers);
   },
 
-  pohTier3TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveTxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/juror-accept", payload, base, headers);
   },
 
-  pohTier3TxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveTxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/juror-decline", payload, base, headers);
   },
 
-  pohTier3TxAttendance(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveTxAttendance(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/attendance", payload, base, headers);
   },
 
-  pohTier3TxVerdict(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+  pohLiveTxVerdict(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/verdict", payload, base, headers);
   },
 
   pohTier2VideoUpload(file: File, base?: string, headers?: HeadersInit): Promise<any> {
-    return uploadFile('/v1/media/upload', file, base, headers);
+    return uploadFile('/v1/poh/tier2/video/upload', file, base, headers);
   },
 
   mediaUpload(file: File, base?: string, headers?: HeadersInit): Promise<any> {

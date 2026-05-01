@@ -67,9 +67,18 @@ def _chain(bundle: Json) -> Json:
     return chain if isinstance(chain, dict) else {}
 
 
-def _oracle(bundle: Json) -> Json:
-    oracle = bundle.get("oracle")
-    return oracle if isinstance(oracle, dict) else {}
+def _authority(bundle: Json) -> Json:
+    """Return the public chain-authority section.
+
+    New bundles should use ``authority``. A read-only fallback accepts the old
+    ``oracle`` section for already-exported operator bundles, but generated shell
+    env now uses provider-neutral authority names.
+    """
+    authority = bundle.get("authority")
+    if isinstance(authority, dict):
+        return authority
+    legacy_authority = bundle.get("oracle")
+    return legacy_authority if isinstance(legacy_authority, dict) else {}
 
 
 def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authority: bool) -> Json:
@@ -82,21 +91,20 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
         issues.append("bundle_wrong_version")
 
     chain = _chain(bundle)
-    oracle = _oracle(bundle)
+    authority = _authority(bundle)
     required_chain = ["chain_id", "genesis_hash", "genesis_state_root", "tx_index_hash", "schema_version"]
     for key in required_chain:
         if not str(chain.get(key) or "").strip():
             issues.append(f"missing_chain_{key}")
 
     if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"}:
-        if str(oracle.get("profile") or "") != "production":
-            issues.append("production_bundle_oracle_profile_not_production")
-        if not str(oracle.get("oracle_url") or "").startswith("https://"):
-            issues.append("production_oracle_url_must_be_https")
-        if not str(oracle.get("authority_url") or "").startswith("https://"):
+        if str(authority.get("profile") or "") != "production":
+            issues.append("production_bundle_authority_profile_not_production")
+        authority_url = str(authority.get("authority_url") or authority.get("url") or "")
+        if not authority_url.startswith("https://"):
             issues.append("production_authority_url_must_be_https")
 
-    pubkeys = [str(pk).strip().lower() for pk in (oracle.get("trusted_authority_pubkeys") or [])]
+    pubkeys = [str(pk).strip().lower() for pk in (authority.get("trusted_authority_pubkeys") or [])]
     if not pubkeys:
         issues.append("missing_trusted_authority_pubkeys")
     elif any(pk in PLACEHOLDER_AUTHORITY_PUBKEYS or pk.startswith("replace_with") for pk in pubkeys):
@@ -126,28 +134,28 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
         "chain_id": chain.get("chain_id"),
         "genesis_hash": chain.get("genesis_hash"),
         "tx_index_hash": chain.get("tx_index_hash"),
-        "oracle_profile": oracle.get("profile"),
-        "oracle_url": oracle.get("oracle_url"),
-        "authority_url": oracle.get("authority_url"),
+        "authority_profile": authority.get("profile"),
+        "authority_url": authority.get("authority_url") or authority.get("url"),
         "trusted_authority_pubkeys_count": len(pubkeys),
+        "legacy_authority_section_used": "authority" not in bundle and isinstance(bundle.get("oracle"), dict),
     }
 
 
 def _shell_env(bundle: Json) -> str:
     chain = _chain(bundle)
-    oracle = _oracle(bundle)
-    pubkeys = ",".join(str(pk).strip() for pk in (oracle.get("trusted_authority_pubkeys") or []) if str(pk).strip())
+    authority = _authority(bundle)
+    pubkeys = ",".join(str(pk).strip() for pk in (authority.get("trusted_authority_pubkeys") or []) if str(pk).strip())
     env = {
         "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"} else str(bundle.get("profile") or ""),
         "WEALL_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_GENESIS_HASH": str(chain.get("genesis_hash") or ""),
         "WEALL_EXPECTED_TX_INDEX_HASH": str(chain.get("tx_index_hash") or ""),
-        "WEALL_CHAIN_AUTHORITY_URL": str(oracle.get("authority_url") or ""),
-        "WEALL_ORACLE_AUTHORITY_PUBKEYS": pubkeys,
-        "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(oracle.get("authority_snapshot_max_age_ms") or "120000"),
-        "WEALL_MIN_AUTHORITY_HEIGHT": str(oracle.get("min_authority_height") or "0"),
-        "WEALL_AUTHORITY_PROFILE": str(oracle.get("profile") or "production"),
+        "WEALL_CHAIN_AUTHORITY_URL": str(authority.get("authority_url") or authority.get("url") or ""),
+        "WEALL_AUTHORITY_PUBKEYS": pubkeys,
+        "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(authority.get("authority_snapshot_max_age_ms") or "120000"),
+        "WEALL_MIN_AUTHORITY_HEIGHT": str(authority.get("min_authority_height") or "0"),
+        "WEALL_AUTHORITY_PROFILE": str(authority.get("profile") or "production"),
     }
     lines = []
     for key, value in env.items():

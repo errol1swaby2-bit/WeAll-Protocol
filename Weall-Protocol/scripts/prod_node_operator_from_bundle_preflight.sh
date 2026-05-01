@@ -15,8 +15,10 @@ fail() {
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
 
 # A normal node operator must never need external identity-provider service or authority signer secrets.
-[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
-[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
+[ -z "${WEALL_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority snapshot signer private key must not be present in a normal node environment"
+[ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present in a normal node environment"
+[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy authority signer private key must not be present in a normal node environment"
+[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy authority private key must not be present in a normal node environment"
 
 export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 python3 "${ROOT_DIR}/scripts/verify_node_operator_onboarding_bundle.py"   --bundle "${BUNDLE_PATH}"   --manifest "${MANIFEST_PATH}"   --json >/tmp/weall_node_operator_bundle_check.json
@@ -34,6 +36,6 @@ rm -f /tmp/weall_node_operator_bundle_check.json /tmp/weall_node_operator_manife
 cat <<MSG
 OK: node-operator onboarding bundle preflight passed
 - public bundle matches local chain manifest
-- production chain authority anchors exported
+- production chain authority anchors exported with provider-neutral env names
 - external identity-provider and authority-signer secrets are absent
 MSG

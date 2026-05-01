@@ -204,9 +204,9 @@ async function reconcileTier2CaseVisible(account: string, base: string, headers?
   return reconcileTierVisible(account, 2, base);
 }
 
-async function reconcileTier3CaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
-    const assigned = await weall.pohTier3Assigned(account, base, headers);
+    const assigned = await weall.pohLiveAssigned(account, base, headers);
     const cases = Array.isArray(assigned?.cases) ? assigned.cases : [];
     if (cases.length > 0) {
       return {
@@ -254,13 +254,13 @@ export default function PohPage(): JSX.Element {
   const [registerBusy, setRegisterBusy] = useState(false);
   const [tier2UploadBusy, setTier2UploadBusy] = useState(false);
   const [tier2RequestBusy, setTier2RequestBusy] = useState(false);
-  const [tier3RequestBusy, setTier3RequestBusy] = useState(false);
+  const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [casesBusy, setCasesBusy] = useState(false);
 
   const [tier2Upload, setTier2Upload] = useState<UploadState | null>(null);
   const [tier2Cases, setTier2Cases] = useState<any[]>([]);
-  const [tier3Cases, setTier3Cases] = useState<any[]>([]);
-  const [tier3Sessions, setTier3Sessions] = useState<any[]>([]);
+  const [liveCases, setLiveCases] = useState<any[]>([]);
+  const [liveSessions, setLiveSessions] = useState<any[]>([]);
 
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
@@ -298,21 +298,21 @@ export default function PohPage(): JSX.Element {
   async function loadPohData(): Promise<void> {
     if (!acct) {
       setTier2Cases([]);
-      setTier3Cases([]);
-      setTier3Sessions([]);
+      setLiveCases([]);
+      setLiveSessions([]);
       return;
     }
     setCasesBusy(true);
     try {
       const headers = getAuthHeaders(acct);
-      const [myTier2, myTier3, sessions] = await Promise.all([
+      const [myTier2, myLive, sessions] = await Promise.all([
         weall.pohTier2MyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohTier3Assigned(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohTier3Sessions(base, headers).catch(() => ({ sessions: [] })),
+        weall.pohLiveAssigned(acct, base, headers).catch(() => ({ cases: [] })),
+        weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
       setTier2Cases(Array.isArray(myTier2?.cases) ? myTier2.cases : []);
-      setTier3Cases(Array.isArray(myTier3?.cases) ? myTier3.cases : []);
-      setTier3Sessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
+      setLiveCases(Array.isArray(myLive?.cases) ? myLive.cases : []);
+      setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -341,7 +341,7 @@ export default function PohPage(): JSX.Element {
 
   const tier1Status: StageTone = tier >= 1 ? "done" : "active";
   const tier2Status: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
-  const tier3Status: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
+  const liveStatus: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
 
   async function registerAccount(): Promise<void> {
     if (!acct) {
@@ -538,12 +538,12 @@ export default function PohPage(): JSX.Element {
     }
   }
 
-  async function submitTier3Request(): Promise<void> {
+  async function submitLiveRequest(): Promise<void> {
     if (!acct) {
       setErr({ msg: "not_logged_in", details: null });
       return;
     }
-    setTier3RequestBusy(true);
+    setLiveRequestBusy(true);
     setErr(null);
     try {
       const headers = getAuthHeaders(acct);
@@ -555,10 +555,10 @@ export default function PohPage(): JSX.Element {
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
         finality: {
           timeoutMs: 20000,
-          reconcile: async () => reconcileTier3CaseVisible(acct, base, headers),
+          reconcile: async () => reconcileLiveCaseVisible(acct, base, headers),
         },
         task: async () => {
-          const skel: any = await weall.pohTier3TxRequest(
+          const skel: any = await weall.pohLiveTxRequest(
             { account_id: acct },
             base,
             headers,
@@ -583,7 +583,7 @@ export default function PohPage(): JSX.Element {
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
-      setTier3RequestBusy(false);
+      setLiveRequestBusy(false);
     }
   }
 
@@ -594,7 +594,7 @@ export default function PohPage(): JSX.Element {
     if (!hasLocalKeypair) return "Create or restore the local signer tied to this account.";
     if (!registered) return "Register the account on-chain before starting PoH actions.";
     if (tier < 1) return "Complete Async Human Verification to unlock basic verified-human participation.";
-    if (tier < 2) return "Open the Live Verification live-session request and watch for assigned sessions.";
+    if (tier < 2) return "Open the Live Verification request and watch for assigned sessions.";
     return "Live Verification is complete. Service authority now depends on badges and roles.";
   }, [acct, hasLocalKeypair, registered, tier]);
 
@@ -605,18 +605,18 @@ export default function PohPage(): JSX.Element {
     if (!hasLocalKeypair || !sessionKeyPresent) return "You";
     if (!registered) return "You";
     if (tier < 1) return requestId.trim() ? "You → legacy adapter → chain" : "You";
-    if (tier < 2) return tier3Cases.length || tier3Sessions.length ? "Assigned jurors / session operators" : "You";
+    if (tier < 2) return liveCases.length || liveSessions.length ? "Assigned jurors / session operators" : "You";
     return "No pending owner";
-  }, [acct, hasLocalKeypair, sessionKeyPresent, registered, tier, requestId, tier3Cases.length, tier3Sessions.length]);
+  }, [acct, hasLocalKeypair, sessionKeyPresent, registered, tier, requestId, liveCases.length, liveSessions.length]);
 
   const pendingExpectation = useMemo<string>(() => {
     if (!acct) return "Connect this device to an account before the protocol can track your PoH status.";
     if (!hasLocalKeypair) return "Restore or create the local signer on this device. Nothing has been submitted to the chain yet.";
     if (!registered) return "Register the account on-chain first. PoH review state does not begin until the account exists authoritatively.";
     if (tier < 1) return "Start native Async Human Verification when the protocol-native POH_ASYNC_* surface is available on this deployment.";
-    if (tier < 2) return tier3Cases.length || tier3Sessions.length ? "Live Verification has moved into assigned review or live-session scheduling. Watch the case/session cards rather than guessing completion timing." : "Open the Live Verification request. After submission, the next move comes from session assignment and juror coordination.";
+    if (tier < 2) return liveCases.length || liveSessions.length ? "Live Verification has moved into assigned review or live-session scheduling. Watch the case/session cards rather than guessing completion timing." : "Open the Live Verification request. After submission, the next move comes from session assignment and juror coordination.";
     return "PoH is complete for the two-tier model. Service authority is handled separately through badges and roles.";
-  }, [acct, hasLocalKeypair, registered, requestId, sessionKeyPresent, tier, tier3Cases.length, tier3Sessions.length]);
+  }, [acct, hasLocalKeypair, registered, requestId, sessionKeyPresent, tier, liveCases.length, liveSessions.length]);
 
   const successDefinition = useMemo<string>(() => {
     if (tier >= 2) return "Success means Live Verification remains finalized and badge or role requirements are evaluated separately.";
@@ -651,7 +651,7 @@ export default function PohPage(): JSX.Element {
       id: "tier2",
       eyebrow: "Stage 3",
       title: "Tier 2 live verification",
-      tone: tier3Status,
+      tone: liveStatus,
       summary: tier >= 2 ? "Live Verified Human is complete." : tier >= 1 ? "Open the Live Verification request, then watch for live-session assignment." : "Live Verification stays locked until Async Verified Human is complete.",
       detail: "Live Verification depends on scheduled live review state from the backend and assigned jurors. The UI should show request state, not guess finality.",
     },
@@ -663,7 +663,7 @@ export default function PohPage(): JSX.Element {
       summary: tier >= 2 ? "Service authority is now evaluated through badges, roles, activation, suspension, and receipts." : "Badges and roles stay locked until the required PoH level is complete.",
       detail: "PoH proves human-verification strength. It does not automatically grant juror, validator, node-operator, treasury, or moderator authority.",
     },
-  ], [acct, hasLocalKeypair, sessionKeyPresent, tier, tier1Status, tier3Status]);
+  ], [acct, hasLocalKeypair, sessionKeyPresent, tier, tier1Status, liveStatus]);
 
   return (
     <div className="pageStack">
@@ -804,7 +804,7 @@ export default function PohPage(): JSX.Element {
         <TierCard
           tier={2}
           title="Live Verified Human"
-          status={tier3Status}
+          status={liveStatus}
           description="Tier 2 is live juror-attested verification for high-trust participation."
         >
           <div className="milestoneList">
@@ -963,7 +963,7 @@ export default function PohPage(): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Stage 3</div>
-                <h2 className="cardTitle">Live Verification live-session request</h2>
+                <h2 className="cardTitle">Live Verification request</h2>
               </div>
               <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{tier >= 2 ? "Live Verification complete" : "Live Verification pending"}</span>
             </div>
@@ -972,8 +972,8 @@ export default function PohPage(): JSX.Element {
               Live Verification opens a live juror case after Async Verified Human. Once the backend and operators assign a real session, the case and session payloads appear below. The UI should present that state as discovered and authoritative, not guessed.
             </p>
 
-            <button className="btn btnPrimary" onClick={() => void submitTier3Request()} disabled={!acct || tier3RequestBusy || tier >= 2 || tier < 1 || signerSubmission.busy}>
-              {tier3RequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : tier < 1 ? "Finish Async Verification first" : "Open Live Verification request"}
+            <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || tier >= 2 || tier < 1 || signerSubmission.busy}>
+              {liveRequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : tier < 1 ? "Finish Async Verification first" : "Open Live Verification request"}
             </button>
           </div>
         </article>
@@ -1000,10 +1000,10 @@ export default function PohPage(): JSX.Element {
                 <div className="eyebrow">Observed state</div>
                 <h2 className="cardTitle">My Live Verification cases and sessions</h2>
               </div>
-              <span className="statusPill">{tier3Cases.length} case(s)</span>
+              <span className="statusPill">{liveCases.length} case(s)</span>
             </div>
-            {tier3Cases.length ? <div className="infoGrid">{tier3Cases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No Live Verification cases yet.</div></div>}
-            {tier3Sessions.length ? <JsonDetails title="Live session payloads" value={tier3Sessions} /> : null}
+            {liveCases.length ? <div className="infoGrid">{liveCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No Live Verification cases yet.</div></div>}
+            {liveSessions.length ? <JsonDetails title="Live session payloads" value={liveSessions} /> : null}
           </div>
         </article>
       </section>

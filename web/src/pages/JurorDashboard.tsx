@@ -96,11 +96,11 @@ export default function JurorDashboard(): JSX.Element {
 
   const [acctState, setAcctState] = useState<any | null>(null);
   const [tier2Cases, setTier2Cases] = useState<any[]>([]);
-  const [tier3Cases, setTier3Cases] = useState<any[]>([]);
-  const [tier3Sessions, setTier3Sessions] = useState<any[]>([]);
+  const [liveCases, setLiveCases] = useState<any[]>([]);
+  const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
-  const [tab, setTab] = useState<"tier2" | "tier3">("tier2");
+  const [tab, setTab] = useState<"tier2" | "live">("tier2");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
@@ -133,16 +133,16 @@ export default function JurorDashboard(): JSX.Element {
 
     try {
       const headers = getAuthHeaders(account);
-      const [t2, t3, sess] = await Promise.all([
+      const [t2, live, sess] = await Promise.all([
         weall.pohTier2JurorCases(account, apiBase, headers).catch(() => ({ cases: [] })),
-        weall.pohTier3Assigned(account, apiBase, headers).catch(() => ({ cases: [] })),
-        weall.pohTier3Sessions(apiBase, headers).catch(() => ({ sessions: [] })),
+        weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
+        weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
         refreshAccount(),
       ]);
 
       setTier2Cases(Array.isArray(t2?.cases) ? t2.cases : []);
-      setTier3Cases(Array.isArray(t3?.cases) ? t3.cases : []);
-      setTier3Sessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
+      setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
+      setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -150,7 +150,7 @@ export default function JurorDashboard(): JSX.Element {
     }
   }
 
-  async function loadCase(kind: "tier2" | "tier3", caseId: string): Promise<void> {
+  async function loadCase(kind: "tier2" | "live", caseId: string): Promise<void> {
     if (!account || !caseId) return;
 
     setBusy(true);
@@ -161,16 +161,16 @@ export default function JurorDashboard(): JSX.Element {
       const detail =
         kind === "tier2"
           ? await weall.pohTier2Case(caseId, apiBase, headers)
-          : await weall.pohTier3Case(caseId, apiBase, headers);
+          : await weall.pohLiveCase(caseId, apiBase, headers);
 
       setExpanded((prev) => ({ ...prev, [caseId]: detail }));
 
-      if (kind === "tier3") {
+      if (kind === "live") {
         const sessionRec = sessionForCase(caseId);
         const sessionId = String(sessionRec?.session_id || "");
         if (sessionId) {
           const partRes = await weall
-            .pohTier3SessionParticipants(sessionId, apiBase, headers)
+            .pohLiveSessionParticipants(sessionId, apiBase, headers)
             .catch(() => ({ participants: [] }));
           setParticipants((prev) => ({
             ...prev,
@@ -186,7 +186,7 @@ export default function JurorDashboard(): JSX.Element {
   }
 
   function sessionForCase(caseId: string): any | null {
-    for (const s of tier3Sessions) {
+    for (const s of liveSessions) {
       if (String(s?.case_id || "") === String(caseId)) return s;
     }
     return null;
@@ -262,21 +262,21 @@ export default function JurorDashboard(): JSX.Element {
     );
   }
 
-  async function tier3Accept(caseId: string): Promise<void> {
+  async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
-    const skel = await weall.pohTier3TxJurorAccept({ case_id: caseId }, apiBase, headers);
+    const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
     await submitSkeletonTx(skel, "Accept Live Verification case", "Live Verification case accepted.");
   }
 
-  async function tier3Decline(caseId: string): Promise<void> {
+  async function liveDecline(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
-    const skel = await weall.pohTier3TxJurorDecline({ case_id: caseId }, apiBase, headers);
+    const skel = await weall.pohLiveTxJurorDecline({ case_id: caseId }, apiBase, headers);
     await submitSkeletonTx(skel, "Decline Live Verification case", "Live Verification case declined.");
   }
 
-  async function tier3Attendance(caseId: string, attended: boolean): Promise<void> {
+  async function liveAttendance(caseId: string, attended: boolean): Promise<void> {
     const headers = getAuthHeaders(account);
-    const skel = await weall.pohTier3TxAttendance(
+    const skel = await weall.pohLiveTxAttendance(
       { case_id: caseId, juror_id: account, attended },
       apiBase,
       headers,
@@ -288,12 +288,12 @@ export default function JurorDashboard(): JSX.Element {
     );
   }
 
-  async function tier3Verdict(caseId: string, verdict: "pass" | "fail"): Promise<void> {
+  async function liveVerdict(caseId: string, verdict: "pass" | "fail"): Promise<void> {
     const note = window.prompt("Optional verdict note", "") || "";
     const headers = getAuthHeaders(account);
     const body: any = { case_id: caseId, verdict };
     if (note.trim()) body.note = note.trim();
-    const skel = await weall.pohTier3TxVerdict(body, apiBase, headers);
+    const skel = await weall.pohLiveTxVerdict(body, apiBase, headers);
     await submitSkeletonTx(
       skel,
       "Submit Live Verification verdict",
@@ -307,7 +307,7 @@ export default function JurorDashboard(): JSX.Element {
 
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
-  const showing = tab === "tier2" ? tier2Cases : tier3Cases;
+  const showing = tab === "tier2" ? tier2Cases : liveCases;
 
   return (
     <div className="pageStack">
@@ -318,7 +318,7 @@ export default function JurorDashboard(): JSX.Element {
               <div className="eyebrow">Juror workspace</div>
               <h1 className="heroTitle heroTitleSm">Review assigned human verification work</h1>
               <p className="heroText">
-                This page keeps Tier 2 evidence review and Live Verification live-session follow-through in one
+                This page keeps Tier 2 evidence review and Live Verification session follow-through in one
                 place so juror work feels operational instead of hidden behind raw endpoints.
               </p>
             </div>
@@ -344,8 +344,8 @@ export default function JurorDashboard(): JSX.Element {
             <button className={`btn ${tab === "tier2" ? "btnPrimary" : ""}`} onClick={() => setTab("tier2")}>
               Tier 2 cases
             </button>
-            <button className={`btn ${tab === "tier3" ? "btnPrimary" : ""}`} onClick={() => setTab("tier3")}>
-              Live Verification live cases
+            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => setTab("live")}>
+              Live Verification cases
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
@@ -411,7 +411,7 @@ export default function JurorDashboard(): JSX.Element {
               const detail = expanded[caseId]?.case || expanded[caseId] || null;
               const evidence = detail?.evidence || c?.evidence || {};
               const evidenceMedia = extractEvidenceMedia(evidence);
-              const sessionRec = tab === "tier3" ? sessionForCase(caseId) : null;
+              const sessionRec = tab === "live" ? sessionForCase(caseId) : null;
               const sessionId = String(sessionRec?.session_id || "");
               const sessionParticipants = sessionId ? participants[sessionId] || [] : [];
 
@@ -466,25 +466,25 @@ export default function JurorDashboard(): JSX.Element {
                       </div>
                     ) : (
                       <div className="buttonRow buttonRowWide">
-                        <button className="btn" onClick={() => void loadCase("tier3", caseId)} disabled={busy || !caseId}>
+                        <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
                           Load details
                         </button>
-                        <button className="btn" onClick={() => void tier3Accept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Accept"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Decline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Decline"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Attendance(caseId, true)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn" onClick={() => void liveAttendance(caseId, true)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Mark attended"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Attendance(caseId, false)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn" onClick={() => void liveAttendance(caseId, false)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Mark absent"}
                         </button>
-                        <button className="btn btnPrimary" onClick={() => void tier3Verdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Pass"}
                         </button>
-                        <button className="btn" onClick={() => void tier3Verdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                        <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Fail"}
                         </button>
                       </div>
@@ -494,7 +494,7 @@ export default function JurorDashboard(): JSX.Element {
                       <MediaGallery base={apiBase} media={evidenceMedia} />
                     ) : null}
 
-                    {tab === "tier3" && sessionRec ? (
+                    {tab === "live" && sessionRec ? (
                       <div className="infoCard">
                         <div className="feedMediaTitle">Live session</div>
                         <div className="feedMediaMeta mono">
@@ -513,7 +513,7 @@ export default function JurorDashboard(): JSX.Element {
                       </div>
                     ) : null}
 
-                    {tab === "tier3" && sessionParticipants.length ? (
+                    {tab === "live" && sessionParticipants.length ? (
                       <div className="infoCard">
                         <div className="feedMediaTitle">Participants</div>
                         <div className="milestoneList">

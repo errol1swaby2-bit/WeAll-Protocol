@@ -50,7 +50,7 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 
 This backend snapshot is synchronized at:
 
-- **Transaction canon:** 221 tx types, version 1.23.1
+- **Transaction canon:** 225 tx types, version 1.24.0
 - **Latest full backend test checkpoint:** 2,582 passed, 1 warning
 
 

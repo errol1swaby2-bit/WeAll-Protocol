@@ -2,24 +2,27 @@
 """Build a public node-operator onboarding bundle.
 
 The bundle is safe to hand to a new WeAll node operator. It contains public
+chain identity, public authority anchors, and operator preflight requirements.
+It must not contain node private keys, authority signer keys, transport secrets,
+or external identity-provider credentials.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-
 Json = dict[str, Any]
 
 PROHIBITED_SECRET_KEYS = [
     "WEALL_NODE_PRIVKEY",
     "WEALL_NODE_PRIVKEY_FILE",
+    "WEALL_AUTHORITY_SIGNER_PRIVKEY",
+    "WEALL_AUTHORITY_PRIVKEY",
     "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
     "WEALL_ORACLE_AUTHORITY_PRIVKEY",
     "WEALL_TRUSTED_AUTHORITY_PRIVKEYS",
@@ -41,27 +44,64 @@ def _load_json(path: Path) -> Json:
     return parsed
 
 
+def _manifest_authority(manifest: Json) -> Json:
+    authority = manifest.get("authority")
+    if isinstance(authority, dict):
+        return authority
+    legacy_authority = manifest.get("oracle")
+    if isinstance(legacy_authority, dict):
+        return legacy_authority
+    return {}
+
+
 def _public_authority_pubkeys(manifest: Json, override: str) -> list[str]:
     values = _split_csv(override)
     if values:
         return values
+
     raw = manifest.get("trusted_authority_pubkeys") or []
+    if not raw:
+        authority = _manifest_authority(manifest)
+        raw = authority.get("trusted_authority_pubkeys") or authority.get("pubkeys") or []
+
     if isinstance(raw, list):
         return [str(item).strip() for item in raw if str(item).strip()]
     return []
 
 
+def _first_nonempty(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
 def _build(args: argparse.Namespace) -> Json:
     manifest_path = Path(args.manifest).resolve()
     manifest = _load_json(manifest_path)
-    oracle_profile = str(args.oracle_profile or manifest.get("oracle", {}).get("expected_profile") or args.profile).strip()
+    manifest_authority = _manifest_authority(manifest)
+
+    authority_profile = _first_nonempty(
+        args.authority_profile,
+        args.oracle_profile,
+        manifest_authority.get("expected_profile"),
+        manifest_authority.get("profile"),
+        args.profile,
+    )
+    authority_url = _first_nonempty(
+        args.authority_url,
+        args.oracle_url,
+        os.environ.get("WEALL_CHAIN_AUTHORITY_URL"),
+        os.environ.get("WEALL_API_BASE"),
+    ).rstrip("/")
     authority_pubkeys = _public_authority_pubkeys(manifest, args.authority_pubkeys)
 
     generated_at_ms = int(args.generated_at_ms) if args.generated_at_ms else int(time.time() * 1000)
-    bundle: Json = {
+    return {
         "type": "weall_node_operator_onboarding_bundle",
         "version": 1,
-        "profile": str(args.profile or manifest.get("mode") or "production").strip(),
+        "profile": _first_nonempty(args.profile, manifest.get("mode"), "production"),
         "generated_at_ms": generated_at_ms,
         "chain": {
             "manifest_path_hint": str(args.manifest),
@@ -75,9 +115,9 @@ def _build(args: argparse.Namespace) -> Json:
             "protocol_profile_hash": str(manifest.get("protocol_profile_hash") or ""),
             "authority_snapshot_version": int(manifest.get("authority_snapshot_version") or 1),
         },
-        "oracle": {
-            "profile": oracle_profile,
-            "authority_url": str(args.authority_url or os.environ.get("WEALL_CHAIN_AUTHORITY_URL") or os.environ.get("WEALL_API_BASE") or "").rstrip("/"),
+        "authority": {
+            "profile": authority_profile,
+            "authority_url": authority_url,
             "trusted_authority_pubkeys": authority_pubkeys,
             "min_authority_height": int(args.min_authority_height),
             "authority_snapshot_max_age_ms": int(args.authority_snapshot_max_age_ms),
@@ -100,9 +140,12 @@ def _build(args: argparse.Namespace) -> Json:
                 "WEALL_NODE_PRIVKEY_FILE or local signing key storage",
             ],
             "authority_signer_keeps_private": [
+                "WEALL_AUTHORITY_SIGNER_PRIVKEY",
+                "WEALL_AUTHORITY_PRIVKEY",
             ],
-            "authority_snapshot_signer_keeps_private": [
+            "legacy_authority_signer_names_rejected_if_present": [
                 "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
+                "WEALL_ORACLE_AUTHORITY_PRIVKEY",
             ],
         },
         "recommended_commands": {
@@ -110,7 +153,6 @@ def _build(args: argparse.Namespace) -> Json:
             "node_preflight": "bash scripts/prod_node_operator_from_bundle_preflight.sh <bundle.json>",
         },
     }
-    return bundle
 
 
 def main() -> int:
@@ -118,10 +160,11 @@ def main() -> int:
     parser.add_argument("--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
     parser.add_argument("--out", required=True)
     parser.add_argument("--profile", default="production")
-    parser.add_argument("--oracle-profile", default="")
-    parser.add_argument("--oracle-url", default="")
+    parser.add_argument("--authority-profile", default="")
     parser.add_argument("--authority-url", default="")
     parser.add_argument("--authority-pubkeys", default="")
+    parser.add_argument("--oracle-profile", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--oracle-url", default="", help=argparse.SUPPRESS)
     parser.add_argument("--min-authority-height", type=int, default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"))
     parser.add_argument("--authority-snapshot-max-age-ms", type=int, default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"))
     parser.add_argument("--generated-at-ms", type=int, default=0)

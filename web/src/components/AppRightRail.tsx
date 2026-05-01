@@ -363,9 +363,9 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
     return [
       tier >= 2 ? "Can post" : "Posting locked",
       tier >= 2 ? "Can react/comment" : "Interaction limited",
-      capabilities.bootstrapTier3Enabled ? "Bootstrap live-verification dev path on" : "Bootstrap live-verification dev path off",
+      capabilities.bootstrapLiveEnabled ? "Bootstrap live-verification dev path on" : "Bootstrap live-verification dev path off",
     ];
-  }, [accountState?.poh_tier, capabilities.bootstrapTier3Enabled]);
+  }, [accountState?.poh_tier, capabilities.bootstrapLiveEnabled]);
 
   const contextSummary = useMemo(
     () =>

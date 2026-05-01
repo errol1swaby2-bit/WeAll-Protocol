@@ -16,7 +16,7 @@ The current implementation is built around:
 - **helper-assisted execution beneath consensus, never instead of it**
 - **Cloudflare-free, email-free Proof-of-Humanity through native async and live juror-attested verification**
 
-The current audited transaction canon contains **221 transaction types across 21 domains**.
+The current audited transaction canon contains **225 transaction types across 21 domains**.
 
 ---
 
@@ -62,7 +62,7 @@ The current controlled-devnet readiness proof also runs without demo-seed shortc
 - cross-node account, tx-status, tip, and state-root parity checks
 - a Tier-1-gated transaction submitted on node 2 and synced back to node 1
 - Tier-2 async PoH request, juror accept, review, finalization, and cross-node convergence
-- Tier-3 protocol-native live PoH request, reviewer assignment, attendance, verdicts, finalization, and cross-node convergence
+- Live protocol-native PoH request, reviewer assignment, attendance, verdicts, finalization, and cross-node convergence
 
 This is not a slide deck or mock frontend.  
 It is a working protocol + node + frontend repository.
@@ -81,7 +81,7 @@ WeAll currently targets the following implementation contract:
 - **State commitment:** canonical receipts root and state root
 - **Helper posture:** deterministic parallel-execution layer subordinate to HotStuff
 - **Lifecycle posture:** bootstrap registration → explicit production promotion
-- **PoH email posture:** WeAll-hosted oracle signs provider-neutral attestations; SMTP/Stalwart only sends email
+- **PoH posture:** native async and live juror-attested verification are the required path; email, SMTP, DNS, Cloudflare, and external identity providers are not required
 - **Production posture:** fail-closed configuration with trusted verification enabled
 
 Helpers are treated as a throughput optimization layer, not as a second consensus family.
@@ -138,41 +138,41 @@ source .venv/bin/activate
 
 pytest -q
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Tier-3 protocol-native live PoH finalization, cross-node convergence, and restart/catch-up.
+This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Live protocol-native PoH finalization, cross-node convergence, and restart/catch-up.
 
-The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,582 passed, 1 warning**, followed by synchronized tx-canon artifacts at **221 tx types, version 1.23.1**.
+The latest backend verification checkpoint for this snapshot was a green full pytest run: **full pytest should be rerun locally before release**, followed by synchronized tx-canon artifacts at **225 tx types, version 1.24.0**.
 
 ---
 
-## Cloudflare-free native PoH verification
+## Cloudflare-free, email-free native PoH verification
 
-Tier 1 verification no longer depends on email, SMTP, DNS, or Cloudflare.
+Tier 1 verification no longer depends on email, SMTP, DNS, Cloudflare, inbox control, or any external identity provider.
 
 The required path is:
 
 ```text
 WeAll frontend
-→ WeAll API
-→ WeAll-hosted PoH email oracle
-→ SMTP/Stalwart mail transport
-→ user inbox
-→ user submits code or signed response
-→ native jurors submit signed review verdicts
-→ WeAll node verifies the oracle signature and registry status
-→ Tier 1 PoH state is committed on-chain
+-> WeAll API
+-> native async PoH case opens on-chain
+-> response and evidence commitments are bound to the case
+-> eligible jurors accept and review asynchronously
+-> jurors submit signed review verdict transactions
+-> deterministic threshold finalization grants or rejects Tier 1
+-> protocol access gates read finalized chain state
 ```
+
+Live verification follows the same protocol-native authority model for Tier 2: assigned jurors, attendance where required, signed verdicts, deterministic threshold finalization, and chain-committed status.
 
 Boundary rules:
 
-- Cloudflare Worker, Cloudflare Email Routing, Cloudflare API tokens, and Turnstile are not required.
-- Stalwart or another SMTP transport sends email only; it does not decide PoH tier and does not hold oracle signing keys.
+- Cloudflare Worker, Cloudflare Email Routing, Cloudflare API tokens, Turnstile, SMTP, DNS, inbox control, and Stalwart are not required for PoH.
 - The chain does not call SMTP, HTTP, DNS, Cloudflare, or any external network during execution.
 - The chain verifies native PoH commitments, juror assignments, review verdicts, thresholds, and replay protection against deterministic state.
-- Raw email addresses, native PoH reviews, SMTP secrets, and oracle private keys must not enter chain state, receipts, public snapshots, or logs.
+- Raw private PoH evidence, challenge secrets, provider metadata, transport credentials, and authority signer private keys must not enter chain state, receipts, public snapshots, or logs.
 
 ---
 
@@ -236,7 +236,7 @@ Parallel execution is only acceptable if it preserves canonical results.
 
 The helper model is explicitly constrained by deterministic assignment, deterministic laneing, canonical merge rules, replay-safe receipts, and serial equivalence requirements.
 
-### 5. Email infrastructure is transport, not identity authority
+### 5. Human verification is protocol-native, not provider authority
 
 Native async PoH proves human participation through protocol-native commitments, assigned juror review, threshold finalization, and deterministic replay checks.
 
@@ -270,7 +270,7 @@ The current audited transaction surface spans 21 domains:
 | Storage | 12 |
 | Treasury | 15 |
 
-Total current transaction types: **221**.
+Total current transaction types: **225**.
 
 ---
 
@@ -373,7 +373,6 @@ The goal is not just to make the system run — it is to make it hard for honest
 For deeper implementation detail, use these repository-tracked files:
 
 - `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
-- `Weall-Protocol/docs/operators/stalwart-mail.md` — Stalwart/SMTP transport setup boundary
 - `Weall-Protocol/docs/testnet_runbook.md` — local tester, conference, and protocol-review runbook
 - `RELEASE_CHECKLIST.md` — external tester release checklist
 - `CONTRIBUTING.md` — contribution workflow and review expectations
@@ -426,7 +425,7 @@ bash scripts/verify_release_tree.sh
 Expected checkpoint for this snapshot:
 
 ```text
-✅ tx canon artifacts are synchronized (221 tx types, version 1.23.1)
+✅ tx canon artifacts are synchronized (225 tx types, version 1.24.0)
 [secret-guard] OK
 [verify] release tree check passed
 ```

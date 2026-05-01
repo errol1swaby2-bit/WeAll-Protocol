@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+OUTER_ROOT = ROOT.parent
 
 
 def join(*parts: str) -> str:
@@ -14,6 +15,7 @@ FORBIDDEN_REQUIRED_PATH_MARKERS = (
     join("prod_", "poh_", "email_", "oracle"),
     join("/poh/", "email"),
     join("poh/", "email"),
+    join("poh_", "email"),
     join("VITE_", "WEALL_", "EMAIL"),
     join("WEALL_", "EMAIL"),
     join("WEALL_", "SM", "TP"),
@@ -22,6 +24,7 @@ FORBIDDEN_REQUIRED_PATH_MARKERS = (
 
 SCAN_PATHS = (
     ROOT / "scripts",
+    OUTER_ROOT / "scripts",
     ROOT / "docker-compose.yml",
     ROOT / "src/weall/api/schemas.py",
 )

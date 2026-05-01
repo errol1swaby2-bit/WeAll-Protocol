@@ -27,6 +27,6 @@ def test_tier1_cannot_vote_governance() -> None:
     assert exc.value.details["required_tier"] == 2
 
 
-def test_tier2_can_create_group_and_register_oracle_after_v2_remap() -> None:
+def test_tier2_can_create_group_after_v2_remap() -> None:
     state = _state(2)
     require_poh_tier(state, "@alice", "GROUP_CREATE")

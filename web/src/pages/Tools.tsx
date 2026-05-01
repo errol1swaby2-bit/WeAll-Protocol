@@ -6,7 +6,7 @@ import { getKeypair, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import {
-  getBootstrapTier3Enabled,
+  getBootstrapLiveEnabled,
   getDurableOperatorTarget,
   getMediaReplicationTarget,
   getTier2VideoUploadEnabled,
@@ -68,7 +68,7 @@ export default function Tools(): JSX.Element {
   const [busy, setBusy] = useState(false);
 
   const tier2UploadEnabled = getTier2VideoUploadEnabled();
-  const bootstrapTier3Enabled = getBootstrapTier3Enabled();
+  const bootstrapLiveEnabled = getBootstrapLiveEnabled();
   const replicationTarget = getMediaReplicationTarget();
   const durableOperatorTarget = getDurableOperatorTarget();
 
@@ -222,7 +222,7 @@ export default function Tools(): JSX.Element {
               </div>
               <div className="progressRow">
                 <span>Bootstrap Live Verification controls</span>
-                <StatusPill ok={bootstrapTier3Enabled} label={bootstrapTier3Enabled ? "Enabled" : "Disabled"} />
+                <StatusPill ok={bootstrapLiveEnabled} label={bootstrapLiveEnabled ? "Enabled" : "Disabled"} />
               </div>
               <div className="progressRow">
                 <span>Replication target</span>

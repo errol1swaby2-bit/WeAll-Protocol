@@ -32,7 +32,6 @@ remove_path data.backup.test
 remove_path data.before-restore
 remove_path generated
 remove_path dev
-remove_path data/poh_email_challenges.json
 
 log 'preserving secrets/README.md and secrets/.gitignore, removing other secret material'
 if [ -d secrets ]; then
@@ -48,7 +47,7 @@ Local cleanup complete.
 
 Recommended verification before pushing:
   git status --short
-  git check-ignore -v data generated .env .venv-release-check data/poh_email_challenges.json
+  git check-ignore -v data generated .env .venv-release-check
   docker compose build
   ./scripts/quickstart_tester.sh
 

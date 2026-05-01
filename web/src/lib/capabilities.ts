@@ -18,8 +18,8 @@ export function getTier2VideoUploadEnabled(): boolean {
   return envBool("VITE_WEALL_ENABLE_POH_TIER2_VIDEO_UPLOAD", false);
 }
 
-export function getBootstrapTier3Enabled(): boolean {
-  return envBool("VITE_WEALL_ENABLE_BOOTSTRAP_TIER3", false);
+export function getBootstrapLiveEnabled(): boolean {
+  return envBool("VITE_WEALL_ENABLE_BOOTSTRAP_LIVE", false);
 }
 
 export function getMediaReplicationTarget(): number {
@@ -33,7 +33,7 @@ export function getDurableOperatorTarget(): number {
 export function getFrontendCapabilities() {
   return {
     pohTier2VideoUploadEnabled: getTier2VideoUploadEnabled(),
-    bootstrapTier3Enabled: getBootstrapTier3Enabled(),
+    bootstrapLiveEnabled: getBootstrapLiveEnabled(),
     mediaReplicationTarget: getMediaReplicationTarget(),
     mediaDurableOperatorTarget: getDurableOperatorTarget(),
   };

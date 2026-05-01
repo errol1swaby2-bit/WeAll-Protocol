@@ -36,7 +36,6 @@ Confirm none of these are staged:
 - `Weall-Protocol/data/`
 - `Weall-Protocol/generated/` runtime leftovers
 - `Weall-Protocol/secrets/*`
-- `Weall-Protocol/data/poh_email_challenges.json`
 - `web/.env.local`
 - `.weall-dev/`
 - `Weall-Protocol/.weall-devnet/`
@@ -82,7 +81,7 @@ source .venv/bin/activate
 
 pytest -q
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
@@ -129,7 +128,7 @@ Confirm the repository has active GitHub Actions coverage for:
 
 - backend lint, dependency audit, canon lint, generated-artifact check, tx coverage report, and pytest
 - web install, typecheck, contract check, and build
-- WeAll-hosted PoH email oracle checks, if that surface is part of the published snapshot
+- Native async/live PoH checks, including no required email, SMTP, DNS, Cloudflare, inbox, or external identity provider path
 
 ## 8. Known release policy
 
@@ -150,8 +149,8 @@ Browser onboarding and PoH verification are Cloudflare-free, email-free, and rou
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: `2582 passed, 1 warning`
-- tx canon artifacts: `221 tx types, version 1.23.1`
+- full backend suite: rerun locally before release
+- tx canon artifacts: `225 tx types, version 1.24.0`
 - `scripts/secret_guard.sh`: passed
 - `scripts/verify_release_tree.sh`: passed
 - Native PoH cleanup: primary path validated without email, SMTP, DNS, Cloudflare, relay-token completion, or external identity-provider env aliases

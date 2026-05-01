@@ -2,17 +2,17 @@
 
 This document describes the normal production-oriented onboarding flow for a new WeAll node operator.
 
-A normal node operator verifies chain state and public oracle anchors. A normal node operator does **not** need mail-transport credentials, oracle signing keys, external provider API tokens, or authority snapshot signer private keys.
+A normal node operator verifies chain state and public chain authority anchors. A normal node operator does **not** need mail-transport credentials, authority signer keys, external provider API tokens, or authority snapshot signer private keys.
 
 ## Roles
 
 | Role | Holds | Does not hold |
 |---|---|---|
-| Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials or oracle private keys |
+| Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials or authority private keys |
 
 ## Public onboarding bundle
 
-A public onboarding bundle gives the operator the chain and oracle anchors needed to verify they are connecting to the correct network and public PoH oracle profile.
+A public onboarding bundle gives the operator the chain and authority anchors needed to verify they are connecting to the correct network and public chain authority profile.
 
 It contains public values only:
 
@@ -20,7 +20,7 @@ It contains public values only:
 - genesis hash
 - genesis state root
 - tx index hash
-- PoH oracle URL, when the deployment publishes one
+- chain authority URL, when the deployment publishes one
 - chain authority URL
 - trusted authority snapshot signer public keys
 
@@ -68,7 +68,7 @@ bash scripts/prod_node_operator_from_bundle_preflight.sh node-operator-onboardin
 This checks:
 
 - bundle matches the local production chain manifest;
-- public chain/oracle anchors are exported;
+- public chain/authority anchors are exported;
 - external identity-provider and authority-signer secrets are absent from the normal node environment;
 - optional live authority/key checks if node account/key variables are configured.
 

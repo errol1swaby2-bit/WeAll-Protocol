@@ -51,9 +51,7 @@ activate_repo_venv() {
   exit 2
 }
 
-require_email_for_tier_poh() {
-  if _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}" || _bool_true "${WEALL_DEVNET_SUITE_RUN_LIVE:-0}"; then
-  fi
+require_live_requires_tier2() {
   if _bool_true "${WEALL_DEVNET_SUITE_RUN_LIVE:-0}" && ! _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}"; then
     echo "ERROR: WEALL_DEVNET_SUITE_RUN_LIVE=1 requires WEALL_DEVNET_SUITE_RUN_TIER2=1." >&2
     exit 2
@@ -71,7 +69,7 @@ run_step() {
 }
 
 activate_repo_venv
-require_email_for_tier_poh
+require_live_requires_tier2
 
 SUITE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "==> Controlled-devnet readiness suite started at ${SUITE_STARTED_AT}"

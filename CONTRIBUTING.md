@@ -33,7 +33,10 @@ Targeted controlled-devnet proof:
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
-PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
+PYTHONPATH=src pytest -q \
+  tests/test_poh_async_native_tier1_batch252.py \
+  tests/test_apply_poh_live_auth_mvp.py \
+  tests/test_no_required_external_identity_provider_artifacts_batch255.py
 bash scripts/devnet_full_onboarding_e2e.sh
 ```
 
