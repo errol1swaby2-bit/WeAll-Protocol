@@ -17,7 +17,7 @@ if [[ "${WEALL_RUNTIME_PROFILE}" == "seeded_demo" ]]; then
   export WEALL_MODE="${WEALL_MODE:-demo}"
   export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-demo.json}"
   export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
-  export WEALL_ORACLE_PROFILE="${WEALL_ORACLE_PROFILE:-demo}"
+  export WEALL_AUTHORITY_PROFILE="${WEALL_AUTHORITY_PROFILE:-demo}"
   if [[ -z "${WEALL_CHAIN_ID:-}" && -f "${WEALL_CHAIN_MANIFEST_PATH}" ]]; then
     WEALL_CHAIN_ID="$(python3 -S - "${WEALL_CHAIN_MANIFEST_PATH}" <<'PYJSON'
 import json, sys

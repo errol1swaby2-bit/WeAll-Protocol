@@ -31,7 +31,7 @@ cd "${PROTO_DIR}"
 # Fast, high-signal subset that covers the web<->backend surface congruity
 pytest -q \
   tests/test_api_contract_shapes_minimal.py \
-  tests/test_api_contracts_web_and_email_oracle.py
+  tests/test_no_email_poh_code_remaining_batch254.py
 
 # Core PoH flows + auth hardening
 pytest -q \

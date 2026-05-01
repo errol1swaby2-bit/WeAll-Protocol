@@ -7,7 +7,7 @@ WeAll uses chain-verified eligibility, not surveillance identity.
 - No raw email on-chain.
 - No raw email in receipts.
 - No raw email in public snapshots.
-- No plaintext verification code in chain state.
+- No plaintext native PoH review in chain state.
 - No oracle private key in logs.
 - No mailbox data in protocol state.
 

@@ -870,7 +870,7 @@ def build_parser() -> argparse.ArgumentParser:
     t2.set_defaults(func=cmd_tier2_request)
 
     r2 = sub.add_parser("tier2-review", help="Accept and submit a Tier-2 juror review")
-    r2.add_argument("--account", default=os.environ.get("WEALL_TIER2_JUROR_ACCOUNT", os.environ.get("WEALL_ORACLE_OPERATOR_ACCOUNT", os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", "@devnet-genesis"))))
+    r2.add_argument("--account", default=os.environ.get("WEALL_TIER2_JUROR_ACCOUNT", os.environ.get("WEALL_BOOTSTRAP_OPERATOR_ACCOUNT", os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", "@devnet-genesis"))))
     r2.add_argument("--keyfile", default=os.environ.get("WEALL_TIER2_JUROR_KEYFILE", os.environ.get("WEALL_GENESIS_OPERATOR_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "genesis-operator.json"))))
     r2.add_argument("--case-id", default=os.environ.get("WEALL_TIER2_CASE_ID", ""))
     r2.add_argument("--verdict", default=os.environ.get("WEALL_TIER2_VERDICT", "pass"))

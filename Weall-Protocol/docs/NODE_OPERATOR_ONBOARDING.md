@@ -53,7 +53,7 @@ After the public anchors are installed, configure the operator's local node/acco
 The operator must eventually provide:
 
 ```text
-WEALL_ORACLE_OPERATOR_ACCOUNT
+WEALL_BOOTSTRAP_OPERATOR_ACCOUNT
 WEALL_NODE_PUBKEY
 WEALL_NODE_PRIVKEY_FILE or equivalent local signer configuration
 ```
@@ -69,7 +69,7 @@ This checks:
 
 - bundle matches the local production chain manifest;
 - public chain/oracle anchors are exported;
-- oracle-service and authority-signer secrets are absent from the normal node environment;
+- external identity-provider and authority-signer secrets are absent from the normal node environment;
 - optional live authority/key checks if node account/key variables are configured.
 
 ## Proof-of-Humanity use

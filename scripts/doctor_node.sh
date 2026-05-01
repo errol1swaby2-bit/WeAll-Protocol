@@ -54,15 +54,5 @@ else
   warn 'Public API not reachable at https://api.weallprotocol.xyz/v1/status'
 fi
 
-if curl -fsS 'https://api.weallprotocol.xyz/v1/poh/email/oracle-authority' >/tmp/weall_oracle_authority.json 2>/dev/null; then
-  ok 'Oracle authority endpoint reachable'
-  if grep -q '"@satoshi"' /tmp/weall_oracle_authority.json; then
-    ok 'Oracle authority currently includes @satoshi'
-  else
-    warn 'Oracle authority endpoint does not currently show @satoshi'
-  fi
-else
-  warn 'Oracle authority endpoint not reachable'
-fi
 
 printf '\nDoctor completed.\n'

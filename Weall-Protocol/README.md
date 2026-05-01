@@ -68,7 +68,7 @@ WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 email PoH through an opaque commitment, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 async PoH, completes Live protocol-native live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
+This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 native async PoH through protocol commitments, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 async PoH, completes Live protocol-native live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
 
 The readiness suite intentionally never calls `/v1/dev/demo-seed`.
 

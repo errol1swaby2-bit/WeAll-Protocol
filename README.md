@@ -14,7 +14,7 @@ The current implementation is built around:
 - **fail-closed runtime posture**
 - **bootstrap-to-production authority gating**
 - **helper-assisted execution beneath consensus, never instead of it**
-- **Cloudflare-free Proof-of-Humanity email verification through a WeAll-hosted oracle and SMTP/Stalwart transport**
+- **Cloudflare-free, email-free Proof-of-Humanity through native async and live juror-attested verification**
 
 The current audited transaction canon contains **221 transaction types across 21 domains**.
 
@@ -44,7 +44,7 @@ The current codebase already supports a real local full-stack demo flow with:
 
 - account registration and session flows
 - Proof-of-Humanity onboarding paths
-- Cloudflare-free Tier 1 email-control verification through `email_control_attestation_v1`
+- Tier 1 native async human verification through juror-attested commitments
 - content posting and interaction flows
 - governance proposal and vote flows
 - dispute intake, review, and juror flows
@@ -57,7 +57,7 @@ The current codebase already supports a real local full-stack demo flow with:
 The current controlled-devnet readiness proof also runs without demo-seed shortcuts:
 
 - fresh account registration through normal tx submission
-- bounded Tier-1 email-oracle attestation using an opaque email commitment
+- bounded Tier-1 native async PoH using protocol commitments
 - joining-node sync from a trusted anchor
 - cross-node account, tx-status, tip, and state-root parity checks
 - a Tier-1-gated transaction submitted on node 2 and synced back to node 1
@@ -137,21 +137,20 @@ cd Weall-Protocol
 source .venv/bin/activate
 
 pytest -q
-WEALL_EMAIL="you@example.com" \
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
 WEALL_DEVNET_SUITE_RUN_TIER3=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 email PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Tier-3 protocol-native live PoH finalization, cross-node convergence, and restart/catch-up.
+This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Tier-3 protocol-native live PoH finalization, cross-node convergence, and restart/catch-up.
 
 The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,582 passed, 1 warning**, followed by synchronized tx-canon artifacts at **221 tx types, version 1.23.1**.
 
 ---
 
-## Cloudflare-free PoH email verification
+## Cloudflare-free native PoH verification
 
-Tier 1 email-control verification no longer depends on Cloudflare.
+Tier 1 verification no longer depends on email, SMTP, DNS, or Cloudflare.
 
 The required path is:
 
@@ -162,7 +161,7 @@ WeAll frontend
 → SMTP/Stalwart mail transport
 → user inbox
 → user submits code or signed response
-→ oracle signs email_control_attestation_v1
+→ native jurors submit signed review verdicts
 → WeAll node verifies the oracle signature and registry status
 → Tier 1 PoH state is committed on-chain
 ```
@@ -172,8 +171,8 @@ Boundary rules:
 - Cloudflare Worker, Cloudflare Email Routing, Cloudflare API tokens, and Turnstile are not required.
 - Stalwart or another SMTP transport sends email only; it does not decide PoH tier and does not hold oracle signing keys.
 - The chain does not call SMTP, HTTP, DNS, Cloudflare, or any external network during execution.
-- The chain verifies provider-neutral `email_control_attestation_v1` against deterministic state and the on-chain oracle registry.
-- Raw email addresses, verification codes, SMTP secrets, and oracle private keys must not enter chain state, receipts, public snapshots, or logs.
+- The chain verifies native PoH commitments, juror assignments, review verdicts, thresholds, and replay protection against deterministic state.
+- Raw email addresses, native PoH reviews, SMTP secrets, and oracle private keys must not enter chain state, receipts, public snapshots, or logs.
 
 ---
 
@@ -239,7 +238,7 @@ The helper model is explicitly constrained by deterministic assignment, determin
 
 ### 5. Email infrastructure is transport, not identity authority
 
-The PoH email oracle proves control of an email address by signing `email_control_attestation_v1`. Mail transport only delivers the challenge. The chain accepts the proof only after deterministic oracle-registry and replay checks.
+Native async PoH proves human participation through protocol-native commitments, assigned juror review, threshold finalization, and deterministic replay checks.
 
 ---
 
@@ -347,7 +346,7 @@ Consensus remains the canonical ordering and finality layer.
 
 Helpers, where used, must preserve the same result as the serial reference executor.
 
-PoH email verification is intentionally outside consensus execution until it becomes a signed, provider-neutral attestation transaction. Consensus execution verifies the proof; it never sends mail or calls a remote provider.
+native PoH verification is intentionally outside consensus execution until it becomes a signed, provider-neutral attestation transaction. Consensus execution verifies the proof; it never sends mail or calls a remote provider.
 
 ---
 
@@ -374,8 +373,6 @@ The goal is not just to make the system run — it is to make it hard for honest
 For deeper implementation detail, use these repository-tracked files:
 
 - `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
-- `Weall-Protocol/docs/poh-email-oracle.md` — Cloudflare-free PoH email oracle architecture and invariants
-- `Weall-Protocol/docs/operators/oracle-operator.md` — PoH email oracle operator runbook
 - `Weall-Protocol/docs/operators/stalwart-mail.md` — Stalwart/SMTP transport setup boundary
 - `Weall-Protocol/docs/testnet_runbook.md` — local tester, conference, and protocol-review runbook
 - `RELEASE_CHECKLIST.md` — external tester release checklist

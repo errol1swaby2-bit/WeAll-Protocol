@@ -147,7 +147,7 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_ORACLE_AUTHORITY_PUBKEYS": pubkeys,
         "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(oracle.get("authority_snapshot_max_age_ms") or "120000"),
         "WEALL_MIN_AUTHORITY_HEIGHT": str(oracle.get("min_authority_height") or "0"),
-        "WEALL_ORACLE_PROFILE": str(oracle.get("profile") or "production"),
+        "WEALL_AUTHORITY_PROFILE": str(oracle.get("profile") or "production"),
     }
     lines = []
     for key, value in env.items():

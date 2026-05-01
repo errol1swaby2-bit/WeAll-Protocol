@@ -92,14 +92,14 @@ def _build(args: argparse.Namespace) -> Json:
         },
         "secret_boundary": {
             "bundle_must_not_contain_secrets": True,
-            "node_operator_must_not_have_oracle_service_secrets": True,
+            "node_operator_must_not_have_external_identity_or_authority_secrets": True,
             "prohibited_environment_variables": PROHIBITED_SECRET_KEYS,
             "node_operator_uses": [
-                "WEALL_ORACLE_OPERATOR_ACCOUNT or WEALL_VALIDATOR_ACCOUNT",
+                "WEALL_BOOTSTRAP_OPERATOR_ACCOUNT or WEALL_VALIDATOR_ACCOUNT",
                 "WEALL_NODE_PUBKEY",
                 "WEALL_NODE_PRIVKEY_FILE or local signing key storage",
             ],
-            "poh_email_oracle_operator_keeps_private": [
+            "authority_signer_keeps_private": [
             ],
             "authority_snapshot_signer_keeps_private": [
                 "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
@@ -108,7 +108,6 @@ def _build(args: argparse.Namespace) -> Json:
         "recommended_commands": {
             "verify_bundle": "python3 scripts/verify_node_operator_onboarding_bundle.py --bundle <bundle.json> --manifest configs/chains/weall-genesis.json --json",
             "node_preflight": "bash scripts/prod_node_operator_from_bundle_preflight.sh <bundle.json>",
-            "oracle_start_dry_run": "bash scripts/prod_email_oracle_start.sh --dry-run --email user@example.com --account <account>",
         },
     }
     return bundle

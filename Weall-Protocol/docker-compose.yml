@@ -41,7 +41,7 @@ services:
       WEALL_CHAIN_ID: ${WEALL_CHAIN_ID:-weall-dev}
       WEALL_CHAIN_MANIFEST_PATH: ${WEALL_CHAIN_MANIFEST_PATH:-}
       WEALL_REQUIRE_CHAIN_MANIFEST: ${WEALL_REQUIRE_CHAIN_MANIFEST:-0}
-      WEALL_ORACLE_PROFILE: ${WEALL_ORACLE_PROFILE:-}
+      WEALL_AUTHORITY_PROFILE: ${WEALL_AUTHORITY_PROFILE:-}
       WEALL_NODE_ID: ${WEALL_NODE_ID:-genesis-api}
       WEALL_DB_PATH: ./data/weall.db
       WEALL_TX_INDEX_PATH: ./generated/tx_index.json
@@ -50,7 +50,6 @@ services:
       WEALL_ENABLE_DEMO_SEED_ROUTE: ${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}
       WEALL_RUNTIME_PROFILE: ${WEALL_RUNTIME_PROFILE:-seeded_demo}
       WEALL_IPFS_API_BASE: http://kubo:5001
-      WEALL_MOCK_EMAIL_OUTBOX: ${WEALL_MOCK_EMAIL_OUTBOX:-./data/poh_email_outbox.jsonl}
       PYTHONPATH: /app/src
       # SQLite-backed dev bootstrap must stay single-worker to avoid
       # concurrent schema/WAL initialization races during first boot.
@@ -110,7 +109,7 @@ services:
       WEALL_CHAIN_ID: ${WEALL_CHAIN_ID:-weall-dev}
       WEALL_CHAIN_MANIFEST_PATH: ${WEALL_CHAIN_MANIFEST_PATH:-}
       WEALL_REQUIRE_CHAIN_MANIFEST: ${WEALL_REQUIRE_CHAIN_MANIFEST:-0}
-      WEALL_ORACLE_PROFILE: ${WEALL_ORACLE_PROFILE:-}
+      WEALL_AUTHORITY_PROFILE: ${WEALL_AUTHORITY_PROFILE:-}
       WEALL_NODE_ID: ${WEALL_PRODUCER_NODE_ID:-genesis-producer}
       WEALL_DB_PATH: ./data/weall.db
       WEALL_TX_INDEX_PATH: ./generated/tx_index.json

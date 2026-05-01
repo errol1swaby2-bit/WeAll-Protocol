@@ -7,32 +7,8 @@ Keep this module intentionally small and stable.
 Note:
   The protocol's canonical tx payload schemas live elsewhere (tx_schema/tx_canon).
   These API schemas exist only for HTTP input validation and UX stability.
+
+External identity-provider PoH request schemas were removed when PoH moved to
+protocol-native async/live verification. Add new HTTP schemas here only when they
+represent native protocol surfaces.
 """
-
-
-from pydantic import BaseModel, Field
-
-
-class PohEmailStartRequest(BaseModel):
-    account: str = Field(..., description="Account id, e.g. @alice")
-    email: str = Field(..., description="Email address")
-
-    # Optional client signing (used when the client has a local keypair)
-    pubkey: str | None = Field(default=None, description="Base64 pubkey")
-    sig: str | None = Field(default=None, description="Base64 signature")
-    nonce: int = Field(default=0, description="Account nonce used for signing")
-
-    # Any extra fields are ignored (forward compatible)
-    model_config = {"extra": "allow"}
-
-
-class PohEmailConfirmRequest(BaseModel):
-    account: str = Field(..., description="Account id, e.g. @alice")
-    email: str = Field(..., description="Email address")
-    code: str = Field(..., description="Verification code")
-
-    pubkey: str | None = Field(default=None, description="Base64 pubkey")
-    sig: str | None = Field(default=None, description="Base64 signature")
-    nonce: int = Field(default=0, description="Account nonce used for signing")
-
-    model_config = {"extra": "allow"}

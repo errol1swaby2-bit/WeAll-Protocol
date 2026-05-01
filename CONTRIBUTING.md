@@ -34,7 +34,7 @@ Targeted controlled-devnet proof:
 cd Weall-Protocol
 source .venv/bin/activate
 PYTHONPATH=src pytest -q tests/test_devnet_email_tier1_harness_batch210.py
-WEALL_EMAIL="you@example.com" bash scripts/devnet_full_onboarding_e2e.sh
+bash scripts/devnet_full_onboarding_e2e.sh
 ```
 
 Frontend:

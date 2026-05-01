@@ -31,7 +31,7 @@ _PLACEHOLDER_PREFIXES: tuple[str, ...] = (
 
 @dataclass(frozen=True, slots=True)
 class ChainManifest:
-    """Pinned chain identity manifest used by nodes and oracle services."""
+    """Pinned chain identity manifest used by nodes and authority-aware tooling."""
 
     path: str
     version: int
@@ -83,8 +83,8 @@ def _runtime_profile() -> str:
     return str(os.environ.get("WEALL_RUNTIME_PROFILE", "") or "").strip().lower()
 
 
-def _oracle_profile() -> str:
-    return str(os.environ.get("WEALL_ORACLE_PROFILE", "") or "").strip().lower()
+def _authority_profile() -> str:
+    return str(os.environ.get("WEALL_AUTHORITY_PROFILE", "") or "").strip().lower()
 
 
 def _env_manifest_path() -> str:
@@ -98,8 +98,8 @@ def _env_manifest_path() -> str:
 def default_chain_manifest_path_for_mode(mode: str | None = None) -> str:
     m = str(mode or _env_mode() or "").strip().lower()
     profile = _runtime_profile()
-    oracle_profile = _oracle_profile()
-    if m in {"demo", "seeded_demo"} or profile == "seeded_demo" or oracle_profile == "demo":
+    authority_profile = _authority_profile()
+    if m in {"demo", "seeded_demo"} or profile == "seeded_demo" or authority_profile == "demo":
         return DEFAULT_DEMO_CHAIN_MANIFEST_PATH
     if m in {"prod", "production", "production_like"}:
         return DEFAULT_PRODUCTION_CHAIN_MANIFEST_PATH
