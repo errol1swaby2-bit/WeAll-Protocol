@@ -445,7 +445,7 @@ def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
     rec["metadata_hash"] = metadata_hash
     rec["registered_tx_id"] = _as_str(getattr(env, "txid", None) or "")
     rec["registered_at_height"] = _as_int(state.get("height"), 0)
-    rec["poh_tier_snapshot"] = 3
+    rec["poh_tier_snapshot"] = 2
     if status not in {"pending_activation", "active", "suspended"}:
         rec["status"] = "candidate"
     rec["active"] = False

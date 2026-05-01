@@ -97,7 +97,7 @@ function votingHelpText(params: {
   currentChoice: string;
 }): string {
   const { stage, gateOk, gateReason, canVote, currentChoice } = params;
-  if (!gateOk) return gateReason || "Tier 3 and a local signer are required to vote.";
+  if (!gateOk) return gateReason || "Live Verification and a local signer are required to vote.";
   if (canVote && currentChoice) {
     return `Your current recorded vote is ${currentChoice.toUpperCase()}. This surface now treats proposal voting as one signer, one recorded vote.`;
   }
@@ -247,7 +247,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     loggedIn: !!acct,
     canSign,
     accountState: acctState,
-    requireTier: 3,
+    requireTier: 2,
   });
 
   async function doTx(
@@ -414,7 +414,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <span className={stageBadgeClass(stage)}>{stage}</span>
                 <span className="statusPill">Votes {activeCount.total}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
-                  {gate.ok ? "Tier 3 eligible" : "Tier 3 required"}
+                  {gate.ok ? "Live Verification eligible" : "Live Verification required"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>

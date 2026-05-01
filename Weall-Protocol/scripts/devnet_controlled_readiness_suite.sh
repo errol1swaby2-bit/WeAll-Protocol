@@ -18,8 +18,8 @@ set -euo pipefail
 #   WEALL_DEVNET_SUITE_RUN_CROSS_NODE=0    skip cross-node live probe
 #   WEALL_DEVNET_SUITE_RUN_RESTART=0       skip restart/catch-up live probe
 #   WEALL_DEVNET_SUITE_RUN_TIER2=1         run Tier2 inside onboarding smoke
-#   WEALL_DEVNET_SUITE_RUN_TIER3=1         run Tier3 inside onboarding smoke
-#   WEALL_EMAIL=person@example.com         required for Tier2/Tier3 full PoH path
+#   WEALL_DEVNET_SUITE_RUN_LIVE=1         run Live inside onboarding smoke
+#   WEALL_EMAIL=person@example.com         required for Tier2/Live full PoH path
 #   WEALL_DEVNET_AUTO_VENV=0               disable automatic .venv activation
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,16 +53,16 @@ activate_repo_venv() {
 }
 
 require_email_for_tier_poh() {
-  if _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}" || _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER3:-0}"; then
+  if _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}" || _bool_true "${WEALL_DEVNET_SUITE_RUN_LIVE:-0}"; then
     if [[ -z "${WEALL_EMAIL:-}" ]]; then
       echo "ERROR: WEALL_DEVNET_SUITE_RUN_TIER2/3 requires WEALL_EMAIL so the suite proves Tier-1 bounded oracle elevation first." >&2
       echo "Example:" >&2
-      echo "  WEALL_EMAIL=your-email@example.com WEALL_DEVNET_SUITE_RUN_TIER2=1 WEALL_DEVNET_SUITE_RUN_TIER3=1 bash scripts/devnet_controlled_readiness_suite.sh" >&2
+      echo "  WEALL_EMAIL=your-email@example.com WEALL_DEVNET_SUITE_RUN_TIER2=1 WEALL_DEVNET_SUITE_RUN_LIVE=1 bash scripts/devnet_controlled_readiness_suite.sh" >&2
       exit 2
     fi
   fi
-  if _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER3:-0}" && ! _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}"; then
-    echo "ERROR: WEALL_DEVNET_SUITE_RUN_TIER3=1 requires WEALL_DEVNET_SUITE_RUN_TIER2=1." >&2
+  if _bool_true "${WEALL_DEVNET_SUITE_RUN_LIVE:-0}" && ! _bool_true "${WEALL_DEVNET_SUITE_RUN_TIER2:-0}"; then
+    echo "ERROR: WEALL_DEVNET_SUITE_RUN_LIVE=1 requires WEALL_DEVNET_SUITE_RUN_TIER2=1." >&2
     exit 2
   fi
 }
@@ -84,7 +84,7 @@ SUITE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "==> Controlled-devnet readiness suite started at ${SUITE_STARTED_AT}"
 echo "==> Repo: ${REPO_ROOT}"
 echo "==> Tier2 in onboarding: ${WEALL_DEVNET_SUITE_RUN_TIER2:-0}"
-echo "==> Tier3 in onboarding: ${WEALL_DEVNET_SUITE_RUN_TIER3:-0}"
+echo "==> Live in onboarding: ${WEALL_DEVNET_SUITE_RUN_LIVE:-0}"
 
 if _bool_true "${WEALL_DEVNET_SUITE_RUN_PERMISSION:-1}"; then
   run_step "permission-gating direct API probe" env WEALL_DEVNET_LIVE_RESET=1 bash scripts/devnet_run_permission_probe_live.sh
@@ -97,7 +97,7 @@ if _bool_true "${WEALL_DEVNET_SUITE_RUN_ONBOARDING:-1}"; then
     env \
       WEALL_DEVNET_RESET_ON_AUTOSTART=1 \
       WEALL_DEVNET_RUN_TIER2="${WEALL_DEVNET_SUITE_RUN_TIER2:-0}" \
-      WEALL_DEVNET_RUN_TIER3="${WEALL_DEVNET_SUITE_RUN_TIER3:-0}" \
+      WEALL_DEVNET_RUN_LIVE="${WEALL_DEVNET_SUITE_RUN_LIVE:-0}" \
       bash scripts/devnet_full_onboarding_e2e.sh
 else
   echo "==> Skipped onboarding smoke"

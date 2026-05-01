@@ -39,7 +39,7 @@ def _state() -> dict:
     for i in range(1, 11):
         st["accounts"][f"j{i}"] = {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation": 1,
@@ -47,7 +47,7 @@ def _state() -> dict:
     return st
 
 
-def _tier3_payload() -> dict:
+def _live_payload() -> dict:
     return {
         "account_id": "alice",
         "session_commitment": "session:cmt:1",
@@ -61,7 +61,7 @@ def _reason(exc: BaseException) -> str:
     return str(getattr(exc, "reason", ""))
 
 
-def test_legacy_target_tier3_path_is_closed_batch233() -> None:
+def test_legacy_target_live_path_is_closed_batch233() -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(
@@ -73,48 +73,48 @@ def test_legacy_target_tier3_path_is_closed_batch233() -> None:
                 nonce=1,
             ),
         )
-    assert _reason(raised.value) == "tier3_legacy_request_disabled"
-    assert not st.get("poh", {}).get("tier3_cases")
+    assert _reason(raised.value) == "live_legacy_request_disabled"
+    assert not st.get("poh", {}).get("live_cases")
 
 
-def test_tier3_request_requires_session_room_prompt_commitments_batch233() -> None:
+def test_live_request_requires_session_room_prompt_commitments_batch233() -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_REQUEST_OPEN",
+                "POH_LIVE_REQUEST_OPEN",
                 {"account_id": "alice", "room_commitment": "room:cmt:1"},
                 signer="alice",
                 nonce=1,
             ),
         )
-    assert _reason(raised.value) == "missing_tier3_session_commitment"
-    assert not st.get("poh", {}).get("tier3_cases")
+    assert _reason(raised.value) == "missing_live_session_commitment"
+    assert not st.get("poh", {}).get("live_cases")
 
 
-def test_tier3_init_requires_existing_requested_case_and_matching_session_batch233() -> None:
+def test_live_init_requires_existing_requested_case_and_matching_session_batch233() -> None:
     st = _state()
     with pytest.raises(ApplyError) as missing:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_INIT",
-                {"case_id": "poh3:alice:1", "account_id": "alice", "session_commitment": "session:cmt:1"},
+                "POH_LIVE_SESSION_INIT",
+                {"case_id": "poh_live:alice:1", "account_id": "alice", "session_commitment": "session:cmt:1"},
                 signer="SYSTEM",
                 nonce=1,
                 system=True,
             ),
         )
-    assert _reason(missing.value) == "tier3_case_not_found"
+    assert _reason(missing.value) == "live_case_not_found"
 
-    apply_tx(st, _env("POH_TIER3_REQUEST_OPEN", _tier3_payload(), signer="alice", nonce=1))
+    apply_tx(st, _env("POH_LIVE_REQUEST_OPEN", _live_payload(), signer="alice", nonce=1))
     with pytest.raises(ApplyError) as bad_session:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_INIT",
-                {"case_id": "poh3:alice:1", "account_id": "alice", "session_commitment": "wrong"},
+                "POH_LIVE_SESSION_INIT",
+                {"case_id": "poh_live:alice:1", "account_id": "alice", "session_commitment": "wrong"},
                 signer="SYSTEM",
                 nonce=2,
                 system=True,
@@ -123,15 +123,15 @@ def test_tier3_init_requires_existing_requested_case_and_matching_session_batch2
     assert _reason(bad_session.value) == "bad_session_commitment"
 
 
-def test_tier3_attendance_and_verdict_must_match_session_commitment_batch233() -> None:
+def test_live_attendance_and_verdict_must_match_session_commitment_batch233() -> None:
     st = _state()
-    apply_tx(st, _env("POH_TIER3_REQUEST_OPEN", _tier3_payload(), signer="alice", nonce=1))
+    apply_tx(st, _env("POH_LIVE_REQUEST_OPEN", _live_payload(), signer="alice", nonce=1))
     apply_tx(
         st,
         _env(
-            "POH_TIER3_INIT",
+            "POH_LIVE_SESSION_INIT",
             {
-                "case_id": "poh3:alice:1",
+                "case_id": "poh_live:alice:1",
                 "account_id": "alice",
                 "session_commitment": "session:cmt:1",
                 "room_commitment": "room:cmt:1",
@@ -145,21 +145,21 @@ def test_tier3_attendance_and_verdict_must_match_session_commitment_batch233() -
     apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ASSIGN",
-            {"case_id": "poh3:alice:1", "jurors": [f"j{i}" for i in range(1, 11)]},
+            "POH_LIVE_JUROR_ASSIGN",
+            {"case_id": "poh_live:alice:1", "jurors": [f"j{i}" for i in range(1, 11)]},
             signer="SYSTEM",
             nonce=3,
             system=True,
         ),
     )
-    apply_tx(st, _env("POH_TIER3_JUROR_ACCEPT", {"case_id": "poh3:alice:1"}, signer="j1", nonce=1))
+    apply_tx(st, _env("POH_LIVE_JUROR_ACCEPT", {"case_id": "poh_live:alice:1"}, signer="j1", nonce=1))
 
     with pytest.raises(ApplyError) as raised:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_ATTENDANCE_MARK",
-                {"case_id": "poh3:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "wrong"},
+                "POH_LIVE_ATTENDANCE_MARK",
+                {"case_id": "poh_live:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "wrong"},
                 signer="j1",
                 nonce=2,
             ),
@@ -169,8 +169,8 @@ def test_tier3_attendance_and_verdict_must_match_session_commitment_batch233() -
     apply_tx(
         st,
         _env(
-            "POH_TIER3_ATTENDANCE_MARK",
-            {"case_id": "poh3:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "session:cmt:1"},
+            "POH_LIVE_ATTENDANCE_MARK",
+            {"case_id": "poh_live:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "session:cmt:1"},
             signer="j1",
             nonce=3,
         ),
@@ -179,8 +179,8 @@ def test_tier3_attendance_and_verdict_must_match_session_commitment_batch233() -
         apply_tx(
             st,
             _env(
-                "POH_TIER3_VERDICT_SUBMIT",
-                {"case_id": "poh3:alice:1", "verdict": "pass", "session_commitment": "wrong"},
+                "POH_LIVE_VERDICT_SUBMIT",
+                {"case_id": "poh_live:alice:1", "verdict": "pass", "session_commitment": "wrong"},
                 signer="j1",
                 nonce=4,
             ),

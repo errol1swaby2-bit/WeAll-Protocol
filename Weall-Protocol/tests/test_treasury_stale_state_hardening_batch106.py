@@ -35,9 +35,9 @@ def _mk_state() -> dict:
         "height": 10,
         "time": 1,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1.0},
-            "bob": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1.0},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1.0},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1.0},
+            "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1.0},
+            "SYSTEM": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1.0},
         },
         "roles": {"emissaries": {"seated": ["alice", "bob"]}},
         "params": {

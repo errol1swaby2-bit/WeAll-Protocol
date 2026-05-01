@@ -468,7 +468,7 @@ def _bootstrap_open_gate_bypass(env: TxEnvelope, ledger: LedgerView, spec: Json)
     """
     tx_type = str(env.tx_type or "").strip().upper()
     gate = str(spec.get("subject_gate") or "").strip()
-    if tx_type != "POH_BOOTSTRAP_TIER3_GRANT":
+    if tx_type != "POH_BOOTSTRAP_TIER2_GRANT":
         return False
     if gate != "Validator":
         return False

@@ -133,8 +133,8 @@ def demo_mode_isolation_issue(environ: Env | None = None) -> str | None:
 
     # Controlled multi-node devnet must exercise the normal protocol onboarding
     # path.  Open PoH bootstrap is a local-dev/test convenience that allows a
-    # subject to self-grant Tier3 during an early height window; leaving it on in
-    # devnet would contaminate Tier1 -> Tier2 -> Tier3 readiness tests.
+    # subject to self-grant Live during an early height window; leaving it on in
+    # devnet would contaminate Tier1 -> Tier2 -> Live readiness tests.
     if controlled_devnet and _truthy(env.get("WEALL_POH_BOOTSTRAP_OPEN")):
         return "poh_open_bootstrap_forbidden_in_controlled_devnet"
 

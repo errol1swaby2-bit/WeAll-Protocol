@@ -103,7 +103,7 @@ def test_tx_admission_rejects_float_payload_values(monkeypatch) -> None:
         accounts={
             "@alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,
@@ -135,7 +135,7 @@ def test_tx_admission_rejects_nested_float_payload_values(monkeypatch) -> None:
         accounts={
             "@alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

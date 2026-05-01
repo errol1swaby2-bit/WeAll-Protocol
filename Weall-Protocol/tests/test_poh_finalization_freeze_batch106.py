@@ -36,7 +36,7 @@ def _base_accounts() -> dict:
     for i in range(1, 13):
         accounts[f"j{i}"] = {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation": 0.9,
@@ -73,10 +73,10 @@ def test_tier2_review_submit_rejects_after_finalize() -> None:
     assert ei.value.reason == "case_finalized"
 
 
-def test_tier3_attendance_mark_rejects_after_finalize() -> None:
+def test_live_attendance_mark_rejects_after_finalize() -> None:
     st = _mk_state()
-    case_id = "tier3-case-a"
-    st["poh"]["tier3_cases"] = {
+    case_id = "live-case-a"
+    st["poh"]["live_cases"] = {
         case_id: {
             "case_id": case_id,
             "status": "awarded",
@@ -91,7 +91,7 @@ def test_tier3_attendance_mark_rejects_after_finalize() -> None:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_ATTENDANCE_MARK",
+                "POH_LIVE_ATTENDANCE_MARK",
                 {
                     "case_id": case_id,
                     "juror_id": "j1",
@@ -107,10 +107,10 @@ def test_tier3_attendance_mark_rejects_after_finalize() -> None:
     assert ei.value.reason == "case_finalized"
 
 
-def test_tier3_verdict_submit_rejects_after_finalize() -> None:
+def test_live_verdict_submit_rejects_after_finalize() -> None:
     st = _mk_state()
-    case_id = "tier3-case-b"
-    st["poh"]["tier3_cases"] = {
+    case_id = "live-case-b"
+    st["poh"]["live_cases"] = {
         case_id: {
             "case_id": case_id,
             "status": "rejected",
@@ -125,7 +125,7 @@ def test_tier3_verdict_submit_rejects_after_finalize() -> None:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_VERDICT_SUBMIT",
+                "POH_LIVE_VERDICT_SUBMIT",
                 {"case_id": case_id, "verdict": "fail", "session_commitment": "sc:1", "ts_ms": 12},
                 signer="j1",
                 nonce=1,

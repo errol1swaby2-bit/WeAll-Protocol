@@ -14,8 +14,9 @@ The current implementation is built around:
 - **fail-closed runtime posture**
 - **bootstrap-to-production authority gating**
 - **helper-assisted execution beneath consensus, never instead of it**
+- **Cloudflare-free Proof-of-Humanity email verification through a WeAll-hosted oracle and SMTP/Stalwart transport**
 
-The current audited transaction canon contains **215 transaction types across 21 domains**.
+The current audited transaction canon contains **221 transaction types across 21 domains**.
 
 ---
 
@@ -43,6 +44,7 @@ The current codebase already supports a real local full-stack demo flow with:
 
 - account registration and session flows
 - Proof-of-Humanity onboarding paths
+- Cloudflare-free Tier 1 email-control verification through `email_control_attestation_v1`
 - content posting and interaction flows
 - governance proposal and vote flows
 - dispute intake, review, and juror flows
@@ -79,6 +81,7 @@ WeAll currently targets the following implementation contract:
 - **State commitment:** canonical receipts root and state root
 - **Helper posture:** deterministic parallel-execution layer subordinate to HotStuff
 - **Lifecycle posture:** bootstrap registration → explicit production promotion
+- **PoH email posture:** WeAll-hosted oracle signs provider-neutral attestations; SMTP/Stalwart only sends email
 - **Production posture:** fail-closed configuration with trusted verification enabled
 
 Helpers are treated as a throughput optimization layer, not as a second consensus family.
@@ -142,7 +145,35 @@ bash scripts/devnet_controlled_readiness_suite.sh
 
 This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 email PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Tier-3 protocol-native live PoH finalization, cross-node convergence, and restart/catch-up.
 
-The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,514 passed, 1 warning**, followed by a green controlled-devnet readiness suite.
+The latest backend verification checkpoint for this snapshot was a green full pytest run: **2,582 passed, 1 warning**, followed by synchronized tx-canon artifacts at **221 tx types, version 1.23.1**.
+
+---
+
+## Cloudflare-free PoH email verification
+
+Tier 1 email-control verification no longer depends on Cloudflare.
+
+The required path is:
+
+```text
+WeAll frontend
+→ WeAll API
+→ WeAll-hosted PoH email oracle
+→ SMTP/Stalwart mail transport
+→ user inbox
+→ user submits code or signed response
+→ oracle signs email_control_attestation_v1
+→ WeAll node verifies the oracle signature and registry status
+→ Tier 1 PoH state is committed on-chain
+```
+
+Boundary rules:
+
+- Cloudflare Worker, Cloudflare Email Routing, Cloudflare API tokens, and Turnstile are not required.
+- Stalwart or another SMTP transport sends email only; it does not decide PoH tier and does not hold oracle signing keys.
+- The chain does not call SMTP, HTTP, DNS, Cloudflare, or any external network during execution.
+- The chain verifies provider-neutral `email_control_attestation_v1` against deterministic state and the on-chain oracle registry.
+- Raw email addresses, verification codes, SMTP secrets, and oracle private keys must not enter chain state, receipts, public snapshots, or logs.
 
 ---
 
@@ -206,30 +237,41 @@ Parallel execution is only acceptable if it preserves canonical results.
 
 The helper model is explicitly constrained by deterministic assignment, deterministic laneing, canonical merge rules, replay-safe receipts, and serial equivalence requirements.
 
+### 5. Email infrastructure is transport, not identity authority
+
+The PoH email oracle proves control of an email address by signing `email_control_attestation_v1`. Mail transport only delivers the challenge. The chain accepts the proof only after deterministic oracle-registry and replay checks.
+
 ---
 
 ## Current capability map
 
-The current audited transaction surface spans 21 domains, including:
+The current audited transaction surface spans 21 domains:
 
-- identity
-- Proof of Humanity
-- content
-- social
-- groups
-- governance
-- disputes
-- treasury
-- roles
-- consensus
-- rewards
-- economics
-- storage
-- networking
-- notifications
-- indexing
+| Domain | Tx types |
+|---|---:|
+| Cases | 3 |
+| Consensus | 16 |
+| Content | 15 |
+| Dispute | 12 |
+| Economics | 7 |
+| Governance | 16 |
+| Groups | 20 |
+| Identity | 18 |
+| Indexing | 8 |
+| Messaging | 2 |
+| Moderation | 2 |
+| Networking | 6 |
+| Notifications | 3 |
+| Performance | 5 |
+| PoH | 30 |
+| Reputation | 6 |
+| Rewards | 6 |
+| Roles | 14 |
+| Social | 5 |
+| Storage | 12 |
+| Treasury | 15 |
 
-Total current transaction types: **215**.
+Total current transaction types: **221**.
 
 ---
 
@@ -305,6 +347,8 @@ Consensus remains the canonical ordering and finality layer.
 
 Helpers, where used, must preserve the same result as the serial reference executor.
 
+PoH email verification is intentionally outside consensus execution until it becomes a signed, provider-neutral attestation transaction. Consensus execution verifies the proof; it never sends mail or calls a remote provider.
+
 ---
 
 ## Current safety posture
@@ -317,6 +361,7 @@ The current implementation posture is intentionally conservative:
 - apply atomically
 - bind consensus messages to chain and validator context
 - keep helper execution beneath canonical consensus
+- keep mail transport outside chain execution
 - require explicit lifecycle promotion before production authority
 
 This is deliberate.  
@@ -329,6 +374,9 @@ The goal is not just to make the system run — it is to make it hard for honest
 For deeper implementation detail, use these repository-tracked files:
 
 - `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
+- `Weall-Protocol/docs/poh-email-oracle.md` — Cloudflare-free PoH email oracle architecture and invariants
+- `Weall-Protocol/docs/operators/oracle-operator.md` — PoH email oracle operator runbook
+- `Weall-Protocol/docs/operators/stalwart-mail.md` — Stalwart/SMTP transport setup boundary
 - `Weall-Protocol/docs/testnet_runbook.md` — local tester, conference, and protocol-review runbook
 - `RELEASE_CHECKLIST.md` — external tester release checklist
 - `CONTRIBUTING.md` — contribution workflow and review expectations
@@ -360,63 +408,28 @@ docker compose logs weall_producer --tail 200
 docker inspect weall-protocol-weall_api-1 --format '{{json .State.Health}}'
 ```
 
-### Reset local backend state
+### Frontend not picking up demo account
+
+```bash
+cat web/public/dev-bootstrap.json
+cat Weall-Protocol/generated/demo_bootstrap_result.json
+```
+
+Then refresh the browser or clear local storage for `127.0.0.1:5173`.
+
+### Release tree hygiene before pushing
 
 ```bash
 cd Weall-Protocol
-docker compose down -v
-rm -f data/weall.db data/weall.db-shm data/weall.db-wal
-rm -f data/weall.aux.sqlite data/weall.aux.sqlite-shm data/weall.aux.sqlite-wal
-rm -f data/weall.aux_helper_lanes data/weall.db.bft_journal.jsonl
-rm -f generated/demo_bootstrap_result.json
+python3 -S scripts/check_tx_canon_artifacts.py
+bash scripts/secret_guard.sh
+bash scripts/verify_release_tree.sh
 ```
 
-### Blank white frontend screen during dev
+Expected checkpoint for this snapshot:
 
-A common cause is a frontend module import failure. Check the browser console first, then confirm the backend is healthy and the frontend bootstrap artifacts were written successfully.
-
----
-
-## Release hygiene before pushing to GitHub
-
-Before publishing a fresh repo snapshot:
-
-```bash
-cd Weall-Protocol
-./scripts/clean_local_artifacts.sh
+```text
+✅ tx canon artifacts are synchronized (221 tx types, version 1.23.1)
+[secret-guard] OK
+[verify] release tree check passed
 ```
-
-Also verify that:
-
-- stale local demo artifacts are excluded
-- unwanted frontend `.env.local` values are not tracked
-- Docker runtime files are not being committed
-- docs still match the actual current demo path
-
----
-
-## License
-
-WeAll Protocol is licensed under the **Mozilla Public License 2.0**. See `LICENSE`.
-
----
-
-## Status note
-
-This repository is already suitable for serious technical review and live local demonstration.
-
-It is **not** claiming that every future production feature is already enabled.
-
-The current posture is better described as:
-
-**real protocol implementation, real local demo, safety-first production path still being hardened**
-
-That distinction matters and is intentional.
-
----
-
-## Backend-specific guidance
-
-Use the repository root `README.md` for the main conference/demo path.
-
-Use `Weall-Protocol/README.md` for backend-specific quickstart, diagnostics, runtime notes, and operator-facing details.

@@ -21,7 +21,7 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10}
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10}
         },
         "roles": {},
         "system_queue": [],
@@ -132,7 +132,7 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10}
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10}
         },
         "roles": {},
         "system_queue": [],

@@ -64,7 +64,7 @@ export default function Groups(): JSX.Element {
   const canSign = !!kp?.secretKeyB64;
 
   const createGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 }),
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
     [acct, canSign, acctState],
   );
   const membershipGate = useMemo(
@@ -124,7 +124,7 @@ export default function Groups(): JSX.Element {
               <div className="heroInfoTitle">Participation posture</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
-                  {createGate.ok ? "Create unlocked" : "Create requires Tier 3"}
+                  {createGate.ok ? "Create unlocked" : "Create requires Live Verification"}
                 </span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
                   {membershipGate.ok ? "Membership unlocked" : "Membership requires Tier 2"}
@@ -155,7 +155,7 @@ export default function Groups(): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Create gate</span>
-              <span className="statValue">{createGate.ok ? "Tier 3+ ready" : "Tier 3 required"}</span>
+              <span className="statValue">{createGate.ok ? "Live Verified ready" : "Live Verification required"}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Membership gate</span>

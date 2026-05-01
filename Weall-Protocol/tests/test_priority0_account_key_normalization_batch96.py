@@ -68,7 +68,7 @@ def test_poh_allowlist_pubkey_match_accepts_canonical_keys_by_id_only_batch96() 
         "roles": {},
     }
     tx = TxEnvelope(
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer="SYSTEM",
         nonce=1,
         system=True,
@@ -76,7 +76,7 @@ def test_poh_allowlist_pubkey_match_accepts_canonical_keys_by_id_only_batch96() 
     ).to_json()
     apply_tx(state, tx)
     acct = state["accounts"]["alice"]
-    assert acct["poh_tier"] == 3
+    assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "allowlist"
 
 

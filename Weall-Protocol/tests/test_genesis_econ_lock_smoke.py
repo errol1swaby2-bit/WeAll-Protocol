@@ -39,8 +39,8 @@ def _mk_base_state(*, chain_id: str = "weall-test") -> dict:
             }
         },
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "balance": 0},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "balance": 0},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},
+            "SYSTEM": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},
         },
     }
 

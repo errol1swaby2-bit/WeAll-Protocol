@@ -5,6 +5,19 @@ export type GateResult = {
   reason?: string;
 };
 
+export function v2PohTier(value: unknown): number {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(2, Math.trunc(n)));
+}
+
+export function pohTierLabel(value: unknown): string {
+  const tier = v2PohTier(value);
+  if (tier >= 2) return "Live Verified Human";
+  if (tier === 1) return "Async Verified Human";
+  return "Unverified Account";
+}
+
 export type GateArgs = {
   loggedIn: boolean;
   canSign: boolean;
@@ -27,9 +40,11 @@ export function checkGates(args: GateArgs): GateResult {
   if (st?.banned) return { ok: false, reason: "Account is banned." };
   if (st?.locked) return { ok: false, reason: "Account is locked." };
 
-  const tier = Number(st?.poh_tier ?? 0);
+  const tier = v2PohTier(st?.poh_tier ?? 0);
   if (tier < args.requireTier) {
-    return { ok: false, reason: `Requires PoH tier ${args.requireTier}+ (you are tier ${tier}).` };
+    const requiredLabel = pohTierLabel(args.requireTier);
+    const actualLabel = pohTierLabel(tier);
+    return { ok: false, reason: `Requires ${requiredLabel} (you are ${actualLabel}).` };
   }
 
   if (args.minRep != null) {
@@ -42,11 +57,11 @@ export function checkGates(args: GateArgs): GateResult {
 
 export function summarizeAccountState(st: any | null): string {
   if (!st) return "(state unknown)";
-  const tier = Number(st?.poh_tier ?? 0);
+  const tier = v2PohTier(st?.poh_tier ?? 0);
   const rep = Number(st?.reputation ?? 0);
   const flags: string[] = [];
   if (st?.banned) flags.push("banned");
   if (st?.locked) flags.push("locked");
   const flagStr = flags.length ? ` (${flags.join(", ")})` : "";
-  return `tier ${tier}, rep ${rep}${flagStr}`;
+  return `${pohTierLabel(tier)}, rep ${rep}${flagStr}`;
 }

@@ -38,11 +38,11 @@ def _unsigned_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
 
-def test_treasury_create_requires_tier3plus() -> None:
-    canon = _canon({"TREASURY_CREATE": {"context": "mempool", "subject_gate": "Tier3+"}})
+def test_treasury_create_requires_tier2_live_verified() -> None:
+    canon = _canon({"TREASURY_CREATE": {"context": "mempool", "subject_gate": "Tier2+"}})
 
-    # Tier2 => denied
-    ledger = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
+    # Tier1 => denied
+    ledger = LedgerView(accounts={"@user": {"poh_tier": 1, "nonce": 0}}, roles={})
     ok, rej = admit_tx(
         {
             "tx_type": "TREASURY_CREATE",
@@ -59,8 +59,8 @@ def test_treasury_create_requires_tier3plus() -> None:
     assert rej is not None
     assert rej.code == "gate_denied"
 
-    # Tier3 => allowed
-    ledger2 = LedgerView(accounts={"@user": {"poh_tier": 3, "nonce": 0}}, roles={})
+    # Tier2 / Live Verified Human => allowed
+    ledger2 = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
     ok2, rej2 = admit_tx(
         {
             "tx_type": "TREASURY_CREATE",
@@ -81,7 +81,7 @@ def test_treasury_signers_set_requires_scoped_signer() -> None:
     canon = _canon({"TREASURY_SIGNERS_SET": {"context": "mempool", "subject_gate": "Signer"}})
 
     # No signer role => denied.
-    ledger = LedgerView(accounts={"@user": {"poh_tier": 3, "nonce": 0}}, roles={})
+    ledger = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
     ok, rej = admit_tx(
         {
             "tx_type": "TREASURY_SIGNERS_SET",
@@ -107,7 +107,7 @@ def test_group_signers_set_and_moderators_set_require_scoped_signer() -> None:
         }
     )
 
-    ledger = LedgerView(accounts={"@user": {"poh_tier": 3, "nonce": 0}}, roles={})
+    ledger = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
 
     ok1, rej1 = admit_tx(
         {

@@ -438,18 +438,18 @@ _run_tier2_devnet_flow() {
   _assert_cross_node_account_and_tx_parity "${account}" "tier2-finalization" "${request_tx_id}" "${accept_tx_id}" "${review_tx_id}"
 }
 
-_wait_tier3_case_assigned() {
+_wait_live_case_assigned() {
   local api="$1"
   local case_id="$2"
   local tick_api="$3"
-  local attempts="${WEALL_TIER3_ASSIGN_ATTEMPTS:-10}"
+  local attempts="${WEALL_LIVE_ASSIGN_ATTEMPTS:-10}"
   local i
   for ((i=1; i<=attempts; i++)); do
-    if python3 - "${api}" "${case_id}" <<'PY_TIER3_ASSIGNED'
+    if python3 - "${api}" "${case_id}" <<'PY_LIVE_ASSIGNED'
 import json, sys, urllib.parse, urllib.request
 api, case_id = sys.argv[1].rstrip('/'), sys.argv[2]
 try:
-    with urllib.request.urlopen(api + '/v1/poh/tier3/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
+    with urllib.request.urlopen(api + '/v1/poh/live/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
         out = json.loads(resp.read().decode('utf-8'))
 except Exception:
     raise SystemExit(1)
@@ -460,42 +460,42 @@ session_commitment = str((case or {}).get('session_commitment') or '').strip()
 if isinstance(jurors, list) and len(jurors) == 10 and status in {'init', 'open', 'awarded', 'rejected'} and session_commitment:
     raise SystemExit(0)
 raise SystemExit(1)
-PY_TIER3_ASSIGNED
+PY_LIVE_ASSIGNED
     then
       return 0
     fi
-    echo "==> Tier-3 case ${case_id} not ready yet; advancing system queue tick ${i}/${attempts}"
-    _submit_devnet_tick "${tick_api}" "tier3-assign-${i}"
+    echo "==> Live case ${case_id} not ready yet; advancing system queue tick ${i}/${attempts}"
+    _submit_devnet_tick "${tick_api}" "live-assign-${i}"
   done
-  echo "ERROR: Tier-3 case was not initialized/assigned: ${case_id}" >&2
-  python3 scripts/devnet_tx.py --api "${api}" tier3-case "${case_id}" || true
+  echo "ERROR: Live case was not initialized/assigned: ${case_id}" >&2
+  python3 scripts/devnet_tx.py --api "${api}" live-case "${case_id}" || true
   exit 1
 }
 
-_tier3_juror_keyfile() {
+_live_juror_keyfile() {
   local juror="$1"
   if [[ "${juror}" == "${OPERATOR_ACCOUNT}" ]]; then
     echo "${OPERATOR_KEYFILE}"
     return 0
   fi
-  local prefix="${WEALL_TIER3_JUROR_PREFIX:-@devnet-tier3-juror-}"
-  local key_prefix="${WEALL_TIER3_JUROR_KEY_PREFIX:-tier3-juror-}"
+  local prefix="${WEALL_LIVE_JUROR_PREFIX:-@devnet-live-juror-}"
+  local key_prefix="${WEALL_LIVE_JUROR_KEY_PREFIX:-live-juror-}"
   if [[ "${juror}" == "${prefix}"* ]]; then
     local suffix="${juror#${prefix}}"
     echo "${DEVNET_DIR}/accounts/${key_prefix}${suffix}.json"
     return 0
   fi
-  echo "ERROR: no controlled-devnet keyfile mapping for assigned Tier-3 juror ${juror}" >&2
+  echo "ERROR: no controlled-devnet keyfile mapping for assigned Live juror ${juror}" >&2
   return 1
 }
 
-_tier3_case_juror_lines() {
+_live_case_juror_lines() {
   local api="$1"
   local case_id="$2"
-  python3 - "${api}" "${case_id}" <<'PY_TIER3_JUROR_LINES'
+  python3 - "${api}" "${case_id}" <<'PY_LIVE_JUROR_LINES'
 import json, sys, urllib.parse, urllib.request
 api, case_id = sys.argv[1].rstrip('/'), sys.argv[2]
-with urllib.request.urlopen(api + '/v1/poh/tier3/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
+with urllib.request.urlopen(api + '/v1/poh/live/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
     out = json.loads(resp.read().decode('utf-8'))
 case = out.get('case') if isinstance(out, dict) else {}
 for j in case.get('jurors') or []:
@@ -505,60 +505,60 @@ for j in case.get('jurors') or []:
     role = str(j.get('role') or '').strip()
     if jid and role:
         print(jid + '\t' + role)
-PY_TIER3_JUROR_LINES
+PY_LIVE_JUROR_LINES
 }
 
-_run_tier3_devnet_flow() {
+_run_live_devnet_flow() {
   local account="$1"
-  local t3_out="${DEVNET_DIR}/tier3-request.json"
-  local review_dir="${DEVNET_DIR}/tier3-reviews"
+  local t3_out="${DEVNET_DIR}/live-request.json"
+  local review_dir="${DEVNET_DIR}/live-reviews"
   mkdir -p "${review_dir}"
 
-  echo "==> Preparing 10 controlled-devnet Tier-3 reviewer accounts through normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" bash ./scripts/devnet_prepare_tier3_jurors.sh
+  echo "==> Preparing 10 controlled-devnet Live reviewer accounts through normal tx flow"
+  WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" bash ./scripts/devnet_prepare_live_jurors.sh
 
-  echo "==> Requesting protocol-native Tier-3 live PoH through node 1 normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_tier3.sh | tee "${t3_out}"
+  echo "==> Requesting protocol-native Live live PoH through node 1 normal tx flow"
+  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_live.sh | tee "${t3_out}"
   local case_id
   case_id="$(_json_file_field "${t3_out}" case_id)"
   local request_tx_id
   request_tx_id="$(_json_file_field "${t3_out}" tx_id)"
   if [[ -z "${case_id}" ]]; then
-    echo "ERROR: Tier-3 request did not return case_id" >&2
+    echo "ERROR: Live request did not return case_id" >&2
     cat "${t3_out}" >&2
     exit 1
   fi
 
-  _wait_tier3_case_assigned "${NODE1_API}" "${case_id}" "${NODE1_API}"
+  _wait_live_case_assigned "${NODE1_API}" "${case_id}" "${NODE1_API}"
 
-  echo "==> Submitting assigned Tier-3 reviewer attendance/verdict txs through normal tx flow"
+  echo "==> Submitting assigned Live reviewer attendance/verdict txs through normal tx flow"
   while IFS=$'\t' read -r juror role; do
     [[ -n "${juror}" ]] || continue
     local juror_keyfile
-    juror_keyfile="$(_tier3_juror_keyfile "${juror}")"
+    juror_keyfile="$(_live_juror_keyfile "${juror}")"
     local safe_juror
     safe_juror="$(printf '%s' "${juror}" | tr -c 'A-Za-z0-9_.@-' '_')"
     local out_file="${review_dir}/${safe_juror}.json"
     if [[ "${role}" == "interacting" ]]; then
-      WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" WEALL_TIER3_JUROR_ACCOUNT="${juror}" WEALL_TIER3_JUROR_KEYFILE="${juror_keyfile}" WEALL_TIER3_VERDICT="pass" \
-        bash ./scripts/devnet_review_tier3.sh | tee "${out_file}"
+      WEALL_API="${NODE1_API}" WEALL_LIVE_CASE_ID="${case_id}" WEALL_LIVE_JUROR_ACCOUNT="${juror}" WEALL_LIVE_JUROR_KEYFILE="${juror_keyfile}" WEALL_LIVE_VERDICT="pass" \
+        bash ./scripts/devnet_review_live.sh | tee "${out_file}"
     else
-      WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" WEALL_TIER3_JUROR_ACCOUNT="${juror}" WEALL_TIER3_JUROR_KEYFILE="${juror_keyfile}" WEALL_TIER3_SUBMIT_VERDICT="0" \
-        bash ./scripts/devnet_review_tier3.sh | tee "${out_file}"
+      WEALL_API="${NODE1_API}" WEALL_LIVE_CASE_ID="${case_id}" WEALL_LIVE_JUROR_ACCOUNT="${juror}" WEALL_LIVE_JUROR_KEYFILE="${juror_keyfile}" WEALL_LIVE_SUBMIT_VERDICT="0" \
+        bash ./scripts/devnet_review_live.sh | tee "${out_file}"
     fi
-  done < <(_tier3_case_juror_lines "${NODE1_API}" "${case_id}")
+  done < <(_live_case_juror_lines "${NODE1_API}" "${case_id}")
 
-  echo "==> Tier-3 live session state after reviewer attestations"
-  WEALL_API="${NODE1_API}" WEALL_TIER3_CASE_ID="${case_id}" bash ./scripts/devnet_tier3_session.sh
+  echo "==> Live live session state after reviewer attestations"
+  WEALL_API="${NODE1_API}" WEALL_LIVE_CASE_ID="${case_id}" bash ./scripts/devnet_live_session.sh
 
-  _wait_account_tier_at_least "${NODE1_API}" "${account}" 3 "${NODE1_API}" "tier3-finalize"
+  _wait_account_tier_at_least "${NODE1_API}" "${account}" 2 "${NODE1_API}" "live-finalize"
 
-  echo "==> Syncing node 2 from node 1 after Tier-3 finalization"
+  echo "==> Syncing node 2 from node 1 after Live finalization"
   bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Comparing node roots after Tier-3 finalization"
+  echo "==> Comparing node roots after Live finalization"
   bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Verifying Tier-3 account/tx parity across nodes"
-  _assert_cross_node_account_and_tx_parity "${account}" "tier3-finalization" "${request_tx_id}"
+  echo "==> Verifying Live account/tx parity across nodes"
+  _assert_cross_node_account_and_tx_parity "${account}" "live-finalization" "${request_tx_id}"
 }
 _cleanup() {
   local status=$?
@@ -700,15 +700,15 @@ if _is_node_ready "${NODE2_API}" || _start_node2_if_needed; then
 
     if [[ "${WEALL_DEVNET_RUN_TIER2:-1}" == "1" ]]; then
       _run_tier2_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
-      if [[ "${WEALL_DEVNET_RUN_TIER3:-0}" == "1" ]]; then
-        _run_tier3_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
+      if [[ "${WEALL_DEVNET_RUN_LIVE:-0}" == "1" ]]; then
+        _run_live_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
       else
-        echo "==> WEALL_DEVNET_RUN_TIER3=0; skipped Tier-3 devnet PoH flow"
+        echo "==> WEALL_DEVNET_RUN_LIVE=0; skipped Live devnet PoH flow"
       fi
     else
       echo "==> WEALL_DEVNET_RUN_TIER2=0; skipped Tier-2 devnet PoH flow"
-      if [[ "${WEALL_DEVNET_RUN_TIER3:-0}" == "1" ]]; then
-        echo "ERROR: WEALL_DEVNET_RUN_TIER3=1 requires WEALL_DEVNET_RUN_TIER2=1 in this full onboarding harness" >&2
+      if [[ "${WEALL_DEVNET_RUN_LIVE:-0}" == "1" ]]; then
+        echo "ERROR: WEALL_DEVNET_RUN_LIVE=1 requires WEALL_DEVNET_RUN_TIER2=1 in this full onboarding harness" >&2
         exit 1
       fi
     fi

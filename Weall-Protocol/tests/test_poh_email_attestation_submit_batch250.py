@@ -35,7 +35,7 @@ def _base_state() -> dict:
             },
             "@oracle": {
                 "account_id": "@oracle",
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "keys": {"by_id": {"k1": {"pubkey": op_pub, "revoked": False}}},

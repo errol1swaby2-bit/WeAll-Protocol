@@ -226,7 +226,7 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
     # by replayable ledger state, not process-local environment configuration.
     origin = str(txdef.get("origin") or "").strip().upper()
     system_enforced = bool(txdef.get("system_only", False)) or origin == "SYSTEM"
-    if system_enforced and t == "POH_BOOTSTRAP_TIER3_GRANT":
+    if system_enforced and t == "POH_BOOTSTRAP_TIER2_GRANT":
         mode, conflict = _consensus_bootstrap_policy_mode(state)
         if not conflict and mode == "open":
             system_enforced = False

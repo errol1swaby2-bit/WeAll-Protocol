@@ -94,7 +94,7 @@ def test_production_request_activates_validator_and_helper_when_preflight_passes
     st["accounts"] = {
         "@v1": {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation_milli": 6000,
@@ -116,8 +116,8 @@ def test_production_request_activates_validator_and_helper_when_preflight_passes
     assert lifecycle["helper_enabled_effective"] is True
     assert lifecycle["bft_enabled_effective"] is True
     assert lifecycle["node_key_authorized"] is True
-    assert lifecycle["poh_tier_required"] == 3
-    assert lifecycle["poh_tier_actual"] == 3
+    assert lifecycle["poh_tier_required"] == 2
+    assert lifecycle["poh_tier_actual"] == 2
     assert lifecycle["reputation_actual_milli"] == 6000
     assert lifecycle["active_roles"] == ["helper", "node_operator", "storage_operator", "validator"]
     assert lifecycle["service_roles_effective"] == ["general_service", "helper", "validator"]

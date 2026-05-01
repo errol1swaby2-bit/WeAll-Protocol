@@ -13,8 +13,10 @@ from weall.runtime.poh.oracle_registry import (
 )
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
+    require_valid_poh_tier,
     revoke_account_poh_status,
     set_account_poh_status,
+    v2_poh_tier,
 )
 
 Json = dict[str, Any]
@@ -61,7 +63,7 @@ def _tier2_cases(state: Json) -> Json:
 def _evidence_commitment_index(state: Json) -> Json:
     """Global PoH evidence commitment index.
 
-    The index is intentionally shared across Tier 2/Tier 3 evidence lanes so the
+    The index is intentionally shared across legacy async/live evidence lanes so the
     same off-chain media commitment cannot be replayed to elevate multiple
     accounts or create independent cases. Appeals/retries should reference the
     original case instead of reusing the same commitment as a fresh proof.
@@ -97,7 +99,7 @@ def _require_account_min_tier(
         raise ApplyError("forbidden", "account_banned", {"account_id": account_id})
     if bool(acct.get("locked", False)):
         raise ApplyError("forbidden", "account_locked", {"account_id": account_id})
-    tier = _as_int(acct.get("poh_tier") or 0, 0)
+    tier = v2_poh_tier(acct.get("poh_tier") or 0)
     if tier < int(min_tier):
         raise ApplyError(
             "forbidden",
@@ -107,34 +109,43 @@ def _require_account_min_tier(
     return acct
 
 
-def _tier3_cases(state: Json) -> Json:
+
+def _async_cases(state: Json) -> Json:
     poh = _poh_root(state)
-    cases = poh.get("tier3_cases")
+    cases = poh.get("async_cases")
     if not isinstance(cases, dict):
         cases = {}
-        poh["tier3_cases"] = cases
+        poh["async_cases"] = cases
+    return cases
+
+def _live_cases(state: Json) -> Json:
+    poh = _poh_root(state)
+    cases = poh.get("live_cases")
+    if not isinstance(cases, dict):
+        cases = {}
+        poh["live_cases"] = cases
     return cases
 
 
-def _tier3_sessions(state: Json) -> Json:
+def _live_sessions(state: Json) -> Json:
     poh = _poh_root(state)
-    sessions = poh.get("tier3_sessions")
+    sessions = poh.get("live_sessions")
     if not isinstance(sessions, dict):
         sessions = {}
-        poh["tier3_sessions"] = sessions
+        poh["live_sessions"] = sessions
     return sessions
 
 
-def _tier3_session_participants(state: Json) -> Json:
+def _live_session_participants(state: Json) -> Json:
     poh = _poh_root(state)
-    participants = poh.get("tier3_session_participants")
+    participants = poh.get("live_session_participants")
     if not isinstance(participants, dict):
         participants = {}
-        poh["tier3_session_participants"] = participants
+        poh["live_session_participants"] = participants
     return participants
 
 
-def _tier3_required_commitments_from_payload(payload: Json) -> Json:
+def _live_required_commitments_from_payload(payload: Json) -> Json:
     return {
         "session_commitment": _as_str(payload.get("session_commitment") or "").strip(),
         "room_commitment": _as_str(payload.get("room_commitment") or "").strip(),
@@ -143,8 +154,8 @@ def _tier3_required_commitments_from_payload(payload: Json) -> Json:
     }
 
 
-def _require_tier3_request_commitments(payload: Json) -> Json:
-    commitments = _tier3_required_commitments_from_payload(payload)
+def _require_live_request_commitments(payload: Json) -> Json:
+    commitments = _live_required_commitments_from_payload(payload)
     missing = [
         key
         for key in ("session_commitment", "room_commitment", "prompt_commitment")
@@ -153,13 +164,13 @@ def _require_tier3_request_commitments(payload: Json) -> Json:
     if missing:
         raise ApplyError(
             "invalid_tx",
-            "missing_tier3_session_commitment",
+            "missing_live_session_commitment",
             {"missing": missing},
         )
     return commitments
 
 
-def _require_tier3_case_commitments(case: Json, *, case_id: str) -> Json:
+def _require_live_case_commitments(case: Json, *, case_id: str) -> Json:
     commitments = {
         "session_commitment": _as_str(case.get("session_commitment") or "").strip(),
         "room_commitment": _as_str(case.get("room_commitment") or "").strip(),
@@ -174,14 +185,14 @@ def _require_tier3_case_commitments(case: Json, *, case_id: str) -> Json:
     if missing:
         raise ApplyError(
             "invalid_state",
-            "tier3_session_commitment_missing",
+            "live_session_commitment_missing",
             {"case_id": case_id, "missing": missing},
         )
     return commitments
 
 
-def _require_tier3_payload_session_matches(case: Json, payload: Json, *, case_id: str) -> str:
-    commitments = _require_tier3_case_commitments(case, case_id=case_id)
+def _require_live_payload_session_matches(case: Json, payload: Json, *, case_id: str) -> str:
+    commitments = _require_live_case_commitments(case, case_id=case_id)
     expected_sc = commitments["session_commitment"]
     supplied_sc = _as_str(payload.get("session_commitment") or "").strip()
     if not supplied_sc or supplied_sc != expected_sc:
@@ -463,7 +474,7 @@ def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
     return pk in seen
 
 
-def _require_active_tier3(state: Json, account_id: str, *, case_id: str = "") -> Json:
+def _require_active_live(state: Json, account_id: str, *, case_id: str = "") -> Json:
     acct = _require_account_exists(
         state, account_id, code="invalid_tx", reason="juror_account_not_found"
     )
@@ -472,9 +483,9 @@ def _require_active_tier3(state: Json, account_id: str, *, case_id: str = "") ->
     if bool(acct.get("locked", False)):
         raise ApplyError("invalid_tx", "juror_locked", {"case_id": case_id, "juror": account_id})
     tier = _as_int(acct.get("poh_tier") or 0, 0)
-    if tier < 3:
+    if tier < 2:
         raise ApplyError(
-            "invalid_tx", "juror_not_tier3", {"case_id": case_id, "juror": account_id, "tier": tier}
+            "invalid_tx", "juror_not_live", {"case_id": case_id, "juror": account_id, "tier": tier, "required": 2}
         )
     return acct
 
@@ -746,7 +757,14 @@ def apply_oracle_update_metadata(state: Json, env: Any) -> Json:
 def apply_poh_tier_set(state: Json, tx: Json) -> None:
     payload = tx.get("payload") or {}
     account_id = str(payload.get("account_id") or "")
-    tier = int(payload.get("tier") or 0)
+    try:
+        tier = require_valid_poh_tier(payload.get("tier") or 0)
+    except ValueError as exc:
+        raise ApplyError(
+            "invalid_tx",
+            "invalid_poh_tier",
+            {"account_id": account_id, "max_tier": 2},
+        ) from exc
 
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account", {})
@@ -755,8 +773,8 @@ def apply_poh_tier_set(state: Json, tx: Json) -> None:
     acct["poh_tier"] = tier
 
 
-def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
-    """Bootstrap a Tier3 PoH grant.
+def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
+    """Bootstrap a Live Verification PoH grant.
 
     The active bootstrap mechanism must resolve to exactly one consensus-visible
     policy mode:
@@ -813,7 +831,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
             raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-        acct["poh_tier"] = 3
+        acct["poh_tier"] = 2
         acct["poh_bootstrap_granted"] = True
         acct["poh_bootstrap_mode"] = "open"
         acct["poh_bootstrap_height"] = current_height
@@ -821,7 +839,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
             acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
         except Exception:
             acct["nonce"] = int(nonce)
-        _mint_poh_nft(state, owner=account_id, tier=3, source_id="bootstrap_open", ts_ms=0)
+        _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap_open", ts_ms=0)
         return
 
     # --- Allowlist bootstrap ---
@@ -855,7 +873,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
     if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
         raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-    acct["poh_tier"] = 3
+    acct["poh_tier"] = 2
     acct["poh_bootstrap_granted"] = True
     acct["poh_bootstrap_mode"] = "allowlist"
     acct["poh_bootstrap_height"] = current_height
@@ -863,7 +881,7 @@ def apply_poh_bootstrap_tier3_grant(state: Json, tx: Json) -> None:
         acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
     except Exception:
         acct["nonce"] = int(nonce)
-    _mint_poh_nft(state, owner=account_id, tier=3, source_id="bootstrap", ts_ms=0)
+    _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap", ts_ms=0)
 
 
 def _challenge_id(*, account_id: str, nonce: int) -> str:
@@ -916,6 +934,461 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
     return {"applied": "POH_CHALLENGE_RESOLVE", "challenge_id": cid, "resolution": resolution}
 
 
+
+ASYNC_PRIVATE_FIELD_DENYLIST: frozenset[str] = frozenset(
+    {
+        "raw_response",
+        "raw_video",
+        "private_notes",
+        "juror_private_notes",
+        "em" + "ail",
+        "em" + "ail_hash",
+        "phone",
+        "phone_number",
+        "ip_address",
+        "device_fingerprint",
+        "browser_fingerprint",
+        "government_id",
+        "provider_metadata",
+        "kyc_metadata",
+        "oauth_provider_metadata",
+    }
+)
+
+
+def _reject_native_async_private_fields(payload: Json) -> None:
+    leaked = sorted(k for k in ASYNC_PRIVATE_FIELD_DENYLIST if k in payload and payload.get(k) not in (None, ""))
+    if leaked:
+        raise ApplyError("invalid_tx", "native_async_private_field_forbidden", {"fields": leaked})
+
+
+def _async_defaults_from_state(state: Json) -> tuple[int, int, int, int, int]:
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    poh = params.get("poh")
+    poh = poh if isinstance(poh, dict) else {}
+    assigned_jurors = max(1, _as_int(poh.get("async_n_jurors") or 3, 3))
+    min_reviews = max(1, _as_int(poh.get("async_min_reviews") or 3, 3))
+    approval_threshold = max(1, _as_int(poh.get("async_approval_threshold") or 2, 2))
+    rejection_threshold = max(1, _as_int(poh.get("async_rejection_threshold") or 2, 2))
+    expiry_window = max(1, _as_int(poh.get("async_expiry_window_blocks") or 100000, 100000))
+    return assigned_jurors, min_reviews, approval_threshold, rejection_threshold, expiry_window
+
+
+def _get_async_case(state: Json, case_id: str) -> Json:
+    case = _async_cases(state).get(case_id)
+    if not isinstance(case, dict):
+        raise ApplyError("invalid_tx", "async_case_not_found", {"case_id": case_id})
+    return case
+
+
+def _async_case_open_or_reviewable(case: Json, *, case_id: str) -> str:
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("approved", "rejected", "expired", "finalized"):
+        raise ApplyError("invalid_tx", "async_case_finalized", {"case_id": case_id, "status": status})
+    return status
+
+
+def _append_unique_str(values: Any, value: str) -> list[str]:
+    out: list[str] = []
+    if isinstance(values, list):
+        for item in values:
+            item_s = _as_str(item).strip()
+            if item_s and item_s not in out:
+                out.append(item_s)
+    value_s = _as_str(value).strip()
+    if value_s and value_s not in out:
+        out.append(value_s)
+    return out
+
+
+def _async_review_counts(case: Json) -> tuple[int, int, int]:
+    reviews = case.get("reviews")
+    reviews = reviews if isinstance(reviews, dict) else {}
+    approvals = 0
+    rejections = 0
+    counted = 0
+    for review_any in reviews.values():
+        review = review_any if isinstance(review_any, dict) else {}
+        verdict = _as_str(review.get("verdict") or "").strip().lower()
+        if verdict == "approve":
+            approvals += 1
+            counted += 1
+        elif verdict in ("reject", "invalid_evidence"):
+            rejections += 1
+            counted += 1
+        elif verdict in ("abstain", "needs_followup"):
+            counted += 1
+    return approvals, rejections, counted
+
+
+def apply_poh_async_request_open(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    _reject_native_async_private_fields(p)
+    account_id = _as_str(p.get("account_id") or _signer(env)).strip()
+    if not account_id:
+        raise ApplyError("invalid_tx", "missing_account_id", {})
+    _require_subject_signer(env, account_id)
+    acct = _require_registered_account(state, account_id)
+    if bool(acct.get("banned", False)):
+        raise ApplyError("forbidden", "account_banned", {"account_id": account_id})
+    if bool(acct.get("locked", False)):
+        raise ApplyError("forbidden", "account_locked", {"account_id": account_id})
+
+    assigned_jurors, min_reviews, approval_threshold, rejection_threshold, expiry_window = _async_defaults_from_state(state)
+    height = int(state.get("height") or 0)
+    case_id = _as_str(p.get("case_id") or "").strip() or _case_id(
+        "pohasync", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0))
+    )
+    cases = _async_cases(state)
+    if case_id in cases:
+        raise ApplyError("invalid_tx", "case_already_exists", {"case_id": case_id})
+
+    challenge_id = _as_str(p.get("challenge_id") or "").strip() or f"challenge:{case_id}"
+    challenge_commitment = _as_str(p.get("challenge_commitment") or "").strip()
+    if not challenge_commitment:
+        challenge_commitment = _sha256_hex(f"{_chain_id(state)}|POH_ASYNC_CHALLENGE|{case_id}|{account_id}|{challenge_id}".encode())
+    response_commitment = _as_str(p.get("response_commitment") or "").strip()
+    expires_height = _as_int(p.get("expires_height") or 0, 0) or height + expiry_window
+    if expires_height <= height:
+        raise ApplyError("invalid_tx", "invalid_expiry_height", {"case_id": case_id, "expires_height": expires_height})
+
+    cases[case_id] = {
+        "case_id": case_id,
+        "account_id": account_id,
+        "opened_by": _signer(env),
+        "opened_height": height,
+        "expires_height": expires_height,
+        "status": "open",
+        "challenge_id": challenge_id,
+        "challenge_commitment": challenge_commitment,
+        "response_commitment": response_commitment,
+        "evidence_commitments": {},
+        "public_evidence_ids": [],
+        "assigned_jurors": [],
+        "accepted_jurors": [],
+        "declined_jurors": [],
+        "reviews": {},
+        "outcome": None,
+        "finalized_height": None,
+        "receipt_id": None,
+        "target_tier": 1,
+        "assigned_juror_count": assigned_jurors,
+        "minimum_reviews": min_reviews,
+        "approval_threshold": approval_threshold,
+        "rejection_threshold": rejection_threshold,
+        "protocol_native": True,
+        "external_identity_authority": "forbidden",
+    }
+
+    return {
+        "applied": "POH_ASYNC_REQUEST_OPEN",
+        "case_id": case_id,
+        "account_id": account_id,
+        "status": "open",
+        "expires_height": expires_height,
+    }
+
+
+def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    _reject_native_async_private_fields(p)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    evidence_commitment = _as_str(p.get("evidence_commitment") or "").strip()
+    response_commitment = _as_str(p.get("response_commitment") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    if not evidence_commitment and not response_commitment:
+        raise ApplyError("invalid_tx", "missing_evidence_commitment", {"case_id": case_id})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+    account_id = _as_str(case.get("account_id") or "").strip()
+    _require_subject_signer(env, account_id)
+
+    evidence_id = _as_str(p.get("evidence_id") or "").strip()
+    if not evidence_id:
+        basis = evidence_commitment or response_commitment or str(_as_int(_get_env(env, "nonce", 0)))
+        evidence_id = f"async-evidence:{_sha256_hex(f'{case_id}|{basis}'.encode())[:24]}"
+
+    commitments = case.get("evidence_commitments")
+    if not isinstance(commitments, dict):
+        commitments = {}
+        case["evidence_commitments"] = commitments
+    commitments[evidence_id] = {
+        "evidence_id": evidence_id,
+        "evidence_commitment": evidence_commitment,
+        "response_commitment": response_commitment,
+        "kind": _as_str(p.get("kind") or "commitment").strip() or "commitment",
+        "declared_height": int(state.get("height") or 0),
+    }
+    if response_commitment:
+        case["response_commitment"] = response_commitment
+    public_evidence_id = _as_str(p.get("public_evidence_id") or "").strip()
+    if public_evidence_id:
+        case["public_evidence_ids"] = _append_unique_str(case.get("public_evidence_ids"), public_evidence_id)
+    case["status"] = "evidence_submitted"
+    return {"applied": "POH_ASYNC_EVIDENCE_DECLARE", "case_id": case_id, "evidence_id": evidence_id}
+
+
+def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    _reject_native_async_private_fields(p)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    evidence_id = _as_str(p.get("evidence_id") or "").strip()
+    if not case_id or not evidence_id:
+        raise ApplyError("invalid_tx", "missing_case_or_evidence_id", {"case_id": case_id, "evidence_id": evidence_id})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+    account_id = _as_str(case.get("account_id") or "").strip()
+    _require_subject_signer(env, account_id)
+    commitments = case.get("evidence_commitments")
+    if not isinstance(commitments, dict) or evidence_id not in commitments:
+        raise ApplyError("invalid_tx", "evidence_not_declared", {"case_id": case_id, "evidence_id": evidence_id})
+    binds = case.get("evidence_binds")
+    if not isinstance(binds, dict):
+        binds = {}
+        case["evidence_binds"] = binds
+    target_id = _as_str(p.get("target_id") or "").strip() or case_id
+    bind_id = f"bind:{case_id}:{evidence_id}:{target_id}"
+    binds[bind_id] = {"bind_id": bind_id, "evidence_id": evidence_id, "target_id": target_id}
+    return {"applied": "POH_ASYNC_EVIDENCE_BIND", "case_id": case_id, "bind_id": bind_id}
+
+
+def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    juror_values = p.get("jurors")
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    if not isinstance(juror_values, list):
+        raise ApplyError("invalid_tx", "missing_jurors", {"case_id": case_id})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+
+    assigned_needed = _as_int(case.get("assigned_juror_count") or 3, 3)
+    jurors: list[str] = []
+    for item in juror_values:
+        jid = _as_str(item).strip()
+        if jid and jid not in jurors:
+            jurors.append(jid)
+    if len(jurors) != assigned_needed:
+        raise ApplyError("invalid_tx", "invalid_async_juror_count", {"case_id": case_id, "expected": assigned_needed, "actual": len(jurors)})
+
+    account_id = _as_str(case.get("account_id") or "").strip()
+    for jid in jurors:
+        if jid == account_id:
+            raise ApplyError("invalid_tx", "subject_cannot_review_self", {"case_id": case_id, "juror": jid})
+        _require_active_live(state, jid, case_id=case_id)
+
+    case["assigned_jurors"] = jurors
+    juror_map = case.get("jurors")
+    if not isinstance(juror_map, dict):
+        juror_map = {}
+        case["jurors"] = juror_map
+    for jid in jurors:
+        juror_map.setdefault(jid, {"juror_id": jid, "status": "assigned"})
+
+    if p.get("min_reviews") is not None:
+        case["minimum_reviews"] = max(1, _as_int(p.get("min_reviews"), 3))
+    if p.get("approval_threshold") is not None:
+        case["approval_threshold"] = max(1, _as_int(p.get("approval_threshold"), 2))
+    if p.get("rejection_threshold") is not None:
+        case["rejection_threshold"] = max(1, _as_int(p.get("rejection_threshold"), 2))
+    case["status"] = "assigned"
+    return {"applied": "POH_ASYNC_JUROR_ASSIGN", "case_id": case_id, "jurors": jurors}
+
+
+def apply_poh_async_juror_accept(state: Json, env: Any) -> Json:
+    case_id = _as_str(_payload(env).get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+    juror_id = _signer(env)
+    _require_active_live(state, juror_id, case_id=case_id)
+    if juror_id not in list(case.get("assigned_jurors") or []):
+        raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
+    if juror_id in list(case.get("declined_jurors") or []):
+        raise ApplyError("invalid_tx", "juror_already_declined", {"case_id": case_id, "juror": juror_id})
+    case["accepted_jurors"] = _append_unique_str(case.get("accepted_jurors"), juror_id)
+    jurors = case.get("jurors")
+    if isinstance(jurors, dict):
+        jurors.setdefault(juror_id, {})["status"] = "accepted"
+    case["status"] = "under_review"
+    return {"applied": "POH_ASYNC_JUROR_ACCEPT", "case_id": case_id, "juror": juror_id}
+
+
+def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
+    case_id = _as_str(_payload(env).get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+    juror_id = _signer(env)
+    if juror_id not in list(case.get("assigned_jurors") or []):
+        raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
+    if juror_id in list(case.get("accepted_jurors") or []):
+        raise ApplyError("invalid_tx", "juror_already_accepted", {"case_id": case_id, "juror": juror_id})
+    case["declined_jurors"] = _append_unique_str(case.get("declined_jurors"), juror_id)
+    jurors = case.get("jurors")
+    if isinstance(jurors, dict):
+        jurors.setdefault(juror_id, {})["status"] = "declined"
+    return {"applied": "POH_ASYNC_JUROR_DECLINE", "case_id": case_id, "juror": juror_id}
+
+
+def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    _reject_native_async_private_fields(p)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    verdict = _as_str(p.get("verdict") or "").strip().lower()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    if verdict not in ("approve", "reject", "needs_followup", "invalid_evidence", "abstain"):
+        raise ApplyError("invalid_tx", "invalid_async_verdict", {"case_id": case_id, "verdict": verdict})
+    case = _get_async_case(state, case_id)
+    _async_case_open_or_reviewable(case, case_id=case_id)
+    juror_id = _signer(env)
+    _require_active_live(state, juror_id, case_id=case_id)
+    if juror_id not in list(case.get("assigned_jurors") or []):
+        raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
+    if juror_id not in list(case.get("accepted_jurors") or []):
+        raise ApplyError("forbidden", "juror_not_accepted", {"case_id": case_id, "juror": juror_id})
+    if juror_id in list(case.get("declined_jurors") or []):
+        raise ApplyError("forbidden", "juror_declined", {"case_id": case_id, "juror": juror_id})
+    reviews = case.get("reviews")
+    if not isinstance(reviews, dict):
+        reviews = {}
+        case["reviews"] = reviews
+    if juror_id in reviews:
+        raise ApplyError("invalid_tx", "duplicate_async_review", {"case_id": case_id, "juror": juror_id})
+    review_commitment = _as_str(p.get("review_commitment") or "").strip()
+    if not review_commitment:
+        review_commitment = _sha256_hex(f"{_chain_id(state)}|POH_ASYNC_REVIEW|{case_id}|{juror_id}|{verdict}".encode())
+    reviews[juror_id] = {
+        "case_id": case_id,
+        "juror_id": juror_id,
+        "verdict": verdict,
+        "reason_code": _as_str(p.get("reason_code") or "").strip(),
+        "review_commitment": review_commitment,
+        "submitted_height": int(state.get("height") or 0),
+        "signature": _as_str(_get_env(env, "sig", "")).strip(),
+    }
+    case["status"] = "under_review"
+    return {"applied": "POH_ASYNC_REVIEW_SUBMIT", "case_id": case_id, "juror": juror_id, "verdict": verdict}
+
+
+def apply_poh_async_finalize(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_async_case(state, case_id)
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("approved", "rejected", "expired", "finalized"):
+        return {
+            "applied": "POH_ASYNC_FINALIZE",
+            "case_id": case_id,
+            "outcome": _as_str(case.get("outcome") or status),
+            "tier_awarded": _as_int(case.get("tier_awarded") or 0, 0),
+        }
+
+    approvals, rejections, counted = _async_review_counts(case)
+    minimum_reviews = _as_int(case.get("minimum_reviews") or 3, 3)
+    approval_threshold = _as_int(case.get("approval_threshold") or 2, 2)
+    rejection_threshold = _as_int(case.get("rejection_threshold") or 2, 2)
+    height = int(state.get("height") or 0)
+    expires_height = _as_int(case.get("expires_height") or 0, 0)
+
+    outcome = ""
+    tier_awarded = 0
+    if counted >= minimum_reviews and approvals >= approval_threshold:
+        outcome = "approved"
+        tier_awarded = 1
+    elif counted >= minimum_reviews and rejections >= rejection_threshold:
+        outcome = "rejected"
+    elif expires_height and height > expires_height:
+        outcome = "expired"
+    else:
+        raise ApplyError(
+            "invalid_tx",
+            "async_finalize_premature",
+            {
+                "case_id": case_id,
+                "reviews": counted,
+                "minimum_reviews": minimum_reviews,
+                "approvals": approvals,
+                "rejections": rejections,
+                "approval_threshold": approval_threshold,
+                "rejection_threshold": rejection_threshold,
+            },
+        )
+
+    token_id = ""
+    account_id = _as_str(case.get("account_id") or "").strip()
+    if not account_id:
+        raise ApplyError("invalid_tx", "missing_account_id", {"case_id": case_id})
+    if tier_awarded:
+        target_acct = _require_registered_account(state, account_id)
+        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 1)
+        set_account_poh_status(
+            state,
+            account_id=account_id,
+            poh_tier=1,
+            status=POH_STATUS_ACTIVE,
+            verified_at_height=height,
+            proof_commitment=_as_str(case.get("response_commitment") or case.get("challenge_commitment") or "").strip() or None,
+            last_updated_height=height,
+        )
+        token_id = _mint_poh_nft(
+            state, owner=account_id, tier=1, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
+        )
+
+    case["status"] = outcome
+    case["outcome"] = outcome
+    case["tier_awarded"] = tier_awarded
+    case["finalized_height"] = height
+    case["finalized_ts_ms"] = _as_int(p.get("ts_ms") or 0)
+    if token_id:
+        case["poh_nft_token_id"] = token_id
+    return {
+        "applied": "POH_ASYNC_FINALIZE",
+        "case_id": case_id,
+        "outcome": outcome,
+        "tier_awarded": tier_awarded,
+        "token_id": token_id,
+    }
+
+
+def apply_poh_async_receipt(state: Json, env: Any) -> Json:
+    p = _payload(env)
+    case_id = _as_str(p.get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_async_case(state, case_id)
+    if _as_str(case.get("outcome") or "").strip().lower() not in ("approved", "rejected", "expired"):
+        raise ApplyError("invalid_tx", "async_case_not_finalized", {"case_id": case_id})
+    receipt_id = _as_str(p.get("receipt_id") or "").strip()
+    if not receipt_id:
+        receipt_id = f"receipt:{_sha256_hex(f'{_chain_id(state)}|POH_ASYNC_RECEIPT|{case_id}'.encode())[:32]}"
+    case["receipt_id"] = receipt_id
+    case["receipt"] = {
+        "receipt_id": receipt_id,
+        "case_id": case_id,
+        "account_id": _as_str(case.get("account_id") or "").strip(),
+        "verification_type": "async",
+        "outcome": _as_str(p.get("outcome") or case.get("outcome") or "").strip(),
+        "tier_awarded": _as_int(p.get("tier_awarded") or case.get("tier_awarded") or 0, 0),
+        "finalized_height": _as_int(case.get("finalized_height") or 0, 0),
+        "threshold_summary": {
+            "minimum_reviews": _as_int(case.get("minimum_reviews") or 3, 3),
+            "approval_threshold": _as_int(case.get("approval_threshold") or 2, 2),
+            "rejection_threshold": _as_int(case.get("rejection_threshold") or 2, 2),
+        },
+    }
+    return {"applied": "POH_ASYNC_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
+
+
+
 def _tier2_defaults_from_state(state: Json) -> tuple[int, int, int, int]:
     params = state.get("params")
     params = params if isinstance(params, dict) else {}
@@ -953,14 +1426,14 @@ def apply_poh_tier2_request_open(state: Json, env: Any) -> Json:
     # target-substitution path found in the devnet readiness audit.
     _require_subject_signer(env, account_id)
 
-    if target_tier == 3:
+    if target_tier > 2:
         raise ApplyError(
             "invalid_tx",
-            "tier3_legacy_request_disabled",
+            "live_legacy_request_disabled",
             {
                 "tx_type": "POH_TIER2_REQUEST_OPEN",
-                "required_tx_type": "POH_TIER3_REQUEST_OPEN",
-                "required_min_tier": 2,
+                "required_tx_type": "POH_LIVE_REQUEST_OPEN",
+                "required_min_tier": 1,
             },
         )
 
@@ -1023,13 +1496,13 @@ def apply_poh_tier2_request_open(state: Json, env: Any) -> Json:
     return {"applied": "POH_TIER2_REQUEST_OPEN", "case_id": case_id}
 
 
-def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
-    """Open a dedicated protocol-native Tier-3 live-verification request.
+def apply_poh_live_request_open(state: Json, env: Any) -> Json:
+    """Open a dedicated protocol-native live-verification request.
 
-    This is the only Tier-3 request path.  Legacy
-    POH_TIER2_REQUEST_OPEN + target_tier=3 is rejected so Tier3 cannot be opened
+    This is the only live-verification request path. Legacy
+    POH_TIER2_REQUEST_OPEN is limited to async escalation; live verification uses POH_LIVE_REQUEST_OPEN
     from Tier1 or an overloaded tx.  The subject must sign for itself, already
-    hold canonical Tier2, and provide non-empty session/room/prompt commitments.
+    hold canonical Tier1, and provide non-empty session/room/prompt commitments.
     Media relays remain transport only; the protocol stores commitments and
     reviewer attestations, not relay-granted identity authority.
     """
@@ -1040,9 +1513,9 @@ def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_account_id", {})
 
     _require_subject_signer(env, account_id)
-    _require_account_min_tier(state, account_id, min_tier=2, reason="tier3_request_requires_tier2")
+    _require_account_min_tier(state, account_id, min_tier=1, reason="live_request_requires_tier1")
 
-    cases = _tier3_cases(state)
+    cases = _live_cases(state)
     for existing_case_id, existing_any in cases.items():
         existing = existing_any if isinstance(existing_any, dict) else {}
         if _as_str(existing.get("account_id") or "").strip() != account_id:
@@ -1051,21 +1524,21 @@ def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
         if status not in ("", "awarded", "finalized", "rejected", "expired", "cancelled"):
             raise ApplyError(
                 "forbidden",
-                "active_tier3_case_exists",
+                "active_live_case_exists",
                 {"account_id": account_id, "case_id": str(existing_case_id), "status": status},
             )
 
-    case_id = _case_id("poh3", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0)))
+    case_id = _case_id("poh_live", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0)))
     if case_id in cases:
         raise ApplyError("invalid_tx", "case_already_exists", {"case_id": case_id})
 
     requested_height = int(state.get("height") or 0)
     requested_ts_ms = _as_int(p.get("ts_ms") or 0)
     request_commitment = _sha256_hex(
-        f"{_chain_id(state)}|POH3_REQUEST|{case_id}|{account_id}|{requested_height}".encode()
+        f"{_chain_id(state)}|POH_LIVE_REQUEST|{case_id}|{account_id}|{requested_height}".encode()
     )
 
-    commitments = _require_tier3_request_commitments(p)
+    commitments = _require_live_request_commitments(p)
     session_commitment = commitments["session_commitment"]
     room_commitment = commitments["room_commitment"]
     prompt_commitment = commitments["prompt_commitment"]
@@ -1077,7 +1550,7 @@ def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
         "requested_by": _signer(env),
         "status": "requested",
         "jurors": {},
-        "target_tier": 3,
+        "target_tier": 2,
         "request_commitment": request_commitment,
         "requested_height": requested_height,
         "requested_ts_ms": requested_ts_ms,
@@ -1113,8 +1586,8 @@ def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
     ):
         if value:
             session[key] = value
-    _tier3_sessions(state)[session_id] = session
-    _tier3_session_participants(state).setdefault(session_id, {})[account_id] = {
+    _live_sessions(state)[session_id] = session
+    _live_session_participants(state).setdefault(session_id, {})[account_id] = {
         "role": "subject",
         "status": "requested",
         "joined_ts_ms": None,
@@ -1122,10 +1595,10 @@ def apply_poh_tier3_request_open(state: Json, env: Any) -> Json:
     }
 
     return {
-        "applied": "POH_TIER3_REQUEST_OPEN",
+        "applied": "POH_LIVE_REQUEST_OPEN",
         "case_id": case_id,
         "session_id": session_id,
-        "target_tier": 3,
+        "target_tier": 2,
     }
 
 
@@ -1172,7 +1645,7 @@ def apply_poh_tier2_juror_assign(state: Json, env: Any) -> Json:
     for jid in normalized_jurors:
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_tier3(state, jid, case_id=case_id)
+        _require_active_live(state, jid, case_id=case_id)
         jm[jid] = {"verdict": None, "ts_ms": None, "assigned_height": int(state.get("height") or 0)}
 
     if len(jm) != n_jurors:
@@ -1200,7 +1673,7 @@ def apply_poh_tier2_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -1228,7 +1701,7 @@ def apply_poh_tier2_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -1267,7 +1740,7 @@ def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -1326,7 +1799,7 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
         jid = _as_str(_jid).strip()
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_tier3(state, jid, case_id=case_id)
+        _require_active_live(state, jid, case_id=case_id)
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
         v = _as_str(jrec.get("verdict") or "").strip().lower()
         if v not in ("pass", "fail"):
@@ -1381,15 +1854,15 @@ def apply_poh_tier2_receipt(state: Json, env: Any) -> Json:
     return {"applied": "POH_TIER2_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
 
 
-def _get_tier3_case(state: Json, case_id: str) -> Json:
-    cases = _tier3_cases(state)
+def _get_live_case(state: Json, case_id: str) -> Json:
+    cases = _live_cases(state)
     case = cases.get(case_id)
     if not isinstance(case, dict):
-        raise ApplyError("not_found", "tier3_case_not_found", {"case_id": case_id})
+        raise ApplyError("not_found", "live_case_not_found", {"case_id": case_id})
     return case
 
 
-def apply_poh_tier3_init(state: Json, env: Any) -> Json:
+def apply_poh_live_session_init(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     account_id = _as_str(p.get("account_id") or "").strip()
@@ -1403,12 +1876,12 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
     if not session_commitment:
         raise ApplyError("invalid_tx", "missing_session_commitment", {"case_id": case_id})
 
-    cases = _tier3_cases(state)
+    cases = _live_cases(state)
     case = cases.get(case_id)
     if not isinstance(case, dict):
-        raise ApplyError("not_found", "tier3_case_not_found", {"case_id": case_id})
+        raise ApplyError("not_found", "live_case_not_found", {"case_id": case_id})
 
-    expected_commitments = _require_tier3_case_commitments(case, case_id=case_id)
+    expected_commitments = _require_live_case_commitments(case, case_id=case_id)
     if session_commitment != expected_commitments["session_commitment"]:
         raise ApplyError("invalid_tx", "bad_session_commitment", {"case_id": case_id})
 
@@ -1416,7 +1889,7 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
     if existing_account and existing_account != account_id:
         raise ApplyError(
             "invalid_tx",
-            "tier3_init_account_mismatch",
+            "live_session_init_account_mismatch",
             {"case_id": case_id, "case_account_id": existing_account, "payload_account_id": account_id},
         )
 
@@ -1430,7 +1903,7 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
 
     status = _as_str(case.get("status") or "").strip().lower()
     if status not in ("requested", "open"):
-        raise ApplyError("invalid_tx", "tier3_case_not_requested", {"case_id": case_id, "status": status})
+        raise ApplyError("invalid_tx", "live_case_not_requested", {"case_id": case_id, "status": status})
 
     case["status"] = "open"
     case.setdefault("jurors", {})
@@ -1447,10 +1920,10 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
             case[key] = value
 
     session_id = f"session:{case_id}"
-    session = _tier3_sessions(state).get(session_id)
+    session = _live_sessions(state).get(session_id)
     if not isinstance(session, dict):
         session = {"session_id": session_id, "case_id": case_id, "account_id": account_id}
-        _tier3_sessions(state)[session_id] = session
+        _live_sessions(state)[session_id] = session
     session["status"] = "open"
     session.setdefault("created_ts_ms", _as_int(p.get("ts_ms") or 0))
     session["started_ts_ms"] = _as_int(p.get("ts_ms") or 0)
@@ -1465,26 +1938,26 @@ def apply_poh_tier3_init(state: Json, env: Any) -> Json:
         if value:
             session[key] = value
 
-    _tier3_session_participants(state).setdefault(session_id, {}).setdefault(
+    _live_session_participants(state).setdefault(session_id, {}).setdefault(
         account_id,
         {"role": "subject", "status": "session_open", "joined_ts_ms": None, "left_ts_ms": None},
     )
 
     return {
-        "applied": "POH_TIER3_INIT",
+        "applied": "POH_LIVE_SESSION_INIT",
         "case_id": case_id,
         "session_id": session_id,
         "session_commitment": session_commitment,
     }
 
 
-def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
-    """Assign Tier-3 jurors (3 interacting + 7 observing).
+def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
+    """Assign Live Verification jurors (legacy POH_LIVE_* tx family).
 
     Production hardening:
     - requires SYSTEM tx (env.system True)
     - exactly 10 unique juror ids
-    - every juror must exist, not banned, not locked, and PoH tier >= 3
+    - every juror must exist, not banned, not locked, and PoH tier >= 2 / Live Verified Human
     - subject account (being verified) cannot be a juror
     """
     p = _payload(env)
@@ -1494,12 +1967,12 @@ def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
     if not bool(_get_env(env, "system", False)):
-        raise ApplyError("forbidden", "system_only", {"tx_type": "POH_TIER3_JUROR_ASSIGN"})
+        raise ApplyError("forbidden", "system_only", {"tx_type": "POH_LIVE_JUROR_ASSIGN"})
     if not isinstance(jurors, list) or len(jurors) != 10:
         raise ApplyError("invalid_tx", "bad_jurors", {"need": 10})
 
-    case = _get_tier3_case(state, case_id)
-    _require_tier3_case_commitments(case, case_id=case_id)
+    case = _get_live_case(state, case_id)
+    _require_live_case_commitments(case, case_id=case_id)
     subject = _as_str(case.get("account_id") or "").strip()
     if not subject:
         raise ApplyError("invalid_tx", "missing_account_id", {"case_id": case_id})
@@ -1517,7 +1990,7 @@ def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
                 "invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": jid}
             )
         seen.add(jid)
-        _require_active_tier3(state, jid, case_id=case_id)
+        _require_active_live(state, jid, case_id=case_id)
         cleaned.append(jid)
 
     jm: Json = {}
@@ -1528,19 +2001,19 @@ def apply_poh_tier3_juror_assign(state: Json, env: Any) -> Json:
     case["jurors"] = jm
     case["status"] = "init"
 
-    return {"applied": "POH_TIER3_JUROR_ASSIGN", "case_id": case_id}
+    return {"applied": "POH_LIVE_JUROR_ASSIGN", "case_id": case_id}
 
 
-def apply_poh_tier3_juror_accept(state: Json, env: Any) -> Json:
+def apply_poh_live_juror_accept(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     jm = case.get("jurors")
     if not isinstance(jm, dict):
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
@@ -1564,26 +2037,26 @@ def apply_poh_tier3_juror_accept(state: Json, env: Any) -> Json:
     jrec["accepted_ts_ms"] = _as_int(p.get("ts_ms") or 0)
 
     session_id = f"session:{case_id}"
-    _tier3_session_participants(state).setdefault(session_id, {})[signer] = {
+    _live_session_participants(state).setdefault(session_id, {})[signer] = {
         "role": _as_str(jrec.get("role") or "juror"),
         "status": "accepted",
         "joined_ts_ms": None,
         "left_ts_ms": None,
     }
 
-    return {"applied": "POH_TIER3_JUROR_ACCEPT", "case_id": case_id}
+    return {"applied": "POH_LIVE_JUROR_ACCEPT", "case_id": case_id}
 
 
-def apply_poh_tier3_juror_decline(state: Json, env: Any) -> Json:
+def apply_poh_live_juror_decline(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     jm = case.get("jurors")
     if not isinstance(jm, dict):
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
@@ -1607,17 +2080,17 @@ def apply_poh_tier3_juror_decline(state: Json, env: Any) -> Json:
     jrec["declined_ts_ms"] = _as_int(p.get("ts_ms") or 0)
 
     session_id = f"session:{case_id}"
-    _tier3_session_participants(state).setdefault(session_id, {})[signer] = {
+    _live_session_participants(state).setdefault(session_id, {})[signer] = {
         "role": _as_str(jrec.get("role") or "juror"),
         "status": "declined",
         "joined_ts_ms": None,
         "left_ts_ms": None,
     }
 
-    return {"applied": "POH_TIER3_JUROR_DECLINE", "case_id": case_id}
+    return {"applied": "POH_LIVE_JUROR_DECLINE", "case_id": case_id}
 
 
-def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
+def apply_poh_live_juror_replace(state: Json, env: Any) -> Json:
     """SYSTEM tx to replace a declined / no-show juror.
 
     Payload:
@@ -1628,7 +2101,7 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
     Rules:
       - system-only
       - old juror must be assigned
-      - new juror must be eligible Tier3+, not banned/locked, exist, not already assigned, not the subject
+      - new juror must be Live Verified Human, not banned/locked, exist, not already assigned, not the subject
       - replacement keeps the role (interacting/observing) of the old juror
       - old juror record is marked replaced=True and attended defaults to False if not set
     """
@@ -1647,9 +2120,9 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "same_juror_id", {})
 
     if not bool(_get_env(env, "system", False)):
-        raise ApplyError("forbidden", "system_only", {"tx_type": "POH_TIER3_JUROR_REPLACE"})
+        raise ApplyError("forbidden", "system_only", {"tx_type": "POH_LIVE_JUROR_REPLACE"})
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     subject = _as_str(case.get("account_id") or "").strip()
     if subject and new_id == subject:
         raise ApplyError(
@@ -1676,7 +2149,7 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
             "invalid_tx", "juror_not_replaceable", {"case_id": case_id, "juror": old_id}
         )
 
-    _require_active_tier3(state, new_id, case_id=case_id)
+    _require_active_live(state, new_id, case_id=case_id)
 
     role = _as_str(old_rec.get("role") or "").strip() or "observing"
 
@@ -1691,7 +2164,7 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
     case["status"] = _as_str(case.get("status") or "init")
 
     return {
-        "applied": "POH_TIER3_JUROR_REPLACE",
+        "applied": "POH_LIVE_JUROR_REPLACE",
         "case_id": case_id,
         "old_juror_id": old_id,
         "new_juror_id": new_id,
@@ -1699,7 +2172,7 @@ def apply_poh_tier3_juror_replace(state: Json, env: Any) -> Json:
     }
 
 
-def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
+def apply_poh_live_attendance_mark(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     juror_id = _as_str(p.get("juror_id") or "").strip()
@@ -1718,9 +2191,9 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
             {"case_id": case_id, "juror_id": juror_id, "signer": signer},
         )
 
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
     if status in ("awarded", "finalized", "rejected"):
         raise ApplyError(
@@ -1729,7 +2202,7 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
             {"case_id": case_id, "status": status},
         )
 
-    _require_tier3_payload_session_matches(case, p, case_id=case_id)
+    _require_live_payload_session_matches(case, p, case_id=case_id)
 
     jm = case.get("jurors")
     if not isinstance(jm, dict) or juror_id not in jm:
@@ -1753,7 +2226,7 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
     jrec["attended_ts_ms"] = _as_int(p.get("ts_ms") or 0)
 
     session_id = f"session:{case_id}"
-    _tier3_session_participants(state).setdefault(session_id, {})[juror_id] = {
+    _live_session_participants(state).setdefault(session_id, {})[juror_id] = {
         "role": _as_str(jrec.get("role") or "juror"),
         "status": "attended",
         "joined_ts_ms": _as_int(p.get("ts_ms") or 0),
@@ -1761,14 +2234,14 @@ def apply_poh_tier3_attendance_mark(state: Json, env: Any) -> Json:
     }
 
     return {
-        "applied": "POH_TIER3_ATTENDANCE_MARK",
+        "applied": "POH_LIVE_ATTENDANCE_MARK",
         "case_id": case_id,
         "juror_id": juror_id,
         "attended": True,
     }
 
 
-def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
+def apply_poh_live_verdict_submit(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     verdict = _as_str(p.get("verdict") or "").strip().lower()
@@ -1779,9 +2252,9 @@ def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "bad_verdict", {"verdict": verdict})
 
     signer = _signer(env)
-    _require_active_tier3(state, signer, case_id=case_id)
+    _require_active_live(state, signer, case_id=case_id)
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
     if status in ("awarded", "finalized", "rejected"):
         raise ApplyError(
@@ -1790,7 +2263,7 @@ def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
             {"case_id": case_id, "status": status},
         )
 
-    _require_tier3_payload_session_matches(case, p, case_id=case_id)
+    _require_live_payload_session_matches(case, p, case_id=case_id)
 
     jm = case.get("jurors")
     if not isinstance(jm, dict):
@@ -1815,24 +2288,24 @@ def apply_poh_tier3_verdict_submit(state: Json, env: Any) -> Json:
     jrec["verdict"] = verdict
     jrec["verdict_ts_ms"] = _as_int(p.get("ts_ms") or 0)
 
-    return {"applied": "POH_TIER3_VERDICT_SUBMIT", "case_id": case_id, "verdict": verdict}
+    return {"applied": "POH_LIVE_VERDICT_SUBMIT", "case_id": case_id, "verdict": verdict}
 
 
-def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
+def apply_poh_live_finalize(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
 
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
-    case = _get_tier3_case(state, case_id)
+    case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
     if status in ("awarded", "finalized", "rejected"):
         tier = _as_int(case.get("tier_awarded") or 0)
         outcome = _as_str(case.get("outcome") or "")
         token_id = _as_str(case.get("poh_nft_token_id") or "").strip()
         return {
-            "applied": "POH_TIER3_FINALIZE",
+            "applied": "POH_LIVE_FINALIZE",
             "case_id": case_id,
             "outcome": outcome,
             "tier_awarded": tier,
@@ -1844,7 +2317,7 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_account_id", {"case_id": case_id})
     target_acct = _require_registered_account(state, target_account)
 
-    _require_tier3_case_commitments(case, case_id=case_id)
+    _require_live_case_commitments(case, case_id=case_id)
 
     jm = case.get("jurors")
     if not isinstance(jm, dict):
@@ -1882,13 +2355,13 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "verdicts_not_ready", {"case_id": case_id})
 
     outcome = "pass" if passes >= 2 else "fail"
-    tier_awarded = 3 if outcome == "pass" else 0
+    tier_awarded = 2 if outcome == "pass" else 0
 
     token_id = ""
     if outcome == "pass":
-        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 3)
+        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 2)
         token_id = _mint_poh_nft(
-            state, owner=target_account, tier=3, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
+            state, owner=target_account, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
 
     case["status"] = "awarded" if outcome == "pass" else "rejected"
@@ -1899,7 +2372,7 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
         case["poh_nft_token_id"] = token_id
 
     session_id = f"session:{case_id}"
-    session = _tier3_sessions(state).get(session_id)
+    session = _live_sessions(state).get(session_id)
     if isinstance(session, dict):
         session["status"] = "finalized"
         session["ended_ts_ms"] = _as_int(p.get("ts_ms") or 0)
@@ -1907,7 +2380,7 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
         session["tier_awarded"] = tier_awarded
 
     return {
-        "applied": "POH_TIER3_FINALIZE",
+        "applied": "POH_LIVE_FINALIZE",
         "case_id": case_id,
         "outcome": outcome,
         "tier_awarded": tier_awarded,
@@ -1915,19 +2388,19 @@ def apply_poh_tier3_finalize(state: Json, env: Any) -> Json:
     }
 
 
-def apply_poh_tier3_receipt(state: Json, env: Any) -> Json:
+def apply_poh_live_receipt(state: Json, env: Any) -> Json:
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     receipt_id = _as_str(p.get("receipt_id") or "").strip()
     if case_id:
         try:
-            case = _get_tier3_case(state, case_id)
-            case["tier3_receipt_emitted"] = True
+            case = _get_live_case(state, case_id)
+            case["live_receipt_emitted"] = True
             if receipt_id:
-                case["tier3_receipt_id"] = receipt_id
+                case["live_receipt_id"] = receipt_id
         except Exception:
             pass
-    return {"applied": "POH_TIER3_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
+    return {"applied": "POH_LIVE_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
 
 
 def apply_poh(state: Json, env: Any) -> Json | None:
@@ -1968,6 +2441,33 @@ def apply_poh(state: Json, env: Any) -> Json | None:
             return {"applied": t, "bind_id": bind_id}
 
 
+    if t == "POH_ASYNC_REQUEST_OPEN":
+        return apply_poh_async_request_open(state, env)
+
+    if t == "POH_ASYNC_EVIDENCE_DECLARE":
+        return apply_poh_async_evidence_declare(state, env)
+
+    if t == "POH_ASYNC_EVIDENCE_BIND":
+        return apply_poh_async_evidence_bind(state, env)
+
+    if t == "POH_ASYNC_JUROR_ASSIGN":
+        return apply_poh_async_juror_assign(state, env)
+
+    if t == "POH_ASYNC_JUROR_ACCEPT":
+        return apply_poh_async_juror_accept(state, env)
+
+    if t == "POH_ASYNC_JUROR_DECLINE":
+        return apply_poh_async_juror_decline(state, env)
+
+    if t == "POH_ASYNC_REVIEW_SUBMIT":
+        return apply_poh_async_review_submit(state, env)
+
+    if t == "POH_ASYNC_FINALIZE":
+        return apply_poh_async_finalize(state, env)
+
+    if t == "POH_ASYNC_RECEIPT":
+        return apply_poh_async_receipt(state, env)
+
     if t == "POH_EMAIL_ATTESTATION_SUBMIT":
         return apply_poh_email_attestation_submit(state, env)
 
@@ -1990,8 +2490,8 @@ def apply_poh(state: Json, env: Any) -> Json | None:
         apply_poh_tier_set(state, {"payload": _payload(env)})
         return {"applied": "POH_TIER_SET"}
 
-    if t == "POH_BOOTSTRAP_TIER3_GRANT":
-        apply_poh_bootstrap_tier3_grant(
+    if t == "POH_BOOTSTRAP_TIER2_GRANT":
+        apply_poh_bootstrap_tier2_grant(
             state,
             {
                 "payload": _payload(env),
@@ -1999,7 +2499,7 @@ def apply_poh(state: Json, env: Any) -> Json | None:
                 "nonce": _as_int(_get_env(env, "nonce", 0)),
             },
         )
-        return {"applied": "POH_BOOTSTRAP_TIER3_GRANT"}
+        return {"applied": "POH_BOOTSTRAP_TIER2_GRANT"}
 
     if t == "POH_CHALLENGE_OPEN":
         return apply_poh_challenge_open(state, env)
@@ -2010,8 +2510,8 @@ def apply_poh(state: Json, env: Any) -> Json | None:
     if t == "POH_TIER2_REQUEST_OPEN":
         return apply_poh_tier2_request_open(state, env)
 
-    if t == "POH_TIER3_REQUEST_OPEN":
-        return apply_poh_tier3_request_open(state, env)
+    if t == "POH_LIVE_REQUEST_OPEN":
+        return apply_poh_live_request_open(state, env)
 
     if t == "POH_TIER2_JUROR_ASSIGN":
         return apply_poh_tier2_juror_assign(state, env)
@@ -2031,31 +2531,31 @@ def apply_poh(state: Json, env: Any) -> Json | None:
     if t == "POH_TIER2_RECEIPT":
         return apply_poh_tier2_receipt(state, env)
 
-    if t == "POH_TIER3_INIT":
-        return apply_poh_tier3_init(state, env)
+    if t == "POH_LIVE_SESSION_INIT":
+        return apply_poh_live_session_init(state, env)
 
-    if t == "POH_TIER3_JUROR_ASSIGN":
-        return apply_poh_tier3_juror_assign(state, env)
+    if t == "POH_LIVE_JUROR_ASSIGN":
+        return apply_poh_live_juror_assign(state, env)
 
-    if t == "POH_TIER3_JUROR_ACCEPT":
-        return apply_poh_tier3_juror_accept(state, env)
+    if t == "POH_LIVE_JUROR_ACCEPT":
+        return apply_poh_live_juror_accept(state, env)
 
-    if t == "POH_TIER3_JUROR_DECLINE":
-        return apply_poh_tier3_juror_decline(state, env)
+    if t == "POH_LIVE_JUROR_DECLINE":
+        return apply_poh_live_juror_decline(state, env)
 
-    if t == "POH_TIER3_JUROR_REPLACE":
-        return apply_poh_tier3_juror_replace(state, env)
+    if t == "POH_LIVE_JUROR_REPLACE":
+        return apply_poh_live_juror_replace(state, env)
 
-    if t == "POH_TIER3_ATTENDANCE_MARK":
-        return apply_poh_tier3_attendance_mark(state, env)
+    if t == "POH_LIVE_ATTENDANCE_MARK":
+        return apply_poh_live_attendance_mark(state, env)
 
-    if t == "POH_TIER3_VERDICT_SUBMIT":
-        return apply_poh_tier3_verdict_submit(state, env)
+    if t == "POH_LIVE_VERDICT_SUBMIT":
+        return apply_poh_live_verdict_submit(state, env)
 
-    if t == "POH_TIER3_FINALIZE":
-        return apply_poh_tier3_finalize(state, env)
+    if t == "POH_LIVE_FINALIZE":
+        return apply_poh_live_finalize(state, env)
 
-    if t == "POH_TIER3_RECEIPT":
-        return apply_poh_tier3_receipt(state, env)
+    if t == "POH_LIVE_RECEIPT":
+        return apply_poh_live_receipt(state, env)
 
     return None

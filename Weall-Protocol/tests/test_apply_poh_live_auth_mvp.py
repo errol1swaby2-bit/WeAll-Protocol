@@ -1,4 +1,4 @@
-# tests/test_apply_poh_tier3_auth_mvp.py
+# tests/test_apply_poh_live_auth_mvp.py
 from __future__ import annotations
 
 import pytest
@@ -47,7 +47,7 @@ def _mk_state() -> dict:
     for i in range(1, 11):
         st["accounts"][f"j{i}"] = {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation": 0.9,
@@ -55,11 +55,11 @@ def _mk_state() -> dict:
     return st
 
 
-def _open_tier3_case(st: dict) -> str:
+def _open_live_case(st: dict) -> str:
     m0 = apply_tx(
         st,
         _env(
-            "POH_TIER3_REQUEST_OPEN",
+            "POH_LIVE_REQUEST_OPEN",
             {
                 "account_id": "alice",
                 "session_commitment": "sc:1",
@@ -70,21 +70,21 @@ def _open_tier3_case(st: dict) -> str:
             nonce=1,
         ),
     )
-    assert m0 and m0["applied"] == "POH_TIER3_REQUEST_OPEN"
+    assert m0 and m0["applied"] == "POH_LIVE_REQUEST_OPEN"
     case_id = str(m0["case_id"])
 
     m1 = apply_tx(
         st,
         _env(
-            "POH_TIER3_INIT",
+            "POH_LIVE_SESSION_INIT",
             {"case_id": case_id, "account_id": "alice", "session_commitment": "sc:1", "ts_ms": 1},
             signer="SYSTEM",
             nonce=2,
             system=True,
-            parent="POH_TIER3_REQUEST_OPEN",
+            parent="POH_LIVE_REQUEST_OPEN",
         ),
     )
-    assert m1 and m1["applied"] == "POH_TIER3_INIT"
+    assert m1 and m1["applied"] == "POH_LIVE_SESSION_INIT"
     return case_id
 
 
@@ -92,27 +92,27 @@ def _assign_jurors(st: dict, case_id: str, jurors: list[str]) -> None:
     m2 = apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ASSIGN",
+            "POH_LIVE_JUROR_ASSIGN",
             {"case_id": case_id, "jurors": jurors},
             signer="SYSTEM",
             nonce=3,
             system=True,
-            parent="POH_TIER3_INIT",
+            parent="POH_LIVE_SESSION_INIT",
         ),
     )
-    assert m2 and m2["applied"] == "POH_TIER3_JUROR_ASSIGN"
+    assert m2 and m2["applied"] == "POH_LIVE_JUROR_ASSIGN"
 
 
-def test_tier3_attendance_mark_requires_signer_matches_juror_id() -> None:
+def test_live_attendance_mark_requires_signer_matches_juror_id() -> None:
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
     _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
 
     # Attendance now requires accept first
     apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ACCEPT",
+            "POH_LIVE_JUROR_ACCEPT",
             {"case_id": case_id, "ts_ms": 9},
             signer="j2",
             nonce=4,
@@ -124,7 +124,7 @@ def test_tier3_attendance_mark_requires_signer_matches_juror_id() -> None:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_ATTENDANCE_MARK",
+                "POH_LIVE_ATTENDANCE_MARK",
                 {
                     "case_id": case_id,
                     "juror_id": "j2",
@@ -144,7 +144,7 @@ def test_tier3_attendance_mark_requires_signer_matches_juror_id() -> None:
     m = apply_tx(
         st,
         _env(
-            "POH_TIER3_ATTENDANCE_MARK",
+            "POH_LIVE_ATTENDANCE_MARK",
             {
                 "case_id": case_id,
                 "juror_id": "j2",
@@ -156,12 +156,12 @@ def test_tier3_attendance_mark_requires_signer_matches_juror_id() -> None:
             nonce=6,
         ),
     )
-    assert m and m["applied"] == "POH_TIER3_ATTENDANCE_MARK"
+    assert m and m["applied"] == "POH_LIVE_ATTENDANCE_MARK"
 
 
-def test_tier3_verdict_submit_requires_interacting_juror() -> None:
+def test_live_verdict_submit_requires_interacting_juror() -> None:
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
     _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
 
     # j4 is observing (since first 3 are interacting)
@@ -169,7 +169,7 @@ def test_tier3_verdict_submit_requires_interacting_juror() -> None:
     apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ACCEPT",
+            "POH_LIVE_JUROR_ACCEPT",
             {"case_id": case_id, "ts_ms": 19},
             signer="j4",
             nonce=4,
@@ -180,7 +180,7 @@ def test_tier3_verdict_submit_requires_interacting_juror() -> None:
     apply_tx(
         st,
         _env(
-            "POH_TIER3_ATTENDANCE_MARK",
+            "POH_LIVE_ATTENDANCE_MARK",
             {
                 "case_id": case_id,
                 "juror_id": "j4",
@@ -198,7 +198,7 @@ def test_tier3_verdict_submit_requires_interacting_juror() -> None:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_VERDICT_SUBMIT",
+                "POH_LIVE_VERDICT_SUBMIT",
                 {"case_id": case_id, "verdict": "pass", "session_commitment": "sc:1", "ts_ms": 21},
                 signer="j4",
                 nonce=6,
@@ -209,22 +209,22 @@ def test_tier3_verdict_submit_requires_interacting_juror() -> None:
     assert ei.value.reason == "interacting_juror_required"
 
 
-def test_tier3_juror_assign_rejects_non_tier3_juror() -> None:
+def test_live_juror_assign_rejects_non_live_juror() -> None:
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
 
-    st["accounts"]["j7"]["poh_tier"] = 2  # not eligible
+    st["accounts"]["j7"]["poh_tier"] = 1  # Tier1 is not live-verified
 
     with pytest.raises(ApplyError) as ei:
         _assign_jurors(st, case_id, [f"j{i}" for i in range(1, 11)])
 
     assert ei.value.code == "invalid_tx"
-    assert ei.value.reason == "juror_not_tier3"
+    assert ei.value.reason == "juror_not_live"
 
 
-def test_tier3_juror_assign_rejects_banned_or_locked_juror() -> None:
+def test_live_juror_assign_rejects_banned_or_locked_juror() -> None:
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
 
     st["accounts"]["j5"]["banned"] = True
 
@@ -236,7 +236,7 @@ def test_tier3_juror_assign_rejects_banned_or_locked_juror() -> None:
 
     # locked
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
     st["accounts"]["j5"]["locked"] = True
 
     with pytest.raises(ApplyError) as ei2:
@@ -246,14 +246,14 @@ def test_tier3_juror_assign_rejects_banned_or_locked_juror() -> None:
     assert ei2.value.reason == "juror_locked"
 
 
-def test_tier3_juror_assign_rejects_subject_as_juror() -> None:
+def test_live_juror_assign_rejects_subject_as_juror() -> None:
     st = _mk_state()
-    case_id = _open_tier3_case(st)
+    case_id = _open_live_case(st)
 
     jurors = [f"j{i}" for i in range(1, 10)] + [
         "alice"
     ]  # subject included (alice is being verified)
-    st["accounts"]["alice"]["poh_tier"] = 3  # even if tier3, still disallowed
+    st["accounts"]["alice"]["poh_tier"] = 2  # even when live verified, still disallowed
 
     with pytest.raises(ApplyError) as ei:
         _assign_jurors(st, case_id, jurors)

@@ -154,7 +154,7 @@ if [ "${STATUS:-}" != "confirmed" ]; then
   exit 1
 fi
 
-# Verify registered (Tier3+) is false
+# Verify registered (Tier2+) is false
 echo "==> Checking posting eligibility (registered=false expected)..."
 R="$(curl -fsS "${BASE_URL}/v1/accounts/${ACCOUNT}/registered")"
 REG="$(python3 - <<PY
@@ -168,4 +168,4 @@ if [ "$REG" != "false" ]; then
   exit 1
 fi
 
-echo "==> PASS: account exists but is not Tier-3 registered (as expected)."
+echo "==> PASS: account exists but is not Live registered (as expected)."

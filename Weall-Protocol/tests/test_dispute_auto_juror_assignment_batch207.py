@@ -18,8 +18,8 @@ def test_content_escalation_auto_assigns_sole_active_juror() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False},
-            "juror1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+            "juror1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
         },
         "content": {
             "posts": {

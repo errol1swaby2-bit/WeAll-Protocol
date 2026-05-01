@@ -15,7 +15,7 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     accounts[account_id] = {
         "pubkeys": [f"k:{account_id}"],
         "nonce": 1,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "recovery": {"config": None, "proposals": {}},
         "reputation": 0,
         "session_keys": {},

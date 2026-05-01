@@ -65,7 +65,7 @@ echo "==> nonce before: ${NONCE_BEFORE}"
 
 NEXT_NONCE=$(( NONCE_BEFORE + 1 ))
 
-# Use a Tier0+ tx to avoid Tier gating failures (e.g., TREASURY_CREATE is Tier3+)
+# Use a Tier0+ tx to avoid Tier gating failures (e.g., TREASURY_CREATE is Tier2+)
 TX_JSON="$(cat <<JSON
 {
   "tx_type": "PROFILE_UPDATE",

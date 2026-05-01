@@ -60,7 +60,7 @@ def _sanitize_filename(name: str) -> str:
     return name[:128] or "upload"
 
 
-def _require_tier3(st: dict[str, Any], account: str) -> None:
+def _require_tier2_live_verified(st: dict[str, Any], account: str) -> None:
     accounts = st.get("accounts")
     if not isinstance(accounts, dict):
         raise ApiError.forbidden("forbidden", "Account state unavailable")
@@ -72,8 +72,8 @@ def _require_tier3(st: dict[str, Any], account: str) -> None:
     if bool(rec.get("locked", False)):
         raise ApiError.forbidden("forbidden", "Account is locked")
     tier = int(rec.get("poh_tier", 0) or 0)
-    if tier < 3:
-        raise ApiError.forbidden("forbidden", "Media upload requires PoH tier 3+")
+    if tier < 2:
+        raise ApiError.forbidden("forbidden", "Media upload requires Tier 2 / Live Verified Human")
 
 
 def _next_account_nonce(st: dict[str, Any], account: str) -> int:
@@ -215,7 +215,7 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
     except PermissionError as e:
         code = str(e) or "session_missing"
         raise ApiError.forbidden(code, code.replace("_", " "), {})
-    _require_tier3(st, viewer)
+    _require_tier2_live_verified(st, viewer)
 
     max_bytes = _env_int("WEALL_IPFS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
 

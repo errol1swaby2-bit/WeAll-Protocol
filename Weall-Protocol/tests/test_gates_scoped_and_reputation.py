@@ -67,7 +67,7 @@ def test_min_reputation_enforced(
     ledger = LedgerView(
         accounts={
             "@user": {
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation_milli": have_rep_units,
@@ -107,7 +107,7 @@ def test_banned_overrides_gate_and_reputation() -> None:
 
     ledger = LedgerView(
         accounts={
-            "@user": {"poh_tier": 3, "banned": True, "locked": False, "reputation": 1.0, "nonce": 0}
+            "@user": {"poh_tier": 2, "banned": True, "locked": False, "reputation": 1.0, "nonce": 0}
         },
         roles={},
     )
@@ -142,7 +142,7 @@ def test_locked_overrides_gate_and_reputation() -> None:
 
     ledger = LedgerView(
         accounts={
-            "@user": {"poh_tier": 3, "banned": False, "locked": True, "reputation": 1.0, "nonce": 0}
+            "@user": {"poh_tier": 2, "banned": False, "locked": True, "reputation": 1.0, "nonce": 0}
         },
         roles={},
     )

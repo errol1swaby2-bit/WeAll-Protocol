@@ -31,6 +31,12 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function v2PohTier(value: unknown): number | undefined {
+  const n = asNumber(value);
+  if (n == null) return undefined;
+  return Math.max(0, Math.min(2, Math.trunc(n)));
+}
+
 function asBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
@@ -40,7 +46,7 @@ function mapAccountState(acct: string, raw: unknown): AccountState {
   return {
     account: acct,
     nonce: asNumber(src.nonce),
-    poh_tier: asNumber(src.poh_tier),
+    poh_tier: v2PohTier(src.poh_tier),
     banned: asBoolean(src.banned),
     locked: asBoolean(src.locked),
     reputation: asNumber(src.reputation),

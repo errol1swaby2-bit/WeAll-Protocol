@@ -23,7 +23,7 @@ def _base_state() -> dict[str, object]:
                 "banned": False,
                 "locked": False,
                 "nonce": 3,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "devices": {"by_id": {}},
                 "keys": {"by_id": {}},
                 "recovery": {"config": None, "proposals": {}},

@@ -9,14 +9,14 @@ def test_tx_catalog_route_exposes_public_entrypoints() -> None:
     app = create_app(boot_runtime=False)
     client = TestClient(app)
 
-    response = client.get('/v1/tx/catalog?search=tier3')
+    response = client.get('/v1/tx/catalog?search=live')
     assert response.status_code == 200
     body = response.json()
 
     items = {str(item.get('name') or ''): item for item in body['items']}
-    assert 'POH_TIER3_ATTENDANCE_MARK' in items
-    assert '/v1/poh/tier3/tx/attendance' in list(items['POH_TIER3_ATTENDANCE_MARK'].get('api_entrypoints') or [])
-    assert '/v1/tx/submit' in list(items['POH_TIER3_ATTENDANCE_MARK'].get('api_entrypoints') or [])
+    assert 'POH_LIVE_ATTENDANCE_MARK' in items
+    assert '/v1/poh/live/tx/attendance' in list(items['POH_LIVE_ATTENDANCE_MARK'].get('api_entrypoints') or [])
+    assert '/v1/tx/submit' in list(items['POH_LIVE_ATTENDANCE_MARK'].get('api_entrypoints') or [])
 
 
 def test_tx_catalog_route_summary_is_filter_scoped() -> None:

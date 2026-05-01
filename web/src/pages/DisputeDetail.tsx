@@ -48,7 +48,7 @@ function disputeActionHint(args: {
   const { account, tierGateOk, tierGateReason, jurorStatus, attendancePresent, signerBusy, currentVote } = args;
   if (!account) return "Log in to take dispute actions.";
   if (signerBusy) return "Another signed action is still settling for this account.";
-  if (!tierGateOk) return tierGateReason || "Tier 3 access and a local signer are required for juror actions.";
+  if (!tierGateOk) return tierGateReason || "Live Verification access and a local signer are required for juror actions.";
   if (jurorStatus === "unassigned") return "This dispute is visible, but your account is not assigned as a juror on it.";
   if (jurorStatus === "declined") return "You declined this juror assignment. No further actions are available from this account.";
   if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final voting stays on the dedicated review page.";
@@ -76,7 +76,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
     loggedIn: !!account,
     canSign: true,
     accountState: acctState,
-    requireTier: 3,
+    requireTier: 2,
   });
 
   async function refreshAccount(): Promise<void> {

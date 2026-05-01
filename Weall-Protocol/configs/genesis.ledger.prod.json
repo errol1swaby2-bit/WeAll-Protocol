@@ -16,7 +16,7 @@
     },
     "FOUNDING_NODE_ID": {
       "nonce": 0,
-      "poh_tier": 3,
+      "poh_tier": 2,
       "banned": false,
       "locked": false,
       "balance": 0,

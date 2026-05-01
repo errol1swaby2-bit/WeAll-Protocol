@@ -19,8 +19,8 @@ SPEC = REPO_ROOT / "specs" / "tx_canon" / "tx_canon.yaml"
 TX_INDEX = REPO_ROOT / "generated" / "tx_index.json"
 TX_CONTRACT_MAP = REPO_ROOT / "generated" / "tx_contract_map.json"
 HELPER_CONTRACT_MAP = REPO_ROOT / "generated" / "helper_contract_map.json"
-EXPECTED_CANON_COUNT = 221
-EXPECTED_CANON_VERSION = "1.23.1"
+EXPECTED_CANON_COUNT = 230
+EXPECTED_CANON_VERSION = "1.24.0"
 
 
 def _die(message: str) -> int:
@@ -120,8 +120,8 @@ def main() -> int:
     if len(index_names) != EXPECTED_CANON_COUNT:
         return _die(f"tx canon count mismatch: expected {EXPECTED_CANON_COUNT}, got {len(index_names)}")
 
-    if "POH_TIER3_JUROR_REPLACE" not in index_names:
-        return _die("POH_TIER3_JUROR_REPLACE is not canonical in generated/tx_index.json")
+    if "POH_LIVE_JUROR_REPLACE" not in index_names:
+        return _die("POH_LIVE_JUROR_REPLACE is not canonical in generated/tx_index.json")
 
     tx_contract_names = _contract_names(tx_contract_map, map_name="generated/tx_contract_map.json")
     helper_contract_names = _contract_names(helper_contract_map, map_name="generated/helper_contract_map.json")

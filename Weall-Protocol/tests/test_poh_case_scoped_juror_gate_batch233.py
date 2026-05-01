@@ -5,10 +5,10 @@ def _ledger() -> dict:
     return {
         "accounts": {
             "@alice": {"poh_tier": 2},
-            "@tier3-juror-1": {"poh_tier": 3},
-            "@tier3-juror-2": {"poh_tier": 3},
-            "@tier2-juror-1": {"poh_tier": 3},
-            "@unassigned": {"poh_tier": 3},
+            "@live-juror-1": {"poh_tier": 2},
+            "@live-juror-2": {"poh_tier": 2},
+            "@tier2-juror-1": {"poh_tier": 2},
+            "@unassigned": {"poh_tier": 2},
         },
         "poh": {
             "tier2_cases": {
@@ -20,18 +20,18 @@ def _ledger() -> dict:
                     },
                 }
             },
-            "tier3_cases": {
+            "live_cases": {
                 "poh3:@alice:5": {
                     "case_id": "poh3:@alice:5",
                     "account_id": "@alice",
                     "jurors": {
-                        "@tier3-juror-1": {
+                        "@live-juror-1": {
                             "role": "interacting",
                             "accepted": None,
                             "attended": None,
                             "verdict": None,
                         },
-                        "@tier3-juror-2": {
+                        "@live-juror-2": {
                             "role": "observing",
                             "accepted": True,
                             "attended": True,
@@ -44,13 +44,13 @@ def _ledger() -> dict:
     }
 
 
-def test_tier3_case_assignment_satisfies_juror_gate_batch233() -> None:
+def test_live_case_assignment_satisfies_juror_gate_batch233() -> None:
     ok, meta = eval_gate(
         "Juror",
-        signer="@tier3-juror-1",
+        signer="@live-juror-1",
         ledger=_ledger(),
         payload={"case_id": "poh3:@alice:5"},
-        tx_type="POH_TIER3_JUROR_ACCEPT",
+        tx_type="POH_LIVE_JUROR_ACCEPT",
     )
 
     assert ok is True
@@ -75,7 +75,7 @@ def test_unassigned_poh_account_does_not_satisfy_juror_gate_batch233() -> None:
         signer="@unassigned",
         ledger=_ledger(),
         payload={"case_id": "poh3:@alice:5"},
-        tx_type="POH_TIER3_VERDICT_SUBMIT",
+        tx_type="POH_LIVE_VERDICT_SUBMIT",
     )
 
     assert ok is False
@@ -84,14 +84,14 @@ def test_unassigned_poh_account_does_not_satisfy_juror_gate_batch233() -> None:
 
 def test_replaced_poh_juror_does_not_satisfy_gate_batch233() -> None:
     ledger = _ledger()
-    ledger["poh"]["tier3_cases"]["poh3:@alice:5"]["jurors"]["@tier3-juror-1"]["replaced"] = True
+    ledger["poh"]["live_cases"]["poh3:@alice:5"]["jurors"]["@live-juror-1"]["replaced"] = True
 
     ok, _meta = eval_gate(
         "Juror",
-        signer="@tier3-juror-1",
+        signer="@live-juror-1",
         ledger=ledger,
         payload={"case_id": "poh3:@alice:5"},
-        tx_type="POH_TIER3_VERDICT_SUBMIT",
+        tx_type="POH_LIVE_VERDICT_SUBMIT",
     )
 
     assert ok is False

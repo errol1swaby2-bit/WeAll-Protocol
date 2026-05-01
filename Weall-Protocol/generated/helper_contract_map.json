@@ -4228,6 +4228,300 @@
       ]
     },
     {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_EVIDENCE_BIND"
+      ],
+      "tx_type": "POH_ASYNC_EVIDENCE_BIND",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_EVIDENCE_BIND"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_EVIDENCE_DECLARE"
+      ],
+      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_EVIDENCE_DECLARE"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:poh"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": true,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_FINALIZE"
+      ],
+      "tx_type": "POH_ASYNC_FINALIZE",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_FINALIZE"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_ACCEPT"
+      ],
+      "tx_type": "POH_ASYNC_JUROR_ACCEPT",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_ACCEPT"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:poh"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": true,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_ASSIGN"
+      ],
+      "tx_type": "POH_ASYNC_JUROR_ASSIGN",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_ASSIGN"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_DECLINE"
+      ],
+      "tx_type": "POH_ASYNC_JUROR_DECLINE",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_JUROR_DECLINE"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:poh"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": true,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_RECEIPT"
+      ],
+      "tx_type": "POH_ASYNC_RECEIPT",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_RECEIPT"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_REQUEST_OPEN"
+      ],
+      "tx_type": "POH_ASYNC_REQUEST_OPEN",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_REQUEST_OPEN"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "PoH",
+      "effective_lane_id": "PARALLEL_IDENTITY",
+      "execution_lane_id": "PARALLEL_IDENTITY",
+      "fail_closed_serial": false,
+      "family": "POH",
+      "has_global_barrier_authority": false,
+      "helper_eligible": true,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "IDENTITY",
+      "proof_status": "INSTANCE_REQUIRED",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "helper_parallel_allowed",
+      "receipt_only": false,
+      "requires_concrete_instance": true,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "poh:application:anon:POH_ASYNC_REVIEW_SUBMIT"
+      ],
+      "tx_type": "POH_ASYNC_REVIEW_SUBMIT",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "poh:application:anon:POH_ASYNC_REVIEW_SUBMIT"
+      ]
+    },
+    {
       "authority_keys": [
         "authority:poh"
       ],
@@ -4253,12 +4547,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_BOOTSTRAP_TIER3_GRANT"
+        "poh:application:anon:POH_BOOTSTRAP_TIER2_GRANT"
       ],
-      "tx_type": "POH_BOOTSTRAP_TIER3_GRANT",
+      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_BOOTSTRAP_TIER3_GRANT"
+        "poh:application:anon:POH_BOOTSTRAP_TIER2_GRANT"
       ]
     },
     {
@@ -4675,12 +4969,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_ATTENDANCE_MARK"
+        "poh:application:anon:POH_LIVE_ATTENDANCE_MARK"
       ],
-      "tx_type": "POH_TIER3_ATTENDANCE_MARK",
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_ATTENDANCE_MARK"
+        "poh:application:anon:POH_LIVE_ATTENDANCE_MARK"
       ]
     },
     {
@@ -4709,12 +5003,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_FINALIZE"
+        "poh:application:anon:POH_LIVE_FINALIZE"
       ],
-      "tx_type": "POH_TIER3_FINALIZE",
+      "tx_type": "POH_LIVE_FINALIZE",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_FINALIZE"
+        "poh:application:anon:POH_LIVE_FINALIZE"
       ]
     },
     {
@@ -4743,12 +5037,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_INIT"
+        "poh:application:anon:POH_LIVE_SESSION_INIT"
       ],
-      "tx_type": "POH_TIER3_INIT",
+      "tx_type": "POH_LIVE_SESSION_INIT",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_INIT"
+        "poh:application:anon:POH_LIVE_SESSION_INIT"
       ]
     },
     {
@@ -4775,12 +5069,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_ACCEPT"
+        "poh:application:anon:POH_LIVE_JUROR_ACCEPT"
       ],
-      "tx_type": "POH_TIER3_JUROR_ACCEPT",
+      "tx_type": "POH_LIVE_JUROR_ACCEPT",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_ACCEPT"
+        "poh:application:anon:POH_LIVE_JUROR_ACCEPT"
       ]
     },
     {
@@ -4809,12 +5103,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_ASSIGN"
+        "poh:application:anon:POH_LIVE_JUROR_ASSIGN"
       ],
-      "tx_type": "POH_TIER3_JUROR_ASSIGN",
+      "tx_type": "POH_LIVE_JUROR_ASSIGN",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_ASSIGN"
+        "poh:application:anon:POH_LIVE_JUROR_ASSIGN"
       ]
     },
     {
@@ -4841,12 +5135,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_DECLINE"
+        "poh:application:anon:POH_LIVE_JUROR_DECLINE"
       ],
-      "tx_type": "POH_TIER3_JUROR_DECLINE",
+      "tx_type": "POH_LIVE_JUROR_DECLINE",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_DECLINE"
+        "poh:application:anon:POH_LIVE_JUROR_DECLINE"
       ]
     },
     {
@@ -4875,12 +5169,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_REPLACE"
+        "poh:application:anon:POH_LIVE_JUROR_REPLACE"
       ],
-      "tx_type": "POH_TIER3_JUROR_REPLACE",
+      "tx_type": "POH_LIVE_JUROR_REPLACE",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_JUROR_REPLACE"
+        "poh:application:anon:POH_LIVE_JUROR_REPLACE"
       ]
     },
     {
@@ -4907,12 +5201,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_RECEIPT"
+        "poh:application:anon:POH_LIVE_RECEIPT"
       ],
-      "tx_type": "POH_TIER3_RECEIPT",
+      "tx_type": "POH_LIVE_RECEIPT",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_RECEIPT"
+        "poh:application:anon:POH_LIVE_RECEIPT"
       ]
     },
     {
@@ -4939,12 +5233,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_REQUEST_OPEN"
+        "poh:application:anon:POH_LIVE_REQUEST_OPEN"
       ],
-      "tx_type": "POH_TIER3_REQUEST_OPEN",
+      "tx_type": "POH_LIVE_REQUEST_OPEN",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_REQUEST_OPEN"
+        "poh:application:anon:POH_LIVE_REQUEST_OPEN"
       ]
     },
     {
@@ -4971,12 +5265,12 @@
       "requires_concrete_instance": true,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
-        "poh:application:anon:POH_TIER3_VERDICT_SUBMIT"
+        "poh:application:anon:POH_LIVE_VERDICT_SUBMIT"
       ],
-      "tx_type": "POH_TIER3_VERDICT_SUBMIT",
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT",
       "uses_placeholder_keys": true,
       "write_keys": [
-        "poh:application:anon:POH_TIER3_VERDICT_SUBMIT"
+        "poh:application:anon:POH_LIVE_VERDICT_SUBMIT"
       ]
     },
     {
@@ -7720,7 +8014,7 @@
     "effective_lane_counts": {
       "PARALLEL_CONTENT": 25,
       "PARALLEL_ECONOMY": 12,
-      "PARALLEL_IDENTITY": 31,
+      "PARALLEL_IDENTITY": 40,
       "PARALLEL_SOCIAL": 3,
       "SERIAL": 150
     },
@@ -7739,7 +8033,7 @@
       "NETWORKING": 6,
       "NOTIFICATIONS": 3,
       "PERFORMANCE": 5,
-      "POH": 30,
+      "POH": 39,
       "REPUTATION": 6,
       "REWARDS": 6,
       "ROLES": 14,
@@ -7748,18 +8042,18 @@
       "TREASURY": 15
     },
     "global_authority_parallel_count": 0,
-    "helper_eligible_count": 71,
-    "instance_required_count": 93,
-    "placeholder_parallel_count": 64,
+    "helper_eligible_count": 80,
+    "instance_required_count": 102,
+    "placeholder_parallel_count": 73,
     "proven_helper_eligible_count": 7,
     "reason_counts": {
       "execution_lane_serial": 32,
       "global_authority_placeholder": 28,
       "global_barrier": 18,
-      "helper_parallel_allowed": 71,
+      "helper_parallel_allowed": 80,
       "planner_serial": 72
     },
-    "tx_count": 221,
+    "tx_count": 230,
     "unknown_family_count": 0
   }
 }

@@ -38,19 +38,19 @@ def _unsigned_ok(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_and_binds_tighter_than_or() -> None:
-    # Expression: Tier3+ | Tier2+ & Validator
-    # Meaning: Tier3+ OR (Tier2+ AND Validator)
+    # Expression: Tier2+ | Tier2+ & Validator
+    # Meaning: Tier2+ OR (Tier2+ AND Validator)
     canon = _canon(
         {
             "X": {
                 "context": "mempool",
-                "subject_gate": "Tier3+ | Tier2+ & Validator",
+                "subject_gate": "Tier2+ | Tier2+ & Validator",
             }
         }
     )
 
-    # Tier2 but not validator => deny
-    ledger = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
+    # Tier1 but not validator => deny
+    ledger = LedgerView(accounts={"@user": {"poh_tier": 1, "nonce": 0}}, roles={})
     ok, rej = admit_tx(
         {"tx_type": "X", "signer": "@user", "nonce": 1, "payload": {}, "sig": "x"},
         ledger,
@@ -61,8 +61,8 @@ def test_and_binds_tighter_than_or() -> None:
     assert rej is not None
     assert rej.code == "gate_denied"
 
-    # Tier3 => allow
-    ledger2 = LedgerView(accounts={"@user": {"poh_tier": 3, "nonce": 0}}, roles={})
+    # Tier2 / Live Verified Human => allow
+    ledger2 = LedgerView(accounts={"@user": {"poh_tier": 2, "nonce": 0}}, roles={})
     ok2, rej2 = admit_tx(
         {"tx_type": "X", "signer": "@user", "nonce": 1, "payload": {}, "sig": "x"},
         ledger2,

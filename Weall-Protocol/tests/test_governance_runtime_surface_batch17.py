@@ -32,8 +32,8 @@ def _mk_state() -> dict:
         },
         "economics": {"fee_policy": {"transfer_fee_int": 0}},
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "balance": 0},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "balance": 0},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},
+            "SYSTEM": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0},
         },
     }
 

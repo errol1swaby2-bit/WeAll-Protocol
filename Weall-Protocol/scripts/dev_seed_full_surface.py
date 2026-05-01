@@ -209,14 +209,14 @@ def _ensure_account_registered(cfg: Cfg, *, priv_hex: str, pub_hex: str) -> Json
     return _wait_account(cfg, cfg.account, nonce_at_least=1)
 
 
-def _ensure_tier3(cfg: Cfg, *, priv_hex: str) -> Json:
+def _ensure_live(cfg: Cfg, *, priv_hex: str) -> Json:
     state = _account_state(cfg, cfg.account)
-    if int(state.get("poh_tier") or state.get("tier") or 0) >= 3:
+    if int(state.get("poh_tier") or state.get("tier") or 0) >= 2:
         return state
     grant = _submit_tx(
         cfg,
         priv_hex=priv_hex,
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=cfg.account,
         payload={"account_id": cfg.account},
     )
@@ -276,7 +276,7 @@ def main() -> int:
 
     _get(cfg, "/v1/readyz")
     _ensure_account_registered(cfg, priv_hex=priv_hex, pub_hex=pub_hex)
-    state = _ensure_tier3(cfg, priv_hex=priv_hex)
+    state = _ensure_live(cfg, priv_hex=priv_hex)
     _ensure_fixture_post(cfg, priv_hex=priv_hex)
     seeded_demo = _seed_demo_objects(cfg)
     manifest_path = _write_manifest(cfg, secret_key_b64=secret_key_b64, pub_hex=pub_hex, seeded_demo=seeded_demo)

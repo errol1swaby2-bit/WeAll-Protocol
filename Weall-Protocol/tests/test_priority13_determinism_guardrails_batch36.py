@@ -88,7 +88,7 @@ def test_consensus_critical_paths_do_not_reintroduce_nondeterministic_calls() ->
         root / "src" / "weall" / "runtime" / "tx_admission.py",
         root / "src" / "weall" / "runtime" / "poh" / "juror_select.py",
         root / "src" / "weall" / "runtime" / "poh" / "tier2_scheduler.py",
-        root / "src" / "weall" / "runtime" / "poh" / "tier3_scheduler.py",
+        root / "src" / "weall" / "runtime" / "poh" / "live_scheduler.py",
     ]
     critical_paths.extend(sorted((root / "src" / "weall" / "runtime" / "apply").glob("*.py")))
 

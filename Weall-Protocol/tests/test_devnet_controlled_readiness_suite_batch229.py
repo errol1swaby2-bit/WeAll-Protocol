@@ -54,14 +54,14 @@ def test_controlled_readiness_suite_runs_core_live_harnesses() -> None:
     assert "WEALL_DEVNET_RESET_ON_AUTOSTART=1" in text
 
 
-def test_controlled_readiness_suite_has_tier2_tier3_email_guard() -> None:
+def test_controlled_readiness_suite_has_tier2_live_email_guard() -> None:
     text = _text(SUITE)
     assert "require_email_for_tier_poh" in text
     assert "WEALL_DEVNET_SUITE_RUN_TIER2" in text
-    assert "WEALL_DEVNET_SUITE_RUN_TIER3" in text
+    assert "WEALL_DEVNET_SUITE_RUN_LIVE" in text
     assert "requires WEALL_EMAIL" in text
     assert "WEALL_DEVNET_RUN_TIER2" in text
-    assert "WEALL_DEVNET_RUN_TIER3" in text
+    assert "WEALL_DEVNET_RUN_LIVE" in text
 
 
 def test_controlled_readiness_suite_skip_knobs_and_no_demo_dependency() -> None:

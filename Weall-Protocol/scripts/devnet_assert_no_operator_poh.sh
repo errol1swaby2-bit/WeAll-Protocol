@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Fail if operator-driven PoH controls are enabled in controlled devnet.
-# Tier-2/Tier-3 readiness must be proven through protocol-assigned jurors and
+# Tier-2/Live readiness must be proven through protocol-assigned jurors and
 # canonical transactions, not operator shortcut endpoints.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

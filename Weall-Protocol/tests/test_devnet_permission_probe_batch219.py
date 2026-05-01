@@ -71,10 +71,10 @@ def test_permission_probe_covers_core_tier_and_role_gates_batch219() -> None:
         "tier1-message-blocked": ("DIRECT_MESSAGE_SEND", "Tier1+", "reject"),
         "tier2-group-create-blocked": ("GROUP_CREATE", "Tier2+", "reject"),
         "tier2-reaction-blocked": ("CONTENT_REACTION_SET", "Tier2+", "reject"),
-        "tier3-post-create-blocked": ("CONTENT_POST_CREATE", "Tier3+", "reject"),
-        "tier3-governance-create-blocked": ("GOV_PROPOSAL_CREATE", "Tier3+", "reject"),
+        "live-post-create-blocked": ("CONTENT_POST_CREATE", "Tier2+", "reject"),
+        "live-governance-create-blocked": ("GOV_PROPOSAL_CREATE", "Tier2+", "reject"),
         "juror-tier2-review-blocked": ("POH_TIER2_REVIEW_SUBMIT", "Juror", "reject"),
-        "juror-tier3-verdict-blocked": ("POH_TIER3_VERDICT_SUBMIT", "Juror", "reject"),
+        "juror-live-verdict-blocked": ("POH_LIVE_VERDICT_SUBMIT", "Juror", "reject"),
     }
     assert set(expected).issubset(by_name)
     for name, (tx_type, gate, expected_result) in expected.items():
@@ -114,7 +114,7 @@ def test_permission_probe_dry_run_builds_valid_payload_plan_batch219() -> None:
         "CONTENT_POST_CREATE",
         "GOV_PROPOSAL_CREATE",
         "POH_TIER2_REVIEW_SUBMIT",
-        "POH_TIER3_VERDICT_SUBMIT",
+        "POH_LIVE_VERDICT_SUBMIT",
     }
 
 
@@ -143,11 +143,11 @@ def test_permission_probe_result_classifier_fails_confirmed_blocked_tx_batch219(
     assert detail["failure"] == "blocked_probe_confirmed"
 
 
-def test_poh_tier3_request_open_has_strict_payload_schema_batch219() -> None:
-    assert "POH_TIER3_REQUEST_OPEN" in TX_PAYLOADS
+def test_poh_live_request_open_has_strict_payload_schema_batch219() -> None:
+    assert "POH_LIVE_REQUEST_OPEN" in TX_PAYLOADS
     validate_tx_envelope(
         {
-            "tx_type": "POH_TIER3_REQUEST_OPEN",
+            "tx_type": "POH_LIVE_REQUEST_OPEN",
             "signer": "alice",
             "nonce": 1,
             "payload": {

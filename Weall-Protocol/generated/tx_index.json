@@ -137,6 +137,15 @@
     "2605": 218,
     "2606": 219,
     "2607": 220,
+    "2608": 221,
+    "2609": 222,
+    "2610": 223,
+    "2611": 224,
+    "2612": 225,
+    "2613": 226,
+    "2614": 227,
+    "2615": 228,
+    "2616": 229,
     "3": 2,
     "300": 46,
     "301": 47,
@@ -354,12 +363,31 @@
     "PERFORMANCE_EVALUATE": 181,
     "PERFORMANCE_SCORE_APPLY": 182,
     "POH_APPLICATION_SUBMIT": 10,
-    "POH_BOOTSTRAP_TIER3_GRANT": 32,
+    "POH_ASYNC_EVIDENCE_BIND": 223,
+    "POH_ASYNC_EVIDENCE_DECLARE": 222,
+    "POH_ASYNC_FINALIZE": 228,
+    "POH_ASYNC_JUROR_ACCEPT": 225,
+    "POH_ASYNC_JUROR_ASSIGN": 224,
+    "POH_ASYNC_JUROR_DECLINE": 226,
+    "POH_ASYNC_RECEIPT": 229,
+    "POH_ASYNC_REQUEST_OPEN": 221,
+    "POH_ASYNC_REVIEW_SUBMIT": 227,
+    "POH_BOOTSTRAP_TIER2_GRANT": 32,
     "POH_CHALLENGE_OPEN": 13,
     "POH_CHALLENGE_RESOLVE": 14,
     "POH_EMAIL_ATTESTATION_SUBMIT": 215,
     "POH_EVIDENCE_BIND": 12,
     "POH_EVIDENCE_DECLARE": 11,
+    "POH_LIVE_ATTENDANCE_MARK": 28,
+    "POH_LIVE_FINALIZE": 30,
+    "POH_LIVE_JUROR_ACCEPT": 26,
+    "POH_LIVE_JUROR_ASSIGN": 25,
+    "POH_LIVE_JUROR_DECLINE": 27,
+    "POH_LIVE_JUROR_REPLACE": 33,
+    "POH_LIVE_RECEIPT": 31,
+    "POH_LIVE_REQUEST_OPEN": 23,
+    "POH_LIVE_SESSION_INIT": 24,
+    "POH_LIVE_VERDICT_SUBMIT": 29,
     "POH_TIER2_FINALIZE": 21,
     "POH_TIER2_JUROR_ACCEPT": 18,
     "POH_TIER2_JUROR_ASSIGN": 17,
@@ -367,16 +395,6 @@
     "POH_TIER2_RECEIPT": 22,
     "POH_TIER2_REQUEST_OPEN": 16,
     "POH_TIER2_REVIEW_SUBMIT": 20,
-    "POH_TIER3_ATTENDANCE_MARK": 28,
-    "POH_TIER3_FINALIZE": 30,
-    "POH_TIER3_INIT": 24,
-    "POH_TIER3_JUROR_ACCEPT": 26,
-    "POH_TIER3_JUROR_ASSIGN": 25,
-    "POH_TIER3_JUROR_DECLINE": 27,
-    "POH_TIER3_JUROR_REPLACE": 33,
-    "POH_TIER3_RECEIPT": 31,
-    "POH_TIER3_REQUEST_OPEN": 23,
-    "POH_TIER3_VERDICT_SUBMIT": 29,
     "POH_TIER_REVOKE": 216,
     "POH_TIER_SET": 15,
     "PROFILE_UPDATE": 142,
@@ -448,9 +466,9 @@
   "meta": {
     "law": "append-only",
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
-    "version": "1.23.1"
+    "version": "1.24.0"
   },
-  "source_sha256": "6fe2cc5f39fdddde35a3b9f6c2c1880418eaf1e36d159ac3874dda6221e0d112",
+  "source_sha256": "0a7d62367899e1eb0579553420ff7f15f61a98ef05a98f97f9edaadae64fcd29",
   "tx_types": [
     {
       "context": "mempool",
@@ -716,13 +734,13 @@
       "context": "mempool",
       "domain": "PoH",
       "gates": {
-        "subject_gate": "Tier2+"
+        "subject_gate": "Tier1+"
       },
-      "id": "63e6f9a70cd8325c",
-      "name": "POH_TIER3_REQUEST_OPEN",
+      "id": "be6bf5cac697bdf6",
+      "name": "POH_LIVE_REQUEST_OPEN",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier2+"
+      "subject_gate": "Tier1+"
     },
     {
       "context": "block",
@@ -730,8 +748,8 @@
       "gates": {
         "subject_gate": "Tier2+"
       },
-      "id": "42adf2c2c2934886",
-      "name": "POH_TIER3_INIT",
+      "id": "96e456e0f0bb9a36",
+      "name": "POH_LIVE_SESSION_INIT",
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "Tier2+"
@@ -742,8 +760,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "deb8a8b30471a198",
-      "name": "POH_TIER3_JUROR_ASSIGN",
+      "id": "cd54cd9bd07fd09b",
+      "name": "POH_LIVE_JUROR_ASSIGN",
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "Juror"
@@ -754,8 +772,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "a2e142a619e5f62e",
-      "name": "POH_TIER3_JUROR_ACCEPT",
+      "id": "d536a2557219de9b",
+      "name": "POH_LIVE_JUROR_ACCEPT",
       "origin": "USER",
       "receipt_only": false,
       "subject_gate": "Juror"
@@ -766,8 +784,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "414e632a892bc2b6",
-      "name": "POH_TIER3_JUROR_DECLINE",
+      "id": "bd96c3c26a5d08f7",
+      "name": "POH_LIVE_JUROR_DECLINE",
       "origin": "USER",
       "receipt_only": false,
       "subject_gate": "Juror"
@@ -778,8 +796,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "a8c98b9eb470f13e",
-      "name": "POH_TIER3_ATTENDANCE_MARK",
+      "id": "8e9f6f97199f3ae6",
+      "name": "POH_LIVE_ATTENDANCE_MARK",
       "origin": "USER",
       "receipt_only": false,
       "subject_gate": "Juror"
@@ -790,8 +808,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "c146dc8153907fb1",
-      "name": "POH_TIER3_VERDICT_SUBMIT",
+      "id": "7b234fc591f99ab0",
+      "name": "POH_LIVE_VERDICT_SUBMIT",
       "origin": "USER",
       "receipt_only": false,
       "subject_gate": "Juror"
@@ -802,8 +820,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "e38bf555b9365334",
-      "name": "POH_TIER3_FINALIZE",
+      "id": "f3d70aec899e5109",
+      "name": "POH_LIVE_FINALIZE",
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "Juror"
@@ -811,8 +829,8 @@
     {
       "context": "block",
       "domain": "PoH",
-      "id": "cfc8eedf0f2bfbbf",
-      "name": "POH_TIER3_RECEIPT",
+      "id": "2e0d4a121e0a331a",
+      "name": "POH_LIVE_RECEIPT",
       "origin": "SYSTEM",
       "receipt_only": true
     },
@@ -822,8 +840,8 @@
       "gates": {
         "subject_gate": "Validator"
       },
-      "id": "96eb6b842e00e302",
-      "name": "POH_BOOTSTRAP_TIER3_GRANT",
+      "id": "b9b098c417691a84",
+      "name": "POH_BOOTSTRAP_TIER2_GRANT",
       "origin": "SYSTEM",
       "receipt_only": false,
       "subject_gate": "Validator"
@@ -834,8 +852,8 @@
       "gates": {
         "subject_gate": "Juror"
       },
-      "id": "b734f8a9568558fa",
-      "name": "POH_TIER3_JUROR_REPLACE",
+      "id": "155a0a747cdf1657",
+      "name": "POH_LIVE_JUROR_REPLACE",
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "Juror"
@@ -984,37 +1002,37 @@
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "bbbe64cbb63540e5",
       "name": "CONTENT_POST_CREATE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "d3e6000f27c6c856",
       "name": "CONTENT_POST_EDIT",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "6d9cb13882132c86",
       "name": "CONTENT_POST_DELETE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
@@ -1112,13 +1130,13 @@
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "e103554ec695d1ce",
       "name": "CONTENT_MEDIA_DECLARE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
@@ -1160,37 +1178,37 @@
       "context": "mempool",
       "domain": "Governance",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "c5d592f789ba02ce",
       "name": "GOV_PROPOSAL_CREATE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Governance",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "73b322d401604154",
       "name": "GOV_PROPOSAL_EDIT",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Governance",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "b4fd0a794ed50576",
       "name": "GOV_PROPOSAL_WITHDRAW",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -1208,13 +1226,13 @@
       "context": "mempool",
       "domain": "Governance",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "6aace1c8c54ee591",
       "name": "GOV_VOTE_CAST",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -1444,25 +1462,25 @@
       "context": "mempool",
       "domain": "Consensus",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "f882271dfdc96aed",
       "name": "VALIDATOR_REGISTER",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Consensus",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "f826fed6c34c48b2",
       "name": "VALIDATOR_CANDIDATE_REGISTER",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -1576,13 +1594,13 @@
       "context": "mempool",
       "domain": "Consensus",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "48842e1fe4b5a61c",
       "name": "SLASH_PROPOSE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
@@ -1932,13 +1950,13 @@
       "context": "mempool",
       "domain": "Roles",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "fe8842e6e8125ee9",
       "name": "ROLE_JUROR_ENROLL",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -2040,25 +2058,25 @@
       "context": "mempool",
       "domain": "Roles",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "37d36447761f7ec4",
       "name": "ROLE_EMISSARY_NOMINATE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "Roles",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "b5c0058142edb980",
       "name": "ROLE_EMISSARY_VOTE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -2248,13 +2266,13 @@
       "context": "mempool",
       "domain": "Governance",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "70ef2cb709a7997c",
       "name": "GOV_VOTE_REVOKE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -2880,13 +2898,13 @@
       "context": "mempool",
       "domain": "Treasury",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "e845e895520e2781",
       "name": "TREASURY_CREATE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
@@ -2976,13 +2994,13 @@
       "context": "mempool",
       "domain": "PoH",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "0a7aa265fc039f4c",
       "name": "ORACLE_REGISTER",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "block",
@@ -3000,25 +3018,129 @@
       "context": "mempool",
       "domain": "PoH",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "7e1700f623a345b6",
       "name": "ORACLE_ROTATE_KEY",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
     },
     {
       "context": "mempool",
       "domain": "PoH",
       "gates": {
-        "subject_gate": "Tier3+"
+        "subject_gate": "Tier2+"
       },
       "id": "5dbcbb41014169bf",
       "name": "ORACLE_UPDATE_METADATA",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier3+"
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "dc80dedadcbf9c95",
+      "name": "POH_ASYNC_REQUEST_OPEN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "85251cae166fff3a",
+      "name": "POH_ASYNC_EVIDENCE_DECLARE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Tier0+"
+      },
+      "id": "b9b15dc25eff6e66",
+      "name": "POH_ASYNC_EVIDENCE_BIND",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier0+"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "fe403ab71f965307",
+      "name": "POH_ASYNC_JUROR_ASSIGN",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "19e157dd00949a7d",
+      "name": "POH_ASYNC_JUROR_ACCEPT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "0c0d89b811b10103",
+      "name": "POH_ASYNC_JUROR_DECLINE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "975e8e2d10c21700",
+      "name": "POH_ASYNC_REVIEW_SUBMIT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "8ca77a3b8030b7a7",
+      "name": "POH_ASYNC_FINALIZE",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "PoH",
+      "id": "3ca30567cb59dfc6",
+      "name": "POH_ASYNC_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
     }
   ]
 }

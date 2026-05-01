@@ -8,7 +8,7 @@ from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
 
-DEFAULT_TIER3_MIN_REP_UNITS = 0
+DEFAULT_LIVE_MIN_REP_UNITS = 0
 
 
 def _as_int(v: Any, default: int = 0) -> int:
@@ -47,7 +47,7 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
 
 
 def _session_commitment(state: Json, *, case_id: str, account_id: str, case: Json | None = None) -> str:
-    # Dedicated Tier3 requests must provide a session commitment up front.  Keep
+    # Dedicated Live requests must provide a session commitment up front.  Keep
     # the deterministic fallback for legacy in-memory fixtures only; strict
     # apply-layer validation will reject missing case commitments before init or
     # assignment can affect canonical state.
@@ -57,11 +57,11 @@ def _session_commitment(state: Json, *, case_id: str, account_id: str, case: Jso
             return existing
     tip = _as_str(state.get("tip") or "").strip()
     height = _as_int(state.get("height") or 0)
-    seed = f"{tip}|{height}|{case_id}|{account_id}|POH3".encode()
+    seed = f"{tip}|{height}|{case_id}|{account_id}|POH_LIVE".encode()
     return hashlib.sha256(seed).hexdigest()
 
 
-def _tier3_commitment_payload(case: Json) -> Json:
+def _live_commitment_payload(case: Json) -> Json:
     out: Json = {}
     for key in (
         "session_commitment",
@@ -76,15 +76,15 @@ def _tier3_commitment_payload(case: Json) -> Json:
     return out
 
 
-def _tier3_cases(state: Json) -> Json:
+def _live_cases(state: Json) -> Json:
     poh = state.get("poh")
     if not isinstance(poh, dict):
         poh = {}
         state["poh"] = poh
-    cases = poh.get("tier3_cases")
+    cases = poh.get("live_cases")
     if not isinstance(cases, dict):
         cases = {}
-        poh["tier3_cases"] = cases
+        poh["live_cases"] = cases
     return cases
 
 
@@ -137,31 +137,31 @@ def _case_needs_finalize(case: Json) -> bool:
     return have_verdicts == 3
 
 
-def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
-    """Enqueue system txs needed to progress Tier3 cases.
+def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
+    """Enqueue system txs needed to progress Live cases.
 
     Production correctness:
       - This scheduler must NOT fabricate attendance or verdicts.
       - Attendance marks and verdict submissions must come from real txs.
       - The scheduler only progresses deterministic, system-owned steps.
 
-    Tier3 lifecycle:
-      - POH_TIER3_INIT: opens the on-chain case (session anchor)
-      - POH_TIER3_JUROR_ASSIGN: assigns jurors
-      - POH_TIER3_FINALIZE: finalizes if attendance+verdicts are ready
-      - POH_TIER3_RECEIPT: receipt-only marker
+    Live lifecycle:
+      - POH_LIVE_INIT: opens the on-chain case (session anchor)
+      - POH_LIVE_JUROR_ASSIGN: assigns jurors
+      - POH_LIVE_FINALIZE: finalizes if attendance+verdicts are ready
+      - POH_LIVE_RECEIPT: receipt-only marker
 
     Returns number of enqueued system txs.
     """
 
     enq = 0
-    cases = _tier3_cases(state)
+    cases = _live_cases(state)
 
     min_rep_units = _param_rep_units(
         state,
-        units_key="tier3_min_rep_milli",
-        legacy_key="tier3_min_rep",
-        default_units=DEFAULT_TIER3_MIN_REP_UNITS,
+        units_key="live_min_rep_milli",
+        legacy_key="live_min_rep",
+        default_units=DEFAULT_LIVE_MIN_REP_UNITS,
     )
 
     for case_id, case in list(cases.items()):
@@ -185,10 +185,10 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                     ),
                     "ts_ms": 0,
                 }
-                payload.update(_tier3_commitment_payload(case))
+                payload.update(_live_commitment_payload(case))
                 enqueue_system_tx(
                     state,
-                    tx_type="POH_TIER3_INIT",
+                    tx_type="POH_LIVE_INIT",
                     payload=payload,
                     due_height=int(next_height),
                     signer="SYSTEM",
@@ -202,9 +202,9 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
         if _case_needs_assign(case):
             if account_id:
                 try:
-                    from weall.runtime.poh.juror_select import pick_tier3_jurors  # type: ignore
+                    from weall.runtime.poh.juror_select import pick_live_jurors  # type: ignore
 
-                    interacting, observing = pick_tier3_jurors(
+                    interacting, observing = pick_live_jurors(
                         state=state,
                         case_id=cid,
                         target_account=account_id,
@@ -219,7 +219,7 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                 if isinstance(jurors, list) and len(jurors) == 10:
                     enqueue_system_tx(
                         state,
-                        tx_type="POH_TIER3_JUROR_ASSIGN",
+                        tx_type="POH_LIVE_JUROR_ASSIGN",
                         payload={
                             "case_id": cid,
                             "jurors": jurors,
@@ -228,7 +228,7 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
                         due_height=int(next_height),
                         signer="SYSTEM",
                         once=True,
-                        parent="POH_TIER3_INIT",
+                        parent="POH_LIVE_INIT",
                         phase="post",
                     )
                     enq += 1
@@ -237,7 +237,7 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
         if _case_needs_finalize(case):
             enqueue_system_tx(
                 state,
-                tx_type="POH_TIER3_FINALIZE",
+                tx_type="POH_LIVE_FINALIZE",
                 payload={"case_id": cid, "ts_ms": 0},
                 due_height=int(next_height),
                 signer="SYSTEM",
@@ -249,12 +249,12 @@ def schedule_poh_tier3_system_txs(state: Json, *, next_height: int) -> int:
 
             enqueue_system_tx(
                 state,
-                tx_type="POH_TIER3_RECEIPT",
-                payload={"case_id": cid, "receipt_id": f"poh3rcpt:{cid}", "ts_ms": 0},
+                tx_type="POH_LIVE_RECEIPT",
+                payload={"case_id": cid, "receipt_id": f"poh_live_rcpt:{cid}", "ts_ms": 0},
                 due_height=int(next_height),
                 signer="SYSTEM",
                 once=True,
-                parent="POH_TIER3_FINALIZE",
+                parent="POH_LIVE_FINALIZE",
                 phase="post",
             )
             enq += 1

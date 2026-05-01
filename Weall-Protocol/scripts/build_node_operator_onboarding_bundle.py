@@ -88,7 +88,7 @@ def _build(args: argparse.Namespace) -> Json:
             "authority_snapshot_max_age_ms": int(args.authority_snapshot_max_age_ms),
         },
         "operator_requirements": {
-            "minimum_poh_tier": 3,
+            "minimum_poh_tier": 2,
             "requires_active_node_operator": True,
             "requires_positive_reputation": True,
             "requires_account_unlocked": True,

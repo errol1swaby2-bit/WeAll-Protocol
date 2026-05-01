@@ -97,7 +97,7 @@ def test_prod_oracle_authority_snapshot_check_accepts_signed_fixture(tmp_path: P
                 "@operator": {
                     "eligible": True,
                     "status": "active",
-                    "poh_tier": 3,
+                    "poh_tier": 2,
                     "active_node_operator": True,
                     "reputation_units": 1,
                     "locked": False,
@@ -105,7 +105,7 @@ def test_prod_oracle_authority_snapshot_check_accepts_signed_fixture(tmp_path: P
                     "pubkeys": [node_sk.verify_key.encode().hex()],
                     "reasons": [
                         "active_node_operator",
-                        "tier3_or_higher",
+                        "live_verified_human",
                         "positive_reputation",
                         "account_unlocked",
                         "account_not_banned",

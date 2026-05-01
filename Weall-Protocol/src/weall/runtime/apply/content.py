@@ -357,7 +357,7 @@ def _apply_mod_to_target(state: Json, *, target_id: str, changes: Json) -> None:
 
 def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_post_create")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_post_create")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -390,7 +390,7 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_post_edit")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_post_edit")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -421,7 +421,7 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_post_delete(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_post_delete")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_post_delete")
 
     payload = _as_dict(env.payload)
     posts = _ensure_root(state)["posts"]
@@ -604,7 +604,7 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_media_action")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -644,7 +644,7 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_media_action")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -701,7 +701,7 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_media_action")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -749,7 +749,7 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=3, action="content_media_action")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)
@@ -824,7 +824,7 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
 
     Security / product policy:
       - SYSTEM may always lock/unlock (receipt-only governance/moderation).
-      - Non-system users must be PoH Tier 3 (posting tier) and must be the post author.
+      - Non-system users must be PoH Tier 2 / Live Verified Human and must be the post author.
       - Locked threads reject new comments (enforced in _apply_comment_create).
 
     Payload:
@@ -840,10 +840,10 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {"tx_type": env.tx_type})
 
-    # Enforce author-only + Tier3 for user-initiated locks.
+    # Enforce author-only + Tier2 / Live Verified Human for user-initiated locks.
     if not env.system:
         _require_min_poh_tier(
-            state, signer=env.signer, min_tier=3, action="content_thread_lock_set"
+            state, signer=env.signer, min_tier=2, action="content_thread_lock_set"
         )
 
         content = _ensure_root(state)

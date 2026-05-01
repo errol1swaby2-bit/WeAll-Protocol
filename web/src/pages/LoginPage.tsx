@@ -33,6 +33,12 @@ function humanizeApiError(error: unknown, fallback: string): string {
 
 type LoginMode = "create" | "existing"
 
+type Checkpoint = {
+  title: string
+  detail: string
+  tone: "good" | "warn" | "pending"
+}
+
 type DevBootstrapStep = {
   label?: string
   href?: string

@@ -42,10 +42,10 @@ def _state() -> dict:
             "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0},
             "bob": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0},
             "charlie": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
-            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1},
-            "j2": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1},
-            "j3": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1},
-            "j_bad": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
+            "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
+            "j2": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
+            "j3": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
+            "j_bad": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 1},
         },
     }
 
@@ -118,7 +118,7 @@ def test_tier2_video_commitment_cannot_be_replayed_across_accounts() -> None:
     assert st["poh"]["evidence_commitment_index"]["cmt:shared"]["case_id"] == "poh2:alice:1"
 
 
-def test_tier2_assignment_rejects_self_and_non_tier3_jurors() -> None:
+def test_tier2_assignment_rejects_self_and_non_live_jurors() -> None:
     st = _state()
     m0 = apply_tx(
         st,
@@ -171,10 +171,10 @@ def test_tier2_assignment_rejects_self_and_non_tier3_jurors() -> None:
                 parent="POH_TIER2_REQUEST_OPEN",
             ),
         )
-    assert _reason(bad_juror.value) == "juror_not_tier3"
+    assert _reason(bad_juror.value) == "juror_not_live"
 
 
-def test_tier2_review_rechecks_active_tier3_after_assignment() -> None:
+def test_tier2_review_rechecks_active_live_after_assignment() -> None:
     st = _state()
     m0 = apply_tx(
         st,
@@ -206,7 +206,7 @@ def test_tier2_review_rechecks_active_tier3_after_assignment() -> None:
         ),
     )
 
-    st["accounts"]["j1"]["poh_tier"] = 2
+    st["accounts"]["j1"]["poh_tier"] = 1
 
     with pytest.raises(Exception) as raised:
         apply_tx(
@@ -219,4 +219,4 @@ def test_tier2_review_rechecks_active_tier3_after_assignment() -> None:
             ),
         )
 
-    assert _reason(raised.value) == "juror_not_tier3"
+    assert _reason(raised.value) == "juror_not_live"

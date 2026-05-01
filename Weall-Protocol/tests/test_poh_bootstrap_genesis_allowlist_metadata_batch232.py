@@ -24,7 +24,7 @@ def _state() -> dict:
                 "nonce": 0,
                 "pubkey": "genesis-pk",
                 "pubkeys": ["genesis-pk"],
-                "poh_tier": 3,
+                "poh_tier": 2,
             },
         },
         "params": {
@@ -49,7 +49,7 @@ def _bootstrap_tx(
     system: bool = False,
 ) -> dict:
     return TxEnvelope(
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=signer,
         nonce=1,
         system=system,
@@ -61,7 +61,7 @@ def _canon() -> TxIndex:
     return TxIndex.from_raw(
         {
             "tx": {
-                "POH_BOOTSTRAP_TIER3_GRANT": {
+                "POH_BOOTSTRAP_TIER2_GRANT": {
                     "origin": "SYSTEM",
                     "system_only": True,
                     "subject_gate": "Validator",
@@ -79,7 +79,7 @@ def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_ap
     apply_tx(state, _bootstrap_tx())
 
     acct = state["accounts"]["@alice"]
-    assert acct["poh_tier"] == 3
+    assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "open"
     assert acct["poh_bootstrap_granted"] is True
 

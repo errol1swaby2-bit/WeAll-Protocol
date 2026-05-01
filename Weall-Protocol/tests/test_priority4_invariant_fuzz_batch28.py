@@ -54,9 +54,9 @@ def _gov_state() -> Json:
         "height": 10,
         "time": 1,
         "accounts": {
-            "alice": {"balance": 100, "nonce": 0, "poh_tier": 3},
-            "bob": {"balance": 100, "nonce": 0, "poh_tier": 3},
-            "carol": {"balance": 100, "nonce": 0, "poh_tier": 3},
+            "alice": {"balance": 100, "nonce": 0, "poh_tier": 2},
+            "bob": {"balance": 100, "nonce": 0, "poh_tier": 2},
+            "carol": {"balance": 100, "nonce": 0, "poh_tier": 2},
         },
     }
 
@@ -71,9 +71,9 @@ def _treasury_state() -> Json:
         "height": 4,
         "time": 1,
         "accounts": {
-            "alice": {"balance": 1000, "nonce": 0, "poh_tier": 3},
-            "bob": {"balance": 1000, "nonce": 0, "poh_tier": 3},
-            "carol": {"balance": 1000, "nonce": 0, "poh_tier": 3},
+            "alice": {"balance": 1000, "nonce": 0, "poh_tier": 2},
+            "bob": {"balance": 1000, "nonce": 0, "poh_tier": 2},
+            "carol": {"balance": 1000, "nonce": 0, "poh_tier": 2},
         },
     }
 
@@ -96,7 +96,7 @@ def _mk_poh_state() -> Json:
     for i in range(1, 11):
         st["accounts"][f"j{i}"] = {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation": 0.9,
@@ -104,11 +104,11 @@ def _mk_poh_state() -> Json:
     return st
 
 
-def _open_tier3_case(st: Json) -> str:
+def _open_live_case(st: Json) -> str:
     m0 = apply_tx(
         st,
         _env(
-            "POH_TIER3_REQUEST_OPEN",
+            "POH_LIVE_REQUEST_OPEN",
             {
                 "account_id": "alice",
                 "session_commitment": "sc:1",
@@ -119,36 +119,36 @@ def _open_tier3_case(st: Json) -> str:
             nonce=1,
         ),
     )
-    assert m0 and m0["applied"] == "POH_TIER3_REQUEST_OPEN"
+    assert m0 and m0["applied"] == "POH_LIVE_REQUEST_OPEN"
     case_id = str(m0["case_id"])
     m1 = apply_tx(
         st,
         _env(
-            "POH_TIER3_INIT",
+            "POH_LIVE_SESSION_INIT",
             {"case_id": case_id, "account_id": "alice", "session_commitment": "sc:1", "ts_ms": 1},
             signer="SYSTEM",
             nonce=2,
             system=True,
-            parent="POH_TIER3_REQUEST_OPEN",
+            parent="POH_LIVE_REQUEST_OPEN",
         ),
     )
-    assert m1 and m1["applied"] == "POH_TIER3_INIT"
+    assert m1 and m1["applied"] == "POH_LIVE_SESSION_INIT"
     m2 = apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ASSIGN",
+            "POH_LIVE_JUROR_ASSIGN",
             {"case_id": case_id, "jurors": [f"j{i}" for i in range(1, 11)]},
             signer="SYSTEM",
             nonce=3,
             system=True,
-            parent="POH_TIER3_INIT",
+            parent="POH_LIVE_SESSION_INIT",
         ),
     )
-    assert m2 and m2["applied"] == "POH_TIER3_JUROR_ASSIGN"
+    assert m2 and m2["applied"] == "POH_LIVE_JUROR_ASSIGN"
     return case_id
 
 
-def _tier3_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Json]]:
+def _live_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Json]]:
     accepts: list[Json] = []
     attendance: list[Json] = []
     verdict_ops: list[Json] = []
@@ -157,7 +157,7 @@ def _tier3_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Jso
         jid = f"j{i}"
         accepts.append(
             _env(
-                "POH_TIER3_JUROR_ACCEPT",
+                "POH_LIVE_JUROR_ACCEPT",
                 {"case_id": case_id, "ts_ms": nonce},
                 signer=jid,
                 nonce=nonce,
@@ -166,7 +166,7 @@ def _tier3_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Jso
         nonce += 1
         attendance.append(
             _env(
-                "POH_TIER3_ATTENDANCE_MARK",
+                "POH_LIVE_ATTENDANCE_MARK",
                 {
                     "case_id": case_id,
                     "juror_id": jid,
@@ -183,7 +183,7 @@ def _tier3_action_groups(case_id: str) -> tuple[list[Json], list[Json], list[Jso
     for jid, verdict in verdicts:
         verdict_ops.append(
             _env(
-                "POH_TIER3_VERDICT_SUBMIT",
+                "POH_LIVE_VERDICT_SUBMIT",
                 {
                     "case_id": case_id,
                     "verdict": verdict,
@@ -327,14 +327,14 @@ def test_priority4_validator_pending_update_replay_is_idempotent() -> None:
     assert pending["activate_at_epoch"] == 5
 
 
-def test_priority4_poh_tier3_permutation_fuzz_converges() -> None:
+def test_priority4_poh_live_permutation_fuzz_converges() -> None:
     rng = random.Random(428)
     reference: str | None = None
 
     for _ in range(8):
         st = _mk_poh_state()
-        case_id = _open_tier3_case(st)
-        accepts, attendance, verdict_ops = _tier3_action_groups(case_id)
+        case_id = _open_live_case(st)
+        accepts, attendance, verdict_ops = _live_action_groups(case_id)
         rng.shuffle(accepts)
         rng.shuffle(attendance)
         rng.shuffle(verdict_ops)
@@ -344,19 +344,19 @@ def test_priority4_poh_tier3_permutation_fuzz_converges() -> None:
         out = apply_tx(
             st,
             _env(
-                "POH_TIER3_FINALIZE",
+                "POH_LIVE_FINALIZE",
                 {"case_id": case_id, "ts_ms": 999},
                 signer="SYSTEM",
                 nonce=999,
                 system=True,
-                parent="POH_TIER3_VERDICT_SUBMIT",
+                parent="POH_LIVE_VERDICT_SUBMIT",
             ),
         )
-        assert out["applied"] == "POH_TIER3_FINALIZE"
+        assert out["applied"] == "POH_LIVE_FINALIZE"
         assert out["outcome"] == "pass"
-        assert out["tier_awarded"] == 3
-        assert st["accounts"]["alice"]["poh_tier"] == 3
-        case = st["poh"]["tier3_cases"][case_id]
+        assert out["tier_awarded"] == 2
+        assert st["accounts"]["alice"]["poh_tier"] == 2
+        case = st["poh"]["live_cases"][case_id]
         assert case["status"] == "awarded"
         assert case["outcome"] == "pass"
         stable_case = _stable(case)

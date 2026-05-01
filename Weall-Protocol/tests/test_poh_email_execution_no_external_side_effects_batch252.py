@@ -27,7 +27,7 @@ def _state() -> dict:
         "height": 10,
         "accounts": {
             "@alice": {"account_id": "@alice", "poh_tier": 0, "banned": False, "locked": False, "keys": {"by_id": {"k1": {"pubkey": user_pub, "revoked": False}}}},
-            "@oracle": {"account_id": "@oracle", "poh_tier": 3, "banned": False, "locked": False, "keys": {"by_id": {"k1": {"pubkey": op_pub, "revoked": False}}}},
+            "@oracle": {"account_id": "@oracle", "poh_tier": 2, "banned": False, "locked": False, "keys": {"by_id": {"k1": {"pubkey": op_pub, "revoked": False}}}},
         },
         "oracle_registry": {"oracles": {"oracle:poh-email:1": {"oracle_id": "oracle:poh-email:1", "operator_account": "@oracle", "oracle_type": "poh_email_tier1", "oracle_pubkey": op_pub, "status": "active", "registered_at_height": 1, "valid_from_height": 1}}},
         "poh": {},

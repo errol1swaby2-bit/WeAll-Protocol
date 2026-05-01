@@ -23,7 +23,7 @@ def test_epoch_rolls_over_after_blocks_per_epoch_finalizations() -> None:
         "accounts": {
             "SYSTEM": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

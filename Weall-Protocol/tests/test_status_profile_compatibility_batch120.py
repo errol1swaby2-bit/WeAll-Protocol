@@ -39,7 +39,7 @@ def test_status_surfaces_profile_compatibility_and_config_summary(tmp_path: Path
     st["accounts"] = {
         "@v1": {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation_milli": 6000,

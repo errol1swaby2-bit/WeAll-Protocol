@@ -24,7 +24,7 @@ def _ledger(*, system_signer: str = "SYSTEM", open_mode: bool = False) -> dict:
 
 def _env(*, signer: str, system: bool, payload: dict | None = None) -> dict:
     return TxEnvelope(
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=signer,
         nonce=1,
         system=system,
@@ -87,6 +87,6 @@ def test_open_mode_still_allows_self_bootstrap_without_system_flag() -> None:
         ),
     )
     acct = state["accounts"]["alice"]
-    assert acct["poh_tier"] == 3
+    assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "open"
 

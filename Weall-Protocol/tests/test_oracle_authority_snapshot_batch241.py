@@ -34,7 +34,7 @@ def _snapshot() -> dict:
             "@operator": {
                 "eligible": True,
                 "status": "active",
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "active_node_operator": True,
                 "reputation_units": 1,
                 "locked": False,
@@ -42,7 +42,7 @@ def _snapshot() -> dict:
                 "pubkeys": [],
                 "reasons": [
                     "active_node_operator",
-                    "tier3_or_higher",
+                    "live_verified_human",
                     "positive_reputation",
                     "account_unlocked",
                     "account_not_banned",

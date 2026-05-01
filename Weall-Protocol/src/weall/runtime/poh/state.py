@@ -26,6 +26,39 @@ PohStatus = Literal[
     "under_challenge",
 ]
 
+MAX_USER_FACING_POH_TIER = 2
+
+
+def v2_poh_tier(value: Any) -> int:
+    """Normalize a stored value into the v2 two-tier model for read surfaces.
+
+    Historical imported state may still contain values above Tier 2. Read-side
+    normalization clamps those values to Tier 2 so old snapshots cannot re-create
+    a user-facing third tier. Write paths must use ``require_valid_poh_tier`` and
+    must never persist a value above Tier 2.
+    """
+
+    return max(0, min(MAX_USER_FACING_POH_TIER, _as_int(value, 0)))
+
+
+def require_valid_poh_tier(value: Any) -> int:
+    """Return a canonical PoH tier or fail closed for invalid writes."""
+
+    tier = _as_int(value, 0)
+    if tier < 0 or tier > MAX_USER_FACING_POH_TIER:
+        raise ValueError("invalid_poh_tier")
+    return tier
+
+
+def poh_tier_label(value: Any) -> str:
+    tier = v2_poh_tier(value)
+    if tier >= 2:
+        return "Live Verified Human"
+    if tier == 1:
+        return "Async Verified Human"
+    return "Unverified Account"
+
+
 VALID_POH_STATUSES: frozenset[str] = frozenset(
     {
         POH_STATUS_ACTIVE,
@@ -94,13 +127,14 @@ def canonical_account_poh_status(state: Json, account_id: str) -> Json:
         status = POH_STATUS_ACTIVE if tier > 0 else POH_STATUS_EXPIRED
         return {
             "account_id": account_id,
-            "poh_tier": int(max(0, tier)),
+            "poh_tier": v2_poh_tier(tier),
             "status": status,
             "verified_at_height": None,
             "expires_at_height": None,
             "proof_commitment": None,
             "issuer_oracle_id": None,
             "last_updated_height": _as_int(state.get("height"), 0),
+            "poh_tier_label": poh_tier_label(tier),
         }
 
     status = _as_str(rec.get("status") or POH_STATUS_EXPIRED)
@@ -109,13 +143,14 @@ def canonical_account_poh_status(state: Json, account_id: str) -> Json:
 
     return {
         "account_id": _as_str(rec.get("account_id") or account_id),
-        "poh_tier": max(0, _as_int(rec.get("poh_tier"), 0)),
+        "poh_tier": v2_poh_tier(rec.get("poh_tier")),
         "status": status,
         "verified_at_height": rec.get("verified_at_height"),
         "expires_at_height": rec.get("expires_at_height"),
         "proof_commitment": rec.get("proof_commitment"),
         "issuer_oracle_id": rec.get("issuer_oracle_id"),
         "last_updated_height": _as_int(rec.get("last_updated_height"), 0),
+        "poh_tier_label": poh_tier_label(rec.get("poh_tier")),
     }
 
 
@@ -132,7 +167,7 @@ def effective_poh_tier(state: Json, account_id: str, *, at_height: int | None = 
                 return 0
         except Exception:
             return 0
-    return max(0, _as_int(rec.get("poh_tier"), 0))
+    return v2_poh_tier(rec.get("poh_tier"))
 
 
 def set_account_poh_status(
@@ -156,9 +191,10 @@ def set_account_poh_status(
         raise ValueError("invalid_poh_status")
 
     height = _as_int(state.get("height"), 0) if last_updated_height is None else int(last_updated_height)
+    tier = require_valid_poh_tier(poh_tier)
     rec: Json = {
         "account_id": account_id,
-        "poh_tier": max(0, int(poh_tier)),
+        "poh_tier": tier,
         "status": status_norm,
         "verified_at_height": verified_at_height,
         "expires_at_height": expires_at_height,
@@ -173,7 +209,7 @@ def set_account_poh_status(
         if isinstance(accounts, dict):
             acct = accounts.get(account_id)
             if isinstance(acct, dict):
-                acct["poh_tier"] = max(_as_int(acct.get("poh_tier"), 0), max(0, int(poh_tier)))
+                acct["poh_tier"] = max(v2_poh_tier(acct.get("poh_tier")), tier)
                 acct["poh_status"] = status_norm
 
     return rec

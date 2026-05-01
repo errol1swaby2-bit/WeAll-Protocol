@@ -104,7 +104,7 @@ def _normalize_path(p: str) -> str:
     Normalize:
       /v1/accounts/${encodeURIComponent(account)} -> /v1/accounts/
       /v1/feed${qs} -> /v1/feed
-      /v1/poh/tier3/session/${id}/participants -> /v1/poh/tier3/session//participants
+      /v1/poh/live/session/${id}/participants -> /v1/poh/live/session//participants
     Then compress multiple slashes.
     """
     s = (p or "").strip()

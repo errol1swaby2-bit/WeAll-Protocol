@@ -257,8 +257,8 @@ def seed_demo_state(
 ) -> Json:
     acct = _ensure_account(state, account)
     tier = int(acct.get("poh_tier") or acct.get("tier") or 0)
-    if tier < 3:
-        raise ApiError.bad_request("insufficient_tier", f"Demo account {account} must be Tier 3+")
+    if tier < 2:
+        raise ApiError.bad_request("insufficient_tier", f"Demo account {account} must be Live Verified Human / Tier 2+")
 
     content = _as_dict(state.get("content"))
     posts = _as_dict(content.get("posts"))

@@ -115,7 +115,7 @@ def test_migration_normalizes_reputation_to_string_and_units_batch124() -> None:
         "accounts": {
             "@alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": "1.25",

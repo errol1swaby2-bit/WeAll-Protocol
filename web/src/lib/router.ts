@@ -171,7 +171,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     dataContract: contract({
       primaryObject: "Post composer",
       contextPanelData: "Composer capability and submission posture",
-      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 3 posting eligibility"],
+      blockingDependencies: ["Auth hydration", "Node readiness", "Live Verification posting eligibility"],
     }),
   },
   "/poh": {
@@ -309,7 +309,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     dataContract: contract({
       primaryObject: "Group creation workflow",
       contextPanelData: "Creation eligibility and submission posture",
-      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 3 group creation eligibility"],
+      blockingDependencies: ["Auth hydration", "Node readiness", "Live Verification group creation eligibility"],
     }),
   },
   "/groups/:id": {
@@ -360,7 +360,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     dataContract: contract({
       primaryObject: "Proposal creation workflow",
       contextPanelData: "Authoring eligibility and submission posture",
-      blockingDependencies: ["Auth hydration", "Node readiness", "Tier 3 governance eligibility"],
+      blockingDependencies: ["Auth hydration", "Node readiness", "Live Verification governance eligibility"],
     }),
   },
   "/proposal/:id": {

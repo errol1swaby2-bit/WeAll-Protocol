@@ -22,7 +22,7 @@ def _state() -> dict:
         },
         "accounts": {
             "@operator": {
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "locked": False,
                 "banned": False,
                 "keys": {

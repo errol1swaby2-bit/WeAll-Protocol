@@ -68,6 +68,7 @@ class PohEmailBeginResponse(BaseModel):
     security_phrase: str = ""
     official_sender: str = "verify@poh.weall.org"
     email_masked: str | None = None
+    dev_code: str | None = None
 
 
 class PohEmailCompleteRequest(BaseModel):
@@ -322,11 +323,12 @@ def _oracle_authority_registry(st: Json) -> dict[str, dict[str, Any]]:
     for account in sorted(active_node_ops):
         _merge_account(account, reason="active_node_operator", status="active")
 
-    # Production-oriented email oracle authorization is narrower than merely
-    # being present in a role list. The WeAll-hosted oracle should accept only active node
-    # operators whose canonical account state satisfies the full authority
-    # contract: Tier3+, positive reputation, not locked/banned, and at least one
-    # active registered key. Keep legacy active-validator/bootstrap records
+    # Legacy email-adapter authorization is narrower than merely being present
+    # in a role list. While retained during the v2.1 migration, the adapter
+    # should accept only active node operators whose canonical account state
+    # satisfies the full authority contract: Tier2+/Live Verified Human,
+    # positive reputation, not locked/banned, and at least one active registered
+    # key. Keep legacy active-validator/bootstrap records
     # visible for diagnostics, but mark eligibility explicitly on node-operator
     # records so the oracle can fail closed without inferring from frontend state.
     accounts = st.get("accounts") if isinstance(st.get("accounts"), dict) else {}
@@ -351,8 +353,8 @@ def _oracle_authority_registry(st: Json) -> dict[str, dict[str, Any]]:
             if reason not in reasons:
                 reasons.append(reason)
 
-        if tier >= 3:
-            add_reason("tier3_or_higher")
+        if tier >= 2:
+            add_reason("live_verified_human")
         if reputation_units > 0:
             add_reason("positive_reputation")
         if not locked:
@@ -362,7 +364,7 @@ def _oracle_authority_registry(st: Json) -> dict[str, dict[str, Any]]:
         if active_key:
             add_reason("active_account_key")
 
-        rec["eligible"] = bool(tier >= 3 and reputation_units > 0 and not locked and not banned and active_key)
+        rec["eligible"] = bool(tier >= 2 and reputation_units > 0 and not locked and not banned and active_key)
         rec["poh_tier"] = tier
         rec["active_node_operator"] = True
         rec["reputation_units"] = int(reputation_units)
@@ -691,7 +693,12 @@ def poh_email_oracle_authority(request: Request) -> PohEmailOracleAuthorityRespo
     return PohEmailOracleAuthorityResponse(**payload)
 
 
-@router.post("/poh/email/begin", response_model=PohEmailBeginResponse, name="poh_email_begin")
+@router.post(
+    "/poh/email/begin",
+    response_model=PohEmailBeginResponse,
+    response_model_exclude_none=True,
+    name="poh_email_begin",
+)
 def poh_email_begin(req: PohEmailBeginRequest, request: Request) -> PohEmailBeginResponse:
     account = str(req.account or "").strip()
     email = str(req.email or "").strip()
@@ -749,6 +756,7 @@ def poh_email_begin(req: PohEmailBeginRequest, request: Request) -> PohEmailBegi
         security_phrase=str(result.get("security_phrase") or ""),
         official_sender=str(result.get("official_sender") or "verify@poh.weall.org"),
         email_masked=result.get("email_masked") if isinstance(result.get("email_masked"), str) else None,
+        dev_code=str(result.get("dev_code")) if result.get("dev_code") is not None else None,
     )
 
 
@@ -918,7 +926,7 @@ async def poh_tier2_video_upload(
     """Upload Tier-2 video evidence to IPFS and return a CID + commitment.
 
     Why this exists:
-      - /v1/media/upload is Tier-3 gated (for public social content).
+      - /v1/media/upload is Live gated (for public social content).
       - Tier-2 applicants are usually Tier-1 users and need a safe intake path.
 
     Production posture:
@@ -996,27 +1004,27 @@ def _tier2_cases_from_snapshot(st: Json) -> Json:
     return cases if isinstance(cases, dict) else {}
 
 
-def _tier3_cases_from_snapshot(st: Json) -> Json:
+def _live_cases_from_snapshot(st: Json) -> Json:
     poh = st.get("poh")
     if not isinstance(poh, dict):
         return {}
-    cases = poh.get("tier3_cases")
+    cases = poh.get("live_cases")
     return cases if isinstance(cases, dict) else {}
 
 
-def _tier3_sessions_from_snapshot(st: Json) -> Json:
+def _live_sessions_from_snapshot(st: Json) -> Json:
     poh = st.get("poh")
     if not isinstance(poh, dict):
         return {}
-    sess = poh.get("tier3_sessions")
+    sess = poh.get("live_sessions")
     return sess if isinstance(sess, dict) else {}
 
 
-def _tier3_session_participants_from_snapshot(st: Json) -> Json:
+def _live_session_participants_from_snapshot(st: Json) -> Json:
     poh = st.get("poh")
     if not isinstance(poh, dict):
         return {}
-    sp = poh.get("tier3_session_participants")
+    sp = poh.get("live_session_participants")
     return sp if isinstance(sp, dict) else {}
 
 
@@ -1132,11 +1140,11 @@ def poh_tier2_juror_cases(juror: str, request: Request) -> PohTier2CaseListRespo
 
 
 # ---------------------------------------------------------------------------
-# PoH Tier3: Read-only views (cases, assigned, sessions)
+# PoH Live: Read-only views (cases, assigned, sessions)
 # ---------------------------------------------------------------------------
 
 
-class PohTier3JurorModel(BaseModel):
+class PohLiveJurorModel(BaseModel):
     juror_id: str
     role: str
     accepted: bool
@@ -1145,7 +1153,7 @@ class PohTier3JurorModel(BaseModel):
     verdict: str | None = None
 
 
-class PohTier3CaseModel(BaseModel):
+class PohLiveCaseModel(BaseModel):
     case_id: str
     account_id: str
     status: str
@@ -1161,14 +1169,14 @@ class PohTier3CaseModel(BaseModel):
     outcome: str | None = None
     tier_awarded: int | None = None
     poh_nft_token_id: str | None = None
-    jurors: list[PohTier3JurorModel] = Field(default_factory=list)
+    jurors: list[PohLiveJurorModel] = Field(default_factory=list)
 
 
-def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
+def _as_live_case(case_id: str, r: dict[str, object]) -> PohLiveCaseModel:
     acct = str(r.get("account_id") or "").strip()
     status = str(r.get("status") or "").strip() or "unknown"
 
-    jurors: list[PohTier3JurorModel] = []
+    jurors: list[PohLiveJurorModel] = []
     jm = r.get("jurors")
     if isinstance(jm, dict):
         for jid, jrec_any in jm.items():
@@ -1187,7 +1195,7 @@ def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
                 ats = None
 
             jurors.append(
-                PohTier3JurorModel(
+                PohLiveJurorModel(
                     juror_id=str(jid),
                     role=str(jrec.get("role") or "").strip() or "unknown",
                     accepted=accepted,
@@ -1205,7 +1213,7 @@ def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
         except Exception:
             return None
 
-    return PohTier3CaseModel(
+    return PohLiveCaseModel(
         case_id=str(case_id),
         account_id=acct,
         status=status,
@@ -1225,38 +1233,38 @@ def _as_tier3_case(case_id: str, r: dict[str, object]) -> PohTier3CaseModel:
     )
 
 
-class PohTier3CaseResponse(BaseModel):
+class PohLiveCaseResponse(BaseModel):
     ok: bool
-    case: PohTier3CaseModel
+    case: PohLiveCaseModel
 
 
-class PohTier3AssignedResponse(BaseModel):
+class PohLiveAssignedResponse(BaseModel):
     ok: bool
-    cases: list[PohTier3CaseModel]
+    cases: list[PohLiveCaseModel]
 
 
-@router.get("/poh/tier3/case/{case_id}", response_model=PohTier3CaseResponse, name="poh_tier3_case")
-def poh_tier3_case(case_id: str, request: Request) -> PohTier3CaseResponse:
+@router.get("/poh/live/case/{case_id}", response_model=PohLiveCaseResponse, name="poh_live_case")
+def poh_live_case(case_id: str, request: Request) -> PohLiveCaseResponse:
     st = _snapshot(request)
-    cases = _tier3_cases_from_snapshot(st)
+    cases = _live_cases_from_snapshot(st)
     cid = str(case_id or "").strip()
     raw = cases.get(cid)
     if not isinstance(raw, dict):
-        raise ApiError.not_found("not_found", "tier3_case_not_found")
-    return PohTier3CaseResponse(ok=True, case=_as_tier3_case(cid, raw))
+        raise ApiError.not_found("not_found", "live_case_not_found")
+    return PohLiveCaseResponse(ok=True, case=_as_live_case(cid, raw))
 
 
 @router.get(
-    "/poh/tier3/assigned", response_model=PohTier3AssignedResponse, name="poh_tier3_assigned"
+    "/poh/live/assigned", response_model=PohLiveAssignedResponse, name="poh_live_assigned"
 )
-def poh_tier3_assigned(juror: str, request: Request) -> PohTier3AssignedResponse:
+def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
     j = str(juror or "").strip()
     if not j:
         raise ApiError.bad_request("bad_request", "missing juror", {})
     st = _snapshot(request)
-    cases = _tier3_cases_from_snapshot(st)
+    cases = _live_cases_from_snapshot(st)
 
-    out: list[PohTier3CaseModel] = []
+    out: list[PohLiveCaseModel] = []
     for cid, raw in cases.items():
         if not isinstance(raw, dict):
             continue
@@ -1264,13 +1272,13 @@ def poh_tier3_assigned(juror: str, request: Request) -> PohTier3AssignedResponse
         if not isinstance(jm, dict):
             continue
         if j in jm:
-            out.append(_as_tier3_case(str(cid), raw))
+            out.append(_as_live_case(str(cid), raw))
 
     out.sort(key=lambda c: c.case_id)
-    return PohTier3AssignedResponse(ok=True, cases=out)
+    return PohLiveAssignedResponse(ok=True, cases=out)
 
 
-class PohTier3SessionModel(BaseModel):
+class PohLiveSessionModel(BaseModel):
     session_id: str
     case_id: str
     status: str
@@ -1283,29 +1291,29 @@ class PohTier3SessionModel(BaseModel):
     device_pairing_commitment: str | None = None
     relay_commitment: str | None = None
     relay_authority: str | None = None
-    # Kept for response compatibility. New protocol-native Tier3 state should
+    # Kept for response compatibility. New protocol-native Live state should
     # expose commitments, not raw relay URLs.
     join_url: str | None = None
 
 
-class PohTier3SessionResponse(BaseModel):
+class PohLiveSessionResponse(BaseModel):
     ok: bool
-    session: PohTier3SessionModel
+    session: PohLiveSessionModel
 
 
-class PohTier3SessionListResponse(BaseModel):
+class PohLiveSessionListResponse(BaseModel):
     ok: bool
-    sessions: list[PohTier3SessionModel]
+    sessions: list[PohLiveSessionModel]
 
 
-def _as_tier3_session(session_id: str, r: dict[str, object]) -> PohTier3SessionModel:
+def _as_live_session(session_id: str, r: dict[str, object]) -> PohLiveSessionModel:
     def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
             return None
 
-    return PohTier3SessionModel(
+    return PohLiveSessionModel(
         session_id=str(session_id),
         case_id=str(r.get("case_id") or "").strip(),
         status=str(r.get("status") or "").strip() or "unknown",
@@ -1323,38 +1331,38 @@ def _as_tier3_session(session_id: str, r: dict[str, object]) -> PohTier3SessionM
 
 
 @router.get(
-    "/poh/tier3/session/{session_id}",
-    response_model=PohTier3SessionResponse,
-    name="poh_tier3_session",
+    "/poh/live/session/{session_id}",
+    response_model=PohLiveSessionResponse,
+    name="poh_live_session",
 )
-def poh_tier3_session(session_id: str, request: Request) -> PohTier3SessionResponse:
+def poh_live_session(session_id: str, request: Request) -> PohLiveSessionResponse:
     st = _snapshot(request)
-    sess = _tier3_sessions_from_snapshot(st)
+    sess = _live_sessions_from_snapshot(st)
     sid = str(session_id or "").strip()
     raw = sess.get(sid)
     if not isinstance(raw, dict):
-        raise ApiError.not_found("not_found", "tier3_session_not_found")
-    return PohTier3SessionResponse(ok=True, session=_as_tier3_session(sid, raw))
+        raise ApiError.not_found("not_found", "live_session_not_found")
+    return PohLiveSessionResponse(ok=True, session=_as_live_session(sid, raw))
 
 
 @router.get(
-    "/poh/tier3/sessions", response_model=PohTier3SessionListResponse, name="poh_tier3_sessions"
+    "/poh/live/sessions", response_model=PohLiveSessionListResponse, name="poh_live_sessions"
 )
-def poh_tier3_sessions(request: Request) -> PohTier3SessionListResponse:
+def poh_live_sessions(request: Request) -> PohLiveSessionListResponse:
     st = _snapshot(request)
-    sess = _tier3_sessions_from_snapshot(st)
+    sess = _live_sessions_from_snapshot(st)
 
-    out: list[PohTier3SessionModel] = []
+    out: list[PohLiveSessionModel] = []
     for sid, raw in sess.items():
         if not isinstance(raw, dict):
             continue
-        out.append(_as_tier3_session(str(sid), raw))
+        out.append(_as_live_session(str(sid), raw))
 
     out.sort(key=lambda s: (s.case_id, s.session_id))
-    return PohTier3SessionListResponse(ok=True, sessions=out)
+    return PohLiveSessionListResponse(ok=True, sessions=out)
 
 
-class PohTier3SessionParticipantModel(BaseModel):
+class PohLiveSessionParticipantModel(BaseModel):
     session_id: str
     juror_id: str
     role: str | None = None
@@ -1363,21 +1371,21 @@ class PohTier3SessionParticipantModel(BaseModel):
     left_ts_ms: int | None = None
 
 
-class PohTier3SessionParticipantsResponse(BaseModel):
+class PohLiveSessionParticipantsResponse(BaseModel):
     ok: bool
-    participants: list[PohTier3SessionParticipantModel]
+    participants: list[PohLiveSessionParticipantModel]
 
 
 def _as_participant(
     session_id: str, juror_id: str, r: dict[str, object]
-) -> PohTier3SessionParticipantModel:
+) -> PohLiveSessionParticipantModel:
     def _opt_int(v: Any) -> int | None:
         try:
             return int(v) if isinstance(v, (int, float)) else None
         except Exception:
             return None
 
-    return PohTier3SessionParticipantModel(
+    return PohLiveSessionParticipantModel(
         session_id=str(session_id),
         juror_id=str(juror_id),
         role=str(r.get("role") or "").strip() or None,
@@ -1388,27 +1396,27 @@ def _as_participant(
 
 
 @router.get(
-    "/poh/tier3/session/{session_id}/participants",
-    response_model=PohTier3SessionParticipantsResponse,
-    name="poh_tier3_session_participants",
+    "/poh/live/session/{session_id}/participants",
+    response_model=PohLiveSessionParticipantsResponse,
+    name="poh_live_session_participants",
 )
-def poh_tier3_session_participants(
+def poh_live_session_participants(
     session_id: str, request: Request
-) -> PohTier3SessionParticipantsResponse:
+) -> PohLiveSessionParticipantsResponse:
     st = _snapshot(request)
-    sp = _tier3_session_participants_from_snapshot(st)
+    sp = _live_session_participants_from_snapshot(st)
     sid = str(session_id or "").strip()
     raw = sp.get(sid)
     if not isinstance(raw, dict):
-        raise ApiError.not_found("not_found", "tier3_session_participants_not_found")
+        raise ApiError.not_found("not_found", "live_session_participants_not_found")
 
-    out: list[PohTier3SessionParticipantModel] = []
+    out: list[PohLiveSessionParticipantModel] = []
     for juror_id, jrec_any in raw.items():
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
         out.append(_as_participant(sid, str(juror_id), jrec))
 
     out.sort(key=lambda p: p.juror_id)
-    return PohTier3SessionParticipantsResponse(ok=True, participants=out)
+    return PohLiveSessionParticipantsResponse(ok=True, participants=out)
 
 
 # ---------------------------------------------------------------------------
@@ -1481,25 +1489,25 @@ def operator_poh_tier2_finalize(
     return OperatorPohTier2FinalizeResponse(ok=True, enqueued=True, due_height=height + 1)
 
 
-class OperatorPohTier3InitRequest(BaseModel):
+class OperatorPohLiveInitRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     join_url: str = Field(..., min_length=1)
 
 
-class OperatorPohTier3InitResponse(BaseModel):
+class OperatorPohLiveInitResponse(BaseModel):
     ok: bool
     enqueued: bool
     due_height: int
 
 
 @router.post(
-    "/poh/operator/tier3/init",
-    response_model=OperatorPohTier3InitResponse,
-    name="operator_poh_tier3_init",
+    "/poh/operator/live/init",
+    response_model=OperatorPohLiveInitResponse,
+    name="operator_poh_live_init",
 )
-def operator_poh_tier3_init(
-    req: OperatorPohTier3InitRequest, request: Request
-) -> OperatorPohTier3InitResponse:
+def operator_poh_live_init(
+    req: OperatorPohLiveInitRequest, request: Request
+) -> OperatorPohLiveInitResponse:
     _require_operator_poh_enabled()
     _require_operator_token(request)
 
@@ -1515,7 +1523,7 @@ def operator_poh_tier3_init(
 
     enqueue_system_tx(
         st,
-        tx_type="POH_TIER3_INIT",
+        tx_type="POH_LIVE_INIT",
         payload={"case_id": case_id, "relay_commitment": _sha256_hex(join_url.encode("utf-8")), "ts_ms": 0},
         due_height=height + 1,
         signer="SYSTEM",
@@ -1524,27 +1532,27 @@ def operator_poh_tier3_init(
         phase="post",
     )
 
-    return OperatorPohTier3InitResponse(ok=True, enqueued=True, due_height=height + 1)
+    return OperatorPohLiveInitResponse(ok=True, enqueued=True, due_height=height + 1)
 
 
-class OperatorPohTier3FinalizeRequest(BaseModel):
+class OperatorPohLiveFinalizeRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
 
 
-class OperatorPohTier3FinalizeResponse(BaseModel):
+class OperatorPohLiveFinalizeResponse(BaseModel):
     ok: bool
     enqueued: bool
     due_height: int
 
 
 @router.post(
-    "/poh/operator/tier3/finalize",
-    response_model=OperatorPohTier3FinalizeResponse,
-    name="operator_poh_tier3_finalize",
+    "/poh/operator/live/finalize",
+    response_model=OperatorPohLiveFinalizeResponse,
+    name="operator_poh_live_finalize",
 )
-def operator_poh_tier3_finalize(
-    req: OperatorPohTier3FinalizeRequest, request: Request
-) -> OperatorPohTier3FinalizeResponse:
+def operator_poh_live_finalize(
+    req: OperatorPohLiveFinalizeRequest, request: Request
+) -> OperatorPohLiveFinalizeResponse:
     _require_operator_poh_enabled()
     _require_operator_token(request)
 
@@ -1557,7 +1565,7 @@ def operator_poh_tier3_finalize(
 
     enqueue_system_tx(
         st,
-        tx_type="POH_TIER3_FINALIZE",
+        tx_type="POH_LIVE_FINALIZE",
         payload={"case_id": case_id, "ts_ms": 0},
         due_height=height + 1,
         signer="SYSTEM",
@@ -1566,7 +1574,7 @@ def operator_poh_tier3_finalize(
         phase="post",
     )
 
-    return OperatorPohTier3FinalizeResponse(ok=True, enqueued=True, due_height=height + 1)
+    return OperatorPohLiveFinalizeResponse(ok=True, enqueued=True, due_height=height + 1)
 
 
 # ---------------------------------------------------------------------------
@@ -1591,7 +1599,7 @@ class PohTier2RequestSkeletonRequest(BaseModel):
     # User may supply either a video commitment (sha256) or an uploaded CID.
     video_commitment: str | None = Field(default=None, max_length=128)
     video_cid: str | None = Field(default=None, max_length=256)
-    # Optional: request Tier3 directly via Tier2 request path
+    # Optional compatibility: legacy target_tier=2 is rejected in favor of the live request path.
     target_tier: int | None = Field(default=None, ge=2, le=3)
 
 
@@ -1610,9 +1618,10 @@ class PohTier2ReviewSkeletonRequest(BaseModel):
 def poh_tier2_tx_request(
     req: PohTier2RequestSkeletonRequest, request: Request
 ) -> TxSkeletonResponseTier2:
-    """Return a tx skeleton to request Tier-2 (or Tier-3 via target_tier=3).
+    """Return a tx skeleton for the legacy Tier-2 async escalation request.
 
-    Client must sign and submit via /v1/tx/submit.
+    Client must sign and submit via /v1/tx/submit. target_tier=2 is legacy
+    compatibility and should move to the Live Verification request endpoint.
     """
 
     acct = str(req.account_id or "").strip()
@@ -1622,9 +1631,9 @@ def poh_tier2_tx_request(
     vc = (req.video_commitment or "").strip()
     cid = (req.video_cid or "").strip()
 
-    # For Tier3 requests, you may not have video evidence at the time of opening the case.
-    # We allow it to be absent when target_tier==3. The canonical tx schema requires
-    # target_tier, so Tier-2 request skeletons must default it explicitly to 2.
+    # Legacy target_tier=2 requests may not have video evidence at case open.
+    # The apply path rejects this form and points clients to POH_LIVE_REQUEST_OPEN,
+    # which is now treated as the Live Verification compatibility tx.
     target_tier = int(req.target_tier) if req.target_tier is not None else 2
 
     if target_tier == 2 and not vc and not cid:
@@ -1719,7 +1728,7 @@ def poh_tier2_tx_review(
     )
 
 
-# PoH Tier3: Tx skeleton helpers (client signs + submits via /v1/tx/submit)
+# PoH Live: Tx skeleton helpers (client signs + submits via /v1/tx/submit)
 # ---------------------------------------------------------------------------
 
 
@@ -1735,7 +1744,7 @@ class TxSkeletonResponse(BaseModel):
     tx: TxSkeleton
 
 
-class PohTier3RequestSkeletonRequest(BaseModel):
+class PohLiveRequestSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
     session_commitment: str | None = Field(default=None, max_length=128)
     room_commitment: str | None = Field(default=None, max_length=128)
@@ -1743,23 +1752,23 @@ class PohTier3RequestSkeletonRequest(BaseModel):
     device_pairing_commitment: str | None = Field(default=None, max_length=128)
 
 
-class PohTier3JurorCaseSkeletonRequest(BaseModel):
+class PohLiveJurorCaseSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
 
 
-class PohTier3AttendanceSkeletonRequest(BaseModel):
+class PohLiveAttendanceSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     juror_id: str = Field(..., min_length=1)
     attended: bool = Field(...)
 
 
-class PohTier3VerdictSkeletonRequest(BaseModel):
+class PohLiveVerdictSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
 
 
 def _case_session_commitment(st: Json, case_id: str) -> str:
-    cases = _tier3_cases_from_snapshot(st)
+    cases = _live_cases_from_snapshot(st)
     raw = cases.get(case_id)
     if not isinstance(raw, dict):
         return ""
@@ -1767,12 +1776,12 @@ def _case_session_commitment(st: Json, case_id: str) -> str:
 
 
 @router.post(
-    "/poh/tier3/tx/request", response_model=TxSkeletonResponse, name="poh_tier3_tx_request"
+    "/poh/live/tx/request", response_model=TxSkeletonResponse, name="poh_live_tx_request"
 )
-def poh_tier3_tx_request(
-    req: PohTier3RequestSkeletonRequest, request: Request
+def poh_live_tx_request(
+    req: PohLiveRequestSkeletonRequest, request: Request
 ) -> TxSkeletonResponse:
-    """Return a tx skeleton to request Tier-3.
+    """Return a tx skeleton to request Live Verification.
 
     IMPORTANT:
     - This endpoint does NOT sign and does NOT submit the tx.
@@ -1798,15 +1807,15 @@ def poh_tier3_tx_request(
             missing.append(key)
     if missing:
         raise ApiError.bad_request(
-            "missing_tier3_session_commitment",
-            "Tier-3 request requires session_commitment, room_commitment, and prompt_commitment",
+            "missing_live_session_commitment",
+            "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
             {"missing": missing},
         )
 
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER3_REQUEST_OPEN",
+            tx_type="POH_LIVE_REQUEST_OPEN",
             signer_hint=acct,
             parent=None,
             payload=payload,
@@ -1815,12 +1824,12 @@ def poh_tier3_tx_request(
 
 
 @router.post(
-    "/poh/tier3/tx/juror-accept",
+    "/poh/live/tx/juror-accept",
     response_model=TxSkeletonResponse,
-    name="poh_tier3_tx_juror_accept",
+    name="poh_live_tx_juror_accept",
 )
-def poh_tier3_tx_juror_accept(
-    req: PohTier3JurorCaseSkeletonRequest, request: Request
+def poh_live_tx_juror_accept(
+    req: PohLiveJurorCaseSkeletonRequest, request: Request
 ) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     if not cid:
@@ -1830,7 +1839,7 @@ def poh_tier3_tx_juror_accept(
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER3_JUROR_ACCEPT",
+            tx_type="POH_LIVE_JUROR_ACCEPT",
             signer_hint="<JUROR_ACCOUNT_ID>",
             parent=None,
             payload={"case_id": cid},
@@ -1839,12 +1848,12 @@ def poh_tier3_tx_juror_accept(
 
 
 @router.post(
-    "/poh/tier3/tx/juror-decline",
+    "/poh/live/tx/juror-decline",
     response_model=TxSkeletonResponse,
-    name="poh_tier3_tx_juror_decline",
+    name="poh_live_tx_juror_decline",
 )
-def poh_tier3_tx_juror_decline(
-    req: PohTier3JurorCaseSkeletonRequest, request: Request
+def poh_live_tx_juror_decline(
+    req: PohLiveJurorCaseSkeletonRequest, request: Request
 ) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     if not cid:
@@ -1853,7 +1862,7 @@ def poh_tier3_tx_juror_decline(
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER3_JUROR_DECLINE",
+            tx_type="POH_LIVE_JUROR_DECLINE",
             signer_hint="<JUROR_ACCOUNT_ID>",
             parent=None,
             payload={"case_id": cid},
@@ -1862,10 +1871,10 @@ def poh_tier3_tx_juror_decline(
 
 
 @router.post(
-    "/poh/tier3/tx/attendance", response_model=TxSkeletonResponse, name="poh_tier3_tx_attendance"
+    "/poh/live/tx/attendance", response_model=TxSkeletonResponse, name="poh_live_tx_attendance"
 )
-def poh_tier3_tx_attendance(
-    req: PohTier3AttendanceSkeletonRequest, request: Request
+def poh_live_tx_attendance(
+    req: PohLiveAttendanceSkeletonRequest, request: Request
 ) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     juror_id = str(req.juror_id or "").strip()
@@ -1880,7 +1889,7 @@ def poh_tier3_tx_attendance(
         # If INIT hasn't run yet, attendance marks should not be accepted anyway.
         raise ApiError.bad_request(
             "session_not_ready",
-            "Tier-3 session not initialized yet (missing session_commitment)",
+            "Live session not initialized yet (missing session_commitment)",
             {"case_id": cid},
         )
 
@@ -1895,7 +1904,7 @@ def poh_tier3_tx_attendance(
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER3_ATTENDANCE_MARK",
+            tx_type="POH_LIVE_ATTENDANCE_MARK",
             signer_hint=juror_id,
             parent=None,
             payload=payload,
@@ -1904,10 +1913,10 @@ def poh_tier3_tx_attendance(
 
 
 @router.post(
-    "/poh/tier3/tx/verdict", response_model=TxSkeletonResponse, name="poh_tier3_tx_verdict"
+    "/poh/live/tx/verdict", response_model=TxSkeletonResponse, name="poh_live_tx_verdict"
 )
-def poh_tier3_tx_verdict(
-    req: PohTier3VerdictSkeletonRequest, request: Request
+def poh_live_tx_verdict(
+    req: PohLiveVerdictSkeletonRequest, request: Request
 ) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     verdict = str(req.verdict or "").strip().lower()
@@ -1923,7 +1932,7 @@ def poh_tier3_tx_verdict(
     if not sc:
         raise ApiError.bad_request(
             "session_not_ready",
-            "Tier-3 session not initialized yet (missing session_commitment)",
+            "Live session not initialized yet (missing session_commitment)",
             {"case_id": cid},
         )
 
@@ -1937,7 +1946,7 @@ def poh_tier3_tx_verdict(
     return TxSkeletonResponse(
         ok=True,
         tx=TxSkeleton(
-            tx_type="POH_TIER3_VERDICT_SUBMIT",
+            tx_type="POH_LIVE_VERDICT_SUBMIT",
             signer_hint="<INTERACTING_JUROR_ACCOUNT_ID>",
             parent=None,
             payload=payload,

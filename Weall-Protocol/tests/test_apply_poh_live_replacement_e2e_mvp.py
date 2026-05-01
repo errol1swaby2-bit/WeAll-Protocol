@@ -1,4 +1,4 @@
-# tests/test_apply_poh_tier3_replacement_e2e_mvp.py
+# tests/test_apply_poh_live_replacement_e2e_mvp.py
 from __future__ import annotations
 
 from weall.runtime.domain_apply import apply_tx
@@ -42,11 +42,11 @@ def _mk_state() -> dict:
             },
         },
     }
-    # 12 Tier-3 jurors so we can replace one.
+    # 12 Live jurors so we can replace one.
     for i in range(1, 13):
         st["accounts"][f"j{i}"] = {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation": 0.9,
@@ -54,14 +54,14 @@ def _mk_state() -> dict:
     return st
 
 
-def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
+def test_live_decline_then_replace_then_finalize_awards_live() -> None:
     st = _mk_state()
 
-    # Open request for Tier3 (user tx)
+    # Open request for Live (user tx)
     m0 = apply_tx(
         st,
         _env(
-            "POH_TIER3_REQUEST_OPEN",
+            "POH_LIVE_REQUEST_OPEN",
             {
                 "account_id": "alice",
                 "session_commitment": "sc:1",
@@ -72,56 +72,56 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
             nonce=1,
         ),
     )
-    assert m0 and m0["applied"] == "POH_TIER3_REQUEST_OPEN"
+    assert m0 and m0["applied"] == "POH_LIVE_REQUEST_OPEN"
     case_id = str(m0["case_id"])
 
     # System init (receipt)
     m1 = apply_tx(
         st,
         _env(
-            "POH_TIER3_INIT",
+            "POH_LIVE_SESSION_INIT",
             {"case_id": case_id, "account_id": "alice", "session_commitment": "sc:1", "ts_ms": 1},
             signer="SYSTEM",
             nonce=2,
             system=True,
-            parent="POH_TIER3_REQUEST_OPEN",
+            parent="POH_LIVE_REQUEST_OPEN",
         ),
     )
-    assert m1 and m1["applied"] == "POH_TIER3_INIT"
+    assert m1 and m1["applied"] == "POH_LIVE_SESSION_INIT"
 
     # Assign 10 jurors j1..j10 (system receipt)
     m2 = apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_ASSIGN",
+            "POH_LIVE_JUROR_ASSIGN",
             {"case_id": case_id, "jurors": [f"j{i}" for i in range(1, 11)]},
             signer="SYSTEM",
             nonce=3,
             system=True,
-            parent="POH_TIER3_INIT",
+            parent="POH_LIVE_SESSION_INIT",
         ),
     )
-    assert m2 and m2["applied"] == "POH_TIER3_JUROR_ASSIGN"
+    assert m2 and m2["applied"] == "POH_LIVE_JUROR_ASSIGN"
 
     # j1 (interacting) declines
     m3 = apply_tx(
-        st, _env("POH_TIER3_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=4)
+        st, _env("POH_LIVE_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=4)
     )
-    assert m3 and m3["applied"] == "POH_TIER3_JUROR_DECLINE"
+    assert m3 and m3["applied"] == "POH_LIVE_JUROR_DECLINE"
 
     # System replaces j1 with j11 (preserve role interacting)
     m4 = apply_tx(
         st,
         _env(
-            "POH_TIER3_JUROR_REPLACE",
+            "POH_LIVE_JUROR_REPLACE",
             {"case_id": case_id, "old_juror_id": "j1", "new_juror_id": "j11"},
             signer="SYSTEM",
             nonce=5,
             system=True,
-            parent="POH_TIER3_JUROR_DECLINE",
+            parent="POH_LIVE_JUROR_DECLINE",
         ),
     )
-    assert m4 and m4["applied"] == "POH_TIER3_JUROR_REPLACE"
+    assert m4 and m4["applied"] == "POH_LIVE_JUROR_REPLACE"
 
     # All current jurors accept.
     # Interacting: j2, j3, j11
@@ -131,10 +131,10 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
         m = apply_tx(
             st,
             _env(
-                "POH_TIER3_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 20}, signer=jid, nonce=nonce
+                "POH_LIVE_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 20}, signer=jid, nonce=nonce
             ),
         )
-        assert m and m["applied"] == "POH_TIER3_JUROR_ACCEPT"
+        assert m and m["applied"] == "POH_LIVE_JUROR_ACCEPT"
         nonce += 1
 
     # Attendance:
@@ -144,7 +144,7 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
         m = apply_tx(
             st,
             _env(
-                "POH_TIER3_ATTENDANCE_MARK",
+                "POH_LIVE_ATTENDANCE_MARK",
                 {
                     "case_id": case_id,
                     "juror_id": jid,
@@ -156,7 +156,7 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
                 nonce=nonce,
             ),
         )
-        assert m and m["applied"] == "POH_TIER3_ATTENDANCE_MARK"
+        assert m and m["applied"] == "POH_LIVE_ATTENDANCE_MARK"
         nonce += 1
 
     # Interacting jurors submit verdicts (2-of-3 pass => pass)
@@ -164,39 +164,39 @@ def test_tier3_decline_then_replace_then_finalize_awards_tier3() -> None:
         m = apply_tx(
             st,
             _env(
-                "POH_TIER3_VERDICT_SUBMIT",
+                "POH_LIVE_VERDICT_SUBMIT",
                 {"case_id": case_id, "verdict": "pass", "session_commitment": "sc:1", "ts_ms": 40},
                 signer=jid,
                 nonce=nonce,
             ),
         )
-        assert m and m["applied"] == "POH_TIER3_VERDICT_SUBMIT"
+        assert m and m["applied"] == "POH_LIVE_VERDICT_SUBMIT"
         nonce += 1
 
     # System finalize (receipt)
     mfin = apply_tx(
         st,
         _env(
-            "POH_TIER3_FINALIZE",
+            "POH_LIVE_FINALIZE",
             {"case_id": case_id, "ts_ms": 50},
             signer="SYSTEM",
             nonce=nonce,
             system=True,
-            parent="POH_TIER3_VERDICT_SUBMIT",
+            parent="POH_LIVE_VERDICT_SUBMIT",
         ),
     )
-    assert mfin and mfin["applied"] == "POH_TIER3_FINALIZE"
+    assert mfin and mfin["applied"] == "POH_LIVE_FINALIZE"
     assert mfin["outcome"] == "pass"
-    assert int(mfin["tier_awarded"]) == 3
+    assert int(mfin["tier_awarded"]) == 2
     assert str(mfin.get("token_id") or "")
 
     # State assertions
-    assert int(st["accounts"]["alice"]["poh_tier"]) == 3
+    assert int(st["accounts"]["alice"]["poh_tier"]) == 2
 
-    case = st["poh"]["tier3_cases"][case_id]
+    case = st["poh"]["live_cases"][case_id]
     assert case["status"] == "awarded"
     assert case["outcome"] == "pass"
-    assert int(case["tier_awarded"]) == 3
+    assert int(case["tier_awarded"]) == 2
 
     # Replacement record was set
     assert case["jurors"]["j1"]["replaced"] is True

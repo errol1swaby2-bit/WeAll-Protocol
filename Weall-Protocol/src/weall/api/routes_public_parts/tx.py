@@ -30,14 +30,14 @@ Json = dict[str, Any]
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
     "BLOCK_ATTEST": ["/v1/consensus/attest/submit"],
     "POH_TIER2_REQUEST_OPEN": ["/v1/poh/tier2/tx/request", "/v1/tx/submit"],
-    "POH_TIER3_REQUEST_OPEN": ["/v1/poh/tier3/tx/request", "/v1/tx/submit"],
+    "POH_LIVE_REQUEST_OPEN": ["/v1/poh/live/tx/request", "/v1/tx/submit"],
     "POH_TIER2_JUROR_ACCEPT": ["/v1/poh/tier2/tx/juror-accept", "/v1/tx/submit"],
     "POH_TIER2_JUROR_DECLINE": ["/v1/poh/tier2/tx/juror-decline", "/v1/tx/submit"],
     "POH_TIER2_REVIEW_SUBMIT": ["/v1/poh/tier2/tx/review", "/v1/tx/submit"],
-    "POH_TIER3_JUROR_ACCEPT": ["/v1/poh/tier3/tx/juror-accept", "/v1/tx/submit"],
-    "POH_TIER3_JUROR_DECLINE": ["/v1/poh/tier3/tx/juror-decline", "/v1/tx/submit"],
-    "POH_TIER3_ATTENDANCE_MARK": ["/v1/poh/tier3/tx/attendance", "/v1/tx/submit"],
-    "POH_TIER3_VERDICT_SUBMIT": ["/v1/poh/tier3/tx/verdict", "/v1/tx/submit"],
+    "POH_LIVE_JUROR_ACCEPT": ["/v1/poh/live/tx/juror-accept", "/v1/tx/submit"],
+    "POH_LIVE_JUROR_DECLINE": ["/v1/poh/live/tx/juror-decline", "/v1/tx/submit"],
+    "POH_LIVE_ATTENDANCE_MARK": ["/v1/poh/live/tx/attendance", "/v1/tx/submit"],
+    "POH_LIVE_VERDICT_SUBMIT": ["/v1/poh/live/tx/verdict", "/v1/tx/submit"],
 }
 
 

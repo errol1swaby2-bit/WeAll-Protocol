@@ -20,7 +20,7 @@ def test_apply_time_canon_system_only_uses_stable_domain_reason() -> None:
 
     state = {"chain_id": "test", "height": 1, "accounts": {"alice": {"nonce": 0}}}
     env = TxEnvelope(
-        tx_type="POH_TIER3_JUROR_REPLACE",
+        tx_type="POH_LIVE_JUROR_REPLACE",
         signer="alice",
         nonce=1,
         payload={"case_id": "case-1", "old_juror_id": "j1", "new_juror_id": "j2"},

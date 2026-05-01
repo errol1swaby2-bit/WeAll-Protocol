@@ -109,7 +109,7 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
 
     corrupt_poh = {
         "tier2_cases": ["bad", {"unexpected": True}],
-        "tier3_cases": "bad",
+        "live_cases": "bad",
     }
     ex_a.state["poh"] = copy.deepcopy(corrupt_poh)
     ex_b.state["poh"] = copy.deepcopy(corrupt_poh)
@@ -136,5 +136,5 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     assert isinstance(blk_b, dict)
     assert isinstance(st_a, dict)
     assert isinstance(st_b, dict)
-    assert st_a.get("poh") == st_b.get("poh") == {"tier2_cases": {}, "tier3_cases": {}}
+    assert st_a.get("poh") == st_b.get("poh") == {"tier2_cases": {}, "live_cases": {}}
     assert blk_a == blk_b

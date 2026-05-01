@@ -80,10 +80,10 @@ def test_poh_tier2_finalize_does_not_auto_create_missing_account() -> None:
     assert excinfo.value.reason == "account_not_registered"
 
 
-def test_poh_tier3_finalize_does_not_auto_create_missing_account() -> None:
+def test_poh_live_finalize_does_not_auto_create_missing_account() -> None:
     state = _state()
     state["poh"] = {
-        "tier3_cases": {
+        "live_cases": {
             "case-3": {
                 "case_id": "case-3",
                 "account_id": "alice",
@@ -102,7 +102,7 @@ def test_poh_tier3_finalize_does_not_auto_create_missing_account() -> None:
         apply_tx(
             state,
             _tx(
-                "POH_TIER3_FINALIZE",
+                "POH_LIVE_FINALIZE",
                 signer="SYSTEM",
                 system=True,
                 nonce=0,

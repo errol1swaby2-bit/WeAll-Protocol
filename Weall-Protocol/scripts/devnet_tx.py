@@ -41,6 +41,203 @@ def _now_ms() -> int:
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
+def _normalize_account(value: str | None, *, fallback_pubkey: str = "", existing: str = "") -> str:
+    explicit = str(value or "").strip()
+    if explicit:
+        return explicit
+    old = str(existing or "").strip()
+    if old:
+        return old
+    pub = str(fallback_pubkey or "").strip()
+    suffix = pub[:12] if pub else _sha256_hex(str(_now_ms()).encode("utf-8"))[:12]
+    return f"@devnet-{suffix}"
+
+
+def _seed_bytes_from_private_hex(private_key_hex: str) -> bytes:
+    raw = bytes.fromhex(str(private_key_hex or "").strip())
+    if len(raw) == 64:
+        raw = raw[:32]
+    if len(raw) != 32:
+        raise ValueError("private_key_hex must be a 32-byte seed or 64-byte expanded key")
+    return raw
+
+
+def _derive_public_key_hex(private_key_hex: str) -> str:
+    return SigningKey(_seed_bytes_from_private_hex(private_key_hex)).verify_key.encode().hex()
+
+
+def _new_keypair() -> tuple[str, str]:
+    sk = SigningKey.generate()
+    return sk.encode().hex(), sk.verify_key.encode().hex()
+
+
+def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> tuple[str, str, str, Json]:
+    """Load or create controlled-devnet Ed25519 key material.
+
+    The helper is intentionally file-backed so shell harnesses can share one
+    account/key across create-account, PoH email attestation, Tier-2/Live, and
+    tick commands without relying on seeded-demo mutation routes.
+    """
+
+    keyfile = Path(keyfile).expanduser()
+    keyfile.parent.mkdir(parents=True, exist_ok=True)
+
+    data: Json = {}
+    if keyfile.exists() and not fresh:
+        try:
+            loaded = json.loads(keyfile.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data = loaded
+        except Exception as exc:
+            raise SystemExit(f"failed to read keyfile {keyfile}: {exc}") from exc
+
+    priv = str(data.get("private_key_hex") or "").strip()
+    pub = str(data.get("public_key_hex") or "").strip()
+
+    if fresh or not priv:
+        priv, pub = _new_keypair()
+    else:
+        try:
+            derived_pub = _derive_public_key_hex(priv)
+        except Exception as exc:
+            raise SystemExit(f"invalid private_key_hex in {keyfile}: {exc}") from exc
+        if not pub:
+            pub = derived_pub
+        elif pub != derived_pub:
+            raise SystemExit(f"public_key_hex does not match private_key_hex in {keyfile}")
+
+    acct = _normalize_account(account, fallback_pubkey=pub, existing=str(data.get("account") or ""))
+    out: Json = dict(data)
+    out.update(
+        {
+            "account": acct,
+            "private_key_hex": priv,
+            "public_key_hex": pub,
+            "key_type": "ed25519",
+        }
+    )
+    if "created_at_ms" not in out:
+        out["created_at_ms"] = _now_ms()
+    out["updated_at_ms"] = _now_ms()
+    keyfile.write_text(_json_dumps(out) + "\n", encoding="utf-8")
+    try:
+        keyfile.chmod(0o600)
+    except OSError:
+        pass
+    return acct, priv, pub, out
+
+
+def _load_json_arg(value: str) -> Json:
+    raw = str(value or "").strip()
+    if not raw:
+        raise SystemExit("missing JSON object")
+    if raw.startswith("@"):
+        path = Path(raw[1:]).expanduser()
+        raw = path.read_text(encoding="utf-8")
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"invalid JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise SystemExit("JSON payload must be an object")
+    return parsed
+
+
+def _http_json(method: str, api: str, path: str, body: Json | None = None, *, timeout: float = 20.0) -> Json:
+    base = str(api or "").strip().rstrip("/")
+    if not base:
+        raise SystemExit("missing API base URL")
+    suffix = str(path or "").strip()
+    if not suffix.startswith("/"):
+        suffix = "/" + suffix
+    url = base + suffix
+
+    data = None
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        data = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    req = urllib.request.Request(url, data=data, method=str(method or "GET").upper(), headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - controlled local/devnet helper
+            raw = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"HTTP {exc.code} {method.upper()} {url}: {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise SystemExit(f"request failed {method.upper()} {url}: {exc}") from exc
+
+    if not raw.strip():
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"non-JSON response from {url}: {raw[:500]}") from exc
+    if not isinstance(parsed, dict):
+        raise SystemExit(f"expected JSON object from {url}: {parsed!r}")
+    return parsed
+
+
+def _chain_id(api: str) -> str:
+    ident = _http_json("GET", api, "/v1/chain/identity")
+    chain_id = str(ident.get("chain_id") or "").strip()
+    if not chain_id:
+        raise SystemExit(f"chain identity response missing chain_id: {_json_dumps(ident)}")
+    return chain_id
+
+
+def _account_state(api: str, account: str) -> Json:
+    quoted = urllib.parse.quote(str(account or "").strip(), safe="")
+    out = _http_json("GET", api, f"/v1/accounts/{quoted}")
+    state = out.get("state") if isinstance(out.get("state"), dict) else None
+    return state if isinstance(state, dict) else {}
+
+
+def _next_nonce(api: str, account: str) -> int:
+    state = _account_state(api, account)
+    try:
+        return int(state.get("nonce") or 0) + 1
+    except Exception:
+        return 1
+
+
+def _sign_tx(
+    *,
+    chain_id: str,
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: Json,
+    parent: str | None,
+    privkey: str,
+) -> Json:
+    tx: Json = {
+        "chain_id": str(chain_id or "").strip(),
+        "tx_type": str(tx_type or "").strip().upper(),
+        "signer": str(signer or "").strip(),
+        "nonce": int(nonce),
+        "payload": payload if isinstance(payload, dict) else {},
+    }
+    if parent is not None:
+        tx["parent"] = str(parent)
+    return sign_tx_envelope_dict(tx=tx, privkey=privkey, encoding="hex")
+
+
+def _wait_tx(api: str, tx_id: str, *, timeout_s: float, poll_s: float) -> Json:
+    deadline = time.time() + max(0.0, float(timeout_s))
+    last: Json = {"ok": False, "tx_id": str(tx_id or ""), "status": "unknown"}
+    while True:
+        last = _http_json("GET", api, f"/v1/tx/status/{urllib.parse.quote(str(tx_id or ''), safe='')}")
+        status = str(last.get("status") or "").strip().lower()
+        if status == "confirmed":
+            return last
+        if time.time() >= deadline:
+            out = dict(last)
+            out["timed_out"] = True
+            return out
+        time.sleep(max(0.05, float(poll_s)))
+
 
 def cmd_ensure_keyfile(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
@@ -243,31 +440,31 @@ def _tier2_case_id(*, account: str, nonce: int) -> str:
     return f"poh2:{str(account or '').strip()}:{max(0, int(nonce))}"
 
 
-def _tier3_case(api: str, case_id: str) -> Json:
-    return _http_json("GET", api, f"/v1/poh/tier3/case/{urllib.parse.quote(case_id, safe='')}")
+def _live_case(api: str, case_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/live/case/{urllib.parse.quote(case_id, safe='')}")
 
 
-def _tier3_case_payload(api: str, case_id: str) -> Json:
-    out = _tier3_case(api, case_id)
+def _live_case_payload(api: str, case_id: str) -> Json:
+    out = _live_case(api, case_id)
     case = out.get("case") if isinstance(out, dict) else None
     return case if isinstance(case, dict) else {}
 
 
-def _tier3_session(api: str, session_id: str) -> Json:
-    return _http_json("GET", api, f"/v1/poh/tier3/session/{urllib.parse.quote(session_id, safe='')}")
+def _live_session(api: str, session_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/live/session/{urllib.parse.quote(session_id, safe='')}")
 
 
-def _tier3_session_payload(api: str, session_id: str) -> Json:
-    out = _tier3_session(api, session_id)
+def _live_session_payload(api: str, session_id: str) -> Json:
+    out = _live_session(api, session_id)
     session = out.get("session") if isinstance(out, dict) else None
     return session if isinstance(session, dict) else {}
 
 
-def _tier3_session_participants(api: str, session_id: str) -> Json:
-    return _http_json("GET", api, f"/v1/poh/tier3/session/{urllib.parse.quote(session_id, safe='')}/participants")
+def _live_session_participants(api: str, session_id: str) -> Json:
+    return _http_json("GET", api, f"/v1/poh/live/session/{urllib.parse.quote(session_id, safe='')}/participants")
 
 
-def _tier3_case_id(*, account: str, nonce: int) -> str:
+def _live_case_id(*, account: str, nonce: int) -> str:
     return f"poh3:{str(account or '').strip()}:{max(0, int(nonce))}"
 
 
@@ -382,7 +579,7 @@ def _sign_and_submit_skeleton_tx(
     return out
 
 
-def cmd_tier3_request(args: argparse.Namespace) -> int:
+def cmd_live_request(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
     account, priv, _pub, keydata = _key_material(keyfile, account=args.account)
     chain_id = _chain_id(args.api)
@@ -399,12 +596,12 @@ def cmd_tier3_request(args: argparse.Namespace) -> int:
         if v:
             body[key] = v
 
-    skeleton = _http_json("POST", args.api, "/v1/poh/tier3/tx/request", body)
+    skeleton = _http_json("POST", args.api, "/v1/poh/live/tx/request", body)
     tx_skel = skeleton.get("tx") if isinstance(skeleton, dict) else None
     if not isinstance(tx_skel, dict):
-        raise SystemExit(f"Unexpected tier3 request skeleton response: {_json_dumps(skeleton)}")
+        raise SystemExit(f"Unexpected live request skeleton response: {_json_dumps(skeleton)}")
     payload = tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else body
-    tx_type = str(tx_skel.get("tx_type") or "POH_TIER3_REQUEST_OPEN").strip() or "POH_TIER3_REQUEST_OPEN"
+    tx_type = str(tx_skel.get("tx_type") or "POH_LIVE_REQUEST_OPEN").strip() or "POH_LIVE_REQUEST_OPEN"
 
     tx = _sign_tx(
         chain_id=chain_id,
@@ -417,7 +614,7 @@ def cmd_tier3_request(args: argparse.Namespace) -> int:
     )
     submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
     tx_id = str(submitted.get("tx_id") or "").strip()
-    case_id = _tier3_case_id(account=account, nonce=nonce)
+    case_id = _live_case_id(account=account, nonce=nonce)
     result: Json = {
         "ok": bool(submitted.get("ok", False)),
         "api": args.api,
@@ -430,10 +627,10 @@ def cmd_tier3_request(args: argparse.Namespace) -> int:
     }
     if args.wait and tx_id:
         result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
-        result["case"] = _tier3_case_payload(args.api, case_id)
+        result["case"] = _live_case_payload(args.api, case_id)
         result["account_state"] = _account_state(args.api, account)
-    keydata["last_poh_tier3_request_tx_id"] = tx_id
-    keydata["last_poh_tier3_case_id"] = case_id
+    keydata["last_poh_live_request_tx_id"] = tx_id
+    keydata["last_poh_live_case_id"] = case_id
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
@@ -499,8 +696,8 @@ def cmd_tier2_review(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_tier3_review(args: argparse.Namespace) -> int:
-    """Accept, attend, and optionally verdict a Tier-3 live verification case.
+def cmd_live_review(args: argparse.Namespace) -> int:
+    """Accept, attend, and optionally verdict a Live live verification case.
 
     This is a controlled-devnet harness over normal public tx skeleton routes.
     It signs each reviewer action with the juror key and submits through
@@ -510,7 +707,7 @@ def cmd_tier3_review(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
     juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
     chain_id = _chain_id(args.api)
-    case_id = str(args.case_id or "").strip() or str(keydata.get("last_poh_tier3_case_id") or "").strip()
+    case_id = str(args.case_id or "").strip() or str(keydata.get("last_poh_live_case_id") or "").strip()
     if not case_id:
         raise SystemExit("missing --case-id")
 
@@ -533,9 +730,9 @@ def cmd_tier3_review(args: argparse.Namespace) -> int:
             keyfile=keyfile,
             account=juror,
             priv=priv,
-            route="/v1/poh/tier3/tx/juror-accept",
+            route="/v1/poh/live/tx/juror-accept",
             request_body={"case_id": case_id},
-            fallback_tx_type="POH_TIER3_JUROR_ACCEPT",
+            fallback_tx_type="POH_LIVE_JUROR_ACCEPT",
             fallback_payload={"case_id": case_id},
             parent=args.parent,
             timeout=args.timeout,
@@ -554,9 +751,9 @@ def cmd_tier3_review(args: argparse.Namespace) -> int:
             keyfile=keyfile,
             account=juror,
             priv=priv,
-            route="/v1/poh/tier3/tx/attendance",
+            route="/v1/poh/live/tx/attendance",
             request_body={"case_id": case_id, "juror_id": juror, "attended": True},
-            fallback_tx_type="POH_TIER3_ATTENDANCE_MARK",
+            fallback_tx_type="POH_LIVE_ATTENDANCE_MARK",
             fallback_payload={"case_id": case_id, "juror_id": juror, "attended": True, "ts_ms": 0},
             parent=args.parent,
             timeout=args.timeout,
@@ -575,9 +772,9 @@ def cmd_tier3_review(args: argparse.Namespace) -> int:
             keyfile=keyfile,
             account=juror,
             priv=priv,
-            route="/v1/poh/tier3/tx/verdict",
+            route="/v1/poh/live/tx/verdict",
             request_body={"case_id": case_id, "verdict": verdict},
-            fallback_tx_type="POH_TIER3_VERDICT_SUBMIT",
+            fallback_tx_type="POH_LIVE_VERDICT_SUBMIT",
             fallback_payload={"case_id": case_id, "verdict": verdict, "ts_ms": 0},
             parent=args.parent,
             timeout=args.timeout,
@@ -589,37 +786,37 @@ def cmd_tier3_review(args: argparse.Namespace) -> int:
             print(_json_dumps(result))
             return 2
 
-    case_payload = _tier3_case_payload(args.api, case_id)
+    case_payload = _live_case_payload(args.api, case_id)
     result["case"] = case_payload
     session_id = str(case_payload.get("session_id") or "").strip() or f"session:{case_id}"
     try:
-        result["session"] = _tier3_session_payload(args.api, session_id)
+        result["session"] = _live_session_payload(args.api, session_id)
     except SystemExit:
         result["session"] = {}
     try:
-        result["participants"] = _tier3_session_participants(args.api, session_id).get("participants", [])
+        result["participants"] = _live_session_participants(args.api, session_id).get("participants", [])
     except SystemExit:
         result["participants"] = []
 
-    keydata["last_poh_tier3_review_tx_id"] = str(((result.get("verdict") or {}) if isinstance(result.get("verdict"), dict) else {}).get("tx_id") or "")
-    keydata["last_poh_tier3_case_id"] = case_id
+    keydata["last_poh_live_review_tx_id"] = str(((result.get("verdict") or {}) if isinstance(result.get("verdict"), dict) else {}).get("tx_id") or "")
+    keydata["last_poh_live_case_id"] = case_id
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
 
 
-def cmd_tier3_session(args: argparse.Namespace) -> int:
-    print(_json_dumps(_tier3_session(args.api, args.session_id)))
+def cmd_live_session(args: argparse.Namespace) -> int:
+    print(_json_dumps(_live_session(args.api, args.session_id)))
     return 0
 
 
-def cmd_tier3_participants(args: argparse.Namespace) -> int:
-    print(_json_dumps(_tier3_session_participants(args.api, args.session_id)))
+def cmd_live_participants(args: argparse.Namespace) -> int:
+    print(_json_dumps(_live_session_participants(args.api, args.session_id)))
     return 0
 
 
-def cmd_bootstrap_tier3(args: argparse.Namespace) -> int:
-    """Submit a bounded open-bootstrap POH_BOOTSTRAP_TIER3_GRANT tx.
+def cmd_bootstrap_live(args: argparse.Namespace) -> int:
+    """Submit a bounded open-bootstrap POH_BOOTSTRAP_TIER2_GRANT tx.
 
     This command is intended for controlled devnet reviewer preparation only.
     It uses the normal public tx submission path and succeeds only while the
@@ -633,7 +830,7 @@ def cmd_bootstrap_tier3(args: argparse.Namespace) -> int:
     payload: Json = {"account_id": account}
     tx = _sign_tx(
         chain_id=chain_id,
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=account,
         nonce=nonce,
         payload=payload,
@@ -648,13 +845,13 @@ def cmd_bootstrap_tier3(args: argparse.Namespace) -> int:
         "chain_id": chain_id,
         "account": account,
         "tx_id": tx_id,
-        "tx_type": "POH_BOOTSTRAP_TIER3_GRANT",
+        "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
         "submit": submitted,
     }
     if args.wait and tx_id:
         result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
         result["account_state"] = _account_state(args.api, account)
-    keydata["last_poh_bootstrap_tier3_tx_id"] = tx_id
+    keydata["last_poh_bootstrap_live_tx_id"] = tx_id
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
@@ -791,7 +988,7 @@ def build_parser() -> argparse.ArgumentParser:
     c2.add_argument("case_id")
     c2.set_defaults(func=cmd_tier2_case)
 
-    b3 = sub.add_parser("bootstrap-tier3", help="Submit bounded devnet POH_BOOTSTRAP_TIER3_GRANT")
+    b3 = sub.add_parser("bootstrap-live", help="Submit bounded devnet POH_BOOTSTRAP_TIER2_GRANT")
     b3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     b3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
     b3.add_argument("--nonce", type=int, default=None)
@@ -800,40 +997,40 @@ def build_parser() -> argparse.ArgumentParser:
     b3.add_argument("--no-wait", dest="wait", action="store_false")
     b3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
     b3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
-    b3.set_defaults(func=cmd_bootstrap_tier3)
+    b3.set_defaults(func=cmd_bootstrap_live)
 
-    t3 = sub.add_parser("tier3-request", help="Submit a dedicated POH_TIER3_REQUEST_OPEN tx")
+    t3 = sub.add_parser("live-request", help="Submit a dedicated POH_LIVE_REQUEST_OPEN tx")
     t3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     t3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
-    t3.add_argument("--session-commitment", default=os.environ.get("WEALL_POH_TIER3_SESSION_COMMITMENT", ""))
-    t3.add_argument("--room-commitment", default=os.environ.get("WEALL_POH_TIER3_ROOM_COMMITMENT", ""))
-    t3.add_argument("--prompt-commitment", default=os.environ.get("WEALL_POH_TIER3_PROMPT_COMMITMENT", ""))
-    t3.add_argument("--device-pairing-commitment", default=os.environ.get("WEALL_POH_TIER3_DEVICE_PAIRING_COMMITMENT", ""))
+    t3.add_argument("--session-commitment", default=os.environ.get("WEALL_POH_LIVE_SESSION_COMMITMENT", ""))
+    t3.add_argument("--room-commitment", default=os.environ.get("WEALL_POH_LIVE_ROOM_COMMITMENT", ""))
+    t3.add_argument("--prompt-commitment", default=os.environ.get("WEALL_POH_LIVE_PROMPT_COMMITMENT", ""))
+    t3.add_argument("--device-pairing-commitment", default=os.environ.get("WEALL_POH_LIVE_DEVICE_PAIRING_COMMITMENT", ""))
     t3.add_argument("--nonce", type=int, default=None)
     t3.add_argument("--parent", default=None)
     t3.add_argument("--wait", action="store_true", default=True)
     t3.add_argument("--no-wait", dest="wait", action="store_false")
     t3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
     t3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
-    t3.set_defaults(func=cmd_tier3_request)
+    t3.set_defaults(func=cmd_live_request)
 
-    c3 = sub.add_parser("tier3-case", help="Read a Tier-3 PoH case")
+    c3 = sub.add_parser("live-case", help="Read a Live PoH case")
     c3.add_argument("case_id")
-    c3.set_defaults(func=lambda args: (print(_json_dumps(_tier3_case(args.api, args.case_id))) or 0))
+    c3.set_defaults(func=lambda args: (print(_json_dumps(_live_case(args.api, args.case_id))) or 0))
 
-    s3 = sub.add_parser("tier3-session", help="Read a Tier-3 live session")
+    s3 = sub.add_parser("live-session", help="Read a Live live session")
     s3.add_argument("session_id")
-    s3.set_defaults(func=cmd_tier3_session)
+    s3.set_defaults(func=cmd_live_session)
 
-    p3 = sub.add_parser("tier3-participants", help="Read Tier-3 live session participants")
+    p3 = sub.add_parser("live-participants", help="Read Live live session participants")
     p3.add_argument("session_id")
-    p3.set_defaults(func=cmd_tier3_participants)
+    p3.set_defaults(func=cmd_live_participants)
 
-    r3 = sub.add_parser("tier3-review", help="Accept, attend, and optionally verdict a Tier-3 case")
-    r3.add_argument("--account", default=os.environ.get("WEALL_TIER3_JUROR_ACCOUNT", os.environ.get("WEALL_ACCOUNT", "")))
-    r3.add_argument("--keyfile", default=os.environ.get("WEALL_TIER3_JUROR_KEYFILE", os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "tier3-juror.json"))))
-    r3.add_argument("--case-id", default=os.environ.get("WEALL_TIER3_CASE_ID", ""))
-    r3.add_argument("--verdict", default=os.environ.get("WEALL_TIER3_VERDICT", "pass"))
+    r3 = sub.add_parser("live-review", help="Accept, attend, and optionally verdict a Live case")
+    r3.add_argument("--account", default=os.environ.get("WEALL_LIVE_JUROR_ACCOUNT", os.environ.get("WEALL_ACCOUNT", "")))
+    r3.add_argument("--keyfile", default=os.environ.get("WEALL_LIVE_JUROR_KEYFILE", os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "live-juror.json"))))
+    r3.add_argument("--case-id", default=os.environ.get("WEALL_LIVE_CASE_ID", ""))
+    r3.add_argument("--verdict", default=os.environ.get("WEALL_LIVE_VERDICT", "pass"))
     r3.add_argument("--accept", action="store_true", default=True)
     r3.add_argument("--no-accept", dest="accept", action="store_false")
     r3.add_argument("--attendance", action="store_true", default=True)
@@ -843,7 +1040,7 @@ def build_parser() -> argparse.ArgumentParser:
     r3.add_argument("--parent", default=None)
     r3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
     r3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
-    r3.set_defaults(func=cmd_tier3_review)
+    r3.set_defaults(func=cmd_live_review)
 
     tick = sub.add_parser("tick", help="Submit a harmless PROFILE_UPDATE to advance block/system queues")
     tick.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))

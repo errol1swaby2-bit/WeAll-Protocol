@@ -47,7 +47,7 @@ def _env(
     payload: dict | None = None,
 ) -> dict:
     return TxEnvelope(
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=signer,
         nonce=1,
         system=system,
@@ -82,7 +82,7 @@ def test_apply_open_mode_grants_and_records_metadata() -> None:
     state = _ledger(open_bootstrap=True, max_height=50)
     apply_tx(state, _env())
     acct = state["accounts"]["alice"]
-    assert acct["poh_tier"] == 3
+    assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "open"
     assert acct["poh_bootstrap_height"] == 10
     assert acct["poh_bootstrap_granted"] is True
@@ -102,7 +102,7 @@ def test_apply_allowlist_mode_grants_and_records_metadata() -> None:
         ),
     )
     acct = state["accounts"]["alice"]
-    assert acct["poh_tier"] == 3
+    assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "allowlist"
     assert acct["poh_bootstrap_height"] == 10
     assert acct["poh_bootstrap_granted"] is True

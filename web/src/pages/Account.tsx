@@ -159,7 +159,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
   const canPost = tier >= 2 && accountExists && !banned && !locked && reputation >= 0.75;
-  const canServe = tier >= 3 && accountExists && !banned && !locked;
+  const canServe = tier >= 2 && accountExists && !banned && !locked;
 
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
@@ -235,7 +235,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     try {
       if (!accountExists) throw new Error("register_the_account_first");
       if (signerBusy) throw new Error("signer_submission_busy");
-      if (tier < 3) throw new Error("tier3_required_for_regular_node_onboarding");
+      if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_local_keypair");
 
       const r = await tx.runTx({
@@ -523,8 +523,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <h2 className="cardTitle">Regular node onboarding</h2>
               </div>
               <div className="statusSummary">
-                <span className={`statusPill ${tier >= 3 ? "ok" : ""}`}>
-                  {tier >= 3 ? "Tier 3 reached" : `Tier ${tier}`}
+                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
+                  {tier >= 2 ? "Live Verification reached" : `Tier ${tier}`}
                 </span>
                 <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
                   {localPubkey ? "Local signer present" : "Missing local signer"}
@@ -536,7 +536,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <p className="heroText">
-              Tier 3 unlocks operator eligibility. To boot a regular node, this account
+              Live Verification unlocks operator eligibility. To boot a regular node, this account
               needs a live local signer, an on-chain node-device registration tied to that
               signer pubkey, and matching node config in the node software.
             </p>
@@ -573,9 +573,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>2. Tier 3 Proof of Humanity</span>
-                  <span className={`statusPill ${tier >= 3 ? "ok" : ""}`}>
-                    {tier >= 3 ? "Ready" : `Tier ${tier}`}
+                  <span>2. Live Verification Proof of Humanity</span>
+                  <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
+                    {tier >= 2 ? "Ready" : `Tier ${tier}`}
                   </span>
                 </div>
                 <div className="progressRow">

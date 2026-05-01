@@ -35,8 +35,8 @@ def _state() -> dict:
         "height": 7,
         "accounts": {
             "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0},
-            "bob": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0},
-            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 1},
+            "bob": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
+            "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
         },
     }
 
@@ -45,39 +45,39 @@ def _reason(exc: BaseException) -> str:
     return str(getattr(exc, "reason", ""))
 
 
-def test_tier3_dedicated_request_requires_tier2_subject() -> None:
+def test_live_dedicated_request_requires_tier1_subject() -> None:
     st = _state()
 
     with pytest.raises(Exception) as raised:
         apply_tx(
             st,
-            _env("POH_TIER3_REQUEST_OPEN", {"account_id": "bob"}, signer="bob", nonce=1),
+            _env("POH_LIVE_REQUEST_OPEN", {"account_id": "bob", "session_commitment": "session:cmt:bob", "room_commitment": "room:cmt:bob", "prompt_commitment": "prompt:cmt:bob"}, signer="bob", nonce=1),
         )
 
-    assert _reason(raised.value) == "tier3_request_requires_tier2"
-    assert "poh" not in st or not st.get("poh", {}).get("tier3_cases")
+    assert _reason(raised.value) == "live_request_requires_tier1"
+    assert "poh" not in st or not st.get("poh", {}).get("live_cases")
 
 
-def test_tier3_dedicated_request_is_subject_owned() -> None:
+def test_live_dedicated_request_is_subject_owned() -> None:
     st = _state()
 
     with pytest.raises(Exception) as raised:
         apply_tx(
             st,
-            _env("POH_TIER3_REQUEST_OPEN", {"account_id": "alice"}, signer="j1", nonce=1),
+            _env("POH_LIVE_REQUEST_OPEN", {"account_id": "alice"}, signer="j1", nonce=1),
         )
 
     assert _reason(raised.value) == "subject_signer_mismatch"
-    assert "poh" not in st or not st.get("poh", {}).get("tier3_cases")
+    assert "poh" not in st or not st.get("poh", {}).get("live_cases")
 
 
-def test_tier3_dedicated_request_creates_case_session_and_transport_boundary() -> None:
+def test_live_dedicated_request_creates_case_session_and_transport_boundary() -> None:
     st = _state()
 
     result = apply_tx(
         st,
         _env(
-            "POH_TIER3_REQUEST_OPEN",
+            "POH_LIVE_REQUEST_OPEN",
             {
                 "account_id": "alice",
                 "session_commitment": "session:cmt:1",
@@ -90,13 +90,13 @@ def test_tier3_dedicated_request_creates_case_session_and_transport_boundary() -
         ),
     )
 
-    assert result and result["applied"] == "POH_TIER3_REQUEST_OPEN"
-    assert result["case_id"] == "poh3:alice:2"
-    assert result["session_id"] == "session:poh3:alice:2"
+    assert result and result["applied"] == "POH_LIVE_REQUEST_OPEN"
+    assert result["case_id"] == "poh_live:alice:2"
+    assert result["session_id"] == "session:poh_live:alice:2"
 
-    case = st["poh"]["tier3_cases"]["poh3:alice:2"]
+    case = st["poh"]["live_cases"]["poh_live:alice:2"]
     assert case["status"] == "requested"
-    assert case["target_tier"] == 3
+    assert case["target_tier"] == 2
     assert case["protocol_native"] is True
     assert case["relay_authority"] == "transport_only"
     assert case["session_commitment"] == "session:cmt:1"
@@ -104,20 +104,20 @@ def test_tier3_dedicated_request_creates_case_session_and_transport_boundary() -
     assert case["prompt_commitment"] == "prompt:cmt:1"
     assert case["device_pairing_commitment"] == "device:cmt:1"
 
-    session = st["poh"]["tier3_sessions"]["session:poh3:alice:2"]
-    assert session["case_id"] == "poh3:alice:2"
+    session = st["poh"]["live_sessions"]["session:poh_live:alice:2"]
+    assert session["case_id"] == "poh_live:alice:2"
     assert session["relay_authority"] == "transport_only"
     assert "join_url" not in session
-    assert st["poh"]["tier3_session_participants"]["session:poh3:alice:2"]["alice"]["role"] == "subject"
+    assert st["poh"]["live_session_participants"]["session:poh_live:alice:2"]["alice"]["role"] == "subject"
 
 
-def test_tier3_dedicated_request_blocks_duplicate_active_case() -> None:
+def test_live_dedicated_request_blocks_duplicate_active_case() -> None:
     st = _state()
 
     apply_tx(
         st,
         _env(
-            "POH_TIER3_REQUEST_OPEN",
+            "POH_LIVE_REQUEST_OPEN",
             {
                 "account_id": "alice",
                 "session_commitment": "session:cmt:1",
@@ -133,7 +133,7 @@ def test_tier3_dedicated_request_blocks_duplicate_active_case() -> None:
         apply_tx(
             st,
             _env(
-                "POH_TIER3_REQUEST_OPEN",
+                "POH_LIVE_REQUEST_OPEN",
                 {
                     "account_id": "alice",
                     "session_commitment": "session:cmt:2",
@@ -145,14 +145,14 @@ def test_tier3_dedicated_request_blocks_duplicate_active_case() -> None:
             ),
         )
 
-    assert _reason(raised.value) == "active_tier3_case_exists"
+    assert _reason(raised.value) == "active_live_case_exists"
 
 
-def test_tier3_request_skeleton_uses_dedicated_tx_type() -> None:
+def test_live_request_skeleton_uses_dedicated_tx_type() -> None:
     client = TestClient(create_app(boot_runtime=False))
 
     response = client.post(
-        "/v1/poh/tier3/tx/request",
+        "/v1/poh/live/tx/request",
         json={
             "account_id": "alice",
             "session_commitment": "session:cmt:1",
@@ -163,7 +163,7 @@ def test_tier3_request_skeleton_uses_dedicated_tx_type() -> None:
 
     assert response.status_code == 200
     tx = response.json()["tx"]
-    assert tx["tx_type"] == "POH_TIER3_REQUEST_OPEN"
+    assert tx["tx_type"] == "POH_LIVE_REQUEST_OPEN"
     assert tx["signer_hint"] == "alice"
     assert tx["payload"] == {
         "account_id": "alice",
@@ -173,13 +173,13 @@ def test_tier3_request_skeleton_uses_dedicated_tx_type() -> None:
     }
 
 
-def test_tier3_request_skeleton_requires_session_commitments() -> None:
+def test_live_request_skeleton_requires_session_commitments() -> None:
     client = TestClient(create_app(boot_runtime=False))
 
     response = client.post(
-        "/v1/poh/tier3/tx/request",
+        "/v1/poh/live/tx/request",
         json={"account_id": "alice", "room_commitment": "room:cmt:1"},
     )
 
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "missing_tier3_session_commitment"
+    assert response.json()["error"]["code"] == "missing_live_session_commitment"

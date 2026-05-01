@@ -30,9 +30,9 @@ def _prepare_group_with_open_spend() -> dict:
         "height": 100,
         "params": {"system_signer": "SYSTEM"},
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 3},
-            "@bob": {"nonce": 0, "poh_tier": 3},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3},
+            "@alice": {"nonce": 0, "poh_tier": 2},
+            "@bob": {"nonce": 0, "poh_tier": 2},
+            "SYSTEM": {"nonce": 0, "poh_tier": 2},
         },
     }
     apply_groups(state, _env("GROUP_CREATE", "@alice", 1, {"group_id": "g-open", "charter": "x"}))

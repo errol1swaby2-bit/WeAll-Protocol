@@ -35,7 +35,7 @@ def test_genesis_mode_uses_validator_identity_and_enables_operator_bundle(
     st = ex.read_state()
 
     acct_rec = st["accounts"][acct]
-    assert acct_rec["poh_tier"] == 3
+    assert acct_rec["poh_tier"] == 2
 
     node_ops = st["roles"]["node_operators"]
     assert acct in list(node_ops.get("active_set") or [])

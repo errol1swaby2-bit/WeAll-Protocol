@@ -118,12 +118,12 @@ class AccountRecoveryReceiptPayload(_StrictModel):
 
 class PohTierSetPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
-    tier: int = Field(..., ge=0)
+    tier: int = Field(..., ge=0, le=2)
 
 
 class PohApplicationSubmitPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
-    target_tier: int = Field(..., ge=0)
+    target_tier: int = Field(..., ge=0, le=2)
     video_cid: str | None = None
     video_commitment: str | None = None
     note: str | None = None
@@ -157,6 +157,74 @@ class PohChallengeResolvePayload(_StrictModel):
     note: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
+
+
+
+class PohAsyncRequestOpenPayload(_StrictModel):
+    account_id: str = Field(..., min_length=1)
+    case_id: str | None = None
+    challenge_id: str | None = None
+    challenge_commitment: str | None = None
+    response_commitment: str | None = None
+    expires_height: int | None = Field(default=None, ge=0)
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncEvidenceDeclarePayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+    evidence_id: str | None = None
+    evidence_commitment: str | None = None
+    response_commitment: str | None = None
+    public_evidence_id: str | None = None
+    kind: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncEvidenceBindPayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+    evidence_id: str = Field(..., min_length=1)
+    target_id: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncJurorAssignPayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+    jurors: list[str] = Field(..., min_length=1)
+    min_reviews: int | None = Field(default=None, ge=0)
+    approval_threshold: int | None = Field(default=None, ge=0)
+    rejection_threshold: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncJurorAcceptPayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+
+
+class PohAsyncJurorDeclinePayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+
+
+class PohAsyncReviewSubmitPayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+    verdict: str = Field(..., min_length=1)
+    reason_code: str | None = None
+    review_commitment: str | None = None
+    note: str | None = None
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncFinalizePayload(_StrictModel):
+    case_id: str = Field(..., min_length=1)
+    ts_ms: int | None = Field(default=None, ge=0)
+
+
+class PohAsyncReceiptPayload(_StrictModel):
+    receipt_id: str | None = None
+    case_id: str = Field(..., min_length=1)
+    outcome: str | None = None
+    tier_awarded: int | None = Field(default=None, ge=0, le=2)
+    ts_ms: int | None = Field(default=None, ge=0)
 
 class PohTier2RequestOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
@@ -199,11 +267,11 @@ class PohTier2ReceiptPayload(_StrictModel):
     receipt_id: str | None = None
     case_id: str = Field(..., min_length=1)
     outcome: str | None = None
-    tier_awarded: int | None = Field(default=None, ge=0)
+    tier_awarded: int | None = Field(default=None, ge=0, le=2)
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohTier3RequestOpenPayload(_StrictModel):
+class PohLiveRequestOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     session_commitment: str | None = Field(default=None, min_length=1)
     room_commitment: str | None = Field(default=None, min_length=1)
@@ -214,33 +282,33 @@ class PohTier3RequestOpenPayload(_StrictModel):
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohTier3InitPayload(_StrictModel):
+class PohLiveSessionInitPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     session_commitment: str | None = None
     note: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohTier3JurorAssignPayload(_StrictModel):
+class PohLiveJurorAssignPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     juror_id: str = Field(..., min_length=1)
 
 
-class PohTier3JurorAcceptPayload(_StrictModel):
+class PohLiveJurorAcceptPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
 
 
-class PohTier3JurorDeclinePayload(_StrictModel):
+class PohLiveJurorDeclinePayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
 
 
-class PohTier3JurorReplacePayload(_StrictModel):
+class PohLiveJurorReplacePayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     old_juror_id: str = Field(..., min_length=1)
     new_juror_id: str = Field(..., min_length=1)
 
 
-class PohTier3AttendanceMarkPayload(_StrictModel):
+class PohLiveAttendanceMarkPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     juror_id: str | None = None
     attended: bool = Field(...)
@@ -250,7 +318,7 @@ class PohTier3AttendanceMarkPayload(_StrictModel):
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohTier3VerdictSubmitPayload(_StrictModel):
+class PohLiveVerdictSubmitPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
     note: str | None = None
@@ -259,19 +327,19 @@ class PohTier3VerdictSubmitPayload(_StrictModel):
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohTier3FinalizePayload(_StrictModel):
+class PohLiveFinalizePayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
 
 
-class PohTier3ReceiptPayload(_StrictModel):
+class PohLiveReceiptPayload(_StrictModel):
     receipt_id: str | None = None
     case_id: str = Field(..., min_length=1)
     outcome: str | None = None
-    tier_awarded: int | None = Field(default=None, ge=0)
+    tier_awarded: int | None = Field(default=None, ge=0, le=2)
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-class PohBootstrapTier3GrantPayload(_StrictModel):
+class PohBootstrapTier2GrantPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     accepted: bool | None = None
     note: str | None = None
@@ -1581,6 +1649,15 @@ TxPayloadModel = (
     PohEvidenceBindPayload,
     PohChallengeOpenPayload,
     PohChallengeResolvePayload,
+    PohAsyncRequestOpenPayload,
+    PohAsyncEvidenceDeclarePayload,
+    PohAsyncEvidenceBindPayload,
+    PohAsyncJurorAssignPayload,
+    PohAsyncJurorAcceptPayload,
+    PohAsyncJurorDeclinePayload,
+    PohAsyncReviewSubmitPayload,
+    PohAsyncFinalizePayload,
+    PohAsyncReceiptPayload,
     PohTier2RequestOpenPayload,
     PohTier2JurorAssignPayload,
     PohTier2JurorAcceptPayload,
@@ -1588,16 +1665,16 @@ TxPayloadModel = (
     PohTier2ReviewSubmitPayload,
     PohTier2FinalizePayload,
     PohTier2ReceiptPayload,
-    PohTier3InitPayload,
-    PohTier3JurorAssignPayload,
-    PohTier3JurorAcceptPayload,
-    PohTier3JurorDeclinePayload,
-    PohTier3JurorReplacePayload,
-    PohTier3AttendanceMarkPayload,
-    PohTier3VerdictSubmitPayload,
-    PohTier3FinalizePayload,
-    PohTier3ReceiptPayload,
-    PohBootstrapTier3GrantPayload,
+    PohLiveSessionInitPayload,
+    PohLiveJurorAssignPayload,
+    PohLiveJurorAcceptPayload,
+    PohLiveJurorDeclinePayload,
+    PohLiveJurorReplacePayload,
+    PohLiveAttendanceMarkPayload,
+    PohLiveVerdictSubmitPayload,
+    PohLiveFinalizePayload,
+    PohLiveReceiptPayload,
+    PohBootstrapTier2GrantPayload,
     # Content
     ContentPostCreatePayload,
     ContentPostEditPayload,
@@ -1760,6 +1837,15 @@ TX_PAYLOADS: dict[str, Any] = {
     "POH_EVIDENCE_BIND": PohEvidenceBindPayload,
     "POH_CHALLENGE_OPEN": PohChallengeOpenPayload,
     "POH_CHALLENGE_RESOLVE": PohChallengeResolvePayload,
+    "POH_ASYNC_REQUEST_OPEN": PohAsyncRequestOpenPayload,
+    "POH_ASYNC_EVIDENCE_DECLARE": PohAsyncEvidenceDeclarePayload,
+    "POH_ASYNC_EVIDENCE_BIND": PohAsyncEvidenceBindPayload,
+    "POH_ASYNC_JUROR_ASSIGN": PohAsyncJurorAssignPayload,
+    "POH_ASYNC_JUROR_ACCEPT": PohAsyncJurorAcceptPayload,
+    "POH_ASYNC_JUROR_DECLINE": PohAsyncJurorDeclinePayload,
+    "POH_ASYNC_REVIEW_SUBMIT": PohAsyncReviewSubmitPayload,
+    "POH_ASYNC_FINALIZE": PohAsyncFinalizePayload,
+    "POH_ASYNC_RECEIPT": PohAsyncReceiptPayload,
     "POH_TIER2_REQUEST_OPEN": PohTier2RequestOpenPayload,
     "POH_TIER2_JUROR_ASSIGN": PohTier2JurorAssignPayload,
     "POH_TIER2_JUROR_ACCEPT": PohTier2JurorAcceptPayload,
@@ -1767,17 +1853,17 @@ TX_PAYLOADS: dict[str, Any] = {
     "POH_TIER2_REVIEW_SUBMIT": PohTier2ReviewSubmitPayload,
     "POH_TIER2_FINALIZE": PohTier2FinalizePayload,
     "POH_TIER2_RECEIPT": PohTier2ReceiptPayload,
-    "POH_TIER3_REQUEST_OPEN": PohTier3RequestOpenPayload,
-    "POH_TIER3_INIT": PohTier3InitPayload,
-    "POH_TIER3_JUROR_ASSIGN": PohTier3JurorAssignPayload,
-    "POH_TIER3_JUROR_ACCEPT": PohTier3JurorAcceptPayload,
-    "POH_TIER3_JUROR_DECLINE": PohTier3JurorDeclinePayload,
-    "POH_TIER3_JUROR_REPLACE": PohTier3JurorReplacePayload,
-    "POH_TIER3_ATTENDANCE_MARK": PohTier3AttendanceMarkPayload,
-    "POH_TIER3_VERDICT_SUBMIT": PohTier3VerdictSubmitPayload,
-    "POH_TIER3_FINALIZE": PohTier3FinalizePayload,
-    "POH_TIER3_RECEIPT": PohTier3ReceiptPayload,
-    "POH_BOOTSTRAP_TIER3_GRANT": PohBootstrapTier3GrantPayload,
+    "POH_LIVE_REQUEST_OPEN": PohLiveRequestOpenPayload,
+    "POH_LIVE_SESSION_INIT": PohLiveSessionInitPayload,
+    "POH_LIVE_JUROR_ASSIGN": PohLiveJurorAssignPayload,
+    "POH_LIVE_JUROR_ACCEPT": PohLiveJurorAcceptPayload,
+    "POH_LIVE_JUROR_DECLINE": PohLiveJurorDeclinePayload,
+    "POH_LIVE_JUROR_REPLACE": PohLiveJurorReplacePayload,
+    "POH_LIVE_ATTENDANCE_MARK": PohLiveAttendanceMarkPayload,
+    "POH_LIVE_VERDICT_SUBMIT": PohLiveVerdictSubmitPayload,
+    "POH_LIVE_FINALIZE": PohLiveFinalizePayload,
+    "POH_LIVE_RECEIPT": PohLiveReceiptPayload,
+    "POH_BOOTSTRAP_TIER2_GRANT": PohBootstrapTier2GrantPayload,
     "POH_EMAIL_ATTESTATION_SUBMIT": PohEmailAttestationSubmitPayload,
     "POH_TIER_REVOKE": PohTierRevokePayload,
     "ORACLE_REGISTER": OracleRegisterPayload,
@@ -1974,6 +2060,9 @@ TX_PAYLOADS: dict[str, Any] = {
     "SLASH_EXECUTE": SlashExecutePayload,
 }
 
+
+# Backwards-compatible alias used by tests and audit tooling.
+PAYLOAD_MODELS = TX_PAYLOADS
 
 def model_for_tx_type(tx_type: str) -> Any | None:
     return TX_PAYLOADS.get((tx_type or "").upper())

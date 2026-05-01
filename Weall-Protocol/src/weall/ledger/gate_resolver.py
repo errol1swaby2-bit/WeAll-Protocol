@@ -36,7 +36,6 @@ def _parse_tier_gate(g: str) -> tuple[int, bool] | None:
       - "Tier0+"
       - "Tier1+"
       - "Tier2"
-      - "tier3+"
 
     Returns (min_tier, plus) where plus means >= min_tier.
     If plus is False, treat as >= min_tier anyway (we don't support exact-tier-only gating yet).

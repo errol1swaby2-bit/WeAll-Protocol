@@ -46,7 +46,7 @@ def test_tx_admission_requires_sig_on_peer_ingress_in_prod_even_with_override(
         accounts={
             "@alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

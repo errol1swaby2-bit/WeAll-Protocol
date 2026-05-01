@@ -133,9 +133,9 @@ def base_state() -> Json:
 
     # seed accounts used in tests
     st["accounts"] = {
-        "alice": {"balance": 1000, "nonce": 0, "poh_tier": 3},
-        "bob": {"balance": 500, "nonce": 0, "poh_tier": 3},
-        "carol": {"balance": 0, "nonce": 0, "poh_tier": 3},
+        "alice": {"balance": 1000, "nonce": 0, "poh_tier": 2},
+        "bob": {"balance": 500, "nonce": 0, "poh_tier": 2},
+        "carol": {"balance": 0, "nonce": 0, "poh_tier": 2},
     }
     return st
 

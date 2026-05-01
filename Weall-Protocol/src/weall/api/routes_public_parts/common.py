@@ -306,9 +306,8 @@ def _require_registered_signer_for_user_tx(
 
     acct = _require_registered_account(ledger, signer)
 
-    # PoH tier gating for content posting.
-    # Posting content is intentionally conservative (Tier 3) to align with the
-    # graduated trust model.
+    # PoH v2.1 tier gating for content posting.
+    # Posting content requires Tier 2 / Live Verified Human.
     #
     # IMPORTANT:
     #   Some clients submit the shorter aliases (POST_CREATE/POST_EDIT/POST_DELETE).
@@ -327,11 +326,11 @@ def _require_registered_signer_for_user_tx(
     }
     if tx_type in post_txs:
         tier = int(acct.get("poh_tier", 0) or 0)
-        if tier < 3:
+        if tier < 2:
             raise ApiError.forbidden(
                 "insufficient_poh_tier",
-                "PoH Tier 3 is required to create/edit/delete posts",
-                {"account": signer, "poh_tier": tier, "required": 3, "tx_type": tx_type},
+                "PoH Tier 2 / Live Verified Human is required to create/edit/delete posts",
+                {"account": signer, "poh_tier": tier, "required": 2, "tx_type": tx_type},
             )
 
 

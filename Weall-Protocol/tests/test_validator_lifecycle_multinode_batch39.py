@@ -20,9 +20,9 @@ def _base_state() -> Json:
         "time": 1,
         "height": 0,
         "accounts": {
-            "alice": {"balance": 1000, "nonce": 0, "poh_tier": 3},
-            "bob": {"balance": 1000, "nonce": 0, "poh_tier": 3},
-            "carol": {"balance": 1000, "nonce": 0, "poh_tier": 3},
+            "alice": {"balance": 1000, "nonce": 0, "poh_tier": 2},
+            "bob": {"balance": 1000, "nonce": 0, "poh_tier": 2},
+            "carol": {"balance": 1000, "nonce": 0, "poh_tier": 2},
         },
         "params": {
             "economic_unlock_time": 0,

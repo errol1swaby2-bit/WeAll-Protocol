@@ -18,8 +18,8 @@ def _mk_state() -> dict:
     return {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
-            "SYSTEM": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 10},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "SYSTEM": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
         },
         "roles": {"validators": {"active_set": ["alice"]}},
         "system_queue": [],

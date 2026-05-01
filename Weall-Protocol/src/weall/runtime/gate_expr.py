@@ -4,7 +4,9 @@ Gate expression evaluator.
 Supports:
 
 Atoms:
-  TierN+              (e.g. Tier3+)
+  Tier0+
+  Tier1+
+  Tier2+
   Validator
   Juror
   Signer
@@ -168,10 +170,13 @@ def _ledger_from_any(obj: Any) -> Json:
 
 
 def _tier_ok(acct: Json, n: int) -> bool:
+    if n < 0 or n > 2:
+        return False
     try:
         tier = int(acct.get("poh_tier") or 0)
     except Exception:
         tier = 0
+    tier = max(0, min(2, tier))
     return tier >= n
 
 
@@ -295,7 +300,7 @@ def _payload_case_id(payload: Json) -> str:
 def _poh_juror_assignment_match(ledger: Json, signer: str, payload: Json) -> bool:
     """Return True when ``signer`` is assigned on a canonical PoH case.
 
-    Tier-2 and Tier-3 PoH reviewer actions are Juror-gated at admission so
+    Async and live PoH reviewer actions are Juror-gated at admission so
     under-qualified accounts cannot submit review transactions directly. A
     protocol-assigned PoH reviewer, however, may not also be enrolled in the
     global juror role during controlled bootstrap/devnet flows. The canonical
@@ -311,7 +316,7 @@ def _poh_juror_assignment_match(ledger: Json, signer: str, payload: Json) -> boo
     poh = _as_dict(ledger.get("poh"))
     signer_variants = set(_identity_variants(signer))
 
-    for cases_key in ("tier2_cases", "tier3_cases"):
+    for cases_key in ("async_cases", "live_cases", "tier2_cases"):
         case = _as_dict(_as_dict(poh.get(cases_key)).get(case_id))
         if not case:
             continue
@@ -368,8 +373,8 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     if _dispute_assignment_match(ledger, signer, payload):
         return True
 
-    # Protocol-native PoH posture: reviewer authority is case-scoped. A Tier-2
-    # or Tier-3 account that was assigned on the canonical PoH case may submit
+    # Protocol-native PoH posture: reviewer authority is case-scoped. A live
+    # verified account that was assigned on the canonical PoH case may submit
     # the corresponding juror-gated reviewer transactions without requiring a
     # separate global role enrollment.
     if _poh_juror_assignment_match(ledger, signer, payload):

@@ -44,7 +44,7 @@ def _bootstrap_content_account(ex: WeAllExecutor, account_id: str = "@alice") ->
         },
         "locked": False,
         "nonce": 1,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "recovery": {"config": None, "proposals": {}},
         "reputation": 0,
         "session_keys": {},

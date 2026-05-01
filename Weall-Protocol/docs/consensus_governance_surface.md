@@ -30,9 +30,9 @@ Current allowed runtime parameter paths are defined in `src/weall/runtime/param_
 - `params.poh.tier2_min_total_reviews`
 - `params.poh.tier2_pass_threshold`
 - `params.poh.tier2_fail_max`
-- `params.poh.tier3_n_jurors`
-- `params.poh.tier3_interacting_jurors`
-- `params.poh.tier3_pass_threshold`
+- `params.poh.live_n_jurors`
+- `params.poh.live_interacting_jurors`
+- `params.poh.live_pass_threshold`
 - `params.economics.transfer_fee_bps`
 - `params.treasury.timelock_blocks`
 - `treasury.params.timelock_blocks`

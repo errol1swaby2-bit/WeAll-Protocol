@@ -33,7 +33,7 @@ def test_mempool_enforces_next_nonce(monkeypatch) -> None:
         accounts={
             "@alice": {
                 "nonce": 5,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

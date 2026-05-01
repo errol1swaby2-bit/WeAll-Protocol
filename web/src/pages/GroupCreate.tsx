@@ -46,7 +46,7 @@ export default function GroupCreate(): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
 
   const createGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 }),
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
     [acct, canSign, acctState],
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
@@ -147,7 +147,7 @@ export default function GroupCreate(): JSX.Element {
               <div className="heroInfoTitle">Eligibility</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
-                  {createGate.ok ? "Create unlocked" : "Create requires Tier 3"}
+                  {createGate.ok ? "Create unlocked" : "Create requires Live Verification"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -180,7 +180,7 @@ export default function GroupCreate(): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Eligibility</div>
           <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "Creation gated"}</div>
-          <div className="detailFocusText">{createGate.ok ? "Tier and signer prerequisites are satisfied for this action route." : createGate.reason || "A Tier 3 account and local signer are required to create a group."}</div>
+          <div className="detailFocusText">{createGate.ok ? "Tier and signer prerequisites are satisfied for this action route." : createGate.reason || "A Live Verification account and local signer are required to create a group."}</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Deterministic id preview</div>

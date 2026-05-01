@@ -48,7 +48,7 @@ def test_poh_bootstrap_onchain_allows_valid_self_grant_for_registered_account() 
     apply_tx(
         state,
         _tx(
-            "POH_BOOTSTRAP_TIER3_GRANT",
+            "POH_BOOTSTRAP_TIER2_GRANT",
             signer="alice",
             nonce=1,
             payload={"account_id": "alice"},
@@ -56,7 +56,7 @@ def test_poh_bootstrap_onchain_allows_valid_self_grant_for_registered_account() 
     )
 
     acct = state["accounts"]["alice"]
-    assert acct.get("poh_tier") == 3
+    assert acct.get("poh_tier") == 2
     assert acct.get("poh_bootstrap_mode") == "open"
     assert acct.get("poh_bootstrap_height") == 10
     assert acct.get("poh_bootstrap_granted") is True
@@ -69,7 +69,7 @@ def test_poh_bootstrap_onchain_rejects_unregistered_account() -> None:
         apply_tx(
             state,
             _tx(
-                "POH_BOOTSTRAP_TIER3_GRANT",
+                "POH_BOOTSTRAP_TIER2_GRANT",
                 signer="alice",
                 nonce=1,
                 payload={"account_id": "alice"},
@@ -91,7 +91,7 @@ def test_poh_bootstrap_onchain_rejects_account_mismatch() -> None:
         apply_tx(
             state,
             _tx(
-                "POH_BOOTSTRAP_TIER3_GRANT",
+                "POH_BOOTSTRAP_TIER2_GRANT",
                 signer="alice",
                 nonce=1,
                 payload={"account_id": "bob"},
@@ -113,7 +113,7 @@ def test_poh_bootstrap_onchain_rejects_pubkey_mismatch_when_provided() -> None:
         apply_tx(
             state,
             _tx(
-                "POH_BOOTSTRAP_TIER3_GRANT",
+                "POH_BOOTSTRAP_TIER2_GRANT",
                 signer="alice",
                 nonce=1,
                 payload={"account_id": "alice", "pubkey": "ffff" * 16},

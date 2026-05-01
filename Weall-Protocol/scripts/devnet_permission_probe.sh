@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Probe protocol permission gates through normal public transaction submission.
 # This script creates a fresh Tier-0 account by default, then attempts direct API
-# submissions for actions gated by Tier1/Tier2/Tier3/Juror. Forbidden probes must
+# submissions for actions gated by Tier1/Tier2/Live/Juror. Forbidden probes must
 # fail before canonical state mutation. No seeded demo routes are used.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

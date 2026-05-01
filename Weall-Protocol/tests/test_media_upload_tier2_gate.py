@@ -53,12 +53,12 @@ class _FakeExecutor:
         return "txindexhash-tier-gate"
 
 
-def test_media_upload_rejects_non_tier3_user(monkeypatch) -> None:
+def test_media_upload_rejects_non_live_user(monkeypatch) -> None:
     """
-    Upload must remain hard-gated behind PoH tier 3+.
+    Upload must remain hard-gated behind PoH live verified human+.
     """
     app = create_app(boot_runtime=False)
-    app.state.executor = _FakeExecutor(tier=2)
+    app.state.executor = _FakeExecutor(tier=1)
 
     from weall.api.routes_public_parts import media as media_routes
 
@@ -78,12 +78,12 @@ def test_media_upload_rejects_non_tier3_user(monkeypatch) -> None:
     body = r.json()
     assert body["ok"] is False
     assert body["error"]["code"] == "forbidden"
-    assert "tier 3" in body["error"]["message"].lower()
+    assert "live verified human" in body["error"]["message"].lower()
 
 
-def test_media_upload_allows_tier3_user(monkeypatch) -> None:
+def test_media_upload_allows_live_user(monkeypatch) -> None:
     """
-    Tier 3 users should be allowed through the gate if IPFS add succeeds.
+    Live Verified Human users should be allowed through the gate if IPFS add succeeds.
     """
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor(tier=3)

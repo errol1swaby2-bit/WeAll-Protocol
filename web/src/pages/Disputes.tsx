@@ -82,7 +82,7 @@ export default function Disputes(): JSX.Element {
     loggedIn: !!account,
     canSign: true,
     accountState: acctState,
-    requireTier: 3,
+    requireTier: 2,
   });
 
   async function refreshAccount(): Promise<void> {
@@ -210,7 +210,7 @@ export default function Disputes(): JSX.Element {
         <article className="summaryCard">
           <div className="summaryCardLabel">Juror gate</div>
           <div className="summaryCardValue">{tierGate.ok ? "Ready" : "Locked"}</div>
-          <div className="summaryCardText">{tierGate.ok ? "Tier and account posture allow juror actions when assigned." : tierGate.reason || "Tier 3 and signer posture still gate juror actions."}</div>
+          <div className="summaryCardText">{tierGate.ok ? "Tier and account posture allow juror actions when assigned." : tierGate.reason || "Live Verification and signer posture still gate juror actions."}</div>
         </article>
       </section>
 

@@ -46,9 +46,9 @@ def test_poh_tier2_happy_path_majority_pass_upgrades_to_tier2() -> None:
                 "locked": False,
                 "reputation": 0.0,
             },
-            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
-            "j2": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
-            "j3": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+            "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
+            "j2": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
+            "j3": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
         },
     }
 
@@ -146,8 +146,8 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
         },
         "accounts": {
             "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
-            "j1": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
-            "j2": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False, "reputation": 0.9},
+            "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
+            "j2": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
         },
     }
 

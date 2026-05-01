@@ -1,7 +1,7 @@
 import type { KeypairB64 } from "../auth/keys";
 import type { SessionV1 } from "../auth/session";
 
-export const POSTING_MIN_TIER = 3;
+export const POSTING_MIN_TIER = 2;
 export const POSTING_MIN_REPUTATION = 0;
 
 export type OnboardingStage =
@@ -11,7 +11,6 @@ export type OnboardingStage =
   | "tier0"
   | "tier1"
   | "tier2"
-  | "tier3"
   | "restricted";
 
 export type NextAction = {
@@ -74,7 +73,7 @@ export function resolveOnboardingSnapshot(args: {
   const account = String(args.account || args.session?.account || "").trim();
   const state = (args.accountView?.state ?? {}) as Record<string, unknown>;
 
-  const tier = Math.max(0, Math.floor(num(state.poh_tier, 0)));
+  const tier = Math.max(0, Math.min(2, Math.floor(num(state.poh_tier, 0))));
   const reputation = num(state.reputation, 0);
   const banned = Boolean(state.banned);
   const locked = Boolean(state.locked);
@@ -128,29 +127,22 @@ export function resolveOnboardingSnapshot(args: {
     stage = "tier0";
     next = {
       route: "/poh",
-      label: "Begin Tier 1 email verification",
-      note: "Tier 1 is the first live PoH checkpoint and opens verified entry into the network.",
+      label: "Begin Async Human Verification",
+      note: "Tier 1 is native async verified-human status and opens basic participation.",
     };
   } else if (tier === 1) {
     stage = "tier1";
     next = {
       route: "/poh",
-      label: "Continue to Tier 2",
-      note: "Tier 2 moves into the async video review path and keeps onboarding advancing toward creator readiness.",
-    };
-  } else if (tier === 2) {
-    stage = "tier2";
-    next = {
-      route: "/poh",
-      label: "Continue to Tier 3",
-      note: "The current frontend and backend creator flow still expects Tier 3 before posting unlocks.",
+      label: "Continue to Live Verification",
+      note: "Tier 2 is live verified-human status for high-trust participation.",
     };
   } else {
-    stage = "tier3";
+    stage = "tier2";
     next = {
       route: "/post",
       label: "Create your first post",
-      note: "This device and account satisfy the current posting gate and can stay on the signed transaction path.",
+      note: "This device and account satisfy the v2.1 posting gate. Additional service authority is handled by badges and roles.",
     };
   }
 
@@ -200,8 +192,8 @@ export function summarizeNextRequirements(
       ok: snapshot.tier >= POSTING_MIN_TIER,
       hint:
         snapshot.tier >= POSTING_MIN_TIER
-          ? `Current tier is ${snapshot.tier}.`
-          : `Current tier is ${snapshot.tier}. The active creator gate still expects Tier ${POSTING_MIN_TIER}.`,
+          ? `Current level is ${snapshot.tier >= 2 ? "Live Verified Human" : snapshot.tier === 1 ? "Async Verified Human" : "Unverified Account"}.`
+          : `Current level is ${snapshot.tier >= 1 ? "Async Verified Human" : "Unverified Account"}. Posting requires Live Verified Human.`,
     },
     {
       label: "Account standing",

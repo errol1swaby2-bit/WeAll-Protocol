@@ -43,7 +43,7 @@ def _ensure_canonical_accounts_for_admission(st: Json, ids: list[str]) -> None:
             accs[canon] = copy.deepcopy(accs[raw])
         else:
             # If missing, create a minimal account so admission can find the signer.
-            accs[canon] = {"balance": 0, "nonce": 0, "poh_tier": 3}
+            accs[canon] = {"balance": 0, "nonce": 0, "poh_tier": 2}
 
 
 def _load_index() -> TxIndex:
@@ -197,7 +197,7 @@ def test_one_node_per_account_enforced_via_account_device_register(base_state) -
     Enforced via ACCOUNT_DEVICE_REGISTER rules.
     """
     st = clone_state(base_state)
-    st.setdefault("accounts", {})["accx"] = {"balance": 0, "nonce": 0, "poh_tier": 3}
+    st.setdefault("accounts", {})["accx"] = {"balance": 0, "nonce": 0, "poh_tier": 2}
     _ensure_canonical_accounts_for_admission(st, ["accx"])
 
     d1 = _env(

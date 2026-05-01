@@ -27,11 +27,11 @@ class _FakeExecutor:
             "height": 1,
             "tip": "1:test-tip",
             "accounts": {
-                "@tier3": {
+                "@live": {
                     "banned": False,
                     "locked": False,
                     "nonce": 3,
-                    "poh_tier": 3,
+                    "poh_tier": 2,
                     "devices": {"by_id": {}},
                     "keys": {"by_id": {}},
                     "recovery": {"config": None, "proposals": {}},
@@ -63,7 +63,7 @@ def test_media_upload_fails_closed_when_ipfs_unavailable(monkeypatch) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     def _fake_require_account_session(request, st):
-        return "@tier3"
+        return "@live"
 
     def _fake_ipfs_add_fileobj(*, name: str, fileobj, pin: bool):
         raise RuntimeError("ipfs_add_failed:http_500:forced_test_failure")

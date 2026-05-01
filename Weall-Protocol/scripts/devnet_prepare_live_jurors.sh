@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Prepare controlled-devnet Tier-3 reviewer accounts for live PoH testing.
+# Prepare controlled-devnet Live reviewer accounts for live PoH testing.
 # Each reviewer is created through ACCOUNT_REGISTER and elevated through the
-# bounded POH_BOOTSTRAP_TIER3_GRANT open-bootstrap tx. This is not a demo seed:
+# bounded POH_BOOTSTRAP_TIER2_GRANT open-bootstrap tx. This is not a demo seed:
 # every mutation goes through /v1/tx/submit and normal block execution.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API="${WEALL_API:-http://127.0.0.1:8001}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${ROOT}/.weall-devnet}"
-COUNT="${WEALL_TIER3_JUROR_COUNT:-10}"
-PREFIX="${WEALL_TIER3_JUROR_PREFIX:-@devnet-tier3-juror-}"
-KEY_PREFIX="${WEALL_TIER3_JUROR_KEY_PREFIX:-tier3-juror-}"
+COUNT="${WEALL_LIVE_JUROR_COUNT:-10}"
+PREFIX="${WEALL_LIVE_JUROR_PREFIX:-@devnet-live-juror-}"
+KEY_PREFIX="${WEALL_LIVE_JUROR_KEY_PREFIX:-live-juror-}"
 mkdir -p "${DEVNET_DIR}/accounts"
 
 _account_tier() {
@@ -38,7 +38,7 @@ if not isinstance(state, dict) or not state:
 # Reviewer preparation needs a stricter existence check: a real account must
 # have canonical key material recorded in state.  Treat placeholder-only shapes
 # as missing so the script registers the reviewer before submitting the
-# self-signed POH_BOOTSTRAP_TIER3_GRANT transaction.
+# self-signed POH_BOOTSTRAP_TIER2_GRANT transaction.
 has_key_material = False
 if str(state.get('pubkey') or '').strip():
     has_key_material = True
@@ -69,24 +69,24 @@ for i in $(seq 1 "$COUNT"); do
   tier="$(_account_tier "$account")"
 
   if [[ "$tier" == "missing" ]]; then
-    echo "==> Creating Tier-3 reviewer account ${account}"
+    echo "==> Creating Live reviewer account ${account}"
     WEALL_API="$API" WEALL_ACCOUNT="$account" WEALL_KEYFILE="$keyfile" \
       bash "$ROOT/scripts/devnet_create_account.sh" --fresh >/dev/null
     tier="$(_account_tier "$account")"
   fi
 
-  if [[ "$tier" =~ ^[0-9]+$ && "$tier" -ge 3 ]]; then
-    echo "==> Tier-3 reviewer already ready: ${account} tier=${tier} keyfile=${keyfile}"
+  if [[ "$tier" =~ ^[0-9]+$ && "$tier" -ge 2 ]]; then
+    echo "==> Live reviewer already ready: ${account} tier=${tier} keyfile=${keyfile}"
     continue
   fi
 
-  echo "==> Bootstrap-granting controlled-devnet Tier-3 reviewer ${account}"
+  echo "==> Bootstrap-granting controlled-devnet Live reviewer ${account}"
   WEALL_API="$API" WEALL_ACCOUNT="$account" WEALL_KEYFILE="$keyfile" \
-    bash "$ROOT/scripts/devnet_bootstrap_tier3.sh" >/dev/null
+    bash "$ROOT/scripts/devnet_bootstrap_live.sh" >/dev/null
   tier="$(_account_tier "$account")"
-  if [[ ! "$tier" =~ ^[0-9]+$ || "$tier" -lt 3 ]]; then
-    echo "ERROR: Tier-3 reviewer did not reach Tier 3: ${account} tier=${tier}" >&2
+  if [[ ! "$tier" =~ ^[0-9]+$ || "$tier" -lt 2 ]]; then
+    echo "ERROR: Live reviewer did not reach Live Verified Human: ${account} tier=${tier}" >&2
     exit 1
   fi
-  echo "==> Tier-3 reviewer ready: ${account} tier=${tier} keyfile=${keyfile}"
+  echo "==> Live reviewer ready: ${account} tier=${tier} keyfile=${keyfile}"
 done

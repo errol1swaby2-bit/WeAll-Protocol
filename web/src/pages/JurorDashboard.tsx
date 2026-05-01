@@ -109,7 +109,7 @@ export default function JurorDashboard(): JSX.Element {
     loggedIn: !!account,
     canSign: true,
     accountState: acctState,
-    requireTier: 3,
+    requireTier: 2,
   });
 
   async function refreshAccount(): Promise<void> {
@@ -265,13 +265,13 @@ export default function JurorDashboard(): JSX.Element {
   async function tier3Accept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohTier3TxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept Tier 3 case", "Tier 3 case accepted.");
+    await submitSkeletonTx(skel, "Accept Live Verification case", "Live Verification case accepted.");
   }
 
   async function tier3Decline(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohTier3TxJurorDecline({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Decline Tier 3 case", "Tier 3 case declined.");
+    await submitSkeletonTx(skel, "Decline Live Verification case", "Live Verification case declined.");
   }
 
   async function tier3Attendance(caseId: string, attended: boolean): Promise<void> {
@@ -283,7 +283,7 @@ export default function JurorDashboard(): JSX.Element {
     );
     await submitSkeletonTx(
       skel,
-      "Record Tier 3 attendance",
+      "Record Live Verification attendance",
       attended ? "Attendance marked present." : "Attendance marked absent.",
     );
   }
@@ -296,8 +296,8 @@ export default function JurorDashboard(): JSX.Element {
     const skel = await weall.pohTier3TxVerdict(body, apiBase, headers);
     await submitSkeletonTx(
       skel,
-      "Submit Tier 3 verdict",
-      verdict === "pass" ? "Tier 3 case passed." : "Tier 3 case failed.",
+      "Submit Live Verification verdict",
+      verdict === "pass" ? "Live Verification case passed." : "Live Verification case failed.",
     );
   }
 
@@ -318,7 +318,7 @@ export default function JurorDashboard(): JSX.Element {
               <div className="eyebrow">Juror workspace</div>
               <h1 className="heroTitle heroTitleSm">Review assigned human verification work</h1>
               <p className="heroText">
-                This page keeps Tier 2 evidence review and Tier 3 live-session follow-through in one
+                This page keeps Tier 2 evidence review and Live Verification live-session follow-through in one
                 place so juror work feels operational instead of hidden behind raw endpoints.
               </p>
             </div>
@@ -329,7 +329,7 @@ export default function JurorDashboard(): JSX.Element {
                 <span className={`statusPill ${account ? "ok" : ""}`}>
                   {account ? "Session present" : "No session"}
                 </span>
-                <span className={`statusPill ${tier >= 3 ? "ok" : ""}`}>
+                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
                   Tier {tier}
                 </span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
@@ -345,7 +345,7 @@ export default function JurorDashboard(): JSX.Element {
               Tier 2 cases
             </button>
             <button className={`btn ${tab === "tier3" ? "btnPrimary" : ""}`} onClick={() => setTab("tier3")}>
-              Tier 3 live cases
+              Live Verification live cases
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
@@ -398,7 +398,7 @@ export default function JurorDashboard(): JSX.Element {
       ) : null}
 
       <SectionCard
-        eyebrow={tab === "tier2" ? "Tier 2" : "Tier 3"}
+        eyebrow={tab === "tier2" ? "Tier 2" : "Live Verification"}
         title={tab === "tier2" ? "Assigned evidence reviews" : "Assigned live-session cases"}
         right={<span className={`statusPill ${showing.length ? "ok" : ""}`}>{showing.length} case(s)</span>}
       >

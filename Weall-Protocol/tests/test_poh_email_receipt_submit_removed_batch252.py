@@ -28,6 +28,6 @@ def test_generated_tx_index_count_after_receipt_removal() -> None:
     root = Path(__file__).resolve().parents[1]
     raw = json.loads((root / "generated" / "tx_index.json").read_text(encoding="utf-8"))
     names = {str(row.get("name") or "") for row in raw.get("tx_types", [])}
-    assert len(names) == 221
+    assert len(names) == 230
     assert "POH_EMAIL_ATTESTATION_SUBMIT" in names
     assert "POH_EMAIL_RECEIPT_SUBMIT" not in names

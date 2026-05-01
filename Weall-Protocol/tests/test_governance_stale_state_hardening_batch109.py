@@ -12,7 +12,7 @@ def _mk_state() -> dict:
         "height": 0,
         "time": 0,
         "params": {"system_signer": "SYSTEM", "economics_enabled": True, "economic_unlock_time": 0},
-        "accounts": {"alice": {"nonce": 0, "poh_tier": 3}, "bob": {"nonce": 0, "poh_tier": 3}},
+        "accounts": {"alice": {"nonce": 0, "poh_tier": 2}, "bob": {"nonce": 0, "poh_tier": 2}},
     }
 
 

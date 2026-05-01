@@ -12,10 +12,10 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_genesis_builder_can_grant_bootstrap_tier3(
+def test_genesis_builder_can_grant_bootstrap_live(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Option B1: Tier-3 bootstrap is applied in genesis state builder only."""
+    """Option B1: Live bootstrap is applied in genesis state builder only."""
 
     acct = "@bootstrap"
     pub, _sk = deterministic_ed25519_keypair(label=acct)
@@ -30,7 +30,7 @@ def test_genesis_builder_can_grant_bootstrap_tier3(
     db_path = str(tmp_path / "weall.db")
 
     ex = WeAllExecutor(
-        db_path=db_path, node_id=acct, chain_id="genesis-tier3", tx_index_path=tx_index_path
+        db_path=db_path, node_id=acct, chain_id="genesis-live", tx_index_path=tx_index_path
     )
     st = ex.read_state()
 
@@ -39,7 +39,7 @@ def test_genesis_builder_can_grant_bootstrap_tier3(
     assert isinstance(accounts, dict)
     a = accounts.get(acct)
     assert isinstance(a, dict)
-    assert a.get("poh_tier") == 3
+    assert a.get("poh_tier") == 2
     assert float(a.get("reputation") or 0.0) == pytest.approx(1.0)
 
     keys = a.get("keys")
@@ -67,7 +67,7 @@ def test_genesis_bootstrap_is_disabled_by_default(
     ex = WeAllExecutor(
         db_path=db_path,
         node_id=acct,
-        chain_id="genesis-tier3-disabled",
+        chain_id="genesis-live-disabled",
         tx_index_path=tx_index_path,
     )
     st = ex.read_state()
@@ -95,7 +95,7 @@ def test_genesis_bootstrap_requires_both_env_vars(
     monkeypatch.delenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", raising=False)
     with pytest.raises(RuntimeError):
         WeAllExecutor(
-            db_path=db_path, node_id=acct, chain_id="genesis-tier3", tx_index_path=tx_index_path
+            db_path=db_path, node_id=acct, chain_id="genesis-live", tx_index_path=tx_index_path
         )
 
     # Reset db and try only pubkey set -> error
@@ -104,7 +104,7 @@ def test_genesis_bootstrap_requires_both_env_vars(
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", pub)
     with pytest.raises(RuntimeError):
         WeAllExecutor(
-            db_path=db_path2, node_id=acct, chain_id="genesis-tier3", tx_index_path=tx_index_path
+            db_path=db_path2, node_id=acct, chain_id="genesis-live", tx_index_path=tx_index_path
         )
 
 
@@ -126,12 +126,12 @@ def test_genesis_builder_bootstraps_founder_as_active_operator(
     db_path = str(tmp_path / "weall.db")
 
     ex = WeAllExecutor(
-        db_path=db_path, node_id=acct, chain_id="genesis-tier3", tx_index_path=tx_index_path
+        db_path=db_path, node_id=acct, chain_id="genesis-live", tx_index_path=tx_index_path
     )
     st = ex.read_state()
 
     acct_rec = st["accounts"][acct]
-    assert acct_rec["poh_tier"] == 3
+    assert acct_rec["poh_tier"] == 2
     assert float(acct_rec["reputation"]) == pytest.approx(2.5)
 
     roles = st.get("roles")

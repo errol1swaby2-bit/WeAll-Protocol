@@ -26,9 +26,9 @@ ALLOWED: dict[str, Any] = {
             "tier2_min_total_reviews": (1, 100),
             "tier2_pass_threshold": (1, 100),
             "tier2_fail_max": (0, 50),
-            "tier3_n_jurors": (3, 100),
-            "tier3_interacting_jurors": (1, 25),
-            "tier3_pass_threshold": (1, 25),
+            "live_n_jurors": (3, 100),
+            "live_interacting_jurors": (1, 25),
+            "live_pass_threshold": (1, 25),
         },
         "economics": {
             # basis points (0-1000 => up to 10%)

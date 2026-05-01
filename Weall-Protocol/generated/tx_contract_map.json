@@ -544,7 +544,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "CONTENT_MEDIA_DECLARE"
     },
     {
@@ -586,7 +586,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "CONTENT_POST_CREATE"
     },
     {
@@ -600,7 +600,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "CONTENT_POST_DELETE"
     },
     {
@@ -614,7 +614,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "CONTENT_POST_EDIT"
     },
     {
@@ -1048,7 +1048,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_PROPOSAL_CREATE"
     },
     {
@@ -1062,7 +1062,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_PROPOSAL_EDIT"
     },
     {
@@ -1104,7 +1104,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_PROPOSAL_WITHDRAW"
     },
     {
@@ -1174,7 +1174,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_VOTE_CAST"
     },
     {
@@ -1188,7 +1188,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_VOTE_REVOKE"
     },
     {
@@ -1664,7 +1664,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ORACLE_REGISTER"
     },
     {
@@ -1678,7 +1678,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ORACLE_ROTATE_KEY"
     },
     {
@@ -1706,7 +1706,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ORACLE_UPDATE_METADATA"
     },
     {
@@ -1840,6 +1840,132 @@
       "claim_handlers": [
         "poh"
       ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier0+",
+      "tx_type": "POH_ASYNC_EVIDENCE_BIND"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier0+",
+      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_ASYNC_FINALIZE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_ASYNC_JUROR_ACCEPT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_ASYNC_JUROR_ASSIGN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_ASYNC_JUROR_DECLINE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "",
+      "tx_type": "POH_ASYNC_RECEIPT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier0+",
+      "tx_type": "POH_ASYNC_REQUEST_OPEN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_ASYNC_REVIEW_SUBMIT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
       "context": "block",
       "domain": "PoH",
       "handler": "poh",
@@ -1847,7 +1973,7 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "POH_BOOTSTRAP_TIER3_GRANT"
+      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT"
     },
     {
       "claim_count": 1,
@@ -2029,7 +2155,7 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_ATTENDANCE_MARK"
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK"
     },
     {
       "claim_count": 1,
@@ -2043,7 +2169,7 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_FINALIZE"
+      "tx_type": "POH_LIVE_FINALIZE"
     },
     {
       "claim_count": 1,
@@ -2057,7 +2183,7 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "POH_TIER3_INIT"
+      "tx_type": "POH_LIVE_SESSION_INIT"
     },
     {
       "claim_count": 1,
@@ -2071,7 +2197,7 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_JUROR_ACCEPT"
+      "tx_type": "POH_LIVE_JUROR_ACCEPT"
     },
     {
       "claim_count": 1,
@@ -2085,7 +2211,7 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_JUROR_ASSIGN"
+      "tx_type": "POH_LIVE_JUROR_ASSIGN"
     },
     {
       "claim_count": 1,
@@ -2099,7 +2225,7 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_JUROR_DECLINE"
+      "tx_type": "POH_LIVE_JUROR_DECLINE"
     },
     {
       "claim_count": 1,
@@ -2113,7 +2239,7 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_JUROR_REPLACE"
+      "tx_type": "POH_LIVE_JUROR_REPLACE"
     },
     {
       "claim_count": 1,
@@ -2127,7 +2253,7 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "POH_TIER3_RECEIPT"
+      "tx_type": "POH_LIVE_RECEIPT"
     },
     {
       "claim_count": 1,
@@ -2140,8 +2266,8 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier2+",
-      "tx_type": "POH_TIER3_REQUEST_OPEN"
+      "subject_gate": "Tier1+",
+      "tx_type": "POH_LIVE_REQUEST_OPEN"
     },
     {
       "claim_count": 1,
@@ -2155,7 +2281,7 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER3_VERDICT_SUBMIT"
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT"
     },
     {
       "claim_count": 1,
@@ -2336,7 +2462,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ROLE_EMISSARY_NOMINATE"
     },
     {
@@ -2378,7 +2504,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ROLE_EMISSARY_VOTE"
     },
     {
@@ -2420,7 +2546,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "ROLE_JUROR_ENROLL"
     },
     {
@@ -2546,7 +2672,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "SLASH_PROPOSE"
     },
     {
@@ -2756,7 +2882,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "TREASURY_CREATE"
     },
     {
@@ -2994,7 +3120,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "VALIDATOR_CANDIDATE_REGISTER"
     },
     {
@@ -3050,7 +3176,7 @@
       "origin": "USER",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier3+",
+      "subject_gate": "Tier2+",
       "tx_type": "VALIDATOR_REGISTER"
     },
     {
@@ -3096,8 +3222,8 @@
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 221,
-  "single_claim_count": 221,
-  "tx_count": 221,
+  "schema_covered_count": 230,
+  "single_claim_count": 230,
+  "tx_count": 230,
   "unclaimed_count": 0
 }

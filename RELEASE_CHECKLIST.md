@@ -145,4 +145,25 @@ For protocol reviewers, the supported non-seeded readiness proof is:
 - `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh`
 - `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh`
 
-Do not claim that browser email onboarding is part of the required general tester flow. The current email-oracle path is documented as a controlled-devnet proof harness, not as the default browser onboarding path. The conference-grade readiness proof should be described as protocol-native and non-seeded, not as the normal end-user onboarding UX.
+Browser email onboarding and PoH email verification are Cloudflare-free in this snapshot. They route through the active WeAll API and the WeAll-hosted PoH email oracle path. The controlled-devnet proof remains the deeper protocol-native readiness path, while the default general tester flow may still use deterministic demo bootstrap for speed.
+
+## 9. Current validated checkpoint
+
+The current release checkpoint for this snapshot is:
+
+- full backend suite: `2582 passed, 1 warning`
+- tx canon artifacts: `221 tx types, version 1.23.1`
+- `scripts/secret_guard.sh`: passed
+- `scripts/verify_release_tree.sh`: passed
+- PoH email oracle cleanup: Cloudflare-free path validated, no relay-token completion path, no old `WEALL_EMAIL_ORACLE_URL` alias, no old generic `WEALL_EMAIL_HOST/USER/PASS/FROM` aliases
+
+Before publishing, rerun:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+pytest
+python3 -S scripts/check_tx_canon_artifacts.py
+bash scripts/secret_guard.sh
+bash scripts/verify_release_tree.sh
+```

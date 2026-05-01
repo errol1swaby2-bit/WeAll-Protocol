@@ -21,9 +21,9 @@ Requirements / assumptions
 - You provide 3 test accounts with known PoH tiers in the node's ledger:
   - WEALL_ACCT_TIER0  (observer / no PoH)
   - WEALL_ACCT_TIER2
-  - WEALL_ACCT_TIER3
+  - WEALL_ACCT_LIVE
 - If your node requires auth headers for tx submission, provide:
-  - WEALL_SESSION_KEY_TIER0 / _TIER2 / _TIER3  (session key values)
+  - WEALL_SESSION_KEY_TIER0 / _TIER2 / _LIVE  (session key values)
 - For dev-mode unsigned tx acceptance, set:
   - WEALL_ALLOW_UNSIGNED_TXS=1 on the node
   (If you do NOT allow unsigned txs, you must run this with valid signing support.
@@ -33,7 +33,7 @@ What it validates
 -----------------
 - Tier0 cannot: CONTENT_POST_CREATE, GOV_PROPOSAL_CREATE, GROUP_CREATE
 - Tier2 can: GROUP_CREATE (but not GOV_PROPOSAL_CREATE)
-- Tier3 can: GOV_PROPOSAL_CREATE and CONTENT_POST_CREATE
+- Live can: GOV_PROPOSAL_CREATE and CONTENT_POST_CREATE
 
 Exit codes
 ----------
@@ -234,11 +234,11 @@ def main() -> int:
 
     a0 = env("WEALL_ACCT_TIER0")
     a2 = env("WEALL_ACCT_TIER2")
-    a3 = env("WEALL_ACCT_TIER3")
+    a3 = env("WEALL_ACCT_LIVE")
 
     if not a0 or not a2 or not a3:
         print("❌ Missing required env vars:")
-        print("   WEALL_ACCT_TIER0, WEALL_ACCT_TIER2, WEALL_ACCT_TIER3")
+        print("   WEALL_ACCT_TIER0, WEALL_ACCT_TIER2, WEALL_ACCT_LIVE")
         print("")
         print(
             "Tip: use the web UI or your existing tooling to create 3 accounts and upgrade them to desired PoH tiers,"
@@ -249,7 +249,7 @@ def main() -> int:
     actors = {
         "tier0": Actor("tier0", a0, env("WEALL_SESSION_KEY_TIER0")),
         "tier2": Actor("tier2", a2, env("WEALL_SESSION_KEY_TIER2")),
-        "tier3": Actor("tier3", a3, env("WEALL_SESSION_KEY_TIER3")),
+        "live": Actor("live", a3, env("WEALL_SESSION_KEY_LIVE")),
     }
 
     try:
@@ -262,7 +262,7 @@ def main() -> int:
     # If your executor requires additional fields, the ALLOW cases may fail for validation (which is still useful),
     # but the DENY cases should still show gate_denied if admission gates are wired correctly.
     cases: list[Case] = [
-        # Content posting should be Tier3+ in your current build
+        # Content posting should be Tier2+ in your current build
         Case(
             name="tier0_cannot_post",
             actor=actors["tier0"],
@@ -271,13 +271,13 @@ def main() -> int:
             expect="deny",
         ),
         Case(
-            name="tier3_can_post",
-            actor=actors["tier3"],
+            name="live_can_post",
+            actor=actors["live"],
             tx_type="CONTENT_POST_CREATE",
             payload={"text": "gate_test_post", "visibility": "public"},
             expect="allow",
         ),
-        # Governance should be Tier3+
+        # Governance should be Tier2+
         Case(
             name="tier2_cannot_gov_propose",
             actor=actors["tier2"],
@@ -286,8 +286,8 @@ def main() -> int:
             expect="deny",
         ),
         Case(
-            name="tier3_can_gov_propose",
-            actor=actors["tier3"],
+            name="live_can_gov_propose",
+            actor=actors["live"],
             tx_type="GOV_PROPOSAL_CREATE",
             payload={"title": "gate_test", "body": "gate_test", "proposal_type": "PARAM_CHANGE"},
             expect="allow",

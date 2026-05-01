@@ -147,7 +147,7 @@ def _required_poh_tier(requested_roles: tuple[str, ...]) -> int:
         except Exception:
             return 0
     if "validator" in requested_roles:
-        return 3
+        return 2
     if "helper" in requested_roles:
         return 2
     return 0

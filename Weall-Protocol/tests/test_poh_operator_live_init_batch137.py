@@ -17,7 +17,7 @@ class _StubExecutor:
         return str(tx.get("tx_id") or "stub-tx-id")
 
 
-def test_operator_tier3_init_enqueues_canonical_system_tx_type(monkeypatch) -> None:
+def test_operator_live_init_enqueues_canonical_system_tx_type(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_ENABLE_OPERATOR_POH", "1")
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "dev-operator-token")
 
@@ -26,7 +26,7 @@ def test_operator_tier3_init_enqueues_canonical_system_tx_type(monkeypatch) -> N
     client = TestClient(app)
 
     response = client.post(
-        "/v1/poh/operator/tier3/init",
+        "/v1/poh/operator/live/init",
         json={"case_id": "case-123", "join_url": "https://example.com/join"},
         headers={"X-WeAll-Operator-Token": "dev-operator-token"},
     )
@@ -36,4 +36,4 @@ def test_operator_tier3_init_enqueues_canonical_system_tx_type(monkeypatch) -> N
     state = executor.snapshot()
     queue = list(state.get("system_queue") or [])
     assert queue, "expected system tx to be enqueued"
-    assert str(queue[-1].get("tx_type") or "") == "POH_TIER3_INIT"
+    assert str(queue[-1].get("tx_type") or "") == "POH_LIVE_INIT"

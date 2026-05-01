@@ -13,9 +13,23 @@ EMAIL="${WEALL_EMAIL:-devnet-human@example.org}"
 CODE="${WEALL_EMAIL_CODE:-}"
 
 cd "${REPO_ROOT}"
-exec python3 scripts/devnet_tx.py email-tier1 \
-  --api "${API}" \
-  --account "${ACCOUNT}" \
-  --keyfile "${KEYFILE}" \
-  --email "${EMAIL}" \
-  ${CODE:+--code "${CODE}"}
+
+if [ -z "${ACCOUNT}" ]; then
+  echo "WEALL_ACCOUNT is required" >&2
+  exit 2
+fi
+
+ARGS=(
+  python3 scripts/devnet_tx.py
+  --api "${API}"
+  email-tier1
+  --account "${ACCOUNT}"
+  --keyfile "${KEYFILE}"
+  --email "${EMAIL}"
+)
+
+if [ -n "${CODE}" ]; then
+  ARGS+=(--code "${CODE}")
+fi
+
+exec "${ARGS[@]}"

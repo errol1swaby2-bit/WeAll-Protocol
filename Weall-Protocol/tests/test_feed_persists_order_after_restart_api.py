@@ -47,7 +47,7 @@ def test_feed_persists_order_after_restart_api(tmp_path: Path) -> None:
         },
         "locked": False,
         "nonce": 1,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "recovery": {"config": None, "proposals": {}},
         "reputation": 0,
         "session_keys": {},

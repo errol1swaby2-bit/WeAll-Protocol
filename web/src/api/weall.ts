@@ -648,19 +648,19 @@ export const weall = {
   },
 
   pohTier3Assigned(account: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(withSearch('/v1/poh/tier3/assigned', { juror: account }), base, headers);
+    return apiGet(withSearch('/v1/poh/live/assigned', { juror: account }), base, headers);
   },
 
   pohTier3Sessions(base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet("/v1/poh/tier3/sessions", base, headers);
+    return apiGet("/v1/poh/live/sessions", base, headers);
   },
 
   pohTier3Case(caseId: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(`/v1/poh/tier3/case/${encodeURIComponent(caseId)}`, base, headers);
+    return apiGet(`/v1/poh/live/case/${encodeURIComponent(caseId)}`, base, headers);
   },
 
   pohTier3SessionParticipants(sessionId: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(`/v1/poh/tier3/session/${encodeURIComponent(sessionId)}/participants`, base, headers);
+    return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/participants`, base, headers);
   },
 
   emailOracleStart(
@@ -730,7 +730,7 @@ export const weall = {
   },
 
   pohTier3TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier3/tx/request", payload, base, headers);
+    return apiPost("/v1/poh/live/tx/request", payload, base, headers);
   },
 
   pohTier2TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
@@ -746,19 +746,19 @@ export const weall = {
   },
 
   pohTier3TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier3/tx/juror-accept", payload, base, headers);
+    return apiPost("/v1/poh/live/tx/juror-accept", payload, base, headers);
   },
 
   pohTier3TxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier3/tx/juror-decline", payload, base, headers);
+    return apiPost("/v1/poh/live/tx/juror-decline", payload, base, headers);
   },
 
   pohTier3TxAttendance(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier3/tx/attendance", payload, base, headers);
+    return apiPost("/v1/poh/live/tx/attendance", payload, base, headers);
   },
 
   pohTier3TxVerdict(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier3/tx/verdict", payload, base, headers);
+    return apiPost("/v1/poh/live/tx/verdict", payload, base, headers);
   },
 
   pohTier2VideoUpload(file: File, base?: string, headers?: HeadersInit): Promise<any> {

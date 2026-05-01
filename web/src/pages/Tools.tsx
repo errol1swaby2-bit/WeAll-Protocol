@@ -221,7 +221,7 @@ export default function Tools(): JSX.Element {
                 <StatusPill ok={tier2UploadEnabled} label={tier2UploadEnabled ? "Enabled" : "Disabled"} />
               </div>
               <div className="progressRow">
-                <span>Bootstrap Tier 3 controls</span>
+                <span>Bootstrap Live Verification controls</span>
                 <StatusPill ok={bootstrapTier3Enabled} label={bootstrapTier3Enabled ? "Enabled" : "Disabled"} />
               </div>
               <div className="progressRow">

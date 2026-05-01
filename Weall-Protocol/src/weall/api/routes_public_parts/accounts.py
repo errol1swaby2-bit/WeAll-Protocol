@@ -129,7 +129,7 @@ def v1_account_registered(account: str, request: Request):
 
     Node eligibility rule:
       - Account exists
-      - PoH tier >= 3
+      - PoH tier >= 2 / Live Verified Human
       - Not banned
 
     Mounted under /v1:
@@ -146,7 +146,7 @@ def v1_account_registered(account: str, request: Request):
     tier = int(acct.get("poh_tier", 0) or 0)
     banned = bool(acct.get("banned", False))
 
-    registered = tier >= 3 and not banned
+    registered = tier >= 2 and not banned
 
     return {"ok": True, "account": account, "registered": registered}
 

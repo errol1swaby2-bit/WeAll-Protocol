@@ -35,7 +35,7 @@ def test_session_login_creates_device_and_session(monkeypatch):
         "accounts": {
             "@satoshi": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "keys": {

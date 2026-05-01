@@ -83,7 +83,7 @@ export default function ProposalCreate(): JSX.Element {
   const showAdvancedMode = loadSettings().showAdvancedMode;
 
   const createGate = useMemo(
-    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 }),
+    () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),
     [acct, canSign, acctState],
   );
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
@@ -189,7 +189,7 @@ export default function ProposalCreate(): JSX.Element {
               <div className="heroInfoTitle">Eligibility</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
-                  {createGate.ok ? "Authoring unlocked" : "Authoring requires Tier 3"}
+                  {createGate.ok ? "Authoring unlocked" : "Authoring requires Live Verification"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -220,8 +220,8 @@ export default function ProposalCreate(): JSX.Element {
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Authoring posture</div>
-          <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "Tier 3 required"}</div>
-          <div className="detailFocusText">{createGate.ok ? "A signer-capable Tier 3 account can create a proposal from this route." : createGate.reason || "Restore a signer-capable Tier 3 account before authoring."}</div>
+          <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "Live Verification required"}</div>
+          <div className="detailFocusText">{createGate.ok ? "A signer-capable Live Verification account can create a proposal from this route." : createGate.reason || "Restore a signer-capable Live Verification account before authoring."}</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Design rule</div>

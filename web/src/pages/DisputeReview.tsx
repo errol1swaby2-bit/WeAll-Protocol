@@ -47,7 +47,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
     loggedIn: !!account,
     canSign: true,
     accountState: acctState,
-    requireTier: 3,
+    requireTier: 2,
   });
 
   async function refreshAccount(): Promise<void> {
@@ -124,7 +124,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
     : signerSubmission.busy
       ? "A previous signed action is still settling for this account."
       : !tierGate.ok
-        ? tierGate.reason || "Tier 3 and signer posture are required for juror review actions."
+        ? tierGate.reason || "Live Verification and signer posture are required for juror review actions."
         : currentVote
           ? `Step 3 is complete. Current signer vote: ${currentVote.toUpperCase()}. This workspace is now locked for one-shot voting.`
           : selectedJurorStatus === "unassigned"

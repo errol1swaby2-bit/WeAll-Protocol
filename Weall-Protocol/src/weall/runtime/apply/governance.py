@@ -170,7 +170,7 @@ def _active_validator_ids(state: Json) -> list[str]:
         for acct, rec in accounts.items():
             if not isinstance(rec, dict):
                 continue
-            if _i(rec.get("poh_tier"), 0) < 3:
+            if _i(rec.get("poh_tier"), 0) < 2:
                 continue
             if bool(rec.get("banned")) or bool(rec.get("locked")):
                 continue

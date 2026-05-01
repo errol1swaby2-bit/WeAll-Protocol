@@ -49,7 +49,7 @@ from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
 from weall.runtime.node_runtime_config import PRODUCTION_SERVICE
 from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
-from weall.runtime.poh.tier3_scheduler import schedule_poh_tier3_system_txs
+from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
 from weall.runtime.protocol_profile import (
     GENESIS_CREATED_MS,
     PRODUCTION_CONSENSUS_PROFILE,
@@ -453,7 +453,7 @@ class WeAllExecutor:
             # Genesis-only bootstrap hooks.
             # IMPORTANT: never "auto-elevate" based on being the first node.
             # Any bootstrap privileges must be explicit in the genesis builder.
-            self._apply_genesis_bootstrap_tier3(self.state)
+            self._apply_genesis_bootstrap_live(self.state)
             self._ledger_store.write(self.state)
 
         # Storage-boundary block identity caches must exist before any startup
@@ -1321,7 +1321,7 @@ class WeAllExecutor:
         genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
         # Open PoH bootstrap is a local-dev-only escape hatch.  It must never be
         # enabled implicitly, because controlled multi-node devnet readiness must
-        # exercise real Tier1 -> Tier2 -> Tier3 protocol onboarding instead of a
+        # exercise real Tier1 -> Tier2 -> Live protocol onboarding instead of a
         # bounded self-grant shortcut.  Operators who intentionally need the old
         # local helper must opt in with WEALL_MODE=dev and WEALL_POH_BOOTSTRAP_OPEN=1.
         bootstrap_open_enabled = (
@@ -1405,13 +1405,13 @@ class WeAllExecutor:
         h = hashlib.sha256(str(pubkey).encode("utf-8")).hexdigest()
         return f"k:{h[:16]}"
 
-    def _apply_genesis_bootstrap_tier3(self, state: Json) -> None:
+    def _apply_genesis_bootstrap_live(self, state: Json) -> None:
         """Genesis bootstrap for the founder/operator account.
 
         This executes only when the ledger is first created (height == 0).
         It seeds the configured bootstrap account with:
           - a registered main key
-          - Tier 3 PoH
+          - legacy bootstrap PoH (v2.1 user-facing Tier 2 / Live Verified Human)
           - adequate starting reputation for operator duties
           - an active node-operator role record
           - an enabled storage-operator record
@@ -1529,7 +1529,7 @@ class WeAllExecutor:
             rec.setdefault("revoked", False)
             rec.setdefault("revoked_at", None)
 
-        a["poh_tier"] = 3
+        a["poh_tier"] = 2
         cur_rep_units = account_reputation_units(a, default=0)
         a["reputation_milli"] = max(cur_rep_units, bootstrap_rep_units)
         a["reputation"] = units_to_reputation_text(a["reputation_milli"])
@@ -1540,8 +1540,8 @@ class WeAllExecutor:
         if not isinstance(poh_meta, dict):
             poh_meta = {}
             a["poh"] = poh_meta
-        poh_meta.setdefault("tier3_source", "genesis_bootstrap")
-        poh_meta.setdefault("tier3_reason", "genesis_bootstrap_tier3")
+        poh_meta.setdefault("live_source", "genesis_bootstrap")
+        poh_meta.setdefault("live_reason", "genesis_bootstrap_live")
         poh_meta.setdefault("bootstrap_operator_bundle", True)
 
         params = state.get("params")
@@ -2493,7 +2493,7 @@ class WeAllExecutor:
         # same way follower-side replay does.
         try:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
-            schedule_poh_tier3_system_txs(working, next_height=next_height)
+            schedule_poh_live_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -2621,7 +2621,7 @@ class WeAllExecutor:
         # side effects are consensus-adjacent and must fail closed.
         try:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
-            schedule_poh_tier3_system_txs(working, next_height=next_height)
+            schedule_poh_live_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
@@ -3130,7 +3130,7 @@ class WeAllExecutor:
 
         def _run_poh_schedulers() -> None:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
-            schedule_poh_tier3_system_txs(working, next_height=next_height)
+            schedule_poh_live_system_txs(working, next_height=next_height)
 
         def _run_system_emitter_side_effects(phase: str) -> None:
             # We discard envelopes; the block already contains the tx list.

@@ -7,7 +7,7 @@ scripts/devnet_tx.py and /v1/tx/submit. It never calls seeded demo endpoints,
 never mutates a local database, and never relies on frontend gating.
 
 The default probe account is expected to be a fresh Tier-0 account. The probe
-then verifies that Tier-1/Tier-2/Tier-3/Juror-gated actions are rejected when
+then verifies that Tier-1/Tier-2/Live/Juror-gated actions are rejected when
 submitted directly through the public API.
 """
 import argparse
@@ -73,16 +73,16 @@ PROBES: tuple[PermissionProbe, ...] = (
         description="Tier-0 account cannot like/react by bypassing the frontend.",
     ),
     PermissionProbe(
-        name="tier3-post-create-blocked",
+        name="live-post-create-blocked",
         tx_type="CONTENT_POST_CREATE",
-        gate="Tier3+",
+        gate="Tier2+",
         expected="reject",
         description="Tier-0 account cannot create content posts by direct API tx submission.",
     ),
     PermissionProbe(
-        name="tier3-governance-create-blocked",
+        name="live-governance-create-blocked",
         tx_type="GOV_PROPOSAL_CREATE",
-        gate="Tier3+",
+        gate="Tier2+",
         expected="reject",
         description="Tier-0 account cannot create governance proposals by direct API tx submission.",
     ),
@@ -94,11 +94,11 @@ PROBES: tuple[PermissionProbe, ...] = (
         description="Tier-0 non-juror account cannot submit PoH Tier-2 review votes.",
     ),
     PermissionProbe(
-        name="juror-tier3-verdict-blocked",
-        tx_type="POH_TIER3_VERDICT_SUBMIT",
+        name="juror-live-verdict-blocked",
+        tx_type="POH_LIVE_VERDICT_SUBMIT",
         gate="Juror",
         expected="reject",
-        description="Tier-0 non-juror account cannot submit live Tier-3 verdicts.",
+        description="Tier-0 non-juror account cannot submit live Live verdicts.",
     ),
 )
 
@@ -172,9 +172,9 @@ def probe_payload(tx_type: str, *, account: str, suffix: str) -> Json:
         }
     if tx == "POH_TIER2_REVIEW_SUBMIT":
         return {"case_id": f"missing-tier2-case-{s}", "verdict": "pass", "note": "permission probe"}
-    if tx == "POH_TIER3_VERDICT_SUBMIT":
+    if tx == "POH_LIVE_VERDICT_SUBMIT":
         return {
-            "case_id": f"missing-tier3-case-{s}",
+            "case_id": f"missing-live-case-{s}",
             "verdict": "pass",
             "session_commitment": f"session:probe:{s}",
             "note": "permission probe",

@@ -13,7 +13,7 @@ def test_dispute_vote_rejected_when_no_juror_assignment_strict() -> None:
         "accounts": {
             "alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

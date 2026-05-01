@@ -60,7 +60,7 @@ def _min_rep_units(*, min_rep_units: int | None = None, min_rep: Any = 0) -> int
     return max(0, threshold_to_units(min_rep, default=0))
 
 
-def eligible_tier3_jurors(
+def eligible_live_jurors(
     *,
     state: Json,
     min_rep_units: int | None = None,
@@ -77,7 +77,7 @@ def eligible_tier3_jurors(
         if bool(rec.get("banned", False)) or bool(rec.get("locked", False)):
             continue
         tier = _as_int(rec.get("poh_tier", 0), 0)
-        if tier < 3:
+        if tier < 2:
             continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
@@ -99,7 +99,7 @@ def eligible_tier2_jurors(
 ) -> list[str]:
     """Eligible jurors for Tier 2 reviews.
 
-    MVP policy: require Tier 3 accounts (stronger trust baseline) and reputation >= threshold.
+    MVP policy after v2.1 migration: require Tier 2 / Live Verified Human accounts and reputation >= threshold.
     """
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -112,7 +112,7 @@ def eligible_tier2_jurors(
         if bool(rec.get("banned", False)) or bool(rec.get("locked", False)):
             continue
         tier = _as_int(rec.get("poh_tier", 0), 0)
-        if tier < 3:
+        if tier < 2:
             continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
@@ -164,7 +164,7 @@ def pick_tier2_jurors(
     return [a for _h, a in scored[:need]]
 
 
-def pick_tier3_jurors(
+def pick_live_jurors(
     *,
     state: Json,
     case_id: str,
@@ -175,7 +175,7 @@ def pick_tier3_jurors(
     min_rep: Any = 0,
 ) -> tuple[list[str], list[str]]:
     """
-    Deterministically pick jurors from eligible Tier 3 accounts.
+    Deterministically pick jurors from eligible live-verified accounts. The function name remains legacy until POH_LIVE_* is renamed.
 
     Entropy source:
       - Prefer state.rand.vrf.output (verifiable randomness included by proposer)
@@ -187,7 +187,7 @@ def pick_tier3_jurors(
 
     entropy = _entropy_hex(state=state)
 
-    pool = eligible_tier3_jurors(
+    pool = eligible_live_jurors(
         state=state,
         min_rep_units=min_rep_units,
         min_rep=min_rep,

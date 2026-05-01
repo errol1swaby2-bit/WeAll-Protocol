@@ -5,7 +5,7 @@ Golden-path script for the WeAll protocol (full stack).
 This script validates the real web-facing path:
   1) readiness checks
   2) ACCOUNT_REGISTER
-  3) dev/testnet Tier-3 bootstrap grant
+  3) dev/testnet Live bootstrap grant
   4) ACCOUNT_SESSION_KEY_ISSUE
   5) /v1/media/upload with session headers
   6) CONTENT_MEDIA_DECLARE
@@ -313,7 +313,7 @@ def _wait_registered(cfg: Cfg, account: str) -> Json:
         registered = _account_registered(cfg, account)
         tier = int(last.get("poh_tier") or last.get("tier") or 0)
 
-        if exists and registered and tier >= 3:
+        if exists and registered and tier >= 2:
             return last
 
         time.sleep(cfg.poll_s)
@@ -506,11 +506,11 @@ def main() -> int:
     _wait_account_exists(cfg, account)
     print(f"    confirmed tx_id={reg['tx_id']}")
 
-    print("[2] POH_BOOTSTRAP_TIER3_GRANT")
+    print("[2] POH_BOOTSTRAP_TIER2_GRANT")
     boot = _submit_tx(
         cfg,
         priv_hex=priv_hex,
-        tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
         signer=account,
         payload={"account_id": account},
     )

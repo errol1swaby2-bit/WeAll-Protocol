@@ -4,6 +4,7 @@ import { api, getApiBaseUrl, weall } from "../api/weall";
 import { getSession, type SessionHealth } from "../auth/session";
 import { useAccount } from "../context/AccountContext";
 import { getFrontendCapabilities } from "../lib/capabilities";
+import { pohTierLabel, v2PohTier } from "../lib/gates";
 import { disputeJurorStatus } from "../lib/disputeSurface";
 import { derivePendingWork, type PendingWorkItem, type PendingWorkSummary } from "../lib/pendingWork";
 import { nav, type RouteMatch, type RouteMeta } from "../lib/router";
@@ -358,11 +359,11 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
   const nodeSummary = useMemo(() => summarizeNodeConnection(statusView, base), [base, statusView]);
   const capabilities = getFrontendCapabilities();
   const capabilitySummary = useMemo(() => {
-    const tier = Number(accountState?.poh_tier ?? 0);
+    const tier = v2PohTier(accountState?.poh_tier ?? 0);
     return [
-      tier >= 3 ? "Can post" : "Posting locked",
+      tier >= 2 ? "Can post" : "Posting locked",
       tier >= 2 ? "Can react/comment" : "Interaction limited",
-      capabilities.bootstrapTier3Enabled ? "Bootstrap tier-3 dev path on" : "Bootstrap tier-3 dev path off",
+      capabilities.bootstrapTier3Enabled ? "Bootstrap live-verification dev path on" : "Bootstrap live-verification dev path off",
     ];
   }, [accountState?.poh_tier, capabilities.bootstrapTier3Enabled]);
 
@@ -388,9 +389,9 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
   const railAgeMs = railRefreshedAt ? Math.max(0, Date.now() - railRefreshedAt) : null;
   const freshnessText = freshnessLabel(railAgeMs);
   const sessionState = sessionHealth?.state || (account ? "active" : "anonymous");
-  const tier = Number(accountState?.poh_tier ?? 0);
+  const tier = v2PohTier(accountState?.poh_tier ?? 0);
   const standingFlags = [
-    tier ? `Tier ${tier}` : "Tier 0",
+    pohTierLabel(tier),
     accountState?.locked ? "Locked" : "Unlocked",
     accountState?.banned ? "Banned" : "Not banned",
   ];

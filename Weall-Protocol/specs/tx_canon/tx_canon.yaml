@@ -1,6 +1,6 @@
-version: 1.23.1
+version: 1.24.0
 law: append-only
-source: "WeAll Transaction Canon v1.22.2 — Full Enforceable Production Canon"
+source: WeAll Transaction Canon v1.22.2 — Full Enforceable Production Canon
 notes:
 - IDs are never reused; exactly one canonical name per TxType.
 - All state-changing protocol interactions are TxTypes.
@@ -10,15 +10,13 @@ notes:
 - Block-context TxTypes are INVALID in the mempool.
 - Implicit behavior is forbidden; all authority derives from Tx-defined state transitions.
 - 'Spec constraint (v2.1): posting requires reputation >= 0.75 (encoded as min_reputation on post/comment create).'
-- 'HARDENING: removed gate "Any" (unsafe as a reusable pattern); missing gate is only valid for SYSTEM+block-only in runtime
-  enforcement.'
-- 'HARDENING: removed gate "Guardian"; account recovery approvals must be enforced by recovery-config rules, not a global
-  privileged role.'
+- 'HARDENING: removed gate "Any" (unsafe as a reusable pattern); missing gate is only valid for SYSTEM+block-only in runtime enforcement.'
+- 'HARDENING: removed gate "Guardian"; account recovery approvals must be enforced by recovery-config rules, not a global privileged role.'
 - 'HARDENING: removed gate "GroupAdmin"; group authority must be scoped (e.g., Signer) rather than a standing admin gate.'
-- 'HARDENING: unified "GroupEmissary" -> "Emissary" (treasury access is scope-based; role name should not encode treasury
-  type).'
-- 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be updated via CONTENT_POST_EDIT (no separate
-  tagging TxTypes).'
+- 'HARDENING: unified "GroupEmissary" -> "Emissary" (treasury access is scope-based; role name should not encode treasury type).'
+- 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be updated via CONTENT_POST_EDIT (no separate tagging TxTypes).'
+- 'V2.1 PoH migration: user-facing Proof-of-Humanity is two-tier only; legacy Tier2+ gates are remapped to Tier2+ while legacy POH_LIVE_* tx names remain compatibility/live-flow names.'
+- 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested Tier 1 without required email/SMTP/DNS/Cloudflare.'
 txs:
 - id: 1
   name: ACCOUNT_REGISTER
@@ -92,65 +90,6 @@ txs:
   receipt_only: true
   parent: DISPUTE_RESOLVE
   system_only: true
-- id: 2100
-  name: ACCOUNT_RECOVERY_CONFIG_SET
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2101
-  name: ACCOUNT_GUARDIAN_ADD
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2102
-  name: ACCOUNT_GUARDIAN_REMOVE
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2103
-  name: ACCOUNT_RECOVERY_REQUEST
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2104
-  name: ACCOUNT_RECOVERY_APPROVE
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2105
-  name: ACCOUNT_RECOVERY_CANCEL
-  domain: Identity
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2106
-  name: ACCOUNT_RECOVERY_FINALIZE
-  domain: Identity
-  origin: SYSTEM
-  gate: Validator
-  context: block
-  receipt_only: true
-  parent: ACCOUNT_RECOVERY_APPROVE
-  system_only: true
-- id: 2107
-  name: ACCOUNT_RECOVERY_RECEIPT
-  domain: Identity
-  origin: SYSTEM
-  context: block
-  receipt_only: true
-  parent: ACCOUNT_RECOVERY_FINALIZE
-  system_only: true
 - id: 100
   name: POH_APPLICATION_SUBMIT
   domain: PoH
@@ -196,52 +135,6 @@ txs:
   receipt_only: true
   parent: DISPUTE_RESOLVE
   system_only: true
-- id: 2602
-  name: POH_EMAIL_ATTESTATION_SUBMIT
-  domain: PoH
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
-- id: 2603
-  name: POH_TIER_REVOKE
-  domain: PoH
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2604
-  name: ORACLE_REGISTER
-  domain: PoH
-  origin: USER
-  gate: Tier3+
-  context: mempool
-  receipt_only: false
-- id: 2605
-  name: ORACLE_SUSPEND
-  domain: PoH
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2606
-  name: ORACLE_ROTATE_KEY
-  domain: PoH
-  origin: USER
-  gate: Tier3+
-  context: mempool
-  receipt_only: false
-- id: 2607
-  name: ORACLE_UPDATE_METADATA
-  domain: PoH
-  origin: USER
-  gate: Tier3+
-  context: mempool
-  receipt_only: false
 - id: 110
   name: POH_TIER2_REQUEST_OPEN
   domain: PoH
@@ -297,14 +190,14 @@ txs:
   parent: POH_TIER2_FINALIZE
   system_only: true
 - id: 117
-  name: POH_TIER3_REQUEST_OPEN
+  name: POH_LIVE_REQUEST_OPEN
   domain: PoH
   origin: USER
-  gate: Tier2+
+  gate: Tier1+
   context: mempool
   receipt_only: false
 - id: 120
-  name: POH_TIER3_INIT
+  name: POH_LIVE_SESSION_INIT
   domain: PoH
   origin: SYSTEM
   gate: Tier2+
@@ -313,61 +206,61 @@ txs:
   parent: POH_TIER_SET
   system_only: true
 - id: 121
-  name: POH_TIER3_JUROR_ASSIGN
+  name: POH_LIVE_JUROR_ASSIGN
   domain: PoH
   origin: SYSTEM
   gate: Juror
   context: block
   receipt_only: true
-  parent: POH_TIER3_INIT
+  parent: POH_LIVE_SESSION_INIT
   system_only: true
 - id: 122
-  name: POH_TIER3_JUROR_ACCEPT
+  name: POH_LIVE_JUROR_ACCEPT
   domain: PoH
   origin: USER
   gate: Juror
   context: mempool
   receipt_only: false
 - id: 123
-  name: POH_TIER3_JUROR_DECLINE
+  name: POH_LIVE_JUROR_DECLINE
   domain: PoH
   origin: USER
   gate: Juror
   context: mempool
   receipt_only: false
 - id: 124
-  name: POH_TIER3_ATTENDANCE_MARK
+  name: POH_LIVE_ATTENDANCE_MARK
   domain: PoH
   origin: USER
   gate: Juror
   context: mempool
   receipt_only: false
 - id: 125
-  name: POH_TIER3_VERDICT_SUBMIT
+  name: POH_LIVE_VERDICT_SUBMIT
   domain: PoH
   origin: USER
   gate: Juror
   context: mempool
   receipt_only: false
 - id: 126
-  name: POH_TIER3_FINALIZE
+  name: POH_LIVE_FINALIZE
   domain: PoH
   origin: SYSTEM
   gate: Juror
   context: block
   receipt_only: true
-  parent: POH_TIER3_VERDICT_SUBMIT
+  parent: POH_LIVE_VERDICT_SUBMIT
   system_only: true
 - id: 127
-  name: POH_TIER3_RECEIPT
+  name: POH_LIVE_RECEIPT
   domain: PoH
   origin: SYSTEM
   context: block
   receipt_only: true
-  parent: POH_TIER3_FINALIZE
+  parent: POH_LIVE_FINALIZE
   system_only: true
 - id: 128
-  name: POH_BOOTSTRAP_TIER3_GRANT
+  name: POH_BOOTSTRAP_TIER2_GRANT
   domain: PoH
   origin: SYSTEM
   gate: Validator
@@ -375,13 +268,13 @@ txs:
   receipt_only: false
   system_only: true
 - id: 129
-  name: POH_TIER3_JUROR_REPLACE
+  name: POH_LIVE_JUROR_REPLACE
   domain: PoH
   origin: SYSTEM
   gate: Juror
   context: block
   receipt_only: true
-  parent: POH_TIER3_JUROR_DECLINE
+  parent: POH_LIVE_JUROR_DECLINE
   system_only: true
 - id: 200
   name: DISPUTE_OPEN
@@ -480,7 +373,7 @@ txs:
   name: CONTENT_POST_CREATE
   domain: Content
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
   min_reputation: 1
@@ -490,7 +383,7 @@ txs:
   name: CONTENT_POST_EDIT
   domain: Content
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
   min_reputation: 1
@@ -500,7 +393,7 @@ txs:
   name: CONTENT_POST_DELETE
   domain: Content
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
   min_reputation: 1
@@ -572,7 +465,7 @@ txs:
   name: CONTENT_MEDIA_DECLARE
   domain: Content
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 321
@@ -600,21 +493,21 @@ txs:
   name: GOV_PROPOSAL_CREATE
   domain: Governance
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 401
   name: GOV_PROPOSAL_EDIT
   domain: Governance
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 402
   name: GOV_PROPOSAL_WITHDRAW
   domain: Governance
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 403
@@ -630,7 +523,7 @@ txs:
   name: GOV_VOTE_CAST
   domain: Governance
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 406
@@ -686,48 +579,6 @@ txs:
   receipt_only: true
   parent: PROTOCOL_UPGRADE_DECLARE
   via_gov_execute: true
-- id: 1600
-  name: GOV_VOTE_REVOKE
-  domain: Governance
-  origin: USER
-  gate: Tier3+
-  context: mempool
-  receipt_only: false
-- id: 1601
-  name: GOV_VOTING_CLOSE
-  domain: Governance
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_STAGE_SET
-  via_gov_execute: true
-- id: 1602
-  name: GOV_TALLY_PUBLISH
-  domain: Governance
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_VOTING_CLOSE
-  via_gov_execute: true
-- id: 1603
-  name: GOV_PROPOSAL_FINALIZE
-  domain: Governance
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_TALLY_PUBLISH
-  via_gov_execute: true
-- id: 1604
-  name: GOV_PROPOSAL_RECEIPT
-  domain: Governance
-  origin: SYSTEM
-  context: block
-  receipt_only: true
-  parent: GOV_PROPOSAL_FINALIZE
-  system_only: true
 - id: 500
   name: TREASURY_WALLET_CREATE
   domain: Treasury
@@ -843,36 +694,18 @@ txs:
   name: VALIDATOR_REGISTER
   domain: Consensus
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 601
   name: VALIDATOR_CANDIDATE_REGISTER
   domain: Consensus
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 602
   name: VALIDATOR_CANDIDATE_APPROVE
-  domain: Consensus
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2600
-  name: VALIDATOR_SUSPEND
-  domain: Consensus
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2601
-  name: VALIDATOR_REMOVE
   domain: Consensus
   origin: SYSTEM
   gate: GovExecutor
@@ -948,7 +781,7 @@ txs:
   name: SLASH_PROPOSE
   domain: Consensus
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 612
@@ -1203,37 +1036,11 @@ txs:
   receipt_only: true
   parent: COLD_SYNC_REQUEST
   system_only: true
-- id: 1900
-  name: INDEX_TOPIC_REGISTER
-  domain: Indexing
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 1901
-  name: INDEX_TOPIC_ANCHOR_SET
-  domain: Indexing
-  origin: SYSTEM
-  gate: Validator
-  context: block
-  receipt_only: true
-  parent: BLOCK_FINALIZE
-  system_only: true
-- id: 1902
-  name: TX_RECEIPT_EMIT
-  domain: Indexing
-  origin: SYSTEM
-  context: block
-  receipt_only: true
-  parent: BLOCK_FINALIZE
-  system_only: true
 - id: 1100
   name: ROLE_JUROR_ENROLL
   domain: Roles
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 1101
@@ -1310,14 +1117,14 @@ txs:
   name: ROLE_EMISSARY_NOMINATE
   domain: Roles
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 1110
   name: ROLE_EMISSARY_VOTE
   domain: Roles
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 1111
@@ -1382,20 +1189,6 @@ txs:
   gate: Tier1+
   context: mempool
   receipt_only: false
-- id: 1500
-  name: DIRECT_MESSAGE_SEND
-  domain: Messaging
-  origin: USER
-  gate: Tier1+
-  context: mempool
-  receipt_only: false
-- id: 1501
-  name: DIRECT_MESSAGE_REDACT
-  domain: Messaging
-  origin: USER
-  gate: Tier1+
-  context: mempool
-  receipt_only: false
 - id: 1300
   name: BALANCE_TRANSFER
   domain: Economics
@@ -1428,33 +1221,6 @@ txs:
   gate: Tier0+
   context: mempool
   receipt_only: false
-- id: 2000
-  name: RATE_LIMIT_POLICY_SET
-  domain: Economics
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2001
-  name: RATE_LIMIT_STRIKE_APPLY
-  domain: Economics
-  origin: SYSTEM
-  gate: Validator
-  context: block
-  receipt_only: true
-  parent: BLOCK_FINALIZE
-  system_only: true
-- id: 2002
-  name: MEMPOOL_REJECT_RECEIPT
-  domain: Economics
-  origin: SYSTEM
-  gate: Validator
-  context: block
-  receipt_only: true
-  parent: BLOCK_FINALIZE
-  system_only: true
 - id: 1400
   name: MOD_ACTION_RECEIPT
   domain: Moderation
@@ -1470,6 +1236,62 @@ txs:
   context: block
   receipt_only: true
   parent: CONTENT_ESCALATE_TO_DISPUTE
+  system_only: true
+- id: 1500
+  name: DIRECT_MESSAGE_SEND
+  domain: Messaging
+  origin: USER
+  gate: Tier1+
+  context: mempool
+  receipt_only: false
+- id: 1501
+  name: DIRECT_MESSAGE_REDACT
+  domain: Messaging
+  origin: USER
+  gate: Tier1+
+  context: mempool
+  receipt_only: false
+- id: 1600
+  name: GOV_VOTE_REVOKE
+  domain: Governance
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 1601
+  name: GOV_VOTING_CLOSE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_STAGE_SET
+  via_gov_execute: true
+- id: 1602
+  name: GOV_TALLY_PUBLISH
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_VOTING_CLOSE
+  via_gov_execute: true
+- id: 1603
+  name: GOV_PROPOSAL_FINALIZE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_TALLY_PUBLISH
+  via_gov_execute: true
+- id: 1604
+  name: GOV_PROPOSAL_RECEIPT
+  domain: Governance
+  origin: SYSTEM
+  context: block
+  receipt_only: true
+  parent: GOV_PROPOSAL_FINALIZE
   system_only: true
 - id: 1700
   name: GROUP_CREATE
@@ -1646,6 +1468,118 @@ txs:
   receipt_only: true
   parent: PERFORMANCE_EVALUATE
   system_only: true
+- id: 1900
+  name: INDEX_TOPIC_REGISTER
+  domain: Indexing
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 1901
+  name: INDEX_TOPIC_ANCHOR_SET
+  domain: Indexing
+  origin: SYSTEM
+  gate: Validator
+  context: block
+  receipt_only: true
+  parent: BLOCK_FINALIZE
+  system_only: true
+- id: 1902
+  name: TX_RECEIPT_EMIT
+  domain: Indexing
+  origin: SYSTEM
+  context: block
+  receipt_only: true
+  parent: BLOCK_FINALIZE
+  system_only: true
+- id: 2000
+  name: RATE_LIMIT_POLICY_SET
+  domain: Economics
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2001
+  name: RATE_LIMIT_STRIKE_APPLY
+  domain: Economics
+  origin: SYSTEM
+  gate: Validator
+  context: block
+  receipt_only: true
+  parent: BLOCK_FINALIZE
+  system_only: true
+- id: 2002
+  name: MEMPOOL_REJECT_RECEIPT
+  domain: Economics
+  origin: SYSTEM
+  gate: Validator
+  context: block
+  receipt_only: true
+  parent: BLOCK_FINALIZE
+  system_only: true
+- id: 2100
+  name: ACCOUNT_RECOVERY_CONFIG_SET
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2101
+  name: ACCOUNT_GUARDIAN_ADD
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2102
+  name: ACCOUNT_GUARDIAN_REMOVE
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2103
+  name: ACCOUNT_RECOVERY_REQUEST
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2104
+  name: ACCOUNT_RECOVERY_APPROVE
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2105
+  name: ACCOUNT_RECOVERY_CANCEL
+  domain: Identity
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2106
+  name: ACCOUNT_RECOVERY_FINALIZE
+  domain: Identity
+  origin: SYSTEM
+  gate: Validator
+  context: block
+  receipt_only: true
+  parent: ACCOUNT_RECOVERY_APPROVE
+  system_only: true
+- id: 2107
+  name: ACCOUNT_RECOVERY_RECEIPT
+  domain: Identity
+  origin: SYSTEM
+  context: block
+  receipt_only: true
+  parent: ACCOUNT_RECOVERY_FINALIZE
+  system_only: true
 - id: 2200
   name: PEER_ADVERTISE
   domain: Networking
@@ -1745,7 +1679,7 @@ txs:
   name: TREASURY_CREATE
   domain: Treasury
   origin: USER
-  gate: Tier3+
+  gate: Tier2+
   context: mempool
   receipt_only: false
 - id: 2504
@@ -1769,3 +1703,136 @@ txs:
   gate: Signer
   context: mempool
   receipt_only: false
+- id: 2600
+  name: VALIDATOR_SUSPEND
+  domain: Consensus
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2601
+  name: VALIDATOR_REMOVE
+  domain: Consensus
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2602
+  name: POH_EMAIL_ATTESTATION_SUBMIT
+  domain: PoH
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2603
+  name: POH_TIER_REVOKE
+  domain: PoH
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2604
+  name: ORACLE_REGISTER
+  domain: PoH
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2605
+  name: ORACLE_SUSPEND
+  domain: PoH
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 2606
+  name: ORACLE_ROTATE_KEY
+  domain: PoH
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2607
+  name: ORACLE_UPDATE_METADATA
+  domain: PoH
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2608
+  name: POH_ASYNC_REQUEST_OPEN
+  domain: PoH
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2609
+  name: POH_ASYNC_EVIDENCE_DECLARE
+  domain: PoH
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2610
+  name: POH_ASYNC_EVIDENCE_BIND
+  domain: PoH
+  origin: USER
+  gate: Tier0+
+  context: mempool
+  receipt_only: false
+- id: 2611
+  name: POH_ASYNC_JUROR_ASSIGN
+  domain: PoH
+  origin: SYSTEM
+  gate: Juror
+  context: block
+  receipt_only: true
+  parent: POH_ASYNC_REQUEST_OPEN
+  system_only: true
+- id: 2612
+  name: POH_ASYNC_JUROR_ACCEPT
+  domain: PoH
+  origin: USER
+  gate: Juror
+  context: mempool
+  receipt_only: false
+- id: 2613
+  name: POH_ASYNC_JUROR_DECLINE
+  domain: PoH
+  origin: USER
+  gate: Juror
+  context: mempool
+  receipt_only: false
+- id: 2614
+  name: POH_ASYNC_REVIEW_SUBMIT
+  domain: PoH
+  origin: USER
+  gate: Juror
+  context: mempool
+  receipt_only: false
+- id: 2615
+  name: POH_ASYNC_FINALIZE
+  domain: PoH
+  origin: SYSTEM
+  gate: Juror
+  context: block
+  receipt_only: true
+  parent: POH_ASYNC_REVIEW_SUBMIT
+  system_only: true
+- id: 2616
+  name: POH_ASYNC_RECEIPT
+  domain: PoH
+  origin: SYSTEM
+  gate: ''
+  context: block
+  receipt_only: true
+  parent: POH_ASYNC_FINALIZE
+  system_only: true

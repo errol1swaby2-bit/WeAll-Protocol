@@ -60,14 +60,14 @@ export default function Proposals(): JSX.Element {
   const canSign = acct ? !!getKeypair(acct)?.secretKeyB64 : false;
 
 
-  const gate = checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 3 });
+  const gate = checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 });
 
   const gateNextStep = !acct
     ? { label: "Sign in first", detail: "Create or restore a device session from Login before you try to author governance actions." }
     : !canSign
       ? { label: "Restore local signer", detail: "This browser needs the account signer before it can author or sign governance proposals." }
-      : Number(acctState?.poh_tier ?? 0) < 3
-        ? { label: "Finish PoH progression", detail: "Governance authoring unlocks at Tier 3. Open PoH to see the next required step." }
+      : Number(acctState?.poh_tier ?? 0) < 2
+        ? { label: "Finish PoH progression", detail: "Governance authoring unlocks at Live Verification. Open PoH to see the next required step." }
         : null;
 
   async function load(): Promise<void> {
@@ -150,7 +150,7 @@ export default function Proposals(): JSX.Element {
               <div className="heroInfoList">
                 <span className="statusPill">Total {items.length}</span>
                 <span className="statusPill">Open {totalOpenProposals}</span>
-                <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Tier 3 ready" : "Tier 3 required"}</span>
+                <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Live Verification ready" : "Live Verification required"}</span>
                 <span className="statusPill">{acctState ? summarizeAccountState(acctState) : "(state unknown)"}</span>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function Proposals(): JSX.Element {
             <div className="buttonRow">
               {!acct ? <button className="btn btnPrimary" onClick={() => nav("/login")}>Open login</button> : null}
               {acct && !canSign ? <button className="btn btnPrimary" onClick={() => nav("/session")}>Open session & devices</button> : null}
-              {acct && canSign && Number(acctState?.poh_tier ?? 0) < 3 ? <button className="btn btnPrimary" onClick={() => nav("/poh")}>Open PoH</button> : null}
+              {acct && canSign && Number(acctState?.poh_tier ?? 0) < 2 ? <button className="btn btnPrimary" onClick={() => nav("/poh")}>Open PoH</button> : null}
             </div>
           </div>
         </section>

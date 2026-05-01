@@ -45,7 +45,7 @@ def _ledger() -> LedgerView:
         accounts={
             "@alice": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10.0,

@@ -35,7 +35,7 @@ def _bootstrap_content_account(ex: WeAllExecutor, account_id: str = "@alice") ->
         },
         "locked": False,
         "nonce": 1,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "recovery": {"config": None, "proposals": {}},
         "reputation": 0,
         "session_keys": {},
@@ -49,21 +49,21 @@ def _seed_protocol_treasury_open_spend(ex: WeAllExecutor) -> None:
     accounts = dict(state.get("accounts") or {})
     accounts["alice"] = {
         "nonce": 1,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "banned": False,
         "locked": False,
         "reputation": 1.0,
     }
     accounts["bob"] = {
         "nonce": 0,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "banned": False,
         "locked": False,
         "reputation": 1.0,
     }
     accounts["SYSTEM"] = {
         "nonce": 0,
-        "poh_tier": 3,
+        "poh_tier": 2,
         "banned": False,
         "locked": False,
         "reputation": 1.0,

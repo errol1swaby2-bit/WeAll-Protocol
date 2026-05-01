@@ -24,7 +24,7 @@ def _mk_state() -> dict:
         "accounts": {
             "@demo_tester": {
                 "nonce": 5,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,
@@ -32,7 +32,7 @@ def _mk_state() -> dict:
             },
             "SYSTEM": {
                 "nonce": 0,
-                "poh_tier": 3,
+                "poh_tier": 2,
                 "banned": False,
                 "locked": False,
                 "reputation": 10,

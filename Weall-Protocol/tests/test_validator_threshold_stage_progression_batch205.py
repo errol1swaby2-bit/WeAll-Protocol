@@ -21,8 +21,8 @@ def _base_state() -> dict:
         "time": 0,
         "params": {"system_signer": "SYSTEM", "economics_enabled": True, "economic_unlock_time": 0},
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False},
-            "bob": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False},
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+            "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
         },
         "roles": {"validators": {"active_set": ["alice"]}},
         "system_queue": [],
@@ -97,7 +97,7 @@ def test_content_flag_escalation_assigns_active_validators_immediately_batch205(
 
 def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch205() -> None:
     st = _base_state()
-    st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False}}
+    st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}}
     st["roles"] = {"validators": {"active_set": ["alice"]}}
 
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "@alice", 1, {"proposal_id": "p3", "title": "t", "rules": {"start_stage": "poll"}}))
@@ -110,7 +110,7 @@ def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch20
 
 def test_content_escalation_assigns_canonical_account_identity_batch205() -> None:
     st = _base_state()
-    st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 3, "banned": False, "locked": False}}
+    st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}}
     st["roles"] = {"validators": {"active_set": ["alice"]}}
     st["content"] = {
         "posts": {"post:@alice:1": {"id": "post:@alice:1", "author": "@alice", "body": "x"}},

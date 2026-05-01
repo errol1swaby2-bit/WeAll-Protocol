@@ -10,7 +10,7 @@ Flow:
   1) generate ed25519 keypair
   2) ACCOUNT_REGISTER (nonce=account.nonce+1)
   3) wait for account registration to apply (keys present)
-  4) POH_BOOTSTRAP_TIER3_GRANT (dev-only; requires WEALL_POH_BOOTSTRAP_OPEN=1)
+  4) POH_BOOTSTRAP_TIER2_GRANT (dev-only; requires WEALL_POH_BOOTSTRAP_OPEN=1)
   5) verify tier>=3 then POST_CREATE
 
 Run:
@@ -246,13 +246,13 @@ def main() -> int:
     print()
 
     print(
-        "[2] POH_BOOTSTRAP_TIER3_GRANT (optional; requires WEALL_POH_BOOTSTRAP_OPEN=1 server-side)"
+        "[2] POH_BOOTSTRAP_TIER2_GRANT (optional; requires WEALL_POH_BOOTSTRAP_OPEN=1 server-side)"
     )
     try:
         res = _submit_tx(
             cfg,
             priv_hex=priv_hex,
-            tx_type="POH_BOOTSTRAP_TIER3_GRANT",
+            tx_type="POH_BOOTSTRAP_TIER2_GRANT",
             signer=acct,
             nonce=_next_nonce(acct_body),
             payload={"account_id": acct, "pubkey": pub_hex},
@@ -262,7 +262,7 @@ def main() -> int:
             st = _wait_tx_confirmed_best_effort(cfg, tx_id, timeout_s=10.0, poll_s=0.5)
             print(f"     submitted tx_id={tx_id} (status_endpoint={st})")
 
-        acct_body = _wait_for_poh_tier(cfg, acct, want_tier=3, timeout_s=90.0, poll_s=0.5)
+        acct_body = _wait_for_poh_tier(cfg, acct, want_tier=2, timeout_s=90.0, poll_s=0.5)
         print(
             f"     bootstrap ok; poh_tier={_poh_tier(acct_body)} current_nonce={_account_nonce(acct_body)} next_nonce={_next_nonce(acct_body)}"
         )
@@ -275,7 +275,7 @@ def main() -> int:
     acct_body = _get_account(cfg, acct)
     tier_now = _poh_tier(acct_body)
     if tier_now < 3:
-        raise RuntimeError(f"refusing_to_post_without_tier3 poh_tier={tier_now}")
+        raise RuntimeError(f"refusing_to_post_without_live poh_tier={tier_now}")
 
     post_payload: Json = {
         "body": "hello from hard mode",

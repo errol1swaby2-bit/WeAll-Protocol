@@ -33,7 +33,7 @@ def test_production_request_with_wrong_node_key_enters_maintenance(tmp_path: Pat
     st["accounts"] = {
         "@v1": {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation_milli": 7000,
@@ -74,7 +74,7 @@ def test_production_request_requires_requested_roles_to_be_active(tmp_path: Path
     st["accounts"] = {
         "@v1": {
             "nonce": 0,
-            "poh_tier": 3,
+            "poh_tier": 2,
             "banned": False,
             "locked": False,
             "reputation_milli": 4000,

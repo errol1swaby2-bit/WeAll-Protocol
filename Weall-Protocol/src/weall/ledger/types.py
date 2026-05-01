@@ -339,7 +339,7 @@ class LedgerState(MutableMapping[str, Any]):
             if pid and pid not in self.accounts:
                 self.accounts[pid] = {
                     "nonce": 0,
-                    "poh_tier": 3,
+                    "poh_tier": 2,
                     "banned": False,
                     "locked": False,
                     "reputation": "0",

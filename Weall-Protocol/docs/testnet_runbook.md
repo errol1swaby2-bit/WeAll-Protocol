@@ -55,11 +55,11 @@ source .venv/bin/activate
 pytest -q
 WEALL_EMAIL="you@example.com" \
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_TIER3=1 \
+WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This proof covers direct API permission gating, fresh account registration, Tier-1 email PoH, joining-node trusted-anchor sync, cross-node account and tx-status parity, a Tier-1-gated node-2 transaction, node-1 catch-up from node 2, Tier-2 async PoH review, Tier-3 protocol-native live PoH review, final cross-node convergence, and restart/catch-up.
+This proof covers direct API permission gating, fresh account registration, Tier-1 email PoH, joining-node trusted-anchor sync, cross-node account and tx-status parity, a Tier-1-gated node-2 transaction, node-1 catch-up from node 2, Tier-2 async PoH review, Live protocol-native live PoH review, final cross-node convergence, and restart/catch-up.
 
 ## Verification
 
