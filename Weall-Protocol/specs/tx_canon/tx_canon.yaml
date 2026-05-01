@@ -16,7 +16,7 @@ notes:
 - 'HARDENING: unified "GroupEmissary" -> "Emissary" (treasury access is scope-based; role name should not encode treasury type).'
 - 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be updated via CONTENT_POST_EDIT (no separate tagging TxTypes).'
 - 'V2.1 PoH migration: user-facing Proof-of-Humanity is two-tier only; legacy Tier2+ gates are remapped to Tier2+ while legacy POH_LIVE_* tx names remain compatibility/live-flow names.'
-- 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested Tier 1 without required email/SMTP/DNS/Cloudflare.'
+- 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested Tier 1 without required external identity infrastructure.'
 txs:
 - id: 1
   name: ACCOUNT_REGISTER
@@ -1721,13 +1721,6 @@ txs:
   receipt_only: true
   parent: GOV_EXECUTE
   via_gov_execute: true
-- id: 2602
-  name: POH_EMAIL_ATTESTATION_SUBMIT
-  domain: PoH
-  origin: USER
-  gate: Tier0+
-  context: mempool
-  receipt_only: false
 - id: 2603
   name: POH_TIER_REVOKE
   domain: PoH
@@ -1737,36 +1730,6 @@ txs:
   receipt_only: true
   parent: GOV_EXECUTE
   via_gov_execute: true
-- id: 2604
-  name: ORACLE_REGISTER
-  domain: PoH
-  origin: USER
-  gate: Tier2+
-  context: mempool
-  receipt_only: false
-- id: 2605
-  name: ORACLE_SUSPEND
-  domain: PoH
-  origin: SYSTEM
-  gate: GovExecutor
-  context: block
-  receipt_only: true
-  parent: GOV_EXECUTE
-  via_gov_execute: true
-- id: 2606
-  name: ORACLE_ROTATE_KEY
-  domain: PoH
-  origin: USER
-  gate: Tier2+
-  context: mempool
-  receipt_only: false
-- id: 2607
-  name: ORACLE_UPDATE_METADATA
-  domain: PoH
-  origin: USER
-  gate: Tier2+
-  context: mempool
-  receipt_only: false
 - id: 2608
   name: POH_ASYNC_REQUEST_OPEN
   domain: PoH

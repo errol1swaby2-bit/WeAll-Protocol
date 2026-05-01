@@ -3,7 +3,7 @@ from __future__ import annotations
 """Canonical Proof-of-Humanity account status helpers.
 
 This module is intentionally consensus-safe: it is pure state normalization and
-mutation logic with no wall-clock, environment, network, SMTP, DNS, or provider
+mutation logic with no wall-clock, environment, network, DNS, or provider
 lookups. Domain appliers should use this module instead of reading or writing
 ``accounts[account_id]['poh_tier']`` directly.
 """

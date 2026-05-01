@@ -2,7 +2,6 @@
 """Build a public node-operator onboarding bundle.
 
 The bundle is safe to hand to a new WeAll node operator. It contains public
-chain/oracle anchors only. It intentionally does not contain SMTP passwords, oracle private keys, authority-signer keys, or node private key material.
 """
 from __future__ import annotations
 
@@ -19,9 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 Json = dict[str, Any]
 
 PROHIBITED_SECRET_KEYS = [
-    "WEALL_SMTP_PASSWORD",
-    "WEALL_EMAIL_ORACLE_PRIVATE_KEY",
-    "WEALL_EMAIL_ORACLE_PRIVATE_KEY_FILE",
     "WEALL_NODE_PRIVKEY",
     "WEALL_NODE_PRIVKEY_FILE",
     "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
@@ -81,7 +77,6 @@ def _build(args: argparse.Namespace) -> Json:
         },
         "oracle": {
             "profile": oracle_profile,
-            "oracle_url": str(args.oracle_url or os.environ.get("WEALL_POH_EMAIL_ORACLE_URL") or "").rstrip("/"),
             "authority_url": str(args.authority_url or os.environ.get("WEALL_CHAIN_AUTHORITY_URL") or os.environ.get("WEALL_API_BASE") or "").rstrip("/"),
             "trusted_authority_pubkeys": authority_pubkeys,
             "min_authority_height": int(args.min_authority_height),
@@ -105,9 +100,6 @@ def _build(args: argparse.Namespace) -> Json:
                 "WEALL_NODE_PRIVKEY_FILE or local signing key storage",
             ],
             "poh_email_oracle_operator_keeps_private": [
-                "WEALL_SMTP_PASSWORD",
-                "WEALL_EMAIL_ORACLE_PRIVATE_KEY",
-                "WEALL_EMAIL_ORACLE_PRIVATE_KEY_FILE",
             ],
             "authority_snapshot_signer_keeps_private": [
                 "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",

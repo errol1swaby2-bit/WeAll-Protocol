@@ -4,13 +4,6 @@ import hashlib
 from typing import Any
 
 from weall.runtime.errors import ApplyError
-from weall.runtime.poh.email_attestation import validate_attestation_for_state
-from weall.runtime.poh.oracle_registry import (
-    ORACLE_STATUS_ACTIVE,
-    ORACLE_TYPE_POH_EMAIL_TIER1,
-    put_oracle_record,
-    suspend_oracle,
-)
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     require_valid_poh_tier,
@@ -514,22 +507,6 @@ def _case_id(prefix: str, *, account_id: str, nonce: int) -> str:
 
 
 
-def _email_commitment_index(state: Json) -> Json:
-    poh = _poh_root(state)
-    index = poh.get("email_commitment_index")
-    if not isinstance(index, dict):
-        index = {}
-        poh["email_commitment_index"] = index
-    return index
-
-
-def _email_attestations(state: Json) -> Json:
-    poh = _poh_root(state)
-    attestations = poh.get("email_attestations")
-    if not isinstance(attestations, dict):
-        attestations = {}
-        poh["email_attestations"] = attestations
-    return attestations
 
 
 def _proof_commitment_index(state: Json) -> Json:
@@ -541,102 +518,6 @@ def _proof_commitment_index(state: Json) -> Json:
     return index
 
 
-def apply_poh_email_attestation_submit(state: Json, env: Any) -> Json:
-    p = _payload(env)
-    account_id = _as_str(p.get("account_id") or _signer(env)).strip()
-    attestation = p.get("attestation")
-
-    if not account_id:
-        raise ApplyError("invalid_tx", "missing_account_id", {})
-    if _signer(env) != account_id:
-        raise ApplyError(
-            "forbidden",
-            "subject_signer_mismatch",
-            {"signer": _signer(env), "account_id": account_id},
-        )
-    acct = _require_account_exists(state, account_id)
-    if bool(acct.get("banned", False)):
-        raise ApplyError("forbidden", "account_banned", {"account_id": account_id})
-    if bool(acct.get("locked", False)):
-        raise ApplyError("forbidden", "account_locked", {"account_id": account_id})
-
-    current_height = int(state.get("height") or 0)
-    ok, code, payload, oracle = validate_attestation_for_state(
-        state,
-        attestation if isinstance(attestation, dict) else {},
-        account_id=account_id,
-        current_height=current_height,
-    )
-    if not ok or not isinstance(payload, dict) or not isinstance(oracle, dict):
-        raise ApplyError("invalid_tx", code, {"account_id": account_id})
-
-    challenge_id = _as_str(payload.get("challenge_id") or "").strip()
-    email_hash = _as_str(payload.get("email_hash") or "").strip()
-    proof_commitment = _as_str(payload.get("proof_commitment") or "").strip()
-    if not challenge_id or not email_hash or not proof_commitment:
-        raise ApplyError("invalid_tx", "missing_attestation_commitment", {"account_id": account_id})
-
-    attestations = _email_attestations(state)
-    if challenge_id in attestations:
-        raise ApplyError("invalid_tx", "attestation_replayed", {"challenge_id": challenge_id})
-
-    proof_index = _proof_commitment_index(state)
-    if proof_commitment in proof_index:
-        raise ApplyError("invalid_tx", "proof_commitment_replayed", {"proof_commitment": proof_commitment})
-
-    commitment_index = _email_commitment_index(state)
-    existing_account = _as_str(commitment_index.get(email_hash) or "").strip()
-    if existing_account and existing_account != account_id:
-        raise ApplyError(
-            "invalid_tx",
-            "email_commitment_already_bound",
-            {"account_id": account_id, "existing_account": existing_account},
-        )
-
-    set_account_poh_status(
-        state,
-        account_id=account_id,
-        poh_tier=max(_as_int(acct.get("poh_tier") or 0), 1),
-        status=POH_STATUS_ACTIVE,
-        verified_at_height=current_height,
-        expires_at_height=_as_int(payload.get("expires_at_height"), 0),
-        proof_commitment=proof_commitment,
-        issuer_oracle_id=_as_str(payload.get("oracle_id") or ""),
-        last_updated_height=current_height,
-    )
-
-    token_id = _mint_poh_nft(
-        state,
-        owner=account_id,
-        tier=1,
-        source_id=challenge_id,
-        ts_ms=0,
-    )
-
-    attestations[challenge_id] = {
-        "challenge_id": challenge_id,
-        "account_id": account_id,
-        "chain_id": _as_str(payload.get("chain_id") or state.get("chain_id") or ""),
-        "email_hash": email_hash,
-        "domain_hash": _as_str(payload.get("domain_hash") or ""),
-        "proof_commitment": proof_commitment,
-        "oracle_id": _as_str(payload.get("oracle_id") or ""),
-        "issuer_oracle_id": _as_str(payload.get("oracle_id") or ""),
-        "issued_at_height": _as_int(payload.get("issued_at_height"), 0),
-        "expires_at_height": _as_int(payload.get("expires_at_height"), 0),
-        "accepted_at_height": current_height,
-        "poh_nft_token_id": token_id,
-    }
-    commitment_index[email_hash] = account_id
-    proof_index[proof_commitment] = account_id
-
-    return {
-        "applied": "POH_EMAIL_ATTESTATION_SUBMIT",
-        "account_id": account_id,
-        "challenge_id": challenge_id,
-        "oracle_id": _as_str(payload.get("oracle_id") or ""),
-        "token_id": token_id,
-    }
 
 
 def apply_poh_tier_revoke(state: Json, env: Any) -> Json:
@@ -654,104 +535,6 @@ def apply_poh_tier_revoke(state: Json, env: Any) -> Json:
     return {"applied": "POH_TIER_REVOKE", "account_id": account_id, "status": rec.get("status")}
 
 
-def apply_oracle_register(state: Json, env: Any) -> Json:
-    p = _payload(env)
-    oracle_id = _as_str(p.get("oracle_id") or "").strip()
-    operator_account = _as_str(p.get("operator_account") or _signer(env)).strip()
-    oracle_pubkey = _as_str(p.get("oracle_pubkey") or "").strip().lower()
-    oracle_type = _as_str(p.get("oracle_type") or ORACLE_TYPE_POH_EMAIL_TIER1).strip()
-    if not oracle_id:
-        raise ApplyError("invalid_tx", "missing_oracle_id", {})
-    if not operator_account:
-        raise ApplyError("invalid_tx", "missing_operator_account", {})
-    if operator_account != _signer(env):
-        raise ApplyError("forbidden", "oracle_operator_signer_mismatch", {"signer": _signer(env), "operator_account": operator_account})
-    _require_account_exists(state, operator_account)
-    if not oracle_pubkey:
-        raise ApplyError("invalid_tx", "missing_oracle_pubkey", {"oracle_id": oracle_id})
-    try:
-        rec = put_oracle_record(
-            state,
-            {
-                "oracle_id": oracle_id,
-                "operator_account": operator_account,
-                "oracle_type": oracle_type,
-                "oracle_pubkey": oracle_pubkey,
-                "status": _as_str(p.get("status") or ORACLE_STATUS_ACTIVE),
-                "endpoint_commitment": _as_str(p.get("endpoint_commitment") or ""),
-                "mail_domain_hash": _as_str(p.get("mail_domain_hash") or ""),
-                "registered_at_height": int(state.get("height") or 0),
-                "suspended_at_height": None,
-                "rotated_from_oracle_id": p.get("rotated_from_oracle_id"),
-                "valid_from_height": int(state.get("height") or 0),
-                "valid_until_height": p.get("valid_until_height"),
-            },
-        )
-    except ValueError as exc:
-        raise ApplyError("invalid_tx", str(exc), {"oracle_id": oracle_id}) from exc
-    return {"applied": "ORACLE_REGISTER", "oracle_id": rec.get("oracle_id"), "status": rec.get("status")}
-
-
-def apply_oracle_suspend(state: Json, env: Any) -> Json:
-    p = _payload(env)
-    oracle_id = _as_str(p.get("oracle_id") or "").strip()
-    if not oracle_id:
-        raise ApplyError("invalid_tx", "missing_oracle_id", {})
-    try:
-        rec = suspend_oracle(state, oracle_id=oracle_id, height=int(state.get("height") or 0))
-    except ValueError as exc:
-        raise ApplyError("invalid_tx", str(exc), {"oracle_id": oracle_id}) from exc
-    rec["suspension_reason"] = _as_str(p.get("reason") or "suspended")
-    return {"applied": "ORACLE_SUSPEND", "oracle_id": oracle_id, "status": rec.get("status")}
-
-
-def apply_oracle_rotate_key(state: Json, env: Any) -> Json:
-    p = _payload(env)
-    old_oracle_id = _as_str(p.get("oracle_id") or "").strip()
-    new_oracle_id = _as_str(p.get("new_oracle_id") or old_oracle_id).strip()
-    new_pubkey = _as_str(p.get("new_oracle_pubkey") or "").strip().lower()
-    if not old_oracle_id:
-        raise ApplyError("invalid_tx", "missing_oracle_id", {})
-    if not new_pubkey:
-        raise ApplyError("invalid_tx", "missing_new_oracle_pubkey", {"oracle_id": old_oracle_id})
-    from weall.runtime.poh.oracle_registry import get_oracle_record
-    old = get_oracle_record(state, old_oracle_id)
-    if not isinstance(old, dict):
-        raise ApplyError("invalid_tx", "unknown_oracle", {"oracle_id": old_oracle_id})
-    if _signer(env) != _as_str(old.get("operator_account") or ""):
-        raise ApplyError("forbidden", "oracle_operator_signer_mismatch", {"signer": _signer(env), "oracle_id": old_oracle_id})
-    rotated = dict(old)
-    rotated["oracle_id"] = new_oracle_id
-    rotated["oracle_pubkey"] = new_pubkey
-    rotated["status"] = ORACLE_STATUS_ACTIVE
-    rotated["registered_at_height"] = int(state.get("height") or 0)
-    rotated["valid_from_height"] = int(state.get("height") or 0)
-    rotated["rotated_from_oracle_id"] = old_oracle_id
-    rec = put_oracle_record(state, rotated)
-    old["status"] = "suspended"
-    old["suspended_at_height"] = int(state.get("height") or 0)
-    from weall.runtime.poh.oracle_registry import oracles_root
-    oracles_root(state)[old_oracle_id] = old
-    return {"applied": "ORACLE_ROTATE_KEY", "oracle_id": new_oracle_id, "rotated_from_oracle_id": old_oracle_id, "status": rec.get("status")}
-
-
-def apply_oracle_update_metadata(state: Json, env: Any) -> Json:
-    p = _payload(env)
-    oracle_id = _as_str(p.get("oracle_id") or "").strip()
-    if not oracle_id:
-        raise ApplyError("invalid_tx", "missing_oracle_id", {})
-    from weall.runtime.poh.oracle_registry import get_oracle_record, oracles_root
-    rec = get_oracle_record(state, oracle_id)
-    if not isinstance(rec, dict):
-        raise ApplyError("invalid_tx", "unknown_oracle", {"oracle_id": oracle_id})
-    if _signer(env) != _as_str(rec.get("operator_account") or ""):
-        raise ApplyError("forbidden", "oracle_operator_signer_mismatch", {"signer": _signer(env), "oracle_id": oracle_id})
-    if "endpoint_commitment" in p:
-        rec["endpoint_commitment"] = _as_str(p.get("endpoint_commitment") or "")
-    if "mail_domain_hash" in p:
-        rec["mail_domain_hash"] = _as_str(p.get("mail_domain_hash") or "")
-    oracles_root(state)[oracle_id] = rec
-    return {"applied": "ORACLE_UPDATE_METADATA", "oracle_id": oracle_id}
 
 
 def apply_poh_tier_set(state: Json, tx: Json) -> None:
@@ -2468,23 +2251,8 @@ def apply_poh(state: Json, env: Any) -> Json | None:
     if t == "POH_ASYNC_RECEIPT":
         return apply_poh_async_receipt(state, env)
 
-    if t == "POH_EMAIL_ATTESTATION_SUBMIT":
-        return apply_poh_email_attestation_submit(state, env)
-
     if t == "POH_TIER_REVOKE":
         return apply_poh_tier_revoke(state, env)
-
-    if t == "ORACLE_REGISTER":
-        return apply_oracle_register(state, env)
-
-    if t == "ORACLE_SUSPEND":
-        return apply_oracle_suspend(state, env)
-
-    if t == "ORACLE_ROTATE_KEY":
-        return apply_oracle_rotate_key(state, env)
-
-    if t == "ORACLE_UPDATE_METADATA":
-        return apply_oracle_update_metadata(state, env)
 
     if t == "POH_TIER_SET":
         apply_poh_tier_set(state, {"payload": _payload(env)})

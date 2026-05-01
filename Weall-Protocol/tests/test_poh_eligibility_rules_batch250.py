@@ -15,11 +15,9 @@ def _state(tier: int) -> dict:
 
 
 def test_required_tiers_for_v2_two_tier_migration_gates() -> None:
-    assert get_required_poh_tier("POH_EMAIL_ATTESTATION_SUBMIT") == 0
     assert get_required_poh_tier("GROUP_MEMBERSHIP_REQUEST") == 1
     assert get_required_poh_tier("GROUP_CREATE") == 2
     assert get_required_poh_tier("GOV_VOTE_CAST") == 2
-    assert get_required_poh_tier("ORACLE_REGISTER") == 2
 
 
 def test_tier1_cannot_vote_governance() -> None:
@@ -32,4 +30,3 @@ def test_tier1_cannot_vote_governance() -> None:
 def test_tier2_can_create_group_and_register_oracle_after_v2_remap() -> None:
     state = _state(2)
     require_poh_tier(state, "@alice", "GROUP_CREATE")
-    require_poh_tier(state, "@alice", "ORACLE_REGISTER")

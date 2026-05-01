@@ -8,10 +8,7 @@ A normal node operator verifies chain state and public oracle anchors. A normal 
 
 | Role | Holds | Does not hold |
 |---|---|---|
-| Normal node operator | Their own node/account signing key and public chain/oracle anchors | SMTP credentials, PoH oracle signing key, authority signer private keys |
 | Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials or oracle private keys |
-| PoH email oracle operator | WeAll-hosted PoH email oracle config, SMTP/Stalwart credentials, registered oracle signing key | Normal node private keys owned by other operators |
-| Authority snapshot signer | Authority snapshot signing key, when this deployment profile uses signed authority snapshots | SMTP credentials, normal node keys |
 
 ## Public onboarding bundle
 
@@ -61,7 +58,6 @@ WEALL_NODE_PUBKEY
 WEALL_NODE_PRIVKEY_FILE or equivalent local signer configuration
 ```
 
-Do not put PoH email oracle signing keys, SMTP passwords, authority signer keys, or unrelated provider credentials in the normal node operator environment.
 
 ## Run preflight
 
@@ -78,12 +74,10 @@ This checks:
 
 ## Email oracle use
 
-A normal node operator does not send verification email. It verifies chain state and submits normal signed transactions. A PoH email oracle operator runs the separate WeAll-hosted oracle service and its selected mail transport, such as Stalwart SMTP.
 
 The default PoH email path is:
 
 ```text
-WeAll API -> WeAll-hosted PoH email oracle -> Stalwart/SMTP transport -> signed email-control receipt -> WeAll chain verification
 ```
 
 ## Trust boundary

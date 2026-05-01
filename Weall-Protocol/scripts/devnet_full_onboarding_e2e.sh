@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Native live verification is optional for this smoke harness.
+# Set WEALL_DEVNET_RUN_LIVE=1 to continue from native async Tier 1 into live Tier 2.
+: "${WEALL_DEVNET_RUN_LIVE:=0}"
+
 # Controlled-devnet smoke for non-seeded onboarding and convergence:
 # clean genesis node boot, account creation through normal tx submission,
 # optional Tier-1 email verification through a bounded oracle receipt, node 2
@@ -234,25 +238,6 @@ _submit_node2_convergence_tx() {
 
   local tx_type
   local label
-  if [[ -n "${WEALL_EMAIL:-}" ]]; then
-    tx_type="FOLLOW_SET"
-    label="Tier-1-gated FOLLOW_SET"
-    python3 - "${payload_file}" <<'PY_NODE2_FOLLOW_PAYLOAD'
-import json, sys
-payload = {"target": "@devnet-genesis", "active": True}
-with open(sys.argv[1], 'w', encoding='utf-8') as f:
-    json.dump(payload, f, sort_keys=True)
-PY_NODE2_FOLLOW_PAYLOAD
-  else
-    tx_type="PROFILE_UPDATE"
-    label="Tier-0 PROFILE_UPDATE"
-    python3 - "${payload_file}" <<'PY_NODE2_PROFILE_PAYLOAD'
-import json, sys, time
-payload = {"bio": "controlled devnet edge convergence " + str(int(time.time() * 1000))}
-with open(sys.argv[1], 'w', encoding='utf-8') as f:
-    json.dump(payload, f, sort_keys=True)
-PY_NODE2_PROFILE_PAYLOAD
-  fi
 
   if [[ "${tx_type}" == "FOLLOW_SET" ]]; then
     echo "==> Submitting Tier-1-gated FOLLOW_SET through node 2 normal tx flow" >&2
@@ -653,74 +638,3 @@ bash ./scripts/devnet_smoke_chain_identity.sh "${NODE1_API}"
 
 echo "==> Creating fresh account through node 1 normal tx flow"
 WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" WEALL_ACCOUNT="${ACCOUNT}" WEALL_DEVNET_FRESH_ACCOUNT="${FRESH_ACCOUNT}" bash ./scripts/devnet_create_account.sh
-
-if [[ -n "${WEALL_EMAIL:-}" ]]; then
-  echo "==> Requesting bounded Tier-1 email verification challenge"
-  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_email_verification.sh
-
-  echo "==> Submitting Tier-1 email oracle attestation through normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_submit_email_attestation.sh
-
-  ACCOUNT_FROM_KEYFILE_FOR_TIER="$(_account_from_keyfile)"
-  if [[ -n "${ACCOUNT_FROM_KEYFILE_FOR_TIER}" ]]; then
-    python3 - "${NODE1_API}" "${ACCOUNT_FROM_KEYFILE_FOR_TIER}" <<'PY'
-import json, sys, urllib.parse, urllib.request
-api = sys.argv[1].rstrip('/')
-account = sys.argv[2]
-url = api + '/v1/accounts/' + urllib.parse.quote(account, safe='')
-with urllib.request.urlopen(url, timeout=15) as resp:
-    out = json.loads(resp.read().decode('utf-8'))
-state = out.get('state') if isinstance(out, dict) else {}
-tier = int((state or {}).get('poh_tier') or 0)
-if tier < 1:
-    raise SystemExit(f'Tier-1 email verification did not elevate account: account={account} poh_tier={tier}')
-print(f'==> Verified canonical Tier-1 account state: account={account} poh_tier={tier}')
-PY
-  fi
-else
-  echo "==> WEALL_EMAIL not set; skipped Tier-1 email oracle attestation"
-fi
-
-if _is_node_ready "${NODE2_API}" || _start_node2_if_needed; then
-  echo "==> Syncing node 2 from node 1 trusted anchor"
-  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Comparing node roots after onboarding txs"
-  bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
-
-  ACCOUNT_FROM_KEYFILE_FOR_PARITY="$(_account_from_keyfile)"
-  REGISTER_TX_ID="$(_keyfile_field last_account_register_tx_id)"
-  EMAIL_TX_ID="$(_keyfile_field last_poh_email_attestation_tx_id)"
-  if [[ -n "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}" ]]; then
-    echo "==> Verifying node 2 can read the same account and tx statuses"
-    _assert_cross_node_account_and_tx_parity "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}" "initial-node2-sync" "${REGISTER_TX_ID}" "${EMAIL_TX_ID}"
-
-    NODE2_CONVERGENCE_TX_ID="$(_submit_node2_convergence_tx "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}")"
-    echo "==> Verifying both nodes can read node-2-submitted tx and updated account state"
-    _assert_cross_node_account_and_tx_parity "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}" "node2-submit-convergence" "${REGISTER_TX_ID}" "${EMAIL_TX_ID}" "${NODE2_CONVERGENCE_TX_ID}"
-
-    if [[ "${WEALL_DEVNET_RUN_TIER2:-1}" == "1" ]]; then
-      _run_tier2_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
-      if [[ "${WEALL_DEVNET_RUN_LIVE:-0}" == "1" ]]; then
-        _run_live_devnet_flow "${ACCOUNT_FROM_KEYFILE_FOR_PARITY}"
-      else
-        echo "==> WEALL_DEVNET_RUN_LIVE=0; skipped Live devnet PoH flow"
-      fi
-    else
-      echo "==> WEALL_DEVNET_RUN_TIER2=0; skipped Tier-2 devnet PoH flow"
-      if [[ "${WEALL_DEVNET_RUN_LIVE:-0}" == "1" ]]; then
-        echo "ERROR: WEALL_DEVNET_RUN_LIVE=1 requires WEALL_DEVNET_RUN_TIER2=1 in this full onboarding harness" >&2
-        exit 1
-      fi
-    fi
-  fi
-else
-  echo "==> Node 2 unavailable; skipped cross-node root comparison"
-fi
-
-if [[ -f "${KEYFILE}" ]]; then
-  ACCOUNT_FROM_KEYFILE="$(_account_from_keyfile)"
-  if [[ -n "${ACCOUNT_FROM_KEYFILE}" ]]; then
-    echo "==> Final canonical account state"
-    WEALL_API="${NODE1_API}" bash ./scripts/devnet_account_status.sh "${ACCOUNT_FROM_KEYFILE}"
-  fi
-fi

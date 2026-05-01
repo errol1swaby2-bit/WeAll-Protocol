@@ -53,7 +53,6 @@ cd Weall-Protocol
 source .venv/bin/activate
 
 pytest -q
-WEALL_EMAIL="you@example.com" \
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
 WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh

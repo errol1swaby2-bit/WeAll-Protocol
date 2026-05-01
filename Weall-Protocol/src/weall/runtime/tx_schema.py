@@ -345,9 +345,6 @@ class PohBootstrapTier2GrantPayload(_StrictModel):
     note: str | None = None
 
 
-class PohEmailAttestationSubmitPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1)
-    attestation: Json
 
 
 class PohTierRevokePayload(_StrictModel):
@@ -355,33 +352,6 @@ class PohTierRevokePayload(_StrictModel):
     reason: str | None = None
 
 
-class OracleRegisterPayload(_StrictModel):
-    oracle_id: str = Field(..., min_length=1)
-    operator_account: str | None = Field(default=None, min_length=1)
-    oracle_type: str = Field(default="poh_email_tier1", min_length=1)
-    oracle_pubkey: str = Field(..., min_length=1)
-    status: str | None = Field(default="active", min_length=1)
-    endpoint_commitment: str | None = None
-    mail_domain_hash: str | None = None
-    rotated_from_oracle_id: str | None = None
-    valid_until_height: int | None = Field(default=None, ge=0)
-
-
-class OracleSuspendPayload(_StrictModel):
-    oracle_id: str = Field(..., min_length=1)
-    reason: str | None = None
-
-
-class OracleRotateKeyPayload(_StrictModel):
-    oracle_id: str = Field(..., min_length=1)
-    new_oracle_pubkey: str = Field(..., min_length=1)
-    new_oracle_id: str | None = Field(default=None, min_length=1)
-
-
-class OracleUpdateMetadataPayload(_StrictModel):
-    oracle_id: str = Field(..., min_length=1)
-    endpoint_commitment: str | None = None
-    mail_domain_hash: str | None = None
 
 
 # ============================================================
@@ -1864,12 +1834,7 @@ TX_PAYLOADS: dict[str, Any] = {
     "POH_LIVE_FINALIZE": PohLiveFinalizePayload,
     "POH_LIVE_RECEIPT": PohLiveReceiptPayload,
     "POH_BOOTSTRAP_TIER2_GRANT": PohBootstrapTier2GrantPayload,
-    "POH_EMAIL_ATTESTATION_SUBMIT": PohEmailAttestationSubmitPayload,
     "POH_TIER_REVOKE": PohTierRevokePayload,
-    "ORACLE_REGISTER": OracleRegisterPayload,
-    "ORACLE_SUSPEND": OracleSuspendPayload,
-    "ORACLE_ROTATE_KEY": OracleRotateKeyPayload,
-    "ORACLE_UPDATE_METADATA": OracleUpdateMetadataPayload,
     # Content (canon)
     "CONTENT_POST_CREATE": ContentPostCreatePayload,
     "CONTENT_POST_EDIT": ContentPostEditPayload,

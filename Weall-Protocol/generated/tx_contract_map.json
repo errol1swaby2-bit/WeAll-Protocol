@@ -1656,62 +1656,6 @@
     {
       "claim_count": 1,
       "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier2+",
-      "tx_type": "ORACLE_REGISTER"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier2+",
-      "tx_type": "ORACLE_ROTATE_KEY"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "GovExecutor",
-      "tx_type": "ORACLE_SUSPEND"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier2+",
-      "tx_type": "ORACLE_UPDATE_METADATA"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
         "networking"
       ],
       "context": "mempool",
@@ -2002,20 +1946,6 @@
       "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "POH_CHALLENGE_RESOLVE"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier0+",
-      "tx_type": "POH_EMAIL_ATTESTATION_SUBMIT"
     },
     {
       "claim_count": 1,
@@ -3224,6 +3154,6 @@
   ],
   "schema_covered_count": 230,
   "single_claim_count": 230,
-  "tx_count": 230,
+  "tx_count": 225,
   "unclaimed_count": 0
 }

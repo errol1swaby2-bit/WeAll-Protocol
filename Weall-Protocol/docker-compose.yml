@@ -50,13 +50,6 @@ services:
       WEALL_ENABLE_DEMO_SEED_ROUTE: ${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}
       WEALL_RUNTIME_PROFILE: ${WEALL_RUNTIME_PROFILE:-seeded_demo}
       WEALL_IPFS_API_BASE: http://kubo:5001
-      WEALL_EMAIL_TRANSPORT: ${WEALL_EMAIL_TRANSPORT:-mock}
-      WEALL_SMTP_HOST: ${WEALL_SMTP_HOST:-stalwart}
-      WEALL_SMTP_PORT: ${WEALL_SMTP_PORT:-587}
-      WEALL_SMTP_USERNAME: ${WEALL_SMTP_USERNAME:-verify@poh.weall.org}
-      WEALL_SMTP_PASSWORD: ${WEALL_SMTP_PASSWORD:-}
-      WEALL_SMTP_FROM: ${WEALL_SMTP_FROM:-verify@poh.weall.org}
-      WEALL_POH_EMAIL_CHALLENGE_STORE: ${WEALL_POH_EMAIL_CHALLENGE_STORE:-./data/poh_email_challenges.json}
       WEALL_MOCK_EMAIL_OUTBOX: ${WEALL_MOCK_EMAIL_OUTBOX:-./data/poh_email_outbox.jsonl}
       PYTHONPATH: /app/src
       # SQLite-backed dev bootstrap must stay single-worker to avoid

@@ -4,7 +4,6 @@ set -euo pipefail
 # Boot a clean genesis/devnet node using explicit non-production settings.
 # This script runs in the foreground so operators can see logs directly.
 # It creates a genesis operator key if missing. The controlled-devnet PoH
-# email path uses provider-neutral email_control_attestation_v1 and never
 # calls demo seed routes or bypasses tx execution.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -69,8 +68,6 @@ export WEALL_STRICT_TX_SIG_DOMAIN="${WEALL_STRICT_TX_SIG_DOMAIN:-1}"
 export WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-0}"
 export WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE="${WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE:-0}"
 export WEALL_ENABLE_OPERATOR_POH="${WEALL_ENABLE_OPERATOR_POH:-0}"
-export WEALL_EMAIL_TRANSPORT="${WEALL_EMAIL_TRANSPORT:-mock}"
-export WEALL_POH_EMAIL_EXPOSE_DEV_CODE="${WEALL_POH_EMAIL_EXPOSE_DEV_CODE:-1}"
 export WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE="${WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE:-0}"
 export WEALL_ALLOW_DIRECT_SESSION_MUTATION="${WEALL_ALLOW_DIRECT_SESSION_MUTATION:-0}"
 export WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"
@@ -90,7 +87,6 @@ export WEALL_VALIDATOR_ACCOUNT="${WEALL_VALIDATOR_ACCOUNT:-${OPERATOR_ACCOUNT}}"
 export WEALL_NODE_PUBKEY="${WEALL_NODE_PUBKEY:-${OPERATOR_PUBKEY}}"
 export WEALL_NODE_PRIVKEY="${WEALL_NODE_PRIVKEY:-${OPERATOR_PRIVKEY}}"
 export WEALL_ORACLE_OPERATOR_ACCOUNT="${WEALL_ORACLE_OPERATOR_ACCOUNT:-${OPERATOR_ACCOUNT}}"
-export WEALL_POH_EMAIL_HASH_SALT="${WEALL_POH_EMAIL_HASH_SALT:-devnet-local-only-secret}"
 export GUNICORN_BIND="${GUNICORN_BIND:-127.0.0.1:8001}"
 
 cat <<EOF
@@ -106,7 +102,6 @@ poh_bootstrap_max_height=${WEALL_POH_BOOTSTRAP_MAX_HEIGHT}
 tier2_jurors=${WEALL_POH_TIER2_N_JURORS}
 tier2_min_reviews=${WEALL_POH_TIER2_MIN_TOTAL_REVIEWS}
 operator_keyfile=${OPERATOR_KEYFILE}
-email_transport=${WEALL_EMAIL_TRANSPORT}
 db=${WEALL_DB_PATH}
 block_loop_lock=${WEALL_BLOCK_LOOP_LOCK_PATH}
 bind=${GUNICORN_BIND}

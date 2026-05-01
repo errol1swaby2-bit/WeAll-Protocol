@@ -52,9 +52,7 @@ This backend snapshot is synchronized at:
 
 - **Transaction canon:** 221 tx types, version 1.23.1
 - **Latest full backend test checkpoint:** 2,582 passed, 1 warning
-- **PoH email posture:** Cloudflare-free; Tier 1 email-control verification uses a WeAll-hosted oracle, SMTP/Stalwart transport, and provider-neutral `email_control_attestation_v1` chain verification
 
-Normal node execution never sends email, calls SMTP, calls Cloudflare, performs DNS/HTTP provider lookups, or reads mail-transport secrets during transaction execution. The chain verifies signed attestations against deterministic state and the on-chain oracle registry.
 
 ## Controlled-devnet readiness proof
 
@@ -65,7 +63,6 @@ cd Weall-Protocol
 source .venv/bin/activate
 
 pytest -q
-WEALL_EMAIL="you@example.com" \
 WEALL_DEVNET_SUITE_RUN_TIER2=1 \
 WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
@@ -139,7 +136,6 @@ This repository currently targets:
 - fail-closed startup posture
 - deterministic mempool and block application rules
 - controlled-devnet onboarding and convergence proof paths
-- Cloudflare-free Tier 1 PoH email attestation verification
 - helper execution strictly subordinate to canonical consensus
 - explicit bootstrap-registration to production-service promotion
 

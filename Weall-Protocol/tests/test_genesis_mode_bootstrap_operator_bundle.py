@@ -6,7 +6,6 @@ import pytest
 
 from weall.runtime.executor import WeAllExecutor
 from weall.testing.sigtools import deterministic_ed25519_keypair
-from weall.api.routes_public_parts.poh import _oracle_authority_registry
 
 
 def _repo_root() -> Path:
@@ -50,27 +49,3 @@ def test_genesis_mode_uses_validator_identity_and_enables_operator_bundle(
     assert params["bootstrap_founder_account"] == acct
     assert params["bootstrap_allowlist"][acct]["pubkey"] == pub
 
-
-def test_oracle_authority_registry_reads_genesis_bootstrap_by_id_keys(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    acct = "@genesis-founder"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
-
-    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
-    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)
-    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", pub)
-    monkeypatch.setenv("WEALL_NODE_ID", acct)
-
-    root = _repo_root()
-    tx_index_path = str(root / "generated" / "tx_index.json")
-    db_path = str(tmp_path / "genesis_founder.db")
-
-    ex = WeAllExecutor(
-        db_path=db_path, node_id=acct, chain_id="genesis-founder", tx_index_path=tx_index_path
-    )
-    st = ex.read_state()
-
-    registry = _oracle_authority_registry(st)
-    assert acct in registry
-    assert pub in list(registry[acct].get("pubkeys") or [])

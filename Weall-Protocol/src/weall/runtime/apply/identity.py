@@ -170,7 +170,6 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
     # New accounts start as Tier 0. Tier 1 must be earned through the bounded
-    # provider-neutral email attestation flow (POH_EMAIL_ATTESTATION_SUBMIT) so backend gates
     # cannot be bypassed by registering a fresh account.
     accounts[signer] = {
         "nonce": _as_int(getattr(env, "nonce", 0), 0),

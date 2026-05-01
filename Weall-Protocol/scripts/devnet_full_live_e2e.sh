@@ -2,7 +2,6 @@
 set -euo pipefail
 
 # Controlled-devnet full onboarding path through protocol-native Live Verified Human:
-# account -> Tier 1 email (when WEALL_EMAIL is set) -> Tier 2 async review
 # -> Live Verified Human live-review attestations -> cross-node sync/root comparison.
 # This is a convenience wrapper around devnet_full_onboarding_e2e.sh and never
 # calls demo seed routes.

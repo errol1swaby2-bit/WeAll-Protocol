@@ -15,10 +15,10 @@ def test_request_size_limit_returns_413(monkeypatch):
     c = TestClient(app)
 
     # A POST endpoint that exists in the public router.
-    # We use /v1/poh/email/begin because it is present and expects JSON.
+    # We use /v1/tx/submit because it is present and expects JSON.
     payload = {"account": "@alice", "email": "a@b.com", "pad": "x" * 500}
 
-    r = c.post("/v1/poh/email/begin", json=payload)
+    r = c.post("/v1/tx/submit", json=payload)
     assert r.status_code == 413
 
     j = r.json()

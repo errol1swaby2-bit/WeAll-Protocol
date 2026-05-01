@@ -143,7 +143,6 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_EXPECTED_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_GENESIS_HASH": str(chain.get("genesis_hash") or ""),
         "WEALL_EXPECTED_TX_INDEX_HASH": str(chain.get("tx_index_hash") or ""),
-        "WEALL_POH_EMAIL_ORACLE_URL": str(oracle.get("oracle_url") or ""),
         "WEALL_CHAIN_AUTHORITY_URL": str(oracle.get("authority_url") or ""),
         "WEALL_ORACLE_AUTHORITY_PUBKEYS": pubkeys,
         "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(oracle.get("authority_snapshot_max_age_ms") or "120000"),

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Operator-side production preflight. This does not require SMTP credentials or oracle private keys. It It proves that the local node is pinned to the canonical chain
+# Operator-side production preflight. This proves that the local node is pinned to the canonical chain
 # manifest and, when oracle variables are present, that the normal node-operator
 # oracle request contract can be signed.
 
@@ -34,7 +34,7 @@ export WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR="${WEALL_STATE_SYNC_REQUIRE_TRUST
 
 bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST}" >/tmp/weall_prod_chain_manifest_preflight.json
 
-if [ -n "${WEALL_POH_EMAIL_ORACLE_URL:-}" ] || [ -n "${WEALL_CHAIN_AUTHORITY_URL:-}" ] || [ -n "${WEALL_ORACLE_AUTHORITY_PUBKEYS:-${WEALL_TRUSTED_AUTHORITY_PUBKEYS:-}}" ]; then
+if [ -n "${WEALL_CHAIN_AUTHORITY_URL:-}" ] || [ -n "${WEALL_ORACLE_AUTHORITY_PUBKEYS:-${WEALL_TRUSTED_AUTHORITY_PUBKEYS:-}}" ]; then
   bash "${ROOT_DIR}/scripts/prod_poh_email_oracle_operator_preflight.sh"
 else
   echo "WARN: oracle operator variables not fully configured; skipped node-operator oracle preflight" >&2

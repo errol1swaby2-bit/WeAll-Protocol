@@ -339,8 +339,6 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
     """Submit a Tier-1 email-control attestation through normal public APIs.
 
     Controlled devnet uses the WeAll-hosted oracle/API flow: begin challenge,
-    complete challenge, receive a provider-neutral email_control_attestation_v1,
-    sign POH_EMAIL_ATTESTATION_SUBMIT with the subject account key, and submit
     the tx through /v1/tx/submit.
     """
 
@@ -351,7 +349,6 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
     begin = _http_json(
         "POST",
         args.api,
-        "/v1/poh/email/begin",
         {"account": account, "email": args.email},
     )
     request_id = str(begin.get("request_id") or begin.get("challenge_id") or args.request_id or "").strip()
@@ -361,14 +358,11 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
     code = str(args.code or begin.get("dev_code") or "").strip()
     if not code:
         raise SystemExit(
-            "missing email verification code; set WEALL_POH_EMAIL_EXPOSE_DEV_CODE=1 on the devnet API "
-            "or pass --code/WEALL_EMAIL_CODE"
         )
 
     completed = _http_json(
         "POST",
         args.api,
-        "/v1/poh/email/complete",
         {"account": account, "email": args.email, "request_id": request_id, "code": code},
     )
     tx_skel = completed.get("tx") if isinstance(completed, dict) else None
@@ -377,13 +371,10 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
         if not isinstance(attestation, dict):
             raise SystemExit(f"Unexpected email complete response: {_json_dumps(completed)}")
         tx_skel = {
-            "tx_type": "POH_EMAIL_ATTESTATION_SUBMIT",
             "payload": {"account_id": account, "attestation": attestation},
             "parent": None,
         }
 
-    tx_type = str(tx_skel.get("tx_type") or "POH_EMAIL_ATTESTATION_SUBMIT").strip().upper()
-    if tx_type != "POH_EMAIL_ATTESTATION_SUBMIT":
         raise SystemExit(f"unsupported email Tier-1 tx_type from oracle: {tx_type}")
 
     if args.attestation_out:
@@ -394,7 +385,6 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
     nonce = int(args.nonce) if args.nonce is not None else _next_nonce(args.api, account)
     tx = _sign_tx(
         chain_id=chain_id,
-        tx_type="POH_EMAIL_ATTESTATION_SUBMIT",
         signer=account,
         nonce=nonce,
         payload=tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else {},
@@ -409,7 +399,6 @@ def cmd_email_tier1(args: argparse.Namespace) -> int:
         "chain_id": chain_id,
         "account": account,
         "request_id": request_id,
-        "tx_type": "POH_EMAIL_ATTESTATION_SUBMIT",
         "tx_id": tx_id,
         "submit": submitted,
         "security_phrase": str(begin.get("security_phrase") or completed.get("security_phrase") or ""),
@@ -944,20 +933,6 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("--print-private", action="store_true")
     k.set_defaults(func=cmd_ensure_keyfile)
 
-    e = sub.add_parser("email-tier1", help="Submit a chain-bound POH_EMAIL_ATTESTATION_SUBMIT tx")
-    e.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    e.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
-    e.add_argument("--email", required=True)
-    e.add_argument("--request-id", default=os.environ.get("WEALL_EMAIL_REQUEST_ID", ""))
-    e.add_argument("--code", default=os.environ.get("WEALL_EMAIL_CODE", ""))
-    e.add_argument("--attestation-out", default="")
-    e.add_argument("--nonce", type=int, default=None)
-    e.add_argument("--parent", default=None)
-    e.add_argument("--wait", action="store_true", default=True)
-    e.add_argument("--no-wait", dest="wait", action="store_false")
-    e.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    e.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
-    e.set_defaults(func=cmd_email_tier1)
 
 
     t2 = sub.add_parser("tier2-request", help="Submit a POH_TIER2_REQUEST_OPEN tx")
