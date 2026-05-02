@@ -745,6 +745,41 @@ def _reject_native_async_private_fields(payload: Json) -> None:
         raise ApplyError("invalid_tx", "native_async_private_field_forbidden", {"fields": leaked})
 
 
+def _validate_async_review_policy(
+    *,
+    assigned_jurors: int,
+    minimum_reviews: int,
+    approval_threshold: int,
+    rejection_threshold: int,
+    case_id: str = "",
+) -> None:
+    """Validate the canonical native async PoH review denominator.
+
+    Native async verification is a consensus outcome.  The denominator and
+    thresholds must come from chain state at case-open time and remain coherent
+    through assignment/finalization.  A malformed policy must fail closed instead
+    of making finalization impossible or allowing a later tx to lower thresholds.
+    """
+
+    details: Json = {
+        "assigned_jurors": int(assigned_jurors),
+        "minimum_reviews": int(minimum_reviews),
+        "approval_threshold": int(approval_threshold),
+        "rejection_threshold": int(rejection_threshold),
+    }
+    if case_id:
+        details["case_id"] = case_id
+
+    if int(assigned_jurors) < 1:
+        raise ApplyError("invalid_state", "invalid_async_poh_threshold_policy", details)
+    if int(minimum_reviews) < 1 or int(minimum_reviews) > int(assigned_jurors):
+        raise ApplyError("invalid_state", "invalid_async_poh_threshold_policy", details)
+    if int(approval_threshold) < 1 or int(approval_threshold) > int(minimum_reviews):
+        raise ApplyError("invalid_state", "invalid_async_poh_threshold_policy", details)
+    if int(rejection_threshold) < 1 or int(rejection_threshold) > int(minimum_reviews):
+        raise ApplyError("invalid_state", "invalid_async_poh_threshold_policy", details)
+
+
 def _async_defaults_from_state(state: Json) -> tuple[int, int, int, int, int]:
     params = state.get("params")
     params = params if isinstance(params, dict) else {}
@@ -755,6 +790,12 @@ def _async_defaults_from_state(state: Json) -> tuple[int, int, int, int, int]:
     approval_threshold = max(1, _as_int(poh.get("async_approval_threshold") or 2, 2))
     rejection_threshold = max(1, _as_int(poh.get("async_rejection_threshold") or 2, 2))
     expiry_window = max(1, _as_int(poh.get("async_expiry_window_blocks") or 100000, 100000))
+    _validate_async_review_policy(
+        assigned_jurors=assigned_jurors,
+        minimum_reviews=min_reviews,
+        approval_threshold=approval_threshold,
+        rejection_threshold=rejection_threshold,
+    )
     return assigned_jurors, min_reviews, approval_threshold, rejection_threshold, expiry_window
 
 
@@ -963,6 +1004,23 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
             raise ApplyError("invalid_tx", "subject_cannot_review_self", {"case_id": case_id, "juror": jid})
         _require_active_live(state, jid, case_id=case_id)
 
+    _validate_async_review_policy(
+        assigned_jurors=assigned_needed,
+        minimum_reviews=_as_int(case.get("minimum_reviews") or 3, 3),
+        approval_threshold=_as_int(case.get("approval_threshold") or 2, 2),
+        rejection_threshold=_as_int(case.get("rejection_threshold") or 2, 2),
+        case_id=case_id,
+    )
+
+    forbidden_threshold_fields = ("min_reviews", "approval_threshold", "rejection_threshold")
+    supplied_threshold_fields = [field for field in forbidden_threshold_fields if p.get(field) is not None]
+    if supplied_threshold_fields:
+        raise ApplyError(
+            "invalid_tx",
+            "async_threshold_override_forbidden",
+            {"case_id": case_id, "fields": supplied_threshold_fields},
+        )
+
     case["assigned_jurors"] = jurors
     juror_map = case.get("jurors")
     if not isinstance(juror_map, dict):
@@ -971,12 +1029,6 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
     for jid in jurors:
         juror_map.setdefault(jid, {"juror_id": jid, "status": "assigned"})
 
-    if p.get("min_reviews") is not None:
-        case["minimum_reviews"] = max(1, _as_int(p.get("min_reviews"), 3))
-    if p.get("approval_threshold") is not None:
-        case["approval_threshold"] = max(1, _as_int(p.get("approval_threshold"), 2))
-    if p.get("rejection_threshold") is not None:
-        case["rejection_threshold"] = max(1, _as_int(p.get("rejection_threshold"), 2))
     case["status"] = "assigned"
     return {"applied": "POH_ASYNC_JUROR_ASSIGN", "case_id": case_id, "jurors": jurors}
 
@@ -1076,9 +1128,20 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
         }
 
     approvals, rejections, counted = _async_review_counts(case)
+    assigned_jurors = _as_int(case.get("assigned_juror_count") or 0, 0)
+    assigned_list = case.get("assigned_jurors")
+    if isinstance(assigned_list, list) and assigned_list:
+        assigned_jurors = len([jid for jid in assigned_list if _as_str(jid).strip()])
     minimum_reviews = _as_int(case.get("minimum_reviews") or 3, 3)
     approval_threshold = _as_int(case.get("approval_threshold") or 2, 2)
     rejection_threshold = _as_int(case.get("rejection_threshold") or 2, 2)
+    _validate_async_review_policy(
+        assigned_jurors=assigned_jurors,
+        minimum_reviews=minimum_reviews,
+        approval_threshold=approval_threshold,
+        rejection_threshold=rejection_threshold,
+        case_id=case_id,
+    )
     height = int(state.get("height") or 0)
     expires_height = _as_int(case.get("expires_height") or 0, 0)
 
