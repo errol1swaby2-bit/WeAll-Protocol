@@ -22,7 +22,7 @@ def _apply_ok(env: dict, state: dict) -> dict:
     return st2
 
 
-def test_account_register_starts_tier0_until_email_receipt() -> None:
+def test_account_register_starts_tier0_until_native_poh_finalization() -> None:
     st = _empty_state()
     st = _apply_ok(
         {

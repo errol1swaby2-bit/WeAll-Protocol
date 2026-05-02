@@ -13,11 +13,11 @@
   "trusted_authority_pubkeys": [
     "1111111111111111111111111111111111111111111111111111111111111111"
   ],
-  "oracle": {
+  "notes": "Deterministic conference/demo manifest. Demo authority environments must pin this chain_id, genesis_hash, tx_index_hash, and demo authority pubkey. This file is intentionally separate from configs/chains/weall-genesis.json.",
+  "authority": {
     "expected_profile": "demo",
     "authority_snapshot_required": false,
     "signed_snapshot_required": false,
-    "demo_authority_account": "@demo-oracle-node"
-  },
-  "notes": "Deterministic conference/demo manifest. Demo oracle environments must pin this chain_id, genesis_hash, tx_index_hash, and demo authority pubkey. This file is intentionally separate from configs/chains/weall-genesis.json."
+    "demo_authority_account": "@demo-bootstrap-authority"
+  }
 }

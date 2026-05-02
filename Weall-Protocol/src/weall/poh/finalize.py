@@ -262,7 +262,7 @@ def finalize_poh_and_mint_gate_nfts(ledger: Any, *, ctx: dict[str, Any]) -> list
 
     Input contract: each finalization entry is a dict like:
       {
-        "finalization_id": "email:abc123" | "video:..." | "ceremony:...",
+        "finalization_id": "async:case-abc123" | "video:..." | "ceremony:...",
         "account": "@alice",
         "tier": 1|2|3,
         "action": "upgrade" | "revoke",

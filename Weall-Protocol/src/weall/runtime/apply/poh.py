@@ -320,7 +320,7 @@ def _bootstrap_allowlist_enabled(params: Json) -> bool:
         return False
 
     # ``bootstrap_allowlist`` also carries genesis-bootstrap founder/operator
-    # metadata used by oracle/status surfaces.  When the explicit policy selector
+    # metadata used by bootstrap/status surfaces.  When the explicit policy selector
     # is ``open``, those genesis metadata rows must not activate allowlist mode or
     # cause a false dual-mode conflict.  Any non-genesis row remains an active
     # allowlist policy and preserves the existing fail-closed behavior.

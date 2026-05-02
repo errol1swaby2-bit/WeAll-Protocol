@@ -132,7 +132,7 @@ def canonical_account_poh_status(state: Json, account_id: str) -> Json:
             "verified_at_height": None,
             "expires_at_height": None,
             "proof_commitment": None,
-            "issuer_oracle_id": None,
+            "issuer_authority_id": None,
             "last_updated_height": _as_int(state.get("height"), 0),
             "poh_tier_label": poh_tier_label(tier),
         }
@@ -148,7 +148,7 @@ def canonical_account_poh_status(state: Json, account_id: str) -> Json:
         "verified_at_height": rec.get("verified_at_height"),
         "expires_at_height": rec.get("expires_at_height"),
         "proof_commitment": rec.get("proof_commitment"),
-        "issuer_oracle_id": rec.get("issuer_oracle_id"),
+        "issuer_authority_id": rec.get("issuer_authority_id", rec.get("issuer_oracle_id")),
         "last_updated_height": _as_int(rec.get("last_updated_height"), 0),
         "poh_tier_label": poh_tier_label(rec.get("poh_tier")),
     }
@@ -179,6 +179,7 @@ def set_account_poh_status(
     verified_at_height: int | None = None,
     expires_at_height: int | None = None,
     proof_commitment: str | None = None,
+    issuer_authority_id: str | None = None,
     issuer_oracle_id: str | None = None,
     last_updated_height: int | None = None,
     mirror_legacy_account_field: bool = True,
@@ -192,6 +193,10 @@ def set_account_poh_status(
 
     height = _as_int(state.get("height"), 0) if last_updated_height is None else int(last_updated_height)
     tier = require_valid_poh_tier(poh_tier)
+    # ``issuer_oracle_id`` is accepted only as a read/write-call compatibility
+    # alias for older callers.  New canonical records use provider-neutral
+    # authority naming and never emit the legacy key.
+    issuer_authority_id = issuer_authority_id if issuer_authority_id is not None else issuer_oracle_id
     rec: Json = {
         "account_id": account_id,
         "poh_tier": tier,
@@ -199,7 +204,7 @@ def set_account_poh_status(
         "verified_at_height": verified_at_height,
         "expires_at_height": expires_at_height,
         "proof_commitment": proof_commitment,
-        "issuer_oracle_id": issuer_oracle_id,
+        "issuer_authority_id": issuer_authority_id,
         "last_updated_height": height,
     }
     account_status_root(state)[account_id] = rec
@@ -231,7 +236,7 @@ def revoke_account_poh_status(
         verified_at_height=current.get("verified_at_height"),
         expires_at_height=current.get("expires_at_height"),
         proof_commitment=current.get("proof_commitment"),
-        issuer_oracle_id=current.get("issuer_oracle_id"),
+        issuer_authority_id=current.get("issuer_authority_id"),
         last_updated_height=last_updated_height,
     )
     rec["revocation_reason"] = _as_str(reason or "revoked")

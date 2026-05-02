@@ -22,12 +22,12 @@ def _load_verify_module():
     return module
 
 
-def test_operator_bundle_verifier_prefers_authority_over_legacy_oracle() -> None:
+def test_operator_bundle_verifier_prefers_authority_over_legacy_authority_section() -> None:
     mod = _load_verify_module()
 
     assert hasattr(mod, "_authority"), (
         "verify_node_operator_onboarding_bundle.py must expose _authority() "
-        "instead of the old _oracle() helper."
+        "instead of the old provider-specific helper."
     )
 
     bundle = {
@@ -37,9 +37,9 @@ def test_operator_bundle_verifier_prefers_authority_over_legacy_oracle() -> None
             "pubkeys": ["authority-pubkey"],
         },
         "oracle": {
-            "url": "http://legacy-oracle.example",
+            "url": "http://legacy-authority.example",
             "profile": "legacy",
-            "pubkeys": ["legacy-oracle-pubkey"],
+            "pubkeys": ["legacy-authority-pubkey"],
         },
     }
 
@@ -50,25 +50,25 @@ def test_operator_bundle_verifier_prefers_authority_over_legacy_oracle() -> None
     assert authority["pubkeys"] == ["authority-pubkey"]
 
 
-def test_operator_bundle_verifier_supports_legacy_oracle_fallback_read_only() -> None:
+def test_operator_bundle_verifier_supports_legacy_authority_fallback_read_only() -> None:
     mod = _load_verify_module()
 
     bundle = {
         "oracle": {
-            "url": "http://legacy-oracle.example",
+            "url": "http://legacy-authority.example",
             "profile": "legacy",
-            "pubkeys": ["legacy-oracle-pubkey"],
+            "pubkeys": ["legacy-authority-pubkey"],
         }
     }
 
     authority = mod._authority(bundle)
 
-    assert authority["url"] == "http://legacy-oracle.example"
+    assert authority["url"] == "http://legacy-authority.example"
     assert authority["profile"] == "legacy"
-    assert authority["pubkeys"] == ["legacy-oracle-pubkey"]
+    assert authority["pubkeys"] == ["legacy-authority-pubkey"]
 
 
-def test_operator_bundle_scripts_do_not_emit_old_public_oracle_env_name() -> None:
+def test_operator_bundle_scripts_do_not_emit_old_public_provider_env_name() -> None:
     verify_source = VERIFY_SCRIPT.read_text(encoding="utf-8")
     build_source = BUILD_SCRIPT.read_text(encoding="utf-8")
 

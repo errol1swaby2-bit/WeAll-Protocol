@@ -114,7 +114,7 @@ Not allowed:
 ### 4.2 Required Secret Inventory
 
 - node private key
-- oracle authority keys
+- authority signer keys
 - ingress/tunnel credentials where applicable
 
 ### 4.3 Secret Validation

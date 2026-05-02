@@ -1417,7 +1417,7 @@ class WeAllExecutor:
           - an enabled storage-operator record
           - validator-role enrollment + active validator set membership
           - consensus validator pubkey registry
-          - genesis bootstrap founder allowlist/metadata used by PoH oracle authority
+          - genesis bootstrap founder allowlist/metadata used by PoH bootstrap authority
 
         Bootstrap activation modes:
           - Explicit mode: WEALL_GENESIS_BOOTSTRAP_ENABLE=1 plus ACCOUNT/PUBKEY envs

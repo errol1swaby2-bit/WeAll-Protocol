@@ -13,10 +13,10 @@
   "trusted_authority_pubkeys": [
     "REPLACE_WITH_PRODUCTION_AUTHORITY_PUBKEY_HEX"
   ],
-  "oracle": {
+  "notes": "This manifest pins the canonical chain identity used by production-oriented boot and authority checks. Replace trusted_authority_pubkeys before public deployment.",
+  "authority": {
     "expected_profile": "production",
     "authority_snapshot_required": true,
     "signed_snapshot_required": true
-  },
-  "notes": "This manifest pins the canonical chain identity used by production-oriented boot and external provider oracle authority checks. Replace trusted_authority_pubkeys before public deployment."
+  }
 }

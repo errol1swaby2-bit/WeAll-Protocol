@@ -19,7 +19,7 @@ def test_poh_finalize_upgrade_mints_gate_nft_and_marks_processed() -> None:
 
     state["poh"]["finalizations"] = [
         {
-            "finalization_id": "email:abc123",
+            "finalization_id": "async:case-abc123",
             "account": "@alice",
             "tier": 1,
             "action": "upgrade",
@@ -44,7 +44,7 @@ def test_poh_finalize_upgrade_mints_gate_nft_and_marks_processed() -> None:
         chain_id="chain-A",
         owner="@alice",
         tier=1,
-        source_id="email:abc123",
+        source_id="async:case-abc123",
     )
 
     tok = state["pof_nfts"]["tokens"][token_id]
@@ -52,7 +52,7 @@ def test_poh_finalize_upgrade_mints_gate_nft_and_marks_processed() -> None:
     assert tok["tier"] == 1
     assert tok["banned"] is False
 
-    processed = state["poh"]["processed_finalizations"]["email:abc123"]
+    processed = state["poh"]["processed_finalizations"]["async:case-abc123"]
     assert processed["done"] is True
     assert processed["action"] == "upgrade"
     assert processed["height"] == 7

@@ -418,7 +418,7 @@ def _bootstrap_allowlist_enabled(ledger: LedgerView) -> bool:
         return False
 
     # Genesis bootstrap records the initial operator/founder in
-    # ``bootstrap_allowlist`` for oracle/identity discovery and legacy status
+    # ``bootstrap_allowlist`` for bootstrap/identity discovery and legacy status
     # surfaces.  That metadata must not accidentally make an explicitly-open
     # controlled-devnet bootstrap policy look like a dual open+allowlist policy.
     # Any non-genesis-bootstrap entry still activates allowlist mode and therefore
