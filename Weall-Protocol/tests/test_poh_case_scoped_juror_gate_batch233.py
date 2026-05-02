@@ -10,6 +10,7 @@ def _ledger() -> dict:
             "@tier2-juror-1": {"poh_tier": 2},
             "@unassigned": {"poh_tier": 2},
         },
+        "params": {"allow_case_scoped_juror_without_role": True},
         "poh": {
             "tier2_cases": {
                 "poh2:@alice:4": {
