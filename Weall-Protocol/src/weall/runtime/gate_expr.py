@@ -286,6 +286,112 @@ def _account_has_tier(ledger: Json, signer: str, tier: int) -> bool:
     return _tier_ok(acct, tier)
 
 
+def _account_record(ledger: Json, signer: str) -> Json:
+    accounts = _as_dict(ledger.get("accounts"))
+    return _record_for_identity(accounts, signer)
+
+
+def _account_available_for_authority(ledger: Json, signer: str, *, min_tier: int = 2) -> bool:
+    acct = _account_record(ledger, signer)
+    if not acct:
+        return False
+    if _record_blocked(acct):
+        return False
+    if _truthy(acct.get("banned")) or _truthy(acct.get("locked")) or _truthy(acct.get("suspended")):
+        return False
+    return _tier_ok(acct, int(min_tier))
+
+
+def _payload_scope_id(payload: Json, *keys: str) -> str:
+    payload = _as_dict(payload)
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, dict):
+            for inner_key in ("id", key, "group_id", "treasury_id", "wallet_id"):
+                nested = str(value.get(inner_key) or "").strip()
+                if nested:
+                    return nested
+        direct = str(value or "").strip()
+        if direct:
+            return direct
+    for nested_key in ("data", "args", "body", "payload"):
+        nested = _as_dict(payload.get(nested_key))
+        if nested:
+            scoped = _payload_scope_id(nested, *keys)
+            if scoped:
+                return scoped
+    return ""
+
+
+def _authority_record_for_identity(container: Json, signer: str, *record_keys: str) -> Json:
+    for key in record_keys:
+        mapping = _as_dict(container.get(key))
+        rec = _record_for_identity(mapping, signer)
+        if rec:
+            return rec
+    return {}
+
+
+def _authority_member_active(
+    container: Json,
+    signer: str,
+    list_key: str,
+    *record_keys: str,
+) -> bool:
+    rec = _authority_record_for_identity(container, signer, *record_keys)
+    if rec and _record_blocked(rec):
+        return False
+
+    variants = set(_identity_variants(signer))
+    found = False
+    for item in container.get(list_key, []) or []:
+        if isinstance(item, dict):
+            ident = str(
+                item.get("account_id")
+                or item.get("signer")
+                or item.get("emissary")
+                or item.get("moderator")
+                or item.get("id")
+                or ""
+            ).strip()
+            if not variants.intersection(_identity_variants(ident)):
+                continue
+            if _record_blocked(item):
+                return False
+            found = True
+            break
+        if variants.intersection(_identity_variants(item)):
+            found = True
+            break
+
+    if not found:
+        return False
+
+    if rec:
+        return _record_active(rec) or not _record_blocked(rec)
+    return True
+
+
+def _global_emissary_active(roles: Json, signer: str) -> bool:
+    emissaries = _as_dict(roles.get("emissaries"))
+    rec = _authority_record_for_identity(
+        emissaries, signer, "by_id", "emissaries_by_id", "records", "status_by_id"
+    )
+    if rec and _record_blocked(rec):
+        return False
+    if _authority_member_active(
+        emissaries,
+        signer,
+        "seated",
+        "by_id",
+        "emissaries_by_id",
+        "records",
+        "status_by_id",
+    ):
+        return True
+    return _record_active(rec)
+
+
 def _case_scoped_juror_without_role_allowed(ledger: Json) -> bool:
     params = _as_dict(ledger.get("params"))
     for key in (
@@ -490,32 +596,116 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     return False
 
 
+def _is_group_signer(ledger: Json, signer: str, payload: Json) -> bool:
+    if not _account_available_for_authority(ledger, signer, min_tier=2):
+        return False
+    roles = _as_dict(ledger.get("roles"))
+    gid = _payload_scope_id(payload, "group_id", "groupId", "groupID", "gid", "group")
+    if not gid:
+        return False
+    g = _as_dict(_as_dict(roles.get("groups_by_id")).get(gid))
+    return _authority_member_active(
+        g, signer, "signers", "signers_by_id", "signer_records", "signer_statuses"
+    )
+
+
+def _is_group_moderator(ledger: Json, signer: str, payload: Json) -> bool:
+    if not _account_available_for_authority(ledger, signer, min_tier=2):
+        return False
+    roles = _as_dict(ledger.get("roles"))
+    gid = _payload_scope_id(payload, "group_id", "groupId", "groupID", "gid", "group")
+    if not gid:
+        return False
+    g = _as_dict(_as_dict(roles.get("groups_by_id")).get(gid))
+    return _authority_member_active(
+        g,
+        signer,
+        "moderators",
+        "moderators_by_id",
+        "moderator_records",
+        "moderator_statuses",
+    )
+
+
 def _is_scoped_signer(ledger: Json, signer: str, payload: Json) -> bool:
+    if not _account_available_for_authority(ledger, signer, min_tier=2):
+        return False
+
     roles = _as_dict(ledger.get("roles"))
 
-    tid = str(payload.get("treasury_id") or "")
-    gid = str(payload.get("group_id") or "")
+    tid = _payload_scope_id(
+        payload,
+        "treasury_id",
+        "treasuryId",
+        "treasuryID",
+        "wallet_id",
+        "walletId",
+        "tid",
+        "treasury",
+        "id",
+    )
+    gid = _payload_scope_id(payload, "group_id", "groupId", "groupID", "gid", "group")
 
     if tid:
         t = _as_dict(_as_dict(roles.get("treasuries_by_id")).get(tid))
-        return signer in {str(x) for x in t.get("signers", [])}
+        return _authority_member_active(
+            t, signer, "signers", "signers_by_id", "signer_records", "signer_statuses"
+        )
 
     if gid:
         g = _as_dict(_as_dict(roles.get("groups_by_id")).get(gid))
-        return signer in {str(x) for x in g.get("signers", [])}
+        return _authority_member_active(
+            g, signer, "signers", "signers_by_id", "signer_records", "signer_statuses"
+        )
 
     return False
 
 
 def _is_emissary(ledger: Json, signer: str, payload: Json) -> bool:
+    if not _account_available_for_authority(ledger, signer, min_tier=2):
+        return False
+
     roles = _as_dict(ledger.get("roles"))
-    gid = str(payload.get("group_id") or "")
+    gid = _payload_scope_id(payload, "group_id", "groupId", "groupID", "gid", "group")
+    tid = _payload_scope_id(
+        payload,
+        "treasury_id",
+        "treasuryId",
+        "treasuryID",
+        "wallet_id",
+        "walletId",
+        "tid",
+        "treasury",
+    )
 
     if gid:
         g = _as_dict(_as_dict(roles.get("groups_by_id")).get(gid))
-        return signer in {str(x) for x in g.get("emissaries", [])}
+        if not _authority_member_active(
+            g,
+            signer,
+            "emissaries",
+            "emissaries_by_id",
+            "emissary_records",
+            "emissary_statuses",
+        ):
+            return False
+        # A blocked global emissary record overrides group-level seating.
+        global_rec = _authority_record_for_identity(
+            _as_dict(roles.get("emissaries")), signer, "by_id", "emissaries_by_id", "records", "status_by_id"
+        )
+        return not (global_rec and _record_blocked(global_rec))
 
-    return False
+    if tid:
+        t = _as_dict(_as_dict(roles.get("treasuries_by_id")).get(tid))
+        if not _authority_member_active(
+            t, signer, "signers", "signers_by_id", "signer_records", "signer_statuses"
+        ):
+            return False
+        if bool(t.get("require_emissary_signers", False)):
+            return _global_emissary_active(roles, signer)
+        return False
+
+    return _global_emissary_active(roles, signer)
 
 
 def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
@@ -537,6 +727,12 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
 
     if atom == "Signer":
         return _is_scoped_signer(ledger, signer, payload)
+
+    if atom == "GroupSigner":
+        return _is_group_signer(ledger, signer, payload)
+
+    if atom == "GroupModerator":
+        return _is_group_moderator(ledger, signer, payload)
 
     if atom == "Emissary":
         return _is_emissary(ledger, signer, payload)

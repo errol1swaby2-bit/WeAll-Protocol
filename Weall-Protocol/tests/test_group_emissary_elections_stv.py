@@ -96,7 +96,16 @@ def test_group_emissary_election_stv_min_five_and_sets_treasury_signers() -> Non
 
 
 def test_gate_emissary_accepts_group_emissary_after_election() -> None:
-    state = {"height": 200}
+    state = {
+        "height": 200,
+        "accounts": {
+            "@alice": {"poh_tier": 2},
+            "@bob": {"poh_tier": 2},
+            "@carl": {"poh_tier": 2},
+            "@dana": {"poh_tier": 2},
+            "@erin": {"poh_tier": 2},
+        },
+    }
 
     apply_groups(state, _mk_env("GROUP_CREATE", "@alice", 1, {"group_id": "g2", "charter": "x"}))
     g = state["roles"]["groups_by_id"]["g2"]
