@@ -1,5 +1,5 @@
 export type PageMode = "hub" | "detail" | "action" | "utility";
-export type FabAction = "post" | "group" | "proposal" | "message" | "none";
+export type FabAction = "post" | "group" | "proposal" | "none";
 export type RightRailContext =
   | "login"
   | "home"
@@ -236,7 +236,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     authRequired: true,
     requiresReady: true,
     mode: "hub",
-    fab: "message",
+    fab: "none",
     rightRail: "messaging",
     dataContract: contract({
       primaryObject: "Direct message inbox",
@@ -706,8 +706,6 @@ export function getFabHref(route: RouteMatch): string | null {
       return "/groups/create";
     case "proposal":
       return "/proposals/create";
-    case "message":
-      return "/messages";
     default:
       return null;
   }

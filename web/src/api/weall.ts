@@ -307,7 +307,7 @@ export async function fetchFeed(params?: FeedParams, base?: string): Promise<Fee
   return request<FeedResponse>(qs, { method: "GET" }, base);
 }
 
-function withSearch(function withSearch(
+function withSearch(
   path: string,
   params?: Record<string, string | number | boolean | null | undefined>,
 ): string {
