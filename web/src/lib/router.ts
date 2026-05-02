@@ -199,14 +199,14 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     public: false,
     authRequired: true,
     requiresReady: true,
-    minPohTier: 3,
+    minPohTier: 2,
     mode: "utility",
     fab: "none",
     rightRail: "juror",
     dataContract: contract({
       primaryObject: "Juror queue",
       contextPanelData: "Juror eligibility and assigned work",
-      blockingDependencies: ["Auth hydration", "Juror eligibility", "Node readiness"],
+      blockingDependencies: ["Auth hydration", "Live Verification", "Active Juror role or badge", "Assigned juror work", "Node readiness"],
     }),
   },
   "/tools": {

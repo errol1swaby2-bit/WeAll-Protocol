@@ -32,6 +32,16 @@ zip -r "$ARCHIVE_PATH" . \
      '.env.local' \
      'web/.env' \
      'web/.env.local' \
+     '.weall-devnet/*' \
+     '.weall/*' \
+     'data/*' \
+     'generated/demo_bootstrap_secret.json' \
+     'generated/demo_bootstrap_result.json' \
+     'generated/*secret*.json' \
+     '*.db' \
+     '*.db-wal' \
+     '*.db-shm' \
+     '*.sqlite' \
      '*.aux.sqlite' \
      '*.db.bft_journal.jsonl' \
      '*.aux_helper_lanes/*'
