@@ -51,7 +51,7 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 This backend snapshot is synchronized at:
 
 - **Transaction canon:** 225 tx types, version 1.24.0
-- **Latest full backend test checkpoint:** 2,582 passed, 1 warning
+- **Latest full backend test checkpoint:** 2,590 passed, 1 warning
 
 
 ## Controlled-devnet readiness proof
@@ -68,7 +68,7 @@ WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 native async PoH through protocol commitments, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 async PoH, completes Live protocol-native live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
+This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 native async PoH through protocol commitments, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
 
 The readiness suite intentionally never calls `/v1/dev/demo-seed`.
 
@@ -146,3 +146,17 @@ To scrub local runtime artifacts before packaging or pushing:
 ```bash
 ./scripts/clean_local_artifacts.sh
 ```
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+

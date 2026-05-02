@@ -8,7 +8,7 @@ A normal node operator verifies chain state and public chain authority anchors. 
 
 | Role | Holds | Does not hold |
 |---|---|---|
-| Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials or authority private keys |
+| Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials, external identity-provider credentials, or authority private keys |
 
 ## Public onboarding bundle
 
@@ -21,7 +21,6 @@ It contains public values only:
 - genesis state root
 - tx index hash
 - chain authority URL, when the deployment publishes one
-- chain authority URL
 - trusted authority snapshot signer public keys
 
 It must not contain private key material.
@@ -77,9 +76,23 @@ This checks:
 Normal node operators do not run external identity-provider verification services.
 Proof-of-Humanity is protocol-native: Tier 1 is async juror-attested review, and
 Tier 2 is live juror-attested review. Nodes verify committed chain state and submit
-normal signed transactions. No external identity-provider service is part of the
+normal signed transactions. No email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, app-store identity, or third-party AI scoring service is part of the
 required PoH architecture.
 
 ## Trust boundary
 
 A node operator does not prove authority by knowing any external service endpoint. PoH authority comes from protocol rules, chain state, and native juror-attested review.
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+

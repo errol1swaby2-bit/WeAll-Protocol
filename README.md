@@ -61,8 +61,7 @@ The current controlled-devnet readiness proof also runs without demo-seed shortc
 - joining-node sync from a trusted anchor
 - cross-node account, tx-status, tip, and state-root parity checks
 - a Tier-1-gated transaction submitted on node 2 and synced back to node 1
-- Tier-2 async PoH request, juror accept, review, finalization, and cross-node convergence
-- Live protocol-native PoH request, reviewer assignment, attendance, verdicts, finalization, and cross-node convergence
+- Tier-2 live PoH request, juror assignment, attendance, verdicts, finalization, and cross-node convergence
 
 This is not a slide deck or mock frontend.  
 It is a working protocol + node + frontend repository.
@@ -142,9 +141,9 @@ WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 async PoH finalization, Live protocol-native PoH finalization, cross-node convergence, and restart/catch-up.
+This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 live PoH finalization, cross-node convergence, and restart/catch-up.
 
-The latest backend verification checkpoint for this snapshot was a green full pytest run: **full pytest should be rerun locally before release**, followed by synchronized tx-canon artifacts at **225 tx types, version 1.24.0**.
+The latest backend verification checkpoint for this snapshot is **2590 passed, 1 warning**, followed by synchronized tx-canon artifacts at **225 tx types, version 1.24.0**. Rerun the full suite locally before tagging any public release.
 
 ---
 
@@ -346,7 +345,7 @@ Consensus remains the canonical ordering and finality layer.
 
 Helpers, where used, must preserve the same result as the serial reference executor.
 
-native PoH verification is intentionally outside consensus execution until it becomes a signed, provider-neutral attestation transaction. Consensus execution verifies the proof; it never sends mail or calls a remote provider.
+Native PoH verification is protocol-native chain state: accounts open cases, bind commitments, assigned jurors submit signed review/verdict transactions, and deterministic finalization updates the PoH tier. Consensus execution never sends mail, calls HTTP, performs DNS lookups, or delegates identity authority to an external provider.
 
 ---
 
@@ -360,7 +359,8 @@ The current implementation posture is intentionally conservative:
 - apply atomically
 - bind consensus messages to chain and validator context
 - keep helper execution beneath canonical consensus
-- keep mail transport outside chain execution
+- keep email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, and third-party AI scoring outside required PoH authority
+- pin production consensus/profile limits so local environment drift cannot change block validity
 - require explicit lifecycle promotion before production authority
 
 This is deliberate.  
@@ -429,3 +429,17 @@ Expected checkpoint for this snapshot:
 [secret-guard] OK
 [verify] release tree check passed
 ```
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+

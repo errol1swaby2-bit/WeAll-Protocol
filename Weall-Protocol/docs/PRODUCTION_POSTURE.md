@@ -96,6 +96,36 @@ The following MUST NOT be allowed in production:
 
 If present, startup MUST FAIL.
 
+
+### 3.4 Public Validator BFT Posture
+
+Production observer nodes may run without validator signing, but any node that presents
+itself as a production validator service or enables validator signing MUST run with
+HotStuff/BFT enabled. The following mixed posture is forbidden:
+
+- `WEALL_OBSERVER_MODE=1` together with `WEALL_VALIDATOR_SIGNING_ENABLED=1`
+- `WEALL_VALIDATOR_SIGNING_ENABLED=1` without `WEALL_BFT_ENABLED=1`
+- `WEALL_NODE_LIFECYCLE_STATE=production_service` with `validator` in `WEALL_SERVICE_ROLES` without `WEALL_BFT_ENABLED=1`
+
+### 3.5 Production Consensus Profile Pinning
+
+Consensus-affecting limits MUST be profile-pinned and included in the production
+profile hash. In production, local `WEALL_MAX_TX_PAYLOAD_*` overrides are not
+local policy; they are consensus-critical profile values and must match the
+pinned production consensus profile. A mismatch MUST fail closed before a node
+participates in validation.
+
+Current pinned tx payload limits:
+
+| Field | Value |
+|---|---:|
+| `max_tx_payload_bytes` | 65536 |
+| `max_tx_payload_depth` | 20 |
+| `max_tx_payload_list_len` | 2000 |
+| `max_tx_payload_dict_keys` | 2000 |
+| `max_tx_payload_str_len` | 65536 |
+| `max_tx_payload_nodes` | 50000 |
+
 ## 4. Secrets and Configuration
 
 ### 4.1 Secret Sources
@@ -153,6 +183,10 @@ Production deployment MUST NOT rely on dev tooling.
 
 Required:
 
+- `python3 -S scripts/check_tx_canon_artifacts.py` passes
+- `bash scripts/secret_guard.sh` passes
+- `bash scripts/verify_release_tree.sh` passes
+- release tree contains no local runtime DBs, devnet state, demo secrets, or generated bootstrap secret/result artifacts
 - dedicated production start script
 - dedicated stop script
 - structured logging
@@ -170,6 +204,7 @@ Production launch requires:
 - posting/media flows verified
 - secrets validated
 - no dev fallbacks reachable
+- public snapshots and unauthenticated account reads redact private/session/device/evidence internals
 - helper mode either disabled or fully proven
 
 ## 10. Enforcement
@@ -179,3 +214,17 @@ Violations of this production posture MUST result in:
 - startup failure
 - build failure
 - deployment rejection
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+

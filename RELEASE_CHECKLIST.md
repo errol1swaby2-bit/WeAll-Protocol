@@ -149,11 +149,14 @@ Browser onboarding and PoH verification are Cloudflare-free, email-free, and rou
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: rerun locally before release
+- full backend suite: `2590 passed, 1 warning` for the latest audited snapshot; rerun locally before release
 - tx canon artifacts: `225 tx types, version 1.24.0`
+- production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed
 - `scripts/verify_release_tree.sh`: passed
 - Native PoH cleanup: primary path validated without email, SMTP, DNS, Cloudflare, relay-token completion, or external identity-provider env aliases
+- Public-validator posture: validator service/signing requires BFT enabled; observer mode and signing cannot be mixed
+- Public API posture: snapshots and unauthenticated account reads redact private/session/device/evidence internals
 
 Before publishing, rerun:
 
@@ -165,3 +168,17 @@ python3 -S scripts/check_tx_canon_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
 ```
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+

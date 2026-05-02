@@ -7,6 +7,9 @@ It assumes validator-set epochs and proposal authentication are consensus-critic
 ## Preflight
 - Verify repository commit hash and release tag.
 - Verify `generated/tx_index.json` hash matches the release manifest.
+- Verify tx canon artifacts are synchronized: `python3 -S scripts/check_tx_canon_artifacts.py`.
+- Verify secret/release hygiene: `bash scripts/secret_guard.sh` and `bash scripts/verify_release_tree.sh`.
+- Verify production profile hash matches the release profile hash.
 - Verify chain ID from genesis config.
 - Verify validator account and validator pubkey have been registered on-chain before enabling signing.
 - Verify local node clock is synchronized with NTP.
@@ -26,7 +29,8 @@ Store keys outside shell history and outside the repo.
 4. Verify `generated/tx_index.json` exists and matches the published hash.
 5. Start the node in observer mode first.
 6. Confirm `/v1/status` and consensus diagnostics are healthy.
-7. Only then enable validator signing.
+7. Only then enable validator signing with `WEALL_BFT_ENABLED=1`.
+8. Never combine observer mode with validator signing.
 
 ## Safety invariants
 A validator must not sign if any of the following are true:
@@ -36,6 +40,9 @@ A validator must not sign if any of the following are true:
 - proposal view leader does not match the local validator when proposing
 - validator epoch in inbound proposals differs from local state
 - validator-set hash in inbound proposals differs from local state
+- local tx payload profile limits differ from the release profile
+- validator signing is enabled while BFT is disabled
+- observer mode is enabled while validator signing is enabled
 
 ## Crash recovery
 After a crash:
@@ -57,3 +64,17 @@ After a crash:
 - Upgrade only at an announced epoch boundary.
 - Stop signing before the upgrade.
 - Confirm post-upgrade validator epoch and set hash match peers before resuming.
+
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
+## Release truth checkpoint
+
+- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- There is no required user-facing Tier 3.
+- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
+- Public API redaction is required for public snapshots and unauthenticated account reads.
+- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+
