@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from weall.api.public_redaction import redact_public_state
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.runtime.executor import ExecutorError
 
@@ -209,8 +210,9 @@ def state_snapshot(request: Request) -> Json:
     if not isinstance(st, dict):
         return {"ok": False, "error": {"code": "bad_state", "message": "snapshot not a dict"}}
 
-    # Keep response shape stable.
-    return {"ok": True, "state": st}
+    # Keep response shape stable while ensuring public snapshots never expose
+    # bearer session keys, raw device identifiers, or private PoH/evidence fields.
+    return {"ok": True, "state": redact_public_state(st)}
 
 
 @router.get("/state/block/{block_id}")
@@ -229,7 +231,7 @@ def state_block(block_id: str, request: Request) -> Json:
     return {"ok": True, "block": blk}
 
 
-@router.post("/sync/request")
+@router.post("/sync/request", include_in_schema=False)
 async def state_sync_request(request: Request) -> Json:
     """Return a bounded state-sync response for a controlled peer.
 
@@ -289,7 +291,7 @@ async def state_sync_request(request: Request) -> Json:
     return {"ok": bool(resp.ok), "response": _sync_response_to_json(resp)}
 
 
-@router.post("/sync/apply")
+@router.post("/sync/apply", include_in_schema=False)
 async def state_sync_apply(request: Request) -> Json:
     """Apply a verified state-sync response to this node.
 

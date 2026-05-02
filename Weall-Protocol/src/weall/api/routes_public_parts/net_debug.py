@@ -38,7 +38,7 @@ def _env_bool(name: str, default: bool) -> bool:
     return bool(default)
 
 
-@router.get("/net/peers")
+@router.get("/net/peers", include_in_schema=False)
 def v1_net_peers(request: Request) -> dict[str, object]:
     """
     Read-only mesh debug endpoint.

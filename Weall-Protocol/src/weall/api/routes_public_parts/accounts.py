@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from weall.api.errors import ApiError
+from weall.api.public_redaction import redact_account_state
 from weall.api.routes_public_parts.common import (
     _cursor_pack,
     _cursor_unpack,
@@ -115,12 +116,19 @@ def v1_account_get(account: str, request: Request):
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
     a = ledger.accounts.get(account)
-    return {
-        "ok": True,
-        "account": account,
-        "state": a
-        or {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
-    }
+
+    reveal_private = False
+    if a:
+        try:
+            reveal_private = require_account_session(request, st) == account
+        except PermissionError:
+            reveal_private = False
+
+    safe_state = redact_account_state(
+        a or {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
+        reveal_private=reveal_private,
+    )
+    return {"ok": True, "account": account, "state": safe_state}
 
 
 @router.get("/accounts/{account}/registered")
