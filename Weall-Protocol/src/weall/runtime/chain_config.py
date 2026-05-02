@@ -295,10 +295,34 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
 
     net_enabled, net_enabled_invalid = _env_bool_status("WEALL_NET_ENABLED", False)
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
+    observer_mode, observer_mode_invalid = _env_bool_status("WEALL_OBSERVER_MODE", False)
+    validator_signing_enabled, validator_signing_enabled_invalid = _env_bool_status(
+        "WEALL_VALIDATOR_SIGNING_ENABLED", False
+    )
+    requested_lifecycle = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    requested_roles = set(_csv_values("WEALL_SERVICE_ROLES"))
+    validator_role_requested = bool("validator" in requested_roles)
+    production_validator_intent = bool(
+        requested_lifecycle == "production_service" and validator_role_requested
+    )
+    validator_signing_intent = bool(validator_signing_enabled and not observer_mode)
     if net_enabled_invalid:
         issues.append("invalid_boolean_env:WEALL_NET_ENABLED")
     if bft_enabled_invalid:
         issues.append("invalid_boolean_env:WEALL_BFT_ENABLED")
+    if observer_mode_invalid:
+        issues.append("invalid_boolean_env:WEALL_OBSERVER_MODE")
+    if validator_signing_enabled_invalid:
+        issues.append("invalid_boolean_env:WEALL_VALIDATOR_SIGNING_ENABLED")
+    if bool(observer_mode) and bool(validator_signing_enabled):
+        issues.append(
+            "WEALL_OBSERVER_MODE=1 cannot be combined with WEALL_VALIDATOR_SIGNING_ENABLED=1"
+        )
+    if (production_validator_intent or validator_signing_intent) and not bool(bft_enabled):
+        issues.append(
+            "production validator intent requires WEALL_BFT_ENABLED=1; "
+            "use WEALL_OBSERVER_MODE=1 without validator signing for observer-first production startup"
+        )
 
     key_sources = _node_identity_source_report()
     pubkey_ok = bool(key_sources["public_key_inline"] or key_sources["public_key_file"])
@@ -314,7 +338,7 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
                 "missing node private key: set WEALL_NODE_PRIVKEY or WEALL_NODE_PRIVKEY_FILE"
             )
 
-    if bft_enabled:
+    if bft_enabled or production_validator_intent or validator_signing_intent:
         validator_account = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT", "") or "").strip()
         validator_account_file = str(
             os.environ.get("WEALL_VALIDATOR_ACCOUNT_FILE", "") or ""
@@ -641,14 +665,34 @@ def validate_runtime_env() -> None:
 
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
     observer_mode, observer_mode_invalid = _env_bool_status("WEALL_OBSERVER_MODE", False)
+    validator_signing_enabled, validator_signing_enabled_invalid = _env_bool_status(
+        "WEALL_VALIDATOR_SIGNING_ENABLED", False
+    )
+    requested_lifecycle = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    requested_roles = set(_csv_values("WEALL_SERVICE_ROLES"))
+    production_validator_intent = bool(
+        requested_lifecycle == "production_service" and "validator" in requested_roles
+    )
     if bft_enabled_invalid:
         issues.append("invalid_boolean_env:WEALL_BFT_ENABLED")
     if observer_mode_invalid:
         issues.append("invalid_boolean_env:WEALL_OBSERVER_MODE")
+    if validator_signing_enabled_invalid:
+        issues.append("invalid_boolean_env:WEALL_VALIDATOR_SIGNING_ENABLED")
     if bft_enabled and observer_mode:
         issues.append(
             "mixed posture is not allowed in production: "
             "WEALL_BFT_ENABLED=1 with WEALL_OBSERVER_MODE=1"
+        )
+    if observer_mode and validator_signing_enabled:
+        issues.append(
+            "mixed posture is not allowed in production: "
+            "WEALL_OBSERVER_MODE=1 with WEALL_VALIDATOR_SIGNING_ENABLED=1"
+        )
+    if (production_validator_intent or (validator_signing_enabled and not observer_mode)) and not bft_enabled:
+        issues.append(
+            "production validator intent requires WEALL_BFT_ENABLED=1; "
+            "use WEALL_OBSERVER_MODE=1 without validator signing for observer-first production startup"
         )
 
     if issues:

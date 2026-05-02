@@ -12,6 +12,29 @@ fail() {
   exit 2
 }
 
+env_is_true() {
+  case "${1:-0}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+csv_has() {
+  local needle="$1"
+  local csv="${2:-}"
+  local old_ifs="$IFS"
+  IFS=','
+  for item in $csv; do
+    item="$(printf '%s' "$item" | tr '[:upper:]' '[:lower:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    if [ "$item" = "$needle" ]; then
+      IFS="$old_ifs"
+      return 0
+    fi
+  done
+  IFS="$old_ifs"
+  return 1
+}
+
 [ -f "${MANIFEST}" ] || fail "production chain manifest not found: ${MANIFEST}"
 
 case "${WEALL_MODE:-prod}" in
@@ -25,6 +48,16 @@ esac
 [ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present in a normal node environment"
 [ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy authority signer private key must not be present in a normal node environment"
 [ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy authority private key must not be present in a normal node environment"
+
+if csv_has "validator" "${WEALL_SERVICE_ROLES:-}" && [ "${WEALL_NODE_LIFECYCLE_STATE:-}" = "production_service" ] && ! env_is_true "${WEALL_BFT_ENABLED:-0}"; then
+  fail "production validator service requires WEALL_BFT_ENABLED=1"
+fi
+if env_is_true "${WEALL_VALIDATOR_SIGNING_ENABLED:-0}" && ! env_is_true "${WEALL_OBSERVER_MODE:-0}" && ! env_is_true "${WEALL_BFT_ENABLED:-0}"; then
+  fail "validator signing requires WEALL_BFT_ENABLED=1 in production"
+fi
+if env_is_true "${WEALL_OBSERVER_MODE:-0}" && env_is_true "${WEALL_VALIDATOR_SIGNING_ENABLED:-0}"; then
+  fail "WEALL_OBSERVER_MODE=1 cannot be combined with WEALL_VALIDATOR_SIGNING_ENABLED=1"
+fi
 
 export WEALL_MODE="prod"
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST}"

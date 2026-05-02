@@ -38,6 +38,22 @@ env_is_true() {
   esac
 }
 
+csv_has() {
+  needle="$1"
+  csv="${2:-}"
+  old_ifs="$IFS"
+  IFS=','
+  for item in $csv; do
+    item="$(printf '%s' "$item" | tr '[:upper:]' '[:lower:]' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    if [ "$item" = "$needle" ]; then
+      IFS="$old_ifs"
+      return 0
+    fi
+  done
+  IFS="$old_ifs"
+  return 1
+}
+
 require_nonempty() {
   var="$1"
   eval "val=\${$var:-}"
@@ -111,6 +127,15 @@ if [ "${WEALL_MODE}" = "prod" ]; then
   if env_is_true "${WEALL_BFT_ALLOW_QC_LESS_BLOCKS:-0}"; then die "WEALL_BFT_ALLOW_QC_LESS_BLOCKS is forbidden in production"; fi
   if env_is_true "${WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS:-0}"; then die "WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS is forbidden in production"; fi
   if env_is_true "${WEALL_UNSAFE_DEV:-0}"; then die "WEALL_UNSAFE_DEV is forbidden in production"; fi
+  if csv_has "validator" "${WEALL_SERVICE_ROLES:-}" && [ "${WEALL_NODE_LIFECYCLE_STATE:-}" = "production_service" ] && ! env_is_true "${WEALL_BFT_ENABLED}"; then
+    die "production validator service requires WEALL_BFT_ENABLED=1"
+  fi
+  if env_is_true "${WEALL_VALIDATOR_SIGNING_ENABLED:-0}" && ! env_is_true "${WEALL_OBSERVER_MODE:-0}" && ! env_is_true "${WEALL_BFT_ENABLED}"; then
+    die "validator signing requires WEALL_BFT_ENABLED=1 in production"
+  fi
+  if env_is_true "${WEALL_OBSERVER_MODE:-0}" && env_is_true "${WEALL_VALIDATOR_SIGNING_ENABLED:-0}"; then
+    die "WEALL_OBSERVER_MODE=1 cannot be combined with WEALL_VALIDATOR_SIGNING_ENABLED=1"
+  fi
   if [ -z "${WEALL_CORS_ORIGINS:-}" ]; then die "WEALL_CORS_ORIGINS must be set explicitly in production"; fi
 else
   if [ -z "${WEALL_CORS_ORIGINS:-}" ]; then
