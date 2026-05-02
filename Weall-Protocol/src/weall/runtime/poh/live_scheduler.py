@@ -146,7 +146,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
       - The scheduler only progresses deterministic, system-owned steps.
 
     Live lifecycle:
-      - POH_LIVE_INIT: opens the on-chain case (session anchor)
+      - POH_LIVE_SESSION_INIT: opens the on-chain case (session anchor)
       - POH_LIVE_JUROR_ASSIGN: assigns jurors
       - POH_LIVE_FINALIZE: finalizes if attendance+verdicts are ready
       - POH_LIVE_RECEIPT: receipt-only marker
@@ -188,7 +188,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                 payload.update(_live_commitment_payload(case))
                 enqueue_system_tx(
                     state,
-                    tx_type="POH_LIVE_INIT",
+                    tx_type="POH_LIVE_SESSION_INIT",
                     payload=payload,
                     due_height=int(next_height),
                     signer="SYSTEM",
@@ -228,7 +228,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                         due_height=int(next_height),
                         signer="SYSTEM",
                         once=True,
-                        parent="POH_LIVE_INIT",
+                        parent="POH_LIVE_SESSION_INIT",
                         phase="post",
                     )
                     enq += 1

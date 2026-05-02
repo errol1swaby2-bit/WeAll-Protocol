@@ -630,6 +630,33 @@ def _require_operator_token(request: Request) -> None:
         raise ApiError.forbidden("forbidden", "bad_operator_token", {})
 
 
+def _operator_live_case(st: Json, case_id: str) -> Json:
+    poh = st.get("poh")
+    if not isinstance(poh, dict):
+        poh = {}
+
+    cases = poh.get("live_cases")
+    if not isinstance(cases, dict):
+        cases = {}
+
+    case = cases.get(case_id)
+    if not isinstance(case, dict):
+        raise ApiError.not_found("not_found", "live_case_not_found")
+
+    return case
+
+
+def _operator_live_case_required_field(case: Json, field: str, *, case_id: str) -> str:
+    value = str(case.get(field) or "").strip()
+    if not value:
+        raise ApiError.bad_request(
+            "bad_request",
+            f"live case missing {field}",
+            {"case_id": case_id, "field": field},
+        )
+    return value
+
+
 class OperatorPohTier2FinalizeRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     outcome: str = Field(..., min_length=1)
@@ -709,11 +736,22 @@ def operator_poh_live_init(
 
     st = _snapshot(request)
     height = int(st.get("height") or 0)
+    case = _operator_live_case(st, case_id)
+    account_id = _operator_live_case_required_field(case, "account_id", case_id=case_id)
+    session_commitment = _operator_live_case_required_field(
+        case, "session_commitment", case_id=case_id
+    )
 
     enqueue_system_tx(
         st,
-        tx_type="POH_LIVE_INIT",
-        payload={"case_id": case_id, "relay_commitment": _sha256_hex(join_url.encode("utf-8")), "ts_ms": 0},
+        tx_type="POH_LIVE_SESSION_INIT",
+        payload={
+            "case_id": case_id,
+            "account_id": account_id,
+            "session_commitment": session_commitment,
+            "relay_commitment": _sha256_hex(join_url.encode("utf-8")),
+            "ts_ms": 0,
+        },
         due_height=height + 1,
         signer="SYSTEM",
         once=True,

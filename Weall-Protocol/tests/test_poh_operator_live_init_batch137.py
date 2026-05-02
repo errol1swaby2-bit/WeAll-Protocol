@@ -7,7 +7,22 @@ from weall.api.app import create_app
 
 class _StubExecutor:
     def __init__(self) -> None:
-        self._state = {"system_queue": []}
+        self._state = {
+            "height": 0,
+            "poh": {
+                "live_cases": {
+                    "case-123": {
+                        "case_id": "case-123",
+                        "account_id": "acct-123",
+                        "status": "requested",
+                        "session_commitment": "session-commitment-123",
+                        "room_commitment": "room-commitment-123",
+                        "prompt_commitment": "prompt-commitment-123",
+                    }
+                }
+            },
+            "system_queue": [],
+        }
 
     def snapshot(self):
         return self._state
@@ -36,4 +51,10 @@ def test_operator_live_init_enqueues_canonical_system_tx_type(monkeypatch) -> No
     state = executor.snapshot()
     queue = list(state.get("system_queue") or [])
     assert queue, "expected system tx to be enqueued"
-    assert str(queue[-1].get("tx_type") or "") == "POH_LIVE_INIT"
+    assert str(queue[-1].get("tx_type") or "") == "POH_LIVE_SESSION_INIT"
+    payload = queue[-1].get("payload") or {}
+    assert payload["case_id"] == "case-123"
+    assert payload["account_id"] == "acct-123"
+    assert payload["session_commitment"] == "session-commitment-123"
+    assert payload.get("relay_commitment")
+    assert "join_url" not in payload
