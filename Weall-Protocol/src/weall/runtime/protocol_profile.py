@@ -14,6 +14,12 @@ DEFAULT_MAX_BLOCK_FUTURE_DRIFT_MS = 2 * 60 * 1000
 DEFAULT_CLOCK_SKEW_WARN_MS = 30 * 1000
 DEFAULT_STARTUP_CLOCK_HARD_FAIL_MS = 24 * 60 * 60 * 1000
 DEFAULT_MAX_BLOCK_TIME_ADVANCE_MS = 60 * 1000
+DEFAULT_MAX_TX_PAYLOAD_BYTES = 64 * 1024
+DEFAULT_MAX_TX_PAYLOAD_DEPTH = 20
+DEFAULT_MAX_TX_PAYLOAD_LIST_LEN = 2000
+DEFAULT_MAX_TX_PAYLOAD_DICT_KEYS = 2000
+DEFAULT_MAX_TX_PAYLOAD_STR_LEN = 64 * 1024
+DEFAULT_MAX_TX_PAYLOAD_NODES = 50_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +42,12 @@ class ProductionConsensusProfile:
     max_block_time_advance_ms: int = DEFAULT_MAX_BLOCK_TIME_ADVANCE_MS
     vrf_required: bool = False
     timestamp_rule: str = "chain_time_successor_only"
+    max_tx_payload_bytes: int = DEFAULT_MAX_TX_PAYLOAD_BYTES
+    max_tx_payload_depth: int = DEFAULT_MAX_TX_PAYLOAD_DEPTH
+    max_tx_payload_list_len: int = DEFAULT_MAX_TX_PAYLOAD_LIST_LEN
+    max_tx_payload_dict_keys: int = DEFAULT_MAX_TX_PAYLOAD_DICT_KEYS
+    max_tx_payload_str_len: int = DEFAULT_MAX_TX_PAYLOAD_STR_LEN
+    max_tx_payload_nodes: int = DEFAULT_MAX_TX_PAYLOAD_NODES
 
     def to_json(self) -> dict[str, object]:
         return {
@@ -59,6 +71,12 @@ class ProductionConsensusProfile:
             "max_block_time_advance_ms": int(self.max_block_time_advance_ms),
             "vrf_required": bool(self.vrf_required),
             "timestamp_rule": str(self.timestamp_rule),
+            "max_tx_payload_bytes": int(self.max_tx_payload_bytes),
+            "max_tx_payload_depth": int(self.max_tx_payload_depth),
+            "max_tx_payload_list_len": int(self.max_tx_payload_list_len),
+            "max_tx_payload_dict_keys": int(self.max_tx_payload_dict_keys),
+            "max_tx_payload_str_len": int(self.max_tx_payload_str_len),
+            "max_tx_payload_nodes": int(self.max_tx_payload_nodes),
         }
 
     def profile_hash(self) -> str:
@@ -217,6 +235,12 @@ def _production_consensus_env_checks() -> tuple[_EnvCheck, ...]:
             p.max_block_time_advance_ms,
         ),
         _EnvCheck("bool", ("WEALL_REQUIRE_VRF",), p.vrf_required),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_BYTES",), p.max_tx_payload_bytes),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_DEPTH",), p.max_tx_payload_depth),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_LIST_LEN",), p.max_tx_payload_list_len),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_DICT_KEYS",), p.max_tx_payload_dict_keys),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_STR_LEN",), p.max_tx_payload_str_len),
+        _EnvCheck("int", ("WEALL_MAX_TX_PAYLOAD_NODES",), p.max_tx_payload_nodes),
         _EnvCheck(
             "bool",
             ("WEALL_STARTUP_CLOCK_SANITY_REQUIRED",),
@@ -383,6 +407,12 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
             "protocol_profile_hash": str(p.profile_hash()),
             "vrf_required": bool(p.vrf_required),
             "timestamp_rule": str(p.timestamp_rule),
+            "max_tx_payload_bytes": int(p.max_tx_payload_bytes),
+            "max_tx_payload_depth": int(p.max_tx_payload_depth),
+            "max_tx_payload_list_len": int(p.max_tx_payload_list_len),
+            "max_tx_payload_dict_keys": int(p.max_tx_payload_dict_keys),
+            "max_tx_payload_str_len": int(p.max_tx_payload_str_len),
+            "max_tx_payload_nodes": int(p.max_tx_payload_nodes),
             "consensus_env_audit_ok": bool(env_audit["ok"]),
             "consensus_env_audit_fingerprint": str(env_audit["audit_fingerprint"]),
         }
@@ -428,9 +458,83 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
         "protocol_profile_hash": str(p.profile_hash()),
         "vrf_required": bool(_env_bool("WEALL_REQUIRE_VRF", p.vrf_required)),
         "timestamp_rule": str(p.timestamp_rule),
+        "max_tx_payload_bytes": int(_env_int("WEALL_MAX_TX_PAYLOAD_BYTES", p.max_tx_payload_bytes)),
+        "max_tx_payload_depth": int(_env_int("WEALL_MAX_TX_PAYLOAD_DEPTH", p.max_tx_payload_depth)),
+        "max_tx_payload_list_len": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", p.max_tx_payload_list_len)
+        ),
+        "max_tx_payload_dict_keys": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", p.max_tx_payload_dict_keys)
+        ),
+        "max_tx_payload_str_len": int(_env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)),
+        "max_tx_payload_nodes": int(_env_int("WEALL_MAX_TX_PAYLOAD_NODES", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(env_audit["ok"]),
         "consensus_env_audit_fingerprint": str(env_audit["audit_fingerprint"]),
     }
+
+
+def runtime_tx_payload_limits() -> dict[str, int]:
+    """Return consensus-visible transaction payload limits.
+
+    Production uses the pinned consensus profile. Non-production modes may use
+    local environment overrides as developer policy only; those overrides are
+    not consensus authority and must not be used by production validators.
+    """
+    p = active_consensus_profile()
+    if _mode() == "prod":
+        return {
+            "max_payload_bytes": int(p.max_tx_payload_bytes),
+            "max_payload_depth": int(p.max_tx_payload_depth),
+            "max_payload_list_len": int(p.max_tx_payload_list_len),
+            "max_payload_dict_keys": int(p.max_tx_payload_dict_keys),
+            "max_payload_str_len": int(p.max_tx_payload_str_len),
+            "max_payload_nodes": int(p.max_tx_payload_nodes),
+        }
+    return {
+        "max_payload_bytes": int(_env_int("WEALL_MAX_TX_PAYLOAD_BYTES", p.max_tx_payload_bytes)),
+        "max_payload_depth": int(_env_int("WEALL_MAX_TX_PAYLOAD_DEPTH", p.max_tx_payload_depth)),
+        "max_payload_list_len": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", p.max_tx_payload_list_len)
+        ),
+        "max_payload_dict_keys": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", p.max_tx_payload_dict_keys)
+        ),
+        "max_payload_str_len": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)
+        ),
+        "max_payload_nodes": int(_env_int("WEALL_MAX_TX_PAYLOAD_NODES", p.max_tx_payload_nodes)),
+    }
+
+
+def validate_tx_payload_limit_profile() -> None:
+    """Fail closed if production attempts local env overrides for tx payload limits."""
+    if _mode() != "prod":
+        return
+    p = active_consensus_profile()
+    checks = (
+        ("WEALL_MAX_TX_PAYLOAD_BYTES", int(p.max_tx_payload_bytes)),
+        ("WEALL_MAX_TX_PAYLOAD_DEPTH", int(p.max_tx_payload_depth)),
+        ("WEALL_MAX_TX_PAYLOAD_LIST_LEN", int(p.max_tx_payload_list_len)),
+        ("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", int(p.max_tx_payload_dict_keys)),
+        ("WEALL_MAX_TX_PAYLOAD_STR_LEN", int(p.max_tx_payload_str_len)),
+        ("WEALL_MAX_TX_PAYLOAD_NODES", int(p.max_tx_payload_nodes)),
+    )
+    mismatches: list[str] = []
+    for name, expected in checks:
+        audit = _env_int_audit(name, expected)
+        if not audit["present"]:
+            continue
+        if audit["invalid"]:
+            raise ValueError(f"invalid_integer_env:{name}")
+        if int(audit["value"]) != int(expected):
+            mismatches.append(name)
+    if mismatches:
+        joined = ", ".join(sorted(mismatches))
+        raise ValueError(
+            "production tx payload limit profile mismatch: "
+            f"{joined}. These limits are pinned by the protocol profile; "
+            "do not override them with local environment variables in production."
+        )
 
 
 def runtime_startup_fingerprint(
@@ -485,6 +589,16 @@ def runtime_startup_fingerprint(
         ),
         "vrf_required": bool(posture.get("vrf_required", p.vrf_required)),
         "timestamp_rule": str(posture.get("timestamp_rule") or p.timestamp_rule),
+        "max_tx_payload_bytes": int(posture.get("max_tx_payload_bytes", p.max_tx_payload_bytes)),
+        "max_tx_payload_depth": int(posture.get("max_tx_payload_depth", p.max_tx_payload_depth)),
+        "max_tx_payload_list_len": int(
+            posture.get("max_tx_payload_list_len", p.max_tx_payload_list_len)
+        ),
+        "max_tx_payload_dict_keys": int(
+            posture.get("max_tx_payload_dict_keys", p.max_tx_payload_dict_keys)
+        ),
+        "max_tx_payload_str_len": int(posture.get("max_tx_payload_str_len", p.max_tx_payload_str_len)),
+        "max_tx_payload_nodes": int(posture.get("max_tx_payload_nodes", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(posture.get("consensus_env_audit_ok", False)),
         "consensus_env_audit_fingerprint": str(
             posture.get("consensus_env_audit_fingerprint") or ""

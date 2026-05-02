@@ -33,6 +33,10 @@ from weall.runtime.reputation_units import (
     threshold_to_units,
     units_to_reputation,
 )
+from weall.runtime.protocol_profile import (
+    runtime_tx_payload_limits,
+    validate_tx_payload_limit_profile,
+)
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
@@ -137,34 +141,49 @@ def _walk_limits(
     return None
 
 
+def _payload_limit_int(spec: Json, key: str, default: int) -> int:
+    raw = spec.get(key)
+    if raw in (None, ""):
+        return int(default)
+    return int(raw)
+
+
 def _payload_limits_ok(env: TxEnvelope, spec: Json) -> AdmissionVerdict | None:
-    """Cheap structural + size caps for payload hardening."""
+    """Cheap structural + size caps for payload hardening.
+
+    Production default payload limits are pinned in the consensus profile. Local
+    ``WEALL_MAX_TX_PAYLOAD_*`` overrides remain available only in non-production
+    developer/test posture; in production, explicit local overrides fail closed
+    rather than altering block-admission behavior across validators. Per-tx spec
+    limits remain canonical because they come from the synchronized tx index.
+    """
     payload = env.payload or {}
 
+    validate_tx_payload_limit_profile()
+    limits = runtime_tx_payload_limits()
+
     max_payload_bytes = int(
-        spec.get("max_payload_bytes") or _env_int("WEALL_MAX_TX_PAYLOAD_BYTES", 64 * 1024)
+        _payload_limit_int(spec, "max_payload_bytes", limits["max_payload_bytes"])
     )
     max_payload_bytes = max(1024, max_payload_bytes)
 
-    max_depth = int(spec.get("max_payload_depth") or _env_int("WEALL_MAX_TX_PAYLOAD_DEPTH", 20))
+    max_depth = int(_payload_limit_int(spec, "max_payload_depth", limits["max_payload_depth"]))
     max_depth = max(4, max_depth)
 
     max_list_len = int(
-        spec.get("max_payload_list_len") or _env_int("WEALL_MAX_TX_PAYLOAD_LIST_LEN", 2000)
+        _payload_limit_int(spec, "max_payload_list_len", limits["max_payload_list_len"])
     )
     max_list_len = max(16, max_list_len)
 
     max_dict_keys = int(
-        spec.get("max_payload_dict_keys") or _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", 2000)
+        _payload_limit_int(spec, "max_payload_dict_keys", limits["max_payload_dict_keys"])
     )
     max_dict_keys = max(16, max_dict_keys)
 
-    max_str_len = int(
-        spec.get("max_payload_str_len") or _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", 64 * 1024)
-    )
+    max_str_len = int(_payload_limit_int(spec, "max_payload_str_len", limits["max_payload_str_len"]))
     max_str_len = max(256, max_str_len)
 
-    max_nodes = int(spec.get("max_payload_nodes") or _env_int("WEALL_MAX_TX_PAYLOAD_NODES", 50_000))
+    max_nodes = int(_payload_limit_int(spec, "max_payload_nodes", limits["max_payload_nodes"]))
     max_nodes = max(1_000, max_nodes)
 
     wl = _walk_limits(
