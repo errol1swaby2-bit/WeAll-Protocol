@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import RequirementList from "../components/RequirementList";
 import MediaGallery from "../components/MediaGallery";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -391,6 +392,7 @@ export default function JurorDashboard(): JSX.Element {
             <div className="emptyPanel">
               <strong>Reviewer actions are locked.</strong>
               <span>{gate.reason}</span>
+              <RequirementList requirements={gate.requirements} />
             </div>
           </div>
         </div>

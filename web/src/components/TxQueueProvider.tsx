@@ -55,7 +55,7 @@ function uid(): string {
 }
 
 function normalizeErrorMessage(error: unknown): string {
-  return inferFeedbackFromUnknown(error, "Transaction failed.").message;
+  return inferFeedbackFromUnknown(error, "Action failed.").message;
 }
 
 function extractTxIdCandidate(value: unknown, depth = 0, seen?: Set<unknown>): string | undefined {
@@ -274,7 +274,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       }
       if (reconciled.phase === "submitted") {
         const finalTxId = reconciled.txId || txId;
-        const detail = reconciled.detail || "The action is recorded. Refreshing the affected surface so it becomes visible.";
+        const detail = reconciled.detail || "Done. Updating this page so the result becomes visible.";
         markRefreshing(id, {
           message: detail,
           txId: finalTxId,
@@ -283,7 +283,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         return false;
       }
       const finalTxId = reconciled.txId || txId;
-      const detail = reconciled.detail || "The action was recorded, but the affected surface has not confirmed visibility yet.";
+      const detail = reconciled.detail || "Done. This page is still updating before the result becomes visible.";
       markRecorded(id, {
         message: detail,
         txId: finalTxId,
@@ -371,8 +371,8 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       }
 
       const detail = sawSubmittedReconcile
-        ? "The action is recorded and partially visible, but final visibility has not arrived yet. Re-open the affected object before retrying."
-        : "Submission appears recorded, but the frontend timed out before the dependent surface confirmed visibility. Open the affected object before retrying.";
+        ? "The action is partly visible, but this page has not fully caught up yet. Re-open the affected item before trying again."
+        : "The action appears done, but this page timed out before showing the result. Open the affected item before trying again.";
       markRecorded(args.id, {
         message: detail,
         txId: args.txId,
@@ -389,7 +389,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         const existingId = activePendingKeysRef.current.get(pendingKey);
         if (existingId) {
           const existing = findItemById(existingId);
-          const duplicate: any = new Error("That action is already submitting. Wait for the current attempt to settle before trying again.");
+          const duplicate: any = new Error("That action is already being saved. Let it finish before trying again.");
           duplicate.code = "duplicate_submission_blocked";
           duplicate.payload = {
             code: "duplicate_submission_blocked",
@@ -403,7 +403,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
       const id = pushPending({
         title: args.title,
-        message: args.pendingMessage || "Validating the action before a signed submission is attempted.",
+        message: args.pendingMessage || "Checking the action before it is saved.",
       });
       if (pendingKey) {
         activePendingKeysRef.current.set(pendingKey, id);
@@ -412,7 +412,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       let attemptedSessionRepair = false;
       try {
         markSubmitting(id, {
-          message: "Submitting the signed action to the node.",
+          message: "Saving the action.",
         });
 
         let result: T;
@@ -435,7 +435,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         const successMessage =
           typeof args.successMessage === "function"
             ? args.successMessage(result)
-            : args.successMessage || "Submission accepted. Waiting for the affected surface to reconcile visibly.";
+            : args.successMessage || "Done. Updating this page so the result becomes visible.";
 
         if (txId) {
           markRecorded(id, { message: successMessage, txId });
@@ -457,7 +457,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
             mutation: args.finality?.mutation,
           });
         } else if (!txId) {
-          const detail = "Action finished without a trackable tx id. The affected surface should already reflect the change.";
+          const detail = "Done. The affected page should already show the change.";
           markSuccess(id, {
             message: detail,
           });
@@ -465,7 +465,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         }
         return result;
       } catch (error) {
-        const feedback: FrontendFeedback = inferFeedbackFromUnknown(error, typeof args.errorMessage === "string" ? args.errorMessage : "Transaction failed.");
+        const feedback: FrontendFeedback = inferFeedbackFromUnknown(error, typeof args.errorMessage === "string" ? args.errorMessage : "Action failed.");
         const errorMessage =
           typeof args.errorMessage === "function"
             ? args.errorMessage(error)

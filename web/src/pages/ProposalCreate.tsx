@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import RequirementList from "../components/RequirementList";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
 import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -248,7 +249,12 @@ export default function ProposalCreate(): JSX.Element {
             </div>
           </div>
 
-          {!createGate.ok ? <div className="inlineError">Gated: {createGate.reason}</div> : null}
+          {!createGate.ok ? (
+            <div className="formStack">
+              <div className="inlineMessage inlineMessage-neutral">{createGate.reason}</div>
+              <RequirementList requirements={createGate.requirements} />
+            </div>
+          ) : null}
 
           {!acct || !canSign ? (
             <div className="calloutInfo">

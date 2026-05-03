@@ -1,6 +1,12 @@
 // web/src/lib/gates.ts
 
 import {
+  combineCapabilities,
+  sessionCapability,
+  verificationCapability,
+  type Requirement,
+} from "./capabilityMessages";
+import {
   accountRestrictionMessage,
   blockedByVerificationMessage,
   normalizeVerificationTier,
@@ -10,6 +16,8 @@ import {
 export type GateResult = {
   ok: boolean;
   reason?: string;
+  reasonCode?: string;
+  requirements?: Requirement[];
 };
 
 export function v2PohTier(value: unknown): number {
@@ -26,6 +34,7 @@ export type GateArgs = {
   accountState: any | null;
   requireTier: number;
   minRep?: number;
+  key?: string;
 };
 
 /**
@@ -35,24 +44,63 @@ export type GateArgs = {
  * authority for all gates, assignments, account status, and action outcomes.
  */
 export function checkGates(args: GateArgs): GateResult {
-  if (!args.loggedIn) return { ok: false, reason: "Sign in or create an account before continuing." };
-  if (!args.canSign) return { ok: false, reason: "This device is missing the local signer for this account. Restore the signer before continuing." };
-
+  const key = args.key || "action";
   const st = args.accountState || {};
-  const restriction = accountRestrictionMessage(st);
-  if (restriction) return { ok: false, reason: restriction };
-
   const tier = v2PohTier(st?.poh_tier ?? 0);
-  if (tier < args.requireTier) {
-    return { ok: false, reason: blockedByVerificationMessage(args.requireTier) };
+
+  const checks = [sessionCapability(key, args.loggedIn, args.canSign)];
+
+  const restriction = accountRestrictionMessage(st);
+  if (restriction) {
+    return {
+      ok: false,
+      reason: restriction,
+      reasonCode: "account_restricted",
+      requirements: [
+        { label: "Account in good standing", satisfied: false, helpText: restriction },
+        ...checks.flatMap((check) => check.requirements || []),
+      ],
+    };
   }
+
+  checks.push(verificationCapability(key, tier, args.requireTier));
 
   if (args.minRep != null) {
     const rep = Number(st?.reputation ?? 0);
-    if (rep < args.minRep) return { ok: false, reason: "This account needs more positive community history before using this action." };
+    checks.push(
+      rep >= args.minRep
+        ? {
+            key,
+            state: "allowed",
+            allowed: true,
+            message: "Your community history meets this requirement.",
+            requirements: [{ label: "Community history", satisfied: true, helpText: "Requirement met." }],
+          }
+        : {
+            key,
+            state: "blocked_by_state",
+            allowed: false,
+            reasonCode: "requires_community_history",
+            message: "This account needs more positive community history before using this action.",
+            requirements: [
+              {
+                label: "Community history",
+                satisfied: false,
+                helpText: "Use the app constructively over time before this action unlocks.",
+              },
+            ],
+          },
+    );
   }
 
-  return { ok: true };
+  const result = combineCapabilities(key, checks);
+  if (result.allowed) return { ok: true, reasonCode: result.reasonCode, requirements: result.requirements };
+  return {
+    ok: false,
+    reason: result.message || blockedByVerificationMessage(args.requireTier),
+    reasonCode: result.reasonCode,
+    requirements: result.requirements,
+  };
 }
 
 export function summarizeAccountState(st: any | null): string {

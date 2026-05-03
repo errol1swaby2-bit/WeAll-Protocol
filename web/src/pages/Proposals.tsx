@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import RequirementList from "../components/RequirementList";
 import { getKeypair, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
@@ -194,6 +195,7 @@ export default function Proposals(): JSX.Element {
                 <div className="summaryCardText">{gateNextStep.detail}</div>
               </article>
             </div>
+            <RequirementList requirements={gate.requirements} />
             <div className="buttonRow">
               {!acct ? <button className="btn btnPrimary" onClick={() => nav("/login")}>Open login</button> : null}
               {acct && !canSign ? <button className="btn btnPrimary" onClick={() => nav("/session")}>Open session & devices</button> : null}

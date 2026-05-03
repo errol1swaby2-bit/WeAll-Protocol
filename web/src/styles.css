@@ -2574,3 +2574,124 @@ body {
     justify-content: center;
   }
 }
+
+.advancedDisclosure {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.advancedDisclosure > summary {
+  cursor: pointer;
+  color: var(--muted-strong);
+  font-weight: 700;
+}
+
+.txToastDetails {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.requirementList {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.requirementListTitle {
+  font-weight: 800;
+  color: var(--muted-strong);
+}
+
+.requirementRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.requirementRow-ok {
+  border-color: rgba(76, 224, 179, 0.18);
+}
+
+.requirementRow-blocked {
+  border-color: rgba(244, 201, 93, 0.2);
+}
+
+.requirementMark {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  flex: 0 0 auto;
+}
+
+.requirementRow-ok .requirementMark {
+  color: var(--accent);
+}
+
+.requirementRow-blocked .requirementMark {
+  color: #ffd666;
+}
+
+.requirementText {
+  display: grid;
+  gap: 3px;
+  color: var(--muted-strong);
+  line-height: 1.35;
+}
+
+.requirementText span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actionStatusBanner {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.actionStatusBanner-ok {
+  border-color: rgba(76, 224, 179, 0.2);
+}
+
+.actionStatusBanner-warn {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.actionStatusBanner-danger {
+  border-color: rgba(251, 113, 133, 0.24);
+}
+
+.actionStatusHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.actionStatusTitle {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.actionStatusBody {
+  display: grid;
+  gap: 10px;
+}

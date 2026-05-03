@@ -17,15 +17,15 @@ export type TxToastItem = {
 function statusHint(status: TxToastStatus): string {
   switch (status) {
     case "validating":
-      return "Checking the action before a signed submission is attempted.";
+      return "Checking the action before it is saved.";
     case "submitting":
-      return "Submitting the signed action to the node.";
+      return "Saving the action.";
     case "recorded":
-      return "The action was accepted, but the affected surface may still be catching up.";
+      return "Done. Updating this page so the result becomes visible.";
     case "refreshing":
-      return "Refreshing dependent state so the page can show the result visibly.";
+      return "Updating this page so the result becomes visible.";
     case "confirmed":
-      return "The action has been confirmed and the dependent surface reconciled.";
+      return "The action is done and visible.";
     case "failed":
     default:
       return "The action did not complete successfully.";
@@ -47,7 +47,7 @@ export default function TxStatusToast({
         <div key={item.id} className={`txToast txToast-${item.status}`} data-tx-status={item.status}>
           <div className="txToastHead">
             <strong>{item.title}</strong>
-            <button className="txToastClose" onClick={() => onDismiss(item.id)} aria-label="Dismiss transaction status">
+            <button className="txToastClose" onClick={() => onDismiss(item.id)} aria-label="Dismiss action status">
               ×
             </button>
           </div>
@@ -61,9 +61,12 @@ export default function TxStatusToast({
             {item.message ? <div className="txToastMessage">{item.message}</div> : null}
 
             {item.txId ? (
-              <div className="txToastMeta">
-                Tx <span className="mono">{item.txId}</span>
-              </div>
+              <details className="advancedDisclosure txToastDetails">
+                <summary>View technical details</summary>
+                <div className="txToastMeta">
+                  Action ID <span className="mono">{item.txId}</span>
+                </div>
+              </details>
             ) : null}
           </div>
         </div>

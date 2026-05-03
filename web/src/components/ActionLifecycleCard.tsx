@@ -1,16 +1,16 @@
 import React from "react";
 
 const STEPS = [
-  { key: "validating", label: "Validating", detail: "Check local prerequisites and serialize the signer lane before submission." },
-  { key: "submitting", label: "Submitting", detail: "Send the signed transaction to the node and wait for the first authoritative response." },
-  { key: "recorded", label: "Recorded", detail: "A transaction id exists or the backend reports that the action has been accepted." },
-  { key: "refreshing", label: "Reconciling", detail: "Refresh the affected route and supporting state slices until the object is visible." },
-  { key: "confirmed", label: "Visible confirmed", detail: "The action is now visible on the dependent route or object surface." },
-  { key: "failed", label: "Failed", detail: "Show the reason clearly and keep the retry path honest." },
+  { key: "ready", label: "Ready", detail: "The page has what it needs for the user to begin." },
+  { key: "saving", label: "Saving", detail: "The action is being sent and duplicate clicks are blocked." },
+  { key: "done", label: "Done", detail: "The action was accepted or recorded." },
+  { key: "updating", label: "Updating", detail: "The page is refreshing until the result is visible." },
+  { key: "visible", label: "Visible", detail: "The result is now shown on the affected page." },
+  { key: "failed", label: "Failed", detail: "The user sees a plain-language reason and an honest next step." },
 ] as const;
 
 export default function ActionLifecycleCard({
-  title = "Submission lifecycle",
+  title = "Action lifecycle",
   intro,
 }: {
   title?: string;
@@ -21,11 +21,11 @@ export default function ActionLifecycleCard({
       <div className="cardBody formStack">
         <div className="sectionHead">
           <div>
-            <div className="eyebrow">Lifecycle contract</div>
+            <div className="eyebrow">User feedback contract</div>
             <h2 className="cardTitle">{title}</h2>
             <div className="cardDesc">
               {intro ||
-                "Every signed action on this page should move through the same explicit states so route truth stays aligned with chain truth."}
+                "Every important action should move through clear, human-readable states so users know when something is saving, done, updating, or blocked."}
             </div>
           </div>
         </div>

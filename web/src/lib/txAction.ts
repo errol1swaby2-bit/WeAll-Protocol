@@ -1,3 +1,4 @@
+import { translateBackendError } from "./errorMessages";
 import { createFeedback, type FrontendErrorCategory } from "./txFeedback";
 
 export type ActionableTxError = {
@@ -62,8 +63,10 @@ export function txPendingKey(parts: Array<string | number | null | undefined>): 
 export function actionableTxError(error: any, fallback = "Transaction failed."): ActionableTxError {
   const details = pickPayload(error);
   const code = codeOf(details);
-  const rawMessage = messageOf(error, details);
-  const msgNeedle = rawMessage.toLowerCase();
+  const rawProtocolMessage = messageOf(error, details);
+  const translated = translateBackendError(error, fallback);
+  const rawMessage = translated.message;
+  const msgNeedle = `${rawProtocolMessage} ${rawMessage}`.toLowerCase();
 
   if (code === "duplicate_submission_blocked" || msgNeedle.includes("already submitting")) {
     const feedback = createFeedback(
@@ -87,10 +90,10 @@ export function actionableTxError(error: any, fallback = "Transaction failed."):
   ) {
     const feedback = createFeedback(
       "recorded_not_yet_visible",
-      "Another signed action is still settling or this page was slightly behind chain nonce state. Refresh the affected object, wait a moment, and try again.",
+      "Something changed. Refresh and try again.",
       details,
       {
-        title: "Signed action still settling",
+        title: "Refresh and try again",
         retryable: true,
         safeToRetry: false,
       },
@@ -101,10 +104,10 @@ export function actionableTxError(error: any, fallback = "Transaction failed."):
   if (code === "signer_submission_busy" || msgNeedle.includes("still settling")) {
     const feedback = createFeedback(
       "recorded_not_yet_visible",
-      "This account already has a signed action in flight. Let that action settle before submitting the next one.",
+      "This account already has an action in progress. Let it finish before submitting the next one.",
       details,
       {
-        title: "Signer is busy",
+        title: "Action already in progress",
         retryable: true,
         safeToRetry: false,
       },

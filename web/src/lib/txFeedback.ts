@@ -1,5 +1,7 @@
 export type TxLifecycleStatus = "validating" | "submitting" | "recorded" | "refreshing" | "confirmed" | "failed";
 
+import { translateBackendError } from "./errorMessages";
+
 export type FrontendErrorCategory =
   | "capability_blocked"
   | "structurally_unavailable"
@@ -21,50 +23,50 @@ export type FrontendFeedback = {
 
 const CATEGORY_META: Record<FrontendErrorCategory, { label: string; title: string; retryable: boolean; safeToRetry: boolean }> = {
   capability_blocked: {
-    label: "Capability blocked",
-    title: "Action blocked",
+    label: "Needs verification",
+    title: "Action needs verification",
     retryable: false,
     safeToRetry: false,
   },
   structurally_unavailable: {
-    label: "Unavailable here",
+    label: "Unavailable",
     title: "Action unavailable",
     retryable: false,
     safeToRetry: false,
   },
   auth_session_expired: {
-    label: "Session expired",
+    label: "Session",
     title: "Session needs attention",
     retryable: true,
     safeToRetry: true,
   },
   node_not_ready: {
-    label: "Node not ready",
-    title: "Node is not ready",
+    label: "Network issue",
+    title: "Service needs a moment",
     retryable: true,
     safeToRetry: true,
   },
   recorded_not_yet_visible: {
-    label: "Recorded",
-    title: "Recorded but not yet visible",
+    label: "Done, updating",
+    title: "Done. Updating this page",
     retryable: false,
     safeToRetry: false,
   },
   object_missing: {
-    label: "Missing",
-    title: "Object unavailable",
+    label: "Unavailable",
+    title: "Item unavailable",
     retryable: true,
     safeToRetry: true,
   },
   backend_failure: {
-    label: "Backend failure",
-    title: "Backend failure",
+    label: "Could not complete",
+    title: "Action could not be completed",
     retryable: true,
     safeToRetry: false,
   },
   index_visibility_lag: {
-    label: "Visibility lag",
-    title: "Index or visibility lag",
+    label: "Updating",
+    title: "Done. Updating this page",
     retryable: true,
     safeToRetry: false,
   },
@@ -73,15 +75,15 @@ const CATEGORY_META: Record<FrontendErrorCategory, { label: string; title: strin
 export function txStatusLabel(status: TxLifecycleStatus): string {
   switch (status) {
     case "validating":
-      return "Validating";
+      return "Checking";
     case "submitting":
-      return "Submitting";
+      return "Saving";
     case "recorded":
-      return "Recorded";
+      return "Done";
     case "refreshing":
-      return "Refreshing";
+      return "Updating";
     case "confirmed":
-      return "Confirmed";
+      return "Done";
     case "failed":
     default:
       return "Failed";
@@ -161,11 +163,8 @@ export function inferFeedbackFromUnknown(error: unknown, fallback = "Something f
   const payload = (error as any)?.body || (error as any)?.data || (error as any)?.payload || error;
   const code = codeNeedle(payload);
   const needle = messageNeedle(error, payload);
-  const rawMessage =
-    asString((payload as any)?.message) ||
-    asString((payload as any)?.error?.message) ||
-    (error instanceof Error ? asString(error.message) : "") ||
-    fallback;
+  const translated = translateBackendError(error, fallback);
+  const rawMessage = translated.message;
 
   if (
     code.includes("gate") ||
