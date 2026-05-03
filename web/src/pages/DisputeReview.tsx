@@ -10,6 +10,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
 import { nav } from "../lib/router";
 import { reconcileDisputeMutation } from "../lib/disputeRevalidation";
 import {
@@ -126,7 +127,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       : !tierGate.ok
         ? tierGate.reason || "Live verification and a valid session are required for review actions."
         : currentVote
-          ? `Step 3 is complete. Current recorded choice: ${currentVote.toUpperCase()}. This workspace is now locked because your choice was recorded.`
+          ? `Step 3 is complete. Current recorded choice: ${reviewChoiceLabel(currentVote)}. This workspace is now locked because your choice was recorded.`
           : selectedJurorStatus === "unassigned"
             ? "Step 1 has not begun because this account is not assigned to the selected report."
             : !attendancePresent
@@ -186,7 +187,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           <div className="buttonRow">
             <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(id)}`)}>Back to detail</button>
             <button className="btn" onClick={() => nav("/reports")}>Back to reports</button>
-            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting for signer…" : "Refresh review state"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting…" : "Refresh review state"}</button>
           </div>
         </div>
       </section>
@@ -223,22 +224,22 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Status</div>
-          <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{String(dispute?.stage || "open")}</span></div>
-          <div className="summaryCardText">resolved: {String(!!dispute?.resolved)}</div>
+          <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{reportStageLabel(dispute?.stage || "open")}</span></div>
+          <div className="summaryCardText">{dispute?.resolved ? "Review complete" : "Community review is still active"}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Your reviewer status</div>
-          <div className="summaryCardValue">{selectedJurorStatus}</div>
+          <div className="summaryCardValue">{reviewStatusLabel(selectedJurorStatus)}</div>
           <div className="summaryCardText">{attendancePresent ? "Attendance recorded" : "Accepted attendance is still missing."}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Reviews</div>
           <div className="summaryCardValue">{counts.total}</div>
-          <div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div>
+          <div className="summaryCardText">{reviewTallyText(counts)}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Your recorded choice</div>
-          <div className="summaryCardValue">{currentVote ? currentVote.toUpperCase() : "None"}</div>
+          <div className="summaryCardValue">{reviewChoiceLabel(currentVote)}</div>
           <div className="summaryCardText">One reviewer account, one recorded choice</div>
         </article>
       </section>

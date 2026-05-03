@@ -10,23 +10,23 @@ export default function Messaging(): JSX.Element {
           <div className="eyebrow">Messaging</div>
           <h1 className="heroTitle heroTitleSm">Direct messages stay on their own surface</h1>
           <p className="heroText">
-            This route completes the primary navigation contract without leaking communication flows into the content feed, governance queue, or disputes workspace.
-            As the messaging surface expands, it should remain conversation-first and separate from the other coordination domains.
+            Messages stay separate from the feed, decisions, and review work so conversations remain easy to find.
+            As the messaging surface expands, it should remain conversation-first and simple for ordinary users.
           </p>
-          <section className="surfaceBoundaryBar" aria-label="Messaging route contract">
+          <section className="surfaceBoundaryBar" aria-label="Messaging page boundaries">
             <div className="surfaceBoundaryHeader">
               <div>
                 <h2 className="surfaceBoundaryTitle">Dedicated communication domain</h2>
                 <p className="surfaceBoundaryText">
-                  Messaging is connected to the rest of the product by account identity and notifications, not by merging conversations into feed, governance, or adjudication views.
+                  Messaging is connected to the rest of the product by account identity and notifications, not by mixing private conversations into feed, decisions, or review pages.
                 </p>
               </div>
-              <span className="statusPill">Hub surface</span>
+              <span className="statusPill">Messages</span>
             </div>
             <div className="surfaceBoundaryList">
               <span className="surfaceBoundaryTag">Center: conversations only</span>
-              <span className="surfaceBoundaryTag">No governance voting</span>
-              <span className="surfaceBoundaryTag">No dispute review</span>
+              <span className="surfaceBoundaryTag">No decision voting</span>
+              <span className="surfaceBoundaryTag">No report review</span>
               <span className="surfaceBoundaryTag">No feed mixing</span>
             </div>
           </section>
@@ -40,7 +40,7 @@ export default function Messaging(): JSX.Element {
               <div className="eyebrow">Current status</div>
               <h2 className="cardTitle">Messaging shell route is now present</h2>
               <div className="cardDesc">
-                The dedicated route exists so the primary navigation contract is complete. Conversation threading, inbox hydration, and direct-message creation can continue here in later implementation passes.
+                The dedicated Messages page exists so direct conversations have a clear home. Conversation threading, inbox loading, and direct-message creation can continue here in later implementation passes.
               </div>
             </div>
           </div>

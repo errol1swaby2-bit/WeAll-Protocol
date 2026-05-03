@@ -125,3 +125,74 @@ export function friendlyActionError(message: string): string {
   }
   return raw;
 }
+
+export function decisionStageLabel(value: unknown): string {
+  const stage = String(value || "").trim().toLowerCase();
+  if (["draft"].includes(stage)) return "Draft";
+  if (["poll", "open"].includes(stage)) return "Open for early input";
+  if (["voting", "vote"].includes(stage)) return "Open for voting";
+  if (["revision"].includes(stage)) return "Being revised";
+  if (["validation"].includes(stage)) return "Being checked";
+  if (["closed"].includes(stage)) return "Voting closed";
+  if (["tallied"].includes(stage)) return "Results counted";
+  if (["executed"].includes(stage)) return "Approved changes applied";
+  if (["finalized"].includes(stage)) return "Final result";
+  if (["withdrawn", "canceled", "cancelled"].includes(stage)) return "Withdrawn";
+  if (["failed", "expired"].includes(stage)) return "Ended";
+  return stage ? stage.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "Status unknown";
+}
+
+export function decisionStageHelp(value: unknown): string {
+  const stage = String(value || "").trim().toLowerCase();
+  if (["poll", "open"].includes(stage)) return "People can share early input before the final vote.";
+  if (["voting", "vote"].includes(stage)) return "Eligible people can vote on this decision now.";
+  if (stage === "draft") return "This decision is still being prepared.";
+  if (stage === "revision") return "This decision is being updated before voting continues.";
+  if (stage === "validation") return "This decision is being checked before voting opens.";
+  if (stage === "closed") return "Voting has closed and the result is waiting to be counted or published.";
+  if (stage === "tallied") return "Votes have been counted.";
+  if (stage === "executed") return "Approved changes have been applied.";
+  if (stage === "finalized") return "This decision is complete.";
+  if (stage === "withdrawn") return "The creator withdrew this decision.";
+  return "Open the detail page for the latest status.";
+}
+
+export function decisionVoteChoiceLabel(value: unknown): string {
+  const choice = String(value || "").trim().toLowerCase();
+  if (choice === "yes") return "Yes";
+  if (choice === "no") return "No";
+  if (choice === "abstain") return "Abstain";
+  return choice ? choice.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "None";
+}
+
+export function reviewChoiceLabel(value: unknown): string {
+  const choice = String(value || "").trim().toLowerCase();
+  if (choice === "yes" || choice === "keep") return "Keep Post";
+  if (choice === "no" || choice === "remove") return "Remove Post";
+  if (choice === "abstain" || choice === "needs_more_review") return "Need More Review";
+  return choice ? choice.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "None";
+}
+
+export function reviewTallyText(counts: { yes?: number; no?: number; abstain?: number } | null | undefined): string {
+  const c = counts || {};
+  return `Keep ${Number(c.yes || 0)} · Remove ${Number(c.no || 0)} · Need more review ${Number(c.abstain || 0)}`;
+}
+
+export function reviewStatusLabel(value: unknown): string {
+  const status = String(value || "").trim().toLowerCase();
+  if (["assigned"].includes(status)) return "Assigned to you";
+  if (["accepted", "review"].includes(status)) return "Accepted";
+  if (["declined"].includes(status)) return "Declined";
+  if (["unassigned", "none", ""].includes(status)) return "Not assigned";
+  if (["resolved", "closed", "finalized", "complete", "completed"].includes(status)) return "Completed";
+  return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function reportStageLabel(value: unknown): string {
+  const stage = String(value || "").trim().toLowerCase();
+  if (["open", "assigned", "review", "juror_review", "voting"].includes(stage)) return "Under review";
+  if (["resolved", "closed", "finalized"].includes(stage)) return "Review complete";
+  if (["dismissed", "kept"].includes(stage)) return "Kept visible";
+  if (["removed"].includes(stage)) return "Removed";
+  return stage ? stage.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "Under review";
+}

@@ -348,7 +348,7 @@ export default function JurorDashboard(): JSX.Element {
               Live verification cases
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
-              {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
+              {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh"}
             </button>
             <button className="btn" onClick={() => nav("/verification")}>
               Open Account Verification

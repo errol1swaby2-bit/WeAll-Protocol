@@ -5,9 +5,9 @@ import {
   type GovernanceProposal,
 } from "./governance";
 import { voteForAccount } from "./accountSurface";
-import { disputeAttendancePresent, disputeCurrentVote, disputeJurorRecord, disputeJurorStatus } from "./disputeSurface";
+import { disputeAttendancePresent, disputeCurrentVote, disputeJurorStatus } from "./disputeSurface";
 
-export type PendingWorkKind = "proposal" | "dispute" | "membership";
+export type PendingWorkKind = "decision" | "report" | "membership";
 export type PendingWorkEmphasis = "assigned" | "available";
 export type PendingWorkUrgency = "high" | "medium" | "low";
 
@@ -32,6 +32,9 @@ export type PendingWorkSummary = {
     total: number;
     assigned: number;
     available: number;
+    decisions: number;
+    reports: number;
+    /** Backward-compatible internal aliases for existing summary consumers. */
     proposals: number;
     disputes: number;
     memberships: number;
@@ -56,62 +59,62 @@ function accountVoteOf(voteMap: Record<string, any>, account: string): string {
   return String(voteForAccount(voteMap, account)?.vote || "").trim().toLowerCase();
 }
 
-function proposalVoteWindow(proposal: GovernanceProposal): "poll" | "final" {
+function decisionVoteWindow(proposal: GovernanceProposal): "early_input" | "final" {
   const explicit = String(proposal.vote_window || "").trim().toLowerCase();
-  if (explicit === "poll") return "poll";
+  if (explicit === "poll") return "early_input";
   if (explicit === "final") return "final";
   const stage = governanceProposalStageOf(proposal);
-  if (stage === "poll" || stage === "draft" || stage === "revision" || stage === "validation") return "poll";
+  if (stage === "poll" || stage === "draft" || stage === "revision" || stage === "validation") return "early_input";
   return "final";
 }
 
-function proposalVoteWindowOpen(stage: string): boolean {
+function decisionVoteWindowOpen(stage: string): boolean {
   return ["poll", "voting", "vote"].includes(stage);
 }
 
-function proposalCurrentVote(proposal: GovernanceProposal, account: string): string {
-  const window = proposalVoteWindow(proposal);
-  if (window === "poll") return accountVoteOf(proposal.poll_votes, account);
+function decisionCurrentVote(proposal: GovernanceProposal, account: string): string {
+  const window = decisionVoteWindow(proposal);
+  if (window === "early_input") return accountVoteOf(proposal.poll_votes, account);
   return accountVoteOf(proposal.votes, account);
 }
 
-function proposalUrgency(stage: string, hasCurrentVote: boolean): PendingWorkUrgency {
+function decisionUrgency(stage: string, hasCurrentVote: boolean): PendingWorkUrgency {
   if (hasCurrentVote) return "low";
   if (["vote", "voting", "poll", "queued", "finalizing", "closed", "tallied"].includes(stage)) return "high";
   if (["draft", "revision", "validation", "open"].includes(stage)) return "medium";
   return "low";
 }
 
-function proposalDetail(stage: string, hasCurrentVote: boolean, voteWindow: "poll" | "final"): string {
+function decisionDetail(stage: string, hasCurrentVote: boolean, voteWindow: "early_input" | "final"): string {
   const stageLabel = stage.replace(/_/g, " ");
   if (hasCurrentVote) {
-    return `Already recorded on ${voteWindow === "poll" ? "poll" : "vote"} surface · ${stageLabel}`;
+    return `Your ${voteWindow === "early_input" ? "early input" : "vote"} is already recorded · ${stageLabel}`;
   }
-  if (voteWindow === "poll") {
-    return `Awaiting poll input · ${stageLabel}`;
+  if (voteWindow === "early_input") {
+    return `Decision needs your early input · ${stageLabel}`;
   }
-  return `Awaiting governance vote · ${stageLabel}`;
+  return `Decision needs your vote · ${stageLabel}`;
 }
 
-function disputeCurrentStatus(dispute: Record<string, any>, account: string): string {
+function reportCurrentStatus(dispute: Record<string, any>, account: string): string {
   return disputeJurorStatus(dispute, account);
 }
 
-function disputeUrgency(jurorStatus: string, attendancePresent: boolean, vote: string): PendingWorkUrgency {
-  if ((jurorStatus === "accepted" || jurorStatus === "review") && attendancePresent && !vote) return "high";
-  if (jurorStatus === "assigned") return "high";
-  if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return "medium";
-  if (jurorStatus === "unassigned") return "low";
+function reportUrgency(reviewerStatus: string, attendancePresent: boolean, vote: string): PendingWorkUrgency {
+  if ((reviewerStatus === "accepted" || reviewerStatus === "review") && attendancePresent && !vote) return "high";
+  if (reviewerStatus === "assigned") return "high";
+  if ((reviewerStatus === "accepted" || reviewerStatus === "review") && !attendancePresent) return "medium";
+  if (reviewerStatus === "unassigned") return "low";
   return "low";
 }
 
-function disputeDetail(jurorStatus: string, attendancePresent: boolean, vote: string, stage: string): string {
+function reportDetail(reviewerStatus: string, attendancePresent: boolean, vote: string, stage: string): string {
   const stageLabel = stage.replace(/_/g, " ");
-  if (vote) return `Your vote is already recorded · ${stageLabel}`;
-  if (jurorStatus === "assigned") return `Assignment waiting for response · ${stageLabel}`;
-  if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return `Attendance still required before final vote · ${stageLabel}`;
-  if ((jurorStatus === "accepted" || jurorStatus === "review") && attendancePresent) return `Ready for juror vote · ${stageLabel}`;
-  return `Available dispute context · ${stageLabel}`;
+  if (vote) return `Your review choice is already recorded · ${stageLabel}`;
+  if (reviewerStatus === "assigned") return `Review assignment waiting for your response · ${stageLabel}`;
+  if ((reviewerStatus === "accepted" || reviewerStatus === "review") && !attendancePresent) return `Check-in is still required before your final review choice · ${stageLabel}`;
+  if ((reviewerStatus === "accepted" || reviewerStatus === "review") && attendancePresent) return `Ready for your review choice · ${stageLabel}`;
+  return `Available report context · ${stageLabel}`;
 }
 
 function membershipPhaseOf(raw: Record<string, any>): string {
@@ -143,60 +146,60 @@ export function derivePendingWork(args: {
   const account = String(args.account || "").trim();
   const maxItems = Math.max(1, Number(args.maxItems || 6));
 
-  const proposalItems = normalizeGovernanceProposalList(toArray<any>(asRecord(args.proposalsRaw).items))
+  const decisionItems = normalizeGovernanceProposalList(toArray<any>(asRecord(args.proposalsRaw).items))
     .map((proposal): PendingWorkItem | null => {
       const id = String(proposal.id || proposal.proposal_id || "").trim();
       if (!id) return null;
       const stage = governanceProposalStageOf(proposal);
-      const voteWindow = proposalVoteWindow(proposal);
-      const currentVote = proposalCurrentVote(proposal, account);
-      const voteOpen = proposalVoteWindowOpen(stage);
+      const voteWindow = decisionVoteWindow(proposal);
+      const currentVote = decisionCurrentVote(proposal, account);
+      const voteOpen = decisionVoteWindowOpen(stage);
       if (!voteOpen || currentVote) return null;
       const assigned = !!account;
-      const urgency = proposalUrgency(stage, !!currentVote);
+      const urgency = decisionUrgency(stage, !!currentVote);
       return {
         id,
-        kind: "proposal",
+        kind: "decision",
         label: governanceProposalTitleOf(proposal),
-        detail: proposalDetail(stage, false, voteWindow),
-        href: `/proposal/${encodeURIComponent(id)}`,
+        detail: decisionDetail(stage, false, voteWindow),
+        href: `/decisions/${encodeURIComponent(id)}`,
         emphasis: assigned ? "assigned" : "available",
         urgency,
         assigned,
         available: true,
         stage,
         sortKey: `${String(9_999_999 - Number(proposal.updated_at_height || proposal.created_at_height || 0)).padStart(8, "0")}:${id}`,
-        source: voteWindow === "poll" ? "proposal-poll" : "proposal-vote",
+        source: voteWindow === "early_input" ? "decision-early-input" : "decision-vote",
       };
     })
     .filter((item): item is PendingWorkItem => !!item);
 
-  const disputeItems = toArray<any>(asRecord(args.disputesRaw).items)
+  const reportItems = toArray<any>(asRecord(args.disputesRaw).items)
     .map((raw, index): PendingWorkItem | null => {
       const dispute = asRecord(raw);
       const id = String(dispute.id || dispute.case_id || dispute.dispute_id || dispute.tx_id || `dispute-${index}`).trim();
       if (!id) return null;
       const stage = normalizeStage(dispute.stage || dispute.status, "open");
-      const label = String(dispute.title || dispute.reason || `Dispute ${index + 1}`).trim() || `Dispute ${index + 1}`;
-      const jurorStatus = disputeCurrentStatus(dispute, account);
+      const label = String(dispute.title || dispute.reason || `Report ${index + 1}`).trim() || `Report ${index + 1}`;
+      const reviewerStatus = reportCurrentStatus(dispute, account);
       const attendancePresent = disputeAttendancePresent(dispute, account);
       const vote = disputeCurrentVote(dispute, account);
-      const assigned = jurorStatus !== "unassigned" && jurorStatus !== "declined";
+      const assigned = reviewerStatus !== "unassigned" && reviewerStatus !== "declined";
       const available = assigned || !account;
-      const urgency = disputeUrgency(jurorStatus, attendancePresent, vote);
+      const urgency = reportUrgency(reviewerStatus, attendancePresent, vote);
       return {
         id,
-        kind: "dispute",
+        kind: "report",
         label,
-        detail: disputeDetail(jurorStatus, attendancePresent, vote, stage),
-        href: `/disputes/${encodeURIComponent(id)}`,
+        detail: reportDetail(reviewerStatus, attendancePresent, vote, stage),
+        href: assigned ? `/reviews/${encodeURIComponent(id)}` : `/reports/${encodeURIComponent(id)}`,
         emphasis: assigned ? "assigned" : "available",
         urgency,
         assigned,
         available,
         stage,
         sortKey: `${String(index).padStart(4, "0")}:${id}`,
-        source: jurorStatus === "assigned" ? "dispute-assigned" : jurorStatus === "accepted" || jurorStatus === "review" ? "dispute-review" : "dispute-open",
+        source: reviewerStatus === "assigned" ? "report-assigned" : reviewerStatus === "accepted" || reviewerStatus === "review" ? "report-review" : "report-open",
       };
     })
     .filter((item): item is PendingWorkItem => !!item)
@@ -225,7 +228,7 @@ export function derivePendingWork(args: {
     })
     .filter((item): item is PendingWorkItem => !!item);
 
-  const rankedItems = [...proposalItems, ...disputeItems, ...membershipItems]
+  const rankedItems = [...decisionItems, ...reportItems, ...membershipItems]
     .sort((a, b) => {
       const urgencyDelta = urgencyWeight(a.urgency) - urgencyWeight(b.urgency);
       if (urgencyDelta !== 0) return urgencyDelta;
@@ -244,8 +247,10 @@ export function derivePendingWork(args: {
       total: rankedItems.length,
       assigned: rankedItems.filter((item) => item.assigned).length,
       available: rankedItems.filter((item) => item.available).length,
-      proposals: rankedItems.filter((item) => item.kind === "proposal").length,
-      disputes: rankedItems.filter((item) => item.kind === "dispute").length,
+      decisions: rankedItems.filter((item) => item.kind === "decision").length,
+      reports: rankedItems.filter((item) => item.kind === "report").length,
+      proposals: rankedItems.filter((item) => item.kind === "decision").length,
+      disputes: rankedItems.filter((item) => item.kind === "report").length,
       memberships: rankedItems.filter((item) => item.kind === "membership").length,
     },
   };

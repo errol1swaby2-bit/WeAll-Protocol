@@ -119,7 +119,7 @@ export default function Settings(): JSX.Element {
               <div className="eyebrow">Settings</div>
               <h1 className="heroTitle heroTitleSm">Connection, environment, and client preferences</h1>
               <p className="heroText">
-                This page is for local client behavior and backend targeting. It should make clear what changes only this browser, what changes the connection target, and what leaves on-chain state untouched.
+                This page is for local app behavior and backend targeting. It should make clear what changes only this browser, what changes the connection target, and what leaves authoritative account state untouched.
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export default function Settings(): JSX.Element {
                   {session ? "Session present" : "No session"}
                 </span>
                 <span className={`statusPill ${keypair ? "ok" : ""}`}>
-                  {keypair ? "Signer stored" : "No local signer"}
+                  {keypair ? "Signer stored" : "No saved account key"}
                 </span>
                 <span className="statusPill ok">{config.envLabel}</span>
               </div>
@@ -177,7 +177,7 @@ export default function Settings(): JSX.Element {
         <article className="summaryCard">
           <div className="summaryCardLabel">Connection target</div>
           <div className="summaryCardValue mono">{apiBase || "Unset"}</div>
-          <div className="summaryCardText">Changing this affects which backend and protocol environment this browser talks to. It does not alter on-chain data by itself.</div>
+          <div className="summaryCardText">Changing this affects which backend and environment this browser talks to. It does not alter authoritative account data by itself.</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Default environment</div>

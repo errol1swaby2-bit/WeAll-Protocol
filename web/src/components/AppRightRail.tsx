@@ -238,7 +238,7 @@ export default function AppRightRail({
   const [statusView, setStatusView] = useState<Record<string, unknown> | null>(null);
   const [pendingWork, setPendingWork] = useState<PendingWorkSummary>({
     items: [],
-    counts: { total: 0, assigned: 0, available: 0, proposals: 0, disputes: 0, memberships: 0 },
+    counts: { total: 0, assigned: 0, available: 0, decisions: 0, reports: 0, proposals: 0, disputes: 0, memberships: 0 },
   });
   const [proposalDetail, setProposalDetail] = useState<Record<string, unknown> | null>(null);
   const [disputeDetail, setDisputeDetail] = useState<Record<string, unknown> | null>(null);
@@ -277,7 +277,7 @@ export default function AppRightRail({
     } catch {
       setPendingWork({
         items: [],
-        counts: { total: 0, assigned: 0, available: 0, proposals: 0, disputes: 0, memberships: 0 },
+        counts: { total: 0, assigned: 0, available: 0, decisions: 0, reports: 0, proposals: 0, disputes: 0, memberships: 0 },
       });
       setGroupCount(0);
     }

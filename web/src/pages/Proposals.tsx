@@ -8,6 +8,8 @@ import { normalizeAccount } from "../auth/keys";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { decisionStageHelp, decisionStageLabel } from "../lib/userLanguage";
+import { loadSettings } from "../lib/settings";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError } from "../lib/txAction";
@@ -59,6 +61,7 @@ export default function Proposals(): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
   const acct = session ? normalizeAccount(session.account) : null;
   const canSign = acct ? !!getKeypair(acct)?.secretKeyB64 : false;
+  const showAdvancedMode = loadSettings().showAdvancedMode;
 
 
   const gate = checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 });
@@ -66,7 +69,7 @@ export default function Proposals(): JSX.Element {
   const gateNextStep = !acct
     ? { label: "Sign in first", detail: "Create or restore a device session before you create decisions." }
     : !canSign
-      ? { label: "Restore local signer", detail: "This browser needs the account signer before it can create or sign decisions." }
+      ? { label: "Restore device session", detail: "This browser needs an active device session before it can create decisions." }
       : Number(acctState?.poh_tier ?? 0) < 2
         ? { label: "Complete live verification", detail: "Decision creation unlocks after live verification. Open Account Verification to see the next required step." }
         : null;
@@ -159,20 +162,20 @@ export default function Proposals(): JSX.Element {
         </div>
       </section>
 
-      <section className="surfaceBoundaryBar" aria-label="Decision route contract">
+      <section className="surfaceBoundaryBar" aria-label="How decisions work">
         <div className="surfaceBoundaryHeader">
           <div>
-            <h2 className="surfaceBoundaryTitle">Decisions stay list-first on the hub.</h2>
+            <h2 className="surfaceBoundaryTitle">Decisions are easier when each step has one clear place.</h2>
             <p className="surfaceBoundaryText">
-              The queue is for scanning open decisions and opening focused detail pages. Creation lives on its own route, and voting stays on the individual decision surface.
+              Use this page to browse what communities are deciding. Open a decision to vote, read results, or see what changed.
             </p>
           </div>
-          <span className="statusPill">Hub surface</span>
+          <span className="statusPill">Browse</span>
         </div>
         <div className="surfaceBoundaryList">
-          <span className="surfaceBoundaryTag">Queue only</span>
-          <span className="surfaceBoundaryTag">Dedicated creation route</span>
-          <span className="surfaceBoundaryTag">Vote on decision detail</span>
+          <span className="surfaceBoundaryTag">Browse decisions</span>
+          <span className="surfaceBoundaryTag">Create separately</span>
+          <span className="surfaceBoundaryTag">Vote on detail pages</span>
         </div>
       </section>
 
@@ -190,7 +193,7 @@ export default function Proposals(): JSX.Element {
                 <div className="summaryCardText">{gate.reason || gateNextStep.detail}</div>
               </article>
               <article className="summaryCard">
-                <div className="summaryCardLabel">Next route</div>
+                <div className="summaryCardLabel">Next step</div>
                 <div className="summaryCardValue" style={{ fontSize: "1.2rem" }}>{!acct ? "Login" : !canSign ? "Session" : "Verification"}</div>
                 <div className="summaryCardText">{gateNextStep.detail}</div>
               </article>
@@ -198,7 +201,7 @@ export default function Proposals(): JSX.Element {
             <RequirementList requirements={gate.requirements} />
             <div className="buttonRow">
               {!acct ? <button className="btn btnPrimary" onClick={() => nav("/login")}>Open login</button> : null}
-              {acct && !canSign ? <button className="btn btnPrimary" onClick={() => nav("/session")}>Open session & devices</button> : null}
+              {acct && !canSign ? <button className="btn btnPrimary" onClick={() => nav("/session")}>Open devices & sessions</button> : null}
               {acct && canSign && Number(acctState?.poh_tier ?? 0) < 2 ? <button className="btn btnPrimary" onClick={() => nav("/verification")}>Open Account Verification</button> : null}
             </div>
           </div>
@@ -221,7 +224,7 @@ export default function Proposals(): JSX.Element {
               <div className="grid2">
                 <label className="fieldLabel">
                   Search
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by id, title, description, creator, or status…" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by title, description, creator, or status…" />
                 </label>
                 <div className="grid2">
                   <label className="fieldLabel">
@@ -235,15 +238,15 @@ export default function Proposals(): JSX.Element {
                     Status filter
                     <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
                       <option value="all">all</option>
-                      <option value="poll">poll</option>
+                      <option value="poll">open for early input</option>
                       <option value="draft">draft</option>
-                      <option value="revision">revision</option>
-                      <option value="validation">validation</option>
-                      <option value="voting">voting</option>
-                      <option value="closed">closed</option>
-                      <option value="tallied">tallied</option>
-                      <option value="executed">executed</option>
-                      <option value="finalized">finalized</option>
+                      <option value="revision">being revised</option>
+                      <option value="validation">being checked</option>
+                      <option value="voting">open for voting</option>
+                      <option value="closed">voting closed</option>
+                      <option value="tallied">results counted</option>
+                      <option value="executed">approved changes applied</option>
+                      <option value="finalized">final result</option>
                       <option value="withdrawn">withdrawn</option>
                     </select>
                   </label>
@@ -253,7 +256,7 @@ export default function Proposals(): JSX.Element {
                       <option value="created_desc">newest created</option>
                       <option value="updated_desc">most recently updated</option>
                       <option value="votes_desc">most votes</option>
-                      <option value="stage">stage</option>
+                      <option value="stage">status</option>
                     </select>
                   </label>
                 </div>
@@ -270,7 +273,7 @@ export default function Proposals(): JSX.Element {
                   Object.entries(stageSummary).sort((a, b) => a[0].localeCompare(b[0])).map(([stage, count]) => (
                     <article key={stage} className="summaryCard">
                       <div className="summaryCardLabel">Status</div>
-                      <div className="summaryCardValue">{stage}</div>
+                      <div className="summaryCardValue">{decisionStageLabel(stage)}</div>
                       <div className="summaryCardText">{count} decision{count === 1 ? "" : "s"}</div>
                     </article>
                   ))
@@ -298,14 +301,14 @@ export default function Proposals(): JSX.Element {
                               <h3 className="cardTitle">{titleText}</h3>
                             </div>
                             <div className="statusSummary">
-                              {id ? <span className="statusPill mono">{id}</span> : null}
-                              <span className={stageBadgeClass(stage)}>{stage}</span>
+                              {showAdvancedMode && id ? <span className="statusPill mono">{id}</span> : null}
+                              <span className={stageBadgeClass(stage)}>{decisionStageLabel(stage)}</span>
                             </div>
                           </div>
                           <div className="summaryCardGrid">
                             <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono">{String((p as any)?.creator || "(unknown)")}</div></article>
-                            <article className="summaryCard"><div className="summaryCardLabel">Created record</div><div className="summaryCardValue">{Number((p as any)?.created_at_height || 0)}</div></article>
-                            <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Status note</div><div className="summaryCardValue">{decisionStageLabel(stage)}</div><div className="summaryCardText">{decisionStageHelp(stage)}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">Yes {counts.yes} · No {counts.no} · Abstain {counts.abstain}</div></article>
                           </div>
                           {bodyText ? <div className="feedBodyText">{bodyText}</div> : <div className="cardDesc">No description provided.</div>}
                           <div className="buttonRow">
@@ -328,7 +331,7 @@ export default function Proposals(): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Outcome clarity</div>
-              <div className="summaryCardValue">Submitting ≠ approved</div>
+              <div className="summaryCardValue">Creating is not approval</div>
               <div className="summaryCardText">Creation, voting, and final results are separate authoritative state changes.</div>
             </article>
           </section>

@@ -11,6 +11,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { reconcileDisputeMutation } from "../lib/disputeRevalidation";
+import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
 import {
   disputeAttendancePresent,
   disputeCurrentVote,
@@ -47,13 +48,13 @@ function disputeActionHint(args: {
 }): string {
   const { account, tierGateOk, tierGateReason, jurorStatus, attendancePresent, signerBusy, currentVote } = args;
   if (!account) return "Log in to take report actions.";
-  if (signerBusy) return "Another signed action is still settling for this account.";
-  if (!tierGateOk) return tierGateReason || "Live verification and a local signer are required for review actions.";
+  if (signerBusy) return "Another signed action is still saving for this account.";
+  if (!tierGateOk) return tierGateReason || "Complete live verification and keep this device signed in before reviewing reports.";
   if (jurorStatus === "unassigned") return "This report is visible, but you were not selected to review it.";
   if (jurorStatus === "declined") return "You declined this review assignment. No further actions are available from this account.";
-  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final voting stays on the dedicated review page.";
+  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final choices stay on the dedicated review page.";
   if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return "Step 2 of 3: accepted attendance must appear before the final review choice unlocks.";
-  if (currentVote) return `Step 3 of 3 is complete. Your recorded review choice is ${currentVote.toUpperCase()}, and this account cannot review it again.`;
+  if (currentVote) return `Step 3 of 3 is complete. Your recorded review choice is ${reviewChoiceLabel(currentVote)}, and this account cannot review it again.`;
   return "Step 3 of 3: inspect the reported content and reason here, then continue into the dedicated review workspace for the final choice.";
 }
 
@@ -212,7 +213,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           </div>
           <div className="buttonRow">
             <button className="btn" onClick={() => nav("/reports")}>Back to reports</button>
-            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting for signer…" : "Refresh report"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting…" : "Refresh report"}</button>
             {String(dispute?.target_id || "") ? (
               <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(String(dispute?.target_id || ""))}`)}>Open content page</button>
             ) : null}
@@ -245,23 +246,23 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Status</div>
-          <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{String(dispute?.stage || "open")}</span></div>
-          <div className="summaryCardText">resolved: {String(!!dispute?.resolved)}</div>
+          <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{reportStageLabel(dispute?.stage || "open")}</span></div>
+          <div className="summaryCardText">{dispute?.resolved ? "Review complete" : "Community review is still active"}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Your reviewer status</div>
-          <div className="summaryCardValue">{selectedJurorStatus}</div>
+          <div className="summaryCardValue">{reviewStatusLabel(selectedJurorStatus)}</div>
           <div className="summaryCardText">{attendancePresent ? "Attendance recorded" : "Attendance not yet recorded"}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Reviews</div>
           <div className="summaryCardValue">{counts.total}</div>
-          <div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div>
+          <div className="summaryCardText">{reviewTallyText(counts)}</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Your recorded choice</div>
-          <div className="summaryCardValue">{currentVote ? currentVote.toUpperCase() : "None"}</div>
-          <div className="summaryCardText">Final choice status should remain visible here even though this page no longer owns review submission.</div>
+          <div className="summaryCardValue">{reviewChoiceLabel(currentVote)}</div>
+          <div className="summaryCardText">Final choice status stays visible here; selected reviewers make choices in the review workspace.</div>
         </article>
       </section>
 
@@ -282,7 +283,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <article className="summaryCard">
               <div className="summaryCardLabel">Opened by</div>
               <div className="summaryCardValue mono">{String(dispute?.opened_by || "—")}</div>
-              <div className="summaryCardText">Record {fmtNonce(dispute?.opened_at_nonce)}</div>
+              <div className="summaryCardText">Report submission record</div>
             </article>
           </div>
           {dispute?.reason ? <div className="feedBodyText">{String(dispute.reason)}</div> : <div className="cardDesc">No report reason was recorded.</div>}
@@ -305,7 +306,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Author</div>
                     <div className="summaryCardValue mono">{contentAuthor || "(unknown)"}</div>
-                    <div className="summaryCardText">target id {String(dispute?.target_id || "")}</div>
+                    <div className="summaryCardText">reported content reference</div>
                   </article>
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Scope</div>
@@ -333,7 +334,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
               <div className="feedMediaTitle">Assigned reviewers</div>
               <div className="milestoneList">
                 {Object.entries(asRecord(dispute?.jurors)).sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([juror, rec]) => (
-                  <span key={juror} className="miniTag">{juror}: {String((rec as any)?.status || "assigned")}{asRecord((rec as any)?.attendance).present ? " · present" : ""}</span>
+                  <span key={juror} className="miniTag">{juror}: {reviewStatusLabel(String((rec as any)?.status || "assigned"))}{asRecord((rec as any)?.attendance).present ? " · present" : ""}</span>
                 ))}
               </div>
             </div>

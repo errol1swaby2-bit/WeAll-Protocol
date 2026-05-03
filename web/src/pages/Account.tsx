@@ -212,7 +212,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const localOwnership = isSelf
     ? localKeypair
-      ? "This browser holds the local signer for this account."
+      ? "This browser holds the saved account key for this account."
       : "This is your account, but this browser does not currently hold the signer."
     : "You are viewing this account publicly from outside its local session.";
   const accountPosture = !registeredState
@@ -367,7 +367,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </article>
             <article className="detailFocusCard utilityFocusCard">
               <div className="detailFocusLabel">This device</div>
-              <div className="detailFocusValue">{isSelf ? (localKeypair ? "Local signer present" : "View only") : "Public view"}</div>
+              <div className="detailFocusValue">{isSelf ? (localKeypair ? "Saved account key present" : "View only") : "Public view"}</div>
               <div className="detailFocusText">Some actions require this browser to hold the local account key before they can be saved.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
@@ -408,7 +408,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="summaryCardValue">{operatorReady ? "Ready" : canServe ? "Almost ready" : "Locked"}</div>
           <div className="summaryCardText">
             {operatorReady
-              ? "A matching node device is already present for the local signer."
+              ? "A matching network-helper device is already present for this saved account key."
               : canServe
                 ? "Account status is sufficient, but the node device record or signer alignment is still incomplete."
                 : "Account status, standing, or signer prerequisites are still blocking operator setup."}
@@ -528,7 +528,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   {tier >= 2 ? "Live verification reached" : "Live verification needed"}
                 </span>
                 <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
-                  {localPubkey ? "Local signer present" : "Missing local signer"}
+                  {localPubkey ? "Saved account key present" : "Missing saved account key"}
                 </span>
                 <span className={`statusPill ${operatorReady ? "ok" : ""}`}>
                   {operatorReady ? "Node-ready" : "Not ready"}
@@ -538,7 +538,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
             <p className="heroText">
               Live verification unlocks operator eligibility. To boot a regular node, this account
-              needs a live local signer, an on-chain node-device registration tied to that
+              needs a saved account key, an authoritative network-helper device registration tied to that
               signer pubkey, and matching node config in the node software.
             </p>
 
@@ -691,7 +691,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Node config block</div>
               <div className="feedMediaMeta">
-                Use the same account id and signer keypair that was registered on-chain.
+                Use the same account id and saved account keypair that was registered with this account.
                 The node software also needs the private key to sign peer-identity
                 handshakes.
               </div>
@@ -702,7 +702,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <summary>Why this is required</summary>
               <div className="infoCard">
                 <p>
-                  The mesh gate expects an on-chain node-device record tied to the same
+                  The network helper gate expects an authoritative device record tied to the same
                   pubkey the node presents. After that, the node can boot as a regular
                   node. Validator status is a separate role.
                 </p>

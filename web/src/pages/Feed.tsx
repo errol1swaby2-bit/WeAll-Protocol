@@ -51,7 +51,7 @@ export default function Feed(): JSX.Element {
   const stageText = !snapshot.hasSession
     ? "You can read public posts now. Sign in when you want to create posts or join conversations."
     : !snapshot.hasLocalSigner
-      ? "This device needs your local signer before it can save actions."
+      ? "This device needs your saved account key before it can save actions."
       : !snapshot.registered
         ? "You can browse now. Finish account setup before posting."
         : snapshot.tier < 2

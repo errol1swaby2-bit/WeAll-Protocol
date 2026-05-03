@@ -238,7 +238,7 @@ export default function ProposalCreate(): JSX.Element {
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Action</div>
+              <div className="eyebrow">Decision</div>
               <h2 className="cardTitle">New community decision</h2>
               <div className="cardDesc">
                 This route is intentionally narrow. Queue browsing belongs on the decisions hub, while creation belongs here with clear eligibility and action feedback.
@@ -258,17 +258,19 @@ export default function ProposalCreate(): JSX.Element {
 
           {!acct || !canSign ? (
             <div className="calloutInfo">
-              Decision creation requires an active device session and local signer.
+              Decision creation requires an active device session on this browser.
               <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/decisions/create")}>
                 {acct ? "Open session recovery" : "Open login"}
               </button>
             </div>
           ) : null}
 
-          <label className="fieldLabel">
-            <input type="checkbox" checked={useAdvancedPayload} onChange={(e) => setUseAdvancedPayload(e.target.checked)} />
-            Use advanced technical JSON
-          </label>
+          {showAdvancedMode ? (
+            <label className="fieldLabel">
+              <input type="checkbox" checked={useAdvancedPayload} onChange={(e) => setUseAdvancedPayload(e.target.checked)} />
+              Use advanced decision JSON
+            </label>
+          ) : null}
 
           {showAdvancedMode && useAdvancedPayload ? (
             <label className="fieldLabel">
@@ -277,11 +279,13 @@ export default function ProposalCreate(): JSX.Element {
             </label>
           ) : (
             <>
-              <label className="fieldLabel">
-                Decision id
-                <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
-                <span className="fieldHint">Resolved id: <span className="mono">{resolvedProposalId}</span></span>
-              </label>
+              {showAdvancedMode ? (
+                <label className="fieldLabel">
+                  Advanced decision id
+                  <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
+                  <span className="fieldHint">Resolved id: <span className="mono">{resolvedProposalId}</span></span>
+                </label>
+              ) : null}
 
               <label className="fieldLabel">
                 Title
@@ -289,45 +293,57 @@ export default function ProposalCreate(): JSX.Element {
               </label>
 
               <label className="fieldLabel">
-                Body
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the decision clearly." />
+                Description
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe what changes if this decision passes." />
               </label>
 
               <label className="fieldLabel">
                 Starting status
                 <select value={startStage} onChange={(e) => setStartStage(e.target.value)}>
-                  <option value="poll">poll</option>
-                  <option value="voting">voting</option>
-                  <option value="revision">revision</option>
-                  <option value="validation">validation</option>
+                  <option value="poll">open for early input</option>
+                  <option value="voting">open for voting</option>
+                  <option value="revision">being revised</option>
+                  <option value="validation">being checked</option>
                   <option value="draft">draft</option>
                 </select>
               </label>
 
-              <label className="fieldLabel">
-                Optional technical action type
-                <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, ..." />
-              </label>
+              {showAdvancedMode ? (
+                <details className="detailsPanel">
+                  <summary>View technical action options</summary>
+                  <label className="fieldLabel">
+                    Technical action type
+                    <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, ..." />
+                  </label>
 
-              <label className="fieldLabel">
-                Optional technical action JSON
-                <textarea rows={8} value={actionPayloadJson} onChange={(e) => setActionPayloadJson(e.target.value)} placeholder='{"params":{"poh":{"tier2_n_jurors":7}}}' />
-              </label>
+                  <label className="fieldLabel">
+                    Technical action JSON
+                    <textarea rows={8} value={actionPayloadJson} onChange={(e) => setActionPayloadJson(e.target.value)} placeholder='{"params":{"poh":{"tier2_n_jurors":7}}}' />
+                  </label>
+                </details>
+              ) : null}
             </>
           )}
 
-          <div className="feedMediaCard">
-            <div className="feedMediaTitle">Preview decision id</div>
-            <div className="feedMediaMeta mono">{resolvedProposalId}</div>
-          </div>
+          {showAdvancedMode ? (
+            <div className="feedMediaCard">
+              <div className="feedMediaTitle">Advanced decision id preview</div>
+              <div className="feedMediaMeta mono">{resolvedProposalId}</div>
+            </div>
+          ) : null}
 
           <div className="buttonRow">
             <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || signerSubmission.busy}>
-              {busy ? "Creating…" : signerSubmission.busy ? "Waiting for signer…" : "Create decision"}
+              {busy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Create decision"}
             </button>
           </div>
 
-          {createRes ? <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(createRes, null, 2)}</div> : null}
+          {createRes ? (
+            <details className="detailsPanel">
+              <summary>View technical saved details</summary>
+              <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(createRes, null, 2)}</div>
+            </details>
+          ) : null}
         </div>
       </section>
     </div>

@@ -286,7 +286,7 @@ export default function CreatePostPage(): JSX.Element {
       setErr({
         msg: "You are not logged in on this device.",
         details:
-          "Go to Settings and make sure this browser has both a session and the matching local signer.",
+          "Go to Settings and make sure this browser has both a session and the matching saved account key.",
       });
       return;
     }
@@ -462,7 +462,7 @@ export default function CreatePostPage(): JSX.Element {
               advanceSequencePastNonce(sequence, submittedNonce);
 
               if (submittedNonce > 0) {
-                setStatus("Waiting for pin request to advance chain nonce");
+                setStatus("Waiting for media setup to finish saving");
                 await waitForAccountNonceAtLeast(acct, submittedNonce, base, {
                   maxWaitMs: 25000,
                   intervalMs: 500,
@@ -485,7 +485,7 @@ export default function CreatePostPage(): JSX.Element {
               });
               const pinNonce = Number(pinReq?.env?.nonce || 0);
               if (pinNonce > 0) {
-                setStatus("Waiting for pin request to advance chain nonce");
+                setStatus("Waiting for media setup to finish saving");
                 await waitForAccountNonceAtLeast(acct, pinNonce, base, {
                   maxWaitMs: 25000,
                   intervalMs: 500,
@@ -522,7 +522,7 @@ export default function CreatePostPage(): JSX.Element {
             const declareTxId = String(declare?.result?.tx_id || "").trim();
             const declareNonce = Number(declare?.env?.nonce || 0);
             if (declareNonce > 0) {
-              setStatus("Waiting for media declaration to advance chain nonce");
+              setStatus("Waiting for media record to finish saving");
               await waitForAccountNonceAtLeast(acct, declareNonce, base, {
                 maxWaitMs: 25000,
                 intervalMs: 500,
@@ -572,7 +572,7 @@ export default function CreatePostPage(): JSX.Element {
           const postTxId = String(res?.result?.tx_id || "").trim();
           const postNonce = Number(res?.env?.nonce || 0);
           if (postNonce > 0) {
-            setStatus("Waiting for post submission to advance chain nonce");
+            setStatus("Waiting for post to finish saving");
             await waitForAccountNonceAtLeast(acct, postNonce, base, {
               maxWaitMs: 25000,
               intervalMs: 500,
@@ -644,7 +644,7 @@ export default function CreatePostPage(): JSX.Element {
           // keep original error visible
         }
         setErr({
-          msg: 'This browser is holding a stale backend session or an old local signer. We attempted to repair it; try publish again.',
+          msg: 'This browser is holding a stale session or an old saved account key. We attempted to repair it; try publishing again.',
           details: formatted.details,
         });
       } else if (String(formatted?.msg || "").trim() === "signer_busy_elsewhere") {
@@ -661,7 +661,7 @@ export default function CreatePostPage(): JSX.Element {
         await refresh();
         await refreshAccountContext();
         setErr({
-          msg: "Your local signing nonce was stale. We refreshed chain state; publish again.",
+          msg: "Your saved account state was stale. We refreshed it; publish again.",
           details: formatted.details,
         });
       } else if (
@@ -674,7 +674,7 @@ export default function CreatePostPage(): JSX.Element {
         await refresh();
         await refreshAccountContext();
         setErr({
-          msg: "A publish step was submitted but the chain nonce did not advance in time. Wait a moment, refresh, and try again.",
+          msg: "A publish step was sent but final confirmation did not update in time. Wait a moment, refresh, and try again.",
           details: formatted.details,
         });
       } else {
@@ -729,7 +729,7 @@ export default function CreatePostPage(): JSX.Element {
       label: "Declare",
       state: uploadInfo && !busy ? "done" : file ? "pending" : "idle",
       detail: file
-        ? "Creates the on-chain media record used by the post."
+        ? "Creates the media record used by the post."
         : "No media declaration needed.",
     },
     {
@@ -739,7 +739,7 @@ export default function CreatePostPage(): JSX.Element {
         ? createdPostId
         : canPublish
           ? signerBusyElsewhere
-            ? "Another signed action must finish before publish can reserve the next nonce."
+            ? "Another signed action must finish before this publish can start."
             : "Ready to sign and submit."
           : "Complete the checks above to publish.",
     },
@@ -783,7 +783,7 @@ export default function CreatePostPage(): JSX.Element {
                   {snapshot.hasSession ? "Session present" : "No session"}
                 </span>
                 <span className={`statusPill ${snapshot.hasLocalSigner ? "ok" : ""}`}>
-                  {snapshot.hasLocalSigner ? "Signing ready" : "No local signer"}
+                  {snapshot.hasLocalSigner ? "Signing ready" : "No saved account key"}
                 </span>
                 <span className={`statusPill ${tier >= POSTING_MIN_TIER ? "ok" : ""}`}>
                   {tier >= POSTING_MIN_TIER ? "Trusted Verified Person" : "Live verification needed"}
@@ -826,7 +826,7 @@ export default function CreatePostPage(): JSX.Element {
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Current publish posture</div>
-          <div className="detailFocusValue">{canPublish ? "Ready to submit" : signerBusyElsewhere ? "Signer lane busy" : "Needs attention"}</div>
+          <div className="detailFocusValue">{canPublish ? "Ready to submit" : signerBusyElsewhere ? "Action lane busy" : "Needs attention"}</div>
           <div className="detailFocusText">{canPublish ? "The signer lane is open and the account posture is sufficient for post submission." : String(readinessChecks.find((item) => !item.ok)?.hint || "Resolve the unmet posting prerequisites shown below before publishing.")}</div>
         </article>
         <article className="detailFocusCard">
@@ -861,12 +861,12 @@ export default function CreatePostPage(): JSX.Element {
                 </div>
               ))}
               <div className="surfaceSummaryCard">
-                <span className="surfaceSummaryLabel">Signer lane</span>
+                <span className="surfaceSummaryLabel">Action lane</span>
                 <strong className="surfaceSummaryValue">{signerBusyElsewhere ? "Busy" : "Open"}</strong>
                 <span className="surfaceSummaryHint">
                   {signerBusyElsewhere
                     ? `Another signed action is already using this account (${signerSubmission.pendingCount} in flight).`
-                    : "This account can safely reserve the next nonce for publish."}
+                    : "This account can safely start the next publish action."}
                 </span>
               </div>
             </div>
@@ -960,7 +960,7 @@ export default function CreatePostPage(): JSX.Element {
                   {!snapshot.hasSession
                     ? "Create or restore a local session first."
                     : !snapshot.hasLocalSigner
-                      ? "Restore the local signer in Settings."
+                      ? "Restore the saved account key in Settings."
                       : !registered
                         ? "Finish account registration before posting."
                         : tier < POSTING_MIN_TIER

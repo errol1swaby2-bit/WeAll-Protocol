@@ -241,17 +241,17 @@ export default function Thread({ id }: { id: string }): JSX.Element {
       setFlagReason("");
       if (dispute?.id) {
         setTxInfo({
-          msg: `Flag accepted and escalated into dispute ${String(dispute.id)}.`,
+          msg: `Report accepted and community review ${String(dispute.id)} is now visible.`,
           details: dispute,
-          ctaLabel: "Open dispute",
-          ctaHref: "/disputes",
+          ctaLabel: "Open report",
+          ctaHref: "/reports",
         });
       } else {
         setTxInfo({
-          msg: "Flag accepted. Dispute escalation may still be settling in the next block; refresh the disputes page if it does not appear immediately.",
+          msg: "Report accepted. Community review may still be setting up; refresh Reports if it does not appear immediately.",
           details: { target_id: targetId },
-          ctaLabel: "Open disputes",
-          ctaHref: "/disputes",
+          ctaLabel: "Open reports",
+          ctaHref: "/reports",
         });
       }
     } catch (e: any) {
@@ -325,7 +325,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
       {signerBusy ? (
         <section className="card">
           <div className="cardBody">
-            <div className="inlineNote">A signed action is already in flight for this account. The next action will wait for the current submission to finish so signer nonces do not collide.</div>
+            <div className="inlineNote">A signed action is already in flight for this account. The next action will wait for the current save to finish so actions do not collide.</div>
           </div>
         </section>
       ) : null}

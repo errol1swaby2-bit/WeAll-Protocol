@@ -9,6 +9,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { decisionStageHelp, decisionStageLabel, decisionVoteChoiceLabel } from "../lib/userLanguage";
 import { nav } from "../lib/router";
 import { voteForAccount } from "../lib/accountSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
@@ -56,7 +57,7 @@ function pct(part: number, whole: number): string {
 
 function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" | "active" | "todo" }> {
   const stage = String(stageRaw || "").toLowerCase();
-  const labels = ["Draft", "Poll", "Revision", "Validation", "Voting", "Tallied", "Executed", "Finalized"];
+  const labels = ["Draft", "Early input", "Revision", "Readiness check", "Voting", "Results counted", "Changes applied", "Final result"];
   const activeIndexByStage: Record<string, number> = {
     draft: 0,
     poll: 1,
@@ -84,9 +85,9 @@ function stageBadgeClass(stage: string): string {
 }
 
 function votingWindowLabel(stage: string): string {
-  if (stage === "poll") return "Poll vote";
-  if (stage === "voting" || stage === "vote") return "Binding vote";
-  return "Voting unavailable";
+  if (stage === "poll") return "Early input open";
+  if (stage === "voting" || stage === "vote") return "Voting open";
+  return "Voting closed";
 }
 
 function votingHelpText(params: {
@@ -97,21 +98,21 @@ function votingHelpText(params: {
   currentChoice: string;
 }): string {
   const { stage, gateOk, gateReason, canVote, currentChoice } = params;
-  if (!gateOk) return gateReason || "Live Verification and a local signer are required to vote.";
+  if (!gateOk) return gateReason || "Complete live verification and keep this device signed in before voting.";
   if (canVote && currentChoice) {
-    return `Your current recorded vote is ${currentChoice.toUpperCase()}. Each signed-in person has one recorded vote on this decision.`;
+    return `Your current recorded vote is ${decisionVoteChoiceLabel(currentChoice)}. Each signed-in person has one recorded vote on this decision.`;
   }
   if (canVote) {
     return stage === "poll"
-      ? "Poll voting is open. Use this to register early sentiment before final validation and binding voting."
-      : "Voting is open. Your recorded vote is counted directly from the decision record.";
+      ? "Early input is open. Use this to share where you stand before the final vote."
+      : "Voting is open. Your vote will be recorded for this decision.";
   }
   if (stage === "draft") return "Voting is not open while this decision is still a draft.";
   if (stage === "revision") return "This decision is being revised. Voting is paused until voting opens again.";
   if (stage === "validation") return "This decision is being checked before voting opens.";
   if (stage === "closed") return "Voting is closed. The next canonical step is tally publication.";
   if (stage === "tallied") return "Voting has ended and tally publication is recorded.";
-  if (stage === "executed") return "Execution has already occurred. Voting is complete.";
+  if (stage === "executed") return "Approved changes have already been applied. Voting is complete.";
   if (stage === "finalized") return "This decision is finalized. Votes can no longer change.";
   if (stage === "withdrawn") return "Withdrawn decisions cannot accept votes.";
   return "Voting is not open on this decision right now.";
@@ -125,24 +126,24 @@ function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; heig
 function nextLifecycleHint(stage: string): string {
   switch (stage) {
     case "draft":
-      return "Next expected step: open for early voting or move to a later status.";
+      return "Next expected step: open for early input or move to a later status.";
     case "poll":
       return "Next expected step: revision, checking, or voting.";
     case "revision":
-      return "Next expected step: checking before voting.";
+      return "Next expected step: readiness check before voting.";
     case "validation":
-      return "Next expected move: Voting.";
+      return "Next expected step: open voting.";
     case "voting":
     case "vote":
       return "Next expected step: close voting, then publish the result.";
     case "closed":
-      return "Next expected move: Publish tally.";
+      return "Next expected step: publish results.";
     case "tallied":
-      return "Next expected step: apply approved changes or finalize as appropriate.";
+      return "Next expected step: apply approved changes or publish the final result.";
     case "executed":
-      return "Next expected move: Finalize.";
+      return "Next expected step: publish final result.";
     case "finalized":
-      return "Lifecycle complete.";
+      return "Decision complete.";
     case "withdrawn":
       return "Lifecycle ended by proposer withdrawal.";
     default:
@@ -166,8 +167,8 @@ function lifecycleActionHint(stage: string, isCreator: boolean): string {
       ? "This decision is still a draft, so voting is intentionally unavailable. In test flows, start decisions in poll status when they should be vote-ready immediately."
       : "This decision is still a draft. Voting begins once it moves to poll or voting status.";
   }
-  if (stage === "poll") return "Poll voting is open now. Eligible people can record early sentiment.";
-  if (stage === "voting" || stage === "vote") return "Binding voting is open now.";
+  if (stage === "poll") return "Early input is open now. Eligible people can record where they stand.";
+  if (stage === "voting" || stage === "vote") return "Voting is open now.";
   return nextLifecycleHint(stage);
 }
 
@@ -261,7 +262,7 @@ export default function Proposal({ id }: Props): JSX.Element {
 
     try {
       if (!gate.ok) throw new Error(gate.reason || "gated");
-      if (signerBusy) throw new Error("signer_submission_busy");
+      if (signerBusy) throw new Error("another_action_is_saving");
 
       const r = await tx.runTx({
         title: toastTitle,
@@ -303,13 +304,13 @@ export default function Proposal({ id }: Props): JSX.Element {
 
     try {
       if (!gate.ok) throw new Error(gate.reason || "gated");
-      if (signerBusy) throw new Error("signer_submission_busy");
+      if (signerBusy) throw new Error("another_action_is_saving");
 
       const r = await tx.runTx({
         title: "Cast vote",
         pendingKey: txPendingKey(["proposal-vote", pid, acct, choice]),
-        pendingMessage: `Submitting ${choice} vote…`,
-        successMessage: `Vote recorded: ${choice}.`,
+        pendingMessage: `Recording ${decisionVoteChoiceLabel(choice)} vote…`,
+        successMessage: `Vote recorded: ${decisionVoteChoiceLabel(choice)}.`,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
@@ -432,15 +433,15 @@ export default function Proposal({ id }: Props): JSX.Element {
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">YES</span>
+              <span className="statLabel">Yes</span>
               <span className="statValue">{activeCount.yes}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">NO</span>
+              <span className="statLabel">No</span>
               <span className="statValue">{activeCount.no}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">ABSTAIN</span>
+              <span className="statLabel">Abstain</span>
               <span className="statValue">{activeCount.abstain}</span>
             </div>
             <div className="statCard">
@@ -505,7 +506,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Outcome clarity</div>
-          <div className="summaryCardValue">Submitting ≠ approved</div>
+          <div className="summaryCardValue">Saving is not approval</div>
           <div className="summaryCardText">
             Decision edits, withdrawals, and votes are saved first. Later status changes and results remain authoritative backend state.
           </div>
@@ -521,7 +522,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             </div>
             <div className="statusSummary">
               <span className={`statusPill ${canVote ? "ok" : ""}`}>{voteModeLabel}</span>
-              {currentChoice ? <span className="statusPill">Current: {currentChoice}</span> : null}
+              {currentChoice ? <span className="statusPill">Current: {decisionVoteChoiceLabel(currentChoice)}</span> : null}
             </div>
           </div>
 
@@ -540,7 +541,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Your vote</div>
-              <div className="summaryCardValue">{currentChoice ? currentChoice.toUpperCase() : "None"}</div>
+              <div className="summaryCardValue">{decisionVoteChoiceLabel(currentChoice)}</div>
               <div className="summaryCardText">Signer-keyed direct vote</div>
             </article>
           </div>
@@ -602,12 +603,13 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardValue mono">{String(proposal?.creator || "(unknown)")}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Created record</div>
-              <div className="summaryCardValue">{Number(proposal?.created_at_height || 0)}</div>
+              <div className="summaryCardLabel">Status note</div>
+              <div className="summaryCardValue">{decisionStageLabel(stage)}</div>
+              <div className="summaryCardText">{decisionStageHelp(stage)}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Updated record</div>
-              <div className="summaryCardValue">{Number(proposal?.updated_at_height || 0)}</div>
+              <div className="summaryCardLabel">Next step</div>
+              <div className="summaryCardValue">{readiness}</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Applied changes</div>
@@ -620,7 +622,7 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="buttonRow">
             {canVote ? (
               <button className="btn btnPrimary" onClick={() => void castVote("yes")}>
-                Quick vote yes
+                Vote Yes
               </button>
             ) : currentChoice ? (
               <span className="statusPill ok">Vote already recorded</span>
@@ -630,7 +632,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 Jump to author controls
               </button>
             ) : null}
-            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>{signerBusy ? "Waiting for signer…" : "Refresh state"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>{signerBusy ? "Waiting…" : "Refresh decision"}</button>
           </div>
         </div>
       </section>
@@ -653,7 +655,7 @@ export default function Proposal({ id }: Props): JSX.Element {
 
             {Array.isArray(proposal?.actions) && proposal.actions.length > 0 ? (
               <details className="detailsPanel">
-                <summary>View technical actions</summary>
+                <summary>View technical record</summary>
                 <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>
                   {JSON.stringify(proposal.actions, null, 2)}
                 </div>
@@ -675,17 +677,17 @@ export default function Proposal({ id }: Props): JSX.Element {
 
             <div className="summaryCardGrid">
               <article className="summaryCard">
-                <div className="summaryCardLabel">YES</div>
+                <div className="summaryCardLabel">Yes</div>
                 <div className="summaryCardValue">{activeCount.yes}</div>
                 <div className="summaryCardText">{yesPct}</div>
               </article>
               <article className="summaryCard">
-                <div className="summaryCardLabel">NO</div>
+                <div className="summaryCardLabel">No</div>
                 <div className="summaryCardValue">{activeCount.no}</div>
                 <div className="summaryCardText">{noPct}</div>
               </article>
               <article className="summaryCard">
-                <div className="summaryCardLabel">ABSTAIN</div>
+                <div className="summaryCardLabel">Abstain</div>
                 <div className="summaryCardValue">{activeCount.abstain}</div>
                 <div className="summaryCardText">{abstainPct}</div>
               </article>
@@ -701,13 +703,13 @@ export default function Proposal({ id }: Props): JSX.Element {
                 {sortedVoteEntries(stage === "poll" ? pollVotes : finalVotes).map(([signer, rec]) => (
                   <article key={signer} className="summaryCard">
                     <div className="summaryCardLabel mono">{signer}</div>
-                    <div className="summaryCardValue">{String(rec?.vote || "").toUpperCase()}</div>
+                    <div className="summaryCardValue">{decisionVoteChoiceLabel(rec?.vote)}</div>
                     <div className="summaryCardText">Record {Number(rec?.height || 0)}</div>
                   </article>
                 ))}
               </div>
             ) : (
-              <div className="cardDesc">No direct votes recorded for the current stage yet.</div>
+              <div className="cardDesc">No votes recorded for the current status yet.</div>
             )}
           </div>
         </article>

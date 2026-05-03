@@ -21,7 +21,7 @@ export default function SessionPill(): JSX.Element {
       onClick={() => nav(`/account/${encodeURIComponent(summary.account || "")}`)}
     >
       <span className="mono">{summary.account}</span>
-      <span>{summary.hasLocalSigner ? "local signer ready" : "no signer"}</span>
+      <span>{summary.hasLocalSigner ? "account key ready" : "no account key"}</span>
       <span>{summary.hasBrowserSession ? "session key active" : "no session key"}</span>
     </button>
   );

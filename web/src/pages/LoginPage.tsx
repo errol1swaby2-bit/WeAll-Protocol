@@ -317,7 +317,7 @@ export default function LoginPage() {
         secretKeyB64: keypair.secretKeyB64,
       })
 
-      setNotice("Local account signer created. Continue on the Account Verification page to register the account on-chain and start native async/live verification.")
+      setNotice("Saved account key created. Continue on the Account Verification page to register the account and start native async/live verification.")
       nav(consumeReturnTo("/verification"))
     } catch (err) {
       setError(
@@ -425,7 +425,7 @@ export default function LoginPage() {
           title: "Local signer",
           detail: sessionKeypair?.secretKeyB64
             ? "A signer is available on this device for the active account."
-            : "No local signer is available for the active account.",
+            : "No saved account key is available for the active account.",
           tone: sessionKeypair?.secretKeyB64 ? "good" : "warn",
         },
       ]
@@ -441,8 +441,8 @@ export default function LoginPage() {
     {
       title: "1. Create local identity",
       detail: account
-        ? `${account} will get a browser-local signer on this device.`
-        : "Enter a handle to generate a browser-local signer for the new account.",
+        ? `${account} will get a browser-saved account key on this device.`
+        : "Enter a handle to generate a browser-saved account key for the new account.",
       tone: account ? "good" : "pending",
     },
     {
@@ -460,7 +460,7 @@ export default function LoginPage() {
 
   const restoreFlowCheckpoints: Checkpoint[] = [
     {
-      title: "1. Restore the local signer",
+      title: "1. Restore the saved account key",
       detail: "Paste the existing account’s private key. It stays local to this browser.",
       tone: existingAccount && privateKey.trim() ? "good" : "pending",
     },
@@ -485,7 +485,7 @@ export default function LoginPage() {
             <h1>Connect this device, then continue onboarding with clear state boundaries.</h1>
             <p className="muted">
               This page is where local identity and device session setup begin. It should be obvious what is local to this
-              browser, what must be registered on-chain, and what belongs to the native async/live Account Verification workflow.
+              browser, what must be registered with your account, and what belongs to the native async/live Account Verification workflow.
             </p>
           </div>
 
@@ -516,7 +516,7 @@ export default function LoginPage() {
           <div>
             <h2 className="surfaceBoundaryTitle">Access contract</h2>
             <p className="surfaceBoundaryText">
-              This route is a deliberate access surface. It should make environment selection, local signer setup, browser session issuance, and first-step onboarding legible without blending them into the main product hubs.
+              This route is a deliberate access surface. It should make environment selection, saved account-key setup, browser session issuance, and first-step onboarding legible without blending them into the main product hubs.
             </p>
           </div>
           <div className="surfaceBoundaryList">
@@ -641,7 +641,7 @@ export default function LoginPage() {
                 </label>
 
                 <div className="calloutInfo">
-                  This creates a browser-local signer and local session only. Open Account Verification next to submit ACCOUNT_REGISTER and continue through native async/live verification.
+                  This creates a browser-saved account key and local session only. Open Account Verification next to register the account and continue through native async/live verification.
                 </div>
 
                 <div className="authMetaGrid">

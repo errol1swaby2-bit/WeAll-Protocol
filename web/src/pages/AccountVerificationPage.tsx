@@ -291,7 +291,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const nextStep = useMemo(() => {
     if (!acct) return "Sign in or create an account on this device.";
-    if (!hasLocalKeypair) return "Restore the local signer for this account.";
+    if (!hasLocalKeypair) return "Restore the saved account key for this account.";
     if (!sessionKeyPresent) return "Save a session key so authenticated account calls work on this device.";
     if (!registered) return "Register your account so the network can recognize it.";
     if (accountLevel < 1) return "Start account verification when the native async review flow is available on this deployment.";
@@ -305,7 +305,7 @@ export default function AccountVerificationPage(): JSX.Element {
       return;
     }
     if (!kp?.pubkeyB64) {
-      setErr({ msg: "This device is missing the local signer for this account.", details: null });
+      setErr({ msg: "This device is missing the saved account key for this account.", details: null });
       return;
     }
     setRegisterBusy(true);
@@ -614,7 +614,7 @@ export default function AccountVerificationPage(): JSX.Element {
               <button className="btn" onClick={() => nav("/login")}>Open sign-in</button>
             </div>
             <p className="cardDesc">
-              This device needs a browser session, the matching local signer, and a visible account record before verification actions can complete.
+              This device needs a browser session, the matching saved account key, and a visible account record before verification actions can complete.
             </p>
             <div className="buttonRowWide">
               <button

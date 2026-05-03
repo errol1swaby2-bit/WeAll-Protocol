@@ -136,9 +136,9 @@ export default function SessionDevicesPage(): JSX.Element {
         const repaired = await maybeRepairDevBootstrapSession(config).catch(() => false);
         if (repaired) {
           await load();
-          setActionError("This device was holding an old local signer. Dev bootstrap credentials were re-applied. Try the action again.");
+          setActionError("This device was holding an old account key. Dev bootstrap credentials were re-applied. Try the action again.");
         } else {
-          setActionError("This browser’s local signer no longer matches the current on-chain account keys. Restore the correct keypair for this account, then renew the browser session again.");
+          setActionError("This browser’s saved account key no longer matches the current account keys. Restore the correct keypair for this account, then renew the browser session again.");
         }
       } else {
         setActionError(e?.message || "Failed to renew browser session.");
@@ -154,13 +154,13 @@ export default function SessionDevicesPage(): JSX.Element {
     try {
       await tx.runTx({
         title: "Revoke session key",
-        pendingMessage: "Submitting session-key revoke transaction…",
-        successMessage: "Revocation submitted. Backend confirmation may still be pending.",
+        pendingMessage: "Saving session-key revocation…",
+        successMessage: "Session-key revocation was saved. Final confirmation may still be updating.",
         task: async () => revokeSessionKeyOnChain({ account, sessionKey: session.sessionKey!, base }),
         getTxId: (result: any) => result?.tx_id || result?.result?.tx_id,
       });
       clearSession();
-      setActionError("The current local session was cleared after submitting the revoke. Re-open session recovery if you need to renew from this device.");
+      setActionError("The current local session was cleared after saving the revocation. Re-open session recovery if you need to renew from this device.");
     } catch (e: any) {
       setActionError(e?.message || "Failed to revoke session key.");
     }
@@ -199,12 +199,12 @@ export default function SessionDevicesPage(): JSX.Element {
             <div className="eyebrow">Identity & Access</div>
             <h1 className="surfaceTitle">Session and device posture</h1>
             <p className="surfaceSummaryHint">
-              This surface separates local signer state, local browser session state, and authoritative on-chain device records so the frontend does not imply they are the same thing.
+              This page separates this device’s saved account key, browser session, and authoritative account device records so the app does not imply they are the same thing.
             </p>
           </div>
           <div className="statusRowWrap">
             <span className={`statusPill ${sessionSummary.account ? "ok" : ""}`}>{sessionSummary.account ? "Session loaded" : "No session"}</span>
-            <span className={`statusPill ${sessionSummary.hasLocalSigner ? "ok" : ""}`}>{sessionSummary.hasLocalSigner ? "Signer ready" : "Signer missing"}</span>
+            <span className={`statusPill ${sessionSummary.hasLocalSigner ? "ok" : ""}`}>{sessionSummary.hasLocalSigner ? "Account key ready" : "Account key missing"}</span>
             <span className={`statusPill ${sessionSummary.hasBrowserSession ? "ok" : ""}`}>{sessionSummary.hasBrowserSession ? "Browser session key" : "No browser session key"}</span>
           </div>
         </div>
@@ -225,8 +225,8 @@ export default function SessionDevicesPage(): JSX.Element {
             <div className="summaryCardValue">{matchingDevice ? "Present" : "Missing"}</div>
             <div className="summaryCardHint">
               {matchingDevice
-                ? `The local signer matches on-chain device ${matchingDevice.deviceId}.`
-                : "The current local signer is not yet matched to an active on-chain device record."}
+                ? `This device matches account device ${matchingDevice.deviceId}.`
+                : "This device’s saved account key is not yet matched to an active account device record."}
             </div>
           </article>
         </div>
@@ -236,7 +236,7 @@ export default function SessionDevicesPage(): JSX.Element {
         <article className="detailFocusCard utilityFocusCard">
           <div className="detailFocusLabel">Utility contract</div>
           <div className="detailFocusValue">Repair local access posture</div>
-          <div className="detailFocusText">This page exists to reconcile three separate layers: browser session, local signer storage, and authoritative on-chain device records.</div>
+          <div className="detailFocusText">This page exists to reconcile three separate layers: browser session, saved account-key storage, and authoritative account device records.</div>
         </article>
         <article className="detailFocusCard utilityFocusCard">
           <div className="detailFocusLabel">Safe recovery</div>
@@ -255,7 +255,7 @@ export default function SessionDevicesPage(): JSX.Element {
 
       {pendingReturnTo ? (
         <div className="calloutInfo">
-          After recovering the signer or renewing the browser session, this page can return you to <strong>{pendingReturnTo}</strong> instead of dropping you back at Home.
+          After recovering this device or renewing the browser session, this page can return you to <strong>{pendingReturnTo}</strong> instead of dropping you back at Home.
         </div>
       ) : null}
 
@@ -277,13 +277,13 @@ export default function SessionDevicesPage(): JSX.Element {
           <div className="stack gap12">
             <div className="kvList">
               <div className="kvRow"><span>Local account</span><strong className="mono">{account || "—"}</strong></div>
-              <div className="kvRow"><span>Local signer pubkey</span><strong className="mono wrapAnywhere">{keypair?.pubkeyB64 || "Not present on this device"}</strong></div>
+              <div className="kvRow"><span>Saved account key</span><strong className="mono wrapAnywhere">{keypair?.pubkeyB64 || "Not present on this device"}</strong></div>
               <div className="kvRow"><span>Browser session key</span><strong className="mono wrapAnywhere">{session?.sessionKey || "Not present"}</strong></div>
               <div className="kvRow"><span>Session expiry</span><strong>{fmtTs(session?.expiresAtMs)}</strong></div>
               <div className="kvRow"><span>Session health</span><strong>{sessionHealth.state.replace(/_/g, " ")}</strong></div>
             </div>
             <p className="cardDesc">
-              The local signer and browser session key are device-local facts. They can exist even when the network has not yet confirmed or matched an on-chain device record.
+              The saved account key and browser session key belong to this device. They can exist even when the network has not yet confirmed or matched an account device record.
             </p>
           </div>
         </article>
@@ -299,10 +299,10 @@ export default function SessionDevicesPage(): JSX.Element {
             </button>
           </div>
           <p className="cardDesc">
-            Revoking the current session key submits an on-chain transaction. Clearing the local session only removes this browser’s local state.
+            Revoking the current session key saves an authoritative account action. Clearing the local session only removes this browser’s local state.
           </p>
           <div className="summaryCallout">
-            <strong>Important:</strong> “Clear local session” and “revoke on-chain session key” are intentionally separate because the frontend must not imply that local logout changes authoritative chain state.
+            <strong>Important:</strong> “Clear local session” and “revoke current session key” are intentionally separate because the frontend must not imply that local logout changes authoritative account state.
           </div>
           <div className="kvList">
             <div className="kvRow"><span>Tracked session-key records</span><strong>{sessionKeyEntries.length}</strong></div>
@@ -320,7 +320,7 @@ export default function SessionDevicesPage(): JSX.Element {
           <div className="miniTag">{activeDevices.length} active</div>
         </div>
         <p className="cardDesc">
-          Device records are part of the authoritative account state. They matter for operator preparation and higher-trust local-to-network alignment.
+          Device records are part of the authoritative account state. They matter for account safety, recovery, and higher-trust device alignment.
         </p>
         {loading ? (
           <div className="emptyState">Loading device state…</div>
@@ -335,7 +335,7 @@ export default function SessionDevicesPage(): JSX.Element {
                       <div className="deviceRecordId mono">{rec.deviceId}</div>
                       <div className="deviceRecordMeta">{describeDevice(rec)}</div>
                     </div>
-                    <span className={`statusPill ${matches ? "ok" : ""}`}>{matches ? "Matches local signer" : "Different device"}</span>
+                    <span className={`statusPill ${matches ? "ok" : ""}`}>{matches ? "Matches this device" : "Different device"}</span>
                   </div>
                   <div className="deviceRecordBody">
                     <div><span className="mutedLabel">Pubkey</span><div className="mono wrapAnywhere">{String(rec.pubkey || "—")}</div></div>

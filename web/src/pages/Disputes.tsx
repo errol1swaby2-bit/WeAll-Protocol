@@ -11,6 +11,7 @@ import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { actionableTxError } from "../lib/txAction";
 import { refreshMutationSlices } from "../lib/revalidation";
+import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
 import {
   disputeAttendancePresent,
   disputeCurrentVote,
@@ -51,7 +52,7 @@ function queueNextAction(params: {
   const id = encodeURIComponent(String(dispute?.id || ""));
 
   if (!account) return { label: "Open detail", hint: "Inspect the flagged target and recorded reason.", href: `/reports/${id}` };
-  if (currentVote) return { label: "Open reviewed report", hint: `Current recorded vote: ${currentVote.toUpperCase()}.`, href: `/reports/${id}` };
+  if (currentVote) return { label: "Open reviewed report", hint: `Current recorded choice: ${reviewChoiceLabel(currentVote)}.`, href: `/reports/${id}` };
   if ((status === "assigned" || status === "accepted") && present) {
     return { label: "Continue review", hint: "You can open the dedicated review workspace and choose once.", href: `/reviews/${id}` };
   }
@@ -156,7 +157,7 @@ export default function Disputes(): JSX.Element {
           <div className="surfaceSummaryRow">
             <div>
               <h1 className="heroTitle heroTitleSm">Reports</h1>
-              <p className="heroSubtitle">This hub lists visible reports and routes you into dedicated detail or review pages instead of placing final review controls directly in the queue.</p>
+              <p className="heroSubtitle">Browse reported content, see what needs attention, and open assigned review work when selected.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{filtered.length}</strong><span className="surfaceSummaryHint">visible reports</span></div>
@@ -164,26 +165,26 @@ export default function Disputes(): JSX.Element {
             </div>
           </div>
           <div className="buttonRow">
-            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh reports"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh reports"}</button>
             <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
           </div>
         </div>
       </section>
 
-      <section className="surfaceBoundaryBar" aria-label="Reports queue contract">
+      <section className="surfaceBoundaryBar" aria-label="How reports work">
         <div className="surfaceBoundaryHeader">
           <div>
-            <h2 className="surfaceBoundaryTitle">The queue routes work, but it does not adjudicate inline.</h2>
+            <h2 className="surfaceBoundaryTitle">Reports move from submission to community review.</h2>
             <p className="surfaceBoundaryText">
-              Detail pages carry flagged content, assignment state, and the next step. Final reviewer choices remain in the dedicated review route so review work feels formal instead of feed-like.
+              Open a report to read the context. Selected Community Reviewers use the review page to choose what should happen next.
             </p>
           </div>
-          <span className="statusPill">Hub surface</span>
+          <span className="statusPill">Browse</span>
         </div>
         <div className="surfaceBoundaryList">
-          <span className="surfaceBoundaryTag">Queue: discover and route</span>
-          <span className="surfaceBoundaryTag">Detail: inspect and accept</span>
-          <span className="surfaceBoundaryTag">Review route: vote once</span>
+          <span className="surfaceBoundaryTag">Browse reports</span>
+          <span className="surfaceBoundaryTag">Read context</span>
+          <span className="surfaceBoundaryTag">Review when selected</span>
         </div>
       </section>
 
@@ -205,12 +206,12 @@ export default function Disputes(): JSX.Element {
         <article className="summaryCard">
           <div className="summaryCardLabel">Assigned to me</div>
           <div className="summaryCardValue">{account ? assignedCount : "—"}</div>
-          <div className="summaryCardText">Personalized routing depends on report assignment state.</div>
+          <div className="summaryCardText">This shows reports where you may have a review task.</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Reviewer readiness</div>
           <div className="summaryCardValue">{tierGate.ok ? "Ready" : "Locked"}</div>
-          <div className="summaryCardText">{tierGate.ok ? "Account status allows review actions when assigned." : tierGate.reason || "Live verification and a valid session are still required for review actions."}</div>
+          <div className="summaryCardText">{tierGate.ok ? "You can review reports when selected." : tierGate.reason || "Complete live verification and keep this device signed in before reviewing reports."}</div>
         </article>
       </section>
 
@@ -258,8 +259,8 @@ export default function Disputes(): JSX.Element {
                     <h2 className="cardTitle mono">{id}</h2>
                   </div>
                   <div className="statusSummary">
-                    <span className={stageClass(String(item?.stage || "open"))}>{String(item?.stage || "open")}</span>
-                    <span className={`statusPill ${status !== "unassigned" ? "ok" : ""}`}>{status}</span>
+                    <span className={stageClass(String(item?.stage || "open"))}>{reportStageLabel(item?.stage || "open")}</span>
+                    <span className={`statusPill ${status !== "unassigned" ? "ok" : ""}`}>{reviewStatusLabel(status)}</span>
                   </div>
                 </div>
 
@@ -277,7 +278,7 @@ export default function Disputes(): JSX.Element {
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Reviews</div>
                     <div className="summaryCardValue">{counts.total}</div>
-                    <div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div>
+                    <div className="summaryCardText">{reviewTallyText(counts)}</div>
                   </article>
                   <article className="summaryCard">
                     <div className="summaryCardLabel">Review attendance</div>

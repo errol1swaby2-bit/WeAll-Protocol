@@ -181,7 +181,7 @@ export default function GroupCreate(): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Eligibility</div>
           <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "Creation gated"}</div>
-          <div className="detailFocusText">{createGate.ok ? "Account and session requirements are satisfied for this action route." : createGate.reason || "A Live Verification account and local signer are required to create a group."}</div>
+          <div className="detailFocusText">{createGate.ok ? "Account and session requirements are satisfied for this action route." : createGate.reason || "A Trusted Verified Person account and saved account key are required to create a group."}</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Deterministic id preview</div>
@@ -191,13 +191,13 @@ export default function GroupCreate(): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Completion posture</div>
           <div className="detailFocusValue">Submit once</div>
-          <div className="detailFocusText">After the signed transaction settles, this action route should hand off to the new group detail surface rather than keeping you inside a mixed create-and-browse flow.</div>
+          <div className="detailFocusText">After the saved action finishes, this page should hand off to the new group detail surface rather than keeping you inside a mixed create-and-browse flow.</div>
         </article>
       </section>
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
-          Another signed action for {acct || "this account"} is still settling. Group creation waits for the signer lane to clear so nonces stay ordered.
+          Another signed action for {acct || "this account"} is still settling. Group creation waits for the action lane to clear so saves stay ordered.
         </div>
       ) : null}
 
@@ -233,7 +233,7 @@ export default function GroupCreate(): JSX.Element {
 
           {!acct || !canSign ? (
             <div className="calloutInfo">
-              Group creation requires an active device session and local signer.
+              Group creation requires an active device session and saved account key.
               <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/groups/create")}>
                 {acct ? "Open session recovery" : "Open login"}
               </button>
