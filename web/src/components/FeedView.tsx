@@ -42,7 +42,7 @@ function uniqById(items: any[]): any[] {
 }
 
 function prettyMsg(e: any): string {
-  return actionableTxError(e, "Content action failed.").msg;
+  return actionableTxError(e, "This content action could not be completed.").msg;
 }
 
 function asArray<T = any>(v: any): T[] {
@@ -120,8 +120,8 @@ function itemNonce(it: any): string {
 
 function itemCreatedLabel(it: any): string {
   const nonce = itemNonce(it);
-  if (nonce) return `nonce ${nonce}`;
-  return "pending metadata";
+  if (nonce) return "Recent activity";
+  return "Recent activity";
 }
 
 function reactionCount(it: any, key: string): number {
@@ -141,16 +141,16 @@ function scopeLabel(scope: FeedScope): string {
 function summarizeFeedScope(scope: FeedScope, count: number): string {
   if (scope?.kind === "group") {
     return count
-      ? `Showing ${count} visible items for this group scope.`
+      ? `Showing ${count} visible group posts.`
       : "No group-scoped activity has been returned yet.";
   }
   if (scope?.kind === "account") {
     return count
-      ? `Showing ${count} visible items for this account surface.`
+      ? `Showing ${count} visible posts for this account.`
       : "This account has no visible items in the current view.";
   }
   return count
-    ? `Showing ${count} public items from the node's current feed view.`
+    ? `Showing ${count} public posts.`
     : "No public items are visible in the current feed view yet.";
 }
 
@@ -162,21 +162,21 @@ function summarizeInteractionState(args: {
   if (!args.viewer) {
     return {
       tone: "",
-      title: "Read-only mode",
-      text: "You can browse public content now. Restore or create a local session before attempting reactions or flags.",
+      title: "Read-only browsing",
+      text: "You can read public posts now. Sign in or restore this device before reacting or reporting.",
     };
   }
   if (!args.gateOk) {
     return {
       tone: "",
-      title: "Interaction still gated",
-      text: `The current viewer is ${args.viewerSummary}. Live verification is required before reactions and reports are expected to succeed.`,
+      title: "More participation locked",
+      text: `Complete live verification before reacting or reporting harmful content.`,
     };
   }
   return {
     tone: "ok",
-    title: "High-trust interaction unlocked",
-    text: `The current viewer is ${args.viewerSummary}. Reactions and reports may still take a moment to finish and appear everywhere.`,
+    title: "Conversation actions available",
+    text: `You can react and report. Some actions may take a moment to appear everywhere.`,
   };
 }
 
@@ -212,9 +212,9 @@ export default function FeedView({
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const [likeErr, setLikeErr] = useState<string | null>(null);
 
-  const [flagBusyId, setFlagBusyId] = useState<string | null>(null);
-  const [flagErr, setFlagErr] = useState<string | null>(null);
-  const [flagInfo, setFlagInfo] = useState<{ msg: string; details?: any; ctaLabel?: string; ctaHref?: string } | null>(null);
+  const [flagBusyId, setReportBusyId] = useState<string | null>(null);
+  const [flagErr, setReportErr] = useState<string | null>(null);
+  const [flagInfo, setReportInfo] = useState<{ msg: string; details?: any; ctaLabel?: string; ctaHref?: string } | null>(null);
   const { refresh: refreshAccountContext } = useAccount();
 
   const filters = useMemo(() => {
@@ -390,17 +390,17 @@ export default function FeedView({
 
   async function doLike(targetId: string) {
     setLikeErr(null);
-    setFlagInfo(null);
-    if (!viewer) return setLikeErr("Sign in first to react.");
-    if (!gateTier2.ok) return setLikeErr(gateTier2.reason || `Gated (${viewerSummary}).`);
+    setReportInfo(null);
+    if (!viewer) return setLikeErr("Sign in before reacting.");
+    if (!gateTier2.ok) return setLikeErr(gateTier2.reason || `Complete account verification before reacting. ${viewerSummary}`);
 
     setLikeBusyId(String(targetId));
     try {
       await tx.runTx({
         title: "React to content",
         pendingKey: txPendingKey(["content-reaction", targetId, viewer, "like"]),
-        pendingMessage: "Submitting reaction transaction…",
-        successMessage: "Reaction submitted. The feed will refresh after submission and final confirmation may still be pending.",
+        pendingMessage: "Saving your reaction…",
+        successMessage: "Your reaction was saved. Updating the feed…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
@@ -421,23 +421,23 @@ export default function FeedView({
     }
   }
 
-  async function doFlag(targetId: string) {
-    setFlagErr(null);
-    setFlagInfo(null);
-    if (!viewer) return setFlagErr("Sign in first to flag content.");
-    if (!gateTier2.ok) return setFlagErr(gateTier2.reason || `Gated (${viewerSummary}).`);
+  async function doReport(targetId: string) {
+    setReportErr(null);
+    setReportInfo(null);
+    if (!viewer) return setReportErr("Sign in before reporting content.");
+    if (!gateTier2.ok) return setReportErr(gateTier2.reason || `Complete account verification before reacting. ${viewerSummary}`);
 
-    const reasonRaw = window.prompt("Flag reason (optional)", "");
+    const reasonRaw = window.prompt("Why are you reporting this post? (optional)", "");
     if (reasonRaw === null) return;
     const reason = String(reasonRaw || "").trim();
 
-    setFlagBusyId(String(targetId));
+    setReportBusyId(String(targetId));
     try {
       await tx.runTx({
-        title: "Flag content",
+        title: "Report content",
         pendingKey: txPendingKey(["content-flag", targetId, viewer]),
-        pendingMessage: "Submitting flag transaction…",
-        successMessage: "Flag committed. Checking whether a dispute is already visible for this content…",
+        pendingMessage: "Sending your report…",
+        successMessage: "Report sent. Checking community review status…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
@@ -454,24 +454,24 @@ export default function FeedView({
       const dispute = await waitForDisputeForTarget(base, String(targetId));
       await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
       if (dispute?.id) {
-        setFlagInfo({
-          msg: `Flag accepted and dispute ${String(dispute.id)} is now visible in the disputes surface.`,
+        setReportInfo({
+          msg: `Report sent. This post is now visible in Community Review.`,
           details: dispute,
-          ctaLabel: "Open disputes",
-          ctaHref: "/disputes",
+          ctaLabel: "Open reports",
+          ctaHref: "/reports",
         });
       } else {
-        setFlagInfo({
-          msg: "Flag accepted. Dispute escalation may still be settling in the next block; refresh the disputes page if it does not appear immediately.",
+        setReportInfo({
+          msg: "Report sent. Community Review may take a moment to appear.",
           details: { target_id: String(targetId) },
-          ctaLabel: "Open disputes",
-          ctaHref: "/disputes",
+          ctaLabel: "Open reports",
+          ctaHref: "/reports",
         });
       }
     } catch (e: any) {
-      setFlagErr(prettyMsg(e));
+      setReportErr(prettyMsg(e));
     } finally {
-      setFlagBusyId(null);
+      setReportBusyId(null);
     }
   }
 
@@ -487,7 +487,7 @@ export default function FeedView({
       ? "This group feed has not received visible posts yet. Once members publish here, they will appear newest-first."
       : scope?.kind === "account"
         ? "This account does not have visible posts in the selected view yet."
-        : "This feed is empty for now. Once activity starts landing on-chain, posts will appear newest-first.";
+        : "This feed is empty for now. Once people start posting, new posts will appear here.";
 
   return (
     <div className="pageStack">
@@ -518,12 +518,12 @@ export default function FeedView({
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Ordering</span>
               <strong className="surfaceSummaryValue">Newest first</strong>
-              <span className="surfaceSummaryHint">Rendered from backend ordering, not a frontend-local ranking model.</span>
+              <span className="surfaceSummaryHint">Newest visible posts appear first.</span>
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Viewer state</span>
               <strong className="surfaceSummaryValue mono">{viewer || "Read-only"}</strong>
-              <span className="surfaceSummaryHint">{viewer ? viewerSummary : "Browse now. Restore a device session to interact."}</span>
+              <span className="surfaceSummaryHint">{viewer ? viewerSummary : "Read now. Sign in to interact."}</span>
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Interaction status</span>
@@ -545,12 +545,12 @@ export default function FeedView({
               <div>{flagInfo.msg}</div>
               <div className="buttonRow" style={{ marginTop: 8 }}>
                 {flagInfo.ctaHref ? <button className="btn" onClick={() => nav(String(flagInfo.ctaHref))}>{flagInfo.ctaLabel || "Open"}</button> : null}
-                <button className="btn" onClick={() => setFlagInfo(null)}>Dismiss</button>
+                <button className="btn" onClick={() => setReportInfo(null)}>Dismiss</button>
               </div>
             </div>
           ) : null}
           {signerBusy ? (
-            <div className="inlineNote">A signed action is already being submitted for this account. New reactions and flags wait for that submission to finish so signer nonces stay monotonic.</div>
+            <div className="inlineNote">Another action is already being saved for this account. New reactions and reports will wait until it finishes.</div>
           ) : null}
         </div>
       </section>
@@ -560,14 +560,14 @@ export default function FeedView({
           <div className="card">
             <div className="cardBody formStack">
               <div>
-                <div className="eyebrow">Empty state</div>
+                <div className="eyebrow">Feed</div>
                 <h3 className="cardTitle">{emptyTitle}</h3>
                 <p className="cardDesc">{emptyNote}</p>
               </div>
               <div className="buttonRow buttonRowWide">
                 <button className="btn" onClick={() => nav("/groups")}>Browse groups</button>
-                <button className="btn" onClick={() => nav("/proposals")}>Open governance</button>
-                <button className="btn btnPrimary" onClick={() => nav("/post")}>Create post</button>
+                <button className="btn" onClick={() => nav("/decisions")}>Open decisions</button>
+                <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
               </div>
             </div>
           </div>
@@ -604,7 +604,7 @@ export default function FeedView({
                   </div>
 
                   <div className="statusSummary">
-                    {id ? <span className="statusPill mono">{id}</span> : null}
+                    {id ? <span className="statusPill">Post</span> : null}
                   </div>
                 </div>
 
@@ -623,9 +623,9 @@ export default function FeedView({
                 <MediaGallery base={base} media={media} title="Attached media" compact />
 
                 <div className="actionStateRow">
-                  <span className="actionStateLabel">Action truth</span>
+                  <span className="actionStateLabel">What happens next</span>
                   <span className="actionStateText">
-                    Reactions and flags submit protocol transactions. Submission can succeed before final confirmation is visible.
+                    Reactions and reports may take a moment to show everywhere after you save them.
                   </span>
                 </div>
 
@@ -636,8 +636,8 @@ export default function FeedView({
                   <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id || signerBusy}>
                     {likeBusyId === id ? "Liking…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
-                  <button className="btn" onClick={() => void doFlag(id)} disabled={!id || flagBusyId === id || signerBusy}>
-                    {flagBusyId === id ? "Flagging…" : signerBusy ? "Waiting…" : "Flag"}
+                  <button className="btn" onClick={() => void doReport(id)} disabled={!id || flagBusyId === id || signerBusy}>
+                    {flagBusyId === id ? "Reporting…" : signerBusy ? "Waiting…" : "Report"}
                   </button>
                 </div>
               </div>

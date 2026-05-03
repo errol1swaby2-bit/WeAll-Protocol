@@ -113,21 +113,20 @@ export default function Groups(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Groups</div>
-              <h1 className="heroTitle heroTitleSm">Browse communities without mixing creation or membership review</h1>
+              <h1 className="heroTitle heroTitleSm">Find your communities</h1>
               <p className="heroText">
-                This hub is now strictly for discovery. Creation lives on its own action route and membership decisions live on each group detail page,
-                so the directory stays lightweight and predictable.
+                Browse groups, open the ones that interest you, and create a new community when your account is ready.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Participation posture</div>
+              <div className="heroInfoTitle">Your access</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
-                  {createGate.ok ? "Create unlocked" : "Create requires Live Verification"}
+                  {createGate.ok ? "Create unlocked" : "Complete live verification to create"}
                 </span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
-                  {membershipGate.ok ? "Membership unlocked" : "Membership requires live verification"}
+                  {membershipGate.ok ? "Membership unlocked" : "Complete live verification to join"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -141,7 +140,7 @@ export default function Groups(): JSX.Element {
               onClick={() => nav("/groups/create")}
               type="button"
             >
-              {createGate.ok ? "Create group" : "Open create group"}
+              {createGate.ok ? "Create group" : "Create group"}
             </button>
             <button className="btn" onClick={() => void refreshMutationSlices(loadAccountState, refreshAccountContext, refreshGroups)} disabled={loading}>
               {loading ? "Refreshing…" : "Refresh directory"}
@@ -154,16 +153,16 @@ export default function Groups(): JSX.Element {
               <span className="statValue">{groups.length}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Create gate</span>
-              <span className="statValue">{createGate.ok ? "Live Verified ready" : "Live Verification required"}</span>
+              <span className="statLabel">Create groups</span>
+              <span className="statValue">{createGate.ok ? "Ready" : "Verification needed"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Membership gate</span>
-              <span className="statValue">{membershipGate.ok ? "Live verification ready" : "Live verification required"}</span>
+              <span className="statLabel">Join groups</span>
+              <span className="statValue">{membershipGate.ok ? "Ready" : "Verification needed"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Directory mode</span>
-              <span className="statValue">Hub only</span>
+              <span className="statLabel">Page purpose</span>
+              <span className="statValue">Browse</span>
             </div>
           </div>
         </div>
@@ -180,17 +179,17 @@ export default function Groups(): JSX.Element {
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
-          <div className="summaryCardLabel">Separation of concerns</div>
-          <div className="summaryCardValue">Directory only</div>
+          <div className="summaryCardLabel">Browse first</div>
+          <div className="summaryCardValue">Simple directory</div>
           <div className="summaryCardText">
-            The groups hub should let people scan what exists, not force creation and membership state into the same scroll surface.
+            This page keeps the group list simple. Open a group to see its details, posts, and membership options.
           </div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Next step</div>
-          <div className="summaryCardValue">Open a group detail</div>
+          <div className="summaryCardValue">Open a group</div>
           <div className="summaryCardText">
-            Each row links to a dedicated group detail page where membership actions and scoped activity can happen without crowding the hub.
+            Each group opens into its own page with the join button, group description, and recent activity.
           </div>
         </article>
       </section>
@@ -201,7 +200,7 @@ export default function Groups(): JSX.Element {
             <div>
               <div className="eyebrow">Directory</div>
               <h2 className="cardTitle">Available groups</h2>
-              <div className="cardDesc">Open a group to inspect its charter, membership state, and scoped activity.</div>
+              <div className="cardDesc">Open a group to see its description, join status, and recent activity.</div>
             </div>
             <div className="buttonRow buttonRowWide statusSummary">
               <button className="btn btnPrimary" onClick={() => nav("/groups/create")} type="button">
@@ -214,7 +213,7 @@ export default function Groups(): JSX.Element {
           </div>
 
           {groups.length === 0 ? (
-            <div className="cardDesc">No groups returned yet.</div>
+            <div className="cardDesc">No groups are visible yet.</div>
           ) : (
             <div className="pageStack">
               {groups.map((g) => (

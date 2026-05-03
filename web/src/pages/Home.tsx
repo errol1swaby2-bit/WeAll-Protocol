@@ -5,13 +5,11 @@ import { getSession } from "../auth/session";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { nav } from "../lib/router";
 import { refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
-import { summarizeNodeConnection } from "../lib/status";
 
 type PendingSummary = {
   activeProposals: number;
   assignedDisputes: number;
   availableDisputes: number;
-  unreadLikeItems: number;
 };
 
 function DirectoryCard({
@@ -30,7 +28,7 @@ function DirectoryCard({
   tone?: "primary" | "neutral";
 }): JSX.Element {
   return (
-    <article className="card summaryTile">
+    <article className="card summaryTile socialHomeCard">
       <div className="cardBody formStack">
         <span className="statLabel">{eyebrow}</span>
         <strong className="summaryTileValue">{title}</strong>
@@ -45,14 +43,14 @@ function DirectoryCard({
   );
 }
 
-function HomeNotificationRow({ label, detail, href }: { label: string; detail: string; href: string }): JSX.Element {
+function HomeNotificationRow({ label, detail, href, open = false }: { label: string; detail: string; href: string; open?: boolean }): JSX.Element {
   return (
     <button className="missionChecklistRow missionActionCard" onClick={() => nav(href)}>
       <div>
         <div className="missionChecklistLabel">{label}</div>
         <div className="missionChecklistHint">{detail}</div>
       </div>
-      <span className="statusPill">Open</span>
+      <span className={`statusPill ${open ? "warning" : ""}`.trim()}>{open ? "Needs attention" : "Open"}</span>
     </button>
   );
 }
@@ -62,29 +60,25 @@ export default function Home(): JSX.Element {
   const session = getSession();
   const account = String(session?.account || "").trim();
   const { items: txItems } = useTxQueue();
-  const [statusView, setStatusView] = useState<any>(null);
   const [pending, setPending] = useState<PendingSummary>({
     activeProposals: 0,
     assignedDisputes: 0,
     availableDisputes: 0,
-    unreadLikeItems: 0,
   });
   const [groupCount, setGroupCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const pendingTx = txItems.filter((item) => ["validating", "submitting", "recorded", "refreshing"].includes(item.status)).length;
-  const failedTx = txItems.filter((item) => item.status === "failed").length;
+  const pendingActions = txItems.filter((item) => ["validating", "submitting", "recorded", "refreshing"].includes(item.status)).length;
+  const failedActions = txItems.filter((item) => item.status === "failed").length;
 
   async function loadHomeState(): Promise<void> {
     setLoading(true);
     try {
-      const [statusRes, proposalsRes, disputesRes, groupsRes] = await Promise.all([
-        weall.status(base).catch(() => null),
+      const [proposalsRes, disputesRes, groupsRes] = await Promise.all([
         weall.proposals({ limit: 100, activeOnly: true, includeSummary: true }, base).catch(() => ({ items: [] })),
         weall.disputes({ limit: 100, activeOnly: true, includeSummary: true } as any, base).catch(() => ({ items: [] })),
         api.groups.list({ limit: 100 }, base).catch(() => ({ items: [] })),
       ]);
-      setStatusView(statusRes);
       const proposalItems = Array.isArray((proposalsRes as any)?.items) ? (proposalsRes as any).items : [];
       const disputeItems = Array.isArray((disputesRes as any)?.items) ? (disputesRes as any).items : [];
       const groups = Array.isArray((groupsRes as any)?.items) ? (groupsRes as any).items : [];
@@ -97,7 +91,6 @@ export default function Home(): JSX.Element {
         activeProposals: proposalItems.length,
         assignedDisputes,
         availableDisputes: disputeItems.length,
-        unreadLikeItems: pendingTx + failedTx,
       });
       setGroupCount(groups.length);
     } finally {
@@ -111,80 +104,68 @@ export default function Home(): JSX.Element {
 
   useEffect(() => {
     const unsubscribe = subscribeGlobalRefresh((request) => {
-      if (refreshTouches(request, ["node", "pending_work", "route", "account"])) {
+      if (refreshTouches(request, ["pending_work", "route", "account"])) {
         void loadHomeState();
       }
     });
     return unsubscribe;
   }, [base, account]);
 
-  const nodeSummary = summarizeNodeConnection(statusView, base);
-  const notificationCount = pending.activeProposals + pending.assignedDisputes + pendingTx + failedTx;
+  const attentionCount = pending.activeProposals + pending.assignedDisputes + pendingActions + failedActions;
+  const displayAccount = account ? `${account.slice(0, 10)}${account.length > 10 ? "…" : ""}` : "No active account";
 
   return (
-    <div className="pageStack homeMissionControl">
-      <section className="card heroCard missionHeroCard">
+    <div className="pageStack homeMissionControl socialHomePage">
+      <section className="card heroCard missionHeroCard socialHomeHero">
         <div className="cardBody formStack">
           <div className="missionHeroTop">
             <div>
-              <div className="eyebrow">Home directory</div>
-              <h1 className="heroTitle heroTitleSm">Protocol orientation and pending work</h1>
+              <div className="eyebrow">Home</div>
+              <h1 className="heroTitle heroTitleSm">Welcome back to WeAll</h1>
               <p className="heroText">
-                Home is now a lightweight directory and notification hub. Use it to see what needs attention, then jump into the correct domain surface without mixing feeds, governance, and disputes in one center column.
+                Catch up on posts, find groups, vote on community decisions, and see anything that needs your attention.
               </p>
             </div>
             <div className="missionHeroBadges">
-              <span className={`statusPill ${nodeSummary.phase === "online" ? "ok" : ""}`}>{nodeSummary.label}</span>
-              <span className={`statusPill ${notificationCount ? "warning" : "ok"}`}>{notificationCount ? `${notificationCount} items need attention` : "No urgent items"}</span>
-              <span className="statusPill mono">{account || "No active account"}</span>
+              <span className={`statusPill ${attentionCount ? "warning" : "ok"}`}>{attentionCount ? `${attentionCount} update${attentionCount === 1 ? "" : "s"}` : "All caught up"}</span>
+              <span className="statusPill">{displayAccount}</span>
             </div>
           </div>
 
-          <section className="surfaceBoundaryBar" aria-label="Home route contract">
-            <div className="surfaceBoundaryHeader">
-              <div>
-                <h2 className="surfaceBoundaryTitle">Home is not the content feed anymore.</h2>
-                <p className="surfaceBoundaryText">
-                  This route stays light: shortcuts, notifications, route directory, and action awareness. The dedicated content surface lives on Feed.
-                </p>
-              </div>
-              <span className="statusPill">Hub surface</span>
-            </div>
-            <div className="surfaceBoundaryList">
-              <span className="surfaceBoundaryTag">Center: directory and notification summary</span>
-              <span className="surfaceBoundaryTag">Feed stays separate</span>
-              <span className="surfaceBoundaryTag">Decisions and reviews stay separate</span>
-            </div>
-          </section>
+          <div className="socialHeroActions" aria-label="Primary social actions">
+            <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
+            <button className="btn" onClick={() => nav("/feed")}>Open feed</button>
+            <button className="btn" onClick={() => nav("/groups")}>Find groups</button>
+            <button className="btn" onClick={() => nav("/verification")}>Account verification</button>
+          </div>
         </div>
       </section>
 
-      <section className="surfaceSummaryGrid">
-        <DirectoryCard eyebrow="Feed" title="Content" body="Open the dedicated content surface for posts, comments, likes, and flags." cta="Open feed" href="/feed" tone="primary" />
-        <DirectoryCard eyebrow="Groups" title={`${groupCount} visible groups`} body="Group discovery and membership live on their own hub." cta="Open groups" href="/groups" />
-        <DirectoryCard eyebrow="Decisions" title={`${pending.activeProposals} open decisions`} body="Community voting stays structured and separate from social browsing." cta="Open decisions" href="/decisions" />
-        <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} open reports`} body="Reported content moves through a clear community review workflow." cta="Open reports" href="/reports" />
+      <section className="surfaceSummaryGrid socialShortcutGrid">
+        <DirectoryCard eyebrow="Feed" title="Posts and conversations" body="Read what people are sharing and join the conversation when your account is ready." cta="Open feed" href="/feed" tone="primary" />
+        <DirectoryCard eyebrow="Groups" title={`${groupCount} group${groupCount === 1 ? "" : "s"}`} body="Find communities, join the ones that fit, and see their latest activity." cta="Browse groups" href="/groups" />
+        <DirectoryCard eyebrow="Decisions" title={`${pending.activeProposals} open`} body="Vote on community choices and review results in plain language." cta="Open decisions" href="/decisions" />
+        <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} report${pending.availableDisputes === 1 ? "" : "s"}`} body="Help review community issues when you are selected and eligible." cta="Open reviews" href="/reviews" />
       </section>
 
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Notifications</div>
-              <h2 className="cardTitle">What needs attention now</h2>
-              <div className="cardDesc">This list is intentionally lightweight. It should route you to the correct surface instead of embedding the workflow here.</div>
+              <div className="eyebrow">Updates</div>
+              <h2 className="cardTitle">What needs attention</h2>
+              <div className="cardDesc">A simple list of places worth checking now.</div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => void loadHomeState()} disabled={loading}>{loading ? "Refreshing…" : "Refresh home"}</button>
+              <button className="btn" onClick={() => void loadHomeState()} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
             </div>
           </div>
 
           <div className="formStack">
-            <HomeNotificationRow label="Feed route" detail="Browse or publish from the dedicated expression surface." href="/feed" />
-            <HomeNotificationRow label="Pending decisions" detail={pending.activeProposals ? `${pending.activeProposals} open decision${pending.activeProposals === 1 ? "" : "s"} may need attention.` : "No open decisions are surfaced right now."} href="/decisions" />
-            <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible on the queue.` : "No active reports are visible right now."} href="/reviews" />
-            <HomeNotificationRow label="Action queue" detail={pendingTx ? `${pendingTx} signed action${pendingTx === 1 ? "" : "s"} still settling.` : failedTx ? `${failedTx} recent action${failedTx === 1 ? "" : "s"} failed and may need review.` : "No local action backlog is visible right now."} href="/advanced" />
-            <HomeNotificationRow label="Session and devices" detail="Use the session utility page whenever account access or device validity needs attention." href="/session" />
+            <HomeNotificationRow label="Feed" detail="See recent public posts and conversations." href="/feed" />
+            <HomeNotificationRow label="Open decisions" detail={pending.activeProposals ? `${pending.activeProposals} community decision${pending.activeProposals === 1 ? "" : "s"} may need votes.` : "No open decisions are surfaced right now."} href="/decisions" open={pending.activeProposals > 0} />
+            <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible.` : "No active reports are visible right now."} href="/reviews" open={pending.assignedDisputes > 0} />
+            <HomeNotificationRow label="Account and devices" detail={failedActions ? `${failedActions} recent action${failedActions === 1 ? "" : "s"} may need attention.` : pendingActions ? `${pendingActions} recent action${pendingActions === 1 ? "" : "s"} still finishing.` : "Your local action queue looks clear."} href="/session" open={failedActions > 0 || pendingActions > 0} />
           </div>
         </div>
       </section>

@@ -2695,3 +2695,44 @@ body {
   display: grid;
   gap: 10px;
 }
+
+/* Phase 5 social-core polish */
+.socialHomeHero .heroText,
+.socialFeedHero .heroText {
+  max-width: 720px;
+}
+
+.socialHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.socialShortcutGrid .summaryTile,
+.socialHomeCard {
+  min-height: 100%;
+}
+
+.socialFeedPage .heroInfoPanel,
+.socialHomePage .heroInfoPanel {
+  min-width: 260px;
+}
+
+.accountAdvancedOperatorPanel {
+  margin: 0;
+}
+
+.accountAdvancedOperatorPanel > summary {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted-strong);
+  cursor: pointer;
+}
+
+.accountAdvancedOperatorPanel[open] > summary {
+  margin-bottom: 12px;
+  color: var(--text);
+}

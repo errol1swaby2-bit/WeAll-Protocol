@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { api, getApiBaseUrl, weall } from "../api/weall";
 import { getSession, type SessionHealth } from "../auth/session";
 import { useAccount } from "../context/AccountContext";
-import { getFrontendCapabilities } from "../lib/capabilities";
 import { pohTierLabel, v2PohTier } from "../lib/gates";
 import { disputeJurorStatus } from "../lib/disputeSurface";
 import { derivePendingWork, type PendingWorkItem, type PendingWorkSummary } from "../lib/pendingWork";
@@ -367,15 +366,14 @@ export default function AppRightRail({
   }, [refreshRail]);
 
   const nodeSummary = useMemo(() => summarizeNodeConnection(statusView, base), [base, statusView]);
-  const capabilities = getFrontendCapabilities();
   const capabilitySummary = useMemo(() => {
     const tier = v2PohTier(accountState?.poh_tier ?? 0);
     return [
-      tier >= 2 ? "Can post" : "Posting locked",
-      tier >= 2 ? "Can react/comment" : "Interaction limited",
-      capabilities.bootstrapLiveEnabled ? "Bootstrap live-verification dev path on" : "Bootstrap live-verification dev path off",
+      tier >= 2 ? "Can create posts" : "Posting locked",
+      tier >= 2 ? "Can react and report" : "Interaction limited",
+      accountState?.locked ? "Account locked" : accountState?.banned ? "Account banned" : "Account in good standing",
     ];
-  }, [accountState?.poh_tier, capabilities.bootstrapLiveEnabled]);
+  }, [accountState?.poh_tier, accountState?.locked, accountState?.banned]);
 
   const contextSummary = useMemo(
     () =>
@@ -411,7 +409,6 @@ export default function AppRightRail({
       <Panel title="Helpful context">
         <div className="railPrimaryLine">
           <strong>{meta.title}</strong>
-          <span className="railMetaPill railMetaPill-warn">{meta.mode}</span>
         </div>
         <div className="railSupportText">{meta.dataContract.contextPanelData}</div>
         <div className="railPillRow">

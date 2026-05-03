@@ -16,7 +16,7 @@ import { refreshMutationSlices } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } | null {
   if (!e) return null as any;
-  return actionableTxError(e, "Content action failed.");
+  return actionableTxError(e, "This post action could not be completed.");
 }
 
 function asArray<T = any>(v: any): T[] {
@@ -50,25 +50,25 @@ function summarizeActionReadiness(args: {
 }): { title: string; detail: string } {
   if (!args.viewer) {
     return {
-      title: "Read-only viewer",
-      detail: "You can inspect the content and attachments now. Create or restore a local session before attempting edits, deletion, or flags.",
+      title: "Read-only view",
+      detail: "You can read this post now. Sign in before editing, deleting, or reporting.",
     };
   }
   if (!args.gateOk) {
     return {
-      title: "Participation still gated",
-      detail: `The current viewer is ${args.viewerSummary}. Higher-trust actions may be rejected until live verification is complete.`,
+      title: "More actions locked",
+      detail: `The current viewer is ${args.viewerSummary}. Complete live verification before higher-trust actions are available.`,
     };
   }
   if (args.isOwner) {
     return {
       title: "Author controls available",
-      detail: "Edits and deletion require the original author key on this device and still submit on-chain transactions rather than instant local edits.",
+      detail: "Edits and deletion require the original author key on this device.",
     };
   }
   return {
-    title: "Viewer moderation action available",
-    detail: "Flags submit on-chain signals for later network review. Submission is not the same as a moderation outcome.",
+    title: "Report action available",
+    detail: "Reports send the post for community review. Reporting does not decide the outcome by itself.",
   };
 }
 
@@ -90,8 +90,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
   const [txErr, setTxErr] = useState<{ msg: string; details: any } | null>(null);
   const [txInfo, setTxInfo] = useState<{ msg: string; details?: any; ctaLabel?: string; ctaHref?: string } | null>(null);
 
-  const [flagOpen, setFlagOpen] = useState(false);
-  const [flagReason, setFlagReason] = useState("");
+  const [flagOpen, setReportOpen] = useState(false);
+  const [flagReason, setReportReason] = useState("");
 
   const routeContentId = String(id || "").trim();
 
@@ -257,7 +257,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
     }
   }
 
-  async function doFlag() {
+  async function doReport() {
     setTxErr(null);
     setTxInfo(null);
     if (!viewer) return setTxErr({ msg: "not_logged_in", details: null });
@@ -268,10 +268,10 @@ export default function Content({ id }: { id: string }): JSX.Element {
     setTxBusy(true);
     try {
       await tx.runTx({
-        title: "Flag content",
+        title: "Report content",
         pendingKey: txPendingKey(["content-flag", loadedPostId, viewer]),
-        pendingMessage: "Submitting flag transaction…",
-        successMessage: "Flag committed. Checking whether the dispute is already visible in the moderation surface…",
+        pendingMessage: "Sending your report…",
+        successMessage: "Report committed. Checking whether the dispute is already visible in the moderation surface…",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: loadedPostId, account: viewer || undefined, routeHint: `/content/${encodeURIComponent(loadedPostId)}`, txType: "CONTENT_FLAG" } },
@@ -284,8 +284,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
             base,
           }),
       });
-      setFlagOpen(false);
-      setFlagReason("");
+      setReportOpen(false);
+      setReportReason("");
       await load();
       const dispute = linkedDisputeId
         ? { id: linkedDisputeId, target_id: loadedPostId }
@@ -294,17 +294,17 @@ export default function Content({ id }: { id: string }): JSX.Element {
       if (dispute?.id) {
         const disputeId = String(dispute.id);
         setTxInfo({
-          msg: `Flag accepted and dispute ${disputeId} is now visible. Open it directly to continue the review flow.`,
+          msg: `Report accepted and dispute ${disputeId} is now visible. Open it directly to continue the review flow.`,
           details: dispute,
           ctaLabel: "Open dispute",
           ctaHref: `/disputes/${encodeURIComponent(disputeId)}`,
         });
       } else {
         setTxInfo({
-          msg: "Flag accepted. Dispute escalation may still be settling in the next block; reopen this page or refresh the dispute route if it does not appear immediately.",
+          msg: "Report accepted. Dispute escalation may still be settling in the next block; reopen this page or refresh the dispute route if it does not appear immediately.",
           details: { target_id: loadedPostId },
-          ctaLabel: "Open disputes",
-          ctaHref: "/disputes",
+          ctaLabel: "Open reports",
+          ctaHref: "/reports",
         });
       }
     } catch (e: any) {
@@ -510,9 +510,9 @@ export default function Content({ id }: { id: string }): JSX.Element {
                     <span className="surfaceSummaryHint">Deletion submits a transaction. Read surfaces may lag until indexes catch up.</span>
                   </div>
                   <div className="surfaceSummaryCard">
-                    <span className="surfaceSummaryLabel">Flag</span>
+                    <span className="surfaceSummaryLabel">Report</span>
                     <strong className="surfaceSummaryValue">{isOwner ? "Usually unnecessary" : gate.ok ? "Available" : "Blocked"}</strong>
-                    <span className="surfaceSummaryHint">Flags are on-chain signals. They are not immediate moderation outcomes.</span>
+                    <span className="surfaceSummaryHint">Reports are on-chain signals. They are not immediate moderation outcomes.</span>
                   </div>
                 </div>
 
@@ -523,7 +523,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       <button className="btn btnDanger" onClick={doDelete} disabled={!gate.ok || txBusy}>{txBusy ? "Working…" : "Delete"}</button>
                     </>
                   ) : (
-                    <button className="btn" onClick={() => setFlagOpen((v) => !v)} disabled={!gate.ok}>{flagOpen ? "Close flag" : "Flag"}</button>
+                    <button className="btn" onClick={() => setReportOpen((v) => !v)} disabled={!gate.ok}>{flagOpen ? "Close flag" : "Report"}</button>
                   )}
                 </div>
 
@@ -551,12 +551,12 @@ export default function Content({ id }: { id: string }): JSX.Element {
                     <input
                       className="input"
                       value={flagReason}
-                      onChange={(e) => setFlagReason(e.target.value)}
+                      onChange={(e) => setReportReason(e.target.value)}
                       placeholder="Reason (e.g., spam, harassment, illegal content)"
                     />
                     <div className="buttonRow buttonRowWide">
-                      <button className="btn btnPrimary" onClick={doFlag} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Send report"}</button>
-                      <button className="btn" onClick={() => setFlagOpen(false)} disabled={txBusy}>Cancel</button>
+                      <button className="btn btnPrimary" onClick={doReport} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Send report"}</button>
+                      <button className="btn" onClick={() => setReportOpen(false)} disabled={txBusy}>Cancel</button>
                     </div>
                     <div className="actionStateRow">
                       <span className="actionStateLabel">Report status</span>

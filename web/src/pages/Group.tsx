@@ -250,18 +250,17 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group detail</div>
               <h1 className="heroTitle heroTitleSm">{detailName}</h1>
               <p className="heroText">
-                This route owns membership state, scoped activity, and direct navigation for the selected group. The directory stays separate,
-                so this page can focus on one object and one primary action.
+                See what this group is about, check your membership status, and preview recent posts from the community.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Current posture</div>
+              <div className="heroInfoTitle">Group status</div>
               <div className="heroInfoList">
                 <span className="statusPill mono">{selected || "No group id"}</span>
                 <span className="statusPill">{detailIsPrivate ? "Private" : "Public"}</span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
-                  {membershipGate.ok ? "Membership unlocked" : "Membership requires live verification"}
+                  {membershipGate.ok ? "Can join" : "Complete verification to join"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>
@@ -270,7 +269,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Known members</span>
+              <span className="statLabel">Members</span>
               <span className="statValue">{members.length}</span>
             </div>
             <div className="statCard">
@@ -282,7 +281,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <span className="statValue">{detailIsPrivate ? "Private" : "Public"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Preview posts</span>
+              <span className="statLabel">Recent posts</span>
               <span className="statValue">{groupPosts.length}</span>
             </div>
           </div>
@@ -292,19 +291,19 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       <section className="surfaceBoundaryBar" aria-label="Group detail route contract">
         <div className="surfaceBoundaryHeader">
           <div>
-            <h2 className="surfaceBoundaryTitle">Group detail stays single-purpose</h2>
+            <h2 className="surfaceBoundaryTitle">About this group</h2>
             <p className="surfaceBoundaryText">
-              This route owns one group, one membership posture, and one scoped next step. Discovery stays on the hub, while this page only carries a small activity preview instead of turning into a second mixed feed.
+              This page keeps the group description, membership action, and recent activity in one easy place.
             </p>
           </div>
           <div className="statusSummary">
-            <button className="btn" onClick={() => nav("/groups")}>Return to groups hub</button>
+            <button className="btn" onClick={() => nav("/groups")}>Back to groups</button>
           </div>
         </div>
         <div className="surfaceBoundaryList">
-          <span className="surfaceBoundaryTag">Primary object: selected group</span>
-          <span className="surfaceBoundaryTag">Primary action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : detailIsPrivate ? "Request membership" : "Join group"}</span>
-          <span className="surfaceBoundaryTag">Scoped posting: action-routed</span>
+          <span className="surfaceBoundaryTag">Selected group</span>
+          <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : detailIsPrivate ? "Request membership" : "Join group"}</span>
+          <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
       </section>
 
@@ -314,35 +313,35 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <div className="detailFocusValue">{acct ? (isMember ? "Member" : isPendingMembership ? "Pending" : "Not a member") : "Read-only"}</div>
           <div className="detailFocusText">
             {!acct || !canSign
-              ? "Recover the current session on this device before attempting a signer-gated group action."
+              ? "Sign in or restore this device before joining or leaving groups."
               : isPendingMembership
-                ? "Your request is already recorded. Stay on this route while authoritative group state catches up."
+                ? "Your membership request is already pending."
                 : isMember
-                  ? "You already have member posture for this group. Scoped posting stays available through the dedicated post action route."
+                  ? "You are a member of this group."
                   : detailIsPrivate
-                    ? "This group requires a membership request before private activity unlocks."
-                    : "This public group can be joined directly from this route."}
+                    ? "This private group requires a membership request."
+                    : "You can join this public group from here."}
           </div>
         </article>
         <article className="detailFocusCard">
-          <div className="detailFocusLabel">Visibility contract</div>
+          <div className="detailFocusLabel">Visibility</div>
           <div className="detailFocusValue">{detailIsPrivate ? "Private" : "Public"}</div>
           <div className="detailFocusText">
-            Private groups keep membership and posting gated. Public groups allow direct entry without moving creation controls into the directory feed.
+            Private groups require approval before members-only activity is visible. Public groups are easier to join.
           </div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Next step</div>
-          <div className="detailFocusValue">{selected && acct && (isMember || !detailIsPrivate) ? "Open scoped posting action" : !acct || !canSign ? "Recover session" : isPendingMembership ? "Await review" : "Complete membership action"}</div>
+          <div className="detailFocusValue">{selected && acct && (isMember || !detailIsPrivate) ? "Create a group post" : !acct || !canSign ? "Sign in" : isPendingMembership ? "Wait for approval" : "Join or request access"}</div>
           <div className="detailFocusText">
-            The next action stays explicit so this page remains object-first instead of becoming another hub with mixed controls.
+            Use the main button below for the next membership step.
           </div>
         </article>
       </section>
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
-          Another signed action for {acct || "this account"} is still settling. Group membership actions wait for the signer lane to clear so nonces stay ordered.
+          Another action for {acct || "this account"} is still saving. Group membership actions will wait until it finishes.
         </div>
       ) : null}
 
@@ -359,7 +358,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
             <div>
               <div className="eyebrow">Charter</div>
               <h2 className="cardTitle">About this group</h2>
-              <div className="cardDesc">Membership actions submit protocol transactions. This page keeps those actions narrow and leaves broader group administration for future dedicated surfaces instead of turning detail into a second hub.</div>
+              <div className="cardDesc">Read the group description, join if eligible, and see who is already here.</div>
             </div>
             <div className="statusSummary">
               <button className="btn" onClick={() => nav("/groups")}>Back to groups</button>
@@ -406,7 +405,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
 
           {!acct || !canSign ? (
             <div className="calloutInfo">
-              This group page stays in place even when the signer or browser session is missing. Recover locally, then return here and continue the membership flow.
+              Sign in or restore this device, then return here to continue.
             </div>
           ) : null}
 
@@ -429,10 +428,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Activity</div>
-              <h3 className="cardTitle">Group activity preview</h3>
+              <h3 className="cardTitle">Recent group activity</h3>
             </div>
           </div>
-          <div className="cardDesc">This is a preview slice, not a second full feed. Open a post for deeper inspection. New group posts stay on the dedicated post action route.</div>
+          <div className="cardDesc">Open a post to read the full conversation. Use Create Post when you want to share something with this group.</div>
           {groupPosts.length ? (
             <div className="pageStack">
               {groupPosts.map((post: any) => {
@@ -448,7 +447,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               })}
             </div>
           ) : (
-            <div className="cardDesc">No posts in this group yet. Scoped posting remains available through the dedicated post action route once membership posture allows it.</div>
+            <div className="cardDesc">No posts are visible in this group yet.</div>
           )}
         </div>
       </section>

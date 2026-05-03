@@ -305,9 +305,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="eyebrow">Account</div>
               <h1 className="heroTitle heroTitleSm">{acct}</h1>
               <p className="heroText">
-                This page maps backend account state into practical readiness:
-                registration, account verification, reputation, posting rights, trusted
-                responsibilities, and network-helper preparation.
+                See this account's profile, verification status, posts, and trusted responsibilities in one place.
               </p>
             </div>
 
@@ -363,19 +361,19 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
           <div className="detailFocusStrip utilityFocusStrip">
             <article className="detailFocusCard utilityFocusCard">
-              <div className="detailFocusLabel">Account utility</div>
-              <div className="detailFocusValue">Authoritative account status</div>
-              <div className="detailFocusText">Read this page as the steady account utility surface: it translates backend account truth into clear eligibility and next-step posture.</div>
+              <div className="detailFocusLabel">Profile view</div>
+              <div className="detailFocusValue">Account status</div>
+              <div className="detailFocusText">This page shows the account's public standing and clear next steps without exposing technical details first.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
-              <div className="detailFocusLabel">Local vs chain</div>
-              <div className="detailFocusValue">{isSelf ? (localKeypair ? "Local signer present" : "Viewer only") : "Public view"}</div>
-              <div className="detailFocusText">Local device storage, browser session state, and backend account standing remain separate so the UI does not imply authority that has not been granted.</div>
+              <div className="detailFocusLabel">This device</div>
+              <div className="detailFocusValue">{isSelf ? (localKeypair ? "Local signer present" : "View only") : "Public view"}</div>
+              <div className="detailFocusText">Some actions require this browser to hold the local account key before they can be saved.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
-              <div className="detailFocusLabel">Current next step</div>
+              <div className="detailFocusLabel">Next step</div>
               <div className="detailFocusValue">{nextUnlock}</div>
-              <div className="detailFocusText">Use the primary action only when there is a real unlock step. Otherwise this page remains a steady inspection surface.</div>
+              <div className="detailFocusText">Use the main action above when there is a setup or verification step to finish.</div>
             </article>
           </div>
         </div>
@@ -388,7 +386,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="summaryCardLabel">Account posture</div>
           <div className="summaryCardValue">{accountPosture}</div>
           <div className="summaryCardText">
-            {tone.note} Public account view and account standing stay separate from local device state.
+            {tone.note} Public profile information stays separate from this device's ability to save actions.
           </div>
         </article>
         <article className="summaryCard">
@@ -401,12 +399,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Local ownership</div>
+          <div className="summaryCardLabel">Device access</div>
           <div className="summaryCardValue">{isSelf ? "This device session" : "Public view"}</div>
           <div className="summaryCardText">{localOwnership}</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Node operator prep</div>
+          <div className="summaryCardLabel">Trusted responsibility prep</div>
           <div className="summaryCardValue">{operatorReady ? "Ready" : canServe ? "Almost ready" : "Locked"}</div>
           <div className="summaryCardText">
             {operatorReady
@@ -423,7 +421,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Readiness</div>
-              <h2 className="cardTitle">Backend-aligned account checklist</h2>
+              <h2 className="cardTitle">Account checklist</h2>
             </div>
           </div>
 
@@ -486,13 +484,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Social account</div>
-                <h2 className="cardTitle">Live account markers</h2>
+                <h2 className="cardTitle">Account details</h2>
               </div>
             </div>
 
             <div className="statsGrid statsGridCompact">
               <div className="statCard">
-                <span className="statLabel">Nonce</span>
+                <span className="statLabel">Saved actions</span>
                 <span className="statValue">{num(nonce?.next_nonce ?? nonce?.nonce ?? state?.nonce, 0)}</span>
               </div>
               <div className="statCard">
@@ -516,7 +514,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       {isSelf ? (
-        <section className="card">
+        <details className="detailsPanel accountAdvancedOperatorPanel">
+          <summary>Advanced: Network helper setup</summary>
+          <section className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
@@ -716,7 +716,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </details>
             ) : null}
           </div>
-        </section>
+          </section>
+        </details>
       ) : null}
 
       <div>

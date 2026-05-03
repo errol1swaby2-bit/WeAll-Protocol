@@ -44,112 +44,67 @@ export default function Feed(): JSX.Element {
   const requirements = summarizeNextRequirements(snapshot);
   const unmet = requirements.filter((item) => !item.ok);
 
-  const title = tab === "mine" && acct ? "My content feed" : "Feed";
+  const title = tab === "mine" && acct ? "My posts" : "Feed";
   const defaultFilters = { visibility: "public" as const };
   const scope = tab === "mine" && acct ? ({ kind: "account", account: acct } as const) : ({ kind: "public" } as const);
 
   const stageText = !snapshot.hasSession
-    ? "Read-only browsing is available now. Restore a device session when you want account-scoped actions."
+    ? "You can read public posts now. Sign in when you want to create posts or join conversations."
     : !snapshot.hasLocalSigner
-      ? "This device session exists, but signing is not ready on this machine yet."
+      ? "This device needs your local signer before it can save actions."
       : !snapshot.registered
-        ? "You can browse, but publishing still depends on account registration."
+        ? "You can browse now. Finish account setup before posting."
         : snapshot.tier < 2
-          ? "The account is visible, but live verification is still needed for broader interactions like flags and comments."
-          : "This account can browse and participate in the visible content surfaces from this device.";
+          ? "Complete live verification to create public posts, comment, react, or report harmful content."
+          : "Your account is ready to participate from this device.";
 
   return (
-    <div className="pageStack">
-      <section className="card heroCard">
+    <div className="pageStack socialFeedPage">
+      <section className="card heroCard socialFeedHero">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Content</div>
-              <h1 className="heroTitle heroTitleSm">{title}</h1>
+              <div className="eyebrow">Feed</div>
+              <h1 className="heroTitle heroTitleSm">See what people are sharing</h1>
               <p className="heroText">
-                This is the dedicated content surface. Posts, comments, likes, and flags belong here. Decisions and review work stay on their own routes so the feed remains easy to use like a standard social surface.
+                Read posts, open conversations, react, and report harmful content when your account is ready.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Current account state</div>
+              <div className="heroInfoTitle">Your account</div>
               <div className="heroInfoList">
-                <span className={`statusPill ${snapshot.hasSession ? "ok" : ""}`}>{snapshot.hasSession ? "Session present" : "No session"}</span>
-                <span className={`statusPill ${snapshot.hasLocalSigner ? "ok" : ""}`}>{snapshot.hasLocalSigner ? "Signing ready" : "No local signer"}</span>
-                <span className={`statusPill ${snapshot.registered ? "ok" : ""}`}>{snapshot.registered ? "Registered" : "Registration needed"}</span>
+                <span className={`statusPill ${snapshot.hasSession ? "ok" : ""}`}>{snapshot.hasSession ? "Signed in" : "Read-only"}</span>
+                <span className={`statusPill ${snapshot.hasLocalSigner ? "ok" : ""}`}>{snapshot.hasLocalSigner ? "Device ready" : "Device needs setup"}</span>
                 <span className={`statusPill ${snapshot.tier >= 2 ? "ok" : ""}`}>{verificationLabel(snapshot.tier)}</span>
               </div>
             </div>
           </div>
 
-          <div className="surfaceSummaryGrid">
-            <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Surface boundary</span>
-              <strong className="surfaceSummaryValue">Content only</strong>
-              <span className="surfaceSummaryHint">Proposal voting and dispute review are linked routes, not inline feed widgets.</span>
-            </div>
-            <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Current blocker</span>
-              <strong className="surfaceSummaryValue">{unmet.length ? unmet[0]?.label || "Needs attention" : "Participation unlocked"}</strong>
-              <span className="surfaceSummaryHint">{unmet.length ? unmet[0]?.hint : stageText}</span>
-            </div>
-            <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Interaction model</span>
-              <strong className="surfaceSummaryValue">Transaction-backed</strong>
-              <span className="surfaceSummaryHint">Like, flag, and post actions submit transactions and may settle after initial submission succeeds.</span>
-            </div>
-            <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Next best move</span>
-              <strong className="surfaceSummaryValue">{snapshot.canPost ? "Create a post" : snapshot.next.label}</strong>
-              <span className="surfaceSummaryHint">{snapshot.canPost ? "Use the centered action button to publish." : snapshot.next.note}</span>
-            </div>
-          </div>
-
-          <div className="heroActions">
-            <TabButton active={tab === "global"} onClick={() => setTab("global")}>Global</TabButton>
-            <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>My feed</TabButton>
-            <button className="btn" onClick={() => nav("/home")}>Open home</button>
+          <div className="socialHeroActions">
+            <TabButton active={tab === "global"} onClick={() => setTab("global")}>All posts</TabButton>
+            <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>My posts</TabButton>
+            <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
             {!snapshot.canPost ? (
               <button className="btn" onClick={() => nav(snapshot.next.route)}>
                 {snapshot.next.label}
               </button>
             ) : null}
-            <button className="btn" onClick={() => nav("/proposals")}>Open governance</button>
-            <button className="btn" onClick={() => nav("/disputes")}>Open disputes</button>
+            <button className="btn" onClick={() => nav("/decisions")}>Decisions</button>
+            <button className="btn" onClick={() => nav("/reports")}>Reports</button>
           </div>
 
-          {!snapshot.canPost && unmet.length ? (
-            <div className="calloutInfo">
-              <strong>Feed browsing is available, but participation is still gated.</strong>
-              <div style={{ marginTop: 6 }}>{unmet[0]?.hint || snapshot.next.note}</div>
-            </div>
-          ) : null}
+          <div className={`calloutInfo ${snapshot.canPost ? "calloutSuccess" : ""}`}>
+            <strong>{snapshot.canPost ? "Posting is available" : "Some actions may need verification"}</strong>
+            <div style={{ marginTop: 6 }}>{unmet.length ? unmet[0]?.hint || stageText : stageText}</div>
+          </div>
 
           {tab === "mine" && !acct ? (
             <div className="calloutInfo">
               <strong>No local session is active.</strong>
-              <div style={{ marginTop: 6 }}>
-                Open Login to restore your device session, then return to inspect your account feed and transaction-backed actions.
-              </div>
+              <div style={{ marginTop: 6 }}>Sign in or restore your device session to see your own posts.</div>
             </div>
           ) : null}
-        </div>
-      </section>
-
-      <section className="surfaceBoundaryBar" aria-label="Feed route contract">
-        <div className="surfaceBoundaryHeader">
-          <div>
-            <h2 className="surfaceBoundaryTitle">This hub stays content-only.</h2>
-            <p className="surfaceBoundaryText">
-              Posting, reactions, comments, and flags belong here. Community decisions and review work are linked routes so the main feed stays focused.
-            </p>
-          </div>
-          <span className="statusPill">Hub surface</span>
-        </div>
-        <div className="surfaceBoundaryList">
-          <span className="surfaceBoundaryTag">Allowed: posts, comments, likes, flags</span>
-          <span className="surfaceBoundaryTag">Separate: decision voting</span>
-          <span className="surfaceBoundaryTag">Disallowed: dispute voting UI</span>
         </div>
       </section>
 
