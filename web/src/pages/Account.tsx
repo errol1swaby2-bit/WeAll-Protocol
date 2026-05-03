@@ -388,7 +388,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="summaryCardLabel">Account posture</div>
           <div className="summaryCardValue">{accountPosture}</div>
           <div className="summaryCardText">
-            {tone.note} Public account view and authoritative standing stay separate from local device state.
+            {tone.note} Public account view and account standing stay separate from local device state.
           </div>
         </article>
         <article className="summaryCard">
@@ -396,7 +396,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="summaryCardValue">{nextUnlock}</div>
           <div className="summaryCardText">
             {snapshot.next.route
-              ? "Use the primary action above to continue the current protocol progression step."
+              ? "Use the primary action above to continue the current account setup step."
               : "This account currently has no required onboarding follow-up from this client."}
           </div>
         </article>
@@ -412,8 +412,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
             {operatorReady
               ? "A matching node device is already present for the local signer."
               : canServe
-                ? "Tier and account posture are sufficient, but the node device record or signer alignment is still incomplete."
-                : "Tier, account posture, or signer prerequisites are still blocking operator setup."}
+                ? "Account status is sufficient, but the node device record or signer alignment is still incomplete."
+                : "Account status, standing, or signer prerequisites are still blocking operator setup."}
           </div>
         </article>
       </section>
@@ -467,7 +467,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </span>
               </div>
               <div className="progressRow">
-                <span>Serve as juror / steward</span>
+                <span>Serve as Community Reviewer</span>
                 <span className={`statusPill ${canServe ? "ok" : ""}`}>
                   {canServe ? "Eligible" : "Locked"}
                 </span>
@@ -485,7 +485,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Social + chain</div>
+                <div className="eyebrow">Social account</div>
                 <h2 className="cardTitle">Live account markers</h2>
               </div>
             </div>
@@ -506,7 +506,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <details className="detailsPanel">
-              <summary>Raw account + social payloads</summary>
+              <summary>Advanced: raw account and social payloads</summary>
               <pre className="codePanel mono">
                 {JSON.stringify({ poh, nonce, registered, following, socialMe }, null, 2)}
               </pre>
@@ -525,7 +525,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
               <div className="statusSummary">
                 <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                  {tier >= 2 ? "Live Verification reached" : `Tier ${tier}`}
+                  {tier >= 2 ? "Live verification reached" : "Live verification needed"}
                 </span>
                 <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
                   {localPubkey ? "Local signer present" : "Missing local signer"}
@@ -537,7 +537,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <p className="heroText">
-              Live Verification unlocks operator eligibility. To boot a regular node, this account
+              Live verification unlocks operator eligibility. To boot a regular node, this account
               needs a live local signer, an on-chain node-device registration tied to that
               signer pubkey, and matching node config in the node software.
             </p>
@@ -574,9 +574,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>2. Live Verification Proof of Humanity</span>
+                  <span>2. Live verification complete</span>
                   <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                    {tier >= 2 ? "Ready" : `Tier ${tier}`}
+                    {tier >= 2 ? "Ready" : "Needed"}
                   </span>
                 </div>
                 <div className="progressRow">

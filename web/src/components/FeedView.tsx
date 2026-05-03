@@ -170,13 +170,13 @@ function summarizeInteractionState(args: {
     return {
       tone: "",
       title: "Interaction still gated",
-      text: `The current viewer is ${args.viewerSummary}. Tier 2 participation is required before reactions and flags are expected to succeed.`,
+      text: `The current viewer is ${args.viewerSummary}. Live verification is required before reactions and reports are expected to succeed.`,
     };
   }
   return {
     tone: "ok",
-    title: "Tier 2 interaction unlocked",
-    text: `The current viewer is ${args.viewerSummary}. Reactions and flags still submit protocol transactions and may finalize asynchronously.`,
+    title: "High-trust interaction unlocked",
+    text: `The current viewer is ${args.viewerSummary}. Reactions and reports may still take a moment to finish and appear everywhere.`,
   };
 }
 

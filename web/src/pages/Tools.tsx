@@ -394,8 +394,8 @@ export default function Tools(): JSX.Element {
               <button className="btn" onClick={() => nav("/settings")}>
                 Settings
               </button>
-              <button className="btn" onClick={() => nav("/poh")}>
-                PoH
+              <button className="btn" onClick={() => nav("/verification")}>
+                Account Verification
               </button>
               <button className="btn" onClick={() => nav("/post")}>
                 Create Post

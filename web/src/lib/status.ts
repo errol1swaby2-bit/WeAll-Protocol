@@ -1,6 +1,7 @@
 import { getKeypair, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { resolveOnboardingSnapshot } from "./onboarding";
+import { verificationLabel } from "./userLanguage";
 
 export type TxLifecyclePhase = "preparing" | "submitted" | "confirmed" | "failed" | "unknown";
 
@@ -177,7 +178,7 @@ export function summarizeAccountStanding(args: { accountView?: any; registration
 
   const flags: string[] = [];
   flags.push(snapshot.registered ? "registered" : "registration needed");
-  flags.push(`tier ${snapshot.tier}`);
+  flags.push(verificationLabel(snapshot.tier));
   if (snapshot.locked) flags.push("locked");
   if (snapshot.banned) flags.push("banned");
 
@@ -187,7 +188,7 @@ export function summarizeAccountStanding(args: { accountView?: any; registration
     tier: snapshot.tier,
     locked: snapshot.locked,
     banned: snapshot.banned,
-    label: "On-chain standing",
+    label: verificationLabel(snapshot.tier),
     detail: flags.join(" · "),
   };
 }

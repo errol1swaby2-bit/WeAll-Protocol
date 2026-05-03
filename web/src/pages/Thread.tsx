@@ -270,7 +270,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               <div className="eyebrow">Thread view</div>
               <h1 className="heroTitle heroTitleSm">Conversation and replies</h1>
               <p className="heroText">
-                Read the post, react if your account tier allows it, and add replies without losing the calmer visual
+                Read the post, react when your account status allows it, and add replies without losing the calmer visual
                 posture of the rest of the app.
               </p>
             </div>
@@ -279,7 +279,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               <div className="heroInfoTitle">Viewer state</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${viewer ? "ok" : ""}`}>{viewer || "Read-only"}</span>
-                <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Tier 2 actions unlocked" : "Tier 2 required"}</span>
+                <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "High-trust actions unlocked" : "Live verification required"}</span>
               </div>
             </div>
           </div>

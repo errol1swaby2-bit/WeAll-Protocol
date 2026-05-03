@@ -81,7 +81,7 @@ export default function GroupCreate(): JSX.Element {
     if (!acct || !canSign) {
       setErr({
         msg: "You are not logged in on this device.",
-        details: "Restore your device signer in Settings or PoH first.",
+        details: "Restore your device signer in Settings or Account Verification first.",
       });
       return;
     }

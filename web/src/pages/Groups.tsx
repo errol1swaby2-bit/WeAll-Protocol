@@ -127,7 +127,7 @@ export default function Groups(): JSX.Element {
                   {createGate.ok ? "Create unlocked" : "Create requires Live Verification"}
                 </span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
-                  {membershipGate.ok ? "Membership unlocked" : "Membership requires Tier 2"}
+                  {membershipGate.ok ? "Membership unlocked" : "Membership requires live verification"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -159,7 +159,7 @@ export default function Groups(): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Membership gate</span>
-              <span className="statValue">{membershipGate.ok ? "Tier 2+ ready" : "Tier 2 required"}</span>
+              <span className="statValue">{membershipGate.ok ? "Live verification ready" : "Live verification required"}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Directory mode</span>

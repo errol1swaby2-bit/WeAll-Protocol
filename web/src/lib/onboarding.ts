@@ -126,23 +126,23 @@ export function resolveOnboardingSnapshot(args: {
   } else if (tier <= 0) {
     stage = "tier0";
     next = {
-      route: "/poh",
-      label: "Begin Async Human Verification",
-      note: "Tier 1 is native async verified-human status and opens basic participation.",
+      route: "/verification",
+      label: "Begin account verification",
+      note: "A basic human review opens basic participation.",
     };
   } else if (tier === 1) {
     stage = "tier1";
     next = {
-      route: "/poh",
-      label: "Continue to Live Verification",
-      note: "Tier 2 is live verified-human status for high-trust participation.",
+      route: "/verification",
+      label: "Continue to live verification",
+      note: "Live verification unlocks high-trust participation.",
     };
   } else {
     stage = "tier2";
     next = {
       route: "/post",
       label: "Create your first post",
-      note: "This device and account satisfy the v2.1 posting gate. Additional service authority is handled by badges and roles.",
+      note: "This device and account are ready to post. Additional service authority is handled by trusted responsibilities.",
     };
   }
 
@@ -177,15 +177,15 @@ export function summarizeNextRequirements(
       label: "Local signer",
       ok: snapshot.hasLocalSigner,
       hint: snapshot.hasLocalSigner
-        ? "The signer keypair is available locally."
-        : "Restore the matching signer keypair on this device.",
+        ? "The local signer is available on this device."
+        : "Restore the matching local signer on this device.",
     },
     {
       label: "On-chain account",
       ok: snapshot.accountCreated,
       hint: snapshot.accountCreated
         ? "An on-chain account record is visible."
-        : "Finish account creation before creator actions.",
+        : "Finish account creation before posting or other signed actions.",
     },
     {
       label: "Account verification",
@@ -193,7 +193,7 @@ export function summarizeNextRequirements(
       hint:
         snapshot.tier >= POSTING_MIN_TIER
           ? `Current status is ${snapshot.tier >= 2 ? "Trusted Verified Person" : snapshot.tier === 1 ? "Verified Person" : "Basic Account"}.`
-          : `Current status is ${snapshot.tier >= 1 ? "Verified Person" : "Basic Account"}. Posting requires a Trusted Verified Person account.`,
+          : `Current status is ${snapshot.tier >= 1 ? "Verified Person" : "Basic Account"}. Posting requires live verification.`,
     },
     {
       label: "Account standing",

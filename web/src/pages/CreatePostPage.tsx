@@ -286,7 +286,7 @@ export default function CreatePostPage(): JSX.Element {
       setErr({
         msg: "You are not logged in on this device.",
         details:
-          "Go to Settings and make sure this browser has both a session and the matching local signing keypair.",
+          "Go to Settings and make sure this browser has both a session and the matching local signer.",
       });
       return;
     }
@@ -302,7 +302,7 @@ export default function CreatePostPage(): JSX.Element {
     const tierNow = Number(acctState?.state?.poh_tier ?? 0);
     if (tierNow < POSTING_MIN_TIER) {
       setErr({
-        msg: `Posting is locked until Tier ${POSTING_MIN_TIER} is active.`,
+        msg: "Complete live verification before creating public posts.",
         details: { poh_tier: tierNow, account_state: acctState?.state ?? null },
       });
       return;
@@ -786,7 +786,7 @@ export default function CreatePostPage(): JSX.Element {
                   {snapshot.hasLocalSigner ? "Signing ready" : "No local signer"}
                 </span>
                 <span className={`statusPill ${tier >= POSTING_MIN_TIER ? "ok" : ""}`}>
-                  Tier {tier}
+                  {tier >= POSTING_MIN_TIER ? "Trusted Verified Person" : "Live verification needed"}
                 </span>
                 <span className={`statusPill ${registered ? "ok" : ""}`}>
                   {registered ? "Registered" : "Not registered"}
@@ -907,7 +907,7 @@ export default function CreatePostPage(): JSX.Element {
             <div className="actionStateRow">
               <span className="actionStateLabel">Submission model</span>
               <span className="actionStateText">
-                Upload, media declaration, and post creation are separate protocol steps. Submission can succeed before every downstream read surface reflects the final result.
+                Upload, media preparation, and publishing are separate steps. A submission can succeed before every read surface reflects the final result.
               </span>
             </div>
 
@@ -960,11 +960,11 @@ export default function CreatePostPage(): JSX.Element {
                   {!snapshot.hasSession
                     ? "Create or restore a local session first."
                     : !snapshot.hasLocalSigner
-                      ? "Restore the local signing keypair in Settings."
+                      ? "Restore the local signer in Settings."
                       : !registered
                         ? "Finish account registration before posting."
                         : tier < POSTING_MIN_TIER
-                          ? `Finish PoH so Tier ${POSTING_MIN_TIER} is unlocked.`
+                          ? "Complete live verification before posting."
                           : fileValidationError
                             ? fileValidationError
                             : "Add text or a file to continue."}
@@ -988,7 +988,7 @@ export default function CreatePostPage(): JSX.Element {
 
             <div className="statusSummary">
               <span className={`statusPill ${tier >= POSTING_MIN_TIER ? "ok" : ""}`}>
-                {tier >= POSTING_MIN_TIER ? "Posting unlocked" : `Tier ${POSTING_MIN_TIER} required`}
+                {tier >= POSTING_MIN_TIER ? "Posting unlocked" : "Live verification required"}
               </span>
               <span className={`statusPill ${registered ? "ok" : ""}`}>
                 {registered ? "Account registered" : "Registration required"}

@@ -15,7 +15,7 @@ import { useSessionHealth } from "./hooks/useSessionHealth";
 const Feed = lazy(() => import("./pages/Feed"));
 const Home = lazy(() => import("./pages/Home"));
 const Messaging = lazy(() => import("./pages/Messaging"));
-const Poh = lazy(() => import("./pages/Poh"));
+const AccountVerificationPage = lazy(() => import("./pages/AccountVerificationPage"));
 const JurorDashboard = lazy(() => import("./pages/JurorDashboard"));
 const Tools = lazy(() => import("./pages/Tools"));
 const Groups = lazy(() => import("./pages/Groups"));
@@ -51,7 +51,7 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
-      return readyForApp ? <Poh /> : <LoginPage />;
+      return readyForApp ? <AccountVerificationPage /> : <LoginPage />;
     case "/reviews":
       return readyForApp ? <JurorDashboard /> : <LoginPage />;
     case "/groups":

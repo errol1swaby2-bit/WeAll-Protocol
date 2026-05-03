@@ -141,7 +141,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     if (!acct || !canSign) {
       setErr({
         msg: "You are not logged in on this device.",
-        details: "Restore your device signer in Settings or PoH first.",
+        details: "Restore your device signer in Settings or Account Verification first.",
       });
       return;
     }
@@ -261,7 +261,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 <span className="statusPill mono">{selected || "No group id"}</span>
                 <span className="statusPill">{detailIsPrivate ? "Private" : "Public"}</span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
-                  {membershipGate.ok ? "Membership unlocked" : "Membership requires Tier 2"}
+                  {membershipGate.ok ? "Membership unlocked" : "Membership requires live verification"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>

@@ -57,7 +57,7 @@ function summarizeActionReadiness(args: {
   if (!args.gateOk) {
     return {
       title: "Participation still gated",
-      detail: `The current viewer is ${args.viewerSummary}. Higher-trust actions may be rejected until Tier 2 participation is available.`,
+      detail: `The current viewer is ${args.viewerSummary}. Higher-trust actions may be rejected until live verification is complete.`,
     };
   }
   if (args.isOwner) {
@@ -459,9 +459,9 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   <h2 className="cardTitle">Account gates</h2>
                 </div>
                 <div className="statusSummary">
-                  <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Tier 2 ready" : "Gated"}</span>
+                  <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Live verification ready" : "Needs verification"}</span>
                   {!viewer ? (
-                    <button className="btn" onClick={() => nav("/poh")}>Go to PoH</button>
+                    <button className="btn" onClick={() => nav("/verification")}>Open Account Verification</button>
                   ) : (
                     <button className="btn" onClick={() => void refreshMutationSlices(refreshViewerState, refreshAccountContext, load)}>Refresh gates</button>
                   )}

@@ -217,7 +217,7 @@ export default function SessionDevicesPage(): JSX.Element {
           </article>
           <article className="summaryCard">
             <span className="summaryCardLabel">On-chain standing</span>
-            <div className="summaryCardValue">{standing.registered ? `Tier ${standing.tier}` : "Unregistered"}</div>
+            <div className="summaryCardValue">{standing.registered ? standing.label : "Unregistered"}</div>
             <div className="summaryCardHint">{standing.detail}</div>
           </article>
           <article className="summaryCard">
