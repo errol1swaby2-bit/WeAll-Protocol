@@ -141,11 +141,11 @@ export default function Settings(): JSX.Element {
             <button className="btn btnPrimary" onClick={saveNetwork}>
               Save connection target
             </button>
-            <button className="btn" onClick={() => nav("/session-devices")}>
-              Open session utility
+            <button className="btn" onClick={() => nav("/session")}>
+              Open devices & sessions
             </button>
-            <button className="btn" onClick={() => nav("/tools")}>
-              Open diagnostics
+            <button className="btn" onClick={() => nav("/advanced")}>
+              Open advanced details
             </button>
           </div>
 
@@ -160,9 +160,9 @@ export default function Settings(): JSX.Element {
               <div className="detailFocusText">Treat this page as a browser-side control surface. It changes how this client behaves and which backend it talks to, not the chain itself.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
-              <div className="detailFocusLabel">Protocol context</div>
+              <div className="detailFocusLabel">Connection context</div>
               <div className="detailFocusValue">{apiChanged ? "Custom backend target" : "Using build default"}</div>
-              <div className="detailFocusText">Changing the API base changes the protocol context for reads, session workflows, and submissions. It should always feel deliberate.</div>
+              <div className="detailFocusText">Changing the API base changes the environment used for reads, session workflows, and submissions. It should always feel deliberate.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
               <div className="detailFocusLabel">Chain safety</div>
@@ -185,18 +185,18 @@ export default function Settings(): JSX.Element {
           <div className="summaryCardText">Build-time default for this client: {config.appName} {config.clientVersion} ({config.envLabel}).</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Native PoH path</div>
+          <div className="summaryCardLabel">Account verification path</div>
           <div className="summaryCardValue mono">Async / Live</div>
-          <div className="summaryCardText">Human verification is handled through protocol-native PoH surfaces and chain state, not by a browser-configured external identity endpoint.</div>
+          <div className="summaryCardText">Human verification is handled through WeAll account-verification surfaces and authoritative backend state, not by a browser-configured external identity endpoint.</div>
         </article>
       </section>
 
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Connection & Environment</div>
-          <h2 style={{ marginTop: 8 }}>Treat backend changes as protocol-context changes</h2>
+          <h2 style={{ marginTop: 8 }}>Treat backend changes as environment changes</h2>
           <p className="cardDesc">
-            Switching the API base changes what node or environment this browser trusts for reads, session workflows, and transaction submission. Use this deliberately.
+            Switching the API base changes what environment this browser uses for reads, session workflows, and action submission. Use this deliberately.
           </p>
 
           <label className="pageStack" style={{ gap: 8 }}>
@@ -308,14 +308,14 @@ export default function Settings(): JSX.Element {
       <section className="card">
         <div className="cardBody pageStack">
           <div className="eyebrow">Experience mode</div>
-          <h2 style={{ marginTop: 8 }}>Keep protocol workbench tools behind an explicit toggle</h2>
+          <h2 style={{ marginTop: 8 }}>Keep technical workbench tools behind an explicit toggle</h2>
           <p className="cardDesc">
-            Advanced mode reveals tester-oriented surfaces such as the protocol console, transaction catalog views, and raw payload authoring controls. Leave it off for a cleaner end-user experience.
+            Advanced mode reveals tester-oriented surfaces such as technical records, network status, and raw payload authoring controls. Leave it off for a cleaner end-user experience.
           </p>
 
           <SettingToggle
             label="Show advanced and tester surfaces"
-            description="Use this only when you are intentionally auditing the protocol, debugging a flow, or exercising expert-only authoring controls."
+            description="Use this only when you are intentionally auditing technical behavior, debugging a flow, or exercising expert-only authoring controls."
             checked={settings.showAdvancedMode}
             onChange={(value) => update("showAdvancedMode", value)}
           />
@@ -327,7 +327,7 @@ export default function Settings(): JSX.Element {
           <div className="eyebrow">Local state</div>
           <h2 style={{ marginTop: 8 }}>What this page does not change</h2>
           <p className="cardDesc">
-            This page does not register accounts, upgrade PoH, assign roles, or modify consensus state. It only changes this browser’s client behavior and connection target.
+            This page does not register accounts, change verification status, assign responsibilities, or modify shared network state. It only changes this browser’s client behavior and connection target.
           </p>
         </div>
       </section>

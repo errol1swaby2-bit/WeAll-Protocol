@@ -14,6 +14,8 @@ export type ClientSettings = {
   motionMode: MotionMode;
 };
 
+export const CLIENT_SETTINGS_CHANGED_EVENT = "weall:client-settings-changed";
+
 const KEY = "weall_client_settings_v3";
 
 export const DEFAULT_SETTINGS: ClientSettings = {
@@ -67,6 +69,11 @@ export function loadSettings(): ClientSettings {
 
 export function saveSettings(next: ClientSettings): void {
   localStorage.setItem(KEY, JSON.stringify(next));
+  try {
+    window.dispatchEvent(new CustomEvent(CLIENT_SETTINGS_CHANGED_EVENT, { detail: next }));
+  } catch {
+    // ignore event dispatch failures in non-browser test environments
+  }
 }
 
 export function applySettingsToDocument(settings: ClientSettings): void {

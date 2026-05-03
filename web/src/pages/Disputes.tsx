@@ -19,7 +19,7 @@ import {
 } from "../lib/disputeSurface";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  return actionableTxError(e, "Dispute surface failed to load.");
+  return actionableTxError(e, "Reports failed to load.");
 }
 
 function asArray<T = any>(value: any): T[] {
@@ -35,9 +35,9 @@ function stageClass(stage: string): string {
 }
 
 function disputeScopeText(filter: string): string {
-  if (filter === "assigned") return "Only disputes where this signer is assigned as a juror are shown.";
-  if (filter === "mine") return "Only disputes opened by this account are shown.";
-  return "This queue is a browse-and-route surface. Review actions live on dedicated detail and review pages.";
+  if (filter === "assigned") return "Only reports assigned to you for review are shown.";
+  if (filter === "mine") return "Only reports opened by this account are shown.";
+  return "This queue is for browsing reports and opening the right detail or review page.";
 }
 
 function queueNextAction(params: {
@@ -50,18 +50,18 @@ function queueNextAction(params: {
   const currentVote = account ? disputeCurrentVote(dispute, account) : "";
   const id = encodeURIComponent(String(dispute?.id || ""));
 
-  if (!account) return { label: "Open detail", hint: "Inspect the flagged target and recorded reason.", href: `/disputes/${id}` };
-  if (currentVote) return { label: "Open reviewed dispute", hint: `Current signer vote: ${currentVote.toUpperCase()}.`, href: `/disputes/${id}` };
+  if (!account) return { label: "Open detail", hint: "Inspect the flagged target and recorded reason.", href: `/reports/${id}` };
+  if (currentVote) return { label: "Open reviewed report", hint: `Current recorded vote: ${currentVote.toUpperCase()}.`, href: `/reports/${id}` };
   if ((status === "assigned" || status === "accepted") && present) {
-    return { label: "Continue review", hint: "This signer can open the dedicated review workspace and vote once.", href: `/disputes/${id}/review` };
+    return { label: "Continue review", hint: "You can open the dedicated review workspace and choose once.", href: `/reviews/${id}` };
   }
   if (status === "assigned") {
-    return { label: "Open detail", hint: "Accept or decline the assignment from the dispute detail page.", href: `/disputes/${id}` };
+    return { label: "Open detail", hint: "Accept or decline the assignment from the report detail page.", href: `/reports/${id}` };
   }
   if (status === "accepted") {
-    return { label: "Open detail", hint: "Attendance should already be present. Refresh detail if review is still locked.", href: `/disputes/${id}` };
+    return { label: "Open detail", hint: "Review attendance should already be present. Refresh detail if review is still locked.", href: `/reports/${id}` };
   }
-  return { label: "Open detail", hint: "Inspect current stage, reason, and juror assignments.", href: `/disputes/${id}` };
+  return { label: "Open detail", hint: "Inspect current status, reason, and review assignment.", href: `/reports/${id}` };
 }
 
 export default function Disputes(): JSX.Element {
@@ -155,27 +155,27 @@ export default function Disputes(): JSX.Element {
         <div className="heroBody pageStack">
           <div className="surfaceSummaryRow">
             <div>
-              <h1 className="heroTitle heroTitleSm">Disputes</h1>
-              <p className="heroSubtitle">This hub now behaves as a real queue. It lists visible disputes and routes you into dedicated detail or review surfaces instead of embedding vote controls directly into the queue.</p>
+              <h1 className="heroTitle heroTitleSm">Reports</h1>
+              <p className="heroSubtitle">This hub lists visible reports and routes you into dedicated detail or review pages instead of placing final review controls directly in the queue.</p>
             </div>
             <div className="surfaceSummaryStats">
-              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{filtered.length}</strong><span className="surfaceSummaryHint">visible disputes</span></div>
+              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{filtered.length}</strong><span className="surfaceSummaryHint">visible reports</span></div>
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{summary}</strong><span className="surfaceSummaryHint">current account standing</span></div>
             </div>
           </div>
           <div className="buttonRow">
-            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh disputes"}</button>
-            <button className="btn" onClick={() => nav("/juror")}>Open juror work</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh reports"}</button>
+            <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
           </div>
         </div>
       </section>
 
-      <section className="surfaceBoundaryBar" aria-label="Dispute queue contract">
+      <section className="surfaceBoundaryBar" aria-label="Reports queue contract">
         <div className="surfaceBoundaryHeader">
           <div>
             <h2 className="surfaceBoundaryTitle">The queue routes work, but it does not adjudicate inline.</h2>
             <p className="surfaceBoundaryText">
-              Detail pages carry flagged content, assignment state, and the next step. Final juror decisions remain in the dedicated review route so dispute work feels formal instead of feed-like.
+              Detail pages carry flagged content, assignment state, and the next step. Final reviewer choices remain in the dedicated review route so review work feels formal instead of feed-like.
             </p>
           </div>
           <span className="statusPill">Hub surface</span>
@@ -187,30 +187,30 @@ export default function Disputes(): JSX.Element {
         </div>
       </section>
 
-      {!account ? <div className="calloutInfo">Log in with a participant account to inspect personal juror assignments and unlock review routing.</div> : null}
-      {signerSubmission.busy ? <div className="calloutInfo">Another signed action is still settling. Queue actions stay read-only while signer nonces are in flight.</div> : null}
+      {!account ? <div className="calloutInfo">Log in to see reports assigned to you and unlock review routing.</div> : null}
+      {signerSubmission.busy ? <div className="calloutInfo">Another signed action is still settling. Queue actions stay read-only while the current action finishes.</div> : null}
       <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)} />
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
-          <div className="summaryCardLabel">All visible disputes</div>
+          <div className="summaryCardLabel">All visible reports</div>
           <div className="summaryCardValue">{items.length}</div>
-          <div className="summaryCardText">Current backend-visible queue size.</div>
+          <div className="summaryCardText">Current visible queue size.</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Open / unresolved</div>
           <div className="summaryCardValue">{openCount}</div>
-          <div className="summaryCardText">Resolved cases should leave the active juror workload path.</div>
+          <div className="summaryCardText">Resolved reports should leave the active reviewer workload path.</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Assigned to this signer</div>
+          <div className="summaryCardLabel">Assigned to me</div>
           <div className="summaryCardValue">{account ? assignedCount : "—"}</div>
-          <div className="summaryCardText">Personalized routing depends on signer-aware dispute state.</div>
+          <div className="summaryCardText">Personalized routing depends on report assignment state.</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Juror gate</div>
+          <div className="summaryCardLabel">Reviewer readiness</div>
           <div className="summaryCardValue">{tierGate.ok ? "Ready" : "Locked"}</div>
-          <div className="summaryCardText">{tierGate.ok ? "Tier and account posture allow juror actions when assigned." : tierGate.reason || "Live Verification and signer posture still gate juror actions."}</div>
+          <div className="summaryCardText">{tierGate.ok ? "Account status allows review actions when assigned." : tierGate.reason || "Live verification and a valid session are still required for review actions."}</div>
         </article>
       </section>
 
@@ -219,12 +219,12 @@ export default function Disputes(): JSX.Element {
           <div className="grid2">
             <label className="fieldLabel">
               Search
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search id, target, stage, reason, or opener…" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search id, content, status, reason, or reporter…" />
             </label>
             <label className="fieldLabel">
               Scope
               <select value={filter} onChange={(e) => setFilter(e.target.value as "all" | "mine" | "assigned")}>
-                <option value="all">all visible disputes</option>
+                <option value="all">all visible reports</option>
                 <option value="assigned">assigned to me</option>
                 <option value="mine">opened by me</option>
               </select>
@@ -239,8 +239,8 @@ export default function Disputes(): JSX.Element {
           <section className="card">
             <div className="cardBody formStack">
               <div className="eyebrow">Queue</div>
-              <h2 className="cardTitle">No disputes in this slice</h2>
-              <div className="cardDesc">If a content flag already escalated, refresh after the next block and verify the content detail still reflects the moderation transition.</div>
+              <h2 className="cardTitle">No reports in this view</h2>
+              <div className="cardDesc">If a report was just submitted, refresh soon and check the content detail for review status.</div>
             </div>
           </section>
         ) : filtered.map((item) => {
@@ -254,7 +254,7 @@ export default function Disputes(): JSX.Element {
               <div className="cardBody formStack">
                 <div className="sectionHead">
                   <div>
-                    <div className="eyebrow">Dispute</div>
+                    <div className="eyebrow">Report</div>
                     <h2 className="cardTitle mono">{id}</h2>
                   </div>
                   <div className="statusSummary">
@@ -275,23 +275,23 @@ export default function Disputes(): JSX.Element {
                     <div className="summaryCardText">Queue surfaces should show who triggered the case without forcing detail navigation.</div>
                   </article>
                   <article className="summaryCard">
-                    <div className="summaryCardLabel">Votes</div>
+                    <div className="summaryCardLabel">Reviews</div>
                     <div className="summaryCardValue">{counts.total}</div>
                     <div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div>
                   </article>
                   <article className="summaryCard">
-                    <div className="summaryCardLabel">Attendance</div>
+                    <div className="summaryCardLabel">Review attendance</div>
                     <div className="summaryCardValue">{present ? "Present" : status === "unassigned" ? "N/A" : "Not yet"}</div>
-                    <div className="summaryCardText">Review voting should not unlock until assignment and attendance resolve cleanly.</div>
+                    <div className="summaryCardText">Review choices should not unlock until assignment and attendance are clear.</div>
                   </article>
                 </div>
 
-                {item?.reason ? <div className="feedBodyText">{String(item.reason)}</div> : <div className="cardDesc">No dispute reason was recorded on this queue item.</div>}
+                {item?.reason ? <div className="feedBodyText">{String(item.reason)}</div> : <div className="cardDesc">No report reason was recorded on this queue item.</div>}
 
                 <div className="calloutInfo">{next.hint}</div>
 
                 <div className="buttonRow">
-                  <button className="btn" onClick={() => nav(`/disputes/${encodeURIComponent(id)}`)}>Open detail</button>
+                  <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(id)}`)}>Open detail</button>
                   <button className="btn btnPrimary" onClick={() => nav(next.href)}>{next.label}</button>
                   {String(item?.target_id || "") ? (
                     <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(String(item?.target_id || ""))}`)}>Open content</button>

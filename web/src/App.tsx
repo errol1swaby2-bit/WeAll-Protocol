@@ -4,7 +4,7 @@ import AppShell from "./components/AppShell";
 import ErrorBanner from "./components/ErrorBanner";
 import SessionRecoveryBanner from "./components/SessionRecoveryBanner";
 import { getKeypair, getSession } from "./auth/session";
-import { applySettingsToDocument, loadSettings } from "./lib/settings";
+import { CLIENT_SETTINGS_CHANGED_EVENT, applySettingsToDocument, loadSettings } from "./lib/settings";
 import { useAppConfig } from "./lib/config";
 import { maybeApplyDevBootstrap } from "./lib/devBootstrap";
 import { requestGlobalRefresh } from "./lib/revalidation";
@@ -48,11 +48,11 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp ? <Messaging /> : <LoginPage />;
     case "/profile":
       return readyForApp ? <Account account={getSession()?.account || ""} /> : <LoginPage />;
-    case "/post":
+    case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
-    case "/poh":
+    case "/verification":
       return readyForApp ? <Poh /> : <LoginPage />;
-    case "/juror":
+    case "/reviews":
       return readyForApp ? <JurorDashboard /> : <LoginPage />;
     case "/groups":
       return <Groups />;
@@ -60,29 +60,30 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp ? <GroupCreate /> : <LoginPage />;
     case "/groups/:id":
       return <Group groupId={route.id} />;
-    case "/proposals":
+    case "/decisions":
       return <Proposals />;
-    case "/proposals/create":
+    case "/decisions/create":
       return readyForApp ? <ProposalCreate /> : <LoginPage />;
-    case "/proposal/:id":
-    case "/proposals/:id":
+    case "/decisions/:id":
       return <Proposal id={route.id} />;
-    case "/disputes":
+    case "/reports":
       return <Disputes />;
-    case "/disputes/:id":
+    case "/reports/:id":
       return <DisputeDetail id={route.id} />;
-    case "/disputes/:id/review":
+    case "/reviews/:id":
       return <DisputeReview id={route.id} />;
-    case "/tools":
-      return readyForApp && showAdvancedMode ? <Tools /> : readyForApp ? <Feed /> : <LoginPage />;
+    case "/advanced":
+      return readyForApp && showAdvancedMode ? <Tools /> : readyForApp ? <AdvancedModeLocked /> : <LoginPage />;
     case "/settings":
       return <SettingsPage />;
     case "/session":
       return <SessionDevicesPage />;
     case "/transactions":
-      return readyForApp && showAdvancedMode ? <TransactionsPage /> : readyForApp ? <Feed /> : <LoginPage />;
+      return readyForApp && showAdvancedMode ? <TransactionsPage /> : readyForApp ? <AdvancedModeLocked /> : <LoginPage />;
     case "/account/:account":
       return <Account account={route.account} />;
+    case "/post/:id":
+      return <Content id={route.id} />;
     case "/content/:id":
       return <Content id={route.id} />;
     case "/thread/:id":
@@ -95,16 +96,16 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
 function RouteTransitionFallback({ route }: { route: RouteMatch }): JSX.Element {
   const label =
     route.path === "/login"
-      ? "Preparing login surface"
-      : route.path === "/post"
+      ? "Preparing sign-in"
+      : route.path === "/create"
         ? "Opening post composer"
-        : route.path === "/proposals/create"
-          ? "Opening proposal composer"
+        : route.path === "/decisions/create"
+          ? "Opening decision composer"
           : route.path === "/groups/create"
             ? "Opening group creation"
-            : route.path === "/disputes/:id/review"
-              ? "Opening dispute review"
-              : "Loading route";
+            : route.path === "/reviews/:id"
+              ? "Opening review item"
+              : "Loading page";
 
   return (
     <section className="card routeTransitionFallback" aria-live="polite" aria-busy="true">
@@ -112,7 +113,7 @@ function RouteTransitionFallback({ route }: { route: RouteMatch }): JSX.Element 
         <div className="eyebrow">Route transition</div>
         <h2 className="cardTitle">{label}</h2>
         <p className="cardDesc">
-          The shell stays mounted so navigation, protocol state, and pending work remain visible while the next surface loads.
+          The page shell stays mounted so navigation, account state, and pending work remain visible while the next surface loads.
         </p>
         <div className="routeTransitionSkeleton" aria-hidden="true">
           <div className="routeTransitionSkeletonBar routeTransitionSkeletonBar-wide" />
@@ -138,6 +139,24 @@ function SessionRecoveryGate({ returnTo }: { returnTo: string }): JSX.Element {
         <div className="buttonRow">
           <button className="btn btnPrimary" onClick={() => navWithReturn("/session", returnTo)}>Open session recovery</button>
           <button className="btn" onClick={() => navWithReturn("/login", returnTo)}>Go to login</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AdvancedModeLocked(): JSX.Element {
+  return (
+    <section className="card">
+      <div className="cardBody formStack">
+        <div className="eyebrow">Advanced details are off</div>
+        <h2 className="cardTitle">Keep normal social use simple</h2>
+        <p className="cardDesc">
+          Network and developer surfaces are hidden by default. Turn on advanced mode only when you intentionally need technical records or operator tools.
+        </p>
+        <div className="buttonRow">
+          <button className="btn btnPrimary" onClick={() => nav("/settings")}>Open settings</button>
+          <button className="btn" onClick={() => nav("/home")}>Back to home</button>
         </div>
       </div>
     </section>
@@ -171,12 +190,15 @@ export default function App(): JSX.Element {
         setPath(currentHashPath());
       }
     };
+    const onClientSettingsChanged = () => setSettingsVersion((v: number) => v + 1);
     window.addEventListener("hashchange", onHash);
     window.addEventListener("storage", onStorage);
+    window.addEventListener(CLIENT_SETTINGS_CHANGED_EVENT, onClientSettingsChanged);
     return () => {
       window.clearTimeout(hydrationTimer);
       window.removeEventListener("hashchange", onHash);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener(CLIENT_SETTINGS_CHANGED_EVENT, onClientSettingsChanged);
     };
   }, []);
 
@@ -276,7 +298,7 @@ export default function App(): JSX.Element {
 
   if (!authHydrated && meta.authRequired) {
     return (
-      <AppShell route={route} meta={meta} sessionHealth={sessionHealth}>
+      <AppShell route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode}>
         <section className="card">
           <div className="cardBody formStack">
             <div className="eyebrow">Restoring session</div>
@@ -309,7 +331,7 @@ export default function App(): JSX.Element {
 
   if (protectedButDegraded && route.path !== "/session") {
     return (
-      <AppShell route={route} meta={meta} sessionHealth={sessionHealth}>
+      <AppShell route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode}>
         <SessionRecoveryBanner health={sessionHealth} />
         <SessionRecoveryGate returnTo={intendedPath} />
       </AppShell>
@@ -317,7 +339,7 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <AppShell route={route} meta={meta} sessionHealth={sessionHealth}>
+    <AppShell route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode}>
       {meta.authRequired && sessionHealth.state !== "active" ? <SessionRecoveryBanner health={sessionHealth} compact /> : null}
       <Suspense fallback={<RouteTransitionFallback route={route} />}>
         {renderPage(route, readyForApp, showAdvancedMode)}

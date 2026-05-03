@@ -54,9 +54,9 @@ test("app loads and navigates core pages", async ({ page }) => {
   await page.goto("/#/feed");
   await expect(page.locator("#root")).toBeVisible();
 
-  await page.goto("/#/poh");
+  await page.goto("/#/verification");
   await expect(page.locator("#root")).toBeVisible();
 
-  await page.goto("/#/proposals");
+  await page.goto("/#/decisions");
   await expect(page.locator("#root")).toBeVisible();
 });

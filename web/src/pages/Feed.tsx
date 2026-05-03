@@ -5,6 +5,7 @@ import { getApiBaseUrl } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
+import { verificationLabel } from "../lib/userLanguage";
 
 type FeedTab = "global" | "mine";
 
@@ -54,7 +55,7 @@ export default function Feed(): JSX.Element {
       : !snapshot.registered
         ? "You can browse, but publishing still depends on account registration."
         : snapshot.tier < 2
-          ? "The account is visible, but Tier 2 is still needed for broader interactions like flags and comments."
+          ? "The account is visible, but live verification is still needed for broader interactions like flags and comments."
           : "This account can browse and participate in the visible content surfaces from this device.";
 
   return (
@@ -66,7 +67,7 @@ export default function Feed(): JSX.Element {
               <div className="eyebrow">Content</div>
               <h1 className="heroTitle heroTitleSm">{title}</h1>
               <p className="heroText">
-                This is the dedicated content surface. Posts, comments, likes, and flags belong here. Governance and dispute work stay on their own routes so the feed remains cognitively equivalent to a standard social surface.
+                This is the dedicated content surface. Posts, comments, likes, and flags belong here. Decisions and review work stay on their own routes so the feed remains easy to use like a standard social surface.
               </p>
             </div>
 
@@ -76,7 +77,7 @@ export default function Feed(): JSX.Element {
                 <span className={`statusPill ${snapshot.hasSession ? "ok" : ""}`}>{snapshot.hasSession ? "Session present" : "No session"}</span>
                 <span className={`statusPill ${snapshot.hasLocalSigner ? "ok" : ""}`}>{snapshot.hasLocalSigner ? "Signing ready" : "No local signer"}</span>
                 <span className={`statusPill ${snapshot.registered ? "ok" : ""}`}>{snapshot.registered ? "Registered" : "Registration needed"}</span>
-                <span className={`statusPill ${snapshot.tier >= 2 ? "ok" : ""}`}>Tier {snapshot.tier}</span>
+                <span className={`statusPill ${snapshot.tier >= 2 ? "ok" : ""}`}>{verificationLabel(snapshot.tier)}</span>
               </div>
             </div>
           </div>
@@ -140,14 +141,14 @@ export default function Feed(): JSX.Element {
           <div>
             <h2 className="surfaceBoundaryTitle">This hub stays content-only.</h2>
             <p className="surfaceBoundaryText">
-              Posting, reactions, comments, and flags belong here. Governance tallying and dispute voting are linked routes so the main feed does not become a mixed coordination surface.
+              Posting, reactions, comments, and flags belong here. Community decisions and review work are linked routes so the main feed stays focused.
             </p>
           </div>
           <span className="statusPill">Hub surface</span>
         </div>
         <div className="surfaceBoundaryList">
           <span className="surfaceBoundaryTag">Allowed: posts, comments, likes, flags</span>
-          <span className="surfaceBoundaryTag">Disallowed: proposal voting UI</span>
+          <span className="surfaceBoundaryTag">Separate: decision voting</span>
           <span className="surfaceBoundaryTag">Disallowed: dispute voting UI</span>
         </div>
       </section>

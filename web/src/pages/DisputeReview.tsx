@@ -24,7 +24,7 @@ import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  return actionableTxError(e, "Dispute review action failed.");
+  return actionableTxError(e, "Report review action failed.");
 }
 
 
@@ -120,26 +120,26 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
 
   const lockReason = !account
-    ? "Step 0: log in with a juror-capable account before entering the review workspace."
+    ? "Step 0: log in with a reviewer-capable account before entering the review workspace."
     : signerSubmission.busy
       ? "A previous signed action is still settling for this account."
       : !tierGate.ok
-        ? tierGate.reason || "Live Verification and signer posture are required for juror review actions."
+        ? tierGate.reason || "Live verification and a valid session are required for review actions."
         : currentVote
-          ? `Step 3 is complete. Current signer vote: ${currentVote.toUpperCase()}. This workspace is now locked for one-shot voting.`
+          ? `Step 3 is complete. Current recorded choice: ${currentVote.toUpperCase()}. This workspace is now locked because your choice was recorded.`
           : selectedJurorStatus === "unassigned"
-            ? "Step 1 has not begun because this account is not assigned to the selected dispute."
+            ? "Step 1 has not begun because this account is not assigned to the selected report."
             : !attendancePresent
-              ? "Step 2 is still pending. Final voting stays locked until accepted attendance is visible in authoritative dispute state."
-              : "Step 3 is unlocked. Inspect the target carefully, then cast one final vote.";
+              ? "Step 2 is still pending. Final choice stays locked until accepted attendance is visible."
+              : "Step 3 is unlocked. Inspect the target carefully, then choose what should happen.";
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
-    if (signerSubmission.busy) throw new Error("Another signed action is still settling for this juror account.");
+    if (signerSubmission.busy) throw new Error("Another signed action is still settling for this reviewer account.");
     const res = await tx.runTx({
       title,
       pendingKey: txPendingKey(["dispute", txType, String(payload?.dispute_id || id || ""), account]),
-      pendingMessage: "Submitting dispute action…",
+      pendingMessage: "Saving review action…",
       successMessage,
       errorMessage: (e) => prettyErr(e).msg,
       getTxId: (raw: any) => raw?.tx_id,
@@ -151,7 +151,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           entityType: "dispute",
           entityId: String(payload?.dispute_id || id || "").trim() || undefined,
           account: account || undefined,
-          routeHint: `/disputes/${encodeURIComponent(id)}/review`,
+          routeHint: `/reviews/${encodeURIComponent(id)}`,
           txType,
         },
         reconcile: async () =>
@@ -174,18 +174,18 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <div className="cardBody heroBody pageStack">
           <div className="surfaceSummaryRow">
             <div>
-              <div className="eyebrow">Juror action workspace</div>
-              <h1 className="heroTitle heroTitleSm">Dispute review</h1>
-              <p className="heroSubtitle">This page owns the final juror workflow. The queue lists work, the detail page explains the case, and this action page performs the one-shot review decision.</p>
+              <div className="eyebrow">Community review workspace</div>
+              <h1 className="heroTitle heroTitleSm">Report review</h1>
+              <p className="heroSubtitle">This page owns the final reviewer workflow. The queue lists work, the detail page explains the report, and this action page records one final review choice.</p>
             </div>
             <div className="surfaceSummaryStats">
-              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">dispute id</span></div>
+              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">report id</span></div>
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{summary}</strong><span className="surfaceSummaryHint">current account standing</span></div>
             </div>
           </div>
           <div className="buttonRow">
-            <button className="btn" onClick={() => nav(`/disputes/${encodeURIComponent(id)}`)}>Back to detail</button>
-            <button className="btn" onClick={() => nav("/disputes")}>Back to disputes</button>
+            <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(id)}`)}>Back to detail</button>
+            <button className="btn" onClick={() => nav("/reports")}>Back to reports</button>
             <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting for signer…" : "Refresh review state"}</button>
           </div>
         </div>
@@ -202,8 +202,8 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       <section className="detailFocusStrip actionFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
-          <div className="detailFocusValue">Final juror action</div>
-          <div className="detailFocusText">This workspace is for one dispute and one signer. It should feel narrower and more deliberate than the queue or detail surfaces.</div>
+          <div className="detailFocusValue">Final reviewer action</div>
+          <div className="detailFocusText">This workspace is for one report and one reviewer account. It should feel narrower and more deliberate than the queue or detail pages.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Submission rule</div>
@@ -213,33 +213,33 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Interaction boundary</div>
           <div className="detailFocusValue">Action route only</div>
-          <div className="detailFocusText">Use this page to accept, decline, or cast the final vote. Queue browsing and case explanation live on the other routes.</div>
+          <div className="detailFocusText">Use this page to accept, decline, or record the final review choice. Queue browsing and report explanation live on the other routes.</div>
         </article>
       </section>
 
 
-      <ActionLifecycleCard intro="This route should always show the same honest sequence: validating, submitting, recorded, reconciling, visible confirmed, or failed." />
+      <ActionLifecycleCard intro="This route should always show the same honest sequence: checking, saving, recorded, updating the page, visible, or failed." />
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
-          <div className="summaryCardLabel">Stage</div>
+          <div className="summaryCardLabel">Status</div>
           <div className="summaryCardValue"><span className={disputeStageClass(String(dispute?.stage || "open"))}>{String(dispute?.stage || "open")}</span></div>
           <div className="summaryCardText">resolved: {String(!!dispute?.resolved)}</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Your juror status</div>
+          <div className="summaryCardLabel">Your reviewer status</div>
           <div className="summaryCardValue">{selectedJurorStatus}</div>
-          <div className="summaryCardText">{attendancePresent ? "Attendance recorded" : "Accepted attendance is still missing from authoritative dispute state."}</div>
+          <div className="summaryCardText">{attendancePresent ? "Attendance recorded" : "Accepted attendance is still missing."}</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Votes</div>
+          <div className="summaryCardLabel">Reviews</div>
           <div className="summaryCardValue">{counts.total}</div>
           <div className="summaryCardText">YES {counts.yes} · NO {counts.no} · ABSTAIN {counts.abstain}</div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Current signer vote</div>
+          <div className="summaryCardLabel">Your recorded choice</div>
           <div className="summaryCardValue">{currentVote ? currentVote.toUpperCase() : "None"}</div>
-          <div className="summaryCardText">One signer, one recorded vote</div>
+          <div className="summaryCardText">One reviewer account, one recorded choice</div>
         </article>
       </section>
 
@@ -247,8 +247,8 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Flag context</div>
-              <h2 className="cardTitle">Why this dispute exists</h2>
+              <div className="eyebrow">Report context</div>
+              <h2 className="cardTitle">Why this report exists</h2>
             </div>
           </div>
           <div className="summaryCardGrid">
@@ -263,7 +263,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
               <div className="summaryCardText">Action routing should not hide this case history.</div>
             </article>
           </div>
-          {dispute?.reason ? <div className="feedBodyText">{String(dispute.reason)}</div> : <div className="cardDesc">No dispute reason was recorded.</div>}
+          {dispute?.reason ? <div className="feedBodyText">{String(dispute.reason)}</div> : <div className="cardDesc">No report reason was recorded.</div>}
         </div>
       </section>
 
@@ -272,7 +272,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Flagged target</div>
-              <h2 className="cardTitle">Review the content before voting</h2>
+              <h2 className="cardTitle">Review the content before choosing</h2>
             </div>
           </div>
           <div className="summaryCardGrid">
@@ -284,7 +284,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             <article className="summaryCard">
               <div className="summaryCardLabel">Group / scope</div>
               <div className="summaryCardValue mono">{contentGroup || "—"}</div>
-              <div className="summaryCardText">Context matters for juror review and should stay visible here.</div>
+              <div className="summaryCardText">Context matters for community review and should stay visible here.</div>
             </article>
           </div>
           {contentBody ? <div className="feedBodyText">{contentBody}</div> : <div className="cardDesc">The target content body could not be loaded on this pass. Open the content page to cross-check the visible object.</div>}
@@ -296,18 +296,18 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Juror action</div>
-              <h2 className="cardTitle">Preparation and final vote</h2>
+              <div className="eyebrow">Reviewer action</div>
+              <h2 className="cardTitle">Preparation and final choice</h2>
             </div>
           </div>
           <div className="buttonRow buttonRowWide">
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: dispute.id }, "Accept dispute", "Dispute accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: dispute.id }, "Decline dispute", "Dispute declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
-            <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "yes" }, "Vote yes", "YES vote submitted.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Vote yes"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "no" }, "Vote no", "NO vote submitted.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Vote no"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "abstain" }, "Vote abstain", "Abstain vote submitted.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Vote abstain"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: dispute.id }, "Accept report", "Report accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: dispute.id }, "Decline report", "Report declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+            <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "yes" }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "no" }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
-          <div className="cardDesc">This page is intentionally the only place where final dispute votes are surfaced. Accept or decline only to resolve assignment posture; once unlocked, the one-shot vote is the dominant action.</div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept or decline only to resolve assignment posture; once unlocked, the final choice is the dominant action.</div>
         </div>
       </section>
 

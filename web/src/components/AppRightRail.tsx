@@ -71,147 +71,147 @@ function deriveContextSummary(args: {
     case "home":
       return {
         title: "Home context",
-        body: `Quick posture for this session. ${asCountLabel("proposal action", activeProposalCount)} and ${asCountLabel("dispute action", activeDisputeCount)} are currently surfaced. Home stays content-first while governance and adjudication remain linked, not merged.`,
+        body: `You have ${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} currently surfaced. Home stays social-first while still pointing you to decisions and reviews when they matter.`,
         actions: [
           { label: "Open feed", href: "/feed" },
-          { label: "Open proposals", href: "/proposals" },
+          { label: "Open decisions", href: "/decisions" },
         ],
       };
     case "feed":
       return {
         title: "Feed context",
-        body: `${asCountLabel("proposal action", activeProposalCount)} and ${asCountLabel("dispute action", activeDisputeCount)} remain visible elsewhere in the protocol. Keep the center column focused on browsing, not diagnostics.`,
-        actions: [{ label: "Create post", href: "/post" }],
+        body: `${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} are available in their own sections. This page stays focused on posts and conversations.`,
+        actions: [{ label: "Create post", href: "/create" }],
       };
     case "groups":
       return {
         title: "Groups context",
-        body: `${asCountLabel("group", groupCount)} loaded into the discovery slice. Group creation remains a dedicated action flow, not an inline hub composer.`,
+        body: `${asCountLabel("group", groupCount)} loaded for discovery. Group creation stays in a focused action flow so browsing remains simple.`,
       };
     case "group_detail": {
       const routeGroupId = route.path === "/groups/:id" ? route.id : "";
       const groupName = String(groupDetail?.name || groupDetail?.title || routeGroupId || "Group");
-      const policy = String(groupDetail?.policy || groupDetail?.membership_policy || "Policy not surfaced yet.");
+      const policy = String(groupDetail?.policy || groupDetail?.membership_policy || "Membership status is not surfaced yet.");
       return {
         title: "Group context",
         body: `${groupName}. ${policy}`,
         actions: [{ label: "Back to groups", href: "/groups" }],
       };
     }
-    case "proposals":
+    case "decisions":
       return {
-        title: "Governance context",
-        body: `${asCountLabel("proposal action", activeProposalCount)} currently surfaced. The hub should remain list-first and defer deep inspection to detail routes.`,
+        title: "Decisions context",
+        body: `${asCountLabel("decision", activeProposalCount)} currently surfaced. The hub should help users understand what is open, what they voted on, and what passed.`,
       };
-    case "proposal_detail": {
-      const title = String(proposalDetail?.title || proposalDetail?.proposal_title || "Proposal detail");
-      const stage = String(proposalDetail?.stage || proposalDetail?.status || "stage unknown");
+    case "decision_detail": {
+      const title = String(proposalDetail?.title || proposalDetail?.proposal_title || "Decision detail");
+      const stage = String(proposalDetail?.stage || proposalDetail?.status || "status unknown");
       return {
-        title: "Proposal context",
-        body: `${title}. Current stage: ${stage}. Vote locking should derive from authoritative proposal state rather than button-local assumptions.`,
-        actions: [{ label: "Back to proposals", href: "/proposals" }],
+        title: "Decision context",
+        body: `${title}. Current status: ${stage}. Vote controls should derive from authoritative decision state rather than button-local assumptions.`,
+        actions: [{ label: "Back to decisions", href: "/decisions" }],
       };
     }
-    case "disputes":
+    case "reports":
       return {
-        title: "Dispute queue context",
-        body: `${asCountLabel("dispute action", activeDisputeCount)} currently surfaced. Queue pages should list work, not embed review voting controls.`,
+        title: "Reports context",
+        body: `${asCountLabel("report", activeDisputeCount)} currently surfaced. Report pages should explain review status without exposing reviewer-only actions to everyone.`,
       };
-    case "dispute_detail": {
-      const stage = String(disputeDetail?.stage || disputeDetail?.status || "stage unknown");
+    case "report_detail": {
+      const stage = String(disputeDetail?.stage || disputeDetail?.status || "status unknown");
       const reason = String(disputeDetail?.reason || disputeDetail?.summary || "Reason not surfaced yet.");
       return {
-        title: "Dispute context",
-        body: `Current stage: ${stage}. ${reason}`,
-        actions: [{ label: "Back to disputes", href: "/disputes" }],
+        title: "Report context",
+        body: `Current status: ${stage}. ${reason}`,
+        actions: [{ label: "Back to reports", href: "/reports" }],
       };
     }
-    case "dispute_review": {
-      const stage = String(disputeDetail?.stage || disputeDetail?.status || "stage unknown");
-      const jurorStatus = disputeJurorStatus(disputeDetail, account || "") || "status not surfaced";
+    case "review_item": {
+      const stage = String(disputeDetail?.stage || disputeDetail?.status || "status unknown");
+      const reviewerStatus = disputeJurorStatus(disputeDetail, account || "") || "assignment status not surfaced";
       return {
-        title: "Dispute review context",
-        body: `Review workspace for a single case. Current stage: ${stage}. Juror posture: ${jurorStatus}. Final voting belongs here, not on the queue or detail surface.`,
+        title: "Review context",
+        body: `This is one assigned review item. Current status: ${stage}. Reviewer posture: ${reviewerStatus}. Final choices belong here, not on the queue.`,
         actions: [
-          { label: "Open dispute detail", href: route.path === "/disputes/:id/review" ? `/disputes/${encodeURIComponent(String((route as any).id || ""))}` : "/disputes" },
-          { label: "Back to disputes", href: "/disputes" },
+          { label: "Open report detail", href: route.path === "/reviews/:id" ? `/reports/${encodeURIComponent(String((route as any).id || ""))}` : "/reports" },
+          { label: "Back to reviews", href: "/reviews" },
         ],
       };
     }
     case "post_create":
       return {
         title: "Composer context",
-        body: "Submission must progress through validating, submitting, recorded, refreshing, confirmed, or failed states. Committed is not the same as visible in the feed.",
-        actions: [{ label: "Back to home", href: "/home" }],
+        body: "Post creation should show saving, done, needs attention, or failed states. Do not show final success until the result is visible or confirmed.",
+        actions: [{ label: "Back to feed", href: "/feed" }],
       };
     case "messaging":
       return {
         title: "Messaging context",
-        body: "Direct messages belong on a dedicated communication surface. Keep conversation state separate from content feeds, governance queues, and dispute review.",
+        body: "Messages belong on a dedicated communication surface. Keep conversation state separate from posts, decisions, and reports.",
         actions: [{ label: "Open profile", href: "/profile" }],
       };
     case "group_create":
       return {
         title: "Group creation context",
-        body: "Creation stays separate from the groups directory so discovery and mutation do not compete in the same viewport.",
+        body: "Creation stays separate from the groups directory so discovery and saving do not compete in the same viewport.",
         actions: [{ label: "Back to groups", href: "/groups" }],
       };
-    case "proposal_create":
+    case "decision_create":
       return {
-        title: "Proposal creation context",
-        body: "Governance authoring is separated from the proposals queue so the decision list stays deliberate and scanable.",
-        actions: [{ label: "Back to proposals", href: "/proposals" }],
+        title: "Decision creation context",
+        body: "Decision authoring is separated from the decisions queue so the list stays deliberate and scanable.",
+        actions: [{ label: "Back to decisions", href: "/decisions" }],
       };
     case "session_devices":
       return {
         title: "Session context",
-        body: "Protected write controls should lock when session validity changes. This route should keep current, active, and revoked device states legible.",
+        body: "Action controls should lock when session validity changes. This route keeps current, active, and revoked device states legible.",
       };
     case "settings":
       return {
         title: "Settings context",
-        body: "Environment changes should not silently rewrite protocol posture. Keep diagnostics visible in the right rail while the center remains a control surface.",
+        body: "Settings should stay user-facing. Advanced network details belong behind the advanced mode toggle.",
       };
-    case "tools":
+    case "advanced":
       return {
-        title: "Diagnostics context",
-        body: "Operator-grade debugging can live here, but normal product behavior must not depend on the tools surface being open.",
+        title: "Advanced context",
+        body: "Technical inspection can live here, but normal product behavior must not depend on this surface being open.",
       };
     case "account":
       return {
         title: "Account context",
-        body: "Account standing, roles, and PoH posture belong in a stable profile utility surface rather than scattered inline across hubs.",
+        body: "Account status and trusted responsibilities belong in stable profile surfaces rather than scattered inline across hubs.",
       };
     case "profile":
       return {
         title: "Profile context",
-        body: "This is the current-account utility surface. It remains adjacent to the primary coordination domains without replacing them.",
+        body: "This is the current-account profile surface. It remains adjacent to the primary social sections without replacing them.",
         actions: [{ label: "Open home", href: "/home" }],
       };
     case "transactions":
       return {
-        title: "Transaction context",
-        body: "Recorded-but-not-yet-visible should remain distinct from failure so users do not accidentally resubmit signed actions.",
+        title: "Technical history context",
+        body: "Advanced action history separates recorded-but-not-yet-visible from failure so users do not accidentally resubmit actions.",
       };
     case "content_detail":
       return {
-        title: "Content context",
-        body: "Content detail should foreground the object and related moderation posture while keeping protocol awareness out of the center column.",
+        title: "Post context",
+        body: "Post detail should foreground the conversation and review status while keeping technical records collapsed by default.",
       };
     case "thread":
       return {
         title: "Thread context",
-        body: "Thread inspection should preserve discussion continuity in the center and keep ambient protocol awareness in the rail.",
+        body: "Thread inspection should preserve discussion continuity in the center and keep helpful account context in the panel.",
       };
-    case "juror":
+    case "reviews":
       return {
-        title: "Juror context",
-        body: "Role-gated review work should stay operational, narrow, and explicit about lock states and eligibility.",
+        title: "Review queue context",
+        body: "Community review work should stay narrow, assigned, and explicit about eligibility and lock states.",
       };
-    case "poh":
+    case "verification":
       return {
-        title: "PoH context",
-        body: "PoH progression is one of the main protocol eligibility surfaces. Capability changes should become visible here without sending the user hunting across pages.",
+        title: "Verification context",
+        body: "Account Verification shows the current account level, next step, and trusted responsibilities without requiring users to understand protocol internals.",
       };
     default:
       return {
@@ -221,7 +221,17 @@ function deriveContextSummary(args: {
   }
 }
 
-export default function AppRightRail({ route, meta, sessionHealth }: { route: RouteMatch; meta: RouteMeta; sessionHealth?: SessionHealth }): JSX.Element {
+export default function AppRightRail({
+  route,
+  meta,
+  sessionHealth,
+  showAdvancedMode = false,
+}: {
+  route: RouteMatch;
+  meta: RouteMeta;
+  sessionHealth?: SessionHealth;
+  showAdvancedMode?: boolean;
+}): JSX.Element {
   const base = getApiBaseUrl();
   const session = getSession();
   const account = String(session?.account || "").trim();
@@ -275,14 +285,14 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
   }, [account, base]);
 
   const refreshRouteDetail = useCallback(async () => {
-    if (route.path === "/proposal/:id" || route.path === "/proposals/:id") {
+    if (route.path === "/decisions/:id") {
       const detail = await weall.proposal((route as any).id, base).catch(() => null);
       setProposalDetail(detail ? asRecord(asRecord(detail).proposal || detail) : null);
       setDisputeDetail(null);
       setGroupDetail(null);
       return;
     }
-    if (route.path === "/disputes/:id" || route.path === "/disputes/:id/review") {
+    if (route.path === "/reports/:id" || route.path === "/reviews/:id") {
       const detail = await weall.dispute((route as any).id, base).catch(() => null);
       setDisputeDetail(detail ? asRecord(asRecord(detail).dispute || detail) : null);
       setProposalDetail(null);
@@ -397,8 +407,8 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
   ];
 
   return (
-    <aside id="protocol-awareness-rail" className="appShellRightRail" aria-label="Protocol awareness and route context">
-      <Panel title="Protocol awareness">
+    <aside id="protocol-awareness-rail" className="appShellRightRail" aria-label="Helpful side panel">
+      <Panel title="Helpful context">
         <div className="railPrimaryLine">
           <strong>{meta.title}</strong>
           <span className="railMetaPill railMetaPill-warn">{meta.mode}</span>
@@ -418,7 +428,7 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
             }}
             disabled={refreshingRail}
           >
-            {refreshingRail ? "Refreshing…" : "Refresh awareness"}
+            {refreshingRail ? "Refreshing…" : "Refresh panel"}
           </button>
           <button
             className="railSecondaryAction"
@@ -435,7 +445,7 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
       <Panel title="Account state">
         <div className="railPrimaryLine">
           <strong>{accountHandle}</strong>
-          <span className="railMetaPill">{tier ? `PoH ${tier}` : "PoH pending"}</span>
+          <span className="railMetaPill">{pohTierLabel(tier)}</span>
         </div>
         <div className="railSupportText">{accountLoading ? "Refreshing account posture…" : standingFlags.join(" · ")}</div>
         <div className="railPillRow">
@@ -463,19 +473,21 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
         </div>
       </Panel>
 
-      <Panel title="Node state">
-        <div className="railPrimaryLine">
-          <strong>{nodeSummary.label}</strong>
-          <span className={`railMetaPill railMetaPill-${nodeSummary.phase}`}>{nodeSummary.phase}</span>
-        </div>
-        <div className="railSupportText">{[chainId, nodeHeight, nodeSummary.profile || "profile unknown"].join(" · ")}</div>
-        <div className="railSupportText">{nodeSummary.detail || base}</div>
-        <div className="railActionRow">
-          <button className="railSecondaryAction" onClick={() => void refreshRail()} disabled={refreshingRail}>
-            {refreshingRail ? "Refreshing…" : "Refresh state"}
-          </button>
-        </div>
-      </Panel>
+      {showAdvancedMode ? (
+        <Panel title="Advanced network state">
+          <div className="railPrimaryLine">
+            <strong>{nodeSummary.label}</strong>
+            <span className={`railMetaPill railMetaPill-${nodeSummary.phase}`}>{nodeSummary.phase}</span>
+          </div>
+          <div className="railSupportText">{[chainId, nodeHeight, nodeSummary.profile || "profile unknown"].join(" · ")}</div>
+          <div className="railSupportText">{nodeSummary.detail || base}</div>
+          <div className="railActionRow">
+            <button className="railSecondaryAction" onClick={() => void refreshRail()} disabled={refreshingRail}>
+              {refreshingRail ? "Refreshing…" : "Refresh state"}
+            </button>
+          </div>
+        </Panel>
+      ) : null}
 
       <Panel title="Pending work">
         {pendingWork.items.length ? (
@@ -496,18 +508,18 @@ export default function AppRightRail({ route, meta, sessionHealth }: { route: Ro
             ))}
           </div>
         ) : (
-          <div className="railSupportText">No open protocol work is currently surfaced for this account context.</div>
+          <div className="railSupportText">No open review, decision, or group work is currently surfaced for this account.</div>
         )}
         <div className="railPendingSummary">
           <span>{pendingWork.counts.assigned} assigned</span>
           <span>{pendingWork.counts.available} actionable</span>
-          <span>{pendingWork.counts.proposals} proposals</span>
-          <span>{pendingWork.counts.disputes} disputes</span>
+          <span>{pendingWork.counts.proposals} decisions</span>
+          <span>{pendingWork.counts.disputes} reports</span>
           <span>{pendingWork.counts.memberships} memberships</span>
         </div>
         <div className="railActionRow railActionRow-compact">
-          <button className="railSecondaryAction" onClick={() => nav('/proposals')}>Open proposals</button>
-          <button className="railSecondaryAction" onClick={() => nav('/disputes')}>Open disputes</button>
+          <button className="railSecondaryAction" onClick={() => nav('/decisions')}>Open decisions</button>
+          <button className="railSecondaryAction" onClick={() => nav('/reports')}>Open reports</button>
           <button className="railSecondaryAction" onClick={() => nav('/groups')}>Open groups</button>
         </div>
       </Panel>

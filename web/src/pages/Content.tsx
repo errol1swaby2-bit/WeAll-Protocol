@@ -555,12 +555,12 @@ export default function Content({ id }: { id: string }): JSX.Element {
                       placeholder="Reason (e.g., spam, harassment, illegal content)"
                     />
                     <div className="buttonRow buttonRowWide">
-                      <button className="btn btnPrimary" onClick={doFlag} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Submit flag"}</button>
+                      <button className="btn btnPrimary" onClick={doFlag} disabled={!gate.ok || txBusy}>{txBusy ? "Submitting…" : "Send report"}</button>
                       <button className="btn" onClick={() => setFlagOpen(false)} disabled={txBusy}>Cancel</button>
                     </div>
                     <div className="actionStateRow">
-                      <span className="actionStateLabel">Flag truth</span>
-                      <span className="actionStateText">Flags are on-chain signals. Disputes and moderation outcomes are resolved by the network later.</span>
+                      <span className="actionStateLabel">Report status</span>
+                      <span className="actionStateText">Reports are sent for community review. Review outcomes are resolved after the required account and reviewer checks pass.</span>
                     </div>
                   </div>
                 ) : null}

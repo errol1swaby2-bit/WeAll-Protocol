@@ -202,12 +202,12 @@ export default function JurorDashboard(): JSX.Element {
     successMessage: string,
   ): Promise<void> {
     if (!account) throw new Error("not_logged_in");
-    if (signerSubmission.busy) throw new Error("Another signed action is still settling for this juror account.");
+    if (signerSubmission.busy) throw new Error("Another signed action is still settling for this reviewer account.");
     if (!skel?.tx) throw new Error("invalid_tx_skeleton");
 
     const r = await tx.runTx({
       title,
-      pendingMessage: "Submitting juror action…",
+      pendingMessage: "Saving review action…",
       successMessage,
       errorMessage: (e) => prettyErr(e).msg,
       getTxId: (res: any) => res?.result?.tx_id,
@@ -240,13 +240,13 @@ export default function JurorDashboard(): JSX.Element {
   async function tier2Accept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohTier2TxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept Tier 2 case", "Tier 2 case accepted.");
+    await submitSkeletonTx(skel, "Accept async verification case", "Async verification case accepted.");
   }
 
   async function tier2Decline(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohTier2TxJurorDecline({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Decline Tier 2 case", "Tier 2 case declined.");
+    await submitSkeletonTx(skel, "Decline async verification case", "Async verification case declined.");
   }
 
   async function tier2Review(caseId: string, verdict: "pass" | "fail"): Promise<void> {
@@ -257,21 +257,21 @@ export default function JurorDashboard(): JSX.Element {
     const skel = await weall.pohTier2TxReview(body, apiBase, headers);
     await submitSkeletonTx(
       skel,
-      "Submit Tier 2 verdict",
-      verdict === "pass" ? "Tier 2 case passed." : "Tier 2 case failed.",
+      "Submit async verification decision",
+      verdict === "pass" ? "Async verification approved." : "Async verification rejected.",
     );
   }
 
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept Live Verification case", "Live Verification case accepted.");
+    await submitSkeletonTx(skel, "Accept live verification case", "Live verification case accepted.");
   }
 
   async function liveDecline(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorDecline({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Decline Live Verification case", "Live Verification case declined.");
+    await submitSkeletonTx(skel, "Decline live verification case", "Live verification case declined.");
   }
 
   async function liveAttendance(caseId: string, attended: boolean): Promise<void> {
@@ -283,7 +283,7 @@ export default function JurorDashboard(): JSX.Element {
     );
     await submitSkeletonTx(
       skel,
-      "Record Live Verification attendance",
+      "Record live verification attendance",
       attended ? "Attendance marked present." : "Attendance marked absent.",
     );
   }
@@ -296,8 +296,8 @@ export default function JurorDashboard(): JSX.Element {
     const skel = await weall.pohLiveTxVerdict(body, apiBase, headers);
     await submitSkeletonTx(
       skel,
-      "Submit Live Verification verdict",
-      verdict === "pass" ? "Live Verification case passed." : "Live Verification case failed.",
+      "Submit live verification decision",
+      verdict === "pass" ? "Live verification approved." : "Live verification rejected.",
     );
   }
 
@@ -315,25 +315,24 @@ export default function JurorDashboard(): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Juror workspace</div>
-              <h1 className="heroTitle heroTitleSm">Review assigned human verification work</h1>
+              <div className="eyebrow">Review Queue</div>
+              <h1 className="heroTitle heroTitleSm">Review assigned verification work</h1>
               <p className="heroText">
-                This page keeps Tier 2 evidence review and Live Verification session follow-through in one
-                place so juror work feels operational instead of hidden behind raw endpoints.
+                This page keeps assigned account-verification reviews and live verification sessions in one place so review work feels clear and deliberate.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Juror readiness</div>
+              <div className="heroInfoTitle">Reviewer readiness</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${account ? "ok" : ""}`}>
                   {account ? "Session present" : "No session"}
                 </span>
                 <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                  Tier {tier}
+                  {tier >= 2 ? "Trusted Verified Person" : "Live verification needed"}
                 </span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
-                  {gate.ok ? "Juror-ready" : "Gated"}
+                  {gate.ok ? "Reviewer-ready" : "Locked"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>
@@ -342,16 +341,16 @@ export default function JurorDashboard(): JSX.Element {
 
           <div className="heroActions">
             <button className={`btn ${tab === "tier2" ? "btnPrimary" : ""}`} onClick={() => setTab("tier2")}>
-              Tier 2 cases
+              Async verification cases
             </button>
             <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => setTab("live")}>
-              Live Verification cases
+              Live verification cases
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting for signer…" : "Refresh"}
             </button>
-            <button className="btn" onClick={() => nav("/poh")}>
-              Open PoH
+            <button className="btn" onClick={() => nav("/verification")}>
+              Open Account Verification
             </button>
           </div>
         </div>
@@ -359,7 +358,7 @@ export default function JurorDashboard(): JSX.Element {
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
-          Another signed action for this juror account is still settling. Juror decisions stay serialized so case actions do not collide on nonce.
+          Another signed action for this reviewer account is still settling. Review decisions stay read-only until the current action finishes.
         </div>
       ) : null}
 
@@ -375,7 +374,7 @@ export default function JurorDashboard(): JSX.Element {
           <div className="cardBody formStack">
             <div className="emptyPanel">
               <strong>No local session is active.</strong>
-              <span>Restore your session in Settings or PoH before using juror actions.</span>
+              <span>Restore your session in Settings or Account Verification before using reviewer actions.</span>
               <div className="buttonRow">
                 <button className="btn btnPrimary" onClick={() => nav("/settings")}>
                   Open settings
@@ -390,7 +389,7 @@ export default function JurorDashboard(): JSX.Element {
         <div className="card">
           <div className="cardBody formStack">
             <div className="emptyPanel">
-              <strong>Juror actions are gated.</strong>
+              <strong>Reviewer actions are locked.</strong>
               <span>{gate.reason}</span>
             </div>
           </div>
@@ -398,8 +397,8 @@ export default function JurorDashboard(): JSX.Element {
       ) : null}
 
       <SectionCard
-        eyebrow={tab === "tier2" ? "Tier 2" : "Live Verification"}
-        title={tab === "tier2" ? "Assigned evidence reviews" : "Assigned live-session cases"}
+        eyebrow={tab === "tier2" ? "Async Verification" : "Live Verification"}
+        title={tab === "tier2" ? "Assigned async verification reviews" : "Assigned live verification cases"}
         right={<span className={`statusPill ${showing.length ? "ok" : ""}`}>{showing.length} case(s)</span>}
       >
         {showing.length === 0 ? (
@@ -458,10 +457,10 @@ export default function JurorDashboard(): JSX.Element {
                           {signerSubmission.busy ? "Waiting…" : "Decline"}
                         </button>
                         <button className="btn btnPrimary" onClick={() => void tier2Review(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Pass"}
+                          {signerSubmission.busy ? "Waiting…" : "Approve"}
                         </button>
                         <button className="btn" onClick={() => void tier2Review(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Fail"}
+                          {signerSubmission.busy ? "Waiting…" : "Reject"}
                         </button>
                       </div>
                     ) : (
@@ -482,10 +481,10 @@ export default function JurorDashboard(): JSX.Element {
                           {signerSubmission.busy ? "Waiting…" : "Mark absent"}
                         </button>
                         <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Pass"}
+                          {signerSubmission.busy ? "Waiting…" : "Approve"}
                         </button>
                         <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Fail"}
+                          {signerSubmission.busy ? "Waiting…" : "Reject"}
                         </button>
                       </div>
                     )}
@@ -528,7 +527,7 @@ export default function JurorDashboard(): JSX.Element {
 
                     {detail ? (
                       <details className="detailsPanel">
-                        <summary>Case detail</summary>
+                        <summary>Advanced case detail</summary>
                         <pre className="codePanel mono">{JSON.stringify(detail, null, 2)}</pre>
                       </details>
                     ) : null}
@@ -541,7 +540,7 @@ export default function JurorDashboard(): JSX.Element {
       </SectionCard>
 
       {result ? (
-        <SectionCard eyebrow="Last action" title="Submission result">
+        <SectionCard eyebrow="Last action" title="Latest action result">
           <pre className="codePanel mono">{JSON.stringify(result, null, 2)}</pre>
         </SectionCard>
       ) : null}

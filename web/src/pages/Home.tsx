@@ -145,7 +145,7 @@ export default function Home(): JSX.Element {
               <div>
                 <h2 className="surfaceBoundaryTitle">Home is not the content feed anymore.</h2>
                 <p className="surfaceBoundaryText">
-                  This route stays light: shortcuts, notifications, route directory, and transaction awareness. The dedicated content surface lives on Feed.
+                  This route stays light: shortcuts, notifications, route directory, and action awareness. The dedicated content surface lives on Feed.
                 </p>
               </div>
               <span className="statusPill">Hub surface</span>
@@ -153,7 +153,7 @@ export default function Home(): JSX.Element {
             <div className="surfaceBoundaryList">
               <span className="surfaceBoundaryTag">Center: directory and notification summary</span>
               <span className="surfaceBoundaryTag">Feed stays separate</span>
-              <span className="surfaceBoundaryTag">Governance and disputes stay separate</span>
+              <span className="surfaceBoundaryTag">Decisions and reviews stay separate</span>
             </div>
           </section>
         </div>
@@ -162,8 +162,8 @@ export default function Home(): JSX.Element {
       <section className="surfaceSummaryGrid">
         <DirectoryCard eyebrow="Feed" title="Content" body="Open the dedicated content surface for posts, comments, likes, and flags." cta="Open feed" href="/feed" tone="primary" />
         <DirectoryCard eyebrow="Groups" title={`${groupCount} visible groups`} body="Group discovery and membership live on their own hub." cta="Open groups" href="/groups" />
-        <DirectoryCard eyebrow="Governance" title={`${pending.activeProposals} active proposals`} body="Proposal review and voting stay structured and separate from social browsing." cta="Open governance" href="/proposals" />
-        <DirectoryCard eyebrow="Disputes" title={`${pending.availableDisputes} open disputes`} body="Flagged-content adjudication remains a formal case workflow." cta="Open disputes" href="/disputes" />
+        <DirectoryCard eyebrow="Decisions" title={`${pending.activeProposals} open decisions`} body="Community voting stays structured and separate from social browsing." cta="Open decisions" href="/decisions" />
+        <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} open reports`} body="Reported content moves through a clear community review workflow." cta="Open reports" href="/reports" />
       </section>
 
       <section className="card">
@@ -181,10 +181,10 @@ export default function Home(): JSX.Element {
 
           <div className="formStack">
             <HomeNotificationRow label="Feed route" detail="Browse or publish from the dedicated expression surface." href="/feed" />
-            <HomeNotificationRow label="Pending governance work" detail={pending.activeProposals ? `${pending.activeProposals} active proposal${pending.activeProposals === 1 ? "" : "s"} may need review.` : "No active proposals are surfaced right now."} href="/proposals" />
-            <HomeNotificationRow label="Juror work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} dispute assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open dispute${pending.availableDisputes === 1 ? "" : "s"} are visible on the queue.` : "No active disputes are visible right now."} href="/disputes" />
-            <HomeNotificationRow label="Transaction queue" detail={pendingTx ? `${pendingTx} signed action${pendingTx === 1 ? "" : "s"} still settling.` : failedTx ? `${failedTx} recent action${failedTx === 1 ? "" : "s"} failed and may need review.` : "No local transaction backlog is visible right now."} href="/transactions" />
-            <HomeNotificationRow label="Session and devices" detail="Use the session utility page whenever write posture, signer posture, or device validity needs attention." href="/session" />
+            <HomeNotificationRow label="Pending decisions" detail={pending.activeProposals ? `${pending.activeProposals} open decision${pending.activeProposals === 1 ? "" : "s"} may need attention.` : "No open decisions are surfaced right now."} href="/decisions" />
+            <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible on the queue.` : "No active reports are visible right now."} href="/reviews" />
+            <HomeNotificationRow label="Action queue" detail={pendingTx ? `${pendingTx} signed action${pendingTx === 1 ? "" : "s"} still settling.` : failedTx ? `${failedTx} recent action${failedTx === 1 ? "" : "s"} failed and may need review.` : "No local action backlog is visible right now."} href="/advanced" />
+            <HomeNotificationRow label="Session and devices" detail="Use the session utility page whenever account access or device validity needs attention." href="/session" />
           </div>
         </div>
       </section>

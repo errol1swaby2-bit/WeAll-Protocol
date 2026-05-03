@@ -4,8 +4,9 @@ import { getKeypair, getSession } from "../auth/session";
 import { useAccount } from "../context/AccountContext";
 import { prefetchRouteChunk } from "../lib/routePrefetch";
 import { currentHashPath, getNavSections, isActiveNavPath, nav } from "../lib/router";
+import { verificationLabel } from "../lib/userLanguage";
 
-export default function SidebarNav(): JSX.Element {
+export default function SidebarNav({ showAdvancedMode = false }: { showAdvancedMode?: boolean }): JSX.Element {
   const [currentPath, setCurrentPath] = useState<string>(currentHashPath());
   const session = getSession();
   const account = session?.account || "";
@@ -13,7 +14,8 @@ export default function SidebarNav(): JSX.Element {
   const { state: accountState } = useAccount();
   const ready = !!session?.account && !!keypair?.secretKeyB64;
   const tier = Number(accountState?.poh_tier ?? 0);
-  const sections = getNavSections({ ready, tier, showAdvanced: false });
+  const accountLabel = verificationLabel(tier);
+  const sections = getNavSections({ ready, tier, showAdvanced: showAdvancedMode });
 
   useEffect(() => {
     function onHashChange() {
@@ -28,7 +30,7 @@ export default function SidebarNav(): JSX.Element {
       <div className="sidebarAccountChip" aria-label="Current account summary">
         <div className="sidebarAccountChipLabel">Current account</div>
         <strong>{account || "No account selected"}</strong>
-        <div className="sidebarAccountChipMeta">{ready ? `PoH tier ${tier || 0}` : "Sign in to unlock gated flows"}</div>
+        <div className="sidebarAccountChipMeta">{ready ? accountLabel : "Sign in to unlock account actions"}</div>
       </div>
 
       <nav className="sidebarNav" aria-label="Primary routes">

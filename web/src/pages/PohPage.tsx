@@ -2,13 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import {
-  getAuthHeaders,
-  getKeypair,
-  getSession,
-  setSession,
-  submitSignedTx,
-} from "../auth/session";
+import { getAuthHeaders, getKeypair, getSession, setSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -17,14 +11,14 @@ import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
-
-type TierCardProps = {
-  tier: number | string;
-  title: string;
-  status: "done" | "active" | "locked";
-  description: string;
-  children?: React.ReactNode;
-};
+import {
+  TRUSTED_RESPONSIBILITIES,
+  VERIFICATION_LABELS,
+  blockedByVerificationMessage,
+  friendlyActionError,
+  verificationLabel,
+  verificationSummary,
+} from "../lib/userLanguage";
 
 type ErrState = { msg: string; details: any } | null;
 
@@ -39,19 +33,18 @@ type UploadState = {
 
 type StageTone = "done" | "active" | "locked";
 
-type TimelineStep = {
-  id: string;
+type StatusCardProps = {
   eyebrow: string;
   title: string;
-  tone: StageTone;
-  summary: string;
-  detail: string;
+  status: "done" | "available" | "locked";
+  description: string;
+  children?: React.ReactNode;
 };
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
-  const msg = details?.message || details?.error?.message || e?.message || "error";
-  return { msg, details };
+  const raw = details?.message || details?.error?.message || e?.message || "This action could not be completed.";
+  return { msg: friendlyActionError(raw), details };
 }
 
 function statusTone(status: string): StageTone {
@@ -61,18 +54,27 @@ function statusTone(status: string): StageTone {
   return "locked";
 }
 
-function TierCard({ tier, title, status, description, children }: TierCardProps): JSX.Element {
+function JsonDetails({ title, value }: { title: string; value: any }): JSX.Element | null {
+  if (!value) return null;
   return (
-    <article className={`card tierCard tierCard-${status}`}>
+    <details className="advancedDisclosure">
+      <summary>{title}</summary>
+      <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{JSON.stringify(value, null, 2)}</pre>
+    </details>
+  );
+}
+
+function StatusCard({ eyebrow, title, status, description, children }: StatusCardProps): JSX.Element {
+  const pill = status === "done" ? "Complete" : status === "available" ? "Available" : "Locked";
+  return (
+    <article className={`card tierCard tierCard-${status === "available" ? "active" : status}`}>
       <div className="cardBody formStack">
         <div className="sectionHead">
           <div>
-            <div className="eyebrow">{typeof tier === "number" ? `Tier ${tier}` : tier}</div>
+            <div className="eyebrow">{eyebrow}</div>
             <h2 className="cardTitle">{title}</h2>
           </div>
-          <span className={`statusPill ${status === "done" ? "ok" : ""}`}>
-            {status === "done" ? "Complete" : status === "active" ? "Available" : "Locked"}
-          </span>
+          <span className={`statusPill ${status === "done" ? "ok" : ""}`}>{pill}</span>
         </div>
         <p className="cardDesc">{description}</p>
         {children}
@@ -81,36 +83,16 @@ function TierCard({ tier, title, status, description, children }: TierCardProps)
   );
 }
 
-function JsonDetails({ title, value }: { title: string; value: any }): JSX.Element | null {
-  if (!value) return null;
+function CaseCard({ item }: { item: any }): JSX.Element {
+  const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
+  const tone = statusTone(String(item?.status || ""));
   return (
-    <details>
-      <summary style={{ cursor: "pointer" }}>{title}</summary>
-      <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{JSON.stringify(value, null, 2)}</pre>
-    </details>
-  );
-}
-
-function StageSummaryCard({
-  eyebrow,
-  title,
-  tone,
-  summary,
-  detail,
-}: TimelineStep): JSX.Element {
-  return (
-    <div className={`stageSummaryCard stageTone-${tone}`}>
-      <div className="stageSummaryTop">
-        <div>
-          <div className="eyebrow">{eyebrow}</div>
-          <h3 className="stageSummaryTitle">{title}</h3>
-        </div>
-        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>
-          {tone === "done" ? "Ready" : tone === "active" ? "Current" : "Waiting"}
-        </span>
+    <div className="infoCard compact">
+      <div className="infoCardHeader">
+        <strong>{String(item?.case_id || "Review case")}</strong>
+        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>{String(item?.status || "unknown")}</span>
       </div>
-      <div className="stageSummaryText">{summary}</div>
-      <div className="stageSummaryHint">{detail}</div>
+      <div className="infoCardText">Opened {created}</div>
     </div>
   );
 }
@@ -119,30 +101,24 @@ async function reconcileRegisteredState(account: string, base: string): Promise<
   try {
     const registration = await weall.accountRegistered(account, base);
     if (registration?.registered === true) {
-      return {
-        phase: "confirmed",
-        detail: "The account is already visible as registered on-chain.",
-      };
+      return { phase: "confirmed", detail: "The account is now visible as registered." };
     }
   } catch {
-    // ignore and fall back to account view
+    // fall through to account view
   }
+
   try {
     const accountView = await weall.account(account, base);
     const state = accountView?.account?.state ?? accountView?.state ?? null;
     if (state && typeof state === "object") {
-      const nonce = Number((state as any)?.nonce || 0);
+      const accountNonce = Number((state as any)?.nonce || 0);
       const pubkey = String((state as any)?.pubkey || "").trim();
-      if (nonce > 0 || !!pubkey) {
-        return {
-          phase: "confirmed",
-          detail: "The authoritative account record is already visible on-chain.",
-        };
-      }
+      if (accountNonce > 0 || !!pubkey) return { phase: "confirmed", detail: "The account record is now visible." };
     }
   } catch {
     // ignore
   }
+
   return null;
 }
 
@@ -155,12 +131,7 @@ async function reconcileSessionKeyVisible(account: string, expectedSessionKey: s
     if (byId && typeof byId === "object") {
       const records = Object.values(byId);
       const matched = records.some((item: any) => String(item?.session_key || item?.key || item?.id || "").trim() === expectedSessionKey.trim());
-      if (matched) {
-        return {
-          phase: "confirmed",
-          detail: "The issued session key is already visible in authoritative account state.",
-        };
-      }
+      if (matched) return { phase: "confirmed", detail: "The session key is now visible in account state." };
     }
   } catch {
     // ignore
@@ -168,18 +139,16 @@ async function reconcileSessionKeyVisible(account: string, expectedSessionKey: s
   return null;
 }
 
-async function reconcileTierVisible(account: string, minimumTier: number, base: string): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileVerificationLevel(account: string, minimumLevel: number, base: string): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
     const accountView = await weall.account(account, base);
     const state = accountView?.account?.state ?? accountView?.state ?? null;
     const rawTier = Math.max(0, Number((state as any)?.poh_tier || 0));
-    const tier = Number.isFinite(rawTier) ? Math.min(2, Math.floor(rawTier)) : 0;
-    if (tier >= minimumTier) {
+    const level = Number.isFinite(rawTier) ? Math.min(2, Math.floor(rawTier)) : 0;
+    if (level >= minimumLevel) {
       return {
         phase: "confirmed",
-        detail: minimumTier >= 2
-          ? "Authoritative account state now reports Live Verified Human."
-          : "Authoritative account state now reports Async Verified Human.",
+        detail: minimumLevel >= 2 ? "Live verification is now reflected in your account status." : "Account verification is now reflected in your account status.",
       };
     }
   } catch {
@@ -188,50 +157,26 @@ async function reconcileTierVisible(account: string, minimumTier: number, base: 
   return null;
 }
 
-async function reconcileTier2CaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
+async function reconcileAsyncCompatibilityCase(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
     const cases = await weall.pohTier2MyCases(account, base, headers);
     const items = Array.isArray(cases?.cases) ? cases.cases : [];
-    if (items.length > 0) {
-      return {
-        phase: "confirmed",
-        detail: "Your async review compatibility case is already visible on the authoritative PoH surface.",
-      };
-    }
+    if (items.length > 0) return { phase: "confirmed", detail: "The compatibility review case is visible." };
   } catch {
     // ignore
   }
-  return reconcileTierVisible(account, 2, base);
+  return reconcileVerificationLevel(account, 2, base);
 }
 
 async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
     const assigned = await weall.pohLiveAssigned(account, base, headers);
     const cases = Array.isArray(assigned?.cases) ? assigned.cases : [];
-    if (cases.length > 0) {
-      return {
-        phase: "confirmed",
-        detail: "Your Live Verification case is already visible on the authoritative PoH surface.",
-      };
-    }
+    if (cases.length > 0) return { phase: "confirmed", detail: "Your live verification case is visible." };
   } catch {
     // ignore
   }
-  return reconcileTierVisible(account, 2, base);
-}
-
-function CaseCard({ item }: { item: any }): JSX.Element {
-  const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
-  const tone = statusTone(String(item?.status || ""));
-  return (
-    <div className="infoCard compact">
-      <div className="infoCardHeader">
-        <strong className="mono">{String(item?.case_id || "case")}</strong>
-        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>{String(item?.status || "unknown")}</span>
-      </div>
-      <div className="infoCardText">opened {created}</div>
-    </div>
-  );
+  return reconcileVerificationLevel(account, 2, base);
 }
 
 export default function PohPage(): JSX.Element {
@@ -252,20 +197,19 @@ export default function PohPage(): JSX.Element {
 
   const [sessionBusy, setSessionBusy] = useState(false);
   const [registerBusy, setRegisterBusy] = useState(false);
-  const [tier2UploadBusy, setTier2UploadBusy] = useState(false);
-  const [tier2RequestBusy, setTier2RequestBusy] = useState(false);
+  const [compatUploadBusy, setCompatUploadBusy] = useState(false);
+  const [compatRequestBusy, setCompatRequestBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [casesBusy, setCasesBusy] = useState(false);
 
-  const [tier2Upload, setTier2Upload] = useState<UploadState | null>(null);
-  const [tier2Cases, setTier2Cases] = useState<any[]>([]);
+  const [compatUpload, setCompatUpload] = useState<UploadState | null>(null);
+  const [compatCases, setCompatCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
 
+  const compatibilityUploadEnabled = getTier2VideoUploadEnabled();
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
-
-  const tier2VideoUploadEnabled = getTier2VideoUploadEnabled();
 
   async function refresh(): Promise<void> {
     setLoading(true);
@@ -291,13 +235,9 @@ export default function PohPage(): JSX.Element {
     }
   }
 
-  async function refreshPohSurface(): Promise<void> {
-    await refreshMutationSlices(refresh, refreshAccountContext, loadPohData);
-  }
-
-  async function loadPohData(): Promise<void> {
+  async function loadVerificationData(): Promise<void> {
     if (!acct) {
-      setTier2Cases([]);
+      setCompatCases([]);
       setLiveCases([]);
       setLiveSessions([]);
       return;
@@ -305,13 +245,13 @@ export default function PohPage(): JSX.Element {
     setCasesBusy(true);
     try {
       const headers = getAuthHeaders(acct);
-      const [myTier2, myLive, sessions] = await Promise.all([
+      const [compat, live, sessions] = await Promise.all([
         weall.pohTier2MyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
-      setTier2Cases(Array.isArray(myTier2?.cases) ? myTier2.cases : []);
-      setLiveCases(Array.isArray(myLive?.cases) ? myLive.cases : []);
+      setCompatCases(Array.isArray(compat?.cases) ? compat.cases : []);
+      setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
     } catch (e: any) {
       setErr(prettyErr(e));
@@ -320,9 +260,13 @@ export default function PohPage(): JSX.Element {
     }
   }
 
+  async function refreshVerificationSurface(): Promise<void> {
+    await refreshMutationSlices(refresh, refreshAccountContext, loadVerificationData);
+  }
+
   useEffect(() => {
     void refresh();
-    void loadPohData();
+    void loadVerificationData();
   }, [acct]);
 
   const snapshot = resolveOnboardingSnapshot({
@@ -334,22 +278,34 @@ export default function PohPage(): JSX.Element {
   });
 
   const requirements = summarizeNextRequirements(snapshot);
-  const tier = snapshot.tier;
+  const accountLevel = snapshot.tier;
+  const currentLabel = verificationLabel(accountLevel);
+  const currentSummary = verificationSummary(accountLevel);
+  const registered = snapshot.registered;
   const banned = snapshot.banned;
   const locked = snapshot.locked;
-  const registered = snapshot.registered;
 
-  const tier1Status: StageTone = tier >= 1 ? "done" : "active";
-  const tier2Status: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
-  const liveStatus: StageTone = tier >= 2 ? "done" : tier >= 1 ? "active" : "locked";
+  const basicStatus: "done" | "available" | "locked" = acct && hasLocalKeypair ? "done" : "available";
+  const verifiedStatus: "done" | "available" | "locked" = accountLevel >= 1 ? "done" : registered ? "available" : "locked";
+  const trustedStatus: "done" | "available" | "locked" = accountLevel >= 2 ? "done" : accountLevel >= 1 ? "available" : "locked";
+
+  const nextStep = useMemo(() => {
+    if (!acct) return "Sign in or create an account on this device.";
+    if (!hasLocalKeypair) return "Restore the local signer for this account.";
+    if (!sessionKeyPresent) return "Save a session key so authenticated account calls work on this device.";
+    if (!registered) return "Register your account so the network can recognize it.";
+    if (accountLevel < 1) return "Start account verification when the native async review flow is available on this deployment.";
+    if (accountLevel < 2) return "Complete live verification to unlock high-trust social and community actions.";
+    return "You can now apply for trusted responsibilities where you meet the requirements.";
+  }, [acct, accountLevel, hasLocalKeypair, registered, sessionKeyPresent]);
 
   async function registerAccount(): Promise<void> {
     if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
+      setErr({ msg: "Sign in before registering this account.", details: null });
       return;
     }
     if (!kp?.pubkeyB64) {
-      setErr({ msg: "local_signer_required", details: null });
+      setErr({ msg: "This device is missing the local signer for this account.", details: null });
       return;
     }
     setRegisterBusy(true);
@@ -358,14 +314,11 @@ export default function PohPage(): JSX.Element {
     try {
       const r = await tx.runTx({
         title: "Register account",
-        pendingMessage: "Submitting ACCOUNT_REGISTER…",
+        pendingMessage: "Saving account registration…",
         successMessage: "Account registration submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
-        finality: {
-          timeoutMs: 16000,
-          reconcile: async () => reconcileRegisteredState(acct, base),
-        },
+        finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
         task: async () =>
           submitSignedTx({
             account: acct,
@@ -388,16 +341,13 @@ export default function PohPage(): JSX.Element {
 
   async function issueSessionKey(): Promise<void> {
     if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
+      setErr({ msg: "Sign in before saving a session key.", details: null });
       return;
     }
 
-    const requestedSessionKey = (window.prompt(
-      "Paste the session key you want stored for authenticated UI calls.",
-      session?.sessionKey || "",
-    ) || "").trim();
+    const requestedSessionKey = (window.prompt("Paste the session key you want linked to this device.", session?.sessionKey || "") || "").trim();
     if (!requestedSessionKey) {
-      setErr({ msg: "session_key_required", details: "Paste the session key you want linked to this device before submitting the issuance tx." });
+      setErr({ msg: "Paste a session key before continuing.", details: null });
       return;
     }
 
@@ -407,15 +357,12 @@ export default function PohPage(): JSX.Element {
 
     try {
       const r = await tx.runTx({
-        title: "Issue session key",
-        pendingMessage: "Submitting session-key issuance tx…",
-        successMessage: "Session-key issuance submitted.",
+        title: "Save session key",
+        pendingMessage: "Saving session key…",
+        successMessage: "Session key submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
-        finality: {
-          timeoutMs: 16000,
-          reconcile: async () => reconcileSessionKeyVisible(acct, requestedSessionKey, base),
-        },
+        finality: { timeoutMs: 16_000, reconcile: async () => reconcileSessionKeyVisible(acct, requestedSessionKey, base) },
         task: async () =>
           submitSignedTx({
             account: acct,
@@ -426,11 +373,7 @@ export default function PohPage(): JSX.Element {
           }),
       });
 
-      const sessionKey = requestedSessionKey;
-      if (sessionKey.trim() && session) {
-        setSession({ ...session, sessionKey: sessionKey.trim() });
-      }
-
+      if (requestedSessionKey && session) setSession({ ...session, sessionKey: requestedSessionKey });
       setResult(r);
       await refresh();
       await refreshAccountContext();
@@ -446,74 +389,68 @@ export default function PohPage(): JSX.Element {
     setErr(null);
     setResult({
       ok: true,
-      path: "native_async_human_verification",
-      message: "The primary Tier 1 path is protocol-native async juror-attested verification finalized on-chain. This frontend no longer calls removed external-identity routes.",
+      path: "account_verification",
+      message: "The primary path is native async human review finalized by WeAll account state. This frontend does not require an external identity provider.",
       next_steps: registered
-        ? ["Open or inspect native async PoH cases when POH_ASYNC_* surfaces are enabled.", "Refresh PoH state after juror finalization."]
-        : ["Register the account on-chain first.", "Return here to inspect native async/live PoH readiness."],
+        ? ["Open the native async review flow when this deployment exposes it.", "Refresh account status after reviewers finalize the result."]
+        : ["Register the account first.", "Return here to start or inspect verification."],
     });
   }
 
-
-  async function uploadTier2Video
-
-  async function uploadTier2Video(file: File): Promise<void> {
-    setTier2UploadBusy(true);
+  async function uploadCompatibilityVideo(file: File): Promise<void> {
+    setCompatUploadBusy(true);
     setErr(null);
     try {
       const r: any = await tx.runTx({
-        title: "Upload Tier 2 video",
-        pendingMessage: "Uploading Tier 2 evidence video…",
-        successMessage: "Tier 2 evidence uploaded.",
+        title: "Upload compatibility evidence",
+        pendingMessage: "Uploading evidence…",
+        successMessage: "Evidence uploaded.",
         errorMessage: (e) => prettyErr(e).msg,
         task: async () => weall.pohTier2VideoUpload(file, base, getAuthHeaders(acct || undefined)),
       });
-      setTier2Upload(r);
+      setCompatUpload(r);
       setResult(r);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
-      setTier2UploadBusy(false);
+      setCompatUploadBusy(false);
     }
   }
 
-  async function submitTier2Request(): Promise<void> {
+  async function submitCompatibilityRequest(): Promise<void> {
     if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
+      setErr({ msg: "Sign in before opening a compatibility review.", details: null });
       return;
     }
-    if (!tier2Upload?.cid && !tier2Upload?.video_commitment) {
-      setErr({ msg: "tier2_video_required", details: null });
+    if (!compatUpload?.cid && !compatUpload?.video_commitment) {
+      setErr({ msg: "Upload evidence before opening this compatibility review.", details: null });
       return;
     }
 
-    setTier2RequestBusy(true);
+    setCompatRequestBusy(true);
     setErr(null);
     try {
       const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
-        title: "Open async escalation request",
-        pendingMessage: "Submitting Tier 2 request…",
-        successMessage: "Tier 2 request submitted.",
+        title: "Open compatibility review",
+        pendingMessage: "Opening compatibility review…",
+        successMessage: "Compatibility review submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: {
-          timeoutMs: 20000,
-          reconcile: async () => reconcileTier2CaseVisible(acct, base, headers),
-        },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
         task: async () => {
           const skel: any = await weall.pohTier2TxRequest(
             {
               account_id: acct,
-              video_cid: tier2Upload?.cid,
-              video_commitment: tier2Upload?.video_commitment,
+              video_cid: compatUpload?.cid,
+              video_commitment: compatUpload?.video_commitment,
               target_tier: 2,
             },
             base,
             headers,
           );
           const skeletonTx = skel?.tx;
-          if (!skeletonTx) throw new Error("invalid_skeleton");
+          if (!skeletonTx) throw new Error("The backend did not return a valid review request.");
           const payload = { ...(skeletonTx.payload || {}) };
           if (typeof payload.ts_ms === "number" && payload.ts_ms === 0) payload.ts_ms = Date.now();
           const submit = await submitSignedTx({
@@ -529,18 +466,18 @@ export default function PohPage(): JSX.Element {
 
       setResult(r);
       await refresh();
-      await loadPohData();
+      await loadVerificationData();
       await refreshAccountContext();
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
-      setTier2RequestBusy(false);
+      setCompatRequestBusy(false);
     }
   }
 
   async function submitLiveRequest(): Promise<void> {
     if (!acct) {
-      setErr({ msg: "not_logged_in", details: null });
+      setErr({ msg: "Sign in before opening live verification.", details: null });
       return;
     }
     setLiveRequestBusy(true);
@@ -548,23 +485,16 @@ export default function PohPage(): JSX.Element {
     try {
       const headers = getAuthHeaders(acct);
       const r = await tx.runTx({
-        title: "Open Live Verification request",
-        pendingMessage: "Submitting Live Verification request…",
-        successMessage: "Live Verification request submitted.",
+        title: "Open live verification",
+        pendingMessage: "Opening live verification…",
+        successMessage: "Live verification request submitted.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: {
-          timeoutMs: 20000,
-          reconcile: async () => reconcileLiveCaseVisible(acct, base, headers),
-        },
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
         task: async () => {
-          const skel: any = await weall.pohLiveTxRequest(
-            { account_id: acct },
-            base,
-            headers,
-          );
+          const skel: any = await weall.pohLiveTxRequest({ account_id: acct }, base, headers);
           const skeletonTx = skel?.tx;
-          if (!skeletonTx) throw new Error("invalid_skeleton");
+          if (!skeletonTx) throw new Error("The backend did not return a valid live verification request.");
           const submit = await submitSignedTx({
             account: acct,
             tx_type: String(skeletonTx.tx_type || ""),
@@ -578,7 +508,7 @@ export default function PohPage(): JSX.Element {
 
       setResult(r);
       await refresh();
-      await loadPohData();
+      await loadVerificationData();
       await refreshAccountContext();
     } catch (e: any) {
       setErr(prettyErr(e));
@@ -587,132 +517,53 @@ export default function PohPage(): JSX.Element {
     }
   }
 
-  const pohLevelLabel = tier >= 2 ? "Live Verified Human" : tier >= 1 ? "Async Verified Human" : "Unverified Account";
-
-  const currentStage = useMemo<string>(() => {
-    if (!acct) return "Connect or restore a device session first.";
-    if (!hasLocalKeypair) return "Create or restore the local signer tied to this account.";
-    if (!registered) return "Register the account on-chain before starting PoH actions.";
-    if (tier < 1) return "Complete Async Human Verification to unlock basic verified-human participation.";
-    if (tier < 2) return "Open the Live Verification request and watch for assigned sessions.";
-    return "Live Verification is complete. Service authority now depends on badges and roles.";
-  }, [acct, hasLocalKeypair, registered, tier]);
-
-
-
-  const nextOwner = useMemo<string>(() => {
-    if (!acct) return "You";
-    if (!hasLocalKeypair || !sessionKeyPresent) return "You";
-    if (!registered) return "You";
-    if (tier < 1) return requestId.trim() ? "You → legacy adapter → chain" : "You";
-    if (tier < 2) return liveCases.length || liveSessions.length ? "Assigned jurors / session operators" : "You";
-    return "No pending owner";
-  }, [acct, hasLocalKeypair, sessionKeyPresent, registered, tier, requestId, liveCases.length, liveSessions.length]);
-
-  const pendingExpectation = useMemo<string>(() => {
-    if (!acct) return "Connect this device to an account before the protocol can track your PoH status.";
-    if (!hasLocalKeypair) return "Restore or create the local signer on this device. Nothing has been submitted to the chain yet.";
-    if (!registered) return "Register the account on-chain first. PoH review state does not begin until the account exists authoritatively.";
-    if (tier < 1) return "Start native Async Human Verification when the protocol-native POH_ASYNC_* surface is available on this deployment.";
-    if (tier < 2) return liveCases.length || liveSessions.length ? "Live Verification has moved into assigned review or live-session scheduling. Watch the case/session cards rather than guessing completion timing." : "Open the Live Verification request. After submission, the next move comes from session assignment and juror coordination.";
-    return "PoH is complete for the two-tier model. Service authority is handled separately through badges and roles.";
-  }, [acct, hasLocalKeypair, registered, requestId, sessionKeyPresent, tier, liveCases.length, liveSessions.length]);
-
-  const successDefinition = useMemo<string>(() => {
-    if (tier >= 2) return "Success means Live Verification remains finalized and badge or role requirements are evaluated separately.";
-    if (tier >= 1) return "Success means a Live Verification request becomes scheduled, reviewed, and finalized.";
-    return "Success means the account completes async human verification and Tier 1 appears in authoritative account state.";
-  }, [tier]);
-
-  const stageCards: TimelineStep[] = useMemo(() => [
-    {
-      id: "device",
-      eyebrow: "Stage 1",
-      title: "Device and session readiness",
-      tone: !acct || !hasLocalKeypair || !sessionKeyPresent ? "active" : "done",
-      summary: !acct
-        ? "No current browser session is loaded."
-        : hasLocalKeypair
-          ? sessionKeyPresent
-            ? "This device can sign and has an API session key."
-            : "This device can sign, but the API session key is still missing."
-          : "The account is known, but the local signer is missing on this device.",
-      detail: "Local signer and device session are local prerequisites. They are not the same thing as on-chain account state.",
-    },
-    {
-      id: "tier1",
-      eyebrow: "Stage 2",
-      title: "Tier 1 async human verification",
-      tone: tier1Status,
-      summary: tier >= 1 ? "Async Verified Human is complete and basic participation is unlocked." : "Open the native async review path when available; legacy adapter controls are compatibility-only.",
-      detail: "The v2.1 target is juror-attested async verification finalized on-chain, not inbox control as identity authority.",
-    },
-    {
-      id: "tier2",
-      eyebrow: "Stage 3",
-      title: "Tier 2 live verification",
-      tone: liveStatus,
-      summary: tier >= 2 ? "Live Verified Human is complete." : tier >= 1 ? "Open the Live Verification request, then watch for live-session assignment." : "Live Verification stays locked until Async Verified Human is complete.",
-      detail: "Live Verification depends on scheduled live review state from the backend and assigned jurors. The UI should show request state, not guess finality.",
-    },
-    {
-      id: "badges",
-      eyebrow: "Stage 4",
-      title: "Badges and roles",
-      tone: tier >= 2 ? "active" : "locked",
-      summary: tier >= 2 ? "Service authority is now evaluated through badges, roles, activation, suspension, and receipts." : "Badges and roles stay locked until the required PoH level is complete.",
-      detail: "PoH proves human-verification strength. It does not automatically grant juror, validator, node-operator, treasury, or moderator authority.",
-    },
-  ], [acct, hasLocalKeypair, sessionKeyPresent, tier, tier1Status, liveStatus]);
-
   return (
     <div className="pageStack">
       <section className="card heroCard">
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Proof of Humanity lifecycle</div>
-              <h1 className="heroTitle heroTitleSm">Move deliberately from local setup into authoritative eligibility</h1>
+              <div className="eyebrow">Trust & Verification</div>
+              <h1 className="heroTitle heroTitleSm">Understand your account status and what comes next</h1>
               <p className="heroText">
-                This surface now treats PoH as a staged protocol workflow instead of a bag of forms. It separates local device readiness,
-                native async verification, live verification, on-chain registration state, and badge or role progression so the UI does not blur what is merely prepared,
-                what has been submitted, and what the network has actually finalized.
+                WeAll keeps normal account language in front: Basic Account, Verified Person, Trusted Verified Person, and trusted responsibilities.
+                The network remains the authority underneath, but you should not need technical language to know what you can do.
               </p>
             </div>
 
             <div className="heroInfoPanel">
-              <div className="heroInfoTitle">Current PoH posture</div>
+              <div className="heroInfoTitle">Your account status</div>
               <div className="heroInfoList">
-                <span className={`statusPill ${!!acct ? "ok" : ""}`}>{acct ? "Session loaded" : "No session"}</span>
-                <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Local signer ready" : "Local signer missing"}</span>
-                <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "API session ready" : "API session missing"}</span>
-                <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "On-chain account registered" : "Registration needed"}</span>
-                <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{pohLevelLabel}</span>
+                <span className={`statusPill ${!!acct ? "ok" : ""}`}>{acct ? "Signed in" : "Not signed in"}</span>
+                <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Device ready" : "Device setup needed"}</span>
+                <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "Session ready" : "Session key needed"}</span>
+                <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Account registered" : "Registration needed"}</span>
+                <span className={`statusPill ${accountLevel >= 1 ? "ok" : ""}`}>{currentLabel}</span>
               </div>
               <div className="calloutInfo">
-                <strong>Next unlock:</strong> {currentStage}
+                <strong>Next step:</strong> {nextStep}
               </div>
             </div>
           </div>
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Local device</span>
-              <span className="statValue">{hasLocalKeypair ? "Can sign" : "Cannot sign yet"}</span>
+              <span className="statLabel">Current level</span>
+              <span className="statValue">{currentLabel}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">On-chain standing</span>
-              <span className="statValue">{registered ? `Registered · ${pohLevelLabel}` : "Not registered"}</span>
+              <span className="statLabel">What it means</span>
+              <span className="statValue statValueLong">{currentSummary}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Posting rights</span>
-              <span className="statValue">{snapshot.canPost ? "Unlocked" : "Still gated"}</span>
+              <span className="statLabel">Posting</span>
+              <span className="statValue">{snapshot.canPost ? "Available" : "Needs live verification"}</span>
             </div>
           </div>
 
           {(banned || locked) && (
             <div className="calloutDanger">
-              This account is currently {banned ? "banned" : "locked"}. Protocol recovery or reinstatement must happen before normal PoH progression can continue.
+              This account is currently restricted. Recovery or reinstatement is required before normal account verification can continue.
             </div>
           )}
         </div>
@@ -722,7 +573,7 @@ export default function PohPage(): JSX.Element {
         message={err?.msg}
         details={err?.details}
         onRetry={() => {
-          void refreshPohSurface();
+          void refreshVerificationSurface();
         }}
         onDismiss={() => setErr(null)}
       />
@@ -732,40 +583,10 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Readiness model</div>
-                <h2 className="cardTitle">What this page separates on purpose</h2>
+                <div className="eyebrow">Requirements</div>
+                <h2 className="cardTitle">Current blockers</h2>
               </div>
             </div>
-            <div className="infoGrid">
-              <div className="infoCard compact">
-                <div className="infoCardHeader"><strong>Local device state</strong></div>
-                <div className="infoCardText">Keypair presence and browser session are local facts, not consensus facts.</div>
-              </div>
-              <div className="infoCard compact">
-                <div className="infoCardHeader"><strong>Backend assistance</strong></div>
-                <div className="infoCardText">Case and session discovery depend on backend-assisted views, but PoH authority must be finalized by chain state.</div>
-              </div>
-              <div className="infoCard compact">
-                <div className="infoCardHeader"><strong>On-chain standing</strong></div>
-                <div className="infoCardText">Registration and finalized PoH tiers are authoritative chain state.</div>
-              </div>
-              <div className="infoCard compact">
-                <div className="infoCardHeader"><strong>Review workflow</strong></div>
-                <div className="infoCardText">Async and live verification are review processes, not instant unlock buttons.</div>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Backend-aligned checklist</div>
-                <h2 className="cardTitle">Current requirements and blockers</h2>
-              </div>
-            </div>
-
             <div className="infoGrid">
               {requirements.map((item) => (
                 <div key={item.label} className="infoCard compact">
@@ -779,204 +600,94 @@ export default function PohPage(): JSX.Element {
             </div>
           </div>
         </article>
-      </section>
 
-      <section className="stageSummaryGrid">
-        {stageCards.map((step) => (
-          <StageSummaryCard key={step.id} {...step} />
-        ))}
-      </section>
-
-      <section className="grid3">
-        <TierCard
-          tier={1}
-          title="Async Verified Human"
-          status={tier1Status}
-          description="Tier 1 is native async human verification and opens basic verified-human participation."
-        >
-          <div className="milestoneList">
-            <span className="miniTag">Register account</span>
-            <span className="miniTag">Open async review</span>
-            <span className="miniTag">Juror-attested finalization</span>
-          </div>
-        </TierCard>
-
-        <TierCard
-          tier={2}
-          title="Live Verified Human"
-          status={liveStatus}
-          description="Tier 2 is live juror-attested verification for high-trust participation."
-        >
-          <div className="milestoneList">
-            <span className="miniTag">Live-session request</span>
-            <span className="miniTag">Assigned jurors</span>
-            <span className="miniTag">Final verdict</span>
-          </div>
-        </TierCard>
-
-        <TierCard
-          tier="Badges"
-          title="Service authority"
-          status={tier >= 2 ? "active" : "locked"}
-          description="Juror, validator, node-operator, storage, treasury, and moderator authority comes from badges and roles, not from a hidden third PoH tier."
-        >
-          <div className="milestoneList">
-            <span className="miniTag">Role enrollment</span>
-            <span className="miniTag">Activation state</span>
-            <span className="miniTag">Receipts and performance</span>
-          </div>
-        </TierCard>
-      </section>
-
-      <section className="grid2">
         <article className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Stage 1</div>
-                <h2 className="cardTitle">Local device and account readiness</h2>
+                <div className="eyebrow">Account setup</div>
+                <h2 className="cardTitle">Device and account readiness</h2>
               </div>
-              <button className="btn" onClick={() => nav("/login")}>Open login</button>
+              <button className="btn" onClick={() => nav("/login")}>Open sign-in</button>
             </div>
-
             <p className="cardDesc">
-              Handle all local prerequisites first. This includes restoring the browser session, ensuring the local signer exists on this device,
-              and registering the account on-chain before the rest of the PoH lifecycle is attempted.
+              Handle local setup first. This includes a browser session, this device’s signer, and account registration before verification can be completed.
             </p>
-
-            <div className="statusSummary">
-              <span className={`statusPill ${acct ? "ok" : ""}`}>{acct ? "Browser session loaded" : "No browser session"}</span>
-              <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Local signer ready" : "Signer missing"}</span>
-              <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "Session key present" : "Session key missing"}</span>
-              <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Registered on-chain" : "Registration needed"}</span>
-            </div>
-
             <div className="buttonRowWide">
               <button
                 className="btn btnPrimary"
                 onClick={() => void registerAccount()}
                 disabled={!acct || !hasLocalKeypair || registered || registerBusy || signerSubmission.busy}
               >
-                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting for signer…" : registered ? "Account registered" : "Register account"}
+                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting…" : registered ? "Account registered" : "Register account"}
               </button>
               <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy || signerSubmission.busy}>
-                {sessionBusy ? "Issuing…" : signerSubmission.busy ? "Waiting for signer…" : "Issue session tx"}
+                {sessionBusy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Save session key"}
               </button>
-              <button
-                className="btn btnGhost"
-                onClick={() => {
-                  void refreshPohSurface();
-                }}
-                disabled={loading || casesBusy}
-              >
-                {loading || casesBusy ? "Refreshing…" : "Refresh PoH state"}
+              <button className="btn btnGhost" onClick={() => void refreshVerificationSurface()} disabled={loading || casesBusy}>
+                {loading || casesBusy ? "Refreshing…" : "Refresh status"}
               </button>
             </div>
           </div>
         </article>
+      </section>
 
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Stage 2</div>
-                <h2 className="cardTitle">Async Human Verification</h2>
-              </div>
-              <span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Async verified" : "Native review pending"}</span>
-            </div>
-
-            <p className="cardDesc">
-              Tier 1 is the protocol-native async human verification path. It is finalized by WeAll protocol state and juror attestations, not by inbox control or an external identity provider.
-            </p>
-
-            <div className="progressList">
-              <div className="progressRow"><span>Account registered</span><span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Ready" : "Required first"}</span></div>
-              <div className="progressRow"><span>Async verification level</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Complete" : "Awaiting native case"}</span></div>
-              <div className="progressRow"><span>External identity provider</span><span className="statusPill">Not required</span></div>
-            </div>
-
-            <div className="calloutInfo">
-              This frontend intentionally does not expose the removed external-attestation adapter. Once native async request/review endpoints are enabled, this card should open that protocol-native flow directly.
-            </div>
-
-            <div className="buttonRowWide">
-              <button className="btn" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
-                Show native async next steps
-              </button>
-              <button
-                className="btn btnGhost"
-                onClick={() => {
-                  void refreshPohSurface();
-                }}
-                disabled={loading || casesBusy}
-              >
-                {loading || casesBusy ? "Refreshing…" : "Refresh PoH state"}
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Stage 3</div>
-                <h2 className="cardTitle">Async escalation compatibility review</h2>        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Stage 3</div>
-                <h2 className="cardTitle">Async escalation compatibility review</h2>
-              </div>
-              <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{tier2Upload ? "Evidence ready" : "Compatibility path"}</span>
-            </div>
-
-            {!tier2VideoUploadEnabled ? (
-              <div className="calloutInfo">
-                Async escalation video intake is not enabled on this deployment. This compatibility surface stays explicit so it is not confused with the new canonical Tier 1 async path.
-              </div>
-            ) : (
-              <>
-                <p className="cardDesc">
-                  This legacy Tier 2 request path is retained as an async escalation/follow-up compatibility control. It must not be presented as a permanent third account tier or as the required Tier 1 native async path.
-                </p>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadTier2Video(file);
-                  }}
-                  disabled={tier2UploadBusy || tier >= 2}
-                />
-                {tier2Upload ? <JsonDetails title="Latest upload payload" value={tier2Upload} /> : null}
-                <button className="btn btnPrimary" onClick={() => void submitTier2Request()} disabled={!acct || !tier2Upload || tier2RequestBusy || tier >= 2 || signerSubmission.busy}>
-                  {tier2RequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : "Open async escalation request"}
-                </button>
-              </>
-            )}
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Stage 3</div>
-                <h2 className="cardTitle">Live Verification request</h2>
-              </div>
-              <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{tier >= 2 ? "Live Verification complete" : "Live Verification pending"}</span>
-            </div>
-
-            <p className="cardDesc">
-              Live Verification opens a live juror case after Async Verified Human. Once the backend and operators assign a real session, the case and session payloads appear below. The UI should present that state as discovered and authoritative, not guessed.
-            </p>
-
-            <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || tier >= 2 || tier < 1 || signerSubmission.busy}>
-              {liveRequestBusy ? "Submitting…" : signerSubmission.busy ? "Waiting for signer…" : tier < 1 ? "Finish Async Verification first" : "Open Live Verification request"}
+      <section className="grid3">
+        <StatusCard
+          eyebrow="Level 1"
+          title={VERIFICATION_LABELS.basic}
+          status={basicStatus}
+          description="You can browse, set up your profile, and start account verification."
+        />
+        <StatusCard
+          eyebrow="Level 2"
+          title={VERIFICATION_LABELS.verified}
+          status={verifiedStatus}
+          description="Complete a basic human review to join groups, message people, and take part in basic community activity."
+        >
+          <div className="buttonRowWide">
+            <button className="btn" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
+              Show verification next steps
             </button>
           </div>
-        </article>
+        </StatusCard>
+        <StatusCard
+          eyebrow="Level 3"
+          title={VERIFICATION_LABELS.trusted}
+          status={trustedStatus}
+          description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
+        >
+          <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
+            {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
+          </button>
+        </StatusCard>
+      </section>
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Trusted Responsibilities</div>
+              <h2 className="cardTitle">Responsibilities you can earn over time</h2>
+            </div>
+            <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Eligible to apply" : "Live verification required"}</span>
+          </div>
+          <p className="cardDesc">
+            Verification proves account status. Responsibilities prove specific service permission, such as reviewing reports or helping operate network services.
+          </p>
+          <div className="infoGrid">
+            {TRUSTED_RESPONSIBILITIES.map((responsibility) => (
+              <div key={responsibility.key} className="infoCard compact">
+                <div className="infoCardHeader">
+                  <strong>{responsibility.label}</strong>
+                  <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{accountLevel >= 2 ? "Can apply" : "Locked"}</span>
+                </div>
+                <div className="infoCardText">{responsibility.description}</div>
+                <div className="miniTag">Requires: {responsibility.requires}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="grid2">
@@ -984,46 +695,15 @@ export default function PohPage(): JSX.Element {
           <div className="cardBody formStack">
             <div className="sectionHead">
               <div>
-                <div className="eyebrow">Observed state</div>
-                <h2 className="cardTitle">My async escalation compatibility cases</h2>
+                <div className="eyebrow">Active reviews</div>
+                <h2 className="cardTitle">Verification cases and sessions</h2>
               </div>
-              <span className="statusPill">{tier2Cases.length} case(s)</span>
+              <span className="statusPill">{liveCases.length + compatCases.length} item(s)</span>
             </div>
-            {tier2Cases.length ? <div className="infoGrid">{tier2Cases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No async escalation compatibility cases yet.</div></div>}
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Observed state</div>
-                <h2 className="cardTitle">My Live Verification cases and sessions</h2>
-              </div>
-              <span className="statusPill">{liveCases.length} case(s)</span>
-            </div>
-            {liveCases.length ? <div className="infoGrid">{liveCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : <div className="emptyState compactEmpty"><div className="emptyTitle">No Live Verification cases yet.</div></div>}
-            {liveSessions.length ? <JsonDetails title="Live session payloads" value={liveSessions} /> : null}
-          </div>
-        </article>
-      </section>
-
-      <section className="grid2">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="sectionHead">
-              <div>
-                <div className="eyebrow">Deployment capability</div>
-                <h2 className="cardTitle">What this stack currently exposes</h2>
-              </div>
-            </div>
-
-            <div className="progressList">
-              <div className="progressRow"><span>Native async Tier 1</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Complete" : "Primary path"}</span></div>
-              <div className="progressRow"><span>Legacy async escalation intake</span><span className={`statusPill ${tier2VideoUploadEnabled ? "ok" : ""}`}>{tier2VideoUploadEnabled ? "Compatibility on" : "Unavailable here"}</span></div>
-              <div className="progressRow"><span>Live Verification request submit</span><span className={`statusPill ${tier >= 1 ? "ok" : ""}`}>{tier >= 1 ? "Available after Async Verification" : "Locked until Async Verification"}</span></div>
-            </div>
-            <p className="cardDesc">Founder-only or bootstrap shortcuts stay off this surface so the UI remains aligned with real user-facing protocol behavior.</p>
+            {liveCases.length ? <div className="infoGrid">{liveCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {compatCases.length ? <div className="infoGrid">{compatCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {!liveCases.length && !compatCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No active verification cases are visible yet.</div></div> : null}
+            {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
           </div>
         </article>
 
@@ -1032,14 +712,45 @@ export default function PohPage(): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Advanced details</div>
-                <h2 className="cardTitle">Raw payloads and recent result</h2>
+                <h2 className="cardTitle">Technical records</h2>
               </div>
             </div>
-            <JsonDetails title="Current account state payload" value={acctState} />
-            <JsonDetails title="Registration payload" value={registration} />
-            {result ? <JsonDetails title="Last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
+            <p className="cardDesc">These records are hidden by default because they are for review, debugging, and auditability.</p>
+            <JsonDetails title="Advanced: current account state" value={acctState} />
+            <JsonDetails title="Advanced: registration payload" value={registration} />
+            {result ? <JsonDetails title="Advanced: last API result" value={result} /> : <div className="emptyState compactEmpty"><div className="emptyTitle">No recent action payload.</div></div>}
           </div>
         </article>
+      </section>
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <details className="advancedDisclosure">
+            <summary>Advanced compatibility controls</summary>
+            <p className="cardDesc">
+              This section is for migration-era compatibility only. It must not be presented as the normal account verification path.
+            </p>
+            {!compatibilityUploadEnabled ? (
+              <div className="calloutInfo">Compatibility evidence upload is not enabled on this deployment.</div>
+            ) : (
+              <div className="formStack">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadCompatibilityVideo(file);
+                  }}
+                  disabled={compatUploadBusy || accountLevel >= 2}
+                />
+                {compatUpload ? <JsonDetails title="Latest compatibility upload payload" value={compatUpload} /> : null}
+                <button className="btn btnPrimary" onClick={() => void submitCompatibilityRequest()} disabled={!acct || !compatUpload || compatRequestBusy || accountLevel >= 2 || signerSubmission.busy}>
+                  {compatRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open compatibility review"}
+                </button>
+              </div>
+            )}
+          </details>
+        </div>
       </section>
     </div>
   );

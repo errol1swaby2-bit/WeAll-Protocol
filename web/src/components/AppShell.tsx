@@ -14,6 +14,7 @@ type AppShellProps = {
   route: RouteMatch;
   meta: RouteMeta;
   sessionHealth?: SessionHealth;
+  showAdvancedMode?: boolean;
 };
 
 function modeLabel(meta: RouteMeta): string {
@@ -26,6 +27,8 @@ function modeLabel(meta: RouteMeta): string {
       return "Action page";
     case "utility":
       return "Utility page";
+    case "advanced":
+      return "Advanced page";
     default:
       return meta.mode;
   }
@@ -38,9 +41,9 @@ function modeContract(meta: RouteMeta): string {
     case "detail":
       return "Inspect one object and expose one clear next step.";
     case "action":
-      return "Complete a deliberate mutation with explicit transaction feedback.";
+      return "Complete one focused action with clear saving, done, and failed states.";
     case "utility":
-      return "Manage identity, settings, or system posture without crowding core flows.";
+      return "Manage account, settings, or safety state without crowding core social flows.";
     default:
       return meta.dataContract.primaryObject;
   }
@@ -52,8 +55,8 @@ function fabLabel(meta: RouteMeta): string {
       return "Create post";
     case "group":
       return "Create group";
-    case "proposal":
-      return "Create proposal";
+    case "decision":
+      return "Create decision";
     default:
       return "Create";
   }
@@ -80,26 +83,20 @@ function titleForRoute(route: RouteMatch, meta: RouteMeta): string {
 
 function deriveBreadcrumbs(route: RouteMatch, meta: RouteMeta): Array<{ label: string; href: string }> {
   const crumbs = [...(meta.breadcrumbs || [])];
-  if (route.path === "/disputes/:id/review" && "id" in route && route.id) {
+  if (route.path === "/reviews/:id" && "id" in route && route.id) {
     return crumbs.map((crumb) =>
-      crumb.href === "/disputes/:id" ? { ...crumb, href: `/disputes/${encodeURIComponent(route.id)}` } : crumb,
+      crumb.href === "/reports/:id" ? { ...crumb, href: `/reports/${encodeURIComponent(route.id)}` } : crumb,
     );
   }
   return crumbs;
 }
 
-function freshnessLabel(meta: RouteMeta): string {
-  const ms = meta.dataContract.staleTolerance.liveCriticalMs;
-  if (ms <= 12_000) return "Live-critical";
-  if (ms <= 20_000) return "Task-relevant";
-  return "Ambient";
-}
 
 function handleBrandActivate(ready: boolean): void {
   nav(ready ? "/home" : "/login");
 }
 
-export default function AppShell({ children, route, meta, sessionHealth }: AppShellProps): JSX.Element {
+export default function AppShell({ children, route, meta, sessionHealth, showAdvancedMode = false }: AppShellProps): JSX.Element {
   const session = getSession();
   const account = session?.account || "";
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account]);
@@ -133,11 +130,11 @@ export default function AppShell({ children, route, meta, sessionHealth }: AppSh
             <div className="appShellBrandMark">W</div>
             <div className="appShellBrandText">
               <strong>WeAll</strong>
-              <small>{ready ? "Protocol client" : "Sign in to continue"}</small>
+              <small>{ready ? "Social trust network" : "Sign in to continue"}</small>
             </div>
           </div>
 
-          <SidebarNav />
+          <SidebarNav showAdvancedMode={showAdvancedMode} />
         </div>
 
         <div className="appShellSidebarFooter">
@@ -186,20 +183,15 @@ export default function AppShell({ children, route, meta, sessionHealth }: AppSh
           <div className="appShellHeaderMeta">
             <div className="appShellModePill">{modeLabel(meta)}</div>
             <div className="appShellContractNote">{modeContract(meta)}</div>
-            <div className="appShellContractNote">
-              Freshness: {freshnessLabel(meta)} · Primary object: {meta.dataContract.primaryObject}
-            </div>
             {writesLocked ? <div className="appShellLockPill">writes locked</div> : null}
           </div>
         </header>
 
-        <section className="appShellRouteStrip" aria-label="Page contract summary">
+        <section className="appShellRouteStrip" aria-label="Helpful page summary">
           <div className="appShellRouteStripSummary">
             <span className="appShellRouteStripPill">{modeLabel(meta)}</span>
             <span className="appShellRouteStripText">{meta.dataContract.contextPanelData}</span>
-            <span className="appShellRouteStripDivider" aria-hidden="true">•</span>
-            <span className="appShellRouteStripText">Primary object: {meta.dataContract.primaryObject}</span>
-            {showFab && fabHref ? <span className="appShellRouteStripPill appShellRouteStripPill-accent">FAB: {fabLabel(meta)}</span> : null}
+            {showFab && fabHref ? <span className="appShellRouteStripPill appShellRouteStripPill-accent">{fabLabel(meta)}</span> : null}
           </div>
 
           <div className="appShellRouteStripActions">
@@ -208,7 +200,7 @@ export default function AppShell({ children, route, meta, sessionHealth }: AppSh
               onClick={() => document.getElementById("protocol-awareness-rail")?.scrollIntoView({ behavior: "smooth", block: "start" })}
               type="button"
             >
-              Jump to protocol rail
+              Jump to helpful panel
             </button>
             {writesLocked ? (
               <button className="appShellRouteStripAction" onClick={() => nav('/session')}>
@@ -220,7 +212,7 @@ export default function AppShell({ children, route, meta, sessionHealth }: AppSh
 
         <div className="appShellBody">
           <main id="app-shell-content" className="appShellContent">{children}</main>
-          <AppRightRail route={route} meta={meta} sessionHealth={sessionHealth} />
+          <AppRightRail route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode} />
         </div>
       </div>
 

@@ -1,21 +1,23 @@
 // web/src/lib/gates.ts
 
+import {
+  accountRestrictionMessage,
+  blockedByVerificationMessage,
+  normalizeVerificationTier,
+  verificationLabel,
+} from "./userLanguage";
+
 export type GateResult = {
   ok: boolean;
   reason?: string;
 };
 
 export function v2PohTier(value: unknown): number {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(2, Math.trunc(n)));
+  return normalizeVerificationTier(value);
 }
 
 export function pohTierLabel(value: unknown): string {
-  const tier = v2PohTier(value);
-  if (tier >= 2) return "Live Verified Human";
-  if (tier === 1) return "Async Verified Human";
-  return "Unverified Account";
+  return verificationLabel(value);
 }
 
 export type GateArgs = {
@@ -29,39 +31,33 @@ export type GateArgs = {
 /**
  * Centralized UX gating logic.
  *
- * IMPORTANT: This is only a *UI hint* layer.
- * The protocol must still enforce the rules server-side.
+ * IMPORTANT: This is only a UI hint layer. The backend and chain remain the
+ * authority for all gates, assignments, account status, and action outcomes.
  */
 export function checkGates(args: GateArgs): GateResult {
-  if (!args.loggedIn) return { ok: false, reason: "Not logged in (go to PoH and start a session)." };
-  if (!args.canSign) return { ok: false, reason: "No local secret key for signing (generate keys on PoH page)." };
+  if (!args.loggedIn) return { ok: false, reason: "Sign in or create an account before continuing." };
+  if (!args.canSign) return { ok: false, reason: "This device is missing the local signer for this account. Restore the signer before continuing." };
 
   const st = args.accountState || {};
-  if (st?.banned) return { ok: false, reason: "Account is banned." };
-  if (st?.locked) return { ok: false, reason: "Account is locked." };
+  const restriction = accountRestrictionMessage(st);
+  if (restriction) return { ok: false, reason: restriction };
 
   const tier = v2PohTier(st?.poh_tier ?? 0);
   if (tier < args.requireTier) {
-    const requiredLabel = pohTierLabel(args.requireTier);
-    const actualLabel = pohTierLabel(tier);
-    return { ok: false, reason: `Requires ${requiredLabel} (you are ${actualLabel}).` };
+    return { ok: false, reason: blockedByVerificationMessage(args.requireTier) };
   }
 
   if (args.minRep != null) {
     const rep = Number(st?.reputation ?? 0);
-    if (rep < args.minRep) return { ok: false, reason: `Requires reputation ≥ ${args.minRep} (you are ${rep}).` };
+    if (rep < args.minRep) return { ok: false, reason: "This account needs more positive community history before using this action." };
   }
 
   return { ok: true };
 }
 
 export function summarizeAccountState(st: any | null): string {
-  if (!st) return "(state unknown)";
-  const tier = v2PohTier(st?.poh_tier ?? 0);
+  if (!st) return "Account status unknown";
   const rep = Number(st?.reputation ?? 0);
-  const flags: string[] = [];
-  if (st?.banned) flags.push("banned");
-  if (st?.locked) flags.push("locked");
-  const flagStr = flags.length ? ` (${flags.join(", ")})` : "";
-  return `${pohTierLabel(tier)}, rep ${rep}${flagStr}`;
+  const restriction = accountRestrictionMessage(st);
+  return `${pohTierLabel(st?.poh_tier ?? 0)} · community history ${rep}${restriction ? " · restricted" : ""}`;
 }

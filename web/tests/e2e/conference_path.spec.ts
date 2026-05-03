@@ -34,7 +34,7 @@ async function readManifest(page: import("@playwright/test").Page): Promise<Requ
   };
 }
 
-test("seeded conference path is visible from login through groups disputes and governance", async ({ page }) => {
+test("seeded conference path is visible from login through groups reports and decisions", async ({ page }) => {
   await page.goto("/#/login");
 
   const manifest = await readManifest(page);
@@ -61,13 +61,13 @@ test("seeded conference path is visible from login through groups disputes and g
   await expect(page.getByRole("heading", { name: /groups/i })).toBeVisible();
   await expect(page.getByText(groupId, { exact: false }).first()).toBeVisible();
 
-  await page.goto("/#/disputes");
-  await expect(page.getByRole("heading", { name: /disputes/i })).toBeVisible();
+  await page.goto("/#/reports");
+  await expect(page.getByRole("heading", { name: /reports/i })).toBeVisible();
   await expect(page.getByRole("button", { name: new RegExp(disputeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) })).toBeVisible();
   await page.getByRole("button", { name: new RegExp(disputeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).click();
   await expect(page.getByText(disputeId, { exact: false }).first()).toBeVisible();
 
-  await page.goto(`/#/proposal/${encodeURIComponent(proposalId)}`);
-  await expect(page.getByText("Proposal id")).toBeVisible();
+  await page.goto(`/#/decisions/${encodeURIComponent(proposalId)}`);
+  await expect(page.getByText("Decision id")).toBeVisible();
   await expect(page.getByText(proposalId, { exact: false }).first()).toBeVisible();
 });

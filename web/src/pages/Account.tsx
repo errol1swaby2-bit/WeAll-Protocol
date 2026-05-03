@@ -11,6 +11,7 @@ import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
+import { verificationLabel } from "../lib/userLanguage";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -305,8 +306,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <h1 className="heroTitle heroTitleSm">{acct}</h1>
               <p className="heroText">
                 This page maps backend account state into practical readiness:
-                registration, PoH tier, reputation, posting rights, juror or steward
-                access, and node-operator preparation.
+                registration, account verification, reputation, posting rights, trusted
+                responsibilities, and network-helper preparation.
               </p>
             </div>
 
@@ -316,7 +317,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <span className={`statusPill ${registeredState ? "ok" : ""}`}>
                   {registeredState ? "Registered" : "Not registered"}
                 </span>
-                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>Tier {tier}</span>
+                <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>{verificationLabel(tier)}</span>
                 <span className={`statusPill ${!banned ? "ok" : ""}`}>
                   {banned ? "Banned" : "Not banned"}
                 </span>
@@ -333,8 +334,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 {snapshot.next.label}
               </button>
             ) : null}
-            <button className="btn" onClick={() => nav("/poh")}>
-              Open PoH
+            <button className="btn" onClick={() => nav("/verification")}>
+              Open Account Verification
             </button>
             <button className="btn" onClick={() => nav("/feed")}>
               Browse feed
@@ -355,21 +356,21 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <span className="statValue">{canPost ? "Enabled" : "Locked"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Steward role</span>
+              <span className="statLabel">Trusted responsibility</span>
               <span className="statValue">{canServe ? "Eligible" : "Locked"}</span>
             </div>
           </div>
 
           <div className="detailFocusStrip utilityFocusStrip">
             <article className="detailFocusCard utilityFocusCard">
-              <div className="detailFocusLabel">Utility contract</div>
-              <div className="detailFocusValue">Authoritative identity posture</div>
+              <div className="detailFocusLabel">Account utility</div>
+              <div className="detailFocusValue">Authoritative account status</div>
               <div className="detailFocusText">Read this page as the steady account utility surface: it translates backend account truth into clear eligibility and next-step posture.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
               <div className="detailFocusLabel">Local vs chain</div>
               <div className="detailFocusValue">{isSelf ? (localKeypair ? "Local signer present" : "Viewer only") : "Public view"}</div>
-              <div className="detailFocusText">Local signer storage, browser session state, and on-chain standing remain separate so the UI does not imply authority that the chain has not granted.</div>
+              <div className="detailFocusText">Local device storage, browser session state, and backend account standing remain separate so the UI does not imply authority that has not been granted.</div>
             </article>
             <article className="detailFocusCard utilityFocusCard">
               <div className="detailFocusLabel">Current next step</div>

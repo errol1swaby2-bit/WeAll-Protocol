@@ -16,7 +16,7 @@ import { actionableTxError, txPendingKey } from "../lib/txAction";
 import { governanceProposalIdOf, reconcileProposalVisible } from "../lib/governance";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  return actionableTxError(e, "Governance action failed.");
+  return actionableTxError(e, "Decision action failed.");
 }
 
 function slugifyProposalPart(value: string): string {
@@ -115,7 +115,7 @@ export default function ProposalCreate(): JSX.Element {
     if (!acct || !canSign) {
       setErr({
         msg: "You are not logged in on this device.",
-        details: "Restore your device signer in Login or Session devices before authoring a governance proposal.",
+        details: "Restore your device signer in Login or Devices & Sessions before creating a decision.",
       });
       return;
     }
@@ -135,10 +135,10 @@ export default function ProposalCreate(): JSX.Element {
         : normalizeCreatePayload({ proposalId, title, body, actionTxType, actionPayloadJson, startStage, account: acct });
 
       await tx.runTx({
-        title: "Create governance proposal",
+        title: "Create community decision",
         pendingKey: txPendingKey(["proposal-create", acct, resolvedProposalId || payload?.proposal_id || title]),
-        pendingMessage: "Submitting proposal…",
-        successMessage: "Proposal submitted. The detail route will open once the object is visible.",
+        pendingMessage: "Saving decision…",
+        successMessage: "Decision saved. The detail page will open once it is visible.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: {
@@ -146,7 +146,7 @@ export default function ProposalCreate(): JSX.Element {
             entityType: "proposal",
             entityId: String(payload?.proposal_id || resolvedProposalId || ""),
             account: acct || undefined,
-            routeHint: `/proposal/${encodeURIComponent(String(payload?.proposal_id || resolvedProposalId || ""))}`,
+            routeHint: `/decisions/${encodeURIComponent(String(payload?.proposal_id || resolvedProposalId || ""))}`,
             txType: "GOV_PROPOSAL_CREATE",
           },
           reconcile: async () => reconcileProposalVisible(String(payload?.proposal_id || resolvedProposalId || ""), base),
@@ -163,7 +163,7 @@ export default function ProposalCreate(): JSX.Element {
 
       setCreateRes(payload);
       await refreshAccountContext();
-      nav(`/proposal/${encodeURIComponent(String(governanceProposalIdOf(payload) || payload?.proposal_id || resolvedProposalId || ""))}`);
+      nav(`/decisions/${encodeURIComponent(String(governanceProposalIdOf(payload) || payload?.proposal_id || resolvedProposalId || ""))}`);
     } catch (e: any) {
       setErr(prettyErr(e));
       setCreateRes(e?.data || e?.body || null);
@@ -178,10 +178,10 @@ export default function ProposalCreate(): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Create proposal</div>
-              <h1 className="heroTitle heroTitleSm">Author governance from a dedicated action route</h1>
+              <div className="eyebrow">Create decision</div>
+              <h1 className="heroTitle heroTitleSm">Create a community decision</h1>
               <p className="heroText">
-                Proposal creation is separated from the governance queue so deliberation and authorship do not compete for the same visual space.
+                Decision creation is separated from the decision queue so browsing and writing do not compete for the same visual space.
               </p>
             </div>
 
@@ -189,7 +189,7 @@ export default function ProposalCreate(): JSX.Element {
               <div className="heroInfoTitle">Eligibility</div>
               <div className="heroInfoList">
                 <span className={`statusPill ${createGate.ok ? "ok" : ""}`}>
-                  {createGate.ok ? "Authoring unlocked" : "Authoring requires Live Verification"}
+                  {createGate.ok ? "Creation unlocked" : "Live verification required"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
                 <span className="statusPill mono">{acct || "Read-only"}</span>
@@ -201,7 +201,7 @@ export default function ProposalCreate(): JSX.Element {
 
       {signerSubmission.busy ? (
         <div className="calloutInfo">
-          Another signed action for {acct || "this account"} is still settling. Proposal creation waits for that signer lane to clear so nonces stay ordered.
+          Another signed action for {acct || "this account"} is still settling. Decision creation waits for that action to finish so submissions stay ordered.
         </div>
       ) : null}
 
@@ -215,36 +215,36 @@ export default function ProposalCreate(): JSX.Element {
       <section className="detailFocusStrip actionFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
-          <div className="detailFocusValue">Proposal composer</div>
-          <div className="detailFocusText">Authoring is separated from the governance queue so governance browsing stays structured and non-chaotic.</div>
+          <div className="detailFocusValue">Decision composer</div>
+          <div className="detailFocusText">Creation is separated from the decision queue so browsing stays structured and calm.</div>
         </article>
         <article className="detailFocusCard">
-          <div className="detailFocusLabel">Authoring posture</div>
-          <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "Live Verification required"}</div>
-          <div className="detailFocusText">{createGate.ok ? "A signer-capable Live Verification account can create a proposal from this route." : createGate.reason || "Restore a signer-capable Live Verification account before authoring."}</div>
+          <div className="detailFocusLabel">Creation readiness</div>
+          <div className="detailFocusValue">{createGate.ok ? "Ready to create" : "live verification required"}</div>
+          <div className="detailFocusText">{createGate.ok ? "A signed-in Trusted Verified Person can create a decision from this route." : createGate.reason || "Restore a signed-in Trusted Verified Person account before creating a decision."}</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Design rule</div>
           <div className="detailFocusValue">Action route only</div>
-          <div className="detailFocusText">Once created, proposal inspection and voting return to the dedicated detail surface instead of expanding this composer into a queue page.</div>
+          <div className="detailFocusText">Once created, decision inspection and voting return to the dedicated detail page instead of expanding this composer into a queue page.</div>
         </article>
       </section>
 
 
-      <ActionLifecycleCard intro="This route should always show the same honest sequence: validating, submitting, recorded, reconciling, visible confirmed, or failed." />
+      <ActionLifecycleCard intro="This route should always show the same honest sequence: checking, saving, recorded, updating the page, visible, or failed." />
 
       <section className="card pageNarrow">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Action</div>
-              <h2 className="cardTitle">New governance proposal</h2>
+              <h2 className="cardTitle">New community decision</h2>
               <div className="cardDesc">
-                This route is intentionally narrow. Queue browsing belongs on the proposals hub, while authoring belongs here with explicit gating and transaction feedback.
+                This route is intentionally narrow. Queue browsing belongs on the decisions hub, while creation belongs here with clear eligibility and action feedback.
               </div>
             </div>
             <div className="statusSummary">
-              <button className="btn" onClick={() => nav("/proposals")}>Back to proposals</button>
+              <button className="btn" onClick={() => nav("/decisions")}>Back to decisions</button>
             </div>
           </div>
 
@@ -252,8 +252,8 @@ export default function ProposalCreate(): JSX.Element {
 
           {!acct || !canSign ? (
             <div className="calloutInfo">
-              Proposal authoring requires an active device session and local signer.
-              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/proposals/create")}>
+              Decision creation requires an active device session and local signer.
+              <button className="btn" style={{ marginLeft: 12 }} onClick={() => navWithReturn(acct ? "/session" : "/login", "/decisions/create")}>
                 {acct ? "Open session recovery" : "Open login"}
               </button>
             </div>
@@ -261,34 +261,34 @@ export default function ProposalCreate(): JSX.Element {
 
           <label className="fieldLabel">
             <input type="checkbox" checked={useAdvancedPayload} onChange={(e) => setUseAdvancedPayload(e.target.checked)} />
-            Use advanced payload JSON
+            Use advanced technical JSON
           </label>
 
           {showAdvancedMode && useAdvancedPayload ? (
             <label className="fieldLabel">
-              Proposal payload JSON
+              Decision technical JSON
               <textarea rows={16} value={payloadJson} onChange={(e) => setPayloadJson(e.target.value)} placeholder='{"proposal_id":"proposal:alice:1","title":"Example","body":"Body"}' />
             </label>
           ) : (
             <>
               <label className="fieldLabel">
-                Proposal id
+                Decision id
                 <input value={proposalId} onChange={(e) => setProposalId(e.target.value)} placeholder="Leave blank to auto-generate" />
                 <span className="fieldHint">Resolved id: <span className="mono">{resolvedProposalId}</span></span>
               </label>
 
               <label className="fieldLabel">
                 Title
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Proposal title" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Decision title" />
               </label>
 
               <label className="fieldLabel">
                 Body
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the proposal clearly." />
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Describe the decision clearly." />
               </label>
 
               <label className="fieldLabel">
-                Start stage
+                Starting status
                 <select value={startStage} onChange={(e) => setStartStage(e.target.value)}>
                   <option value="poll">poll</option>
                   <option value="voting">voting</option>
@@ -299,25 +299,25 @@ export default function ProposalCreate(): JSX.Element {
               </label>
 
               <label className="fieldLabel">
-                Optional action tx type
+                Optional technical action type
                 <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, ..." />
               </label>
 
               <label className="fieldLabel">
-                Optional action payload JSON
+                Optional technical action JSON
                 <textarea rows={8} value={actionPayloadJson} onChange={(e) => setActionPayloadJson(e.target.value)} placeholder='{"params":{"poh":{"tier2_n_jurors":7}}}' />
               </label>
             </>
           )}
 
           <div className="feedMediaCard">
-            <div className="feedMediaTitle">Preview proposal id</div>
+            <div className="feedMediaTitle">Preview decision id</div>
             <div className="feedMediaMeta mono">{resolvedProposalId}</div>
           </div>
 
           <div className="buttonRow">
             <button className="btn btnPrimary" onClick={() => void createProposal()} disabled={busy || signerSubmission.busy}>
-              {busy ? "Creating…" : signerSubmission.busy ? "Waiting for signer…" : "Create proposal"}
+              {busy ? "Creating…" : signerSubmission.busy ? "Waiting for signer…" : "Create decision"}
             </button>
           </div>
 

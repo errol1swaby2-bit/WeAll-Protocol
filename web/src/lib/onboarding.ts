@@ -188,12 +188,12 @@ export function summarizeNextRequirements(
         : "Finish account creation before creator actions.",
     },
     {
-      label: "PoH tier",
+      label: "Account verification",
       ok: snapshot.tier >= POSTING_MIN_TIER,
       hint:
         snapshot.tier >= POSTING_MIN_TIER
-          ? `Current level is ${snapshot.tier >= 2 ? "Live Verified Human" : snapshot.tier === 1 ? "Async Verified Human" : "Unverified Account"}.`
-          : `Current level is ${snapshot.tier >= 1 ? "Async Verified Human" : "Unverified Account"}. Posting requires Live Verified Human.`,
+          ? `Current status is ${snapshot.tier >= 2 ? "Trusted Verified Person" : snapshot.tier === 1 ? "Verified Person" : "Basic Account"}.`
+          : `Current status is ${snapshot.tier >= 1 ? "Verified Person" : "Basic Account"}. Posting requires a Trusted Verified Person account.`,
     },
     {
       label: "Account standing",

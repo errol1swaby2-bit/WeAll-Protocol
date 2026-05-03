@@ -22,7 +22,7 @@ import {
 } from "../lib/governance";
 
 function prettyErr(e: any): { msg: string; details: any } {
-  return actionableTxError(e, "Governance action failed.");
+  return actionableTxError(e, "Decision action failed.");
 }
 
 type Props = { id: string };
@@ -99,22 +99,22 @@ function votingHelpText(params: {
   const { stage, gateOk, gateReason, canVote, currentChoice } = params;
   if (!gateOk) return gateReason || "Live Verification and a local signer are required to vote.";
   if (canVote && currentChoice) {
-    return `Your current recorded vote is ${currentChoice.toUpperCase()}. This surface now treats proposal voting as one signer, one recorded vote.`;
+    return `Your current recorded vote is ${currentChoice.toUpperCase()}. Each signed-in person has one recorded vote on this decision.`;
   }
   if (canVote) {
     return stage === "poll"
       ? "Poll voting is open. Use this to register early sentiment before final validation and binding voting."
-      : "Binding voting is open. Your signer-recorded vote is counted directly from the proposal vote map.";
+      : "Voting is open. Your recorded vote is counted directly from the decision record.";
   }
-  if (stage === "draft") return "Voting is not open during Draft. Move the proposal into Poll or let the lifecycle progress first.";
-  if (stage === "revision") return "Revision is for proposal edits after early sentiment. Voting is paused until the lifecycle reaches Voting.";
-  if (stage === "validation") return "Validation is for proposal checks before binding voting begins.";
+  if (stage === "draft") return "Voting is not open while this decision is still a draft.";
+  if (stage === "revision") return "This decision is being revised. Voting is paused until voting opens again.";
+  if (stage === "validation") return "This decision is being checked before voting opens.";
   if (stage === "closed") return "Voting is closed. The next canonical step is tally publication.";
   if (stage === "tallied") return "Voting has ended and tally publication is recorded.";
   if (stage === "executed") return "Execution has already occurred. Voting is complete.";
-  if (stage === "finalized") return "This proposal is finalized. Vote state is frozen.";
-  if (stage === "withdrawn") return "Withdrawn proposals cannot accept votes.";
-  return "Voting is not open on this proposal right now.";
+  if (stage === "finalized") return "This decision is finalized. Votes can no longer change.";
+  if (stage === "withdrawn") return "Withdrawn decisions cannot accept votes.";
+  return "Voting is not open on this decision right now.";
 }
 
 
@@ -125,20 +125,20 @@ function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; heig
 function nextLifecycleHint(stage: string): string {
   switch (stage) {
     case "draft":
-      return "Next expected move: Poll or direct fast-forward into a later canonical stage.";
+      return "Next expected step: open for early voting or move to a later status.";
     case "poll":
-      return "Next expected move: Revision, Validation, or direct move into binding voting.";
+      return "Next expected step: revision, checking, or voting.";
     case "revision":
-      return "Next expected move: Validation before voting.";
+      return "Next expected step: checking before voting.";
     case "validation":
       return "Next expected move: Voting.";
     case "voting":
     case "vote":
-      return "Next expected move: Close voting, then publish tally.";
+      return "Next expected step: close voting, then publish the result.";
     case "closed":
       return "Next expected move: Publish tally.";
     case "tallied":
-      return "Next expected move: Execute proposal actions or finalize as appropriate.";
+      return "Next expected step: apply approved changes or finalize as appropriate.";
     case "executed":
       return "Next expected move: Finalize.";
     case "finalized":
@@ -146,7 +146,7 @@ function nextLifecycleHint(stage: string): string {
     case "withdrawn":
       return "Lifecycle ended by proposer withdrawal.";
     default:
-      return "Stage is unknown. Refresh from chain state.";
+      return "Status is unknown. Refresh and try again.";
   }
 }
 
@@ -155,18 +155,18 @@ function actionReadinessLabel(params: { stage: string; canVote: boolean; canEdit
   if (canVote) return "Voting action available";
   if (canEdit) return "Author edit available";
   if (canWithdraw) return "Author withdrawal available";
-  if (["executed", "finalized", "withdrawn"].includes(stage)) return "Read-only stage";
-  return "No signer action available";
+  if (["executed", "finalized", "withdrawn"].includes(stage)) return "Read-only status";
+  return "No action available";
 }
 
 
 function lifecycleActionHint(stage: string, isCreator: boolean): string {
   if (stage === "draft") {
     return isCreator
-      ? "This proposal is still in Draft, so voting is intentionally unavailable. In the current dev flow, create proposals with start_stage=poll to make them vote-ready immediately."
-      : "This proposal is still in Draft. Voting begins once the lifecycle reaches Poll or Voting.";
+      ? "This decision is still a draft, so voting is intentionally unavailable. In test flows, start decisions in poll status when they should be vote-ready immediately."
+      : "This decision is still a draft. Voting begins once it moves to poll or voting status.";
   }
-  if (stage === "poll") return "Poll voting is open now. Signers can already register direct sentiment on-chain.";
+  if (stage === "poll") return "Poll voting is open now. Eligible people can record early sentiment.";
   if (stage === "voting" || stage === "vote") return "Binding voting is open now.";
   return nextLifecycleHint(stage);
 }
@@ -240,7 +240,7 @@ export default function Proposal({ id }: Props): JSX.Element {
       await loadAccountState();
     },
   });
-  const title = String(proposal?.title || pid || "(proposal)");
+  const title = String(proposal?.title || pid || "(decision)");
   const stage = governanceProposalStageOf(proposal);
 
   const gate = checkGates({
@@ -266,13 +266,13 @@ export default function Proposal({ id }: Props): JSX.Element {
       const r = await tx.runTx({
         title: toastTitle,
         pendingKey: txPendingKey(["proposal", tx_type, pid, acct]),
-        pendingMessage: "Submitting governance action…",
+        pendingMessage: "Saving decision action…",
         successMessage,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
-          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/proposal/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
+          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
           reconcile: async () => {
             if (tx_type === "GOV_PROPOSAL_WITHDRAW") return reconcileProposalWithdrawal({ proposalId: pid, base });
             if (tx_type === "GOV_PROPOSAL_EDIT") return reconcileProposalEdit({ proposalId: pid, title: payload?.title, body: payload?.body, base });
@@ -314,7 +314,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
-          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/proposal/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
+          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
           reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice, base }),
         },
         task: async () =>
@@ -347,13 +347,13 @@ export default function Proposal({ id }: Props): JSX.Element {
         title: editTitle.trim(),
         body: editBody.trim(),
       },
-      "Edit proposal",
-      "Proposal edit submitted.",
+      "Edit decision",
+      "Decision edit saved.",
     );
   }
 
   async function withdrawProposal(): Promise<void> {
-    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw proposal", "Proposal withdrawn.");
+    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawn.");
   }
 
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
@@ -402,10 +402,10 @@ export default function Proposal({ id }: Props): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Governance</div>
+              <div className="eyebrow">Decision</div>
               <h1 className="heroTitle heroTitleSm">{title}</h1>
               <p className="heroText">
-                Proposal detail keeps lifecycle state, direct vote activity, and proposer controls in one place. It is designed to show the difference between submitting an action and the chain later recognizing a stage change, tally publication, or execution outcome.
+                Decision detail keeps status, voting activity, and creator controls in one place. It separates saving an action from the final visible result.
               </p>
             </div>
             <div className="heroInfoPanel">
@@ -414,7 +414,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <span className={stageBadgeClass(stage)}>{stage}</span>
                 <span className="statusPill">Votes {activeCount.total}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
-                  {gate.ok ? "Live Verification eligible" : "Live Verification required"}
+                  {gate.ok ? "Trusted Verified Person" : "Live verification required"}
                 </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>
@@ -422,8 +422,8 @@ export default function Proposal({ id }: Props): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn" onClick={() => nav("/proposals")}>
-              Back to proposals
+            <button className="btn" onClick={() => nav("/decisions")}>
+              Back to decisions
             </button>
             <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>
               Refresh detail
@@ -444,7 +444,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <span className="statValue">{activeCount.abstain}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Proposal id</span>
+              <span className="statLabel">Decision id</span>
               <span className="statValue mono">{pid || "(unknown)"}</span>
             </div>
           </div>
@@ -458,8 +458,8 @@ export default function Proposal({ id }: Props): JSX.Element {
       <section className="detailFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
-          <div className="detailFocusValue">Proposal detail</div>
-          <div className="detailFocusText">This route is for one proposal only. Queue browsing belongs on the proposals hub.</div>
+          <div className="detailFocusValue">Decision detail</div>
+          <div className="detailFocusText">This route is for one decision only. Queue browsing belongs on the decisions hub.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Current dominant action</div>
@@ -467,7 +467,7 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="detailFocusText">{voteHelp}</div>
         </article>
         <article className="detailFocusCard">
-          <div className="detailFocusLabel">Chain posture</div>
+          <div className="detailFocusLabel">Current status</div>
           <div className="detailFocusValue">{readiness}</div>
           <div className="detailFocusText">{nextLifecycleHint(stage)}</div>
         </article>
@@ -479,17 +479,17 @@ export default function Proposal({ id }: Props): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Draft-only status</div>
-                <h2 className="cardTitle">This proposal is not vote-ready yet</h2>
+                <h2 className="cardTitle">This decision is not vote-ready yet</h2>
               </div>
               <div className="statusSummary">
                 <span className="statusPill warn">Draft only</span>
               </div>
             </div>
             <div className="cardDesc">
-              Draft should normally end on the create surface. For tester-facing governance runs, create proposals with <span className="mono">start_stage=poll</span> so direct voting is available immediately after creation.
+              Draft should normally end on the create surface. For tester-facing decision runs, create decisions with <span className="mono">start_stage=poll</span> so voting is available immediately after creation.
             </div>
             <div className="buttonRow">
-              <button className="btn btnPrimary" onClick={() => nav("/proposals/create")}>Open proposal composer</button>
+              <button className="btn btnPrimary" onClick={() => nav("/decisions/create")}>Open decision composer</button>
             </div>
           </div>
         </section>
@@ -500,14 +500,14 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="summaryCardLabel">Voting model</div>
           <div className="summaryCardValue">Direct civic voting only</div>
           <div className="summaryCardText">
-            This proposal uses direct voter records keyed by signer. Governance participation is personal and non-delegable.
+            This decision uses direct voter records. Participation is personal and non-delegable.
           </div>
         </article>
         <article className="summaryCard">
-          <div className="summaryCardLabel">Execution honesty</div>
-          <div className="summaryCardValue">Submission ≠ protocol effect</div>
+          <div className="summaryCardLabel">Outcome clarity</div>
+          <div className="summaryCardValue">Submitting ≠ approved</div>
           <div className="summaryCardText">
-            Proposal edits, withdrawals, and votes are submitted as transactions. Later lifecycle transitions and execution receipts remain authoritative protocol state.
+            Decision edits, withdrawals, and votes are saved first. Later status changes and results remain authoritative backend state.
           </div>
         </article>
       </section>
@@ -517,7 +517,7 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Participation</div>
-              <h2 className="cardTitle">Vote on this proposal</h2>
+              <h2 className="cardTitle">Vote on this decision</h2>
             </div>
             <div className="statusSummary">
               <span className={`statusPill ${canVote ? "ok" : ""}`}>{voteModeLabel}</span>
@@ -567,7 +567,7 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Lifecycle</div>
-              <h2 className="cardTitle">Proposal path</h2>
+              <h2 className="cardTitle">Decision path</h2>
             </div>
             <div className="statusSummary">
               <span className="statusPill">{readiness}</span>
@@ -602,15 +602,15 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardValue mono">{String(proposal?.creator || "(unknown)")}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Created height</div>
+              <div className="summaryCardLabel">Created record</div>
               <div className="summaryCardValue">{Number(proposal?.created_at_height || 0)}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Updated height</div>
+              <div className="summaryCardLabel">Updated record</div>
               <div className="summaryCardValue">{Number(proposal?.updated_at_height || 0)}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Execution count</div>
+              <div className="summaryCardLabel">Applied changes</div>
               <div className="summaryCardValue">{Number(proposal?.execution_count || proposal?.executions?.length || 0)}</div>
             </article>
           </div>
@@ -630,7 +630,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 Jump to author controls
               </button>
             ) : null}
-            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>{signerBusy ? "Waiting for signer…" : "Reload chain state"}</button>
+            <button className="btn" onClick={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)}>{signerBusy ? "Waiting for signer…" : "Refresh state"}</button>
           </div>
         </div>
       </section>
@@ -641,23 +641,23 @@ export default function Proposal({ id }: Props): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Description</div>
-                <h2 className="cardTitle">Proposal body</h2>
+                <h2 className="cardTitle">Decision description</h2>
               </div>
             </div>
 
             {proposal?.body ? (
               <div className="feedBodyText">{String(proposal.body)}</div>
             ) : (
-              <div className="cardDesc">No proposal body provided.</div>
+              <div className="cardDesc">No decision description provided.</div>
             )}
 
             {Array.isArray(proposal?.actions) && proposal.actions.length > 0 ? (
-              <>
-                <div className="eyebrow">Action set</div>
+              <details className="detailsPanel">
+                <summary>View technical actions</summary>
                 <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>
                   {JSON.stringify(proposal.actions, null, 2)}
                 </div>
-              </>
+              </details>
             ) : null}
           </div>
         </article>
@@ -692,7 +692,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <article className="summaryCard">
                 <div className="summaryCardLabel">Total</div>
                 <div className="summaryCardValue">{activeCount.total}</div>
-                <div className="summaryCardText">Counted from signer map</div>
+                <div className="summaryCardText">Counted from recorded votes</div>
               </article>
             </div>
 
@@ -702,7 +702,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                   <article key={signer} className="summaryCard">
                     <div className="summaryCardLabel mono">{signer}</div>
                     <div className="summaryCardValue">{String(rec?.vote || "").toUpperCase()}</div>
-                    <div className="summaryCardText">Height {Number(rec?.height || 0)}</div>
+                    <div className="summaryCardText">Record {Number(rec?.height || 0)}</div>
                   </article>
                 ))}
               </div>
@@ -720,7 +720,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="sectionHead">
                 <div>
                   <div className="eyebrow">Author control</div>
-                  <h2 className="cardTitle">Edit proposal</h2>
+                  <h2 className="cardTitle">Edit decision</h2>
                 </div>
               </div>
 
@@ -747,17 +747,17 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="sectionHead">
                 <div>
                   <div className="eyebrow">Author control</div>
-                  <h2 className="cardTitle">Withdraw proposal</h2>
+                  <h2 className="cardTitle">Withdraw decision</h2>
                 </div>
               </div>
 
               <div className="cardDesc">
-                Withdrawal is only available while the proposal is still in a mutable, non-terminal stage and only to the original creator.
+                Withdrawal is only available while the decision is still editable and only to the original creator.
               </div>
 
               <div className="buttonRow">
                 <button className="btn" onClick={() => void withdrawProposal()} disabled={!canWithdraw || signerBusy}>
-                  Withdraw proposal
+                  Withdraw decision
                 </button>
               </div>
             </div>
@@ -771,7 +771,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Latest result</div>
-                <h2 className="cardTitle">Submission response</h2>
+                <h2 className="cardTitle">Latest action response</h2>
               </div>
               
             </div>

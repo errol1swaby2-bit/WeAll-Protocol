@@ -125,13 +125,13 @@ function DevBootstrapDetails({ manifest }: { manifest: DevBootstrapManifest }) {
         ) : null}
         {manifest.seededProposal?.proposal_id ? (
           <>
-            <strong>Seeded proposal</strong>
+            <strong>Seeded decision</strong>
             <code data-testid="dev-bootstrap-seeded-proposal">{String(manifest.seededProposal.proposal_id || "")}</code>
           </>
         ) : null}
         {manifest.seededDispute?.dispute_id ? (
           <>
-            <strong>Seeded dispute</strong>
+            <strong>Seeded report</strong>
             <code data-testid="dev-bootstrap-seeded-dispute">{String(manifest.seededDispute.dispute_id || "")}</code>
           </>
         ) : null}
@@ -164,13 +164,13 @@ function DevBootstrapDetails({ manifest }: { manifest: DevBootstrapManifest }) {
             </a>
           ) : null}
           {manifest.seededDispute?.dispute_id ? (
-            <a href={`/#/disputes`} data-testid="dev-bootstrap-open-disputes">
-              Open disputes surface
+            <a href={`/#/reports`} data-testid="dev-bootstrap-open-disputes">
+              Open reports surface
             </a>
           ) : null}
           {manifest.seededProposal?.proposal_id ? (
-            <a href={`/#/proposal/${encodeURIComponent(String(manifest.seededProposal.proposal_id || ""))}`} data-testid="dev-bootstrap-open-proposal">
-              Open seeded proposal
+            <a href={`/#/decisions/${encodeURIComponent(String(manifest.seededProposal.proposal_id || ""))}`} data-testid="dev-bootstrap-open-proposal">
+              Open seeded decision
             </a>
           ) : null}
         </div>
@@ -317,8 +317,8 @@ export default function LoginPage() {
         secretKeyB64: keypair.secretKeyB64,
       })
 
-      setNotice("Local account signer created. Continue on the PoH page to register the account on-chain and start native async/live verification.")
-      nav(consumeReturnTo("/poh"))
+      setNotice("Local account signer created. Continue on the Account Verification page to register the account on-chain and start native async/live verification.")
+      nav(consumeReturnTo("/verification"))
     } catch (err) {
       setError(
         humanizeApiError(
@@ -331,8 +331,6 @@ export default function LoginPage() {
     }
   }
 
-
-  async function handleExistingLogin
 
   async function handleExistingLogin(e: FormEvent) {
     e.preventDefault()
@@ -449,18 +447,16 @@ export default function LoginPage() {
     },
     {
       title: "2. Establish browser session",
-      detail: "The first session is local and signer-backed. On-chain registration happens from the PoH page.",
+      detail: "The first session is local and signer-backed. On-chain registration happens from the Account Verification page.",
       tone: account ? "pending" : "warn",
     },
     {
-      title: "3. Continue to native PoH",
-      detail: "Use the PoH page to register the account, open native async verification, and request live verification when eligible.",
+      title: "3. Continue to account verification",
+      detail: "Use the Account Verification page to register the account, open native async verification, and request live verification when eligible.",
       tone: account ? "pending" : "warn",
     },
   ]
 
-
-  const restoreFlowCheckpoints
 
   const restoreFlowCheckpoints: Checkpoint[] = [
     {
@@ -475,7 +471,7 @@ export default function LoginPage() {
     },
     {
       title: "3. Continue from Home",
-      detail: "After session creation, use Home and PoH to inspect chain-recognized readiness and next steps.",
+      detail: "After session creation, use Home and Account Verification to inspect chain-recognized readiness and next steps.",
       tone: "pending",
     },
   ]
@@ -489,7 +485,7 @@ export default function LoginPage() {
             <h1>Connect this device, then continue onboarding with clear state boundaries.</h1>
             <p className="muted">
               This page is where local identity and device session setup begin. It should be obvious what is local to this
-              browser, what must be registered on-chain, and what belongs to the native async/live PoH workflow.
+              browser, what must be registered on-chain, and what belongs to the native async/live Account Verification workflow.
             </p>
           </div>
 
@@ -500,9 +496,9 @@ export default function LoginPage() {
               <span>{apiBaseInput || "No API base configured."}</span>
             </div>
             <div className="authStatusCard">
-              <span className="authStatusLabel">Native PoH path</span>
+              <span className="authStatusLabel">Native Account Verification path</span>
               <strong>Async / Live</strong>
-              <span>Verification is handled through protocol-native PoH surfaces, not a browser-configured external endpoint.</span>
+              <span>Verification is handled through protocol-native Account Verification surfaces, not a browser-configured external endpoint.</span>
             </div>
             <div className="authStatusCard">
               <span className="authStatusLabel">Active device state</span>
@@ -645,7 +641,7 @@ export default function LoginPage() {
                 </label>
 
                 <div className="calloutInfo">
-                  This creates a browser-local signer and local session only. Open the PoH page next to submit ACCOUNT_REGISTER and continue through native async/live verification.
+                  This creates a browser-local signer and local session only. Open Account Verification next to submit ACCOUNT_REGISTER and continue through native async/live verification.
                 </div>
 
                 <div className="authMetaGrid">
@@ -655,7 +651,7 @@ export default function LoginPage() {
                   </div>
                   <div className="authMetaCard">
                     <span>Next protocol step</span>
-                    <strong>{account ? "Register on PoH page" : "Enter handle first"}</strong>
+                    <strong>{account ? "Register on Account Verification page" : "Enter handle first"}</strong>
                   </div>
                 </div>
 
