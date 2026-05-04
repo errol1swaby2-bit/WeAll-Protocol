@@ -1,445 +1,388 @@
 # WeAll Protocol
 
-WeAll is a custom Layer 1 protocol for social coordination, governance, decentralized identity, groups, dispute resolution, treasury flows, storage participation, and operator-safe network growth.
+WeAll is an experimental deterministic coordination protocol and social application prototype.
 
-Its core design goal is simple:
+The current repository demonstrates a local, fresh-clone, one-command development flow that boots a full local demo environment, seeds a demo account, and shows core social coordination surfaces in the frontend.
 
-**every honest node should deterministically reach the same result from the same ordered block input.**
-
-The current implementation is built around:
-
-- **HotStuff-style BFT finality**
-- **deterministic execution**
-- **deterministic validator normalization and leader selection**
-- **fail-closed runtime posture**
-- **bootstrap-to-production authority gating**
-- **helper-assisted execution beneath consensus, never instead of it**
-- **Cloudflare-free, email-free Proof-of-Humanity through native async and live juror-attested verification**
-
-The current audited transaction canon contains **225 transaction types across 21 domains**.
+WeAll is **not production-ready yet**. This repository should currently be treated as a local development and demo environment, not as a public validator network or production social platform.
 
 ---
 
-## Why WeAll exists
+## Current Status
 
-Most platforms centralize identity, moderation, governance, and social coordination behind a private operator.
+The current development milestone proves that a fresh clone can:
 
-WeAll takes a different path.
+- create the local backend environment
+- install required dependencies
+- build the Docker backend stack
+- start the local node services
+- start IPFS/Kubo
+- generate the transaction index
+- run the golden-path bootstrap
+- create a pre-seeded demo account
+- upload media
+- create a post
+- seed demo social, decision, review, and messaging state
+- start the frontend
+- show core demo flows in the browser
 
-It aims to make social and civic coordination part of the protocol itself:
+This is a reproducibility milestone for local development and demonstration.
 
-- identity is part of the state machine
-- governance is part of the state machine
-- moderation and disputes are part of the state machine
-- groups and treasury flows are part of the state machine
-- operator authority is explicitly gated rather than assumed
-
-This repo is the current implementation of that protocol.
-
----
-
-## What is working now
-
-The current codebase already supports a real local full-stack demo flow with:
-
-- account registration and session flows
-- Proof-of-Humanity onboarding paths
-- Tier 1 native async human verification through juror-attested commitments
-- content posting and interaction flows
-- governance proposal and vote flows
-- dispute intake, review, and juror flows
-- group creation and group role flows
-- deterministic mempool admission and block application
-- HotStuff-style consensus infrastructure
-- helper-safety posture beneath canonical consensus
-- local tester bootstrapping through a single canonical dev flow
-
-The current controlled-devnet readiness proof also runs without demo-seed shortcuts:
-
-- fresh account registration through normal tx submission
-- bounded Tier-1 native async PoH using protocol commitments
-- joining-node sync from a trusted anchor
-- cross-node account, tx-status, tip, and state-root parity checks
-- a Tier-1-gated transaction submitted on node 2 and synced back to node 1
-- Tier-2 live PoH request, juror assignment, attendance, verdicts, finalization, and cross-node convergence
-
-This is not a slide deck or mock frontend.  
-It is a working protocol + node + frontend repository.
+It is **not** a claim of production validator readiness, public network readiness, security-audited deployment, or adversarial multi-node safety.
 
 ---
 
-## Current protocol posture
+## Project Direction
 
-WeAll currently targets the following implementation contract:
+WeAll is being designed as a familiar social application with deterministic protocol state underneath.
 
-- **Consensus family:** HotStuff-style BFT
-- **Leader selection:** deterministic round-robin over normalized validator set
-- **Execution model:** deterministic ordered state transition
-- **Replay protection:** canonical tx identity plus nonce discipline
-- **Mempool posture:** persistent and deterministic for proposal/build rules
-- **State commitment:** canonical receipts root and state root
-- **Helper posture:** deterministic parallel-execution layer subordinate to HotStuff
-- **Lifecycle posture:** bootstrap registration → explicit production promotion
-- **PoH posture:** native async and live juror-attested verification are the required path; email, SMTP, DNS, Cloudflare, and external identity providers are not required
-- **Production posture:** fail-closed configuration with trusted verification enabled
+The product goal is to support:
 
-Helpers are treated as a throughput optimization layer, not as a second consensus family.
+- social posting
+- media upload
+- groups
+- messaging
+- community decisions
+- reports and reviews
+- account verification
+- trusted responsibilities
 
----
+The frontend is intentionally moving toward plain human language rather than crypto-native dashboard language.
 
-## Repository layout
+For normal users, the target experience is closer to:
 
-- `.github/workflows/` — backend, web, and auxiliary CI checks
-- `scripts/` — repo-level bootstrap helpers, including the canonical full demo flow
-- `Weall-Protocol/` — backend node, runtime, API, Docker Compose stack, tests, generated artifacts, and operator tooling
-- `web/` — Vite + React frontend
-- `.weall-dev/` — transient local frontend/runtime state produced by the local dev flow
+> a social app with built-in verification, community decisions, community review, and trusted responsibilities
+
+rather than:
+
+> a blockchain dashboard with social features
 
 ---
 
-## Demo in 5 minutes
+## Identity and Verification Direction
 
-From the repository root:
+WeAll has moved away from the previous three-tier identity model that included email verification.
+
+The current target direction is a protocol-native two-tier human verification model:
+
+- **Tier 1** — async Turing-style verification
+- **Tier 2** — live Turing-style verification
+
+The intent is to avoid required dependency on centralized identity infrastructure.
+
+The target model does **not** require:
+
+- email verification
+- inbox control
+- DNS verification
+- SMTP infrastructure
+- CAPTCHA
+- OAuth
+- KYC providers
+- government ID providers
+- centralized identity providers as required gates
+
+The goal is to make human verification part of the protocol process itself through challenge, evidence commitment, juror review, threshold finalization, receipts, and deterministic state transitions.
+
+This area is still under active implementation and review.
+
+---
+
+## What Works in the Local Demo
+
+The current local demo can show:
+
+- a pre-seeded demo account
+- account verification state
+- a social feed
+- media-backed posts
+- post detail pages
+- reporting content
+- review assignment flow
+- review outcome flow
+- community decisions
+- messaging surfaces
+- frontend/backend session handoff
+- deterministic demo bootstrap output
+
+The demo is intended to make the current architecture inspectable and easier to test.
+
+---
+
+## What Is Not Claimed Yet
+
+This repository does **not** currently claim:
+
+- production readiness
+- public validator readiness
+- adversarial multi-node readiness
+- full security audit completion
+- economic activation readiness
+- public mainnet readiness
+- stable public API guarantees
+- final protocol semantics
+- complete frontend product maturity
+
+Those require additional testing, review, hardening, documentation, and operational validation.
+
+---
+
+## Requirements
+
+For the local demo path, you should have:
+
+- Linux or WSL-like development environment
+- Git
+- Docker and Docker Compose
+- Python 3.12+
+- Node.js and npm
+- network access for dependency downloads and Docker image pulls
+
+The boot script is designed to rebuild the local development environment from a fresh clone.
+
+---
+
+## Fresh Clone Demo
+
+Clone the repository:
 
 ```bash
-./scripts/dev_boot_full_stack.sh
+git clone git@github.com:errol1swaby2-bit/WeAll-Protocol.git WeAll-Protocol
+cd WeAll-Protocol
 ```
 
-This is the **canonical local demo path**.
-
-It is designed to:
-
-- self-heal common local port conflicts
-- normalize backend runtime directories
-- reset deterministic local dev state
-- start the backend quickstart path
-- wait for backend readiness
-- run the canonical demo bootstrap
-- write the frontend bootstrap manifest
-- start the frontend dev server
-
-When successful, the main local URLs are:
-
-- **Frontend:** `http://127.0.0.1:5173`
-- **Backend readyz:** `http://127.0.0.1:8000/v1/readyz`
-- **Backend status:** `http://127.0.0.1:8000/v1/status`
-- **API docs:** `http://127.0.0.1:8000/docs`
-
----
-
-## Controlled-devnet readiness proof
-
-For a deeper protocol-native proof that does not rely on the deterministic demo seed route, run the backend controlled-devnet readiness suite:
+Run the full local demo boot:
 
 ```bash
-cd Weall-Protocol
-source .venv/bin/activate
-
-pytest -q
-WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_LIVE=1 \
-bash scripts/devnet_controlled_readiness_suite.sh
+bash scripts/dev_boot_full_stack.sh
 ```
 
-This suite is the non-seeded proof path. It covers direct API permission gating, controlled two-node onboarding, Tier-1 native async PoH, cross-node account and tx-status parity, node-2 transaction submission and convergence, Tier-2 live PoH finalization, cross-node convergence, and restart/catch-up.
-
-The latest backend verification checkpoint for this snapshot is **2590 passed, 1 warning**, followed by synchronized tx-canon artifacts at **225 tx types, version 1.24.0**. Rerun the full suite locally before tagging any public release.
-
----
-
-## Cloudflare-free, email-free native PoH verification
-
-Tier 1 verification no longer depends on email, SMTP, DNS, Cloudflare, inbox control, or any external identity provider.
-
-The required path is:
+Expected successful markers include:
 
 ```text
-WeAll frontend
--> WeAll API
--> native async PoH case opens on-chain
--> response and evidence commitments are bound to the case
--> eligible jurors accept and review asynchronously
--> jurors submit signed review verdict transactions
--> deterministic threshold finalization grants or rejects Tier 1
--> protocol access gates read finalized chain state
+✅ FULL STACK GOLDEN PATH PASSED
+[dev-full-surface] seeded demo reviewer role persisted
+[dev-full-surface] dev full-surface environment ready
+frontend=http://127.0.0.1:5173
+backend=http://127.0.0.1:8000
 ```
 
-Live verification follows the same protocol-native authority model for Tier 2: assigned jurors, attendance where required, signed verdicts, deterministic threshold finalization, and chain-committed status.
-
-Boundary rules:
-
-- Cloudflare Worker, Cloudflare Email Routing, Cloudflare API tokens, Turnstile, SMTP, DNS, inbox control, and Stalwart are not required for PoH.
-- The chain does not call SMTP, HTTP, DNS, Cloudflare, or any external network during execution.
-- The chain verifies native PoH commitments, juror assignments, review verdicts, thresholds, and replay protection against deterministic state.
-- Raw private PoH evidence, challenge secrets, provider metadata, transport credentials, and authority signer private keys must not enter chain state, receipts, public snapshots, or logs.
-
----
-
-## What the demo boot flow gives you
-
-The full dev flow is designed so a fresh tester can explore the product surface quickly without first hand-assembling a usable local account state.
-
-The flow also runs a deterministic demo bootstrap and writes artifacts such as:
-
-- `Weall-Protocol/generated/demo_bootstrap_result.json`
-- `web/public/dev-bootstrap.json`
-- `.weall-dev/frontend.log`
-
-These artifacts help the frontend auto-repair local demo session state and surface the tester path in the UI.
-
----
-
-## What to look at first in the demo
-
-Once the stack is up, a reviewer should be able to explore the protocol client in this order:
-
-1. **Account / session state**
-2. **Proof-of-Humanity flows**
-3. **Feed and content posting**
-4. **Governance proposals and voting**
-5. **Disputes and juror work**
-6. **Groups and role-gated actions**
-7. **Node status / protocol awareness surfaces**
-
-That sequence gives the clearest picture of what makes WeAll different:  
-it is not just a social app UI attached to a chain — the coordination rules themselves are protocol-native.
-
----
-
-## What makes WeAll different
-
-### 1. Social coordination is protocol-native
-
-WeAll does not treat governance, moderation, identity, and social interaction as off-chain product logic sitting beside a token.
-
-They are modeled as part of the protocol state machine.
-
-### 2. Production authority is gated, not assumed
-
-A fresh node is allowed to be useful immediately, but not authoritative immediately.
-
-The lifecycle is intentionally split between:
-
-- **bootstrap registration**
-- **explicit promotion into production service**
-
-That reduces accidental authority and keeps the trust posture fail-closed.
-
-### 3. Determinism is a first-class design constraint
-
-The protocol is built around the requirement that canonical ordering, validity, and final post-state must not depend on local machine timing, random choices, or non-canonical iteration behavior.
-
-### 4. Helper execution is subordinate to consensus
-
-Parallel execution is only acceptable if it preserves canonical results.
-
-The helper model is explicitly constrained by deterministic assignment, deterministic laneing, canonical merge rules, replay-safe receipts, and serial equivalence requirements.
-
-### 5. Human verification is protocol-native, not provider authority
-
-Native async PoH proves human participation through protocol-native commitments, assigned juror review, threshold finalization, and deterministic replay checks.
-
----
-
-## Current capability map
-
-The current audited transaction surface spans 21 domains:
-
-| Domain | Tx types |
-|---|---:|
-| Cases | 3 |
-| Consensus | 16 |
-| Content | 15 |
-| Dispute | 12 |
-| Economics | 7 |
-| Governance | 16 |
-| Groups | 20 |
-| Identity | 18 |
-| Indexing | 8 |
-| Messaging | 2 |
-| Moderation | 2 |
-| Networking | 6 |
-| Notifications | 3 |
-| Performance | 5 |
-| PoH | 30 |
-| Reputation | 6 |
-| Rewards | 6 |
-| Roles | 14 |
-| Social | 5 |
-| Storage | 12 |
-| Treasury | 15 |
-
-Total current transaction types: **225**.
-
----
-
-## Manual split flow
-
-If you want to run the pieces separately instead of the all-in-one path:
-
-### 1) Backend quickstart
-
-From the repository root:
-
-```bash
-./scripts/quickstart_tester.sh
-```
-
-Or from the backend directory:
-
-```bash
-cd Weall-Protocol
-./scripts/quickstart_tester.sh
-```
-
-### 2) Demo bootstrap
-
-```bash
-cd Weall-Protocol
-./scripts/demo_bootstrap_tester.sh
-```
-
-### 3) Frontend only
-
-```bash
-cd web
-cp .env.example .env.local
-npm ci
-npm run dev -- --host 127.0.0.1 --port 5173
-```
-
----
-
-## Dev environment requirements
-
-### Backend
-
-- Python 3.12
-- Docker Desktop / Docker Engine with Compose
-- local access to ports `8000`, `5001`, and `8080`
-
-### Frontend
-
-- Node.js 20+
-- npm
-- local access to port `5173`
-
----
-
-## Public-facing architecture summary
-
-At a high level, the current execution path is:
+Then open:
 
 ```text
-API submit
-→ tx admission
-→ persistent mempool
-→ block assembly
-→ block admission
-→ deterministic domain execution
-→ receipts + state root
-→ atomic commit
+http://127.0.0.1:5173
 ```
 
-Consensus remains the canonical ordering and finality layer.
-
-Helpers, where used, must preserve the same result as the serial reference executor.
-
-Native PoH verification is protocol-native chain state: accounts open cases, bind commitments, assigned jurors submit signed review/verdict transactions, and deterministic finalization updates the PoH tier. Consensus execution never sends mail, calls HTTP, performs DNS lookups, or delegates identity authority to an external provider.
+The demo account should be surfaced through the local dev bootstrap flow.
 
 ---
 
-## Current safety posture
+## Useful Local URLs
 
-The current implementation posture is intentionally conservative:
+Backend:
 
-- fail closed rather than guess
-- validate before admit
-- re-validate before block inclusion
-- apply atomically
-- bind consensus messages to chain and validator context
-- keep helper execution beneath canonical consensus
-- keep email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, and third-party AI scoring outside required PoH authority
-- pin production consensus/profile limits so local environment drift cannot change block validity
-- require explicit lifecycle promotion before production authority
-
-This is deliberate.  
-The goal is not just to make the system run — it is to make it hard for honest nodes to disagree.
-
----
-
-## Repository documentation
-
-For deeper implementation detail, use these repository-tracked files:
-
-- `Weall-Protocol/README.md` — backend quickstart, runtime notes, and operator diagnostics
-- `Weall-Protocol/docs/testnet_runbook.md` — local tester, conference, and protocol-review runbook
-- `RELEASE_CHECKLIST.md` — external tester release checklist
-- `CONTRIBUTING.md` — contribution workflow and review expectations
-- `SECURITY.md` — security reporting and supported security posture
-
----
-
-## Common troubleshooting
-
-### Port already in use
-
-The dev boot script attempts automatic cleanup. If a port remains busy, run:
-
-```bash
-lsof -i :8000 -P -n
-lsof -i :5173 -P -n
-ss -ltnp | grep -E ':8000|:5173'
-ps aux | grep -E 'vite|npm run dev|node.*5173' | grep -v grep
-docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Ports}}'
+```text
+http://127.0.0.1:8000
 ```
 
-### Backend container health issues
+Frontend:
+
+```text
+http://127.0.0.1:5173
+```
+
+Backend readiness:
+
+```text
+http://127.0.0.1:8000/v1/readyz
+```
+
+Backend status:
+
+```text
+http://127.0.0.1:8000/v1/status
+```
+
+API docs, when enabled by the local backend:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## Demo Surfaces to Check
+
+After the fresh-clone boot completes, useful frontend routes include:
+
+```text
+/feed
+/messages
+/decisions
+/reviews
+/account-verification
+/profile
+```
+
+Suggested manual smoke test:
+
+1. Open the frontend.
+2. Load the demo tester session.
+3. Open the feed.
+4. Confirm the seeded demo post is visible.
+5. Open messages.
+6. Open decisions.
+7. Open reviews.
+8. Report content from the feed.
+9. Open the assigned review.
+10. Accept the review assignment.
+11. Test Keep Post / Remove Post behavior.
+
+---
+
+## Development Checks
+
+From the backend directory:
 
 ```bash
 cd Weall-Protocol
-docker compose ps
-docker compose logs weall_api --tail 200
-docker compose logs weall_producer --tail 200
-docker inspect weall-protocol-weall_api-1 --format '{{json .State.Health}}'
-```
 
-### Frontend not picking up demo account
-
-```bash
-cat web/public/dev-bootstrap.json
-cat Weall-Protocol/generated/demo_bootstrap_result.json
-```
-
-Then refresh the browser or clear local storage for `127.0.0.1:5173`.
-
-### Release tree hygiene before pushing
-
-```bash
-cd Weall-Protocol
 python3 -S scripts/check_tx_canon_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
 ```
 
-Expected checkpoint for this snapshot:
+From the frontend directory:
 
-```text
-✅ tx canon artifacts are synchronized (225 tx types, version 1.24.0)
-[secret-guard] OK
-[verify] release tree check passed
+```bash
+cd web
+npm run build
 ```
 
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
-## Release truth checkpoint
+These checks should pass before committing changes.
 
-- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
-- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
-- There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
-- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
-- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
-- Public API redaction is required for public snapshots and unauthenticated account reads.
-- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+---
+
+## Cleaning Local Runtime Artifacts
+
+The local demo creates runtime state, generated demo files, containers, and temporary development artifacts.
+
+To stop the backend containers:
+
+```bash
+cd Weall-Protocol
+docker compose down --remove-orphans
+```
+
+Before committing, remove local runtime artifacts and re-run release checks.
+
+Common files that should not be committed include:
+
+- local SQLite databases
+- local BFT journal files
+- local helper lane directories
+- local dev bootstrap secrets
+- frontend build artifacts
+- `node_modules`
+- `.venv`
+- `.env`
+- `.env.local`
+- generated demo bootstrap secrets
+
+---
+
+## Repository Layout
+
+High-level structure:
+
+```text
+.
+├── scripts/
+│   └── dev_boot_full_stack.sh
+├── web/
+│   ├── src/
+│   └── public/
+└── Weall-Protocol/
+    ├── src/weall/
+    ├── scripts/
+    ├── specs/
+    ├── generated/
+    ├── tests/
+    └── docker-compose.yml
+```
+
+The repository currently contains both protocol/backend code and frontend application code.
+
+---
+
+## Protocol Areas Under Active Work
+
+Current active areas include:
+
+- deterministic transaction execution
+- transaction canon synchronization
+- account/session handling
+- protocol-native human verification
+- role and responsibility gating
+- content posting and media declaration
+- reporting and review flows
+- decision/governance flows
+- local full-stack reproducibility
+- frontend human-readable UX
+- production-readiness audits
+
+---
+
+## Frontend Direction
+
+The frontend should avoid exposing protocol internals to ordinary users by default.
+
+Preferred user-facing language includes:
+
+- Account Verification
+- Verified Person
+- Trusted Verified Person
+- Decisions
+- Reports
+- Reviews
+- Trusted Responsibilities
+- Community Reviewer
+
+Advanced protocol details may still be available for developers, reviewers, and operators, but they should not dominate normal social flows.
+
+---
+
+## Security and Production Notes
+
+This repository is still under active development.
+
+Do not use this code to run production funds, public validator infrastructure, or irreversible public governance without additional review.
+
+Before any public production deployment, the project still needs deeper validation, including:
+
+- multi-node testing
+- adversarial consensus testing
+- persistence and restart testing
+- role/gate bypass testing
+- frontend/backend authority review
+- privacy review
+- deployment hardening
+- operator documentation
+- external security review
+
+---
+
+## License
+
+License information should be reviewed in the repository before reuse or deployment.
+
+---
+
+## Current Summary
+
+WeAll currently has a working local fresh-clone demo path.
+
+That means the project can now be cloned, booted, and inspected as a running social coordination prototype from scratch.
+
+The next major work is to keep hardening the protocol, frontend, testing, and operator path without overstating production readiness.
 
