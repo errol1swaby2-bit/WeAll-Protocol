@@ -374,7 +374,7 @@ Before any public production deployment, the project still needs deeper validati
 
 ## License
 
-License information should be reviewed in the repository before reuse or deployment.
+WeAll Protocol is licensed under the Mozilla Public License 2.0. See `LICENSE`.
 
 ---
 
