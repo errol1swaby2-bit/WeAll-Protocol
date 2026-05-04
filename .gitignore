@@ -128,3 +128,7 @@ Weall-Protocol/generated/demo_bootstrap_secret.json
 
 # WeAll controlled devnet local runtime artifacts
 Weall-Protocol/.weall-devnet/
+
+# Source package: do not confuse protocol storage code with runtime storage data.
+!Weall-Protocol/src/weall/storage/
+!Weall-Protocol/src/weall/storage/**
