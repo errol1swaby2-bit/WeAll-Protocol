@@ -323,6 +323,38 @@ start_frontend() {
   fi
 }
 
+restart_backend_after_demo_bootstrap() {
+  log "restarting backend containers so producer/API reload seeded demo authority"
+  (
+    cd "$BACKEND_DIR"
+    docker compose restart weall_api weall_producer >/dev/null
+  ) || fail "backend restart after demo bootstrap failed"
+
+  log "waiting for backend after seeded demo authority reload"
+  wait_for_url "http://127.0.0.1:8000/v1/readyz" 60 || fail "backend did not report ready after seeded demo reload"
+
+  log "verifying seeded demo reviewer authority after reload"
+  (
+    cd "$BACKEND_DIR"
+    "$PYTHON_BIN" - <<'PYVERIFY'
+import json
+import urllib.request
+
+with urllib.request.urlopen("http://127.0.0.1:8000/v1/state/snapshot", timeout=10) as resp:
+    body = json.loads(resp.read().decode("utf-8"))
+state = body.get("state") if isinstance(body, dict) else {}
+roles = state.get("roles") if isinstance(state, dict) else {}
+jurors = roles.get("jurors") if isinstance(roles, dict) else {}
+by_id = jurors.get("by_id") if isinstance(jurors, dict) else {}
+active_set = jurors.get("active_set") if isinstance(jurors, dict) else []
+rec = by_id.get("@demo_tester") if isinstance(by_id, dict) else None
+if not isinstance(rec, dict) or not bool(rec.get("active")) or "@demo_tester" not in list(active_set or []):
+    raise SystemExit("seeded demo reviewer role did not survive backend reload")
+print("seeded demo reviewer role persisted")
+PYVERIFY
+  ) || fail "seeded demo reviewer authority verification failed"
+}
+
 main() {
   ensure_cmd curl
   ensure_cmd python3
@@ -342,7 +374,7 @@ main() {
   log "starting canonical backend quickstart with explicit PYTHONPATH"
   (
     cd "$BACKEND_DIR"
-    WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}" PYTHONPATH=src bash ./scripts/quickstart_tester.sh
+    WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}" WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE="${WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE:-1}" WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}" PYTHONPATH=src bash ./scripts/quickstart_tester.sh
   ) || fail "canonical backend quickstart failed; inspect diagnostics printed above"
 
   log "verifying backend ready"
@@ -354,9 +386,12 @@ main() {
     PYTHONPATH=src bash ./scripts/demo_bootstrap_tester.sh
   ) || fail "canonical demo bootstrap failed"
 
+  restart_backend_after_demo_bootstrap
+
   log "writing frontend dev bootstrap manifest from canonical demo summary"
   "$PYTHON_BIN" - <<'PY'
 import json
+import os
 from pathlib import Path
 
 repo = Path.cwd()
@@ -364,6 +399,7 @@ backend = repo / "Weall-Protocol"
 frontend = repo / "web"
 summary_path = backend / "generated" / "demo_bootstrap_result.json"
 summary = json.loads(summary_path.read_text(encoding="utf-8"))
+api_base = os.environ.get("WEALL_API", "http://127.0.0.1:8000").rstrip("/")
 manifest = {
     "account": summary.get("account"),
     "pubkeyB64": summary.get("pubkey_b64"),
@@ -383,8 +419,8 @@ manifest = {
         "Use the generated dev bootstrap card on Login to restore the seeded tester instantly after reset.",
         "Canonical public metadata remains in Weall-Protocol/generated/demo_bootstrap_result.json and web/public/dev-bootstrap.json, while the private key stays local-only.",
     ],
-    "apiBase": "/",
-    "api_base": "/",
+    "apiBase": api_base,
+    "api_base": api_base,
 }
 out_path = frontend / "public" / "dev-bootstrap.json"
 out_path.parent.mkdir(parents=True, exist_ok=True)

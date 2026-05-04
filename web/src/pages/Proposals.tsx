@@ -36,6 +36,31 @@ function stageBadgeClass(stage: string): string {
 }
 
 
+
+function decisionIsOpenForVote(stageRaw: string): boolean {
+  const stage = String(stageRaw || "").trim().toLowerCase();
+  return ["poll", "voting", "vote"].includes(stage);
+}
+
+function decisionIsResultStage(stageRaw: string): boolean {
+  const stage = String(stageRaw || "").trim().toLowerCase();
+  return ["closed", "tallied", "executed", "finalized"].includes(stage);
+}
+
+function decisionOutcomeLabel(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
+  const total = counts.yes + counts.no + counts.abstain;
+  if (total <= 0) return decisionIsResultStage(stageRaw) ? "No votes recorded" : "Voting not complete";
+  if (counts.yes > counts.no) return "Approved";
+  if (counts.no > counts.yes) return "Not approved";
+  return "No clear majority";
+}
+
+function decisionOutcomeText(stageRaw: string, counts: { yes: number; no: number; abstain: number }): string {
+  const total = counts.yes + counts.no + counts.abstain;
+  if (total <= 0) return decisionIsResultStage(stageRaw) ? "The decision is closed, but no votes are recorded." : "Votes appear here while the decision is open and after it closes.";
+  return `Yes ${counts.yes} · No ${counts.no} · Abstain ${counts.abstain}`;
+}
+
 function primaryActionLabel(stage: string): string {
   if (stage === "poll" || stage === "voting" || stage === "vote") return "Open and vote";
   if (stage === "draft" || stage === "revision" || stage === "validation") return "Open and review";
@@ -52,7 +77,7 @@ export default function Proposals(): JSX.Element {
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [query, setQuery] = useState("");
-  const [scopeFilter, setScopeFilter] = useState<"active" | "all">("active");
+  const [scopeFilter, setScopeFilter] = useState<"active" | "all">("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortMode, setSortMode] = useState("created_desc");
 
@@ -120,8 +145,7 @@ export default function Proposals(): JSX.Element {
     const stageNeedle = stageFilter.trim().toLowerCase();
     const subset = items.filter((p) => {
       const stage = governanceProposalStageOf(p);
-      const isActive = !["finalized", "withdrawn", "closed", "executed"].includes(stage);
-      if (scopeFilter === "active" && !isActive) return false;
+      if (scopeFilter === "active" && !decisionIsOpenForVote(stage)) return false;
       if (stageNeedle !== "all" && stage !== stageNeedle) return false;
       if (!q) return true;
       const id = governanceProposalIdOf(p).toLowerCase();
@@ -134,7 +158,8 @@ export default function Proposals(): JSX.Element {
   }, [items, query, scopeFilter, stageFilter, sortMode]);
 
   const stageSummary = useMemo(() => summary?.by_stage || {}, [summary]);
-  const totalOpenProposals = useMemo(() => (summary ? Number(summary.active || 0) : items.filter((p) => !["finalized", "withdrawn"].includes(governanceProposalStageOf(p))).length), [items, summary]);
+  const totalOpenProposals = useMemo(() => items.filter((p) => decisionIsOpenForVote(governanceProposalStageOf(p))).length, [items]);
+  const totalResultProposals = useMemo(() => items.filter((p) => decisionIsResultStage(governanceProposalStageOf(p))).length, [items]);
 
 
   return (
@@ -154,6 +179,7 @@ export default function Proposals(): JSX.Element {
               <div className="heroInfoList">
                 <span className="statusPill">Total {items.length}</span>
                 <span className="statusPill">Open {totalOpenProposals}</span>
+                <span className="statusPill">Results {totalResultProposals}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "Trusted Verified Person" : "Live verification required"}</span>
                 <span className="statusPill">{acctState ? summarizeAccountState(acctState) : "(state unknown)"}</span>
               </div>
@@ -230,7 +256,7 @@ export default function Proposals(): JSX.Element {
                   <label className="fieldLabel">
                     Queue scope
                     <select value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value as "active" | "all") }>
-                      <option value="active">open decisions only</option>
+                      <option value="active">open votes only</option>
                       <option value="all">all decisions</option>
                     </select>
                   </label>
@@ -282,7 +308,7 @@ export default function Proposals(): JSX.Element {
 
               <div className="pageStack">
                 {filtered.length === 0 ? (
-                  <div className="cardDesc">No decisions returned yet.</div>
+                  <div className="cardDesc">{scopeFilter === "active" ? "No open votes right now. Switch queue scope to all decisions to see closed decisions and final results." : "No decisions returned yet."}</div>
                 ) : (
                   filtered.map((p) => {
                     const id = governanceProposalIdOf(p);
@@ -291,6 +317,7 @@ export default function Proposals(): JSX.Element {
                     const stage = governanceProposalStageOf(p);
                     const counts = governanceProposalCountsOf(p);
                     const totalVotes = counts.yes + counts.no + counts.abstain;
+                    const resultReady = decisionIsResultStage(stage);
 
                     return (
                       <article key={id || titleText} className="card">
@@ -309,6 +336,7 @@ export default function Proposals(): JSX.Element {
                             <article className="summaryCard"><div className="summaryCardLabel">Creator</div><div className="summaryCardValue mono">{String((p as any)?.creator || "(unknown)")}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Status note</div><div className="summaryCardValue">{decisionStageLabel(stage)}</div><div className="summaryCardText">{decisionStageHelp(stage)}</div></article>
                             <article className="summaryCard"><div className="summaryCardLabel">Vote tally</div><div className="summaryCardValue">{totalVotes}</div><div className="summaryCardText">Yes {counts.yes} · No {counts.no} · Abstain {counts.abstain}</div></article>
+                            <article className="summaryCard"><div className="summaryCardLabel">Outcome</div><div className="summaryCardValue">{decisionOutcomeLabel(stage, counts)}</div><div className="summaryCardText">{resultReady ? "Final result · " : "Current tally · "}{decisionOutcomeText(stage, counts)}</div></article>
                           </div>
                           {bodyText ? <div className="feedBodyText">{bodyText}</div> : <div className="cardDesc">No description provided.</div>}
                           <div className="buttonRow">

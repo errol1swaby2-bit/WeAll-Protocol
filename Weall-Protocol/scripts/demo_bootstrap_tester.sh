@@ -13,7 +13,7 @@ FEED_URL="${WEALL_FEED_URL:-http://127.0.0.1:5173}"
 cd "${ROOT_DIR}"
 mkdir -p generated
 
-export WEALL_MODE="${WEALL_MODE:-demo}"
+export WEALL_MODE="${WEALL_MODE:-dev}"
 export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}"
 export WEALL_AUTHORITY_PROFILE="${WEALL_AUTHORITY_PROFILE:-demo}"
 export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-demo.json}"

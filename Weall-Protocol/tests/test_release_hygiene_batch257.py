@@ -105,3 +105,13 @@ def test_frontend_route_registry_has_no_user_facing_tier3_gate_batch257() -> Non
     juror_block = text.split('"/juror":', 1)[1].split('"/tools":', 1)[0]
     assert "minPohTier: 2" in juror_block
     assert "Active Juror role or badge" in juror_block
+
+
+def test_dockerfile_allows_dev_unlocked_builds_without_lockfiles_batch266() -> None:
+    text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "ARG ALLOW_UNLOCKED=0" in text
+    assert "COPY requirements* /app/" in text
+    assert "COPY requirements.lock requirements-dev.lock /app/" not in text
+    assert "requirements.lock missing" in text
+    assert 'ALLOW_UNLOCKED" = "1"' in text

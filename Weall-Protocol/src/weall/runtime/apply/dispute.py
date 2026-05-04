@@ -319,27 +319,47 @@ def _maybe_schedule_dispute_auto_resolution(state: Json, dispute: Json, dispute_
         return
 
     tally = _vote_choice_tally(active_votes)
-    resolution = _select_resolution_from_votes(active_votes)
-    if not resolution:
-        resolution = {
-            "summary": "deterministic validator-threshold resolution",
-            "tally": dict(tally),
-            "eligible_validator_count": int(eligible_count),
-            "required_votes": int(required_votes),
-            "total_votes": int(total_votes),
-        }
-    else:
-        resolution = dict(resolution)
-        resolution.setdefault("tally", dict(tally))
-        resolution.setdefault("eligible_validator_count", int(eligible_count))
-        resolution.setdefault("required_votes", int(required_votes))
-        resolution.setdefault("total_votes", int(total_votes))
+    yes = int(tally.get("yes", 0) or 0)
+    no = int(tally.get("no", 0) or 0)
+    report_upheld = yes > no
 
-    actions = resolution.get("actions") if isinstance(resolution.get("actions"), list) else []
-    if not actions:
-        actions = _default_content_resolution_actions(dispute, dict(tally))
-        if actions:
-            resolution["actions"] = list(actions)
+    # Resolution is derived from the final tally, not from whichever juror's
+    # optional resolution object sorts first. This prevents a losing or stale
+    # client-supplied action list from removing content when the report was not
+    # upheld, and guarantees that an upheld content report receives the canonical
+    # visibility enforcement action.
+    selected_resolution = _select_resolution_from_votes(active_votes)
+    resolution = dict(selected_resolution) if isinstance(selected_resolution, dict) else {}
+    resolution["tally"] = dict(tally)
+    resolution["eligible_validator_count"] = int(eligible_count)
+    resolution["required_votes"] = int(required_votes)
+    resolution["total_votes"] = int(total_votes)
+    resolution["outcome"] = "report_upheld" if report_upheld else "report_not_upheld"
+
+    is_content_target = (
+        _as_str(dispute.get("target_type")).strip().lower() == "content"
+        and bool(_as_str(dispute.get("target_id")).strip())
+    )
+    if is_content_target:
+        selected_actions = resolution.get("actions") if isinstance(resolution.get("actions"), list) else []
+        non_content_actions = [
+            a for a in selected_actions
+            if isinstance(a, dict)
+            and _as_str(a.get("tx_type")).strip() not in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}
+        ]
+        if report_upheld:
+            resolution["summary"] = "Report upheld. The content should be removed."
+            resolution["actions"] = _default_content_resolution_actions(dispute, dict(tally)) + non_content_actions
+        else:
+            resolution["summary"] = "Report not upheld. The content should remain visible."
+            resolution["actions"] = []
+    else:
+        resolution.setdefault("summary", "deterministic validator-threshold resolution")
+        actions = resolution.get("actions") if isinstance(resolution.get("actions"), list) else []
+        if not actions and report_upheld:
+            default_actions = _default_content_resolution_actions(dispute, dict(tally))
+            if default_actions:
+                resolution["actions"] = list(default_actions)
 
     payload: Json = {"dispute_id": dispute_id, "resolution": resolution}
     if parent_ref:

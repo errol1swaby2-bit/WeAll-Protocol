@@ -13,6 +13,7 @@ export type DevBootstrapManifest = {
   account?: string;
   pubkeyB64?: string;
   apiBase?: string;
+  api_base?: string;
   sessionTtlSeconds?: number;
   note?: string;
   seededGroup?: { group_id?: string; member_visible?: boolean; visibility?: string };
@@ -71,16 +72,28 @@ function manifestSessionTtlSeconds(manifest: DevBootstrapManifest | DevBootstrap
   return Math.max(300, Number(manifest.sessionTtlSeconds || 24 * 60 * 60));
 }
 
+function usableApiBase(...candidates: Array<string | undefined>): string {
+  for (const candidate of candidates) {
+    const normalized = String(candidate || "").trim();
+    if (normalized && normalized !== "/") return normalized;
+  }
+  return "/";
+}
+
 function apiJoin(base: string, path: string): string {
-  const normalizedBase = String(base || "").trim();
-  if (!normalizedBase || normalizedBase === "/") return path;
-  return `${normalizedBase.replace(/\/+$|$/g, "")}${path}`;
+  const normalizedBase = usableApiBase(base);
+  if (normalizedBase === "/") return path;
+  return `${normalizedBase.replace(/\/+$/, "")}${path}`;
+}
+
+function manifestApiBase(config: AppConfig, manifest: DevBootstrapManifest): string {
+  return usableApiBase(manifest.apiBase, manifest.api_base, config.defaultApiBase);
 }
 
 async function fetchSecret(config: AppConfig, manifest: DevBootstrapManifest): Promise<DevBootstrapSecretResponse | null> {
   const account = String(manifest.account || "").trim();
   if (!account) return null;
-  const base = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/";
+  const base = manifestApiBase(config, manifest);
   const url = apiJoin(base, `/v1/dev/bootstrap-secret?account=${encodeURIComponent(account)}`);
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -101,7 +114,7 @@ async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest):
   if (!secretKeyB64) return false;
 
   const marker = buildMarker(manifest);
-  const normalizedBase = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/";
+  const normalizedBase = manifestApiBase(config, manifest);
   const ttlSeconds = manifestSessionTtlSeconds(secret || manifest);
 
   setApiBase(normalizedBase);

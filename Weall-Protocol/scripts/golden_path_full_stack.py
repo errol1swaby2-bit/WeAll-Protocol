@@ -216,8 +216,14 @@ def _account_path(account: str) -> str:
     return f"/v1/accounts/{urllib.parse.quote(account, safe='')}"
 
 
-def _account_state(cfg: Cfg, account: str) -> Json:
-    body = _get(cfg, _account_path(account))
+def _account_state(cfg: Cfg, account: str, *, session_key: str | None = None) -> Json:
+    headers: dict[str, str] | None = None
+    if session_key:
+        headers = {
+            "X-WeAll-Account": account,
+            "X-WeAll-Session-Key": session_key,
+        }
+    body = _get(cfg, _account_path(account), headers=headers)
     state = body.get("state")
     return state if isinstance(state, dict) else {}
 
@@ -377,10 +383,19 @@ def _issue_session(cfg: Cfg, *, account: str, priv_hex: str) -> str:
         payload={"session_key": session_key, "ttl_s": 3600},
     )
     _wait_tx_confirmed(cfg, issued["tx_id"])
-    state = _wait_account(cfg, account, nonce_at_least=2)
+    # Public account lookups intentionally redact bearer session keys, so the
+    # script must verify the new session through an owner-authenticated lookup.
+    # This keeps the golden path aligned with the production privacy boundary
+    # while still proving ACCOUNT_SESSION_KEY_ISSUE produced a usable session.
+    _wait_account(cfg, account, nonce_at_least=2)
+    state = _account_state(cfg, account, session_key=session_key)
     sessions = state.get("session_keys")
     if not isinstance(sessions, dict) or session_key not in sessions:
-        raise FlowError(f"session key was not written on-chain: account={account} state={state}")
+        public_state = _account_state(cfg, account)
+        raise FlowError(
+            "session key was not visible through owner-authenticated account lookup: "
+            f"account={account} private_state={state} public_state={public_state}"
+        )
     return session_key
 
 

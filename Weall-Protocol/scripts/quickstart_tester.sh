@@ -8,18 +8,54 @@ API_URL="${WEALL_API_URL:-http://127.0.0.1:8000}"
 FRONTEND_URL="${WEALL_FRONTEND_URL:-http://127.0.0.1:5173}"
 FRONTEND_ENV_FILE="${WEALL_FRONTEND_ENV_FILE:-../web/.env.local}"
 export WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-1}"
+export WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE="${WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE:-1}"
 export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}"
+
+DEMO_CHAIN_MANIFEST_REL="./configs/chains/weall-demo.json"
+
+resolve_host_manifest_path() {
+  local raw="$1"
+  if [[ -z "$raw" ]]; then
+    return 0
+  fi
+  if [[ "$raw" = /* ]]; then
+    printf '%s
+' "$raw"
+    return 0
+  fi
+  if [[ -f "$raw" ]]; then
+    python3 - "$raw" <<'PYPATH'
+from pathlib import Path
+import sys
+print(Path(sys.argv[1]).resolve())
+PYPATH
+    return 0
+  fi
+  printf '%s
+' "${ROOT_DIR}/${raw#./}"
+}
 
 # Conference/demo boot should not accidentally create an anonymous local chain.
 # When seeded_demo is active, pin the deterministic demo chain manifest unless
 # the caller explicitly supplied a different chain profile.
 if [[ "${WEALL_RUNTIME_PROFILE}" == "seeded_demo" ]]; then
-  export WEALL_MODE="${WEALL_MODE:-demo}"
-  export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-demo.json}"
+  export WEALL_MODE="${WEALL_MODE:-dev}"
   export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
   export WEALL_AUTHORITY_PROFILE="${WEALL_AUTHORITY_PROFILE:-demo}"
-  if [[ -z "${WEALL_CHAIN_ID:-}" && -f "${WEALL_CHAIN_MANIFEST_PATH}" ]]; then
-    WEALL_CHAIN_ID="$(python3 -S - "${WEALL_CHAIN_MANIFEST_PATH}" <<'PYJSON'
+
+  # Docker compose passes WEALL_CHAIN_MANIFEST_PATH into the container. The
+  # default seeded-demo manifest must therefore be container-relative, while the
+  # host script still reads the checked-in host file to derive WEALL_CHAIN_ID.
+  host_chain_manifest_path=""
+  if [[ -z "${WEALL_CHAIN_MANIFEST_PATH:-}" && -z "${WEALL_CHAIN_MANIFEST:-}" ]]; then
+    host_chain_manifest_path="${ROOT_DIR}/configs/chains/weall-demo.json"
+    export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CONTAINER_CHAIN_MANIFEST_PATH:-${DEMO_CHAIN_MANIFEST_REL}}"
+  else
+    host_chain_manifest_path="$(resolve_host_manifest_path "${WEALL_CHAIN_MANIFEST_PATH:-${WEALL_CHAIN_MANIFEST:-}}")"
+  fi
+
+  if [[ -z "${WEALL_CHAIN_ID:-}" && -n "${host_chain_manifest_path}" && -f "${host_chain_manifest_path}" ]]; then
+    WEALL_CHAIN_ID="$(python3 -S - "${host_chain_manifest_path}" <<'PYJSON'
 import json, sys
 with open(sys.argv[1], 'r', encoding='utf-8') as f:
     obj = json.load(f)

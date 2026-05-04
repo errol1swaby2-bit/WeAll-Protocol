@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
+import MediaGallery from "../components/MediaGallery";
 import { getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
@@ -28,6 +29,39 @@ function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Report review action failed.");
 }
 
+function asArray<T = any>(value: any): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function resolveContentMedia(content: any, mediaIndex: Record<string, any>): any[] {
+  const raw = [
+    ...asArray(content?.media),
+    ...asArray(content?.media_ids),
+    ...asArray(content?.attachments),
+  ].filter((item) => item != null);
+  if (!raw.length) return [];
+
+  const index = mediaIndex && typeof mediaIndex === "object" ? mediaIndex : {};
+  return raw.map((entry) => {
+    if (typeof entry !== "string") return entry;
+    const mediaId = entry.trim();
+    if (!mediaId || !mediaId.startsWith("media:")) return entry;
+    const resolved = index[mediaId];
+    if (!resolved || typeof resolved !== "object") return entry;
+    const payload = resolved?.payload && typeof resolved.payload === "object" ? resolved.payload : {};
+    return {
+      media_id: mediaId,
+      cid: resolved?.cid || payload?.cid || payload?.upload_ref || payload?.ref || "",
+      mime: payload?.mime || payload?.mime_type || payload?.content_type || resolved?.mime || "",
+      name: payload?.name || payload?.filename || resolved?.name || mediaId,
+      kind: resolved?.kind || payload?.kind || "",
+      declared_by: resolved?.declared_by || "",
+      declared_at_nonce: resolved?.declared_at_nonce,
+      payload,
+    };
+  });
+}
+
 
 export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const apiBase = useMemo(() => getApiBaseUrl(), []);
@@ -41,6 +75,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const [dispute, setDispute] = useState<any | null>(null);
   const [voteSurface, setVoteSurface] = useState<any | null>(null);
   const [targetContent, setTargetContent] = useState<any | null>(null);
+  const [mediaIndex, setMediaIndex] = useState<Record<string, any>>({});
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any>(null);
 
@@ -67,7 +102,13 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   async function load(): Promise<void> {
     setErr(null);
     try {
-      const [detailRes, votesRes] = await Promise.all([weall.dispute(id, apiBase), weall.disputeVotes(id, apiBase)]);
+      const [detailRes, votesRes, snapshotRes] = await Promise.all([
+        weall.dispute(id, apiBase),
+        weall.disputeVotes(id, apiBase),
+        weall.stateSnapshot(apiBase).catch(() => null),
+      ]);
+      const mediaRoot = (snapshotRes as any)?.state?.content?.media;
+      setMediaIndex(mediaRoot && typeof mediaRoot === "object" ? mediaRoot : {});
       const nextDispute = (detailRes as any)?.dispute || null;
       setDispute(nextDispute);
       setVoteSurface(votesRes || null);
@@ -88,6 +129,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       setDispute(null);
       setVoteSurface(null);
       setTargetContent(null);
+      setMediaIndex({});
     }
   }
 
@@ -115,10 +157,20 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canDecline = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canVote = disputeReviewUnlocked({ dispute, account, tierGateOk: tierGate.ok, signerBusy: signerSubmission.busy });
+  const disputeId = String(dispute?.id || dispute?.dispute_id || id || "").trim();
+  const targetId = String(dispute?.target_id || "").trim();
   const contentObj = targetContent?.content;
   const contentBody = String(contentObj?.body || contentObj?.text || "").trim();
   const contentAuthor = String(contentObj?.author || "").trim();
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
+  const contentMedia = resolveContentMedia(contentObj, mediaIndex);
+  const removeContentActions = targetId
+    ? [
+        { tx_type: "CONTENT_LABEL_SET", payload: { target_id: targetId, labels: ["dispute_upheld", "policy_violation"] } },
+        { tx_type: "CONTENT_VISIBILITY_SET", payload: { target_id: targetId, visibility: "deleted" } },
+        ...(targetId.startsWith("post:") ? [{ tx_type: "CONTENT_THREAD_LOCK_SET", payload: { target_id: targetId, locked: true } }] : []),
+      ]
+    : [];
 
   const lockReason = !account
     ? "Step 0: log in with a reviewer-capable account before entering the review workspace."
@@ -139,7 +191,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
     if (signerSubmission.busy) throw new Error("Another signed action is still settling for this reviewer account.");
     const res = await tx.runTx({
       title,
-      pendingKey: txPendingKey(["dispute", txType, String(payload?.dispute_id || id || ""), account]),
+      pendingKey: txPendingKey(["dispute", txType, String(payload?.dispute_id || disputeId || ""), account]),
       pendingMessage: "Saving review action…",
       successMessage,
       errorMessage: (e) => prettyErr(e).msg,
@@ -150,14 +202,14 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         timeoutMs: 18000,
         mutation: {
           entityType: "dispute",
-          entityId: String(payload?.dispute_id || id || "").trim() || undefined,
+          entityId: String(payload?.dispute_id || disputeId || "").trim() || undefined,
           account: account || undefined,
-          routeHint: `/reviews/${encodeURIComponent(id)}`,
+          routeHint: `/reviews/${encodeURIComponent(disputeId || id)}`,
           txType,
         },
         reconcile: async () =>
           reconcileDisputeMutation({
-            disputeId: String(payload?.dispute_id || id || ""),
+            disputeId: String(payload?.dispute_id || disputeId || ""),
             account,
             txType: txType as any,
             vote: payload?.vote || null,
@@ -180,7 +232,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
               <p className="heroSubtitle">This page owns the final reviewer workflow. The queue lists work, the detail page explains the report, and this action page records one final review choice.</p>
             </div>
             <div className="surfaceSummaryStats">
-              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">report id</span></div>
+              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{disputeId}</strong><span className="surfaceSummaryHint">report id</span></div>
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{summary}</strong><span className="surfaceSummaryHint">current account standing</span></div>
             </div>
           </div>
@@ -288,7 +340,9 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
               <div className="summaryCardText">Context matters for community review and should stay visible here.</div>
             </article>
           </div>
+          {contentMedia.length ? <MediaGallery base={apiBase} media={contentMedia} title="Flagged media" compact /> : null}
           {contentBody ? <div className="feedBodyText">{contentBody}</div> : <div className="cardDesc">The target content body could not be loaded on this pass. Open the content page to cross-check the visible object.</div>}
+          {!contentMedia.length && asArray(contentObj?.media).length ? <div className="cardDesc">This content references media that could not be resolved from the current snapshot yet. Refresh review state, then cross-check the content page.</div> : null}
           {String(dispute?.target_id || "") ? <div className="buttonRow"><button className="btn" onClick={() => nav(`/content/${encodeURIComponent(String(dispute?.target_id || ""))}`)}>Open content page</button></div> : null}
         </div>
       </section>
@@ -302,13 +356,13 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             </div>
           </div>
           <div className="buttonRow buttonRowWide">
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: dispute.id }, "Accept report", "Report accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: dispute.id }, "Decline report", "Report declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
-            <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "yes" }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "no" }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
-            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: dispute.id, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: disputeId }, "Accept assignment", "Review assignment accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: disputeId }, "Decline assignment", "Review assignment declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+            <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "no", resolution: { outcome: "report_not_upheld", summary: "Reviewer chose to keep the post visible.", actions: [] } }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "yes", resolution: { outcome: "report_upheld", summary: "Reviewer upheld the report and chose to remove the post.", actions: removeContentActions } }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
-          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept or decline only to resolve assignment posture; once unlocked, the final choice is the dominant action.</div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept or decline only to resolve assignment posture; once unlocked, Keep Post records that the report should not be upheld, while Remove Post records that the report should be upheld.</div>
         </div>
       </section>
 

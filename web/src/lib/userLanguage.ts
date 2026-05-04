@@ -167,15 +167,15 @@ export function decisionVoteChoiceLabel(value: unknown): string {
 
 export function reviewChoiceLabel(value: unknown): string {
   const choice = String(value || "").trim().toLowerCase();
-  if (choice === "yes" || choice === "keep") return "Keep Post";
-  if (choice === "no" || choice === "remove") return "Remove Post";
+  if (choice === "yes" || choice === "remove" || choice === "report_upheld") return "Remove Post";
+  if (choice === "no" || choice === "keep" || choice === "report_not_upheld") return "Keep Post";
   if (choice === "abstain" || choice === "needs_more_review") return "Need More Review";
   return choice ? choice.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "None";
 }
 
 export function reviewTallyText(counts: { yes?: number; no?: number; abstain?: number } | null | undefined): string {
   const c = counts || {};
-  return `Keep ${Number(c.yes || 0)} · Remove ${Number(c.no || 0)} · Need more review ${Number(c.abstain || 0)}`;
+  return `Remove ${Number(c.yes || 0)} · Keep ${Number(c.no || 0)} · Need more review ${Number(c.abstain || 0)}`;
 }
 
 export function reviewStatusLabel(value: unknown): string {

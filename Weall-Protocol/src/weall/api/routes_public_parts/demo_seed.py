@@ -246,6 +246,53 @@ def _ensure_single_active_validator(state: Json, account: str) -> dict[str, Any]
     }
 
 
+def _ensure_active_juror(state: Json, account: str) -> dict[str, Any]:
+    """Seed real Juror authority for the local seeded-demo account.
+
+    The seeded-demo route is already fenced away from production/devnet. Inside
+    that explicit demo-only surface, prefer a normal active Juror role record over
+    a gate bypass. The regular Juror gate then remains production-shaped:
+    Tier2+ plus active Juror role plus case assignment.
+    """
+
+    roles = state.setdefault("roles", {})
+    if not isinstance(roles, dict):
+        raise ApiError.server_error("invalid_state", "roles root missing")
+
+    jurors = roles.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+        roles["jurors"] = jurors
+
+    by_id = jurors.get("by_id")
+    if not isinstance(by_id, dict):
+        by_id = {}
+        jurors["by_id"] = by_id
+
+    existing = _as_dict(by_id.get(account))
+    by_id[account] = {
+        **existing,
+        "account_id": account,
+        "enrolled": True,
+        "active": True,
+        "status": "active",
+        "seeded_demo": True,
+    }
+    jurors["by_id"] = by_id
+
+    active_set = jurors.get("active_set")
+    if not isinstance(active_set, list):
+        active_set = []
+    active = sorted({*(str(x) for x in active_set if str(x).strip()), account})
+    jurors["active_set"] = active
+
+    return {
+        "juror_id": account,
+        "active": True,
+        "authority_source": "seeded_demo_role",
+    }
+
+
 def seed_demo_state(
     state: Json,
     *,
@@ -266,6 +313,7 @@ def seed_demo_state(
         raise ApiError.bad_request("post_required", f"Demo post {post_id} not found")
 
     validator_summary = _ensure_single_active_validator(state, account)
+    juror_summary = _ensure_active_juror(state, account)
 
     slug = _slug(account)
     group_id = str(group_id or f"g:{slug}:demo-public").strip()
@@ -325,25 +373,6 @@ def seed_demo_state(
             },
         )
 
-    roles = _as_dict(state.get("roles"))
-    jurors = _as_dict(roles.get("jurors"))
-    juror_by_id = _as_dict(jurors.get("by_id"))
-    active_set = jurors.get("active_set") if isinstance(jurors.get("active_set"), list) else []
-    if account not in juror_by_id:
-        _apply_user_tx(
-            state,
-            signer=account,
-            tx_type="ROLE_JUROR_ENROLL",
-            payload={"account_id": account},
-        )
-    if account not in active_set:
-        _apply_system_tx(
-            state,
-            tx_type="ROLE_JUROR_ACTIVATE",
-            payload={"account_id": account},
-            parent="demo_seed:juror_activate",
-        )
-
     dispute_obj = _as_dict(_as_dict(state.get("disputes_by_id")).get(dispute_id))
     juror_assignments = _as_dict(dispute_obj.get("jurors"))
     assigned = _as_dict(juror_assignments.get(account))
@@ -369,6 +398,7 @@ def seed_demo_state(
 
     return {
         "validator": validator_summary,
+        "juror": juror_summary,
         "group": {
             "group_id": group_id,
             "member_visible": bool(account in _as_dict(final_group.get("members"))),

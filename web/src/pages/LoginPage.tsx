@@ -46,6 +46,7 @@ type DevBootstrapStep = {
 type DevBootstrapManifest = {
   account?: string
   apiBase?: string
+  api_base?: string
   pubkeyB64?: string
   sessionTtlSeconds?: number
   note?: string
@@ -87,10 +88,22 @@ type DevBootstrapSecretResponse = {
   sessionTtlSeconds?: number
 }
 
+function usableApiBase(...candidates: Array<string | undefined>): string {
+  for (const candidate of candidates) {
+    const normalized = String(candidate || "").trim()
+    if (normalized && normalized !== "/") return normalized
+  }
+  return "/"
+}
+
 function apiJoin(base: string, path: string): string {
-  const normalized = String(base || "").trim()
-  if (!normalized || normalized === "/") return path
+  const normalized = usableApiBase(base)
+  if (normalized === "/") return path
   return `${normalized.replace(/\/+$/, "")}${path}`
+}
+
+function manifestApiBase(manifest: DevBootstrapManifest | null, fallback: string): string {
+  return usableApiBase(manifest?.apiBase, manifest?.api_base, fallback, getApiBase())
 }
 
 async function fetchDevBootstrapSecret(account: string, apiBase: string): Promise<DevBootstrapSecretResponse | null> {
@@ -270,9 +283,9 @@ export default function LoginPage() {
       if (cancelled || !manifest) return
       setDevManifest(manifest)
       const manifestAccount = normalizeAccount(String(manifest.account || ""))
-      const manifestApiBase = String(manifest.apiBase || "").trim()
+      const nextApiBase = manifestApiBase(manifest, config.defaultApiBase)
       if (manifestAccount && !existingAccountInput.trim()) setExistingAccountInput(manifestAccount)
-      if (manifestApiBase && !apiBaseInput.trim()) setApiBaseInput(manifestApiBase)
+      if (nextApiBase && nextApiBase !== "/" && !apiBaseInput.trim()) setApiBaseInput(nextApiBase)
     })
 
     return () => {
@@ -377,7 +390,7 @@ export default function LoginPage() {
 
     setDevBootstrapBusy(true)
     try {
-      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), String(devManifest.apiBase || apiBaseInput || getApiBase()))
+      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), manifestApiBase(devManifest, apiBaseInput))
       const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
       if (!secretKeyB64) throw new Error("Dev bootstrap secret is not available from the local backend.")
       await restoreAccountAndLoginOnThisDevice({
@@ -401,7 +414,7 @@ export default function LoginPage() {
   async function handleCopyDevSecret() {
     if (!devManifest?.account) return
     try {
-      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), String(devManifest.apiBase || apiBaseInput || getApiBase()))
+      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), manifestApiBase(devManifest, apiBaseInput))
       const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
       if (!secretKeyB64) throw new Error("missing_secret")
       await navigator.clipboard.writeText(secretKeyB64)

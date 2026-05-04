@@ -7,6 +7,8 @@ import MediaGallery from "../components/MediaGallery";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
+import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
+import { disputeAttendancePresent, disputeCurrentVote, disputeJurorStatus, disputeVoteCountSummary } from "../lib/disputeSurface";
 import { nav } from "../lib/router";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -99,6 +101,8 @@ export default function JurorDashboard(): JSX.Element {
   const [tier2Cases, setTier2Cases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  const [contentReports, setContentReports] = useState<any[]>([]);
+  const [reportContent, setReportContent] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
   const [tab, setTab] = useState<"tier2" | "live">("tier2");
@@ -134,16 +138,38 @@ export default function JurorDashboard(): JSX.Element {
 
     try {
       const headers = getAuthHeaders(account);
-      const [t2, live, sess] = await Promise.all([
+      const [t2, live, sess, disputesRes] = await Promise.all([
         weall.pohTier2JurorCases(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
+        weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
         refreshAccount(),
       ]);
 
       setTier2Cases(Array.isArray(t2?.cases) ? t2.cases : []);
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
+
+      const assignedReports = (Array.isArray(disputesRes?.items) ? disputesRes.items : [])
+        .filter((item: any) => {
+          const status = disputeJurorStatus(item, account);
+          return status !== "unassigned" && status !== "declined";
+        });
+      setContentReports(assignedReports);
+
+      const previews: Record<string, any> = {};
+      await Promise.all(assignedReports.slice(0, 12).map(async (item: any) => {
+        const id = String(item?.id || item?.dispute_id || "").trim();
+        const targetType = String(item?.target_type || "").trim().toLowerCase();
+        const targetId = String(item?.target_id || "").trim();
+        if (!id || targetType !== "content" || !targetId) return;
+        try {
+          previews[id] = await weall.content(targetId, apiBase, headers);
+        } catch {
+          previews[id] = null;
+        }
+      }));
+      setReportContent(previews);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -309,6 +335,11 @@ export default function JurorDashboard(): JSX.Element {
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const showing = tab === "tier2" ? tier2Cases : liveCases;
+  const assignedContentReports = contentReports.filter((item) => {
+    const targetType = String(item?.target_type || "content").trim().toLowerCase();
+    const status = disputeJurorStatus(item, account);
+    return targetType === "content" && status !== "unassigned" && status !== "declined";
+  });
 
   return (
     <div className="pageStack">
@@ -317,9 +348,9 @@ export default function JurorDashboard(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Review Queue</div>
-              <h1 className="heroTitle heroTitleSm">Review assigned verification work</h1>
+              <h1 className="heroTitle heroTitleSm">Review assigned community work</h1>
               <p className="heroText">
-                This page keeps assigned account-verification reviews and live verification sessions in one place so review work feels clear and deliberate.
+                This page starts with flagged content assigned to you, then keeps account-verification and live verification tasks available below.
               </p>
             </div>
 
@@ -335,12 +366,18 @@ export default function JurorDashboard(): JSX.Element {
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
                   {gate.ok ? "Reviewer-ready" : "Locked"}
                 </span>
+                <span className={`statusPill ${assignedContentReports.length ? "ok" : ""}`}>
+                  {assignedContentReports.length} content report{assignedContentReports.length === 1 ? "" : "s"}
+                </span>
                 <span className="statusPill">{accountSummary}</span>
               </div>
             </div>
           </div>
 
           <div className="heroActions">
+            <button className="btn btnPrimary" onClick={() => nav("/reports")}>
+              All reports
+            </button>
             <button className={`btn ${tab === "tier2" ? "btnPrimary" : ""}`} onClick={() => setTab("tier2")}>
               Async verification cases
             </button>
@@ -369,6 +406,64 @@ export default function JurorDashboard(): JSX.Element {
         onRetry={() => void refreshJurorSurface()}
         onDismiss={() => setErr(null)}
       />
+
+
+      <SectionCard
+        eyebrow="Flagged content"
+        title="Assigned content reviews"
+        right={<span className={`statusPill ${assignedContentReports.length ? "ok" : ""}`}>{assignedContentReports.length} report{assignedContentReports.length === 1 ? "" : "s"}</span>}
+      >
+        {assignedContentReports.length === 0 ? (
+          <div className="cardDesc">No flagged content is assigned to you right now. When a report is assigned, the target content and review route appear here first.</div>
+        ) : (
+          <div className="pageStack">
+            {assignedContentReports.map((item) => {
+              const reportId = String(item?.id || item?.dispute_id || "").trim();
+              const targetId = String(item?.target_id || "").trim();
+              const contentRes = reportId ? reportContent[reportId] : null;
+              const content = contentRes?.content || contentRes || null;
+              const body = String(content?.body || content?.text || "").trim();
+              const author = String(content?.author || "").trim();
+              const vote = disputeCurrentVote(item, account);
+              const status = disputeJurorStatus(item, account);
+              const present = disputeAttendancePresent(item, account);
+              const counts = disputeVoteCountSummary(item);
+              return (
+                <article key={reportId || targetId} className="card">
+                  <div className="cardBody formStack">
+                    <div className="sectionHead">
+                      <div>
+                        <div className="eyebrow">Assigned report</div>
+                        <h3 className="cardTitle">{String(item?.reason || "Flagged content review")}</h3>
+                        <div className="cardDesc mono">{reportId}</div>
+                      </div>
+                      <div className="statusSummary">
+                        <span className="statusPill">{reportStageLabel(item?.stage)}</span>
+                        <span className={`statusPill ${vote ? "ok" : ""}`}>{vote ? `Recorded: ${reviewChoiceLabel(vote)}` : reviewStatusLabel(status)}</span>
+                      </div>
+                    </div>
+                    <div className="summaryCardGrid">
+                      <article className="summaryCard"><div className="summaryCardLabel">Flagged content</div><div className="summaryCardValue mono">{targetId || "—"}</div><div className="summaryCardText">Open the content or the focused review workspace before choosing.</div></article>
+                      <article className="summaryCard"><div className="summaryCardLabel">Author</div><div className="summaryCardValue mono">{author || "(unknown)"}</div><div className="summaryCardText">Reported content author</div></article>
+                      <article className="summaryCard"><div className="summaryCardLabel">Review readiness</div><div className="summaryCardValue">{vote ? "Complete" : present ? "Ready" : status === "assigned" ? "Accept first" : "Needs check-in"}</div><div className="summaryCardText">{vote ? `Your choice is ${reviewChoiceLabel(vote)}.` : present ? "Final choice is available from the review workspace." : "Open the report detail to accept and check in."}</div></article>
+                      <article className="summaryCard"><div className="summaryCardLabel">Current review tally</div><div className="summaryCardValue">{counts.total}</div><div className="summaryCardText">{reviewTallyText(counts)}</div></article>
+                    </div>
+                    <div className="infoCard">
+                      <div className="feedMediaTitle">Content preview</div>
+                      {body ? <div className="feedBodyText">{body}</div> : <div className="cardDesc">The content endpoint did not return body text yet. The report assignment is still visible and actionable.</div>}
+                    </div>
+                    <div className="buttonRow">
+                      <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open review workspace</button>
+                      <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(reportId)}`)} disabled={!reportId}>Open report detail</button>
+                      {targetId ? <button className="btn" onClick={() => nav(`/content/${encodeURIComponent(targetId)}`)}>Open content</button> : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
 
       {!account ? (
         <div className="card">

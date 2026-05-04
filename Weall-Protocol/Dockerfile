@@ -33,13 +33,17 @@ RUN groupadd -g 10001 appuser \
 
 # Copy dependency manifests first to maximize Docker layer cache.
 COPY pyproject.toml README.md /app/
-COPY requirements.in requirements-dev.in /app/
-COPY requirements.lock requirements-dev.lock /app/
+# requirements.lock and requirements-dev.lock are production-grade inputs, but
+# local/dev compose builds are allowed to run with ALLOW_UNLOCKED=1 before those
+# lockfiles exist. Use a single wildcard that always matches requirements.in and
+# requirements-dev.in, while also copying lockfiles when they are present.
+COPY requirements* /app/
 
 # Copy project code needed for installation and generated artifact creation.
 COPY src /app/src
 COPY scripts /app/scripts
 COPY specs /app/specs
+COPY configs /app/configs
 COPY generated /app/generated
 
 # Install deps (prefer lockfiles when present) + package

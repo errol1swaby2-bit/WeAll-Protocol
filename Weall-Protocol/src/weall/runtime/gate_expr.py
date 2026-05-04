@@ -282,7 +282,7 @@ def _active_role(bucket: Json, signer: str) -> bool:
 
 
 def _account_has_tier(ledger: Json, signer: str, tier: int) -> bool:
-    acct = _as_dict(_as_dict(ledger.get("accounts")).get(signer))
+    acct = _account_record(ledger, signer)
     return _tier_ok(acct, tier)
 
 
@@ -390,18 +390,6 @@ def _global_emissary_active(roles: Json, signer: str) -> bool:
     ):
         return True
     return _record_active(rec)
-
-
-def _case_scoped_juror_without_role_allowed(ledger: Json) -> bool:
-    params = _as_dict(ledger.get("params"))
-    for key in (
-        "allow_case_scoped_juror_without_role",
-        "poh_allow_case_scoped_juror_without_role",
-        "bootstrap_allow_case_scoped_juror_without_role",
-    ):
-        if key in params:
-            return _truthy(params.get(key))
-    return False
 
 
 def _active_by_id(mapping: Json, signer: str) -> bool:
@@ -586,13 +574,6 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
             return poh_assigned
         return True
 
-    # Transitional bootstrap/devnet posture: case-scoped juror authority without
-    # a global Juror role is allowed only when the chain-state params explicitly
-    # opt in. This keeps production fail-closed while preserving deterministic
-    # bootstrap testability.
-    if tier2 and _case_scoped_juror_without_role_allowed(ledger):
-        return dispute_assigned or poh_assigned
-
     return False
 
 
@@ -716,7 +697,7 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
             n = int(atom[4:-1])
         except Exception:
             return False
-        acct = _as_dict(_as_dict(ledger.get("accounts")).get(signer))
+        acct = _account_record(ledger, signer)
         return _tier_ok(acct, n)
 
     if atom == "Validator":

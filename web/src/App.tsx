@@ -45,7 +45,11 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/feed":
       return readyForApp ? <Feed /> : <LoginPage />;
     case "/messages":
-      return readyForApp ? <Messaging /> : <LoginPage />;
+      return readyForApp ? <Messaging mode="hub" /> : <LoginPage />;
+    case "/messages/compose":
+      return readyForApp ? <Messaging mode="compose" /> : <LoginPage />;
+    case "/messages/:id":
+      return readyForApp ? <Messaging mode="thread" threadId={route.id} /> : <LoginPage />;
     case "/profile":
       return readyForApp ? <Account account={getSession()?.account || ""} /> : <LoginPage />;
     case "/create":
