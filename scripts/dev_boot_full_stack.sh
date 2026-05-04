@@ -282,11 +282,20 @@ ensure_frontend_deps() {
     return 0
   fi
 
-  log "frontend dependencies missing or stale; running npm ci"
-  (
-    cd "$FRONTEND_DIR"
-    npm ci
-  ) || fail "frontend dependency install failed"
+  log "frontend dependencies missing or stale"
+  if [ -f "$pkg_lock" ]; then
+    log "frontend package-lock.json present; running npm ci"
+    (
+      cd "$FRONTEND_DIR"
+      npm ci
+    ) || fail "frontend dependency install failed"
+  else
+    log "frontend package-lock.json missing; running npm install without writing a lockfile"
+    (
+      cd "$FRONTEND_DIR"
+      npm install --no-package-lock --no-audit --no-fund
+    ) || fail "frontend dependency install failed"
+  fi
 }
 
 write_frontend_env() {
