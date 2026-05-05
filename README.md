@@ -127,6 +127,18 @@ Those require additional testing, review, hardening, documentation, and operatio
 
 ---
 
+## Current Verification Checkpoint
+
+This repository snapshot is synchronized at:
+
+- **Transaction canon:** 225 tx types, version 1.24.0
+- **Current posture:** local development/demo prototype, not production validator readiness
+- **Release checks:** tx canon synchronization, secret guard, and release-tree hygiene should pass before publishing changes
+
+This checkpoint is included so reviewers can compare the public README against the generated transaction-canon artifacts without treating the repository as production-ready.
+
+---
+
 ## Requirements
 
 For the local demo path, you should have:

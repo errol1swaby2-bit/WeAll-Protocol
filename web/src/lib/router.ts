@@ -69,6 +69,7 @@ export type RouteMatch =
   | { path: "/verification" }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
+  | { path: "/juror" }
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
@@ -83,6 +84,7 @@ export type RouteMatch =
   | { path: "/settings" }
   | { path: "/session" }
   | { path: "/advanced" }
+  | { path: "/tools" }
   | { path: "/transactions" }
   | { path: "/profile" }
   | { path: "/account/:account"; account: string }
@@ -273,6 +275,25 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Assigned review",
       contextPanelData: "Review instructions, assignment state, and action feedback",
       blockingDependencies: ["Account session", "Community Reviewer responsibility", "Assignment state"],
+    }),
+  },
+  "/juror": {
+    section: "Reviews",
+    label: "Review Queue",
+    title: "Review Queue",
+    description: "Legacy reviewer route alias for assigned community review work. Requires Active Juror role or badge.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    minPohTier: 2,
+    mode: "hub",
+    fab: "none",
+    rightRail: "reviews",
+    normalNav: false,
+    dataContract: contract({
+      primaryObject: "Review queue",
+      contextPanelData: "Assigned reports, verification reviews, and review eligibility",
+      blockingDependencies: ["Account session", "Trusted verification", "Active Juror role or badge"],
     }),
   },
   "/groups": {
@@ -532,6 +553,25 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Advanced details",
       contextPanelData: "Technical records and operator context",
       blockingDependencies: ["Account session", "Advanced mode"],
+    }),
+  },
+  "/tools": {
+    section: "Advanced",
+    label: "Tools",
+    title: "Tools",
+    description: "Legacy technical tools route alias hidden from normal social navigation.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "advanced",
+    fab: "none",
+    rightRail: "advanced",
+    normalNav: false,
+    advancedOnly: true,
+    dataContract: contract({
+      primaryObject: "Advanced tools",
+      contextPanelData: "Developer and operator tools",
+      blockingDependencies: ["Advanced mode"],
     }),
   },
   "/transactions": {

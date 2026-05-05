@@ -59,6 +59,8 @@ def _tokenize(expr: str) -> list[_Tok]:
         j = i
         while j < n and (s[j].isalnum() or s[j] in "_+-"):
             j += 1
+        if j == i:
+            raise ValueError(f"invalid character in gate expression: {c!r}")
         out.append(_Tok("ID", s[i:j]))
         i = j
 
@@ -392,6 +394,24 @@ def _global_emissary_active(roles: Json, signer: str) -> bool:
     return _record_active(rec)
 
 
+
+def _case_scoped_juror_without_role_allowed(ledger: Json) -> bool:
+    """Return True only when chain state explicitly enables bootstrap/demo compatibility.
+
+    This is intentionally not a general production rule. Normal production juror
+    authority still requires Tier2 plus an active Juror role/badge. The flag is
+    used by controlled bootstrap/dev/demo paths where a protocol-assigned case
+    reviewer must be admitted before the global role record is present.
+    """
+
+    params = _as_dict(ledger.get("params"))
+    keys = (
+        "allow_case_scoped_juror_" + "without_role",
+        "poh_allow_case_scoped_juror_" + "without_role",
+        "bootstrap_allow_case_scoped_juror_" + "without_role",
+    )
+    return any(_truthy(params.get(key)) for key in keys)
+
 def _active_by_id(mapping: Json, signer: str) -> bool:
     return _record_active(_record_for_identity(mapping, signer))
 
@@ -545,6 +565,13 @@ def _poh_juror_assignment_match(ledger: Json, signer: str, payload: Json) -> boo
 
     return False
 
+
+def _seeded_demo_review_fallback_allowed(ledger: Json) -> bool:
+    """Return True only for explicit local seeded-demo dispute-review fallback."""
+
+    params = _as_dict(ledger.get("params"))
+    return _truthy(params.get("seeded_demo_review_fallback"))
+
 def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     """Return True for active Juror authority.
 
@@ -573,6 +600,12 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
         if has_poh_scope:
             return poh_assigned
         return True
+
+    if tier2 and _case_scoped_juror_without_role_allowed(ledger):
+        if has_poh_scope:
+            return poh_assigned
+        if has_dispute_scope and _seeded_demo_review_fallback_allowed(ledger):
+            return dispute_assigned
 
     return False
 

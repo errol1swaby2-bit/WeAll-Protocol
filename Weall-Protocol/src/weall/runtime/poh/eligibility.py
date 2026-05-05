@@ -25,7 +25,15 @@ Json = dict[str, Any]
 
 # Tier-only requirements for user-origin actions. SYSTEM/block-only txs are not
 # listed here because their authority is enforced by system/role execution logic.
+UNKNOWN_ACTION_REQUIRED_POH_TIER = 99
+
+
 ACTION_REQUIRED_POH_TIER: dict[str, int] = {
+    # Explicit canon coverage for Tier-gated user-origin txs that are
+    # authority-checked elsewhere but still must not default-open here.
+    "POH_CHALLENGE_OPEN": 1,
+    "POH_TIER2_REQUEST_OPEN": 1,
+
     # Onboarding / identity-safe actions.
     "ACCOUNT_REGISTER": 0,
     "ACCOUNT_KEY_ADD": 0,
@@ -120,14 +128,20 @@ def is_removed_legacy_poh_tier_action(action_name: str) -> bool:
 
 def get_required_poh_tier(action_name: str) -> int:
     if is_removed_legacy_poh_tier_action(action_name):
-        return 99
-    return int(ACTION_REQUIRED_POH_TIER.get(normalize_action_name(action_name), 0))
+        return UNKNOWN_ACTION_REQUIRED_POH_TIER
+    name = normalize_action_name(action_name)
+    if name not in ACTION_REQUIRED_POH_TIER:
+        return UNKNOWN_ACTION_REQUIRED_POH_TIER
+    return int(ACTION_REQUIRED_POH_TIER[name])
 
 
 def can_account_perform_action(state: Json, account_id: str, action_name: str) -> bool:
     if is_removed_legacy_poh_tier_action(action_name):
         return False
-    required = get_required_poh_tier(action_name)
+    name = normalize_action_name(action_name)
+    if name not in ACTION_REQUIRED_POH_TIER:
+        return False
+    required = get_required_poh_tier(name)
     return effective_poh_tier(state, account_id) >= required
 
 
@@ -142,7 +156,18 @@ def require_poh_tier(state: Json, account_id: str, action_name: str) -> None:
                 "max_tier": 2,
             },
         )
-    required = get_required_poh_tier(action_name)
+    name = normalize_action_name(action_name)
+    if name not in ACTION_REQUIRED_POH_TIER:
+        raise ApplyError(
+            "forbidden",
+            "unknown_poh_eligibility_action",
+            {
+                "account_id": str(account_id or "").strip(),
+                "tx_type": name,
+                "max_tier": 2,
+            },
+        )
+    required = get_required_poh_tier(name)
     actual = effective_poh_tier(state, account_id)
     if actual < required:
         raise ApplyError(

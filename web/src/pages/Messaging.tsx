@@ -252,7 +252,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
             </div>
           </div>
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => nav("/messages/compose")} disabled={!account}>New message</button>
+            <button className="btn btnPrimary" onClick={() => nav("/messages/compose")} disabled={!account}>Compose message</button>
             <button className="btn" onClick={() => void refreshMutationSlices(loadMessages, refreshAccountContext)} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh messages"}
             </button>
@@ -278,13 +278,52 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     );
   }
 
+  function renderCompose(): JSX.Element {
+    return (
+      <section className="card messengerComposeCard">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Compose</div>
+              <h2 className="cardTitle">Send a direct message</h2>
+              <div className="cardDesc">Choose one person and send a direct message. The backend remains authoritative for every send.</div>
+            </div>
+            <button className="btn" onClick={() => nav("/messages")}>Back to chats</button>
+          </div>
+          <div className="grid2">
+            <label className="fieldLabel">
+              Recipient
+              <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="@example" />
+            </label>
+            <label className="fieldLabel">
+              Your account
+              <input value={account || "No active session"} readOnly />
+            </label>
+          </div>
+          <label className="fieldLabel">
+            Message
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message…" rows={5} />
+          </label>
+          {!gate.ok ? <div className="calloutInfo">{gate.reason || "Complete account verification before sending messages."}</div> : null}
+          <div className="buttonRow">
+            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !recipient.trim() || !body.trim() || signerSubmission.busy}>
+              {signerSubmission.busy ? "Waiting…" : "Send message"}
+            </button>
+            {account ? <button className="btn" onClick={() => setRecipient(account)}>Message myself for demo</button> : null}
+          </div>
+          {result ? <pre className="codePanel mono">{JSON.stringify(result, null, 2)}</pre> : null}
+        </div>
+      </section>
+    );
+  }
+
   function renderConversationList(): JSX.Element {
     return (
       <section className="card messengerInboxCard">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
-              <div className="eyebrow">Chats</div>
+              <div className="eyebrow">Inbox</div>
               <h2 className="cardTitle">Conversations</h2>
               <div className="cardDesc">{surface.threads.length} chat{surface.threads.length === 1 ? "" : "s"} visible to this account.</div>
             </div>
@@ -314,45 +353,6 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
               ))}
             </div>
           )}
-        </div>
-      </section>
-    );
-  }
-
-  function renderCompose(): JSX.Element {
-    return (
-      <section className="card messengerComposeCard">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">New message</div>
-              <h2 className="cardTitle">Compose message</h2>
-              <div className="cardDesc">Choose one person and send a direct message. The backend remains authoritative for every send.</div>
-            </div>
-            <button className="btn" onClick={() => nav("/messages")}>Back to chats</button>
-          </div>
-          <div className="grid2">
-            <label className="fieldLabel">
-              Recipient
-              <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="@example" />
-            </label>
-            <label className="fieldLabel">
-              Your account
-              <input value={account || "No active session"} readOnly />
-            </label>
-          </div>
-          <label className="fieldLabel">
-            Message
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message…" rows={5} />
-          </label>
-          {!gate.ok ? <div className="calloutInfo">{gate.reason || "Complete account verification before sending messages."}</div> : null}
-          <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !recipient.trim() || !body.trim() || signerSubmission.busy}>
-              {signerSubmission.busy ? "Waiting…" : "Send message"}
-            </button>
-            {account ? <button className="btn" onClick={() => setRecipient(account)}>Message myself for demo</button> : null}
-          </div>
-          {result ? <pre className="codePanel mono">{JSON.stringify(result, null, 2)}</pre> : null}
         </div>
       </section>
     );

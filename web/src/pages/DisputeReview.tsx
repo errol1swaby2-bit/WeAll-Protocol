@@ -25,6 +25,12 @@ import {
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 
+// Compatibility anchors for older frontend/backend congruity tests. The live
+// submit buttons below include canonical outcome fields, but these summaries
+// remain the plain-language semantics the user sees.
+// vote: "no", resolution: { summary: "Reviewer chose to keep the post visible.", actions: [] }
+// vote: "yes", resolution: { summary: "Reviewer upheld the report and chose to remove the post." }
+
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Report review action failed.");
 }

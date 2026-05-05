@@ -24,6 +24,11 @@ export const VERIFICATION_LABELS: Record<VerificationLevel, string> = {
   trusted: "Trusted Verified Person",
 };
 
+export const PROTOCOL_NATIVE_VERIFICATION_ALIASES = {
+  async: "Async Verified Human",
+  live: "Live Verified Human",
+} as const;
+
 export const VERIFICATION_SUMMARIES: Record<VerificationLevel, string> = {
   basic: "You can browse, set up your profile, and start account verification.",
   verified: "You completed a basic human review. You can join groups, message people, and take part in basic community activity.",

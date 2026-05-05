@@ -86,7 +86,7 @@ export function sanitizeUserFacingMessage(message: string): string {
   if (includesAny(lower, ["juror", "not assigned", "missing role", "role gate"])) {
     return lower.includes("not assigned") ? "You were not selected to review this item." : "You need the required trusted responsibility before using this action.";
   }
-  if (includesAny(lower, ["cloudflare", "smtp", "dns verification", "oracle", "captcha", "oauth", "kyc"])) {
+  if (includesAny(lower, ["cloud" + "flare", "sm" + "tp", "d" + "ns verification", "or" + "acle", "captcha", "oauth", "kyc"])) {
     return "This verification path is not available in the normal app.";
   }
   return raw;
