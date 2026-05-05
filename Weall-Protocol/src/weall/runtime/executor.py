@@ -48,6 +48,7 @@ from weall.runtime.mempool import PersistentMempool, compute_tx_id
 from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
 from weall.runtime.node_runtime_config import PRODUCTION_SERVICE
 from weall.runtime.runtime_authority import effective_bft_enabled
+from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
 from weall.runtime.protocol_profile import (
@@ -2492,6 +2493,7 @@ class WeAllExecutor:
         # before candidate tx admission, so production must fail closed here the
         # same way follower-side replay does.
         try:
+            schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
         except Exception as exc:
@@ -2620,6 +2622,7 @@ class WeAllExecutor:
         # Phase: schedule PoH system txs. In production these deterministic
         # side effects are consensus-adjacent and must fail closed.
         try:
+            schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
         except Exception as exc:
@@ -3129,6 +3132,7 @@ class WeAllExecutor:
         next_height = int(height)
 
         def _run_poh_schedulers() -> None:
+            schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
@@ -11,6 +11,15 @@ import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
+import {
+  ASYNC_VIDEO_MAX_SECONDS,
+  ASYNC_VIDEO_MIN_SECONDS,
+  AsyncVerificationChallenge,
+  canSubmitAsyncEvidence,
+  createAsyncVerificationChallenge,
+  sha256HexText,
+  validateAsyncVideoDuration,
+} from "../lib/verificationEvidence";
 import {
   TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
@@ -159,9 +168,9 @@ async function reconcileVerificationLevel(account: string, minimumLevel: number,
 
 async function reconcileAsyncCompatibilityCase(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
-    const cases = await weall.pohTier2MyCases(account, base, headers);
+    const cases = await weall.pohAsyncMyCases(account, base, headers);
     const items = Array.isArray(cases?.cases) ? cases.cases : [];
-    if (items.length > 0) return { phase: "confirmed", detail: "The compatibility review case is visible." };
+    if (items.length > 0) return { phase: "confirmed", detail: "Your async verification case is visible." };
   } catch {
     // ignore
   }
@@ -188,6 +197,12 @@ export default function AccountVerificationPage(): JSX.Element {
   const tx = useTxQueue();
   const signerSubmission = useSignerSubmissionBusy(acct);
 
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingStartedAtRef = useRef<number>(0);
+  const recordingTimerRef = useRef<number | null>(null);
+
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
@@ -201,6 +216,17 @@ export default function AccountVerificationPage(): JSX.Element {
   const [compatRequestBusy, setCompatRequestBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [casesBusy, setCasesBusy] = useState(false);
+  const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
+
+  const [asyncChallenge, setAsyncChallenge] = useState<AsyncVerificationChallenge | null>(null);
+  const [asyncRecordingState, setAsyncRecordingState] = useState<"idle" | "recording" | "ready">("idle");
+  const [asyncRecordedBlob, setAsyncRecordedBlob] = useState<Blob | null>(null);
+  const [asyncRecordedUrl, setAsyncRecordedUrl] = useState("");
+  const [asyncVideoSeconds, setAsyncVideoSeconds] = useState(0);
+  const [asyncAbout, setAsyncAbout] = useState("");
+  const [asyncWhyJoining, setAsyncWhyJoining] = useState("");
+  const [asyncConsent, setAsyncConsent] = useState(false);
+  const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
 
   const [compatUpload, setCompatUpload] = useState<UploadState | null>(null);
   const [compatCases, setCompatCases] = useState<any[]>([]);
@@ -246,7 +272,7 @@ export default function AccountVerificationPage(): JSX.Element {
     try {
       const headers = getAuthHeaders(acct);
       const [compat, live, sessions] = await Promise.all([
-        weall.pohTier2MyCases(acct, base, headers).catch(() => ({ cases: [] })),
+        weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
@@ -268,6 +294,12 @@ export default function AccountVerificationPage(): JSX.Element {
     void refresh();
     void loadVerificationData();
   }, [acct]);
+
+  useEffect(() => {
+    return () => {
+      cleanupAsyncRecording();
+    };
+  }, []);
 
   const snapshot = resolveOnboardingSnapshot({
     account: acct,
@@ -294,7 +326,7 @@ export default function AccountVerificationPage(): JSX.Element {
     if (!hasLocalKeypair) return "Restore the saved account key for this account.";
     if (!sessionKeyPresent) return "Save a session key so authenticated account calls work on this device.";
     if (!registered) return "Register your account so the network can recognize it.";
-    if (accountLevel < 1) return "Start account verification when the native async review flow is available on this deployment.";
+    if (accountLevel < 1) return "Record a fresh 1–2 minute video and submit it for async human review.";
     if (accountLevel < 2) return "Complete live verification to unlock high-trust social and community actions.";
     return "You can now apply for trusted responsibilities where you meet the requirements.";
   }, [acct, accountLevel, hasLocalKeypair, registered, sessionKeyPresent]);
@@ -392,7 +424,7 @@ export default function AccountVerificationPage(): JSX.Element {
       path: "account_verification",
       message: "The primary path is native async human review finalized by WeAll account state. This frontend does not require an external identity provider.",
       next_steps: registered
-        ? ["Open the native async review flow when this deployment exposes it.", "Refresh account status after reviewers finalize the result."]
+        ? ["Record and submit a fresh account-verification video.", "Refresh account status after reviewers finalize the result."]
         : ["Register the account first.", "Return here to start or inspect verification."],
     });
   }
@@ -475,6 +507,225 @@ export default function AccountVerificationPage(): JSX.Element {
     }
   }
 
+  function cleanupAsyncRecording(): void {
+    if (recordingTimerRef.current !== null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      try {
+        recorder.stop();
+      } catch {
+        // ignore recorder shutdown races
+      }
+    }
+    recorderRef.current = null;
+    const stream = recordingStreamRef.current;
+    if (stream) {
+      for (const track of stream.getTracks()) track.stop();
+    }
+    recordingStreamRef.current = null;
+  }
+
+  function ensureAsyncChallenge(): AsyncVerificationChallenge {
+    const existing = asyncChallenge;
+    if (existing) return existing;
+    const next = createAsyncVerificationChallenge(acct || "");
+    setAsyncChallenge(next);
+    return next;
+  }
+
+  function resetAsyncRecording(): void {
+    cleanupAsyncRecording();
+    recordingChunksRef.current = [];
+    if (asyncRecordedUrl) URL.revokeObjectURL(asyncRecordedUrl);
+    setAsyncRecordedBlob(null);
+    setAsyncRecordedUrl("");
+    setAsyncVideoSeconds(0);
+    setAsyncUpload(null);
+    setAsyncRecordingState("idle");
+  }
+
+  async function startAsyncRecording(): Promise<void> {
+    if (!acct) {
+      setErr({ msg: "Sign in before starting account verification.", details: null });
+      return;
+    }
+    if (!registered) {
+      setErr({ msg: "Register your account before starting account verification.", details: null });
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setErr({ msg: "This browser cannot record verification video in the app.", details: null });
+      return;
+    }
+
+    resetAsyncRecording();
+    const challenge = ensureAsyncChallenge();
+    setResult({ ok: true, challenge, message: "Read the challenge phrase in your video before saying something about yourself and why you are joining." });
+    setErr(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      recordingStreamRef.current = stream;
+      recordingChunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : undefined });
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data && event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        if (recordingTimerRef.current !== null) {
+          window.clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        const duration = Math.round((Date.now() - recordingStartedAtRef.current) / 1000);
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "video/webm" });
+        const url = URL.createObjectURL(blob);
+        setAsyncVideoSeconds(duration);
+        setAsyncRecordedBlob(blob);
+        setAsyncRecordedUrl(url);
+        setAsyncRecordingState("ready");
+        const durationError = validateAsyncVideoDuration(duration);
+        if (durationError) setErr({ msg: durationError, details: { duration_seconds: duration } });
+        const currentStream = recordingStreamRef.current;
+        if (currentStream) for (const track of currentStream.getTracks()) track.stop();
+        recordingStreamRef.current = null;
+      };
+      recordingStartedAtRef.current = Date.now();
+      setAsyncVideoSeconds(0);
+      setAsyncRecordingState("recording");
+      recordingTimerRef.current = window.setInterval(() => {
+        const elapsed = Math.round((Date.now() - recordingStartedAtRef.current) / 1000);
+        setAsyncVideoSeconds(elapsed);
+        if (elapsed >= ASYNC_VIDEO_MAX_SECONDS) {
+          stopAsyncRecording();
+        }
+      }, 500);
+      recorder.start(1000);
+    } catch (e: any) {
+      cleanupAsyncRecording();
+      setAsyncRecordingState("idle");
+      setErr({ msg: friendlyActionError(e?.message || "Camera or microphone permission was not granted."), details: e });
+    }
+  }
+
+  function stopAsyncRecording(): void {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+      return;
+    }
+    cleanupAsyncRecording();
+  }
+
+  async function submitAsyncEvidence(): Promise<void> {
+    const challenge = asyncChallenge;
+    const check = canSubmitAsyncEvidence({
+      recordedBlob: asyncRecordedBlob,
+      durationSeconds: asyncVideoSeconds,
+      about: asyncAbout,
+      whyJoining: asyncWhyJoining,
+      consent: asyncConsent,
+      challenge,
+    });
+    if (!acct) {
+      setErr({ msg: "Sign in before submitting account verification.", details: null });
+      return;
+    }
+    if (!registered) {
+      setErr({ msg: "Register your account before submitting account verification.", details: null });
+      return;
+    }
+    if (!challenge || !asyncRecordedBlob || !check.ok) {
+      setErr({ msg: check.ok ? "Record verification evidence before submitting." : check.reason, details: null });
+      return;
+    }
+
+    setAsyncEvidenceBusy(true);
+    setErr(null);
+    try {
+      const headers = getAuthHeaders(acct);
+      const r = await tx.runTx({
+        title: "Submit async verification evidence",
+        pendingMessage: "Submitting account verification evidence…",
+        successMessage: "Async verification evidence submitted.",
+        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
+        task: async () => {
+          const file = new File([asyncRecordedBlob], `${challenge.challengeId}.webm`, { type: asyncRecordedBlob.type || "video/webm" });
+          const upload: UploadState = await weall.pohAsyncVideoUpload(file, base, headers);
+          setAsyncUpload(upload);
+
+          const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
+          const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
+          const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${upload.video_commitment || upload.cid || ""}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
+          const evidenceCommitment = upload.video_commitment || await sha256HexText(`weall:poh_async_evidence_v1:${upload.cid || ""}`);
+          const evidenceId = `async-evidence:${challenge.challengeId}`;
+
+          const open = await submitSignedTx({
+            account: acct,
+            tx_type: "POH_ASYNC_REQUEST_OPEN",
+            payload: {
+              account_id: acct,
+              case_id: caseId,
+              challenge_id: challenge.challengeId,
+              challenge_commitment: challengeCommitment,
+              response_commitment: responseCommitment,
+              note: "fresh_recorded_video_v1",
+              ts_ms: Date.now(),
+            },
+            parent: null,
+            base,
+          });
+
+          const declare = await submitSignedTx({
+            account: acct,
+            tx_type: "POH_ASYNC_EVIDENCE_DECLARE",
+            payload: {
+              case_id: caseId,
+              evidence_id: evidenceId,
+              evidence_commitment: evidenceCommitment,
+              response_commitment: responseCommitment,
+              kind: "fresh_recorded_video_v1",
+              note: "fresh_1_to_2_minute_in_app_recording",
+              ts_ms: Date.now(),
+            },
+            parent: open?.result?.tx_id || open?.tx_id || null,
+            base,
+          });
+
+          const bind = await submitSignedTx({
+            account: acct,
+            tx_type: "POH_ASYNC_EVIDENCE_BIND",
+            payload: {
+              case_id: caseId,
+              evidence_id: evidenceId,
+              target_id: caseId,
+              ts_ms: Date.now(),
+            },
+            parent: declare?.result?.tx_id || declare?.tx_id || null,
+            base,
+          });
+
+          return { challenge, case_id: caseId, upload, open, declare, bind };
+        },
+      });
+
+      setResult(r);
+      await refresh();
+      await loadVerificationData();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setErr(prettyErr(e));
+      setResult(e?.body || e?.data || null);
+    } finally {
+      setAsyncEvidenceBusy(false);
+    }
+  }
+
   async function submitLiveRequest(): Promise<void> {
     if (!acct) {
       setErr({ msg: "Sign in before opening live verification.", details: null });
@@ -516,6 +767,17 @@ export default function AccountVerificationPage(): JSX.Element {
       setLiveRequestBusy(false);
     }
   }
+
+  const asyncSubmitCheck = canSubmitAsyncEvidence({
+    recordedBlob: asyncRecordedBlob,
+    durationSeconds: asyncVideoSeconds,
+    about: asyncAbout,
+    whyJoining: asyncWhyJoining,
+    consent: asyncConsent,
+    challenge: asyncChallenge,
+  });
+  const asyncDurationError = validateAsyncVideoDuration(asyncVideoSeconds);
+  const asyncRecordingClock = `${Math.floor(asyncVideoSeconds / 60)}:${String(asyncVideoSeconds % 60).padStart(2, "0")}`;
 
   return (
     <div className="pageStack accountVerificationPage">
@@ -643,10 +905,80 @@ export default function AccountVerificationPage(): JSX.Element {
           eyebrow="Basic human review"
           title={VERIFICATION_LABELS.verified}
           status={verifiedStatus}
-          description="Complete a basic human review to join groups, message people, and take part in basic community activity."
+          description="Record a fresh 1–2 minute video in the app, state your handle, read the challenge phrase, say something about yourself, and explain why you are joining."
         >
-          <div className="buttonRowWide">
-            <button className="btn" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
+          <div className="formStack">
+            <div className="calloutInfo">
+              <strong>Fresh video required:</strong> ordinary file upload is not allowed for basic human review evidence. Record inside WeAll with camera and microphone permissions.
+            </div>
+            <div className="infoCard compact">
+              <div className="infoCardHeader">
+                <strong>Challenge phrase</strong>
+                <span className="statusPill">Read aloud</span>
+              </div>
+              <div className="infoCardText mono">{asyncChallenge?.phrase || "Start recording to generate a fresh challenge phrase."}</div>
+            </div>
+            <label className="fieldBlock">
+              <span className="fieldLabel">Something about yourself</span>
+              <textarea
+                value={asyncAbout}
+                onChange={(e) => setAsyncAbout(e.target.value)}
+                placeholder="Share a few natural details that help reviewers see you are a real person."
+                disabled={accountLevel >= 1 || asyncEvidenceBusy}
+              />
+            </label>
+            <label className="fieldBlock">
+              <span className="fieldLabel">Why are you joining WeAll?</span>
+              <textarea
+                value={asyncWhyJoining}
+                onChange={(e) => setAsyncWhyJoining(e.target.value)}
+                placeholder="Explain why you are joining in your own words."
+                disabled={accountLevel >= 1 || asyncEvidenceBusy}
+              />
+            </label>
+            <div className="buttonRowWide">
+              <button
+                className="btn btnPrimary"
+                onClick={() => void startAsyncRecording()}
+                disabled={!acct || !registered || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
+              >
+                {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
+              </button>
+              <button className="btn" onClick={() => stopAsyncRecording()} disabled={asyncRecordingState !== "recording"}>
+                Stop recording
+              </button>
+              <button className="btn btnGhost" onClick={() => resetAsyncRecording()} disabled={asyncRecordingState === "recording" || asyncEvidenceBusy}>
+                Reset video
+              </button>
+            </div>
+            <div className="infoCard compact">
+              <div className="infoCardHeader">
+                <strong>Recorded duration</strong>
+                <span className={`statusPill ${asyncRecordedBlob && !asyncDurationError ? "ok" : ""}`}>{asyncRecordingClock}</span>
+              </div>
+              <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
+              {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
+              {asyncRecordedUrl ? <video controls src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} /> : null}
+            </div>
+            <label className="checkRow">
+              <input
+                type="checkbox"
+                checked={asyncConsent}
+                onChange={(e) => setAsyncConsent(e.target.checked)}
+                disabled={accountLevel >= 1 || asyncEvidenceBusy}
+              />
+              <span>Assigned reviewers may view this evidence only for account verification. Public chain state should store commitments and receipts, not raw video.</span>
+            </label>
+            {asyncUpload ? <JsonDetails title="Latest async evidence upload payload" value={asyncUpload} /> : null}
+            <button
+              className="btn btnPrimary"
+              onClick={() => void submitAsyncEvidence()}
+              disabled={!acct || !registered || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok}
+            >
+              {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : accountLevel >= 1 ? "Async verification complete" : "Submit async verification evidence"}
+            </button>
+            {!asyncSubmitCheck.ok && accountLevel < 1 ? <div className="miniMuted">{asyncSubmitCheck.reason}</div> : null}
+            <button className="btn btnGhost" onClick={() => explainNativeAsyncVerification()} disabled={!acct}>
               Show verification next steps
             </button>
           </div>

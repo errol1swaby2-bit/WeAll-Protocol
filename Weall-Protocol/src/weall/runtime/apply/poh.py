@@ -813,6 +813,53 @@ def _async_case_open_or_reviewable(case: Json, *, case_id: str) -> str:
     return status
 
 
+def _require_async_evidence_mutable(case: Json, *, case_id: str) -> None:
+    """Fail closed once evidence has entered review scope.
+
+    Jurors must vote on a stable evidence set.  After assignment starts, the
+    applicant may not replace response/evidence commitments until a future
+    explicit follow-up transaction exists and seals a new evidence root.
+    """
+
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status in ("assigned", "under_review", "needs_followup", "approved", "rejected", "expired", "finalized"):
+        raise ApplyError(
+            "invalid_tx",
+            "async_evidence_locked",
+            {"case_id": case_id, "status": status},
+        )
+
+
+def _async_case_has_declared_evidence(case: Json) -> bool:
+    """Return true only after an explicit evidence declaration/bind exists.
+
+    A response commitment supplied during case-open is useful for commitment
+    continuity, but it is not enough to let the scheduler assign reviewers.
+    Assignment locks evidence, so it must wait for an explicit evidence record.
+    """
+
+    commitments = case.get("evidence_commitments")
+    if isinstance(commitments, dict) and any(_as_str(k).strip() for k in commitments.keys()):
+        return True
+    public_ids = case.get("public_evidence_ids")
+    if isinstance(public_ids, list) and any(_as_str(item).strip() for item in public_ids):
+        return True
+    binds = case.get("evidence_binds")
+    if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
+        return True
+    return False
+
+
+def _async_reviews_have_followup_request(case: Json) -> bool:
+    reviews = case.get("reviews")
+    reviews = reviews if isinstance(reviews, dict) else {}
+    for review_any in reviews.values():
+        review = review_any if isinstance(review_any, dict) else {}
+        if _as_str(review.get("verdict") or "").strip().lower() == "needs_followup":
+            return True
+    return False
+
+
 def _append_unique_str(values: Any, value: str) -> list[str]:
     out: list[str] = []
     if isinstance(values, list):
@@ -842,7 +889,10 @@ def _async_review_counts(case: Json) -> tuple[int, int, int]:
             rejections += 1
             counted += 1
         elif verdict in ("abstain", "needs_followup"):
-            counted += 1
+            # Abstain and needs_followup are real reviews, but they do not
+            # satisfy the finalization denominator. needs_followup pauses the
+            # case until a future explicit follow-up path exists.
+            continue
     return approvals, rejections, counted
 
 
@@ -926,6 +976,7 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_evidence_commitment", {"case_id": case_id})
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
+    _require_async_evidence_mutable(case, case_id=case_id)
     account_id = _as_str(case.get("account_id") or "").strip()
     _require_subject_signer(env, account_id)
 
@@ -963,6 +1014,7 @@ def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_or_evidence_id", {"case_id": case_id, "evidence_id": evidence_id})
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
+    _require_async_evidence_mutable(case, case_id=case_id)
     account_id = _as_str(case.get("account_id") or "").strip()
     _require_subject_signer(env, account_id)
     commitments = case.get("evidence_commitments")
@@ -988,6 +1040,20 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_jurors", {"case_id": case_id})
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
+    forbidden_threshold_fields = ("min_reviews", "approval_threshold", "rejection_threshold")
+    supplied_threshold_fields = [field for field in forbidden_threshold_fields if p.get(field) is not None]
+    if supplied_threshold_fields:
+        raise ApplyError(
+            "invalid_tx",
+            "async_threshold_override_forbidden",
+            {"case_id": case_id, "fields": supplied_threshold_fields},
+        )
+    if not _async_case_has_declared_evidence(case):
+        raise ApplyError(
+            "invalid_tx",
+            "async_evidence_required_before_assignment",
+            {"case_id": case_id},
+        )
 
     assigned_needed = _as_int(case.get("assigned_juror_count") or 3, 3)
     jurors: list[str] = []
@@ -1011,15 +1077,6 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
         rejection_threshold=_as_int(case.get("rejection_threshold") or 2, 2),
         case_id=case_id,
     )
-
-    forbidden_threshold_fields = ("min_reviews", "approval_threshold", "rejection_threshold")
-    supplied_threshold_fields = [field for field in forbidden_threshold_fields if p.get(field) is not None]
-    if supplied_threshold_fields:
-        raise ApplyError(
-            "invalid_tx",
-            "async_threshold_override_forbidden",
-            {"case_id": case_id, "fields": supplied_threshold_fields},
-        )
 
     case["assigned_jurors"] = jurors
     juror_map = case.get("jurors")
@@ -1060,6 +1117,7 @@ def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
+    _require_active_live(state, juror_id, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("accepted_jurors") or []):
@@ -1108,7 +1166,7 @@ def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
         "submitted_height": int(state.get("height") or 0),
         "signature": _as_str(_get_env(env, "sig", "")).strip(),
     }
-    case["status"] = "under_review"
+    case["status"] = "needs_followup" if verdict == "needs_followup" else "under_review"
     return {"applied": "POH_ASYNC_REVIEW_SUBMIT", "case_id": case_id, "juror": juror_id, "verdict": verdict}
 
 
@@ -1128,6 +1186,13 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
         }
 
     approvals, rejections, counted = _async_review_counts(case)
+    if _async_reviews_have_followup_request(case):
+        case["status"] = "needs_followup"
+        raise ApplyError(
+            "invalid_tx",
+            "async_case_needs_followup",
+            {"case_id": case_id, "reviews": counted, "approvals": approvals, "rejections": rejections},
+        )
     assigned_jurors = _as_int(case.get("assigned_juror_count") or 0, 0)
     assigned_list = case.get("assigned_jurors")
     if isinstance(assigned_list, list) and assigned_list:
@@ -1216,14 +1281,21 @@ def apply_poh_async_receipt(state: Json, env: Any) -> Json:
     receipt_id = _as_str(p.get("receipt_id") or "").strip()
     if not receipt_id:
         receipt_id = f"receipt:{_sha256_hex(f'{_chain_id(state)}|POH_ASYNC_RECEIPT|{case_id}'.encode())[:32]}"
+    outcome = _as_str(case.get("outcome") or "").strip()
+    tier_awarded = _as_int(case.get("tier_awarded") or 0, 0)
+    supplied_outcome = _as_str(p.get("outcome") or "").strip()
+    if supplied_outcome and supplied_outcome != outcome:
+        raise ApplyError("invalid_tx", "async_receipt_outcome_mismatch", {"case_id": case_id, "outcome": outcome, "supplied_outcome": supplied_outcome})
+    if p.get("tier_awarded") is not None and _as_int(p.get("tier_awarded") or 0, 0) != tier_awarded:
+        raise ApplyError("invalid_tx", "async_receipt_tier_mismatch", {"case_id": case_id, "tier_awarded": tier_awarded, "supplied_tier_awarded": _as_int(p.get("tier_awarded") or 0, 0)})
     case["receipt_id"] = receipt_id
     case["receipt"] = {
         "receipt_id": receipt_id,
         "case_id": case_id,
         "account_id": _as_str(case.get("account_id") or "").strip(),
         "verification_type": "async",
-        "outcome": _as_str(p.get("outcome") or case.get("outcome") or "").strip(),
-        "tier_awarded": _as_int(p.get("tier_awarded") or case.get("tier_awarded") or 0, 0),
+        "outcome": outcome,
+        "tier_awarded": tier_awarded,
         "finalized_height": _as_int(case.get("finalized_height") or 0, 0),
         "threshold_summary": {
             "minimum_reviews": _as_int(case.get("minimum_reviews") or 3, 3),

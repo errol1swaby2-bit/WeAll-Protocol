@@ -569,6 +569,26 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers).then((r: any) => ({ ok: true, account, poh_tier: r?.state?.poh_tier ?? 0, reputation: r?.state?.reputation ?? 0, banned: !!r?.state?.banned, locked: !!r?.state?.locked }));
   },
 
+
+  pohAsyncMyCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(withSearch('/v1/poh/async/my-cases', { account }), base, headers);
+  },
+
+  pohAsyncJurorCases(
+    a?: string,
+    b?: string | HeadersInit,
+    c?: HeadersInit,
+  ): Promise<any> {
+    const base = typeof a === "string" && !a.startsWith("@") && !a.startsWith("did:") ? a : typeof b === "string" ? b : undefined;
+    const headers =
+      looksLikeHeaders(c) ? c : looksLikeHeaders(b) ? b : undefined;
+    return apiGet(withSearch("/v1/poh/async/juror-cases", { juror: typeof a === "string" && (a.startsWith("@") || a.startsWith("did:")) ? a : undefined }), base, headers);
+  },
+
+  pohAsyncCase(caseId: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/poh/async/case/${encodeURIComponent(caseId)}`, base, headers);
+  },
+
   pohTier2MyCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(withSearch('/v1/poh/tier2/my-cases', { account }), base, headers);
   },
@@ -612,6 +632,19 @@ export const weall = {
     return apiPost("/v1/poh/live/tx/request", payload, base, headers);
   },
 
+
+  pohAsyncTxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost("/v1/poh/async/tx/juror-accept", payload, base, headers);
+  },
+
+  pohAsyncTxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost("/v1/poh/async/tx/juror-decline", payload, base, headers);
+  },
+
+  pohAsyncTxReview(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost("/v1/poh/async/tx/review", payload, base, headers);
+  },
+
   pohTier2TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/tier2/tx/juror-accept", payload, base, headers);
   },
@@ -638,6 +671,10 @@ export const weall = {
 
   pohLiveTxVerdict(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/verdict", payload, base, headers);
+  },
+
+  pohAsyncVideoUpload(file: File, base?: string, headers?: HeadersInit): Promise<any> {
+    return uploadFile('/v1/poh/async/evidence/video/upload', file, base, headers);
   },
 
   pohTier2VideoUpload(file: File, base?: string, headers?: HeadersInit): Promise<any> {

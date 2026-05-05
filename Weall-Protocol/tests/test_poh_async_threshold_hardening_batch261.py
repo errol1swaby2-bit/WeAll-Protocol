@@ -70,6 +70,25 @@ def _open_async_case(st: dict) -> str:
     return str(opened["case_id"])
 
 
+
+
+def _declare_async_evidence(st: dict, case_id: str, *, nonce: int = 2) -> None:
+    declared = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_EVIDENCE_DECLARE",
+            {
+                "case_id": case_id,
+                "evidence_id": "evi:threshold",
+                "evidence_commitment": "commit:evidence:threshold",
+                "response_commitment": "commit:response:threshold",
+            },
+            signer="alice",
+            nonce=nonce,
+        ),
+    )
+    assert declared and declared["applied"] == "POH_ASYNC_EVIDENCE_DECLARE"
+
 def test_async_threshold_policy_is_fixed_at_case_open_batch261() -> None:
     st = _state()
     case_id = _open_async_case(st)
@@ -132,15 +151,16 @@ def test_async_threshold_policy_from_chain_state_must_be_coherent_batch261() -> 
 def test_async_finalize_revalidates_stored_threshold_policy_batch261() -> None:
     st = _state()
     case_id = _open_async_case(st)
+    _declare_async_evidence(st, case_id, nonce=2)
     apply_tx(
         st,
         _env(
             "POH_ASYNC_JUROR_ASSIGN",
             {"case_id": case_id, "jurors": ["j1", "j2", "j3"]},
             signer="SYSTEM",
-            nonce=2,
+            nonce=3,
             system=True,
-            parent="POH_ASYNC_REQUEST_OPEN",
+            parent="POH_ASYNC_EVIDENCE_DECLARE",
         ),
     )
 
@@ -154,7 +174,7 @@ def test_async_finalize_revalidates_stored_threshold_policy_batch261() -> None:
                 "POH_ASYNC_FINALIZE",
                 {"case_id": case_id},
                 signer="SYSTEM",
-                nonce=3,
+                nonce=4,
                 system=True,
                 parent="POH_ASYNC_JUROR_ASSIGN",
             ),

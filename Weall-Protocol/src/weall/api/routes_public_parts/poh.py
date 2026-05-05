@@ -104,6 +104,94 @@ class PohTier2VideoUploadResponse(BaseModel):
     video_commitment: str
 
 
+async def _upload_poh_video_evidence(
+    *,
+    file: UploadFile,
+    enabled_env: str,
+    max_bytes_env: str,
+    pin_env: str,
+    default_name: str,
+    default_max_bytes: int = 25 * 1024 * 1024,
+) -> PohTier2VideoUploadResponse:
+    if not _env_bool(enabled_env, False):
+        raise ApiError.not_found("not_found", "endpoint_disabled")
+
+    max_bytes = _env_int(max_bytes_env, default_max_bytes)
+
+    name = (file.filename or default_name).strip() or default_name
+    mime = (file.content_type or "").strip() or (
+        mimetypes.guess_type(name)[0] or "application/octet-stream"
+    )
+
+    if not mime.startswith("video/"):
+        raise ApiError.invalid("invalid_payload", "video_file_required")
+
+    size = _file_size(file)
+    if size == 0:
+        raise ApiError.invalid("invalid_payload", "empty_file")
+    if size > 0 and size > max_bytes:
+        raise ApiError.invalid("invalid_payload", f"file_too_large (max {max_bytes} bytes)")
+
+    try:
+        file.file.seek(0)
+    except Exception:
+        pass
+
+    pin_on_upload = _env_bool(pin_env, False)
+
+    try:
+        cid, ipfs_reported_size = ipfs_add_fileobj(
+            name=name, fileobj=file.file, pin=bool(pin_on_upload)
+        )
+    except RuntimeError as e:
+        raise ApiError.bad_request("ipfs_error", str(e))
+
+    v = validate_ipfs_cid(cid)
+    if not v.ok:
+        raise ApiError.bad_request("ipfs_error", f"invalid_cid_from_ipfs:{v.reason}")
+
+    final_size = size if size >= 0 else int(ipfs_reported_size)
+    uri = f"ipfs://{cid}"
+    gw = ipfs_gateway_url(cid)
+    video_commitment = _sha256_hex(cid.encode("utf-8"))
+
+    return PohTier2VideoUploadResponse(
+        ok=True,
+        cid=cid,
+        size=int(final_size),
+        name=name,
+        mime=mime,
+        uri=uri,
+        gateway_url=gw,
+        video_commitment=video_commitment,
+    )
+
+
+@router.post(
+    "/poh/async/evidence/video/upload",
+    response_model=PohTier2VideoUploadResponse,
+    name="poh_async_video_upload",
+)
+async def poh_async_video_upload(
+    request: Request, file: UploadFile = File(...)
+) -> PohTier2VideoUploadResponse:
+    """Upload native async Tier-1 freshly recorded video evidence.
+
+    This endpoint is a node-local evidence intake helper only. It does not grant
+    verification, sign transactions, or write consensus state. Clients must still
+    submit POH_ASYNC_REQUEST_OPEN, POH_ASYNC_EVIDENCE_DECLARE, and
+    POH_ASYNC_EVIDENCE_BIND through normal signed transactions.
+    """
+
+    return await _upload_poh_video_evidence(
+        file=file,
+        enabled_env="WEALL_ENABLE_POH_ASYNC_VIDEO_UPLOAD",
+        max_bytes_env="WEALL_POH_ASYNC_VIDEO_MAX_BYTES",
+        pin_env="WEALL_POH_ASYNC_VIDEO_PIN_ON_UPLOAD",
+        default_name="poh_async_video.webm",
+    )
+
+
 @router.post(
     "/poh/tier2/video/upload",
     response_model=PohTier2VideoUploadResponse,
@@ -179,6 +267,135 @@ async def poh_tier2_video_upload(
         video_commitment=video_commitment,
     )
 
+
+
+
+def _async_cases_from_snapshot(st: Json) -> Json:
+    poh = st.get("poh")
+    if not isinstance(poh, dict):
+        return {}
+    cases = poh.get("async_cases")
+    return cases if isinstance(cases, dict) else {}
+
+
+def _opt_int_value(v: Any) -> int | None:
+    try:
+        return int(v) if isinstance(v, (int, float)) else None
+    except Exception:
+        return None
+
+
+class PohAsyncCaseModel(BaseModel):
+    case_id: str
+    account_id: str
+    status: str
+    opened_height: int | None = None
+    expires_height: int | None = None
+    finalized_height: int | None = None
+    finalized_ts_ms: int | None = None
+    outcome: str | None = None
+    tier_awarded: int | None = None
+    challenge_id: str | None = None
+    assigned_jurors: list[object] = Field(default_factory=list)
+    accepted_jurors: list[object] = Field(default_factory=list)
+    declined_jurors: list[object] = Field(default_factory=list)
+    jurors: dict[str, object] = Field(default_factory=dict)
+    reviews: dict[str, object] = Field(default_factory=dict)
+    evidence_commitments: dict[str, object] = Field(default_factory=dict)
+    evidence_binds: dict[str, object] = Field(default_factory=dict)
+    public_evidence_ids: list[object] = Field(default_factory=list)
+    receipt: dict[str, object] = Field(default_factory=dict)
+
+
+def _as_async_case(case_id: str, r: dict[str, object]) -> PohAsyncCaseModel:
+    def _list(v: Any) -> list[object]:
+        return list(v) if isinstance(v, list) else []
+
+    def _dict(v: Any) -> dict[str, object]:
+        return dict(v) if isinstance(v, dict) else {}
+
+    return PohAsyncCaseModel(
+        case_id=str(case_id),
+        account_id=str(r.get("account_id") or "").strip(),
+        status=str(r.get("status") or "unknown").strip() or "unknown",
+        opened_height=_opt_int_value(r.get("opened_height")),
+        expires_height=_opt_int_value(r.get("expires_height")),
+        finalized_height=_opt_int_value(r.get("finalized_height")),
+        finalized_ts_ms=_opt_int_value(r.get("finalized_ts_ms")),
+        outcome=str(r.get("outcome") or "").strip() or None,
+        tier_awarded=_opt_int_value(r.get("tier_awarded")),
+        challenge_id=str(r.get("challenge_id") or "").strip() or None,
+        assigned_jurors=_list(r.get("assigned_jurors")),
+        accepted_jurors=_list(r.get("accepted_jurors")),
+        declined_jurors=_list(r.get("declined_jurors")),
+        jurors=_dict(r.get("jurors")),
+        reviews=_dict(r.get("reviews")),
+        evidence_commitments=_dict(r.get("evidence_commitments")),
+        evidence_binds=_dict(r.get("evidence_binds")),
+        public_evidence_ids=_list(r.get("public_evidence_ids")),
+        receipt=_dict(r.get("receipt")),
+    )
+
+
+class PohAsyncCaseResponse(BaseModel):
+    ok: bool
+    case: PohAsyncCaseModel
+
+
+class PohAsyncCaseListResponse(BaseModel):
+    ok: bool
+    cases: list[PohAsyncCaseModel]
+
+
+@router.get("/poh/async/case/{case_id}", response_model=PohAsyncCaseResponse, name="poh_async_case")
+def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
+    st = _snapshot(request)
+    cases = _async_cases_from_snapshot(st)
+    cid = str(case_id or "").strip()
+    raw = cases.get(cid)
+    if not isinstance(raw, dict):
+        raise ApiError.not_found("not_found", "async_case_not_found")
+    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw))
+
+
+@router.get(
+    "/poh/async/my-cases", response_model=PohAsyncCaseListResponse, name="poh_async_my_cases"
+)
+def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListResponse:
+    acct = str(account or "").strip()
+    if not acct:
+        raise ApiError.bad_request("bad_request", "missing account", {})
+    st = _snapshot(request)
+    cases = _async_cases_from_snapshot(st)
+    out: list[PohAsyncCaseModel] = []
+    for cid, raw in cases.items():
+        if not isinstance(raw, dict):
+            continue
+        if str(raw.get("account_id") or "").strip() == acct:
+            out.append(_as_async_case(str(cid), raw))
+    out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
+    return PohAsyncCaseListResponse(ok=True, cases=out)
+
+
+@router.get(
+    "/poh/async/juror-cases", response_model=PohAsyncCaseListResponse, name="poh_async_juror_cases"
+)
+def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListResponse:
+    j = str(juror or "").strip()
+    if not j:
+        raise ApiError.bad_request("bad_request", "missing juror", {})
+    st = _snapshot(request)
+    cases = _async_cases_from_snapshot(st)
+    out: list[PohAsyncCaseModel] = []
+    for cid, raw in cases.items():
+        if not isinstance(raw, dict):
+            continue
+        assigned = raw.get("assigned_jurors")
+        jurors = raw.get("jurors")
+        if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
+            out.append(_as_async_case(str(cid), raw))
+    out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
+    return PohAsyncCaseListResponse(ok=True, cases=out)
 
 # ---------------------------------------------------------------------------
 # PoH Tier2: Read-only views (for product UI / juror dashboards)
@@ -837,6 +1054,103 @@ class PohTier2JurorActionSkeletonRequest(BaseModel):
 class PohTier2ReviewSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
+
+
+
+
+class TxSkeletonAsync(BaseModel):
+    tx_type: str
+    signer_hint: str
+    parent: str | None
+    payload: Json
+
+
+class TxSkeletonResponseAsync(BaseModel):
+    ok: bool
+    tx: TxSkeletonAsync
+
+
+class PohAsyncJurorActionSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+
+
+class PohAsyncReviewSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+    verdict: str = Field(..., min_length=1)
+    reason_code: str | None = Field(default=None, max_length=128)
+
+
+@router.post(
+    "/poh/async/tx/juror-accept",
+    response_model=TxSkeletonResponseAsync,
+    name="poh_async_tx_juror_accept",
+)
+def poh_async_tx_juror_accept(
+    req: PohAsyncJurorActionSkeletonRequest, request: Request
+) -> TxSkeletonResponseAsync:
+    cid = str(req.case_id or "").strip()
+    if not cid:
+        raise ApiError.bad_request("bad_request", "missing case_id", {})
+    return TxSkeletonResponseAsync(
+        ok=True,
+        tx=TxSkeletonAsync(
+            tx_type="POH_ASYNC_JUROR_ACCEPT",
+            signer_hint="<JUROR_ACCOUNT_ID>",
+            parent=None,
+            payload={"case_id": cid},
+        ),
+    )
+
+
+@router.post(
+    "/poh/async/tx/juror-decline",
+    response_model=TxSkeletonResponseAsync,
+    name="poh_async_tx_juror_decline",
+)
+def poh_async_tx_juror_decline(
+    req: PohAsyncJurorActionSkeletonRequest, request: Request
+) -> TxSkeletonResponseAsync:
+    cid = str(req.case_id or "").strip()
+    if not cid:
+        raise ApiError.bad_request("bad_request", "missing case_id", {})
+    return TxSkeletonResponseAsync(
+        ok=True,
+        tx=TxSkeletonAsync(
+            tx_type="POH_ASYNC_JUROR_DECLINE",
+            signer_hint="<JUROR_ACCOUNT_ID>",
+            parent=None,
+            payload={"case_id": cid},
+        ),
+    )
+
+
+@router.post(
+    "/poh/async/tx/review", response_model=TxSkeletonResponseAsync, name="poh_async_tx_review"
+)
+def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) -> TxSkeletonResponseAsync:
+    cid = str(req.case_id or "").strip()
+    verdict = str(req.verdict or "").strip().lower()
+    if not cid:
+        raise ApiError.bad_request("bad_request", "missing case_id", {})
+    if verdict not in ("approve", "reject", "needs_followup", "invalid_evidence", "abstain"):
+        raise ApiError.bad_request(
+            "bad_request",
+            "verdict must be approve, reject, needs_followup, invalid_evidence, or abstain",
+            {"verdict": verdict},
+        )
+    payload: Json = {"case_id": cid, "verdict": verdict, "ts_ms": 0}
+    reason_code = str(req.reason_code or "").strip()
+    if reason_code:
+        payload["reason_code"] = reason_code
+    return TxSkeletonResponseAsync(
+        ok=True,
+        tx=TxSkeletonAsync(
+            tx_type="POH_ASYNC_REVIEW_SUBMIT",
+            signer_hint="<JUROR_ACCOUNT_ID>",
+            parent=None,
+            payload=payload,
+        ),
+    )
 
 
 @router.post(

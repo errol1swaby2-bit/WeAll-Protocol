@@ -136,5 +136,5 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     assert isinstance(blk_b, dict)
     assert isinstance(st_a, dict)
     assert isinstance(st_b, dict)
-    assert st_a.get("poh") == st_b.get("poh") == {"tier2_cases": {}, "live_cases": {}}
+    assert st_a.get("poh") == st_b.get("poh") == {"tier2_cases": {}, "live_cases": {}, "async_cases": {}}
     assert blk_a == blk_b

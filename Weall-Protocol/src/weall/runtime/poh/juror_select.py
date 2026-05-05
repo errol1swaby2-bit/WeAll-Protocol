@@ -164,6 +164,39 @@ def pick_tier2_jurors(
     return [a for _h, a in scored[:need]]
 
 
+def pick_async_jurors(
+    *,
+    state: Json,
+    case_id: str,
+    target_account: str,
+    n_jurors: int = 3,
+    min_rep_units: int | None = None,
+    min_rep: Any = 0,
+) -> list[str]:
+    """Deterministically pick jurors for native async Tier-1 review.
+
+    Native async Tier 1 is reviewed by Live Verified Human accounts.  The
+    deterministic ranking uses a dedicated domain separator so async review
+    assignments cannot silently drift with legacy Tier-2 or live assignment.
+    """
+
+    entropy = _entropy_hex(state=state)
+    pool = eligible_live_jurors(
+        state=state,
+        min_rep_units=min_rep_units,
+        min_rep=min_rep,
+    )
+    pool = [a for a in pool if a != target_account]
+
+    need = int(n_jurors)
+    if len(pool) < need:
+        raise ValueError(f"insufficient_eligible_jurors: need {need}, have {len(pool)}")
+
+    scored = [(_score(entropy, "pohasync", str(case_id), a), a) for a in pool]
+    scored.sort(key=lambda t: t[0])
+    return [a for _h, a in scored[:need]]
+
+
 def pick_live_jurors(
     *,
     state: Json,

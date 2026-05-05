@@ -638,3 +638,20 @@ bash ./scripts/devnet_smoke_chain_identity.sh "${NODE1_API}"
 
 echo "==> Creating fresh account through node 1 normal tx flow"
 WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" WEALL_ACCOUNT="${ACCOUNT}" WEALL_DEVNET_FRESH_ACCOUNT="${FRESH_ACCOUNT}" bash ./scripts/devnet_create_account.sh
+
+if [[ "${WEALL_RUN_NATIVE_ASYNC_TIER1_E2E:-1}" == "1" ]]; then
+  echo "==> Completing native async Tier-1 verification through assigned reviewer votes"
+  WEALL_API="${NODE1_API}" \
+  WEALL_KEYFILE="${KEYFILE}" \
+  WEALL_ACCOUNT="${ACCOUNT}" \
+  WEALL_DEVNET_DIR="${DEVNET_DIR}" \
+  WEALL_NATIVE_ASYNC_CREATE_ACCOUNT="0" \
+    bash ./scripts/demo_native_async_tier1_e2e.sh
+fi
+
+if _start_node2_if_needed; then
+  echo "==> Comparing state roots after native async Tier-1 onboarding"
+  NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh || true
+fi
+
+echo "==> Controlled devnet onboarding E2E complete"
