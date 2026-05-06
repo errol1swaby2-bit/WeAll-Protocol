@@ -61,6 +61,117 @@ def _ensure_roles(ledger: Json) -> Json:
     return roles if isinstance(roles, dict) else {}
 
 
+
+def _ensure_node_operator_responsibilities(rec: Json) -> Json:
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+        rec["responsibilities"] = responsibilities
+    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
+    storage = responsibilities.get("storage")
+    if not isinstance(storage, dict):
+        storage = {}
+    storage.setdefault("opted_in", False)
+    storage.setdefault("active", False)
+    storage.setdefault("declared_capacity_bytes", 0)
+    storage.setdefault("proven_capacity_bytes", 0)
+    storage.setdefault("allocated_capacity_bytes", 0)
+    storage.setdefault("proof_status", "not_requested")
+    responsibilities["storage"] = storage
+    return responsibilities
+
+
+def _has_storage_responsibility_intent(payload: Json) -> bool:
+    if bool(payload.get("storage_opt_in", False)):
+        return True
+    if payload.get("declared_capacity_bytes") is not None or payload.get("storage_capacity_bytes") is not None:
+        return True
+    if payload.get("storage_endpoint_commitment") is not None:
+        return True
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        storage = responsibilities.get("storage")
+        if isinstance(storage, dict):
+            return bool(storage.get("opted_in", False)) or storage.get("declared_capacity_bytes") is not None
+    return False
+
+
+def _payload_storage_field(payload: Json, key: str, default: Any = None) -> Any:
+    if key in payload:
+        return payload.get(key)
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        storage = responsibilities.get("storage")
+        if isinstance(storage, dict) and key in storage:
+            return storage.get(key)
+    return default
+
+
+def _active_node_pubkeys_for_account(ledger: Json, acct: str) -> set[str]:
+    account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
+    devices = _as_dict(account.get("devices"))
+    by_id = _as_dict(devices.get("by_id"))
+    out: set[str] = set()
+    for rec in by_id.values():
+        if not isinstance(rec, dict):
+            continue
+        if bool(rec.get("revoked", False)):
+            continue
+        if _as_str(rec.get("device_type")).lower() != "node":
+            continue
+        pubkey = _as_str(rec.get("pubkey"))
+        if pubkey:
+            out.add(pubkey)
+    return out
+
+
+def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+    account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
+    if not account:
+        raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
+    if _as_int(account.get("poh_tier"), 0) < 2:
+        raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
+
+    active_set = ops.get("active_set")
+    active_accounts = {str(v).strip() for v in active_set if str(v).strip()} if isinstance(active_set, list) else set()
+    if not bool(rec.get("active", False)) and acct not in active_accounts:
+        raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
+
+    declared_raw = payload.get("declared_capacity_bytes", payload.get("storage_capacity_bytes"))
+    if declared_raw is None:
+        declared_raw = _payload_storage_field(payload, "declared_capacity_bytes", _payload_storage_field(payload, "storage_capacity_bytes", 0))
+    declared = _as_int(declared_raw, 0)
+    if declared <= 0:
+        raise RolesApplyError("invalid_payload", "declared_capacity_required", {"account_id": acct})
+
+    node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key"))
+    if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
+        raise RolesApplyError("forbidden", "node_key_not_registered", {"account_id": acct})
+
+    responsibilities = _ensure_node_operator_responsibilities(rec)
+    storage = _as_dict(responsibilities.get("storage"))
+    prior_proven = _as_int(storage.get("proven_capacity_bytes"), 0)
+    prior_allocated = _as_int(storage.get("allocated_capacity_bytes"), 0)
+    storage.update(
+        {
+            "opted_in": True,
+            "active": False,
+            "declared_capacity_bytes": declared,
+            "proven_capacity_bytes": prior_proven,
+            "allocated_capacity_bytes": prior_allocated,
+            "proof_status": "pending",
+            "updated_at_nonce": int(nonce),
+        }
+    )
+    endpoint_commitment = _as_str(payload.get("storage_endpoint_commitment") or _payload_storage_field(payload, "storage_endpoint_commitment"))
+    if endpoint_commitment:
+        storage["storage_endpoint_commitment"] = endpoint_commitment
+    if node_pubkey:
+        storage["node_pubkey"] = node_pubkey
+    responsibilities["storage"] = storage
+
 def _require_system_env(env: TxEnvelope) -> None:
     if bool(getattr(env, "system", False)) or _as_str(getattr(env, "signer", "")) == "SYSTEM":
         return
@@ -198,15 +309,7 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
-    responsibilities = rec.get("responsibilities")
-    if not isinstance(responsibilities, dict):
-        responsibilities = {}
-        rec["responsibilities"] = responsibilities
-    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
-    responsibilities.setdefault(
-        "storage",
-        {"opted_in": False, "active": False, "declared_capacity_bytes": 0, "proven_capacity_bytes": 0},
-    )
+    _ensure_node_operator_responsibilities(rec)
     by_id[acct] = rec
     jur["by_id"] = by_id
 
@@ -338,10 +441,21 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     had = bool(rec.get("enrolled", False))
     rec["enrolled"] = True
     rec["enrolled_at_nonce"] = int(env.nonce)
+    storage_opted_in = False
+    if _has_storage_responsibility_intent(payload):
+        _apply_node_storage_responsibility_opt_in(
+            ledger,
+            ops=ops,
+            acct=acct,
+            rec=rec,
+            payload=payload,
+            nonce=int(env.nonce),
+        )
+        storage_opted_in = True
     by_id[acct] = rec
 
     ops["by_id"] = by_id
-    return {"applied": "ROLE_NODE_OPERATOR_ENROLL", "account_id": acct, "deduped": had}
+    return {"applied": "ROLE_NODE_OPERATOR_ENROLL", "account_id": acct, "deduped": had, "storage_opted_in": storage_opted_in}
 
 
 def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
@@ -368,15 +482,7 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
-    responsibilities = rec.get("responsibilities")
-    if not isinstance(responsibilities, dict):
-        responsibilities = {}
-        rec["responsibilities"] = responsibilities
-    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
-    responsibilities.setdefault(
-        "storage",
-        {"opted_in": False, "active": False, "declared_capacity_bytes": 0, "proven_capacity_bytes": 0},
-    )
+    _ensure_node_operator_responsibilities(rec)
     by_id[acct] = rec
     ops["by_id"] = by_id
 

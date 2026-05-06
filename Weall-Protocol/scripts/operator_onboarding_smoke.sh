@@ -67,6 +67,12 @@ require_text "$ACCOUNT_PAGE" "Generate and download node key"
 require_text "$ACCOUNT_PAGE" "Submit node operator enrollment"
 require_text "$ACCOUNT_PAGE" "Checking eligibility"
 require_text "$ACCOUNT_PAGE" "WEALL_NODE_PRIVKEY_FILE="
+require_text "$ACCOUNT_PAGE" "Storage Responsibility"
+require_text "$ACCOUNT_PAGE" "Opt into storage responsibility"
+require_text "$ACCOUNT_PAGE" "Declared capacity is not allocation authority"
+require_text "$DOC" "Declared capacity is not proven capacity"
+require_text "$DOC" "Proof pending is not allocation eligible"
+require_text "$DOC" "proven_capacity_bytes"
 reject_text "$ACCOUNT_PAGE" 'WEALL_NODE_PRIVKEY=${'
 reject_text "$ACCOUNT_PAGE" "ROLE_NODE_OPERATOR_ACTIVATE"
 

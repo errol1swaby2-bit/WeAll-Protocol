@@ -93,10 +93,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "storage" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
+  const [storageCapacityGb, setStorageCapacityGb] = useState<string>("100");
+  const [storageEndpointCommitment, setStorageEndpointCommitment] = useState<string>("");
 
   async function load(): Promise<void> {
     setErr(null);
@@ -195,6 +197,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
     !!nodeOperatorRecord.active ||
     (Array.isArray(nodeOperatorBucket.active_set) &&
       nodeOperatorBucket.active_set.map((v: any) => String(v)).includes(acct));
+  const nodeOperatorResponsibilities = asRecord(nodeOperatorRecord.responsibilities);
+  const storageResponsibility = asRecord(nodeOperatorResponsibilities.storage);
+  const storageOptedIn = !!storageResponsibility.opted_in;
+  const storageDeclaredCapacityBytes = num(storageResponsibility.declared_capacity_bytes, 0);
+  const storageProvenCapacityBytes = num(storageResponsibility.proven_capacity_bytes, 0);
+  const storageProofStatus = String(storageResponsibility.proof_status || (storageOptedIn ? "pending" : "not requested"));
+  const storageEligibleForAllocation = storageOptedIn && storageProvenCapacityBytes > 0;
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
@@ -249,7 +258,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     downloadNodeKeyFile(next);
   }
 
-  async function runOperatorTx(kind: "register" | "enroll") {
+  async function runOperatorTx(kind: "register" | "enroll" | "storage") {
     if (!isSelf) return;
 
     setBusy(kind);
@@ -262,14 +271,22 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_account_signer");
       if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
+      if (kind === "storage" && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
 
       const r = await tx.runTx({
-        title: kind === "register" ? "Register node device" : "Submit node operator enrollment",
+        title:
+          kind === "register"
+            ? "Register node device"
+            : kind === "storage"
+              ? "Opt into storage responsibility"
+              : "Submit node operator enrollment",
         pendingMessage: "Submitting operator action…",
         successMessage:
           kind === "register"
             ? "Node device registered."
-            : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met. Activation now requires network approval.",
+            : kind === "storage"
+              ? "Storage responsibility opt-in recorded. Capacity proof is still pending before allocation."
+              : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => {
@@ -282,6 +299,23 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 device_type: "node",
                 label: String(nodeLabel || "Primary node").trim() || "Primary node",
                 pubkey: nodePubkey,
+              },
+              base,
+            });
+          }
+          if (kind === "storage") {
+            const gb = Number(storageCapacityGb || "0");
+            const declaredCapacityBytes = Number.isFinite(gb) && gb > 0 ? Math.floor(gb * 1024 * 1024 * 1024) : 0;
+            if (declaredCapacityBytes <= 0) throw new Error("declared_storage_capacity_required");
+            return submitSignedTx({
+              account: acct,
+              tx_type: "ROLE_NODE_OPERATOR_ENROLL",
+              payload: {
+                account_id: acct,
+                storage_opt_in: true,
+                declared_capacity_bytes: declaredCapacityBytes,
+                node_pubkey: nodePubkey,
+                storage_endpoint_commitment: String(storageEndpointCommitment || "").trim() || undefined,
               },
               base,
             });
@@ -419,7 +453,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             {operatorReady
               ? "This account is activated for network helper service and has a matching node device."
               : activationPending
-                ? "Enrollment is submitted. Network activation is still pending before this account can serve."
+                ? "Enrollment is submitted. The protocol is checking eligibility for baseline Node Operator status."
                 : canServe
                   ? "Account status is sufficient, but node-device registration or operator enrollment is still incomplete."
                   : "Account status, standing, or signer prerequisites are still blocking operator setup."}
@@ -553,7 +587,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <p className="heroText">
               Live verification unlocks eligibility to enroll as a node operator. Generate a separate
               node key for service operation, register that node public key to your account, then submit
-              enrollment. Network service activation is approved by governance or system authority.
+              enrollment. The protocol automatically activates baseline Node Operator status when prerequisites are met. Validator and storage responsibilities are optional opt-in responsibilities.
             </p>
 
             <ErrorBanner
@@ -713,8 +747,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     </div>
                     <div className="feedMediaMeta">
                       {nodeOperatorActive
-                        ? "Network approval is complete. This account can use the registered node device for service mode."
-                        : "Your enrollment is submitted. Network approval is required before this account can serve as a node operator."}
+                        ? "Baseline Node Operator status is active. Optional validator and storage responsibilities are still separately gated."
+                        : "Your enrollment is submitted. The protocol is checking eligibility and will automatically activate baseline status once prerequisites are met."}
                     </div>
                   </div>
                 ) : null}
@@ -747,6 +781,62 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <div className="feedMediaCard">
+              <div className="feedMediaTitle">Storage Responsibility</div>
+              <div className="feedMediaMeta">
+                Help store and serve WeAll data. Storage responsibility is optional. Declared capacity is not allocation authority; capacity proof must complete before the protocol allocates data to this node.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Storage opt-in</span>
+                  <span className={`statusPill ${storageOptedIn ? "ok" : ""}`}>{storageOptedIn ? "Declared" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Declared capacity</span>
+                  <span className={`statusPill ${storageDeclaredCapacityBytes > 0 ? "ok" : ""}`}>{storageDeclaredCapacityBytes > 0 ? `${storageDeclaredCapacityBytes} bytes` : "None"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Capacity proof</span>
+                  <span className={`statusPill ${storageProvenCapacityBytes > 0 ? "ok" : ""}`}>{storageProvenCapacityBytes > 0 ? "Proven" : storageProofStatus}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Eligible for allocation</span>
+                  <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof"}</span>
+                </div>
+              </div>
+              <div className="grid2">
+                <label>
+                  <div className="eyebrow">Declared capacity in GB</div>
+                  <input
+                    value={storageCapacityGb}
+                    onChange={(e) => setStorageCapacityGb(e.target.value)}
+                    placeholder="100"
+                  />
+                </label>
+                <label>
+                  <div className="eyebrow">Storage endpoint commitment</div>
+                  <input
+                    value={storageEndpointCommitment}
+                    onChange={(e) => setStorageEndpointCommitment(e.target.value)}
+                    placeholder="optional endpoint commitment"
+                  />
+                </label>
+              </div>
+              <div className="buttonRow">
+                <button
+                  className="btn"
+                  disabled={busy !== null || !nodeOperatorActive || !nodePubkey || storageOptedIn}
+                  onClick={() => void runOperatorTx("storage")}
+                >
+                  {busy === "storage"
+                    ? "Recording storage opt-in…"
+                    : storageOptedIn
+                      ? "Storage capacity declared"
+                      : "Opt into storage responsibility"}
+                </button>
+              </div>
+            </div>
+
+            <div className="feedMediaCard">
               <div className="feedMediaTitle">Node config block</div>
               <div className="feedMediaMeta">
                 Use this only after generating the separate node key, registering its public key,
@@ -761,8 +851,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="infoCard">
                 <p>
                   The network helper gate expects an authoritative node device record, a submitted
-                  node operator enrollment, and network activation. Enrollment is user-submitted;
-                  activation is governance or system controlled. Validator status is a separate role.
+                  node operator enrollment. Enrollment is user-submitted;
+                  baseline activation is protocol-scheduled once eligibility checks pass. Validator and storage responsibilities
+                  are optional opt-in responsibilities under Node Operator status.
                 </p>
               </div>
             </details>

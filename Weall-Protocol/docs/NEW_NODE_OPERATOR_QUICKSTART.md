@@ -172,6 +172,8 @@ Baseline Node Operator status does not automatically grant validator or storage-
 
 - Validator responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and validator readiness.
 - Storage responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and storage capacity proof before allocation.
+  Declared capacity is not proven capacity. Proof pending is not allocation eligible.
+  The protocol should only treat storage responsibility as allocation-ready after `proven_capacity_bytes` is greater than zero.
 
 ---
 

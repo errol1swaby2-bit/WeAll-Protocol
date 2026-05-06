@@ -1449,6 +1449,14 @@ class RoleGovExecutorSetPayload(_StrictModel):
 
 class AccountScopedRolePayload(_StrictModel):
     account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "juror", "operator", "node_operator", "validator", "target", "account"))
+    # Optional responsibility scaffold fields. These are currently used by
+    # ROLE_NODE_OPERATOR_ENROLL to let an already-active baseline Node Operator
+    # opt into storage responsibility without adding a new canon TxType yet.
+    storage_opt_in: bool | None = None
+    declared_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("declared_capacity_bytes", "storage_capacity_bytes", "capacity_bytes"))
+    storage_endpoint_commitment: str | None = None
+    node_pubkey: str | None = Field(default=None, validation_alias=AliasChoices("node_pubkey", "node_public_key"))
+    responsibilities: Json | None = None
 
 
 class ReputationDeltaApplyPayload(_StrictModel):
