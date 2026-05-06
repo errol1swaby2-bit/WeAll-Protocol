@@ -109,8 +109,8 @@ def active_node_pubkeys_for_account(account: Mapping[str, Any]) -> tuple[str, ..
     return tuple(sorted(out))
 
 
-def node_key_owner_map(state: Mapping[str, Any]) -> dict[str, str]:
-    owners: dict[str, str] = {}
+def node_key_owner_sets(state: Mapping[str, Any]) -> dict[str, set[str]]:
+    owners: dict[str, set[str]] = {}
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
         return owners
@@ -119,8 +119,17 @@ def node_key_owner_map(state: Mapping[str, Any]) -> dict[str, str]:
         if not account_id:
             continue
         for pubkey in active_node_pubkeys_for_account(_as_dict(account_any)):
-            owners.setdefault(pubkey, account_id)
+            owners.setdefault(pubkey, set()).add(account_id)
     return owners
+
+
+def node_key_owner_map(state: Mapping[str, Any]) -> dict[str, str]:
+    """Return a compatibility first-owner map for diagnostics.
+
+    Production uniqueness checks MUST use node_key_owner_sets() because a node
+    key shared by multiple accounts is not unique for any of those accounts.
+    """
+    return {pubkey: sorted(owners)[0] for pubkey, owners in node_key_owner_sets(state).items() if owners}
 
 
 def has_registered_node_key(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> bool:
@@ -136,8 +145,21 @@ def has_unique_node_key(state: Mapping[str, Any], account_id: str, *, node_pubke
         node_keys = [k for k in node_keys if k == node_pubkey]
     if not node_keys:
         return False
-    owners = node_key_owner_map(state)
-    return any(owners.get(pubkey) == account_id for pubkey in node_keys)
+    owners_by_key = node_key_owner_sets(state)
+    for pubkey in node_keys:
+        owners = owners_by_key.get(pubkey, set())
+        if owners == {account_id}:
+            return True
+    return False
+
+
+def duplicate_node_keys_for_account(state: Mapping[str, Any], account_id: str) -> tuple[str, ...]:
+    account_keys = set(active_node_pubkeys_for_account(account_record(state, account_id)))
+    if not account_keys:
+        return ()
+    owners_by_key = node_key_owner_sets(state)
+    out = [pubkey for pubkey in account_keys if len(owners_by_key.get(pubkey, set())) > 1]
+    return tuple(sorted(out))
 
 
 def responsibility_record(state: Mapping[str, Any], account_id: str, name: str) -> Mapping[str, Any]:
@@ -156,6 +178,7 @@ def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pub
         "poh_tier_required": 2,
         "poh_tier_actual": _as_int(account.get("poh_tier"), 0),
         "node_pubkey": node_pubkey,
+        "duplicate_node_pubkeys": list(duplicate_node_keys_for_account(state, account_id)),
     }
     if not account:
         _append_unique(reasons, "account_not_found")

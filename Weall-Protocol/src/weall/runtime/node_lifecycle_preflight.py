@@ -280,13 +280,22 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
     validator = evaluation.get("validator") if isinstance(evaluation, dict) else {}
     storage = evaluation.get("storage") if isinstance(evaluation, dict) else {}
 
-    baseline_active = bool(isinstance(baseline, dict) and baseline.get("active"))
+    baseline_reasons = set(baseline.get("reasons") or []) if isinstance(baseline, dict) else set()
+    legacy_active_without_node_device = baseline_reasons == {"node_key_missing"}
+    baseline_active = bool(
+        isinstance(baseline, dict)
+        and baseline.get("active")
+        and (baseline.get("eligible") or legacy_active_without_node_device)
+    )
     baseline_status = str(baseline.get("status") or "") if isinstance(baseline, dict) else ""
 
     if baseline_active:
         active_roles.append("node_operator")
         active_roles.append("helper")
     elif baseline_status not in ("", "not_opted_in"):
+        # A historical active flag is not enough for production service. Current
+        # centralized responsibility readiness must still be eligible, so a
+        # duplicated/revoked node key or restricted account suspends authority.
         suspended_roles.append("node_operator")
         suspended_roles.append("helper")
 

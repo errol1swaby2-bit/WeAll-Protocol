@@ -86,6 +86,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [poh, setPoh] = useState<any>(null);
   const [nonce, setNonce] = useState<any>(null);
   const [acctView, setAcctView] = useState<any>(null);
+  const [operatorStatus, setOperatorStatus] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [following, setFollowing] = useState<any>(null);
   const [socialMe, setSocialMe] = useState<any>(null);
@@ -109,6 +110,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
       account: weall.account(acct, base),
+      operatorStatus: weall.accountOperatorStatus(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
       following: weall.socialFollowing(acct, base),
     };
@@ -129,6 +131,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
+    setOperatorStatus(out.operatorStatus ?? null);
     setRegistered(out.registered ?? null);
     setFollowing(out.following ?? null);
     setSocialMe(out.socialMe ?? null);
@@ -193,23 +196,35 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nodeOperatorBucket = asRecord(asRecord(state?.roles).node_operators);
   const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
   const nodeOperatorRecord = asRecord(nodeOperatorById[acct]);
-  const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled;
+  const operatorTruth = asRecord(operatorStatus?.node_operator);
+  const baselineTruth = asRecord(operatorTruth.baseline);
+  const validatorTruth = asRecord(operatorTruth.validator);
+  const storageTruth = asRecord(operatorTruth.storage);
+  const validatorDetails = asRecord(validatorTruth.details);
+  const storageDetails = asRecord(storageTruth.details);
+  const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled || String(baselineTruth.status || "") !== "not_opted_in";
   const nodeOperatorActive =
+    baselineTruth.active === true ||
     !!nodeOperatorRecord.active ||
     (Array.isArray(nodeOperatorBucket.active_set) &&
       nodeOperatorBucket.active_set.map((v: any) => String(v)).includes(acct));
   const nodeOperatorResponsibilities = asRecord(nodeOperatorRecord.responsibilities);
   const validatorResponsibility = asRecord(nodeOperatorResponsibilities.validator);
-  const validatorOptedIn = !!validatorResponsibility.opted_in;
-  const validatorActive = !!validatorResponsibility.active;
-  const validatorReadinessStatus = String(validatorResponsibility.readiness_status || (validatorOptedIn ? "pending" : "not requested"));
-  const validatorReputationRequired = num(validatorResponsibility.reputation_required_milli, 5000);
+  const validatorStatus = String(validatorTruth.status || "");
+  const validatorOptedIn = !!validatorResponsibility.opted_in || (!!validatorStatus && validatorStatus !== "not_opted_in");
+  const validatorActive = validatorTruth.active === true || !!validatorResponsibility.active;
+  const validatorReadinessStatus = String(validatorStatus || validatorResponsibility.readiness_status || (validatorOptedIn ? "pending" : "not requested"));
+  const validatorReputationRequired = num(validatorDetails.reputation_required_milli ?? validatorResponsibility.reputation_required_milli, 5000);
   const storageResponsibility = asRecord(nodeOperatorResponsibilities.storage);
-  const storageOptedIn = !!storageResponsibility.opted_in;
-  const storageDeclaredCapacityBytes = num(storageResponsibility.declared_capacity_bytes, 0);
-  const storageProvenCapacityBytes = num(storageResponsibility.proven_capacity_bytes, 0);
-  const storageProofStatus = String(storageResponsibility.proof_status || (storageOptedIn ? "pending" : "not requested"));
-  const storageEligibleForAllocation = storageOptedIn && storageProvenCapacityBytes > 0;
+  const storageStatus = String(storageTruth.status || "");
+  const storageOptedIn = !!storageResponsibility.opted_in || (!!storageStatus && storageStatus !== "not_opted_in");
+  const storageDeclaredCapacityBytes = num(storageDetails.declared_capacity_bytes ?? storageResponsibility.declared_capacity_bytes, 0);
+  const storageProvenCapacityBytes = num(storageDetails.proven_capacity_bytes ?? storageResponsibility.proven_capacity_bytes, 0);
+  const storageProofStatus = String(storageDetails.proof_status || storageStatus || storageResponsibility.proof_status || (storageOptedIn ? "pending" : "not requested"));
+  const storageEligibleForAllocation = storageTruth.active === true || (storageOptedIn && storageProvenCapacityBytes > 0);
+  const baselineReasons = Array.isArray(baselineTruth.reasons) ? baselineTruth.reasons : [];
+  const validatorReasons = Array.isArray(validatorTruth.reasons) ? validatorTruth.reasons : [];
+  const storageReasons = Array.isArray(storageTruth.reasons) ? storageTruth.reasons : [];
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
@@ -773,6 +788,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                         ? "Baseline Node Operator status is active. Optional validator and storage responsibilities are still separately gated."
                         : "Your enrollment is submitted. The protocol is checking eligibility and will automatically activate baseline status once prerequisites are met."}
                     </div>
+                    {baselineReasons.length ? (
+                      <div className="feedMediaMeta">Backend readiness reasons: {baselineReasons.join(", ")}</div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -826,6 +844,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <span className={`statusPill ${validatorActive ? "ok" : ""}`}>{validatorActive ? "Enabled" : "Blocked until readiness"}</span>
                 </div>
               </div>
+              {validatorReasons.length ? (
+                <div className="feedMediaMeta">Backend readiness reasons: {validatorReasons.join(", ")}</div>
+              ) : null}
               <label>
                 <div className="eyebrow">Validator readiness commitment</div>
                 <input
@@ -872,6 +893,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof"}</span>
                 </div>
               </div>
+              {storageReasons.length ? (
+                <div className="feedMediaMeta">Backend readiness reasons: {storageReasons.join(", ")}</div>
+              ) : null}
               <div className="grid2">
                 <label>
                   <div className="eyebrow">Declared capacity in GB</div>

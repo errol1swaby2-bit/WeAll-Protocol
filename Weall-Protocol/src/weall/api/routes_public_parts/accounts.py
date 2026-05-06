@@ -16,6 +16,7 @@ from weall.api.routes_public_parts.common import (
 )
 from weall.api.security import require_account_session
 from weall.ledger.state import LedgerView
+from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
 router = APIRouter()
 
@@ -157,6 +158,24 @@ def v1_account_registered(account: str, request: Request):
     registered = tier >= 2 and not banned
 
     return {"ok": True, "account": account, "registered": registered}
+
+
+
+
+@router.get("/accounts/{account}/operator-status")
+def v1_account_operator_status(account: str, request: Request):
+    """Return backend-derived Node Operator responsibility readiness.
+
+    The runtime responsibility evaluator is the source of truth for baseline
+    Node Operator, validator responsibility, and storage responsibility status.
+    Frontends should display this result instead of inferring authority from raw
+    account/role state.
+    """
+
+    st = _snapshot(request)
+    node_pubkey = _str_param(request.query_params.get("node_pubkey"), "").strip()
+    status = evaluate_node_operator_responsibilities(st, account, node_pubkey=node_pubkey)
+    return {"ok": True, "account": account, "node_operator": status}
 
 
 @router.get("/accounts/{account}/feed")
