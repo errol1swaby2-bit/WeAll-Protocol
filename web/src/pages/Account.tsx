@@ -5,6 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import FeedView from "../components/FeedView";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
+import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../auth/nodeKeys";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { nav } from "../lib/router";
@@ -95,6 +96,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [busy, setBusy] = useState<"register" | "enroll" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
+  const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
 
   async function load(): Promise<void> {
     setErr(null);
@@ -164,7 +166,6 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
-  const localSecretKey = String(localKeypair?.secretKeyB64 || "");
   const devicesById = asRecord(asRecord(state?.devices).by_id);
   const activeDevices: DeviceRecord[] = Object.entries(devicesById)
     .filter(
@@ -182,8 +183,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nodeDevices: DeviceRecord[] = activeDevices.filter((rec) =>
     isNodeDevice(String(rec.deviceId || ""), rec),
   );
+  const nodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
   const matchingNodeDevice =
-    nodeDevices.find((rec) => String(rec.pubkey || "") === localPubkey) || null;
+    nodeDevices.find((rec) => !!nodePubkey && String(rec.pubkey || "") === nodePubkey) || null;
   const hasAnyNodeDevice = nodeDevices.length > 0;
   const nodeOperatorBucket = asRecord(asRecord(state?.roles).node_operators);
   const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
@@ -193,7 +195,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     !!nodeOperatorRecord.active ||
     (Array.isArray(nodeOperatorBucket.active_set) &&
       nodeOperatorBucket.active_set.map((v: any) => String(v)).includes(acct));
-  const nodeDeviceReady = canServe && !!localPubkey && !!matchingNodeDevice;
+  const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
   const configDeviceId =
@@ -201,10 +203,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const configBlock = [
     `WEALL_ACCOUNT_ID=${acct}`,
-    `WEALL_NODE_ID=${acct}`,
-    `WEALL_PEER_ID=${acct}`,
-    `WEALL_NODE_PUBKEY=${localPubkey || "<PASTE_NODE_PUBKEY>"}`,
-    `WEALL_NODE_PRIVKEY=${localSecretKey || "<PASTE_NODE_PRIVKEY>"}`,
+    `WEALL_NODE_ID=${configDeviceId}`,
+    `WEALL_PEER_ID=${configDeviceId}`,
+    `WEALL_NODE_PUBKEY=${nodePubkey || "<GENERATE_NODE_KEY_FIRST>"}`,
+    `WEALL_NODE_PRIVKEY_FILE=/secure/path/${nodeKeyFile ? "weall-node.key" : "weall-node-key.json"}`,
     `WEALL_NET_REQUIRE_PEER_IDENTITY=1`,
     `# Optional but recommended`,
     `# WEALL_NET_ADVERTISE_URI=tcp://your-hostname-or-ip:30303`,
@@ -236,6 +238,17 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
 
+  function generateAndDownloadNodeKey(): void {
+    const next = createNodeKeyFile({
+      account: acct,
+      nodeId: configDeviceId,
+      deviceId: configDeviceId,
+      label: nodeLabel,
+    });
+    setNodeKeyFile(next);
+    downloadNodeKeyFile(next);
+  }
+
   async function runOperatorTx(kind: "register" | "enroll") {
     if (!isSelf) return;
 
@@ -247,7 +260,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!accountExists) throw new Error("register_the_account_first");
       if (signerBusy) throw new Error("signer_submission_busy");
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
-      if (!localPubkey) throw new Error("missing_local_keypair");
+      if (!localPubkey) throw new Error("missing_account_signer");
+      if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
 
       const r = await tx.runTx({
         title: kind === "register" ? "Register node device" : "Submit node operator enrollment",
@@ -267,7 +281,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 device_id: configDeviceId,
                 device_type: "node",
                 label: String(nodeLabel || "Primary node").trim() || "Primary node",
-                pubkey: localPubkey,
+                pubkey: nodePubkey,
               },
               base,
             });
@@ -537,10 +551,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <p className="heroText">
-              Live verification unlocks eligibility to enroll as a node operator. A regular user can
-              register a node device and submit enrollment, but network service activation is approved by
-              governance or system authority. This page shows activation status without letting users grant
-              themselves operator authority.
+              Live verification unlocks eligibility to enroll as a node operator. Generate a separate
+              node key for service operation, register that node public key to your account, then submit
+              enrollment. Network service activation is approved by governance or system authority.
             </p>
 
             <ErrorBanner
@@ -552,7 +565,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
             <div className="statsGrid statsGridCompact">
               <div className="statCard">
-                <span className="statLabel">Local account key</span>
+                <span className="statLabel">Account key</span>
                 <span className="statValue">{localPubkey ? "Loaded" : "Missing"}</span>
               </div>
               <div className="statCard">
@@ -585,31 +598,37 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>3. Local signer available on this device</span>
+                  <span>3. Account key available to sign enrollment</span>
                   <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
                     {localPubkey ? "Ready" : "Missing"}
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>4. Node device registered with same pubkey</span>
+                  <span>4. Separate node key generated and downloaded</span>
+                  <span className={`statusPill ${nodePubkey ? "ok" : ""}`}>
+                    {nodePubkey ? "Ready" : "Needed"}
+                  </span>
+                </div>
+                <div className="progressRow">
+                  <span>5. Node device registered with node public key</span>
                   <span className={`statusPill ${matchingNodeDevice ? "ok" : ""}`}>
                     {matchingNodeDevice ? "Ready" : "Not yet"}
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>5. Node operator enrollment submitted</span>
+                  <span>6. Node operator enrollment submitted</span>
                   <span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>
                     {nodeOperatorEnrolled ? "Submitted" : "Pending"}
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>6. Network activation approved</span>
+                  <span>7. Network activation approved</span>
                   <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
                     {nodeOperatorActive ? "Approved" : "Awaiting network approval"}
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>7. Copy config into node software and boot service mode</span>
+                  <span>8. Copy config into node software and boot service mode</span>
                   <span className={`statusPill ${operatorReady ? "ok" : ""}`}>
                     {operatorReady ? "Ready to boot" : "Wait for activation"}
                   </span>
@@ -635,11 +654,24 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     placeholder="Primary node"
                   />
                 </label>
+                <div className="infoCard compact">
+                  <div className="feedMediaTitle">Separate node key</div>
+                  <div className="feedMediaMeta">
+                    Generate a dedicated operation key for this node. Do not use your account recovery
+                    key as the node server key. Download the file and place it on the node host securely.
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!canServe || busy !== null} onClick={generateAndDownloadNodeKey}>
+                      Generate and download node key
+                    </button>
+                  </div>
+                  {nodePubkey ? <div className="feedMediaMeta mono">Node public key: {nodePubkey}</div> : null}
+                </div>
                 <div className="buttonRow buttonRowWide">
                   <button
                     className="btn btnPrimary"
                     disabled={
-                      busy !== null || !canServe || !localPubkey || !!matchingNodeDevice
+                      busy !== null || !canServe || !localPubkey || !nodePubkey || !!matchingNodeDevice
                     }
                     onClick={() => void runOperatorTx("register")}
                   >
@@ -663,9 +695,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 {!localPubkey ? (
                   <div className="emptyState compactEmpty">
-                    <div className="emptyTitle">This device is missing the node signer</div>
+                    <div className="emptyTitle">This browser is missing the account signer</div>
                     <div className="emptyText">
-                      Import or restore the account keypair in Settings first, then return here.
+                      Import or restore the account recovery key in Settings first, then return here to sign node registration.
                     </div>
                     <div className="buttonRow">
                       <button className="btn" onClick={() => nav("/settings")}>
@@ -717,9 +749,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Node config block</div>
               <div className="feedMediaMeta">
-                Use this only after node-device registration and network activation are complete.
-                The next hardening step will move production nodes to a separate node-key file instead of
-                using the account recovery key for node identity.
+                Use this only after generating the separate node key, registering its public key,
+                submitting enrollment, and receiving network activation. The node software should read
+                the node private key from a protected file, not from your account recovery key.
               </div>
             </div>
             <pre className="codePanel mono">{configBlock}</pre>
