@@ -182,6 +182,26 @@ This mode is intentionally fail-closed. If the chain does not show Tier 2 status
 
 ---
 
+## Optional: run the candidate demo smoke harness
+
+After the onboarding and service boot scripts are in place, you can run the repository smoke harness:
+
+```bash
+./scripts/fresh_node_operator_candidate_demo.sh
+```
+
+By default this is a safe structural check. It verifies that the documented path still matches the codebase and that the onboarding path does not use production-authority shortcuts.
+
+If you already have a local onboarding API running and want to drive the candidate path, use:
+
+```bash
+WEALL_FRESH_OPERATOR_DEMO_EXECUTE=1 WEALL_API='http://127.0.0.1:8001' ./scripts/fresh_node_operator_candidate_demo.sh
+```
+
+The executable mode stops at **node-operator candidate / activation pending**. It does not grant production node-operator authority.
+
+---
+
 ## 11. Troubleshooting
 
 ### “Account is not Live Verified”
