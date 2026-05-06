@@ -111,10 +111,39 @@ def _extract_active_pubkeys(acct: Mapping[str, Any]) -> tuple[str, ...]:
 
 
 
+def _extract_active_device_pubkeys(acct: Mapping[str, Any], *, device_type: str = "") -> tuple[str, ...]:
+    out: list[str] = []
+    seen: set[str] = set()
+    devices = acct.get("devices")
+    by_id = devices.get("by_id") if isinstance(devices, dict) else None
+    if not isinstance(by_id, dict):
+        return ()
+    want = str(device_type or "").strip().lower()
+    for rec in by_id.values():
+        if not isinstance(rec, dict):
+            continue
+        if bool(rec.get("revoked", False)):
+            continue
+        if want and str(rec.get("device_type") or "").strip().lower() != want:
+            continue
+        value = str(rec.get("pubkey") or "").strip()
+        if value and value not in seen:
+            out.append(value)
+            seen.add(value)
+    return tuple(sorted(out))
+
+
 def _node_key_authorized(account_record: Mapping[str, Any], *, bound_account: str) -> bool:
     candidates = _node_key_candidates()
     if not candidates:
         return False
+    # Service nodes must be authorized through an active node device record.
+    # Legacy account-key authorization remains as a compatibility fallback for
+    # older validator/operator bundles, but new onboarding registers a separate
+    # ACCOUNT_DEVICE_REGISTER device_type=node key.
+    active_node_devices = set(_extract_active_device_pubkeys(account_record, device_type="node"))
+    if active_node_devices:
+        return any(candidate in active_node_devices for candidate in candidates)
     active = set(_extract_active_pubkeys(account_record))
     if active:
         return any(candidate in active for candidate in candidates)
@@ -146,9 +175,7 @@ def _required_poh_tier(requested_roles: tuple[str, ...]) -> int:
             return max(0, int(str(explicit).strip()))
         except Exception:
             return 0
-    if "validator" in requested_roles:
-        return 2
-    if "helper" in requested_roles:
+    if any(role in requested_roles for role in ("validator", "helper", "node_operator", "storage_operator", "general_service")):
         return 2
     return 0
 

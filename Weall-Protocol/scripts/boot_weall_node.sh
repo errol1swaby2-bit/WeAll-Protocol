@@ -5,6 +5,9 @@ set -eu
 # want to join the canonical WeAll chain, not create a local/demo chain.
 
 export WEALL_MODE="${WEALL_MODE:-prod}"
+export WEALL_NODE_LIFECYCLE_STATE="${WEALL_NODE_LIFECYCLE_STATE:-observer_onboarding}"
+export WEALL_OBSERVER_MODE="${WEALL_OBSERVER_MODE:-1}"
+export WEALL_VALIDATOR_SIGNING_ENABLED="${WEALL_VALIDATOR_SIGNING_ENABLED:-0}"
 export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-./configs/chains/weall-genesis.json}"
 export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
 export WEALL_SIGVERIFY="${WEALL_SIGVERIFY:-1}"

@@ -4,12 +4,14 @@ import os
 from dataclasses import dataclass
 
 BOOTSTRAP_REGISTRATION = "bootstrap_registration"
+OBSERVER_ONBOARDING = "observer_onboarding"
 PRODUCTION_SERVICE = "production_service"
 MAINTENANCE_RESTRICTED = "maintenance_restricted"
 REFUSED_STARTUP = "refused_startup"
 
 _ALLOWED_STATES = {
     BOOTSTRAP_REGISTRATION,
+    OBSERVER_ONBOARDING,
     PRODUCTION_SERVICE,
     MAINTENANCE_RESTRICTED,
     REFUSED_STARTUP,

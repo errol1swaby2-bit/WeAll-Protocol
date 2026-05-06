@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from weall.runtime.node_lifecycle_preflight import evaluate_production_preflight
 from weall.runtime.node_runtime_config import (
     BOOTSTRAP_REGISTRATION,
+    OBSERVER_ONBOARDING,
     MAINTENANCE_RESTRICTED,
     PRODUCTION_SERVICE,
     REFUSED_STARTUP,
@@ -230,8 +231,8 @@ def evaluate_node_lifecycle_status(
             bft_effective = False
         else:
             effective_state = PRODUCTION_SERVICE
-    elif requested_state == BOOTSTRAP_REGISTRATION:
-        effective_state = BOOTSTRAP_REGISTRATION if not hard_fail_reasons else REFUSED_STARTUP
+    elif requested_state in {BOOTSTRAP_REGISTRATION, OBSERVER_ONBOARDING}:
+        effective_state = requested_state if not hard_fail_reasons else REFUSED_STARTUP
     elif requested_state == MAINTENANCE_RESTRICTED:
         effective_state = MAINTENANCE_RESTRICTED if not hard_fail_reasons else REFUSED_STARTUP
     elif requested_state == REFUSED_STARTUP:
