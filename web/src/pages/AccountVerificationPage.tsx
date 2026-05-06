@@ -20,6 +20,7 @@ import {
   sha256HexText,
   validateAsyncVideoDuration,
 } from "../lib/verificationEvidence";
+import { createLiveVerificationCommitments, hasRequiredLiveVerificationCommitments } from "../lib/liveVerification";
 import {
   TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
@@ -215,6 +216,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [compatUploadBusy, setCompatUploadBusy] = useState(false);
   const [compatRequestBusy, setCompatRequestBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
+  const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
 
@@ -743,17 +745,30 @@ export default function AccountVerificationPage(): JSX.Element {
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
         task: async () => {
-          const skel: any = await weall.pohLiveTxRequest({ account_id: acct }, base, headers);
+          const kp = getKeypair(acct);
+          const commitments = await createLiveVerificationCommitments({
+            account: acct,
+            pubkeyB64: kp?.pubkeyB64,
+          });
+          if (!hasRequiredLiveVerificationCommitments(commitments)) {
+            throw new Error("The live verification request could not prepare required session commitments.");
+          }
+          setLiveCommitments(commitments);
+          const skel: any = await weall.pohLiveTxRequest({ account_id: acct, ...commitments }, base, headers);
           const skeletonTx = skel?.tx;
           if (!skeletonTx) throw new Error("The backend did not return a valid live verification request.");
+          const payload = skeletonTx.payload || {};
+          if (!hasRequiredLiveVerificationCommitments(payload)) {
+            throw new Error("The backend live verification skeleton is missing required session commitments.");
+          }
           const submit = await submitSignedTx({
             account: acct,
             tx_type: String(skeletonTx.tx_type || ""),
-            payload: skeletonTx.payload || {},
+            payload,
             parent: skeletonTx.parent ?? null,
             base,
           });
-          return { skeleton: skel, submit };
+          return { skeleton: skel, commitments, submit };
         },
       });
 
@@ -989,9 +1004,13 @@ export default function AccountVerificationPage(): JSX.Element {
           status={trustedStatus}
           description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
         >
+          <div className="calloutInfo">
+            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not private session recordings.
+          </div>
           <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
             {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
           </button>
+          {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
         </StatusCard>
       </section>
 
