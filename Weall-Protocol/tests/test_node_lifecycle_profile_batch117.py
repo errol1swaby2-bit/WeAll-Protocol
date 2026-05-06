@@ -119,5 +119,5 @@ def test_production_request_activates_validator_and_helper_when_preflight_passes
     assert lifecycle["poh_tier_required"] == 2
     assert lifecycle["poh_tier_actual"] == 2
     assert lifecycle["reputation_actual_milli"] == 6000
-    assert lifecycle["active_roles"] == ["helper", "node_operator", "storage_operator", "validator"]
+    assert lifecycle["active_roles"] == ["helper", "node_operator", "validator"]
     assert lifecycle["service_roles_effective"] == ["general_service", "helper", "validator"]

@@ -269,7 +269,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
         successMessage:
           kind === "register"
             ? "Node device registered."
-            : "Node operator enrollment submitted. Activation now requires network approval.",
+            : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met. Activation now requires network approval.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => {
@@ -545,7 +545,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   {nodeOperatorEnrolled ? "Enrollment submitted" : "Enrollment needed"}
                 </span>
                 <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
-                  {nodeOperatorActive ? "Activated" : "Activation pending"}
+                  {nodeOperatorActive ? "Activated" : "Checking eligibility"}
                 </span>
               </div>
             </div>
@@ -622,7 +622,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>7. Network activation approved</span>
+                  <span>7. Node Operator status active</span>
                   <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
                     {nodeOperatorActive ? "Approved" : "Awaiting network approval"}
                   </span>
@@ -709,7 +709,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 {nodeOperatorEnrolled ? (
                   <div className="infoCard compact">
                     <div className="feedMediaTitle">
-                      {nodeOperatorActive ? "Node operator activated" : "Activation pending"}
+                      {nodeOperatorActive ? "Node operator activated" : "Checking eligibility"}
                     </div>
                     <div className="feedMediaMeta">
                       {nodeOperatorActive

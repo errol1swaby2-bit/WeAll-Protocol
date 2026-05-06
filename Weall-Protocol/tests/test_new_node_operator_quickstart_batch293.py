@@ -28,9 +28,9 @@ def test_new_node_operator_quickstart_documents_full_safe_path_batch293() -> Non
     assert "Generate and download node key" in doc
     assert "Register the node public key" in doc
     assert "Submit node-operator enrollment" in doc
-    assert "Wait for activation" in doc
+    assert "Wait for protocol eligibility activation" in doc
     assert "WEALL_NODE_PRIVKEY_FILE" in doc
-    assert "You cannot self-activate" in doc
+    assert "After enrollment, the protocol checks eligibility" in doc
     assert "Do not use your account recovery key as a node key" in doc
 
 

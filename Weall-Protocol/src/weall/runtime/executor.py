@@ -51,6 +51,7 @@ from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
+from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
 from weall.runtime.protocol_profile import (
     GENESIS_CREATED_MS,
     PRODUCTION_CONSENSUS_PROFILE,
@@ -2496,6 +2497,7 @@ class WeAllExecutor:
             schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
+            schedule_node_operator_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -2625,6 +2627,7 @@ class WeAllExecutor:
             schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
+            schedule_node_operator_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
@@ -3135,6 +3138,7 @@ class WeAllExecutor:
             schedule_poh_async_system_txs(working, next_height=next_height)
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
+            schedule_node_operator_system_txs(working, next_height=next_height)
 
         def _run_system_emitter_side_effects(phase: str) -> None:
             # We discard envelopes; the block already contains the tx list.

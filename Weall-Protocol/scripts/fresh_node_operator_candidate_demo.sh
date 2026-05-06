@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Fresh user -> node-operator candidate demo harness.
 # Default is a safe structural smoke check. Set WEALL_FRESH_OPERATOR_DEMO_EXECUTE=1
-# to drive a running local onboarding API. Execution stops at candidate / activation
-# pending and does not grant production service authority.
+# to drive a running local onboarding API. Execution stops at candidate / eligibility
+# activation and does not grant production service authority.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API="${WEALL_API:-${NODE1_API:-http://127.0.0.1:8001}}"
@@ -45,10 +45,10 @@ structural_smoke() {
   require_text "$quickstart" "Generate a separate node key"
   require_text "$quickstart" "Register the node public key"
   require_text "$quickstart" "Submit node-operator enrollment"
-  require_text "$quickstart" "Wait for activation"
+  require_text "$quickstart" "Wait for protocol eligibility activation"
   require_text "$account_page" "Generate and download node key"
   require_text "$account_page" "Submit node operator enrollment"
-  require_text "$account_page" "Awaiting network approval"
+  require_text "$account_page" "Checking eligibility"
   require_text "$account_page" "ACCOUNT_DEVICE_REGISTER"
   require_text "$account_page" "ROLE_NODE_OPERATOR_ENROLL"
   require_text "$node_keys" "not your WeAll account recovery key"
@@ -106,15 +106,16 @@ print('{}')
 PY
 }
 
-assert_activation_pending() {
+report_activation_state() {
   role_state_json | python3 - "$1" <<'PY'
 import json, sys
 acct = sys.argv[1]; roles = json.load(sys.stdin); ops = roles.get('node_operators') if isinstance(roles, dict) else {}
 active = ops.get('active_set') if isinstance(ops, dict) else []
 rec = (ops.get('by_id') or {}).get(acct) if isinstance(ops, dict) else {}
 if acct in [str(x) for x in (active or [])] or (isinstance(rec, dict) and rec.get('active') is True):
-    raise SystemExit('node operator unexpectedly active; candidate demo must stop at activation pending')
-print('activation_pending')
+    print('activation_active')
+else:
+    print('eligibility_checking')
 PY
 }
 
@@ -127,15 +128,15 @@ execute_candidate_path() {
   NODE_PUBKEY="$(generate_node_key)"; NODE_DEVICE_ID="node:${ACCOUNT}:${NODE_PUBKEY:0:16}"
   python3 scripts/devnet_tx.py --api "$API" submit-tx --account "$ACCOUNT" --keyfile "$ACCOUNT_KEYFILE" --tx-type ACCOUNT_DEVICE_REGISTER --payload-json "{\"device_id\":\"$NODE_DEVICE_ID\",\"device_type\":\"node\",\"label\":\"Fresh operator candidate node\",\"pubkey\":\"$NODE_PUBKEY\"}" --wait
   python3 scripts/devnet_tx.py --api "$API" submit-tx --account "$ACCOUNT" --keyfile "$ACCOUNT_KEYFILE" --tx-type ROLE_NODE_OPERATOR_ENROLL --payload-json "{\"account_id\":\"$ACCOUNT\"}" --wait
-  assert_activation_pending "$ACCOUNT"
+  report_activation_state "$ACCOUNT"
   cat > "${WORK_DIR}/production-service.example.env" <<EOF_ENV
 WEALL_BOUND_ACCOUNT=${ACCOUNT}
 WEALL_NODE_PRIVKEY_FILE=${NODE_KEYFILE}
 WEALL_NODE_PUBKEY=${NODE_PUBKEY}
-# Run only after network approval activates the NodeOperator role:
+# Run only after protocol eligibility checks activate baseline Node Operator status:
 # ./scripts/boot_node_operator.sh
 EOF_ENV
-  info "candidate demo complete; activation is pending; production service boot should remain blocked until network approval"
+  info "candidate demo complete; baseline Node Operator status may be active if protocol checks passed, or still checking eligibility if a prerequisite is missing"
 }
 
 structural_smoke

@@ -1,6 +1,3 @@
-# NOTE: full file is large; only showing the complete file is required by your preference.
-# This is the complete file content.
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -201,6 +198,15 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+        rec["responsibilities"] = responsibilities
+    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
+    responsibilities.setdefault(
+        "storage",
+        {"opted_in": False, "active": False, "declared_capacity_bytes": 0, "proven_capacity_bytes": 0},
+    )
     by_id[acct] = rec
     jur["by_id"] = by_id
 
@@ -339,6 +345,7 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     roles = _ensure_roles(ledger)
     ops = roles.get("node_operators")
     if not isinstance(ops, dict):
@@ -361,6 +368,15 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+        rec["responsibilities"] = responsibilities
+    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
+    responsibilities.setdefault(
+        "storage",
+        {"opted_in": False, "active": False, "declared_capacity_bytes": 0, "proven_capacity_bytes": 0},
+    )
     by_id[acct] = rec
     ops["by_id"] = by_id
 

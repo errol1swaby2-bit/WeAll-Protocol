@@ -15,7 +15,7 @@ def test_fresh_operator_candidate_demo_script_exists_and_is_safe_batch294():
     assert "WEALL_FRESH_OPERATOR_DEMO_EXECUTE" in text
     assert "structural_smoke" in text
     assert "execute_candidate_path" in text
-    assert "activation pending" in text.lower()
+    assert "eligibility activation" in text.lower()
     assert "observer_onboarding" in text
     assert "production_service" in text
     assert "ROLE_NODE_OPERATOR_ENROLL" in text
@@ -46,7 +46,7 @@ def test_quickstart_mentions_candidate_demo_without_overpromising_batch294():
     text = read(QUICKSTART)
     assert "./scripts/fresh_node_operator_candidate_demo.sh" in text
     assert "WEALL_FRESH_OPERATOR_DEMO_EXECUTE=1" in text
-    assert "node-operator candidate / activation pending" in text
+    assert "node-operator candidate / eligibility activation" in text
     assert "does not grant production node-operator authority" in text
     assert "WEALL_NODE_PRIVKEY=<account_secret>" not in text
     assert "WEALL_NODE_PRIVKEY=<localSecretKey>" not in text

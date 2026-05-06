@@ -47,7 +47,7 @@ require_text "$DOC" "Verified Person / Tier 1"
 require_text "$DOC" "Trusted Verified Person / Tier 2"
 require_text "$DOC" "Generate and download node key"
 require_text "$DOC" "WEALL_NODE_PRIVKEY_FILE"
-require_text "$DOC" "You cannot self-activate"
+require_text "$DOC" "After enrollment, the protocol checks eligibility"
 reject_text "$DOC" "WEALL_NODE_PRIVKEY=<account_secret>"
 reject_text "$DOC" "WEALL_NODE_PRIVKEY=<localSecretKey>"
 
@@ -65,7 +65,7 @@ require_text "$SERVICE" "fail-closed"
 
 require_text "$ACCOUNT_PAGE" "Generate and download node key"
 require_text "$ACCOUNT_PAGE" "Submit node operator enrollment"
-require_text "$ACCOUNT_PAGE" "Awaiting network approval"
+require_text "$ACCOUNT_PAGE" "Checking eligibility"
 require_text "$ACCOUNT_PAGE" "WEALL_NODE_PRIVKEY_FILE="
 reject_text "$ACCOUNT_PAGE" 'WEALL_NODE_PRIVKEY=${'
 reject_text "$ACCOUNT_PAGE" "ROLE_NODE_OPERATOR_ACTIVATE"

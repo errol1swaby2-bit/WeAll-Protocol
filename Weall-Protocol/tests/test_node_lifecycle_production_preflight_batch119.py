@@ -92,5 +92,5 @@ def test_production_request_requires_requested_roles_to_be_active(tmp_path: Path
     assert lifecycle["effective_state"] == "maintenance_restricted"
     assert "ROLE_NOT_ACTIVE" in lifecycle["promotion_failure_reasons"]
     assert lifecycle["active_roles"] == []
-    assert lifecycle["suspended_roles"] == ["helper", "node_operator", "storage_operator"]
+    assert lifecycle["suspended_roles"] == ["helper", "node_operator"]
     assert lifecycle["service_roles_effective"] == []

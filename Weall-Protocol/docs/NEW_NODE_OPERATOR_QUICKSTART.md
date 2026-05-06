@@ -7,7 +7,7 @@ The important rule is simple:
 - **Onboarding/observer mode is for joining the network safely.** It can read/sync state, serve the local app, create accounts, submit Proof-of-Humanity verification transactions, register a separate node key, and submit node-operator enrollment.
 - **Production service mode is for already-approved node operators.** It is intentionally fail-closed and requires Live Verified Human status, an active NodeOperator role, and a registered node key.
 
-A new user should start with onboarding mode. Do not try to start production service mode until network activation is approved.
+A new user should start with onboarding mode. Do not try to start production service mode until protocol eligibility checks activate baseline Node Operator status.
 
 ---
 
@@ -139,20 +139,20 @@ Use the Account page to submit node-operator enrollment.
 
 The user-actionable step is enrollment, not activation.
 
-You cannot self-activate as a production node operator. Activation requires network/governance/system approval.
+You cannot self-activate as a production node operator. After enrollment, the protocol checks eligibility and automatically activates baseline Node Operator status when prerequisites are met.
 
 Expected status after enrollment:
 
 ```text
 Node operator enrollment submitted
-Activation pending
+Checking eligibility
 ```
 
 ---
 
-## 9. Wait for activation
+## 9. Wait for protocol eligibility activation
 
-A node operator becomes production-service eligible only after activation is approved on-chain.
+A baseline Node Operator becomes production-service eligible after deterministic protocol eligibility checks activate the enrollment on-chain.
 
 The required state is:
 
@@ -165,11 +165,19 @@ The required state is:
 
 Until then, keep running onboarding/observer mode.
 
+
+### Optional responsibilities under Node Operator
+
+Baseline Node Operator status does not automatically grant validator or storage-provider responsibilities. Those are optional responsibilities under the Node Operator umbrella.
+
+- Validator responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and validator readiness.
+- Storage responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and storage capacity proof before allocation.
+
 ---
 
 ## 10. Boot as an approved production node operator
 
-After activation is approved, restart with the explicit production node-operator boot wrapper:
+After baseline Node Operator status activates, restart with the explicit production node-operator boot wrapper:
 
 ```bash
 WEALL_BOUND_ACCOUNT='@yourhandle' \
@@ -198,7 +206,7 @@ If you already have a local onboarding API running and want to drive the candida
 WEALL_FRESH_OPERATOR_DEMO_EXECUTE=1 WEALL_API='http://127.0.0.1:8001' ./scripts/fresh_node_operator_candidate_demo.sh
 ```
 
-The executable mode stops at **node-operator candidate / activation pending**. It does not grant production node-operator authority.
+The executable mode stops at **node-operator candidate / eligibility activation**. It does not grant production node-operator authority.
 
 ---
 
@@ -210,7 +218,7 @@ Complete Trusted Verified Person / Tier 2 live verification first.
 
 ### “NodeOperator role is not active”
 
-Your enrollment was submitted, but activation is still pending network approval.
+Your enrollment was submitted, but protocol eligibility checks have not activated baseline Node Operator status yet. Complete Tier 2, node-key registration, and account-standing prerequisites, then wait for a new block.
 
 ### “Node key is not authorized”
 
@@ -228,6 +236,6 @@ No. Your recovery key is your account backup. The node key is a separate operati
 Onboarding node = safe way to join and verify.
 Node key = operational key for a node machine.
 Node-operator enrollment = your application/intent.
-Node-operator activation = network-approved service authority.
-Production service boot = only after activation.
+Node-operator activation = protocol-checked baseline service authority.
+Production service boot = only after protocol eligibility activation.
 ```

@@ -9,8 +9,8 @@ def test_node_operator_ui_does_not_offer_self_activation_batch290() -> None:
     assert "ROLE_NODE_OPERATOR_ENROLL" in text
     assert "Submit node operator enrollment" in text
     assert "Enrollment submitted" in text
-    assert "Awaiting network approval" in text
-    assert "Network approval is required" in text
+    assert "Checking eligibility" in text
+    assert "automatically activates baseline Node Operator status" in text
     assert "ROLE_NODE_OPERATOR_ACTIVATE" not in text
     assert "Activate node operator role" not in text
     assert "runOperatorTx(\"activate\")" not in text
@@ -20,10 +20,10 @@ def test_node_operator_ui_does_not_offer_self_activation_batch290() -> None:
 def test_node_operator_checklist_separates_enrollment_from_activation_batch290() -> None:
     text = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "Node operator enrollment submitted" in text
-    assert "Network activation approved" in text
-    assert "Wait for activation" in text
-    assert "Activation pending" in text
-    assert "activation is approved by" in text or "activation is governance" in text
+    assert "Node Operator status active" in text
+    assert "Waiting for eligibility" in text
+    assert "Checking eligibility" in text
+    assert "Validator and storage responsibilities are optional opt-in responsibilities" in text
 
 
 def test_node_operator_ready_requires_active_role_batch290() -> None:

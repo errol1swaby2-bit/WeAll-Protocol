@@ -190,10 +190,15 @@ def _required_reputation_milli(requested_roles: tuple[str, ...]) -> int:
             return 0
     if "validator" in requested_roles:
         return 5000
+    if "storage_operator" in requested_roles:
+        return 1000
     if "helper" in requested_roles:
         return 2000
-    if "node_operator" in requested_roles or "storage_operator" in requested_roles:
-        return 1000
+    # Baseline Node Operator status is permissionless once Tier 2, account
+    # standing, and node-key prerequisites are met. Optional responsibilities
+    # such as validator/storage remain reputation gated separately.
+    if "node_operator" in requested_roles:
+        return 0
     return 0
 
 
@@ -221,6 +226,42 @@ def _bucket_has_enrolled(bucket: Mapping[str, Any], account: str) -> bool:
 
 
 
+def _node_operator_record(roles: Mapping[str, Any], account: str) -> Mapping[str, Any]:
+    bucket = _role_bucket(roles, "node_operators")
+    by_id = bucket.get("by_id")
+    if not isinstance(by_id, dict):
+        return {}
+    rec = by_id.get(account)
+    return rec if isinstance(rec, dict) else {}
+
+
+def _responsibility_record(op_rec: Mapping[str, Any], name: str) -> Mapping[str, Any]:
+    responsibilities = op_rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        return {}
+    rec = responsibilities.get(name)
+    return rec if isinstance(rec, dict) else {}
+
+
+def _responsibility_active(op_rec: Mapping[str, Any], name: str) -> bool:
+    rec = _responsibility_record(op_rec, name)
+    if not bool(rec.get("opted_in", False)):
+        return False
+    if not bool(rec.get("active", False)):
+        return False
+    if name == "storage":
+        try:
+            return int(rec.get("proven_capacity_bytes") or 0) > 0
+        except Exception:
+            return False
+    return True
+
+
+def _responsibility_requested(op_rec: Mapping[str, Any], name: str) -> bool:
+    rec = _responsibility_record(op_rec, name)
+    return bool(rec.get("opted_in", False))
+
+
 def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     roles = state.get("roles")
     if not isinstance(roles, dict) or not bound_account:
@@ -228,20 +269,32 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
 
     active_roles: list[str] = []
     suspended_roles: list[str] = []
-    mapping = {
-        "validator": _role_bucket(roles, "validators"),
-        "node_operator": _role_bucket(roles, "node_operators"),
-        "helper": _role_bucket(roles, "node_operators"),
-        "storage_operator": _role_bucket(roles, "node_operators"),
-        "general_service": {},
-    }
-    for role, bucket in mapping.items():
-        if role == "general_service":
-            continue
-        if _bucket_has_active(bucket, bound_account):
-            active_roles.append(role)
-        elif _bucket_has_enrolled(bucket, bound_account):
-            suspended_roles.append(role)
+    node_bucket = _role_bucket(roles, "node_operators")
+    validator_bucket = _role_bucket(roles, "validators")
+    op_active = _bucket_has_active(node_bucket, bound_account)
+    op_enrolled = _bucket_has_enrolled(node_bucket, bound_account)
+    op_rec = _node_operator_record(roles, bound_account)
+
+    if op_active:
+        active_roles.append("node_operator")
+        active_roles.append("helper")
+    elif op_enrolled:
+        suspended_roles.append("node_operator")
+        suspended_roles.append("helper")
+
+    # Validator/storage are now optional responsibilities beneath Node Operator
+    # posture. Legacy validator active_set remains accepted for compatibility,
+    # but new operator onboarding should populate responsibilities.validator.
+    if op_active and (_responsibility_active(op_rec, "validator") or _bucket_has_active(validator_bucket, bound_account)):
+        active_roles.append("validator")
+    elif op_active and (_responsibility_requested(op_rec, "validator") or _bucket_has_enrolled(validator_bucket, bound_account)):
+        suspended_roles.append("validator")
+
+    if op_active and _responsibility_active(op_rec, "storage"):
+        active_roles.append("storage_operator")
+    elif op_active and _responsibility_requested(op_rec, "storage"):
+        suspended_roles.append("storage_operator")
+
     return tuple(sorted(set(active_roles))), tuple(sorted(set(suspended_roles)))
 
 
@@ -327,10 +380,21 @@ def evaluate_production_preflight(
                     effective_roles.append(role)
                 elif bft_requested:
                     _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
-            elif role in {"helper", "node_operator", "storage_operator"}:
-                # Helper/storage currently derive from node operator posture.
-                needed = "node_operator" if role in {"helper", "storage_operator"} else role
-                if needed in active_roles:
+            elif role == "helper":
+                # Helper currently derives from baseline Node Operator posture.
+                if "node_operator" in active_roles:
+                    effective_roles.append(role)
+                else:
+                    _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
+            elif role == "node_operator":
+                if "node_operator" in active_roles:
+                    effective_roles.append(role)
+                else:
+                    _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
+            elif role == "storage_operator":
+                # Storage is an optional responsibility under Node Operator and
+                # requires proofed capacity before it becomes effective.
+                if "storage_operator" in active_roles:
                     effective_roles.append(role)
                 else:
                     _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
