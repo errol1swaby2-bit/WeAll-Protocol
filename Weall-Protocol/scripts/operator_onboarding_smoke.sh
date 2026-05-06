@@ -106,3 +106,7 @@ require_text "$VALIDATOR_RUNBOOK" "WEALL_NODE_PRIVKEY_FILE"
 require_text "$VALIDATOR_RUNBOOK" "node key must be separate from the account recovery key"
 
 echo "[operator-onboarding-smoke] OK"
+
+require_text "$DOC" "STORAGE_CHALLENGE_ISSUE"
+require_text "$DOC" "proven_capacity_bytes"
+require_text "$DOC" "User responses alone never prove capacity"

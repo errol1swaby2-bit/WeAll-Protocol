@@ -701,7 +701,7 @@ class StorageProofSubmitPayload(_OptionalCidPayload):
 
 
 class StorageChallengeIssuePayload(_StrictModel):
-    lease_id: str = Field(..., min_length=1)
+    lease_id: str | None = Field(default=None, min_length=1)
     challenge_id: str | None = Field(
         default=None,
         min_length=1,
@@ -717,6 +717,30 @@ class StorageChallengeIssuePayload(_StrictModel):
         min_length=1,
         validation_alias=AliasChoices("account_id", "lessee"),
     )
+    proof_scope: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("proof_scope", "scope"))
+    node_pubkey: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("node_pubkey", "node_public_key"))
+    challenge_seed_commitment: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("challenge_seed_commitment", "seed_commitment"))
+    challenge_count: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("challenge_count", "samples", "sample_count"))
+    sample_size_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("sample_size_bytes", "sample_bytes"))
+    challenged_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("challenged_capacity_bytes", "capacity_bytes"))
+    expires_height: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("expires_height", "expiry_height"))
+
+    @model_validator(mode="after")
+    def _validate_scope_fields(self) -> "StorageChallengeIssuePayload":
+        scope = str(self.proof_scope or "lease").strip().lower()
+        if scope in ("capacity", "storage_capacity"):
+            if not self.account_id and not self.operator_id:
+                raise ValueError("account_id or operator_id is required for capacity proof challenges")
+            if not self.challenge_count or int(self.challenge_count) <= 0:
+                raise ValueError("challenge_count is required for capacity proof challenges")
+            if not self.sample_size_bytes or int(self.sample_size_bytes) <= 0:
+                raise ValueError("sample_size_bytes is required for capacity proof challenges")
+            if not self.expires_height or int(self.expires_height) <= 0:
+                raise ValueError("expires_height is required for capacity proof challenges")
+            return self
+        if not self.lease_id:
+            raise ValueError("lease_id is required")
+        return self
 
 
 class StorageChallengeRespondPayload(_StrictModel):
@@ -725,6 +749,13 @@ class StorageChallengeRespondPayload(_StrictModel):
         min_length=1,
         validation_alias=AliasChoices("challenge_id", "id"),
     )
+    proof_scope: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("proof_scope", "scope"))
+    response_commitment: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("response_commitment", "proof_commitment"))
+    sample_response_commitments: list[str] | None = Field(default=None, validation_alias=AliasChoices("sample_response_commitments", "sample_commitments"))
+    measured_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("measured_capacity_bytes", "capacity_bytes"))
+    verification_status: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verification_status", "verdict", "status"))
+    verified_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("verified_capacity_bytes", "proven_capacity_bytes"))
+    response_cid: str | None = Field(default=None, min_length=1)
 
 
 class StoragePayoutExecutePayload(_StrictModel):

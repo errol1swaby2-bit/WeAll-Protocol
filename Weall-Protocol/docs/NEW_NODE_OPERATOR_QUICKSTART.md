@@ -241,3 +241,8 @@ Node-operator enrollment = your application/intent.
 Node-operator activation = protocol-checked baseline service authority.
 Production service boot = only after protocol eligibility activation.
 ```
+
+
+## Production storage capacity proof
+
+Storage responsibility is production-gated by challenge/response verification. Declared capacity is only an intent signal. A system verifier issues a `STORAGE_CHALLENGE_ISSUE` capacity challenge, the operator answers with `STORAGE_CHALLENGE_RESPOND`, and only a system verification response may set `proven_capacity_bytes` and make storage allocation eligible. User responses alone never prove capacity. Expired challenges cannot be used.

@@ -890,7 +890,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 <div className="progressRow">
                   <span>Eligible for allocation</span>
-                  <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof"}</span>
+                  <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof / Storage challenge verification pending"}</span>
                 </div>
               </div>
               {storageReasons.length ? (

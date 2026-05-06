@@ -18,6 +18,7 @@ from hashlib import sha256
 from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.node_operator_responsibilities import evaluate_storage_responsibility
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
@@ -138,6 +139,68 @@ def _set_operator_capacity(state: Json, account_id: str, capacity_bytes: int) ->
     ops[account_id] = rec
 
 
+def _ensure_capacity_challenges(state: Json) -> Json:
+    s = _ensure_storage(state)
+    if not isinstance(s.get("capacity_challenges"), dict):
+        s["capacity_challenges"] = {}
+    return s["capacity_challenges"]
+
+
+def _node_operator_storage_record(state: Json, account_id: str) -> Json:
+    roles = _as_dict(state.get("roles"))
+    node_ops = _as_dict(roles.get("node_operators"))
+    by_id = _as_dict(node_ops.get("by_id"))
+    rec = _as_dict(by_id.get(account_id))
+    responsibilities = _as_dict(rec.get("responsibilities"))
+    storage = _as_dict(responsibilities.get("storage"))
+    return storage
+
+
+def _mut_node_operator_storage_record(state: Json, account_id: str) -> Json:
+    roles = state.setdefault("roles", {}) if isinstance(state.get("roles"), dict) else {}
+    if state.get("roles") is not roles:
+        state["roles"] = roles
+    node_ops = roles.setdefault("node_operators", {}) if isinstance(roles.get("node_operators"), dict) else {}
+    roles["node_operators"] = node_ops
+    by_id = node_ops.setdefault("by_id", {}) if isinstance(node_ops.get("by_id"), dict) else {}
+    node_ops["by_id"] = by_id
+    rec = by_id.setdefault(account_id, {"account_id": account_id}) if isinstance(by_id.get(account_id), dict) else {"account_id": account_id}
+    by_id[account_id] = rec
+    responsibilities = rec.setdefault("responsibilities", {}) if isinstance(rec.get("responsibilities"), dict) else {}
+    rec["responsibilities"] = responsibilities
+    storage = responsibilities.setdefault("storage", {}) if isinstance(responsibilities.get("storage"), dict) else {}
+    responsibilities["storage"] = storage
+    return storage
+
+
+def _storage_responsibility_enforced(state: Json, account_id: str) -> bool:
+    accounts = state.get("accounts")
+    roles = state.get("roles")
+    if isinstance(accounts, dict) and account_id in accounts:
+        return True
+    if isinstance(roles, dict):
+        node_ops = roles.get("node_operators")
+        if isinstance(node_ops, dict):
+            by_id = node_ops.get("by_id")
+            if isinstance(by_id, dict) and account_id in by_id:
+                return True
+    return False
+
+
+def _require_active_storage_responsibility(state: Json, account_id: str, *, node_pubkey: str = "") -> Json:
+    if not _storage_responsibility_enforced(state, account_id):
+        # Compatibility for historical unit tests and pre-responsibility genesis snippets.
+        return {"legacy_unenforced": True}
+    evaluation = evaluate_storage_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict()
+    if not bool(evaluation.get("active")):
+        raise StorageApplyError(
+            "forbidden",
+            "storage_responsibility_not_active",
+            {"account_id": account_id, "reasons": evaluation.get("reasons") or []},
+        )
+    return evaluation
+
+
 def _operator_has_capacity(state: Json, operator_id: str, size_bytes: int) -> bool:
     """Capacity gate.
 
@@ -215,8 +278,13 @@ def _enabled_operator_ids(state: Json) -> list[str]:
         if not acc:
             continue
         rec = rec_any if isinstance(rec_any, dict) else {}
-        if bool(rec.get("enabled", True)):
-            out.append(acc)
+        if not bool(rec.get("enabled", True)):
+            continue
+        if _storage_responsibility_enforced(state, acc):
+            evaluation = evaluate_storage_responsibility(state, acc).as_dict()
+            if not bool(evaluation.get("active")):
+                continue
+        out.append(acc)
 
     out.sort()
     return out
@@ -266,6 +334,18 @@ def _apply_storage_offer_create(state: Json, env: TxEnvelope) -> Json:
 
     capacity_bytes = _as_int(_pick(payload, "capacity_bytes", "capacity"), 0)
     price = _pick(payload, "price")
+
+    storage_eval = _require_active_storage_responsibility(state, operator_id)
+    if not storage_eval.get("legacy_unenforced"):
+        proven_capacity = _as_int(_as_dict(storage_eval.get("details")).get("proven_capacity_bytes"), 0)
+        if capacity_bytes <= 0:
+            capacity_bytes = proven_capacity
+        elif capacity_bytes > proven_capacity:
+            raise StorageApplyError(
+                "forbidden",
+                "offer_capacity_exceeds_proven_capacity",
+                {"capacity_bytes": int(capacity_bytes), "proven_capacity_bytes": int(proven_capacity)},
+            )
 
     offers = s["offers"]
     if offer_id in offers:
@@ -470,7 +550,82 @@ def _apply_storage_challenge_issue(state: Json, env: TxEnvelope) -> Json:
     s = _ensure_storage(state)
     payload = _as_dict(env.payload)
 
+    proof_scope = _as_str(_pick(payload, "proof_scope", "scope") or "lease").strip().lower() or "lease"
     challenge_id = _mk_id("challenge", env, _pick(payload, "challenge_id", "id"))
+
+    if proof_scope in ("capacity", "storage_capacity"):
+        account_id = _as_str(_pick(payload, "account_id", "operator_id", "operator") or "").strip()
+        if not account_id:
+            raise StorageApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+        if not _storage_responsibility_enforced(state, account_id):
+            raise StorageApplyError("forbidden", "storage_responsibility_not_found", {"account_id": account_id})
+
+        storage_rec = _node_operator_storage_record(state, account_id)
+        declared = _as_int(storage_rec.get("declared_capacity_bytes"), 0)
+        if not bool(storage_rec.get("opted_in", False)) or declared <= 0:
+            raise StorageApplyError("forbidden", "storage_responsibility_not_opted_in", {"account_id": account_id})
+
+        node_pubkey = _as_str(_pick(payload, "node_pubkey", "node_public_key") or storage_rec.get("node_pubkey") or "").strip()
+        baseline_eval = evaluate_storage_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict()
+        reasons = list(baseline_eval.get("reasons") or [])
+        allowed_reasons = {"capacity_proof_pending"}
+        blocking = [r for r in reasons if r not in allowed_reasons]
+        if blocking:
+            raise StorageApplyError("forbidden", "storage_capacity_challenge_not_allowed", {"account_id": account_id, "reasons": blocking})
+
+        challenge_count = _as_int(_pick(payload, "challenge_count", "samples", "sample_count"), 0)
+        sample_size = _as_int(_pick(payload, "sample_size_bytes", "sample_bytes"), 0)
+        challenged_capacity = _as_int(_pick(payload, "challenged_capacity_bytes", "capacity_bytes"), declared)
+        expires_height = _as_int(_pick(payload, "expires_height", "expiry_height"), 0)
+        current_height = _height(state)
+        if challenge_count <= 0:
+            raise StorageApplyError("invalid_payload", "challenge_count_required", {"account_id": account_id})
+        if sample_size <= 0:
+            raise StorageApplyError("invalid_payload", "sample_size_required", {"account_id": account_id})
+        if challenged_capacity <= 0 or challenged_capacity > declared:
+            raise StorageApplyError(
+                "invalid_payload",
+                "challenged_capacity_must_not_exceed_declared_capacity",
+                {"challenged_capacity_bytes": int(challenged_capacity), "declared_capacity_bytes": int(declared)},
+            )
+        if expires_height <= current_height:
+            raise StorageApplyError("invalid_payload", "expires_height_must_be_future", {"expires_height": int(expires_height), "height": int(current_height)})
+
+        challenges = s["challenges"]
+        capacity_challenges = _ensure_capacity_challenges(state)
+        if challenge_id in challenges or challenge_id in capacity_challenges:
+            return {"applied": "STORAGE_CHALLENGE_ISSUE", "challenge_id": challenge_id, "deduped": True, "proof_scope": "capacity"}
+
+        rec = {
+            "challenge_id": challenge_id,
+            "proof_scope": "capacity",
+            "lease_id": None,
+            "operator_id": account_id,
+            "account_id": account_id,
+            "node_pubkey": node_pubkey or None,
+            "declared_capacity_bytes": int(declared),
+            "challenged_capacity_bytes": int(challenged_capacity),
+            "challenge_count": int(challenge_count),
+            "sample_size_bytes": int(sample_size),
+            "challenge_seed_commitment": _as_str(_pick(payload, "challenge_seed_commitment", "seed_commitment") or "") or None,
+            "issued_at_nonce": int(env.nonce),
+            "issued_at_height": int(current_height),
+            "expires_height": int(expires_height),
+            "payload": payload,
+            "status": "open",
+        }
+        challenges[challenge_id] = rec
+        capacity_challenges[challenge_id] = rec
+
+        storage = _mut_node_operator_storage_record(state, account_id)
+        storage["proof_status"] = "challenge_open"
+        storage["latest_challenge_id"] = challenge_id
+        storage["challenge_expires_height"] = int(expires_height)
+        storage["challenge_count"] = int(challenge_count)
+        storage["sample_size_bytes"] = int(sample_size)
+        if node_pubkey:
+            storage["node_pubkey"] = node_pubkey
+        return {"applied": "STORAGE_CHALLENGE_ISSUE", "challenge_id": challenge_id, "deduped": False, "proof_scope": "capacity"}
 
     lease_id = _as_str(_pick(payload, "lease_id") or "").strip()
     if not lease_id:
@@ -505,6 +660,7 @@ def _apply_storage_challenge_issue(state: Json, env: TxEnvelope) -> Json:
 
     challenges[challenge_id] = {
         "challenge_id": challenge_id,
+        "proof_scope": "lease",
         "lease_id": lease_id,
         "operator_id": operator_id,
         "account_id": account_id or None,
@@ -528,6 +684,102 @@ def _apply_storage_challenge_respond(state: Json, env: TxEnvelope) -> Json:
     rec = challenges.get(challenge_id)
     if not isinstance(rec, dict):
         raise StorageApplyError("not_found", "challenge_not_found", {"challenge_id": challenge_id})
+
+    proof_scope = _as_str(rec.get("proof_scope") or payload.get("proof_scope") or "lease").strip().lower() or "lease"
+    if proof_scope in ("capacity", "storage_capacity"):
+        account_id = _as_str(rec.get("account_id") or rec.get("operator_id") or "").strip()
+        if not account_id:
+            raise StorageApplyError("invalid_state", "capacity_challenge_missing_account_id", {"challenge_id": challenge_id})
+        current_height = _height(state)
+        expires_height = _as_int(rec.get("expires_height"), 0)
+        is_system = bool(getattr(env, "system", False))
+
+        if not is_system:
+            if account_id != env.signer:
+                raise StorageApplyError("forbidden", "only_operator_account_can_respond", {"challenge_id": challenge_id})
+            if expires_height and current_height > expires_height:
+                rec["status"] = "expired"
+                challenges[challenge_id] = rec
+                _ensure_capacity_challenges(state)[challenge_id] = rec
+                storage = _mut_node_operator_storage_record(state, account_id)
+                storage["proof_status"] = "expired"
+                raise StorageApplyError("forbidden", "storage_capacity_challenge_expired", {"challenge_id": challenge_id, "height": int(current_height), "expires_height": int(expires_height)})
+            if rec.get("status") not in ("open", "responded"):
+                raise StorageApplyError("forbidden", "storage_capacity_challenge_not_open", {"challenge_id": challenge_id, "status": rec.get("status")})
+            if payload.get("verification_status") is not None or payload.get("verified_capacity_bytes") is not None:
+                raise StorageApplyError("forbidden", "system_verification_required", {"challenge_id": challenge_id})
+            response_commitment = _as_str(_pick(payload, "response_commitment", "proof_commitment") or "").strip()
+            if not response_commitment:
+                raise StorageApplyError("invalid_payload", "response_commitment_required", {"challenge_id": challenge_id})
+            samples = payload.get("sample_response_commitments") or payload.get("sample_commitments") or []
+            if not isinstance(samples, list):
+                raise StorageApplyError("invalid_payload", "sample_response_commitments_must_be_list", {"challenge_id": challenge_id})
+            challenge_count = _as_int(rec.get("challenge_count"), 0)
+            cleaned_samples = [str(v).strip() for v in samples if str(v).strip()]
+            if len(cleaned_samples) < challenge_count:
+                raise StorageApplyError("invalid_payload", "insufficient_sample_responses", {"challenge_id": challenge_id, "required": int(challenge_count), "actual": int(len(cleaned_samples))})
+            measured_capacity = _as_int(_pick(payload, "measured_capacity_bytes", "capacity_bytes"), 0)
+            rec["status"] = "responded"
+            rec["responded_at_nonce"] = int(env.nonce)
+            rec["responded_at_height"] = int(current_height)
+            rec["response_payload"] = payload
+            rec["response_commitment"] = response_commitment
+            rec["sample_response_commitments"] = cleaned_samples
+            if measured_capacity > 0:
+                rec["measured_capacity_bytes"] = int(measured_capacity)
+            challenges[challenge_id] = rec
+            _ensure_capacity_challenges(state)[challenge_id] = rec
+            storage = _mut_node_operator_storage_record(state, account_id)
+            storage["proof_status"] = "verification_pending"
+            storage["latest_challenge_id"] = challenge_id
+            return {"applied": "STORAGE_CHALLENGE_RESPOND", "challenge_id": challenge_id, "deduped": False, "proof_scope": "capacity", "verification_pending": True}
+
+        # System verifier/finalizer path. This is the only path that may update proven capacity.
+        verification_status = _as_str(_pick(payload, "verification_status", "verdict", "status") or "").strip().lower()
+        if verification_status not in ("verified", "failed", "rejected"):
+            raise StorageApplyError("invalid_payload", "verification_status_required", {"challenge_id": challenge_id})
+        storage = _mut_node_operator_storage_record(state, account_id)
+        if verification_status == "verified":
+            if rec.get("status") != "responded":
+                raise StorageApplyError("forbidden", "capacity_challenge_response_required", {"challenge_id": challenge_id, "status": rec.get("status")})
+            declared = _as_int(storage.get("declared_capacity_bytes"), _as_int(rec.get("declared_capacity_bytes"), 0))
+            verified = _as_int(_pick(payload, "verified_capacity_bytes", "proven_capacity_bytes"), 0)
+            if verified <= 0:
+                raise StorageApplyError("invalid_payload", "verified_capacity_required", {"challenge_id": challenge_id})
+            if declared > 0 and verified > declared:
+                raise StorageApplyError("invalid_payload", "verified_capacity_exceeds_declared_capacity", {"verified_capacity_bytes": int(verified), "declared_capacity_bytes": int(declared)})
+            proven = min(int(verified), int(declared) if declared > 0 else int(verified))
+            rec["status"] = "verified"
+            rec["verified_at_nonce"] = int(env.nonce)
+            rec["verified_at_height"] = int(current_height)
+            rec["verified_capacity_bytes"] = int(proven)
+            rec["verification_payload"] = payload
+            storage["proven_capacity_bytes"] = int(proven)
+            storage["active"] = True
+            storage["proof_status"] = "verified"
+            storage["verified_at_height"] = int(current_height)
+            storage["verified_at_nonce"] = int(env.nonce)
+            storage["latest_challenge_id"] = challenge_id
+            storage["capacity_proof"] = {
+                "challenge_id": challenge_id,
+                "verified_capacity_bytes": int(proven),
+                "verified_at_height": int(current_height),
+                "challenge_count": _as_int(rec.get("challenge_count"), 0),
+                "sample_size_bytes": _as_int(rec.get("sample_size_bytes"), 0),
+            }
+            _set_operator_enabled(state, account_id, True, int(env.nonce))
+            _set_operator_capacity(state, account_id, int(proven))
+        else:
+            rec["status"] = "failed"
+            rec["failed_at_nonce"] = int(env.nonce)
+            rec["failed_at_height"] = int(current_height)
+            rec["verification_payload"] = payload
+            storage["active"] = False
+            storage["proof_status"] = "failed"
+            storage["latest_challenge_id"] = challenge_id
+        challenges[challenge_id] = rec
+        _ensure_capacity_challenges(state)[challenge_id] = rec
+        return {"applied": "STORAGE_CHALLENGE_RESPOND", "challenge_id": challenge_id, "deduped": False, "proof_scope": "capacity", "verified": verification_status == "verified"}
 
     operator_id = _as_str(rec.get("operator_id") or "").strip()
     if not bool(getattr(env, "system", False)) and operator_id and operator_id != env.signer:

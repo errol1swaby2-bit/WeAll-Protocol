@@ -216,7 +216,22 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
     declared = _as_int(rec.get("declared_capacity_bytes"), 0)
     proven = _as_int(rec.get("proven_capacity_bytes"), 0)
     allocated = _as_int(rec.get("allocated_capacity_bytes"), 0)
-    details: Json = {"account_id": account_id, "opted_in": opted_in, "declared_capacity_bytes": declared, "proven_capacity_bytes": proven, "allocated_capacity_bytes": allocated, "proof_status": _as_str(rec.get("proof_status")) or "not_requested", "node_pubkey": node_pubkey}
+    proof_status = _as_str(rec.get("proof_status")) or "not_requested"
+    # Compatibility for historical states/tests that carried an already-proven
+    # capacity value before proof_status was introduced. New production flows
+    # still set proof_status=verified through the system verifier path.
+    if proof_status == "not_requested" and proven > 0:
+        proof_status = "proven"
+    details: Json = {
+        "account_id": account_id,
+        "opted_in": opted_in,
+        "declared_capacity_bytes": declared,
+        "proven_capacity_bytes": proven,
+        "allocated_capacity_bytes": allocated,
+        "proof_status": proof_status,
+        "latest_challenge_id": _as_str(rec.get("latest_challenge_id")),
+        "node_pubkey": node_pubkey,
+    }
     if not opted_in:
         return ResponsibilityEvaluation("storage", "not_opted_in", False, False, ("not_opted_in",), ("baseline_node_operator_active", "storage_opt_in", "declared_capacity", "capacity_proof"), details)
     reasons: list[str] = []
@@ -230,8 +245,32 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         _append_unique(reasons, "declared_capacity_required")
     if proven <= 0:
         _append_unique(reasons, "capacity_proof_pending")
-    active = bool(active_flag and proven > 0 and baseline.active)
-    status = "active" if active else ("proof_pending" if "capacity_proof_pending" in reasons else ("blocked" if reasons else "eligible"))
+    if proven > declared and declared > 0:
+        _append_unique(reasons, "proven_capacity_exceeds_declared_capacity")
+    if proof_status not in ("verified", "proven", "active"):
+        if proof_status == "challenge_open":
+            _append_unique(reasons, "capacity_challenge_open")
+        elif proof_status == "verification_pending":
+            _append_unique(reasons, "capacity_verification_pending")
+        elif proof_status == "failed":
+            _append_unique(reasons, "capacity_proof_failed")
+        elif proof_status == "expired":
+            _append_unique(reasons, "capacity_proof_expired")
+    active = bool(active_flag and proven > 0 and baseline.active and proof_status in ("verified", "proven", "active") and proven <= declared)
+    if active:
+        status = "active"
+    elif "capacity_challenge_open" in reasons:
+        status = "challenge_open"
+    elif "capacity_verification_pending" in reasons:
+        status = "verification_pending"
+    elif "capacity_proof_failed" in reasons:
+        status = "proof_failed"
+    elif "capacity_proof_expired" in reasons:
+        status = "proof_expired"
+    elif "capacity_proof_pending" in reasons:
+        status = "proof_pending"
+    else:
+        status = "blocked" if reasons else "eligible"
     return ResponsibilityEvaluation("storage", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "storage_opt_in", "declared_capacity", "capacity_proof"), details)
 
 
