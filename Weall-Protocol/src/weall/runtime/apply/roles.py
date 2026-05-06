@@ -5,6 +5,7 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.reputation_units import account_reputation_units
 
 Json = dict[str, Any]
 
@@ -67,7 +68,14 @@ def _ensure_node_operator_responsibilities(rec: Json) -> Json:
     if not isinstance(responsibilities, dict):
         responsibilities = {}
         rec["responsibilities"] = responsibilities
-    responsibilities.setdefault("validator", {"opted_in": False, "active": False})
+    validator = responsibilities.get("validator")
+    if not isinstance(validator, dict):
+        validator = {}
+    validator.setdefault("opted_in", False)
+    validator.setdefault("active", False)
+    validator.setdefault("readiness_status", "not_requested")
+    validator.setdefault("reputation_required_milli", 5000)
+    responsibilities["validator"] = validator
     storage = responsibilities.get("storage")
     if not isinstance(storage, dict):
         storage = {}
@@ -107,6 +115,32 @@ def _payload_storage_field(payload: Json, key: str, default: Any = None) -> Any:
     return default
 
 
+def _has_validator_responsibility_intent(payload: Json) -> bool:
+    if bool(payload.get("validator_opt_in", False)):
+        return True
+    if payload.get("validator_readiness_commitment") is not None:
+        return True
+    if payload.get("validator_endpoint_commitment") is not None:
+        return True
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        validator = responsibilities.get("validator")
+        if isinstance(validator, dict):
+            return bool(validator.get("opted_in", False))
+    return False
+
+
+def _payload_validator_field(payload: Json, key: str, default: Any = None) -> Any:
+    if key in payload:
+        return payload.get(key)
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        validator = responsibilities.get("validator")
+        if isinstance(validator, dict) and key in validator:
+            return validator.get(key)
+    return default
+
+
 def _active_node_pubkeys_for_account(ledger: Json, acct: str) -> set[str]:
     account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
     devices = _as_dict(account.get("devices"))
@@ -123,6 +157,68 @@ def _active_node_pubkeys_for_account(ledger: Json, acct: str) -> set[str]:
         if pubkey:
             out.add(pubkey)
     return out
+
+
+def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+    account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
+    if not account:
+        raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
+    if _as_int(account.get("poh_tier"), 0) < 2:
+        raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
+
+    active_set = ops.get("active_set")
+    active_accounts = {str(v).strip() for v in active_set if str(v).strip()} if isinstance(active_set, list) else set()
+    if not bool(rec.get("active", False)) and acct not in active_accounts:
+        raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
+
+    reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", 5000), 5000)
+    if reputation_required < 0:
+        reputation_required = 5000
+    reputation_actual = account_reputation_units(account, default=0)
+    if reputation_actual < reputation_required:
+        raise RolesApplyError(
+            "forbidden",
+            "validator_reputation_insufficient",
+            {
+                "account_id": acct,
+                "required_milli": int(reputation_required),
+                "actual_milli": int(reputation_actual),
+            },
+        )
+
+    node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key"))
+    if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
+        raise RolesApplyError("forbidden", "node_key_not_registered", {"account_id": acct})
+
+    responsibilities = _ensure_node_operator_responsibilities(rec)
+    validator = _as_dict(responsibilities.get("validator"))
+    validator.update(
+        {
+            "opted_in": True,
+            "active": False,
+            "readiness_status": "pending",
+            "reputation_required_milli": int(reputation_required),
+            "reputation_actual_milli": int(reputation_actual),
+            "updated_at_nonce": int(nonce),
+        }
+    )
+    readiness_commitment = _as_str(
+        payload.get("validator_readiness_commitment")
+        or _payload_validator_field(payload, "validator_readiness_commitment")
+    )
+    endpoint_commitment = _as_str(
+        payload.get("validator_endpoint_commitment")
+        or _payload_validator_field(payload, "validator_endpoint_commitment")
+    )
+    if readiness_commitment:
+        validator["validator_readiness_commitment"] = readiness_commitment
+    if endpoint_commitment:
+        validator["validator_endpoint_commitment"] = endpoint_commitment
+    if node_pubkey:
+        validator["node_pubkey"] = node_pubkey
+    responsibilities["validator"] = validator
 
 
 def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
@@ -441,6 +537,18 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     had = bool(rec.get("enrolled", False))
     rec["enrolled"] = True
     rec["enrolled_at_nonce"] = int(env.nonce)
+    validator_opted_in = False
+    if _has_validator_responsibility_intent(payload):
+        _apply_node_validator_responsibility_opt_in(
+            ledger,
+            ops=ops,
+            acct=acct,
+            rec=rec,
+            payload=payload,
+            nonce=int(env.nonce),
+        )
+        validator_opted_in = True
+
     storage_opted_in = False
     if _has_storage_responsibility_intent(payload):
         _apply_node_storage_responsibility_opt_in(
@@ -455,7 +563,13 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     by_id[acct] = rec
 
     ops["by_id"] = by_id
-    return {"applied": "ROLE_NODE_OPERATOR_ENROLL", "account_id": acct, "deduped": had, "storage_opted_in": storage_opted_in}
+    return {
+        "applied": "ROLE_NODE_OPERATOR_ENROLL",
+        "account_id": acct,
+        "deduped": had,
+        "validator_opted_in": validator_opted_in,
+        "storage_opted_in": storage_opted_in,
+    }
 
 
 def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:

@@ -1451,7 +1451,11 @@ class AccountScopedRolePayload(_StrictModel):
     account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "juror", "operator", "node_operator", "validator", "target", "account"))
     # Optional responsibility scaffold fields. These are currently used by
     # ROLE_NODE_OPERATOR_ENROLL to let an already-active baseline Node Operator
-    # opt into storage responsibility without adding a new canon TxType yet.
+    # opt into validator/storage responsibility without adding new canon TxTypes yet.
+    validator_opt_in: bool | None = None
+    validator_readiness_commitment: str | None = None
+    validator_endpoint_commitment: str | None = None
+    reputation_required_milli: int | None = Field(default=None, ge=0)
     storage_opt_in: bool | None = None
     declared_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("declared_capacity_bytes", "storage_capacity_bytes", "capacity_bytes"))
     storage_endpoint_commitment: str | None = None

@@ -93,12 +93,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "storage" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
   const [storageCapacityGb, setStorageCapacityGb] = useState<string>("100");
   const [storageEndpointCommitment, setStorageEndpointCommitment] = useState<string>("");
+  const [validatorReadinessCommitment, setValidatorReadinessCommitment] = useState<string>("");
 
   async function load(): Promise<void> {
     setErr(null);
@@ -198,6 +199,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
     (Array.isArray(nodeOperatorBucket.active_set) &&
       nodeOperatorBucket.active_set.map((v: any) => String(v)).includes(acct));
   const nodeOperatorResponsibilities = asRecord(nodeOperatorRecord.responsibilities);
+  const validatorResponsibility = asRecord(nodeOperatorResponsibilities.validator);
+  const validatorOptedIn = !!validatorResponsibility.opted_in;
+  const validatorActive = !!validatorResponsibility.active;
+  const validatorReadinessStatus = String(validatorResponsibility.readiness_status || (validatorOptedIn ? "pending" : "not requested"));
+  const validatorReputationRequired = num(validatorResponsibility.reputation_required_milli, 5000);
   const storageResponsibility = asRecord(nodeOperatorResponsibilities.storage);
   const storageOptedIn = !!storageResponsibility.opted_in;
   const storageDeclaredCapacityBytes = num(storageResponsibility.declared_capacity_bytes, 0);
@@ -258,7 +264,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     downloadNodeKeyFile(next);
   }
 
-  async function runOperatorTx(kind: "register" | "enroll" | "storage") {
+  async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage") {
     if (!isSelf) return;
 
     setBusy(kind);
@@ -271,22 +277,26 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_account_signer");
       if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
-      if (kind === "storage" && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
+      if ((kind === "validator" || kind === "storage") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
 
       const r = await tx.runTx({
         title:
           kind === "register"
             ? "Register node device"
-            : kind === "storage"
-              ? "Opt into storage responsibility"
-              : "Submit node operator enrollment",
+            : kind === "validator"
+              ? "Opt into validator responsibility"
+              : kind === "storage"
+                ? "Opt into storage responsibility"
+                : "Submit node operator enrollment",
         pendingMessage: "Submitting operator action…",
         successMessage:
           kind === "register"
             ? "Node device registered."
-            : kind === "storage"
-              ? "Storage responsibility opt-in recorded. Capacity proof is still pending before allocation."
-              : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
+            : kind === "validator"
+              ? "Validator responsibility opt-in recorded. Validator readiness and reputation checks are still pending before consensus authority."
+              : kind === "storage"
+                ? "Storage responsibility opt-in recorded. Capacity proof is still pending before allocation."
+                : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => {
@@ -299,6 +309,19 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 device_type: "node",
                 label: String(nodeLabel || "Primary node").trim() || "Primary node",
                 pubkey: nodePubkey,
+              },
+              base,
+            });
+          }
+          if (kind === "validator") {
+            return submitSignedTx({
+              account: acct,
+              tx_type: "ROLE_NODE_OPERATOR_ENROLL",
+              payload: {
+                account_id: acct,
+                validator_opt_in: true,
+                node_pubkey: nodePubkey,
+                validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,
               },
               base,
             });
@@ -781,6 +804,52 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <div className="feedMediaCard">
+              <div className="feedMediaTitle">Validator Responsibility</div>
+              <div className="feedMediaMeta">
+                Help finalize blocks and secure the network. Validator responsibility is optional. Baseline Node Operator status does not grant validator authority; validator readiness and reputation checks must pass first.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Validator opt-in</span>
+                  <span className={`statusPill ${validatorOptedIn ? "ok" : ""}`}>{validatorOptedIn ? "Opted in" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Validator readiness</span>
+                  <span className={`statusPill ${validatorActive ? "ok" : ""}`}>{validatorActive ? "Active" : validatorReadinessStatus}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Reputation gate</span>
+                  <span className="statusPill">Requires {validatorReputationRequired} reputation milli</span>
+                </div>
+                <div className="progressRow">
+                  <span>Consensus authority</span>
+                  <span className={`statusPill ${validatorActive ? "ok" : ""}`}>{validatorActive ? "Enabled" : "Blocked until readiness"}</span>
+                </div>
+              </div>
+              <label>
+                <div className="eyebrow">Validator readiness commitment</div>
+                <input
+                  value={validatorReadinessCommitment}
+                  onChange={(e) => setValidatorReadinessCommitment(e.target.value)}
+                  placeholder="optional readiness commitment"
+                />
+              </label>
+              <div className="buttonRow">
+                <button
+                  className="btn"
+                  disabled={busy !== null || !nodeOperatorActive || !nodePubkey || validatorOptedIn}
+                  onClick={() => void runOperatorTx("validator")}
+                >
+                  {busy === "validator"
+                    ? "Recording validator opt-in…"
+                    : validatorOptedIn
+                      ? "Validator opt-in recorded"
+                      : "Opt into validator responsibility"}
+                </button>
+              </div>
+            </div>
+
+            <div className="feedMediaCard">
               <div className="feedMediaTitle">Storage Responsibility</div>
               <div className="feedMediaMeta">
                 Help store and serve WeAll data. Storage responsibility is optional. Declared capacity is not allocation authority; capacity proof must complete before the protocol allocates data to this node.
@@ -853,7 +922,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   The network helper gate expects an authoritative node device record, a submitted
                   node operator enrollment. Enrollment is user-submitted;
                   baseline activation is protocol-scheduled once eligibility checks pass. Validator and storage responsibilities
-                  are optional opt-in responsibilities under Node Operator status.
+                  are optional opt-in responsibilities under Node Operator status. Validator readiness and reputation checks must pass before consensus authority.
                 </p>
               </div>
             </details>

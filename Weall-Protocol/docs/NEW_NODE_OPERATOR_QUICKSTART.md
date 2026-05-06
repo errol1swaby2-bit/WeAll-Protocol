@@ -168,9 +168,9 @@ Until then, keep running onboarding/observer mode.
 
 ### Optional responsibilities under Node Operator
 
-Baseline Node Operator status does not automatically grant validator or storage-provider responsibilities. Those are optional responsibilities under the Node Operator umbrella.
+Baseline Node Operator status does not automatically grant validator or storage-provider responsibilities. Validator readiness and reputation checks must pass before consensus authority. Those are optional responsibilities under the Node Operator umbrella.
 
-- Validator responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and validator readiness.
+- Validator responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and validator readiness. Baseline Node Operator status does not grant validator authority.
 - Storage responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and storage capacity proof before allocation.
   Declared capacity is not proven capacity. Proof pending is not allocation eligible.
   The protocol should only treat storage responsibility as allocation-ready after `proven_capacity_bytes` is greater than zero.

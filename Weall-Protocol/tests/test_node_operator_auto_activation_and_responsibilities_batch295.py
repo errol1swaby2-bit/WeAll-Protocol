@@ -57,7 +57,9 @@ def test_eligible_node_operator_enrollment_auto_queues_and_applies_activation_ba
     rec = st["roles"]["node_operators"]["by_id"]["@op"]
     assert rec["active"] is True
     assert "@op" in st["roles"]["node_operators"]["active_set"]
-    assert rec["responsibilities"]["validator"] == {"opted_in": False, "active": False}
+    assert rec["responsibilities"]["validator"]["opted_in"] is False
+    assert rec["responsibilities"]["validator"]["active"] is False
+    assert rec["responsibilities"]["validator"]["readiness_status"] == "not_requested"
     assert rec["responsibilities"]["storage"]["proven_capacity_bytes"] == 0
 
 
