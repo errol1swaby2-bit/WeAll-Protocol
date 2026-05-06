@@ -7,6 +7,9 @@ ONBOARDING="$ROOT_DIR/scripts/boot_onboarding_node.sh"
 SERVICE="$ROOT_DIR/scripts/boot_node_operator.sh"
 ACCOUNT_PAGE="$ROOT_DIR/../web/src/pages/Account.tsx"
 NODE_KEYS="$ROOT_DIR/../web/src/auth/nodeKeys.ts"
+THREAT_MODEL="$ROOT_DIR/docs/THREAT_MODEL_CHECKLIST.md"
+LEGACY_ONBOARDING="$ROOT_DIR/docs/NODE_OPERATOR_ONBOARDING.md"
+VALIDATOR_RUNBOOK="$ROOT_DIR/docs/PRODUCTION_RUNBOOK_VALIDATORS.md"
 
 fail() {
   echo "[operator-onboarding-smoke] FAIL: $*" >&2
@@ -36,6 +39,9 @@ require_file "$ONBOARDING"
 require_file "$SERVICE"
 require_file "$ACCOUNT_PAGE"
 require_file "$NODE_KEYS"
+require_file "$THREAT_MODEL"
+require_file "$LEGACY_ONBOARDING"
+require_file "$VALIDATOR_RUNBOOK"
 
 sh -n "$ONBOARDING"
 sh -n "$SERVICE"
@@ -84,5 +90,19 @@ reject_text "$ACCOUNT_PAGE" "ROLE_NODE_OPERATOR_ACTIVATE"
 
 require_text "$NODE_KEYS" "weall_node_key"
 require_text "$NODE_KEYS" "not your WeAll account recovery key"
+
+require_text "$THREAT_MODEL" "WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key"
+require_text "$THREAT_MODEL" "Do **not** use the account recovery key as the node key"
+reject_text "$THREAT_MODEL" "WEALL_NODE_PRIVKEY=<matching Ed25519 seed>"
+
+require_text "$LEGACY_ONBOARDING" "superseded by the current first-run operator guide"
+require_text "$LEGACY_ONBOARDING" "Baseline Node Operator status does not automatically grant validator authority"
+require_text "$LEGACY_ONBOARDING" "Baseline Node Operator status does not automatically grant storage allocation authority"
+require_text "$LEGACY_ONBOARDING" "The node key must be separate from the account recovery key"
+
+require_text "$VALIDATOR_RUNBOOK" "Validator Responsibility Production Runbook"
+require_text "$VALIDATOR_RUNBOOK" "Baseline Node Operator status alone does not grant validator authority"
+require_text "$VALIDATOR_RUNBOOK" "WEALL_NODE_PRIVKEY_FILE"
+require_text "$VALIDATOR_RUNBOOK" "node key must be separate from the account recovery key"
 
 echo "[operator-onboarding-smoke] OK"

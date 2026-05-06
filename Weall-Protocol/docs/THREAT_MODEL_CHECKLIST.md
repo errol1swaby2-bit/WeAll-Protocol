@@ -7,25 +7,26 @@ The current backend build targets an **open mesh** posture: nodes can continue t
 ## 0) Deployment goals (what this checklist assumes)
 
 - You want the node to be **fail-closed by default**.
-- You want **peer identity = account key** (Proof-of-Humanity account), to reduce Sybil leverage.
+- You want **peer identity = registered node key bound to a verified account**, to reduce Sybil leverage while keeping the account recovery key out of node runtime.
 - You accept that the current TCP mesh is **not encrypted** (no TLS/Noise yet); confidentiality is not guaranteed.
 
 ## 1) Identity + "one node per user"
 
-**Goal:** A single PoH-verified user should operate *one* node identity on the mesh.
+**Goal:** A single PoH-verified user should operate a bounded number of registered node identities on the mesh, using node keys that are separate from the account recovery key.
 
 Current enforcement (this build):
-- The TCP mesh can require that peers prove control of the same Ed25519 key registered on-chain.
-- The node process enforces **only one live, identity-verified session per account** (duplicate nodes for the same account are rejected at the network edge).
+- The TCP mesh can require that peers prove control of a registered node key bound on-chain to a verified account.
+- The node process enforces the configured node/account uniqueness policy at the network edge.
 
 Environment toggles:
 - `WEALL_NET_REQUIRE_PEER_IDENTITY=1` (default: `1`)
-- `WEALL_NODE_PUBKEY=<account active pubkey>`
-- `WEALL_NODE_PRIVKEY=<matching Ed25519 seed>`
+- `WEALL_NODE_PUBKEY=<registered node public key>`
+- `WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key`
 
 Operational notes:
-- Do **not** reuse the same account key across multiple machines if you expect them to be concurrently online.
-- Keep `WEALL_NODE_PRIVKEY` out of logs and process listings; prefer env injection via a secrets manager.
+- Do **not** use the account recovery key as the node key.
+- Generate a separate node key, register its public key, and store the private key outside the repository.
+- Prefer `WEALL_NODE_PRIVKEY_FILE` over raw private-key environment variables so node secrets do not appear in shell history, process listings, or logs.
 
 ## 2) Genesis economics lock
 

@@ -1,88 +1,54 @@
 # WeAll Node Operator Onboarding
 
-This document describes the normal production-oriented onboarding flow for a new WeAll node operator.
-
-A normal node operator verifies chain state and public chain authority anchors. A normal node operator does **not** need mail-transport credentials, authority signer keys, external provider API tokens, or authority snapshot signer private keys.
-
-## Roles
-
-| Role | Holds | Does not hold |
-|---|---|---|
-| Validator / consensus participant | Validator/node key material and finalized chain state | Email transport credentials, external identity-provider credentials, or authority private keys |
-
-## Public onboarding bundle
-
-A public onboarding bundle gives the operator the chain and authority anchors needed to verify they are connecting to the correct network and public chain authority profile.
-
-It contains public values only:
-
-- chain id
-- genesis hash
-- genesis state root
-- tx index hash
-- chain authority URL, when the deployment publishes one
-- trusted authority snapshot signer public keys
-
-It must not contain private key material.
-
-## Install the public anchors
-
-```bash
-cd ~/WeAll-Protocol/Weall-Protocol
-
-python3 scripts/verify_node_operator_onboarding_bundle.py \
-  --bundle node-operator-onboarding-bundle.json \
-  --manifest configs/chains/weall-genesis.json \
-  --json
-
-python3 scripts/install_node_operator_onboarding_bundle.py \
-  --bundle node-operator-onboarding-bundle.json \
-  --manifest configs/chains/weall-genesis.json \
-  --out .weall-node-operator.env
-
-source .weall-node-operator.env
-```
-
-The generated `.weall-node-operator.env` file is local shell configuration. It contains public anchors only.
-
-## Configure local node identity separately
-
-After the public anchors are installed, configure the operator's local node/account identity through the node's normal key-management process.
-
-The operator must eventually provide:
+This document has been superseded by the current first-run operator guide:
 
 ```text
-WEALL_BOOTSTRAP_OPERATOR_ACCOUNT
-WEALL_NODE_PUBKEY
-WEALL_NODE_PRIVKEY_FILE or equivalent local signer configuration
+./docs/NEW_NODE_OPERATOR_QUICKSTART.md
 ```
 
+Use that guide for the production-shaped onboarding flow:
 
-## Run preflight
+1. start an observer/onboarding node with `./scripts/boot_onboarding_node.sh`;
+2. create an account through the local app;
+3. save the account recovery key;
+4. complete Verified Person / Tier 1 async review;
+5. complete Trusted Verified Person / Tier 2 live review;
+6. generate a separate node key;
+7. register the node public key;
+8. submit node-operator enrollment;
+9. let the protocol automatically activate baseline Node Operator status once deterministic prerequisites pass;
+10. opt into validator or storage responsibilities separately;
+11. start explicit production service mode with `./scripts/boot_node_operator.sh` only after eligibility is active.
+
+## Current authority model
+
+- Baseline Node Operator status is the infrastructure identity.
+- Validator responsibility is an optional responsibility under Node Operator status.
+- Storage responsibility is an optional responsibility under Node Operator status.
+- Baseline Node Operator status does not automatically grant validator authority.
+- Baseline Node Operator status does not automatically grant storage allocation authority.
+- Declared storage capacity is not proven capacity.
+- Proof pending is not allocation eligible.
+- The node key must be separate from the account recovery key.
+
+## Production boot split
+
+Use the onboarding boot for first-run account setup and verification:
 
 ```bash
-bash scripts/prod_node_operator_from_bundle_preflight.sh node-operator-onboarding-bundle.json
+./scripts/boot_onboarding_node.sh
 ```
 
-This checks:
+Use the production service boot only after baseline Node Operator status is active:
 
-- bundle matches the local production chain manifest;
-- public chain/authority anchors are exported;
-- external identity-provider and authority-signer secrets are absent from the normal node environment;
-- optional live authority/key checks if node account/key variables are configured.
+```bash
+WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key \
+WEALL_NODE_PUBKEY=<registered-node-public-key> \
+WEALL_BOUND_ACCOUNT=@yourhandle \
+./scripts/boot_node_operator.sh
+```
 
-## Proof-of-Humanity use
-
-Normal node operators do not run external identity-provider verification services.
-Proof-of-Humanity is protocol-native: Tier 1 is async juror-attested review, and
-Tier 2 is live juror-attested review. Nodes verify committed chain state and submit
-normal signed transactions. No email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, app-store identity, or third-party AI scoring service is part of the
-required PoH architecture.
-
-## Trust boundary
-
-A node operator does not prove authority by knowing any external service endpoint. PoH authority comes from protocol rules, chain state, and native juror-attested review.
-
+This document is intentionally short to avoid maintaining two competing onboarding sources.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
@@ -95,4 +61,3 @@ A node operator does not prove authority by knowing any external service endpoin
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
-
