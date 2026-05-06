@@ -92,7 +92,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "activate" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
 
@@ -185,7 +185,17 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const matchingNodeDevice =
     nodeDevices.find((rec) => String(rec.pubkey || "") === localPubkey) || null;
   const hasAnyNodeDevice = nodeDevices.length > 0;
-  const operatorReady = canServe && !!localPubkey && !!matchingNodeDevice;
+  const nodeOperatorBucket = asRecord(asRecord(state?.roles).node_operators);
+  const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
+  const nodeOperatorRecord = asRecord(nodeOperatorById[acct]);
+  const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled;
+  const nodeOperatorActive =
+    !!nodeOperatorRecord.active ||
+    (Array.isArray(nodeOperatorBucket.active_set) &&
+      nodeOperatorBucket.active_set.map((v: any) => String(v)).includes(acct));
+  const nodeDeviceReady = canServe && !!localPubkey && !!matchingNodeDevice;
+  const operatorReady = nodeDeviceReady && nodeOperatorActive;
+  const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
   const configDeviceId =
     String(nodeDeviceId || `node:${acct}`).trim() || `node:${acct}`;
 
@@ -226,7 +236,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
 
-  async function runOperatorTx(kind: "register" | "enroll" | "activate") {
+  async function runOperatorTx(kind: "register" | "enroll") {
     if (!isSelf) return;
 
     setBusy(kind);
@@ -240,19 +250,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!localPubkey) throw new Error("missing_local_keypair");
 
       const r = await tx.runTx({
-        title:
-          kind === "register"
-            ? "Register node device"
-            : kind === "enroll"
-              ? "Enroll node operator"
-              : "Activate node operator",
+        title: kind === "register" ? "Register node device" : "Submit node operator enrollment",
         pendingMessage: "Submitting operator action…",
         successMessage:
           kind === "register"
             ? "Node device registered."
-            : kind === "enroll"
-              ? "Node operator enrollment submitted."
-              : "Node operator activation submitted.",
+            : "Node operator enrollment submitted. Activation now requires network approval.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => {
@@ -269,17 +272,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
               base,
             });
           }
-          if (kind === "enroll") {
-            return submitSignedTx({
-              account: acct,
-              tx_type: "ROLE_NODE_OPERATOR_ENROLL",
-              payload: { account_id: acct },
-              base,
-            });
-          }
           return submitSignedTx({
             account: acct,
-            tx_type: "ROLE_NODE_OPERATOR_ACTIVATE",
+            tx_type: "ROLE_NODE_OPERATOR_ENROLL",
             payload: { account_id: acct },
             base,
           });
@@ -408,10 +403,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="summaryCardValue">{operatorReady ? "Ready" : canServe ? "Almost ready" : "Locked"}</div>
           <div className="summaryCardText">
             {operatorReady
-              ? "A matching network-helper device is already present for this saved account key."
-              : canServe
-                ? "Account status is sufficient, but the node device record or signer alignment is still incomplete."
-                : "Account status, standing, or signer prerequisites are still blocking operator setup."}
+              ? "This account is activated for network helper service and has a matching node device."
+              : activationPending
+                ? "Enrollment is submitted. Network activation is still pending before this account can serve."
+                : canServe
+                  ? "Account status is sufficient, but node-device registration or operator enrollment is still incomplete."
+                  : "Account status, standing, or signer prerequisites are still blocking operator setup."}
           </div>
         </article>
       </section>
@@ -530,16 +527,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
                   {localPubkey ? "Saved account key present" : "Missing saved account key"}
                 </span>
-                <span className={`statusPill ${operatorReady ? "ok" : ""}`}>
-                  {operatorReady ? "Node-ready" : "Not ready"}
+                <span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>
+                  {nodeOperatorEnrolled ? "Enrollment submitted" : "Enrollment needed"}
+                </span>
+                <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
+                  {nodeOperatorActive ? "Activated" : "Activation pending"}
                 </span>
               </div>
             </div>
 
             <p className="heroText">
-              Live verification unlocks operator eligibility. To boot a regular node, this account
-              needs a saved account key, an authoritative network-helper device registration tied to that
-              signer pubkey, and matching node config in the node software.
+              Live verification unlocks eligibility to enroll as a node operator. A regular user can
+              register a node device and submit enrollment, but network service activation is approved by
+              governance or system authority. This page shows activation status without letting users grant
+              themselves operator authority.
             </p>
 
             <ErrorBanner
@@ -551,7 +552,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
             <div className="statsGrid statsGridCompact">
               <div className="statCard">
-                <span className="statLabel">Local signer pubkey</span>
+                <span className="statLabel">Local account key</span>
                 <span className="statValue">{localPubkey ? "Loaded" : "Missing"}</span>
               </div>
               <div className="statCard">
@@ -559,8 +560,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <span className="statValue">{nodeDevices.length}</span>
               </div>
               <div className="statCard">
-                <span className="statLabel">Matching device</span>
-                <span className="statValue">{matchingNodeDevice ? "Yes" : "No"}</span>
+                <span className="statLabel">Enrollment</span>
+                <span className="statValue">{nodeOperatorEnrolled ? "Submitted" : "Not submitted"}</span>
+              </div>
+              <div className="statCard">
+                <span className="statLabel">Activation</span>
+                <span className="statValue">{nodeOperatorActive ? "Approved" : "Pending"}</span>
               </div>
             </div>
 
@@ -592,9 +597,21 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </span>
                 </div>
                 <div className="progressRow">
-                  <span>5. Copy env block into node software and boot</span>
+                  <span>5. Node operator enrollment submitted</span>
+                  <span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>
+                    {nodeOperatorEnrolled ? "Submitted" : "Pending"}
+                  </span>
+                </div>
+                <div className="progressRow">
+                  <span>6. Network activation approved</span>
+                  <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
+                    {nodeOperatorActive ? "Approved" : "Awaiting network approval"}
+                  </span>
+                </div>
+                <div className="progressRow">
+                  <span>7. Copy config into node software and boot service mode</span>
                   <span className={`statusPill ${operatorReady ? "ok" : ""}`}>
-                    {operatorReady ? "Ready to boot" : "Pending"}
+                    {operatorReady ? "Ready to boot" : "Wait for activation"}
                   </span>
                 </div>
               </div>
@@ -634,17 +651,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   </button>
                   <button
                     className="btn"
-                    disabled={busy !== null || !canServe || !matchingNodeDevice}
+                    disabled={busy !== null || !canServe || !matchingNodeDevice || nodeOperatorEnrolled}
                     onClick={() => void runOperatorTx("enroll")}
                   >
-                    {busy === "enroll" ? "Enrolling…" : "Enroll node operator role"}
-                  </button>
-                  <button
-                    className="btn"
-                    disabled={busy !== null || !canServe || !matchingNodeDevice}
-                    onClick={() => void runOperatorTx("activate")}
-                  >
-                    {busy === "activate" ? "Activating…" : "Activate node operator role"}
+                    {busy === "enroll"
+                      ? "Submitting enrollment…"
+                      : nodeOperatorEnrolled
+                        ? "Enrollment submitted"
+                        : "Submit node operator enrollment"}
                   </button>
                 </div>
                 {!localPubkey ? (
@@ -657,6 +671,18 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       <button className="btn" onClick={() => nav("/settings")}>
                         Open settings
                       </button>
+                    </div>
+                  </div>
+                ) : null}
+                {nodeOperatorEnrolled ? (
+                  <div className="infoCard compact">
+                    <div className="feedMediaTitle">
+                      {nodeOperatorActive ? "Node operator activated" : "Activation pending"}
+                    </div>
+                    <div className="feedMediaMeta">
+                      {nodeOperatorActive
+                        ? "Network approval is complete. This account can use the registered node device for service mode."
+                        : "Your enrollment is submitted. Network approval is required before this account can serve as a node operator."}
                     </div>
                   </div>
                 ) : null}
@@ -691,9 +717,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Node config block</div>
               <div className="feedMediaMeta">
-                Use the same account id and saved account keypair that was registered with this account.
-                The node software also needs the private key to sign peer-identity
-                handshakes.
+                Use this only after node-device registration and network activation are complete.
+                The next hardening step will move production nodes to a separate node-key file instead of
+                using the account recovery key for node identity.
               </div>
             </div>
             <pre className="codePanel mono">{configBlock}</pre>
@@ -702,9 +728,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <summary>Why this is required</summary>
               <div className="infoCard">
                 <p>
-                  The network helper gate expects an authoritative device record tied to the same
-                  pubkey the node presents. After that, the node can boot as a regular
-                  node. Validator status is a separate role.
+                  The network helper gate expects an authoritative node device record, a submitted
+                  node operator enrollment, and network activation. Enrollment is user-submitted;
+                  activation is governance or system controlled. Validator status is a separate role.
                 </p>
               </div>
             </details>

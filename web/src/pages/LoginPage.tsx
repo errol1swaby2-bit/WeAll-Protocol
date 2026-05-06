@@ -51,8 +51,16 @@ function apiJoin(base: string, path: string): string {
   return `${normalized.replace(/\/+$/, "")}${path}`
 }
 
+function usableApiBase(...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    const normalized = String(value || "").trim()
+    if (normalized && normalized !== "/") return normalized
+  }
+  return "/"
+}
+
 function manifestApiBase(manifest: DevBootstrapManifest | null, fallback: string): string {
-  return String(manifest?.apiBase || manifest?.api_base || fallback || getApiBase() || "/").trim() || "/"
+  return usableApiBase(manifest?.apiBase, manifest?.api_base, fallback, getApiBase())
 }
 
 async function fetchDevBootstrapManifest(url: string): Promise<DevBootstrapManifest | null> {
