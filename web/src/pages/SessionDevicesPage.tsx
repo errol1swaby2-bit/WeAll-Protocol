@@ -5,6 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import SessionRecoveryBanner from "../components/SessionRecoveryBanner";
 import { endSession, getKeypair, getSession, getSessionHealth, loginOnThisDevice, logoutCurrentDevice } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
+import { forgetEasySignIn, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys";
 import { consumeReturnTo, nav, peekReturnTo } from "../lib/router";
 import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
 import { useAppConfig } from "../lib/config";
@@ -60,6 +61,8 @@ export default function SessionDevicesPage(): JSX.Element {
   const [actionError, setActionError] = useState<string>("");
   const [renewing, setRenewing] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [easySignInBusy, setEasySignInBusy] = useState(false);
+  const [easySignInNonce, setEasySignInNonce] = useState(0);
 
   const load = useCallback(async () => {
     if (!account) {
@@ -103,6 +106,8 @@ export default function SessionDevicesPage(): JSX.Element {
       }))
       .filter((rec: DeviceRecord) => !rec.revoked);
   }, [devicesById]);
+
+  const easySignInRecords = useMemo(() => listEasySignInRecords().filter((record) => !account || record.account === account), [account, easySignInNonce]);
 
   const matchingDevice = useMemo(() => {
     const localPubkey = String(keypair?.pubkeyB64 || "").trim();
@@ -150,16 +155,17 @@ export default function SessionDevicesPage(): JSX.Element {
 
   async function handleRevokeCurrentSession(): Promise<void> {
     if (!account || !session?.sessionKey) return;
+    const forgetSigner = window.confirm("Log out and forget the recovery key from this browser too? Choose Cancel to only log out this device session.");
     setActionError("");
     try {
       await tx.runTx({
         title: "Log out of this device",
         pendingMessage: "Revoking this browser session…",
         successMessage: "This browser session was revoked. Final confirmation may still be updating.",
-        task: async () => logoutCurrentDevice({ base }),
+        task: async () => logoutCurrentDevice({ base, forgetSigner }),
         getTxId: (result: any) => result?.tx_id || result?.result?.tx_id,
       });
-      setActionError("You were logged out of this device. Re-open session recovery if you need to renew access here.");
+      setActionError(forgetSigner ? "You were logged out and this browser forgot the local recovery key." : "You were logged out of this device. Your recovery key can sign you back in.");
     } catch (e: any) {
       setActionError(e?.message || "Failed to revoke session key.");
     }
@@ -181,6 +187,27 @@ export default function SessionDevicesPage(): JSX.Element {
     } finally {
       setValidating(false);
     }
+  }
+
+  async function handleAddEasySignIn(): Promise<void> {
+    if (!account) return;
+    setEasySignInBusy(true);
+    setActionError("");
+    try {
+      await registerEasySignIn({ account });
+      setEasySignInNonce((n) => n + 1);
+      setActionError("Easy sign-in was added for this account on this browser/device.");
+    } catch (e: any) {
+      setActionError(e?.message || "Failed to add easy sign-in on this device.");
+    } finally {
+      setEasySignInBusy(false);
+    }
+  }
+
+  function handleForgetEasySignIn(credentialId: string): void {
+    forgetEasySignIn(credentialId);
+    setEasySignInNonce((n) => n + 1);
+    setActionError("Easy sign-in was removed from this browser/device.");
   }
 
   function handleClearLocalSession(): void {
@@ -270,7 +297,7 @@ export default function SessionDevicesPage(): JSX.Element {
               <button className="btn" onClick={() => void handleValidateCurrentPosture()} disabled={validating}>Validate posture</button>
               <button className="btn" onClick={() => void handleRenewSession()} disabled={renewing || !account || !keypair}>Renew browser session</button>
               {pendingReturnTo ? <button className="btn" onClick={() => nav(consumeReturnTo("/home"))}>Return to previous route</button> : null}
-              <button className="btn ghost" onClick={handleClearLocalSession}>Clear local session</button>
+
             </div>
           </div>
           <div className="stack gap12">
@@ -298,16 +325,57 @@ export default function SessionDevicesPage(): JSX.Element {
             </button>
           </div>
           <p className="cardDesc">
-            Revoking the current session key saves an authoritative account action. Clearing the local session only removes this browser’s local state.
+            Logging out revokes this device session. Your recovery key remains the way to sign back in if this browser forgets the account key.
           </p>
-          <div className="summaryCallout">
-            <strong>Important:</strong> “Clear local session” and “revoke current session key” are intentionally separate because the frontend must not imply that local logout changes authoritative account state.
-          </div>
+          <details className="advancedDisclosure">
+            <summary>Advanced local-only option</summary>
+            <p className="cardDesc">Clear this browser only if you need to remove local state without submitting a logout action.</p>
+            <button className="btn ghost" onClick={handleClearLocalSession}>Clear this browser only</button>
+          </details>
           <div className="kvList">
             <div className="kvRow"><span>Tracked session-key records</span><strong>{sessionKeyEntries.length}</strong></div>
             <div className="kvRow"><span>Current local key present</span><strong>{session?.sessionKey ? "Yes" : "No"}</strong></div>
           </div>
         </article>
+      </section>
+
+
+
+      <section className="card" data-testid="easy-signin-device-section">
+        <div className="cardHeaderRow">
+          <div>
+            <div className="eyebrow">Easy sign-in</div>
+            <h2 className="cardTitle">Passkey-style access on this device</h2>
+          </div>
+          <button className="btn" onClick={() => void handleAddEasySignIn()} disabled={!account || easySignInBusy || !passkeysAvailable()}>
+            {easySignInBusy ? "Adding…" : "Add easy sign-in"}
+          </button>
+        </div>
+        <p className="cardDesc">
+          Easy sign-in lets this browser use device unlock when supported. It does not replace your recovery key.
+        </p>
+        {!passkeysAvailable() ? <div className="emptyState">This browser does not expose passkey support to the app.</div> : null}
+        {easySignInRecords.length ? (
+          <div className="deviceRecordList">
+            {easySignInRecords.map((record) => (
+              <article key={record.credentialId} className="deviceRecordCard">
+                <div className="deviceRecordHeader">
+                  <div>
+                    <div className="deviceRecordId mono">{record.account}</div>
+                    <div className="deviceRecordMeta">{record.label}</div>
+                  </div>
+                  <button className="btn ghost" onClick={() => handleForgetEasySignIn(record.credentialId)}>Forget</button>
+                </div>
+                <div className="deviceRecordBody">
+                  <div><span className="mutedLabel">Created</span><div>{fmtTs(Date.parse(record.createdAt))}</div></div>
+                  <div><span className="mutedLabel">Credential</span><div className="mono wrapAnywhere">{record.credentialId}</div></div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState">No easy sign-in record is saved for this account on this browser.</div>
+        )}
       </section>
 
       <section className="card">
