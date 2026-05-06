@@ -65,19 +65,43 @@ def _is_dangerous_mode(mode: str, profile: str) -> bool:
     return _is_controlled_devnet(mode, profile) or mode in _PRODUCTION_LIKE_MODES or profile in _PRODUCTION_LIKE_MODES
 
 
+
+def direct_session_mutation_allowed(environ: Env | None = None) -> bool:
+    """Direct session/device writes are a seeded-demo-only helper.
+
+    Production, production-like, controlled devnet, and normal devnet must use
+    canonical account/device/session-key transactions instead of API-local
+    ledger mutation.  The direct route is retained only for explicit single-node
+    seeded demo bootstraps.
+    """
+
+    env = environ or os.environ
+    mode = runtime_mode_name(env)
+    profile = runtime_profile_name(env)
+    return (
+        mode in {"dev", "local", "demo"}
+        and profile == "seeded_demo"
+        and _truthy(env.get("WEALL_ENABLE_DEMO_SEED_ROUTE"))
+        and _truthy(env.get("WEALL_ALLOW_DIRECT_SESSION_MUTATION"))
+    )
+
 def direct_session_mutation_issue(environ: Env | None = None) -> str | None:
     """Return an issue when a request would perform non-transactional session mutation.
 
     The session login/create routes write session/device records directly into a
-    local ledger snapshot.  That is a local UX helper for dev/demo only; it is
-    not a canonical protocol transaction and must not participate in controlled
-    multi-node devnet readiness.
+    local ledger snapshot.  That is allowed only for an explicit single-node
+    seeded demo.  Production, production-like, controlled devnet, and normal
+    devnet must issue session/device state through canonical transactions.
     """
 
     env = environ or os.environ
+    if direct_session_mutation_allowed(env):
+        return None
     if is_controlled_devnet(env):
         return "direct_session_mutation_forbidden_in_controlled_devnet"
-    return None
+    if is_production_like(env):
+        return "direct_session_mutation_forbidden_in_production"
+    return "direct_session_mutation_forbidden_outside_seeded_demo"
 
 
 def direct_session_mutation_env_issue(environ: Env | None = None) -> str | None:
@@ -86,11 +110,13 @@ def direct_session_mutation_env_issue(environ: Env | None = None) -> str | None:
     env = environ or os.environ
     profile = runtime_profile_name(env)
     mode = runtime_mode_name(env)
-    if not _is_dangerous_mode(mode, profile):
+    if direct_session_mutation_allowed(env):
         return None
     for name in sorted(_DEV_SESSION_MUTATION_FLAGS):
         if _truthy(env.get(name)):
-            return f"{name.lower()}_forbidden_in_devnet_or_prod"
+            if _is_dangerous_mode(mode, profile):
+                return f"{name.lower()}_forbidden_in_devnet_or_prod"
+            return f"{name.lower()}_forbidden_outside_seeded_demo"
     return None
 
 

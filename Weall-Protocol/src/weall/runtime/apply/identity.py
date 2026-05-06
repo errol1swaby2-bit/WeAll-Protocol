@@ -5,6 +5,7 @@ from typing import Any
 
 from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
+from ..session_keys import revoke_session_record, store_session_record
 
 Json = dict[str, Any]
 
@@ -397,12 +398,16 @@ def _apply_account_session_key_issue(state: Json, env: TxEnvelope) -> Json:
     if issued_at_ts < 0:
         issued_at_ts = 0
 
-    sessions[sk] = {
-        "active": True,
-        "issued_at_ts": issued_at_ts,
-        "ttl_s": ttl_s,
-        "issued_at_height": _as_int(state.get("height"), 0),
-    }
+    store_session_record(
+        sessions,
+        sk,
+        {
+            "active": True,
+            "issued_at_ts": issued_at_ts,
+            "ttl_s": ttl_s,
+            "issued_at_height": _as_int(state.get("height"), 0),
+        },
+    )
 
     a["nonce"] = exp
     return state
@@ -421,9 +426,9 @@ def _apply_account_session_key_revoke(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(sessions, dict):
         raise ApplyError("invalid_tx", "no_session_keys", {})
 
-    rec = sessions.get(sk)
+    rec = revoke_session_record(sessions, sk)
     if not isinstance(rec, dict):
-        raise ApplyError("invalid_tx", "unknown_session_key", {"session_key": sk})
+        raise ApplyError("invalid_tx", "unknown_session_key", {"session_key_hash": "unmatched"})
 
     rec["active"] = False
     rec["revoked_at_height"] = _as_int(state.get("height"), 0)

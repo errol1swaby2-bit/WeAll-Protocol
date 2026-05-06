@@ -9,6 +9,8 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from weall.runtime.session_keys import session_record_for
+
 _RATE_LIMIT_SCALE = 1_000_000
 _NS_PER_SECOND = 1_000_000_000
 
@@ -162,7 +164,7 @@ def require_account_session(
     if not isinstance(sessions, dict):
         raise PermissionError("session_invalid")
 
-    srec = sessions.get(sk)
+    srec = session_record_for(sessions, sk)
     if not isinstance(srec, dict):
         raise PermissionError("session_invalid")
 

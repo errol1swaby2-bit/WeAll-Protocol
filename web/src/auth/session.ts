@@ -282,11 +282,30 @@ export function setSession(s: SessionV1): void {
   localStorage.setItem(LS_SESSION, JSON.stringify(out));
 }
 
+function readSessionAccountForCleanup(): string {
+  try {
+    const raw = localStorage.getItem(LS_SESSION);
+    if (!raw) return "";
+    const obj = JSON.parse(raw);
+    return normalizeAccount(String(obj?.account || ""));
+  } catch {
+    return "";
+  }
+}
+
 export function endSession(): void {
+  const acct = readSessionAccountForCleanup();
   try {
     localStorage.removeItem(LS_SESSION);
   } catch {
     // ignore
+  }
+  if (acct) {
+    clearNonceReservation(acct);
+    clearSignerLock(acct);
+    signerPendingCounts.delete(acct);
+    signerSubmissionQueues.delete(acct);
+    emitSignerSubmissionSnapshot(acct);
   }
 }
 
@@ -535,6 +554,17 @@ function isNonceReservationConflictError(error: unknown): boolean {
   if (code === "bad_nonce" || code === "mempool_signer_nonce_conflict" || code === "tx_id_conflict" || code === "nonce_retry_exhausted") return true;
   const message = String((error as any)?.message || (error as any)?.body?.message || (error as any)?.body?.error?.message || "").toLowerCase();
   return message.includes("nonce") || message.includes("already used") || message.includes("stale") || message.includes("conflict");
+}
+
+function isDirectSessionMutationForbidden(error: unknown): boolean {
+  const code = extractErrorCode(error);
+  return code.startsWith("direct_session_mutation_forbidden");
+}
+
+function isDeviceAlreadyRegisteredError(error: unknown): boolean {
+  const code = extractErrorCode(error);
+  const message = String((error as any)?.message || (error as any)?.body?.message || (error as any)?.body?.error?.message || "").toLowerCase();
+  return code === "device_exists" || message.includes("device_exists") || message.includes("device exists");
 }
 
 function friendlyNonceError(error: unknown): Error {
@@ -955,28 +985,79 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
     }),
   );
 
-  const response = await createBrowserSession(
-    {
+  try {
+    const response = await createBrowserSession(
+      {
+        account: acct,
+        session_key: requestedSessionKey,
+        ttl_s: ttlSeconds,
+        issued_at_ms: issuedAtMs,
+        device_id: deviceId,
+        sig,
+        pubkey: kp.pubkeyB64,
+      },
+      args.base,
+    );
+
+    setSession({
+      version: 1,
       account: acct,
+      sessionKey: requestedSessionKey,
+      expiresAtMs: Date.now() + ttlSeconds * 1000,
+    });
+    return response;
+  } catch (error) {
+    if (!isDirectSessionMutationForbidden(error)) throw error;
+  }
+
+  // Production/canonical fallback: if the API refuses direct session mutation,
+  // issue browser device/session state through normal signed transactions.
+  try {
+    await submitSignedTx({
+      account: acct,
+      tx_type: "ACCOUNT_DEVICE_REGISTER",
+      payload: {
+        device_id: deviceId,
+        device_type: "browser",
+        label: "Browser session",
+        pubkey: kp.pubkeyB64,
+      },
+      parent: null,
+      base: args.base,
+    });
+  } catch (error) {
+    if (!isDeviceAlreadyRegisteredError(error)) throw error;
+  }
+
+  const issueResult = await submitSignedTx({
+    account: acct,
+    tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
+    payload: {
       session_key: requestedSessionKey,
       ttl_s: ttlSeconds,
-      issued_at_ms: issuedAtMs,
       device_id: deviceId,
-      sig,
-      pubkey: kp.pubkeyB64,
     },
-    args.base,
-  );
+    parent: null,
+    base: args.base,
+  });
 
-  const expiresAtMs = Date.now() + ttlSeconds * 1000;
   setSession({
     version: 1,
     account: acct,
     sessionKey: requestedSessionKey,
-    expiresAtMs,
+    expiresAtMs: Date.now() + ttlSeconds * 1000,
   });
-  return response;
+
+  return {
+    ok: true,
+    canonical: true,
+    account: acct,
+    device: { device_id: deviceId, pubkey: kp.pubkeyB64 },
+    session: { session_key: requestedSessionKey, ttl_s: ttlSeconds, active: true },
+    result: issueResult,
+  };
 }
+
 
 
 
@@ -1031,6 +1112,28 @@ export async function revokeCurrentSessionKey(args?: { base?: string }): Promise
     parent: null,
     base: args?.base,
   });
+}
+
+export async function logoutCurrentDevice(args?: { base?: string; forgetSigner?: boolean }): Promise<any> {
+  const s = getSession();
+  if (!s?.account) {
+    endSession();
+    return { ok: true, local_only: true };
+  }
+
+  let result: any = { ok: true, local_only: true };
+  if (s.sessionKey) {
+    result = await revokeCurrentSessionKey({ base: args?.base });
+  }
+
+  const account = s.account;
+  endSession();
+  clearNonceReservation(account);
+  clearSignerLock(account);
+  if (args?.forgetSigner) {
+    clearKeypair(account);
+  }
+  return result;
 }
 
 export async function issueFreshSessionKey(args?: { ttlSeconds?: number; base?: string }): Promise<any> {

@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import app
 from weall.crypto.sig import sign_ed25519
+from weall.runtime.session_keys import session_record_key
 
 
 def _canon(account: str, session_key: str, ttl_s: int, issued_at_ms: int, device_id: str) -> bytes:
@@ -26,6 +27,10 @@ def _canon(account: str, session_key: str, ttl_s: int, issued_at_ms: int, device
 
 
 def test_session_login_creates_device_and_session(monkeypatch):
+    monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
+    monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
+    monkeypatch.setenv("WEALL_ALLOW_DIRECT_SESSION_MUTATION", "1")
     client = TestClient(app)
     from weall.api.routes_public_parts import common
 
@@ -86,5 +91,6 @@ def test_session_login_creates_device_and_session(monkeypatch):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["ok"] is True
-    assert state["accounts"][account]["session_keys"][session_key]["active"] is True
+    assert session_key not in state["accounts"][account]["session_keys"]
+    assert state["accounts"][account]["session_keys"][session_record_key(session_key)]["active"] is True
     assert device_id in state["accounts"][account]["devices"]["by_id"]

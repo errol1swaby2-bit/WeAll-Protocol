@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import SessionRecoveryBanner from "../components/SessionRecoveryBanner";
-import { clearSession, endSession, getKeypair, getSession, getSessionHealth, loginOnThisDevice, revokeSessionKeyOnChain } from "../auth/session";
+import { endSession, getKeypair, getSession, getSessionHealth, loginOnThisDevice, logoutCurrentDevice } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { consumeReturnTo, nav, peekReturnTo } from "../lib/router";
 import { maybeRepairDevBootstrapSession } from "../lib/devBootstrap";
@@ -153,14 +153,13 @@ export default function SessionDevicesPage(): JSX.Element {
     setActionError("");
     try {
       await tx.runTx({
-        title: "Revoke session key",
-        pendingMessage: "Saving session-key revocation…",
-        successMessage: "Session-key revocation was saved. Final confirmation may still be updating.",
-        task: async () => revokeSessionKeyOnChain({ account, sessionKey: session.sessionKey!, base }),
+        title: "Log out of this device",
+        pendingMessage: "Revoking this browser session…",
+        successMessage: "This browser session was revoked. Final confirmation may still be updating.",
+        task: async () => logoutCurrentDevice({ base }),
         getTxId: (result: any) => result?.tx_id || result?.result?.tx_id,
       });
-      clearSession();
-      setActionError("The current local session was cleared after saving the revocation. Re-open session recovery if you need to renew from this device.");
+      setActionError("You were logged out of this device. Re-open session recovery if you need to renew access here.");
     } catch (e: any) {
       setActionError(e?.message || "Failed to revoke session key.");
     }
@@ -295,7 +294,7 @@ export default function SessionDevicesPage(): JSX.Element {
               <h2 className="cardTitle">Authoritative session-key posture</h2>
             </div>
             <button className="btn danger" disabled={!session?.sessionKey} onClick={() => void handleRevokeCurrentSession()}>
-              Revoke current session key
+              Log out of this device
             </button>
           </div>
           <p className="cardDesc">

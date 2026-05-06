@@ -173,15 +173,6 @@ export function saveKeypair(
   const valid = validateKeypair(pubkeyB64, secretKeyB64);
   if (!valid.ok) throw new Error(`invalid_keypair:${valid.reason || "unknown"}`);
 
-  const legacyStored: StoredKeypair = {
-    version: 2,
-    publicKey: pubkeyB64,
-    secretKey: secretKeyB64,
-    pubkeyB64,
-    secretKeyB64,
-    hasSecret: true,
-  };
-
   const secureMeta: StoredKeypair = {
     version: 2,
     publicKey: pubkeyB64,
@@ -189,7 +180,10 @@ export function saveKeypair(
     hasSecret: false,
   };
 
-  localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(legacyStored));
+  // Production safety rule: never persist raw account private keys in
+  // localStorage.  localStorage keeps public metadata only; the secret is kept
+  // in sessionStorage so closing the browser/session clears signing custody.
+  localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(secureMeta));
   localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
   sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
 
@@ -229,16 +223,15 @@ export function loadKeypair(account: string): KeypairB64 | null {
     const valid = validateKeypair(pubkeyB64, legacySecret);
     if (!valid.ok) return null;
 
+    const secureMeta = {
+      version: 2,
+      publicKey: pubkeyB64,
+      pubkeyB64,
+      hasSecret: false,
+    } satisfies StoredKeypair;
     sessionStorage.setItem(secretStorageKey(normalized), legacySecret);
-    localStorage.setItem(
-      keyStorageKey(normalized),
-      JSON.stringify({
-        version: 2,
-        publicKey: pubkeyB64,
-        pubkeyB64,
-        hasSecret: false,
-      } satisfies StoredKeypair),
-    );
+    localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(secureMeta));
+    localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
 
     return { pubkeyB64, secretKeyB64: legacySecret };
   }

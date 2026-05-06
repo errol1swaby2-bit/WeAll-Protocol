@@ -88,12 +88,8 @@ def test_session_create_dev_still_falls_back_on_invalid_max_json_env(
     client = TestClient(app, raise_server_exceptions=False)
 
     r = client.post("/v1/session/create", json={"account": "@demo", "session_key": "sk"})
-    assert r.status_code in {400, 500}
-    assert r.status_code == 500 or r.json()["error"]["code"] in {
-        "not_ready",
-        "account_not_found",
-        "state_invalid",
-    }
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "direct_session_mutation_forbidden_outside_seeded_demo"
 
 
 def test_status_operator_prod_fails_closed_on_invalid_public_debug_env(

@@ -11,6 +11,7 @@ from weall.api.errors import ApiError
 from weall.api.mode_isolation import direct_session_mutation_issue
 from weall.api.routes_public_parts import common
 from weall.crypto.sig import _decode_bytes, verify_ed25519_signature
+from weall.runtime.session_keys import session_record_for, store_session_record
 
 router = APIRouter()
 
@@ -249,14 +250,18 @@ async def v1_session_login(request: Request):
             devices["by_id"] = by_id
 
         issued_at_ts = _state_now_ts(st2)
-        sessions[session_key] = {
-            "active": True,
-            "issued_at_ts": int(issued_at_ts),
-            "ttl_s": int(ttl_s),
-            "issued_at_height": int(st2.get("height") or 0),
-            "pubkey": pubkey,
-            "device_id": device_id,
-        }
+        store_session_record(
+            sessions,
+            session_key,
+            {
+                "active": True,
+                "issued_at_ts": int(issued_at_ts),
+                "ttl_s": int(ttl_s),
+                "issued_at_height": int(st2.get("height") or 0),
+                "pubkey": pubkey,
+                "device_id": device_id,
+            },
+        )
         by_id[device_id] = _session_device_record(
             account=account,
             pubkey=pubkey,
@@ -354,12 +359,16 @@ async def v1_session_create(request: Request):
             devices["by_id"] = by_id
 
         issued_at_ts = _state_now_ts(st)
-        sessions[session_key] = {
-            "active": True,
-            "issued_at_ts": int(issued_at_ts),
-            "ttl_s": int(ttl_s),
-            "device_id": device_id,
-        }
+        store_session_record(
+            sessions,
+            session_key,
+            {
+                "active": True,
+                "issued_at_ts": int(issued_at_ts),
+                "ttl_s": int(ttl_s),
+                "device_id": device_id,
+            },
+        )
         by_id.setdefault(
             device_id,
             {
@@ -436,7 +445,7 @@ def v1_session_me(request: Request):
             "reason": "session_invalid",
         }
 
-    srec = sessions.get(sk)
+    srec = session_record_for(sessions, sk)
     if not isinstance(srec, dict):
         return {
             "ok": True,
