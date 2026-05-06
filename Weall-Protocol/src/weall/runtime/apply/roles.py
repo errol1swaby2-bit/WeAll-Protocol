@@ -6,6 +6,10 @@ from typing import Any
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.node_operator_responsibilities import (
+    active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
+    is_node_operator_active,
+)
 
 Json = dict[str, Any]
 
@@ -143,20 +147,7 @@ def _payload_validator_field(payload: Json, key: str, default: Any = None) -> An
 
 def _active_node_pubkeys_for_account(ledger: Json, acct: str) -> set[str]:
     account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
-    devices = _as_dict(account.get("devices"))
-    by_id = _as_dict(devices.get("by_id"))
-    out: set[str] = set()
-    for rec in by_id.values():
-        if not isinstance(rec, dict):
-            continue
-        if bool(rec.get("revoked", False)):
-            continue
-        if _as_str(rec.get("device_type")).lower() != "node":
-            continue
-        pubkey = _as_str(rec.get("pubkey"))
-        if pubkey:
-            out.add(pubkey)
-    return out
+    return set(responsibility_active_node_pubkeys_for_account(account))
 
 
 def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
@@ -168,9 +159,7 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if _as_int(account.get("poh_tier"), 0) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
 
-    active_set = ops.get("active_set")
-    active_accounts = {str(v).strip() for v in active_set if str(v).strip()} if isinstance(active_set, list) else set()
-    if not bool(rec.get("active", False)) and acct not in active_accounts:
+    if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
     reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", 5000), 5000)
@@ -230,9 +219,7 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
     if _as_int(account.get("poh_tier"), 0) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
 
-    active_set = ops.get("active_set")
-    active_accounts = {str(v).strip() for v in active_set if str(v).strip()} if isinstance(active_set, list) else set()
-    if not bool(rec.get("active", False)) and acct not in active_accounts:
+    if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
     declared_raw = payload.get("declared_capacity_bytes", payload.get("storage_capacity_bytes"))

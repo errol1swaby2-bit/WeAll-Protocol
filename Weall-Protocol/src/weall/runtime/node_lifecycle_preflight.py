@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
 Json = dict[str, Any]
 
@@ -263,40 +264,50 @@ def _responsibility_requested(op_rec: Mapping[str, Any], name: str) -> bool:
 
 
 def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if not bound_account:
+        return (), ()
+
     roles = state.get("roles")
-    if not isinstance(roles, dict) or not bound_account:
+    if not isinstance(roles, dict):
         return (), ()
 
     active_roles: list[str] = []
     suspended_roles: list[str] = []
-    node_bucket = _role_bucket(roles, "node_operators")
     validator_bucket = _role_bucket(roles, "validators")
-    op_active = _bucket_has_active(node_bucket, bound_account)
-    op_enrolled = _bucket_has_enrolled(node_bucket, bound_account)
-    op_rec = _node_operator_record(roles, bound_account)
 
-    if op_active:
+    evaluation = evaluate_node_operator_responsibilities(state, bound_account)
+    baseline = evaluation.get("baseline") if isinstance(evaluation, dict) else {}
+    validator = evaluation.get("validator") if isinstance(evaluation, dict) else {}
+    storage = evaluation.get("storage") if isinstance(evaluation, dict) else {}
+
+    baseline_active = bool(isinstance(baseline, dict) and baseline.get("active"))
+    baseline_status = str(baseline.get("status") or "") if isinstance(baseline, dict) else ""
+
+    if baseline_active:
         active_roles.append("node_operator")
         active_roles.append("helper")
-    elif op_enrolled:
+    elif baseline_status not in ("", "not_opted_in"):
         suspended_roles.append("node_operator")
         suspended_roles.append("helper")
 
-    # Validator/storage are now optional responsibilities beneath Node Operator
+    # Validator/storage are optional responsibilities beneath Node Operator
     # posture. Legacy validator active_set remains accepted for compatibility,
     # but new operator onboarding should populate responsibilities.validator.
-    if op_active and (_responsibility_active(op_rec, "validator") or _bucket_has_active(validator_bucket, bound_account)):
+    validator_active = bool(isinstance(validator, dict) and validator.get("active"))
+    validator_requested = bool(isinstance(validator, dict) and validator.get("status") not in (None, "", "not_opted_in"))
+    if baseline_active and (validator_active or _bucket_has_active(validator_bucket, bound_account)):
         active_roles.append("validator")
-    elif op_active and (_responsibility_requested(op_rec, "validator") or _bucket_has_enrolled(validator_bucket, bound_account)):
+    elif baseline_active and (validator_requested or _bucket_has_enrolled(validator_bucket, bound_account)):
         suspended_roles.append("validator")
 
-    if op_active and _responsibility_active(op_rec, "storage"):
+    storage_active = bool(isinstance(storage, dict) and storage.get("active"))
+    storage_requested = bool(isinstance(storage, dict) and storage.get("status") not in (None, "", "not_opted_in"))
+    if baseline_active and storage_active:
         active_roles.append("storage_operator")
-    elif op_active and _responsibility_requested(op_rec, "storage"):
+    elif baseline_active and storage_requested:
         suspended_roles.append("storage_operator")
 
     return tuple(sorted(set(active_roles))), tuple(sorted(set(suspended_roles)))
-
 
 
 def evaluate_production_preflight(
