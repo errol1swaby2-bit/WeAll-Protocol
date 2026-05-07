@@ -766,6 +766,24 @@ def admit_tx(
         try:
             if model_for_tx_type(env.tx_type.upper()) is not None:
                 raw = tx if isinstance(tx, dict) else env.to_json()
+                if (
+                    ctx == "block"
+                    and bool(getattr(env, "system", False))
+                    and isinstance(raw, dict)
+                    and isinstance(raw.get("payload"), dict)
+                ):
+                    # Block SYSTEM txs carry consensus-internal queue binding
+                    # fields in payload so followers can prove the proposer did
+                    # not synthesize authority actions. Those fields are
+                    # validated by validate_system_tx_queue_binding() during
+                    # block replay, but they are not user payload schema fields.
+                    # Strip only the internal underscore fields for Pydantic
+                    # payload-shape validation while preserving the original
+                    # envelope for tx_id, binding, and domain apply.
+                    raw = dict(raw)
+                    raw["payload"] = {
+                        k: v for k, v in raw["payload"].items() if not str(k).startswith("_")
+                    }
                 validate_tx_envelope(raw)
         except ValidationError as ve:
             return _rej("invalid_payload", "schema_validation_failed", errors=ve.errors())

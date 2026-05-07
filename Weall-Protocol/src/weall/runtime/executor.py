@@ -2581,11 +2581,12 @@ class WeAllExecutor:
                     phase=phase_for_binding,
                 )
                 if not ok_binding:
-                    return ExecutorMeta(
-                        ok=False,
-                        error=f"bad_block:system_queue_binding:{why_binding}",
-                        height=0,
-                        block_id="",
+                    return (
+                        None,
+                        None,
+                        [],
+                        invalid_ids,
+                        f"system_queue_binding:{why_binding}",
                     )
 
             if rej is not None:
@@ -3321,6 +3322,60 @@ class WeAllExecutor:
 
             signer = str(getattr(env_obj, "signer", "") or "")
             is_system = bool(getattr(env_obj, "system", False))
+
+            if is_system:
+                payload_for_binding = env.get("payload") if isinstance(env, dict) else None
+                qid_for_binding = (
+                    str((payload_for_binding or {}).get("_system_queue_id") or "").strip()
+                    if isinstance(payload_for_binding, dict)
+                    else ""
+                )
+                phase_for_binding = _queue_item_phase(qid_for_binding)
+
+                # Post-phase system txs are enqueued only after user txs have
+                # replayed on the follower. If the tx references a queue item
+                # that is not present yet, run the post schedulers/emitter once
+                # before binding. Missing/unknown queue ids still fail closed
+                # below; this only gives legitimate post-phase system txs the
+                # same deterministic queue state the proposer had.
+                if qid_for_binding and not phase_for_binding and not post_ran:
+                    try:
+                        _run_poh_schedulers()
+                    except Exception as exc:
+                        if _consensus_fail_closed():
+                            return ExecutorMeta(
+                                ok=False,
+                                error=f"bad_block:poh_schedule_failed:{type(exc).__name__}",
+                                height=0,
+                                block_id="",
+                            )
+                    try:
+                        _run_system_emitter_side_effects("post")
+                    except Exception as exc:
+                        if _consensus_fail_closed():
+                            return ExecutorMeta(
+                                ok=False,
+                                error=f"bad_block:system_emitter_post_failed:{type(exc).__name__}",
+                                height=0,
+                                block_id="",
+                            )
+                    post_ran = True
+                    phase_for_binding = _queue_item_phase(qid_for_binding)
+
+                ok_binding, why_binding = validate_system_tx_queue_binding(
+                    working,
+                    self.tx_index,
+                    env_obj,
+                    next_height=next_height,
+                    phase=phase_for_binding or "post",
+                )
+                if not ok_binding:
+                    return ExecutorMeta(
+                        ok=False,
+                        error=f"bad_block:system_queue_binding:{why_binding}",
+                        height=0,
+                        block_id="",
+                    )
 
             applied_ok = False
             err_code = ""
