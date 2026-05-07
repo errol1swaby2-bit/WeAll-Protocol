@@ -4,6 +4,12 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.storage_revalidation_scheduler import (
+    storage_max_failed_challenges,
+    storage_max_missed_challenges,
+    storage_min_availability_score_milli,
+    storage_revalidation_window_blocks,
+)
 
 Json = dict[str, Any]
 
@@ -235,6 +241,10 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         "failed_challenge_count": _as_int(rec.get("failed_challenge_count"), 0),
         "missed_challenge_count": _as_int(rec.get("missed_challenge_count"), 0),
         "availability_score_milli": _as_int(rec.get("availability_score_milli"), 0),
+        "revalidation_window_blocks": storage_revalidation_window_blocks(state),
+        "failed_challenge_limit": storage_max_failed_challenges(state),
+        "missed_challenge_limit": storage_max_missed_challenges(state),
+        "availability_score_minimum_milli": storage_min_availability_score_milli(state),
         "node_pubkey": node_pubkey,
     }
     if not opted_in:
@@ -263,6 +273,14 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
             _append_unique(reasons, "capacity_proof_expired")
     if proof_expires > 0 and current_height > proof_expires:
         _append_unique(reasons, "capacity_proof_expired")
+    elif proof_expires > 0 and proof_expires - current_height <= storage_revalidation_window_blocks(state):
+        _append_unique(reasons, "capacity_revalidation_due")
+    if _as_int(rec.get("failed_challenge_count"), 0) >= storage_max_failed_challenges(state):
+        _append_unique(reasons, "capacity_failed_challenge_limit_reached")
+    if _as_int(rec.get("missed_challenge_count"), 0) >= storage_max_missed_challenges(state):
+        _append_unique(reasons, "capacity_missed_challenge_limit_reached")
+    if _as_int(rec.get("availability_score_milli"), 1000) < storage_min_availability_score_milli(state):
+        _append_unique(reasons, "capacity_availability_score_below_minimum")
     if allocated > proven and proven > 0:
         _append_unique(reasons, "allocated_capacity_exceeds_proven_capacity")
     if used > allocated and allocated > 0:
@@ -278,6 +296,10 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         status = "proof_failed"
     elif "capacity_proof_expired" in reasons:
         status = "proof_expired"
+    elif "capacity_failed_challenge_limit_reached" in reasons or "capacity_missed_challenge_limit_reached" in reasons or "capacity_availability_score_below_minimum" in reasons:
+        status = "paused"
+    elif "capacity_revalidation_due" in reasons:
+        status = "revalidation_due"
     elif "capacity_proof_pending" in reasons:
         status = "proof_pending"
     else:

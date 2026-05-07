@@ -308,6 +308,39 @@ def _capacity_available_for_allocation(state: Json, account_id: str) -> int:
 
 
 
+
+
+def _pin_operator_key(pin_id: str, operator_id: str, suffix: str) -> str:
+    return f"{pin_id}:{operator_id}:{suffix}"
+
+def _pin_accounting_marker_set(state: Json, marker: str) -> bool:
+    s = _ensure_storage(state)
+    markers = s.get("pin_accounting_markers")
+    if not isinstance(markers, dict):
+        markers = {}
+        s["pin_accounting_markers"] = markers
+    if marker in markers:
+        return False
+    markers[marker] = True
+    return True
+
+def _release_pin_accounting(state: Json, pin_id: str, operator_id: str, size_bytes: int) -> bool:
+    if not pin_id or not operator_id or size_bytes <= 0:
+        return False
+    marker = _pin_operator_key(pin_id, operator_id, "released")
+    if not _pin_accounting_marker_set(state, marker):
+        return False
+    used_marker = _pin_operator_key(pin_id, operator_id, "used")
+    s = _ensure_storage(state)
+    used_was_counted = bool(_as_dict(s.get("pin_accounting_markers")).get(used_marker))
+    _adjust_storage_accounting(
+        state,
+        operator_id,
+        allocated_delta=-int(size_bytes),
+        used_delta=-int(size_bytes) if used_was_counted else 0,
+    )
+    return True
+
 def _operator_id_from_env(env: TxEnvelope, payload: Json) -> str:
     return _as_str(_pick(payload, "operator_id", "operator", "account_id") or env.signer).strip()
 
@@ -652,7 +685,7 @@ def _apply_storage_challenge_issue(state: Json, env: TxEnvelope) -> Json:
         node_pubkey = _as_str(_pick(payload, "node_pubkey", "node_public_key") or storage_rec.get("node_pubkey") or "").strip()
         evaluation = evaluate_storage_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict()
         reasons = list(evaluation.get("reasons") or [])
-        allowed = {"capacity_proof_pending", "capacity_probe_open", "capacity_verification_pending", "capacity_proof_expired", "capacity_proof_failed"}
+        allowed = {"capacity_proof_pending", "capacity_probe_open", "capacity_verification_pending", "capacity_proof_expired", "capacity_proof_failed", "capacity_revalidation_due"}
         blocking = [r for r in reasons if r not in allowed]
         if blocking:
             raise StorageApplyError("forbidden", "storage_capacity_probe_not_allowed", {"account_id": account_id, "reasons": blocking})
@@ -989,7 +1022,8 @@ def _apply_ipfs_pin_request(state: Json, env: TxEnvelope) -> Json:
     targets = _select_targets_for_cid(cid, eligible_ops, rf)
     if size_bytes > 0:
         for target in targets:
-            _adjust_storage_accounting(state, target, allocated_delta=int(size_bytes))
+            if _pin_accounting_marker_set(state, _pin_operator_key(pin_id, target, "allocated")):
+                _adjust_storage_accounting(state, target, allocated_delta=int(size_bytes))
 
     pins[pin_id] = {
         "pin_id": pin_id,
@@ -1046,7 +1080,16 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
         if not v.ok:
             raise StorageApplyError("invalid_payload", v.reason, {"cid": v.cid})
 
-    if ok_bool:
+    release_requested = bool(payload.get("release")) or _as_str(payload.get("status")).lower() in ("released", "unpin", "unpinned")
+    if release_requested:
+        rec["status"] = "released"
+        rec["released_at_nonce"] = int(env.nonce)
+        rec["released_at_height"] = int(_height(state))
+        if operator_id:
+            size_bytes = _as_int(rec.get("size_bytes"), 0)
+            if size_bytes > 0:
+                _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
+    elif ok_bool:
         rec["status"] = "confirmed"
         rec["confirmed_at_nonce"] = int(env.nonce)
         rec["confirmed_at_height"] = int(_height(state))
@@ -1065,12 +1108,16 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
                     if bool(item_any.get("ok")):
                         already_ok = True
                         break
-                if not already_ok:
+                if not already_ok and _pin_accounting_marker_set(state, _pin_operator_key(pin_id, operator_id, "used")):
                     _adjust_storage_accounting(state, operator_id, used_delta=int(size_bytes))
     else:
         rec["status"] = "confirm_failed"
         rec["failed_at_nonce"] = int(env.nonce)
         rec["failed_at_height"] = int(_height(state))
+        if operator_id:
+            size_bytes = _as_int(rec.get("size_bytes"), 0)
+            if size_bytes > 0:
+                _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
 
     rec["confirm_payload"] = payload
     pins[pin_id] = rec
