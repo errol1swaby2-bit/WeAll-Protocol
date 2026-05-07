@@ -24,6 +24,12 @@ def compute_block_hash(*, header: Json) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+
+def compute_helper_execution_root(*, helper_execution: Json) -> str:
+    """Compute a deterministic commitment for helper execution metadata."""
+    payload = _canon_json(helper_execution if isinstance(helper_execution, dict) else {}).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
 def compute_receipts_root(*, receipts: list[Json]) -> str:
     """Compute a deterministic receipts root.
 
@@ -46,6 +52,7 @@ def make_block_header(
     tx_ids: list[str],
     receipts_root: str,
     state_root: str | None = None,
+    helper_execution_root: str | None = None,
     vrf: Json | None = None,
 ) -> Json:
     """Create the canonical header structure used for hashing."""
@@ -63,6 +70,9 @@ def make_block_header(
     # Back-compat: omit the key if not provided so legacy block hashes remain stable.
     if isinstance(state_root, str) and state_root:
         hdr["state_root"] = state_root
+
+    if isinstance(helper_execution_root, str) and helper_execution_root:
+        hdr["helper_execution_root"] = helper_execution_root
 
     # Optional: verifiable randomness proof (VRF-ish) for deterministic juror selection.
     # Back-compat: omit if not provided so legacy block hashes remain stable.
@@ -111,6 +121,11 @@ def ensure_block_hash(block: Json) -> tuple[Json, str]:
     if isinstance(receipts, list):
         receipts_root = compute_receipts_root(receipts=receipts)
 
+    helper_execution_root = ""
+    helper_execution = block.get("helper_execution")
+    if isinstance(helper_execution, dict) and helper_execution:
+        helper_execution_root = compute_helper_execution_root(helper_execution=helper_execution)
+
     hdr = make_block_header(
         chain_id=chain_id,
         height=height,
@@ -118,6 +133,7 @@ def ensure_block_hash(block: Json) -> tuple[Json, str]:
         block_ts_ms=ts_ms,
         tx_ids=tx_ids,
         receipts_root=receipts_root,
+        helper_execution_root=helper_execution_root or None,
     )
     bh = compute_block_hash(header=hdr)
 

@@ -526,6 +526,81 @@ def system_tx_emitter(
     return out
 
 
+
+def _system_payload_hash(payload: Json) -> str:
+    raw = json.dumps(payload if isinstance(payload, dict) else {}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _expected_emitted_system_env_fields(state: Json, canon: Any, item: SystemQueueItem) -> tuple[Json, str, str]:
+    payload = dict(item.payload or {})
+    payload.setdefault("_due_height", int(item.due_height))
+    payload.setdefault("_system_queue_id", item.queue_id)
+
+    signer = item.signer or "SYSTEM"
+    if str(signer).strip() == "SYSTEM":
+        params = state.get("params")
+        if isinstance(params, dict):
+            override = str(params.get("system_signer") or "").strip()
+            if override:
+                signer = override
+
+    payload_parent_ref = _as_opt_str(payload.get("_parent_ref")).strip()
+    parent_ref = item.parent.strip() if item.parent else payload_parent_ref
+    parent_required = _canon_parent_required(canon, item.tx_type)
+    if parent_required and not parent_ref:
+        parent_ref = parent_required
+    if parent_ref:
+        payload.setdefault("_parent_ref", parent_ref)
+    return payload, str(signer or "SYSTEM"), parent_ref if parent_ref else ""
+
+
+def validate_system_tx_queue_binding(
+    state: Json,
+    canon: Any,
+    env: TxEnvelope,
+    *,
+    next_height: int,
+    phase: str,
+) -> tuple[bool, str]:
+    """Validate that a block SYSTEM tx came from deterministic system_queue output."""
+    if not bool(getattr(env, "system", False)):
+        return True, ""
+    payload = env.payload if isinstance(env.payload, dict) else {}
+    qid = _as_str(payload.get("_system_queue_id") or "").strip()
+    if not qid:
+        return False, "missing_system_queue_id"
+    phase_n = _as_str(phase).strip().lower() or "post"
+    found: SystemQueueItem | None = None
+    for item in _validated_queue_items(state):
+        if item.queue_id == qid:
+            found = item
+            break
+    if found is None:
+        return False, "unknown_system_queue_id"
+    tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
+    if found.tx_type != tx_type:
+        return False, "system_queue_tx_type_mismatch"
+    if int(found.due_height) != int(next_height):
+        return False, "system_queue_due_height_mismatch"
+    if int(payload.get("_due_height") or 0) != int(next_height):
+        return False, "system_payload_due_height_mismatch"
+    if found.phase != phase_n:
+        return False, "system_queue_phase_mismatch"
+    expected_payload, expected_signer, expected_parent = _expected_emitted_system_env_fields(state, canon, found)
+    signer = _as_str(getattr(env, "signer", "") or "").strip()
+    if signer != expected_signer:
+        return False, "system_queue_signer_mismatch"
+    parent = _as_opt_str(getattr(env, "parent", None)).strip()
+    if parent != expected_parent:
+        return False, "system_queue_parent_mismatch"
+    if _system_payload_hash(payload) != _system_payload_hash(expected_payload):
+        return False, "system_queue_payload_mismatch"
+    emitted_height = found.emitted_height
+    if emitted_height is not None and int(emitted_height) not in {0, int(next_height)}:
+        return False, "system_queue_emitted_height_mismatch"
+    return True, ""
+
 def confirm_system_tx_emitted(state: Json, *, queue_id: str, emitted_height: int) -> bool:
     qid = _as_str(queue_id).strip()
     if not qid:
@@ -563,4 +638,5 @@ __all__ = [
     "system_queue_phase_for_id",
     "schedule_block_rewards_system_txs",
     "system_tx_emitter",
+    "validate_system_tx_queue_binding",
 ]

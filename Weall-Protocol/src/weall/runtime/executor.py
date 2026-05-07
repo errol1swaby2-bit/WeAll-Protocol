@@ -39,7 +39,7 @@ from weall.runtime.bft_hotstuff import (
 )
 from weall.runtime.bft_journal import BftJournal
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block, admit_block_txs
-from weall.runtime.block_hash import compute_receipts_root, ensure_block_hash, make_block_header
+from weall.runtime.block_hash import compute_block_hash, compute_helper_execution_root, compute_receipts_root, ensure_block_hash, make_block_header
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.chain_config import load_chain_config
 from weall.runtime.domain_apply import ApplyError, apply_tx_atomic_meta
@@ -102,7 +102,7 @@ from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore, _canon_json, de
 from weall.runtime.state_hash import compute_state_root
 
 # SqliteLedgerStore is defined in weall.runtime.sqlite_db in this repo layout
-from weall.runtime.system_tx_engine import prune_emitted_system_queue, system_tx_emitter
+from weall.runtime.system_tx_engine import prune_emitted_system_queue, system_tx_emitter, validate_system_tx_queue_binding
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.vrf_sig import make_vrf_record, verify_vrf_record
@@ -2565,6 +2565,29 @@ class WeAllExecutor:
                 invalid_ids.append(tx_id)
                 continue
 
+            if bool(getattr(env_obj, "system", False)):
+                payload_for_phase = env.get("payload") if isinstance(env, dict) else None
+                qid_for_phase = (
+                    str((payload_for_phase or {}).get("_system_queue_id") or "").strip()
+                    if isinstance(payload_for_phase, dict)
+                    else ""
+                )
+                phase_for_binding = _queue_item_phase(qid_for_phase) or "post"
+                ok_binding, why_binding = validate_system_tx_queue_binding(
+                    working,
+                    self.tx_index,
+                    env_obj,
+                    next_height=next_height,
+                    phase=phase_for_binding,
+                )
+                if not ok_binding:
+                    return ExecutorMeta(
+                        ok=False,
+                        error=f"bad_block:system_queue_binding:{why_binding}",
+                        height=0,
+                        block_id="",
+                    )
+
             if rej is not None:
                 invalid_ids.append(tx_id)
                 continue
@@ -2756,6 +2779,21 @@ class WeAllExecutor:
             if require_vrf:
                 return None, None, [], invalid_ids, "vrf_generate_failed"
 
+        helper_execution = self._build_helper_execution_metadata(
+            applied_envs=applied_envs,
+            receipts=receipts,
+            block_height=int(new_height),
+            started_ms=int(ts_ms),
+            helper_certificates=helper_certificates,
+            helper_receipts_by_lane=helper_receipts_by_lane,
+            helper_state_deltas_by_lane=None,
+        )
+        helper_execution_root = (
+            compute_helper_execution_root(helper_execution=helper_execution)
+            if isinstance(helper_execution, dict) and helper_execution
+            else ""
+        )
+
         # Production commitment to post-apply state.
         state_root = compute_state_root(working)
 
@@ -2767,6 +2805,7 @@ class WeAllExecutor:
             tx_ids=applied_ids,
             receipts_root=receipts_root,
             state_root=state_root,
+            helper_execution_root=helper_execution_root or None,
             vrf=vrf,
         )
         block: Json = {
@@ -2779,6 +2818,8 @@ class WeAllExecutor:
             "txs": applied_envs,
             "receipts": receipts,
         }
+        if helper_execution:
+            block["helper_execution"] = helper_execution
 
         mempool_selection_marker: Json = _sanitize_mempool_selection_marker(
             meta_root_working.get("mempool_selection_last"),
@@ -2787,17 +2828,7 @@ class WeAllExecutor:
         )
         block["mempool_selection"] = dict(mempool_selection_marker)
 
-        helper_execution = self._build_helper_execution_metadata(
-            applied_envs=applied_envs,
-            receipts=receipts,
-            block_height=int(new_height),
-            started_ms=int(ts_ms),
-            helper_certificates=helper_certificates,
-            helper_receipts_by_lane=helper_receipts_by_lane,
-            helper_state_deltas_by_lane=None,
-        )
         if helper_execution:
-            block["helper_execution"] = helper_execution
             meta_root = working.get("meta")
             if not isinstance(meta_root, dict):
                 meta_root = {}
@@ -3498,6 +3529,27 @@ class WeAllExecutor:
             return ExecutorMeta(
                 ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
             )
+
+        helper_execution_for_root = block2.get("helper_execution")
+        header_helper_root = str(header.get("helper_execution_root") or "").strip()
+        if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
+            computed_helper_root = compute_helper_execution_root(helper_execution=helper_execution_for_root)
+            if not header_helper_root:
+                return ExecutorMeta(
+                    ok=False, error="bad_block:missing_helper_execution_root", height=0, block_id=""
+                )
+            if computed_helper_root != header_helper_root:
+                return ExecutorMeta(
+                    ok=False, error="bad_block:helper_execution_root_mismatch", height=0, block_id=""
+                )
+        elif header_helper_root:
+            return ExecutorMeta(
+                ok=False, error="bad_block:unexpected_helper_execution_root", height=0, block_id=""
+            )
+
+        existing_block_hash = str(block2.get("block_hash") or "").strip()
+        if existing_block_hash and compute_block_hash(header=header) != existing_block_hash:
+            return ExecutorMeta(ok=False, error="bad_block:block_hash_mismatch", height=0, block_id="")
 
         # Ensure we persist the same tip hash commitment.
         try:
