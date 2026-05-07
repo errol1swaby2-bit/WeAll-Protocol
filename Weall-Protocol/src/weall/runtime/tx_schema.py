@@ -291,7 +291,19 @@ class PohLiveSessionInitPayload(_StrictModel):
 
 class PohLiveJurorAssignPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1)
+    jurors: list[str]
+    min_rep_milli: int | None = Field(default=None, ge=0)
+    pass_threshold_num: int | None = Field(default=None, ge=1)
+    pass_threshold_den: int | None = Field(default=None, ge=1)
+    live_quorum: Any | None = None
+
+    @model_validator(mode="after")
+    def _check_jurors(self) -> "PohLiveJurorAssignPayload":
+        if not (1 <= len(self.jurors) <= 10):
+            raise ValueError("jurors must contain 1..10 entries")
+        if len(set(self.jurors)) != len(self.jurors):
+            raise ValueError("jurors must be unique")
+        return self
 
 
 class PohLiveJurorAcceptPayload(_StrictModel):

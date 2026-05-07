@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from weall.runtime.poh.live_quorum import MAX_LIVE_JURORS, live_active_reviewer_count
+
 from weall.runtime.reputation_units import account_reputation_units, threshold_to_units
 from weall.runtime.vrf_sig import state_vrf_output
 
@@ -206,9 +208,16 @@ def pick_live_jurors(
     n_observing: int = 7,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
+    allow_partial: bool = False,
 ) -> tuple[list[str], list[str]]:
-    """
-    Deterministically pick jurors from eligible live-verified accounts. The function name remains legacy until POH_LIVE_* is renamed.
+    """Deterministically pick Live PoH jurors.
+
+    Production posture:
+      - max 10 total jurors
+      - up to 3 active/interacting reviewers
+      - up to 7 watching/observing jurors
+      - when allow_partial=True, bootstrap uses the available eligible pool
+        instead of failing until all 10 seats exist.
 
     Entropy source:
       - Prefer state.rand.vrf.output (verifiable randomness included by proposer)
@@ -227,14 +236,18 @@ def pick_live_jurors(
     )
     pool = [a for a in pool if a != target_account]
 
-    need = int(n_interacting) + int(n_observing)
-    if len(pool) < need:
-        raise ValueError(f"insufficient_eligible_jurors: need {need}, have {len(pool)}")
+    configured_need = min(MAX_LIVE_JURORS, max(1, int(n_interacting) + int(n_observing)))
+    if len(pool) < configured_need and not bool(allow_partial):
+        raise ValueError(f"insufficient_eligible_jurors: need {configured_need}, have {len(pool)}")
+    selected_count = min(configured_need, len(pool)) if bool(allow_partial) else configured_need
+    if selected_count <= 0:
+        raise ValueError("insufficient_eligible_jurors: need at least 1, have 0")
 
     scored = [(_score(entropy, "poh3", str(case_id), a), a) for a in pool]
     scored.sort(key=lambda t: t[0])
-    ranked = [a for _h, a in scored]
+    ranked = [a for _h, a in scored[:selected_count]]
 
-    interacting = ranked[: int(n_interacting)]
-    observing = ranked[int(n_interacting) : need]
+    active_count = live_active_reviewer_count(selected_count)
+    interacting = ranked[:active_count]
+    observing = ranked[active_count:selected_count]
     return interacting, observing

@@ -4,6 +4,13 @@ import hashlib
 from typing import Any
 
 from weall.runtime.reputation_units import threshold_to_units
+from weall.runtime.poh.live_quorum import (
+    DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
+    DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR,
+    MAX_LIVE_INTERACTING_JURORS,
+    MAX_LIVE_JURORS,
+    live_quorum_summary,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -35,6 +42,14 @@ def _poh_params(state: Json) -> Json:
     poh = params.get("poh")
     return poh if isinstance(poh, dict) else {}
 
+
+
+def _param_int(state: Json, *, key: str, default: int) -> int:
+    poh = _poh_params(state)
+    try:
+        return int(poh.get(key, default))
+    except Exception:
+        return int(default)
 
 def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_units: int) -> int:
     poh = _poh_params(state)
@@ -116,25 +131,30 @@ def _case_needs_finalize(case: Json) -> bool:
     if status not in ("init", "open"):
         return False
     jm = case.get("jurors")
-    if not isinstance(jm, dict) or len(jm) != 10:
+    if not isinstance(jm, dict):
         return False
 
-    # Finalize only when attendance for all jurors is explicitly recorded.
+    active = []
     for _jid, jrec_any in jm.items():
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
-        if jrec.get("attended") is None:
-            return False
-
-    # Finalize only when the 3 interacting jurors have verdicts.
-    have_verdicts = 0
-    for _jid, jrec_any in jm.items():
-        jrec = jrec_any if isinstance(jrec_any, dict) else {}
-        if _as_str(jrec.get("role") or "") != "interacting":
+        if bool(jrec.get("replaced", False)):
             continue
+        if _as_str(jrec.get("role") or "") == "interacting":
+            active.append(jrec)
+
+    if not active or len(active) > MAX_LIVE_INTERACTING_JURORS:
+        return False
+
+    # Observers/watchers are audit witnesses and may attend, but they do not
+    # block finalization. The active reviewer set is the n-of-m decision set.
+    have_verdicts = 0
+    for jrec in active:
+        if jrec.get("accepted") is not True or jrec.get("attended") is not True:
+            return False
         v = _as_str(jrec.get("verdict") or "").strip().lower()
         if v in ("pass", "fail"):
             have_verdicts += 1
-    return have_verdicts == 3
+    return have_verdicts == len(active)
 
 
 def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
@@ -208,15 +228,26 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                         state=state,
                         case_id=cid,
                         target_account=account_id,
-                        n_interacting=3,
-                        n_observing=7,
+                        n_interacting=MAX_LIVE_INTERACTING_JURORS,
+                        n_observing=MAX_LIVE_JURORS - MAX_LIVE_INTERACTING_JURORS,
                         min_rep_units=int(min_rep_units),
+                        allow_partial=True,
                     )
                     jurors = list(interacting) + list(observing)
                 except Exception:
                     jurors = []
 
-                if isinstance(jurors, list) and len(jurors) == 10:
+                if isinstance(jurors, list) and 1 <= len(jurors) <= MAX_LIVE_JURORS:
+                    pass_num = _param_int(
+                        state,
+                        key="live_pass_threshold_num",
+                        default=DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR,
+                    )
+                    pass_den = _param_int(
+                        state,
+                        key="live_pass_threshold_den",
+                        default=DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
+                    )
                     enqueue_system_tx(
                         state,
                         tx_type="POH_LIVE_JUROR_ASSIGN",
@@ -224,6 +255,11 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                             "case_id": cid,
                             "jurors": jurors,
                             "min_rep_milli": int(min_rep_units),
+                            "live_quorum": live_quorum_summary(
+                                panel_size=len(jurors),
+                                numerator=pass_num,
+                                denominator=pass_den,
+                            ),
                         },
                         due_height=int(next_height),
                         signer="SYSTEM",

@@ -4,6 +4,16 @@ import hashlib
 from typing import Any
 
 from weall.runtime.errors import ApplyError
+from weall.runtime.poh.live_quorum import (
+    DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
+    DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR,
+    MAX_LIVE_INTERACTING_JURORS,
+    MAX_LIVE_JURORS,
+    live_active_reviewer_count,
+    live_quorum_summary,
+    normalize_live_threshold,
+    required_live_passes,
+)
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     require_valid_poh_tier,
@@ -27,6 +37,31 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(v)
     except Exception:
         return int(default)
+
+
+def _state_poh_param_int(state: Json, key: str, default: int) -> int:
+    try:
+        params = state.get("params")
+        poh = params.get("poh") if isinstance(params, dict) else None
+        if isinstance(poh, dict) and key in poh:
+            return int(poh.get(key))
+    except Exception:
+        pass
+    return int(default)
+
+
+def _live_threshold_from_assignment(state: Json, payload: Json) -> tuple[int, int]:
+    num = payload.get("pass_threshold_num")
+    den = payload.get("pass_threshold_den")
+    if num is None:
+        num = _state_poh_param_int(
+            state, "live_pass_threshold_num", DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR
+        )
+    if den is None:
+        den = _state_poh_param_int(
+            state, "live_pass_threshold_den", DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR
+        )
+    return normalize_live_threshold(numerator=num, denominator=den)
 
 
 def _sha256_hex(b: bytes) -> str:
@@ -1874,7 +1909,10 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
 
     Production hardening:
     - requires SYSTEM tx (env.system True)
-    - exactly 10 unique juror ids
+    - accepts 1..10 unique juror ids so genesis can bootstrap from one Live account
+    - first up-to-3 jurors are active/interacting reviewers
+    - remaining jurors are watching/observing witnesses
+    - pass/fail uses a frozen deterministic n-of-m threshold over active reviewers
     - every juror must exist, not banned, not locked, and PoH tier >= 2 / Live Verified Human
     - subject account (being verified) cannot be a juror
     """
@@ -1886,8 +1924,12 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_id", {})
     if not bool(_get_env(env, "system", False)):
         raise ApplyError("forbidden", "system_only", {"tx_type": "POH_LIVE_JUROR_ASSIGN"})
-    if not isinstance(jurors, list) or len(jurors) != 10:
-        raise ApplyError("invalid_tx", "bad_jurors", {"need": 10})
+    if not isinstance(jurors, list) or not (1 <= len(jurors) <= MAX_LIVE_JURORS):
+        raise ApplyError(
+            "invalid_tx",
+            "bad_jurors",
+            {"min": 1, "max": MAX_LIVE_JURORS, "actual": len(jurors) if isinstance(jurors, list) else 0},
+        )
 
     case = _get_live_case(state, case_id)
     _require_live_case_commitments(case, case_id=case_id)
@@ -1911,15 +1953,22 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
         _require_active_live(state, jid, case_id=case_id)
         cleaned.append(jid)
 
+    threshold_num, threshold_den = _live_threshold_from_assignment(state, p)
+    quorum = live_quorum_summary(
+        panel_size=len(cleaned), numerator=threshold_num, denominator=threshold_den
+    )
+
     jm: Json = {}
+    active_count = live_active_reviewer_count(len(cleaned))
     for i, jid in enumerate(cleaned):
-        role = "interacting" if i < 3 else "observing"
+        role = "interacting" if i < active_count else "observing"
         jm[jid] = {"role": role, "accepted": None, "attended": None, "verdict": None}
 
     case["jurors"] = jm
+    case["live_quorum"] = quorum
     case["status"] = "init"
 
-    return {"applied": "POH_LIVE_JUROR_ASSIGN", "case_id": case_id}
+    return {"applied": "POH_LIVE_JUROR_ASSIGN", "case_id": case_id, "live_quorum": quorum}
 
 
 def apply_poh_live_juror_accept(state: Json, env: Any) -> Json:
@@ -2250,29 +2299,61 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
             continue
         active[jid] = jrec
 
-    if len(active) != 10:
-        raise ApplyError("invalid_tx", "jurors_not_ready", {"case_id": case_id})
+    if not (1 <= len(active) <= MAX_LIVE_JURORS):
+        raise ApplyError(
+            "invalid_tx",
+            "jurors_not_ready",
+            {"case_id": case_id, "min": 1, "max": MAX_LIVE_JURORS, "actual": len(active)},
+        )
 
+    configured_quorum = case.get("live_quorum") if isinstance(case.get("live_quorum"), dict) else {}
+    threshold_num, threshold_den = normalize_live_threshold(
+        numerator=configured_quorum.get("pass_threshold_num"),
+        denominator=configured_quorum.get("pass_threshold_den"),
+    )
+
+    active_reviewers: list[Json] = []
     for _jid, jrec in active.items():
-        if jrec.get("attended") is not True:
-            raise ApplyError("invalid_tx", "attendance_not_ready", {"case_id": case_id})
+        if _as_str(jrec.get("role") or "") == "interacting":
+            active_reviewers.append(jrec)
+
+    expected_active = live_active_reviewer_count(len(active))
+    if len(active_reviewers) != expected_active or expected_active <= 0:
+        raise ApplyError(
+            "invalid_tx",
+            "live_active_reviewers_not_ready",
+            {"case_id": case_id, "expected": expected_active, "actual": len(active_reviewers)},
+        )
 
     passes = 0
+    failures = 0
     have = 0
-    for _jid, jrec in active.items():
-        if _as_str(jrec.get("role") or "") != "interacting":
-            continue
+    for jrec in active_reviewers:
+        if jrec.get("accepted") is not True or jrec.get("attended") is not True:
+            raise ApplyError("invalid_tx", "attendance_not_ready", {"case_id": case_id})
         v = _as_str(jrec.get("verdict") or "").strip().lower()
         if v not in ("pass", "fail"):
             raise ApplyError("invalid_tx", "verdicts_not_ready", {"case_id": case_id})
         have += 1
         if v == "pass":
             passes += 1
+        else:
+            failures += 1
 
-    if have != 3:
+    required_pass = required_live_passes(
+        have, numerator=threshold_num, denominator=threshold_den
+    )
+    if have != expected_active or required_pass <= 0:
         raise ApplyError("invalid_tx", "verdicts_not_ready", {"case_id": case_id})
 
-    outcome = "pass" if passes >= 2 else "fail"
+    quorum = live_quorum_summary(
+        panel_size=len(active), numerator=threshold_num, denominator=threshold_den
+    )
+    quorum["actual_verdicts"] = have
+    quorum["actual_passes"] = passes
+    quorum["actual_failures"] = failures
+
+    outcome = "pass" if passes >= required_pass else "fail"
     tier_awarded = 2 if outcome == "pass" else 0
 
     token_id = ""
@@ -2285,6 +2366,7 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
     case["status"] = "awarded" if outcome == "pass" else "rejected"
     case["outcome"] = outcome
     case["tier_awarded"] = tier_awarded
+    case["live_quorum"] = quorum
     case["finalized_ts_ms"] = _as_int(p.get("ts_ms") or 0)
     if token_id:
         case["poh_nft_token_id"] = token_id
@@ -2303,6 +2385,7 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
         "outcome": outcome,
         "tier_awarded": tier_awarded,
         "token_id": token_id,
+        "live_quorum": quorum,
     }
 
 
