@@ -136,19 +136,21 @@ def _extract_active_device_pubkeys(acct: Mapping[str, Any], *, device_type: str 
 
 def _node_key_authorized(account_record: Mapping[str, Any], *, bound_account: str) -> bool:
     candidates = _node_key_candidates()
-    if not candidates:
+    if not candidates or not bound_account or not account_record:
         return False
     # Service nodes must be authorized through an active node device record.
     # Legacy account-key authorization remains as a compatibility fallback for
     # older validator/operator bundles, but new onboarding registers a separate
-    # ACCOUNT_DEVICE_REGISTER device_type=node key.
+    # ACCOUNT_DEVICE_REGISTER device_type=node key. A bound account alone is not
+    # node-key authorization; production service must be bound to a registered
+    # active node/account key visible in chain state.
     active_node_devices = set(_extract_active_device_pubkeys(account_record, device_type="node"))
     if active_node_devices:
         return any(candidate in active_node_devices for candidate in candidates)
     active = set(_extract_active_pubkeys(account_record))
     if active:
         return any(candidate in active for candidate in candidates)
-    return bool(bound_account)
+    return False
 
 
 
@@ -390,12 +392,16 @@ def evaluate_production_preflight(
 
     effective_roles: list[str] = []
     if not hard_fail_reasons and not maintenance_reasons:
-        if requested_roles:
-            effective_roles.append("general_service")
         for role in requested_roles:
             if role == "general_service":
-                continue
-            if role == "validator":
+                # A general production service profile is still a service role.
+                # It must not bypass chain-backed NodeOperator readiness merely
+                # because an account is bound in the local environment.
+                if "node_operator" in active_roles:
+                    effective_roles.append(role)
+                else:
+                    _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
+            elif role == "validator":
                 if bft_requested and role in active_roles:
                     effective_roles.append(role)
                 elif bft_requested:
@@ -423,6 +429,8 @@ def evaluate_production_preflight(
 
     if maintenance_reasons:
         effective_roles = []
+    elif effective_roles and requested_roles and "general_service" not in effective_roles:
+        effective_roles.append("general_service")
 
     helper_effective = bool(
         helper_requested and "helper" in effective_roles and not hard_fail_reasons and not maintenance_reasons
