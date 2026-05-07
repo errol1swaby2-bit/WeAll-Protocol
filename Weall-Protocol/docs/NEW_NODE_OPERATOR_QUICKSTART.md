@@ -251,3 +251,22 @@ Storage responsibility is production-gated by challenge/response verification. D
 ## Validator live readiness check
 
 Validator responsibility requires a live readiness receipt generated from node-local checks. Use `scripts/validator_readiness_check.py generate` to bind account id, node pubkey, BFT pubkey, chain id, schema version, protocol version, manifest hash, tx index hash, runtime profile hash, required readiness checks, and expiry height into a deterministic `readiness_receipt_hash`. `VALIDATOR_READINESS_VERIFY` must carry that receipt; opt-in alone does not grant consensus authority.
+
+
+## Fresh node-to-service E2E harness
+
+For a production-shaped local check of the whole operator path, run:
+
+```bash
+./scripts/fresh_node_to_service_e2e.sh
+```
+
+By default this is a safe dry-run / structural harness. It exercises the local storage probe runner and validator readiness receipt tools, checks the onboarding/service boot split, and writes a production-service example environment without granting authority.
+
+To drive the user-transaction portion against a running local onboarding API, run:
+
+```bash
+WEALL_FRESH_SERVICE_E2E_EXECUTE=1 ./scripts/fresh_node_to_service_e2e.sh
+```
+
+This path still does not bypass system verification. Baseline Node Operator, storage responsibility, and validator responsibility must become active through protocol eligibility, capacity-probe verification, and validator-readiness verification before production service boot is authoritative.
