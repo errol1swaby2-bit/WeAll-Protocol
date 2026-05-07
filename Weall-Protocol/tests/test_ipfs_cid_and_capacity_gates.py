@@ -47,6 +47,65 @@ def _base_state() -> dict:
     }
 
 
+def _enable_storage_responsibility(
+    st: dict,
+    account_id: str,
+    *,
+    declared: int,
+    proven: int,
+    allocated: int = 0,
+    used: int = 0,
+) -> None:
+    roles = st.setdefault("roles", {})
+    node_ops = roles.setdefault("node_operators", {})
+    active_set = node_ops.setdefault("active_set", [])
+    if account_id not in active_set:
+        active_set.append(account_id)
+    by_id = node_ops.setdefault("by_id", {})
+    rec = by_id.setdefault(
+        account_id,
+        {
+            "account_id": account_id,
+            "status": "active",
+            "active": True,
+            "node_pubkey": f"{account_id}-node",
+            "devices": [{"device_type": "node", "public_key": f"{account_id}-node", "active": True}],
+        },
+    )
+    rec["status"] = "active"
+    rec["active"] = True
+    rec["enrolled"] = True
+    rec["node_pubkey"] = f"{account_id}-node"
+    rec["devices"] = [{"device_type": "node", "public_key": f"{account_id}-node", "active": True}]
+    responsibilities = rec.setdefault("responsibilities", {})
+    responsibilities["storage"] = {
+        "opted_in": True,
+        "active": True,
+        "proof_status": "verified",
+        "declared_capacity_bytes": int(declared),
+        "reserved_capacity_bytes": int(declared),
+        "probed_capacity_bytes": int(proven),
+        "proven_capacity_bytes": int(proven),
+        "allocated_capacity_bytes": int(allocated),
+        "used_capacity_bytes": int(used),
+        "proof_expires_height": 10_000,
+    }
+
+    accounts = st.setdefault("accounts", {})
+    accounts.setdefault(account_id, {"poh_tier": 2, "tier": 2, "reputation_milli": 2000})
+    accounts[account_id]["poh_tier"] = 2
+    accounts[account_id]["tier"] = 2
+    accounts[account_id]["reputation_milli"] = 2000
+    accounts[account_id]["devices"] = {
+        "by_id": {
+            f"{account_id}-node": {
+                "device_type": "node",
+                "pubkey": f"{account_id}-node",
+                "revoked": False,
+            }
+        }
+    }
+
 def test_ipfs_pin_request_rejects_invalid_cid() -> None:
     st = _base_state()
 
@@ -89,6 +148,10 @@ def test_ipfs_pin_request_capacity_filters_targets_when_size_known() -> None:
         "used_bytes": 0,
     }
 
+    _enable_storage_responsibility(st, "opA", declared=10, proven=10, allocated=9, used=9)
+    _enable_storage_responsibility(st, "opB", declared=1000, proven=1000)
+    _enable_storage_responsibility(st, "opC", declared=1000, proven=1000)
+
     cid = "baaaaaaaaaaaaaaaaaaaaa"
 
     m = apply_tx(
@@ -117,6 +180,7 @@ def test_ipfs_pin_confirm_accounts_used_bytes_once_per_operator() -> None:
         "capacity_bytes": 1000,
         "used_bytes": 0,
     }
+    _enable_storage_responsibility(st, "opA", declared=1000, proven=1000)
 
     cid = "baaaaaaaaaaaaaaaaaaaaa"
     m = apply_tx(
