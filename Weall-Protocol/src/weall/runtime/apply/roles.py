@@ -6,6 +6,10 @@ from typing import Any
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.validator_readiness_runner import (
+    ValidatorReadinessError,
+    validate_validator_readiness_payload,
+)
 from weall.runtime.node_operator_responsibilities import (
     active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
     is_node_operator_active,
@@ -335,19 +339,39 @@ def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
     if not bool(validator.get("opted_in", False)):
         raise RolesApplyError("forbidden", "validator_responsibility_not_opted_in", {"account_id": acct})
     if status in ("verified", "ready"):
-        manifest_hash = _as_str(payload.get("manifest_hash") or payload.get("chain_manifest_hash"))
-        tx_index_hash = _as_str(payload.get("tx_index_hash"))
-        receipt_hash = _as_str(payload.get("readiness_receipt_hash") or payload.get("verification_receipt_hash"))
-        if not manifest_hash:
-            raise RolesApplyError("invalid_payload", "manifest_hash_required", {"account_id": acct})
-        if not tx_index_hash:
-            raise RolesApplyError("invalid_payload", "tx_index_hash_required", {"account_id": acct})
-        if not receipt_hash:
-            raise RolesApplyError("invalid_payload", "readiness_receipt_hash_required", {"account_id": acct})
-        expires = _as_int(payload.get("readiness_expires_height"), 0)
-        if expires <= _as_int(ledger.get("height"), 0):
-            raise RolesApplyError("invalid_payload", "readiness_expires_height_must_be_future", {"account_id": acct})
-        validator.update({"active": True, "readiness_status": "verified", "manifest_hash": manifest_hash, "tx_index_hash": tx_index_hash, "readiness_receipt_hash": receipt_hash, "readiness_verified_at_nonce": int(env.nonce), "readiness_verified_at_height": _as_int(ledger.get("height"), 0), "readiness_expires_height": int(expires)})
+        expected_node_pubkey = _as_str(payload.get("node_pubkey") or validator.get("node_pubkey"))
+        try:
+            readiness = validate_validator_readiness_payload(
+                payload,
+                account_id=acct,
+                expected_node_pubkey=expected_node_pubkey,
+                current_height=_as_int(ledger.get("height"), 0),
+            )
+        except ValidatorReadinessError as exc:
+            raise RolesApplyError(
+                "invalid_payload",
+                "validator_live_readiness_invalid",
+                {"account_id": acct, "reason": str(exc)},
+            ) from exc
+        validator.update(
+            {
+                "active": True,
+                "readiness_status": "verified",
+                "manifest_hash": readiness["manifest_hash"],
+                "tx_index_hash": readiness["tx_index_hash"],
+                "runtime_profile_hash": readiness["runtime_profile_hash"],
+                "chain_id": readiness["chain_id"],
+                "schema_version": readiness["schema_version"],
+                "protocol_version": readiness["protocol_version"],
+                "node_pubkey": readiness["node_pubkey"],
+                "bft_pubkey": readiness["bft_pubkey"],
+                "readiness_checks": readiness["readiness_checks"],
+                "readiness_receipt_hash": readiness["readiness_receipt_hash"],
+                "readiness_verified_at_nonce": int(env.nonce),
+                "readiness_verified_at_height": _as_int(ledger.get("height"), 0),
+                "readiness_expires_height": int(readiness["readiness_expires_height"]),
+            }
+        )
     else:
         validator.update({"active": False, "readiness_status": "failed", "readiness_failed_at_nonce": int(env.nonce), "readiness_failed_at_height": _as_int(ledger.get("height"), 0)})
     responsibilities["validator"] = validator

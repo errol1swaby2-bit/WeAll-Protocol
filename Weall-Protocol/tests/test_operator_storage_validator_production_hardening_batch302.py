@@ -8,6 +8,7 @@ from weall.runtime.node_operator_responsibilities import (
     evaluate_validator_responsibility,
 )
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.validator_readiness_runner import build_validator_readiness_receipt
 
 VALID_CID = "bafkreigh2akiscaildc3qj6k2ol6qmk7p2xk3w5t2c5a7xqz7xqz7i"
 
@@ -101,7 +102,21 @@ def test_validator_readiness_verification_required_before_active_validator_respo
     with pytest.raises(ApplyError):
         apply_tx(st, _env("VALIDATOR_READINESS_VERIFY", "SYSTEM", 2, {"account_id": "@op", "verification_status": "verified", "tx_index_hash": "tx", "readiness_receipt_hash": "rx", "readiness_expires_height": 20}, system=True))
 
-    apply_tx(st, _env("VALIDATOR_READINESS_VERIFY", "SYSTEM", 3, {"account_id": "@op", "verification_status": "verified", "manifest_hash": "manifest", "tx_index_hash": "tx", "readiness_receipt_hash": "rx", "readiness_expires_height": 20}, system=True))
+    receipt = build_validator_readiness_receipt(
+        account_id="@op",
+        node_pubkey="node-pub-1",
+        bft_pubkey="bft-pub",
+        chain_id="weall-prod",
+        schema_version="1",
+        protocol_version="1.25.0",
+        manifest_hash="manifest",
+        tx_index_hash="tx",
+        runtime_profile_hash="runtime",
+        readiness_expires_height=20,
+    )
+    payload = dict(receipt)
+    payload["verification_status"] = "verified"
+    apply_tx(st, _env("VALIDATOR_READINESS_VERIFY", "SYSTEM", 3, payload, system=True))
     ready = evaluate_validator_responsibility(st, "@op")
     assert ready.active is True
     st["height"] = 21

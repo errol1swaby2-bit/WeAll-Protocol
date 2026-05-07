@@ -295,7 +295,24 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     readiness = _as_str(rec.get("readiness_status")) or "not_requested"
     readiness_expires = _as_int(rec.get("readiness_expires_height"), 0)
     current_height = _state_height(state)
-    details: Json = {"account_id": account_id, "opted_in": opted_in, "readiness_status": readiness, "readiness_expires_height": readiness_expires, "current_height": current_height, "reputation_required_milli": required, "reputation_actual_milli": actual, "node_pubkey": node_pubkey}
+    details: Json = {
+        "account_id": account_id,
+        "opted_in": opted_in,
+        "readiness_status": readiness,
+        "readiness_expires_height": readiness_expires,
+        "current_height": current_height,
+        "reputation_required_milli": required,
+        "reputation_actual_milli": actual,
+        "node_pubkey": node_pubkey,
+        "readiness_receipt_hash": _as_str(rec.get("readiness_receipt_hash")),
+        "manifest_hash": _as_str(rec.get("manifest_hash")),
+        "tx_index_hash": _as_str(rec.get("tx_index_hash")),
+        "runtime_profile_hash": _as_str(rec.get("runtime_profile_hash")),
+        "chain_id": _as_str(rec.get("chain_id")),
+        "schema_version": _as_str(rec.get("schema_version")),
+        "protocol_version": _as_str(rec.get("protocol_version")),
+        "bft_pubkey": _as_str(rec.get("bft_pubkey")),
+    }
     if not opted_in:
         return ResponsibilityEvaluation("validator", "not_opted_in", False, False, ("not_opted_in",), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
     reasons: list[str] = []

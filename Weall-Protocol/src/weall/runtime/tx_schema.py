@@ -1497,6 +1497,12 @@ class AccountScopedRolePayload(_StrictModel):
     validator_readiness_receipt_hash: str | None = None
     manifest_hash: str | None = None
     tx_index_hash: str | None = None
+    runtime_profile_hash: str | None = None
+    chain_id: str | None = None
+    schema_version: str | None = None
+    protocol_version: str | None = None
+    bft_pubkey: str | None = Field(default=None, validation_alias=AliasChoices("bft_pubkey", "validator_pubkey", "consensus_pubkey"))
+    readiness_checks: Json | None = None
     readiness_expires_height: int | None = Field(default=None, ge=0)
     verification_status: str | None = None
     reputation_required_milli: int | None = Field(default=None, ge=0)

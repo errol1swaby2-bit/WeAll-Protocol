@@ -79,3 +79,8 @@ After a crash:
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+
+
+## Validator live readiness check
+
+Validator responsibility requires a live readiness receipt generated from node-local checks. Use `scripts/validator_readiness_check.py generate` to bind account id, node pubkey, BFT pubkey, chain id, schema version, protocol version, manifest hash, tx index hash, runtime profile hash, required readiness checks, and expiry height into a deterministic `readiness_receipt_hash`. `VALIDATOR_READINESS_VERIFY` must carry that receipt; opt-in alone does not grant consensus authority.
