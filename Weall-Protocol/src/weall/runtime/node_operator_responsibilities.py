@@ -48,6 +48,10 @@ def _as_dict(value: Any) -> Json:
     return value if isinstance(value, dict) else {}
 
 
+def _state_height(state: Mapping[str, Any]) -> int:
+    return _as_int(state.get("height"), 0)
+
+
 def _append_unique(items: list[str], value: str) -> None:
     if value and value not in items:
         items.append(value)
@@ -216,20 +220,21 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
     declared = _as_int(rec.get("declared_capacity_bytes"), 0)
     proven = _as_int(rec.get("proven_capacity_bytes"), 0)
     allocated = _as_int(rec.get("allocated_capacity_bytes"), 0)
+    used = _as_int(rec.get("used_capacity_bytes"), 0)
+    reserved = _as_int(rec.get("reserved_capacity_bytes"), 0)
+    probed = _as_int(rec.get("probed_capacity_bytes"), 0)
+    proof_expires = _as_int(rec.get("proof_expires_height"), 0)
+    current_height = _state_height(state)
     proof_status = _as_str(rec.get("proof_status")) or "not_requested"
-    # Compatibility for historical states/tests that carried an already-proven
-    # capacity value before proof_status was introduced. New production flows
-    # still set proof_status=verified through the system verifier path.
-    if proof_status == "not_requested" and proven > 0:
-        proof_status = "proven"
     details: Json = {
-        "account_id": account_id,
-        "opted_in": opted_in,
-        "declared_capacity_bytes": declared,
-        "proven_capacity_bytes": proven,
-        "allocated_capacity_bytes": allocated,
-        "proof_status": proof_status,
+        "account_id": account_id, "opted_in": opted_in, "declared_capacity_bytes": declared,
+        "reserved_capacity_bytes": reserved, "probed_capacity_bytes": probed, "proven_capacity_bytes": proven,
+        "allocated_capacity_bytes": allocated, "used_capacity_bytes": used, "available_capacity_bytes": max(0, proven - allocated),
+        "proof_status": proof_status, "proof_expires_height": proof_expires, "current_height": current_height,
         "latest_challenge_id": _as_str(rec.get("latest_challenge_id")),
+        "failed_challenge_count": _as_int(rec.get("failed_challenge_count"), 0),
+        "missed_challenge_count": _as_int(rec.get("missed_challenge_count"), 0),
+        "availability_score_milli": _as_int(rec.get("availability_score_milli"), 0),
         "node_pubkey": node_pubkey,
     }
     if not opted_in:
@@ -247,20 +252,26 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         _append_unique(reasons, "capacity_proof_pending")
     if proven > declared and declared > 0:
         _append_unique(reasons, "proven_capacity_exceeds_declared_capacity")
-    if proof_status not in ("verified", "proven", "active"):
-        if proof_status == "challenge_open":
-            _append_unique(reasons, "capacity_challenge_open")
+    if proof_status not in ("verified", "active"):
+        if proof_status in ("challenge_open", "probe_open"):
+            _append_unique(reasons, "capacity_probe_open")
         elif proof_status == "verification_pending":
             _append_unique(reasons, "capacity_verification_pending")
         elif proof_status == "failed":
             _append_unique(reasons, "capacity_proof_failed")
         elif proof_status == "expired":
             _append_unique(reasons, "capacity_proof_expired")
-    active = bool(active_flag and proven > 0 and baseline.active and proof_status in ("verified", "proven", "active") and proven <= declared)
+    if proof_expires > 0 and current_height > proof_expires:
+        _append_unique(reasons, "capacity_proof_expired")
+    if allocated > proven and proven > 0:
+        _append_unique(reasons, "allocated_capacity_exceeds_proven_capacity")
+    if used > allocated and allocated > 0:
+        _append_unique(reasons, "used_capacity_exceeds_allocated_capacity")
+    active = bool(active_flag and proven > 0 and baseline.active and proof_status in ("verified", "active") and proven <= declared and (proof_expires <= 0 or current_height <= proof_expires) and allocated <= proven)
     if active:
         status = "active"
-    elif "capacity_challenge_open" in reasons:
-        status = "challenge_open"
+    elif "capacity_probe_open" in reasons:
+        status = "probe_open"
     elif "capacity_verification_pending" in reasons:
         status = "verification_pending"
     elif "capacity_proof_failed" in reasons:
@@ -282,7 +293,9 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     required = _as_int(rec.get("reputation_required_milli"), 5000)
     actual = account_reputation_units(account, default=0)
     readiness = _as_str(rec.get("readiness_status")) or "not_requested"
-    details: Json = {"account_id": account_id, "opted_in": opted_in, "readiness_status": readiness, "reputation_required_milli": required, "reputation_actual_milli": actual, "node_pubkey": node_pubkey}
+    readiness_expires = _as_int(rec.get("readiness_expires_height"), 0)
+    current_height = _state_height(state)
+    details: Json = {"account_id": account_id, "opted_in": opted_in, "readiness_status": readiness, "readiness_expires_height": readiness_expires, "current_height": current_height, "reputation_required_milli": required, "reputation_actual_milli": actual, "node_pubkey": node_pubkey}
     if not opted_in:
         return ResponsibilityEvaluation("validator", "not_opted_in", False, False, ("not_opted_in",), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
     reasons: list[str] = []
@@ -294,8 +307,10 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
             _append_unique(reasons, reason)
     if actual < required:
         _append_unique(reasons, "validator_reputation_insufficient")
-    if readiness not in ("ready", "active"):
+    if readiness not in ("ready", "active", "verified"):
         _append_unique(reasons, "validator_readiness_pending")
+    if readiness_expires > 0 and current_height > readiness_expires:
+        _append_unique(reasons, "validator_readiness_expired")
     active = bool(active_flag and not reasons)
     status = "active" if active else ("readiness_pending" if "validator_readiness_pending" in reasons else ("blocked" if reasons else "eligible"))
     return ResponsibilityEvaluation("validator", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)

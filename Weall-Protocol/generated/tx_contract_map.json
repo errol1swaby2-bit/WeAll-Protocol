@@ -1614,6 +1614,48 @@
     {
       "claim_count": 1,
       "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
         "notifications"
       ],
       "context": "block",
@@ -1980,6 +2022,146 @@
       "claim_handlers": [
         "poh"
       ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_FINALIZE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_JUROR_ACCEPT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_JUROR_ASSIGN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_JUROR_DECLINE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_JUROR_REPLACE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "",
+      "tx_type": "POH_LIVE_RECEIPT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier1+",
+      "tx_type": "POH_LIVE_REQUEST_OPEN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "block",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "POH_LIVE_SESSION_INIT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
+      "context": "mempool",
+      "domain": "PoH",
+      "handler": "poh",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "poh"
+      ],
       "context": "block",
       "domain": "PoH",
       "handler": "poh",
@@ -2072,146 +2254,6 @@
       "schema_covered": true,
       "subject_gate": "Juror",
       "tx_type": "POH_TIER2_REVIEW_SUBMIT"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_ATTENDANCE_MARK"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_FINALIZE"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "Tier2+",
-      "tx_type": "POH_LIVE_SESSION_INIT"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_ACCEPT"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_ASSIGN"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_DECLINE"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_REPLACE"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "block",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "SYSTEM",
-      "receipt_only": true,
-      "schema_covered": true,
-      "subject_gate": "",
-      "tx_type": "POH_LIVE_RECEIPT"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier1+",
-      "tx_type": "POH_LIVE_REQUEST_OPEN"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "poh"
-      ],
-      "context": "mempool",
-      "domain": "PoH",
-      "handler": "poh",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_VERDICT_SUBMIT"
     },
     {
       "claim_count": 1,
@@ -2646,6 +2688,20 @@
       "schema_covered": true,
       "subject_gate": "Validator",
       "tx_type": "STATE_SNAPSHOT_DECLARE"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "storage"
+      ],
+      "context": "block",
+      "domain": "Storage",
+      "handler": "storage",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "",
+      "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY"
     },
     {
       "claim_count": 1,
@@ -3098,6 +3154,20 @@
     {
       "claim_count": 1,
       "claim_handlers": [
+        "roles"
+      ],
+      "context": "block",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "",
+      "tx_type": "VALIDATOR_READINESS_VERIFY"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
         "consensus"
       ],
       "context": "mempool",
@@ -3154,6 +3224,6 @@
   ],
   "schema_covered_count": 230,
   "single_claim_count": 230,
-  "tx_count": 225,
+  "tx_count": 230,
   "unclaimed_count": 0
 }

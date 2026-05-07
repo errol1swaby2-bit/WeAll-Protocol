@@ -122,7 +122,7 @@ def test_startup_fingerprint_commits_payload_limits(
         chain_id="weall-prod",
         node_id="node-1",
         tx_index_hash="abc123",
-        schema_version="1.24.0",
+        schema_version="1.25.0",
     )
 
     assert fp["max_tx_payload_bytes"] == PRODUCTION_CONSENSUS_PROFILE.max_tx_payload_bytes

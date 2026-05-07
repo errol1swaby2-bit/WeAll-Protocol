@@ -141,6 +141,11 @@
     "2614": 222,
     "2615": 223,
     "2616": 224,
+    "2617": 225,
+    "2618": 226,
+    "2619": 227,
+    "2620": 228,
+    "2621": 229,
     "3": 2,
     "300": 46,
     "301": 47,
@@ -342,6 +347,9 @@
     "MOD_ACTION_RECEIPT": 151,
     "MUTE_SET": 145,
     "NODE_OPERATOR_PERFORMANCE_REPORT": 179,
+    "NODE_OPERATOR_RESPONSIBILITY_UPDATE": 227,
+    "NODE_OPERATOR_STORAGE_OPT_IN": 225,
+    "NODE_OPERATOR_VALIDATOR_OPT_IN": 226,
     "NOTIFICATION_EMIT_RECEIPT": 208,
     "NOTIFICATION_SUBSCRIBE": 206,
     "NOTIFICATION_UNSUBSCRIBE": 207,
@@ -416,6 +424,7 @@
     "SLASH_VOTE": 97,
     "STATE_SNAPSHOT_ACCEPT": 125,
     "STATE_SNAPSHOT_DECLARE": 124,
+    "STORAGE_CAPACITY_PROOF_VERIFY": 228,
     "STORAGE_CHALLENGE_ISSUE": 113,
     "STORAGE_CHALLENGE_RESPOND": 114,
     "STORAGE_LEASE_CREATE": 109,
@@ -448,6 +457,7 @@
     "VALIDATOR_DEREGISTER": 88,
     "VALIDATOR_HEARTBEAT": 89,
     "VALIDATOR_PERFORMANCE_REPORT": 178,
+    "VALIDATOR_READINESS_VERIFY": 229,
     "VALIDATOR_REGISTER": 85,
     "VALIDATOR_REMOVE": 214,
     "VALIDATOR_SET_UPDATE": 90,
@@ -456,9 +466,9 @@
   "meta": {
     "law": "append-only",
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
-    "version": "1.24.0"
+    "version": "1.25.0"
   },
-  "source_sha256": "ec289a648335e987821ca576d8eff75462dad0bc830a7c14f65aab9c66e29746",
+  "source_sha256": "3ddb5e6c80ee3474869cf0654f8db01a5981541f0a4a6d82e0a0525b6719464a",
   "tx_types": [
     {
       "context": "mempool",
@@ -3069,6 +3079,58 @@
       "domain": "PoH",
       "id": "3ca30567cb59dfc6",
       "name": "POH_ASYNC_RECEIPT",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "e7d8e0f1e3d21a69",
+      "name": "NODE_OPERATOR_STORAGE_OPT_IN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "56448e95ab14e7f6",
+      "name": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "258ba721fd7dc0f3",
+      "name": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "block",
+      "domain": "Storage",
+      "id": "29cb158df5d6f035",
+      "name": "STORAGE_CAPACITY_PROOF_VERIFY",
+      "origin": "SYSTEM",
+      "receipt_only": true
+    },
+    {
+      "context": "block",
+      "domain": "Roles",
+      "id": "7f8265930d050155",
+      "name": "VALIDATOR_READINESS_VERIFY",
       "origin": "SYSTEM",
       "receipt_only": true
     }

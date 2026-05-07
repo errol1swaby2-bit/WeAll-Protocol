@@ -1,4 +1,4 @@
-version: 1.24.0
+version: 1.25.0
 law: append-only
 source: WeAll Transaction Canon v1.22.2 — Full Enforceable Production Canon
 notes:
@@ -1798,4 +1798,44 @@ txs:
   context: block
   receipt_only: true
   parent: POH_ASYNC_FINALIZE
+  system_only: true
+
+- id: 2617
+  name: NODE_OPERATOR_STORAGE_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2618
+  name: NODE_OPERATOR_VALIDATOR_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2619
+  name: NODE_OPERATOR_RESPONSIBILITY_UPDATE
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2620
+  name: STORAGE_CAPACITY_PROOF_VERIFY
+  domain: Storage
+  origin: SYSTEM
+  gate: ''
+  context: block
+  receipt_only: true
+  parent: STORAGE_CHALLENGE_RESPOND
+  system_only: true
+- id: 2621
+  name: VALIDATOR_READINESS_VERIFY
+  domain: Roles
+  origin: SYSTEM
+  gate: ''
+  context: block
+  receipt_only: true
+  parent: NODE_OPERATOR_VALIDATOR_OPT_IN
   system_only: true

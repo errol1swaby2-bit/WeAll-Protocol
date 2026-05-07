@@ -127,7 +127,14 @@ def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibili
 
     proven_storage_state = json.loads(json.dumps(storage_state))
     proven_storage_state["accounts"]["@op"]["reputation_milli"] = 1500
-    proven_storage_state["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proven_capacity_bytes"] = 10_000
+    proven_storage = proven_storage_state["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]
+    proven_storage["proven_capacity_bytes"] = 10_000
+    proven_storage["reserved_capacity_bytes"] = 10_000
+    proven_storage["probed_capacity_bytes"] = 10_000
+    proven_storage["proof_status"] = "verified"
+    proven_storage["proof_expires_height"] = 10_000
+    proven_storage["allocated_capacity_bytes"] = 0
+    proven_storage["used_capacity_bytes"] = 0
     proven = _preflight(proven_storage_state, roles=("storage_operator",))
     assert proven.passed
     assert proven.effective_roles == ("general_service", "storage_operator")

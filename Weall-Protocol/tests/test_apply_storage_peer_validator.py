@@ -31,7 +31,11 @@ def _env(
 
 
 def test_storage_challenge_issue_and_resolve() -> None:
-    st = {}
+    st = {
+        "height": 1,
+        "accounts": {"op1": {"poh_tier": 2, "devices": {"by_id": {"node": {"device_type": "node", "pubkey": "node-pub", "revoked": False}}}}},
+        "roles": {"node_operators": {"active_set": ["op1"], "by_id": {"op1": {"account_id": "op1", "enrolled": True, "active": True, "responsibilities": {"storage": {"opted_in": True, "active": True, "declared_capacity_bytes": 1, "proven_capacity_bytes": 1, "allocated_capacity_bytes": 0, "proof_status": "verified", "proof_expires_height": 100}}}}}},
+    }
 
     # Challenge issuance requires a lease_id; leases require an active offer.
     offer_meta = apply_tx(

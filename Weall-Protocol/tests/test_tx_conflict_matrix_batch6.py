@@ -52,6 +52,11 @@ def test_every_probe_descriptor_has_materialized_conflict_keys_batch6() -> None:
 
 def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
     allowed_serial_overrides = {
+            "NODE_OPERATOR_STORAGE_OPT_IN",
+            "NODE_OPERATOR_VALIDATOR_OPT_IN",
+            "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+            "STORAGE_CAPACITY_PROOF_VERIFY",
+            "VALIDATOR_READINESS_VERIFY",
         "GROUP_SIGNERS_SET",
         "GROUP_EMISSARY_ELECTION_FINALIZE",
         "ROLE_EMISSARY_SEAT",

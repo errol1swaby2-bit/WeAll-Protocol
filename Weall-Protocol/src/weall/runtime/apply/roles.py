@@ -244,7 +244,10 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
             "declared_capacity_bytes": declared,
             "proven_capacity_bytes": prior_proven,
             "allocated_capacity_bytes": prior_allocated,
-            "proof_status": "pending",
+            "reserved_capacity_bytes": _as_int(storage.get("reserved_capacity_bytes"), 0),
+            "probed_capacity_bytes": _as_int(storage.get("probed_capacity_bytes"), 0),
+            "used_capacity_bytes": _as_int(storage.get("used_capacity_bytes"), 0),
+            "proof_status": "probe_pending",
             "updated_at_nonce": int(nonce),
         }
     )
@@ -254,6 +257,103 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
     if node_pubkey:
         storage["node_pubkey"] = node_pubkey
     responsibilities["storage"] = storage
+
+def _node_operator_record_for_update(ledger: Json, acct: str) -> tuple[Json, Json, Json]:
+    roles = _ensure_roles(ledger)
+    ops = roles.get("node_operators")
+    if not isinstance(ops, dict):
+        ops = {"by_id": {}, "active_set": []}
+        roles["node_operators"] = ops
+    by_id = ops.get("by_id")
+    if not isinstance(by_id, dict):
+        by_id = {}
+        ops["by_id"] = by_id
+    rec = _touch(by_id, acct)
+    by_id[acct] = rec
+    return ops, by_id, rec
+
+
+def _apply_node_operator_storage_opt_in_tx(ledger: Json, env: TxEnvelope) -> Json:
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_update_storage_responsibility", {"account_id": acct})
+    ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
+    _apply_node_storage_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    by_id[acct] = rec
+    return {"applied": "NODE_OPERATOR_STORAGE_OPT_IN", "account_id": acct}
+
+
+def _apply_node_operator_validator_opt_in_tx(ledger: Json, env: TxEnvelope) -> Json:
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_update_validator_responsibility", {"account_id": acct})
+    ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
+    _apply_node_validator_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    by_id[acct] = rec
+    return {"applied": "NODE_OPERATOR_VALIDATOR_OPT_IN", "account_id": acct}
+
+
+def _apply_node_operator_responsibility_update(ledger: Json, env: TxEnvelope) -> Json:
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_update_node_operator_responsibilities", {"account_id": acct})
+    ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
+    updated: list[str] = []
+    if _has_storage_responsibility_intent(payload):
+        _apply_node_storage_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        updated.append("storage")
+    if _has_validator_responsibility_intent(payload):
+        _apply_node_validator_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        updated.append("validator")
+    if not updated:
+        raise RolesApplyError("invalid_payload", "no_responsibility_update", {"account_id": acct})
+    by_id[acct] = rec
+    return {"applied": "NODE_OPERATOR_RESPONSIBILITY_UPDATE", "account_id": acct, "updated": sorted(updated)}
+
+
+def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    status = _as_str(payload.get("verification_status") or payload.get("readiness_status") or payload.get("status")).lower()
+    if status not in ("verified", "ready", "failed", "rejected"):
+        raise RolesApplyError("invalid_payload", "validator_readiness_status_required", {"account_id": acct})
+    ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
+    responsibilities = _ensure_node_operator_responsibilities(rec)
+    validator = _as_dict(responsibilities.get("validator"))
+    if not bool(validator.get("opted_in", False)):
+        raise RolesApplyError("forbidden", "validator_responsibility_not_opted_in", {"account_id": acct})
+    if status in ("verified", "ready"):
+        manifest_hash = _as_str(payload.get("manifest_hash") or payload.get("chain_manifest_hash"))
+        tx_index_hash = _as_str(payload.get("tx_index_hash"))
+        receipt_hash = _as_str(payload.get("readiness_receipt_hash") or payload.get("verification_receipt_hash"))
+        if not manifest_hash:
+            raise RolesApplyError("invalid_payload", "manifest_hash_required", {"account_id": acct})
+        if not tx_index_hash:
+            raise RolesApplyError("invalid_payload", "tx_index_hash_required", {"account_id": acct})
+        if not receipt_hash:
+            raise RolesApplyError("invalid_payload", "readiness_receipt_hash_required", {"account_id": acct})
+        expires = _as_int(payload.get("readiness_expires_height"), 0)
+        if expires <= _as_int(ledger.get("height"), 0):
+            raise RolesApplyError("invalid_payload", "readiness_expires_height_must_be_future", {"account_id": acct})
+        validator.update({"active": True, "readiness_status": "verified", "manifest_hash": manifest_hash, "tx_index_hash": tx_index_hash, "readiness_receipt_hash": receipt_hash, "readiness_verified_at_nonce": int(env.nonce), "readiness_verified_at_height": _as_int(ledger.get("height"), 0), "readiness_expires_height": int(expires)})
+    else:
+        validator.update({"active": False, "readiness_status": "failed", "readiness_failed_at_nonce": int(env.nonce), "readiness_failed_at_height": _as_int(ledger.get("height"), 0)})
+    responsibilities["validator"] = validator
+    by_id[acct] = rec
+    return {"applied": "VALIDATOR_READINESS_VERIFY", "account_id": acct, "verified": status in ("verified", "ready")}
+
 
 def _require_system_env(env: TxEnvelope) -> None:
     if bool(getattr(env, "system", False)) or _as_str(getattr(env, "signer", "")) == "SYSTEM":
@@ -962,6 +1062,10 @@ ROLES_TX_TYPES: set[str] = {
     "ROLE_NODE_OPERATOR_ENROLL",
     "ROLE_NODE_OPERATOR_ACTIVATE",
     "ROLE_NODE_OPERATOR_SUSPEND",
+    "NODE_OPERATOR_STORAGE_OPT_IN",
+    "NODE_OPERATOR_VALIDATOR_OPT_IN",
+    "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+    "VALIDATOR_READINESS_VERIFY",
     "ROLE_EMISSARY_NOMINATE",
     "ROLE_EMISSARY_VOTE",
     "ROLE_EMISSARY_SEAT",
@@ -997,6 +1101,14 @@ def apply_roles(ledger: Json, env: TxEnvelope) -> Json | None:
         return _apply_role_node_operator_activate(ledger, env)
     if t == "ROLE_NODE_OPERATOR_SUSPEND":
         return _apply_role_node_operator_suspend(ledger, env)
+    if t == "NODE_OPERATOR_STORAGE_OPT_IN":
+        return _apply_node_operator_storage_opt_in_tx(ledger, env)
+    if t == "NODE_OPERATOR_VALIDATOR_OPT_IN":
+        return _apply_node_operator_validator_opt_in_tx(ledger, env)
+    if t == "NODE_OPERATOR_RESPONSIBILITY_UPDATE":
+        return _apply_node_operator_responsibility_update(ledger, env)
+    if t == "VALIDATOR_READINESS_VERIFY":
+        return _apply_validator_readiness_verify(ledger, env)
 
     if t == "ROLE_EMISSARY_NOMINATE":
         return _apply_role_emissary_nominate(ledger, env)

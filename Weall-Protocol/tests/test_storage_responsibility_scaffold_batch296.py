@@ -89,7 +89,7 @@ def test_active_node_operator_can_declare_storage_capacity_but_not_prove_it_batc
     assert storage["declared_capacity_bytes"] == 500_000_000
     assert storage["proven_capacity_bytes"] == 0
     assert storage["allocated_capacity_bytes"] == 0
-    assert storage["proof_status"] == "pending"
+    assert storage["proof_status"] == "probe_pending"
     assert storage["storage_endpoint_commitment"] == "sha256:endpoint"
 
     preflight = _preflight(st)
@@ -134,14 +134,15 @@ def test_proven_capacity_is_the_allocation_boundary_batch296(monkeypatch) -> Non
             "declared_capacity_bytes": 1_000_000_000,
             "proven_capacity_bytes": 0,
             "allocated_capacity_bytes": 0,
-            "proof_status": "pending",
+            "proof_status": "probe_pending",
         }
     }
     assert not _preflight(st).passed
 
     proven = json.loads(json.dumps(st))
     proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proven_capacity_bytes"] = 1_000_000_000
-    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proof_status"] = "proven"
+    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proof_status"] = "verified"
+    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proof_expires_height"] = 100
     result = _preflight(proven)
     assert result.passed
     assert result.effective_roles == ("general_service", "storage_operator")

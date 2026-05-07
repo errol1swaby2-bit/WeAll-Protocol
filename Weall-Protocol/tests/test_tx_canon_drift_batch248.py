@@ -25,7 +25,7 @@ def test_batch248_live_juror_replace_is_canonical_and_claimed() -> None:
     idx = load_default_tx_index()
     row = idx.get(TX_TYPE)
 
-    assert len(idx.list_types()) == 225
+    assert len(idx.list_types()) == 230
     assert isinstance(row, dict)
     assert row["domain"] == "PoH"
     assert row["origin"] == "SYSTEM"
@@ -38,9 +38,9 @@ def test_batch248_live_juror_replace_is_canonical_and_claimed() -> None:
     assert model_for_tx_type(TX_TYPE) is not None
 
     summary = tx_contract_summary(idx)
-    assert summary["tx_count"] == 225
+    assert summary["tx_count"] == 230
     assert summary["unclaimed_count"] == 0
-    assert summary["single_claim_count"] == 225
+    assert summary["single_claim_count"] == 230
 
 
 def test_batch248_generated_index_matches_canon_source_hash() -> None:
@@ -52,7 +52,7 @@ def test_batch248_generated_index_matches_canon_source_hash() -> None:
     expected_hash = hashlib.sha256(spec_path.read_bytes()).hexdigest()
 
     assert raw["source_sha256"] == expected_hash
-    assert raw["meta"]["version"] == "1.24.0"
+    assert raw["meta"]["version"] == "1.25.0"
     assert raw["by_id"]["129"] == raw["by_name"][TX_TYPE]
     assert raw["tx_types"][raw["by_name"][TX_TYPE]]["name"] == TX_TYPE
 

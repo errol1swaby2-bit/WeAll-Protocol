@@ -171,7 +171,7 @@ Until then, keep running onboarding/observer mode.
 Baseline Node Operator status does not automatically grant validator or storage-provider responsibilities. Validator readiness and reputation checks must pass before consensus authority. Those are optional responsibilities under the Node Operator umbrella.
 
 - Validator responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and validator readiness. Baseline Node Operator status does not grant validator authority.
-- Storage responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and storage capacity proof before allocation.
+- Storage responsibility requires explicit opt-in, Tier 2 status, sufficient reputation, and storage capacity probe before allocation.
   Declared capacity is not proven capacity. Proof pending is not allocation eligible.
   The protocol should only treat storage responsibility as allocation-ready after `proven_capacity_bytes` is greater than zero.
 
@@ -243,6 +243,6 @@ Production service boot = only after protocol eligibility activation.
 ```
 
 
-## Production storage capacity proof
+## Production storage capacity probe
 
 Storage responsibility is production-gated by challenge/response verification. Declared capacity is only an intent signal. A system verifier issues a `STORAGE_CHALLENGE_ISSUE` capacity challenge, the operator answers with `STORAGE_CHALLENGE_RESPOND`, and only a system verification response may set `proven_capacity_bytes` and make storage allocation eligible. User responses alone never prove capacity. Expired challenges cannot be used.

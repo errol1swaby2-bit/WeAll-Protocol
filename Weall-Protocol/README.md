@@ -50,7 +50,7 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 
 This backend snapshot is synchronized at:
 
-- **Transaction canon:** 225 tx types, version 1.24.0
+- **Transaction canon:** 230 tx types, version 1.25.0
 - **Latest full backend test checkpoint:** 2,590 passed, 1 warning
 
 
@@ -150,7 +150,7 @@ To scrub local runtime artifacts before packaging or pushing:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **225 transaction types**, canon version **1.24.0**.
+- Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.

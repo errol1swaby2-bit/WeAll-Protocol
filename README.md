@@ -131,7 +131,7 @@ Those require additional testing, review, hardening, documentation, and operatio
 
 This repository snapshot is synchronized at:
 
-- **Transaction canon:** 225 tx types, version 1.24.0
+- **Transaction canon:** 230 tx types, version 1.25.0
 - **Current posture:** local development/demo prototype, not production validator readiness
 - **Release checks:** tx canon synchronization, secret guard, and release-tree hygiene should pass before publishing changes
 

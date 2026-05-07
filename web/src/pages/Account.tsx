@@ -310,7 +310,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             : kind === "validator"
               ? "Validator responsibility opt-in recorded. Validator readiness and reputation checks are still pending before consensus authority."
               : kind === "storage"
-                ? "Storage responsibility opt-in recorded. Capacity proof is still pending before allocation."
+                ? "Storage responsibility opt-in recorded. Protocol capacity probe is still pending before allocation."
                 : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
@@ -331,7 +331,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           if (kind === "validator") {
             return submitSignedTx({
               account: acct,
-              tx_type: "ROLE_NODE_OPERATOR_ENROLL",
+              tx_type: "NODE_OPERATOR_VALIDATOR_OPT_IN",
               payload: {
                 account_id: acct,
                 validator_opt_in: true,
@@ -347,7 +347,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             if (declaredCapacityBytes <= 0) throw new Error("declared_storage_capacity_required");
             return submitSignedTx({
               account: acct,
-              tx_type: "ROLE_NODE_OPERATOR_ENROLL",
+              tx_type: "NODE_OPERATOR_STORAGE_OPT_IN",
               payload: {
                 account_id: acct,
                 storage_opt_in: true,
@@ -873,7 +873,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Storage Responsibility</div>
               <div className="feedMediaMeta">
-                Help store and serve WeAll data. Storage responsibility is optional. Declared capacity is not allocation authority; capacity proof must complete before the protocol allocates data to this node.
+                Help store and serve WeAll data. Storage responsibility is optional. Declared capacity is not allocation authority; a protocol capacity probe must confirm the declared space size and availability before the protocol allocates data to this node.
               </div>
               <div className="progressList">
                 <div className="progressRow">
@@ -885,12 +885,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <span className={`statusPill ${storageDeclaredCapacityBytes > 0 ? "ok" : ""}`}>{storageDeclaredCapacityBytes > 0 ? `${storageDeclaredCapacityBytes} bytes` : "None"}</span>
                 </div>
                 <div className="progressRow">
-                  <span>Capacity proof</span>
+                  <span>Protocol capacity probe</span>
                   <span className={`statusPill ${storageProvenCapacityBytes > 0 ? "ok" : ""}`}>{storageProvenCapacityBytes > 0 ? "Proven" : storageProofStatus}</span>
                 </div>
                 <div className="progressRow">
                   <span>Eligible for allocation</span>
-                  <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof / Storage challenge verification pending"}</span>
+                  <span className={`statusPill ${storageEligibleForAllocation ? "ok" : ""}`}>{storageEligibleForAllocation ? "Eligible" : "Blocked until proof / capacity probe verification"}</span>
                 </div>
               </div>
               {storageReasons.length ? (

@@ -337,6 +337,10 @@ _register_many(
         "ROLE_NODE_OPERATOR_ENROLL",
         "ROLE_NODE_OPERATOR_ACTIVATE",
         "ROLE_NODE_OPERATOR_SUSPEND",
+        "NODE_OPERATOR_STORAGE_OPT_IN",
+        "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+        "VALIDATOR_READINESS_VERIFY",
         "ROLE_EMISSARY_NOMINATE",
         "ROLE_EMISSARY_VOTE",
         "ROLE_EMISSARY_SEAT",
@@ -551,7 +555,7 @@ _register_many(["PERFORMANCE_EVALUATE", "PERFORMANCE_SCORE_APPLY"], TxFamily.PER
 _register_many(["PROFILE_UPDATE", "CONTENT_SHARE_CREATE"], TxFamily.SOCIAL, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["FOLLOW_SET", "BLOCK_SET", "MUTE_SET"], TxFamily.SOCIAL, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["IPFS_PIN_REQUEST", "STORAGE_OFFER_CREATE", "STORAGE_OFFER_WITHDRAW", "STORAGE_LEASE_CREATE", "STORAGE_LEASE_RENEW", "STORAGE_LEASE_REVOKE", "STORAGE_PROOF_SUBMIT", "STORAGE_CHALLENGE_RESPOND"], TxFamily.STORAGE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["IPFS_PIN_CONFIRM", "STORAGE_CHALLENGE_ISSUE", "STORAGE_PAYOUT_EXECUTE", "STORAGE_REPORT_ANCHOR"], TxFamily.STORAGE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(["IPFS_PIN_CONFIRM", "STORAGE_CHALLENGE_ISSUE", "STORAGE_CAPACITY_PROOF_VERIFY", "STORAGE_PAYOUT_EXECUTE", "STORAGE_REPORT_ANCHOR"], TxFamily.STORAGE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 
 
 def lookup_rule(tx_type: str) -> TxConflictRule | None:

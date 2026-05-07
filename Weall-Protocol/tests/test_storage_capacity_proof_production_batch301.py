@@ -55,7 +55,7 @@ def _state() -> dict:
                                 "declared_capacity_bytes": 1_000_000,
                                 "proven_capacity_bytes": 0,
                                 "allocated_capacity_bytes": 0,
-                                "proof_status": "pending",
+                                "proof_status": "probe_pending",
                                 "node_pubkey": "node-pub-1",
                             }
                         },
@@ -77,22 +77,22 @@ def test_capacity_challenge_response_does_not_prove_capacity_until_system_verifi
             "SYSTEM",
             1,
             {
-                "proof_scope": "capacity",
+                "proof_scope": "capacity_probe",
                 "challenge_id": "cap-1",
                 "account_id": "@op",
                 "node_pubkey": "node-pub-1",
                 "challenge_seed_commitment": "sha256:seed",
                 "challenge_count": 2,
                 "sample_size_bytes": 4096,
-                "challenged_capacity_bytes": 800_000,
+                "reserved_capacity_bytes": 800_000,
                 "expires_height": 20,
             },
             system=True,
         ),
     )
-    assert issue and issue["proof_scope"] == "capacity"
+    assert issue and issue["proof_scope"] == "capacity_probe"
     assert st["storage"]["capacity_challenges"]["cap-1"]["status"] == "open"
-    assert evaluate_storage_responsibility(st, "@op").status == "challenge_open"
+    assert evaluate_storage_responsibility(st, "@op").status == "probe_open"
 
     response = apply_tx(
         st,
@@ -102,7 +102,7 @@ def test_capacity_challenge_response_does_not_prove_capacity_until_system_verifi
             2,
             {
                 "challenge_id": "cap-1",
-                "proof_scope": "capacity",
+                "proof_scope": "capacity_probe",
                 "response_commitment": "sha256:response",
                 "sample_response_commitments": ["sha256:s1", "sha256:s2"],
                 "measured_capacity_bytes": 900_000,
@@ -125,13 +125,13 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity_bat
             "SYSTEM",
             1,
             {
-                "proof_scope": "capacity",
+                "proof_scope": "capacity_probe",
                 "challenge_id": "cap-2",
                 "account_id": "@op",
                 "node_pubkey": "node-pub-1",
                 "challenge_count": 1,
                 "sample_size_bytes": 1024,
-                "challenged_capacity_bytes": 1_000_000,
+                "reserved_capacity_bytes": 1_000_000,
                 "expires_height": 20,
             },
             system=True,
@@ -158,7 +158,7 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity_bat
                 "STORAGE_CHALLENGE_RESPOND",
                 "@op",
                 3,
-                {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 500_000},
+                {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 500_000, "verification_receipt_hash": "sha256:bad"},
             ),
         )
 
@@ -168,7 +168,7 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity_bat
             "STORAGE_CHALLENGE_RESPOND",
             "SYSTEM",
             4,
-            {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 750_000},
+            {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 750_000, "verification_receipt_hash": "sha256:ok"},
             system=True,
         ),
     )
@@ -201,9 +201,9 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation_batch301(
     )
     assert pin and pin["targets"] == []
 
-    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 3, {"proof_scope": "capacity", "challenge_id": "cap-3", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 20}, system=True))
+    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 3, {"proof_scope": "capacity_probe", "challenge_id": "cap-3", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 20}, system=True))
     apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "@op", 4, {"challenge_id": "cap-3", "response_commitment": "sha256:r", "sample_response_commitments": ["sha256:s"]}))
-    apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "SYSTEM", 5, {"challenge_id": "cap-3", "verification_status": "verified", "verified_capacity_bytes": 500_000}, system=True))
+    apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "SYSTEM", 5, {"challenge_id": "cap-3", "verification_status": "verified", "verified_capacity_bytes": 500_000, "verification_receipt_hash": "sha256:bad"}, system=True))
 
     offer = apply_tx(st, _env("STORAGE_OFFER_CREATE", "@op", 6, {"offer_id": "offer-proven", "capacity_bytes": 1000}))
     assert offer and offer["applied"] == "STORAGE_OFFER_CREATE"
@@ -221,7 +221,7 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation_batch301(
 
 def test_expired_capacity_challenge_cannot_be_used_batch301() -> None:
     st = _state()
-    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 1, {"proof_scope": "capacity", "challenge_id": "cap-exp", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 11}, system=True))
+    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 1, {"proof_scope": "capacity_probe", "challenge_id": "cap-exp", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 11}, system=True))
     st["height"] = 12
     with pytest.raises(ApplyError):
         apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "@op", 2, {"challenge_id": "cap-exp", "response_commitment": "sha256:r", "sample_response_commitments": ["sha256:s"]}))
@@ -229,5 +229,5 @@ def test_expired_capacity_challenge_cannot_be_used_batch301() -> None:
     # system maintenance transaction can mark the challenge expired, but the
     # stale operator response itself cannot advance proof state.
     storage = st["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]
-    assert storage["proof_status"] == "challenge_open"
-    assert evaluate_storage_responsibility(st, "@op").status == "challenge_open"
+    assert storage["proof_status"] == "probe_open"
+    assert evaluate_storage_responsibility(st, "@op").status == "probe_open"

@@ -724,19 +724,22 @@ class StorageChallengeIssuePayload(_StrictModel):
     sample_size_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("sample_size_bytes", "sample_bytes"))
     challenged_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("challenged_capacity_bytes", "capacity_bytes"))
     expires_height: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("expires_height", "expiry_height"))
+    reserved_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("reserved_capacity_bytes", "reserve_bytes"))
+    probe_offsets: list[int] | None = None
+    challenge_seed: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("challenge_seed", "seed"))
 
     @model_validator(mode="after")
     def _validate_scope_fields(self) -> "StorageChallengeIssuePayload":
         scope = str(self.proof_scope or "lease").strip().lower()
-        if scope in ("capacity", "storage_capacity"):
+        if scope in ("capacity", "storage_capacity", "capacity_probe", "storage_capacity_probe"):
             if not self.account_id and not self.operator_id:
-                raise ValueError("account_id or operator_id is required for capacity proof challenges")
+                raise ValueError("account_id or operator_id is required for capacity probe challenges")
             if not self.challenge_count or int(self.challenge_count) <= 0:
-                raise ValueError("challenge_count is required for capacity proof challenges")
+                raise ValueError("challenge_count is required for capacity probe challenges")
             if not self.sample_size_bytes or int(self.sample_size_bytes) <= 0:
-                raise ValueError("sample_size_bytes is required for capacity proof challenges")
+                raise ValueError("sample_size_bytes is required for capacity probe challenges")
             if not self.expires_height or int(self.expires_height) <= 0:
-                raise ValueError("expires_height is required for capacity proof challenges")
+                raise ValueError("expires_height is required for capacity probe challenges")
             return self
         if not self.lease_id:
             raise ValueError("lease_id is required")
@@ -756,6 +759,11 @@ class StorageChallengeRespondPayload(_StrictModel):
     verification_status: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verification_status", "verdict", "status"))
     verified_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("verified_capacity_bytes", "proven_capacity_bytes"))
     response_cid: str | None = Field(default=None, min_length=1)
+    probe_responses: list[Json] | None = None
+    verifier_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verifier_id", "verifier"))
+    verification_method: str | None = None
+    verification_receipt_hash: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verification_receipt_hash", "receipt_hash"))
+    proof_ttl_blocks: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("proof_ttl_blocks", "ttl_blocks"))
 
 
 class StoragePayoutExecutePayload(_StrictModel):
@@ -1481,11 +1489,16 @@ class RoleGovExecutorSetPayload(_StrictModel):
 class AccountScopedRolePayload(_StrictModel):
     account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "juror", "operator", "node_operator", "validator", "target", "account"))
     # Optional responsibility scaffold fields. These are currently used by
-    # ROLE_NODE_OPERATOR_ENROLL to let an already-active baseline Node Operator
-    # opt into validator/storage responsibility without adding new canon TxTypes yet.
+    # explicit NODE_OPERATOR_* responsibility transaction types to let an already-active baseline Node Operator
+    # opt into validator/storage responsibility with clear production semantics.
     validator_opt_in: bool | None = None
     validator_readiness_commitment: str | None = None
     validator_endpoint_commitment: str | None = None
+    validator_readiness_receipt_hash: str | None = None
+    manifest_hash: str | None = None
+    tx_index_hash: str | None = None
+    readiness_expires_height: int | None = Field(default=None, ge=0)
+    verification_status: str | None = None
     reputation_required_milli: int | None = Field(default=None, ge=0)
     storage_opt_in: bool | None = None
     declared_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("declared_capacity_bytes", "storage_capacity_bytes", "capacity_bytes"))
@@ -1920,6 +1933,7 @@ TX_PAYLOADS: dict[str, Any] = {
     "STORAGE_PROOF_SUBMIT": StorageProofSubmitPayload,
     "STORAGE_CHALLENGE_ISSUE": StorageChallengeIssuePayload,
     "STORAGE_CHALLENGE_RESPOND": StorageChallengeRespondPayload,
+    "STORAGE_CAPACITY_PROOF_VERIFY": StorageChallengeRespondPayload,
     "STORAGE_PAYOUT_EXECUTE": StoragePayoutExecutePayload,
     "STORAGE_REPORT_ANCHOR": StorageReportAnchorPayload,
     "IPFS_PIN_REQUEST": IpfsPinRequestPayload,
@@ -2045,6 +2059,10 @@ TX_PAYLOADS: dict[str, Any] = {
     "ROLE_NODE_OPERATOR_ENROLL": AccountScopedRolePayload,
     "ROLE_NODE_OPERATOR_ACTIVATE": AccountScopedRolePayload,
     "ROLE_NODE_OPERATOR_SUSPEND": AccountScopedRolePayload,
+    "NODE_OPERATOR_STORAGE_OPT_IN": AccountScopedRolePayload,
+    "NODE_OPERATOR_VALIDATOR_OPT_IN": AccountScopedRolePayload,
+    "NODE_OPERATOR_RESPONSIBILITY_UPDATE": AccountScopedRolePayload,
+    "VALIDATOR_READINESS_VERIFY": AccountScopedRolePayload,
     "ROLE_VALIDATOR_ACTIVATE": AccountScopedRolePayload,
     "ROLE_VALIDATOR_SUSPEND": AccountScopedRolePayload,
     "REPUTATION_DELTA_APPLY": ReputationDeltaApplyPayload,
