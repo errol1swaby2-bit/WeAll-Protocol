@@ -11,7 +11,7 @@ ARCHIVE_PATH="${OUT_DIR}/${ARCHIVE_NAME}"
 
 echo "[release] repo: $ROOT"
 
-"$ROOT/scripts/clean_repo.sh"
+bash "$ROOT/scripts/clean_release_artifacts.sh"
 "$ROOT/scripts/verify_release_tree.sh"
 
 zip -r "$ARCHIVE_PATH" . \
