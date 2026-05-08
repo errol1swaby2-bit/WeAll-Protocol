@@ -144,6 +144,7 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
 def _shell_env(bundle: Json) -> str:
     chain = _chain(bundle)
     authority = _authority(bundle)
+    observer = bundle.get("observer") if isinstance(bundle.get("observer"), dict) else {}
     pubkeys = ",".join(str(pk).strip() for pk in (authority.get("trusted_authority_pubkeys") or []) if str(pk).strip())
     env = {
         "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"} else str(bundle.get("profile") or ""),
@@ -156,7 +157,18 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(authority.get("authority_snapshot_max_age_ms") or "120000"),
         "WEALL_MIN_AUTHORITY_HEIGHT": str(authority.get("min_authority_height") or "0"),
         "WEALL_AUTHORITY_PROFILE": str(authority.get("profile") or "production"),
+        "WEALL_GENESIS_API_BASE": str(observer.get("genesis_api_base") or ""),
+        "WEALL_NET_RELAY_URLS": ",".join(str(url).strip() for url in (observer.get("relay_urls") or []) if str(url).strip()),
     }
+    if observer:
+        env.update({
+            "WEALL_NODE_LIFECYCLE_STATE": str(observer.get("node_lifecycle_state") or "observer_onboarding"),
+            "WEALL_OBSERVER_MODE": "1" if bool(observer.get("observer_mode_required", True)) else "0",
+            "WEALL_VALIDATOR_SIGNING_ENABLED": "1" if bool(observer.get("validator_signing_enabled", False)) else "0",
+            "WEALL_BFT_ENABLED": "1" if bool(observer.get("bft_enabled", False)) else "0",
+            "WEALL_HELPER_MODE_ENABLED": "1" if bool(observer.get("helper_authority_enabled", False)) else "0",
+            "WEALL_BLOCK_LOOP_AUTOSTART": "1" if bool(observer.get("block_loop_autostart", False)) else "0",
+        })
     lines = []
     for key, value in env.items():
         if value:

@@ -40,6 +40,8 @@ eval "$(python3 "${ROOT_DIR}/scripts/verify_node_operator_onboarding_bundle.py" 
   --manifest "${MANIFEST_PATH}" \
   --emit-shell-env)"
 
+GENESIS_API_BASE="${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}"
+
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
 export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
 export WEALL_MODE="prod"
