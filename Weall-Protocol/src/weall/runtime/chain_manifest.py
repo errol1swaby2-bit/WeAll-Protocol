@@ -206,6 +206,25 @@ def is_placeholder(value: Any) -> bool:
     return any(s.startswith(prefix) for prefix in _PLACEHOLDER_PREFIXES)
 
 
+def _is_hex_string(value: Any, *, length: int | None = None) -> bool:
+    s = str(value or "").strip().lower()
+    if not s:
+        return False
+    if length is not None and len(s) != int(length):
+        return False
+    try:
+        int(s, 16)
+    except Exception:
+        return False
+    return True
+
+
+def _manifest_strict_profile_required(manifest: ChainManifest) -> bool:
+    mode = str(manifest.mode or "").strip().lower()
+    profile = str(manifest.profile or "").strip().lower()
+    return mode in {"prod", "production"} or profile in {"production", "production_service"}
+
+
 def file_canonical_json_hash(path: str | Path) -> str:
     # Match WeAllExecutor.tx_index_hash(): raw file bytes, not parsed JSON.
     return sha256_hex(Path(path).read_bytes())
@@ -289,8 +308,23 @@ def chain_manifest_issues(
     elif state_root and str(state_root).strip().lower() != manifest.genesis_state_root.lower():
         issues.append("chain_manifest_genesis_state_root_mismatch")
 
-    if strict and not manifest.trusted_authority_pubkeys:
-        issues.append("chain_manifest_trusted_authority_pubkeys_missing")
+    if strict:
+        profile_required = _manifest_strict_profile_required(manifest)
+        if profile_required and is_placeholder(manifest.protocol_profile_hash):
+            issues.append("chain_manifest_protocol_profile_hash_unpinned")
+        elif manifest.protocol_profile_hash and not _is_hex_string(manifest.protocol_profile_hash, length=64):
+            issues.append("chain_manifest_protocol_profile_hash_invalid")
+
+        if not manifest.trusted_authority_pubkeys:
+            issues.append("chain_manifest_trusted_authority_pubkeys_missing")
+        else:
+            for pubkey in manifest.trusted_authority_pubkeys:
+                if is_placeholder(pubkey):
+                    issues.append("chain_manifest_trusted_authority_pubkey_unpinned")
+                    break
+                if not _is_hex_string(pubkey, length=64):
+                    issues.append("chain_manifest_trusted_authority_pubkey_invalid")
+                    break
 
     return issues
 

@@ -37,6 +37,7 @@ def _manifest(path: Path, *, chain_id: str, tx_index_hash: str) -> Path:
             "genesis_hash": "a" * 64,
             "genesis_state_root": "b" * 64,
             "tx_index_hash": tx_index_hash,
+            "protocol_profile_hash": "e" * 64,
             "authority_snapshot_version": 1,
             "trusted_authority_pubkeys": ["c" * 64],
         },

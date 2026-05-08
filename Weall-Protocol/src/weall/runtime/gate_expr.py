@@ -9,6 +9,7 @@ Atoms:
   Tier2+
   Validator
   Juror
+  NodeOperator
   Signer
   Emissary
 
@@ -610,6 +611,40 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     return False
 
 
+def _is_node_operator(ledger: Json, signer: str) -> bool:
+    """Return True for active node-operator service authority.
+
+    NodeOperator is a service-role gate, not just a human-verification tier.
+    It requires an available Tier2 account plus an active node operator record.
+    Blocked/suspended/revoked records fail closed even if the account appears in
+    a compatibility active_set.
+    """
+
+    if not _account_available_for_authority(ledger, signer, min_tier=2):
+        return False
+
+    roles = _as_dict(ledger.get("roles"))
+    operators = _as_dict(roles.get("node_operators"))
+    if _active_role(operators, signer):
+        return True
+
+    # Compatibility with older runtime snapshots that kept node operator state
+    # under service/node namespaces rather than roles.node_operators.
+    services = _as_dict(ledger.get("services"))
+    for key in ("node_operators", "operators", "node_operator_records"):
+        bucket = _as_dict(services.get(key))
+        if _active_role(bucket, signer):
+            return True
+
+    nodes = _as_dict(ledger.get("nodes"))
+    for key in ("node_operators", "operators", "operator_records"):
+        bucket = _as_dict(nodes.get(key))
+        if _active_role(bucket, signer):
+            return True
+
+    return False
+
+
 def _is_group_signer(ledger: Json, signer: str, payload: Json) -> bool:
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
@@ -738,6 +773,9 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
 
     if atom == "Juror":
         return _is_juror(ledger, signer, payload)
+
+    if atom == "NodeOperator":
+        return _is_node_operator(ledger, signer)
 
     if atom == "Signer":
         return _is_scoped_signer(ledger, signer, payload)

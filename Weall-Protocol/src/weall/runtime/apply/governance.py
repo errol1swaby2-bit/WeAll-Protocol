@@ -276,15 +276,51 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
         tally_payload["_parent_ref"] = parent_ref
 
     close_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
-    _apply_gov_voting_close(state, _system_env("GOV_VOTING_CLOSE", close_payload, height=int(current_height), parent_ref=parent_ref))
-    _apply_gov_tally_publish(state, _system_env("GOV_TALLY_PUBLISH", tally_payload, height=int(current_height), parent_ref=parent_ref))
+    enqueue_system_tx(
+        state,
+        tx_type="GOV_VOTING_CLOSE",
+        payload=close_payload,
+        due_height=int(current_height),
+        signer="SYSTEM",
+        parent=parent_ref,
+        phase="post",
+        once=True,
+    )
+    enqueue_system_tx(
+        state,
+        tx_type="GOV_TALLY_PUBLISH",
+        payload=tally_payload,
+        due_height=int(current_height),
+        signer="SYSTEM",
+        parent=parent_ref,
+        phase="post",
+        once=True,
+    )
 
     if stage != "poll" and bool(tally_payload["passed"]):
         exec_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
-        _apply_gov_execute(state, _system_env("GOV_EXECUTE", exec_payload, height=int(current_height), parent_ref=parent_ref))
+        enqueue_system_tx(
+            state,
+            tx_type="GOV_EXECUTE",
+            payload=exec_payload,
+            due_height=int(current_height),
+            signer="SYSTEM",
+            parent=parent_ref,
+            phase="post",
+            once=True,
+        )
 
     finalize_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
-    _apply_gov_proposal_finalize(state, _system_env("GOV_PROPOSAL_FINALIZE", finalize_payload, height=int(current_height), parent_ref=parent_ref))
+    enqueue_system_tx(
+        state,
+        tx_type="GOV_PROPOSAL_FINALIZE",
+        payload=finalize_payload,
+        due_height=int(current_height),
+        signer="SYSTEM",
+        parent=parent_ref,
+        phase="post",
+        once=True,
+    )
 
 
 def _ensure_root(state: Json) -> dict[str, Any]:
