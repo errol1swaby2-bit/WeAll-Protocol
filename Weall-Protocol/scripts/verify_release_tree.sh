@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTER_ROOT="$(cd "$ROOT/.." && pwd)"
+WEB_ROOT="$OUTER_ROOT/web"
 cd "$ROOT"
 
 echo "[verify] repo: $ROOT"
@@ -32,12 +34,48 @@ check_dir_absent() {
   fi
 }
 
+check_web_path_absent() {
+  local pattern="$1"
+  local label="$2"
+  if [[ ! -d "$WEB_ROOT" ]]; then
+    echo "[verify] OK: no outer web tree present for $label scan"
+    return
+  fi
+  if find "$WEB_ROOT" -path "$WEB_ROOT/node_modules" -prune -o -path "$WEB_ROOT/dist" -prune -o -name "$pattern" -print | grep -q .; then
+    echo "[verify] FAIL: found $label"
+    find "$WEB_ROOT" -path "$WEB_ROOT/node_modules" -prune -o -path "$WEB_ROOT/dist" -prune -o -name "$pattern" -print
+    fail=1
+  else
+    echo "[verify] OK: no $label"
+  fi
+}
+
+check_web_dir_absent() {
+  local pattern="$1"
+  local label="$2"
+  if [[ ! -d "$WEB_ROOT" ]]; then
+    echo "[verify] OK: no outer web tree present for $label scan"
+    return
+  fi
+  if find "$WEB_ROOT" -type d -name "$pattern" -print | grep -q .; then
+    echo "[verify] FAIL: found $label"
+    find "$WEB_ROOT" -type d -name "$pattern" -print
+    fail=1
+  else
+    echo "[verify] OK: no $label"
+  fi
+}
+
 check_path_absent '*.pyc' 'Python bytecode files'
 check_dir_absent '__pycache__' '__pycache__ directories'
 check_dir_absent '.pytest_cache' '.pytest_cache directories'
+check_dir_absent '*.egg-info' 'Python egg-info directories'
 check_path_absent '*.tsbuildinfo' 'TypeScript build info files'
 check_dir_absent 'node_modules' 'node_modules directories'
 check_dir_absent 'dist' 'frontend dist directories'
+check_web_path_absent '*.tsbuildinfo' 'outer web TypeScript build info files'
+check_web_dir_absent 'node_modules' 'outer web node_modules directories'
+check_web_dir_absent 'dist' 'outer web dist directories'
 check_dir_absent '.provider-cli' 'provider local state directories'
 check_path_absent '.env' '.env files'
 check_path_absent '.env.local' '.env.local files'

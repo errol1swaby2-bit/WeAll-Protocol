@@ -23,6 +23,7 @@ zip -r "$ARCHIVE_PATH" . \
      '.pytest_cache/*' \
      '.mypy_cache/*' \
      '.ruff_cache/*' \
+     '*.egg-info/*' \
      'node_modules/*' \
      'web/node_modules/*' \
      'web/dist/*' \

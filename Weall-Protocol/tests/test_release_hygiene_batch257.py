@@ -67,6 +67,20 @@ def test_release_tree_rejects_local_runtime_artifacts_batch257(tmp_path: Path) -
     assert "runtime data directories" in result.stdout or "SQLite WAL files" in result.stdout
 
 
+
+def test_release_tree_rejects_outer_web_typescript_build_artifact_batch316(tmp_path: Path) -> None:
+    tree = _make_minimal_release_tree(tmp_path)
+    outer = tree.parent
+    web = outer / "web"
+    web.mkdir()
+    (web / "tsconfig.tsbuildinfo").write_text("local TypeScript build artifact\n", encoding="utf-8")
+
+    result = _run(tree / "scripts/verify_release_tree.sh")
+
+    assert result.returncode != 0
+    assert "outer web TypeScript build info files" in result.stdout
+
+
 def test_secret_guard_scans_export_tree_when_git_metadata_absent_batch257(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "generated/demo_bootstrap_result.json").write_text(
@@ -86,6 +100,7 @@ def test_release_package_excludes_known_local_secret_artifacts_batch257() -> Non
     required_exclusions = [
         "'.weall-devnet/*'",
         "'data/*'",
+        "'*.egg-info/*'",
         "'generated/demo_bootstrap_secret.json'",
         "'generated/demo_bootstrap_result.json'",
         "'generated/*secret*.json'",

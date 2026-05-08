@@ -28,6 +28,42 @@ jobs:
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend runtime from lockfile
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+          pip install -e . --no-deps
+
+      - name: Start backend for contract check
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python -m uvicorn weall.api.app:app --host 127.0.0.1 --port 8000 > /tmp/weall-web-ci-backend.log 2>&1 &
+          echo $! > /tmp/weall-web-ci-backend.pid
+          for i in {1..30}; do
+            if python - <<'PY'
+          import urllib.request
+          try:
+              urllib.request.urlopen("http://127.0.0.1:8000/v1/readyz", timeout=1)
+              raise SystemExit(0)
+          except Exception:
+              raise SystemExit(1)
+          PY
+            then
+              echo "backend ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend failed to become ready" >&2
+          cat /tmp/weall-web-ci-backend.log >&2 || true
+          exit 1
+
       - name: Install
         run: |
           npm ci
@@ -38,7 +74,7 @@ jobs:
 
       - name: Contract check
         run: |
-          npm run contract-check
+          API_BASE=http://127.0.0.1:8000 npm run contract-check
 
       - name: Build
         run: |
