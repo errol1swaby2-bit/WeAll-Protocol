@@ -46,6 +46,13 @@ from weall.net.messages import (
     WireMessage,
 )
 from weall.net.net_logging import log_event
+from weall.net.relay import (
+    RelayConfig,
+    RelayEnvelopeError,
+    decode_relay_payload,
+    make_relay_envelope,
+    validate_relay_envelope,
+)
 from weall.net.node import NetConfig, NetNode
 from weall.net.peer_list_store import PeerListStore
 from weall.net.state_sync import StateSyncService
@@ -186,6 +193,27 @@ def _http_get_json(url: str, *, timeout_s: float = 2.0) -> Json | None:
             data = resp.read()
         obj = json.loads(data.decode("utf-8"))
         return obj if isinstance(obj, dict) else None
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+        return None
+    except Exception:
+        return None
+
+
+def _http_post_json(url: str, obj: Json, *, timeout_s: float = 2.0) -> Json | None:
+    if not url:
+        return None
+    try:
+        raw = json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=raw,
+            headers={"Accept": "application/json", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=float(timeout_s)) as resp:
+            data = resp.read()
+        parsed = json.loads(data.decode("utf-8"))
+        return parsed if isinstance(parsed, dict) else None
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
         return None
     except Exception:
@@ -411,6 +439,29 @@ class NetMeshLoop:
         self._bft_timeout_max_bytes = max(512, _env_int("WEALL_BFT_TIMEOUT_MAX_BYTES", 131_072))
         self._bft_fetch_sources_max = max(1, _env_int("WEALL_BFT_FETCH_SOURCES_MAX", 16))
 
+        # Production-safe outbound relay polling/submission for NAT/CGNAT nodes.
+        # Relays are transport-only mailboxes; relayed messages still pass normal
+        # tx/BFT admission when consumed. Disabled by default.
+        self._relay_client_enabled = _env_bool("WEALL_NET_RELAY_CLIENT_ENABLED", False)
+        self._relay_urls = [u.rstrip("/") for u in _split_csv(os.environ.get("WEALL_NET_RELAY_URLS", "")) if u.strip()]
+        self._relay_recipients = _split_csv(os.environ.get("WEALL_NET_RELAY_RECIPIENTS", ""))
+        self._relay_poll_ms = max(250, _env_int("WEALL_NET_RELAY_POLL_MS", 1_000))
+        self._relay_fetch_limit = max(1, _env_int("WEALL_NET_RELAY_CLIENT_FETCH_LIMIT", 50))
+        self._relay_timeout_s = max(0.25, float(_env_int("WEALL_NET_RELAY_TIMEOUT_MS", 2_000)) / 1000.0)
+        self._relay_ttl_ms = max(1_000, _env_int("WEALL_NET_RELAY_ENVELOPE_TTL_MS", 60_000))
+        self._relay_last_poll_ms = 0
+        self._relay_seen: dict[str, int] = {}
+        self._relay_seen_ttl_ms = max(10_000, _env_int("WEALL_NET_RELAY_DEDUPE_TTL_MS", 10 * 60 * 1000))
+        self._relay_seen_max = max(128, _env_int("WEALL_NET_RELAY_DEDUPE_MAX", 16_384))
+        self._relay_nonce = 0
+        if self._relay_client_enabled and _is_prod():
+            if not self._relay_urls:
+                raise NetStartupError("net_relay_client_enabled_without_urls")
+            if not (os.environ.get("WEALL_NODE_PUBKEY") or os.environ.get("WEALL_IDENTITY_PUBKEY")):
+                raise NetStartupError("net_relay_client_missing_pubkey")
+            if not (os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY")):
+                raise NetStartupError("net_relay_client_missing_privkey")
+
     def _state_snapshot(self) -> Json:
         try:
             st = self._executor.snapshot()
@@ -618,6 +669,12 @@ class NetMeshLoop:
                 pass
 
             try:
+                self._relay_poll_tick()
+            except Exception as e:
+                if _is_prod():
+                    raise NetLoopRuntimeError("relay_poll_tick_failed") from e
+
+            try:
                 self._outbound_tx_gossip_tick()
             except Exception as e:
                 if _is_prod():
@@ -734,6 +791,150 @@ class NetMeshLoop:
             if _is_prod():
                 raise
             return
+
+    # ----------------------------
+    # Outbound HTTP relay client
+    # ----------------------------
+
+    def _relay_cfg(self) -> RelayConfig | None:
+        if self.node is None:
+            return None
+        return RelayConfig(
+            chain_id=str(self.node.cfg.chain_id),
+            schema_version=str(self.node.cfg.schema_version),
+            tx_index_hash=str(self.node.cfg.tx_index_hash),
+            max_payload_bytes=max(1_024, _env_int("WEALL_NET_RELAY_MAX_PAYLOAD_BYTES", 512 * 1024)),
+            max_ttl_ms=max(1_000, _env_int("WEALL_NET_RELAY_MAX_TTL_MS", 10 * 60 * 1000)),
+            max_fetch_limit=max(1, int(self._relay_fetch_limit)),
+        )
+
+    def _relay_identity(self) -> tuple[str, str]:
+        pub = (os.environ.get("WEALL_NODE_PUBKEY") or os.environ.get("WEALL_IDENTITY_PUBKEY") or "").strip()
+        priv = (os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY") or "").strip()
+        return pub, priv
+
+    def _relay_next_nonce(self) -> str:
+        self._relay_nonce += 1
+        peer_id = str(getattr(getattr(self.node, "cfg", None), "peer_id", "") or "local")
+        return f"{peer_id}:{int(_now_ms())}:{int(self._relay_nonce)}"
+
+    def _relay_submit_message(self, msg: WireMessage, *, recipients: list[str] | tuple[str, ...] | None = None) -> None:
+        if not self._relay_client_enabled or self.node is None or not self._relay_urls:
+            return
+        cfg = self._relay_cfg()
+        if cfg is None:
+            return
+        pub, priv = self._relay_identity()
+        if not pub or not priv:
+            if _is_prod():
+                raise NetStartupError("net_relay_client_missing_identity")
+            return
+        targets = [str(x or "").strip() for x in list(recipients or self._relay_recipients or []) if str(x or "").strip()]
+        if not targets:
+            return
+        sender = str(getattr(self.node.cfg, "peer_id", "") or "local").strip() or "local"
+        for recipient in targets:
+            try:
+                env = make_relay_envelope(
+                    message=msg,
+                    chain_id=cfg.chain_id,
+                    schema_version=cfg.schema_version,
+                    tx_index_hash=cfg.tx_index_hash,
+                    sender_peer_id=sender,
+                    recipient_peer_id=recipient,
+                    pubkey=pub,
+                    privkey=priv,
+                    nonce=self._relay_next_nonce(),
+                    ttl_ms=int(self._relay_ttl_ms),
+                )
+            except Exception as e:
+                if _is_prod():
+                    raise NetLoopRuntimeError("relay_envelope_build_failed") from e
+                continue
+            for base in list(self._relay_urls):
+                _http_post_json(f"{base}/v1/net/relay/submit", {"envelope": env}, timeout_s=float(self._relay_timeout_s))
+
+    def _relay_fetch_url(self, base: str, peer_id: str) -> str:
+        return f"{str(base).rstrip('/')}/v1/net/relay/fetch?recipient_peer_id={peer_id}&limit={int(self._relay_fetch_limit)}"
+
+    def _relay_ack(self, base: str, peer_id: str, relay_ids: list[str]) -> None:
+        if not relay_ids:
+            return
+        _http_post_json(
+            f"{str(base).rstrip('/')}/v1/net/relay/ack",
+            {"recipient_peer_id": str(peer_id), "relay_ids": list(relay_ids)},
+            timeout_s=float(self._relay_timeout_s),
+        )
+
+    def _relay_process_envelope(self, envelope: Json) -> bool:
+        cfg = self._relay_cfg()
+        if cfg is None:
+            return False
+        env = validate_relay_envelope(envelope, cfg=cfg)
+        rid = str(env.get("relay_id") or "")
+        now = _now_ms()
+        if rid and self._dedupe_seen(
+            self._relay_seen,
+            rid,
+            ttl_ms=int(self._relay_seen_ttl_ms),
+            now_ms=now,
+            max_entries=int(self._relay_seen_max),
+        ):
+            return True
+        msg = decode_relay_payload(env)
+        sender = str(env.get("sender_peer_id") or "relay-peer")
+        if isinstance(msg, TxEnvelopeMsg):
+            self._on_tx(sender, msg)
+            return True
+        if isinstance(msg, BftProposalMsg):
+            self._on_bft_proposal(sender, msg)
+            return True
+        if isinstance(msg, BftVoteMsg):
+            self._on_bft_vote(sender, msg)
+            return True
+        if isinstance(msg, BftQcMsg):
+            self._on_bft_qc(sender, msg)
+            return True
+        if isinstance(msg, BftTimeoutMsg):
+            self._on_bft_timeout(sender, msg)
+            return True
+        # Non-consensus peer utility messages are accepted as delivered but do
+        # not mutate chain state through relay polling.
+        return True
+
+    def _relay_poll_tick(self) -> None:
+        if not self._relay_client_enabled or self.node is None or not self._relay_urls:
+            return
+        now = _now_ms()
+        if (now - int(self._relay_last_poll_ms or 0)) < int(self._relay_poll_ms):
+            return
+        self._relay_last_poll_ms = now
+        peer_id = str(getattr(self.node.cfg, "peer_id", "") or "").strip()
+        if not peer_id:
+            return
+        for base in list(self._relay_urls):
+            obj = _http_get_json(self._relay_fetch_url(base, peer_id), timeout_s=float(self._relay_timeout_s))
+            if not isinstance(obj, dict) or not bool(obj.get("ok")):
+                continue
+            messages = obj.get("messages")
+            if not isinstance(messages, list):
+                continue
+            ack_ids: list[str] = []
+            for env in messages:
+                if not isinstance(env, dict):
+                    continue
+                try:
+                    if self._relay_process_envelope(env):
+                        rid = str(env.get("relay_id") or "").strip()
+                        if rid:
+                            ack_ids.append(rid)
+                except RelayEnvelopeError:
+                    # Ack malformed stored envelopes to prevent infinite replay.
+                    rid = str(env.get("relay_id") or "").strip()
+                    if rid:
+                        ack_ids.append(rid)
+                    continue
+            self._relay_ack(base, peer_id, ack_ids)
 
     # ----------------------------
     # Ingress handlers
@@ -1194,6 +1395,7 @@ class NetMeshLoop:
         )
         try:
             self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+            self._relay_submit_message(msg)
             self._mark_bft_outbound_sent("proposal", block)
         except Exception as e:
             if _is_prod():
@@ -1211,6 +1413,7 @@ class NetMeshLoop:
         msg = BftVoteMsg(header=self._mk_header(mtype=MsgType.BFT_VOTE), view=view, vote=vote_json)
         try:
             self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+            self._relay_submit_message(msg)
             self._mark_bft_outbound_sent("vote", vote_json)
         except Exception as e:
             if _is_prod():
@@ -1230,6 +1433,7 @@ class NetMeshLoop:
         )
         try:
             self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+            self._relay_submit_message(msg)
             self._mark_bft_outbound_sent("timeout", timeout_json)
         except Exception as e:
             if _is_prod():
@@ -1617,6 +1821,11 @@ class NetMeshLoop:
             except Exception as e:
                 if _is_prod():
                     raise TxGossipBridgeError("tx_gossip_broadcast_failed") from e
+            try:
+                self._relay_submit_message(msg)
+            except Exception as e:
+                if _is_prod():
+                    raise TxGossipBridgeError("tx_gossip_relay_submit_failed") from e
 
     # ----------------------------
     # Outbound BFT gossip

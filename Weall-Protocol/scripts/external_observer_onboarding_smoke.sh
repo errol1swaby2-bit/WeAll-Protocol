@@ -79,6 +79,28 @@ print('OK: remote genesis chain identity matches observer bundle')
 PY
 fi
 
+
+if [ -n "${WEALL_NET_RELAY_URLS:-}" ]; then
+  python3 - "${WEALL_NET_RELAY_URLS%%,*}" <<'WEALL_RELAY_CHECK_PY'
+from __future__ import annotations
+
+import json
+import sys
+import urllib.request
+
+base = sys.argv[1].strip().rstrip('/')
+if not base:
+    raise SystemExit('relay_url_missing')
+with urllib.request.urlopen(base + '/v1/net/relay/status', timeout=10) as resp:
+    status = json.loads(resp.read().decode('utf-8'))
+if not bool(status.get('ok')) or not bool(status.get('enabled')):
+    raise SystemExit('relay_status_not_enabled')
+if status.get('authority') != 'transport_only':
+    raise SystemExit('relay_authority_not_transport_only')
+print('OK: relay endpoint reachable and marked transport_only')
+WEALL_RELAY_CHECK_PY
+fi
+
 rm -f /tmp/weall_external_observer_bundle_check.json /tmp/weall_external_observer_manifest_check.json
 
 cat <<MSG

@@ -30,3 +30,17 @@ def test_external_observer_runbook_documents_no_external_identity_authority_batc
     assert "POH_ASYNC_REQUEST_OPEN" in doc
     assert "ROLE_NODE_OPERATOR_ENROLL" in doc
     assert "no email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC" in doc
+
+
+def test_external_observer_runbook_documents_transport_only_relay_batch315() -> None:
+    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
+    doc = (ROOT / "docs" / "PRODUCTION_RELAY_NETWORK_RUNBOOK.md").read_text(encoding="utf-8")
+    assert "WEALL_NET_RELAY_URLS" in script
+    assert "/v1/net/relay/status" in script
+    assert "transport_only" in script
+    assert "POST /v1/net/relay/submit" in doc
+    assert "GET /v1/net/relay/fetch" in doc
+    assert "POST /v1/net/relay/ack" in doc
+    assert "not consensus authority" in doc
+    assert "payload_hash" in doc
+    assert "tx_index_hash" in doc

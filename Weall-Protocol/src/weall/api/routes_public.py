@@ -17,6 +17,7 @@ from weall.api.routes_public_parts.media import router as media_router
 from weall.api.routes_public_parts.mempool import router as mempool_router
 from weall.api.routes_public_parts.metrics import router as metrics_router
 from weall.api.routes_public_parts.net_debug import router as net_debug_router
+from weall.api.routes_public_parts.net_relay import router as net_relay_router
 from weall.api.routes_public_parts.net_self import router as net_self_router
 from weall.api.routes_public_parts.nodes import router as nodes_router
 from weall.api.routes_public_parts.poh import router as poh_router
@@ -58,6 +59,7 @@ public_router.include_router(metrics_router, prefix="/v1", tags=["metrics"])
 # Mesh debug (read-only)
 public_router.include_router(net_debug_router, prefix="/v1", tags=["net"])
 public_router.include_router(net_self_router, prefix="/v1", tags=["net"])
+public_router.include_router(net_relay_router, prefix="/v1", tags=["net-relay"])
 
 public_router.include_router(nodes_router, prefix="/v1", tags=["nodes"])
 if demo_seed_router_should_mount():
