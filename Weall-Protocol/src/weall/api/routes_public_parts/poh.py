@@ -304,6 +304,7 @@ class PohAsyncCaseModel(BaseModel):
     evidence_commitments: dict[str, object] = Field(default_factory=dict)
     evidence_binds: dict[str, object] = Field(default_factory=dict)
     public_evidence_ids: list[object] = Field(default_factory=list)
+    reviewable_evidence: dict[str, object] = Field(default_factory=dict)
     receipt: dict[str, object] = Field(default_factory=dict)
 
 
@@ -333,6 +334,7 @@ def _as_async_case(case_id: str, r: dict[str, object]) -> PohAsyncCaseModel:
         evidence_commitments=_dict(r.get("evidence_commitments")),
         evidence_binds=_dict(r.get("evidence_binds")),
         public_evidence_ids=_list(r.get("public_evidence_ids")),
+        reviewable_evidence=_dict(r.get("reviewable_evidence")),
         receipt=_dict(r.get("receipt")),
     )
 
@@ -678,6 +680,27 @@ def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
         if not isinstance(jm, dict):
             continue
         if j in jm:
+            out.append(_as_live_case(str(cid), raw))
+
+    out.sort(key=lambda c: c.case_id)
+    return PohLiveAssignedResponse(ok=True, cases=out)
+
+
+@router.get(
+    "/poh/live/my-cases", response_model=PohLiveAssignedResponse, name="poh_live_my_cases"
+)
+def poh_live_my_cases(account: str, request: Request) -> PohLiveAssignedResponse:
+    acct = str(account or "").strip()
+    if not acct:
+        raise ApiError.bad_request("bad_request", "missing account", {})
+    st = _snapshot(request)
+    cases = _live_cases_from_snapshot(st)
+
+    out: list[PohLiveCaseModel] = []
+    for cid, raw in cases.items():
+        if not isinstance(raw, dict):
+            continue
+        if str(raw.get("account_id") or "").strip() == acct:
             out.append(_as_live_case(str(cid), raw))
 
     out.sort(key=lambda c: c.case_id)

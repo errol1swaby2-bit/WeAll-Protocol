@@ -14,6 +14,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { refreshMutationSlices } from "../lib/revalidation";
+import { liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -35,20 +36,51 @@ function extractEvidenceMedia(evidence: any): any[] {
   if (!evidence || typeof evidence !== "object") return [];
   const out: any[] = [];
 
-  const pushCid = (cid: string, kind = "file") => {
-    const c = String(cid || "").trim();
-    if (!c) return;
-    out.push({ cid: c, kind, name: c });
+  const pushItem = (item: any, label?: string) => {
+    if (!item) return;
+    if (typeof item === "string") {
+      const raw = item.trim();
+      if (!raw) return;
+      if (raw.startsWith("ipfs://")) out.push({ cid: raw.slice("ipfs://".length), kind: "video", name: label || raw });
+      else if (/^https?:\/\//i.test(raw)) out.push({ url: raw, kind: "video", name: label || raw });
+      return;
+    }
+    if (typeof item === "object") out.push({ label, kind: "video", ...item });
   };
 
-  if (typeof evidence.video_cid === "string") pushCid(evidence.video_cid, "video");
-  if (typeof evidence.cid === "string") pushCid(evidence.cid, "file");
+  const pushCid = (cid: string, kind = "file", extra: any = {}) => {
+    const c = String(cid || "").trim();
+    if (!c) return;
+    out.push({ cid: c, kind, name: extra.name || c, ...extra });
+  };
+
+  if (typeof evidence.video_cid === "string") pushCid(evidence.video_cid, "video", evidence);
+  if (typeof evidence.evidence_cid === "string") pushCid(evidence.evidence_cid, "video", evidence);
+  if (typeof evidence.cid === "string") pushCid(evidence.cid, "file", evidence);
+  if (typeof evidence.gateway_url === "string") pushItem({ url: evidence.gateway_url, name: evidence.name || "Verification evidence", mime: evidence.mime || "video/webm" });
+  if (typeof evidence.public_evidence_id === "string") pushItem(evidence.public_evidence_id, "Public evidence");
+  if (typeof evidence.uri === "string") pushItem(evidence.uri, "Evidence URI");
 
   if (Array.isArray(evidence.media)) {
-    for (const item of evidence.media) out.push(item);
+    for (const item of evidence.media) pushItem(item);
+  }
+  if (Array.isArray(evidence.public_evidence_ids)) {
+    for (const item of evidence.public_evidence_ids) pushItem(item, "Public evidence");
+  }
+  if (evidence.evidence_commitments && typeof evidence.evidence_commitments === "object") {
+    for (const [id, item] of Object.entries(evidence.evidence_commitments)) pushItem(item, String(id));
+  }
+  if (evidence.reviewable_evidence && typeof evidence.reviewable_evidence === "object") {
+    for (const [id, item] of Object.entries(evidence.reviewable_evidence)) pushItem(item, String(id));
   }
 
-  return out;
+  const seen = new Set<string>();
+  return out.filter((item) => {
+    const key = String(item?.cid || item?.url || item?.gateway_url || item?.uri || item?.raw || JSON.stringify(item));
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function statusTone(statusRaw: any): "done" | "active" | "todo" {
@@ -505,7 +537,7 @@ export default function JurorDashboard(): JSX.Element {
             {showing.map((c) => {
               const caseId = String(c?.case_id || c?.id || "");
               const detail = expanded[caseId]?.case || expanded[caseId] || null;
-              const evidence = detail?.evidence || c?.evidence || {};
+              const evidence = detail || c || {};
               const evidenceMedia = extractEvidenceMedia(evidence);
               const sessionRec = tab === "live" ? sessionForCase(caseId) : null;
               const sessionId = String(sessionRec?.session_id || "");
@@ -599,13 +631,19 @@ export default function JurorDashboard(): JSX.Element {
                         <div className="feedMediaMeta">
                           status: {String(sessionRec?.status || "unknown")} • created: {fmtTs(sessionRec?.created_ts_ms)}
                         </div>
-                        {sessionRec?.join_url ? (
-                          <div className="buttonRow" style={{ marginTop: 10 }}>
-                            <a className="btn" href={String(sessionRec.join_url)} target="_blank" rel="noreferrer">
-                              Join session
-                            </a>
-                          </div>
-                        ) : null}
+                        {(() => {
+                          const joinUrl = String(sessionRec?.join_url || "").trim() || liveRoomUrlFromCommitment(sessionRec?.room_commitment || c?.room_commitment);
+                          return joinUrl ? (
+                            <div className="buttonRow" style={{ marginTop: 10 }}>
+                              <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
+                                Join self-hosted session
+                              </a>
+                            </div>
+                          ) : (
+                            <div className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL to enable a self-hosted room link.</div>
+                          );
+                        })()}
+                        <div className="feedMediaMeta">{liveRoomTransportNotice()}</div>
                       </div>
                     ) : null}
 

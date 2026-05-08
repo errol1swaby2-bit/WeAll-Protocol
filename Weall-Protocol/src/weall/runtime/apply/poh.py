@@ -1074,18 +1074,59 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     if not isinstance(commitments, dict):
         commitments = {}
         case["evidence_commitments"] = commitments
-    commitments[evidence_id] = {
+    rec: Json = {
         "evidence_id": evidence_id,
         "evidence_commitment": evidence_commitment,
         "response_commitment": response_commitment,
         "kind": _as_str(p.get("kind") or "commitment").strip() or "commitment",
         "declared_height": int(state.get("height") or 0),
     }
+
+    # Reviewable async evidence may intentionally expose a public/content-addressed
+    # reference to the recorded verification video.  These fields are safe review
+    # metadata only: they do not grant PoH and do not replace juror review,
+    # verdicts, or finalization.  Raw private notes/biometrics remain rejected by
+    # _reject_native_async_private_fields().
+    for key in (
+        "public_evidence_id",
+        "evidence_cid",
+        "uri",
+        "mime",
+        "name",
+        "filename",
+        "size",
+        "video_commitment",
+    ):
+        value = p.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                continue
+        rec[key] = value
+
+    commitments[evidence_id] = rec
     if response_commitment:
         case["response_commitment"] = response_commitment
-    public_evidence_id = _as_str(p.get("public_evidence_id") or "").strip()
+
+    public_evidence_ids = case.get("public_evidence_ids")
+    public_evidence_id = _as_str(p.get("public_evidence_id") or p.get("uri") or "").strip()
+    evidence_cid = _as_str(p.get("evidence_cid") or "").strip()
     if public_evidence_id:
-        case["public_evidence_ids"] = _append_unique_str(case.get("public_evidence_ids"), public_evidence_id)
+        public_evidence_ids = _append_unique_str(public_evidence_ids, public_evidence_id)
+    if evidence_cid:
+        public_evidence_ids = _append_unique_str(public_evidence_ids, f"ipfs://{evidence_cid}")
+    if public_evidence_ids:
+        case["public_evidence_ids"] = public_evidence_ids
+
+    reviewable = case.get("reviewable_evidence")
+    if not isinstance(reviewable, dict):
+        reviewable = {}
+        case["reviewable_evidence"] = reviewable
+    if any(k in rec for k in ("public_evidence_id", "evidence_cid", "uri")):
+        reviewable[evidence_id] = dict(rec)
+
     case["status"] = "evidence_submitted"
     return {"applied": "POH_ASYNC_EVIDENCE_DECLARE", "case_id": case_id, "evidence_id": evidence_id}
 

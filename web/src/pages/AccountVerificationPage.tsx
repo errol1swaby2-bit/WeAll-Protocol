@@ -21,6 +21,7 @@ import {
   validateAsyncVideoDuration,
 } from "../lib/verificationEvidence";
 import { createLiveVerificationCommitments, hasRequiredLiveVerificationCommitments } from "../lib/liveVerification";
+import { liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import {
   TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
@@ -34,6 +35,7 @@ type ErrState = { msg: string; details: any } | null;
 
 type UploadState = {
   cid?: string;
+  uri?: string;
   gateway_url?: string;
   video_commitment?: string;
   mime?: string;
@@ -180,8 +182,8 @@ async function reconcileAsyncCompatibilityCase(account: string, base: string, he
 
 async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   try {
-    const assigned = await weall.pohLiveAssigned(account, base, headers);
-    const cases = Array.isArray(assigned?.cases) ? assigned.cases : [];
+    const mine = await weall.pohLiveMyCases(account, base, headers);
+    const cases = Array.isArray(mine?.cases) ? mine.cases : [];
     if (cases.length > 0) return { phase: "confirmed", detail: "Your live verification case is visible." };
   } catch {
     // ignore
@@ -275,7 +277,7 @@ export default function AccountVerificationPage(): JSX.Element {
       const headers = getAuthHeaders(acct);
       const [compat, live, sessions] = await Promise.all([
         weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
-        weall.pohLiveAssigned(acct, base, headers).catch(() => ({ cases: [] })),
+        weall.pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
       setCompatCases(Array.isArray(compat?.cases) ? compat.cases : []);
@@ -693,6 +695,13 @@ export default function AccountVerificationPage(): JSX.Element {
               response_commitment: responseCommitment,
               kind: "fresh_recorded_video_v1",
               note: "fresh_1_to_2_minute_in_app_recording",
+              public_evidence_id: upload.uri || (upload.cid ? `ipfs://${upload.cid}` : ""),
+              evidence_cid: upload.cid || "",
+              uri: upload.uri || "",
+              mime: upload.mime || "video/webm",
+              name: upload.name || file.name,
+              size: upload.size || file.size,
+              video_commitment: upload.video_commitment || evidenceCommitment,
               ts_ms: Date.now(),
             },
             parent: open?.result?.tx_id || open?.tx_id || null,
@@ -1010,6 +1019,24 @@ export default function AccountVerificationPage(): JSX.Element {
           <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
             {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
           </button>
+          {liveCommitments ? (
+            <div className="infoCard compact">
+              <div className="infoCardHeader">
+                <strong>Self-hosted live room</strong>
+                <span className="statusPill">Transport only</span>
+              </div>
+              <div className="infoCardText">{liveRoomTransportNotice()}</div>
+              {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
+                    Join live room
+                  </a>
+                </div>
+              ) : (
+                <div className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL for a self-hosted room link.</div>
+              )}
+            </div>
+          ) : null}
           {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
         </StatusCard>
       </section>
@@ -1054,7 +1081,26 @@ export default function AccountVerificationPage(): JSX.Element {
             <p className="cardDesc">
               This area shows account-verification work that is visible to this device. It is written as a history of requests and reviews, not as protocol machinery.
             </p>
-            {liveCases.length ? <div className="infoGrid">{liveCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {liveCases.length ? (
+              <div className="infoGrid">
+                {liveCases.map((it: any, idx: number) => {
+                  const roomUrl = liveRoomUrlFromCommitment(it?.room_commitment);
+                  return (
+                    <div key={String(it?.case_id || idx)} className="infoCard compact">
+                      <CaseCard item={it} />
+                      {roomUrl ? (
+                        <div className="buttonRow" style={{ marginTop: 10 }}>
+                          <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
+                            Join self-hosted live room
+                          </a>
+                        </div>
+                      ) : null}
+                      <div className="miniMuted">{liveRoomTransportNotice()}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
             {compatCases.length ? <div className="infoGrid">{compatCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
             {!liveCases.length && !compatCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
             {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
