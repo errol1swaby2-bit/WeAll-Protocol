@@ -23,4 +23,4 @@ if [ -z "${WEALL_NODE_PUBKEY_FILE:-${WEALL_NODE_PUBKEY:-}}" ]; then
   exit 2
 fi
 
-exec "$(dirname "$0")/run_node.sh"
+exec bash "$(dirname "$0")/run_node.sh"

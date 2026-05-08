@@ -1,22 +1,22 @@
 {
-  "version": 1,
-  "name": "WeAll Genesis Canonical Chain",
+  "authority": {
+    "authority_snapshot_required": true,
+    "expected_profile": "production",
+    "signed_snapshot_required": true
+  },
+  "authority_snapshot_version": 1,
   "chain_id": "weall-prod",
-  "profile": "production_service",
-  "mode": "prod",
-  "schema_version": "1",
   "genesis_hash": "f857ef1e8f44070d94c1576855d13fe92ba045720e0d27b6f5f7527c0c65d9bb",
   "genesis_state_root": "4c5dc50677fb519de5c60fff24f5e06f3a72059703ffcfa8f93933a38943f0b2",
-  "tx_index_hash": "d117fb1959f11b748dc52d31f0f0992d98ff1d035a65e817780e24147c9563f3",
+  "mode": "prod",
+  "name": "WeAll Genesis Canonical Chain",
+  "notes": "This manifest pins the canonical chain identity used by production-oriented boot and authority checks. Replace trusted_authority_pubkeys before public deployment.",
+  "profile": "production_service",
   "protocol_profile_hash": "",
-  "authority_snapshot_version": 1,
+  "schema_version": "1",
   "trusted_authority_pubkeys": [
     "REPLACE_WITH_PRODUCTION_AUTHORITY_PUBKEY_HEX"
   ],
-  "notes": "This manifest pins the canonical chain identity used by production-oriented boot and authority checks. Replace trusted_authority_pubkeys before public deployment.",
-  "authority": {
-    "expected_profile": "production",
-    "authority_snapshot_required": true,
-    "signed_snapshot_required": true
-  }
+  "tx_index_hash": "1caa98a94b6edbfc3a2ccf7da77f207143b0c43c2f425b1a8262530844272799",
+  "version": 1
 }
