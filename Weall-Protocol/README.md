@@ -51,7 +51,7 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 This backend snapshot is synchronized at:
 
 - **Transaction canon:** 230 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** 2,590 passed, 1 warning
+- **Latest full backend test checkpoint:** 2,789 passed, 1 warning
 
 
 ## Controlled-devnet readiness proof
@@ -127,6 +127,19 @@ The Compose stack provides these defaults for the local quickstart.
 
 The backend declares `python-dotenv` as a direct runtime dependency because `src/weall/env.py` supports `.env` loading. Keeping this dependency explicit avoids relying on accidental transitive installs in fresh clones, CI, or tester environments.
 
+Release dependency locks are now part of the public packaging contract:
+
+- `requirements.lock`
+- `requirements-dev.lock`
+- `../web/package-lock.json`
+
+Before publishing operator-facing changes, run:
+
+```bash
+bash scripts/verify_lockfiles.sh
+bash scripts/verify_release_dependencies.sh
+```
+
 ## Runtime posture summary
 
 This repository currently targets:
@@ -134,9 +147,9 @@ This repository currently targets:
 - HotStuff-style BFT finality
 - deterministic execution
 - fail-closed startup posture
-- deterministic mempool and block application rules
+- deterministic mempool, scheduler-bound SYSTEM tx replay, and block application rules
 - controlled-devnet onboarding and convergence proof paths
-- helper execution strictly subordinate to canonical consensus
+- helper execution strictly subordinate to canonical consensus and committed through `helper_execution_root` when helper metadata is present
 - explicit bootstrap-registration to production-service promotion
 
 ## Local cleanup
@@ -151,12 +164,16 @@ To scrub local runtime artifacts before packaging or pushing:
 ## Release truth checkpoint
 
 - Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
+- Latest full backend test checkpoint: **2789 passed, 1 warning**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- SYSTEM txs received in blocks must be scheduler-bound before apply.
+- Helper execution metadata is committed by `helper_execution_root` when present.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
-- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+- Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 

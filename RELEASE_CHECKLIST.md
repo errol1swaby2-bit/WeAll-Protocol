@@ -54,14 +54,14 @@ Manual backend path from the repository root:
 ./scripts/quickstart_tester.sh
 ```
 
-Frontend:
+Frontend, with the backend running at `http://127.0.0.1:8000` for contract verification:
 
 ```bash
 cd web
 cp .env.example .env.local
 npm ci
 npm run typecheck
-npm run contract-check
+API_BASE=http://127.0.0.1:8000 npm run contract-check
 npm run build
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
@@ -126,8 +126,8 @@ Confirm these files exist before broad external review:
 
 Confirm the repository has active GitHub Actions coverage for:
 
-- backend lint, dependency audit, canon lint, generated-artifact check, tx coverage report, and pytest
-- web install, typecheck, contract check, and build
+- backend lint, dependency audit, lockfile verification, canon lint, generated-artifact check, tx coverage report, and pytest
+- web `npm ci`, typecheck, contract check, and production build using committed `web/package-lock.json`
 - Native async/live PoH checks, including no required email, SMTP, DNS, Cloudflare, inbox, or external identity provider path
 
 ## 8. Known release policy
@@ -149,14 +149,19 @@ Browser onboarding and PoH verification are Cloudflare-free, email-free, and rou
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: `2590 passed, 1 warning` for the latest audited snapshot; rerun locally before release
+- full backend suite: `2789 passed, 1 warning` for the latest audited snapshot; rerun locally before release
 - tx canon artifacts: `230 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed
 - `scripts/verify_release_tree.sh`: passed
+- `scripts/verify_release_dependencies.sh`: passed
+- backend locks: `requirements.lock` and `requirements-dev.lock` are present, pinned, and hashed
+- frontend lock: `web/package-lock.json` is present and `npm ci`/typecheck/contract/build were verified
 - Native PoH cleanup: primary path validated without email, SMTP, DNS, Cloudflare, relay-token completion, or external identity-provider env aliases
 - Public-validator posture: validator service/signing requires BFT enabled; observer mode and signing cannot be mixed
 - Public API posture: snapshots and unauthenticated account reads redact private/session/device/evidence internals
+- SYSTEM tx posture: follower-side block replay rejects mutating SYSTEM txs that do not match deterministic scheduler output
+- Helper posture: helper execution metadata is committed by `helper_execution_root` when present
 
 Before publishing, rerun:
 
@@ -167,6 +172,7 @@ pytest
 python3 -S scripts/check_tx_canon_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
+bash scripts/verify_release_dependencies.sh
 ```
 
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
@@ -174,11 +180,14 @@ bash scripts/verify_release_tree.sh
 
 - Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
-- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+- SYSTEM txs received in blocks must be scheduler-bound before apply.
+- Helper execution metadata is committed by `helper_execution_root` when present.
+- Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 

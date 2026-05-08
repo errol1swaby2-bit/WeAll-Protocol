@@ -1,6 +1,6 @@
 # WeAll Protocol — Production Posture Specification
 
-Version: 1.0  
+Version: 1.1  
 Applies to: WeAll Genesis Node (HotStuff BFT runtime)  
 Status: REQUIRED for public-validator and production deployment
 
@@ -67,7 +67,7 @@ Production nodes MUST run with:
 
 `WEALL_MODE=prod`
 
-No implicit default is allowed.
+No implicit default is allowed. Controlled genesis bootstrap mode is documented separately and must not be confused with public validator production-service mode.
 
 ### 3.2 Required Startup Conditions
 
@@ -126,6 +126,26 @@ Current pinned tx payload limits:
 | `max_tx_payload_str_len` | 65536 |
 | `max_tx_payload_nodes` | 50000 |
 
+### 3.6 SYSTEM Transaction Replay Binding
+
+Mutating SYSTEM transactions are protocol authority actions, not proposer discretion.
+A received block MUST reject a SYSTEM tx before domain apply unless the tx is bound
+to locally recomputed deterministic scheduler output.
+
+Follower-side replay MUST validate at least:
+
+- `_system_queue_id`
+- `_due_height`
+- queue item existence
+- tx type
+- queue phase
+- signer
+- parent reference, when present
+- canonical payload hash
+- once/emitted-height status
+
+This rule applies to received blocks as well as locally built block candidates.
+
 ## 4. Secrets and Configuration
 
 ### 4.1 Secret Sources
@@ -177,6 +197,8 @@ It MUST NOT exist in the normal production runtime or normal user-facing UI.
 
 Helpers remain subordinate to HotStuff and MUST remain fail-closed behind explicit production gates until serial equivalence, deterministic restart behavior, replay-safe receipts, fallback behavior, and adversarial testing are proven.
 
+When helper execution metadata is present in a block, it MUST be committed through `helper_execution_root` in the block header. A node MUST reject helper metadata/root mismatches, missing metadata for a committed root, or unexpected helper metadata without the required commitment in helper-enabled production contexts.
+
 ## 8. Operator Bundle Requirements
 
 Production deployment MUST NOT rely on dev tooling.
@@ -186,7 +208,10 @@ Required:
 - `python3 -S scripts/check_tx_canon_artifacts.py` passes
 - `bash scripts/secret_guard.sh` passes
 - `bash scripts/verify_release_tree.sh` passes
+- `bash scripts/verify_release_dependencies.sh` passes
 - release tree contains no local runtime DBs, devnet state, demo secrets, or generated bootstrap secret/result artifacts
+- backend `requirements.lock` and `requirements-dev.lock` are committed, pinned, and hashed
+- frontend `web/package-lock.json` is committed and used with `npm ci`
 - dedicated production start script
 - dedicated stop script
 - structured logging
@@ -198,6 +223,7 @@ Required:
 Production launch requires:
 
 - full test suite passing
+- tx canon, secret guard, release tree, and dependency-lock verification passing
 - clean production startup in a fresh environment
 - restart equivalence verified
 - onboarding flow verified
@@ -219,12 +245,16 @@ Violations of this production posture MUST result in:
 ## Release truth checkpoint
 
 - Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
+- Latest full backend test checkpoint: **2789 passed, 1 warning**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
+- Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
+- SYSTEM txs received in blocks must be scheduler-bound before apply.
+- Helper execution metadata is committed by `helper_execution_root` when present.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
-- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
+- Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 

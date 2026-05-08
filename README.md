@@ -4,7 +4,7 @@ WeAll is an experimental deterministic coordination protocol and social applicat
 
 The current repository demonstrates a local, fresh-clone, one-command development flow that boots a full local demo environment, seeds a demo account, and shows core social coordination surfaces in the frontend.
 
-WeAll is **not production-ready yet**. This repository should currently be treated as a local development and demo environment, not as a public validator network or production social platform.
+WeAll is **production-candidate protocol software under active hardening**, with a working local demo and green release checks. It should still not be treated as a public mainnet, public user launch, or irreversible production governance system without a final public-validator beta rehearsal and external security review.
 
 ---
 
@@ -84,7 +84,7 @@ The target model does **not** require:
 
 The goal is to make human verification part of the protocol process itself through challenge, evidence commitment, juror review, threshold finalization, receipts, and deterministic state transitions.
 
-This area is still under active implementation and review.
+This area is implemented as the current protocol-native direction and remains under active review and hardening.
 
 ---
 
@@ -113,12 +113,10 @@ The demo is intended to make the current architecture inspectable and easier to 
 
 This repository does **not** currently claim:
 
-- production readiness
-- public validator readiness
-- adversarial multi-node readiness
-- full security audit completion
-- economic activation readiness
 - public mainnet readiness
+- public user/social launch readiness
+- full external security audit completion
+- economic activation readiness
 - stable public API guarantees
 - final protocol semantics
 - complete frontend product maturity
@@ -132,10 +130,15 @@ Those require additional testing, review, hardening, documentation, and operatio
 This repository snapshot is synchronized at:
 
 - **Transaction canon:** 230 tx types, version 1.25.0
-- **Current posture:** local development/demo prototype, not production validator readiness
-- **Release checks:** tx canon synchronization, secret guard, and release-tree hygiene should pass before publishing changes
+- **Latest full backend test checkpoint:** `2789 passed, 1 warning`
+- **PoH posture:** two-tier native async/live human verification; no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider
+- **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers
+- **Consensus authority hardening:** follower-side SYSTEM tx replay binding is enforced against deterministic scheduler output before apply
+- **Helper hardening:** helper execution metadata is block-header committed through `helper_execution_root`
+- **Dependency posture:** backend lockfiles and frontend `package-lock.json` are present and release-verified
+- **Release checks:** tx canon synchronization, secret guard, release-tree hygiene, and dependency-lock verification should pass before publishing changes
 
-This checkpoint is included so reviewers can compare the public README against the generated transaction-canon artifacts without treating the repository as production-ready.
+This checkpoint is included so reviewers can compare the public README against generated artifacts without treating the repository as public-mainnet-ready.
 
 ---
 
@@ -259,19 +262,24 @@ From the backend directory:
 ```bash
 cd Weall-Protocol
 
+pytest
 python3 -S scripts/check_tx_canon_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
+bash scripts/verify_release_dependencies.sh
 ```
 
-From the frontend directory:
+From the frontend directory, with the backend running at `http://127.0.0.1:8000` for the contract check:
 
 ```bash
 cd web
+npm ci
+API_BASE=http://127.0.0.1:8000 npm run contract-check
+npm run typecheck
 npm run build
 ```
 
-These checks should pass before committing changes.
+These checks should pass before committing release-relevant changes.
 
 ---
 
@@ -372,14 +380,14 @@ Do not use this code to run production funds, public validator infrastructure, o
 
 Before any public production deployment, the project still needs deeper validation, including:
 
-- multi-node testing
-- adversarial consensus testing
-- persistence and restart testing
+- additional multi-node public-validator beta testing
+- adversarial consensus review
+- persistence and restart rehearsals
 - role/gate bypass testing
 - frontend/backend authority review
 - privacy review
-- deployment hardening
-- operator documentation
+- deployment rehearsals in a fresh operator environment
+- operator documentation review
 - external security review
 
 ---
@@ -392,9 +400,9 @@ WeAll Protocol is licensed under the Mozilla Public License 2.0. See `LICENSE`.
 
 ## Current Summary
 
-WeAll currently has a working local fresh-clone demo path.
+WeAll currently has a working local fresh-clone demo path and a production-candidate backend posture with synchronized transaction canon, release-hygiene gates, dependency locks, adaptive Live PoH, scheduler-bound SYSTEM tx replay, and helper execution root commitment.
 
-That means the project can now be cloned, booted, and inspected as a running social coordination prototype from scratch.
+That means the project can now be cloned, booted, inspected, and audited as a running deterministic social coordination protocol prototype.
 
-The next major work is to keep hardening the protocol, frontend, testing, and operator path without overstating production readiness.
+The next major work is a final public-validator beta readiness rehearsal: fresh-clone operator packaging, multi-node launch practice, documentation review, and external security review before any public production network claims.
 
