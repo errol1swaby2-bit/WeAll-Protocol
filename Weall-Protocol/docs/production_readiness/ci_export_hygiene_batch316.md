@@ -61,7 +61,6 @@ Use the root helper:
 
 ```bash
 cd ~/WeAll-Protocol
-bash scripts/create_audit_archive.sh /mnt/c/Users/Errol/Downloads
 ```
 
 The archive excludes local runtime/build artifacts but intentionally keeps release lockfiles:
