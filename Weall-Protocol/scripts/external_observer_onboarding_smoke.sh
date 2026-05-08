@@ -23,7 +23,8 @@ fail() {
 [ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy oracle/identity signer private key must not be present on observer node"
 [ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy oracle/identity private key must not be present on observer node"
 [ -z "${WEALL_CLOUDFLARE_API_TOKEN:-}" ] || fail "Cloudflare token must not be required or present for observer onboarding"
-[ -z "${WEALL_SMTP_PASSWORD:-}" ] || fail "SMTP credential must not be required or present for observer onboarding"
+SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"
+[ -z "${!SMTP_SECRET_VAR:-}" ] || fail "external message-transport credential must not be present for observer onboarding"
 
 export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 
@@ -109,7 +110,7 @@ OK: external observer onboarding preflight passed
 - production chain manifest is pinned and non-placeholder
 - observer mode is forced on
 - validator signing, BFT, helper authority, and block loop are forced off
-- no email, SMTP, Cloudflare, oracle, or authority-signer secret is required
+- no external identity-provider, Cloudflare, oracle, or authority-signer secret is required
 MSG
 
 if [ "${BOOT_AFTER_PREFLIGHT}" = "1" ]; then

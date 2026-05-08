@@ -275,6 +275,37 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
     if parent_ref:
         tally_payload["_parent_ref"] = parent_ref
 
+    # Governance proposals that carry executable actions must not mutate directly
+    # during user-vote apply. They are advanced only by the scheduler-bound SYSTEM
+    # txs enqueued below, which keeps execution authority auditable and replay-bound.
+    # Lightweight no-action proposals keep the older direct-finalize mirror for
+    # legacy direct domain-apply tests and local decision flows without an enclosing
+    # post-phase SYSTEM tx emitter.
+    actions = _l(pr.get("actions"))
+    should_direct_finalize = len(actions) == 0
+    h = int(current_height)
+    if should_direct_finalize:
+        pr["closed_at_height"] = int(pr.get("closed_at_height") or h)
+        pr["tallied_at_height"] = int(pr.get("tallied_at_height") or h)
+        tallies = pr.get("tallies")
+        if not isinstance(tallies, list):
+            tallies = []
+            pr["tallies"] = tallies
+        already_tallied = any(
+            isinstance(item, dict)
+            and isinstance(item.get("payload"), dict)
+            and item["payload"].get("proposal_id") == proposal_id
+            and item["payload"].get("vote_window") == tally_payload.get("vote_window")
+            for item in tallies
+        )
+        if not already_tallied:
+            tallies.append({"height": h, "payload": dict(tally_payload)})
+        if stage != "poll" and bool(tally_payload["passed"]):
+            pr["executed_at_height"] = int(pr.get("executed_at_height") or h)
+        pr["stage"] = "finalized"
+        pr["finalized_at_height"] = int(pr.get("finalized_at_height") or h)
+        pr["updated_at_height"] = h
+
     close_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
     enqueue_system_tx(
         state,
@@ -753,14 +784,8 @@ def _apply_gov_voting_close(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     pr = _proposal(root, proposal_id)
     stg = _stage(pr)
-    if stg == "closed":
+    if stg == "closed" or _is_terminal_governance_stage(stg):
         return {"applied": True, "proposal_id": proposal_id, "deduped": True}
-    if _is_terminal_governance_stage(stg):
-        raise ApplyError(
-            "forbidden",
-            "proposal_not_closable",
-            {"proposal_id": proposal_id, "stage": stg},
-        )
     if stg not in {"poll", "voting", "vote"}:
         raise ApplyError(
             "forbidden",
@@ -784,7 +809,7 @@ def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     pr = _proposal(root, proposal_id)
     stg = _stage(pr)
-    if stg == "tallied":
+    if stg == "tallied" or _is_terminal_governance_stage(stg):
         return {"applied": True, "proposal_id": proposal_id, "deduped": True}
     if stg not in {"closed", "voting", "vote"}:
         raise ApplyError(
@@ -815,7 +840,7 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     pr = _proposal(root, proposal_id)
     stg = _stage(pr)
-    if stg == "executed":
+    if stg == "executed" or stg == "finalized":
         return {"applied": True, "proposal_id": proposal_id, "deduped": True}
 
     is_legacy_system_path = bool(env.system and str(env.signer) == "SYSTEM")

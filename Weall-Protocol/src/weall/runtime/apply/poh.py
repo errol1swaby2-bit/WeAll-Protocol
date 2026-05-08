@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_validators
 from weall.runtime.errors import ApplyError
 from weall.runtime.poh.live_quorum import (
     DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
@@ -340,6 +341,49 @@ def _require_account_exists(
     return acct
 
 
+def _active_validator_count_for_bootstrap_sunset(state: Json) -> int:
+    """Return the committed active-validator count used to sunset PoH bootstrap.
+
+    This is intentionally consensus-state only.  Environment variables, local node
+    posture, relay status, or frontend/operator flags must never keep bootstrap
+    authority alive once the chain has enough active validators to run regular BFT
+    quorum.
+    """
+    candidates: list[str] = []
+
+    roles = state.get("roles")
+    if isinstance(roles, dict):
+        validators = roles.get("validators")
+        if isinstance(validators, dict) and isinstance(validators.get("active_set"), list):
+            candidates = [str(item).strip() for item in validators.get("active_set") or []]
+
+    if not candidates:
+        consensus = state.get("consensus")
+        if isinstance(consensus, dict):
+            validator_set = consensus.get("validator_set")
+            if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+                candidates = [str(item).strip() for item in validator_set.get("active_set") or []]
+
+    return len(normalize_validators([item for item in candidates if item]))
+
+
+def _bootstrap_auto_locked_by_validator_quorum(state: Json) -> tuple[bool, Json]:
+    """Hard stop for genesis/bootstrap PoH once regular BFT can run.
+
+    The sunset threshold is deliberately hardcoded to BFT_MIN_VALIDATORS so a
+    governance/operator parameter cannot accidentally extend bootstrap identity
+    authority after the validator set is large enough for the normal protocol
+    quorum path.
+    """
+    active_count = _active_validator_count_for_bootstrap_sunset(state)
+    required = int(BFT_MIN_VALIDATORS)
+    return active_count >= required, {
+        "active_validators": int(active_count),
+        "required_active_validators": int(required),
+        "rule": "active_validators>=BFT_MIN_VALIDATORS",
+    }
+
+
 def _consensus_bootstrap_open_enabled(state: Json) -> bool:
     params = state.get("params")
     params = params if isinstance(params, dict) else {}
@@ -616,6 +660,12 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
 
     current_height = int(state.get("height") or 0)
     params = state.get("params") or {}
+    auto_locked, auto_lock_meta = _bootstrap_auto_locked_by_validator_quorum(state)
+    if auto_locked:
+        detail = {"account_id": account_id}
+        detail.update(auto_lock_meta)
+        raise ApplyError("forbidden", "bootstrap_auto_locked_validator_quorum", detail)
+
     mode = _consensus_bootstrap_policy_mode(state)
 
     if mode == "closed":

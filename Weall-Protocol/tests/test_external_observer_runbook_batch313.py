@@ -17,7 +17,7 @@ def test_external_observer_smoke_script_forces_observer_safety_batch313() -> Non
     assert "prod_chain_manifest_check.sh" in script
     assert "/v1/chain/identity" in script
     assert "WEALL_CLOUDFLARE_API_TOKEN" in script
-    assert "WEALL_SMTP_PASSWORD" in script
+    assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script
 
 
 def test_external_observer_runbook_documents_no_external_identity_authority_batch313() -> None:

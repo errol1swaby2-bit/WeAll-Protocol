@@ -1109,14 +1109,24 @@ class WeAllExecutor:
         return "" if enabled else str(reason or "")
 
     def _explicit_validator_signing_override(self) -> bool:
-        """Allow explicit local signing tools to function even in observer posture.
+        """Allow explicit local signing helpers without piercing observer mode.
 
-        Observer mode still blocks normal automatic validator behavior, but tests and
-        recovery tooling sometimes intentionally reopen a DB and provide a full
-        validator identity tuple explicitly via environment. In that case we allow
-        local signing helpers to emit the exact same vote/timeout/proposal again
-        without weakening the persisted observer diagnostics.
+        Existing recovery tests and operator tools reopen a DB and provide the
+        full validator identity tuple through environment variables.  That
+        compatibility path is still allowed for non-observer nodes.  The hard
+        production boundary is narrower and stricter: a process explicitly
+        started as an observer/onboarding node must never become a validator
+        signer merely because validator key variables are present.
         """
+        if _mode() == "prod" and _env_bool("WEALL_OBSERVER_MODE", False):
+            return False
+        lifecycle_state = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE") or "").strip().lower()
+        if (
+            _mode() == "prod"
+            and lifecycle_state == PRODUCTION_SERVICE
+            and not _env_bool("WEALL_ALLOW_EXPLICIT_VALIDATOR_SIGNING_OVERRIDE", False)
+        ):
+            return False
         acct = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or "").strip()
         pub = str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
         priv = str(os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
@@ -1134,6 +1144,16 @@ class WeAllExecutor:
 
     def observer_mode(self) -> bool:
         return not bool(self.validator_signing_enabled())
+
+    def _prod_observer_block_production_reason(self) -> str:
+        if _mode() != "prod":
+            return ""
+        lifecycle_state = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE") or "").strip().lower()
+        explicit_observer = _env_bool("WEALL_OBSERVER_MODE", False)
+        observer_onboarding = lifecycle_state == "observer_onboarding"
+        if not explicit_observer and not observer_onboarding:
+            return ""
+        return self._effective_signing_block_reason() or ("observer_onboarding" if observer_onboarding else "observer_mode")
 
     def _restore_bft_restart_hints(self) -> None:
         try:
@@ -2349,6 +2369,16 @@ class WeAllExecutor:
         allow_empty: bool | None = None,
     ) -> ExecutorMeta:
         h0 = _safe_int(self.state.get("height"), 0)
+
+        block_forbidden_reason = self._prod_observer_block_production_reason()
+        if block_forbidden_reason:
+            return ExecutorMeta(
+                ok=False,
+                error=f"block_production_forbidden:{block_forbidden_reason}",
+                height=int(h0),
+                block_id=str(self.state.get("tip") or ""),
+                applied_count=0,
+            )
 
         if allow_empty is None:
             allow_empty = str(os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or "").strip().lower() in {
