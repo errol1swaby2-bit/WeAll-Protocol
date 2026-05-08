@@ -372,6 +372,10 @@ class NetMeshLoop:
         self._dial_backoff_max_ms = max(
             self._dial_backoff_ms, _env_int("WEALL_DIAL_BACKOFF_MAX_MS", 15_000)
         )
+        self._addr_gossip_interval_ms = max(
+            250, _env_int("WEALL_NET_ADDR_GOSSIP_INTERVAL_MS", 30_000)
+        )
+        self._last_addr_gossip_ms = 0
 
         self._bft_enabled = bool(effective_bft_enabled(executor=self._executor, default=_env_bool("WEALL_BFT_ENABLED", False)))
 
@@ -471,6 +475,11 @@ class NetMeshLoop:
             server_cert=(os.environ.get("WEALL_NET_TLS_CERT") or None),
             server_key=(os.environ.get("WEALL_NET_TLS_KEY") or None),
             bft_enabled=bool(self._bft_enabled),
+            advertise_uri=(
+                os.environ.get("WEALL_NET_ADVERTISE_URI")
+                or os.environ.get("WEALL_NET_PUBLIC_URI")
+                or None
+            ),
         )
 
         block_provider = getattr(self._executor, "get_block_by_height", None)
@@ -492,6 +501,8 @@ class NetMeshLoop:
             on_bft_vote=self._on_bft_vote,
             on_bft_qc=self._on_bft_qc,
             on_bft_timeout=self._on_bft_timeout,
+            on_peer_addr_records=self._on_peer_addr_records,
+            peer_addr_provider=self._peer_addr_provider,
             ledger_provider=self._state_snapshot,
             sync_service=sync,
         )
@@ -602,6 +613,11 @@ class NetMeshLoop:
                 pass
 
             try:
+                self._addr_gossip_tick()
+            except Exception:
+                pass
+
+            try:
                 self._outbound_tx_gossip_tick()
             except Exception as e:
                 if _is_prod():
@@ -665,6 +681,59 @@ class NetMeshLoop:
                 prev = max(self._dial_backoff_ms, int(self._dial_backoff.get(uri, 0) - now))
                 nxt = min(self._dial_backoff_max_ms, max(self._dial_backoff_ms, prev * 2))
                 self._dial_backoff[uri] = now + nxt
+
+    def _peer_addr_provider(self) -> list[str]:
+        try:
+            peers = list(self._peers_store.read_list() or [])
+        except Exception:
+            return []
+        out: list[str] = []
+        seen: set[str] = set()
+        for entry in peers:
+            if not isinstance(entry, str):
+                continue
+            uri = entry.strip()
+            if not uri or not _is_peer_uri(uri) or uri in seen:
+                continue
+            seen.add(uri)
+            out.append(uri)
+            if len(out) >= int(self._peers_max):
+                break
+        return out
+
+    def _on_peer_addr_records(self, _peer_id: str, records: tuple[Json, ...]) -> None:
+        learned: list[str] = []
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            uri = str(rec.get("uri") or "").strip()
+            if uri and _is_peer_uri(uri):
+                learned.append(uri)
+        if not learned:
+            return
+        try:
+            self._peers_store.merge(learned, force=False)
+            try:
+                log_event(_LOG, "net_addr_gossip_learned", count=len(learned))
+            except Exception:
+                pass
+        except Exception:
+            if _is_prod():
+                raise NetPeerConfigError("peer_addr_gossip_merge_failed")
+
+    def _addr_gossip_tick(self) -> None:
+        if self.node is None:
+            return
+        now = _now_ms()
+        if (now - int(self._last_addr_gossip_ms or 0)) < int(self._addr_gossip_interval_ms):
+            return
+        self._last_addr_gossip_ms = now
+        try:
+            self.node.broadcast_peer_addr()
+        except Exception:
+            if _is_prod():
+                raise
+            return
 
     # ----------------------------
     # Ingress handlers

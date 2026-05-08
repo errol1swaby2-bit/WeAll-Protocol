@@ -15,6 +15,8 @@ from weall.net.messages import (
     BlockProposalMsg,
     BlockVoteMsg,
     MsgType,
+    PeerAddrMsg,
+    PeerGetAddrMsg,
     PeerHello,
     PeerHelloAck,
     PingMsg,
@@ -45,6 +47,8 @@ class WireEncodeError(RuntimeError):
 AnyWireMsg = (
     PeerHello,
     PeerHelloAck,
+    PeerGetAddrMsg,
+    PeerAddrMsg,
     TxEnvelopeMsg,
     BlockProposalMsg,
     BlockVoteMsg,
@@ -82,6 +86,8 @@ def loads_json(data: bytes | str) -> Any:
 _MSG_REGISTRY: dict[MsgType, type[AnyWireMsg]] = {
     MsgType.PEER_HELLO: PeerHello,
     MsgType.PEER_HELLO_ACK: PeerHelloAck,
+    MsgType.PEER_GETADDR: PeerGetAddrMsg,
+    MsgType.PEER_ADDR: PeerAddrMsg,
     MsgType.TX_ENVELOPE: TxEnvelopeMsg,
     MsgType.BLOCK_PROPOSAL: BlockProposalMsg,
     MsgType.BLOCK_VOTE: BlockVoteMsg,
@@ -190,6 +196,9 @@ def _normalize_tuple_fields_for_message(msg_type: MsgType, body: dict[str, Any])
         return b
     if msg_type == MsgType.BLOCK_PROPOSAL:
         b["txs"] = _tupleize(b.get("txs"))
+        return b
+    if msg_type == MsgType.PEER_ADDR:
+        b["addrs"] = _tupleize(b.get("addrs"))
         return b
     if msg_type == MsgType.STATE_SYNC_RESPONSE:
         b["blocks"] = _tupleize(b.get("blocks"))

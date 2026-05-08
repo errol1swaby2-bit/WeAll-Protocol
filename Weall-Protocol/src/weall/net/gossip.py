@@ -1,12 +1,15 @@
 # src/weall/net/gossip.py
 from __future__ import annotations
 
+import json
 import os
 import time
 from dataclasses import dataclass
+from typing import Any
 
-from weall.net.codec import CanonError
+from weall.crypto.ed25519 import sign_ed25519, verify_ed25519_sig
 from weall.net.messages import BlockProposalMsg, TxEnvelopeMsg
+from weall.tx.canon import CanonError
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
 JsonObject = dict[str, object]
@@ -161,3 +164,172 @@ class GossipState:
         self.cfg = cfg
         self.seen = SeenCache(max_seen=cfg.max_seen, ttl_ms=cfg.ttl_ms)
         self.outbox = set()
+
+
+# ---------------------------------------------------------------------
+# Bitcoin-style peer address gossip
+# ---------------------------------------------------------------------
+
+_ADDR_GOSSIP_DOMAIN = "WEALL_PEER_ADDR_V1"
+_SUPPORTED_PEER_URI_PREFIXES = ("tcp://", "tls://")
+
+
+@dataclass(frozen=True, slots=True)
+class PeerAddrGossipConfig:
+    """Compatibility and safety settings for peer-address relay.
+
+    Address gossip is deliberately node-local networking metadata. It helps
+    nodes discover one another, but it does not create consensus authority and
+    must never affect deterministic block validity.
+    """
+
+    chain_id: str
+    schema_version: str
+    tx_index_hash: str
+    max_addrs_per_message: int = 64
+    max_record_ttl_ms: int = 7 * 24 * 60 * 60 * 1000
+    allow_unsigned: bool = True
+
+
+def normalize_peer_uri(uri: Any) -> str:
+    return str(uri or "").strip()
+
+
+def is_supported_peer_uri(uri: Any) -> bool:
+    s = normalize_peer_uri(uri)
+    return bool(s) and s.startswith(_SUPPORTED_PEER_URI_PREFIXES)
+
+
+def _canon_addr_signing_payload(record: JsonObject) -> bytes:
+    data = {
+        "domain": _ADDR_GOSSIP_DOMAIN,
+        "uri": str(record.get("uri") or ""),
+        "peer_id": str(record.get("peer_id") or ""),
+        "chain_id": str(record.get("chain_id") or ""),
+        "schema_version": str(record.get("schema_version") or ""),
+        "tx_index_hash": str(record.get("tx_index_hash") or ""),
+        "valid_from_ms": int(record.get("valid_from_ms") or 0),
+        "expires_at_ms": int(record.get("expires_at_ms") or 0),
+    }
+    return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def make_peer_addr_record(
+    *,
+    uri: str,
+    peer_id: str,
+    chain_id: str,
+    schema_version: str,
+    tx_index_hash: str,
+    now_ms: int | None = None,
+    ttl_ms: int | None = None,
+    pubkey: str | None = None,
+    privkey: str | None = None,
+) -> JsonObject:
+    """Create a relayable peer address record.
+
+    If pubkey+privkey are supplied, the record is Ed25519-signed and can be
+    verified by receivers. Unsigned records are still useful for discovery but
+    remain untrusted hints until the normal PEER_HELLO handshake succeeds.
+    """
+
+    clean_uri = normalize_peer_uri(uri)
+    if not is_supported_peer_uri(clean_uri):
+        raise ValueError("unsupported_peer_uri")
+    now = int(now_ms if now_ms is not None else _now_ms())
+    ttl = int(ttl_ms if ttl_ms is not None else 7 * 24 * 60 * 60 * 1000)
+    if ttl <= 0:
+        ttl = 7 * 24 * 60 * 60 * 1000
+    rec: JsonObject = {
+        "uri": clean_uri,
+        "peer_id": str(peer_id or "").strip(),
+        "chain_id": str(chain_id or "").strip(),
+        "schema_version": str(schema_version or "").strip(),
+        "tx_index_hash": str(tx_index_hash or "").strip(),
+        "valid_from_ms": now,
+        "expires_at_ms": now + ttl,
+        "last_seen_ms": now,
+    }
+    pk = str(pubkey or "").strip()
+    sk = str(privkey or "").strip()
+    if pk and sk:
+        rec["pubkey"] = pk
+        rec["sig_alg"] = "ed25519"
+        rec["sig"] = sign_ed25519(
+            message_bytes=_canon_addr_signing_payload(rec), privkey_str=sk, encoding="hex"
+        )
+    return rec
+
+
+def verify_peer_addr_record(record: Any, *, cfg: PeerAddrGossipConfig, now_ms: int | None = None) -> bool:
+    """Return True only for address records that are safe to persist/relay.
+
+    This function enforces local networking compatibility. It does not grant
+    authority; any later connection still has to pass the hardened handshake.
+    """
+
+    if not isinstance(record, dict):
+        return False
+    uri = normalize_peer_uri(record.get("uri"))
+    if not is_supported_peer_uri(uri):
+        return False
+    if str(record.get("chain_id") or "") != str(cfg.chain_id):
+        return False
+    if str(record.get("schema_version") or "") != str(cfg.schema_version):
+        return False
+    if str(record.get("tx_index_hash") or "") != str(cfg.tx_index_hash):
+        return False
+    now = int(now_ms if now_ms is not None else _now_ms())
+    try:
+        expires_at_ms = int(record.get("expires_at_ms") or 0)
+        valid_from_ms = int(record.get("valid_from_ms") or 0)
+    except Exception:
+        return False
+    if expires_at_ms and expires_at_ms <= now:
+        return False
+    if valid_from_ms and valid_from_ms > now + 5 * 60 * 1000:
+        return False
+    if expires_at_ms and valid_from_ms and int(cfg.max_record_ttl_ms) > 0:
+        if expires_at_ms - valid_from_ms > int(cfg.max_record_ttl_ms):
+            return False
+
+    sig = str(record.get("sig") or "").strip()
+    pubkey = str(record.get("pubkey") or "").strip()
+    if not sig and not pubkey:
+        return bool(cfg.allow_unsigned)
+    if not sig or not pubkey:
+        return False
+    if str(record.get("sig_alg") or "ed25519").lower() != "ed25519":
+        return False
+    try:
+        return bool(verify_ed25519_sig(pubkey, _canon_addr_signing_payload(record), sig))
+    except Exception:
+        return False
+
+
+def filter_peer_addr_records(
+    records: Any,
+    *,
+    cfg: PeerAddrGossipConfig,
+    now_ms: int | None = None,
+) -> tuple[JsonObject, ...]:
+    if not isinstance(records, (list, tuple)):
+        return ()
+    out: list[JsonObject] = []
+    seen: set[str] = set()
+    limit = max(0, int(cfg.max_addrs_per_message))
+    if limit <= 0:
+        return ()
+    for raw in records:
+        if not isinstance(raw, dict):
+            continue
+        if not verify_peer_addr_record(raw, cfg=cfg, now_ms=now_ms):
+            continue
+        uri = normalize_peer_uri(raw.get("uri"))
+        if uri in seen:
+            continue
+        seen.add(uri)
+        out.append(dict(raw))
+        if len(out) >= limit:
+            break
+    return tuple(out)

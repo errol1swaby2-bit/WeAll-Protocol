@@ -19,6 +19,8 @@ from weall.net.messages import (
     BlockProposalMsg,
     BlockVoteMsg,
     MsgType,
+    PeerAddrMsg,
+    PeerGetAddrMsg,
     PingMsg,
     PongMsg,
     StateSyncRequestMsg,
@@ -51,6 +53,8 @@ SyncRequestHandler = Callable[[StateSyncRequestMsg], StateSyncResponseMsg | None
 SyncResponseHandler = Callable[[StateSyncResponseMsg], None]
 
 PingHandler = Callable[[PingMsg], PongMsg | None]
+PeerGetAddrHandler = Callable[[PeerGetAddrMsg], PeerAddrMsg | None]
+PeerAddrHandler = Callable[[PeerAddrMsg], None]
 
 BftProposalHandler = Callable[[BftProposalMsg], None]
 BftVoteHandler = Callable[[BftVoteMsg], None]
@@ -68,6 +72,8 @@ class Router:
     on_sync_request: SyncRequestHandler | None = None
     on_sync_response: SyncResponseHandler | None = None
     on_ping: PingHandler | None = None
+    on_peer_getaddr: PeerGetAddrHandler | None = None
+    on_peer_addr: PeerAddrHandler | None = None
 
     # BFT
     on_bft_proposal: BftProposalHandler | None = None
@@ -104,6 +110,17 @@ class Router:
             require_established(self.handshake)
         except Exception as e:
             raise SessionRequired(str(e)) from e
+
+        # Peer address gossip (Bitcoin-style getaddr/addr)
+        if mtype == MsgType.PEER_GETADDR:
+            if not self.on_peer_getaddr:
+                return None
+            return self.on_peer_getaddr(msg)  # type: ignore[arg-type]
+
+        if mtype == MsgType.PEER_ADDR:
+            if self.on_peer_addr:
+                self.on_peer_addr(msg)  # type: ignore[arg-type]
+            return None
 
         # TX gossip
         if mtype == MsgType.TX_ENVELOPE:

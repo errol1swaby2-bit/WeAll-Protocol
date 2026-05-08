@@ -17,6 +17,8 @@ PeerId = str
 class MsgType(Enum):
     PEER_HELLO = "PEER_HELLO"
     PEER_HELLO_ACK = "PEER_HELLO_ACK"
+    PEER_GETADDR = "PEER_GETADDR"
+    PEER_ADDR = "PEER_ADDR"
 
     TX_ENVELOPE = "TX_ENVELOPE"
 
@@ -82,6 +84,28 @@ class PeerHelloAck(WireMessage):
     genesis_bootstrap_profile_hash: str | None = None
     genesis_bootstrap_enabled: bool | None = None
     genesis_bootstrap_mode: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PeerGetAddrMsg(WireMessage):
+    """Request a bounded set of peer address records from an established peer.
+
+    Bitcoin analogy: getaddr. This message is only valid after the
+    PEER_HELLO/PEER_HELLO_ACK session is established.
+    """
+
+    max_addrs: int = 50
+
+
+@dataclass(frozen=True, slots=True)
+class PeerAddrMsg(WireMessage):
+    """Relay a bounded set of peer address records.
+
+    Bitcoin analogy: addr / addrv2. Records are deliberately JSON objects so
+    the wire shape can evolve without changing this envelope.
+    """
+
+    addrs: tuple[JsonObject, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)

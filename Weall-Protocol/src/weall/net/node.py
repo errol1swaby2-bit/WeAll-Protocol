@@ -5,7 +5,7 @@ import hashlib
 import os
 import time
 from collections import OrderedDict
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,12 +16,21 @@ from weall.net.handshake import (
     HandshakeState,
     begin_outbound_handshake,
 )
+from weall.net.gossip import (
+    PeerAddrGossipConfig,
+    filter_peer_addr_records,
+    is_supported_peer_uri,
+    make_peer_addr_record,
+    normalize_peer_uri,
+)
 from weall.net.messages import (
     BftProposalMsg,
     BftQcMsg,
     BftTimeoutMsg,
     BftVoteMsg,
     MsgType,
+    PeerAddrMsg,
+    PeerGetAddrMsg,
     PeerHello,
     PongMsg,
     StateSyncRequestMsg,
@@ -131,6 +140,10 @@ class NetConfig:
     # backwards compatibility with older tests and direct callers.
     bft_enabled: bool | None = None
 
+    # Optional advertised listening address for Bitcoin-style addr gossip.
+    # This is node-local networking metadata, not consensus state.
+    advertise_uri: str | None = None
+
 
 @dataclass(frozen=True, slots=True)
 class PeerPolicy:
@@ -178,6 +191,9 @@ class PeerPolicy:
     sync_request_ttl_ms: int = 5_000
     recent_completed_sync_responses: int = 256
 
+    # Bitcoin-style peer address relay bounds.
+    max_addr_records_per_message: int = 64
+
 
 @dataclass
 class _PeerRec:
@@ -209,6 +225,12 @@ class _PeerRec:
     sync_responses_dropped: int = 0
     sync_unsolicited_dropped: int = 0
     sync_replayed_dropped: int = 0
+
+    # Peer-address gossip diagnostics.
+    addr_records_received: int = 0
+    addr_records_accepted: int = 0
+    addr_records_rejected: int = 0
+    addr_gossip_requested: bool = False
 
 
 def _make_transport(cfg: NetConfig) -> Transport:
@@ -260,6 +282,8 @@ class NetNode:
         on_bft_vote: Callable[[str, BftVoteMsg], None] | None = None,
         on_bft_qc: Callable[[str, BftQcMsg], None] | None = None,
         on_bft_timeout: Callable[[str, BftTimeoutMsg], None] | None = None,
+        on_peer_addr_records: Callable[[str, tuple[Json, ...]], None] | None = None,
+        peer_addr_provider: Callable[[], Iterable[Json | str]] | None = None,
         ledger_provider: Callable[[], Json] | None = None,
         sync_service: StateSyncService | None = None,
         transport: Transport | None = None,
@@ -272,6 +296,8 @@ class NetNode:
         self.on_bft_vote = on_bft_vote
         self.on_bft_qc = on_bft_qc
         self.on_bft_timeout = on_bft_timeout
+        self.on_peer_addr_records = on_peer_addr_records
+        self.peer_addr_provider = peer_addr_provider
         self.ledger_provider = ledger_provider
         self.sync_service = sync_service
 
@@ -773,6 +799,145 @@ class NetNode:
         return msg
 
     # ----------------------------
+    # Peer address gossip helpers
+    # ----------------------------
+
+    def _addr_gossip_cfg(self) -> PeerAddrGossipConfig:
+        return PeerAddrGossipConfig(
+            chain_id=str(self.cfg.chain_id),
+            schema_version=str(self.cfg.schema_version),
+            tx_index_hash=str(self.cfg.tx_index_hash),
+            max_addrs_per_message=max(1, int(self.peer_policy.max_addr_records_per_message)),
+            allow_unsigned=True,
+        )
+
+    def _advertise_uri(self) -> str:
+        cfg_uri = normalize_peer_uri(getattr(self.cfg, "advertise_uri", "") or "")
+        env_uri = normalize_peer_uri(
+            os.environ.get("WEALL_NET_ADVERTISE_URI")
+            or os.environ.get("WEALL_NET_PUBLIC_URI")
+            or ""
+        )
+        uri = cfg_uri or env_uri
+        return uri if is_supported_peer_uri(uri) else ""
+
+    def _local_addr_records(self) -> tuple[Json, ...]:
+        uri = self._advertise_uri()
+        if not uri:
+            return ()
+        try:
+            rec = make_peer_addr_record(
+                uri=uri,
+                peer_id=str(self.cfg.peer_id or ""),
+                chain_id=str(self.cfg.chain_id),
+                schema_version=str(self.cfg.schema_version),
+                tx_index_hash=str(self.cfg.tx_index_hash),
+                pubkey=getattr(self.cfg, "identity_pubkey", None),
+                privkey=getattr(self.cfg, "identity_privkey", None),
+            )
+            return (rec,)
+        except Exception:
+            return ()
+
+    def _provider_addr_records(self) -> tuple[Json, ...]:
+        provider = self.peer_addr_provider
+        if not provider:
+            return ()
+        try:
+            raw = list(provider() or [])
+        except Exception:
+            return ()
+        records: list[Json] = []
+        now = _now_ms()
+        for item in raw:
+            if isinstance(item, dict):
+                records.append(dict(item))
+                continue
+            uri = normalize_peer_uri(item)
+            if not is_supported_peer_uri(uri):
+                continue
+            try:
+                records.append(
+                    make_peer_addr_record(
+                        uri=uri,
+                        peer_id="",
+                        chain_id=str(self.cfg.chain_id),
+                        schema_version=str(self.cfg.schema_version),
+                        tx_index_hash=str(self.cfg.tx_index_hash),
+                        now_ms=now,
+                    )
+                )
+            except Exception:
+                continue
+        return tuple(records)
+
+    def _known_addr_records(self, *, max_addrs: int | None = None) -> tuple[Json, ...]:
+        cfg = self._addr_gossip_cfg()
+        merged = list(self._local_addr_records()) + list(self._provider_addr_records())
+        if max_addrs is not None:
+            cfg = PeerAddrGossipConfig(
+                chain_id=cfg.chain_id,
+                schema_version=cfg.schema_version,
+                tx_index_hash=cfg.tx_index_hash,
+                max_addrs_per_message=max(0, min(int(cfg.max_addrs_per_message), int(max_addrs))),
+                max_record_ttl_ms=cfg.max_record_ttl_ms,
+                allow_unsigned=cfg.allow_unsigned,
+            )
+        return filter_peer_addr_records(merged, cfg=cfg)
+
+    def _handle_peer_getaddr(self, _peer_id: str, msg: PeerGetAddrMsg) -> PeerAddrMsg:
+        try:
+            requested = int(getattr(msg, "max_addrs", 50) or 50)
+        except Exception:
+            requested = 50
+        hard_cap = max(1, int(self.peer_policy.max_addr_records_per_message))
+        n = max(0, min(requested, hard_cap))
+        return PeerAddrMsg(
+            header=_make_header(self.cfg, MsgType.PEER_ADDR),
+            addrs=self._known_addr_records(max_addrs=n),
+        )
+
+    def _handle_peer_addr(self, peer_id: str, msg: PeerAddrMsg) -> None:
+        rec = self._peers.get(str(peer_id or ""))
+        raw_count = len(tuple(getattr(msg, "addrs", ()) or ()))
+        records = filter_peer_addr_records(getattr(msg, "addrs", ()), cfg=self._addr_gossip_cfg())
+        if rec is not None:
+            rec.addr_records_received += raw_count
+            rec.addr_records_accepted += len(records)
+            rec.addr_records_rejected += max(0, raw_count - len(records))
+        if records and self.on_peer_addr_records:
+            self.on_peer_addr_records(str(peer_id or ""), tuple(records))
+
+    def _request_peer_addrs_once(self, peer_id: str) -> None:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return
+        rec = self._peers.get(pid)
+        if rec is None or rec.addr_gossip_requested:
+            return
+        if not self._peer_is_established(rec):
+            return
+        rec.addr_gossip_requested = True
+        try:
+            self.send_message(
+                pid,
+                PeerGetAddrMsg(
+                    header=_make_header(self.cfg, MsgType.PEER_GETADDR),
+                    max_addrs=max(1, int(self.peer_policy.max_addr_records_per_message)),
+                ),
+            )
+        except Exception:
+            return
+
+    def broadcast_peer_addr(self) -> None:
+        records = self._local_addr_records()
+        if not records:
+            return
+        self.broadcast_message(
+            PeerAddrMsg(header=_make_header(self.cfg, MsgType.PEER_ADDR), addrs=records)
+        )
+
+    # ----------------------------
     # Peer creation + router wiring
     # ----------------------------
 
@@ -846,6 +1011,12 @@ class NetNode:
             ping_id = getattr(msg, "ping_id", None)
             return PongMsg(header=_make_header(self.cfg, MsgType.PONG), ping_id=ping_id)
 
+        def _on_peer_getaddr(msg: PeerGetAddrMsg) -> PeerAddrMsg:
+            return self._handle_peer_getaddr(peer_id, msg)
+
+        def _on_peer_addr(msg: PeerAddrMsg) -> None:
+            self._handle_peer_addr(peer_id, msg)
+
         router = Router(
             handshake=hs,
             on_tx=_on_tx,
@@ -856,6 +1027,8 @@ class NetNode:
             on_sync_request=_on_sync_request,
             on_sync_response=_on_sync_response,
             on_ping=_on_ping,
+            on_peer_getaddr=_on_peer_getaddr,
+            on_peer_addr=_on_peer_addr,
         )
 
         rec = _PeerRec(peer_id=peer_id, router=router)
@@ -983,7 +1156,8 @@ class NetNode:
             self._strike(rec, int(self.peer_policy.strike_decode_fail))
             return
 
-        if self._peer_is_established(rec) and int(rec.established_at_ms) <= 0:
+        established_after_route = self._peer_is_established(rec)
+        if established_after_route and int(rec.established_at_ms) <= 0:
             rec.established_at_ms = int(now)
 
         # Send response if any
@@ -992,6 +1166,9 @@ class NetNode:
                 self.send_message(peer_id, resp)
             except Exception:
                 pass
+
+        if established_after_route:
+            self._request_peer_addrs_once(peer_id)
 
     # ----------------------------
     # Transport helpers (bind/connect/tick)
@@ -1029,6 +1206,9 @@ class NetNode:
                     continue
         except Exception:
             return
+
+    def poll(self, *, max_packets: int = 250) -> None:
+        self.tick(max_packets=max_packets)
 
     def tick(self, *, max_packets: int = 250) -> None:
         self._refresh_conns()
@@ -1177,6 +1357,10 @@ class NetNode:
                     "sync_responses_dropped": int(rec.sync_responses_dropped),
                     "sync_unsolicited_dropped": int(rec.sync_unsolicited_dropped),
                     "sync_replayed_dropped": int(rec.sync_replayed_dropped),
+                    "addr_records_received": int(rec.addr_records_received),
+                    "addr_records_accepted": int(rec.addr_records_accepted),
+                    "addr_records_rejected": int(rec.addr_records_rejected),
+                    "addr_gossip_requested": bool(rec.addr_gossip_requested),
                 }
             )
 
