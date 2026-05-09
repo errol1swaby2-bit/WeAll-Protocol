@@ -62,11 +62,127 @@ def _min_rep_units(*, min_rep_units: int | None = None, min_rep: Any = 0) -> int
     return max(0, threshold_to_units(min_rep, default=0))
 
 
+
+
+def _identity_variants(value: Any) -> list[str]:
+    s = str(value or "").strip()
+    if not s:
+        return []
+    base = s[1:] if s.startswith("@") else s
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in (s, base, f"@{base}" if base else ""):
+        c = str(candidate or "").strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _matches_identity_collection(account_id: str, values: Any) -> bool:
+    variants = set(_identity_variants(account_id))
+    for value in values or []:
+        if variants.intersection(_identity_variants(value)):
+            return True
+    return False
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on", "active", "enabled"}
+    return False
+
+
+def _record_blocked(rec: Any) -> bool:
+    if not isinstance(rec, dict):
+        return False
+    for key in ("banned", "blocked", "disabled", "removed", "replaced", "revoked", "suspended"):
+        if _truthy(rec.get(key)):
+            return True
+    status = str(rec.get("status") or "").strip().lower()
+    return status in {
+        "banned",
+        "blocked",
+        "declined",
+        "disabled",
+        "inactive",
+        "removed",
+        "replaced",
+        "retired",
+        "revoked",
+        "suspended",
+    }
+
+
+def _record_active(rec: Any) -> bool:
+    if not isinstance(rec, dict):
+        return False
+    if _record_blocked(rec):
+        return False
+    if _truthy(rec.get("active")) or _truthy(rec.get("activated")) or _truthy(rec.get("enabled")):
+        return True
+    status = str(rec.get("status") or "").strip().lower()
+    return status in {"active", "activated", "enabled", "juror", "live"}
+
+
+def _role_record_for_identity(mapping: Json, account_id: str) -> Json:
+    for variant in _identity_variants(account_id):
+        rec = mapping.get(variant)
+        if isinstance(rec, dict):
+            return rec
+    return {}
+
+
+def _active_juror_role(state: Json, account_id: str) -> bool:
+    roles = _as_dict(state.get("roles"))
+    jurors = _as_dict(roles.get("jurors"))
+    by_id = _as_dict(jurors.get("by_id"))
+    rec = _role_record_for_identity(by_id, account_id)
+    if rec and _record_blocked(rec):
+        return False
+    if _matches_identity_collection(account_id, jurors.get("active_set", [])):
+        return True
+    return _record_active(rec)
+
+
+def _blocked_juror_role(state: Json, account_id: str) -> bool:
+    roles = _as_dict(state.get("roles"))
+    jurors = _as_dict(roles.get("jurors"))
+    by_id = _as_dict(jurors.get("by_id"))
+    rec = _role_record_for_identity(by_id, account_id)
+    return bool(rec) and _record_blocked(rec)
+
+
+def _case_scoped_juror_without_role_allowed(state: Json) -> bool:
+    params = _as_dict(state.get("params"))
+    for key in (
+        "allow_case_scoped_juror_without_role",
+        "poh_allow_case_scoped_juror_without_role",
+        "bootstrap_allow_case_scoped_juror_without_role",
+    ):
+        if _truthy(params.get(key)):
+            return True
+    return False
+
+
+def _juror_role_required_for_assignment(state: Json, *, allow_roleless_bootstrap: bool = False) -> bool:
+    # Assignment must mirror the Juror admission gate.  The only exception is an
+    # explicit chain-state bootstrap compatibility flag used by controlled
+    # genesis/devnet phases before the active Juror role set exists.
+    return not (bool(allow_roleless_bootstrap) or _case_scoped_juror_without_role_allowed(state))
+
+
 def eligible_live_jurors(
     *,
     state: Json,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
+    allow_roleless_bootstrap: bool = False,
 ) -> list[str]:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -81,12 +197,17 @@ def eligible_live_jurors(
         tier = _as_int(rec.get("poh_tier", 0), 0)
         if tier < 2:
             continue
+        aid = _as_str(account_id).strip()
+        if not aid:
+            continue
+        if _blocked_juror_role(state, aid):
+            continue
+        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not _active_juror_role(state, aid):
+            continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
             continue
-        aid = _as_str(account_id).strip()
-        if aid:
-            out.append(aid)
+        out.append(aid)
 
     # deterministic ordering baseline (before seeded shuffle)
     out.sort()
@@ -98,6 +219,7 @@ def eligible_tier2_jurors(
     state: Json,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
+    allow_roleless_bootstrap: bool = False,
 ) -> list[str]:
     """Eligible jurors for Tier 2 reviews.
 
@@ -116,12 +238,17 @@ def eligible_tier2_jurors(
         tier = _as_int(rec.get("poh_tier", 0), 0)
         if tier < 2:
             continue
+        aid = _as_str(account_id).strip()
+        if not aid:
+            continue
+        if _blocked_juror_role(state, aid):
+            continue
+        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not _active_juror_role(state, aid):
+            continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
             continue
-        aid = _as_str(account_id).strip()
-        if aid:
-            out.append(aid)
+        out.append(aid)
 
     out.sort()
     return out
@@ -233,6 +360,7 @@ def pick_live_jurors(
         state=state,
         min_rep_units=min_rep_units,
         min_rep=min_rep,
+        allow_roleless_bootstrap=bool(allow_partial),
     )
     pool = [a for a in pool if a != target_account]
 

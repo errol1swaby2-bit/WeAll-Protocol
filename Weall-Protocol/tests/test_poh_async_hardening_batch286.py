@@ -44,6 +44,11 @@ def _state() -> dict:
             "j4": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
         },
         "poh": {},
+        "roles": {
+            "jurors": {
+                "active_set": ["j1", "j2", "j3", "j4"],
+            }
+        },
         "params": {
             "poh": {
                 "async_n_jurors": 3,

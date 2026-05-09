@@ -4,6 +4,7 @@ import hashlib
 from typing import Any
 
 from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_validators
+from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
 from weall.runtime.errors import ApplyError
 from weall.runtime.poh.live_quorum import (
     DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
@@ -707,6 +708,20 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
             acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
         except Exception:
             acct["nonce"] = int(nonce)
+        record_bootstrap_tier2_grant(
+            state,
+            account_id=account_id,
+            signer=signer,
+            mode="open",
+            source="poh_bootstrap_tx",
+            height=current_height,
+            tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+            nonce=nonce,
+            authority_path="self_signed_open_bootstrap",
+            reason_code=str(payload.get("reason_code") or "bootstrap_open_live_verified"),
+            expires_height=max_h,
+            pubkey=expected_pubkey,
+        )
         _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap_open", ts_ms=0)
         return
 
@@ -749,6 +764,20 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
         acct["nonce"] = max(int(acct.get("nonce") or 0), int(nonce))
     except Exception:
         acct["nonce"] = int(nonce)
+    record_bootstrap_tier2_grant(
+        state,
+        account_id=account_id,
+        signer=signer,
+        mode="allowlist",
+        source="poh_bootstrap_tx",
+        height=current_height,
+        tx_type="POH_BOOTSTRAP_TIER2_GRANT",
+        nonce=nonce,
+        authority_path="allowlist_bootstrap",
+        reason_code=str(payload.get("reason_code") or entry.get("reason_code") or "bootstrap_allowlist_live_verified"),
+        expires_height=expires_height,
+        pubkey=expected_pubkey,
+    )
     _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap", ts_ms=0)
 
 

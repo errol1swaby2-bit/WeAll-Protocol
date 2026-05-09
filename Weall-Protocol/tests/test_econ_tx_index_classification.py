@@ -29,6 +29,7 @@ def test_econ_classification_matches_tx_index(entry: dict) -> None:
     name = str(entry.get("name") or "").strip().upper()
     domain = str(entry.get("domain") or "").strip()
     ctx = str(entry.get("context") or "").strip().lower()
+    origin = str(entry.get("origin") or "").strip().upper()
     receipt_only = bool(entry.get("receipt_only", False))
 
     if not name:
@@ -41,9 +42,9 @@ def test_econ_classification_matches_tx_index(entry: dict) -> None:
         assert is_economic_system_tx(name) is False
         return
 
-    if ctx == "user":
+    if origin == "USER" or ctx == "user":
         assert is_economic_user_tx(name) is True
-        # user-context txs should not be classified as system economic
+        # user-origin txs should not be classified as system economic
         assert is_economic_system_tx(name) is False
         return
 

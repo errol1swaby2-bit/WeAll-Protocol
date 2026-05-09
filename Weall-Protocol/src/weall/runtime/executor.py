@@ -39,6 +39,7 @@ from weall.runtime.bft_hotstuff import (
 )
 from weall.runtime.bft_journal import BftJournal
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block, admit_block_txs
+from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
 from weall.runtime.block_hash import compute_block_hash, compute_helper_execution_root, compute_receipts_root, ensure_block_hash, make_block_header
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.chain_config import load_chain_config
@@ -1697,6 +1698,21 @@ class WeAllExecutor:
         op_rec.setdefault("updated_at_nonce", 0)
         op_rec.setdefault("source", "genesis_bootstrap")
         storage["operators"][acct] = op_rec
+
+        record_bootstrap_tier2_grant(
+            state,
+            account_id=acct,
+            signer=acct,
+            mode=str(profile.get("mode") or "genesis_bootstrap"),
+            source="genesis_state",
+            height=0,
+            tx_type="GENESIS_BOOTSTRAP_TIER2_GRANT",
+            nonce=0,
+            authority_path="genesis_bootstrap_profile",
+            reason_code="genesis_bootstrap_live",
+            expires_height=None,
+            pubkey=pk,
+        )
 
     # ----------------------------
     # DB consistency checks

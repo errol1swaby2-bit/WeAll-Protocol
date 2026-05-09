@@ -28,6 +28,11 @@ def _tier2_state() -> Json:
                 "tier2_min_rep_milli": 0,
             }
         },
+        "roles": {
+            "jurors": {
+                "active_set": ["@j1", "@j2", "@j3"],
+            }
+        },
         "poh": {
             "tier2_cases": {
                 "case-1": {
@@ -50,6 +55,11 @@ def _live_state() -> Json:
             **{f"@j{i}": {"poh_tier": 2, "reputation_milli": 5000} for i in range(1, 12)},
         },
         "params": {"poh": {"live_min_rep_milli": 0}},
+        "roles": {
+            "jurors": {
+                "active_set": [f"@j{i}" for i in range(1, 12)],
+            }
+        },
         "poh": {
             "live_cases": {
                 "case-3": {

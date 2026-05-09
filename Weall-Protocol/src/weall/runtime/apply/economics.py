@@ -205,18 +205,83 @@ def _apply_fee_policy_set(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
-    _require_system_env(env)
+    """Apply a user-origin fee payment after economics activation.
+
+    Canon marks FEE_PAY as USER/mempool/Tier0+.  This function therefore must
+    not require SYSTEM context.  When ``amount`` is positive, the signer (or
+    explicit from_account_id, which must equal the signer) is debited and an
+    optional fee sink account is credited.  Zero-amount records are allowed for
+    compatibility with older accounting receipts but never mint value.
+    """
+
     _wrap_time_lock(state)
     _wrap_disabled(state, "FEE_PAY")
 
     payload = _as_dict(env.payload)
     econ = _ensure_econ_root(state)
+    signer = _as_str(env.signer).strip()
+    from_account = _as_str(payload.get("from_account_id") or payload.get("from") or signer).strip()
+    if from_account and signer and from_account != signer:
+        raise EconomicsApplyError(
+            "forbidden",
+            "fee_pay_signer_mismatch",
+            {"signer": signer, "from_account_id": from_account},
+        )
+    if not from_account:
+        raise EconomicsApplyError("invalid_payload", "missing_from_account", {"tx_type": env.tx_type})
 
-    # Deterministic append order is the order of execution (block tx order).
-    econ["fee_payments"].append(
-        {"at_nonce": int(env.nonce), "payload": payload, "parent": env.parent}
-    )
-    return {"applied": "FEE_PAY"}
+    amount = _as_int(payload.get("amount"), 0)
+    if amount < 0:
+        raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": payload.get("amount")})
+
+    to_account = _as_str(
+        payload.get("to_account_id")
+        or payload.get("to")
+        or payload.get("target")
+        or _as_dict(state.get("params")).get("fee_sink_account")
+        or ""
+    ).strip()
+
+    if amount > 0:
+        accounts = state.get("accounts")
+        if not isinstance(accounts, dict):
+            raise EconomicsApplyError("invalid_state", "missing_accounts", {})
+        payer = accounts.get(from_account)
+        if not isinstance(payer, dict):
+            raise EconomicsApplyError("not_found", "from_account_missing", {"from": from_account})
+        balance = _as_int(payer.get("balance"), 0)
+        if balance < amount:
+            raise EconomicsApplyError(
+                "forbidden", "insufficient_funds", {"balance": balance, "amount": amount}
+            )
+        payer["balance"] = balance - amount
+        if to_account:
+            sink = accounts.get(to_account)
+            if not isinstance(sink, dict):
+                sink = {
+                    "nonce": 0,
+                    "poh_tier": 0,
+                    "banned": False,
+                    "locked": False,
+                    "balance": 0,
+                    "reputation": "0",
+                    "keys": [],
+                }
+                accounts[to_account] = sink
+            sink["balance"] = _as_int(sink.get("balance"), 0) + amount
+
+    payment = {
+        "at_nonce": int(env.nonce),
+        "from": from_account,
+        "to": to_account,
+        "amount": int(amount),
+        "tx_id": _as_str(payload.get("tx_id")),
+        "tx_type": _as_str(payload.get("tx_type")),
+        "payload": payload,
+        "parent": env.parent,
+    }
+    econ["fee_payments"].append(payment)
+    return {"applied": "FEE_PAY", "from": from_account, "to": to_account, "amount": int(amount)}
 
 
 def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:

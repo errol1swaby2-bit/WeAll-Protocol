@@ -52,6 +52,19 @@ export WEALL_GENESIS_API_BASE=https://<genesis-api-host>
 bash scripts/external_observer_onboarding_smoke.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
+For the final two-machine rehearsal before inviting the tester, use the stricter remote-only wrapper:
+
+```bash
+export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bundle.json
+export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
+export WEALL_GENESIS_API_BASE=https://<genesis-api-host>
+export WEALL_NET_RELAY_URLS=https://<relay-host>   # optional, comma-separated when present
+
+bash scripts/rehearse_external_observer_two_machine.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+```
+
+The rehearsal wrapper refuses localhost genesis URLs, forces observer-only posture, checks `/v1/health`, `/v1/ready`, `/v1/chain/identity`, and verifies every configured relay reports `transport_only`.
+
 This smoke path verifies:
 
 - the bundle matches the local manifest

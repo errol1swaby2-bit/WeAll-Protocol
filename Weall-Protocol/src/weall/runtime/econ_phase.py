@@ -111,9 +111,12 @@ def deny_if_econ_time_locked(state: Json, now_s: int | None = None) -> None:
 
 
 def is_economic_user_tx(tx_type: str) -> bool:
-    """Return True if tx_type is a *user-context* economic tx.
+    """Return True if tx_type is a user-origin economic tx.
 
-    Used primarily to distinguish "economic transfers" from civic actions.
+    The generated canon represents externally submitted txs as
+    ``origin=USER`` and ``context=mempool``.  Older helper code used
+    ``context=user``; treating that as the only user marker silently
+    misclassified BALANCE_TRANSFER/FEE_PAY and treasury user actions.
     """
 
     try:
@@ -127,11 +130,13 @@ def is_economic_user_tx(tx_type: str) -> bool:
     if str(entry.get("domain", "")) not in _ECON_DOMAINS:
         return False
 
-    return str(entry.get("context", "")).strip().lower() == "user"
+    origin = str(entry.get("origin", "")).strip().upper()
+    ctx = str(entry.get("context", "")).strip().lower()
+    return origin == "USER" or ctx == "user"
 
 
 def is_economic_system_tx(tx_type: str) -> bool:
-    """Return True if tx_type is a non-user (system/block/validator/peer) economic tx."""
+    """Return True if tx_type is a non-user economic tx."""
 
     try:
         entry = _tx_index().get(tx_type)
@@ -144,11 +149,12 @@ def is_economic_system_tx(tx_type: str) -> bool:
     if str(entry.get("domain", "")) not in _ECON_DOMAINS:
         return False
 
-    ctx = str(entry.get("context", "")).strip().lower()
-    if ctx and ctx != "user":
-        return True
+    if is_economic_user_tx(tx_type):
+        return False
 
-    return bool(entry.get("receipt_only", False))
+    origin = str(entry.get("origin", "")).strip().upper()
+    ctx = str(entry.get("context", "")).strip().lower()
+    return origin in {"SYSTEM", "VALIDATOR"} or ctx == "block" or bool(entry.get("receipt_only", False))
 
 
 def deny_if_econ_disabled(
