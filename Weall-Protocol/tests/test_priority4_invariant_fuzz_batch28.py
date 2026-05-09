@@ -224,6 +224,9 @@ def test_priority4_governance_execute_queue_is_deterministic_and_replay_deduped(
 
     apply_tx(st_a, _env("GOV_PROPOSAL_CREATE", _clone(action_payload), signer="alice", nonce=1))
     apply_tx(st_b, _env("GOV_PROPOSAL_CREATE", _clone(action_payload), signer="alice", nonce=1))
+    for st in (st_a, st_b):
+        st["gov_proposals_by_id"]["prop-q"]["stage"] = "tallied"
+        st["gov_proposals_by_id"]["prop-q"]["tallies"] = [{"payload": {"passed": True}}]
 
     exec_env = _env(
         "GOV_EXECUTE",

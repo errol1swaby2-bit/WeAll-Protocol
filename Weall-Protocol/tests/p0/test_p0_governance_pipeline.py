@@ -436,15 +436,14 @@ def test_gov_tally_publish_requires_vote_close_like_stage(base_state, txf) -> No
     assert pr.get("stage") == "tallied"
 
 
-def test_gov_execute_legacy_system_path_and_tallied_success_path(base_state, txf) -> None:
+def test_gov_execute_requires_passed_tally_and_allows_tallied_success_path(base_state, txf) -> None:
     st = clone_state(base_state)
     pid = "p0-gov-execute"
     apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
 
-    # Current canon preserves a legacy SYSTEM execution path used by queued governance followups.
-    apply_ok(st, _gov_execute(pid, nonce=2))
-    pr = _get_proposal(st, pid)
-    assert pr.get("stage") == "executed"
+    err = apply_err(st, _gov_execute(pid, nonce=2))
+    assert err.code == "forbidden"
+    assert err.reason == "proposal_not_executable"
 
     st2 = clone_state(base_state)
     pid2 = "p0-gov-execute-pass"
@@ -460,7 +459,7 @@ def test_gov_execute_legacy_system_path_and_tallied_success_path(base_state, txf
     assert pr2.get("stage") == "executed"
 
 
-def test_gov_finalize_legacy_system_path_and_post_execute_success(base_state, txf) -> None:
+def test_gov_finalize_requires_execution_and_post_execute_success(base_state, txf) -> None:
     st = clone_state(base_state)
     pid = "p0-gov-finalize"
     apply_ok(st, txf.gov_proposal_create("alice", pid, nonce=1))
@@ -471,10 +470,9 @@ def test_gov_finalize_legacy_system_path_and_post_execute_success(base_state, tx
     apply_ok(st, txf.gov_voting_close(pid, nonce=6))
     apply_ok(st, _tally_publish(pid, nonce=7, passed=True))
 
-    # Current canon preserves a legacy SYSTEM finalize path used by queued governance followups.
-    apply_ok(st, _gov_finalize(pid, nonce=8))
-    pr = _get_proposal(st, pid)
-    assert pr.get("stage") == "finalized"
+    err = apply_err(st, _gov_finalize(pid, nonce=8))
+    assert err.code == "forbidden"
+    assert err.reason == "proposal_not_finalizable"
 
     st2 = clone_state(base_state)
     pid2 = "p0-gov-finalize-post-execute"

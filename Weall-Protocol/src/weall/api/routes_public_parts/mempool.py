@@ -108,7 +108,7 @@ async def mempool_submit(request: Request):
             )
 
     if hasattr(ex, "submit_tx"):
-        meta = ex.submit_tx(body)
+        meta = ex.submit_tx(body, ingress="http")
     else:
         meta = mp.add(body)
 

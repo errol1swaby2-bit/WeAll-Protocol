@@ -68,6 +68,9 @@ def test_gov_execute_enqueues_execution_receipt() -> None:
         ),
     )
 
+    st["gov_proposals_by_id"]["p1"]["stage"] = "tallied"
+    st["gov_proposals_by_id"]["p1"]["tallies"] = [{"payload": {"passed": True}}]
+
     apply_tx(
         st,
         TxEnvelope(
@@ -126,6 +129,9 @@ def test_gov_execute_enqueues_validator_candidate_approve() -> None:
         ),
     )
 
+    st["gov_proposals_by_id"]["p-approve"]["stage"] = "tallied"
+    st["gov_proposals_by_id"]["p-approve"]["tallies"] = [{"payload": {"passed": True}}]
+
     apply_tx(
         st,
         TxEnvelope(
@@ -166,6 +172,8 @@ def test_gov_finalize_enqueues_proposal_receipt() -> None:
             system=False,
         ),
     )
+
+    st["gov_proposals_by_id"]["p2"]["stage"] = "executed"
 
     apply_tx(
         st,

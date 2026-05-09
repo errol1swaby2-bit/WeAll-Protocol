@@ -37,6 +37,26 @@ def test_gov_vote_revoke_rejects_after_finalize_batch109() -> None:
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p-fin", "title": "t"}))
     apply_tx(st, _env("GOV_STAGE_SET", "SYSTEM", 1, {"proposal_id": "p-fin", "stage": "voting", "_due_height": 1}, system=True))
     apply_tx(st, _env("GOV_VOTE_CAST", "bob", 1, {"proposal_id": "p-fin", "vote": "yes"}))
+    apply_tx(st, _env("GOV_VOTING_CLOSE", "SYSTEM", 1, {"proposal_id": "p-fin", "_due_height": 1}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "GOV_TALLY_PUBLISH",
+            "SYSTEM",
+            1,
+            {
+                "proposal_id": "p-fin",
+                "tally": {"yes": 1, "no": 0, "abstain": 0},
+                "total_votes": 1,
+                "quorum_required": 0,
+                "quorum_met": True,
+                "passed": True,
+                "_due_height": 1,
+            },
+            system=True,
+        ),
+    )
+    apply_tx(st, _env("GOV_EXECUTE", "SYSTEM", 1, {"proposal_id": "p-fin", "_due_height": 1}, system=True))
     apply_tx(st, _env("GOV_PROPOSAL_FINALIZE", "SYSTEM", 1, {"proposal_id": "p-fin", "_due_height": 1}, system=True))
 
     with pytest.raises(ApplyError) as exc:

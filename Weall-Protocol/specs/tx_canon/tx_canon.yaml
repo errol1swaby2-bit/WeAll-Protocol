@@ -693,10 +693,12 @@ txs:
 - id: 600
   name: VALIDATOR_REGISTER
   domain: Consensus
-  origin: USER
-  gate: Tier2+
-  context: mempool
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
   receipt_only: false
+  parent: GOV_EXECUTE
+  via_gov_execute: true
 - id: 601
   name: VALIDATOR_CANDIDATE_REGISTER
   domain: Consensus

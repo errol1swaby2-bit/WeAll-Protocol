@@ -112,6 +112,8 @@ def _relay_cfg(request: Request) -> RelayConfig:
         max_ttl_ms=max(1000, _env_int("WEALL_NET_RELAY_MAX_TTL_MS", 10 * 60 * 1000)),
         max_fetch_limit=max(1, _env_int("WEALL_NET_RELAY_FETCH_LIMIT", 100)),
         allow_broadcast_recipient=_env_bool("WEALL_NET_RELAY_ALLOW_BROADCAST", False),
+        max_access_ttl_ms=max(1000, _env_int("WEALL_NET_RELAY_MAX_ACCESS_TTL_MS", 60 * 1000)),
+        allow_unbound_recipient_fetch=(not _is_prod()) or _env_bool("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", False),
     )
 
 
@@ -137,7 +139,7 @@ def _ensure_enabled() -> None:
 def v1_net_relay_status(request: Request) -> Json:
     _ensure_enabled()
     cfg = _relay_cfg(request)
-    status = _relay_spool(request).status()
+    status = _relay_spool(request).status(include_recipients=not _is_prod())
     return {
         "ok": True,
         "enabled": True,
@@ -172,8 +174,19 @@ async def v1_net_relay_submit(request: Request) -> Json:
 
 
 @router.get("/net/relay/fetch")
-def v1_net_relay_fetch(request: Request, recipient_peer_id: str, limit: int = 100) -> Json:
+def v1_net_relay_fetch_legacy(request: Request, recipient_peer_id: str, limit: int = 100) -> Json:
+    """Legacy unsigned fetch retained only for non-production compatibility.
+
+    Production fetch is POST-only and recipient-signed so a third party cannot
+    read another node's mailbox by guessing its peer id.
+    """
     _ensure_enabled()
+    if _is_prod() and not _env_bool("WEALL_NET_RELAY_ALLOW_LEGACY_UNSIGNED_FETCH", False):
+        raise ApiError.bad_request(
+            "relay_fetch_requires_signed_request",
+            "relay fetch requires a signed recipient request",
+            {},
+        )
     try:
         envelopes = _relay_spool(request).fetch(
             recipient_peer_id=str(recipient_peer_id or ""),
@@ -188,6 +201,37 @@ def v1_net_relay_fetch(request: Request, recipient_peer_id: str, limit: int = 10
         "messages": list(envelopes),
         "count": len(envelopes),
         "authority": "transport_only",
+        "legacy_unsigned_fetch": True,
+    }
+
+
+@router.post("/net/relay/fetch")
+async def v1_net_relay_fetch(request: Request) -> Json:
+    _ensure_enabled()
+    body = await _read_json_limited(
+        request,
+        max_bytes_env="WEALL_NET_RELAY_HTTP_MAX_BYTES",
+        default_max_bytes=128 * 1024,
+    )
+    access_request = body.get("access_request") if isinstance(body, dict) and "access_request" in body else body
+    if not isinstance(access_request, dict):
+        raise ApiError.bad_request("bad_request", "invalid relay fetch body", {})
+    try:
+        cfg = _relay_cfg(request)
+        envelopes = _relay_spool(request).fetch_authorized(
+            access_request=access_request,
+            cfg=cfg,
+            limit=int(access_request.get("limit") or cfg.max_fetch_limit),
+        )
+    except RelayEnvelopeError as exc:
+        raise ApiError.bad_request(str(exc.code), "invalid relay fetch", {}) from exc
+    return {
+        "ok": True,
+        "recipient_peer_id": str(access_request.get("recipient_peer_id") or ""),
+        "messages": list(envelopes),
+        "count": len(envelopes),
+        "authority": "transport_only",
+        "recipient_authenticated": True,
     }
 
 
@@ -201,14 +245,27 @@ async def v1_net_relay_ack(request: Request) -> Json:
     )
     if not isinstance(body, dict):
         raise ApiError.bad_request("bad_request", "invalid relay ack body", {})
-    recipient = str(body.get("recipient_peer_id") or "").strip()
-    relay_ids_raw = body.get("relay_ids")
-    relay_ids = relay_ids_raw if isinstance(relay_ids_raw, list) else []
+    access_request = body.get("access_request") if "access_request" in body else body
+    if not isinstance(access_request, dict):
+        raise ApiError.bad_request("bad_request", "invalid relay ack body", {})
+    # Backward-compatible unsigned ACK is allowed only outside production.
+    if "sig" not in access_request and not _is_prod():
+        recipient = str(access_request.get("recipient_peer_id") or "").strip()
+        relay_ids_raw = access_request.get("relay_ids")
+        relay_ids = relay_ids_raw if isinstance(relay_ids_raw, list) else []
+        try:
+            deleted = _relay_spool(request).ack(
+                recipient_peer_id=recipient,
+                relay_ids=tuple(str(x or "").strip() for x in relay_ids),
+            )
+        except RelayEnvelopeError as exc:
+            raise ApiError.bad_request(str(exc.code), "invalid relay ack", {}) from exc
+        return {"ok": True, "acked": int(deleted), "authority": "transport_only", "legacy_unsigned_ack": True}
     try:
-        deleted = _relay_spool(request).ack(
-            recipient_peer_id=recipient,
-            relay_ids=tuple(str(x or "").strip() for x in relay_ids),
+        deleted = _relay_spool(request).ack_authorized(
+            access_request=access_request,
+            cfg=_relay_cfg(request),
         )
     except RelayEnvelopeError as exc:
         raise ApiError.bad_request(str(exc.code), "invalid relay ack", {}) from exc
-    return {"ok": True, "acked": int(deleted), "authority": "transport_only"}
+    return {"ok": True, "acked": int(deleted), "authority": "transport_only", "recipient_authenticated": True}

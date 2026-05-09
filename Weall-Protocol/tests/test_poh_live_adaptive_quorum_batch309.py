@@ -242,6 +242,10 @@ def test_live_quorum_rejects_more_than_ten_jurors() -> None:
 
 def test_live_scheduler_bootstraps_with_partial_eligible_pool() -> None:
     st = _state(juror_count=1)
+    st.setdefault("params", {})["poh"] = {
+        "live_partial_panels_enabled": True,
+        "live_partial_until_height": 5,
+    }
     st["poh"] = {
         "live_cases": {
             "case-live-1": {
@@ -264,3 +268,27 @@ def test_live_scheduler_bootstraps_with_partial_eligible_pool() -> None:
     assert queued["payload"]["jurors"] == ["j1"]
     assert queued["payload"]["live_quorum"]["active_reviewers"] == 1
     assert queued["payload"]["live_quorum"]["required_passes"] == 1
+
+
+def test_live_scheduler_rejects_partial_panel_after_bootstrap_sunset() -> None:
+    st = _state(juror_count=1)
+    st.setdefault("params", {})["poh"] = {
+        "live_partial_panels_enabled": True,
+        "live_partial_until_height": 1,
+    }
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "open",
+                "session_commitment": "sc:1",
+                "room_commitment": "room:1",
+                "prompt_commitment": "prompt:1",
+                "jurors": {},
+            }
+        }
+    }
+
+    assert schedule_poh_live_system_txs(st, next_height=2) == 0
+    assert not st.get("system_queue")

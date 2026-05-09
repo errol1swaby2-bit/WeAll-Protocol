@@ -88,6 +88,28 @@ def _mk_edge_key(a: str, b: str) -> str:
     return f"{a}:{b}"
 
 
+def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: str) -> None:
+    accounts = state.get("accounts")
+    acct = accounts.get(signer) if isinstance(accounts, dict) else None
+    if not isinstance(acct, dict):
+        raise SocialApplyError("forbidden", "account_not_registered", {"account": signer, "action": action})
+    if bool(acct.get("banned", False)):
+        raise SocialApplyError("forbidden", "account_banned", {"account": signer, "action": action})
+    if bool(acct.get("locked", False)):
+        raise SocialApplyError("forbidden", "account_locked", {"account": signer, "action": action})
+    try:
+        tier = int(acct.get("poh_tier", 0) or 0)
+    except Exception:
+        tier = 0
+    if tier < int(min_tier):
+        raise SocialApplyError(
+            "forbidden",
+            "insufficient_poh_tier",
+            {"account": signer, "poh_tier": tier, "required": int(min_tier), "action": action},
+        )
+
+
+
 # ---------------------------------------------------------------------------
 # Profile
 # ---------------------------------------------------------------------------
@@ -117,6 +139,7 @@ def _apply_profile_update(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_follow_set(state: Json, env: TxEnvelope) -> Json:
+    _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="follow_set")
     payload = _as_dict(env.payload)
     target = _as_str(payload.get("target") or payload.get("account_id")).strip()
     active = _as_bool(payload.get("active"), True)
@@ -132,6 +155,7 @@ def _apply_follow_set(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_block_set(state: Json, env: TxEnvelope) -> Json:
+    _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="block_set")
     payload = _as_dict(env.payload)
     target = _as_str(payload.get("target") or payload.get("account_id")).strip()
     active = _as_bool(payload.get("active"), True)
@@ -147,6 +171,7 @@ def _apply_block_set(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_mute_set(state: Json, env: TxEnvelope) -> Json:
+    _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="mute_set")
     payload = _as_dict(env.payload)
     target = _as_str(payload.get("target") or payload.get("account_id")).strip()
     active = _as_bool(payload.get("active"), True)
@@ -167,6 +192,7 @@ def _apply_mute_set(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_content_share_create(state: Json, env: TxEnvelope) -> Json:
+    _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="content_share_create")
     payload = _as_dict(env.payload)
     target_id = _as_str(payload.get("target_id")).strip()
     if not target_id:

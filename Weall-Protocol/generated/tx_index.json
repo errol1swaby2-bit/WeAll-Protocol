@@ -468,7 +468,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "3ddb5e6c80ee3474869cf0654f8db01a5981541f0a4a6d82e0a0525b6719464a",
+  "source_sha256": "40b86bd03808431d84db4188cad356bd190a5621d23a40d88aec772f51bbbcc1",
   "tx_types": [
     {
       "context": "mempool",
@@ -1459,16 +1459,16 @@
       "subject_gate": "GovExecutor"
     },
     {
-      "context": "mempool",
+      "context": "block",
       "domain": "Consensus",
       "gates": {
-        "subject_gate": "Tier2+"
+        "subject_gate": "GovExecutor"
       },
       "id": "f882271dfdc96aed",
       "name": "VALIDATOR_REGISTER",
-      "origin": "USER",
+      "origin": "SYSTEM",
       "receipt_only": false,
-      "subject_gate": "Tier2+"
+      "subject_gate": "GovExecutor"
     },
     {
       "context": "mempool",

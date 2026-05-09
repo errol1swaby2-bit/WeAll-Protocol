@@ -923,23 +923,6 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
     tip_hash = _safe_str(state.get("tip_hash") or tip, "")
     state_root = compute_state_root(state if isinstance(state, dict) else {})
 
-    try:
-        snapshot_anchor = build_snapshot_anchor(state if isinstance(state, dict) else {})
-    except Exception:
-        snapshot_anchor = {
-            "height": height,
-            "tip_hash": tip_hash,
-            "state_root": state_root,
-        "genesis_hash": _safe_str(chain_manifest_report.get("genesis_hash"), ""),
-            "finalized_height": _safe_int(finalized.get("height"), 0),
-            "finalized_block_id": _safe_str(finalized.get("block_id"), ""),
-            "snapshot_hash": "",
-        }
-
-    consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
-    epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
-    validator_set = consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
-    genesis_bootstrap = _genesis_bootstrap_diagnostics(state if isinstance(state, dict) else {})
     manifest_mode = str(os.environ.get("WEALL_MODE", "") or "").strip().lower()
     try:
         chain_manifest = load_chain_manifest(required=False, mode=manifest_mode)
@@ -954,6 +937,25 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         state_root=state_root if height == 0 else "",
         strict=_env_bool("WEALL_REQUIRE_CHAIN_MANIFEST", False),
     )
+
+    try:
+        snapshot_anchor = build_snapshot_anchor(state if isinstance(state, dict) else {})
+    except Exception:
+        snapshot_anchor = {
+            "height": height,
+            "tip_hash": tip_hash,
+            "state_root": state_root,
+            "genesis_hash": _safe_str(chain_manifest_report.get("genesis_hash"), ""),
+            "finalized_height": _safe_int(finalized.get("height"), 0),
+            "finalized_block_id": _safe_str(finalized.get("block_id"), ""),
+            "snapshot_hash": "",
+            "degraded": True,
+        }
+
+    consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
+    epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
+    validator_set = consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    genesis_bootstrap = _genesis_bootstrap_diagnostics(state if isinstance(state, dict) else {})
 
     return {
         "ok": True,

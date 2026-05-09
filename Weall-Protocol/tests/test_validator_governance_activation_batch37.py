@@ -34,6 +34,50 @@ def _mk_state() -> dict:
     }
 
 
+
+def _advance_to_passed_tally(st: dict, proposal_id: str) -> None:
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="GOV_STAGE_SET",
+            signer="SYSTEM",
+            nonce=1,
+            payload={"proposal_id": proposal_id, "stage": "voting", "_due_height": 1},
+            sig="",
+            system=True,
+        ),
+    )
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="GOV_VOTING_CLOSE",
+            signer="SYSTEM",
+            nonce=1,
+            payload={"proposal_id": proposal_id, "_due_height": 1},
+            sig="",
+            system=True,
+        ),
+    )
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="GOV_TALLY_PUBLISH",
+            signer="SYSTEM",
+            nonce=1,
+            payload={
+                "proposal_id": proposal_id,
+                "tally": {"yes": 1, "no": 0, "abstain": 0},
+                "total_votes": 1,
+                "quorum_required": 0,
+                "quorum_met": True,
+                "passed": True,
+                "_due_height": 1,
+            },
+            sig="",
+            system=True,
+        ),
+    )
+
 def test_governance_execute_can_schedule_suspend_receipt() -> None:
     idx = _load_index()
     st = _mk_state()
@@ -57,6 +101,8 @@ def test_governance_execute_can_schedule_suspend_receipt() -> None:
             system=False,
         ),
     )
+
+    _advance_to_passed_tally(st, "p-suspend")
 
     apply_tx(
         st,
@@ -102,6 +148,8 @@ def test_governance_execute_can_schedule_remove_receipt() -> None:
             system=False,
         ),
     )
+
+    _advance_to_passed_tally(st, "p-remove")
 
     apply_tx(
         st,

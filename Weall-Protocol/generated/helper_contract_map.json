@@ -7366,7 +7366,7 @@
         "consensus:validator_set"
       ],
       "barrier_class": "GLOBAL_BARRIER",
-      "context": "mempool",
+      "context": "block",
       "degraded_to_serial": false,
       "derived_only": false,
       "domain": "Consensus",
@@ -7376,7 +7376,7 @@
       "family": "CONSENSUS",
       "has_global_barrier_authority": true,
       "helper_eligible": false,
-      "origin": "USER",
+      "origin": "SYSTEM",
       "placeholder_key_count": 2,
       "planner_lane_hint": "SERIAL",
       "proof_status": "SERIAL_ONLY",

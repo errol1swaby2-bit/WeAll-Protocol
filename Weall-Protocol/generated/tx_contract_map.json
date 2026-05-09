@@ -3170,13 +3170,13 @@
       "claim_handlers": [
         "consensus"
       ],
-      "context": "mempool",
+      "context": "block",
       "domain": "Consensus",
       "handler": "consensus",
-      "origin": "USER",
+      "origin": "SYSTEM",
       "receipt_only": false,
       "schema_covered": true,
-      "subject_gate": "Tier2+",
+      "subject_gate": "GovExecutor",
       "tx_type": "VALIDATOR_REGISTER"
     },
     {

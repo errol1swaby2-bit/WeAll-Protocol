@@ -296,8 +296,10 @@ def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
     if t == "VALIDATOR_REGISTER":
-        miss = _required(p, ("endpoint",))
-        return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
+        miss = _required(p, ("account", "pubkey"))
+        if miss:
+            return _rej("invalid_payload", f"missing:{miss}", field=miss)
+        return None
 
     if t == "VALIDATOR_CANDIDATE_REGISTER":
         required = ("node_id", "pubkey")

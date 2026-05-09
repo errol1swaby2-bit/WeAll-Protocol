@@ -50,6 +50,7 @@ from weall.net.relay import (
     RelayConfig,
     RelayEnvelopeError,
     decode_relay_payload,
+    make_relay_access_request,
     make_relay_envelope,
     validate_relay_envelope,
 )
@@ -818,6 +819,29 @@ class NetMeshLoop:
         peer_id = str(getattr(getattr(self.node, "cfg", None), "peer_id", "") or "local")
         return f"{peer_id}:{int(_now_ms())}:{int(self._relay_nonce)}"
 
+    def _relay_recipient_pubkey(self, recipient: str) -> str:
+        """Return an optional relay-recipient pubkey for mailbox binding.
+
+        Preferred production config is JSON: {"peer-id":"ed25519-pubkey"} in
+        WEALL_NET_RELAY_RECIPIENT_PUBKEYS. If the recipient itself is a 64-char
+        hex key, it can also be used directly for key-addressed relay mailboxes.
+        """
+        rid = str(recipient or "").strip()
+        raw = (os.environ.get("WEALL_NET_RELAY_RECIPIENT_PUBKEYS") or "").strip()
+        if raw:
+            try:
+                obj = json.loads(raw)
+                if isinstance(obj, dict):
+                    pk = str(obj.get(rid) or "").strip()
+                    if pk:
+                        return pk
+            except Exception:
+                if _is_prod():
+                    raise NetStartupError("net_relay_bad_recipient_pubkey_map")
+        if len(rid) == 64 and all(c in "0123456789abcdefABCDEF" for c in rid):
+            return rid.lower()
+        return ""
+
     def _relay_submit_message(self, msg: WireMessage, *, recipients: list[str] | tuple[str, ...] | None = None) -> None:
         if not self._relay_client_enabled or self.node is None or not self._relay_urls:
             return
@@ -842,6 +866,7 @@ class NetMeshLoop:
                     tx_index_hash=cfg.tx_index_hash,
                     sender_peer_id=sender,
                     recipient_peer_id=recipient,
+                    recipient_pubkey=self._relay_recipient_pubkey(recipient),
                     pubkey=pub,
                     privkey=priv,
                     nonce=self._relay_next_nonce(),
@@ -854,15 +879,48 @@ class NetMeshLoop:
             for base in list(self._relay_urls):
                 _http_post_json(f"{base}/v1/net/relay/submit", {"envelope": env}, timeout_s=float(self._relay_timeout_s))
 
-    def _relay_fetch_url(self, base: str, peer_id: str) -> str:
-        return f"{str(base).rstrip('/')}/v1/net/relay/fetch?recipient_peer_id={peer_id}&limit={int(self._relay_fetch_limit)}"
+    def _relay_access_request(self, request_type: str, peer_id: str, *, relay_ids: list[str] | None = None) -> Json | None:
+        cfg = self._relay_cfg()
+        if cfg is None:
+            return None
+        pub, priv = self._relay_identity()
+        if not pub or not priv:
+            if _is_prod():
+                raise NetStartupError("net_relay_client_missing_identity")
+            return None
+        return make_relay_access_request(
+            request_type=request_type,
+            chain_id=cfg.chain_id,
+            schema_version=cfg.schema_version,
+            tx_index_hash=cfg.tx_index_hash,
+            recipient_peer_id=str(peer_id),
+            pubkey=pub,
+            privkey=priv,
+            nonce=self._relay_next_nonce(),
+            relay_ids=relay_ids or [],
+            limit=int(self._relay_fetch_limit),
+            ttl_ms=int(self._relay_ttl_ms),
+        )
+
+    def _relay_fetch(self, base: str, peer_id: str) -> Json | None:
+        req = self._relay_access_request("fetch", peer_id)
+        if not isinstance(req, dict):
+            return None
+        return _http_post_json(
+            f"{str(base).rstrip('/')}/v1/net/relay/fetch",
+            {"access_request": req},
+            timeout_s=float(self._relay_timeout_s),
+        )
 
     def _relay_ack(self, base: str, peer_id: str, relay_ids: list[str]) -> None:
         if not relay_ids:
             return
+        req = self._relay_access_request("ack", peer_id, relay_ids=relay_ids)
+        if not isinstance(req, dict):
+            return
         _http_post_json(
             f"{str(base).rstrip('/')}/v1/net/relay/ack",
-            {"recipient_peer_id": str(peer_id), "relay_ids": list(relay_ids)},
+            {"access_request": req},
             timeout_s=float(self._relay_timeout_s),
         )
 
@@ -913,7 +971,7 @@ class NetMeshLoop:
         if not peer_id:
             return
         for base in list(self._relay_urls):
-            obj = _http_get_json(self._relay_fetch_url(base, peer_id), timeout_s=float(self._relay_timeout_s))
+            obj = self._relay_fetch(base, peer_id)
             if not isinstance(obj, dict) or not bool(obj.get("ok")):
                 continue
             messages = obj.get("messages")

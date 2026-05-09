@@ -150,6 +150,13 @@ def _build_genesis(
             "poh_bootstrap_max_height": 0,
             "poh_bootstrap_mode": "allowlist",
             "poh_bootstrap_auto_lock_rule": "active_validators>=BFT_MIN_VALIDATORS",
+            "poh_live_partial_panels_enabled": True,
+            "poh_live_partial_until_height": int(bootstrap_expires_height),
+            "poh": {
+                "live_partial_panels_enabled": True,
+                "live_partial_until_height": int(bootstrap_expires_height),
+                "live_min_panel_after_bootstrap": 10,
+            },
         },
         "blocks": {},
     }

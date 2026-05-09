@@ -61,6 +61,69 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
     return max(0, threshold_to_units(poh.get(legacy_key), default=default_units))
 
 
+
+
+def _param_bool_any(state: Json, *, keys: tuple[str, ...], default: bool = False) -> bool:
+    params = _params_root(state)
+    poh = _poh_params(state)
+    for key in keys:
+        raw = poh.get(key) if key in poh else params.get(key)
+        if raw is None:
+            continue
+        if isinstance(raw, bool):
+            return raw
+        text = str(raw).strip().lower()
+        if text in {"1", "true", "yes", "y", "on"}:
+            return True
+        if text in {"0", "false", "no", "n", "off"}:
+            return False
+    return bool(default)
+
+
+def _param_int_any(state: Json, *, keys: tuple[str, ...], default: int = 0) -> int:
+    params = _params_root(state)
+    poh = _poh_params(state)
+    for key in keys:
+        raw = poh.get(key) if key in poh else params.get(key)
+        if raw is None:
+            continue
+        try:
+            return int(raw)
+        except Exception:
+            continue
+    return int(default)
+
+
+def _live_partial_panels_allowed(state: Json, *, next_height: int) -> bool:
+    """Return true only when partial Live panels are chain-authorized.
+
+    Partial Live PoH panels are useful for genesis bootstrap, but they must not
+    silently become the permanent security denominator. The permission is read
+    only from committed params, never local env.
+    """
+
+    explicit = _param_bool_any(
+        state,
+        keys=("live_partial_panels_enabled", "poh_live_partial_panels_enabled"),
+        default=False,
+    )
+    bootstrap_mode = _as_str(_params_root(state).get("poh_bootstrap_mode") or "").strip().lower()
+    bootstrap_enabled = bootstrap_mode in {"open", "allowlist", "genesis", "bootstrap"}
+    if not explicit and not bootstrap_enabled:
+        return False
+    until = _param_int_any(
+        state,
+        keys=(
+            "live_partial_until_height",
+            "poh_live_partial_until_height",
+            "bootstrap_expires_height",
+        ),
+        default=0,
+    )
+    if until <= 0:
+        return bool(explicit)
+    return int(next_height) <= int(until)
+
 def _session_commitment(state: Json, *, case_id: str, account_id: str, case: Json | None = None) -> str:
     # Dedicated Live requests must provide a session commitment up front.  Keep
     # the deterministic fallback for legacy in-memory fixtures only; strict
@@ -231,7 +294,7 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                         n_interacting=MAX_LIVE_INTERACTING_JURORS,
                         n_observing=MAX_LIVE_JURORS - MAX_LIVE_INTERACTING_JURORS,
                         min_rep_units=int(min_rep_units),
-                        allow_partial=True,
+                        allow_partial=_live_partial_panels_allowed(state, next_height=int(next_height)),
                     )
                     jurors = list(interacting) + list(observing)
                 except Exception:

@@ -843,21 +843,21 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if stg == "executed" or stg == "finalized":
         return {"applied": True, "proposal_id": proposal_id, "deduped": True}
 
-    is_legacy_system_path = bool(env.system and str(env.signer) == "SYSTEM")
-
-    if not is_legacy_system_path:
-        if stg != "tallied":
-            raise ApplyError(
-                "forbidden",
-                "proposal_not_executable",
-                {"proposal_id": proposal_id, "stage": stg},
-            )
-        if not _last_tally_passed(pr):
-            raise ApplyError(
-                "forbidden",
-                "proposal_did_not_pass",
-                {"proposal_id": proposal_id},
-            )
+    # SYSTEM queue binding proves deterministic emission, but execution itself
+    # must still verify the approved governance state. This prevents a scheduler
+    # bug from becoming consensus-valid arbitrary execution.
+    if stg != "tallied":
+        raise ApplyError(
+            "forbidden",
+            "proposal_not_executable",
+            {"proposal_id": proposal_id, "stage": stg},
+        )
+    if not _last_tally_passed(pr):
+        raise ApplyError(
+            "forbidden",
+            "proposal_did_not_pass",
+            {"proposal_id": proposal_id},
+        )
 
     h = _height_hint(state, env)
 
@@ -942,8 +942,8 @@ def _apply_gov_proposal_finalize(state: Json, env: TxEnvelope) -> dict[str, Any]
             {"proposal_id": proposal_id},
         )
 
-    is_legacy_system_path = bool(env.system and str(env.signer) == "SYSTEM")
-    if not is_legacy_system_path and stg != "executed":
+    # Queue-bound SYSTEM finalization must still verify proposal state.
+    if stg != "executed":
         raise ApplyError(
             "forbidden",
             "proposal_not_finalizable",

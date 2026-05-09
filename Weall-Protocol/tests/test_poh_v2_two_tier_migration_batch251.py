@@ -25,7 +25,7 @@ def test_former_live_user_actions_are_v2_tier2_gated() -> None:
         "GOV_VOTE_CAST",
         "GROUP_CREATE",
         "ROLE_JUROR_ENROLL",
-        "VALIDATOR_REGISTER",
+        "VALIDATOR_CANDIDATE_REGISTER",
         "TREASURY_CREATE",
     ):
         assert get_required_poh_tier(tx_type) == 2

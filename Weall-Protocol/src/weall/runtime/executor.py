@@ -1963,12 +1963,22 @@ class WeAllExecutor:
                 pass
             self._last_sqlite_optimize_ms = now
 
-    def submit_tx(self, env: Json) -> Json:
+    def submit_tx(self, env: Json, *, ingress: str = "local_fixture") -> Json:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
 
+        ingress_mode = str(ingress or "local_fixture").strip().lower()
+        # Historical tests and deterministic local fixtures use the permissive
+        # mempool context. Production ingress surfaces must pass an explicit
+        # boundary context so signature/origin policy mirrors HTTP/gossip.
+        context = "mempool" if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"} else ingress_mode
+        if context not in {"mempool", "http", "gossip", "peer", "operator"}:
+            context = "operator"
+        if context == "peer":
+            context = "gossip"
+
         ledger = LedgerView.from_ledger(self.read_state())
-        verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context="mempool")
+        verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context=context)
         if not verdict.ok:
             return {
                 "ok": False,
