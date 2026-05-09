@@ -194,13 +194,20 @@ _CIVIC_FEE_KEYS = frozenset(
         "share_fee_int",
         "follow_fee_int",
         "group_fee_int",
+        "group_join_fee_int",
         "governance_fee_int",
+        "governance_vote_fee_int",
+        "governance_proposal_fee_int",
         "proposal_fee_int",
         "vote_fee_int",
         "poh_fee_int",
+        "poh_request_fee_int",
         "dispute_fee_int",
+        "dispute_open_fee_int",
         "review_fee_int",
         "onboarding_fee_int",
+        "account_register_fee_int",
+        "peer_advertise_fee_int",
     }
 )
 

@@ -1081,14 +1081,17 @@ class WeAllExecutor:
         active_count = len(active_validators)
         current_phase = self._current_consensus_phase()
 
-        if local_validator and local_validator in set(active_validators):
-            if current_phase != CONSENSUS_PHASE_BFT_ACTIVE:
-                return False, f"consensus_phase_not_bft_active:{current_phase or 'unknown'}"
-            if active_count < int(BFT_MIN_VALIDATORS):
-                return (
-                    False,
-                    f"validator_count_below_bft_minimum:{active_count}/{int(BFT_MIN_VALIDATORS)}",
-                )
+        if not local_validator:
+            return False, "local_validator_identity_not_active"
+        if local_validator not in set(active_validators):
+            return False, "local_validator_not_in_active_set"
+        if current_phase != CONSENSUS_PHASE_BFT_ACTIVE:
+            return False, f"consensus_phase_not_bft_active:{current_phase or 'unknown'}"
+        if active_count < int(BFT_MIN_VALIDATORS):
+            return (
+                False,
+                f"validator_count_below_bft_minimum:{active_count}/{int(BFT_MIN_VALIDATORS)}",
+            )
 
         return True, ""
 

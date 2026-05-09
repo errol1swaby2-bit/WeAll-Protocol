@@ -157,6 +157,18 @@ def _build_genesis(
                 "live_partial_until_height": int(bootstrap_expires_height),
                 "live_min_panel_after_bootstrap": 10,
             },
+            # Production validator-candidate registration is not a shortcut to
+            # validator authority.  It requires a chain-decided node-operator
+            # role, validator opt-in, live readiness receipt, registered unique
+            # node key, and BFT pubkey binding before the candidate record can
+            # be created.
+            "validator_candidate_lifecycle_gate_enabled": True,
+            "validator_candidate_node_id_must_match_node_pubkey": True,
+            # Public BFT signing remains fail-closed until the active validator
+            # set has reached BFT_MIN_VALIDATORS and consensus_phase is
+            # explicitly bft_active.
+            "bft_signing_public_beta_gate_enabled": True,
+            "public_mainnet_enabled": False,
         },
         "blocks": {},
     }

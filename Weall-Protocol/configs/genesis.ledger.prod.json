@@ -39,6 +39,7 @@
   "height": 0,
   "last_block_ts_ms": 0,
   "params": {
+    "bft_signing_public_beta_gate_enabled": true,
     "bootstrap_allowlist": {
       "@errol-genesis": {
         "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
@@ -59,7 +60,10 @@
     "poh_bootstrap_max_height": 0,
     "poh_bootstrap_mode": "allowlist",
     "poh_live_partial_panels_enabled": true,
-    "poh_live_partial_until_height": 1008
+    "poh_live_partial_until_height": 1008,
+    "public_mainnet_enabled": false,
+    "validator_candidate_lifecycle_gate_enabled": true,
+    "validator_candidate_node_id_must_match_node_pubkey": true
   },
   "roles": {
     "validators": {

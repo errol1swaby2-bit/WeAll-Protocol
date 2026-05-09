@@ -34,6 +34,10 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.bft_hotstuff import (
     validator_set_hash as _canonical_validator_set_hash,
 )
+from weall.runtime.node_operator_responsibilities import (
+    active_node_pubkeys_for_account,
+    evaluate_validator_responsibility,
+)
 from weall.runtime.proposer_selection import select_proposer
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
@@ -410,6 +414,81 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     }
 
 
+
+def _bool_param(state: Json, key: str, default: bool = False) -> bool:
+    raw = _get_params(state).get(key)
+    if raw is None:
+        return bool(default)
+    if isinstance(raw, bool):
+        return raw
+    return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _active_candidate_node_pubkey(state: Json, account: str, node_id: str) -> str:
+    keys = list(active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account))))
+    if node_id and node_id in keys:
+        return node_id
+    if len(keys) == 1:
+        return keys[0]
+    return ""
+
+
+def _enforce_validator_candidate_lifecycle_gate(
+    state: Json,
+    *,
+    account: str,
+    node_id: str,
+    pubkey: str,
+) -> None:
+    """Production validator-candidate safety gate.
+
+    Historic tests and local MVP flows may keep the legacy lightweight candidate
+    registration path by leaving params.validator_candidate_lifecycle_gate_enabled
+    unset/false. Production genesis enables this flag so a candidate cannot be
+    recorded unless the account has already completed the chain-decided node
+    operator + validator-readiness lifecycle.
+    """
+
+    if not _bool_param(state, "validator_candidate_lifecycle_gate_enabled", False):
+        return
+
+    node_pubkey = _active_candidate_node_pubkey(state, account, node_id)
+    if not node_pubkey:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_candidate_requires_unique_registered_node_key",
+            {"account": account, "node_id": node_id},
+        )
+
+    if _bool_param(state, "validator_candidate_node_id_must_match_node_pubkey", True) and node_id != node_pubkey:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_candidate_node_id_must_match_registered_node_pubkey",
+            {"account": account, "node_id": node_id, "node_pubkey": node_pubkey},
+        )
+
+    evaluation = evaluate_validator_responsibility(state, account, node_pubkey=node_pubkey)
+    if not evaluation.active:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_candidate_requires_active_validator_responsibility",
+            {
+                "account": account,
+                "node_pubkey": node_pubkey,
+                "status": evaluation.status,
+                "reasons": list(evaluation.reasons),
+                "requirements": list(evaluation.requirements),
+            },
+        )
+
+    bft_pubkey = _as_str(evaluation.details.get("bft_pubkey"))
+    if bft_pubkey and pubkey != bft_pubkey:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_candidate_pubkey_must_match_readiness_bft_pubkey",
+            {"account": account, "candidate_pubkey": pubkey, "readiness_bft_pubkey": bft_pubkey},
+        )
+
 def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
     _ensure_roles_validators_active_set(state)
     payload = _as_dict(env.payload)
@@ -429,6 +508,13 @@ def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
         raise ConsensusApplyError("invalid_payload", "missing_node_id", {"tx_type": env.tx_type})
     if not endpoints:
         raise ConsensusApplyError("invalid_payload", "missing_endpoints", {"tx_type": env.tx_type})
+
+    _enforce_validator_candidate_lifecycle_gate(
+        state,
+        account=account,
+        node_id=node_id,
+        pubkey=pubkey,
+    )
 
     rec = _validator_registry_lifecycle_record(state, account)
     status = _as_str(rec.get("status") or "observer")

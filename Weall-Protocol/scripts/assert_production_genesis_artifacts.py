@@ -210,6 +210,26 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
         _issue(issues, "genesis_poh_bootstrap_mode_not_allowlist", params.get("poh_bootstrap_mode"))
     if str(params.get("poh_bootstrap_auto_lock_rule") or "").strip() != "active_validators>=BFT_MIN_VALIDATORS":
         _issue(issues, "genesis_poh_bootstrap_auto_lock_rule_missing", params.get("poh_bootstrap_auto_lock_rule"))
+    if params.get("validator_candidate_lifecycle_gate_enabled") is not True:
+        _issue(
+            issues,
+            "genesis_validator_candidate_lifecycle_gate_not_enabled",
+            params.get("validator_candidate_lifecycle_gate_enabled"),
+        )
+    if params.get("validator_candidate_node_id_must_match_node_pubkey") is not True:
+        _issue(
+            issues,
+            "genesis_validator_candidate_node_key_binding_not_strict",
+            params.get("validator_candidate_node_id_must_match_node_pubkey"),
+        )
+    if params.get("bft_signing_public_beta_gate_enabled") is not True:
+        _issue(
+            issues,
+            "genesis_bft_signing_public_beta_gate_not_enabled",
+            params.get("bft_signing_public_beta_gate_enabled"),
+        )
+    if params.get("public_mainnet_enabled") is not False:
+        _issue(issues, "genesis_public_mainnet_must_start_disabled", params.get("public_mainnet_enabled"))
 
 
 def verify(*, manifest_path: Path, genesis_path: Path, tx_index_path: Path) -> Json:
