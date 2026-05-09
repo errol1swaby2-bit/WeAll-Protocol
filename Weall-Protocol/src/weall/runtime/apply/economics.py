@@ -182,12 +182,49 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "ECONOMICS_ACTIVATION", "enabled": bool(params["economics_enabled"])}
 
 
+_CIVIC_FEE_KEYS = frozenset(
+    {
+        # Civic/social/governance anti-spam must remain PoH/rate-limit based,
+        # not fee-gated.  These legacy keys may remain in genesis/state at zero
+        # for compatibility, but governance may not set them positive.
+        "post_fee_int",
+        "comment_fee_int",
+        "like_fee_int",
+        "reaction_fee_int",
+        "share_fee_int",
+        "follow_fee_int",
+        "group_fee_int",
+        "governance_fee_int",
+        "proposal_fee_int",
+        "vote_fee_int",
+        "poh_fee_int",
+        "dispute_fee_int",
+        "review_fee_int",
+        "onboarding_fee_int",
+    }
+)
+
+
+def _reject_civic_fee_gate(payload: Json) -> None:
+    for k, v in payload.items():
+        ks = str(k)
+        if ks in _CIVIC_FEE_KEYS and _as_int(v, 0) > 0:
+            raise EconomicsApplyError(
+                "forbidden",
+                "civic_social_governance_actions_must_remain_fee_free",
+                {"field": ks, "value": v},
+            )
+        if ks == "policy" and isinstance(v, dict):
+            _reject_civic_fee_gate(v)
+
+
 def _apply_fee_policy_set(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     _wrap_time_lock(state)
     _wrap_disabled(state, "FEE_POLICY_SET")
 
     payload = _as_dict(env.payload)
+    _reject_civic_fee_gate(payload)
     econ = _ensure_econ_root(state)
     fp = econ.get("fee_policy")
     if not isinstance(fp, dict):

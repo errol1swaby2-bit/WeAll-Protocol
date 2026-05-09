@@ -9,6 +9,7 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.param_policy import validate_param_blob
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
+from weall.runtime.tx_schema import model_for_tx_type
 
 Json = dict[str, Any]
 
@@ -112,28 +113,37 @@ def _canonical_actor_key(active_identities: list[str], signer: str, state: Json)
     return _resolve_account_identity(state, signer)
 
 
-def _active_validator_ids(state: Json) -> list[str]:
+def _configured_active_validator_ids(state: Json) -> list[str]:
+    """Return only explicitly configured active validators.
+
+    This intentionally excludes the legacy convenience behavior that inferred a
+    validator electorate from every Tier2 account when no validator config was
+    present. That inference remains useful for no-action community decisions in
+    tests/local flows, but executable protocol governance must fail closed unless
+    the electorate is explicitly recorded in chain state.
+    """
+
     roles_present = isinstance(state.get("roles"), dict)
     consensus_present = isinstance(state.get("consensus"), dict)
 
     roles = _d(state.get("roles"))
     validators = _d(roles.get("validators"))
-    roles_validator_config_present = roles_present and "validators" in roles
-    validators_active_declared = isinstance(validators.get("active_set"), list)
 
     active_set = _normalize_identity_list(state, validators.get("active_set"))
     if active_set:
         return active_set
 
     validators_by_id = _d(validators.get("by_id"))
-    if validators_by_id:
+    if roles_present and validators_by_id:
         out: list[str] = []
         for acct, rec in validators_by_id.items():
             acct_s = _s(acct).strip()
             if not acct_s or not isinstance(rec, dict):
                 continue
-            status = _s(rec.get("status")).strip().lower()
+            status = _s(rec.get("status") or rec.get("state") or ("active" if rec.get("active") is True else "")).strip().lower()
             if status and status not in {"active", "activated", "validator"}:
+                continue
+            if rec.get("active") is False:
                 continue
             out.append(_resolve_account_identity(state, acct_s))
         out = sorted(set(out))
@@ -142,27 +152,47 @@ def _active_validator_ids(state: Json) -> list[str]:
 
     consensus = _d(state.get("consensus"))
     validator_set = _d(consensus.get("validator_set"))
-    consensus_validator_config_present = consensus_present and ("validator_set" in consensus or "validators" in consensus)
-    consensus_active_declared = isinstance(validator_set.get("active_set"), list)
 
     active_set = _normalize_identity_list(state, validator_set.get("active_set"))
     if active_set:
         return active_set
 
     registry = _d(_d(consensus.get("validators")).get("registry"))
-    if registry:
+    if consensus_present and registry:
         out: list[str] = []
         for acct, rec in registry.items():
             acct_s = _s(acct).strip()
             if not acct_s or not isinstance(rec, dict):
                 continue
-            status = _s(rec.get("status")).strip().lower()
+            status = _s(rec.get("status") or rec.get("state") or ("active" if rec.get("active") is True else "")).strip().lower()
             if status and status not in {"active", "activated", "validator"}:
+                continue
+            if rec.get("active") is False:
                 continue
             out.append(_resolve_account_identity(state, acct_s))
         out = sorted(set(out))
         if out:
             return out
+
+    return []
+
+
+def _active_validator_ids(state: Json) -> list[str]:
+    configured = _configured_active_validator_ids(state)
+    if configured:
+        return configured
+
+    roles_present = isinstance(state.get("roles"), dict)
+    consensus_present = isinstance(state.get("consensus"), dict)
+    roles = _d(state.get("roles"))
+    validators = _d(roles.get("validators"))
+    roles_validator_config_present = roles_present and "validators" in roles
+    validators_active_declared = isinstance(validators.get("active_set"), list)
+    consensus = _d(state.get("consensus"))
+    validator_set = _d(consensus.get("validator_set"))
+    consensus_validator_config_present = consensus_present and ("validator_set" in consensus or "validators" in consensus)
+    consensus_active_declared = isinstance(validator_set.get("active_set"), list)
+
     explicit_empty_active_set = (roles_validator_config_present and validators_active_declared) or (consensus_validator_config_present and consensus_active_declared)
     if not explicit_empty_active_set and not roles_validator_config_present and not consensus_validator_config_present:
         accounts = _d(state.get("accounts"))
@@ -184,19 +214,84 @@ def _active_validator_ids(state: Json) -> list[str]:
     return []
 
 
+def _proposal_has_executable_actions(proposal: dict[str, Any]) -> bool:
+    return bool(_l(proposal.get("actions")))
+
+
+def _is_production_governance_state(state: Json) -> bool:
+    params = _d(state.get("params"))
+    raw_mode = _s(
+        params.get("mode")
+        or params.get("chain_mode")
+        or params.get("profile")
+        or state.get("mode")
+        or state.get("profile")
+    ).strip().lower()
+    if raw_mode in {"prod", "production", "mainnet"}:
+        return True
+    chain_id = _s(state.get("chain_id") or params.get("chain_id")).strip().lower()
+    if chain_id in {"weall-prod", "weall-mainnet", "mainnet"} or "prod" in chain_id or "mainnet" in chain_id:
+        return True
+    flag = params.get("production_governance_hardening_enabled")
+    if isinstance(flag, bool):
+        return flag
+    return _s(flag).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _set_empty_electorate(proposal: dict[str, Any], *, reason: str) -> list[str]:
+    proposal["eligible_validator_ids"] = []
+    proposal["eligible_validator_count"] = 0
+    proposal["required_votes"] = 0
+    proposal["electorate_failure_reason"] = reason
+    return []
+
+
 def _proposal_eligible_validator_ids(state: Json, proposal: dict[str, Any], fallback_signer: str = "") -> list[str]:
     snap = _normalize_identity_list(state, proposal.get("eligible_validator_ids"))
     if snap:
+        source = _s(proposal.get("electorate_source")).strip().lower()
+        if _is_production_governance_state(state) and _proposal_has_executable_actions(proposal) and source in {"creator_fallback", "configured_or_inferred_validators", "inferred_validators"}:
+            active = _configured_active_validator_ids(state)
+            if active:
+                proposal["eligible_validator_ids"] = list(active)
+                proposal["eligible_validator_count"] = int(len(active))
+                proposal["required_votes"] = int(quorum_threshold(len(active))) if active else 0
+                proposal["electorate_source"] = "configured_validators"
+                proposal.pop("electorate_failure_reason", None)
+                return active
+            return _set_empty_electorate(
+                proposal,
+                reason="executable_governance_requires_explicit_electorate",
+            )
         proposal["eligible_validator_ids"] = list(snap)
         proposal["eligible_validator_count"] = int(len(snap))
         proposal["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
+        if not source:
+            proposal["electorate_source"] = "snapshot"
+        proposal.pop("electorate_failure_reason", None)
         return snap
+
+    if _proposal_has_executable_actions(proposal) and _is_production_governance_state(state):
+        active = _configured_active_validator_ids(state)
+        if active:
+            proposal["eligible_validator_ids"] = list(active)
+            proposal["eligible_validator_count"] = int(len(active))
+            proposal["required_votes"] = int(quorum_threshold(len(active))) if active else 0
+            proposal["electorate_source"] = "configured_validators"
+            proposal.pop("electorate_failure_reason", None)
+            return active
+        return _set_empty_electorate(
+            proposal,
+            reason="executable_governance_requires_explicit_electorate",
+        )
 
     active = _active_validator_ids(state)
     if active:
         proposal["eligible_validator_ids"] = list(active)
         proposal["eligible_validator_count"] = int(len(active))
         proposal["required_votes"] = int(quorum_threshold(len(active))) if active else 0
+        proposal["electorate_source"] = "configured_or_inferred_validators"
+        proposal.pop("electorate_failure_reason", None)
         return active
 
     signer = _resolve_account_identity(state, fallback_signer or proposal.get("creator"))
@@ -204,12 +299,11 @@ def _proposal_eligible_validator_ids(state: Json, proposal: dict[str, Any], fall
         proposal["eligible_validator_ids"] = [signer]
         proposal["eligible_validator_count"] = 1
         proposal["required_votes"] = 1
+        proposal["electorate_source"] = "creator_fallback"
+        proposal.pop("electorate_failure_reason", None)
         return [signer]
 
-    proposal["eligible_validator_ids"] = []
-    proposal["eligible_validator_count"] = 0
-    proposal["required_votes"] = 0
-    return []
+    return _set_empty_electorate(proposal, reason="no_eligible_electorate")
 
 
 def _active_validator_vote_snapshot(votes: Any, active_validators: list[str]) -> tuple[dict[str, dict[str, Any]], int, int]:
@@ -524,12 +618,32 @@ def _validate_gov_rules_payload(payload: dict[str, Any]) -> None:
             raise ApplyError("forbidden", str(e), {"path": "treasury"}) from e
 
 
+def _validate_against_canon_payload_schema(tx_type: str, payload: dict[str, Any]) -> None:
+    model = model_for_tx_type(tx_type)
+    if model is None:
+        # Some legacy internal actions still exist in apply modules before they
+        # are promoted into tx canon. Keep compatibility here, but never treat
+        # missing schema as proof of safety for new public governance actions.
+        return
+    try:
+        model(**payload)
+    except Exception as exc:
+        raise ApplyError(
+            "invalid_payload",
+            "governance_action_payload_invalid",
+            {"tx_type": tx_type, "error": str(exc)},
+        ) from exc
+
+
 def _validate_governance_action_payload(tx_type: str, payload: dict[str, Any]) -> None:
     t = _s(tx_type).strip().upper()
+    # Keep action-specific security errors stable and more precise than generic
+    # schema validation.  Schema validation still runs after these checks.
     if t == "GOV_QUORUM_SET":
         _validate_gov_quorum_payload(payload)
     elif t == "GOV_RULES_SET":
         _validate_gov_rules_payload(payload)
+    _validate_against_canon_payload_schema(t, payload)
 
 
 def _assert_governance_actions_allowed(state: Json, actions: list[dict[str, Any]]) -> None:
@@ -566,7 +680,14 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if start_stage not in {"draft", "poll", "revision", "validation", "voting", "vote"}:
         start_stage = "draft"
 
-    eligible_validators = _proposal_eligible_validator_ids(state, {"creator": str(env.signer)})
+    proposal_electorate_seed = {"creator": str(env.signer), "actions": actions}
+    eligible_validators = _proposal_eligible_validator_ids(state, proposal_electorate_seed)
+    if actions and int(proposal_electorate_seed.get("required_votes") or 0) <= 0:
+        raise ApplyError(
+            "forbidden",
+            "executable_governance_requires_explicit_electorate",
+            {"proposal_id": proposal_id},
+        )
 
     root[proposal_id] = {
         "proposal_id": proposal_id,
@@ -584,6 +705,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         "eligible_validator_ids": list(eligible_validators),
         "eligible_validator_count": int(len(eligible_validators)),
         "required_votes": int(quorum_threshold(len(eligible_validators))) if eligible_validators else 0,
+        "electorate_source": _s(proposal_electorate_seed.get("electorate_source")).strip(),
         # Auto-progress is intentionally opt-in at proposal creation time.
         # Legacy/manual tests and operator flows may stage a draft into voting and
         # then close/tally explicitly; those paths must not be silently finalized
@@ -645,6 +767,16 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
         _assert_governance_actions_allowed(state, actions)
         _enforce_genesis_econ_lock(state, actions)
         pr["actions"] = actions
+        # Adding executable actions converts a community decision into executable
+        # protocol governance. Recompute the electorate with fail-closed rules so
+        # a legacy creator fallback cannot be preserved by editing a draft.
+        _proposal_eligible_validator_ids(state, pr, str(env.signer))
+        if actions and int(pr.get("required_votes") or 0) <= 0:
+            raise ApplyError(
+                "forbidden",
+                "executable_governance_requires_explicit_electorate",
+                {"proposal_id": proposal_id},
+            )
 
     h = _height_hint(state, env)
     pr["updated_at_height"] = int(h)
