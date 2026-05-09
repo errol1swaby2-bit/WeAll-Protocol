@@ -66,6 +66,29 @@ check_web_dir_absent() {
   fi
 }
 
+
+check_secret_tree_safe() {
+  if [[ ! -d "secrets" ]]; then
+    echo "[verify] OK: no secrets directory present"
+    return
+  fi
+
+  local bad
+  bad="$(find secrets -mindepth 1 \
+    ! -path 'secrets/.gitignore' \
+    ! -path 'secrets/README.md' \
+    ! -path 'secrets/README' \
+    -print || true)"
+  if [[ -n "$bad" ]]; then
+    echo "[verify] FAIL: found raw secrets directory material"
+    echo "$bad"
+    echo "[verify] hint: move local node keys outside the repo or remove secrets/* before release checks"
+    fail=1
+  else
+    echo "[verify] OK: no raw secrets directory material"
+  fi
+}
+
 check_path_absent '*.pyc' 'Python bytecode files'
 check_dir_absent '__pycache__' '__pycache__ directories'
 check_dir_absent '.pytest_cache' '.pytest_cache directories'
@@ -79,6 +102,7 @@ check_web_dir_absent 'dist' 'outer web dist directories'
 check_dir_absent '.provider-cli' 'provider local state directories'
 check_path_absent '.env' '.env files'
 check_path_absent '.env.local' '.env.local files'
+check_secret_tree_safe
 check_dir_absent '.weall-devnet' 'local devnet runtime directories'
 check_dir_absent '.weall' 'local WeAll runtime directories'
 check_dir_absent 'data' 'runtime data directories'

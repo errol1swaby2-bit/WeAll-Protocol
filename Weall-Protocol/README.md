@@ -175,5 +175,6 @@ To scrub local runtime artifacts before packaging or pushing:
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
+- Release/export safety now fails closed on raw `secrets/` material; external testers must receive only public manifests and public observer bundles, never local node keys.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 

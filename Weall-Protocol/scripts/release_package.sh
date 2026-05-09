@@ -33,6 +33,7 @@ zip -r "$ARCHIVE_PATH" . \
      '.env.local' \
      'web/.env' \
      'web/.env.local' \
+     'secrets/*' \
      '.weall-devnet/*' \
      '.weall/*' \
      'data/*' \

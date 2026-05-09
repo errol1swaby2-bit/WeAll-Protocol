@@ -103,6 +103,13 @@ rm_path ".provider-cli"
 rm_path ".env"
 rm_path ".env.local"
 
+# Raw node/operator keys are intentionally not deleted automatically here.
+# They may be real production keys, so a release check must fail until the
+# operator moves them outside the repo or removes them intentionally.
+if [[ -d "secrets" ]]; then
+  log "secrets/ exists; release verification will fail unless it contains only README/.gitignore placeholders"
+fi
+
 # Python caches/build artifacts.
 rm_path ".pytest_cache"
 rm_path ".mypy_cache"

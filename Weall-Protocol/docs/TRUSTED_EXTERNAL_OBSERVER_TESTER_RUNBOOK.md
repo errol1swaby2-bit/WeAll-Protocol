@@ -16,17 +16,39 @@ The observer tester must not receive or configure:
 
 The only required trust material is the public chain manifest and public onboarding bundle.
 
+## Secret-safe release warning
+
+Never send the tester anything from `secrets/`. The external observer needs the public chain manifest and public onboarding bundle only. If `secrets/weall_node_privkey` or any equivalent private key was ever included in a shared artifact, rotate that key before any real observer test.
+
+Run before packaging or sharing artifacts:
+
+```bash
+bash scripts/secret_guard.sh
+bash scripts/verify_release_tree.sh
+bash scripts/prod_chain_manifest_check.sh
+```
+
+## Local gate before a second machine is available
+
+If you cannot perform the real two-machine rehearsal yet, run the local readiness gate first:
+
+```bash
+bash scripts/local_observer_readiness_gate.sh
+```
+
+This does not replace the two-machine rehearsal. It proves the local prerequisites: the manifest is pinned, the public observer bundle can be generated and verified, observer-only posture is enforced, and no genesis/validator/authority/Cloudflare/SMTP/oracle secret is required by the observer path.
+
 ## Founder / genesis operator export
 
 From the genesis/operator machine, create a public onboarding bundle after the production manifest has real pinned values:
 
 ```bash
-python3 scripts/build_node_operator_onboarding_bundle.py \
+python3 scripts/build_external_observer_bundle.py \
   --manifest configs/chains/weall-genesis.json \
   --out /tmp/weall-external-observer-bundle.json \
-  --profile production \
-  --authority-profile production \
-  --authority-url https://<genesis-authority-host>
+  --authority-url https://<genesis-authority-host> \
+  --genesis-api-base https://<genesis-api-host> \
+  --relay-urls https://<relay-host>
 ```
 
 Verify before sending:

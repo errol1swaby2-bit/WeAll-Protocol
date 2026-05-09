@@ -41,6 +41,19 @@ if [[ -n "${BAD_ENV_FILES}" ]]; then
   fail "Do not commit or release .env files. Use .env.example templates only."
 fi
 
+
+# 1b) Hard fail on raw secret-key material under secrets/.  The only files
+# allowed under secrets/ in a releasable/exported tree are documentation or
+# ignore placeholders.  Public keys are intentionally excluded from release
+# bundles too, because the authoritative public key is pinned in the production
+# chain manifest.
+BAD_SECRET_FILES="$(grep -E '(^|/)secrets/' "$TRACKED" | grep -vE '(^|/)secrets/(README(\.md)?|\.gitignore)$' || true)"
+if [[ -n "${BAD_SECRET_FILES}" ]]; then
+  echo "[secret-guard] raw secrets directory material found:"
+  echo "${BAD_SECRET_FILES}"
+  fail "Do not commit or release raw secrets/* material. Move node private/public key files outside the repo before packaging."
+fi
+
 # 2) Hard fail on local runtime secret/artifact paths that must never ship.
 BAD_RUNTIME_PATHS="$(grep -E '(^|/)(\.weall-devnet|\.weall|data)(/|$)|(^|/)generated/demo_bootstrap_(secret|result)\.json$|(^|/)generated/.*secret.*\.json$|(^|/).*\.(db|db-wal|db-shm|sqlite)$' "$TRACKED" || true)"
 if [[ -n "${BAD_RUNTIME_PATHS}" ]]; then
