@@ -94,13 +94,9 @@ USER appuser
 
 EXPOSE 8000
 
-# Default remains the same, but compose may override this command.
-CMD ["sh", "-c", "gunicorn weall.api.app:app \
-  -k uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8000 \
-  --workers ${GUNICORN_WORKERS:-2} \
-  --timeout ${GUNICORN_TIMEOUT:-60} \
-  --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30} \
-  --keep-alive ${GUNICORN_KEEPALIVE:-5} \
-  --access-logfile - \
-  --error-logfile -"]
+# Use the production runner as the image default so direct `docker run` follows
+# the same single-worker, fail-closed runtime posture as docker-compose.prod.yml.
+# Consensus/network loops must not be accidentally duplicated by a multi-worker
+# gunicorn default. Operators who need a custom web process should make that
+# override explicit instead of inheriting an unsafe image default.
+CMD ["sh", "-c", "/app/scripts/run_node.sh"]

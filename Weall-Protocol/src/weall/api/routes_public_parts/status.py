@@ -645,6 +645,48 @@ def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: s
     )
 
 
+def _status_mode_label(ex: Any, state: Mapping[str, Any]) -> str:
+    """Return the operator-facing node mode without inventing validator authority."""
+    lifecycle = _node_lifecycle_diagnostics(ex)
+    runtime_cfg = resolve_node_runtime_config_from_env()
+    requested_state = _safe_str(lifecycle.get("requested_state"), runtime_cfg.requested_state)
+    effective_state = _safe_str(lifecycle.get("effective_state"), "")
+    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
+    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    observer_mode = _safe_bool(meta.get("observer_mode"), _env_bool("WEALL_OBSERVER_MODE", False))
+    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
+
+    if observer_mode or requested_state == "observer_onboarding" or effective_state == "observer_onboarding":
+        return "observer"
+    if effective_state == "refused_startup" or requested_state == "refused_startup":
+        return "refused_startup"
+    if "validator" in effective_roles or ("validator" in requested_roles and (bft_requested or bft_effective)):
+        return "validator"
+    if "node_operator" in effective_roles or "node_operator" in requested_roles:
+        return "operator"
+    if effective_state == "production_service" or requested_state == "production_service":
+        return "service"
+    if effective_state or requested_state:
+        return effective_state or requested_state
+    return "node"
+
+
+def _local_validator_signing_requested(state: Mapping[str, Any]) -> bool:
+    """Report local signing intent accurately for operator UX.
+
+    This is intentionally separate from consensus permission.  Observer mode
+    always wins, and actual permission is still reported as
+    signing_allowed_by_consensus_state.
+    """
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    observer_mode = _safe_bool(meta.get("observer_mode"), _env_bool("WEALL_OBSERVER_MODE", False))
+    if observer_mode:
+        return False
+    return _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False) or _env_bool("WEALL_BFT_ENABLED", False)
+
+
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
@@ -661,7 +703,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "ts_ms": _now_ms(),
         "chain_id": chain_id or None,
         "node_id": node_id or None,
-        "mode": "validator",
+        "mode": _status_mode_label(ex, state),
         "height": _safe_int(state.get("height"), 0),
         "tip": _safe_str(state.get("tip"), ""),
     }
@@ -767,7 +809,7 @@ def status_operator(request: Request) -> dict[str, Any]:
         "transition_guardrails": transition_guardrails,
         "startup_posture": startup_posture,
         **_local_validator_lifecycle(state, _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")),
-        "signing_enabled_locally": bool(payload.get("startup_fingerprint", {}).get("mode") or True),
+        "signing_enabled_locally": _local_validator_signing_requested(state),
         "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
         "signing_block_reason": _safe_str(getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""),
     }

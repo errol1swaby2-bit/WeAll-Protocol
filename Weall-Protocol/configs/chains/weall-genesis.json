@@ -6,17 +6,17 @@
   },
   "authority_snapshot_version": 1,
   "chain_id": "weall-prod",
-  "genesis_hash": "f857ef1e8f44070d94c1576855d13fe92ba045720e0d27b6f5f7527c0c65d9bb",
-  "genesis_state_root": "4c5dc50677fb519de5c60fff24f5e06f3a72059703ffcfa8f93933a38943f0b2",
+  "genesis_hash": "5ed6d6dc2a7b6177b9841c4cd4c1a42bd2dbd476db8e8b8d71a8bef2fece5d41",
+  "genesis_state_root": "5ed6d6dc2a7b6177b9841c4cd4c1a42bd2dbd476db8e8b8d71a8bef2fece5d41",
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",
-  "notes": "This manifest pins the canonical chain identity used by production-oriented boot and authority checks. Replace trusted_authority_pubkeys before public deployment.",
+  "notes": "Pinned production chain identity. Private keys must never be committed or included in observer bundles.",
   "profile": "production_service",
-  "protocol_profile_hash": "",
+  "protocol_profile_hash": "7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991",
   "schema_version": "1",
   "trusted_authority_pubkeys": [
-    "REPLACE_WITH_PRODUCTION_AUTHORITY_PUBKEY_HEX"
+    "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "1caa98a94b6edbfc3a2ccf7da77f207143b0c43c2f425b1a8262530844272799",
+  "tx_index_hash": "9b812b2d7436468313d18d3c0bf4a9efb9c4ddf248d2d08c0cf8bf6412f78137",
   "version": 1
 }

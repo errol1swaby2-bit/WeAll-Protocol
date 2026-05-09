@@ -34,11 +34,41 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-PROJECTS_DIR = REPO_ROOT / "projects"
-BACKEND_DIR = PROJECTS_DIR / "Weall-Protocol"
-FRONTEND_DIR = PROJECTS_DIR / "web"
+SCRIPT_BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
+
+def _resolve_layout() -> tuple[Path, Path, Path]:
+    """Resolve supported repository layouts.
+
+    Historical CI used:      <root>/projects/Weall-Protocol and <root>/projects/web
+    Current export uses:     <root>/Weall-Protocol and <root>/web
+    Backend-local execution: <backend>/scripts/audit_frontend_backend_congruity.py
+    """
+    candidates: list[tuple[Path, Path, Path]] = []
+
+    # Current uploaded/exported layout when this script is run from backend/scripts.
+    candidates.append((SCRIPT_BACKEND_ROOT.parent, SCRIPT_BACKEND_ROOT, SCRIPT_BACKEND_ROOT.parent / "web"))
+
+    # Historical projects/ layout.
+    projects = SCRIPT_BACKEND_ROOT / "projects"
+    candidates.append((SCRIPT_BACKEND_ROOT, projects / "Weall-Protocol", projects / "web"))
+
+    # If invoked from an outer checkout where scripts were copied, try sibling projects.
+    outer_projects = SCRIPT_BACKEND_ROOT.parent / "projects"
+    candidates.append((SCRIPT_BACKEND_ROOT.parent, outer_projects / "Weall-Protocol", outer_projects / "web"))
+
+    for root, backend, frontend in candidates:
+        if (backend / "src" / "weall").is_dir() and (frontend / "src").is_dir():
+            return root.resolve(), backend.resolve(), frontend.resolve()
+
+    searched = [
+        {"root": str(root), "backend": str(backend), "frontend": str(frontend)}
+        for root, backend, frontend in candidates
+    ]
+    raise SystemExit("layout_not_found:" + repr(searched))
+
+
+REPO_ROOT, BACKEND_DIR, FRONTEND_DIR = _resolve_layout()
 BACKEND_ROUTES_DIR = BACKEND_DIR / "src" / "weall" / "api" / "routes_public_parts"
 FRONTEND_SRC_DIR = FRONTEND_DIR / "src"
 
@@ -100,16 +130,22 @@ def _extract_frontend_v1_paths(paths: list[Path]) -> dict[str, set[str]]:
 
 
 def _normalize_path(p: str) -> str:
-    """
-    Normalize:
-      /v1/accounts/${encodeURIComponent(account)} -> /v1/accounts/
+    """Normalize frontend/backend paths while preserving dynamic segments.
+
+    Examples:
+      /v1/accounts/${encodeURIComponent(account)}/registered -> /v1/accounts/{param}/registered
       /v1/feed${qs} -> /v1/feed
-      /v1/poh/live/session/${id}/participants -> /v1/poh/live/session//participants
-    Then compress multiple slashes.
+      /v1/dev/bootstrap-secret?account=${account} -> /v1/dev/bootstrap-secret
     """
     s = (p or "").strip()
 
-    # strip query concatenations like ${qs} or + qs variants
+    # Drop query strings before dynamic-template handling so endpoints compare
+    # route path, not parameter names.
+    s = s.split("?", 1)[0]
+
+    # Replace TS template interpolations that occupy path segments with a
+    # placeholder segment. Remove query-style template suffixes such as ${qs}.
+    s = re.sub(r"/\$\{[^}]+\}", "/{param}", s)
     s = re.sub(r"\$\{[^}]+\}", "", s)
 
     # remove common "+qs" remnants
@@ -118,8 +154,8 @@ def _normalize_path(p: str) -> str:
     # compress double slashes
     s = re.sub(r"/{2,}", "/", s)
 
-    # if it ends with something like /participants (keep), but normalize trailing variable positions
-    # (we keep a trailing slash if the template removed a segment)
+    if len(s) > 1 and s.endswith("/"):
+        s = s[:-1]
     return s
 
 
@@ -185,6 +221,7 @@ def _try_import_tx_schema() -> object | None:
     # Prefer caller-provided PYTHONPATH, but also try the conventional local layout.
     candidates = [
         str(BACKEND_DIR / "src"),
+        str(SCRIPT_BACKEND_ROOT / "src"),
         str(REPO_ROOT / "src"),
     ]
     for c in candidates:
@@ -202,8 +239,11 @@ def _try_import_tx_schema() -> object | None:
 def main() -> int:
     findings: list[Finding] = []
 
-    if not PROJECTS_DIR.exists():
-        print(f"ERROR: expected {PROJECTS_DIR} to exist (repo root: {REPO_ROOT})")
+    if not BACKEND_ROUTES_DIR.exists() or not FRONTEND_SRC_DIR.exists():
+        print("ERROR: frontend/backend layout is incomplete")
+        print(f"Repo root: {REPO_ROOT}")
+        print(f"Frontend:  {FRONTEND_DIR}")
+        print(f"Backend:   {BACKEND_DIR}")
         return 2
 
     # --- Frontend paths
@@ -244,7 +284,7 @@ def main() -> int:
             Finding(
                 "tx_schema_import_failed",
                 "weall.runtime.tx_schema",
-                "Could not import; run with: PYTHONPATH=projects/Weall-Protocol/src",
+                f"Could not import; run with: PYTHONPATH={BACKEND_DIR / 'src'}",
             )
         )
     else:
@@ -298,33 +338,33 @@ def main() -> int:
     return 1 if hard_fail else 0
 
 
+def _path_segments(path: str) -> list[str]:
+    return [part for part in _normalize_path(path).split("/") if part]
+
+
+def _segment_is_param(segment: str) -> bool:
+    return segment.startswith("{") and segment.endswith("}")
+
+
+def _paths_equivalent(front_ep: str, backend_ep: str) -> bool:
+    front = _path_segments(front_ep)
+    back = _path_segments(backend_ep)
+    if len(front) != len(back):
+        return False
+    for a, b in zip(front, back):
+        if a == b:
+            continue
+        if _segment_is_param(a) or _segment_is_param(b):
+            continue
+        return False
+    return True
+
+
 def _endpoint_is_satisfied(front_ep: str, backend_paths: dict[str, set[str]]) -> bool:
-    """
-    Treat these as satisfied:
-      - exact match exists
-      - backend has a longer prefix match that implies a param segment
-        e.g., frontend: /v1/accounts/  backend: /v1/accounts/{account}
-      - frontend has a shorter exact call (no trailing slash)
-    """
+    """Return true when a frontend endpoint maps to a backend route."""
     if front_ep in backend_paths:
         return True
-
-    # Also check without trailing slash
-    if front_ep.endswith("/") and front_ep[:-1] in backend_paths:
-        return True
-
-    # Prefix match (frontend template stripped param)
-    # e.g. /v1/accounts/ should match /v1/accounts/{account}
-    for be in backend_paths.keys():
-        if be.startswith(front_ep) and ("{" in be or "}" in be):
-            return True
-        # allow common suffix patterns like /feed (frontend removes ${qs})
-        if front_ep and be == front_ep:
-            return True
-        if be.startswith(front_ep) and be[len(front_ep) :].startswith(("/", "{")):
-            return True
-
-    return False
+    return any(_paths_equivalent(front_ep, be) for be in backend_paths.keys())
 
 
 if __name__ == "__main__":
