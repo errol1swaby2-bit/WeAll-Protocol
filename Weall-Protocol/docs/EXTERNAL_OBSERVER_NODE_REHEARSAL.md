@@ -50,11 +50,14 @@ python3 scripts/build_external_observer_bundle.py \
   --manifest configs/chains/weall-genesis.json \
   --genesis-api-base 'https://<GENESIS_HOST>' \
   --relay-urls 'https://<RELAY_HOST>' \
+  --genesis-recipient-pubkey '<64_HEX_GENESIS_NODE_PUBLIC_KEY>' \
   --out dist/weall-external-observer-bundle.json
 ```
 
 The bundle is public. It must contain no private keys and no authority-signer
-secrets.
+secrets. If relay URLs are present, it must also contain
+`observer.relay_recipient_pubkeys` so relay delivery is bound to the genesis
+node public key.
 
 5. Verify the bundle:
 
@@ -141,6 +144,8 @@ Stop the rehearsal if any of these occur:
 - observer can produce a local block
 - observer can sign validator messages
 - relay reports authority other than `transport_only`
+- relay URLs are configured without recipient public-key binding
+- relay reports `allow_unbound_recipient_fetch=true` or `require_recipient_pubkey=false`
 - bundle contains private key, secret, token, or credential-like fields
 - external identity provider credentials are required
 

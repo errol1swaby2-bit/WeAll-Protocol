@@ -81,6 +81,40 @@ def _authority(bundle: Json) -> Json:
     return legacy_authority if isinstance(legacy_authority, dict) else {}
 
 
+def _observer(bundle: Json) -> Json:
+    observer = bundle.get("observer")
+    return observer if isinstance(observer, dict) else {}
+
+
+def _relay_recipient_pubkeys(bundle: Json) -> dict[str, str]:
+    raw = _observer(bundle).get("relay_recipient_pubkeys")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        k = str(key or "").strip()
+        v = str(value or "").strip().lower()
+        if k and v:
+            out[k] = v
+    return out
+
+
+def _validate_relay_recipient_pubkeys(bundle: Json) -> list[str]:
+    issues: list[str] = []
+    observer = _observer(bundle)
+    relay_urls = observer.get("relay_urls") if isinstance(observer.get("relay_urls"), list) else []
+    mapping = _relay_recipient_pubkeys(bundle)
+    if relay_urls and not mapping:
+        issues.append("relay_recipient_pubkeys_required_when_relay_urls_present")
+        return issues
+    for peer_id, pubkey in mapping.items():
+        if not peer_id.strip():
+            issues.append("relay_recipient_pubkey_empty_peer_id")
+        if not re.fullmatch(r"[0-9a-f]{64}", pubkey):
+            issues.append(f"relay_recipient_pubkey_invalid:{peer_id}")
+    return issues
+
+
 def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authority: bool) -> Json:
     issues: list[str] = []
     warnings: list[str] = []
@@ -114,6 +148,7 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
             issues.append("placeholder_trusted_authority_pubkey")
 
     issues.extend(_walk_secret_keys(bundle))
+    issues.extend(_validate_relay_recipient_pubkeys(bundle))
 
     if manifest is not None:
         comparisons = {
@@ -137,6 +172,7 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
         "authority_profile": authority.get("profile"),
         "authority_url": authority.get("authority_url") or authority.get("url"),
         "trusted_authority_pubkeys_count": len(pubkeys),
+        "relay_recipient_pubkeys_count": len(_relay_recipient_pubkeys(bundle)),
         "legacy_authority_section_used": "authority" not in bundle and isinstance(bundle.get("oracle"), dict),
     }
 
@@ -144,8 +180,9 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
 def _shell_env(bundle: Json) -> str:
     chain = _chain(bundle)
     authority = _authority(bundle)
-    observer = bundle.get("observer") if isinstance(bundle.get("observer"), dict) else {}
+    observer = _observer(bundle)
     pubkeys = ",".join(str(pk).strip() for pk in (authority.get("trusted_authority_pubkeys") or []) if str(pk).strip())
+    relay_recipient_pubkeys = json.dumps(_relay_recipient_pubkeys(bundle), separators=(",", ":"), sort_keys=True)
     env = {
         "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"} else str(bundle.get("profile") or ""),
         "WEALL_CHAIN_ID": str(chain.get("chain_id") or ""),
@@ -159,6 +196,7 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_AUTHORITY_PROFILE": str(authority.get("profile") or "production"),
         "WEALL_GENESIS_API_BASE": str(observer.get("genesis_api_base") or ""),
         "WEALL_NET_RELAY_URLS": ",".join(str(url).strip() for url in (observer.get("relay_urls") or []) if str(url).strip()),
+        "WEALL_NET_RELAY_RECIPIENT_PUBKEYS": relay_recipient_pubkeys if _relay_recipient_pubkeys(bundle) else "",
     }
     if observer:
         env.update({

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from weall.runtime.fault_injection import run_priority2_adversarial_soak
@@ -18,6 +19,10 @@ def main() -> int:
     ap.add_argument("--chain-id-prefix", default="priority2-adversarial")
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()
+
+    # Local adversarial soak harness, not a production node launcher.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     summary = run_priority2_adversarial_soak(
         work_dir=str(Path(args.work_dir).resolve()) if str(args.work_dir).strip() else None,

@@ -37,10 +37,15 @@ def test_external_observer_runbook_documents_transport_only_relay_batch315() -> 
     doc = (ROOT / "docs" / "PRODUCTION_RELAY_NETWORK_RUNBOOK.md").read_text(encoding="utf-8")
     assert "WEALL_NET_RELAY_URLS" in script
     assert "/v1/net/relay/status" in script
+    assert "WEALL_NET_RELAY_RECIPIENT_PUBKEYS" in script
+    assert "require_recipient_pubkey" in script
+    assert "allow_unbound_recipient_fetch" in script
     assert "transport_only" in script
     assert "POST /v1/net/relay/submit" in doc
-    assert "GET /v1/net/relay/fetch" in doc
+    assert "POST /v1/net/relay/fetch" in doc
+    assert "signed recipient access request" in doc
     assert "POST /v1/net/relay/ack" in doc
+    assert "WEALL_NET_RELAY_RECIPIENT_PUBKEYS" in doc
     assert "not consensus authority" in doc
     assert "payload_hash" in doc
     assert "tx_index_hash" in doc

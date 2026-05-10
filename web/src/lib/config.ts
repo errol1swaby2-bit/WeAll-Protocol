@@ -9,6 +9,8 @@ import { useMemo } from "react";
 export type AppConfig = {
   appName: string;
   envLabel: string;
+  // True when this is a Vite production build. Production builds must fail closed for demo/dev surfaces.
+  isProduction: boolean;
   // When false, dev-only pages and mutation helpers MUST NOT render.
   enableDevTools: boolean;
   // When true, the client may hydrate a local dev tester profile from a manifest.
@@ -41,19 +43,28 @@ export const mode = String((import.meta as any).env?.MODE || "unknown");
 // IMPORTANT: prod default must be safe.
 const enableDevToolsDefault = !isProd;
 
+function defaultApiBase(): string {
+  const configured = env("VITE_WEALL_API_BASE").trim();
+  if (configured) return configured;
+  // Production web builds should not default external users to their own localhost.
+  // Same-origin keeps a hosted UI pointed at the deployment's API unless an explicit remote genesis API is configured.
+  return isProd ? "/" : "http://127.0.0.1:8000";
+}
+
 const injectedVersion = webVersion();
 
 export const config: AppConfig = {
   appName: env("VITE_WEALL_APP_NAME").trim() || "WeAll",
   envLabel: env("VITE_WEALL_ENV_LABEL").trim() || (isProd ? "prod" : "dev"),
-  enableDevTools: truthy(env("VITE_WEALL_ENABLE_DEV_TOOLS")) || enableDevToolsDefault,
-  enableDevBootstrap: truthy(env("VITE_WEALL_ENABLE_DEV_BOOTSTRAP")),
+  isProduction: isProd,
+  enableDevTools: !isProd && (truthy(env("VITE_WEALL_ENABLE_DEV_TOOLS")) || enableDevToolsDefault),
+  enableDevBootstrap: !isProd && truthy(env("VITE_WEALL_ENABLE_DEV_BOOTSTRAP")),
 
   clientName: env("VITE_WEALL_CLIENT_NAME").trim() || "weall-web",
   // Prefer Vite-injected version to avoid manual drift; env can override if desired.
   clientVersion: env("VITE_WEALL_CLIENT_VERSION").trim() || injectedVersion || "0.0.0",
 
-  defaultApiBase: env("VITE_WEALL_API_BASE").trim() || "http://127.0.0.1:8000",
+  defaultApiBase: defaultApiBase(),
 
   // Default to same-origin /seeds.json so a static webfront can ship its own seed list.
   seedsUrl: env("VITE_WEALL_SEEDS_URL").trim() || "/seeds.json",

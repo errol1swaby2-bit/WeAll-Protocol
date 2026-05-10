@@ -6,13 +6,13 @@
   },
   "authority_snapshot_version": 1,
   "chain_id": "weall-prod",
-  "genesis_hash": "0090130dc6c46aa957bac655b57a49ef2d2fb8c24b840828cc60e56c611b37e1",
-  "genesis_state_root": "0090130dc6c46aa957bac655b57a49ef2d2fb8c24b840828cc60e56c611b37e1",
+  "genesis_hash": "1f9ab7da02be5b29f2a39d70715c2b499161c34681cfabc6ba452fb7029fbdbd",
+  "genesis_state_root": "1f9ab7da02be5b29f2a39d70715c2b499161c34681cfabc6ba452fb7029fbdbd",
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",
   "notes": "Pinned production chain identity. Private keys must never be committed or included in observer bundles.",
   "profile": "production_service",
-  "protocol_profile_hash": "7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991",
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
   "schema_version": "1",
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"

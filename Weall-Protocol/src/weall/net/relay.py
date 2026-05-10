@@ -60,6 +60,7 @@ class RelayConfig:
     allow_broadcast_recipient: bool = False
     max_access_ttl_ms: int = 60_000
     allow_unbound_recipient_fetch: bool = False
+    require_recipient_pubkey: bool = False
 
 
 def _now_ms() -> int:
@@ -363,6 +364,8 @@ def validate_relay_envelope(envelope: Any, *, cfg: RelayConfig, now_ms: int | No
     recipient_pubkey = str(env.get("recipient_pubkey") or "").strip()
     if recipient_pubkey and len(recipient_pubkey) < 16:
         raise RelayEnvelopeError("relay_bad_recipient_pubkey")
+    if bool(cfg.require_recipient_pubkey) and recipient != "*" and not recipient_pubkey:
+        raise RelayEnvelopeError("relay_missing_recipient_pubkey")
 
     payload = env.get("payload")
     if not isinstance(payload, dict):

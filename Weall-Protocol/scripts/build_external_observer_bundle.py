@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,38 @@ def _split_csv(value: str) -> list[str]:
     return [part.strip() for part in str(value or "").split(",") if part.strip()]
 
 
+def _normalise_pubkey_map(value: Any) -> dict[str, str]:
+    if value in (None, ""):
+        return {}
+    parsed: Any = value
+    if isinstance(value, str):
+        parsed = json.loads(value)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("relay_recipient_pubkeys_not_object")
+    out: dict[str, str] = {}
+    for raw_key, raw_val in parsed.items():
+        key = str(raw_key or "").strip()
+        val = str(raw_val or "").strip()
+        if not key or not val:
+            continue
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", val):
+            raise RuntimeError(f"relay_recipient_pubkey_invalid:{key}")
+        out[key] = val.lower()
+    return out
+
+
+def _relay_recipient_pubkeys(args: argparse.Namespace) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    raw_map = _first_nonempty(args.relay_recipient_pubkeys, os.environ.get("WEALL_NET_RELAY_RECIPIENT_PUBKEYS"))
+    if raw_map:
+        mapping.update(_normalise_pubkey_map(raw_map))
+    genesis_pubkey = _first_nonempty(args.genesis_recipient_pubkey, os.environ.get("WEALL_GENESIS_RELAY_RECIPIENT_PUBKEY"))
+    if genesis_pubkey:
+        key = str(args.genesis_peer_id or "genesis").strip() or "genesis"
+        mapping.update(_normalise_pubkey_map({key: genesis_pubkey}))
+    return dict(sorted(mapping.items()))
+
+
 def _first_nonempty(*values: Any) -> str:
     for value in values:
         text = str(value or "").strip()
@@ -75,6 +108,7 @@ def _build(args: argparse.Namespace) -> Json:
     manifest = _load_json(manifest_path)
     authority = _manifest_authority(manifest)
     relay_urls = _split_csv(args.relay_urls or os.environ.get("WEALL_NET_RELAY_URLS") or "")
+    relay_recipient_pubkeys = _relay_recipient_pubkeys(args)
     genesis_api_base = _first_nonempty(args.genesis_api_base, os.environ.get("WEALL_GENESIS_API_BASE"), os.environ.get("WEALL_API_BASE")).rstrip("/")
     authority_url = _first_nonempty(args.authority_url, genesis_api_base, os.environ.get("WEALL_CHAIN_AUTHORITY_URL"), os.environ.get("WEALL_API_BASE")).rstrip("/")
     generated_at_ms = int(args.generated_at_ms) if args.generated_at_ms else int(time.time() * 1000)
@@ -107,6 +141,8 @@ def _build(args: argparse.Namespace) -> Json:
         "observer": {
             "genesis_api_base": genesis_api_base,
             "relay_urls": relay_urls,
+            "relay_recipient_pubkeys": relay_recipient_pubkeys,
+            "relay_recipients": sorted(relay_recipient_pubkeys.keys()),
             "observer_mode_required": True,
             "node_lifecycle_state": "observer_onboarding",
             "validator_signing_enabled": False,
@@ -162,6 +198,9 @@ def main() -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--genesis-api-base", default="")
     parser.add_argument("--relay-urls", default="")
+    parser.add_argument("--relay-recipient-pubkeys", default="", help="JSON object mapping relay peer ids to recipient Ed25519 public keys")
+    parser.add_argument("--genesis-peer-id", default="genesis", help="Relay recipient peer id for the genesis/bootstrap node")
+    parser.add_argument("--genesis-recipient-pubkey", default="", help="Genesis/bootstrap node Ed25519 public key for relay recipient binding")
     parser.add_argument("--authority-url", default="")
     parser.add_argument("--min-authority-height", type=int, default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"))
     parser.add_argument("--authority-snapshot-max-age-ms", type=int, default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"))

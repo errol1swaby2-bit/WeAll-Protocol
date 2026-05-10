@@ -40,7 +40,7 @@ class ProductionConsensusProfile:
     startup_clock_sanity_required: bool = False
     startup_clock_hard_fail_ms: int = DEFAULT_STARTUP_CLOCK_HARD_FAIL_MS
     max_block_time_advance_ms: int = DEFAULT_MAX_BLOCK_TIME_ADVANCE_MS
-    vrf_required: bool = False
+    vrf_required: bool = True
     timestamp_rule: str = "chain_time_successor_only"
     max_tx_payload_bytes: int = DEFAULT_MAX_TX_PAYLOAD_BYTES
     max_tx_payload_depth: int = DEFAULT_MAX_TX_PAYLOAD_DEPTH
@@ -368,7 +368,11 @@ def runtime_vrf_required() -> bool:
     p = active_consensus_profile()
     if _mode() == "prod":
         return bool(p.vrf_required)
-    return bool(_env_bool("WEALL_REQUIRE_VRF", p.vrf_required))
+    # Non-production block-building fixtures should not inherit the production
+    # default merely because the canonical production profile requires VRF.
+    # Test/dev/testnet callers can still opt in explicitly with
+    # WEALL_REQUIRE_VRF=1 when they need to exercise the fail-closed path.
+    return bool(_env_bool("WEALL_REQUIRE_VRF", False))
 
 
 def effective_runtime_consensus_posture() -> dict[str, object]:

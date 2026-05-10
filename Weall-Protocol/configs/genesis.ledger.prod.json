@@ -19,6 +19,9 @@
       },
       "locked": false,
       "nonce": 0,
+      "poh_bootstrap_grant_id": "poh_bootstrap_grant:e20283d6f2d9ea59be472b61",
+      "poh_bootstrap_receipt_id": "poh_bootstrap_receipt:192325155752f3c454ed01f8",
+      "poh_bootstrap_review_condition": "native_poh_juror_quorum_or_governance_review",
       "poh_tier": 2,
       "reputation": 0.0
     },
@@ -64,6 +67,37 @@
     "public_mainnet_enabled": false,
     "validator_candidate_lifecycle_gate_enabled": true,
     "validator_candidate_node_id_must_match_node_pubkey": true
+  },
+  "poh": {
+    "bootstrap_grants": {
+      "by_account": {
+        "@errol-genesis": [
+          "poh_bootstrap_grant:e20283d6f2d9ea59be472b61"
+        ]
+      },
+      "by_id": {
+        "poh_bootstrap_grant:e20283d6f2d9ea59be472b61": {
+          "account_id": "@errol-genesis",
+          "auditable": true,
+          "authority_path": "production_genesis_manifest",
+          "expires_height": 1008,
+          "grant_height": 0,
+          "grant_id": "poh_bootstrap_grant:e20283d6f2d9ea59be472b61",
+          "grant_type": "poh_tier2_live_verified",
+          "mode": "production_genesis",
+          "nonce": 0,
+          "pubkey_sha256": "8f88bf0e54b81a7bb13e863a0671cc2991d0ee881aeb4fff87e7ad61d5e6f4bd",
+          "reason_code": "founder_live_bootstrap",
+          "receipt_id": "poh_bootstrap_receipt:192325155752f3c454ed01f8",
+          "review_condition": "native_poh_juror_quorum_or_governance_review",
+          "signer": "@errol-genesis",
+          "source": "genesis_state",
+          "status": "active",
+          "transitional": true,
+          "tx_type": "GENESIS_BOOTSTRAP_TIER2_GRANT"
+        }
+      }
+    }
   },
   "roles": {
     "validators": {

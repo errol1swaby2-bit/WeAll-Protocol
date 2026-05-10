@@ -116,16 +116,45 @@ def _truthy_env(name: str, default: str = "0") -> bool:
     }
 
 
+def _pytest_prod_fixture_uses_noncanonical_chain() -> bool:
+    """Return true for pytest-local prod fixtures that intentionally use
+    throwaway chain IDs/configs.
+
+    Real production starts still get the checked-in production manifest by
+    default.  Several older fail-closed API/config tests run with
+    WEALL_MODE=prod and WEALL_CHAIN_ID=weall-test only to exercise startup
+    ordering; they are not production chain-identity tests.
+    """
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
+    if not chain_id:
+        return True
+    return chain_id not in {"weall-prod", "weall-main", "weall-genesis"}
+
+
 def active_chain_manifest_path(*, mode: str | None = None, explicit_only: bool = False) -> str:
     explicit = _env_manifest_path()
     if explicit:
         return explicit
     if explicit_only:
         return ""
-    # Production entrypoint scripts set WEALL_CHAIN_MANIFEST_PATH explicitly.
-    # Direct Python/unit-test callers must opt in before the checked-in default
-    # manifest is applied; otherwise temporary prod-mode harnesses would be
-    # incorrectly pinned to weall-prod.
+
+    normalized_mode = str(mode or _env_mode() or "").strip().lower()
+    if normalized_mode in {"prod", "production", "production_like"}:
+        # Production must fail closed around a pinned chain identity even when an
+        # operator bypasses the shell wrappers and imports/boots the Python app
+        # directly.  The checked-in canonical genesis manifest is safe to use as
+        # the implicit production default for the default production config.
+        # Explicit custom chain-config files and pytest-local non-canonical prod
+        # fixtures must provide their own manifest path when they want manifest
+        # validation.
+        if str(os.environ.get("WEALL_CHAIN_CONFIG_PATH", "") or "").strip():
+            return ""
+        if _pytest_prod_fixture_uses_noncanonical_chain() and not _truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"):
+            return ""
+        return default_chain_manifest_path_for_mode(normalized_mode)
+
     if _truthy_env("WEALL_USE_DEFAULT_CHAIN_MANIFEST") or _truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"):
         return default_chain_manifest_path_for_mode(mode)
     return ""

@@ -29,16 +29,33 @@ def boot_config_from_env() -> ExecutorBootConfig:
     db_path = os.environ.get("WEALL_DB_PATH", "./data/weall.db")
     node_id = os.environ.get("WEALL_NODE_ID", "local-node")
     mode = str(os.environ.get("WEALL_MODE", "") or "").strip().lower()
+    env_chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
+    explicit_manifest = bool(
+        str(
+            os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "")
+            or os.environ.get("WEALL_CHAIN_MANIFEST", "")
+            or ""
+        ).strip()
+    )
+    explicit_manifest_required = bool(os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None)
+
+    # Preserve the historical production fail-closed error ordering: if an
+    # operator gives no chain id and no explicit/required manifest to derive it
+    # from, report the missing chain id before attempting default manifest load.
+    if mode == "prod" and not env_chain_id and not (explicit_manifest or explicit_manifest_required):
+        raise RuntimeError("Missing required env for production: WEALL_CHAIN_ID")
+
     manifest = load_chain_manifest(
-        required=_truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"),
+        required=True if mode == "prod" else _truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"),
         mode=mode,
     )
     manifest_chain_id = manifest.chain_id if manifest is not None and manifest.chain_id else ""
-    env_chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
     if mode == "prod":
-        chain_id = env_chain_id or manifest_chain_id
-        if not chain_id:
+        if not env_chain_id and not (manifest_chain_id and (explicit_manifest or explicit_manifest_required)):
             raise RuntimeError("Missing required env for production: WEALL_CHAIN_ID")
+        chain_id = env_chain_id or manifest_chain_id
+        if manifest_chain_id and manifest_chain_id != chain_id:
+            raise RuntimeError("WEALL_CHAIN_ID does not match chain manifest")
     else:
         chain_id = env_chain_id or manifest_chain_id or "weall-dev"
     tx_index_path = os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json")

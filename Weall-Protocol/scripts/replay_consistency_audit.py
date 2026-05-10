@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -31,6 +32,10 @@ def main() -> int:
     )
     parser.add_argument("--json", action="store_true", help="Emit compact JSON only.")
     args = parser.parse_args()
+
+    # Local replay audit harness, not a production node launcher.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     summary = build_sample_chain(
         work_dir=str(Path(args.work_dir)), chain_id_prefix=args.chain_id_prefix

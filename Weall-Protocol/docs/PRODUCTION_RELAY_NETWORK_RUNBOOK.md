@@ -42,8 +42,10 @@ Endpoints mounted under `/v1`:
 
 - `GET /v1/net/relay/status`
 - `POST /v1/net/relay/submit`
-- `GET /v1/net/relay/fetch?recipient_peer_id=<peer>&limit=<n>`
-- `POST /v1/net/relay/ack`
+- `POST /v1/net/relay/fetch` with a signed recipient access request
+- `POST /v1/net/relay/ack` with a signed recipient access request
+
+`GET /v1/net/relay/fetch?recipient_peer_id=<peer>&limit=<n>` is legacy non-production compatibility only. Production fetch is signed and recipient-key bound.
 
 Recommended reverse-proxy controls:
 
@@ -60,6 +62,7 @@ On an observer/onboarding node behind NAT:
 export WEALL_NET_RELAY_CLIENT_ENABLED=1
 export WEALL_NET_RELAY_URLS=https://<bootstrap-or-relay-host>
 export WEALL_NET_RELAY_RECIPIENTS=<genesis-peer-id-or-validator-peer-id>
+export WEALL_NET_RELAY_RECIPIENT_PUBKEYS='{"genesis":"<64_HEX_GENESIS_NODE_PUBLIC_KEY>"}'
 export WEALL_NET_RELAY_POLL_MS=1000
 export WEALL_NODE_PUBKEY=<observer-node-public-key>
 export WEALL_NODE_PRIVKEY=<observer-node-private-key>
@@ -82,12 +85,13 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 1. Observer builds a normal signed WeAll tx.
 2. Observer wraps the corresponding `TX_ENVELOPE` in a signed relay envelope.
 3. Observer posts it to `/v1/net/relay/submit`.
-4. Genesis/bootstrap node polls `/v1/net/relay/fetch?recipient_peer_id=<genesis-peer-id>`.
-5. Genesis verifies the relay envelope.
-6. Genesis decodes the wire message.
-7. Genesis runs normal tx admission.
-8. If valid, tx enters mempool and can be included in a block.
-9. Genesis acks the relay envelope.
+4. Genesis/bootstrap node polls `POST /v1/net/relay/fetch` with a signed recipient access request.
+5. The relay returns only messages bound to the genesis recipient public key.
+6. Genesis verifies the relay envelope.
+7. Genesis decodes the wire message.
+8. Genesis runs normal tx admission.
+9. If valid, tx enters mempool and can be included in a block.
+10. Genesis acks the relay envelope with a signed recipient access request.
 
 ### Relay mutation attempt
 
@@ -122,8 +126,8 @@ Before inviting an external observer tester, run this sequence internally on a s
 1. Boot genesis/bootstrap node with real non-placeholder production manifest values.
 2. Enable relay server on the bootstrap node.
 3. Build/export public observer onboarding bundle.
-4. Copy bundle to observer machine.
-5. Run `scripts/external_observer_onboarding_smoke.sh` with `WEALL_NET_RELAY_URLS` set.
+4. Copy bundle to observer machine. The bundle must include `observer.relay_recipient_pubkeys` when relay URLs are present.
+5. Run `scripts/external_observer_onboarding_smoke.sh` with `WEALL_NET_RELAY_URLS` and `WEALL_NET_RELAY_RECIPIENT_PUBKEYS` set or emitted by the bundle verifier.
 6. Boot observer in observer mode.
 7. Submit `ACCOUNT_REGISTER` from observer.
 8. Verify genesis receives the relayed tx and includes it.

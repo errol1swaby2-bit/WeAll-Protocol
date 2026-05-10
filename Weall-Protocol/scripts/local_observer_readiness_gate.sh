@@ -38,7 +38,7 @@ fail() {
 [[ -f "$MANIFEST_PATH" ]] || fail "manifest not found: $MANIFEST_PATH"
 [[ "$AUTHORITY_URL" == https://* ]] || fail "WEALL_LOCAL_OBSERVER_AUTHORITY_URL must be https://..."
 
-# Observer rehearsal must not depend on authority, validator, oracle, SMTP, or
+# Observer rehearsal must not depend on authority, validator, oracle, message-transport, or
 # Cloudflare secrets being present in the operator shell.
 for var in \
   WEALL_AUTHORITY_SIGNER_PRIVKEY \
@@ -46,7 +46,6 @@ for var in \
   WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY \
   WEALL_ORACLE_AUTHORITY_PRIVKEY \
   WEALL_CLOUDFLARE_API_TOKEN \
-  WEALL_SMTP_PASSWORD \
   WEALL_NODE_PRIVKEY \
   WEALL_VALIDATOR_ACCOUNT; do
   if [[ -n "${!var:-}" ]]; then
@@ -120,7 +119,7 @@ OK: local observer readiness gate passed
 - public observer bundle generated and verified
 - observer preflight forces observer-only mode
 - validator signing, BFT, helper authority, and block loop are disabled
-- no authority, validator, Cloudflare, SMTP, or legacy oracle secret is required
+- no authority, validator, Cloudflare, message-transport, or legacy oracle secret is required
 
 This is not a substitute for scripts/rehearse_external_observer_two_machine.sh.
 It is the local precondition that should pass before the real second-machine rehearsal.

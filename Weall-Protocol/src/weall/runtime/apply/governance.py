@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.apply.economics import EconomicsApplyError, _normalize_rate_limit_policy_payload
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
@@ -556,6 +557,12 @@ def _enforce_genesis_econ_lock(state: Json, actions: list[dict[str, Any]]) -> No
         return
     for a in actions:
         tx_type = _s(a.get("tx_type")).strip().upper()
+        # RATE_LIMIT_POLICY_SET is an anti-spam governance action, not value
+        # movement or fee activation. It is intentionally allowed during the
+        # genesis economics lock, but its payload is still bounded and
+        # validated before proposal creation.
+        if tx_type == "RATE_LIMIT_POLICY_SET":
+            continue
         if tx_type and is_economic_system_tx(tx_type):
             raise ApplyError(
                 "forbidden",
@@ -568,9 +575,10 @@ DEFAULT_GOV_ACTION_ALLOWLIST = frozenset(
     {
         "ECONOMICS_ACTIVATION",
         "FEE_POLICY_SET",
+        "RATE_LIMIT_POLICY_SET",
         "GOV_QUORUM_SET",
         "GOV_RULES_SET",
-        "TREASURY_PARAMS_SET",
+        "TREASURY_POLICY_SET",
         "VALIDATOR_SET_UPDATE",
         "VALIDATOR_CANDIDATE_APPROVE",
         "VALIDATOR_SUSPEND",
@@ -621,10 +629,11 @@ def _validate_gov_rules_payload(payload: dict[str, Any]) -> None:
 def _validate_against_canon_payload_schema(tx_type: str, payload: dict[str, Any]) -> None:
     model = model_for_tx_type(tx_type)
     if model is None:
-        # Some legacy internal actions still exist in apply modules before they
-        # are promoted into tx canon. Keep compatibility here, but never treat
-        # missing schema as proof of safety for new public governance actions.
-        return
+        raise ApplyError(
+            "forbidden",
+            "governance_action_missing_canon_schema",
+            {"tx_type": tx_type},
+        )
     try:
         model(**payload)
     except Exception as exc:
@@ -643,6 +652,15 @@ def _validate_governance_action_payload(tx_type: str, payload: dict[str, Any]) -
         _validate_gov_quorum_payload(payload)
     elif t == "GOV_RULES_SET":
         _validate_gov_rules_payload(payload)
+    elif t == "RATE_LIMIT_POLICY_SET":
+        try:
+            _normalize_rate_limit_policy_payload(payload)
+        except EconomicsApplyError as exc:
+            raise ApplyError(
+                "invalid_payload",
+                "governance_action_payload_invalid",
+                {"tx_type": t, "error": exc.reason, "details": exc.details or {}},
+            ) from exc
     _validate_against_canon_payload_schema(t, payload)
 
 
@@ -854,6 +872,12 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     h = _height_hint(state, env)
     eligible_validators = _proposal_eligible_validator_ids(state, pr, str(env.signer))
     signer_key = _canonical_actor_key(eligible_validators, str(env.signer), state)
+    if _proposal_has_executable_actions(pr) and signer_key not in set(eligible_validators):
+        raise ApplyError(
+            "forbidden",
+            "executable_governance_vote_requires_electorate_member",
+            {"proposal_id": proposal_id, "signer": str(env.signer)},
+        )
     for alias in _identity_variants(env.signer):
         if alias != signer_key:
             votes.pop(alias, None)

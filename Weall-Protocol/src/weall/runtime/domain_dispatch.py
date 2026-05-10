@@ -204,7 +204,7 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
     t = _tx_type(env)
     txdef = _get_txdef(t)
     if not isinstance(txdef, dict):
-        return
+        raise ApplyError("invalid_tx", "noncanonical_tx_type", {"tx_type": t})
 
     # Receipt-only txs may require a parent pointer (block context) depending on canon.
     # Canon distinguishes "receipt_only" (not mempool-admissible) from whether a

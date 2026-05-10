@@ -85,7 +85,7 @@ _FALLBACK: Set[str] = frozenset(
     {
         "IDENTITY_CREATE",
         "POH_TIER1_MINT",
-        "POST_CREATE",
+        "CONTENT_POST_CREATE",
         "GOV_PROPOSAL_CREATE",
         "TREASURY_CREATE",
         "BLOCK_PROPOSE",

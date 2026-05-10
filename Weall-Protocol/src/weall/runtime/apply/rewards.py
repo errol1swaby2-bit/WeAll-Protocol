@@ -106,6 +106,18 @@ def _ensure_account(state: Json, account_id: str) -> Json:
     return acct
 
 
+def _require_account(state: Json, account_id: str, *, field: str) -> Json:
+    accounts = _ensure_root_dict(state, "accounts")
+    acct = accounts.get(account_id)
+    if not isinstance(acct, dict):
+        raise RewardsApplyError(
+            "not_found",
+            f"{field}_account_missing",
+            {field: str(account_id)},
+        )
+    return acct
+
+
 def _ensure_rewards(state: Json) -> Json:
     r = _ensure_root_dict(state, "rewards")
     if not isinstance(r.get("reward_pools_by_account"), dict):
@@ -320,7 +332,7 @@ def _apply_transfers_and_debits(
             continue
         if amt < 0:
             amt = 0
-        acct = _ensure_account(state, to)
+        acct = _require_account(state, to, field="to")
         acct["balance"] = _as_int(acct.get("balance"), 0) + int(amt)
         credited_total += int(amt)
 
@@ -333,7 +345,7 @@ def _apply_transfers_and_debits(
             continue
         if amt < 0:
             amt = 0
-        acct = _ensure_account(state, from_acct)
+        acct = _require_account(state, from_acct, field="from")
         bal = _as_int(acct.get("balance"), 0)
         if strict_debits and bal < int(amt):
             raise RewardsApplyError(
@@ -486,7 +498,7 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     already = isinstance(existing, dict)
 
     if not already:
-        acct = _ensure_account(state, account_id)
+        acct = _require_account(state, account_id, field="account")
         bal = _as_int(acct.get("balance"), 0)
         new_bal = bal - int(amount)
         if new_bal < 0:

@@ -48,7 +48,8 @@ python3 scripts/build_external_observer_bundle.py \
   --out /tmp/weall-external-observer-bundle.json \
   --authority-url https://<genesis-authority-host> \
   --genesis-api-base https://<genesis-api-host> \
-  --relay-urls https://<relay-host>
+  --relay-urls https://<relay-host> \
+  --genesis-recipient-pubkey <64_HEX_GENESIS_NODE_PUBLIC_KEY>
 ```
 
 Verify before sending:
@@ -81,6 +82,7 @@ export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bu
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=https://<genesis-api-host>
 export WEALL_NET_RELAY_URLS=https://<relay-host>   # optional, comma-separated when present
+export WEALL_NET_RELAY_RECIPIENT_PUBKEYS='{"genesis":"<64_HEX_GENESIS_NODE_PUBLIC_KEY>"}'
 
 bash scripts/rehearse_external_observer_two_machine.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
@@ -92,6 +94,7 @@ This smoke path verifies:
 - the bundle matches the local manifest
 - the manifest is pinned and non-placeholder
 - the remote genesis chain identity matches the bundle when `WEALL_GENESIS_API_BASE` is provided
+- relay recipient public-key binding is present whenever relay URLs are configured
 - observer mode is forced on
 - validator signing is forced off
 - BFT is forced off
@@ -149,6 +152,7 @@ Stop the external test if any of these occur:
 
 - manifest check fails
 - bundle check fails
+- relay URLs are configured without `WEALL_NET_RELAY_RECIPIENT_PUBKEYS`
 - placeholder authority key is present
 - protocol profile hash is empty
 - observer boot enables validator signing

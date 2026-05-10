@@ -180,7 +180,7 @@ export default function App(): JSX.Element {
   const keypair = useMemo(() => (account ? getKeypair(account) : null), [account, authVersion]);
   const readyForApp = !!session?.account && !!keypair?.secretKeyB64;
   const sessionHealth = useSessionHealth(authVersion);
-  const showAdvancedMode = settings.showAdvancedMode;
+  const showAdvancedMode = config.enableDevTools && settings.showAdvancedMode;
 
   useEffect(() => {
     const hydrationTimer = window.setTimeout(() => setAuthHydrated(true), 120);
@@ -214,6 +214,10 @@ export default function App(): JSX.Element {
     let cancelled = false;
 
     const runBootstrapSync = async () => {
+      if (!config.enableDevBootstrap) {
+        if (!cancelled) setAuthHydrated(true);
+        return;
+      }
       const applied = await maybeApplyDevBootstrap(config);
       if (applied && !cancelled) {
         setAuthVersion((v: number) => v + 1);

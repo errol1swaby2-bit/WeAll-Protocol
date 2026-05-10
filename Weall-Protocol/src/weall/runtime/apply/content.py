@@ -1119,10 +1119,6 @@ CONTENT_TX_TYPES: set[str] = {
     "CONTENT_POST_CREATE",
     "CONTENT_POST_EDIT",
     "CONTENT_POST_DELETE",
-    # Back-compat aliases still seen in some clients/tools
-    "POST_CREATE",
-    "POST_EDIT",
-    "POST_DELETE",
     "CONTENT_COMMENT_CREATE",
     "CONTENT_COMMENT_DELETE",
     "CONTENT_REACTION_SET",
@@ -1147,11 +1143,11 @@ def apply_content(state: Json, env: TxEnvelope) -> Json | None:
     if t not in CONTENT_TX_TYPES:
         return None
 
-    if t in {"CONTENT_POST_CREATE", "POST_CREATE"}:
+    if t == "CONTENT_POST_CREATE":
         return _apply_post_create(state, env)
-    if t in {"CONTENT_POST_EDIT", "POST_EDIT"}:
+    if t == "CONTENT_POST_EDIT":
         return _apply_post_edit(state, env)
-    if t in {"CONTENT_POST_DELETE", "POST_DELETE"}:
+    if t == "CONTENT_POST_DELETE":
         return _apply_post_delete(state, env)
 
     if t == "CONTENT_COMMENT_CREATE":

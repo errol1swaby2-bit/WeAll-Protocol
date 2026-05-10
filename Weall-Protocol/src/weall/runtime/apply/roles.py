@@ -71,6 +71,82 @@ def _ensure_roles(ledger: Json) -> Json:
 
 
 
+_ROLE_ELIGIBILITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "juror": ("juror", "Juror", "ROLE_JUROR", "ROLE_JUROR_ACTIVATE"),
+    "node_operator": (
+        "node_operator",
+        "NodeOperator",
+        "Node Operator",
+        "ROLE_NODE_OPERATOR",
+        "ROLE_NODE_OPERATOR_ACTIVATE",
+    ),
+    "validator": ("validator", "Validator", "ROLE_VALIDATOR", "ROLE_VALIDATOR_ACTIVATE"),
+    "gov_executor": ("gov_executor", "GovExecutor", "ROLE_GOV_EXECUTOR", "ROLE_GOV_EXECUTOR_SET"),
+    "emissary": ("emissary", "Emissary", "ROLE_EMISSARY", "ROLE_EMISSARY_SEAT"),
+}
+
+
+def _account_for_activation(ledger: Json, acct: str) -> Json:
+    accounts = _as_dict(ledger.get("accounts"))
+    account = accounts.get(acct)
+    if not isinstance(account, dict):
+        raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
+    return account
+
+
+def _role_eligibility_revoked(ledger: Json, acct: str, role: str) -> bool:
+    rep = _as_dict(ledger.get("reputation"))
+    elig = _as_dict(rep.get("role_eligibility"))
+    rec = _as_dict(elig.get(acct))
+    roles = _as_dict(rec.get("roles"))
+    aliases = _ROLE_ELIGIBILITY_ALIASES.get(role, (role,))
+    return any(alias in roles and bool(roles.get(alias)) is False for alias in aliases)
+
+
+def _require_role_activation_eligible(
+    ledger: Json,
+    acct: str,
+    *,
+    role: str,
+    minimum_reputation_milli: int = 0,
+) -> Json:
+    account = _account_for_activation(ledger, acct)
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct, "role": role})
+    if _as_int(account.get("poh_tier"), 0) < 2:
+        raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct, "role": role})
+    if _role_eligibility_revoked(ledger, acct, role):
+        raise RolesApplyError("forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role})
+    required = max(0, int(minimum_reputation_milli))
+    actual = account_reputation_units(account, default=0)
+    if actual < required:
+        raise RolesApplyError(
+            "forbidden",
+            "reputation_insufficient",
+            {
+                "account_id": acct,
+                "role": role,
+                "required_milli": int(required),
+                "actual_milli": int(actual),
+            },
+        )
+    return account
+
+
+def _role_required_reputation_milli(ledger: Json, payload: Json, role: str, default: int = 0) -> int:
+    params = _as_dict(ledger.get("params"))
+    for key in (
+        "reputation_required_milli",
+        f"{role}_reputation_required_milli",
+        f"{role}_minimum_reputation_milli",
+    ):
+        if key in payload:
+            return max(0, _as_int(payload.get(key), default))
+        if key in params:
+            return max(0, _as_int(params.get(key), default))
+    return max(0, int(default))
+
+
 def _ensure_node_operator_responsibilities(rec: Json) -> Json:
     responsibilities = rec.get("responsibilities")
     if not isinstance(responsibilities, dict):
@@ -513,6 +589,12 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
     rec = _touch(by_id, acct)
     if not bool(rec.get("enrolled", False)):
         raise RolesApplyError("not_found", "juror_not_enrolled", {"account_id": acct})
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="juror",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "juror", 0),
+    )
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
@@ -577,6 +659,7 @@ def _apply_role_juror_reinstate(ledger: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     roles = _ensure_roles(ledger)
     validators = roles.get("validators")
     if not isinstance(validators, dict):
@@ -588,6 +671,37 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
 
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="validator",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "validator", 5000),
+    )
+
+    if not is_node_operator_active(ledger, acct):
+        raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
+
+    ops = _as_dict(roles.get("node_operators"))
+    by_id = _as_dict(ops.get("by_id"))
+    op_rec = _as_dict(by_id.get(acct))
+    responsibilities = _as_dict(op_rec.get("responsibilities"))
+    validator_resp = _as_dict(responsibilities.get("validator"))
+    if not bool(validator_resp.get("active", False)) or _as_str(validator_resp.get("readiness_status")).strip().lower() not in {"verified", "ready"}:
+        raise RolesApplyError("forbidden", "validator_readiness_required", {"account_id": acct})
+
+    expires_height = _as_int(validator_resp.get("readiness_expires_height"), 0)
+    current_height = _as_int(ledger.get("height"), 0)
+    if expires_height > 0 and current_height > expires_height:
+        raise RolesApplyError(
+            "forbidden",
+            "validator_readiness_expired",
+            {"account_id": acct, "current_height": current_height, "expires_height": expires_height},
+        )
+
+    node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key") or validator_resp.get("node_pubkey")).strip()
+    if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
+        raise RolesApplyError("forbidden", "node_key_not_registered", {"account_id": acct})
+
     aset = validators.get("active_set")
     if not isinstance(aset, list):
         aset = []
@@ -595,6 +709,14 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     if not had:
         aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
     validators["active_set"] = aset
+    validators.setdefault("by_id", {})
+    if isinstance(validators.get("by_id"), dict):
+        rec = _touch(validators["by_id"], acct)
+        rec["active"] = True
+        rec["activated_at_nonce"] = int(env.nonce)
+        rec["node_pubkey"] = node_pubkey or rec.get("node_pubkey", "")
+        rec["readiness_receipt_hash"] = validator_resp.get("readiness_receipt_hash")
+        validators["by_id"][acct] = rec
     roles["validators"] = validators
     return {"applied": "ROLE_VALIDATOR_ACTIVATE", "account_id": acct, "deduped": had}
 
@@ -704,6 +826,12 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
     rec = _touch(by_id, acct)
     if not bool(rec.get("enrolled", False)):
         raise RolesApplyError("not_found", "node_operator_not_enrolled", {"account_id": acct})
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="node_operator",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "node_operator", 0),
+    )
 
     rec["active"] = True
     rec["activated_at_nonce"] = int(env.nonce)
@@ -840,6 +968,12 @@ def _apply_role_emissary_seat(ledger: Json, env: TxEnvelope) -> Json:
     acct = _pick_account(payload, "account_id", "emissary", "target", "account")
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="emissary",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "emissary", 0),
+    )
 
     by_id = em.get("by_id")
     if not isinstance(by_id, dict):
@@ -915,6 +1049,12 @@ def _apply_role_gov_executor_set(ledger: Json, env: TxEnvelope) -> Json:
     acct = _pick_account(payload, "account_id", "executor", "target", "account", "gov_executor")
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="gov_executor",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "gov_executor", 0),
+    )
 
     already = _as_str(gov_exec.get("current")).strip() == acct and bool(
         gov_exec.get("active", True)

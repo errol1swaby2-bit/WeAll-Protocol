@@ -15,7 +15,7 @@ def test_mempool_ignores_client_supplied_received_ms(tmp_path: Path) -> None:
     pool = _pool(tmp_path)
 
     env = {
-        "tx_type": "POST_CREATE",
+        "tx_type": "CONTENT_POST_CREATE",
         "signer": "alice",
         "nonce": 1,
         "payload": {"body": "hello"},
@@ -37,7 +37,7 @@ def test_mempool_order_is_not_client_future_stampable(tmp_path: Path) -> None:
 
     a = pool.add(
         {
-            "tx_type": "POST_CREATE",
+            "tx_type": "CONTENT_POST_CREATE",
             "signer": "alice",
             "nonce": 1,
             "payload": {"body": "a"},
@@ -46,7 +46,7 @@ def test_mempool_order_is_not_client_future_stampable(tmp_path: Path) -> None:
     )
     b = pool.add(
         {
-            "tx_type": "POST_CREATE",
+            "tx_type": "CONTENT_POST_CREATE",
             "signer": "alice",
             "nonce": 2,
             "payload": {"body": "b"},

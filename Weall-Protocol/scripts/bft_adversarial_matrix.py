@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from weall.runtime.fault_injection import run_bft_fault_injection_soak
@@ -62,6 +63,12 @@ def main() -> int:
         help="Scenario name to run. Repeatable. Defaults to all scenarios.",
     )
     args = ap.parse_args()
+
+    # This CLI is a local adversarial/soak harness, not a production node
+    # launcher.  Keep production VRF fail-closed by default, but avoid making
+    # local fixture block production require real operator node keys.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     requested = [s.strip() for s in args.scenario if str(s).strip()] or list(SCENARIOS.keys())
     unknown = [s for s in requested if s not in SCENARIOS]

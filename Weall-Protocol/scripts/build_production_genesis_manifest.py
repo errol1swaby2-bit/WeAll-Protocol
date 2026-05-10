@@ -88,8 +88,10 @@ def _build_genesis(
     econ_unlock_days: int,
     bootstrap_expires_height: int,
 ) -> Json:
+    from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
+
     unlock_time = int(genesis_time) + int(econ_unlock_days) * SECONDS_PER_DAY
-    return {
+    genesis = {
         "chain_id": chain_id,
         "height": 0,
         "tip": "",
@@ -172,6 +174,21 @@ def _build_genesis(
         },
         "blocks": {},
     }
+    record_bootstrap_tier2_grant(
+        genesis,
+        account_id=founding_account,
+        signer=founding_account,
+        mode="production_genesis",
+        source="genesis_state",
+        height=0,
+        tx_type="GENESIS_BOOTSTRAP_TIER2_GRANT",
+        nonce=0,
+        authority_path="production_genesis_manifest",
+        reason_code="founder_live_bootstrap",
+        expires_height=int(bootstrap_expires_height),
+        pubkey=founding_pubkey,
+    )
+    return genesis
 
 
 def _build_manifest(

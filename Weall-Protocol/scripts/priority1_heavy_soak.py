@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from weall.runtime.fault_injection import run_priority1_heavy_soak
@@ -18,6 +19,12 @@ def main() -> int:
     ap.add_argument("--chain-id-prefix", default="priority1-heavy")
     ap.add_argument("--tx-index-path", default="")
     args = ap.parse_args()
+
+    # This CLI is a local adversarial/soak harness, not a production node
+    # launcher.  Keep production VRF fail-closed by default, but avoid making
+    # local fixture block production require real operator node keys.
+    os.environ.setdefault("WEALL_MODE", "testnet")
+    os.environ.setdefault("WEALL_REQUIRE_VRF", "0")
 
     summary = run_priority1_heavy_soak(
         work_dir=str(Path(args.work_dir).resolve()) if str(args.work_dir).strip() else None,

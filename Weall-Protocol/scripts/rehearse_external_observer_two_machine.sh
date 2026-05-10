@@ -95,7 +95,12 @@ if not bool(status.get('ok')) or not bool(status.get('enabled')):
     raise SystemExit(f'relay_not_ready:{base}')
 if status.get('authority') != 'transport_only':
     raise SystemExit(f'relay_authority_not_transport_only:{base}')
-print(f'OK: relay reachable and transport_only: {base}')
+limits = status.get('limits') if isinstance(status.get('limits'), dict) else {}
+if limits.get('require_recipient_pubkey') is not True:
+    raise SystemExit(f'relay_recipient_pubkey_not_required:{base}')
+if limits.get('allow_unbound_recipient_fetch') is not False:
+    raise SystemExit(f'relay_allows_unbound_recipient_fetch:{base}')
+print(f'OK: relay reachable, transport_only, and recipient-bound: {base}')
 PY
   done
 fi
@@ -105,7 +110,7 @@ OK: two-machine external observer rehearsal preflight passed
 - remote genesis API is reachable
 - chain identity and tx_index_hash match the observer bundle when advertised
 - observer mode/signing/BFT/helper/block-loop are forced safe
-- relay endpoints, if configured, are transport_only
+- relay endpoints, if configured, are transport_only and require recipient pubkey binding
 
 Next live action on the observer machine:
   WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='${BUNDLE_PATH}' \

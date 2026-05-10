@@ -3,6 +3,18 @@ const DEFAULT_API_BASE = ENV_API_BASE || "/";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export type ApiBaseValidation = {
+  ok: true;
+  normalized: string;
+  isRemote: boolean;
+  isLoopback: boolean;
+} | {
+  ok: false;
+  normalized: string;
+  reason: string;
+};
+
+
 export type ApiErrorPayload = {
   ok?: false;
   error?: {
@@ -39,6 +51,11 @@ function trimTrailingSlash(value: string): string {
   return trimmed.replace(/\/+$/, "");
 }
 
+function isSameOriginPath(value: string): boolean {
+  const trimmed = String(value || "").trim();
+  return trimmed === "/" || (trimmed.startsWith("/") && !trimmed.startsWith("//"));
+}
+
 function canUseWindowLocation(): boolean {
   return typeof window !== "undefined" && !!window.location;
 }
@@ -48,7 +65,7 @@ function isLoopbackHostname(hostname: string): boolean {
   return host === "127.0.0.1" || host === "localhost";
 }
 
-function isLoopbackBackendUrl(value: string): boolean {
+export function isLoopbackBackendUrl(value: string): boolean {
   try {
     const parsed = new URL(value);
     if (!isLoopbackHostname(parsed.hostname)) return false;
@@ -56,6 +73,44 @@ function isLoopbackBackendUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function validateApiBaseInput(value: string): ApiBaseValidation {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return { ok: false, normalized: "", reason: "Enter a backend URL or / for same-origin." };
+  }
+
+  if (isSameOriginPath(raw)) {
+    return { ok: true, normalized: trimTrailingSlash(raw), isRemote: false, isLoopback: false };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return { ok: false, normalized: raw, reason: "Use an absolute http(s) URL, or / for same-origin." };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, normalized: raw, reason: "Only http:// and https:// backend URLs are supported." };
+  }
+
+  if (!parsed.hostname) {
+    return { ok: false, normalized: raw, reason: "Backend URL must include a host." };
+  }
+
+  parsed.hash = "";
+  parsed.search = "";
+  const normalized = trimTrailingSlash(parsed.toString());
+  const isLoopback = isLoopbackHostname(parsed.hostname);
+  return { ok: true, normalized, isRemote: !isLoopback, isLoopback };
+}
+
+function safeStoredOrDefaultApiBase(stored: string | null): string {
+  const candidate = stored !== null ? stored : DEFAULT_API_BASE;
+  const validation = validateApiBaseInput(candidate);
+  return validation.ok ? validation.normalized : DEFAULT_API_BASE;
 }
 
 function shouldUseDevProxyForBase(value: string): boolean {
@@ -68,21 +123,22 @@ function shouldUseDevProxyForBase(value: string): boolean {
 }
 
 function normalizeApiBaseForRuntime(value: string): string {
-  const normalized = trimTrailingSlash(value);
-  if (!normalized) return "/";
+  const validation = validateApiBaseInput(value);
+  const normalized = validation.ok ? validation.normalized : "/";
   if (shouldUseDevProxyForBase(normalized)) return "";
   return normalized;
 }
 
 export function getApiBase(): string {
   const stored = readStoredApiBase();
-  return normalizeApiBaseForRuntime(stored !== null ? stored : DEFAULT_API_BASE);
+  return normalizeApiBaseForRuntime(safeStoredOrDefaultApiBase(stored));
 }
 
 export function setApiBase(next: string): string {
-  const normalized = trimTrailingSlash(next);
-  const runtimeValue = normalizeApiBaseForRuntime(normalized);
-  localStorage.setItem("weall.api.base", normalized);
+  const validation = validateApiBaseInput(next);
+  if (!validation.ok) throw new Error(validation.reason);
+  const runtimeValue = normalizeApiBaseForRuntime(validation.normalized);
+  localStorage.setItem("weall.api.base", validation.normalized);
   return runtimeValue;
 }
 

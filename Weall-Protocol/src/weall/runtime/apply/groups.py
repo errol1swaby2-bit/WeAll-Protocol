@@ -108,6 +108,30 @@ def _group_treasury_id(group_id: str) -> str:
     return f"TREASURY_GROUP::{gid}"
 
 
+def _accounts_root(state: Json) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        raise GroupsApplyError("invalid_state", "missing_accounts", {})
+    return accounts
+
+
+def _require_account(state: Json, account_id: str, *, field: str) -> Json:
+    account = _accounts_root(state).get(account_id)
+    if not isinstance(account, dict):
+        raise GroupsApplyError("not_found", f"{field}_account_missing", {field: account_id})
+    return account
+
+
+def _require_treasury_wallet(state: Json, treasury_id: str) -> Json:
+    wallets = _ensure_treasury_wallets(state)
+    wallet = wallets.get(treasury_id)
+    if not isinstance(wallet, dict):
+        raise GroupsApplyError("not_found", "group_treasury_wallet_not_found", {"treasury_id": treasury_id})
+    wallet.setdefault("wallet_id", treasury_id)
+    wallet.setdefault("balance", 0)
+    return wallet
+
+
 def _active_emissary_election_for_group(state: Json, group_id: str) -> Json | None:
     elections = _ensure_group_emissary_elections(state)
     gid = _as_str(group_id).strip()
@@ -750,6 +774,20 @@ def _apply_group_treasury_create(state: Json, env: TxEnvelope) -> Json:
     treasury_id = _as_str(payload.get("treasury_id")).strip()
     if not treasury_id:
         raise GroupsApplyError("invalid_payload", "missing_treasury_id", {"tx_type": env.tx_type})
+    wallets = _ensure_treasury_wallets(state)
+    if treasury_id in wallets:
+        raise GroupsApplyError("conflict", "group_treasury_wallet_exists", {"treasury_id": treasury_id})
+    initial_balance = _as_int(payload.get("balance"), 0)
+    if initial_balance < 0:
+        raise GroupsApplyError("invalid_payload", "bad_balance", {"balance": payload.get("balance")})
+    wallets[treasury_id] = {
+        "wallet_id": treasury_id,
+        "treasury_id": treasury_id,
+        "kind": "group",
+        "created_by": _as_str(env.signer).strip(),
+        "created_at_nonce": int(env.nonce),
+        "balance": int(initial_balance),
+    }
     return {"applied": "GROUP_TREASURY_CREATE", "treasury_id": treasury_id}
 
 
@@ -775,6 +813,9 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError("invalid_payload", "missing_group_id", {"tx_type": env.tx_type})
     if not to or amount is None:
         raise GroupsApplyError("invalid_payload", "missing_fields", {"tx_type": env.tx_type})
+    spend_amount = _as_int(amount, 0)
+    if spend_amount <= 0:
+        raise GroupsApplyError("invalid_payload", "bad_amount", {"amount": amount})
 
     groups = _ensure_groups_root(state)
     g = groups.get(group_id)
@@ -831,7 +872,7 @@ def _apply_group_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
         "treasury_id": treasury_id,
         "proposed_by": _as_str(env.signer).strip(),
         "to": to,
-        "amount": int(amount),
+        "amount": int(spend_amount),
         "status": "proposed",
         "signatures": {},
         "allowed_signers": allowed,
@@ -1016,12 +1057,36 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
             },
         )
 
+    treasury_id = _as_str(s.get("treasury_id")).strip()
+    to_account = _as_str(s.get("to")).strip()
+    amount = _as_int(s.get("amount"), 0)
+    if not treasury_id:
+        raise GroupsApplyError("invalid_state", "missing_group_treasury_id", {"spend_id": spend_id})
+    if not to_account:
+        raise GroupsApplyError("invalid_state", "missing_spend_recipient", {"spend_id": spend_id})
+    if amount <= 0:
+        raise GroupsApplyError("invalid_state", "bad_spend_amount", {"spend_id": spend_id, "amount": amount})
+    wallet = _require_treasury_wallet(state, treasury_id)
+    recipient = _require_account(state, to_account, field="to")
+    wallet_balance = _as_int(wallet.get("balance"), 0)
+    if wallet_balance < amount:
+        raise GroupsApplyError(
+            "forbidden",
+            "insufficient_group_treasury_balance",
+            {"treasury_id": treasury_id, "balance": wallet_balance, "amount": amount},
+        )
+    wallet["balance"] = int(wallet_balance - amount)
+    recipient["balance"] = _as_int(recipient.get("balance"), 0) + int(amount)
+
     s["status"] = "executed"
     s["executed_by"] = _as_str(env.signer).strip()
     s["executed_at_nonce"] = int(env.nonce)
     s["executed_at_height"] = int(now_h)
+    s["transferred_to"] = to_account
+    s["transferred_amount"] = int(amount)
+    s["treasury_balance_after"] = int(wallet["balance"])
     spends[spend_id] = s
-    return {"applied": "GROUP_TREASURY_SPEND_EXECUTE", "spend_id": spend_id}
+    return {"applied": "GROUP_TREASURY_SPEND_EXECUTE", "spend_id": spend_id, "to": to_account, "amount": int(amount)}
 
 
 def _apply_group_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:

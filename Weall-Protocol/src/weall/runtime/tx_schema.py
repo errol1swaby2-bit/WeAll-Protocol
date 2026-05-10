@@ -1310,8 +1310,8 @@ class FeePolicySetPayload(_StrictModel):
 
 
 class RateLimitPolicySetPayload(_StrictModel):
-    window_ms: int | None = Field(default=None, ge=0)
-    limit: int | None = Field(default=None, ge=0)
+    window_ms: int | None = Field(default=None, ge=1000, le=86_400_000)
+    limit: int | None = Field(default=None, ge=1, le=1_000_000)
     scope: str | None = None
     policy: Json | None = None
 
@@ -1914,9 +1914,6 @@ TX_PAYLOADS: dict[str, Any] = {
     "CONTENT_POST_EDIT": ContentPostEditPayload,
     "CONTENT_POST_DELETE": ContentPostDeletePayload,
     # Content (back-compat aliases)
-    "POST_CREATE": ContentPostCreatePayload,
-    "POST_EDIT": ContentPostEditPayload,
-    "POST_DELETE": ContentPostDeletePayload,
     "CONTENT_COMMENT_CREATE": ContentCommentCreatePayload,
     "CONTENT_COMMENT_DELETE": ContentCommentDeletePayload,
     "CONTENT_REACTION_SET": ContentReactionSetPayload,

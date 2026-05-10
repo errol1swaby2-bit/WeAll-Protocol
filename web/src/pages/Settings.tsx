@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl, setApiBaseUrl } from "../api/weall";
+import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
 import { nav } from "../lib/router";
@@ -75,6 +75,7 @@ export default function Settings(): JSX.Element {
   const [settings, setSettings] = useState<ClientSettings>(() => loadSettings());
   const [apiBase, setApiBase] = useState<string>(() => getApiBaseUrl());
   const [saved, setSaved] = useState<string>("");
+  const [networkError, setNetworkError] = useState<string>("");
 
   useEffect(() => {
     applySettingsToDocument(settings);
@@ -95,9 +96,15 @@ export default function Settings(): JSX.Element {
 
   function saveNetwork() {
     const trimmed = String(apiBase || "").trim();
-    if (!trimmed) return;
-    setApiBaseUrl(trimmed);
-    flash("Connection target saved.");
+    const validation = validateApiBaseInput(trimmed);
+    if (!validation.ok) {
+      setNetworkError(validation.reason);
+      return;
+    }
+    setNetworkError("");
+    const runtimeBase = setApiBaseUrl(validation.normalized);
+    setApiBase(validation.normalized);
+    flash(runtimeBase ? "Connection target saved." : "Connection target saved for same-origin API.");
   }
 
   function resetAppearance() {
@@ -108,7 +115,10 @@ export default function Settings(): JSX.Element {
     flash("Appearance reset.");
   }
 
+  const validation = validateApiBaseInput(apiBase);
   const apiChanged = String(apiBase || "").trim() !== String(config.defaultApiBase || "").trim();
+  const usingLoopback = validation.ok && validation.isLoopback;
+  const usingRemote = validation.ok && validation.isRemote;
 
   return (
     <div className="pageStack utilityPage settingsPage">
@@ -144,13 +154,19 @@ export default function Settings(): JSX.Element {
             <button className="btn" onClick={() => nav("/session")}>
               Open devices & sessions
             </button>
-            <button className="btn" onClick={() => nav("/advanced")}>
-              Open advanced details
-            </button>
+            {config.enableDevTools ? (
+              <button className="btn" onClick={() => nav("/advanced")}>
+                Open advanced details
+              </button>
+            ) : null}
           </div>
 
           {saved ? (
             <div className="calloutInfo"><strong>{saved}</strong></div>
+          ) : null}
+
+          {networkError ? (
+            <div className="calloutWarn"><strong>Connection target not saved.</strong> {networkError}</div>
           ) : null}
 
           <div className="detailFocusStrip utilityFocusStrip">
@@ -177,12 +193,12 @@ export default function Settings(): JSX.Element {
         <article className="summaryCard">
           <div className="summaryCardLabel">Connection target</div>
           <div className="summaryCardValue mono">{apiBase || "Unset"}</div>
-          <div className="summaryCardText">Changing this affects which backend and environment this browser talks to. It does not alter authoritative account data by itself.</div>
+          <div className="summaryCardText">Changing this affects which backend and environment this browser talks to. Remote genesis APIs are supported when entered as full http(s) URLs.</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Default environment</div>
           <div className="summaryCardValue mono">{config.defaultApiBase}</div>
-          <div className="summaryCardText">Build-time default for this client: {config.appName} {config.clientVersion} ({config.envLabel}).</div>
+          <div className="summaryCardText">Build-time default for this client: {config.appName} {config.clientVersion} ({config.envLabel}). Production builds default to same-origin unless a remote API is explicitly configured.</div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Account verification path</div>
@@ -196,7 +212,7 @@ export default function Settings(): JSX.Element {
           <div className="eyebrow">Connection & Environment</div>
           <h2 style={{ marginTop: 8 }}>Treat backend changes as environment changes</h2>
           <p className="cardDesc">
-            Switching the API base changes what environment this browser uses for reads, session workflows, and action submission. Use this deliberately.
+            Switching the API base changes what environment this browser uses for reads, session workflows, and action submission. Use this deliberately. For a remote genesis node, enter the full backend URL such as https://genesis.example.org.
           </p>
 
           <label className="pageStack" style={{ gap: 8 }}>
@@ -212,6 +228,14 @@ export default function Settings(): JSX.Element {
             <div className="progressRow">
               <span>Configured target differs from build default</span>
               <span className={`statusPill ${apiChanged ? "" : "ok"}`}>{apiChanged ? "Custom target" : "Using default"}</span>
+            </div>
+            <div className="progressRow">
+              <span>Remote genesis API supported</span>
+              <span className={`statusPill ${usingRemote ? "ok" : ""}`}>{usingRemote ? "Remote target" : "Same-origin or local"}</span>
+            </div>
+            <div className="progressRow">
+              <span>Loopback backend target</span>
+              <span className={`statusPill ${!usingLoopback || !config.isProduction ? "ok" : ""}`}>{usingLoopback ? (config.isProduction ? "Review before production use" : "Local development") : "Not loopback"}</span>
             </div>
             <div className="progressRow">
               <span>Build environment label</span>
@@ -230,9 +254,11 @@ export default function Settings(): JSX.Element {
             <button className="btn" onClick={() => setApiBase(config.defaultApiBase)}>
               Use build default
             </button>
-            <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
-              Use local backend
-            </button>
+            {!config.isProduction ? (
+              <button className="btn" onClick={() => setApiBase("http://127.0.0.1:8000")}>
+                Use local backend
+              </button>
+            ) : null}
           </div>
         </div>
       </section>
@@ -313,12 +339,18 @@ export default function Settings(): JSX.Element {
             Advanced mode reveals tester-oriented surfaces such as technical records, network status, and raw payload authoring controls. Leave it off for a cleaner end-user experience.
           </p>
 
-          <SettingToggle
-            label="Show advanced and tester surfaces"
-            description="Use this only when you are intentionally auditing technical behavior, debugging a flow, or exercising expert-only authoring controls."
-            checked={settings.showAdvancedMode}
-            onChange={(value) => update("showAdvancedMode", value)}
-          />
+          {config.enableDevTools ? (
+            <SettingToggle
+              label="Show advanced and tester surfaces"
+              description="Use this only when you are intentionally auditing technical behavior, debugging a flow, or exercising expert-only authoring controls."
+              checked={settings.showAdvancedMode}
+              onChange={(value) => update("showAdvancedMode", value)}
+            />
+          ) : (
+            <div className="calloutInfo">
+              <strong>Advanced and tester surfaces are disabled in this production build.</strong> Normal users will not see demo tools, technical consoles, or developer routes.
+            </div>
+          )}
         </div>
       </section>
 

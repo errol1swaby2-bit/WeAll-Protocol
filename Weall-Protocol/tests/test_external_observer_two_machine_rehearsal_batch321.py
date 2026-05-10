@@ -21,6 +21,8 @@ def test_two_machine_rehearsal_script_forces_remote_observer_safety_batch321() -
     assert "/v1/ready" in script
     assert "/v1/chain/identity" in script
     assert "/v1/net/relay/status" in script
+    assert "require_recipient_pubkey" in script
+    assert "allow_unbound_recipient_fetch" in script
     assert "transport_only" in script
     assert "WEALL_CLOUDFLARE_API_TOKEN" in script
     assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script

@@ -33,8 +33,9 @@ ApplyFn = Callable[[Json, Any], Json | None]
 # NOTE:
 # These explicit sets are intentionally kept close to the actual router logic in
 # the corresponding apply modules. They let CI assert that every canon tx is
-# claimed by exactly one domain applier, while also permitting a few legacy
-# aliases that are intentionally not part of the canonical tx index.
+# claimed by exactly one domain applier. Production execution is canon-only:
+# legacy aliases must be normalized at the API/client edge or rejected before
+# mempool/block/apply contexts.
 IDENTITY_TX_TYPES: frozenset[str] = frozenset(
     {
         "ACCOUNT_REGISTER",
@@ -49,17 +50,12 @@ IDENTITY_TX_TYPES: frozenset[str] = frozenset(
         "ACCOUNT_SECURITY_POLICY_SET",
         "ACCOUNT_LOCK",
         "ACCOUNT_UNLOCK",
-        # Legacy/non-canon identity aliases intentionally kept routable.
-        "ACCOUNT_UNBAN",
         "ACCOUNT_RECOVERY_CONFIG_SET",
-        "ACCOUNT_RECOVERY_PROPOSE",
         "ACCOUNT_RECOVERY_APPROVE",
-        "ACCOUNT_RECOVERY_EXECUTE",
         "ACCOUNT_RECOVERY_REQUEST",
         "ACCOUNT_RECOVERY_CANCEL",
         "ACCOUNT_RECOVERY_FINALIZE",
         "ACCOUNT_RECOVERY_RECEIPT",
-        "ACCOUNT_RECOVERY_VOTE",
     }
 )
 
@@ -155,7 +151,6 @@ HANDLER_REGISTRY: tuple[tuple[str, ApplyFn, frozenset[str]], ...] = (
     ("identity", apply_identity, IDENTITY_TX_TYPES),
     ("poh", apply_poh, POH_TX_TYPES),
     ("roles", apply_roles, frozenset(ROLES_TX_TYPES)),
-    # Reputation canonically owns ACCOUNT_BAN; identity keeps only legacy ACCOUNT_UNBAN.
     ("reputation", apply_reputation, frozenset(REPUTATION_TX_TYPES)),
     ("content", apply_content, frozenset(CONTENT_TX_TYPES)),
     ("social", apply_social, frozenset(SOCIAL_TX_TYPES)),

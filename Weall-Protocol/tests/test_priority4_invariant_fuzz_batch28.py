@@ -215,7 +215,7 @@ def test_priority4_governance_execute_queue_is_deterministic_and_replay_deduped(
                 "tx_type": "VALIDATOR_SET_UPDATE",
                 "payload": {"active_set": ["v2", "v1", "v1"], "activate_at_epoch": 7},
             },
-            {"tx_type": "TREASURY_PARAMS_SET", "payload": {"timelock_blocks": 5}},
+            {"tx_type": "TREASURY_POLICY_SET", "payload": {"policy": {"timelock_blocks": 5}}},
         ],
     }
 

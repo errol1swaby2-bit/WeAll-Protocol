@@ -19,6 +19,7 @@ from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.node_operator_responsibilities import evaluate_storage_responsibility
+from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
@@ -945,6 +946,17 @@ def _apply_storage_capacity_proof_verify(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_storage_payout_execute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
+    try:
+        deny_if_econ_time_locked(state)
+        deny_if_econ_disabled(state, tx_type=env.tx_type)
+    except ValueError as exc:
+        reason = "economics_time_locked" if "time-locked" in str(exc) else "economics_disabled"
+        raise StorageApplyError(
+            "forbidden",
+            reason,
+            {"tx_type": env.tx_type, "detail": str(exc)},
+        ) from exc
+
     s = _ensure_storage(state)
     payload = _as_dict(env.payload)
 

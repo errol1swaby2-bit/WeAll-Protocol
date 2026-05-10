@@ -2,7 +2,7 @@
 
 Repository snapshot date: 2026-05-02
 Protocol version: `2026.03-prod.6`
-Protocol profile hash: `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
+Protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
 Transaction canon index: `1.25.0`
 Transaction canon count: `230`
 
@@ -22,7 +22,7 @@ Transaction canon count: `230`
 - clock_skew_warn_ms = 30000
 - startup_clock_hard_fail_ms = 86400000
 - max_block_time_advance_ms = 60000
-- vrf_required = false
+- vrf_required = true
 - timestamp_rule = `chain_time_successor_only`
 - reputation_scale = 1000
 

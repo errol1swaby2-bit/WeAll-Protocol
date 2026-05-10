@@ -1058,9 +1058,6 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     if tx == "ACCOUNT_RECOVERY_RECEIPT":
         return _apply_account_recovery_receipt(state, env)
 
-    if tx in {"ACCOUNT_UNBAN", "ACCOUNT_RECOVERY_PROPOSE", "ACCOUNT_RECOVERY_EXECUTE", "ACCOUNT_RECOVERY_VOTE"}:
-        raise ApplyError("invalid_tx", "noncanonical_legacy_tx_type", {"tx_type": tx})
-
 
     # Not an identity-domain tx; allow other domain appliers to claim it.
     return None

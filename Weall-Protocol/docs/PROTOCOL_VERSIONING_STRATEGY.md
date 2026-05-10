@@ -42,7 +42,7 @@ A validator must fail closed if:
 Current audited production profile:
 
 - protocol version: `2026.03-prod.6`
-- protocol profile hash: `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
+- protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
 - transaction canon: `230 tx types, version 1.25.0`
 
 The production profile includes tx payload limits. Public validators must not

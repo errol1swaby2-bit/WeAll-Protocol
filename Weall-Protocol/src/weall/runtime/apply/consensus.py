@@ -1550,7 +1550,6 @@ CONSENSUS_TX_TYPES = {
     "SLASH_PROPOSE",
     "SLASH_VOTE",
     "SLASH_EXECUTE",
-    "SLASH",
 }
 
 
@@ -1593,7 +1592,5 @@ def apply_consensus(state: Json, env: TxEnvelope) -> Json | None:
         return _apply_slash_vote(state, env)
     if t == "SLASH_EXECUTE":
         return _apply_slash_execute(state, env)
-    if t == "SLASH":
-        return _apply_slash_legacy(state, env)
 
     return None

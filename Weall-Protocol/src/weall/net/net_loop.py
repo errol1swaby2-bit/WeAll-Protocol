@@ -807,6 +807,7 @@ class NetMeshLoop:
             max_payload_bytes=max(1_024, _env_int("WEALL_NET_RELAY_MAX_PAYLOAD_BYTES", 512 * 1024)),
             max_ttl_ms=max(1_000, _env_int("WEALL_NET_RELAY_MAX_TTL_MS", 10 * 60 * 1000)),
             max_fetch_limit=max(1, int(self._relay_fetch_limit)),
+            require_recipient_pubkey=_is_prod(),
         )
 
     def _relay_identity(self) -> tuple[str, str]:
@@ -859,6 +860,9 @@ class NetMeshLoop:
         sender = str(getattr(self.node.cfg, "peer_id", "") or "local").strip() or "local"
         for recipient in targets:
             try:
+                recipient_pubkey = self._relay_recipient_pubkey(recipient)
+                if bool(cfg.require_recipient_pubkey) and recipient != "*" and not recipient_pubkey:
+                    raise NetStartupError("net_relay_missing_recipient_pubkey")
                 env = make_relay_envelope(
                     message=msg,
                     chain_id=cfg.chain_id,
@@ -866,7 +870,7 @@ class NetMeshLoop:
                     tx_index_hash=cfg.tx_index_hash,
                     sender_peer_id=sender,
                     recipient_peer_id=recipient,
-                    recipient_pubkey=self._relay_recipient_pubkey(recipient),
+                    recipient_pubkey=recipient_pubkey,
                     pubkey=pub,
                     privkey=priv,
                     nonce=self._relay_next_nonce(),

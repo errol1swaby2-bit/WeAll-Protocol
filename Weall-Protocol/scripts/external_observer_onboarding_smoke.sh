@@ -53,6 +53,30 @@ export WEALL_BFT_ENABLED="0"
 export WEALL_HELPER_MODE_ENABLED="0"
 export WEALL_BLOCK_LOOP_AUTOSTART="0"
 
+if [ -n "${WEALL_NET_RELAY_URLS:-}" ]; then
+  [ -n "${WEALL_NET_RELAY_RECIPIENT_PUBKEYS:-}" ] || fail "WEALL_NET_RELAY_RECIPIENT_PUBKEYS is required when relay URLs are configured for observer onboarding"
+  python3 - "${WEALL_NET_RELAY_RECIPIENT_PUBKEYS}" <<'WEALL_RELAY_RECIPIENTS_PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+
+try:
+    mapping = json.loads(sys.argv[1])
+except Exception as exc:
+    raise SystemExit(f'relay_recipient_pubkeys_invalid_json:{exc}')
+if not isinstance(mapping, dict) or not mapping:
+    raise SystemExit('relay_recipient_pubkeys_empty')
+for peer_id, pubkey in mapping.items():
+    if not str(peer_id or '').strip():
+        raise SystemExit('relay_recipient_pubkeys_empty_peer_id')
+    if not re.fullmatch(r'[0-9a-fA-F]{64}', str(pubkey or '').strip()):
+        raise SystemExit(f'relay_recipient_pubkey_invalid:{peer_id}')
+print('OK: relay recipient pubkey map is present and valid')
+WEALL_RELAY_RECIPIENTS_PY
+fi
+
 bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST_PATH}" >/tmp/weall_external_observer_manifest_check.json
 
 if [ -n "${GENESIS_API_BASE}" ]; then
@@ -84,7 +108,11 @@ fi
 
 
 if [ -n "${WEALL_NET_RELAY_URLS:-}" ]; then
-  python3 - "${WEALL_NET_RELAY_URLS%%,*}" <<'WEALL_RELAY_CHECK_PY'
+  IFS=',' read -r -a _relay_array <<< "${WEALL_NET_RELAY_URLS}"
+  for relay in "${_relay_array[@]}"; do
+    relay="${relay%/}"
+    [ -n "${relay}" ] || continue
+    python3 - "${relay}" <<'WEALL_RELAY_CHECK_PY'
 from __future__ import annotations
 
 import json
@@ -100,8 +128,14 @@ if not bool(status.get('ok')) or not bool(status.get('enabled')):
     raise SystemExit('relay_status_not_enabled')
 if status.get('authority') != 'transport_only':
     raise SystemExit('relay_authority_not_transport_only')
-print('OK: relay endpoint reachable and marked transport_only')
+limits = status.get('limits') if isinstance(status.get('limits'), dict) else {}
+if limits.get('require_recipient_pubkey') is not True:
+    raise SystemExit('relay_recipient_pubkey_not_required')
+if limits.get('allow_unbound_recipient_fetch') is not False:
+    raise SystemExit('relay_allows_unbound_recipient_fetch')
+print(f'OK: relay endpoint reachable, transport_only, and recipient-bound: {base}')
 WEALL_RELAY_CHECK_PY
+  done
 fi
 
 rm -f /tmp/weall_external_observer_bundle_check.json /tmp/weall_external_observer_manifest_check.json
@@ -112,6 +146,7 @@ OK: external observer onboarding preflight passed
 - production chain manifest is pinned and non-placeholder
 - observer mode is forced on
 - validator signing, BFT, helper authority, and block loop are forced off
+- relay recipient pubkey binding is required when relay URLs are configured
 - no external identity-provider, Cloudflare, oracle, or authority-signer secret is required
 MSG
 

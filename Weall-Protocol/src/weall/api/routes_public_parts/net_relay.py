@@ -113,7 +113,8 @@ def _relay_cfg(request: Request) -> RelayConfig:
         max_fetch_limit=max(1, _env_int("WEALL_NET_RELAY_FETCH_LIMIT", 100)),
         allow_broadcast_recipient=_env_bool("WEALL_NET_RELAY_ALLOW_BROADCAST", False),
         max_access_ttl_ms=max(1000, _env_int("WEALL_NET_RELAY_MAX_ACCESS_TTL_MS", 60 * 1000)),
-        allow_unbound_recipient_fetch=(not _is_prod()) or _env_bool("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", False),
+        allow_unbound_recipient_fetch=(False if _is_prod() else _env_bool("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", True)),
+        require_recipient_pubkey=(_is_prod() or _env_bool("WEALL_NET_RELAY_REQUIRE_RECIPIENT_PUBKEY", False)),
     )
 
 
@@ -151,6 +152,8 @@ def v1_net_relay_status(request: Request) -> Json:
             "max_ttl_ms": int(cfg.max_ttl_ms),
             "max_fetch_limit": int(cfg.max_fetch_limit),
             "allow_broadcast_recipient": bool(cfg.allow_broadcast_recipient),
+            "allow_unbound_recipient_fetch": bool(cfg.allow_unbound_recipient_fetch),
+            "require_recipient_pubkey": bool(cfg.require_recipient_pubkey),
         },
         "spool": status,
         "authority": "transport_only",
@@ -181,7 +184,7 @@ def v1_net_relay_fetch_legacy(request: Request, recipient_peer_id: str, limit: i
     read another node's mailbox by guessing its peer id.
     """
     _ensure_enabled()
-    if _is_prod() and not _env_bool("WEALL_NET_RELAY_ALLOW_LEGACY_UNSIGNED_FETCH", False):
+    if _is_prod():
         raise ApiError.bad_request(
             "relay_fetch_requires_signed_request",
             "relay fetch requires a signed recipient request",

@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OBSERVER_SCRIPT = ROOT / "scripts" / "build_external_observer_bundle.py"
 VERIFY_SCRIPT = ROOT / "scripts" / "verify_node_operator_onboarding_bundle.py"
 SMOKE_SCRIPT = ROOT / "scripts" / "external_observer_onboarding_smoke.sh"
+GENESIS_RECIPIENT_PUBKEY = "a" * 64
 
 
 def _write_manifest(path: Path) -> Path:
@@ -47,6 +48,8 @@ def _build_observer_bundle(tmp_path: Path, *, relay_urls: str = "https://relay.e
             "https://genesis.example.test",
             "--relay-urls",
             relay_urls,
+            "--genesis-recipient-pubkey",
+            GENESIS_RECIPIENT_PUBKEY,
             "--out",
             str(bundle),
             "--generated-at-ms",
@@ -78,6 +81,8 @@ def test_external_observer_bundle_builder_outputs_public_observer_bundle_batch31
     assert data["observer"]["helper_authority_enabled"] is False
     assert data["observer"]["block_loop_autostart"] is False
     assert data["observer"]["relay_urls"] == ["https://relay-a.example.test", "https://relay-b.example.test"]
+    assert data["observer"]["relay_recipient_pubkeys"] == {"genesis": GENESIS_RECIPIENT_PUBKEY}
+    assert data["observer"]["relay_recipients"] == ["genesis"]
     assert "ACCOUNT_REGISTER" in data["observer"]["allowed_onboarding_transactions"]
     assert "PEER_ADVERTISE" in data["observer"]["allowed_onboarding_transactions"]
     assert "POH_ASYNC_REQUEST_OPEN" in data["observer"]["allowed_onboarding_transactions"]
@@ -110,6 +115,7 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env_batch31
     result = json.loads(verified.stdout)
     assert result["ok"] is True
     assert result["trusted_authority_pubkeys_count"] == 1
+    assert result["relay_recipient_pubkeys_count"] == 1
 
     env_result = subprocess.run(
         [
@@ -131,6 +137,8 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env_batch31
     out = env_result.stdout
     assert "export WEALL_GENESIS_API_BASE=https://genesis.example.test" in out
     assert "export WEALL_NET_RELAY_URLS=https://relay.example.test" in out
+    assert "export WEALL_NET_RELAY_RECIPIENT_PUBKEYS=" in out
+    assert GENESIS_RECIPIENT_PUBKEY in out
     assert "export WEALL_NODE_LIFECYCLE_STATE=observer_onboarding" in out
     assert "export WEALL_OBSERVER_MODE=1" in out
     assert "export WEALL_VALIDATOR_SIGNING_ENABLED=0" in out
@@ -143,6 +151,9 @@ def test_external_observer_smoke_consumes_bundle_genesis_api_env_batch319() -> N
     script = SMOKE_SCRIPT.read_text(encoding="utf-8")
     assert "GENESIS_API_BASE=\"${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}\"" in script
     assert "WEALL_NET_RELAY_URLS" in script
+    assert "WEALL_NET_RELAY_RECIPIENT_PUBKEYS" in script
+    assert "require_recipient_pubkey" in script
+    assert "allow_unbound_recipient_fetch" in script
     assert "transport_only" in script
 
 

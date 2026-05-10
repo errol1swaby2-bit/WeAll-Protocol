@@ -49,6 +49,24 @@ def _as_dict(v: Any) -> Json:
     return v if isinstance(v, dict) else {}
 
 
+def _accounts_root(state: Json) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        raise EconomicsApplyError("invalid_state", "missing_accounts", {})
+    return accounts
+
+
+def _require_existing_account(state: Json, account_id: str, *, field: str) -> Json:
+    account = _accounts_root(state).get(account_id)
+    if not isinstance(account, dict):
+        raise EconomicsApplyError(
+            "not_found",
+            f"{field}_account_missing",
+            {field: account_id},
+        )
+    return account
+
+
 def _require_system_env(env: TxEnvelope) -> None:
     """
     Economics system actions must be emitted/attributed as SYSTEM context.
@@ -122,26 +140,182 @@ def _wrap_disabled(state: Json, tx_type: str) -> None:
         raise EconomicsApplyError("forbidden", "economics_disabled", {"tx_type": tx_type})
 
 
+
+_RATE_LIMIT_MIN_WINDOW_MS = 1_000
+_RATE_LIMIT_MAX_WINDOW_MS = 86_400_000
+_RATE_LIMIT_MIN_LIMIT = 1
+_RATE_LIMIT_MAX_LIMIT = 1_000_000
+_RATE_LIMIT_PROTECTED_MIN_PER_HOUR = 10
+
+_RATE_LIMIT_SCOPE_ALIASES = {
+    "": "global",
+    "default": "global",
+    "all": "global",
+    "global": "global",
+    "read": "read",
+    "reads": "read",
+    "write": "write",
+    "writes": "write",
+    "tx": "tx_submit",
+    "tx_submit": "tx_submit",
+    "mempool": "mempool",
+    "relay": "relay",
+    "state_sync": "state_sync",
+    "bft": "bft",
+    "helper": "helper",
+    "media": "media_upload",
+    "media_upload": "media_upload",
+    "account": "account_onboarding",
+    "account_register": "account_onboarding",
+    "account_registration": "account_onboarding",
+    "account_onboarding": "account_onboarding",
+    "onboarding": "account_onboarding",
+    "poh": "poh_onboarding",
+    "poh_async": "poh_onboarding",
+    "poh_live": "poh_onboarding",
+    "poh_onboarding": "poh_onboarding",
+    "peer": "peer_onboarding",
+    "peers": "peer_onboarding",
+    "peer_advertise": "peer_onboarding",
+    "peer_request_connect": "peer_onboarding",
+    "rendezvous": "peer_onboarding",
+    "peer_onboarding": "peer_onboarding",
+    "observer": "observer_onboarding",
+    "observer_onboarding": "observer_onboarding",
+    "node_registration": "observer_onboarding",
+}
+
+_RATE_LIMIT_PROTECTED_SCOPES = frozenset(
+    {"account_onboarding", "poh_onboarding", "peer_onboarding", "observer_onboarding"}
+)
+
+
+def _canonical_rate_limit_scope(raw: Any) -> str:
+    key = _as_str(raw).strip().lower().replace("-", "_").replace("/", "_")
+    if key not in _RATE_LIMIT_SCOPE_ALIASES:
+        raise EconomicsApplyError("forbidden", "rate_limit_scope_not_allowed", {"scope": raw})
+    return _RATE_LIMIT_SCOPE_ALIASES[key]
+
+
+def _bounded_rate_limit_int(raw: Any, *, field: str, minimum: int, maximum: int) -> int:
+    try:
+        value = int(raw)
+    except Exception as exc:
+        raise EconomicsApplyError("invalid_payload", f"bad_rate_limit_{field}", {field: raw}) from exc
+    if value < int(minimum) or value > int(maximum):
+        raise EconomicsApplyError(
+            "forbidden",
+            f"rate_limit_{field}_out_of_bounds",
+            {"field": field, "value": value, "min": int(minimum), "max": int(maximum)},
+        )
+    return value
+
+
+def _validate_rate_limit_rule(scope: str, rule: Json) -> Json:
+    if not isinstance(rule, dict):
+        raise EconomicsApplyError("invalid_payload", "rate_limit_rule_must_be_object", {"scope": scope})
+
+    extras = sorted(
+        str(k)
+        for k in rule.keys()
+        if str(k) not in {"scope", "window_ms", "limit", "burst", "rate_per_sec", "note"}
+    )
+    if extras:
+        raise EconomicsApplyError(
+            "forbidden", "rate_limit_rule_field_not_allowed", {"scope": scope, "fields": extras}
+        )
+
+    window_ms = _bounded_rate_limit_int(
+        rule.get("window_ms", _RATE_LIMIT_MIN_WINDOW_MS),
+        field="window_ms",
+        minimum=_RATE_LIMIT_MIN_WINDOW_MS,
+        maximum=_RATE_LIMIT_MAX_WINDOW_MS,
+    )
+    limit = _bounded_rate_limit_int(
+        rule.get("limit", rule.get("burst", rule.get("rate_per_sec", _RATE_LIMIT_MIN_LIMIT))),
+        field="limit",
+        minimum=_RATE_LIMIT_MIN_LIMIT,
+        maximum=_RATE_LIMIT_MAX_LIMIT,
+    )
+
+    if scope in _RATE_LIMIT_PROTECTED_SCOPES:
+        per_hour = (int(limit) * 3_600_000) // max(1, int(window_ms))
+        if per_hour < _RATE_LIMIT_PROTECTED_MIN_PER_HOUR:
+            raise EconomicsApplyError(
+                "forbidden",
+                "rate_limit_protected_onboarding_scope_too_restrictive",
+                {
+                    "scope": scope,
+                    "limit": int(limit),
+                    "window_ms": int(window_ms),
+                    "min_per_hour": _RATE_LIMIT_PROTECTED_MIN_PER_HOUR,
+                },
+            )
+
+    out = {"window_ms": int(window_ms), "limit": int(limit)}
+    if "note" in rule:
+        out["note"] = _as_str(rule.get("note"))[:160]
+    return out
+
+
+def _normalize_rate_limit_policy_payload(payload: Json) -> Json:
+    allowed_top = {"scope", "window_ms", "limit", "policy"}
+    extras = sorted(str(k) for k in payload.keys() if str(k) not in allowed_top)
+    if extras:
+        raise EconomicsApplyError("forbidden", "rate_limit_policy_field_not_allowed", {"fields": extras})
+
+    rules: dict[str, Json] = {}
+
+    if any(k in payload for k in ("scope", "window_ms", "limit")):
+        scope = _canonical_rate_limit_scope(payload.get("scope", "global"))
+        rules[scope] = _validate_rate_limit_rule(
+            scope,
+            {
+                "window_ms": payload.get("window_ms", _RATE_LIMIT_MIN_WINDOW_MS),
+                "limit": payload.get("limit", _RATE_LIMIT_MIN_LIMIT),
+            },
+        )
+
+    nested = payload.get("policy")
+    if nested is not None:
+        if not isinstance(nested, dict):
+            raise EconomicsApplyError("invalid_payload", "rate_limit_policy_must_be_object", {})
+        if any(k in nested for k in ("scope", "window_ms", "limit")):
+            scope = _canonical_rate_limit_scope(nested.get("scope", "global"))
+            rules[scope] = _validate_rate_limit_rule(scope, nested)
+        else:
+            for raw_scope, raw_rule in nested.items():
+                scope = _canonical_rate_limit_scope(raw_scope)
+                if not isinstance(raw_rule, dict):
+                    raise EconomicsApplyError(
+                        "invalid_payload", "rate_limit_rule_must_be_object", {"scope": raw_scope}
+                    )
+                rule = dict(raw_rule)
+                rule.setdefault("scope", scope)
+                rules[scope] = _validate_rate_limit_rule(scope, rule)
+
+    if not rules:
+        raise EconomicsApplyError("invalid_payload", "empty_rate_limit_policy", {})
+
+    return {"version": 1, "rules": {k: rules[k] for k in sorted(rules)}}
+
+
 def _apply_rate_limit_policy_set(state: Json, env: TxEnvelope) -> Json:
     """
     Canon: RATE_LIMIT_POLICY_SET
     - System tx
-    - Anti-spam policy: allowed during Genesis lock (not an economic action)
+    - Governance/system-controlled anti-spam policy: allowed during Genesis lock
+      because it is not an economics activation path.
+    - Fails closed on arbitrary blobs so rate limits cannot become a hidden
+      capture surface for onboarding, PoH, peer, or observer participation.
     """
     _require_system_env(env)
     payload = _as_dict(env.payload)
+    normalized = _normalize_rate_limit_policy_payload(payload)
 
     econ = _ensure_econ_root(state)
-    policy = econ.get("rate_limit_policy")
-    if not isinstance(policy, dict):
-        policy = {}
-
-    # Merge policy blob deterministically (dict assignment is fine; persisted JSON uses sort_keys=True in executor write)
-    for k, v in payload.items():
-        policy[str(k)] = v
-
-    econ["rate_limit_policy"] = policy
-    return {"applied": "RATE_LIMIT_POLICY_SET"}
+    econ["rate_limit_policy"] = normalized
+    return {"applied": "RATE_LIMIT_POLICY_SET", "rate_limit_policy": normalized}
 
 
 def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
@@ -287,31 +461,17 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
     ).strip()
 
     if amount > 0:
-        accounts = state.get("accounts")
-        if not isinstance(accounts, dict):
-            raise EconomicsApplyError("invalid_state", "missing_accounts", {})
-        payer = accounts.get(from_account)
-        if not isinstance(payer, dict):
-            raise EconomicsApplyError("not_found", "from_account_missing", {"from": from_account})
+        payer = _require_existing_account(state, from_account, field="from")
         balance = _as_int(payer.get("balance"), 0)
         if balance < amount:
             raise EconomicsApplyError(
                 "forbidden", "insufficient_funds", {"balance": balance, "amount": amount}
             )
-        payer["balance"] = balance - amount
+        sink = None
         if to_account:
-            sink = accounts.get(to_account)
-            if not isinstance(sink, dict):
-                sink = {
-                    "nonce": 0,
-                    "poh_tier": 0,
-                    "banned": False,
-                    "locked": False,
-                    "balance": 0,
-                    "reputation": "0",
-                    "keys": [],
-                }
-                accounts[to_account] = sink
+            sink = _require_existing_account(state, to_account, field="to")
+        payer["balance"] = balance - amount
+        if sink is not None:
             sink["balance"] = _as_int(sink.get("balance"), 0) + amount
 
     payment = {
@@ -345,30 +505,9 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
     if amt <= 0:
         raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": amount})
 
-    accounts = state.get("accounts")
-    if not isinstance(accounts, dict):
-        raise EconomicsApplyError("invalid_state", "missing_accounts", {})
-
     frm = _as_str(env.signer).strip()
-    if frm not in accounts:
-        raise EconomicsApplyError("not_found", "from_account_missing", {"from": frm})
-
-    if to not in accounts:
-        # Create target account if missing (preserving existing behavior)
-        accounts[to] = {
-            "nonce": 0,
-            "poh_tier": 0,
-            "banned": False,
-            "locked": False,
-            "balance": 0,
-            "reputation": "0",
-            "keys": [],
-        }
-
-    fa = accounts.get(frm)
-    ta = accounts.get(to)
-    if not isinstance(fa, dict) or not isinstance(ta, dict):
-        raise EconomicsApplyError("invalid_state", "bad_account_shape", {"from": frm, "to": to})
+    fa = _require_existing_account(state, frm, field="from")
+    ta = _require_existing_account(state, to, field="to")
 
     fb = _as_int(fa.get("balance"), 0)
     tb = _as_int(ta.get("balance"), 0)
@@ -385,18 +524,20 @@ def _apply_rate_limit_strike_apply(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
     econ = _ensure_econ_root(state)
+    target = _as_str(payload.get("target") or payload.get("account") or payload.get("account_id")).strip()
+    if not target:
+        raise EconomicsApplyError("invalid_payload", "missing_rate_limit_strike_target", {})
+    _require_existing_account(state, target, field="target")
 
     econ["rate_limit_strikes"].append(
         {
             "at_nonce": int(env.nonce),
-            "target": _as_str(
-                payload.get("target") or payload.get("account") or payload.get("account_id")
-            ),
+            "target": target,
             "reason": _as_str(payload.get("reason")),
             "payload": payload,
         }
     )
-    return {"applied": "RATE_LIMIT_STRIKE_APPLY"}
+    return {"applied": "RATE_LIMIT_STRIKE_APPLY", "target": target}
 
 
 def _apply_mempool_reject_receipt(state: Json, env: TxEnvelope) -> Json:

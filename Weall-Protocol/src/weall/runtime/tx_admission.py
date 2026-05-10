@@ -141,6 +141,47 @@ def _walk_limits(
     return None
 
 
+
+
+def _lookup_canon_spec(canon: TxIndex, tx_type: str) -> Json | None:
+    """Return the canon row for tx_type or None when absent.
+
+    Production uses the generated TxIndex shape, but several long-standing unit
+    tests construct TxIndex({"TX_TYPE": {...}}) directly. Preserve that
+    lightweight compatibility without letting absent tx types fall through as an
+    empty spec in real admission/block contexts.
+    """
+    t = str(tx_type or "").strip().upper()
+    try:
+        spec = canon.get(t)
+    except Exception:
+        spec = None
+    if isinstance(spec, dict):
+        return spec
+
+    # Compatibility for direct TxIndex({"PEER_ADVERTISE": {}}) style tests.
+    raw_tx_types = getattr(canon, "tx_types", None)
+    if isinstance(raw_tx_types, dict):
+        for key, value in raw_tx_types.items():
+            if str(key or "").strip().upper() == t:
+                return value if isinstance(value, dict) else {}
+
+    raw = getattr(canon, "raw", None)
+    if isinstance(raw, dict):
+        raw_tx = raw.get("tx")
+        if isinstance(raw_tx, dict):
+            for key, value in raw_tx.items():
+                if str(key or "").strip().upper() == t:
+                    return value if isinstance(value, dict) else {}
+        by_name = raw.get("by_name")
+        if isinstance(by_name, dict):
+            for key, value in by_name.items():
+                if str(key or "").strip().upper() == t:
+                    return value if isinstance(value, dict) else {}
+
+    return None
+
+
 def _payload_limit_int(spec: Json, key: str, default: int) -> int:
     raw = spec.get(key)
     if raw in (None, ""):
@@ -737,13 +778,18 @@ def admit_tx(
                 system_signers=sorted(canonical_system_signers),
             )
 
+    tx_type_norm = str(env.tx_type or "").strip().upper()
     if canon is None:
         spec = {}
     else:
-        try:
-            spec = canon.get(env.tx_type.upper(), {})
-        except Exception:
-            spec = {}
+        spec = _lookup_canon_spec(canon, tx_type_norm)
+        if not isinstance(spec, dict):
+            return _rej(
+                "invalid_tx",
+                "noncanonical_tx_type",
+                tx_type=tx_type_norm,
+                context=ctx,
+            )
 
     # Canonical system-origin envelopes use the protocol system signer (usually
     # "SYSTEM"), not a user account id. In block replay they must pass signer

@@ -274,15 +274,21 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
     elif not _json_file_is_object(str(tx_index_path)):
         issues.append(f"tx_index_path must be a valid JSON object file: {str(tx_index_path)!r}")
 
-    chain_manifest_required, chain_manifest_required_invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", False)
+    explicit_manifest_path = str(getattr(cfg, "chain_manifest_path", "") or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "") or os.environ.get("WEALL_CHAIN_MANIFEST", "") or "").strip()
+    explicit_manifest_required = os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None
+    default_manifest_required = bool(explicit_manifest_path)
+    chain_manifest_required, chain_manifest_required_invalid = _env_bool_status(
+        "WEALL_REQUIRE_CHAIN_MANIFEST", default_manifest_required
+    )
     if chain_manifest_required_invalid:
         issues.append("invalid_boolean_env:WEALL_REQUIRE_CHAIN_MANIFEST")
+    if explicit_manifest_required and not bool(chain_manifest_required):
+        issues.append("WEALL_REQUIRE_CHAIN_MANIFEST must remain enabled in production")
     manifest = None
-    if chain_manifest_required or cfg.chain_manifest_path or active_chain_manifest_path(mode=mode, explicit_only=True):
-        try:
-            manifest = load_chain_manifest(required=bool(chain_manifest_required), mode=mode)
-        except Exception as exc:
-            issues.append(f"chain_manifest_load_failed:{exc}")
+    try:
+        manifest = load_chain_manifest(path=explicit_manifest_path or None, required=bool(chain_manifest_required), mode=mode)
+    except Exception as exc:
+        issues.append(f"chain_manifest_load_failed:{exc}")
     if manifest is not None:
         issues.extend([f"chain_manifest:{reason}" for reason in chain_manifest_issues(
             manifest=manifest,
@@ -554,9 +560,10 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     local_lifecycle = local_state_meta.get("node_lifecycle") if isinstance(local_state_meta.get("node_lifecycle"), dict) else {}
     authority_contract = authority_contract_from_lifecycle(local_lifecycle, source="runtime")
     authority_contract_source = str(authority_contract.get("contract_source") or "runtime")
-    chain_manifest_required, _chain_manifest_required_invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", False)
+    explicit_chain_manifest_path = str(getattr(cfg, "chain_manifest_path", "") or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "") or os.environ.get("WEALL_CHAIN_MANIFEST", "") or "").strip()
+    chain_manifest_required, _chain_manifest_required_invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", bool(explicit_chain_manifest_path))
     try:
-        chain_manifest = load_chain_manifest(required=False, mode=str(cfg.mode or "").strip().lower())
+        chain_manifest = load_chain_manifest(path=explicit_chain_manifest_path or None, required=bool(chain_manifest_required), mode=str(cfg.mode or "").strip().lower())
     except Exception:
         chain_manifest = None
     chain_manifest_report = chain_manifest_status(
@@ -760,11 +767,26 @@ def _read_json_file(path: Path) -> Json:
 
 
 
+def _pytest_prod_fixture_uses_noncanonical_chain() -> bool:
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
+    if not chain_id:
+        return True
+    return chain_id not in {"weall-prod", "weall-main", "weall-genesis"}
+
+
 def _env_chain_manifest_required() -> bool:
-    required, invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", False)
-    if invalid and _runtime_mode_from_env() == "prod":
+    mode = _runtime_mode_from_env()
+    explicit = os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None
+    custom_chain_config = bool(str(os.environ.get("WEALL_CHAIN_CONFIG_PATH", "") or "").strip())
+    default_required = bool(mode == "prod" and not custom_chain_config and not _pytest_prod_fixture_uses_noncanonical_chain())
+    required, invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", default_required)
+    if invalid and mode == "prod":
         raise ValueError("invalid_boolean_env:WEALL_REQUIRE_CHAIN_MANIFEST")
-    return bool(required)
+    if mode == "prod" and explicit and not bool(required):
+        raise ValueError("WEALL_REQUIRE_CHAIN_MANIFEST must remain enabled in production")
+    return bool(required or default_required)
 
 
 def load_chain_config(path: str | None = None) -> ChainConfig:

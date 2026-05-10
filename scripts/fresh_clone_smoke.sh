@@ -50,16 +50,22 @@ main() {
   source .venv/bin/activate
 
   python -m pip install --upgrade pip >/dev/null
-  pip install -r requirements.lock
+  pip install --require-hashes -r requirements.lock
+
+  log "verifying locked backend/frontend release dependencies"
+  bash scripts/verify_release_dependencies.sh
+
+  log "checking tx canon artifacts"
+  python3 -S scripts/check_tx_canon_artifacts.py
 
   log "regenerating tx index"
   python scripts/gen_tx_index.py
 
-  if git diff --quiet -- generated/tx_index.json; then
-    log "OK: generated/tx_index.json is stable after regeneration"
+  if git diff --quiet -- generated/tx_index.json generated/tx_contract_map.json generated/helper_contract_map.json src/weall/runtime/tx_schema.py; then
+    log "OK: generated tx artifacts are stable after regeneration"
   else
-    git diff -- generated/tx_index.json || true
-    die "generated/tx_index.json drifted in fresh clone"
+    git diff -- generated/tx_index.json generated/tx_contract_map.json generated/helper_contract_map.json src/weall/runtime/tx_schema.py || true
+    die "generated tx artifacts drifted in fresh clone"
   fi
 
   log "running backend tests"
@@ -69,6 +75,7 @@ main() {
   if command -v npm >/dev/null 2>&1; then
     log "Node detected; running frontend install/build"
     npm ci
+    npm run production-safety-check
     npm run build
   else
     log "npm not found; skipping frontend build"

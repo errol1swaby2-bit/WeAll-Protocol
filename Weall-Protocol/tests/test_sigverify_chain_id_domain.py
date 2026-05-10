@@ -29,7 +29,7 @@ def test_prod_requires_chain_id_bound_signature(monkeypatch) -> None:
     priv = Ed25519PrivateKey.generate()
     pub = _pub_hex(priv)
     tx = {
-        "tx_type": "POST_CREATE",
+        "tx_type": "CONTENT_POST_CREATE",
         "signer": "@alice",
         "nonce": 1,
         "payload": {"body": "hello"},
@@ -51,7 +51,7 @@ def test_prod_rejects_legacy_no_chain_id_signature(monkeypatch) -> None:
     priv = Ed25519PrivateKey.generate()
     pub = _pub_hex(priv)
     legacy_tx = {
-        "tx_type": "POST_CREATE",
+        "tx_type": "CONTENT_POST_CREATE",
         "signer": "@alice",
         "nonce": 1,
         "payload": {"body": "hello"},
@@ -82,7 +82,7 @@ def test_prod_rejects_chain_id_mismatch(monkeypatch) -> None:
     pub = _pub_hex(priv)
     tx = sign_tx_envelope_dict(
         tx={
-            "tx_type": "POST_CREATE",
+            "tx_type": "CONTENT_POST_CREATE",
             "signer": "@alice",
             "nonce": 1,
             "payload": {"body": "hello"},

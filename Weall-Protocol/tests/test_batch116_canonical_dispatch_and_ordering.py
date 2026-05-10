@@ -13,7 +13,7 @@ from weall.runtime.sqlite_db import SqliteDB
 
 def test_domain_dispatch_rejects_noncanonical_unknown_tx_type_batch116() -> None:
     state = {"accounts": {}, "params": {}, "meta": {}, "height": 0}
-    with pytest.raises(ApplyError, match="noncanonical_legacy_tx_type"):
+    with pytest.raises(ApplyError, match="noncanonical_tx_type"):
         apply_tx(
             state,
             {

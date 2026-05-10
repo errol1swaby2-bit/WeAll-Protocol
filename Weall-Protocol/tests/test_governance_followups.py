@@ -41,7 +41,7 @@ def _mk_state() -> dict:
                 "FEE_POLICY_SET",
                 "GOV_QUORUM_SET",
                 "GOV_RULES_SET",
-                "TREASURY_PARAMS_SET",
+                "TREASURY_POLICY_SET",
                 "VALIDATOR_SET_UPDATE",
                 "VALIDATOR_CANDIDATE_APPROVE",
                 "VALIDATOR_SUSPEND",

@@ -61,19 +61,8 @@ def test_canon_handler_routes_are_stable() -> None:
 
 
 
-def test_registry_exposes_only_known_legacy_extras() -> None:
-    assert noncanon_registry_tx_types(load_default_tx_index()) == [
-        "ACCOUNT_RECOVERY_EXECUTE",
-        "ACCOUNT_RECOVERY_PROPOSE",
-        "ACCOUNT_RECOVERY_VOTE",
-        "ACCOUNT_UNBAN",
-        "POST_CREATE",
-        "POST_DELETE",
-        "POST_EDIT",
-        "SLASH",
-        "TREASURY_PARAMS_SET",
-        "TREASURY_PROGRAM_RECEIPT",
-    ]
+def test_registry_exposes_no_noncanon_legacy_extras() -> None:
+    assert noncanon_registry_tx_types(load_default_tx_index()) == []
 
 
 

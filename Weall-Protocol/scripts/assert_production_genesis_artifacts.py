@@ -194,6 +194,35 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
         elif not _is_hex64(key_text):
             _issue(issues, "genesis_founder_key_invalid", key_text)
 
+    poh = genesis.get("poh") if isinstance(genesis.get("poh"), dict) else {}
+    grants = poh.get("bootstrap_grants") if isinstance(poh.get("bootstrap_grants"), dict) else {}
+    grants_by_id = grants.get("by_id") if isinstance(grants.get("by_id"), dict) else {}
+    grants_by_account = grants.get("by_account") if isinstance(grants.get("by_account"), dict) else {}
+    founder_grant_ids = grants_by_account.get(founding_account) if founding_account else None
+    if not isinstance(founder_grant_ids, list) or not founder_grant_ids:
+        _issue(issues, "genesis_founder_bootstrap_grant_audit_missing", founding_account)
+    else:
+        for grant_id in founder_grant_ids:
+            grant = grants_by_id.get(str(grant_id)) if isinstance(grants_by_id, dict) else None
+            if not isinstance(grant, dict):
+                _issue(issues, "genesis_founder_bootstrap_grant_audit_record_missing", grant_id)
+                continue
+            if grant.get("account_id") != founding_account:
+                _issue(issues, "genesis_founder_bootstrap_grant_account_mismatch", grant)
+            if grant.get("grant_type") != "poh_tier2_live_verified":
+                _issue(issues, "genesis_founder_bootstrap_grant_type_unexpected", grant.get("grant_type"))
+            if grant.get("auditable") is not True:
+                _issue(issues, "genesis_founder_bootstrap_grant_not_auditable", grant_id)
+            if grant.get("transitional") is not True:
+                _issue(issues, "genesis_founder_bootstrap_grant_not_transitional", grant_id)
+            if not str(grant.get("receipt_id") or "").startswith("poh_bootstrap_receipt:"):
+                _issue(issues, "genesis_founder_bootstrap_receipt_missing", grant_id)
+    if founding_account and founder:
+        if not str(founder.get("poh_bootstrap_grant_id") or "").startswith("poh_bootstrap_grant:"):
+            _issue(issues, "genesis_founder_account_bootstrap_grant_pointer_missing", founding_account)
+        if not str(founder.get("poh_bootstrap_receipt_id") or "").startswith("poh_bootstrap_receipt:"):
+            _issue(issues, "genesis_founder_account_bootstrap_receipt_pointer_missing", founding_account)
+
     if int(params.get("genesis_time") or genesis.get("time") or 0) <= 0:
         _issue(issues, "genesis_time_unset")
     genesis_time = int(params.get("genesis_time") or genesis.get("time") or 0)
