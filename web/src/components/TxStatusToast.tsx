@@ -21,11 +21,11 @@ function statusHint(status: TxToastStatus): string {
     case "submitting":
       return "Saving the action.";
     case "recorded":
-      return "Done. Updating this page so the result becomes visible.";
+      return "Recorded by the backend. Waiting for confirmation or visible state.";
     case "refreshing":
-      return "Updating this page so the result becomes visible.";
+      return "Confirmed or partly visible. Updating this page so the result is clear.";
     case "confirmed":
-      return "The action is done and visible.";
+      return "The action is confirmed and visible.";
     case "failed":
     default:
       return "The action did not complete successfully.";

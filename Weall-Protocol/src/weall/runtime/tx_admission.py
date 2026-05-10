@@ -655,12 +655,12 @@ def _sig_ok(env: TxEnvelope, *, context: str) -> AdmissionVerdict | None:
         can continue to stage unsigned fixtures when desired.
       - context="block" defers to `_block_sig_verify_ok(...)` so committed block
         validity remains independent from public-ingress assumptions.
-      - context in {gossip, peer, http} requires a non-empty signature
+      - context in {gossip, peer, http, operator} requires a non-empty signature
         whenever tx signature verification is enabled for the runtime mode.
-      - context="mempool" remains executor-local permissive because the public API
-        already performs signature and chain-id verification before calling
-        executor.submit_tx(...), while many internal tests and deterministic
-        fixture paths intentionally stage unsigned envelopes directly.
+      - context="mempool" remains executor-local permissive because many internal
+        tests and deterministic fixture paths intentionally stage unsigned
+        envelopes directly. Public/API/operator surfaces must never rely on the
+        default mempool context in production.
     """
     ctx = (context or "").strip().lower() or "mempool"
 
@@ -685,7 +685,7 @@ def _public_ingress_sig_verify_ok(env: TxEnvelope, ledger: LedgerView, *, contex
     preserving existing local/test fixture paths.
     """
     ctx = (context or "").strip().lower() or "mempool"
-    if ctx not in {"gossip", "peer", "http"}:
+    if ctx not in {"gossip", "peer", "http", "operator"}:
         return None
 
     if not _tx_sigverify_enforced():
@@ -767,7 +767,7 @@ def admit_tx(
     ctx = str(context or "").strip().lower() or "mempool"
 
     # Keep canonical system-origin traffic out of public ingress.
-    if ctx in {"mempool", "gossip", "peer"}:
+    if ctx in {"mempool", "gossip", "peer", "http", "operator"}:
         canonical_system_signers = _canonical_system_signers(lv)
         if str(env.signer).strip() in canonical_system_signers or bool(getattr(env, "system", False)):
             return _rej(

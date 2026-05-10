@@ -3,9 +3,9 @@ import React from "react";
 const STEPS = [
   { key: "ready", label: "Ready", detail: "The page has what it needs for the user to begin." },
   { key: "saving", label: "Saving", detail: "The action is being sent and duplicate clicks are blocked." },
-  { key: "done", label: "Done", detail: "The action was accepted or recorded." },
+  { key: "recorded", label: "Recorded", detail: "The backend accepted or recorded the action, but final visible state is still being checked." },
   { key: "updating", label: "Updating", detail: "The page is refreshing until the result is visible." },
-  { key: "visible", label: "Visible", detail: "The result is now shown on the affected page." },
+  { key: "done", label: "Done", detail: "The result is confirmed and visible on the affected page." },
   { key: "failed", label: "Failed", detail: "The user sees a plain-language reason and an honest next step." },
 ] as const;
 

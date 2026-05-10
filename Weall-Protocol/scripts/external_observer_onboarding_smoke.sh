@@ -6,6 +6,7 @@ BUNDLE_PATH="${1:-${WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE:-}}"
 MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-genesis.json}"
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-${WEALL_API_BASE:-}}"
 BOOT_AFTER_PREFLIGHT="${WEALL_EXTERNAL_OBSERVER_BOOT:-0}"
+REQUIRE_LIVE_API="${WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API:-0}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -41,6 +42,10 @@ eval "$(python3 "${ROOT_DIR}/scripts/verify_node_operator_onboarding_bundle.py" 
   --emit-shell-env)"
 
 GENESIS_API_BASE="${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}"
+
+if [ "${REQUIRE_LIVE_API}" = "1" ]; then
+  [ -n "${GENESIS_API_BASE}" ] || fail "WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1 requires WEALL_GENESIS_API_BASE or WEALL_API_BASE"
+fi
 
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
 export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
@@ -91,8 +96,27 @@ from pathlib import Path
 api = sys.argv[1].rstrip('/')
 bundle = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
 chain = bundle.get('chain') if isinstance(bundle.get('chain'), dict) else {}
-with urllib.request.urlopen(api + '/v1/chain/identity', timeout=10) as resp:
-    ident = json.loads(resp.read().decode('utf-8'))
+
+def fetch_json(path: str) -> dict:
+    with urllib.request.urlopen(api + path, timeout=10) as resp:
+        if resp.status >= 400:
+            raise SystemExit(f'remote_endpoint_failed:{path}:{resp.status}')
+        body = resp.read().decode('utf-8')
+    try:
+        obj = json.loads(body)
+    except Exception as exc:
+        raise SystemExit(f'remote_endpoint_non_json:{path}:{exc}')
+    if not isinstance(obj, dict):
+        raise SystemExit(f'remote_endpoint_not_object:{path}')
+    return obj
+
+for path in ('/v1/health', '/v1/status'):
+    fetch_json(path)
+try:
+    fetch_json('/v1/ready')
+except Exception:
+    fetch_json('/v1/readyz')
+ident = fetch_json('/v1/chain/identity')
 remote_chain_id = str(ident.get('chain_id') or ident.get('chain', {}).get('chain_id') or '').strip()
 expected_chain_id = str(chain.get('chain_id') or '').strip()
 if expected_chain_id and remote_chain_id and remote_chain_id != expected_chain_id:
@@ -102,7 +126,10 @@ remote_tx_hash = str(manifest.get('tx_index_hash') or ident.get('tx_index_hash')
 expected_tx_hash = str(chain.get('tx_index_hash') or '').strip().lower()
 if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
     raise SystemExit(f'remote_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}')
-print('OK: remote genesis chain identity matches observer bundle')
+status = fetch_json('/v1/tx/status/external-observer-live-gate-nonexistent-tx')
+if 'status' not in status:
+    raise SystemExit('remote_tx_status_missing_status_field')
+print('OK: remote genesis live API health/ready/status/identity/tx-status checks passed')
 PY
 fi
 

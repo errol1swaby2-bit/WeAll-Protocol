@@ -130,6 +130,25 @@ async function main() {
     assertOk("GET /v1/gov/proposals", r);
   }
 
+  {
+    const contractTxId = "contract-check-nonexistent-tx";
+    const r = await fetchJson(`/v1/tx/status/${encodeURIComponent(contractTxId)}`);
+    if (assertOk("GET /v1/tx/status/:tx_id", r)) {
+      if (!r.body || typeof r.body !== "object") {
+        fail("tx status body is not JSON object");
+      } else {
+        assertHas(r.body, "status", "tx status body");
+        const allowed = new Set(["confirmed", "pending", "unknown", "failed", "rejected"]);
+        const status = String(r.body.status || "").trim().toLowerCase();
+        if (!allowed.has(status)) {
+          fail(`tx status body has unsupported lifecycle status: ${status || "(empty)"}`);
+        } else {
+          pass(`tx status lifecycle status is explicit: ${status}`);
+        }
+      }
+    }
+  }
+
   if (ACCOUNT) {
     {
       const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}`);

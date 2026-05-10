@@ -79,7 +79,7 @@ export function txStatusLabel(status: TxLifecycleStatus): string {
     case "submitting":
       return "Saving";
     case "recorded":
-      return "Done";
+      return "Recorded";
     case "refreshing":
       return "Updating";
     case "confirmed":

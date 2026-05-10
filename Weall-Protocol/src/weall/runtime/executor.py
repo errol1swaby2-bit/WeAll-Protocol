@@ -2083,6 +2083,9 @@ class WeAllExecutor:
         # boundary context so signature/origin policy mirrors HTTP/gossip.
         context = "mempool" if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"} else ingress_mode
         if context not in {"mempool", "http", "gossip", "peer", "operator"}:
+            # Unknown explicit ingress is safest as an operator boundary, not as
+            # a local fixture.  In production, tx_admission requires full
+            # signature/domain verification for this context.
             context = "operator"
         if context == "peer":
             context = "gossip"

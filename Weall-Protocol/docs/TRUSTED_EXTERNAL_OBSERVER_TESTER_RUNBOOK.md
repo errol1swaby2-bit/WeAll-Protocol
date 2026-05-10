@@ -72,6 +72,8 @@ export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bu
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=https://<genesis-api-host>
 
+export WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1
+
 bash scripts/external_observer_onboarding_smoke.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
@@ -93,6 +95,8 @@ This smoke path verifies:
 
 - the bundle matches the local manifest
 - the manifest is pinned and non-placeholder
+- the remote genesis live API is reachable when `WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1` is set
+- `/v1/health`, `/v1/status`, `/v1/ready` or `/v1/readyz`, `/v1/chain/identity`, and `/v1/tx/status/:tx_id` respond with the expected contract shape
 - the remote genesis chain identity matches the bundle when `WEALL_GENESIS_API_BASE` is provided
 - relay recipient public-key binding is present whenever relay URLs are configured
 - observer mode is forced on
@@ -160,3 +164,29 @@ Stop the external test if any of these occur:
 - observer receives or asks for genesis/private authority secrets
 - onboarding requires email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, or KYC
 - the frontend/API shows success before a committed receipt or visible state reconciliation
+
+## Batch 337 live-gate command sequence
+
+Use this exact gate before inviting the first trusted external observer:
+
+```bash
+python3 -S scripts/check_tx_canon_artifacts.py
+bash scripts/secret_guard.sh
+bash scripts/verify_release_tree.sh
+bash scripts/verify_release_dependencies.sh
+bash scripts/prod_chain_manifest_check.sh configs/chains/weall-genesis.json
+
+export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bundle.json
+export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
+export WEALL_GENESIS_API_BASE=https://<genesis-api-host>
+export WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1
+
+bash scripts/external_observer_onboarding_smoke.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+bash scripts/rehearse_external_observer_two_machine.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+
+cd ../web
+API_BASE="$WEALL_GENESIS_API_BASE" npm run contract-check
+npm run production-safety-check
+```
+
+The first trusted observer is a no-go unless every command above passes and the observer remains unable to sign validator blocks.
