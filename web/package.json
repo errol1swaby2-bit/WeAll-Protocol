@@ -9,20 +9,25 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "contract-check": "node scripts/contract_check.mjs",
-    "production-safety-check": "node scripts/guard_production_ux_safety.mjs"
+    "production-safety-check": "node scripts/guard_production_ux_safety.mjs",
+    "dependency-audit": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.26.2",
+    "react-router-dom": "6.30.3",
     "tweetnacl": "1.0.3"
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0",
-    "@vitejs/plugin-react": "4.3.1",
+    "@vitejs/plugin-react": "5.1.2",
     "typescript": "5.6.3",
-    "vite": "5.4.8"
+    "vite": "7.3.3"
+  },
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
   }
 }
