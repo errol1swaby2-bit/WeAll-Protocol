@@ -500,7 +500,29 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
     seated = sorted(set([s for s in seated if s]))
 
     # Keep the treasury inert until we have at least 2 emissaries (multisig semantics).
+    # Important removal hardening: if the seated set falls below quorum after a
+    # ROLE_EMISSARY_REMOVE, do not leave stale removed emissaries in the signer
+    # snapshot.  Clear signers and preserve a threshold of 2 so the treasury is
+    # visibly inert until governance seats enough emissaries again.
     if len(seated) < 2:
+        existing_signers = obj.get("signers")
+        existing_signers = (
+            sorted(set([str(x).strip() for x in existing_signers if str(x).strip()]))
+            if isinstance(existing_signers, list)
+            else []
+        )
+        if existing_signers or _as_int(obj.get("threshold"), 2) != 2:
+            set_treasury_signers(ledger, PROTOCOL_TREASURY_ID, [], threshold=2)
+            treasuries = roles.get("treasuries_by_id")
+            obj2 = treasuries.get(PROTOCOL_TREASURY_ID) if isinstance(treasuries, dict) else None
+            if isinstance(obj2, dict):
+                obj2["require_emissary_signers"] = True
+                obj2.setdefault("label", "protocol")
+                obj2.setdefault("auto_sync_emissaries", True)
+                obj2["updated_at_nonce"] = int(nonce)
+                obj2["synced_from_emissaries_at_nonce"] = int(nonce)
+                obj2["synced_from_emissaries_reason"] = f"{reason}:inert_until_two_emissaries"
+                treasuries[PROTOCOL_TREASURY_ID] = obj2
         return
 
     existing_signers = obj.get("signers")

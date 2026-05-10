@@ -101,6 +101,25 @@ def _issue(issues: list[Json], code: str, detail: Any = None) -> None:
     issues.append(row)
 
 
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return bool(value)
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on", "open", "enabled"}
+
+
+_PROD_FORBIDDEN_CHAIN_PARAM_FLAGS = (
+    "poh_bootstrap_open",
+    "allow_case_scoped_juror_without_role",
+    "poh_allow_case_scoped_juror_without_role",
+    "bootstrap_allow_case_scoped_juror_without_role",
+    "seeded_demo_review_fallback",
+)
+
+
 def _validate_manifest(manifest: Mapping[str, Any], *, tx_index_path: Path, issues: list[Json]) -> None:
     if str(manifest.get("mode") or "").strip().lower() != "prod":
         _issue(issues, "manifest_mode_not_prod", manifest.get("mode"))
@@ -215,13 +234,33 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
                 _issue(issues, "genesis_founder_bootstrap_grant_not_auditable", grant_id)
             if grant.get("transitional") is not True:
                 _issue(issues, "genesis_founder_bootstrap_grant_not_transitional", grant_id)
+            if not isinstance(grant.get("grant_height"), int) or int(grant.get("grant_height") or 0) != 0:
+                _issue(issues, "genesis_founder_bootstrap_grant_height_unexpected", grant.get("grant_height"))
+            if not isinstance(grant.get("expires_height"), int) or int(grant.get("expires_height") or 0) <= int(grant.get("grant_height") or 0):
+                _issue(issues, "genesis_founder_bootstrap_grant_expiry_missing", grant_id)
+            if not str(grant.get("reason_code") or "").strip():
+                _issue(issues, "genesis_founder_bootstrap_reason_missing", grant_id)
+            if not str(grant.get("authority_path") or "").strip():
+                _issue(issues, "genesis_founder_bootstrap_authority_path_missing", grant_id)
+            if not str(grant.get("review_condition") or "").strip():
+                _issue(issues, "genesis_founder_bootstrap_review_condition_missing", grant_id)
             if not str(grant.get("receipt_id") or "").startswith("poh_bootstrap_receipt:"):
                 _issue(issues, "genesis_founder_bootstrap_receipt_missing", grant_id)
     if founding_account and founder:
         if not str(founder.get("poh_bootstrap_grant_id") or "").startswith("poh_bootstrap_grant:"):
             _issue(issues, "genesis_founder_account_bootstrap_grant_pointer_missing", founding_account)
-        if not str(founder.get("poh_bootstrap_receipt_id") or "").startswith("poh_bootstrap_receipt:"):
+        receipt_pointer = str(founder.get("poh_bootstrap_receipt_id") or "").strip()
+        if not receipt_pointer.startswith("poh_bootstrap_receipt:"):
             _issue(issues, "genesis_founder_account_bootstrap_receipt_pointer_missing", founding_account)
+        else:
+            for grant_id in founder_grant_ids if isinstance(founder_grant_ids, list) else []:
+                grant = grants_by_id.get(str(grant_id)) if isinstance(grants_by_id, dict) else None
+                if isinstance(grant, dict) and str(grant.get("receipt_id") or "").strip() != receipt_pointer:
+                    _issue(
+                        issues,
+                        "genesis_founder_account_bootstrap_receipt_pointer_mismatch",
+                        {"account": founding_account, "grant_id": grant_id, "account_receipt": receipt_pointer, "grant_receipt": grant.get("receipt_id")},
+                    )
 
     if int(params.get("genesis_time") or genesis.get("time") or 0) <= 0:
         _issue(issues, "genesis_time_unset")
@@ -237,6 +276,11 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
         _issue(issues, "genesis_economics_enabled_not_false", params.get("economics_enabled"))
     if str(params.get("poh_bootstrap_mode") or "").strip() != "allowlist":
         _issue(issues, "genesis_poh_bootstrap_mode_not_allowlist", params.get("poh_bootstrap_mode"))
+    if str(params.get("poh_bootstrap_mode") or "").strip().lower() == "open":
+        _issue(issues, "genesis_poh_bootstrap_open_forbidden_in_prod", params.get("poh_bootstrap_mode"))
+    for flag in _PROD_FORBIDDEN_CHAIN_PARAM_FLAGS:
+        if _truthy(params.get(flag)):
+            _issue(issues, "genesis_forbidden_production_chain_param", {"param": flag, "value": params.get(flag)})
     if str(params.get("poh_bootstrap_auto_lock_rule") or "").strip() != "active_validators>=BFT_MIN_VALIDATORS":
         _issue(issues, "genesis_poh_bootstrap_auto_lock_rule_missing", params.get("poh_bootstrap_auto_lock_rule"))
     if params.get("validator_candidate_lifecycle_gate_enabled") is not True:

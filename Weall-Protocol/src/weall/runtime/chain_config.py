@@ -250,6 +250,62 @@ def _node_identity_source_report() -> Json:
     }
 
 
+
+
+_PRODUCTION_ROLELESS_JUROR_FLAG_KEYS = (
+    "allow_case_scoped_juror_without_role",
+    "poh_allow_case_scoped_juror_without_role",
+    "bootstrap_allow_case_scoped_juror_without_role",
+)
+
+_PRODUCTION_DEMO_REVIEW_FLAG_KEYS = (
+    "seeded_demo_review_fallback",
+)
+
+
+def _param_truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return bool(value)
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    return text in {"1", "true", "yes", "y", "on", "open", "enabled"}
+
+
+def production_chain_param_safety_issues(state: Json) -> list[str]:
+    """Return consensus-state production parameter blockers.
+
+    These are chain-state params, not local frontend/operator hints.  A
+    production node must fail closed if a recovered local state still carries a
+    development bootstrap mode, a roleless juror bypass, or a seeded-demo review
+    fallback.  Such flags are acceptable only in dev/demo bootstrap fixtures and
+    must never survive into a production service or observer package.
+    """
+
+    if not isinstance(state, dict):
+        return []
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return []
+
+    issues: list[str] = []
+    bootstrap_mode = str(params.get("poh_bootstrap_mode") or "").strip().lower()
+    if bootstrap_mode == "open":
+        issues.append("production chain params forbid params.poh_bootstrap_mode=open")
+    if _param_truthy(params.get("poh_bootstrap_open")):
+        issues.append("production chain params forbid legacy params.poh_bootstrap_open=true")
+
+    for key in _PRODUCTION_ROLELESS_JUROR_FLAG_KEYS:
+        if _param_truthy(params.get(key)):
+            issues.append(f"production chain params forbid params.{key}=true")
+
+    for key in _PRODUCTION_DEMO_REVIEW_FLAG_KEYS:
+        if _param_truthy(params.get(key)):
+            issues.append(f"production chain params forbid params.{key}=true")
+
+    return issues
+
+
 def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
     """Return operator-facing production bootstrap blockers.
 
@@ -298,6 +354,14 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
             schema_version="",
             strict=bool(chain_manifest_required),
         )])
+
+    from weall.runtime.bootstrap_manifest import read_db_state as _read_db_state_for_param_safety
+
+    try:
+        local_state, _local_state_meta = _read_db_state_for_param_safety(cfg.db_path)
+        issues.extend(production_chain_param_safety_issues(local_state))
+    except Exception as exc:
+        issues.append(f"production chain param safety check failed: {exc}")
 
     net_enabled, net_enabled_invalid = _env_bool_status("WEALL_NET_ENABLED", False)
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
@@ -587,6 +651,8 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
                 "pubkey": manifest_pubkey,
                 "issues": [f"release manifest verification failed: {exc}"],
             }
+    chain_param_safety_issues = production_chain_param_safety_issues(local_state)
+
     return {
         "ok": not issues,
         "mode": str(cfg.mode or "").strip().lower(),
@@ -619,6 +685,10 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
         "release_manifest": manifest_report,
         "authority_contract": authority_contract,
         "authority_contract_source": authority_contract_source,
+        "chain_param_safety": {
+            "ok": not chain_param_safety_issues,
+            "issues": chain_param_safety_issues,
+        },
         "release_manifest_authority_contract": (
             (manifest_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") if isinstance(manifest_report, dict) else {})
             if isinstance(manifest_report, dict)

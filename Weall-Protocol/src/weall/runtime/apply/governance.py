@@ -552,6 +552,17 @@ def _extract_actions(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+_GOVERNANCE_VALUE_MOVEMENT_ACTIONS = frozenset(
+    {
+        # Group treasury txs live in the Groups domain, so econ_phase domain
+        # classification does not see them. Governance must still treat them as
+        # economic/value movement for the genesis lock.
+        "GROUP_TREASURY_SPEND_EXECUTE",
+        "TREASURY_SPEND_EXECUTE",
+    }
+)
+
+
 def _enforce_genesis_econ_lock(state: Json, actions: list[dict[str, Any]]) -> None:
     if is_econ_unlocked(state, now_s=_i(state.get("time"), 0)):
         return
@@ -563,7 +574,7 @@ def _enforce_genesis_econ_lock(state: Json, actions: list[dict[str, Any]]) -> No
         # validated before proposal creation.
         if tx_type == "RATE_LIMIT_POLICY_SET":
             continue
-        if tx_type and is_economic_system_tx(tx_type):
+        if tx_type and (is_economic_system_tx(tx_type) or tx_type in _GOVERNANCE_VALUE_MOVEMENT_ACTIONS):
             raise ApplyError(
                 "forbidden",
                 "economic_actions_locked",
@@ -579,6 +590,11 @@ DEFAULT_GOV_ACTION_ALLOWLIST = frozenset(
         "GOV_QUORUM_SET",
         "GOV_RULES_SET",
         "TREASURY_POLICY_SET",
+        # Proposal-voted execution may approve an already-created, threshold-signed
+        # treasury spend. The treasury/group apply layer still enforces economics
+        # activation, timelock, signer snapshots, and multisig thresholds.
+        "TREASURY_SPEND_EXECUTE",
+        "GROUP_TREASURY_SPEND_EXECUTE",
         "VALIDATOR_SET_UPDATE",
         "VALIDATOR_CANDIDATE_APPROVE",
         "VALIDATOR_SUSPEND",
