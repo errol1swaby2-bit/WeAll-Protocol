@@ -14,7 +14,16 @@ Everything else under `secrets/` is treated as local operator material and block
 
 ## Before creating a release package
 
-Run:
+Preferred full-project export gate from the outer repository root:
+
+```bash
+cd ~/WeAll-Protocol
+bash scripts/build_clean_release_export.sh
+```
+
+This stages a separate clean copy of the full project layout, including `Weall-Protocol/`, `web/`, and top-level helper scripts. It then runs staged cleanup, release-tree verification, secret guard, dependency-lock verification, and archive-content checks before writing a zip under `release/`. The source working tree is not mutated.
+
+For backend-only local verification from `Weall-Protocol/`, run:
 
 ```bash
 bash scripts/clean_release_artifacts.sh
@@ -25,7 +34,7 @@ bash scripts/prod_chain_manifest_check.sh
 
 If verification fails on `secrets/`, move the local keys outside the repo or remove them intentionally after backing them up securely.
 
-Do not use `clean_release_artifacts.sh` as a key shredder. It intentionally refuses to silently delete `secrets/` material because those files may be real production keys.
+Do not use `clean_release_artifacts.sh` as a key shredder. It intentionally refuses to silently delete `secrets/` material because those files may be real production keys. The staged export gate excludes raw `secrets/*` material from the release copy, but it does not delete those files from the operator's source working tree.
 
 ## If a private key was shared
 

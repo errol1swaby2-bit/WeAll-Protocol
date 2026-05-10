@@ -191,3 +191,13 @@ bash scripts/verify_release_dependencies.sh
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+
+## Clean external tester export
+
+From the outer repository root, build the clean staged release archive:
+
+```bash
+bash scripts/build_clean_release_export.sh
+```
+
+This is the preferred external-tester packaging gate because it includes the backend, frontend, and top-level scripts while excluding runtime/cache/build artifacts from a staged copy.
