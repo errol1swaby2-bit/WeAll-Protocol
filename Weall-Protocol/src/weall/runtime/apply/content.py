@@ -29,6 +29,12 @@ from typing import Any
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.reputation_accrual import (
+    content_reputation_maturity_blocks,
+    media_reputation_delta_milli,
+    pending_content_accrual,
+    post_reputation_delta_milli,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -367,6 +373,8 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
     if post_id in posts:
         return {"applied": "CONTENT_POST_CREATE", "post_id": post_id, "deduped": True}
 
+    created_height = _as_int(state.get("height"), 0)
+    maturity_blocks = content_reputation_maturity_blocks(state)
     posts[post_id] = {
         "post_id": post_id,
         "author": env.signer,
@@ -382,6 +390,14 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
         "labels": [],
         "flags": [],
         "deleted": False,
+        "reputation_accrual": pending_content_accrual(
+            kind="post",
+            source_id=post_id,
+            account_id=env.signer,
+            created_height=created_height,
+            delta_milli=post_reputation_delta_milli(state),
+            maturity_blocks=maturity_blocks,
+        ),
     }
 
     _ensure_account_nonce(state, env.signer, env.nonce)
@@ -629,6 +645,8 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     if media_id in media:
         return {"applied": "CONTENT_MEDIA_DECLARE", "media_id": media_id, "deduped": True}
 
+    created_height = _as_int(state.get("height"), 0)
+    maturity_blocks = content_reputation_maturity_blocks(state)
     media[media_id] = {
         "media_id": media_id,
         "cid": cid,
@@ -636,6 +654,14 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
         "declared_by": env.signer,
         "declared_at_nonce": int(env.nonce),
         "payload": payload,
+        "reputation_accrual": pending_content_accrual(
+            kind="media",
+            source_id=media_id,
+            account_id=env.signer,
+            created_height=created_height,
+            delta_milli=media_reputation_delta_milli(state),
+            maturity_blocks=maturity_blocks,
+        ),
     }
 
     _ensure_account_nonce(state, env.signer, env.nonce)

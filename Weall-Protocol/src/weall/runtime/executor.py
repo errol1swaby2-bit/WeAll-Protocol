@@ -52,6 +52,7 @@ from weall.runtime.runtime_authority import effective_bft_enabled
 from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
+from weall.runtime.reputation_accrual import schedule_reputation_accrual_system_txs
 from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
 from weall.runtime.protocol_profile import (
     GENESIS_CREATED_MS,
@@ -2651,6 +2652,7 @@ class WeAllExecutor:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
             schedule_node_operator_system_txs(working, next_height=next_height)
+            schedule_reputation_accrual_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -2805,6 +2807,7 @@ class WeAllExecutor:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
             schedule_node_operator_system_txs(working, next_height=next_height)
+            schedule_reputation_accrual_system_txs(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
@@ -3332,6 +3335,7 @@ class WeAllExecutor:
             schedule_poh_tier2_system_txs(working, next_height=next_height)
             schedule_poh_live_system_txs(working, next_height=next_height)
             schedule_node_operator_system_txs(working, next_height=next_height)
+            schedule_reputation_accrual_system_txs(working, next_height=next_height)
 
         def _run_system_emitter_side_effects(phase: str) -> None:
             # We discard envelopes; the block already contains the tx list.
@@ -7336,5 +7340,3 @@ def _env_int(name: str, default: int) -> int:
         if _mode() == "prod":
             raise ValueError(f"invalid_integer_env:{name}")
         return int(default)
-
-
