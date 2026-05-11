@@ -301,6 +301,8 @@ def pick_async_jurors(
     n_jurors: int = 3,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
+    allow_partial: bool = False,
+    allow_roleless_bootstrap: bool = False,
 ) -> list[str]:
     """Deterministically pick jurors for native async Tier-1 review.
 
@@ -314,12 +316,16 @@ def pick_async_jurors(
         state=state,
         min_rep_units=min_rep_units,
         min_rep=min_rep,
+        allow_roleless_bootstrap=bool(allow_roleless_bootstrap),
     )
     pool = [a for a in pool if a != target_account]
 
     need = int(n_jurors)
-    if len(pool) < need:
+    if len(pool) < need and not bool(allow_partial):
         raise ValueError(f"insufficient_eligible_jurors: need {need}, have {len(pool)}")
+    need = min(need, len(pool)) if bool(allow_partial) else need
+    if need <= 0:
+        raise ValueError("insufficient_eligible_jurors: need at least 1, have 0")
 
     scored = [(_score(entropy, "pohasync", str(case_id), a), a) for a in pool]
     scored.sort(key=lambda t: t[0])

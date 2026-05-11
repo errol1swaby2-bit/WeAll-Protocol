@@ -16,6 +16,7 @@ from weall.runtime.poh.live_quorum import (
     normalize_live_threshold,
     required_live_passes,
 )
+from weall.runtime.poh.bootstrap_quorum import adaptive_bootstrap_review_policy
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     require_valid_poh_tier,
@@ -1023,7 +1024,18 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
     if bool(acct.get("locked", False)):
         raise ApplyError("forbidden", "account_locked", {"account_id": account_id})
 
-    assigned_jurors, min_reviews, approval_threshold, rejection_threshold, expiry_window = _async_defaults_from_state(state)
+    configured_jurors, configured_min_reviews, configured_approval_threshold, configured_rejection_threshold, expiry_window = _async_defaults_from_state(state)
+    policy = adaptive_bootstrap_review_policy(
+        state,
+        configured_jurors=configured_jurors,
+        configured_min_reviews=configured_min_reviews,
+        configured_approval_threshold=configured_approval_threshold,
+        configured_rejection_threshold=configured_rejection_threshold,
+    )
+    assigned_jurors = int(policy["assigned_jurors"])
+    min_reviews = int(policy["minimum_reviews"])
+    approval_threshold = int(policy["approval_threshold"])
+    rejection_threshold = int(policy["rejection_threshold"])
     height = int(state.get("height") or 0)
     case_id = _as_str(p.get("case_id") or "").strip() or _case_id(
         "pohasync", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0))
@@ -1061,6 +1073,10 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
         "finalized_height": None,
         "receipt_id": None,
         "target_tier": 1,
+        "configured_assigned_juror_count": configured_jurors,
+        "configured_minimum_reviews": configured_min_reviews,
+        "configured_approval_threshold": configured_approval_threshold,
+        "configured_rejection_threshold": configured_rejection_threshold,
         "assigned_juror_count": assigned_jurors,
         "minimum_reviews": min_reviews,
         "approval_threshold": approval_threshold,
@@ -1068,6 +1084,23 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
         "protocol_native": True,
         "external_identity_authority": "forbidden",
     }
+    policy = adaptive_bootstrap_review_policy(
+        state,
+        configured_jurors=configured_jurors,
+        configured_min_reviews=configured_min_reviews,
+        configured_approval_threshold=configured_approval_threshold,
+        configured_rejection_threshold=configured_rejection_threshold,
+        height=height,
+    )
+    if bool(policy.get("bootstrap_adaptive")):
+        cases[case_id]["bootstrap_adaptive_quorum"] = {
+            "active_validators": int(policy["active_validators"]),
+            "bft_min_validators": int(policy["bft_min_validators"]),
+            "assigned_jurors": int(policy["assigned_jurors"]),
+            "minimum_reviews": int(policy["minimum_reviews"]),
+            "approval_threshold": int(policy["approval_threshold"]),
+            "rejection_threshold": int(policy["rejection_threshold"]),
+        }
 
     return {
         "applied": "POH_ASYNC_REQUEST_OPEN",
@@ -1210,6 +1243,26 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
             {"case_id": case_id},
         )
 
+    policy = adaptive_bootstrap_review_policy(
+        state,
+        configured_jurors=_as_int(case.get("configured_assigned_juror_count") or case.get("assigned_juror_count") or 3, 3),
+        configured_min_reviews=_as_int(case.get("configured_minimum_reviews") or case.get("minimum_reviews") or 3, 3),
+        configured_approval_threshold=_as_int(case.get("configured_approval_threshold") or case.get("approval_threshold") or 2, 2),
+        configured_rejection_threshold=_as_int(case.get("configured_rejection_threshold") or case.get("rejection_threshold") or 2, 2),
+    )
+    case["assigned_juror_count"] = int(policy["assigned_jurors"])
+    case["minimum_reviews"] = int(policy["minimum_reviews"])
+    case["approval_threshold"] = int(policy["approval_threshold"])
+    case["rejection_threshold"] = int(policy["rejection_threshold"])
+    if bool(policy.get("bootstrap_adaptive")):
+        case["bootstrap_adaptive_quorum"] = {
+            "active_validators": int(policy["active_validators"]),
+            "bft_min_validators": int(policy["bft_min_validators"]),
+            "assigned_jurors": int(policy["assigned_jurors"]),
+            "minimum_reviews": int(policy["minimum_reviews"]),
+            "approval_threshold": int(policy["approval_threshold"]),
+            "rejection_threshold": int(policy["rejection_threshold"]),
+        }
     assigned_needed = _as_int(case.get("assigned_juror_count") or 3, 3)
     jurors: list[str] = []
     for item in juror_values:

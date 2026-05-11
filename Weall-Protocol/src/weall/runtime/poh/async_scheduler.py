@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.poh.bootstrap_quorum import (
+    adaptive_bootstrap_review_policy,
+    poh_bootstrap_quorum_allowed,
+)
 from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
@@ -149,10 +153,11 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
 
     enq = 0
     cases = _async_cases(state)
-    n_jurors = max(1, _param_int(state, "async_n_jurors", DEFAULT_ASYNC_N_JURORS))
-    min_reviews = max(1, _param_int(state, "async_min_reviews", DEFAULT_ASYNC_MIN_REVIEWS))
-    approval_threshold = max(1, _param_int(state, "async_approval_threshold", DEFAULT_ASYNC_APPROVAL_THRESHOLD))
-    rejection_threshold = max(1, _param_int(state, "async_rejection_threshold", DEFAULT_ASYNC_REJECTION_THRESHOLD))
+    configured_n_jurors = max(1, _param_int(state, "async_n_jurors", DEFAULT_ASYNC_N_JURORS))
+    configured_min_reviews = max(1, _param_int(state, "async_min_reviews", DEFAULT_ASYNC_MIN_REVIEWS))
+    configured_approval_threshold = max(1, _param_int(state, "async_approval_threshold", DEFAULT_ASYNC_APPROVAL_THRESHOLD))
+    configured_rejection_threshold = max(1, _param_int(state, "async_rejection_threshold", DEFAULT_ASYNC_REJECTION_THRESHOLD))
+    bootstrap_quorum_allowed = poh_bootstrap_quorum_allowed(state, height=int(next_height))
     min_rep_units = _param_rep_units(
         state,
         units_key="async_min_rep_milli",
@@ -168,6 +173,15 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
         account_id = _as_str(case.get("account_id") or "").strip()
 
         if _case_needs_assign(case) and account_id:
+            policy = adaptive_bootstrap_review_policy(
+                state,
+                configured_jurors=_as_int(case.get("configured_assigned_juror_count") or case.get("assigned_juror_count") or configured_n_jurors, configured_n_jurors),
+                configured_min_reviews=_as_int(case.get("configured_minimum_reviews") or case.get("minimum_reviews") or configured_min_reviews, configured_min_reviews),
+                configured_approval_threshold=_as_int(case.get("configured_approval_threshold") or case.get("approval_threshold") or configured_approval_threshold, configured_approval_threshold),
+                configured_rejection_threshold=_as_int(case.get("configured_rejection_threshold") or case.get("rejection_threshold") or configured_rejection_threshold, configured_rejection_threshold),
+                height=int(next_height),
+            )
+            n_jurors = int(policy["assigned_jurors"])
             try:
                 from weall.runtime.poh.juror_select import pick_async_jurors  # type: ignore
 
@@ -177,6 +191,8 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
                     target_account=account_id,
                     n_jurors=int(n_jurors),
                     min_rep_units=int(min_rep_units),
+                    allow_partial=bool(bootstrap_quorum_allowed),
+                    allow_roleless_bootstrap=bool(bootstrap_quorum_allowed),
                 )
             except Exception:
                 jurors = []
@@ -188,6 +204,16 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
                         "case_id": case_id,
                         "jurors": jurors,
                         "min_rep_milli": int(min_rep_units),
+                        "bootstrap_adaptive_quorum": {
+                            "active_validators": int(policy["active_validators"]),
+                            "bft_min_validators": int(policy["bft_min_validators"]),
+                            "assigned_jurors": int(policy["assigned_jurors"]),
+                            "minimum_reviews": int(policy["minimum_reviews"]),
+                            "approval_threshold": int(policy["approval_threshold"]),
+                            "rejection_threshold": int(policy["rejection_threshold"]),
+                        }
+                        if bool(policy.get("bootstrap_adaptive"))
+                        else None,
                     },
                     due_height=int(next_height),
                     signer="SYSTEM",

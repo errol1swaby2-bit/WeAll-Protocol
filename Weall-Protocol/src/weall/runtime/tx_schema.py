@@ -195,6 +195,8 @@ class PohAsyncJurorAssignPayload(_StrictModel):
     min_reviews: int | None = Field(default=None, ge=0)
     approval_threshold: int | None = Field(default=None, ge=0)
     rejection_threshold: int | None = Field(default=None, ge=0)
+    min_rep_milli: int | None = Field(default=None, ge=0)
+    bootstrap_adaptive_quorum: dict[str, Any] | None = None
 
 
 class PohAsyncJurorAcceptPayload(_StrictModel):
