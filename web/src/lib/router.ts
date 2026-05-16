@@ -17,6 +17,7 @@ export type RightRailContext =
   | "post_create"
   | "messaging"
   | "verification"
+  | "live_room"
   | "account"
   | "profile"
   | "session_devices"
@@ -67,6 +68,7 @@ export type RouteMatch =
   | { path: "/create" }
   | { path: "/post/:id"; id: string }
   | { path: "/verification" }
+  | { path: "/verification/live/:caseId"; caseId: string }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
   | { path: "/juror" }
@@ -236,6 +238,26 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Account verification",
       contextPanelData: "Verification status, next steps, and trusted responsibilities",
       blockingDependencies: ["Account session", "Authoritative account state"],
+    }),
+  },
+  "/verification/live/:caseId": {
+    section: "Trust & Verification",
+    label: "Live Verification Room",
+    title: "Live Verification Room",
+    description: "Join a live verification session, check in, record attendance, and complete reviewer votes with chain-backed authority.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "action",
+    fab: "none",
+    rightRail: "live_room",
+    normalNav: false,
+    breadcrumbs: [{ label: "Account Verification", href: "/verification" }],
+    dataContract: contract({
+      primaryObject: "Live verification room",
+      contextPanelData: "Live room transport, participant presence, attendance, verdicts, and finalization status",
+      staleTolerance: { liveCriticalMs: 6_000, taskRelevantMs: 12_000, ambientMs: 20_000 },
+      blockingDependencies: ["Account session", "Live verification case", "Self-hosted room transport", "Signed attendance/verdict state"],
     }),
   },
   "/reviews": {
@@ -706,6 +728,14 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create" || r === "/post") return { path: "/create" };
   if (r === "/verification" || r === "/poh") return { path: "/verification" };
+  if (r.startsWith("/verification/live/")) {
+    const caseId = decodeRoutePart(r.slice("/verification/live/".length));
+    if (caseId) return { path: "/verification/live/:caseId", caseId };
+  }
+  if (r.startsWith("/live/")) {
+    const caseId = decodeRoutePart(r.slice("/live/".length));
+    if (caseId) return { path: "/verification/live/:caseId", caseId };
+  }
   if (r === "/reviews" || r === "/juror") return { path: "/reviews" };
   if (r === "/groups") return { path: "/groups" };
   if (r === "/groups/create") return { path: "/groups/create" };
@@ -826,7 +856,7 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   if (target === "/decisions") return current === "/decisions" || current === "/decisions/:id" || current === "/decisions/create";
   if (target === "/reports") return current === "/reports" || current === "/reports/:id";
   if (target === "/reviews") return current === "/reviews" || current === "/reviews/:id";
-  if (target === "/verification") return current === "/verification";
+  if (target === "/verification") return current === "/verification" || current === "/verification/live/:caseId";
   return current === target || currentPath === href || currentPath.startsWith(`${href}/`);
 }
 

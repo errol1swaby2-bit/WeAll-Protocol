@@ -1088,13 +1088,16 @@ export default function AccountVerificationPage(): JSX.Element {
                   return (
                     <div key={String(it?.case_id || idx)} className="infoCard compact">
                       <CaseCard item={it} />
-                      {roomUrl ? (
-                        <div className="buttonRow" style={{ marginTop: 10 }}>
+                      <div className="buttonRow" style={{ marginTop: 10 }}>
+                        <button className="btn btnPrimary" onClick={() => nav(`/verification/live/${encodeURIComponent(String(it?.case_id || ""))}`)} disabled={!it?.case_id}>
+                          Open live verification room
+                        </button>
+                        {roomUrl ? (
                           <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Join self-hosted live room
+                            Open video transport
                           </a>
-                        </div>
-                      ) : null}
+                        ) : null}
+                      </div>
                       <div className="miniMuted">{liveRoomTransportNotice()}</div>
                     </div>
                   );

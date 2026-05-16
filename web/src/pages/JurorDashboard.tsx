@@ -633,14 +633,19 @@ export default function JurorDashboard(): JSX.Element {
                         </div>
                         {(() => {
                           const joinUrl = String(sessionRec?.join_url || "").trim() || liveRoomUrlFromCommitment(sessionRec?.room_commitment || c?.room_commitment);
-                          return joinUrl ? (
+                          return (
                             <div className="buttonRow" style={{ marginTop: 10 }}>
-                              <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
-                                Join self-hosted session
-                              </a>
+                              <button className="btn btnPrimary" onClick={() => nav(`/verification/live/${encodeURIComponent(caseId)}`)} disabled={!caseId}>
+                                Open live room
+                              </button>
+                              {joinUrl ? (
+                                <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
+                                  Open video transport
+                                </a>
+                              ) : (
+                                <span className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL to enable a self-hosted room link.</span>
+                              )}
                             </div>
-                          ) : (
-                            <div className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL to enable a self-hosted room link.</div>
                           );
                         })()}
                         <div className="feedMediaMeta">{liveRoomTransportNotice()}</div>

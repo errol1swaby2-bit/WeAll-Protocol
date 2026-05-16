@@ -694,6 +694,19 @@ export const weall = {
     return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/participants`, base, headers);
   },
 
+  pohLiveSessionPresence(sessionId: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/presence`, base, headers);
+  },
+
+  pohLiveSessionPresenceUpdate(sessionId: string, payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/presence`, payload, base, headers);
+  },
+
+  pohOperatorLiveFinalize(payload: unknown, base?: string, token?: string): Promise<any> {
+    const headers = token ? { "X-WeAll-Operator-Token": token } : undefined;
+    return apiPost("/v1/poh/operator/live/finalize", payload, base, headers);
+  },
+
   pohTier2TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/tier2/tx/request", payload, base, headers);
   },

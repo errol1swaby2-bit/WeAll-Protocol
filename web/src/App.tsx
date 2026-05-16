@@ -16,6 +16,7 @@ const Feed = lazy(() => import("./pages/Feed"));
 const Home = lazy(() => import("./pages/Home"));
 const Messaging = lazy(() => import("./pages/Messaging"));
 const AccountVerificationPage = lazy(() => import("./pages/AccountVerificationPage"));
+const LiveVerificationRoom = lazy(() => import("./pages/LiveVerificationRoom"));
 const JurorDashboard = lazy(() => import("./pages/JurorDashboard"));
 const Tools = lazy(() => import("./pages/Tools"));
 const Groups = lazy(() => import("./pages/Groups"));
@@ -56,6 +57,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
       return readyForApp ? <AccountVerificationPage /> : <LoginPage />;
+    case "/verification/live/:caseId":
+      return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;
     case "/reviews":
       return readyForApp ? <JurorDashboard /> : <LoginPage />;
     case "/groups":

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import mimetypes
 import os
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, File, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -847,6 +847,216 @@ def poh_live_session_participants(
     out.sort(key=lambda p: p.juror_id)
     return PohLiveSessionParticipantsResponse(ok=True, participants=out)
 
+
+
+
+# ---------------------------------------------------------------------------
+# PoH Live: Node-local room presence (transport only, non-authoritative)
+# ---------------------------------------------------------------------------
+
+
+_ALLOWED_LIVE_PRESENCE_STATUSES = {"joined", "left", "reconnect", "heartbeat"}
+
+
+def _live_presence_store(request: Request) -> Json:
+    """Return the node-local, ephemeral Live Room presence store.
+
+    This store is intentionally outside consensus state. It exists only to help
+    the frontend render room presence, camera/mic check-in posture, reconnects,
+    and left/joined status. Chain authority still comes only from signed
+    POH_LIVE_ATTENDANCE_MARK, POH_LIVE_VERDICT_SUBMIT, and POH_LIVE_FINALIZE.
+    """
+
+    store = getattr(request.app.state, "poh_live_room_presence", None)
+    if not isinstance(store, dict):
+        store = {}
+        request.app.state.poh_live_room_presence = store
+    return store
+
+
+def _live_session_case_id(st: Json, session_id: str) -> str:
+    sess = _live_sessions_from_snapshot(st)
+    raw = sess.get(session_id)
+    if not isinstance(raw, dict):
+        raise ApiError.not_found("not_found", "live_session_not_found")
+    cid = str(raw.get("case_id") or "").strip()
+    if not cid:
+        raise ApiError.bad_request("bad_request", "live_session_missing_case_id", {"session_id": session_id})
+    return cid
+
+
+def _require_live_room_participant(st: Json, *, session_id: str, account_id: str) -> tuple[str, str]:
+    cid = _live_session_case_id(st, session_id)
+    cases = _live_cases_from_snapshot(st)
+    raw = cases.get(cid)
+    if not isinstance(raw, dict):
+        raise ApiError.not_found("not_found", "live_case_not_found")
+
+    subject = str(raw.get("account_id") or "").strip()
+    if account_id and account_id == subject:
+        return cid, "subject"
+
+    jurors = raw.get("jurors")
+    if isinstance(jurors, dict) and account_id in jurors:
+        jrec = jurors.get(account_id)
+        role = "juror"
+        if isinstance(jrec, dict):
+            role = str(jrec.get("role") or "juror").strip() or "juror"
+        return cid, role
+
+    raise ApiError.forbidden(
+        "forbidden",
+        "live_room_participant_required",
+        {"session_id": session_id, "case_id": cid, "account_id": account_id},
+    )
+
+
+class PohLivePresenceUpdateRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    status: Literal["joined", "left", "reconnect", "heartbeat"] = "heartbeat"
+    camera_enabled: bool | None = None
+    mic_enabled: bool | None = None
+    display_name: str | None = Field(default=None, max_length=80)
+    ts_ms: int | None = None
+
+
+class PohLivePresenceModel(BaseModel):
+    session_id: str
+    case_id: str
+    account_id: str
+    role: str
+    status: str
+    camera_enabled: bool | None = None
+    mic_enabled: bool | None = None
+    display_name: str | None = None
+    joined_ts_ms: int | None = None
+    last_seen_ts_ms: int | None = None
+    left_ts_ms: int | None = None
+    authority: str = "transport_only_ephemeral"
+
+
+class PohLivePresenceResponse(BaseModel):
+    ok: bool
+    presence: list[PohLivePresenceModel]
+    authority: str = "transport_only_ephemeral"
+
+
+class PohLivePresenceUpdateResponse(BaseModel):
+    ok: bool
+    record: PohLivePresenceModel
+    authority: str = "transport_only_ephemeral"
+    message: str = "Room presence is transport-only. Chain authority requires signed attendance, verdict, and finalization transactions."
+
+
+def _as_presence(session_id: str, account_id: str, raw: dict[str, object]) -> PohLivePresenceModel:
+    def _opt_int(v: Any) -> int | None:
+        try:
+            return int(v) if isinstance(v, (int, float)) else None
+        except Exception:
+            return None
+
+    return PohLivePresenceModel(
+        session_id=session_id,
+        case_id=str(raw.get("case_id") or "").strip(),
+        account_id=account_id,
+        role=str(raw.get("role") or "participant").strip() or "participant",
+        status=str(raw.get("status") or "unknown").strip() or "unknown",
+        camera_enabled=raw.get("camera_enabled") if isinstance(raw.get("camera_enabled"), bool) else None,
+        mic_enabled=raw.get("mic_enabled") if isinstance(raw.get("mic_enabled"), bool) else None,
+        display_name=str(raw.get("display_name") or "").strip() or None,
+        joined_ts_ms=_opt_int(raw.get("joined_ts_ms")),
+        last_seen_ts_ms=_opt_int(raw.get("last_seen_ts_ms")),
+        left_ts_ms=_opt_int(raw.get("left_ts_ms")),
+    )
+
+
+@router.get(
+    "/poh/live/session/{session_id}/presence",
+    response_model=PohLivePresenceResponse,
+    name="poh_live_session_presence",
+)
+def poh_live_session_presence(session_id: str, request: Request) -> PohLivePresenceResponse:
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise ApiError.bad_request("bad_request", "missing session_id", {})
+
+    st = _snapshot(request)
+    # Require the session to exist in chain-derived state, but keep presence data ephemeral.
+    _live_session_case_id(st, sid)
+
+    session_store = _live_presence_store(request).get(sid)
+    raw_records = session_store if isinstance(session_store, dict) else {}
+    records = [
+        _as_presence(sid, str(account_id), rec if isinstance(rec, dict) else {})
+        for account_id, rec in raw_records.items()
+    ]
+    records.sort(key=lambda r: (r.role != "subject", r.account_id))
+    return PohLivePresenceResponse(ok=True, presence=records)
+
+
+@router.post(
+    "/poh/live/session/{session_id}/presence",
+    response_model=PohLivePresenceUpdateResponse,
+    name="poh_live_session_presence_update",
+)
+def poh_live_session_presence_update(
+    session_id: str, req: PohLivePresenceUpdateRequest, request: Request
+) -> PohLivePresenceUpdateResponse:
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise ApiError.bad_request("bad_request", "missing session_id", {})
+
+    account_id = str(req.account_id or "").strip()
+    if not account_id:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+
+    header_account = str(request.headers.get("x-weall-account") or "").strip()
+    if header_account and header_account != account_id:
+        raise ApiError.forbidden(
+            "forbidden",
+            "presence_account_header_mismatch",
+            {"header_account": header_account, "account_id": account_id},
+        )
+
+    status = str(req.status or "heartbeat").strip().lower()
+    if status not in _ALLOWED_LIVE_PRESENCE_STATUSES:
+        raise ApiError.bad_request("bad_request", "invalid_presence_status", {"status": status})
+
+    st = _snapshot(request)
+    case_id, role = _require_live_room_participant(st, session_id=sid, account_id=account_id)
+
+    try:
+        ts_ms = int(req.ts_ms) if req.ts_ms is not None else 0
+    except Exception:
+        ts_ms = 0
+
+    session_store = _live_presence_store(request).setdefault(sid, {})
+    if not isinstance(session_store, dict):
+        session_store = {}
+        _live_presence_store(request)[sid] = session_store
+
+    prev = session_store.get(account_id)
+    rec: Json = dict(prev) if isinstance(prev, dict) else {}
+    rec["case_id"] = case_id
+    rec["role"] = role
+    rec["status"] = "left" if status == "left" else "joined"
+    rec["last_seen_ts_ms"] = ts_ms
+    if req.camera_enabled is not None:
+        rec["camera_enabled"] = bool(req.camera_enabled)
+    if req.mic_enabled is not None:
+        rec["mic_enabled"] = bool(req.mic_enabled)
+    display_name = str(req.display_name or "").strip()
+    if display_name:
+        rec["display_name"] = display_name
+    if status in {"joined", "reconnect"} and not rec.get("joined_ts_ms"):
+        rec["joined_ts_ms"] = ts_ms
+    if status == "left":
+        rec["left_ts_ms"] = ts_ms
+    else:
+        rec["left_ts_ms"] = None
+
+    session_store[account_id] = rec
+    return PohLivePresenceUpdateResponse(ok=True, record=_as_presence(sid, account_id, rec))
 
 # ---------------------------------------------------------------------------
 # PoH Operator endpoints (MVP)

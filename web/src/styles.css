@@ -2922,3 +2922,133 @@ body {
     max-width: 100%;
   }
 }
+
+/* Live Verification Room */
+.liveRoomPage .liveRoomHero {
+  overflow: hidden;
+}
+
+.liveRoomGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.liveVideoCard {
+  min-width: 0;
+}
+
+.liveRoomFrame {
+  width: 100%;
+  min-height: 460px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: 18px;
+  background: #0f172a;
+}
+
+.videoPlaceholder {
+  min-height: 280px;
+  border: 1px dashed var(--border, rgba(148, 163, 184, 0.35));
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.videoPlaceholder p {
+  max-width: 560px;
+  margin: 8px auto 0;
+}
+
+.toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.toggleRow label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.participantList {
+  display: grid;
+  gap: 10px;
+}
+
+.participantItem {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.participantItem small,
+.noticeText,
+.helpText {
+  color: var(--muted, #64748b);
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statusCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.statusCard span {
+  color: var(--muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.kvList {
+  display: grid;
+  gap: 8px;
+}
+
+.kvList div {
+  display: grid;
+  gap: 2px;
+}
+
+.kvList dt {
+  color: var(--muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.kvList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .liveRoomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statusGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .liveRoomFrame {
+    min-height: 320px;
+  }
+}
