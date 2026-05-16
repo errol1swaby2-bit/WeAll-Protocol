@@ -6,7 +6,7 @@ It proves that an observer on a different machine/network can use only a public 
 ## Hard rule
 
 This is a **NO-GO** unless every command in this document passes against a non-local genesis API.
-Do not use `localhost`, `127.0.0.1`, genesis private keys, validator keys, Cloudflare credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority.
+Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addresses, metadata-service addresses, genesis private keys, validator keys, Cloudflare credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority. Private LAN genesis API addresses are allowed only for a controlled home/LAN two-machine test with `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; public-trust testing should use a real non-local public URL.
 
 ## What this proves
 
@@ -31,7 +31,7 @@ The live gate performs the following actions from the observer machine:
    - `POH_ASYNC_EVIDENCE_DECLARE`
    - `POH_ASYNC_EVIDENCE_BIND`
 7. Checks the async PoH case is visible after commit.
-8. Checks the observer account did not become a validator or BFT signer.
+8. Checks the observer account did not become a validator, BFT signer, node operator, helper, storage provider, juror, governance executor, or treasury authority.
 
 ## Genesis operator: build the public observer bundle
 
@@ -67,7 +67,7 @@ export WEALL_CHAIN_MANIFEST_PATH="configs/chains/weall-genesis.json"
 bash scripts/external_observer_live_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-The script intentionally rejects local API bases such as `http://127.0.0.1` or `http://localhost`.
+The script intentionally rejects local/self API bases such as `http://127.0.0.1`, `http://localhost`, IPv6 loopback, unspecified/link-local addresses, and metadata-service addresses. For a same-LAN two-machine rehearsal only, set `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; do not use that override for a public external observer proof.
 
 ## Expected result
 
@@ -89,7 +89,7 @@ These files are local tester artifacts and must not be committed or sent back pu
 
 - `remote_chain_id_mismatch` or `remote_tx_index_hash_mismatch`: the observer is not talking to the intended chain/profile.
 - `tx not confirmed`: the genesis node accepted or saw the transaction but did not commit it before timeout.
-- `observer_account_unexpected_validator_authority`: the gate detected an authority leak and the test is failed.
+- `observer_account_unexpected_validator_authority`, `observer_account_unexpected_authority:*`, or `observer_account_unexpected_operator_authority:*`: the gate detected an authority leak and the test is failed.
 - `async_case_not_visible_after_commit`: the PoH onboarding transaction did not become visible in authoritative state after commit.
 - any secret-variable failure: the observer machine has authority or external identity-provider material that must be removed before retrying.
 

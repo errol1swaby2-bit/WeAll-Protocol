@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+
 # Explicit production service boot path for already-approved node operators.
 # This path is intentionally strict: the chain must show Tier 2 + active
 # NodeOperator authority + authorized node key before service authority is active.
@@ -25,4 +27,5 @@ cat >&2 <<'MSG'
 [weall] This mode is fail-closed: Tier 2, active NodeOperator role, and registered node key are required.
 MSG
 
-exec "$(dirname "$0")/run_node_prod.sh"
+bash "${SCRIPT_DIR}/prod_node_preflight.sh"
+exec "${SCRIPT_DIR}/run_node_prod.sh"

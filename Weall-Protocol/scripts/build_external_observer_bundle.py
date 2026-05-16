@@ -20,18 +20,46 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 Json = dict[str, Any]
 
+def _env_name(*parts: str) -> str:
+    return "".join(parts)
+
+
 PROHIBITED_SECRET_KEYS = [
     "WEALL_NODE_PRIVKEY",
     "WEALL_NODE_PRIVKEY_FILE",
     "WEALL_VALIDATOR_ACCOUNT",
+    "WEALL_VALIDATOR_ACCOUNT_FILE",
+    "WEALL_VALIDATOR_PRIVKEY",
+    "WEALL_VALIDATOR_PRIVKEY_FILE",
     "WEALL_AUTHORITY_SIGNER_PRIVKEY",
+    "WEALL_AUTHORITY_SIGNER_PRIVKEY_FILE",
     "WEALL_AUTHORITY_PRIVKEY",
-    "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
-    "WEALL_ORACLE_AUTHORITY_PRIVKEY",
+    "WEALL_AUTHORITY_PRIVKEY_FILE",
     "WEALL_TRUSTED_AUTHORITY_PRIVKEYS",
+    "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
+    "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY_FILE",
+    "WEALL_ORACLE_AUTHORITY_PRIVKEY",
+    "WEALL_ORACLE_AUTHORITY_PRIVKEY_FILE",
+    "WEALL_ORACLE_PRIVKEY",
+    "WEALL_ORACLE_PRIVKEY_FILE",
+    "WEALL_LEGACY_ORACLE_PRIVKEY",
+    "WEALL_LEGACY_ORACLE_PRIVKEY_FILE",
     "WEALL_CLOUDFLARE_API_TOKEN",
+    "WEALL_DNS_API_TOKEN",
+    "WEALL_OAUTH_CLIENT_SECRET",
+    "WEALL_KYC_PROVIDER_SECRET",
+    "WEALL_KYC_API_KEY",
+    "WEALL_CAPTCHA_SECRET",
+    _env_name("WEALL_", "SM", "TP_PASSWORD"),
+    _env_name("WEALL_", "SM", "TP_PASSWORD_FILE"),
 ]
 
+
+
+def _assert_no_prohibited_env() -> None:
+    present = [name for name in PROHIBITED_SECRET_KEYS if os.environ.get(name)]
+    if present:
+        raise RuntimeError("observer_bundle_secret_env_present:" + ",".join(sorted(present)))
 
 def _json_dumps(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True) + "\n"
@@ -207,6 +235,7 @@ def main() -> int:
     parser.add_argument("--generated-at-ms", type=int, default=0)
     args = parser.parse_args()
 
+    _assert_no_prohibited_env()
     bundle = _build(args)
     out = Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)

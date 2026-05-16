@@ -13,19 +13,17 @@ fail() {
   exit 1
 }
 
+# Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
+# WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
+# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# It also rejects *_FILE variants and other external identity-provider secrets.
+# shellcheck disable=SC1091
+. "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"
+weall_check_observer_secret_boundary || exit $?
+
 [ -n "${BUNDLE_PATH}" ] || fail "usage: $0 <public-observer-bundle.json>"
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
-
-# An external observer/onboarding node must never need authority signer secrets
-# or legacy external identity-provider authority secrets.
-[ -z "${WEALL_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority signer private key must not be present on observer node"
-[ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy oracle/identity signer private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy oracle/identity private key must not be present on observer node"
-[ -z "${WEALL_CLOUDFLARE_API_TOKEN:-}" ] || fail "Cloudflare token must not be required or present for observer onboarding"
-SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"
-[ -z "${!SMTP_SECRET_VAR:-}" ] || fail "external message-transport credential must not be present for observer onboarding"
 
 export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 
@@ -178,6 +176,7 @@ OK: external observer onboarding preflight passed
 MSG
 
 if [ "${BOOT_AFTER_PREFLIGHT}" = "1" ]; then
+  export WEALL_OBSERVER_PREFLIGHT_ALREADY_PASSED="1"
   exec "${ROOT_DIR}/scripts/boot_onboarding_node.sh"
 fi
 

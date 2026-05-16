@@ -12,25 +12,48 @@ fail() {
   exit 1
 }
 
+# Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
+# WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
+# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# shellcheck disable=SC1091
+. "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"
+weall_check_observer_secret_boundary || exit $?
+
 [ -n "${BUNDLE_PATH}" ] || fail "usage: $0 <public-observer-bundle.json> with WEALL_GENESIS_API_BASE set"
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
 [ -n "${GENESIS_API_BASE}" ] || fail "WEALL_GENESIS_API_BASE or WEALL_API_BASE is required for a two-machine rehearsal"
 
-case "${GENESIS_API_BASE}" in
-  http://127.0.0.1*|http://localhost*|https://127.0.0.1*|https://localhost*)
-    fail "two-machine rehearsal requires a remote genesis API base, not localhost: ${GENESIS_API_BASE}"
-    ;;
-esac
-
-# External observer machines must not carry authority or external identity-provider secrets.
-[ -z "${WEALL_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority signer private key must not be present on observer node"
-[ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy oracle/identity signer private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy oracle/identity private key must not be present on observer node"
-[ -z "${WEALL_CLOUDFLARE_API_TOKEN:-}" ] || fail "Cloudflare token must not be present for observer onboarding"
-SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"
-[ -z "${!SMTP_SECRET_VAR:-}" ] || fail "external message-transport credential must not be present for observer onboarding"
+# Reject obvious local/self/metadata endpoints. Historical cases covered here
+# include http://127.0.0.1*, http://localhost*, https://127.0.0.1*, and
+# https://localhost*. Private LAN IPs require WEALL_ALLOW_PRIVATE_GENESIS_API=1.
+python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
+from __future__ import annotations
+import ipaddress
+import sys
+import urllib.parse
+url, allow_private = sys.argv[1], sys.argv[2]
+parsed = urllib.parse.urlparse(url)
+if parsed.scheme not in {"http", "https"}:
+    raise SystemExit("two_machine_rehearsal_genesis_api_scheme_invalid")
+host = (parsed.hostname or "").strip().lower()
+if not host:
+    raise SystemExit("two_machine_rehearsal_genesis_api_host_missing")
+if host in {"localhost", "ip6-localhost"} or host.endswith(".localhost"):
+    raise SystemExit(f"two-machine rehearsal requires a remote genesis API base, not localhost: {url}")
+try:
+    ip = ipaddress.ip_address(host)
+except ValueError:
+    ip = None
+if ip is not None:
+    if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+        raise SystemExit(f"two-machine rehearsal requires a remote genesis API base, not localhost: {url}")
+    if str(ip) == "169.254.169.254":
+        raise SystemExit("two_machine_rehearsal_metadata_service_forbidden")
+    if ip.is_private and allow_private not in {"1", "true", "TRUE", "yes", "YES", "on", "ON"}:
+        raise SystemExit("two_machine_rehearsal_private_genesis_api_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+print("OK: genesis API base is non-local for two-machine rehearsal")
+PY_NONLOCAL_API
 
 export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE%/}"
 export WEALL_API_BASE="${GENESIS_API_BASE%/}"
@@ -112,9 +135,12 @@ OK: two-machine external observer rehearsal preflight passed
 - observer mode/signing/BFT/helper/block-loop are forced safe
 - relay endpoints, if configured, are transport_only and require recipient pubkey binding
 
+This rehearsal is connectivity/preflight only; it does not submit signed onboarding transactions.
+The observer onboarding E2E is not complete until scripts/external_observer_live_gate.sh passes.
+
 Next live action on the observer machine:
   WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='${BUNDLE_PATH}' \
   WEALL_CHAIN_MANIFEST_PATH='${MANIFEST_PATH}' \
   WEALL_GENESIS_API_BASE='${GENESIS_API_BASE%/}' \
-  bash scripts/boot_onboarding_node.sh
+  bash scripts/external_observer_live_gate.sh "${BUNDLE_PATH}"
 MSG

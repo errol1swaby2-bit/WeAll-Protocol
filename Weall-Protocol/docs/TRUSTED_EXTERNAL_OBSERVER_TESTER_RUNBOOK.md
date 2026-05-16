@@ -87,9 +87,10 @@ export WEALL_NET_RELAY_URLS=https://<relay-host>   # optional, comma-separated w
 export WEALL_NET_RELAY_RECIPIENT_PUBKEYS='{"genesis":"<64_HEX_GENESIS_NODE_PUBLIC_KEY>"}'
 
 bash scripts/rehearse_external_observer_two_machine.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+bash scripts/external_observer_live_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-The rehearsal wrapper refuses localhost genesis URLs, forces observer-only posture, checks `/v1/health`, `/v1/ready`, `/v1/chain/identity`, and verifies every configured relay reports `transport_only`.
+The rehearsal wrapper refuses local/self genesis URLs, forces observer-only posture, checks `/v1/health`, `/v1/ready`, `/v1/chain/identity`, and verifies every configured relay reports `transport_only`. This rehearsal is connectivity/preflight only; it does not submit signed onboarding transactions.
 
 This smoke path verifies:
 
@@ -107,7 +108,16 @@ This smoke path verifies:
 
 ## Observer boot
 
-After the smoke check passes:
+After the smoke check passes and before treating the observer as proven, run the signed live gate:
+
+```bash
+WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bundle.json \
+WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json \
+WEALL_GENESIS_API_BASE=https://<genesis-api-host> \
+bash scripts/external_observer_live_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+```
+
+After the smoke check passes and the operator needs to start a local onboarding UI:
 
 ```bash
 WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/weall-external-observer-bundle.json \
@@ -183,10 +193,11 @@ export WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1
 
 bash scripts/external_observer_onboarding_smoke.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 bash scripts/rehearse_external_observer_two_machine.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+bash scripts/external_observer_live_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 
 cd ../web
 API_BASE="$WEALL_GENESIS_API_BASE" npm run contract-check
 npm run production-safety-check
 ```
 
-The first trusted observer is a no-go unless every command above passes and the observer remains unable to sign validator blocks.
+The first trusted observer is a no-go unless every command above passes, the live gate confirms the full signed onboarding sequence, and the observer remains unable to sign validator blocks.

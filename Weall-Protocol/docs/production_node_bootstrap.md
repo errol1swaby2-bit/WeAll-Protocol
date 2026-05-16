@@ -85,3 +85,12 @@ python3 scripts/verify_validator_bootstrap.py
 ```
 
 See also `docs/validator_bootstrap_verification.md`.
+
+
+## Observer onboarding vs production service boot
+
+`boot_onboarding_node.sh` is the safe observer/onboarding wrapper. It now requires either a verified public observer bundle through `WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE` or an already-passed observer preflight marker. It forces observer mode and must not be used as proof of production service authority.
+
+`boot_node_operator.sh` is the production service wrapper for an already activated node operator. It runs `scripts/prod_node_preflight.sh` before entering `run_node_prod.sh`, so production service boot and production preflight remain one fail-closed path.
+
+A two-machine rehearsal is connectivity/preflight only. The observer onboarding E2E is not complete until `scripts/external_observer_live_gate.sh` passes against the intended genesis API.

@@ -1,8 +1,10 @@
 # External Observer Node Rehearsal
 
-This runbook is the gate before inviting a trusted external observer-node tester.
+This runbook is the connectivity/preflight gate before the signed live gate.
 It rehearses the production journey from one genesis/bootstrap node to an
-outbound-only observer node on another machine or network.
+outbound-only observer node on another machine or network, but it is not the
+complete signed onboarding E2E by itself. The observer onboarding E2E is complete
+only after `scripts/external_observer_live_gate.sh` passes.
 
 The observer is useful but non-authoritative:
 
@@ -113,8 +115,17 @@ WEALL_CHAIN_MANIFEST_PATH='configs/chains/weall-genesis.json' \
 bash scripts/boot_onboarding_node.sh
 ```
 
-5. Submit onboarding transactions to the genesis API through normal signed user
-   transaction flow. The initial observer path should include:
+5. Run the signed live gate. This submits onboarding transactions to the genesis
+   API through normal signed user transaction flow:
+
+```bash
+WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='dist/weall-external-observer-bundle.json' \
+WEALL_CHAIN_MANIFEST_PATH='configs/chains/weall-genesis.json' \
+WEALL_GENESIS_API_BASE='https://<GENESIS_HOST>' \
+bash scripts/external_observer_live_gate.sh 'dist/weall-external-observer-bundle.json'
+```
+
+The initial observer path should include:
 
 ```text
 ACCOUNT_REGISTER
@@ -151,6 +162,7 @@ Stop the rehearsal if any of these occur:
 
 ## Promotion gate
 
-Only after this runbook passes should one trusted external observer tester be
-invited. Multiple observers, validator candidates, governance writes, and
-WeCoin/economics remain separate gates.
+Only after this runbook and `scripts/external_observer_live_gate.sh` pass should
+one trusted external observer tester be treated as proven. Multiple observers,
+validator candidates, governance writes, and WeCoin/economics remain separate
+gates.

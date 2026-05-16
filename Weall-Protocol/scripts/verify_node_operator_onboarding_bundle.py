@@ -31,6 +31,24 @@ PLACEHOLDER_AUTHORITY_PUBKEYS = {
     "".lower(),
 }
 
+SAFE_OBSERVER_LIFECYCLE_STATES = {"observer_onboarding", "bootstrap_registration"}
+SAFE_ONBOARDING_TXS = {
+    "ACCOUNT_REGISTER",
+    "ACCOUNT_KEY_ADD",
+    "ACCOUNT_DEVICE_REGISTER",
+    "ACCOUNT_SESSION_KEY_ISSUE",
+    "PEER_ADVERTISE",
+    "PEER_REQUEST_CONNECT",
+    "PEER_RENDEZVOUS_TICKET_CREATE",
+    "PEER_RENDEZVOUS_TICKET_REVOKE",
+    "POH_APPLICATION_SUBMIT",
+    "POH_EVIDENCE_DECLARE",
+    "POH_EVIDENCE_BIND",
+    "POH_ASYNC_REQUEST_OPEN",
+    "POH_ASYNC_EVIDENCE_DECLARE",
+    "POH_ASYNC_EVIDENCE_BIND",
+}
+
 
 def _json_dumps(data: Any) -> str:
     return json.dumps(data, separators=(",", ":"), sort_keys=True)
@@ -99,6 +117,59 @@ def _relay_recipient_pubkeys(bundle: Json) -> dict[str, str]:
     return out
 
 
+def _bool_is(value: Any, expected: bool) -> bool:
+    return isinstance(value, bool) and value is expected
+
+
+def _service_roles_empty(value: Any) -> bool:
+    if value in (None, ""):
+        return True
+    if isinstance(value, list):
+        return not any(str(item or "").strip() for item in value)
+    if isinstance(value, str):
+        return not any(part.strip() for part in value.split(","))
+    return False
+
+
+def _validate_observer_posture(bundle: Json) -> list[str]:
+    """Validate that a public onboarding bundle cannot request service authority.
+
+    This is intentionally stricter than ordinary JSON-shape validation because
+    operators commonly run ``--emit-shell-env`` and then boot from those exports.
+    A corrupted bundle must be rejected, not converted into an unsafe shell.
+    """
+    issues: list[str] = []
+    observer = _observer(bundle)
+    if not observer:
+        return ["missing_observer_section"]
+
+    if not _bool_is(observer.get("observer_mode_required"), True):
+        issues.append("observer_mode_required_must_be_true")
+    lifecycle = str(observer.get("node_lifecycle_state") or "").strip()
+    if lifecycle not in SAFE_OBSERVER_LIFECYCLE_STATES:
+        issues.append("observer_node_lifecycle_state_not_safe")
+    if not _service_roles_empty(observer.get("service_roles")):
+        issues.append("observer_service_roles_must_be_empty")
+    if not _bool_is(observer.get("validator_signing_enabled"), False):
+        issues.append("observer_validator_signing_must_be_false")
+    if not _bool_is(observer.get("bft_enabled"), False):
+        issues.append("observer_bft_must_be_false")
+    if not _bool_is(observer.get("helper_authority_enabled"), False):
+        issues.append("observer_helper_authority_must_be_false")
+    if not _bool_is(observer.get("block_loop_autostart"), False):
+        issues.append("observer_block_loop_autostart_must_be_false")
+
+    allowed = observer.get("allowed_onboarding_transactions")
+    if allowed is not None:
+        if not isinstance(allowed, list):
+            issues.append("observer_allowed_onboarding_transactions_not_list")
+        else:
+            unsafe = sorted({str(tx or "").strip() for tx in allowed if str(tx or "").strip() and str(tx or "").strip() not in SAFE_ONBOARDING_TXS})
+            if unsafe:
+                issues.append("observer_allowed_onboarding_transactions_unsafe:" + ",".join(unsafe))
+    return issues
+
+
 def _validate_relay_recipient_pubkeys(bundle: Json) -> list[str]:
     issues: list[str] = []
     observer = _observer(bundle)
@@ -149,6 +220,12 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
 
     issues.extend(_walk_secret_keys(bundle))
     issues.extend(_validate_relay_recipient_pubkeys(bundle))
+    # Legacy read-only node-operator bundles from the pre-observer schema did not
+    # include an observer section. Keep those verifiable for authority migration
+    # tests and archival compatibility, while still requiring all modern bundles
+    # with an observer section to fail closed on unsafe runtime flags.
+    if isinstance(bundle.get("observer"), dict) or not ("authority" not in bundle and isinstance(bundle.get("oracle"), dict)):
+        issues.extend(_validate_observer_posture(bundle))
 
     if manifest is not None:
         comparisons = {
@@ -183,6 +260,9 @@ def _shell_env(bundle: Json) -> str:
     observer = _observer(bundle)
     pubkeys = ",".join(str(pk).strip() for pk in (authority.get("trusted_authority_pubkeys") or []) if str(pk).strip())
     relay_recipient_pubkeys = json.dumps(_relay_recipient_pubkeys(bundle), separators=(",", ":"), sort_keys=True)
+    lifecycle = str(observer.get("node_lifecycle_state") or "observer_onboarding").strip()
+    if lifecycle not in SAFE_OBSERVER_LIFECYCLE_STATES:
+        lifecycle = "observer_onboarding"
     env = {
         "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"} else str(bundle.get("profile") or ""),
         "WEALL_CHAIN_ID": str(chain.get("chain_id") or ""),
@@ -197,19 +277,20 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_GENESIS_API_BASE": str(observer.get("genesis_api_base") or ""),
         "WEALL_NET_RELAY_URLS": ",".join(str(url).strip() for url in (observer.get("relay_urls") or []) if str(url).strip()),
         "WEALL_NET_RELAY_RECIPIENT_PUBKEYS": relay_recipient_pubkeys if _relay_recipient_pubkeys(bundle) else "",
+        # Observer posture is hard-coded here after validation.  The verifier must
+        # never convert bundle-supplied authority toggles into shell exports.
+        "WEALL_NODE_LIFECYCLE_STATE": lifecycle,
+        "WEALL_SERVICE_ROLES": "",
+        "WEALL_OBSERVER_MODE": "1",
+        "WEALL_VALIDATOR_SIGNING_ENABLED": "0",
+        "WEALL_BFT_ENABLED": "0",
+        "WEALL_HELPER_MODE_ENABLED": "0",
+        "WEALL_BLOCK_LOOP_AUTOSTART": "0",
     }
-    if observer:
-        env.update({
-            "WEALL_NODE_LIFECYCLE_STATE": str(observer.get("node_lifecycle_state") or "observer_onboarding"),
-            "WEALL_OBSERVER_MODE": "1" if bool(observer.get("observer_mode_required", True)) else "0",
-            "WEALL_VALIDATOR_SIGNING_ENABLED": "1" if bool(observer.get("validator_signing_enabled", False)) else "0",
-            "WEALL_BFT_ENABLED": "1" if bool(observer.get("bft_enabled", False)) else "0",
-            "WEALL_HELPER_MODE_ENABLED": "1" if bool(observer.get("helper_authority_enabled", False)) else "0",
-            "WEALL_BLOCK_LOOP_AUTOSTART": "1" if bool(observer.get("block_loop_autostart", False)) else "0",
-        })
+    force_empty = {"WEALL_SERVICE_ROLES"}
     lines = []
     for key, value in env.items():
-        if value:
+        if value or key in force_empty:
             lines.append(f"export {key}={shlex.quote(value)}")
     return "\n".join(lines) + "\n"
 
