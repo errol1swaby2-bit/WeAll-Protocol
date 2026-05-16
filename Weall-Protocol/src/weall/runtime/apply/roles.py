@@ -575,6 +575,8 @@ def _apply_role_juror_enroll(ledger: Json, env: TxEnvelope) -> Json:
     acct = _pick_account(payload, "account_id", "juror", "target", "account")
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_enroll_juror", {"account_id": acct})
 
     by_id = jur.get("by_id")
     if not isinstance(by_id, dict):
@@ -782,6 +784,8 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_enroll_node_operator", {"account_id": acct})
 
     by_id = ops.get("by_id")
     if not isinstance(by_id, dict):
