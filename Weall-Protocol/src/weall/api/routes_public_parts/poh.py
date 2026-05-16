@@ -1011,7 +1011,13 @@ def poh_live_session_presence_update(
         raise ApiError.bad_request("bad_request", "missing account_id", {})
 
     header_account = str(request.headers.get("x-weall-account") or "").strip()
-    if header_account and header_account != account_id:
+    if not header_account:
+        raise ApiError.forbidden(
+            "forbidden",
+            "presence_account_header_required",
+            {"account_id": account_id},
+        )
+    if header_account != account_id:
         raise ApiError.forbidden(
             "forbidden",
             "presence_account_header_mismatch",

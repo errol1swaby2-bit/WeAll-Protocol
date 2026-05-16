@@ -43,3 +43,13 @@ def test_existing_verification_surfaces_link_to_live_room() -> None:
     assert "Open live room" in juror_page
     assert "/verification/live/" in account_page
     assert "/verification/live/" in juror_page
+
+
+def test_frontend_live_room_does_not_persist_operator_token() -> None:
+    page = (OUTER / "web/src/pages/LiveVerificationRoom.tsx").read_text(encoding="utf-8")
+
+    assert "weall.operator.poh.token" not in page
+    assert "localStorage.getItem" not in page
+    assert "localStorage.setItem" not in page
+    assert "sessionStorage" not in page
+    assert 'type="password"' in page

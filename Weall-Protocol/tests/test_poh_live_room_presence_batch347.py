@@ -97,6 +97,16 @@ def test_live_room_presence_requires_case_participant() -> None:
     assert r.json()["error"]["message"] == "live_room_participant_required"
 
 
+def test_live_room_presence_requires_authenticated_account_header() -> None:
+    c = _client()
+    r = c.post(
+        "/v1/poh/live/session/session:case1/presence",
+        json={"account_id": "@j1", "status": "joined", "ts_ms": 123},
+    )
+    assert r.status_code == 403
+    assert r.json()["error"]["message"] == "presence_account_header_required"
+
+
 def test_live_room_presence_rejects_header_account_mismatch() -> None:
     c = _client()
     r = c.post(

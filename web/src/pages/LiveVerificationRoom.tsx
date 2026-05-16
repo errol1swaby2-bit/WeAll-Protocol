@@ -132,13 +132,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const [cameraEnabled, setCameraEnabled] = useState<boolean>(true);
   const [micEnabled, setMicEnabled] = useState<boolean>(true);
   const [showEmbeddedRoom, setShowEmbeddedRoom] = useState<boolean>(false);
-  const [operatorToken, setOperatorToken] = useState<string>(() => {
-    try {
-      return localStorage.getItem("weall.operator.poh.token") || "";
-    } catch {
-      return "";
-    }
-  });
+  const [operatorToken, setOperatorToken] = useState<string>("");
 
   const sessionForCase = useMemo(() => {
     return sessions.find((item) => String(item.case_id || "") === String(caseId)) || null;
@@ -284,11 +278,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     await runAction("Requesting finalization…", async () => {
       const token = operatorToken.trim();
       if (!token) throw new Error("Enter the operator PoH token before requesting system finalization.");
-      try {
-        localStorage.setItem("weall.operator.poh.token", token);
-      } catch {
-        // ignore local storage failures
-      }
       await weall.pohOperatorLiveFinalize({ case_id: caseId }, apiBase, token);
       setNotice("Live verification finalization was queued. Refresh after the next block to confirm the final result.");
       await load();
