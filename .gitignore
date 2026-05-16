@@ -133,3 +133,7 @@ Weall-Protocol/.weall-devnet/
 # Source package: do not confuse protocol storage code with runtime storage data.
 !Weall-Protocol/src/weall/storage/
 !Weall-Protocol/src/weall/storage/**
+
+# Local audit/runtime scratch
+.secrets/
+artifacts/
