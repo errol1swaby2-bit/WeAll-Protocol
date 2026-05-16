@@ -213,6 +213,53 @@ def _ensure_peers(state: Json) -> Json:
     return p
 
 
+def _require_connect_request_node_binding(state: Json, env: TxEnvelope) -> tuple[str, ...]:
+    """Require PEER_REQUEST_CONNECT to be authored by a registered node device.
+
+    A connect request is not consensus authority, but it is still public peer
+    intent.  Requiring an active node device prevents ordinary account keys or
+    spoofed signer/account pairs from polluting peer-request state during
+    onboarding and promotion.
+    """
+
+    signer = _as_str(env.signer).strip()
+    if not signer:
+        raise NetworkingApplyError("invalid_payload", "missing_signer", {"tx_type": env.tx_type})
+    devices = _active_node_devices_for_account(state, signer)
+    if not devices:
+        raise NetworkingApplyError(
+            "forbidden",
+            "peer_request_connect_requires_registered_node_device",
+            {"tx_type": env.tx_type, "account_id": signer},
+        )
+    return tuple(sorted(_as_str(rec.get("pubkey")).strip() for rec in devices.values() if _as_str(rec.get("pubkey")).strip()))
+
+
+def _endpoint_is_plausible(endpoint: str) -> bool:
+    endpoint = endpoint.strip()
+    if not endpoint or len(endpoint) > 2048:
+        return False
+    # Keep this deterministic and intentionally syntax-light: consensus records
+    # connection intent, while the networking layer performs live reachability.
+    # The goal here is to reject opaque garbage, not to do DNS/HTTP validation.
+    lowered = endpoint.lower()
+    allowed_prefixes = ("http://", "https://", "ws://", "wss://", "tcp://", "weall://", "relay://")
+    return lowered.startswith(allowed_prefixes)
+
+
+def _has_advertised_peer(peers: Json, peer_id: str) -> bool:
+    if not peer_id:
+        return False
+    ads = peers.get("ads")
+    if not isinstance(ads, dict):
+        return False
+    for rec_any in ads.values():
+        rec = _as_dict(rec_any)
+        if _as_str(rec.get("peer_id")).strip() == peer_id:
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # PEER_ADVERTISE
 # ---------------------------------------------------------------------------
@@ -322,17 +369,49 @@ def _apply_peer_request_connect(state: Json, env: TxEnvelope) -> Json:
     peers = _ensure_peers(state)
     payload = _as_dict(env.payload)
 
-    to_peer_id = _pick(payload, "peer_id", "to_peer_id", "target_peer_id")
-    endpoint = _pick(payload, "endpoint", "url")
-    # allow either peer_id or endpoint
-    if not to_peer_id and not endpoint:
+    node_pubkeys = _require_connect_request_node_binding(state, env)
+
+    to_peer_id = _as_str(_pick(payload, "peer_id", "to_peer_id", "target_peer_id")).strip()
+    endpoint = _as_str(_pick(payload, "endpoint", "url")).strip()
+    ticket_id = _as_str(_pick(payload, "ticket_id", "rendezvous_ticket_id")).strip()
+
+    # Allow one of: a live endpoint, an active rendezvous ticket, or a peer id
+    # already advertised in protocol state.  This preserves bootstrap use where
+    # the observer requests the genesis API endpoint directly, but it rejects
+    # pure arbitrary peer-id pollution.
+    if not to_peer_id and not endpoint and not ticket_id:
         raise NetworkingApplyError("invalid_payload", "missing_target", {"tx_type": env.tx_type})
+
+    if endpoint and not _endpoint_is_plausible(endpoint):
+        raise NetworkingApplyError(
+            "invalid_payload",
+            "invalid_endpoint",
+            {"tx_type": env.tx_type, "endpoint": endpoint},
+        )
+
+    if ticket_id:
+        ticket = _as_dict(_as_dict(peers.get("tickets")).get(ticket_id))
+        if not ticket or bool(ticket.get("revoked", False)) or _as_str(ticket.get("status")).lower() != "active":
+            raise NetworkingApplyError(
+                "forbidden",
+                "peer_request_connect_requires_active_rendezvous_ticket",
+                {"tx_type": env.tx_type, "ticket_id": ticket_id},
+            )
+
+    if to_peer_id and not endpoint and not ticket_id and not _has_advertised_peer(peers, to_peer_id):
+        raise NetworkingApplyError(
+            "forbidden",
+            "peer_request_connect_target_not_advertised",
+            {"tx_type": env.tx_type, "peer_id": to_peer_id},
+        )
 
     peers["connect_requests"].append(
         {
             "from": env.signer,
+            "from_node_pubkeys": list(node_pubkeys),
             "to_peer_id": to_peer_id or None,
             "endpoint": endpoint or None,
+            "ticket_id": ticket_id or None,
             "nonce": int(env.nonce),
             "payload": payload,
         }

@@ -90,7 +90,7 @@ def test_validator_heartbeat_records_timestamp(base_state) -> None:
 
     env = _env(
         "VALIDATOR_HEARTBEAT",
-        {"account": "alice", "ts_ms": 123456789},
+        {"account": "alice", "node_id": "node-alice", "ts_ms": 123456789},
         signer="alice",
         nonce=1,
     )
@@ -107,7 +107,7 @@ def test_validator_heartbeat_missing_fields_rejected(base_state) -> None:
     _assert_apply_error(ei1.value, "invalid_payload", "missing_account")
 
     with pytest.raises(ApplyError) as ei2:
-        apply_tx(st, _env("VALIDATOR_HEARTBEAT", {"account": "alice"}, signer="alice", nonce=2))
+        apply_tx(st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "node_id": "node-alice"}, signer="alice", nonce=2))
     _assert_apply_error(ei2.value, "invalid_payload", "missing_ts_ms")
 
 
@@ -116,9 +116,43 @@ def test_validator_heartbeat_account_must_match_signer(base_state) -> None:
 
     with pytest.raises(ApplyError) as ei:
         apply_tx(
-            st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "ts_ms": 1}, signer="bob", nonce=1)
+            st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "node_id": "node-alice", "ts_ms": 1}, signer="bob", nonce=1)
         )
     _assert_apply_error(ei.value, "forbidden", "account_must_match_signer")
+
+
+
+
+def test_validator_heartbeat_node_id_must_match_active_node_key(base_state) -> None:
+    st = _clone(base_state)
+    st["accounts"]["alice"]["devices"] = {
+        "by_id": {
+            "node:alice": {"device_type": "node", "pubkey": "node-alice", "revoked": False}
+        }
+    }
+
+    out = apply_tx(
+        st,
+        _env(
+            "VALIDATOR_HEARTBEAT",
+            {"account": "alice", "node_id": "node-alice", "ts_ms": 1},
+            signer="alice",
+            nonce=1,
+        ),
+    )
+    assert out["node_id"] == "node-alice"
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env(
+                "VALIDATOR_HEARTBEAT",
+                {"account": "alice", "node_id": "node-other", "ts_ms": 2},
+                signer="alice",
+                nonce=2,
+            ),
+        )
+    _assert_apply_error(ei.value, "forbidden", "validator_heartbeat_node_id_must_match_active_node_key")
 
 
 def test_validator_deregister_marks_inactive_when_present(base_state) -> None:

@@ -949,12 +949,16 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
-    # Production invariant: heartbeat must be explicit and self-authored.
+    # Production invariant: heartbeat must be explicit, self-authored, and
+    # bound to the active node key that represents the validator locally.
     account = _as_str(payload.get("account"))
+    node_id = _as_str(payload.get("node_id"))
     ts_ms = _as_int(payload.get("ts_ms"), 0)
 
     if not account:
         raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
+    if not node_id:
+        raise ConsensusApplyError("invalid_payload", "missing_node_id", {"tx_type": env.tx_type})
     if _as_str(env.signer) and account != _as_str(env.signer):
         raise ConsensusApplyError(
             "forbidden",
@@ -964,13 +968,27 @@ def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
     if ts_ms <= 0:
         raise ConsensusApplyError("invalid_payload", "missing_ts_ms", {"tx_type": env.tx_type})
 
+    active_node_pubkeys = set(active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account))))
+    if active_node_pubkeys and node_id not in active_node_pubkeys:
+        raise ConsensusApplyError(
+            "forbidden",
+            "validator_heartbeat_node_id_must_match_active_node_key",
+            {"tx_type": env.tx_type, "account": account, "node_id": node_id},
+        )
+
     vroot = _ensure_validators_root(state)
     hb = vroot.get("last_heartbeat_ms")
     assert isinstance(hb, dict)
     hb[account] = int(ts_ms)
     vroot["last_heartbeat_ms"] = hb
 
-    return {"applied": "VALIDATOR_HEARTBEAT", "account": account, "ts_ms": int(ts_ms)}
+    node_hb = vroot.get("last_heartbeat_by_node")
+    if not isinstance(node_hb, dict):
+        node_hb = {}
+    node_hb[node_id] = {"account": account, "ts_ms": int(ts_ms)}
+    vroot["last_heartbeat_by_node"] = node_hb
+
+    return {"applied": "VALIDATOR_HEARTBEAT", "account": account, "node_id": node_id, "ts_ms": int(ts_ms)}
 
 
 def _apply_validator_performance_report(state: Json, env: TxEnvelope) -> Json:

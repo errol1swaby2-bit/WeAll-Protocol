@@ -12,6 +12,9 @@ Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addre
 
 The live gate performs the following actions from the observer machine:
 
+Important boundary: this gate proves async PoH **case creation and evidence binding only**. It does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, validator-set inclusion, or BFT participation.
+
+
 1. Verifies the public observer bundle against the production chain manifest.
 2. Fetches remote `/v1/health`, `/v1/ready` or `/v1/readyz`, `/v1/status`, `/v1/chain/identity`, and `/v1/tx/status/:tx_id`.
 3. Forces observer-only local posture:
@@ -77,13 +80,13 @@ A passing run ends with:
 OK: trusted external observer live gate passed
 ```
 
-The retained work directory contains:
+By default, the script deletes the temporary work directory after a passing run because it contains private key material. To retain the artifacts for debugging or private operator archival, set `WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR=1` before running the gate. If retained, the work directory contains:
 
-- `observer-account.json` — local observer account key;
-- `observer-node-key.json` — separate local node identity key;
+- `observer-account.json` — local observer account private key;
+- `observer-node-key.json` — separate local node identity private key;
 - `live-gate-results.jsonl` — submitted transaction results and receipt/status evidence.
 
-These files are local tester artifacts and must not be committed or sent back publicly.
+These files are local tester artifacts and must not be committed, uploaded, or sent back publicly.
 
 ## Failure meanings
 

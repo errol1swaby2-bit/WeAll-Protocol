@@ -7,7 +7,7 @@ MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-gen
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-${WEALL_API_BASE:-}}"
 PEER_ENDPOINT="${WEALL_OBSERVER_PEER_ENDPOINT:-relay://external-observer-live-gate}"
 TARGET_PEER_ID="${WEALL_GENESIS_PEER_ID:-genesis}"
-KEEP_WORK_DIR="${WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR:-1}"
+KEEP_WORK_DIR="${WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR:-0}"
 TIMEOUT="${WEALL_TX_WAIT_TIMEOUT:-60}"
 POLL="${WEALL_TX_WAIT_POLL:-1}"
 
@@ -330,7 +330,9 @@ OK: trusted external observer live gate passed
 MSG
 
 if [ "${KEEP_WORK_DIR}" != "1" ]; then
+  echo "[live-gate] cleaning temporary key/results directory: ${WORK_DIR}"
   rm -rf "${WORK_DIR}"
 else
   echo "[live-gate] work dir retained: ${WORK_DIR}"
+  echo "[live-gate] WARNING: retained files include private observer account/node keys; do not commit, upload, or share them."
 fi

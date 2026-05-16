@@ -200,4 +200,4 @@ API_BASE="$WEALL_GENESIS_API_BASE" npm run contract-check
 npm run production-safety-check
 ```
 
-The first trusted observer is a no-go unless every command above passes, the live gate confirms the full signed onboarding sequence, and the observer remains unable to sign validator blocks.
+The first trusted observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.

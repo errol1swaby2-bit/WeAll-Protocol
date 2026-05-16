@@ -323,9 +323,9 @@ def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
     if t == "PEER_REQUEST_CONNECT":
-        if not p.get("peer_id") and not p.get("ticket_id"):
+        if not p.get("peer_id") and not p.get("ticket_id") and not p.get("endpoint") and not p.get("url"):
             return _rej(
-                "invalid_payload", "missing:peer_id_or_ticket_id", field="peer_id_or_ticket_id"
+                "invalid_payload", "missing:peer_id_ticket_id_or_endpoint", field="peer_id_ticket_id_or_endpoint"
             )
 
     if t == "PEER_BAN_SET":
@@ -366,7 +366,7 @@ def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
     if t == "VALIDATOR_HEARTBEAT":
-        miss = _required(p, ("node_id",))
+        miss = _required(p, ("node_id", "account", "ts_ms"))
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
     if t == "VALIDATOR_SET_UPDATE":

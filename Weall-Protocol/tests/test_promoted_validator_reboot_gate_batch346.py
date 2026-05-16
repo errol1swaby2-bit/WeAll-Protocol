@@ -42,6 +42,9 @@ def test_promoted_validator_preflight_checks_protocol_authority_and_chain_identi
     assert "validator_responsibility_not_active" in text
     assert "active_validator_count_below_required" in text
     assert "tx_index_hash_mismatch" in text
+    assert "validator_readiness_{key}_mismatch" in text
+    assert "runtime_profile_hash" in text
+    assert "readiness_receipt_hash_missing" in text
     assert "observer mode must be cleared" in text
 
 
@@ -70,3 +73,5 @@ def test_promoted_validator_docs_do_not_overclaim_batch346() -> None:
     assert "promoted_validator_preflight.sh" in text
     assert "promoted_validator_live_gate.sh" in text
     assert "This script does not create system/governance authority by itself" in text
+    assert "State sync / catchup boundary before signing" in text
+    assert "remote genesis authority as local signing authority" in text

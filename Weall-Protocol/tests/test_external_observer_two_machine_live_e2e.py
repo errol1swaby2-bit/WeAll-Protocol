@@ -44,6 +44,8 @@ def test_external_observer_live_gate_script_contract_batch341() -> None:
     assert "/v1/poh/async/case/" in script
     assert "observer_account_unexpected_validator_authority" in script
     assert "OK: trusted external observer live gate passed" in script
+    assert 'KEEP_WORK_DIR="${WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR:-0}"' in script
+    assert "WARNING: retained files include private observer account/node keys" in script
 
 
 def test_first_external_observer_runbook_contract_batch341() -> None:
@@ -66,3 +68,5 @@ def test_first_external_observer_runbook_contract_batch341() -> None:
     assert "SMTP" in doc
     assert "DNS" in doc
     assert "OK: trusted external observer live gate passed" in doc
+    assert "case creation and evidence binding only" in doc
+    assert "WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR=1" in doc

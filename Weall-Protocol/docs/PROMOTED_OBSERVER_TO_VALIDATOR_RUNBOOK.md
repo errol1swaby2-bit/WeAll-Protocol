@@ -50,7 +50,7 @@ Run preflight:
 bash scripts/promoted_validator_preflight.sh
 ```
 
-This checks the remote genesis API, manifest identity, tx-index hash, active node-operator status, active validator responsibility, and validator-set presence.
+This checks the remote genesis API, manifest identity, tx-index hash, active node-operator status, active validator responsibility, validator-readiness receipt binding, and validator-set presence. This is authorization to attempt the reboot; it is not proof that the local process has already caught up or will be allowed to sign immediately.
 
 ## Reboot as validator
 
@@ -70,6 +70,13 @@ WEALL_VALIDATOR_SIGNING_ENABLED=1
 ```
 
 It refuses to boot if observer posture remains active or if protocol authority is missing.
+
+
+## State sync / catchup boundary before signing
+
+A promoted validator must not treat remote genesis authority as local signing authority. After reboot, the local node must load or sync the finalized state that contains the node-operator activation, validator readiness receipt, validator activation, validator-set update, validator epoch, and validator-set hash. If the post-boot gate reports `local_signing_not_allowed_by_consensus_state`, `local_is_not_active_validator`, or a validator-set/hash mismatch, keep the node running in catchup/diagnostic mode and do not bypass the fail-closed signing check.
+
+The correct outcome for stale local state is failure to sign, not forced signing.
 
 ## Post-boot live gate
 

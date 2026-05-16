@@ -46,7 +46,7 @@ export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
 bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST_PATH}" >/tmp/weall_promoted_validator_manifest_check.json
 rm -f /tmp/weall_promoted_validator_manifest_check.json
 
-python3 -S - "${GENESIS_API_BASE%/}" "${MANIFEST_PATH}" "${ACCOUNT}" "${NODE_PUBKEY}" "${MIN_ACTIVE_VALIDATORS}" "${REPORT_OUT}" <<'PY'
+python3 -S - "${GENESIS_API_BASE%/}" "${MANIFEST_PATH}" "${ACCOUNT}" "${NODE_PUBKEY}" "${MIN_ACTIVE_VALIDATORS}" "${REPORT_OUT}" "${ROOT_DIR}" <<'PY'
 from __future__ import annotations
 import json
 import sys
@@ -54,10 +54,35 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-api, manifest_path, account, node_pubkey, min_active_raw, report_out = sys.argv[1:7]
+api, manifest_path, account, node_pubkey, min_active_raw, report_out, root_dir = sys.argv[1:8]
 min_active = int(min_active_raw or 2)
 manifest = json.loads(Path(manifest_path).read_text(encoding='utf-8'))
 issues: list[str] = []
+
+def _norm(value) -> str:
+    return str(value or '').strip()
+
+def _norm_lower(value) -> str:
+    return _norm(value).lower()
+
+def _local_protocol_version() -> str:
+    try:
+        tx_index = json.loads((Path(root_dir) / 'generated' / 'tx_index.json').read_text(encoding='utf-8'))
+        meta = tx_index.get('meta') if isinstance(tx_index.get('meta'), dict) else {}
+        return _norm(meta.get('version'))
+    except Exception:
+        return ''
+
+def _check_bound_detail(details: dict, key: str, expected: str, *, lower: bool = False, required: bool = True) -> None:
+    actual = _norm(details.get(key))
+    exp = _norm(expected)
+    if lower:
+        actual, exp = actual.lower(), exp.lower()
+    if required and not actual:
+        issues.append(f'validator_readiness_{key}_missing')
+        return
+    if actual and exp and actual != exp:
+        issues.append(f'validator_readiness_{key}_mismatch:{actual}!={exp}')
 
 def fetch(path: str) -> dict:
     with urllib.request.urlopen(api.rstrip('/') + path, timeout=15) as resp:
@@ -88,6 +113,20 @@ if baseline.get('active') is not True:
     issues.append('baseline_node_operator_not_active:' + ','.join(str(x) for x in baseline.get('reasons', []) if x))
 if validator.get('active') is not True:
     issues.append('validator_responsibility_not_active:' + ','.join(str(x) for x in validator.get('reasons', []) if x))
+validator_details = validator.get('details') if isinstance(validator.get('details'), dict) else {}
+expected_profile_hash = _norm(manifest.get('protocol_profile_hash'))
+expected_schema_version = _norm(manifest.get('schema_version'))
+expected_protocol_version = _local_protocol_version()
+_check_bound_detail(validator_details, 'chain_id', expected_chain_id, required=True)
+_check_bound_detail(validator_details, 'tx_index_hash', expected_tx_index_hash, lower=True, required=True)
+_check_bound_detail(validator_details, 'runtime_profile_hash', expected_profile_hash, lower=True, required=True)
+_check_bound_detail(validator_details, 'schema_version', expected_schema_version, required=True)
+_check_bound_detail(validator_details, 'protocol_version', expected_protocol_version, required=bool(expected_protocol_version))
+_check_bound_detail(validator_details, 'bft_pubkey', _norm(validator_details.get('bft_pubkey')), required=True)
+if _norm(validator_details.get('node_pubkey')) and _norm(validator_details.get('node_pubkey')) != node_pubkey:
+    issues.append(f'validator_readiness_node_pubkey_mismatch:{_norm(validator_details.get("node_pubkey"))}!={node_pubkey}')
+if not _norm(validator_details.get('readiness_receipt_hash')):
+    issues.append('validator_readiness_receipt_hash_missing')
 
 consensus = fetch('/v1/status/consensus')
 active_count = int(consensus.get('active_validator_count') or 0)
@@ -109,6 +148,15 @@ payload = {
         'validator_epoch': consensus.get('validator_epoch'),
         'validator_set_hash': consensus.get('validator_set_hash'),
     },
+    'readiness_binding': {
+        'chain_id': validator_details.get('chain_id'),
+        'tx_index_hash': validator_details.get('tx_index_hash'),
+        'runtime_profile_hash': validator_details.get('runtime_profile_hash'),
+        'schema_version': validator_details.get('schema_version'),
+        'protocol_version': validator_details.get('protocol_version'),
+        'bft_pubkey': validator_details.get('bft_pubkey'),
+        'readiness_receipt_hash': validator_details.get('readiness_receipt_hash'),
+    },
     'issues': issues,
 }
 if report_out:
@@ -124,5 +172,6 @@ OK: promoted validator preflight passed
 - manifest/chain identity/tx_index_hash match genesis API when advertised
 - node pubkey is bound to active node-operator state
 - validator responsibility is active from protocol state
+- validator readiness receipt is bound to the local chain_id/tx_index_hash/profile/schema/protocol fields
 - consensus validator set is present and has at least ${MIN_ACTIVE_VALIDATORS} active validators
 MSG
