@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from weall.runtime.chain_manifest import load_chain_manifest
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
-from weall.tx.canon import ensure_tx_index_json
+from weall.tx.canon import CanonError, ensure_tx_index_json
 
 
 @dataclass
@@ -19,6 +22,30 @@ class ExecutorBootConfig:
 
 # Backwards-compatible alias expected by older imports
 BootConfig = ExecutorBootConfig
+
+
+
+def _verify_tx_index_artifact_only(tx_index_path: str) -> None:
+    """Verify generated tx canon in production without regenerating artifacts."""
+    path = Path(tx_index_path)
+    if not path.exists():
+        raise RuntimeError(f"production tx canon artifact missing: {path}")
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"production tx canon artifact is not an object: {path}")
+    repo_root = Path(__file__).resolve().parents[3]
+    spec_path = repo_root / "specs" / "tx_canon" / "tx_canon.yaml"
+    if not spec_path.exists():
+        raise RuntimeError(f"production tx canon spec missing: {spec_path}")
+    expected_hash = hashlib.sha256(spec_path.read_bytes()).hexdigest()
+    if str(raw.get("source_sha256") or "").strip() != expected_hash:
+        raise RuntimeError("production tx canon artifact source_sha256 mismatch")
+    rows = raw.get("tx_types")
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("production tx canon artifact missing tx_types")
+    by_name = raw.get("by_name")
+    if not isinstance(by_name, dict) or len(by_name) != len(rows):
+        raise RuntimeError("production tx canon artifact by_name/tx_types mismatch")
 
 
 def _truthy_env(name: str, default: str = "0") -> bool:
@@ -78,10 +105,17 @@ def build_executor(cfg: ExecutorBootConfig | None = None) -> WeAllExecutor:
     c = cfg or boot_config_from_env()
     validate_runtime_consensus_profile()
 
-    # First-boot / stale-artifact bootstrap:
-    # ensure the generated tx index exists and matches the current canon spec
-    # before the executor tries to load it.
-    ensure_tx_index_json(out_path=c.tx_index_path)
+    # First-boot / stale-artifact bootstrap is allowed only outside production.
+    # Production must be verify-only: a missing/stale generated tx canon artifact
+    # is a release failure, not something a node should silently regenerate.
+    mode = str(os.environ.get("WEALL_MODE", "") or "").strip().lower()
+    if mode == "prod" and not _truthy_env("WEALL_ALLOW_PROD_TX_CANON_REGEN"):
+        _verify_tx_index_artifact_only(c.tx_index_path)
+    else:
+        try:
+            ensure_tx_index_json(out_path=c.tx_index_path)
+        except CanonError:
+            raise
 
     return WeAllExecutor(
         db_path=c.db_path,

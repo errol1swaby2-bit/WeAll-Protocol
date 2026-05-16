@@ -242,22 +242,38 @@ def _peer_debug(app_state: Any) -> dict[str, Any]:
     }
 
 
+def _canonical_account_list(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for x in sorted(_safe_str(v, "") for v in values if _safe_str(v, "")):
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+
 def _active_validators(state: Mapping[str, Any]) -> list[str]:
+    """Return the consensus validator set, with role-set fallback only for legacy states.
+
+    ROLE_VALIDATOR_ACTIVATE is an eligibility/role boundary. The authoritative
+    validator set for production consensus is state["consensus"]["validator_set"].
+    Older tests and persisted states may not have that object, so keep a narrow
+    fallback to state["roles"]["validators"]["active_set"] only when the
+    consensus validator-set object is absent.
+    """
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+            return _canonical_account_list(validator_set.get("active_set"))
+
     roles = state.get("roles")
-    if not isinstance(roles, dict):
-        return []
-    validators = roles.get("validators")
-    if not isinstance(validators, dict):
-        return []
-    active = validators.get("active_set")
-    if isinstance(active, list):
-        out = []
-        seen = set()
-        for x in sorted(_safe_str(v, "") for v in active if _safe_str(v, "")):
-            if x not in seen:
-                seen.add(x)
-                out.append(x)
-        return out
+    if isinstance(roles, dict):
+        validators = roles.get("validators")
+        if isinstance(validators, dict) and isinstance(validators.get("active_set"), list):
+            return _canonical_account_list(validators.get("active_set"))
     return []
 
 
@@ -844,6 +860,7 @@ def status_consensus(request: Request) -> dict[str, Any]:
         "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
         "active_validator_count": len(validators),
         "quorum_threshold": _quorum_threshold(len(validators)),
+        "validator_set_hash": _safe_str(startup.get("validator_set_hash"), ""),
         "view": view,
         "current_leader": current,
         "next_leader": nxt,

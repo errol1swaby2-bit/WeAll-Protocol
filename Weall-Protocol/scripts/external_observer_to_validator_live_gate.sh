@@ -24,6 +24,7 @@ cat <<'MSG'
   - NODE_OPERATOR_VALIDATOR_OPT_IN is committed by the account
   - VALIDATOR_READINESS_VERIFY is committed by system authority with a live readiness receipt
   - ROLE_VALIDATOR_ACTIVATE and validator-set update are committed by system/governance authority
+  - full BFT-active signing is expected only when the active validator count satisfies BFT_MIN_VALIDATORS; lower counts are bootstrap/readiness only
 MSG
 
 bash "${ROOT_DIR}/scripts/promoted_validator_preflight.sh"
@@ -36,4 +37,5 @@ cat <<'MSG'
 OK: external observer to validator preflight gate passed.
 Set WEALL_RUN_PROMOTED_VALIDATOR_REBOOT=1 to exec the fail-closed validator reboot script from this same environment.
 After the node boots, run scripts/promoted_validator_live_gate.sh against the local validator API.
+A genesis+one-promoted-validator run is a bootstrap/readiness proof, not a full HotStuff/BFT finality proof, unless the active validator count satisfies BFT_MIN_VALIDATORS.
 MSG

@@ -201,6 +201,10 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
     for key in required_chain:
         if not str(chain.get(key) or "").strip():
             issues.append(f"missing_chain_{key}")
+    modern_observer_bundle = isinstance(bundle.get("observer"), dict) or "authority" in bundle
+    if modern_observer_bundle and str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"}:
+        if not str(chain.get("protocol_profile_hash") or "").strip():
+            issues.append("missing_chain_protocol_profile_hash")
 
     if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"}:
         if str(authority.get("profile") or "") != "production":
@@ -234,6 +238,7 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
             "genesis_state_root": (chain.get("genesis_state_root"), manifest.get("genesis_state_root")),
             "tx_index_hash": (chain.get("tx_index_hash"), manifest.get("tx_index_hash")),
             "schema_version": (str(chain.get("schema_version") or ""), str(manifest.get("schema_version") or "")),
+            "protocol_profile_hash": (chain.get("protocol_profile_hash"), manifest.get("protocol_profile_hash")),
         }
         for name, (local, expected) in comparisons.items():
             if str(local or "").strip().lower() != str(expected or "").strip().lower():
@@ -246,6 +251,7 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
         "chain_id": chain.get("chain_id"),
         "genesis_hash": chain.get("genesis_hash"),
         "tx_index_hash": chain.get("tx_index_hash"),
+        "protocol_profile_hash": chain.get("protocol_profile_hash"),
         "authority_profile": authority.get("profile"),
         "authority_url": authority.get("authority_url") or authority.get("url"),
         "trusted_authority_pubkeys_count": len(pubkeys),
@@ -269,6 +275,7 @@ def _shell_env(bundle: Json) -> str:
         "WEALL_EXPECTED_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_GENESIS_HASH": str(chain.get("genesis_hash") or ""),
         "WEALL_EXPECTED_TX_INDEX_HASH": str(chain.get("tx_index_hash") or ""),
+        "WEALL_EXPECTED_PROTOCOL_PROFILE_HASH": str(chain.get("protocol_profile_hash") or ""),
         "WEALL_CHAIN_AUTHORITY_URL": str(authority.get("authority_url") or authority.get("url") or ""),
         "WEALL_AUTHORITY_PUBKEYS": pubkeys,
         "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(authority.get("authority_snapshot_max_age_ms") or "120000"),

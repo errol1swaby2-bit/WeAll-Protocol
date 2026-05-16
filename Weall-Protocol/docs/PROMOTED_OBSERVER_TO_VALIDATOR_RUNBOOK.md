@@ -4,6 +4,23 @@ Purpose: safely move a second machine from external observer posture into full v
 
 This runbook is intentionally fail-closed. Observer onboarding proves account/device/peer/PoH-case creation. It does not prove node-operator authority, validator authority, BFT signing authority, or consensus peer acceptance.
 
+
+## Two-machine boundary and BFT minimum
+
+The current HotStuff/BFT production constant is `BFT_MIN_VALIDATORS = 4` in
+`src/weall/runtime/bft_hotstuff.py`. A genesis node plus one promoted second
+machine can prove observer onboarding, node-operator readiness, validator
+readiness, validator-set plumbing, reboot posture, and fail-closed signing
+boundaries. It does **not** prove full HotStuff/BFT finality or Byzantine fault
+tolerance until the active validator set reaches the production minimum.
+
+`scripts/promoted_validator_preflight.sh` and
+`scripts/promoted_validator_live_gate.sh` therefore default their required active
+validator count to the production BFT minimum. Setting
+`WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS` lower is allowed only for a
+clearly labeled bootstrap/readiness rehearsal; it must not be represented as a
+full BFT-active consensus proof.
+
 ## Required proof before reboot
 
 The second machine may reboot as a validator only after all of these are true on the genesis/finalized chain:
@@ -16,8 +33,9 @@ The second machine may reboot as a validator only after all of these are true on
 6. `NODE_OPERATOR_VALIDATOR_OPT_IN` is committed by the account and references the registered node key.
 7. `VALIDATOR_READINESS_VERIFY` is committed with a live readiness receipt.
 8. `ROLE_VALIDATOR_ACTIVATE` is committed by system/governance authority.
-9. The active validator set/epoch has been updated and exposes a non-empty validator set hash.
+9. The active validator set/epoch has been updated through `VALIDATOR_SET_UPDATE` and exposes a non-empty validator set hash.
 10. The local manifest/profile/tx-index hash matches the genesis node.
+11. Full BFT-active signing is attempted only when the active validator count is at least `BFT_MIN_VALIDATORS` unless this is explicitly labeled as a bootstrap/readiness rehearsal.
 
 ## Commands on the second machine before reboot
 
@@ -50,7 +68,7 @@ Run preflight:
 bash scripts/promoted_validator_preflight.sh
 ```
 
-This checks the remote genesis API, manifest identity, tx-index hash, active node-operator status, active validator responsibility, validator-readiness receipt binding, and validator-set presence. This is authorization to attempt the reboot; it is not proof that the local process has already caught up or will be allowed to sign immediately.
+This checks the remote genesis API, manifest identity, tx-index hash, protocol-profile hash, active node-operator status, active validator responsibility, validator-readiness receipt binding, validator-set hash, and active validator count. This is authorization to attempt the reboot; it is not proof that the local process has already caught up or will be allowed to sign immediately.
 
 ## Reboot as validator
 
@@ -96,6 +114,8 @@ This gate checks:
 - local validator authority is effective;
 - local signing is enabled and allowed by consensus state;
 - local consensus status reports the node as an active validator;
+- active validator count satisfies the production BFT minimum unless an explicit bootstrap/readiness override is set;
+- peer diagnostics show an established/identity-verified consensus peer when peer diagnostics are available;
 - operator-status reports active baseline node-operator and validator responsibility.
 
 ## Full observer-to-validator gate
@@ -115,6 +135,6 @@ This script does not create system/governance authority by itself. It fails clos
 | `external_observer_onboarding_smoke.sh` | Public bundle and observer posture are safe. | Signed onboarding or validator readiness. |
 | `rehearse_external_observer_two_machine.sh` | Remote genesis API and identity are reachable. | Signed onboarding or authority promotion. |
 | `external_observer_live_gate.sh` | Signed account/device/peer/PoH case onboarding txs commit. | Tier 1/Tier 2 finalization, node-operator activation, validator authority. |
-| `promoted_validator_preflight.sh` | Protocol state says the account/node is validator-ready before reboot. | Local validator process has joined consensus. |
+| `promoted_validator_preflight.sh` | Protocol state says the account/node is validator-ready before reboot and validator count/hash are present. | Local validator process has joined consensus or full BFT finality below `BFT_MIN_VALIDATORS`. |
 | `reboot_promoted_observer_as_validator.sh` | Boots only after fail-closed preflight. | Post-boot consensus acceptance by peers. |
-| `promoted_validator_live_gate.sh` | Local validator process reports active/effective authority and matches genesis identity. | Long-duration liveness under partitions. |
+| `promoted_validator_live_gate.sh` | Local validator process reports active/effective authority, matches genesis identity, and satisfies validator-count/peer-diagnostic checks when exposed. | Long-duration liveness under partitions or full BFT safety below `BFT_MIN_VALIDATORS`. |

@@ -8,7 +8,7 @@ ACCOUNT="${WEALL_VALIDATOR_ACCOUNT:-${WEALL_BOUND_ACCOUNT:-}}"
 NODE_PUBKEY="${WEALL_NODE_PUBKEY:-}"
 NODE_PUBKEY_FILE="${WEALL_NODE_PUBKEY_FILE:-}"
 REPORT_OUT="${WEALL_PROMOTED_VALIDATOR_PREFLIGHT_REPORT:-}"
-MIN_ACTIVE_VALIDATORS="${WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS:-2}"
+MIN_ACTIVE_VALIDATORS="${WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS:-}"
 
 fail() { echo "ERROR: $*" >&2; exit 2; }
 env_is_true() { case "${1:-0}" in 1|true|TRUE|yes|YES|on|ON) return 0 ;; *) return 1 ;; esac; }
@@ -55,7 +55,18 @@ import urllib.request
 from pathlib import Path
 
 api, manifest_path, account, node_pubkey, min_active_raw, report_out, root_dir = sys.argv[1:8]
-min_active = int(min_active_raw or 2)
+def _bft_min_validators(repo_root: str) -> int:
+    try:
+        text = (Path(repo_root) / 'src' / 'weall' / 'runtime' / 'bft_hotstuff.py').read_text(encoding='utf-8')
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith('BFT_MIN_VALIDATORS') and '=' in line:
+                return int(line.split('=', 1)[1].strip())
+    except Exception:
+        pass
+    return 4
+
+min_active = int(min_active_raw or _bft_min_validators(root_dir))
 manifest = json.loads(Path(manifest_path).read_text(encoding='utf-8'))
 issues: list[str] = []
 
@@ -128,11 +139,26 @@ if _norm(validator_details.get('node_pubkey')) and _norm(validator_details.get('
 if not _norm(validator_details.get('readiness_receipt_hash')):
     issues.append('validator_readiness_receipt_hash_missing')
 
+def _consensus_validator_set_hash(consensus: dict) -> str:
+    direct = str(consensus.get('validator_set_hash') or '').strip()
+    if direct:
+        return direct
+    current = str(consensus.get('current_validator_set_hash') or '').strip()
+    if current:
+        return current
+    startup = consensus.get('startup_fingerprint') if isinstance(consensus.get('startup_fingerprint'), dict) else {}
+    startup_hash = str(startup.get('validator_set_hash') or '').strip()
+    if startup_hash:
+        return startup_hash
+    lifecycle = consensus.get('local_validator_lifecycle') if isinstance(consensus.get('local_validator_lifecycle'), dict) else {}
+    return str(lifecycle.get('current_validator_set_hash') or '').strip()
+
 consensus = fetch('/v1/status/consensus')
 active_count = int(consensus.get('active_validator_count') or 0)
+validator_set_hash = _consensus_validator_set_hash(consensus)
 if active_count < min_active:
     issues.append(f'active_validator_count_below_required:{active_count}<{min_active}')
-if not str(consensus.get('validator_set_hash') or '').strip():
+if not validator_set_hash:
     issues.append('validator_set_hash_missing')
 
 payload = {
@@ -146,7 +172,8 @@ payload = {
     'consensus': {
         'active_validator_count': active_count,
         'validator_epoch': consensus.get('validator_epoch'),
-        'validator_set_hash': consensus.get('validator_set_hash'),
+        'validator_set_hash': validator_set_hash,
+        'minimum_active_validators_required': int(min_active),
     },
     'readiness_binding': {
         'chain_id': validator_details.get('chain_id'),
@@ -173,5 +200,5 @@ OK: promoted validator preflight passed
 - node pubkey is bound to active node-operator state
 - validator responsibility is active from protocol state
 - validator readiness receipt is bound to the local chain_id/tx_index_hash/profile/schema/protocol fields
-- consensus validator set is present and has at least ${MIN_ACTIVE_VALIDATORS} active validators
+- consensus validator set is present and has at least ${MIN_ACTIVE_VALIDATORS:-BFT_MIN_VALIDATORS} active validators
 MSG

@@ -58,12 +58,12 @@ def _as_list(v: Any) -> list[Any]:
 
 
 def _get_active_validators_from_state(state: Json) -> list[str]:
-    # Primary source: state["roles"]["validators"]["active_set"]
-    roles = state.get("roles")
-    if isinstance(roles, dict):
-        validators = roles.get("validators")
-        if isinstance(validators, dict):
-            aset = validators.get("active_set")
+    """Return the consensus validator set, with role-set fallback only for legacy states."""
+    c = state.get("consensus")
+    if isinstance(c, dict):
+        vs = c.get("validator_set")
+        if isinstance(vs, dict):
+            aset = vs.get("active_set")
             if isinstance(aset, list):
                 out: list[str] = []
                 seen: set[str] = set()
@@ -74,12 +74,11 @@ def _get_active_validators_from_state(state: Json) -> list[str]:
                     seen.add(s)
                     out.append(s)
                 return out
-    # Fallback: state["consensus"]["validator_set"]["active_set"]
-    c = state.get("consensus")
-    if isinstance(c, dict):
-        vs = c.get("validator_set")
-        if isinstance(vs, dict):
-            aset = vs.get("active_set")
+    roles = state.get("roles")
+    if isinstance(roles, dict):
+        validators = roles.get("validators")
+        if isinstance(validators, dict):
+            aset = validators.get("active_set")
             if isinstance(aset, list):
                 out2: list[str] = []
                 seen2: set[str] = set()

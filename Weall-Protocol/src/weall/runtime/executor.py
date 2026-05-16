@@ -4655,28 +4655,36 @@ class WeAllExecutor:
     # ----------------------------
 
     def _active_validators(self) -> list[str]:
+        """Return the consensus validator set, with role-set fallback only for legacy states.
+
+        ROLE_VALIDATOR_ACTIVATE records validator-role eligibility. It must not be
+        enough, by itself, to make a node a consensus signer. The explicit
+        consensus validator-set object created by VALIDATOR_SET_UPDATE is the
+        authoritative production source. The role active_set fallback remains only
+        for older tests/persisted states that predate the consensus validator_set.
+        """
         st = getattr(self, "state", {})
         if not isinstance(st, dict):
             st = {}
-        roles = st.get("roles")
-        if isinstance(roles, dict):
-            v = roles.get("validators")
-            if isinstance(v, dict) and isinstance(v.get("active_set"), list):
+        c = st.get("consensus")
+        if isinstance(c, dict):
+            vs = c.get("validator_set")
+            if isinstance(vs, dict) and isinstance(vs.get("active_set"), list):
                 out: list[str] = []
                 seen: set[str] = set()
-                for x in v.get("active_set") or []:
+                for x in vs.get("active_set") or []:
                     s = str(x).strip()
                     if s and s not in seen:
                         seen.add(s)
                         out.append(s)
                 return normalize_validators(out)
-        c = st.get("consensus")
-        if isinstance(c, dict):
-            vs = c.get("validator_set")
-            if isinstance(vs, dict) and isinstance(vs.get("active_set"), list):
+        roles = st.get("roles")
+        if isinstance(roles, dict):
+            v = roles.get("validators")
+            if isinstance(v, dict) and isinstance(v.get("active_set"), list):
                 out2: list[str] = []
                 seen2: set[str] = set()
-                for x in vs.get("active_set") or []:
+                for x in v.get("active_set") or []:
                     s = str(x).strip()
                     if s and s not in seen2:
                         seen2.add(s)

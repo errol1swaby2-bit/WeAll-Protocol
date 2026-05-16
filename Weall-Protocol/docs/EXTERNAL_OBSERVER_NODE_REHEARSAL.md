@@ -8,7 +8,7 @@ only after `scripts/external_observer_live_gate.sh` passes.
 
 The observer is useful but non-authoritative:
 
-- it can verify chain identity and tx canon identity
+- it can verify chain identity, tx canon identity, and protocol-profile identity
 - it can submit signed onboarding transactions to the genesis API
 - it can advertise a peer record and request connection
 - it can open native async Proof-of-Humanity onboarding
@@ -57,7 +57,8 @@ python3 scripts/build_external_observer_bundle.py \
 ```
 
 The bundle is public. It must contain no private keys and no authority-signer
-secrets. If relay URLs are present, it must also contain
+secrets, and its `protocol_profile_hash` must match the pinned chain manifest.
+If relay URLs are present, it must also contain
 `observer.relay_recipient_pubkeys` so relay delivery is bound to the genesis
 node public key.
 

@@ -90,7 +90,8 @@ These files are local tester artifacts and must not be committed, uploaded, or s
 
 ## Failure meanings
 
-- `remote_chain_id_mismatch` or `remote_tx_index_hash_mismatch`: the observer is not talking to the intended chain/profile.
+- `remote_chain_id_mismatch`, `remote_tx_index_hash_mismatch`, or `remote_protocol_profile_hash_mismatch`: the observer is not talking to the intended chain/profile.
+- `remote_protocol_profile_hash_missing`: the remote genesis API is not exposing the profile commitment needed for observer fail-closed checks.
 - `tx not confirmed`: the genesis node accepted or saw the transaction but did not commit it before timeout.
 - `observer_account_unexpected_validator_authority`, `observer_account_unexpected_authority:*`, or `observer_account_unexpected_operator_authority:*`: the gate detected an authority leak and the test is failed.
 - `async_case_not_visible_after_commit`: the PoH onboarding transaction did not become visible in authoritative state after commit.

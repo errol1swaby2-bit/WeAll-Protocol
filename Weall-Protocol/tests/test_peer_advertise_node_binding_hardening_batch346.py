@@ -116,3 +116,23 @@ def test_peer_advertise_rejects_unregistered_node_pubkey_batch346() -> None:
             ),
         )
     assert excinfo.value.reason == "node_key_not_registered_for_peer_advertise"
+
+
+def test_peer_advertise_rejects_implausible_endpoint_batch348() -> None:
+    st = _registered_node_state()
+    with pytest.raises(ApplyError) as excinfo:
+        apply_tx(
+            st,
+            _env(
+                "PEER_ADVERTISE",
+                "@alice",
+                3,
+                {
+                    "peer_id": "node:@alice:node-pub-1",
+                    "device_id": "node:@alice:node-pub-1",
+                    "node_pubkey": "node-pub-1",
+                    "endpoint": "not-a-dialable-endpoint",
+                },
+            ),
+        )
+    assert excinfo.value.reason == "endpoint_not_plausible"

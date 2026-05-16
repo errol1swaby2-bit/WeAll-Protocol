@@ -5,7 +5,7 @@ LOCAL_API_BASE="${WEALL_LOCAL_VALIDATOR_API_BASE:-${WEALL_API_BASE:-}}"
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-}"
 ACCOUNT="${WEALL_VALIDATOR_ACCOUNT:-${WEALL_BOUND_ACCOUNT:-}}"
 NODE_PUBKEY="${WEALL_NODE_PUBKEY:-}"
-MIN_ACTIVE_VALIDATORS="${WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS:-2}"
+MIN_ACTIVE_VALIDATORS="${WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS:-}"
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 [ -n "${LOCAL_API_BASE}" ] || fail "WEALL_LOCAL_VALIDATOR_API_BASE or WEALL_API_BASE is required"
@@ -21,7 +21,10 @@ import urllib.parse
 import urllib.request
 
 local_api, genesis_api, account, node_pubkey, min_active_raw = sys.argv[1:6]
-min_active = int(min_active_raw or 2)
+# Keep this default aligned with src/weall/runtime/bft_hotstuff.py:BFT_MIN_VALIDATORS.
+# A lower WEALL_PROMOTED_VALIDATOR_MIN_ACTIVE_VALIDATORS value is an explicit
+# bootstrap/readiness override, not proof of full HotStuff/BFT finality.
+min_active = int(min_active_raw or 4)
 issues: list[str] = []
 
 def fetch(api: str, path: str) -> dict:
@@ -60,14 +63,34 @@ if operator.get('signing_allowed_by_consensus_state') is not True:
 if str(operator.get('local_validator_account') or '').strip() not in {'', account}:
     issues.append('local_validator_account_mismatch')
 
+def _consensus_validator_set_hash(consensus: dict) -> str:
+    direct = str(consensus.get('validator_set_hash') or '').strip()
+    if direct:
+        return direct
+    current = str(consensus.get('current_validator_set_hash') or '').strip()
+    if current:
+        return current
+    startup = consensus.get('startup_fingerprint') if isinstance(consensus.get('startup_fingerprint'), dict) else {}
+    return str(startup.get('validator_set_hash') or '').strip()
+
 consensus = fetch(local_api, '/v1/status/consensus')
 if consensus.get('local_is_active_validator') is not True:
     issues.append('local_is_not_active_validator')
 active_count = int(consensus.get('active_validator_count') or 0)
+validator_set_hash = _consensus_validator_set_hash(consensus)
 if active_count < min_active:
     issues.append(f'active_validator_count_below_required:{active_count}<{min_active}')
-if not str(consensus.get('validator_set_hash') or '').strip():
+if not validator_set_hash:
     issues.append('validator_set_hash_missing')
+peer_counts = consensus.get('peer_counts') if isinstance(consensus.get('peer_counts'), dict) else {}
+if peer_counts:
+    total = int(peer_counts.get('peers_total') or 0)
+    established = int(peer_counts.get('peers_established') or 0)
+    verified = int(peer_counts.get('peers_identity_verified') or 0)
+    if total > 0 and established <= 0:
+        issues.append('consensus_peer_connection_missing')
+    if total > 0 and verified <= 0:
+        issues.append('consensus_peer_identity_verification_missing')
 
 account_status = fetch(local_api, '/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe=''))
 node_operator = account_status.get('node_operator') if isinstance(account_status.get('node_operator'), dict) else {}
@@ -83,7 +106,7 @@ payload = {
     'local_api_base': local_api,
     'genesis_api_base': genesis_api,
     'operator': operator,
-    'consensus': consensus,
+    'consensus': {**consensus, 'validator_set_hash': validator_set_hash, 'minimum_active_validators_required': int(min_active)},
     'node_operator': node_operator,
     'issues': issues,
 }
@@ -98,5 +121,6 @@ OK: promoted validator live gate passed
 - local runtime reports validator authority effective
 - local runtime reports signing enabled and allowed by consensus state
 - local validator is active in consensus status
+- active validator count satisfies the production BFT minimum unless an explicit lower bootstrap threshold was set
 - operator-status reports active baseline node operator and validator responsibility
 MSG

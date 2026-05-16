@@ -124,6 +124,17 @@ remote_tx_hash = str(manifest.get('tx_index_hash') or ident.get('tx_index_hash')
 expected_tx_hash = str(chain.get('tx_index_hash') or '').strip().lower()
 if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
     raise SystemExit(f'remote_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}')
+remote_profile_hash = str(
+    ident.get('protocol_profile_hash')
+    or manifest.get('protocol_profile_hash')
+    or ident.get('production_consensus_profile_hash')
+    or ''
+).strip().lower()
+expected_profile_hash = str(chain.get('protocol_profile_hash') or '').strip().lower()
+if expected_profile_hash and remote_profile_hash and remote_profile_hash != expected_profile_hash:
+    raise SystemExit(f'remote_protocol_profile_hash_mismatch:{remote_profile_hash}!={expected_profile_hash}')
+if expected_profile_hash and not remote_profile_hash:
+    raise SystemExit('remote_protocol_profile_hash_missing')
 status = fetch_json('/v1/tx/status/external-observer-live-gate-nonexistent-tx')
 if 'status' not in status:
     raise SystemExit('remote_tx_status_missing_status_field')
@@ -169,6 +180,7 @@ cat <<MSG
 OK: external observer onboarding preflight passed
 - public bundle verified against local chain manifest
 - production chain manifest is pinned and non-placeholder
+- chain_id, tx_index_hash, and protocol_profile_hash match the remote genesis API when live checks run
 - observer mode is forced on
 - validator signing, BFT, helper authority, and block loop are forced off
 - relay recipient pubkey binding is required when relay URLs are configured

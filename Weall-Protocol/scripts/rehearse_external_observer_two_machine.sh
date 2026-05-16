@@ -83,6 +83,7 @@ bundle = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
 chain = bundle.get('chain') if isinstance(bundle.get('chain'), dict) else {}
 expected_chain_id = str(chain.get('chain_id') or '').strip()
 expected_tx_hash = str(chain.get('tx_index_hash') or '').strip().lower()
+expected_profile_hash = str(chain.get('protocol_profile_hash') or '').strip().lower()
 
 for path in ('/v1/health', '/v1/ready', '/v1/chain/identity'):
     with urllib.request.urlopen(api + path, timeout=10) as resp:
@@ -98,6 +99,16 @@ for path in ('/v1/health', '/v1/ready', '/v1/chain/identity'):
             remote_tx_hash = str(manifest.get('tx_index_hash') or ident.get('tx_index_hash') or '').strip().lower()
             if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
                 raise SystemExit(f'remote_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}')
+            remote_profile_hash = str(
+                ident.get('protocol_profile_hash')
+                or manifest.get('protocol_profile_hash')
+                or ident.get('production_consensus_profile_hash')
+                or ''
+            ).strip().lower()
+            if expected_profile_hash and remote_profile_hash and remote_profile_hash != expected_profile_hash:
+                raise SystemExit(f'remote_protocol_profile_hash_mismatch:{remote_profile_hash}!={expected_profile_hash}')
+            if expected_profile_hash and not remote_profile_hash:
+                raise SystemExit('remote_protocol_profile_hash_missing')
 print('OK: remote genesis health/ready/identity endpoints passed')
 PY
 
@@ -131,7 +142,7 @@ fi
 cat <<MSG
 OK: two-machine external observer rehearsal preflight passed
 - remote genesis API is reachable
-- chain identity and tx_index_hash match the observer bundle when advertised
+- chain identity, tx_index_hash, and protocol_profile_hash match the observer bundle when advertised
 - observer mode/signing/BFT/helper/block-loop are forced safe
 - relay endpoints, if configured, are transport_only and require recipient pubkey binding
 

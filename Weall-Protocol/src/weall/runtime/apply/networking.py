@@ -272,6 +272,12 @@ def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
     endpoint = _as_str(_pick(payload, "endpoint", "url")).strip()
     if not endpoint:
         raise NetworkingApplyError("invalid_payload", "missing_endpoint", {"tx_type": env.tx_type})
+    if not _endpoint_is_plausible(endpoint):
+        raise NetworkingApplyError(
+            "invalid_payload",
+            "endpoint_not_plausible",
+            {"tx_type": env.tx_type, "endpoint": endpoint},
+        )
 
     peer_id = _as_str(_pick(payload, "peer_id", "peer", "id") or env.signer).strip()
     if not peer_id:
