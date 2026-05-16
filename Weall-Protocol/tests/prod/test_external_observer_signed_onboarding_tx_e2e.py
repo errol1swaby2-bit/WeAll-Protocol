@@ -136,7 +136,12 @@ def test_external_observer_signed_onboarding_tx_e2e(tmp_path: Path, monkeypatch)
         ),
         (
             "PEER_ADVERTISE",
-            {"peer_id": "observer-node", "endpoint": "relay://observer-node"},
+            {
+                "peer_id": "node:external_observer_e2e",
+                "device_id": "node:external_observer_e2e",
+                "node_pubkey": node_pub,
+                "endpoint": "relay://observer-node",
+            },
         ),
         (
             "PEER_REQUEST_CONNECT",
@@ -194,7 +199,9 @@ def test_external_observer_signed_onboarding_tx_e2e(tmp_path: Path, monkeypatch)
     assert acct["devices"]["by_id"]["node:external_observer_e2e"]["pubkey"] == node_pub
     assert len(acct["session_keys"]) == 1
     assert next(iter(acct["session_keys"])).startswith("skh:v1:")
-    assert state["peers"]["ads"][account]["peer_id"] == "observer-node"
+    assert state["peers"]["ads"][account]["peer_id"] == "node:external_observer_e2e"
+    assert state["peers"]["ads"][account]["device_id"] == "node:external_observer_e2e"
+    assert state["peers"]["ads"][account]["node_pubkey"] == node_pub
     assert state["peers"]["tickets"]["ticket:external_observer_e2e:1"]["status"] == "active"
     assert state["poh"]["async_cases"][case_id]["account_id"] == account
     assert evidence_id in state["poh"]["async_cases"][case_id]["evidence_commitments"]

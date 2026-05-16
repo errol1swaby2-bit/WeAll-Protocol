@@ -16,26 +16,53 @@ fail() {
   exit 1
 }
 
+# Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
+# WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
+# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# It also rejects *_FILE variants and other external identity-provider secrets.
+# shellcheck disable=SC1091
+. "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"
+weall_check_observer_secret_boundary || exit $?
+
 [ -n "${BUNDLE_PATH}" ] || fail "usage: $0 <public-observer-bundle.json> with WEALL_GENESIS_API_BASE set"
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
 [ -n "${GENESIS_API_BASE}" ] || fail "WEALL_GENESIS_API_BASE or WEALL_API_BASE is required"
 GENESIS_API_BASE="${GENESIS_API_BASE%/}"
 
-case "${GENESIS_API_BASE}" in
-  http://127.0.0.1*|http://localhost*|https://127.0.0.1*|https://localhost*)
-    fail "external observer live gate requires a remote non-local genesis API base, not ${GENESIS_API_BASE}"
-    ;;
-esac
+# Reject obvious local/self/metadata endpoints.  Historical cases covered here
+# include http://127.0.0.1*, http://localhost*, https://127.0.0.1*, and
+# https://localhost*.  IPv6 loopback, unspecified addresses, link-local hosts,
+# and private LAN IPs require WEALL_ALLOW_PRIVATE_GENESIS_API=1.
+python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
+from __future__ import annotations
 
-# External observers must not carry genesis authority, validator, or external identity-provider secrets.
-[ -z "${WEALL_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "authority signer private key must not be present on observer node"
-[ -z "${WEALL_AUTHORITY_PRIVKEY:-}" ] || fail "authority private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY:-}" ] || fail "legacy oracle/identity signer private key must not be present on observer node"
-[ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy oracle/identity private key must not be present on observer node"
-[ -z "${WEALL_CLOUDFLARE_API_TOKEN:-}" ] || fail "Cloudflare token must not be present for observer onboarding"
-SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"
-[ -z "${!SMTP_SECRET_VAR:-}" ] || fail "external message-transport credential must not be present for observer onboarding"
+import ipaddress
+import sys
+import urllib.parse
+
+url, allow_private = sys.argv[1], sys.argv[2]
+parsed = urllib.parse.urlparse(url)
+if parsed.scheme not in {"http", "https"}:
+    raise SystemExit("external_observer_genesis_api_scheme_invalid")
+host = (parsed.hostname or "").strip().lower()
+if not host:
+    raise SystemExit("external_observer_genesis_api_host_missing")
+if host in {"localhost", "ip6-localhost"} or host.endswith(".localhost"):
+    raise SystemExit(f"external observer live gate requires a remote non-local genesis API base, not {url}")
+try:
+    ip = ipaddress.ip_address(host)
+except ValueError:
+    ip = None
+if ip is not None:
+    if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+        raise SystemExit(f"external observer live gate requires a remote non-local genesis API base, not {url}")
+    if str(ip) == "169.254.169.254":
+        raise SystemExit("external_observer_genesis_api_metadata_service_forbidden")
+    if ip.is_private and allow_private not in {"1", "true", "TRUE", "yes", "YES", "on", "ON"}:
+        raise SystemExit("external_observer_private_genesis_api_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+print("OK: genesis API base is non-local for external observer live gate")
+PY_NONLOCAL_API
 
 export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE}"
 export WEALL_API_BASE="${GENESIS_API_BASE}"
@@ -120,7 +147,12 @@ payloads = {
         "label": "External observer node",
         "pubkey": node_pubkey,
     },
-    "payload-peer-advertise.json": {"peer_id": account_id, "endpoint": peer_endpoint},
+    "payload-peer-advertise.json": {
+        "peer_id": device_id,
+        "device_id": device_id,
+        "node_pubkey": node_pubkey,
+        "endpoint": peer_endpoint,
+    },
     "payload-peer-request-connect.json": {"peer_id": target_peer_id, "endpoint": genesis_api_base},
     "payload-poh-async-request.json": {
         "account_id": account_id,
@@ -213,13 +245,13 @@ run_json "POH_ASYNC_EVIDENCE_BIND" \
     --payload-json "$(cat "${WORK_DIR}/payload-poh-async-evidence-bind.json")" \
     --wait --timeout "${TIMEOUT}" --poll "${POLL}"
 
-python3 - "${GENESIS_API_BASE}" "${ACCOUNT_ID}" "${ASYNC_CASE_ID}" "${RESULTS_JSONL}" <<'PY_FINAL_CHECK'
+python3 - "${GENESIS_API_BASE}" "${ACCOUNT_ID}" "${ASYNC_CASE_ID}" "${RESULTS_JSONL}" "${NODE_PUBKEY}" <<'PY_FINAL_CHECK'
 from __future__ import annotations
 import json
 import sys
 import urllib.parse
 import urllib.request
-api, account, case_id, results_path = sys.argv[1:5]
+api, account, case_id, results_path, node_pubkey = sys.argv[1:6]
 
 def fetch(path: str) -> dict:
     with urllib.request.urlopen(api.rstrip('/') + path, timeout=20) as resp:
@@ -233,8 +265,34 @@ acct = fetch('/v1/accounts/' + urllib.parse.quote(account, safe=''))
 state = acct.get('state') if isinstance(acct.get('state'), dict) else acct
 if not isinstance(state, dict):
     raise SystemExit('account_state_missing')
-if state.get('validator') is True or state.get('bft_enabled') is True:
-    raise SystemExit('observer_account_unexpected_validator_authority')
+authority_flags = {
+    'validator',
+    'bft_enabled',
+    'validator_active',
+    'node_operator_active',
+    'helper_active',
+    'storage_provider_active',
+    'gov_executor',
+    'treasury_signer',
+    'juror_active',
+}
+for key in sorted(authority_flags):
+    if state.get(key) is True:
+        if key in {'validator', 'bft_enabled', 'validator_active'}:
+            raise SystemExit('observer_account_unexpected_validator_authority')
+        raise SystemExit('observer_account_unexpected_authority:' + key)
+roles = state.get('roles') if isinstance(state.get('roles'), list) else []
+if any(str(role or '').strip() for role in roles):
+    raise SystemExit('observer_account_unexpected_roles')
+try:
+    op = fetch('/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe=''))
+except Exception:
+    op = {}
+op_state = op.get('node_operator') if isinstance(op.get('node_operator'), dict) else {}
+for bucket_name in ('baseline', 'validator', 'storage'):
+    bucket = op_state.get(bucket_name) if isinstance(op_state.get(bucket_name), dict) else {}
+    if bucket.get('active') is True:
+        raise SystemExit('observer_account_unexpected_operator_authority:' + bucket_name)
 case = fetch('/v1/poh/async/case/' + urllib.parse.quote(case_id, safe=''))
 case_obj = case.get('case') if isinstance(case.get('case'), dict) else {}
 if str(case_obj.get('case_id') or '') != case_id:
@@ -266,6 +324,7 @@ OK: trusted external observer live gate passed
 - fresh observer node key was generated locally and registered: ${NODE_KEYFILE}
 - submitted and confirmed ACCOUNT_REGISTER, ACCOUNT_DEVICE_REGISTER, PEER_ADVERTISE, PEER_REQUEST_CONNECT, POH_ASYNC_REQUEST_OPEN, POH_ASYNC_EVIDENCE_DECLARE, POH_ASYNC_EVIDENCE_BIND
 - observer env kept validator signing/BFT/helper/block-loop disabled
+- observer account/operator authority absence was checked after commit
 - no genesis authority secret or external identity-provider credential was required
 - results: ${RESULTS_JSONL}
 MSG

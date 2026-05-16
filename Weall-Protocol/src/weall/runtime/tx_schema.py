@@ -565,6 +565,12 @@ class PeerAdvertisePayload(_StrictModel):
         min_length=1,
         validation_alias=AliasChoices("peer_id", "peer", "id"),
     )
+    device_id: str | None = Field(default=None, min_length=1)
+    node_pubkey: str | None = Field(
+        default=None,
+        min_length=1,
+        validation_alias=AliasChoices("node_pubkey", "node_public_key"),
+    )
 
 
 class PeerRendezvousTicketCreatePayload(_StrictModel):

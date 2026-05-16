@@ -89,6 +89,115 @@ def _ensure_root_dict(state: Json, key: str) -> Json:
     return cur
 
 
+
+
+def _account_record(state: Json, account_id: str) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        return {}
+    rec = accounts.get(account_id)
+    return rec if isinstance(rec, dict) else {}
+
+
+def _active_node_devices_for_account(state: Json, account_id: str) -> dict[str, Json]:
+    account = _account_record(state, account_id)
+    devices = account.get("devices")
+    by_id = devices.get("by_id") if isinstance(devices, dict) else None
+    out: dict[str, Json] = {}
+    if not isinstance(by_id, dict):
+        return out
+    for device_id_raw, rec_any in by_id.items():
+        device_id = _as_str(device_id_raw).strip()
+        rec = _as_dict(rec_any)
+        if not device_id or bool(rec.get("revoked", False)):
+            continue
+        if _as_str(rec.get("device_type")).strip().lower() != "node":
+            continue
+        pubkey = _as_str(rec.get("pubkey")).strip()
+        if not pubkey:
+            continue
+        out[device_id] = rec
+    return out
+
+
+def _allowed_peer_ids_for_node(account_id: str, device_id: str, node_pubkey: str) -> set[str]:
+    return {
+        account_id,
+        device_id,
+        node_pubkey,
+        f"node:{account_id}:{node_pubkey[:16]}",
+    }
+
+
+def _require_node_advertisement_binding(state: Json, env: TxEnvelope, payload: Json, peer_id: str) -> tuple[str, str]:
+    """Require PEER_ADVERTISE to be bound to an active account node device.
+
+    Peer advertisements are consensus-visible discovery records.  They do not
+    grant validator or service authority, but they must not allow an account to
+    publish arbitrary peer IDs/endpoints that look like another node.  The
+    binding accepted here is deliberately simple and deterministic: the signer
+    must already have an active ACCOUNT_DEVICE_REGISTER record with
+    device_type=node, and the advertised peer_id must be one of the stable IDs
+    derived from that account/device/pubkey.
+    """
+
+    account_id = _as_str(getattr(env, "signer", "")).strip()
+    if not account_id:
+        raise NetworkingApplyError("invalid_tx", "missing_signer", {"tx_type": env.tx_type})
+
+    devices = _active_node_devices_for_account(state, account_id)
+    if not devices:
+        raise NetworkingApplyError(
+            "forbidden",
+            "node_device_required_for_peer_advertise",
+            {"account_id": account_id},
+        )
+
+    requested_device_id = _as_str(_pick(payload, "device_id", "node_device_id")).strip()
+    requested_pubkey = _as_str(_pick(payload, "node_pubkey", "node_public_key", "pubkey")).strip()
+
+    candidates: list[tuple[str, Json]] = []
+    for device_id, rec in sorted(devices.items()):
+        pubkey = _as_str(rec.get("pubkey")).strip()
+        if requested_device_id and requested_device_id != device_id:
+            continue
+        if requested_pubkey and requested_pubkey != pubkey:
+            continue
+        candidates.append((device_id, rec))
+
+    if not candidates:
+        raise NetworkingApplyError(
+            "forbidden",
+            "node_key_not_registered_for_peer_advertise",
+            {
+                "account_id": account_id,
+                "device_id": requested_device_id,
+                "node_pubkey": requested_pubkey,
+            },
+        )
+
+    if len(candidates) > 1 and not (requested_device_id or requested_pubkey):
+        raise NetworkingApplyError(
+            "invalid_payload",
+            "ambiguous_node_device_for_peer_advertise",
+            {"account_id": account_id, "candidate_count": len(candidates)},
+        )
+
+    device_id, rec = candidates[0]
+    node_pubkey = _as_str(rec.get("pubkey")).strip()
+    allowed_peer_ids = _allowed_peer_ids_for_node(account_id, device_id, node_pubkey)
+    if peer_id not in allowed_peer_ids:
+        raise NetworkingApplyError(
+            "forbidden",
+            "peer_id_not_bound_to_node_key",
+            {
+                "account_id": account_id,
+                "peer_id": peer_id,
+                "allowed_peer_ids": sorted(allowed_peer_ids),
+            },
+        )
+    return device_id, node_pubkey
+
 def _ensure_peers(state: Json) -> Json:
     p = _ensure_root_dict(state, "peers")
     if not isinstance(p.get("ads"), dict):
@@ -113,23 +222,32 @@ def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
     peers = _ensure_peers(state)
     payload = _as_dict(env.payload)
 
-    endpoint = _pick(payload, "endpoint", "url")
+    endpoint = _as_str(_pick(payload, "endpoint", "url")).strip()
     if not endpoint:
         raise NetworkingApplyError("invalid_payload", "missing_endpoint", {"tx_type": env.tx_type})
 
-    # In this simplified surface, peer_id == account_id unless explicitly provided.
-    peer_id = _pick(payload, "peer_id", "peer", "id") or env.signer
+    peer_id = _as_str(_pick(payload, "peer_id", "peer", "id") or env.signer).strip()
+    if not peer_id:
+        raise NetworkingApplyError("invalid_payload", "missing_peer_id", {"tx_type": env.tx_type})
+
+    device_id, node_pubkey = _require_node_advertisement_binding(state, env, payload, peer_id)
 
     ads = peers["ads"]
     rec = ads.get(env.signer)
     deduped = (
-        isinstance(rec, dict) and rec.get("endpoint") == endpoint and rec.get("peer_id") == peer_id
+        isinstance(rec, dict)
+        and rec.get("endpoint") == endpoint
+        and rec.get("peer_id") == peer_id
+        and rec.get("node_pubkey") == node_pubkey
+        and rec.get("device_id") == device_id
     )
 
     rec = {
         "account_id": env.signer,
         "peer_id": peer_id,
         "endpoint": endpoint,
+        "device_id": device_id,
+        "node_pubkey": node_pubkey,
         "nonce": int(env.nonce),
         "payload": payload,
     }
@@ -138,6 +256,8 @@ def _apply_peer_advertise(state: Json, env: TxEnvelope) -> Json:
         "applied": "PEER_ADVERTISE",
         "account_id": env.signer,
         "peer_id": peer_id,
+        "device_id": device_id,
+        "node_pubkey": node_pubkey,
         "deduped": deduped,
     }
 

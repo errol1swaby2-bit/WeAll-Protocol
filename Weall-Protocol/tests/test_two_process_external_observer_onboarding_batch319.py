@@ -85,15 +85,38 @@ def test_two_process_external_observer_onboarding_to_genesis_batch319(tmp_path: 
     )
     assert genesis.produce_block(max_txs=1).ok is True
 
+    observer_node_pubkey = "observer-node-pubkey"
+    observer_device_id = "node:@observer:observer-node"
+
+    tx_ids.append(
+        _submit_ok(
+            genesis,
+            {
+                "tx_type": "ACCOUNT_DEVICE_REGISTER",
+                "signer": "@observer",
+                "nonce": 2,
+                "payload": {
+                    "device_id": observer_device_id,
+                    "device_type": "node",
+                    "label": "Observer node",
+                    "pubkey": observer_node_pubkey,
+                },
+            },
+        )
+    )
+    assert genesis.produce_block(max_txs=1).ok is True
+
     tx_ids.append(
         _submit_ok(
             genesis,
             {
                 "tx_type": "PEER_ADVERTISE",
                 "signer": "@observer",
-                "nonce": 2,
+                "nonce": 3,
                 "payload": {
-                    "peer_id": "observer-node",
+                    "peer_id": observer_device_id,
+                    "device_id": observer_device_id,
+                    "node_pubkey": observer_node_pubkey,
                     "endpoint": "https://observer.example.test",
                 },
             },
@@ -107,7 +130,7 @@ def test_two_process_external_observer_onboarding_to_genesis_batch319(tmp_path: 
             {
                 "tx_type": "PEER_REQUEST_CONNECT",
                 "signer": "@observer",
-                "nonce": 3,
+                "nonce": 4,
                 "payload": {
                     "peer_id": "genesis-node",
                     "endpoint": "https://genesis.example.test",
@@ -123,7 +146,7 @@ def test_two_process_external_observer_onboarding_to_genesis_batch319(tmp_path: 
             {
                 "tx_type": "POH_ASYNC_REQUEST_OPEN",
                 "signer": "@observer",
-                "nonce": 4,
+                "nonce": 5,
                 "payload": {
                     "account_id": "@observer",
                     "case_id": "pohasync:observer:1",
@@ -142,7 +165,8 @@ def test_two_process_external_observer_onboarding_to_genesis_batch319(tmp_path: 
     state = genesis.read_state()
     assert "@observer" in state["accounts"]
     assert state["accounts"]["@observer"]["poh_tier"] == 0
-    assert state["peers"]["ads"]["@observer"]["peer_id"] == "observer-node"
+    assert state["peers"]["ads"]["@observer"]["peer_id"] == observer_device_id
+    assert state["peers"]["ads"]["@observer"]["node_pubkey"] == observer_node_pubkey
     assert state["peers"]["connect_requests"][0]["to_peer_id"] == "genesis-node"
     async_cases = state["poh"]["async_cases"]
     assert "pohasync:observer:1" in async_cases
