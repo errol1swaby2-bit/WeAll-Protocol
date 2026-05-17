@@ -185,6 +185,11 @@ async function main() {
 }
 
 main().catch((e) => {
-  fail(`Unexpected error: ${e?.message || String(e)}`);
+  const message = e?.message || String(e);
+  fail(`Unexpected error: ${message}`);
+  console.error(
+    "Hint: contract-check is an integration check. Start the backend API first, then run " +
+      "API_BASE=http://127.0.0.1:8000 npm run contract-check"
+  );
   process.exit(1);
 });

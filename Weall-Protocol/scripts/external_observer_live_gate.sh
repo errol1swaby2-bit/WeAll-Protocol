@@ -78,6 +78,9 @@ export WEALL_HELPER_MODE_ENABLED="0"
 export WEALL_BLOCK_LOOP_AUTOSTART="0"
 export WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API="1"
 
+echo "[live-gate] verifying public observer bundle/manifest and forced observer-only runtime posture"
+echo "[live-gate] signed transaction helper: scripts/devnet_tx.py (used here as a generic signed tx CLI, not as a devnet authority)"
+
 bash "${ROOT_DIR}/scripts/external_observer_onboarding_smoke.sh" "${BUNDLE_PATH}"
 
 WORK_DIR="${WEALL_EXTERNAL_OBSERVER_WORK_DIR:-}"

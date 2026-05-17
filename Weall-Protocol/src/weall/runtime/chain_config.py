@@ -849,8 +849,13 @@ def _pytest_prod_fixture_uses_noncanonical_chain() -> bool:
 def _env_chain_manifest_required() -> bool:
     mode = _runtime_mode_from_env()
     explicit = os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None
-    custom_chain_config = bool(str(os.environ.get("WEALL_CHAIN_CONFIG_PATH", "") or "").strip())
-    default_required = bool(mode == "prod" and not custom_chain_config and not _pytest_prod_fixture_uses_noncanonical_chain())
+    # Production must remain pinned to an explicit or default chain manifest even
+    # when an operator supplies a custom WEALL_CHAIN_CONFIG_PATH. Otherwise a
+    # prod-like boot can silently drift onto an unreviewed chain profile. Pytest
+    # keeps its historical non-canonical prod fixtures opt-out so existing
+    # startup-order tests can still exercise config validation without becoming
+    # production chain-identity tests.
+    default_required = bool(mode == "prod" and not _pytest_prod_fixture_uses_noncanonical_chain())
     required, invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", default_required)
     if invalid and mode == "prod":
         raise ValueError("invalid_boolean_env:WEALL_REQUIRE_CHAIN_MANIFEST")

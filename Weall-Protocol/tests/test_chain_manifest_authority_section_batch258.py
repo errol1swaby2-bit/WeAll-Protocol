@@ -94,8 +94,29 @@ def test_verifier_accepts_legacy_authority_section_read_only(tmp_path: Path) -> 
     bundle_path = tmp_path / "legacy-bundle.json"
     bundle_path.write_text(json.dumps(legacy_bundle), encoding="utf-8")
 
-    proc = subprocess.run(
+    rejected = subprocess.run(
         [sys.executable, str(VERIFY_SCRIPT), "--bundle", str(bundle_path), "--json"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    rejected_result = json.loads(rejected.stdout)
+    assert rejected.returncode == 1
+    assert rejected_result["ok"] is False
+    assert "legacy_bundle_requires_explicit_allow_legacy_bundle" in rejected_result["issues"]
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(VERIFY_SCRIPT),
+            "--bundle",
+            str(bundle_path),
+            "--json",
+            "--allow-legacy-bundle",
+        ],
         cwd=REPO_ROOT,
         check=True,
         stdout=subprocess.PIPE,
@@ -106,3 +127,4 @@ def test_verifier_accepts_legacy_authority_section_read_only(tmp_path: Path) -> 
     result = json.loads(proc.stdout)
     assert result["ok"] is True
     assert result["legacy_authority_section_used"] is True
+    assert "legacy_bundle_observer_posture_not_present" in result["warnings"]

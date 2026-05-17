@@ -186,7 +186,13 @@ def _validate_relay_recipient_pubkeys(bundle: Json) -> list[str]:
     return issues
 
 
-def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authority: bool) -> Json:
+def _validate(
+    bundle: Json,
+    manifest: Json | None,
+    *,
+    allow_placeholder_authority: bool,
+    allow_legacy_bundle: bool = False,
+) -> Json:
     issues: list[str] = []
     warnings: list[str] = []
 
@@ -225,11 +231,16 @@ def _validate(bundle: Json, manifest: Json | None, *, allow_placeholder_authorit
     issues.extend(_walk_secret_keys(bundle))
     issues.extend(_validate_relay_recipient_pubkeys(bundle))
     # Legacy read-only node-operator bundles from the pre-observer schema did not
-    # include an observer section. Keep those verifiable for authority migration
-    # tests and archival compatibility, while still requiring all modern bundles
-    # with an observer section to fail closed on unsafe runtime flags.
-    if isinstance(bundle.get("observer"), dict) or not ("authority" not in bundle and isinstance(bundle.get("oracle"), dict)):
+    # include an observer section. They remain verifiable only with an explicit
+    # flag so the default NLnet/external-observer path cannot accidentally pass a
+    # bundle that omits observer-mode fail-closed posture.
+    legacy_read_only_bundle = "authority" not in bundle and isinstance(bundle.get("oracle"), dict)
+    if legacy_read_only_bundle and not allow_legacy_bundle:
+        issues.append("legacy_bundle_requires_explicit_allow_legacy_bundle")
+    if isinstance(bundle.get("observer"), dict) or not legacy_read_only_bundle:
         issues.extend(_validate_observer_posture(bundle))
+    elif legacy_read_only_bundle:
+        warnings.append("legacy_bundle_observer_posture_not_present")
 
     if manifest is not None:
         comparisons = {
@@ -307,6 +318,14 @@ def main() -> int:
     parser.add_argument("--bundle", required=True)
     parser.add_argument("--manifest", default="")
     parser.add_argument("--allow-placeholder-authority", action="store_true")
+    parser.add_argument(
+        "--allow-legacy-bundle",
+        action="store_true",
+        help=(
+            "Allow archival pre-observer bundles that lack an observer posture section. "
+            "Do not use for NLnet/external observer onboarding."
+        ),
+    )
     parser.add_argument("--emit-shell-env", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -314,7 +333,12 @@ def main() -> int:
     try:
         bundle = _load_json(Path(args.bundle))
         manifest = _load_json(Path(args.manifest)) if args.manifest else None
-        result = _validate(bundle, manifest, allow_placeholder_authority=bool(args.allow_placeholder_authority))
+        result = _validate(
+            bundle,
+            manifest,
+            allow_placeholder_authority=bool(args.allow_placeholder_authority),
+            allow_legacy_bundle=bool(args.allow_legacy_bundle),
+        )
     except Exception as exc:
         bundle = {}
         result = {"ok": False, "issues": [str(exc)], "warnings": []}

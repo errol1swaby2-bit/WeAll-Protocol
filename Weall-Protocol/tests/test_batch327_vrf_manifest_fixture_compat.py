@@ -95,7 +95,7 @@ def test_pytest_local_prod_fixture_still_fails_closed_when_networked(
     assert err == "vrf_missing_node_key"
 
 
-def test_custom_prod_chain_config_does_not_implicitly_compare_default_manifest(
+def test_custom_prod_chain_config_requires_explicit_manifest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     tx_index_path = tmp_path / "tx_index.json"
@@ -109,9 +109,8 @@ def test_custom_prod_chain_config_does_not_implicitly_compare_default_manifest(
     monkeypatch.delenv("WEALL_CHAIN_MANIFEST_PATH", raising=False)
     monkeypatch.delenv("WEALL_REQUIRE_CHAIN_MANIFEST", raising=False)
 
-    cfg = load_chain_config()
-    assert cfg.chain_manifest_path == ""
-    assert not [issue for issue in production_bootstrap_issues(cfg) if "chain_manifest" in issue]
+    with pytest.raises(FileNotFoundError, match="chain manifest path not configured"):
+        load_chain_config()
 
 
 def test_heavy_soak_cli_sets_nonproduction_vrf_fixture_defaults(tmp_path: Path) -> None:

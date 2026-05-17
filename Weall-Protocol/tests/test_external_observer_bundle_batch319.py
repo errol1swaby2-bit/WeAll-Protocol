@@ -169,3 +169,40 @@ def test_external_observer_rehearsal_runbook_documents_two_machine_gate_batch319
     assert "cannot sign validator messages" in doc
     assert "transport_only" in doc
     assert "No email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC" in doc
+
+
+def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_nlnet() -> None:
+    import importlib.util
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "verify_node_operator_onboarding_bundle.py"
+    spec = importlib.util.spec_from_file_location("verify_node_operator_onboarding_bundle", script)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    bundle = {
+        "type": "weall_node_operator_onboarding_bundle",
+        "version": 1,
+        "profile": "dev",
+        "chain": {
+            "chain_id": "weall-dev",
+            "genesis_hash": "g",
+            "genesis_state_root": "s",
+            "tx_index_hash": "t",
+            "schema_version": "1",
+        },
+        "oracle": {
+            "trusted_authority_pubkeys": ["a" * 64],
+            "profile": "development",
+            "authority_url": "http://example.invalid",
+        },
+    }
+
+    denied = mod._validate(bundle, None, allow_placeholder_authority=False)
+    assert denied["ok"] is False
+    assert "legacy_bundle_requires_explicit_allow_legacy_bundle" in denied["issues"]
+
+    allowed = mod._validate(bundle, None, allow_placeholder_authority=False, allow_legacy_bundle=True)
+    assert allowed["ok"] is True
+    assert "legacy_bundle_observer_posture_not_present" in allowed["warnings"]
