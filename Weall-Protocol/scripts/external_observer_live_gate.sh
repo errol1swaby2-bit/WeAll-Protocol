@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUNDLE_PATH="${1:-${WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE:-}}"
-MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-genesis.json}"
+MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-}"
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-${WEALL_API_BASE:-}}"
 PEER_ENDPOINT="${WEALL_OBSERVER_PEER_ENDPOINT:-relay://external-observer-live-gate}"
 TARGET_PEER_ID="${WEALL_GENESIS_PEER_ID:-genesis}"
@@ -26,7 +26,45 @@ weall_check_observer_secret_boundary || exit $?
 
 [ -n "${BUNDLE_PATH}" ] || fail "usage: $0 <public-observer-bundle.json> with WEALL_GENESIS_API_BASE set"
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
+if [ -z "${MANIFEST_PATH}" ]; then
+  MANIFEST_PATH="$(python3 - "${BUNDLE_PATH}" "${ROOT_DIR}" <<'WEALL_BUNDLE_MANIFEST_PATH_PY'
+from __future__ import annotations
+import json
+import sys
+from pathlib import Path
+bundle_path = Path(sys.argv[1])
+root = Path(sys.argv[2])
+bundle = json.loads(bundle_path.read_text(encoding='utf-8'))
+chain = bundle.get('chain') if isinstance(bundle.get('chain'), dict) else {}
+hint = str(chain.get('manifest_path_hint') or '').strip()
+candidates = []
+if hint:
+    candidates.append(Path(hint))
+    candidates.append(root / hint)
+candidates.append(root / 'configs' / 'chains' / 'weall-genesis.json')
+for candidate in candidates:
+    try:
+        resolved = candidate.expanduser().resolve()
+    except Exception:
+        continue
+    if resolved.is_file():
+        print(str(resolved))
+        raise SystemExit(0)
+print('')
+WEALL_BUNDLE_MANIFEST_PATH_PY
+)"
+fi
+[ -n "${MANIFEST_PATH}" ] || fail "chain manifest path could not be resolved"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
+MANIFEST_MODE="$(python3 - "${MANIFEST_PATH}" <<'WEALL_MANIFEST_MODE_PY'
+from __future__ import annotations
+import json
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    obj = json.load(fh)
+print(str(obj.get('mode') or '').strip())
+WEALL_MANIFEST_MODE_PY
+)"
 [ -n "${GENESIS_API_BASE}" ] || fail "WEALL_GENESIS_API_BASE or WEALL_API_BASE is required"
 GENESIS_API_BASE="${GENESIS_API_BASE%/}"
 
@@ -68,7 +106,7 @@ export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE}"
 export WEALL_API_BASE="${GENESIS_API_BASE}"
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE="${BUNDLE_PATH}"
-export WEALL_MODE="prod"
+export WEALL_MODE="${WEALL_MODE:-${MANIFEST_MODE:-prod}}"
 export WEALL_NODE_LIFECYCLE_STATE="observer_onboarding"
 export WEALL_SERVICE_ROLES=""
 export WEALL_OBSERVER_MODE="1"

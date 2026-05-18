@@ -131,6 +131,26 @@ def _trusted_authority_pubkeys(manifest: Json) -> list[str]:
     return [str(item).strip() for item in raw if str(item).strip()]
 
 
+def _bundle_profile(manifest: Json, authority: Json) -> str:
+    return _first_nonempty(
+        manifest.get("bundle_profile"),
+        authority.get("bundle_profile"),
+        authority.get("expected_profile"),
+        authority.get("profile"),
+        manifest.get("mode"),
+        "production",
+    )
+
+
+def _verify_command_for_manifest(manifest_path: Path, bundle_profile: str) -> str:
+    profile = str(bundle_profile or "").strip().lower()
+    allow = " WEALL_ALLOW_PRIVATE_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
+    return (
+        f"{allow} python3 scripts/verify_node_operator_onboarding_bundle.py "
+        f"--bundle <observer-bundle.json> --manifest {manifest_path.as_posix()} --json"
+    ).strip()
+
+
 def _build(args: argparse.Namespace) -> Json:
     manifest_path = Path(args.manifest).resolve()
     manifest = _load_json(manifest_path)
@@ -140,12 +160,13 @@ def _build(args: argparse.Namespace) -> Json:
     genesis_api_base = _first_nonempty(args.genesis_api_base, os.environ.get("WEALL_GENESIS_API_BASE"), os.environ.get("WEALL_API_BASE")).rstrip("/")
     authority_url = _first_nonempty(args.authority_url, genesis_api_base, os.environ.get("WEALL_CHAIN_AUTHORITY_URL"), os.environ.get("WEALL_API_BASE")).rstrip("/")
     generated_at_ms = int(args.generated_at_ms) if args.generated_at_ms else int(time.time() * 1000)
+    bundle_profile = _bundle_profile(manifest, authority)
 
     return {
         "type": "weall_node_operator_onboarding_bundle",
         "bundle_purpose": "external_observer_onboarding",
         "version": 1,
-        "profile": "production",
+        "profile": bundle_profile,
         "generated_at_ms": generated_at_ms,
         "chain": {
             "manifest_path_hint": str(args.manifest),
@@ -213,7 +234,7 @@ def _build(args: argparse.Namespace) -> Json:
             ],
         },
         "recommended_commands": {
-            "verify_bundle": "python3 scripts/verify_node_operator_onboarding_bundle.py --bundle <observer-bundle.json> --manifest configs/chains/weall-genesis.json --json",
+            "verify_bundle": _verify_command_for_manifest(Path(args.manifest), bundle_profile),
             "observer_preflight": "bash scripts/external_observer_onboarding_smoke.sh <observer-bundle.json>",
             "boot_observer": "WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=<observer-bundle.json> bash scripts/boot_onboarding_node.sh",
         },

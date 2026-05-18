@@ -8,10 +8,13 @@ for normal node-operator preflight scripts.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
+import os
 import re
 import shlex
 import sys
+import urllib.parse
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +34,8 @@ PLACEHOLDER_AUTHORITY_PUBKEYS = {
     "".lower(),
 }
 
+PRODUCTION_BUNDLE_PROFILES = {"prod", "production", "production_service"}
+REHEARSAL_BUNDLE_PROFILES = {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"}
 SAFE_OBSERVER_LIFECYCLE_STATES = {"observer_onboarding", "bootstrap_registration"}
 SAFE_ONBOARDING_TXS = {
     "ACCOUNT_REGISTER",
@@ -52,6 +57,76 @@ SAFE_ONBOARDING_TXS = {
 
 def _json_dumps(data: Any) -> str:
     return json.dumps(data, separators=(",", ":"), sort_keys=True)
+
+
+def _truthy_env(name: str) -> bool:
+    return str(os.environ.get(name, "") or "").strip() in {
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+        "on",
+        "ON",
+    }
+
+
+def _profile_name(bundle: Json, authority: Json) -> str:
+    return str(bundle.get("profile") or authority.get("profile") or "").strip().lower()
+
+
+def _authority_url_issues(bundle: Json, authority: Json) -> list[str]:
+    issues: list[str] = []
+    profile = _profile_name(bundle, authority)
+    authority_profile = str(authority.get("profile") or "").strip().lower()
+    authority_url = str(authority.get("authority_url") or authority.get("url") or "").strip()
+    if not authority_url:
+        issues.append("authority_url_missing")
+        return issues
+
+    parsed = urllib.parse.urlparse(authority_url)
+    scheme = str(parsed.scheme or "").lower()
+    host = str(parsed.hostname or "").strip().lower()
+    if scheme not in {"http", "https"}:
+        issues.append("authority_url_scheme_invalid")
+        return issues
+    if not host:
+        issues.append("authority_url_host_missing")
+        return issues
+
+    is_production = profile in PRODUCTION_BUNDLE_PROFILES
+    is_rehearsal = profile in REHEARSAL_BUNDLE_PROFILES or authority_profile in REHEARSAL_BUNDLE_PROFILES
+
+    if is_production:
+        if scheme != "https":
+            issues.append("production_authority_url_must_be_https")
+        return issues
+
+    if not is_rehearsal:
+        if scheme != "https":
+            issues.append("nonproduction_authority_url_http_requires_rehearsal_profile")
+        return issues
+
+    if host in {"localhost", "ip6-localhost"} or host.endswith(".localhost"):
+        issues.append("rehearsal_authority_url_must_not_be_localhost")
+        return issues
+
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        ip = None
+
+    if ip is not None:
+        if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+            issues.append("rehearsal_authority_url_must_be_remote_nonlocal")
+        elif str(ip) == "169.254.169.254":
+            issues.append("rehearsal_authority_url_metadata_service_forbidden")
+        elif ip.is_private and not _truthy_env("WEALL_ALLOW_PRIVATE_GENESIS_API"):
+            issues.append("rehearsal_private_authority_url_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+    elif scheme == "http" and not _truthy_env("WEALL_ALLOW_PRIVATE_GENESIS_API"):
+        issues.append("rehearsal_http_authority_url_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+
+    return issues
 
 
 def _load_json(path: Path) -> Json:
@@ -212,12 +287,9 @@ def _validate(
         if not str(chain.get("protocol_profile_hash") or "").strip():
             issues.append("missing_chain_protocol_profile_hash")
 
-    if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"}:
+    if str(bundle.get("profile") or "").lower() in PRODUCTION_BUNDLE_PROFILES:
         if str(authority.get("profile") or "") != "production":
             issues.append("production_bundle_authority_profile_not_production")
-        authority_url = str(authority.get("authority_url") or authority.get("url") or "")
-        if not authority_url.startswith("https://"):
-            issues.append("production_authority_url_must_be_https")
 
     pubkeys = [str(pk).strip().lower() for pk in (authority.get("trusted_authority_pubkeys") or [])]
     if not pubkeys:
@@ -235,6 +307,8 @@ def _validate(
     # flag so the default NLnet/external-observer path cannot accidentally pass a
     # bundle that omits observer-mode fail-closed posture.
     legacy_read_only_bundle = "authority" not in bundle and isinstance(bundle.get("oracle"), dict)
+    if not (legacy_read_only_bundle and allow_legacy_bundle):
+        issues.extend(_authority_url_issues(bundle, authority))
     if legacy_read_only_bundle and not allow_legacy_bundle:
         issues.append("legacy_bundle_requires_explicit_allow_legacy_bundle")
     if isinstance(bundle.get("observer"), dict) or not legacy_read_only_bundle:
@@ -281,7 +355,7 @@ def _shell_env(bundle: Json) -> str:
     if lifecycle not in SAFE_OBSERVER_LIFECYCLE_STATES:
         lifecycle = "observer_onboarding"
     env = {
-        "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"} else str(bundle.get("profile") or ""),
+        "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in PRODUCTION_BUNDLE_PROFILES else ("controlled_devnet" if str(bundle.get("profile") or "").lower() in REHEARSAL_BUNDLE_PROFILES else str(bundle.get("profile") or "")),
         "WEALL_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_GENESIS_HASH": str(chain.get("genesis_hash") or ""),

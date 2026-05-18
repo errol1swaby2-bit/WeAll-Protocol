@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUNDLE_PATH="${1:-${WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE:-}}"
-MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-genesis.json}"
+MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-}"
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-${WEALL_API_BASE:-}}"
 BOOT_AFTER_PREFLIGHT="${WEALL_EXTERNAL_OBSERVER_BOOT:-0}"
 REQUIRE_LIVE_API="${WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API:-0}"
@@ -23,7 +23,45 @@ weall_check_observer_secret_boundary || exit $?
 
 [ -n "${BUNDLE_PATH}" ] || fail "usage: $0 <public-observer-bundle.json>"
 [ -f "${BUNDLE_PATH}" ] || fail "bundle not found: ${BUNDLE_PATH}"
+if [ -z "${MANIFEST_PATH}" ]; then
+  MANIFEST_PATH="$(python3 - "${BUNDLE_PATH}" "${ROOT_DIR}" <<'WEALL_BUNDLE_MANIFEST_PATH_PY'
+from __future__ import annotations
+import json
+import sys
+from pathlib import Path
+bundle_path = Path(sys.argv[1])
+root = Path(sys.argv[2])
+bundle = json.loads(bundle_path.read_text(encoding='utf-8'))
+chain = bundle.get('chain') if isinstance(bundle.get('chain'), dict) else {}
+hint = str(chain.get('manifest_path_hint') or '').strip()
+candidates = []
+if hint:
+    candidates.append(Path(hint))
+    candidates.append(root / hint)
+candidates.append(root / 'configs' / 'chains' / 'weall-genesis.json')
+for candidate in candidates:
+    try:
+        resolved = candidate.expanduser().resolve()
+    except Exception:
+        continue
+    if resolved.is_file():
+        print(str(resolved))
+        raise SystemExit(0)
+print('')
+WEALL_BUNDLE_MANIFEST_PATH_PY
+)"
+fi
+[ -n "${MANIFEST_PATH}" ] || fail "chain manifest path could not be resolved"
 [ -f "${MANIFEST_PATH}" ] || fail "chain manifest not found: ${MANIFEST_PATH}"
+MANIFEST_MODE="$(python3 - "${MANIFEST_PATH}" <<'WEALL_MANIFEST_MODE_PY'
+from __future__ import annotations
+import json
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    obj = json.load(fh)
+print(str(obj.get('mode') or '').strip())
+WEALL_MANIFEST_MODE_PY
+)"
 
 export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
 
@@ -47,7 +85,7 @@ fi
 
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
 export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
-export WEALL_MODE="prod"
+export WEALL_MODE="${WEALL_MODE:-${MANIFEST_MODE:-prod}}"
 export WEALL_NODE_LIFECYCLE_STATE="observer_onboarding"
 export WEALL_SERVICE_ROLES=""
 export WEALL_OBSERVER_MODE="1"
@@ -80,7 +118,42 @@ print('OK: relay recipient pubkey map is present and valid')
 WEALL_RELAY_RECIPIENTS_PY
 fi
 
-bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST_PATH}" >/tmp/weall_external_observer_manifest_check.json
+MANIFEST_PROFILE="$(python3 - "${MANIFEST_PATH}" <<'WEALL_MANIFEST_PROFILE_PY'
+from __future__ import annotations
+import json
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    obj = json.load(fh)
+print(str(obj.get('profile') or '').strip())
+WEALL_MANIFEST_PROFILE_PY
+)"
+case "${MANIFEST_MODE}:${MANIFEST_PROFILE}" in
+  prod:*|production:*|*:production|*:production_service)
+    bash "${ROOT_DIR}/scripts/prod_chain_manifest_check.sh" "${MANIFEST_PATH}" >/tmp/weall_external_observer_manifest_check.json
+    ;;
+  *)
+    python3 - "${MANIFEST_PATH}" "${ROOT_DIR}/generated/tx_index.json" <<'WEALL_GENERIC_MANIFEST_CHECK_PY' >/tmp/weall_external_observer_manifest_check.json
+from __future__ import annotations
+import json
+import sys
+from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
+manifest_path, tx_index_path = sys.argv[1:3]
+manifest = load_chain_manifest(manifest_path, required=True)
+status = chain_manifest_status(
+    manifest=manifest,
+    chain_id=manifest.chain_id,
+    mode=manifest.mode,
+    tx_index_path=tx_index_path,
+    schema_version=manifest.schema_version,
+    strict=True,
+)
+print(json.dumps(status, sort_keys=True, indent=2))
+if not status.get('ok'):
+    raise SystemExit(2)
+print('ok: non-production observer rehearsal manifest is pinned and matches local tx index')
+WEALL_GENERIC_MANIFEST_CHECK_PY
+    ;;
+esac
 
 if [ -n "${GENESIS_API_BASE}" ]; then
   python3 - "${GENESIS_API_BASE%/}" "${BUNDLE_PATH}" <<'PY'
