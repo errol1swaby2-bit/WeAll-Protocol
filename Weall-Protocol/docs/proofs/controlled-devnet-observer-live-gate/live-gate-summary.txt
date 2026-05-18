@@ -1,0 +1,23 @@
+[live-gate] ACCOUNT_REGISTER
+OK: ACCOUNT_REGISTER tx_id=tx:ab5aa1cdc9cb86561a279ac148cc3a923c6e32a903eb8969d7d88a4cae67804e status=confirmed height=4
+[live-gate] ACCOUNT_DEVICE_REGISTER node key binding
+OK: ACCOUNT_DEVICE_REGISTER node key binding tx_id=tx:893fd942c34d7398007bebcab15dcc53daf7142abbe212207d8dbfe8ef88508b status=confirmed height=5
+[live-gate] PEER_ADVERTISE
+OK: PEER_ADVERTISE tx_id=tx:e7b555c3f3874ea391003c02143498b0b5eb2f13665ff8e74f097f11b40cade3 status=confirmed height=6
+[live-gate] PEER_REQUEST_CONNECT
+OK: PEER_REQUEST_CONNECT tx_id=tx:99199ff85f75bc681a9faf727417be7ac9d2a4525361ca8ccbb0d13705db8c8f status=confirmed height=7
+[live-gate] POH_ASYNC_REQUEST_OPEN
+OK: POH_ASYNC_REQUEST_OPEN tx_id=tx:22e06aece9e72379a7d5926edc52bd7b41047cad55f1c0e35cc04fb7e4b66034 status=confirmed height=8
+[live-gate] POH_ASYNC_EVIDENCE_DECLARE
+OK: POH_ASYNC_EVIDENCE_DECLARE tx_id=tx:05f46ba75588c55198a9e33398d3dfb475be79e79985d011aebd1ff19c2b0249 status=confirmed height=9
+[live-gate] POH_ASYNC_EVIDENCE_BIND
+OK: POH_ASYNC_EVIDENCE_BIND tx_id=tx:db9ace8538879affa08ef4a15ade02bd0e73d7e920348dd774c45746a1f764f2 status=confirmed height=10
+    "ACCOUNT_REGISTER",
+    "ACCOUNT_DEVICE_REGISTER node key binding",
+    "PEER_ADVERTISE",
+    "PEER_REQUEST_CONNECT",
+    "POH_ASYNC_REQUEST_OPEN",
+    "POH_ASYNC_EVIDENCE_DECLARE",
+    "POH_ASYNC_EVIDENCE_BIND"
+OK: trusted external observer live gate passed
+- submitted and confirmed ACCOUNT_REGISTER, ACCOUNT_DEVICE_REGISTER, PEER_ADVERTISE, PEER_REQUEST_CONNECT, POH_ASYNC_REQUEST_OPEN, POH_ASYNC_EVIDENCE_DECLARE, POH_ASYNC_EVIDENCE_BIND

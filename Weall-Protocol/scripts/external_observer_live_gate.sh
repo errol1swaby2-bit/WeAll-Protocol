@@ -221,30 +221,57 @@ run_json() {
   local label="$1"
   shift
   echo "[live-gate] ${label}"
+
   local out
-  if ! out="$($@)"; then
+  local out_file
+  if ! out="$("$@")"; then
     echo "${out}" >&2
     fail "${label} failed"
   fi
-  printf '%s\n' "${out}" | python3 - "${label}" "${RESULTS_JSONL}" <<'PY_CHECK_RESULT'
+
+  out_file="${WORK_DIR}/live-gate-${label}.json"
+  printf '%s\n' "${out}" > "${out_file}"
+
+  python3 - "${label}" "${RESULTS_JSONL}" "${out_file}" <<'PY_CHECK_RESULT'
 from __future__ import annotations
+
 import json
 import sys
-label, path = sys.argv[1], sys.argv[2]
-raw = sys.stdin.read()
+from pathlib import Path
+
+label = sys.argv[1]
+results_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
+raw = out_path.read_text(encoding="utf-8")
+
 try:
     obj = json.loads(raw)
 except Exception as exc:
-    raise SystemExit(f"{label}: non-json output: {exc}: {raw[:500]}")
-with open(path, "a", encoding="utf-8") as fh:
+    raise SystemExit(f"{label}: non-json output: {exc}: {raw[:1000]}")
+
+if not isinstance(obj, dict):
+    raise SystemExit(f"{label}: json output was not an object")
+
+with results_path.open("a", encoding="utf-8") as fh:
     fh.write(json.dumps({"label": label, "result": obj}, sort_keys=True) + "\n")
+
 if obj.get("ok") is not True:
-    raise SystemExit(f"{label}: ok flag false: {json.dumps(obj, sort_keys=True)}")
-status = obj.get("tx_status") if isinstance(obj.get("tx_status"), dict) else None
-if status is not None and str(status.get("status") or "").lower() != "confirmed":
-    raise SystemExit(f"{label}: tx not confirmed: {json.dumps(status, sort_keys=True)}")
+    raise SystemExit(f"{label}: ok flag false: {json.dumps(obj, sort_keys=True)[:2000]}")
+
+submit = obj.get("submit") if isinstance(obj.get("submit"), dict) else {}
+status_obj = obj.get("tx_status") if isinstance(obj.get("tx_status"), dict) else {}
+
+if status_obj and str(status_obj.get("status") or "").lower() != "confirmed":
+    raise SystemExit(f"{label}: tx not confirmed: {json.dumps(status_obj, sort_keys=True)}")
+
+tx_id = obj.get("tx_id") or submit.get("tx_id")
+status = status_obj.get("status") or obj.get("status") or submit.get("status")
+height = status_obj.get("height")
+
+print(f"OK: {label} tx_id={tx_id} status={status} height={height}")
 PY_CHECK_RESULT
 }
+
 
 run_json "ACCOUNT_REGISTER" \
   python3 "${ROOT_DIR}/scripts/devnet_tx.py" --api "${GENESIS_API_BASE}" create-account \

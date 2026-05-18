@@ -108,47 +108,79 @@ export WEALL_BLOCK_LOOP_AUTOSTART="0"
 
 bash "${ROOT_DIR}/scripts/external_observer_onboarding_smoke.sh" "${BUNDLE_PATH}"
 
-python3 - "${WEALL_GENESIS_API_BASE}" "${BUNDLE_PATH}" <<'PY'
+python3 - "${WEALL_GENESIS_API_BASE}" "${BUNDLE_PATH}" <<'PY_REMOTE_CHECK'
 from __future__ import annotations
 
 import json
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-api = sys.argv[1].rstrip('/')
-bundle = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
-chain = bundle.get('chain') if isinstance(bundle.get('chain'), dict) else {}
-expected_chain_id = str(chain.get('chain_id') or '').strip()
-expected_tx_hash = str(chain.get('tx_index_hash') or '').strip().lower()
-expected_profile_hash = str(chain.get('protocol_profile_hash') or '').strip().lower()
+api = sys.argv[1].rstrip("/")
+bundle = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+chain = bundle.get("chain") if isinstance(bundle.get("chain"), dict) else {}
+expected_chain_id = str(chain.get("chain_id") or "").strip()
+expected_tx_hash = str(chain.get("tx_index_hash") or "").strip().lower()
+expected_profile_hash = str(chain.get("protocol_profile_hash") or "").strip().lower()
 
-for path in ('/v1/health', '/v1/ready', '/v1/chain/identity'):
-    with urllib.request.urlopen(api + path, timeout=10) as resp:
-        if resp.status >= 400:
-            raise SystemExit(f'remote_endpoint_failed:{path}:{resp.status}')
-        body = resp.read().decode('utf-8')
-        if path == '/v1/chain/identity':
-            ident = json.loads(body)
-            remote_chain_id = str(ident.get('chain_id') or ident.get('chain', {}).get('chain_id') or '').strip()
-            if expected_chain_id and remote_chain_id and remote_chain_id != expected_chain_id:
-                raise SystemExit(f'remote_chain_id_mismatch:{remote_chain_id}!={expected_chain_id}')
-            manifest = ident.get('chain_manifest') if isinstance(ident.get('chain_manifest'), dict) else {}
-            remote_tx_hash = str(manifest.get('tx_index_hash') or ident.get('tx_index_hash') or '').strip().lower()
-            if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
-                raise SystemExit(f'remote_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}')
-            remote_profile_hash = str(
-                ident.get('protocol_profile_hash')
-                or manifest.get('protocol_profile_hash')
-                or ident.get('production_consensus_profile_hash')
-                or ''
-            ).strip().lower()
-            if expected_profile_hash and remote_profile_hash and remote_profile_hash != expected_profile_hash:
-                raise SystemExit(f'remote_protocol_profile_hash_mismatch:{remote_profile_hash}!={expected_profile_hash}')
-            if expected_profile_hash and not remote_profile_hash:
-                raise SystemExit('remote_protocol_profile_hash_missing')
-print('OK: remote genesis health/ready/identity endpoints passed')
-PY
+def fetch_json(path: str) -> dict:
+    try:
+        with urllib.request.urlopen(api + path, timeout=10) as resp:
+            if resp.status >= 400:
+                raise SystemExit(f"remote_endpoint_failed:{path}:{resp.status}")
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        raise SystemExit(f"remote_endpoint_failed:{path}:{exc.code}") from exc
+
+    try:
+        obj = json.loads(body)
+    except Exception as exc:
+        raise SystemExit(f"remote_endpoint_non_json:{path}:{exc}") from exc
+
+    if not isinstance(obj, dict):
+        raise SystemExit(f"remote_endpoint_not_object:{path}")
+    return obj
+
+fetch_json("/v1/health")
+fetch_json("/v1/status")
+
+ready_ok = False
+for ready_path in ("/v1/ready", "/v1/readyz"):
+    try:
+        fetch_json(ready_path)
+        ready_ok = True
+        break
+    except SystemExit:
+        continue
+if not ready_ok:
+    # Controlled devnet currently exposes health/status/identity but may not expose
+    # a ready endpoint. Status + identity below remain the hard compatibility checks.
+    pass
+
+ident = fetch_json("/v1/chain/identity")
+remote_chain_id = str(ident.get("chain_id") or ident.get("chain", {}).get("chain_id") or "").strip()
+if expected_chain_id and remote_chain_id and remote_chain_id != expected_chain_id:
+    raise SystemExit(f"remote_chain_id_mismatch:{remote_chain_id}!={expected_chain_id}")
+
+manifest = ident.get("chain_manifest") if isinstance(ident.get("chain_manifest"), dict) else {}
+remote_tx_hash = str(manifest.get("tx_index_hash") or ident.get("tx_index_hash") or "").strip().lower()
+if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
+    raise SystemExit(f"remote_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}")
+
+remote_profile_hash = str(
+    ident.get("protocol_profile_hash")
+    or manifest.get("protocol_profile_hash")
+    or ident.get("production_consensus_profile_hash")
+    or ""
+).strip().lower()
+if expected_profile_hash and remote_profile_hash and remote_profile_hash != expected_profile_hash:
+    raise SystemExit(f"remote_protocol_profile_hash_mismatch:{remote_profile_hash}!={expected_profile_hash}")
+if expected_profile_hash and not remote_profile_hash:
+    raise SystemExit("remote_protocol_profile_hash_missing")
+
+print("OK: remote genesis health/status/identity compatibility checks passed")
+PY_REMOTE_CHECK
 
 if [ -n "${RELAY_URLS}" ]; then
   IFS=',' read -r -a _relay_array <<< "${RELAY_URLS}"

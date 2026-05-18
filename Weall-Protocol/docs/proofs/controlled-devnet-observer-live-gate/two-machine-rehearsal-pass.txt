@@ -1,0 +1,26 @@
+OK: genesis API base is non-local for two-machine rehearsal
+OK: remote genesis live API health/ready/status/identity/tx-status checks passed
+OK: external observer onboarding preflight passed
+- public bundle verified against local chain manifest
+- production chain manifest is pinned and non-placeholder
+- chain_id, tx_index_hash, and protocol_profile_hash match the remote genesis API when live checks run
+- observer mode is forced on
+- validator signing, BFT, helper authority, and block loop are forced off
+- relay recipient pubkey binding is required when relay URLs are configured
+- no external identity-provider, Cloudflare, oracle, or authority-signer secret is required
+Next manual step on the observer machine:
+  WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='/tmp/public-observer-bundle.json' \
+  WEALL_CHAIN_MANIFEST_PATH='/home/megan/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json' \
+  bash scripts/boot_onboarding_node.sh
+OK: remote genesis health/status/identity compatibility checks passed
+OK: two-machine external observer rehearsal preflight passed
+- remote genesis API is reachable
+- chain identity, tx_index_hash, and protocol_profile_hash match the observer bundle when advertised
+- observer mode/signing/BFT/helper/block-loop are forced safe
+- relay endpoints, if configured, are transport_only and require recipient pubkey binding
+
+This rehearsal is connectivity/preflight only; it does not submit signed onboarding transactions.
+The observer onboarding E2E is not complete until scripts/external_observer_live_gate.sh passes.
+
+Next live action on the observer machine:
+  WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='/tmp/public-observer-bundle.json'   WEALL_CHAIN_MANIFEST_PATH='/home/megan/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json'   WEALL_GENESIS_API_BASE='http://10.131.107.82:8000'   bash scripts/external_observer_live_gate.sh "/tmp/public-observer-bundle.json"
