@@ -738,8 +738,9 @@ def run_mempool_spam_stress(
         with results_lock:
             counters["attempts"] += 1
         res = ex.submit_tx(env)
-        if bool(res.get("ok")):
-            tx_id = str(res.get("tx_id") or env.get("tx_id") or "")
+        tx_id = str(res.get("tx_id") or env.get("tx_id") or "")
+        already_known = bool(res.get("already_known"))
+        if bool(res.get("ok")) and not already_known:
             with results_lock:
                 counters["accepted"] += 1
                 if tx_id in seen_tx_ids:
@@ -747,8 +748,14 @@ def run_mempool_spam_stress(
                 elif tx_id:
                     seen_tx_ids.add(tx_id)
         else:
+            # Idempotent duplicate retries are successful client responses, but
+            # they do not insert new work into the mempool. Count them with
+            # rejected/no-op attempts so stress metrics continue to mean:
+            # accepted == unique work accepted for execution.
             with results_lock:
                 counters["rejected"] += 1
+                if tx_id and tx_id not in seen_tx_ids and already_known:
+                    seen_tx_ids.add(tx_id)
 
     def _worker(worker_idx: int) -> None:
         for nonce in range(1, max(1, int(txs_per_worker)) + 1):

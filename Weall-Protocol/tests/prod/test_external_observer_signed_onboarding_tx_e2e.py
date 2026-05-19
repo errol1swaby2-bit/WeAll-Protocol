@@ -29,6 +29,7 @@ def _set_observer_env(monkeypatch) -> None:
 
 
 def _set_genesis_env(monkeypatch) -> None:
+    node_priv, node_pub = _new_key()
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SIGVERIFY", "1")
     monkeypatch.setenv("WEALL_STRICT_TX_SIG_DOMAIN", "1")
@@ -36,8 +37,14 @@ def _set_genesis_env(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "0")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "0")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
+    monkeypatch.setenv("WEALL_NET_ENABLED", "0")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "0")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
+    monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
+    monkeypatch.setenv("WEALL_NODE_PRIVKEY", node_priv)
+    monkeypatch.setenv("WEALL_NODE_PUBKEY", node_pub)
+    monkeypatch.delenv("WEALL_NODE_PRIVKEY_FILE", raising=False)
+    monkeypatch.delenv("WEALL_NODE_PUBKEY_FILE", raising=False)
     monkeypatch.delenv("WEALL_UNSAFE_DEV", raising=False)
     monkeypatch.delenv("WEALL_ALLOW_LEGACY_SIG_DOMAIN", raising=False)
 

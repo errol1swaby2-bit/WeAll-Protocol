@@ -101,9 +101,12 @@ def test_interleaved_restart_and_submission_does_not_create_duplicates_batch69(
         db_path=db_path, node_id="n4", chain_id="b69-dup", tx_index_path=tx_index_path
     )
 
-    # try duplicate after restart
+    # try duplicate after restart. Exact duplicate pending work is now an
+    # idempotent no-op retry: the client gets the existing tx_id, while the
+    # mempool still contains only one executable transaction.
     res = _submit(ex, "@x", 1)
-    assert res.get("ok") is False
+    assert res.get("ok") is True
+    assert res.get("already_known") is True
 
     while ex.read_mempool():
         assert ex.produce_block(max_txs=10).ok is True

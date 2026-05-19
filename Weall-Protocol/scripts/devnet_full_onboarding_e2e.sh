@@ -236,14 +236,25 @@ _submit_node2_convergence_tx() {
   local node2_status_file="${DEVNET_DIR}/node2-convergence-status.json"
   mkdir -p "${DEVNET_DIR}"
 
-  local tx_type
-  local label
+  local tx_type="${WEALL_NODE2_CONVERGENCE_TX_TYPE:-FOLLOW_SET}"
+  local label="${WEALL_NODE2_CONVERGENCE_LABEL:-node2-convergence}"
 
-  if [[ "${tx_type}" == "FOLLOW_SET" ]]; then
-    echo "==> Submitting Tier-1-gated FOLLOW_SET through node 2 normal tx flow" >&2
-  else
-    echo "==> Submitting Tier-0 PROFILE_UPDATE through node 2 normal tx flow" >&2
-  fi
+  case "${tx_type}" in
+    FOLLOW_SET)
+      printf '{"target":"%s","active":true}
+' "${WEALL_NODE2_CONVERGENCE_TARGET:-${OPERATOR_ACCOUNT}}" > "${payload_file}"
+      echo "==> Submitting Tier-1-gated FOLLOW_SET through node 2 normal tx flow" >&2
+      ;;
+    PROFILE_UPDATE)
+      printf '{"bio":"%s"}
+' "controlled-devnet ${label}" > "${payload_file}"
+      echo "==> Submitting Tier-0 PROFILE_UPDATE through node 2 normal tx flow" >&2
+      ;;
+    *)
+      echo "ERROR: unsupported WEALL_NODE2_CONVERGENCE_TX_TYPE=${tx_type}; expected FOLLOW_SET or PROFILE_UPDATE" >&2
+      exit 2
+      ;;
+  esac
   WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_submit_tx_node2.sh \
     --keyfile "${KEYFILE}" \
     --tx-type "${tx_type}" \
@@ -619,7 +630,7 @@ _start_node2_if_needed() {
     export GUNICORN_BIND="${NODE2_BIND:-127.0.0.1:8002}"
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export NODE1_API="${NODE1_API}"
-    export WEALL_BLOCK_LOOP_AUTOSTART="${WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-1}"
+    export WEALL_BLOCK_LOOP_AUTOSTART="${WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-0}"
     export WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-1000}"
     export WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-0}"
     export WEALL_NET_LOOP_AUTOSTART="${WEALL_NET_LOOP_AUTOSTART:-0}"
@@ -663,8 +674,16 @@ if [[ "${WEALL_DEVNET_RUN_LIVE}" == "1" ]]; then
 fi
 
 if _start_node2_if_needed; then
+  echo "==> Syncing node 2 from node 1 after native async Tier-1 onboarding"
+  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
   echo "==> Comparing state roots after native async Tier-1 onboarding"
-  NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh || true
+  NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh
+
+  echo "==> Submitting a node-2-originated convergence transaction"
+  node2_convergence_tx_id="$(_submit_node2_convergence_tx "${ACCOUNT}")"
+  echo "==> Node-2 convergence tx_id=${node2_convergence_tx_id}"
+  echo "==> Verifying node-2 convergence account/tx parity across nodes"
+  _assert_cross_node_account_and_tx_parity "${ACCOUNT}" "node2-convergence" "${node2_convergence_tx_id}"
 fi
 
 echo "==> Controlled devnet onboarding E2E complete"

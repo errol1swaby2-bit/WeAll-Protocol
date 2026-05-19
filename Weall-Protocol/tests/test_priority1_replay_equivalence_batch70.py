@@ -138,9 +138,11 @@ def test_interleaved_valid_and_rejected_work_converges_consistently_batch70(tmp_
     ex1 = WeAllExecutor(db_path=db1, node_id="n4", chain_id="b70-a", tx_index_path=tx_index_path)
     ex2 = WeAllExecutor(db_path=db2, node_id="n4", chain_id="b70-b", tx_index_path=tx_index_path)
 
-    # node 1 sees valid then rejected
+    # node 1 sees valid then idempotent duplicate retry
     assert _submit(ex1, "@x", 1).get("ok") is True
-    assert _submit(ex1, "@x", 1).get("ok") is False
+    duplicate = _submit(ex1, "@x", 1)
+    assert duplicate.get("ok") is True
+    assert duplicate.get("already_known") is True
     assert _submit(ex1, "@y", 1).get("ok") is True
 
     # node 2 sees rejected then valid

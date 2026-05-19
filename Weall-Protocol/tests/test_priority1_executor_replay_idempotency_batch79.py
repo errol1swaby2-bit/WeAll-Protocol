@@ -43,8 +43,9 @@ def test_replay_same_tx_batch79() -> None:
         r2 = _submit_result(ex, "@a", 1)
 
         assert r1.get("ok") is True
-        assert r2.get("ok") is False
-        assert r2.get("error") in {"tx_id_conflict", "bad_nonce"}
+        assert r2.get("ok") is True
+        assert r2.get("already_known") is True
+        assert r2.get("tx_id") == r1.get("tx_id")
 
         while ex.read_mempool():
             assert ex.produce_block(max_txs=10).ok is True
@@ -87,10 +88,14 @@ def test_replay_order_independence_batch79() -> None:
 
         for s, n in accepted:
             assert _submit_result(ex1, s, n).get("ok") is True
-        assert _submit_result(ex1, "@a", 1).get("ok") is False
+        dup1 = _submit_result(ex1, "@a", 1)
+        assert dup1.get("ok") is True
+        assert dup1.get("already_known") is True
 
         assert _submit_result(ex2, "@a", 1).get("ok") is True
-        assert _submit_result(ex2, "@a", 1).get("ok") is False
+        dup2 = _submit_result(ex2, "@a", 1)
+        assert dup2.get("ok") is True
+        assert dup2.get("already_known") is True
         assert _submit_result(ex2, "@b", 1).get("ok") is True
 
         while ex1.read_mempool():

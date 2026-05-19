@@ -48,7 +48,7 @@ def test_mempool_rejects_conflicting_same_signer_nonce_batch34(tmp_path: Path) -
     assert mp[0].get("payload", {}).get("pubkey") == "k:alice:1"
 
 
-def test_mempool_duplicate_same_signer_nonce_same_payload_rejected_deterministically_batch34(tmp_path: Path) -> None:
+def test_mempool_duplicate_same_signer_nonce_same_payload_is_idempotent_batch34(tmp_path: Path) -> None:
     ex = _executor(tmp_path, chain_id="batch34-idempotent")
 
     tx = {
@@ -62,8 +62,9 @@ def test_mempool_duplicate_same_signer_nonce_same_payload_rejected_deterministic
     r2 = ex.submit_tx(dict(tx))
 
     assert r1.get("ok") is True
-    assert r2.get("ok") is False
-    assert r2.get("error") == "tx_id_conflict"
+    assert r2.get("ok") is True
+    assert r2.get("already_known") is True
+    assert r2.get("tx_id") == r1.get("tx_id")
     assert ex.mempool.size() == 1
 
 

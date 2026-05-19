@@ -214,7 +214,7 @@ class PersistentMempool:
 
     Admission hardening:
       - at most one pending tx per (signer, nonce) pair (indexed in SQLite)
-      - exact duplicates are rejected deterministically as tx_id_conflict
+      - exact duplicates are accepted idempotently as already_known
       - conflicting same-signer/same-nonce envelopes are rejected
 
     Security/correctness guarantees:
@@ -514,9 +514,17 @@ class PersistentMempool:
                     existing_base = _canon_json(_envelope_for_id(existing_env))
                     incoming_base = _canon_json(_envelope_for_id(env))
                     if existing_base == incoming_base:
+                        env["tx_id"] = existing_tx_id
+                        if "received_ms" in existing_env:
+                            env["received_ms"] = existing_env.get("received_ms")
+                        if "expires_ms" in existing_env:
+                            env["expires_ms"] = existing_env.get("expires_ms")
                         return {
-                            "ok": False,
-                            "error": "tx_id_conflict",
+                            "ok": True,
+                            "tx_id": existing_tx_id,
+                            "already_known": True,
+                            "received_ms": existing_env.get("received_ms"),
+                            "expires_ms": existing_env.get("expires_ms"),
                             "details": {
                                 "signer": signer,
                                 "nonce": int(nonce),
@@ -613,8 +621,28 @@ class PersistentMempool:
             if row is None:
                 return {"ok": False, "error": "db_error:missing_after_insert"}
 
-            # Idempotency check: existing envelope must match exactly.
+            # Idempotency check: existing envelope may have different local stamps,
+            # but the canonical identity-bearing envelope must match exactly.
             if str(row["envelope_json"]) != env_json:
+                try:
+                    existing_env = json.loads(str(row["envelope_json"]))
+                except Exception:
+                    existing_env = {}
+                existing_base = _canon_json(_envelope_for_id(existing_env))
+                incoming_base = _canon_json(_envelope_for_id(env))
+                if existing_base == incoming_base:
+                    env["tx_id"] = tx_id
+                    if "received_ms" in existing_env:
+                        env["received_ms"] = existing_env.get("received_ms")
+                    if "expires_ms" in existing_env:
+                        env["expires_ms"] = existing_env.get("expires_ms")
+                    return {
+                        "ok": True,
+                        "tx_id": tx_id,
+                        "already_known": True,
+                        "received_ms": existing_env.get("received_ms"),
+                        "expires_ms": existing_env.get("expires_ms"),
+                    }
                 return {"ok": False, "error": "tx_id_conflict"}
 
         # Reflect computed stamps back into caller env for downstream consistency.

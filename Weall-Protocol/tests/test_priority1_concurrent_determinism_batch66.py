@@ -68,8 +68,9 @@ def test_duplicate_submission_handling_is_deterministic_batch66(tmp_path: Path) 
     r21 = _submit_result(ex2, "@x", 1)
 
     assert r11.get("ok") is True
-    assert r12.get("ok") is False
-    assert r12.get("error") == "tx_id_conflict"
+    assert r12.get("ok") is True
+    assert r12.get("already_known") is True
+    assert r12.get("tx_id") == r11.get("tx_id")
     assert r21.get("ok") is True
 
     while ex1.read_mempool():

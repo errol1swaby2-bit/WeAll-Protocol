@@ -352,7 +352,7 @@ async def tx_submit(request: Request) -> Json:
     return {
         "ok": True,
         "tx_id": out_tx_id,
-        "status": "already_known" if already else "accepted",
+        "status": "already_known" if (already or bool(meta.get("already_known"))) else "accepted",
         "mempool_size": mp_size,
     }
 
