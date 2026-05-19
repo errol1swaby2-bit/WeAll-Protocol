@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { weall } from "../api/weall";
 
@@ -40,21 +40,34 @@ function deriveCid(item: MediaLike): string {
   return /^[A-Za-z0-9]+$/.test(raw) ? raw : "";
 }
 
+function joinBasePath(base: string, path: string): string {
+  const b = String(base || "").replace(/\/+$/, "");
+  const p = String(path || "").startsWith("/") ? String(path || "") : `/${String(path || "")}`;
+  return `${b || ""}${p}`;
+}
+
 function deriveUrl(item: MediaLike, base: string): string {
   if (typeof item === "string") {
     const raw = item.trim();
     if (/^https?:\/\//i.test(raw)) return raw;
     const cid = deriveCid(raw);
-    return cid ? weall.mediaGatewayUrl(cid, base) : "";
+    return cid ? weall.mediaProxyUrl(cid, base) : "";
   }
   if (!item || typeof item !== "object") return "";
+
+  const fetchPath = firstString(item.fetch_path, item.proxy_path, item.local_proxy_path);
+  if (fetchPath) {
+    if (/^https?:\/\//i.test(fetchPath)) return fetchPath;
+    return joinBasePath(base, fetchPath);
+  }
+
   const direct = firstString(item.gateway_url, item.url, item.src, item.href);
   if (direct) {
     if (/^https?:\/\//i.test(direct)) return direct;
-    if (direct.startsWith("ipfs://")) return weall.mediaGatewayUrl(direct.slice("ipfs://".length), base);
+    if (direct.startsWith("ipfs://")) return weall.mediaProxyUrl(direct.slice("ipfs://".length), base);
   }
   const cid = deriveCid(item);
-  return cid ? weall.mediaGatewayUrl(cid, base) : "";
+  return cid ? weall.mediaProxyUrl(cid, base) : "";
 }
 
 function deriveMime(item: MediaLike): string {
@@ -81,6 +94,33 @@ function kindFor(item: MediaLike): "image" | "video" | "audio" | "file" {
   return "file";
 }
 
+function useViewportLoad(rootMargin = "640px"): [React.RefObject<HTMLDivElement>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shouldLoad) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoad(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          obs.disconnect();
+        }
+      },
+      { root: null, rootMargin, threshold: 0.01 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [rootMargin, shouldLoad]);
+
+  return [ref, shouldLoad];
+}
+
 export function extractEvidenceMedia(evidence: any): MediaLike[] {
   if (!evidence || typeof evidence !== "object") return [];
   const out: MediaLike[] = [];
@@ -102,6 +142,55 @@ export function extractEvidenceMedia(evidence: any): MediaLike[] {
   return out;
 }
 
+function DeferredMediaCard({
+  base,
+  item,
+  title,
+  compact,
+  idx,
+}: {
+  base: string;
+  item: MediaLike;
+  title: string;
+  compact: boolean;
+  idx: number;
+}): JSX.Element {
+  const [ref, shouldLoad] = useViewportLoad();
+  const url = deriveUrl(item, base);
+  const mime = deriveMime(item);
+  const cid = deriveCid(item);
+  const label = deriveLabel(item);
+  const kind = kindFor(item);
+
+  return (
+    <div key={`${label}:${idx}`} ref={ref} className="feedMediaCard">
+      <div className="feedMediaTitle">{title}</div>
+      {!shouldLoad ? (
+        <div className="inlineNote" style={{ marginTop: 8 }}>
+          Media will load from your local observer when it reaches this part of the feed.
+        </div>
+      ) : null}
+      {kind === "image" && url && shouldLoad ? <img src={url} alt={label} loading="lazy" decoding="async" style={{ width: "100%", borderRadius: 12, maxHeight: compact ? 280 : 360, objectFit: "cover" }} /> : null}
+      {kind === "video" && url && shouldLoad ? <video src={url} controls preload="none" style={{ width: "100%", borderRadius: 12, maxHeight: compact ? 280 : 360 }} /> : null}
+      {kind === "audio" && url && shouldLoad ? <audio src={url} controls preload="none" style={{ width: "100%" }} /> : null}
+      {kind === "file" && url ? (
+        <a href={url} target="_blank" rel="noreferrer" className="btn" style={{ width: "fit-content" }}>
+          Open attachment
+        </a>
+      ) : null}
+      <div className="feedMediaMeta mono" style={{ marginTop: 8 }}>
+        {label}
+      </div>
+      <div className="statusSummary" style={{ marginTop: 8 }}>
+        {mime ? <span className="statusPill">{mime}</span> : null}
+        {cid ? <span className="statusPill mono">{cid}</span> : null}
+        <span className="statusPill">viewport loaded</span>
+      </div>
+      {!url ? <div className="cardDesc" style={{ marginTop: 8 }}>Unresolved media reference. The post may only expose a media id at this stage.</div> : null}
+    </div>
+  );
+}
+
 export default function MediaGallery({
   base,
   media,
@@ -118,35 +207,9 @@ export default function MediaGallery({
 
   return (
     <div className="feedMediaList" style={{ gap: compact ? 10 : 12 }}>
-      {items.map((item, idx) => {
-        const url = deriveUrl(item, base);
-        const mime = deriveMime(item);
-        const cid = deriveCid(item);
-        const label = deriveLabel(item);
-        const kind = kindFor(item);
-
-        return (
-          <div key={`${label}:${idx}`} className="feedMediaCard">
-            <div className="feedMediaTitle">{title}</div>
-            {kind === "image" && url ? <img src={url} alt={label} style={{ width: "100%", borderRadius: 12, maxHeight: 360, objectFit: "cover" }} /> : null}
-            {kind === "video" && url ? <video src={url} controls style={{ width: "100%", borderRadius: 12, maxHeight: 360 }} /> : null}
-            {kind === "audio" && url ? <audio src={url} controls style={{ width: "100%" }} /> : null}
-            {kind === "file" && url ? (
-              <a href={url} target="_blank" rel="noreferrer" className="btn" style={{ width: "fit-content" }}>
-                Open attachment
-              </a>
-            ) : null}
-            <div className="feedMediaMeta mono" style={{ marginTop: 8 }}>
-              {label}
-            </div>
-            <div className="statusSummary" style={{ marginTop: 8 }}>
-              {mime ? <span className="statusPill">{mime}</span> : null}
-              {cid ? <span className="statusPill mono">{cid}</span> : null}
-            </div>
-            {!url ? <div className="cardDesc" style={{ marginTop: 8 }}>Unresolved media reference. The post may only expose a media id at this stage.</div> : null}
-          </div>
-        );
-      })}
+      {items.map((item, idx) => (
+        <DeferredMediaCard key={`${deriveLabel(item)}:${idx}`} base={base} item={item} title={title} compact={compact} idx={idx} />
+      ))}
     </div>
   );
 }

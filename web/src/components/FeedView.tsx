@@ -249,25 +249,29 @@ export default function FeedView({
     viewerSummary,
   });
 
-  async function loadMediaIndexFromSnapshot() {
+  function collectMediaIds(pageItems: any[]): string[] {
+    const out: string[] = [];
+    for (const it of asArray<any>(pageItems)) {
+      for (const entry of asArray<any>(it?.media)) {
+        if (typeof entry !== "string") continue;
+        const mediaId = entry.trim();
+        if (!mediaId || !mediaId.startsWith("media:")) continue;
+        if (!out.includes(mediaId)) out.push(mediaId);
+      }
+    }
+    return out;
+  }
+
+  async function resolveVisibleMedia(pageItems: any[]) {
+    const ids = collectMediaIds(pageItems);
+    if (!ids.length) return;
     try {
       const headers = getAuthHeaders();
-      const r = await fetch(`${base}/v1/state/snapshot`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          ...(headers || {}),
-        },
-      });
-      if (!r.ok) throw new Error(`snapshot_http_${r.status}`);
-      const body: any = await r.json();
-      const media =
-        body?.state?.content?.media && typeof body.state.content.media === "object"
-          ? body.state.content.media
-          : {};
-      setMediaIndex(media);
+      const r: any = await weall.mediaResolve(ids, base, headers);
+      const resolved = r?.items && typeof r.items === "object" ? r.items : {};
+      setMediaIndex((prev) => ({ ...(prev || {}), ...resolved }));
     } catch {
-      setMediaIndex({});
+      // Keep feed rendering metadata-first even if media resolution is delayed.
     }
   }
 
@@ -343,9 +347,10 @@ export default function FeedView({
         setItems((prev) => uniqById([...prev, ...pageItems]));
       } else {
         setItems(pageItems);
+        setMediaIndex({});
       }
       setNextCursor(nc);
-      await loadMediaIndexFromSnapshot();
+      await resolveVisibleMedia(pageItems);
     } catch (e: any) {
       setErr(prettyMsg(e));
       if (!opts?.append) setItems([]);

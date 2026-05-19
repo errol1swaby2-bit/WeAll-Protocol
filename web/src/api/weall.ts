@@ -772,6 +772,15 @@ export const weall = {
     return apiGet(`/v1/media/status/${encodeURIComponent(cid)}`, base, headers);
   },
 
+  mediaResolve(ids: string[], base?: string, headers?: HeadersInit): Promise<any> {
+    const cleanIds = Array.from(new Set((ids || []).map((x) => String(x || "").trim()).filter(Boolean)));
+    return apiGet(withSearch("/v1/media/resolve", { ids: cleanIds.join(",") }), base, headers);
+  },
+
+  mediaProxyUrl(cid: string, base?: string) {
+    return `${resolveBase(base)}/v1/media/proxy/${encodeURIComponent(cid)}`;
+  },
+
   mediaGatewayUrl(cid: string, base?: string) {
     return `${resolveBase(base)}/v1/media/gateway/${encodeURIComponent(cid)}`;
   },

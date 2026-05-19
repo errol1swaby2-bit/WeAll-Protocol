@@ -1,17 +1,22 @@
 # projects/Weall-Protocol/src/weall/api/routes_public_parts/media.py
 from __future__ import annotations
 
+import hashlib
 import mimetypes
 import os
+from pathlib import Path
 import re
+import threading
+import urllib.error
+import urllib.request
 from typing import Any
 
 from fastapi import APIRouter, File, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from weall.api.errors import ApiError
 from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
-from weall.api.routes_public_parts.common import _executor, _mempool, _snapshot
+from weall.api.routes_public_parts.common import _executor, _mempool, _snapshot, _str_param
 from weall.api.security import require_account_session
 from weall.ledger.state import LedgerView
 from weall.storage.ipfs_partition import can_accept_bytes, read_partition_config
@@ -51,6 +56,132 @@ def _env_bool(name: str, default: bool) -> bool:
         raise ValueError(f"invalid_boolean_env:{name}")
     return bool(default)
 
+
+_MEDIA_FETCH_SEMAPHORE: threading.BoundedSemaphore | None = None
+_MEDIA_FETCH_SEMAPHORE_LIMIT: int | None = None
+
+
+def _media_fetch_semaphore(limit: int) -> threading.BoundedSemaphore:
+    global _MEDIA_FETCH_SEMAPHORE, _MEDIA_FETCH_SEMAPHORE_LIMIT
+    safe_limit = max(1, int(limit))
+    if _MEDIA_FETCH_SEMAPHORE is None or _MEDIA_FETCH_SEMAPHORE_LIMIT != safe_limit:
+        _MEDIA_FETCH_SEMAPHORE = threading.BoundedSemaphore(safe_limit)
+        _MEDIA_FETCH_SEMAPHORE_LIMIT = safe_limit
+    return _MEDIA_FETCH_SEMAPHORE
+
+
+def _cache_enabled() -> bool:
+    return _env_bool("WEALL_MEDIA_PROXY_CACHE_ENABLED", True)
+
+
+def _fetch_enabled() -> bool:
+    return _env_bool("WEALL_MEDIA_PROXY_FETCH_ENABLED", True)
+
+
+def _media_cache_dir() -> Path:
+    configured = str(os.environ.get("WEALL_MEDIA_CACHE_DIR") or "").strip()
+    root = configured or ".weall-media-cache"
+    return Path(root).expanduser().resolve()
+
+
+def _cache_path_for_cid(cid: str) -> Path:
+    digest = hashlib.sha256(cid.encode("utf-8")).hexdigest()
+    return _media_cache_dir() / digest[:2] / f"{digest}.bin"
+
+
+def _media_provider_url(cid: str) -> str:
+    # Reuse the configured gateway as the first production provider. Future
+    # provider discovery can add genesis/peer/storage-helper URLs here without
+    # changing the frontend contract.
+    return ipfs_gateway_url(cid)
+
+
+def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: int) -> tuple[int, str]:
+    url = _media_provider_url(cid)
+    tmp = dest.with_suffix(".tmp")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if tmp.exists():
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
+
+    req = urllib.request.Request(url, headers={"Accept": "*/*", "User-Agent": "WeAllObserverMediaProxy/1"})
+    try:
+        with urllib.request.urlopen(req, timeout=max(1, int(timeout_s))) as resp:  # noqa: S310 - configured gateway/provider URL
+            content_length = resp.headers.get("Content-Length")
+            if content_length is not None:
+                try:
+                    if int(content_length) > max_bytes:
+                        raise ApiError.payload_too_large(
+                            "media_too_large",
+                            "media exceeds local observer fetch budget",
+                            {"cid": cid, "bytes": int(content_length), "max_bytes": int(max_bytes)},
+                        )
+                except ApiError:
+                    raise
+                except Exception:
+                    pass
+
+            total = 0
+            with tmp.open("wb") as f:
+                while True:
+                    chunk = resp.read(64 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > max_bytes:
+                        raise ApiError.payload_too_large(
+                            "media_too_large",
+                            "media exceeds local observer fetch budget",
+                            {"cid": cid, "bytes": int(total), "max_bytes": int(max_bytes)},
+                        )
+                    f.write(chunk)
+
+        tmp.replace(dest)
+        return total, url
+    except ApiError:
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise ApiError.bad_request(
+            "media_provider_unavailable",
+            "media provider unavailable",
+            {"cid": cid, "provider": url, "reason": str(exc)},
+        )
+
+
+def _content_media_index(st: dict[str, Any]) -> dict[str, Any]:
+    content = st.get("content")
+    if not isinstance(content, dict):
+        return {}
+    media = content.get("media")
+    return media if isinstance(media, dict) else {}
+
+
+def _media_summary(media_id: str, rec: Any) -> dict[str, Any]:
+    obj = rec if isinstance(rec, dict) else {}
+    payload = obj.get("payload") if isinstance(obj.get("payload"), dict) else {}
+    cid = str(obj.get("cid") or payload.get("cid") or payload.get("upload_ref") or "").strip()
+    return {
+        "media_id": media_id,
+        "cid": cid,
+        "mime": str(payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or "").strip(),
+        "name": str(payload.get("name") or payload.get("filename") or media_id).strip(),
+        "kind": str(obj.get("kind") or payload.get("kind") or "").strip(),
+        "bytes": int(payload.get("size") or payload.get("size_bytes") or 0) if str(payload.get("size") or payload.get("size_bytes") or "0").isdigit() else 0,
+        "declared_by": str(obj.get("declared_by") or "").strip(),
+        "declared_at_nonce": obj.get("declared_at_nonce"),
+        "load_policy": "viewport",
+        "fetch_path": f"/v1/media/proxy/{cid}" if cid else "",
+    }
 
 def _sanitize_filename(name: str) -> str:
     name = (name or "").strip()
@@ -363,3 +494,102 @@ async def v1_media_status(request: Request, cid: str):
         "last_confirm_nonce": int(last_nonce),
         "last_confirm_height": int(last_height),
     }
+
+
+@router.get("/media/resolve")
+async def v1_media_resolve(request: Request):
+    """Resolve committed media ids into metadata only.
+
+    This endpoint is intentionally blob-free. It lets feed/frontends resolve a
+    bounded visible page of media ids without reading the full state snapshot or
+    causing the observer node to fetch hundreds of media objects.
+    """
+    st = _snapshot(request)
+    raw_ids = _str_param(request.query_params.get("ids")).strip()
+    limit = max(1, min(100, _env_int("WEALL_MEDIA_RESOLVE_MAX_IDS", 50)))
+
+    ids: list[str] = []
+    for chunk in raw_ids.split(","):
+        media_id = chunk.strip()
+        if not media_id or media_id in ids:
+            continue
+        ids.append(media_id)
+        if len(ids) >= limit:
+            break
+
+    media = _content_media_index(st)
+    items: dict[str, Any] = {}
+    missing: list[str] = []
+    for media_id in ids:
+        rec = media.get(media_id)
+        if isinstance(rec, dict):
+            items[media_id] = _media_summary(media_id, rec)
+        else:
+            missing.append(media_id)
+
+    return {
+        "ok": True,
+        "items": items,
+        "missing": missing,
+        "count": len(items),
+        "limit": int(limit),
+        "load_policy": "viewport",
+    }
+
+
+@router.get("/media/proxy/{cid}")
+def v1_media_proxy(cid: str):
+    """Serve media through the local observer with bounded cache/fetch policy.
+
+    Feed/list endpoints never call this. The frontend should request this only
+    when a media card enters or approaches the viewport. The observer mediates
+    provider fetch, byte budget, concurrency, and local cache.
+    """
+    v = validate_ipfs_cid(cid)
+    if not v.ok:
+        raise ApiError.invalid("invalid_payload", v.reason)
+
+    normalized_cid = v.cid
+    max_bytes = max(1, _env_int("WEALL_MEDIA_PROXY_MAX_BYTES", 25 * 1024 * 1024))
+    timeout_s = max(1, _env_int("WEALL_MEDIA_PROXY_TIMEOUT_S", 20))
+    inflight = max(1, _env_int("WEALL_MEDIA_PROXY_MAX_INFLIGHT", 4))
+
+    if not _cache_enabled():
+        # Controlled fallback: still avoid feed-triggered bulk loads because only
+        # viewport URLs reach this route. Operators can disable local cache and
+        # redirect to their configured gateway/provider.
+        return RedirectResponse(_media_provider_url(normalized_cid))
+
+    path = _cache_path_for_cid(normalized_cid)
+    if path.exists() and path.is_file():
+        return FileResponse(
+            path,
+            media_type="application/octet-stream",
+            headers={"X-WeAll-Media-Cache": "hit", "X-WeAll-Media-Load-Policy": "viewport"},
+        )
+
+    if not _fetch_enabled():
+        raise ApiError.not_found(
+            "media_not_cached",
+            "media is not cached on this observer",
+            {"cid": normalized_cid, "load_policy": "viewport"},
+        )
+
+    sem = _media_fetch_semaphore(inflight)
+    acquired = sem.acquire(blocking=False)
+    if not acquired:
+        raise ApiError.too_many(
+            "media_fetch_busy",
+            "observer media fetch budget is busy",
+            {"cid": normalized_cid, "max_inflight": int(inflight)},
+        )
+    try:
+        _copy_provider_to_cache(cid=normalized_cid, dest=path, max_bytes=max_bytes, timeout_s=timeout_s)
+    finally:
+        sem.release()
+
+    return FileResponse(
+        path,
+        media_type="application/octet-stream",
+        headers={"X-WeAll-Media-Cache": "miss-store", "X-WeAll-Media-Load-Policy": "viewport"},
+    )

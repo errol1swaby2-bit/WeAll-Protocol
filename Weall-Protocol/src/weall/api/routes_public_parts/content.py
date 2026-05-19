@@ -4,6 +4,14 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from weall.api.routes_public_parts.common import (
+    _cursor_pack,
+    _cursor_unpack,
+    _int_param,
+    _normalize_tags_param,
+    _str_param,
+)
+
 router = APIRouter()
 
 Json = dict[str, Any]
@@ -71,6 +79,69 @@ def _post_visible(post: Json) -> bool:
     return vis in {"public", ""}
 
 
+
+def _tags_list(obj: Json) -> list[str]:
+    raw = obj.get("tags")
+    if isinstance(raw, str):
+        return [t.strip() for t in raw.split(",") if t.strip()]
+    if isinstance(raw, list):
+        return [str(t).strip() for t in raw if str(t).strip()]
+    return []
+
+
+def _media_root(st: Json) -> Json:
+    return _as_dict(_content_root(st).get("media"))
+
+
+def _media_ref_summary(raw: Any, media_index: Json) -> Any:
+    """Return metadata-only media references for feed responses.
+
+    This deliberately never fetches blobs. It only translates committed media ids
+    into bounded display metadata so observer/frontends can stay metadata-first
+    until viewport-triggered media loading asks the local observer for the CID.
+    """
+    if isinstance(raw, str):
+        media_id = raw.strip()
+        rec = _as_dict(media_index.get(media_id)) if media_id else {}
+        if not rec:
+            return raw
+        payload = _as_dict(rec.get("payload"))
+        cid = str(rec.get("cid") or payload.get("cid") or payload.get("upload_ref") or "").strip()
+        out: Json = {
+            "media_id": media_id,
+            "cid": cid,
+            "mime": str(payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or "").strip(),
+            "name": str(payload.get("name") or payload.get("filename") or media_id).strip(),
+            "kind": str(rec.get("kind") or payload.get("kind") or "").strip(),
+            "bytes": _safe_int(payload.get("size") or payload.get("size_bytes"), 0),
+            "declared_by": str(rec.get("declared_by") or "").strip(),
+            "declared_at_nonce": rec.get("declared_at_nonce"),
+            "load_policy": "viewport",
+            "fetch_path": f"/v1/media/proxy/{cid}" if cid else "",
+        }
+        return out
+
+    if isinstance(raw, dict):
+        cid = str(raw.get("cid") or raw.get("upload_ref") or raw.get("ref") or "").strip()
+        out = dict(raw)
+        out.setdefault("load_policy", "viewport")
+        if cid:
+            out.setdefault("fetch_path", f"/v1/media/proxy/{cid}")
+        return out
+
+    return raw
+
+
+def _with_media_summaries(st: Json, obj: Json) -> Json:
+    out = dict(obj)
+    raw_media = _as_list(out.get("media"))
+    if not raw_media:
+        return out
+    media_index = _media_root(st)
+    out["media"] = [_media_ref_summary(item, media_index) for item in raw_media]
+    out["media_load_policy"] = "viewport"
+    return out
+
 def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
     def k(obj: Json) -> tuple[int, str]:
         return (_safe_int(obj.get(key), 0), str(obj.get("post_id") or obj.get("comment_id") or ""))
@@ -113,28 +184,73 @@ def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]
 def feed(request: Request) -> dict[str, object]:
     """Public feed.
 
-    This is intentionally simple and deterministic:
-      - returns non-deleted, public posts only
-      - sorted by created_nonce descending
+    Production read-path rules:
+      - returns non-deleted, visible posts only
+      - supports bounded pagination instead of returning the full history
+      - returns metadata-only media summaries; media blobs are never fetched here
+      - sorted by created nonce descending
 
-    NOTE: In later phases you can replace this with the subgraph/AI ranking path.
+    This keeps observer/frontends metadata-first. Viewport-triggered media loads
+    should use the local observer media proxy only when a media card approaches
+    the user's viewport.
     """
 
     st = _snapshot(request)
+    qp = request.query_params
+    limit = _int_param(qp.get("limit"), 25)
+    limit = max(1, min(100, limit))
+    cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
+    visibility = _str_param(qp.get("visibility"), "public").strip().lower() or "public"
+    tags = _normalize_tags_param(qp.get("tags"))
+    author = _str_param(qp.get("author")).strip()
+
     posts = _posts(st)
     reaction_counts = _reaction_counts_by_target(st)
 
-    out: list[Json] = []
-    for _pid, p in posts.items():
+    filtered: list[Json] = []
+    for pid, p in posts.items():
         post = _with_reaction_counts(_as_dict(p), reaction_counts)
+        post_id = _str_param(post.get("post_id") or post.get("id") or pid).strip()
+        post.setdefault("id", post_id)
+        post.setdefault("created_at_nonce", _safe_int(post.get("created_nonce"), 0))
+        created_at_nonce = _safe_int(post.get("created_at_nonce") or post.get("created_nonce"), 0)
+
         if not _post_visible(post):
             continue
-        out.append(post)
 
-    out = _sort_by_nonce_desc(out, key="created_nonce")
+        if visibility in {"public", "private"}:
+            if _str_param(post.get("visibility"), "public").strip().lower() != visibility:
+                continue
+        elif visibility != "all":
+            # Unknown visibility filters fail closed to public.
+            if _str_param(post.get("visibility"), "public").strip().lower() != "public":
+                continue
 
-    # Keep payload stable for the frontend.
-    return {"ok": True, "items": out}
+        if author and _str_param(post.get("author")).strip() != author:
+            continue
+
+        if tags and not any(t in _tags_list(post) for t in tags):
+            continue
+
+        if cursor_n is not None and cursor_id is not None:
+            if created_at_nonce > cursor_n:
+                continue
+            if created_at_nonce == cursor_n and post_id >= cursor_id:
+                continue
+
+        filtered.append(_with_media_summaries(st, post))
+
+    filtered = _sort_by_nonce_desc(filtered, key="created_at_nonce")
+    page = filtered[:limit]
+    next_cursor = None
+    if len(page) == limit:
+        last = page[-1]
+        next_cursor = _cursor_pack(
+            created_at_nonce=_safe_int(last.get("created_at_nonce") or last.get("created_nonce"), 0),
+            content_id=str(last.get("id") or last.get("post_id") or ""),
+        )
+
+    return {"ok": True, "items": page, "next_cursor": next_cursor}
 
 
 @router.get("/content/{content_id}")
