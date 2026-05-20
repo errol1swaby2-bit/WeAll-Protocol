@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -36,6 +36,7 @@ type ThreadRecord = {
   message_ids: string[];
   last_message_id?: string;
   last_message_at_nonce?: number;
+  last_message?: MessageRecord;
 };
 
 type MessagingSurface = {
@@ -73,6 +74,7 @@ function normalizeThread(raw: any): ThreadRecord {
     message_ids: asArray(rec.message_ids).map((x) => String(x || "").trim()).filter(Boolean),
     last_message_id: String(rec.last_message_id || "").trim() || undefined,
     last_message_at_nonce: Number(rec.last_message_at_nonce || 0),
+    last_message: rec.last_message && typeof rec.last_message === "object" ? normalizeMessage(rec.last_message) : undefined,
   };
 }
 
@@ -96,7 +98,7 @@ function otherMembers(thread: ThreadRecord, account: string): string {
 function threadLastMessage(thread: ThreadRecord, messagesById: Record<string, MessageRecord>): string {
   const lastId = thread.last_message_id || thread.message_ids[thread.message_ids.length - 1] || "";
   const last = lastId ? messagesById[lastId] : null;
-  return last ? messageText(last) : "No messages yet.";
+  return last ? messageText(last) : thread.last_message ? messageText(thread.last_message) : "No messages yet.";
 }
 
 function defaultThreadId(account: string, recipient: string): string {
@@ -141,25 +143,41 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     setBusy(true);
     setErr(null);
     try {
-      const [snapshot] = await Promise.all([weall.stateSnapshot(apiBase), refreshAccount()]);
-      const state = asRecord((snapshot as any)?.state);
-      const messaging = asRecord(state.messaging);
-      const inboxByAccount = asRecord(messaging.inbox_by_account);
-      const inbox = asRecord(inboxByAccount[account]);
-      const threadIds = asArray(inbox.threads).map((x) => String(x || "").trim()).filter(Boolean);
-      const threadsById = asRecord(messaging.threads_by_id);
-      const messagesRaw = asRecord(messaging.messages_by_id);
-      const messagesById: Record<string, MessageRecord> = {};
-
-      for (const [id, raw] of Object.entries(messagesRaw).sort((a, b) => a[0].localeCompare(b[0]))) {
-        const msg = normalizeMessage(raw);
-        if (msg.message_id || id) messagesById[msg.message_id || id] = { ...msg, message_id: msg.message_id || id };
+      await refreshAccount();
+      if (!account) {
+        setSurface({ threads: [], messagesById: {} });
+        return;
+      }
+      const headers = getAuthHeaders(account);
+      if (!headers["x-weall-account"] || !headers["x-weall-session-key"]) {
+        throw new Error("Restore this device session before reading messages.");
       }
 
-      const threads = threadIds
-        .map((id) => normalizeThread(threadsById[id]))
+      const threadsRes: any = await weall.messageThreads({ limit: 50 }, apiBase, headers);
+      const messagesById: Record<string, MessageRecord> = {};
+      const threads = asArray(threadsRes?.threads)
+        .map((raw) => normalizeThread(raw))
         .filter((thread) => !!thread.thread_id)
         .sort((a, b) => Number(b.last_message_at_nonce || 0) - Number(a.last_message_at_nonce || 0) || a.thread_id.localeCompare(b.thread_id));
+
+      for (const thread of threads) {
+        if (thread.last_message?.message_id) {
+          messagesById[thread.last_message.message_id] = thread.last_message;
+        }
+      }
+
+      if (threadId) {
+        const detail: any = await weall.messageThread(threadId, { limit: 100 }, apiBase, headers);
+        const detailedThread = normalizeThread(detail?.thread);
+        const detailedMessages = asArray(detail?.messages).map((raw) => normalizeMessage(raw)).filter((msg) => !!msg.message_id);
+        for (const msg of detailedMessages) messagesById[msg.message_id] = msg;
+        if (detailedThread.thread_id) {
+          detailedThread.message_ids = detailedMessages.map((msg) => msg.message_id);
+          const idx = threads.findIndex((t) => t.thread_id === detailedThread.thread_id);
+          if (idx >= 0) threads[idx] = { ...threads[idx], ...detailedThread };
+          else threads.push(detailedThread);
+        }
+      }
 
       setSurface({ threads, messagesById });
     } catch (e: any) {
@@ -172,7 +190,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
 
   useEffect(() => {
     void loadMessages();
-  }, [account, apiBase]);
+  }, [account, apiBase, threadId]);
 
   useMutationRefresh({
     entityTypes: ["account"],

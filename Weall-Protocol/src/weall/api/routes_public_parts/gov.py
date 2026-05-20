@@ -8,7 +8,7 @@ _ACTIVE_STAGES = frozenset({"draft", "poll", "voting", "open", "queued", "finali
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.api.routes_public_parts.common import _int_param, _snapshot
+from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
 
 router = APIRouter()
 
@@ -60,6 +60,19 @@ def _count_map(m: dict[str, Any]) -> dict[str, int]:
     return out
 
 
+
+
+def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
+    _cursor_n, cursor_key = _cursor_unpack(cursor)
+    rows = [(str(k), v) for k, v in votes.items()]
+    rows.sort(key=lambda item: item[0])
+    if cursor_key:
+        rows = [item for item in rows if item[0] > cursor_key]
+    page_rows = rows[:limit]
+    next_cursor = None
+    if len(page_rows) == limit:
+        next_cursor = _cursor_pack(created_at_nonce=0, content_id=page_rows[-1][0])
+    return {k: v for k, v in page_rows}, next_cursor
 
 
 def _proposal_stage(obj: dict[str, Any]) -> str:
@@ -130,6 +143,21 @@ def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+
+
+def _redact_proposal_vote_maps(obj: dict[str, Any]) -> dict[str, Any]:
+    """Return proposal detail/list shape without unbounded voter maps."""
+
+    out = _normalize_proposal(obj)
+    poll_votes = _as_vote_map(obj.get("poll_votes"))
+    votes = _as_vote_map(obj.get("votes"))
+    out.pop("poll_votes", None)
+    out.pop("votes", None)
+    out["poll_votes_redacted"] = True
+    out["votes_redacted"] = True
+    out["counts_total"] = {"poll_votes": len(poll_votes), "votes": len(votes)}
+    return out
+
 def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     """Fetch a proposal object by id from snapshot, supporting canonical + legacy IDs."""
 
@@ -178,7 +206,7 @@ def v1_gov_proposals(request: Request):
     all_items: list[dict[str, Any]] = []
     for _, obj in by_id.items():
         if isinstance(obj, dict):
-            all_items.append(_normalize_proposal(obj))
+            all_items.append(_redact_proposal_vote_maps(obj))
 
     all_items.sort(
         key=lambda x: (
@@ -211,7 +239,7 @@ def v1_gov_proposal_get(proposal_id: str, request: Request):
 
     st = _snapshot(request)
     obj = _proposal_obj_from_snapshot(st, proposal_id)
-    return {"ok": True, "proposal": _normalize_proposal(obj)}
+    return {"ok": True, "proposal": _redact_proposal_vote_maps(obj)}
 
 
 @router.get("/gov/proposals/{proposal_id}/votes")
@@ -225,8 +253,12 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
     st = _snapshot(request)
     obj = _proposal_obj_from_snapshot(st, proposal_id)
 
-    poll_votes = _as_vote_map(obj.get("poll_votes"))
-    votes = _as_vote_map(obj.get("votes"))
+    poll_votes_all = _as_vote_map(obj.get("poll_votes"))
+    votes_all = _as_vote_map(obj.get("votes"))
+    qp = request.query_params
+    limit = max(1, min(500, _int_param(qp.get("limit"), 100)))
+    poll_votes, poll_next_cursor = _page_vote_map(poll_votes_all, limit=limit, cursor=qp.get("poll_cursor") or qp.get("cursor"))
+    votes, next_cursor = _page_vote_map(votes_all, limit=limit, cursor=qp.get("cursor"))
 
     return {
         "ok": True,
@@ -234,6 +266,9 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
         "stage": str(obj.get("stage") or obj.get("status") or "unknown"),
         "poll_votes": poll_votes,
         "votes": votes,
-        "poll_counts": _count_map(poll_votes),
-        "counts": _count_map(votes),
+        "poll_counts": _count_map(poll_votes_all),
+        "counts": _count_map(votes_all),
+        "next_cursor": next_cursor,
+        "poll_next_cursor": poll_next_cursor,
+        "counts_total": {"poll_votes": len(poll_votes_all), "votes": len(votes_all), "returned_votes": len(votes), "returned_poll_votes": len(poll_votes)},
     }

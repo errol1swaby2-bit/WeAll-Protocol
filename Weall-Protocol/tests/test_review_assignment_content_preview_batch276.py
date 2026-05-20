@@ -43,7 +43,8 @@ def test_dispute_review_uses_canonical_dispute_id_and_resolves_flagged_media_bat
     assert '{ dispute_id: disputeId }' in review
     assert '{ dispute_id: disputeId, vote: "no"' in review
     assert '{ dispute_id: disputeId, vote: "yes"' in review
-    assert "weall.stateSnapshot(apiBase).catch(() => null)" in review
-    assert "setMediaIndex(mediaRoot && typeof mediaRoot === \"object\" ? mediaRoot : {})" in review
-    assert "resolveContentMedia(contentObj, mediaIndex)" in review
+    assert "weall.stateSnapshot(apiBase).catch(() => null)" not in review
+    assert "setMediaIndex" not in review
+    assert "resolveContentMedia" not in review
+    assert "contentMedia = asArray(contentObj?.media)" in review
     assert '<MediaGallery base={apiBase} media={contentMedia} title="Flagged media" compact />' in review

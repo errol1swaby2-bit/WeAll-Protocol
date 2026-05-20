@@ -429,6 +429,10 @@ class ContentMediaDeclarePayload(_StrictModel):
     mime: str | None = None
     bytes: int | None = Field(default=None, ge=0)
     name: str | None = None
+    sha256: str | None = None
+    content_sha256: str | None = None
+    bytes_sha256: str | None = None
+    digest_sha256: str | None = None
 
 
 class ContentMediaBindPayload(_StrictModel):

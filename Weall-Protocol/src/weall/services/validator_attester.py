@@ -93,6 +93,33 @@ def _validate_startup_args(
         raise ValidatorAttesterError("attester_invalid_sig_encoding")
 
 
+
+
+def _read_head_status(producer_url: str) -> Json:
+    """Read the current chain head from /v1/status, falling back only in non-prod.
+
+    The public state snapshot is broad and increasingly redacted; validator
+    attestation only needs head metadata.  Production therefore polls the
+    narrow status route and fails closed if it cannot read it.
+    """
+    status = _http_json("GET", f"{producer_url}/v1/status")
+    if status.get("ok"):
+        return status
+    if _mode() == "prod":
+        raise ValidatorAttesterError(
+            f"attester_status_failed:{status.get('error') or 'unknown'}"
+        )
+    snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
+    if not snap.get("ok"):
+        raise ValidatorAttesterError(
+            f"attester_snapshot_failed:{snap.get('error') or status.get('error') or 'unknown'}"
+        )
+    state = snap.get("state") if isinstance(snap.get("state"), dict) else snap
+    if isinstance(state, dict):
+        return {"ok": True, **state}
+    raise ValidatorAttesterError("attester_snapshot_invalid:bad_state")
+
+
 def run_attester_loop(
     *,
     producer_url: str,
@@ -115,41 +142,35 @@ def run_attester_loop(
     last_tip: str | None = None
 
     while True:
-        snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
-        if not snap.get("ok"):
-            if _mode() == "prod":
-                raise ValidatorAttesterError(
-                    f"attester_snapshot_failed:{snap.get('error') or 'unknown'}"
-                )
-            if verbose:
-                print("snapshot_error:", snap)
-            time.sleep(poll_seconds)
-            if once:
-                return 2
-            continue
+        try:
+            head = _read_head_status(producer_url)
+        except ValidatorAttesterError:
+            raise
+        except Exception as e:
+            raise ValidatorAttesterError(f"attester_status_invalid:{type(e).__name__}:{e}") from e
 
         try:
-            tip = str(snap.get("tip") or "").strip()
-            tip_proposal_id = str(snap.get("tip_proposal_id") or "").strip()
-            tip_round = int(snap.get("tip_round", 0) or 0)
-            height = int(snap.get("height", 0) or 0)
-            chain_id = str(snap.get("chain_id") or "weall").strip() or "weall"
+            tip = str(head.get("tip") or "").strip()
+            tip_proposal_id = str(head.get("tip_proposal_id") or "").strip()
+            tip_round = int(head.get("tip_round", head.get("round", 0)) or 0)
+            height = int(head.get("height", 0) or 0)
+            chain_id = str(head.get("chain_id") or "weall").strip() or "weall"
         except Exception as e:
-            raise ValidatorAttesterError(f"attester_snapshot_invalid:{type(e).__name__}:{e}") from e
+            raise ValidatorAttesterError(f"attester_status_invalid:{type(e).__name__}:{e}") from e
 
         # Source checkpoint for Casper-style justification/finality.
         source_block_id = (
-            str(snap.get("justified_block_id") or "").strip()
-            or str(snap.get("finalized_block_id") or "").strip()
+            str(head.get("justified_block_id") or "").strip()
+            or str(head.get("finalized_block_id") or "").strip()
         )
         try:
-            source_height = int(snap.get("justified_height", 0) or 0)
+            source_height = int(head.get("justified_height", 0) or 0)
         except Exception:
             source_height = 0
         if not source_block_id:
-            source_block_id = str(snap.get("finalized_block_id") or "").strip()
+            source_block_id = str(head.get("finalized_block_id") or "").strip()
             try:
-                source_height = int(snap.get("finalized_height", 0) or 0)
+                source_height = int(head.get("finalized_height", 0) or 0)
             except Exception:
                 source_height = 0
 

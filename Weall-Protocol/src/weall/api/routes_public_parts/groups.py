@@ -18,6 +18,7 @@ from weall.api.routes_public_parts.common import (
     _str_param,
 )
 from weall.api.security import require_account_session
+from weall.api.routes_public_parts.content import _with_media_summaries
 
 router = APIRouter()
 
@@ -115,6 +116,28 @@ def _group_record(st: dict[str, Any], group_id: str) -> dict[str, Any] | None:
     return out
 
 
+
+
+def _redacted_members_map(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return {"redacted": True, "count": len(value)}
+    if isinstance(value, list):
+        return {"redacted": True, "count": len(value)}
+    return {"redacted": True, "count": 0}
+
+
+def _redact_group_membership_maps(group: dict[str, Any]) -> dict[str, Any]:
+    out = dict(group)
+    if "members" in out:
+        out["members"] = _redacted_members_map(out.get("members"))
+    roles = out.get("roles")
+    if isinstance(roles, dict):
+        roles_out = dict(roles)
+        if "members" in roles_out:
+            roles_out["members"] = _redacted_members_map(roles_out.get("members"))
+        out["roles"] = roles_out
+    return out
+
 def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None) -> dict[str, Any]:
     group = _group_record(st, group_id)
     if not isinstance(group, dict):
@@ -191,6 +214,79 @@ def _require_group_access(
     return acct
 
 
+def _is_group_member(st: dict[str, Any], *, group_id: str, account: str | None) -> bool:
+    acct = str(account or "").strip()
+    gid = str(group_id or "").strip()
+    if not acct or not gid:
+        return False
+
+    g = _groups_by_id(st).get(gid)
+    if isinstance(g, dict):
+        members = g.get("members")
+        if isinstance(members, dict) and acct in members:
+            return True
+
+    g_roles = _group_roles_by_id(st).get(gid)
+    if isinstance(g_roles, dict):
+        members = g_roles.get("members")
+        if isinstance(members, dict) and acct in members:
+            return True
+
+    return False
+
+
+def _post_visibility(obj: dict[str, Any]) -> str:
+    return _str_param(obj.get("visibility", "public")).strip().lower() or "public"
+
+
+def _post_public_visible(obj: dict[str, Any]) -> bool:
+    return _post_visibility(obj) in {"public", ""}
+
+
+def _group_content_viewer(request: Request, st: dict[str, Any]) -> str | None:
+    try:
+        return require_account_session(request, st)
+    except Exception:
+        return None
+
+
+def _group_content_can_show(
+    request: Request,
+    st: dict[str, Any],
+    *,
+    group_id: str,
+    group_meta: dict[str, Any],
+    post: dict[str, Any],
+    requested_visibility: str = "",
+) -> bool:
+    """Visibility guard for group content/feed read paths.
+
+    Public group endpoints must not leak private/unlisted group posts by
+    default.  Non-public posts are visible only to an authenticated group member
+    through an explicit private/all visibility request. Private groups already
+    require membership via ``_require_group_access`` before this helper runs.
+    """
+
+    vis = _post_visibility(post)
+    if vis in {"public", ""}:
+        return True
+
+    # Explicitly requesting public never returns non-public posts.
+    if requested_visibility == "public":
+        return False
+
+    # For public groups, private/all scoped group reads require membership. For
+    # private groups the caller is already a member because _require_group_access
+    # has run, but checking again keeps the helper self-contained.
+    if requested_visibility not in {"private", "all", "members", "scoped"}:
+        return False
+
+    viewer = _group_content_viewer(request, st)
+    if not viewer:
+        return False
+    return _is_group_member(st, group_id=group_id, account=viewer)
+
+
 @router.get("/groups")
 def v1_groups_list(request: Request):
     st = _snapshot(request)
@@ -212,7 +308,7 @@ def v1_groups_list(request: Request):
         roles_obj = by_roles.get(gid)
         if isinstance(roles_obj, dict):
             obj["roles"] = roles_obj
-        out.append(obj)
+        out.append(_redact_group_membership_maps(obj))
         seen.add(obj["id"])
 
     for gid, g in by_roles.items():
@@ -221,7 +317,7 @@ def v1_groups_list(request: Request):
         if not isinstance(g, dict):
             continue
         obj = {"id": str(gid), "roles": g}
-        out.append(obj)
+        out.append(_redact_group_membership_maps(obj))
 
     out.sort(
         key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
@@ -242,7 +338,7 @@ def v1_group_get(group_id: str, request: Request):
     except Exception:
         account = None
 
-    return {"ok": True, "group": g, "membership": _membership_status(st, group_id=group_id, account=account)}
+    return {"ok": True, "group": _redact_group_membership_maps(g), "membership": _membership_status(st, group_id=group_id, account=account)}
 
 
 @router.get("/groups/{group_id}/membership")
@@ -259,6 +355,10 @@ def v1_group_membership(group_id: str, request: Request):
 @router.get("/groups/{group_id}/members")
 def v1_group_members(group_id: str, request: Request):
     st = _snapshot(request)
+    g = _group_record(st, group_id)
+    if not isinstance(g, dict):
+        raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
+    _require_group_access(request, st, group_id=group_id, group_meta=g)
 
     # Prefer canonical membership storage in groups_by_id.
     by_state = _groups_by_id(st)
@@ -284,7 +384,25 @@ def v1_group_members(group_id: str, request: Request):
         out.append(row)
 
     out.sort(key=lambda x: str(x.get("account") or ""))
-    return {"ok": True, "group_id": group_id, "members": out}
+
+    qp = request.query_params
+    limit = max(1, min(200, _int_param(qp.get("limit"), 50)))
+    _cursor_n, cursor_account = _cursor_unpack(qp.get("cursor"))
+    if cursor_account:
+        out = [row for row in out if str(row.get("account") or "") > cursor_account]
+
+    page = out[:limit]
+    next_cursor = None
+    if len(page) == limit:
+        next_cursor = _cursor_pack(created_at_nonce=0, content_id=str(page[-1].get("account") or ""))
+
+    return {
+        "ok": True,
+        "group_id": group_id,
+        "members": page,
+        "next_cursor": next_cursor,
+        "counts": {"returned": len(page), "total": len(members)},
+    }
 
 
 @router.post("/groups/join", response_model=TxSkeletonResponse)
@@ -347,15 +465,55 @@ def v1_group_leave(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRe
 @router.get("/groups/{group_id}/content")
 def v1_group_content(group_id: str, request: Request):
     st = _snapshot(request)
+    g = _group_record(st, group_id)
+    if not isinstance(g, dict):
+        raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
+    _require_group_access(request, st, group_id=group_id, group_meta=g)
+
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 25)
     limit = max(1, min(100, limit))
+    cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
+    default_visibility = "all" if _group_is_private(g) else "public"
+    visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    if visibility not in {"public", "private", "all", "members", "scoped"}:
+        visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
-    posts.sort(
+    filtered: list[dict[str, Any]] = []
+    for obj in posts:
+        if visibility in {"public", "private"} and _post_visibility(obj) != visibility:
+            continue
+        if not _group_content_can_show(
+            request,
+            st,
+            group_id=group_id,
+            group_meta=g,
+            post=obj,
+            requested_visibility=visibility,
+        ):
+            continue
+        obj_id = _str_param(obj.get("id") or obj.get("post_id") or "").strip()
+        created_at_nonce = int(obj.get("created_at_nonce", 0) or 0)
+        if cursor_n is not None and cursor_id is not None:
+            if created_at_nonce > cursor_n:
+                continue
+            if created_at_nonce == cursor_n and obj_id >= cursor_id:
+                continue
+        filtered.append(_with_media_summaries(st, obj))
+
+    filtered.sort(
         key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
     )
-    return {"ok": True, "group_id": group_id, "items": posts[:limit]}
+    page = filtered[:limit]
+    next_cursor = None
+    if len(page) == limit:
+        last = page[-1]
+        next_cursor = _cursor_pack(
+            created_at_nonce=int(last.get("created_at_nonce", 0) or 0),
+            content_id=str(last.get("id") or ""),
+        )
+    return {"ok": True, "group_id": group_id, "items": page, "next_cursor": next_cursor}
 
 
 @router.get("/groups/{group_id}/feed")
@@ -374,13 +532,10 @@ def v1_group_feed(group_id: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     tags = _normalize_tags_param(qp.get("tags"))
     author = _str_param(qp.get("author")).strip()
-    visibility = _str_param(qp.get("visibility")).strip().lower()
-
-    if visibility == "private":
-        try:
-            require_account_session(request, st)
-        except PermissionError:
-            raise ApiError.forbidden("forbidden", "Private group feed requires login")
+    default_visibility = "all" if _group_is_private(g) else "public"
+    visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    if visibility not in {"public", "private", "all", "members", "scoped"}:
+        visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
 
@@ -393,8 +548,17 @@ def v1_group_feed(group_id: str, request: Request):
             continue
 
         if visibility in {"public", "private"}:
-            if _str_param(obj.get("visibility", "public")).strip().lower() != visibility:
+            if _post_visibility(obj) != visibility:
                 continue
+        if not _group_content_can_show(
+            request,
+            st,
+            group_id=group_id,
+            group_meta=g,
+            post=obj,
+            requested_visibility=visibility,
+        ):
+            continue
 
         if tags:
             if not any(t in _tags_list(obj) for t in tags):
@@ -406,7 +570,7 @@ def v1_group_feed(group_id: str, request: Request):
             if created_at_nonce == cursor_n and obj_id >= cursor_id:
                 continue
 
-        filtered.append(obj)
+        filtered.append(_with_media_summaries(st, obj))
 
     filtered.sort(
         key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True

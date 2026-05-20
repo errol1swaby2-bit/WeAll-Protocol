@@ -185,11 +185,14 @@ def _seed_net_self_url(seed: str) -> str:
     return f"{s}/v1/net/self"
 
 
-def _http_get_json(url: str, *, timeout_s: float = 2.0) -> Json | None:
+def _http_get_json(url: str, *, timeout_s: float = 2.0, headers: dict[str, str] | None = None) -> Json | None:
     if not url:
         return None
     try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req_headers = {"Accept": "application/json"}
+        if headers:
+            req_headers.update({str(k): str(v) for k, v in headers.items() if str(v).strip()})
+        req = urllib.request.Request(url, headers=req_headers)
         with urllib.request.urlopen(req, timeout=float(timeout_s)) as resp:
             data = resp.read()
         obj = json.loads(data.decode("utf-8"))
@@ -198,6 +201,23 @@ def _http_get_json(url: str, *, timeout_s: float = 2.0) -> Json | None:
         return None
     except Exception:
         return None
+
+
+def _peer_state_raw_read_headers() -> dict[str, str]:
+    token = str(
+        os.environ.get("WEALL_PEER_STATE_RAW_READ_TOKEN")
+        or os.environ.get("WEALL_STATE_RAW_READ_TOKEN")
+        or os.environ.get("WEALL_STATE_SYNC_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OBSERVER_EDGE_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OPERATOR_TOKEN")
+        or ""
+    ).strip()
+    if not token:
+        return {}
+    return {
+        "X-WeAll-State-Raw-Read-Token": token,
+        "X-WeAll-State-Sync-Operator-Token": token,
+    }
 
 
 def _http_post_json(url: str, obj: Json, *, timeout_s: float = 2.0) -> Json | None:
@@ -1239,7 +1259,17 @@ class NetMeshLoop:
         bid = str(block_id or "").strip()
         if not base or not bid:
             return None
-        obj = _http_get_json(f"{base}/v1/state/block/{bid}", timeout_s=2.0)
+        url = f"{base}/v1/state/block/{bid}"
+        headers = _peer_state_raw_read_headers()
+        try:
+            obj = _http_get_json(url, timeout_s=2.0, headers=headers)
+        except TypeError as exc:
+            # Several older unit tests monkeypatch _http_get_json with a narrow
+            # `(url, *, timeout_s=...)` callable. Preserve that test seam while
+            # still sending auth headers through the real helper in production.
+            if headers or "headers" not in str(exc):
+                raise
+            obj = _http_get_json(url, timeout_s=2.0)
         if not isinstance(obj, dict) or not bool(obj.get("ok")):
             return None
         blk = obj.get("block")

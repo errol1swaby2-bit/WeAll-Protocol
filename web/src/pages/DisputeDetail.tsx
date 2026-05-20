@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { getSession, submitSignedTx } from "../auth/session";
+import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
@@ -107,7 +107,10 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       const targetId = String(nextDispute?.target_id || "").trim();
       if (targetType === "content" && targetId) {
         try {
-          const contentRes = await weall.content(targetId, apiBase);
+          const headers = account ? getAuthHeaders(account) : undefined;
+          const contentRes = headers
+            ? await weall.contentScoped(targetId, apiBase, headers)
+            : await weall.content(targetId, apiBase);
           setTargetContent(contentRes || null);
         } catch {
           setTargetContent(null);

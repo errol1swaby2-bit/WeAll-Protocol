@@ -46,28 +46,51 @@ function joinBasePath(base: string, path: string): string {
   return `${b || ""}${p}`;
 }
 
-function deriveUrl(item: MediaLike, base: string): string {
+function isProxyPath(path: string): boolean {
+  const raw = String(path || "").trim();
+  if (!raw) return false;
+  if (raw.startsWith("/v1/media/proxy/")) return true;
+  try {
+    const parsed = new URL(raw);
+    return parsed.pathname.startsWith("/v1/media/proxy/");
+  } catch {
+    return false;
+  }
+}
+
+function deriveExternalUrl(item: MediaLike): string {
   if (typeof item === "string") {
     const raw = item.trim();
-    if (/^https?:\/\//i.test(raw)) return raw;
-    const cid = deriveCid(raw);
-    return cid ? weall.mediaProxyUrl(cid, base) : "";
+    if (/^https?:\/\//i.test(raw) && !deriveCid(raw)) return raw;
+    return "";
   }
+  if (!item || typeof item !== "object") return "";
+  const direct = firstString(item.gateway_url, item.url, item.src, item.href);
+  if (/^https?:\/\//i.test(direct) && !deriveCid(direct)) return String(direct);
+  return "";
+}
+
+function deriveUrl(item: MediaLike, base: string): string {
+  const cid = deriveCid(item);
+  if (cid) return weall.mediaProxyUrl(cid, base);
   if (!item || typeof item !== "object") return "";
 
   const fetchPath = firstString(item.fetch_path, item.proxy_path, item.local_proxy_path);
-  if (fetchPath) {
-    if (/^https?:\/\//i.test(fetchPath)) return fetchPath;
+  if (fetchPath && isProxyPath(fetchPath)) {
+    if (/^https?:\/\//i.test(fetchPath)) {
+      try {
+        return joinBasePath(base, new URL(fetchPath).pathname);
+      } catch {
+        return "";
+      }
+    }
     return joinBasePath(base, fetchPath);
   }
 
-  const direct = firstString(item.gateway_url, item.url, item.src, item.href);
-  if (direct) {
-    if (/^https?:\/\//i.test(direct)) return direct;
-    if (direct.startsWith("ipfs://")) return weall.mediaProxyUrl(direct.slice("ipfs://".length), base);
-  }
-  const cid = deriveCid(item);
-  return cid ? weall.mediaProxyUrl(cid, base) : "";
+  // Direct HTTP gateway/provider URLs are intentionally not auto-loaded.
+  // The frontend should render media through the local observer proxy whenever a CID exists.
+  // If no CID exists, expose only a manual external attachment button.
+  return "";
 }
 
 function deriveMime(item: MediaLike): string {
@@ -157,6 +180,7 @@ function DeferredMediaCard({
 }): JSX.Element {
   const [ref, shouldLoad] = useViewportLoad();
   const url = deriveUrl(item, base);
+  const externalUrl = deriveExternalUrl(item);
   const mime = deriveMime(item);
   const cid = deriveCid(item);
   const label = deriveLabel(item);
@@ -175,7 +199,12 @@ function DeferredMediaCard({
       {kind === "audio" && url && shouldLoad ? <audio src={url} controls preload="none" style={{ width: "100%" }} /> : null}
       {kind === "file" && url ? (
         <a href={url} target="_blank" rel="noreferrer" className="btn" style={{ width: "fit-content" }}>
-          Open attachment
+          Open attachment through observer
+        </a>
+      ) : null}
+      {!url && externalUrl ? (
+        <a href={externalUrl} target="_blank" rel="noreferrer" className="btn" style={{ width: "fit-content" }}>
+          Open external attachment
         </a>
       ) : null}
       <div className="feedMediaMeta mono" style={{ marginTop: 8 }}>
@@ -186,7 +215,8 @@ function DeferredMediaCard({
         {cid ? <span className="statusPill mono">{cid}</span> : null}
         <span className="statusPill">viewport loaded</span>
       </div>
-      {!url ? <div className="cardDesc" style={{ marginTop: 8 }}>Unresolved media reference. The post may only expose a media id at this stage.</div> : null}
+      {!url && !externalUrl ? <div className="cardDesc" style={{ marginTop: 8 }}>Unresolved media reference. The post may only expose a media id at this stage.</div> : null}
+      {!url && externalUrl ? <div className="cardDesc" style={{ marginTop: 8 }}>External media is not auto-loaded. Open it manually only if you trust the source.</div> : null}
     </div>
   );
 }

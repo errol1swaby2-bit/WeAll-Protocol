@@ -96,6 +96,71 @@ def _device_summary(devices: Any) -> Json:
     }
 
 
+
+
+def _content_summary(content: Any) -> Json:
+    root = _as_mapping(content)
+    posts = _as_mapping(root.get("posts"))
+    comments = _as_mapping(root.get("comments"))
+    media = _as_mapping(root.get("media"))
+
+    def _visibility_counts(items: Mapping[str, Any]) -> Json:
+        counts: Json = {"total": 0, "public": 0, "non_public": 0, "deleted": 0}
+        for rec in items.values():
+            if not isinstance(rec, Mapping):
+                continue
+            counts["total"] = int(counts["total"]) + 1
+            if bool(rec.get("deleted", False)):
+                counts["deleted"] = int(counts["deleted"]) + 1
+                continue
+            vis = str(rec.get("visibility") or "public").strip().lower() or "public"
+            if vis == "public":
+                counts["public"] = int(counts["public"]) + 1
+            else:
+                counts["non_public"] = int(counts["non_public"]) + 1
+        return counts
+
+    return {
+        "redacted": True,
+        "summary": {
+            "posts": _visibility_counts(posts),
+            "comments": _visibility_counts(comments),
+            "media": {"total": len(media)},
+        },
+    }
+
+
+def _groups_summary(groups: Any) -> Json:
+    root = _as_mapping(groups)
+    total = 0
+    public = 0
+    private = 0
+    for rec in root.values():
+        if not isinstance(rec, Mapping):
+            continue
+        total += 1
+        visibility = str(rec.get("visibility") or rec.get("privacy") or "public").strip().lower()
+        if visibility in {"private", "closed", "invite_only", "invite-only"}:
+            private += 1
+        else:
+            public += 1
+    return {"redacted": True, "summary": {"total": total, "public": public, "private": private}}
+
+def _messaging_summary(messaging: Any) -> Json:
+    root = _as_mapping(messaging)
+    threads = _as_mapping(root.get("threads_by_id"))
+    messages = _as_mapping(root.get("messages_by_id"))
+    inboxes = _as_mapping(root.get("inbox_by_account"))
+    return {
+        "redacted": True,
+        "summary": {
+            "threads": len(threads),
+            "messages": len(messages),
+            "inboxes": len(inboxes),
+        },
+    }
+
+
 def redact_account_state(account_state: Any, *, reveal_private: bool = False) -> Any:
     """Return account state safe for public API presentation.
 
@@ -129,6 +194,14 @@ def redact_public_state(state: Any) -> Any:
             str(account): redact_account_state(rec, reveal_private=False)
             for account, rec in accounts.items()
         }
+    if "content" in copied:
+        copied["content"] = _content_summary(copied.get("content"))
+    if "groups" in copied:
+        copied["groups"] = _groups_summary(copied.get("groups"))
+    if "groups_by_id" in copied:
+        copied["groups_by_id"] = _groups_summary(copied.get("groups_by_id"))
+    if "messaging" in copied:
+        copied["messaging"] = _messaging_summary(copied.get("messaging"))
     return _redact_recursive(copied)
 
 

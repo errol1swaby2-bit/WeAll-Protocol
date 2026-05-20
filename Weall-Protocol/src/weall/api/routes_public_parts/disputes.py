@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.api.routes_public_parts.common import _int_param, _snapshot
+from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
 
 router = APIRouter()
 
@@ -29,6 +29,19 @@ def _as_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+
+
+def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
+    _cursor_n, cursor_key = _cursor_unpack(cursor)
+    rows = [(str(k), v) for k, v in votes.items()]
+    rows.sort(key=lambda item: item[0])
+    if cursor_key:
+        rows = [item for item in rows if item[0] > cursor_key]
+    page_rows = rows[:limit]
+    next_cursor = None
+    if len(page_rows) == limit:
+        next_cursor = _cursor_pack(created_at_nonce=0, content_id=page_rows[-1][0])
+    return {k: v for k, v in page_rows}, next_cursor
 def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     out = dict(obj)
     dispute_id = str(out.get("id") or out.get("dispute_id") or "").strip()
@@ -86,6 +99,32 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+
+
+def _redact_dispute_detail_maps(obj: dict[str, Any]) -> dict[str, Any]:
+    """Return dispute detail/list shape without unbounded maps/lists."""
+
+    normalized = _normalize_dispute(obj)
+    jurors = _as_dict(normalized.get("jurors"))
+    votes = _as_dict(normalized.get("votes"))
+    evidence = normalized.get("evidence") if isinstance(normalized.get("evidence"), list) else []
+    appeals = normalized.get("appeals") if isinstance(normalized.get("appeals"), list) else []
+    normalized.pop("jurors", None)
+    normalized.pop("votes", None)
+    normalized.pop("evidence", None)
+    normalized.pop("appeals", None)
+    normalized["jurors_redacted"] = True
+    normalized["votes_redacted"] = True
+    normalized["evidence_redacted"] = True
+    normalized["appeals_redacted"] = True
+    normalized["counts_total"] = {
+        "jurors": len(jurors),
+        "votes": len(votes),
+        "evidence": len(evidence),
+        "appeals": len(appeals),
+    }
+    return normalized
+
 def _dispute_obj_from_snapshot(st: dict[str, Any], dispute_id: str) -> dict[str, Any]:
     by_id = _disputes_by_id(st)
     if not by_id:
@@ -139,7 +178,7 @@ def v1_disputes_list(request: Request):
             continue
         if active_only and not is_active:
             continue
-        items.append(normalized)
+        items.append(_redact_dispute_detail_maps(obj))
 
     items.sort(
         key=lambda x: (
@@ -158,17 +197,23 @@ def v1_disputes_list(request: Request):
 def v1_dispute_get(dispute_id: str, request: Request):
     st = _snapshot(request)
     obj = _dispute_obj_from_snapshot(st, dispute_id)
-    return {"ok": True, "dispute": _normalize_dispute(obj)}
+    return {"ok": True, "dispute": _redact_dispute_detail_maps(obj)}
 
 
 @router.get("/disputes/{dispute_id}/votes")
 def v1_dispute_votes(dispute_id: str, request: Request):
     st = _snapshot(request)
     obj = _normalize_dispute(_dispute_obj_from_snapshot(st, dispute_id))
+    votes_all = _as_dict(obj.get("votes"))
+    qp = request.query_params
+    limit = max(1, min(500, _int_param(qp.get("limit"), 100)))
+    votes, next_cursor = _page_vote_map(votes_all, limit=limit, cursor=qp.get("cursor"))
     return {
         "ok": True,
         "dispute_id": str(obj.get("id") or dispute_id),
         "stage": str(obj.get("stage") or "open"),
-        "votes": obj.get("votes") or {},
+        "votes": votes,
         "vote_counts": obj.get("vote_counts") or {"yes": 0, "no": 0, "abstain": 0},
+        "next_cursor": next_cursor,
+        "counts_total": {"votes": len(votes_all), "returned_votes": len(votes)},
     }

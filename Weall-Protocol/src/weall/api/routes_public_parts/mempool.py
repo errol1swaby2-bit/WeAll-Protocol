@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Request
 from pydantic import ValidationError
 
@@ -17,6 +19,28 @@ from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_schema import validate_tx_envelope
 
 router = APIRouter()
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _observer_edge_mode() -> bool:
+    if _env_bool("WEALL_OBSERVER_EDGE_MODE", False):
+        return True
+    lifecycle = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE") or "").strip().lower()
+    return lifecycle in {"observer_onboarding", "bootstrap_registration"} and _env_bool(
+        "WEALL_OBSERVER_MODE", False
+    )
+
+
+def _allow_mempool_submit_in_observer_edge() -> bool:
+    # /v1/mempool/submit predates the durable local-observer outbox.  In
+    # observer-edge mode it can create a local-only trap, so keep it disabled
+    # unless an operator explicitly opts into legacy behavior.
+    return _env_bool("WEALL_OBSERVER_EDGE_ALLOW_MEMPOOL_SUBMIT", False)
 
 
 def _net_node(request: Request):
@@ -57,6 +81,13 @@ async def mempool_submit(request: Request):
       - Never accept signer == SYSTEM over public HTTP.
       - Mirror tx-submit signature + chain-id replay-domain checks.
     """
+    if _observer_edge_mode() and not _allow_mempool_submit_in_observer_edge():
+        raise ApiError.forbidden(
+            "observer_edge_mempool_submit_disabled",
+            "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream outbox",
+            {"replacement": "/v1/tx/submit"},
+        )
+
     ex = _executor(request)
     mp = _mempool(request)
 

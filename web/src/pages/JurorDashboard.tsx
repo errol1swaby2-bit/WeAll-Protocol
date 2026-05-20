@@ -196,7 +196,7 @@ export default function JurorDashboard(): JSX.Element {
         const targetId = String(item?.target_id || "").trim();
         if (!id || targetType !== "content" || !targetId) return;
         try {
-          previews[id] = await weall.content(targetId, apiBase, headers);
+          previews[id] = await weall.contentScoped(targetId, apiBase, headers);
         } catch {
           previews[id] = null;
         }

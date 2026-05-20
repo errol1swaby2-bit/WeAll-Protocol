@@ -4,7 +4,7 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
 import MediaGallery from "../components/MediaGallery";
-import { getSession, submitSignedTx } from "../auth/session";
+import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -39,36 +39,6 @@ function asArray<T = any>(value: any): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-function resolveContentMedia(content: any, mediaIndex: Record<string, any>): any[] {
-  const raw = [
-    ...asArray(content?.media),
-    ...asArray(content?.media_ids),
-    ...asArray(content?.attachments),
-  ].filter((item) => item != null);
-  if (!raw.length) return [];
-
-  const index = mediaIndex && typeof mediaIndex === "object" ? mediaIndex : {};
-  return raw.map((entry) => {
-    if (typeof entry !== "string") return entry;
-    const mediaId = entry.trim();
-    if (!mediaId || !mediaId.startsWith("media:")) return entry;
-    const resolved = index[mediaId];
-    if (!resolved || typeof resolved !== "object") return entry;
-    const payload = resolved?.payload && typeof resolved.payload === "object" ? resolved.payload : {};
-    return {
-      media_id: mediaId,
-      cid: resolved?.cid || payload?.cid || payload?.upload_ref || payload?.ref || "",
-      mime: payload?.mime || payload?.mime_type || payload?.content_type || resolved?.mime || "",
-      name: payload?.name || payload?.filename || resolved?.name || mediaId,
-      kind: resolved?.kind || payload?.kind || "",
-      declared_by: resolved?.declared_by || "",
-      declared_at_nonce: resolved?.declared_at_nonce,
-      payload,
-    };
-  });
-}
-
-
 export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const apiBase = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
@@ -81,7 +51,6 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const [dispute, setDispute] = useState<any | null>(null);
   const [voteSurface, setVoteSurface] = useState<any | null>(null);
   const [targetContent, setTargetContent] = useState<any | null>(null);
-  const [mediaIndex, setMediaIndex] = useState<Record<string, any>>({});
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any>(null);
 
@@ -108,13 +77,10 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   async function load(): Promise<void> {
     setErr(null);
     try {
-      const [detailRes, votesRes, snapshotRes] = await Promise.all([
+      const [detailRes, votesRes] = await Promise.all([
         weall.dispute(id, apiBase),
         weall.disputeVotes(id, apiBase),
-        weall.stateSnapshot(apiBase).catch(() => null),
       ]);
-      const mediaRoot = (snapshotRes as any)?.state?.content?.media;
-      setMediaIndex(mediaRoot && typeof mediaRoot === "object" ? mediaRoot : {});
       const nextDispute = (detailRes as any)?.dispute || null;
       setDispute(nextDispute);
       setVoteSurface(votesRes || null);
@@ -122,10 +88,19 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       const targetId = String(nextDispute?.target_id || "").trim();
       if (targetType === "content" && targetId) {
         try {
-          const contentRes = await weall.content(targetId, apiBase);
+          const headers = account ? getAuthHeaders(account) : {};
+          const canUseScoped = !!headers["x-weall-account"] && !!headers["x-weall-session-key"];
+          const contentRes = canUseScoped
+            ? await weall.contentScoped(targetId, apiBase, headers)
+            : await weall.content(targetId, apiBase);
           setTargetContent(contentRes || null);
         } catch {
-          setTargetContent(null);
+          try {
+            const publicRes = await weall.content(targetId, apiBase);
+            setTargetContent(publicRes || null);
+          } catch {
+            setTargetContent(null);
+          }
         }
       } else {
         setTargetContent(null);
@@ -135,7 +110,6 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       setDispute(null);
       setVoteSurface(null);
       setTargetContent(null);
-      setMediaIndex({});
     }
   }
 
@@ -169,7 +143,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const contentBody = String(contentObj?.body || contentObj?.text || "").trim();
   const contentAuthor = String(contentObj?.author || "").trim();
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
-  const contentMedia = resolveContentMedia(contentObj, mediaIndex);
+  const contentMedia = asArray(contentObj?.media);
   const removeContentActions = targetId
     ? [
         { tx_type: "CONTENT_LABEL_SET", payload: { target_id: targetId, labels: ["dispute_upheld", "policy_violation"] } },
@@ -348,7 +322,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           </div>
           {contentMedia.length ? <MediaGallery base={apiBase} media={contentMedia} title="Flagged media" compact /> : null}
           {contentBody ? <div className="feedBodyText">{contentBody}</div> : <div className="cardDesc">The target content body could not be loaded on this pass. Open the content page to cross-check the visible object.</div>}
-          {!contentMedia.length && asArray(contentObj?.media).length ? <div className="cardDesc">This content references media that could not be resolved from the current snapshot yet. Refresh review state, then cross-check the content page.</div> : null}
+          {!contentMedia.length && asArray(contentObj?.media).length ? <div className="cardDesc">This content references media that could not be resolved from the current content endpoint yet. Refresh review state, then cross-check the content page.</div> : null}
           {String(dispute?.target_id || "") ? <div className="buttonRow"><button className="btn" onClick={() => nav(`/content/${encodeURIComponent(String(dispute?.target_id || ""))}`)}>Open content page</button></div> : null}
         </div>
       </section>

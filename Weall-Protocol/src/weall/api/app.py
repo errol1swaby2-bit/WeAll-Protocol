@@ -366,6 +366,7 @@ async def _lifespan(app: FastAPI):
     block_loop = None
     net_loop = None
     net = None
+    observer_outbox_loop = None
     prod_mode = (os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
 
     if executor is not None:
@@ -412,15 +413,28 @@ async def _lifespan(app: FastAPI):
                 app.state.net_node = net
                 app.state.net_loop = net_loop
 
+        try:
+            from weall.api.routes_public_parts.tx import start_observer_outbox_autodrain
+
+            observer_outbox_loop = start_observer_outbox_autodrain()
+            app.state.observer_outbox_loop = observer_outbox_loop
+        except Exception:
+            observer_outbox_loop = None
+
     try:
         yield
     finally:
         try:
-            if net_loop is not None:
-                _stop_net_loop(net_loop)
+            from weall.api.routes_public_parts.tx import stop_observer_outbox_autodrain
+
+            stop_observer_outbox_autodrain(observer_outbox_loop)
         finally:
-            if block_loop is not None:
-                _stop_block_loop(block_loop)
+            try:
+                if net_loop is not None:
+                    _stop_net_loop(net_loop)
+            finally:
+                if block_loop is not None:
+                    _stop_block_loop(block_loop)
 
 
 def create_app(*, boot_runtime: bool) -> FastAPI:

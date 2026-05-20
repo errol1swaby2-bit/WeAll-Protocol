@@ -14,6 +14,7 @@ from weall.api.routes_public_parts.gov import router as gov_router
 from weall.api.routes_public_parts.groups import router as groups_router
 from weall.api.routes_public_parts.health import router as health_router
 from weall.api.routes_public_parts.media import router as media_router
+from weall.api.routes_public_parts.messages import router as messages_router
 from weall.api.routes_public_parts.mempool import router as mempool_router
 from weall.api.routes_public_parts.metrics import router as metrics_router
 from weall.api.routes_public_parts.net_debug import router as net_debug_router
@@ -50,6 +51,7 @@ public_router.include_router(disputes_router, prefix="/v1", tags=["disputes"])
 public_router.include_router(gov_router, prefix="/v1", tags=["governance"])
 public_router.include_router(groups_router, prefix="/v1", tags=["groups"])
 public_router.include_router(media_router, prefix="/v1", tags=["media"])
+public_router.include_router(messages_router, prefix="/v1", tags=["messages"])
 public_router.include_router(storage_ops_router, prefix="/v1", tags=["storage"])
 public_router.include_router(social_router, prefix="/v1", tags=["social"])
 

@@ -15,6 +15,7 @@ from weall.api.routes_public_parts.common import (
     _str_param,
 )
 from weall.api.security import require_account_session
+from weall.api.routes_public_parts.content import _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
@@ -252,7 +253,7 @@ def v1_account_feed(account: str, request: Request):
         key=lambda x: (int(x.get("created_at_nonce", 0) or 0), str(x.get("id") or "")), reverse=True
     )
 
-    page = filtered[:limit]
+    page = [_with_media_summaries(st, item) for item in filtered[:limit]]
     next_cursor = None
     if len(page) == limit:
         last = page[-1]

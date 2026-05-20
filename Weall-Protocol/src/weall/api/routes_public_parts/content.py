@@ -4,13 +4,17 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
     _cursor_pack,
     _cursor_unpack,
     _int_param,
+    _group_roles_by_id,
+    _groups_by_id,
     _normalize_tags_param,
     _str_param,
 )
+from weall.api.security import require_account_session
 
 router = APIRouter()
 
@@ -79,6 +83,21 @@ def _post_visible(post: Json) -> bool:
     return vis in {"public", ""}
 
 
+def _comment_visible(st: Json, comment: Json) -> bool:
+    if not isinstance(comment, dict):
+        return False
+    if bool(comment.get("deleted", False)):
+        return False
+    vis = str(comment.get("visibility", "public") or "public").strip().lower()
+    if vis not in {"public", ""}:
+        return False
+    root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
+    if not root_id:
+        return True
+    root = _as_dict(_posts(st).get(root_id))
+    return bool(root and _post_visible(root))
+
+
 
 def _tags_list(obj: Json) -> list[str]:
     raw = obj.get("tags")
@@ -141,6 +160,129 @@ def _with_media_summaries(st: Json, obj: Json) -> Json:
     out["media"] = [_media_ref_summary(item, media_index) for item in raw_media]
     out["media_load_policy"] = "viewport"
     return out
+
+
+
+def _group_is_private_record(g: Json) -> bool:
+    if not isinstance(g, dict):
+        return False
+    if bool(g.get("is_private", False)):
+        return True
+    vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
+    if vis in {"private", "closed", "members"}:
+        return True
+    meta = g.get("meta")
+    if isinstance(meta, dict):
+        if bool(meta.get("is_private", False)):
+            return True
+        vis2 = str(meta.get("visibility") or meta.get("privacy") or "").strip().lower()
+        if vis2 in {"private", "closed", "members"}:
+            return True
+    return False
+
+
+def _group_record_for_content(st: Json, group_id: str) -> Json:
+    gid = str(group_id or "").strip()
+    if not gid:
+        return {}
+    by_state = _groups_by_id(st)
+    by_roles = _group_roles_by_id(st)
+    g_state = by_state.get(gid)
+    g_roles = by_roles.get(gid)
+    if not isinstance(g_state, dict) and not isinstance(g_roles, dict):
+        return {}
+    out: Json = dict(g_state) if isinstance(g_state, dict) else {"id": gid, "group_id": gid}
+    if isinstance(g_roles, dict):
+        out.setdefault("roles", g_roles)
+        if "members" not in out and isinstance(g_roles.get("members"), dict):
+            out["members"] = g_roles.get("members")
+    return out
+
+
+def _is_group_member(st: Json, *, group_id: str, account: str) -> bool:
+    acct = str(account or "").strip()
+    gid = str(group_id or "").strip()
+    if not acct or not gid:
+        return False
+
+    g = _groups_by_id(st).get(gid)
+    if isinstance(g, dict):
+        members = g.get("members")
+        if isinstance(members, dict) and acct in members:
+            return True
+
+    g_roles = _group_roles_by_id(st).get(gid)
+    if isinstance(g_roles, dict):
+        members = g_roles.get("members")
+        if isinstance(members, dict) and acct in members:
+            return True
+
+    return False
+
+
+def _owner_of_content(obj: Json) -> str:
+    return str(
+        obj.get("author")
+        or obj.get("owner")
+        or obj.get("account_id")
+        or obj.get("created_by")
+        or obj.get("signer")
+        or ""
+    ).strip()
+
+
+def _visibility_of_content(obj: Json) -> str:
+    return str(obj.get("visibility", "public") or "public").strip().lower()
+
+
+def _group_id_of_content(obj: Json) -> str:
+    return str(obj.get("group_id") or obj.get("group") or "").strip()
+
+
+def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
+    if not isinstance(post, dict) or bool(post.get("deleted", False)):
+        return False
+
+    vis = _visibility_of_content(post)
+    owner = _owner_of_content(post)
+    gid = _group_id_of_content(post)
+
+    if vis in {"public", ""} and not gid:
+        return True
+
+    if owner and owner == viewer:
+        return True
+
+    if gid:
+        g = _group_record_for_content(st, gid)
+        if not g:
+            return False
+        if _group_is_private_record(g):
+            return _is_group_member(st, group_id=gid, account=viewer)
+        # Public group content remains readable to everyone unless the post has
+        # an explicitly private/non-public visibility. The scoped route is more
+        # permissive for authenticated users, not a replacement for public feed.
+        if vis in {"public", ""}:
+            return True
+        return _is_group_member(st, group_id=gid, account=viewer)
+
+    if vis in {"private", "direct", "owner", "members", "hidden", "unlisted"}:
+        return bool(owner and owner == viewer)
+
+    return False
+
+
+def _viewer_can_read_comment(st: Json, comment: Json, viewer: str) -> bool:
+    if not isinstance(comment, dict) or bool(comment.get("deleted", False)):
+        return False
+    owner = _owner_of_content(comment)
+    if owner and owner == viewer:
+        return True
+    root_id = str(comment.get("post_id") or comment.get("thread_id") or "").strip()
+    root = _as_dict(_posts(st).get(root_id)) if root_id else {}
+    if root:
+        return _viewer_can_read_post(st, root, viewer)
+    return _visibility_of_content(comment) in {"public", ""}
 
 def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
     def k(obj: Json) -> tuple[int, str]:
@@ -277,34 +419,86 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     posts = _posts(st)
     if pid in posts:
         post = _with_reaction_counts(_as_dict(posts.get(pid)), _reaction_counts_by_target(st))
-        if bool(post.get("deleted", False)):
+        if bool(post.get("deleted", False)) or not _post_visible(post):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
         return {
             "ok": True,
             "type": "post",
-            "content": post,
+            "content": _with_media_summaries(st, post),
             "moderation": _as_dict(moderation.get(pid)),
         }
 
     comments = _comments(st)
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), _reaction_counts_by_target(st))
-        if bool(com.get("deleted", False)):
+        if bool(com.get("deleted", False)) or not _comment_visible(st, com):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
         return {
             "ok": True,
             "type": "comment",
-            "content": com,
+            "content": _with_media_summaries(st, com),
             "moderation": _as_dict(moderation.get(pid)),
         }
 
     raise HTTPException(
         status_code=404, detail={"code": "not_found", "message": "content not found"}
     )
+
+
+@router.get("/content/{content_id}/scoped")
+def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
+    """Get a content object through an authenticated, scoped read path.
+
+    Public /v1/content/{id} remains fail-closed for non-public content. This
+    route lets authorized viewers read private/group content without reopening
+    broad state snapshots or leaking content by id to anonymous callers.
+    """
+
+    st = _snapshot(request)
+    try:
+        viewer = require_account_session(request, st)
+    except PermissionError as exc:
+        code = str(exc) or "session_missing"
+        raise ApiError.forbidden(code, code.replace("_", " "), {})
+
+    pid = str(content_id or "").strip()
+    if not pid:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+
+    moderation = _moderation_targets(st)
+    reaction_counts = _reaction_counts_by_target(st)
+
+    posts = _posts(st)
+    if pid in posts:
+        post = _with_reaction_counts(_as_dict(posts.get(pid)), reaction_counts)
+        if not _viewer_can_read_post(st, post, viewer):
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+        return {
+            "ok": True,
+            "type": "post",
+            "content": _with_media_summaries(st, post),
+            "moderation": _as_dict(moderation.get(pid)),
+            "scope": {"viewer": viewer, "authorized": True},
+        }
+
+    comments = _comments(st)
+    if pid in comments:
+        com = _with_reaction_counts(_as_dict(comments.get(pid)), reaction_counts)
+        if not _viewer_can_read_comment(st, com, viewer):
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+        return {
+            "ok": True,
+            "type": "comment",
+            "content": _with_media_summaries(st, com),
+            "moderation": _as_dict(moderation.get(pid)),
+            "scope": {"viewer": viewer, "authorized": True},
+        }
+
+    raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
 
 
 @router.get("/thread/{thread_id}")
@@ -331,21 +525,46 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
             status_code=404, detail={"code": "not_found", "message": "thread not found"}
         )
 
+    qp = request.query_params
+    limit = max(1, min(200, _int_param(qp.get("limit"), 50)))
+    cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
+
     comments = _comments(st)
-    out_comments: list[Json] = []
-    for _cid, c in comments.items():
+    all_comments: list[Json] = []
+    for cid, c in comments.items():
         com = _with_reaction_counts(_as_dict(c), reaction_counts)
         if bool(com.get("deleted", False)):
             continue
         if str(com.get("post_id") or "") != tid:
             continue
-        out_comments.append(com)
+        if not _comment_visible(st, com):
+            continue
+        comment_id = _str_param(com.get("comment_id") or com.get("id") or cid).strip()
+        com.setdefault("comment_id", comment_id)
+        com.setdefault("id", comment_id)
+        created_nonce = _safe_int(com.get("created_nonce") or com.get("created_at_nonce"), 0)
+        com.setdefault("created_at_nonce", created_nonce)
+        if cursor_n is not None and cursor_id is not None:
+            if created_nonce > cursor_n:
+                continue
+            if created_nonce == cursor_n and comment_id >= cursor_id:
+                continue
+        all_comments.append(_with_media_summaries(st, com))
 
-    out_comments = _sort_by_nonce_desc(out_comments, key="created_nonce")
+    out_comments = _sort_by_nonce_desc(all_comments, key="created_at_nonce")
+    page = out_comments[:limit]
+    next_cursor = None
+    if len(page) == limit:
+        last = page[-1]
+        next_cursor = _cursor_pack(
+            created_at_nonce=_safe_int(last.get("created_at_nonce") or last.get("created_nonce"), 0),
+            content_id=str(last.get("comment_id") or last.get("id") or ""),
+        )
 
     return {
         "ok": True,
-        "post": root,
-        "comments": out_comments,
-        "counts": {"comments": len(out_comments)},
+        "post": _with_media_summaries(st, root),
+        "comments": page,
+        "next_cursor": next_cursor,
+        "counts": {"comments": len(out_comments), "returned": len(page)},
     }

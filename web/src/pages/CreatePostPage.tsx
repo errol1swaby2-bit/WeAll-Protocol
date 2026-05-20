@@ -451,6 +451,7 @@ export default function CreatePostPage(): JSX.Element {
               String(up.key || "").trim();
 
             if (!cid) throw { message: "media_upload_missing_cid", data: up };
+            const uploadSha256 = String(up?.sha256 || up?.content_sha256 || up?.bytes_sha256 || up?.media_declare_defaults?.sha256 || "").trim().toLowerCase();
 
             const pinRequest = up?.pin_request || null;
             const pinEnvelope = pinRequest?.envelope || null;
@@ -513,6 +514,7 @@ export default function CreatePostPage(): JSX.Element {
                   mime: file.type || null,
                   bytes: file.size || null,
                   name: file.name || null,
+                  ...(uploadSha256 ? { sha256: uploadSha256, content_sha256: uploadSha256 } : {}),
                 };
               },
               parent: null,

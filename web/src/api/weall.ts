@@ -535,8 +535,54 @@ export const weall = {
     );
   },
 
-  thread(id: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(`/v1/thread/${encodeURIComponent(id)}`, base, headers);
+  thread(
+    id: string,
+    a?: { limit?: number; cursor?: string | null } | string,
+    b?: string | HeadersInit,
+    c?: HeadersInit,
+  ): Promise<any> {
+    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
+    return apiGet(
+      withSearch(`/v1/thread/${encodeURIComponent(id)}`, {
+        limit: params?.limit as number | undefined,
+        cursor: params?.cursor as string | null | undefined,
+      }),
+      base,
+      headers,
+    );
+  },
+
+  messageThreads(
+    a?: { limit?: number; cursor?: string | null } | string,
+    b?: string | HeadersInit,
+    c?: HeadersInit,
+  ): Promise<any> {
+    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
+    return apiGet(
+      withSearch("/v1/messages/threads", {
+        limit: params?.limit as number | undefined,
+        cursor: params?.cursor as string | null | undefined,
+      }),
+      base,
+      headers,
+    );
+  },
+
+  messageThread(
+    id: string,
+    a?: { limit?: number; cursor?: string | null } | string,
+    b?: string | HeadersInit,
+    c?: HeadersInit,
+  ): Promise<any> {
+    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
+    return apiGet(
+      withSearch(`/v1/messages/threads/${encodeURIComponent(id)}`, {
+        limit: params?.limit as number | undefined,
+        cursor: params?.cursor as string | null | undefined,
+      }),
+      base,
+      headers,
+    );
   },
 
   proposals(
@@ -598,6 +644,10 @@ export const weall = {
 
   content(id: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/content/${encodeURIComponent(id)}`, base, headers);
+  },
+
+  contentScoped(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/content/${encodeURIComponent(id)}/scoped`, base, headers);
   },
 
   groupFeed(

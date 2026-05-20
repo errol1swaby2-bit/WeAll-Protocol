@@ -82,7 +82,7 @@ class _AttesterHttpStub:
         return self._responses.pop(0)
 
 
-def test_validator_attester_prod_fails_closed_on_snapshot_error(
+def test_validator_attester_prod_fails_closed_on_status_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from weall.services import validator_attester as svc
@@ -90,7 +90,7 @@ def test_validator_attester_prod_fails_closed_on_snapshot_error(
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setattr(svc, "_http_json", _AttesterHttpStub([{"ok": False, "error": "url_error"}]))
 
-    with pytest.raises(svc.ValidatorAttesterError, match="attester_snapshot_failed:url_error"):
+    with pytest.raises(svc.ValidatorAttesterError, match="attester_status_failed:url_error"):
         svc.run_attester_loop(
             producer_url="http://127.0.0.1:8000",
             signer="val1",

@@ -22,7 +22,7 @@ done
 
 # Helper: extract JSON field from stdin. Prints empty string if not found.
 py_get() {
-python3 - <<'PY'
+python3 - "$1" <<'PY'
 import sys, json
 key = sys.argv[1]
 try:
@@ -63,12 +63,20 @@ if [[ -z "${NONCE_BEFORE}" ]]; then
 fi
 echo "==> nonce before: ${NONCE_BEFORE}"
 
+echo "==> Fetching chain identity..."
+CHAIN_ID="$(curl -sS "${BASE_URL}/v1/chain/identity" | py_get chain_id)"
+if [[ -z "${CHAIN_ID}" ]]; then
+  CHAIN_ID="${WEALL_CHAIN_ID:-weall-dev}"
+fi
+echo "==> chain id: ${CHAIN_ID}"
+
 NEXT_NONCE=$(( NONCE_BEFORE + 1 ))
 
 # Use a Tier0+ tx to avoid Tier gating failures (e.g., TREASURY_CREATE is Tier2+)
 TX_JSON="$(cat <<JSON
 {
   "tx_type": "PROFILE_UPDATE",
+  "chain_id": "${CHAIN_ID}",
   "signer": "${ACCOUNT}",
   "nonce": ${NEXT_NONCE},
   "payload": {
@@ -82,10 +90,10 @@ TX_JSON="$(cat <<JSON
 JSON
 )"
 
-echo "==> Submitting mempool tx PROFILE_UPDATE (nonce=${NEXT_NONCE})..."
+echo "==> Submitting public tx PROFILE_UPDATE (nonce=${NEXT_NONCE})..."
 
 # Capture body + status code
-RESP_AND_CODE="$(curl -sS -X POST "${BASE_URL}/v1/mempool/submit" \
+RESP_AND_CODE="$(curl -sS -X POST "${BASE_URL}/v1/tx/submit" \
   -H "Content-Type: application/json" \
   -d "${TX_JSON}" \
   -w $'\n%{http_code}\n' || true)"
@@ -94,7 +102,7 @@ HTTP_CODE="$(echo "${RESP_AND_CODE}" | tail -n 1)"
 BODY="$(echo "${RESP_AND_CODE}" | sed '$d')"
 
 if [[ "${HTTP_CODE}" != "200" ]]; then
-  echo "ERROR: /v1/mempool/submit failed (HTTP ${HTTP_CODE})"
+  echo "ERROR: /v1/tx/submit failed (HTTP ${HTTP_CODE})"
   echo "Response body:"
   echo "${BODY}"
   echo ""
@@ -109,7 +117,7 @@ if [[ "${OK_FIELD}" != "True" && "${OK_FIELD}" != "true" ]]; then
   echo "${BODY}"
   exit 1
 fi
-echo "==> mempool submit ok"
+echo "==> public tx submit ok"
 
 echo "==> Waiting for block loop to include the tx (nonce advances)..."
 

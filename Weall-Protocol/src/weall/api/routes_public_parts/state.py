@@ -1,6 +1,8 @@
 # src/weall/api/routes_public_parts/state.py
 from __future__ import annotations
 
+import hmac
+import ipaddress
 import os
 import uuid
 from dataclasses import asdict
@@ -8,7 +10,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from weall.api.errors import ApiError
 from weall.api.public_redaction import redact_public_state
+from weall.api.routes_public_parts.common import _read_json_limited
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.runtime.executor import ExecutorError
 
@@ -55,6 +59,139 @@ def _sync_apply_routes_enabled() -> bool:
     if _mode() == "prod":
         return _as_bool_env("WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE", False)
     return _as_bool_env("WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE", False)
+
+
+def _state_sync_operator_token() -> str:
+    return str(
+        os.environ.get("WEALL_STATE_SYNC_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OBSERVER_EDGE_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OPERATOR_TOKEN")
+        or ""
+    ).strip()
+
+
+def _state_raw_read_token() -> str:
+    return str(
+        os.environ.get("WEALL_STATE_RAW_READ_TOKEN")
+        or os.environ.get("WEALL_STATE_SYNC_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OBSERVER_EDGE_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OPERATOR_TOKEN")
+        or ""
+    ).strip()
+
+
+def _state_raw_block_public() -> bool:
+    if _mode() == "prod":
+        return _as_bool_env("WEALL_STATE_BLOCK_PUBLIC_RAW", False)
+    return _as_bool_env("WEALL_STATE_BLOCK_PUBLIC_RAW", True)
+
+
+def _require_state_raw_read_operator(request: Request) -> None:
+    if _state_raw_block_public():
+        return
+    if _request_is_loopback(request) and _as_bool_env("WEALL_STATE_RAW_READ_ALLOW_LOOPBACK_WITHOUT_TOKEN", False):
+        return
+    want = _state_raw_read_token()
+    if not want:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "state_raw_read_token_required",
+                "message": "raw block fetch requires WEALL_STATE_RAW_READ_TOKEN, WEALL_STATE_SYNC_OPERATOR_TOKEN, WEALL_OBSERVER_EDGE_OPERATOR_TOKEN, or WEALL_OPERATOR_TOKEN",
+            },
+        )
+    got = str(
+        request.headers.get("X-WeAll-State-Raw-Read-Token")
+        or request.headers.get("X-WeAll-State-Sync-Operator-Token")
+        or request.headers.get("X-WeAll-Observer-Operator-Token")
+        or request.headers.get("X-WeAll-Operator-Token")
+        or ""
+    ).strip()
+    if not got or not hmac.compare_digest(got, want):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "forbidden", "message": "bad state raw read token"},
+        )
+
+
+def _block_header(blk: Json) -> Json:
+    txs = blk.get("txs") or blk.get("transactions") or []
+    tx_count = len(txs) if isinstance(txs, (list, tuple)) else 0
+    return {
+        "block_id": blk.get("block_id") or blk.get("id") or blk.get("hash") or "",
+        "height": blk.get("height"),
+        "parent": blk.get("parent") or blk.get("parent_id") or blk.get("prev") or blk.get("prev_hash"),
+        "state_root": blk.get("state_root"),
+        "tx_root": blk.get("tx_root"),
+        "time": blk.get("time") or blk.get("timestamp") or blk.get("ts_ms"),
+        "proposer": blk.get("proposer") or blk.get("producer") or blk.get("node_id"),
+        "tx_count": tx_count,
+    }
+
+
+def _state_sync_request_auth_required() -> bool:
+    # In production, enabling the HTTP sync request route exposes bounded state
+    # sync material.  Require an operator/observer token unless a controlled
+    # harness explicitly disables the check.
+    if _mode() == "prod":
+        return _as_bool_env("WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN", True)
+    return _as_bool_env("WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN", False)
+
+
+def _state_sync_apply_auth_required() -> bool:
+    # Sync apply mutates local state.  Production must always require an
+    # operator/observer token when this route is deliberately enabled.  Dev/test
+    # harnesses may keep the legacy no-token behavior unless explicitly opted in.
+    if _mode() == "prod":
+        return _as_bool_env("WEALL_STATE_SYNC_APPLY_REQUIRE_OPERATOR_TOKEN", True)
+    return _as_bool_env("WEALL_STATE_SYNC_APPLY_REQUIRE_OPERATOR_TOKEN", False)
+
+
+def _request_is_loopback(request: Request) -> bool:
+    host = ""
+    try:
+        host = str(request.client.host or "") if request.client else ""
+    except Exception:
+        host = ""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return bool(ipaddress.ip_address(host).is_loopback)
+    except Exception:
+        return False
+
+
+def _require_state_sync_operator(request: Request, *, for_apply: bool = False) -> None:
+    if for_apply:
+        if not _state_sync_apply_auth_required():
+            return
+    elif not _state_sync_request_auth_required():
+        return
+    # Optional loopback exemption exists only for legacy local harnesses.  It is
+    # off by default in prod so a browser/process on the same host cannot pull
+    # sync payloads without an operator token.
+    if _request_is_loopback(request) and _as_bool_env("WEALL_STATE_SYNC_ALLOW_LOOPBACK_WITHOUT_TOKEN", False):
+        return
+    want = _state_sync_operator_token()
+    if not want:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "state_sync_operator_token_required",
+                "message": "state-sync request route requires WEALL_STATE_SYNC_OPERATOR_TOKEN, WEALL_OBSERVER_EDGE_OPERATOR_TOKEN, or WEALL_OPERATOR_TOKEN",
+            },
+        )
+    got = str(
+        request.headers.get("X-WeAll-State-Sync-Operator-Token")
+        or request.headers.get("X-WeAll-Observer-Operator-Token")
+        or request.headers.get("X-WeAll-Operator-Token")
+        or ""
+    ).strip()
+    if not got or not hmac.compare_digest(got, want):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "forbidden", "message": "bad state-sync operator token"},
+        )
 
 
 def _message_type_value(value: Any) -> str:
@@ -215,8 +352,25 @@ def state_snapshot(request: Request) -> Json:
     return {"ok": True, "state": redact_public_state(st)}
 
 
+@router.get("/state/block/{block_id}/header")
+def state_block_header(block_id: str, request: Request) -> Json:
+    ex = _executor(request)
+    fn = getattr(ex, "get_block_by_id", None)
+    if not callable(fn):
+        raise HTTPException(
+            status_code=501, detail={"code": "not_supported", "message": "block lookup unavailable"}
+        )
+    blk = fn(str(block_id or ""))
+    if not isinstance(blk, dict):
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "block not found"}
+        )
+    return {"ok": True, "block": _block_header(blk)}
+
+
 @router.get("/state/block/{block_id}")
 def state_block(block_id: str, request: Request) -> Json:
+    _require_state_raw_read_operator(request)
     ex = _executor(request)
     fn = getattr(ex, "get_block_by_id", None)
     if not callable(fn):
@@ -245,8 +399,13 @@ async def state_sync_request(request: Request) -> Json:
             status_code=403,
             detail={"code": "disabled", "message": "HTTP state-sync request route disabled"},
         )
+    _require_state_sync_operator(request)
     ex = _executor(request)
-    body = await request.json()
+    body = await _read_json_limited(
+        request,
+        max_bytes_env="WEALL_STATE_SYNC_REQUEST_MAX_BYTES",
+        default_max_bytes=64 * 1024,
+    )
     if not isinstance(body, dict):
         raise HTTPException(status_code=400, detail={"code": "bad_request", "message": "body"})
     mode = str(body.get("mode") or "delta").strip().lower()
@@ -305,8 +464,13 @@ async def state_sync_apply(request: Request) -> Json:
             status_code=403,
             detail={"code": "disabled", "message": "HTTP state-sync apply route disabled"},
         )
+    _require_state_sync_operator(request, for_apply=True)
     ex = _executor(request)
-    body = await request.json()
+    body = await _read_json_limited(
+        request,
+        max_bytes_env="WEALL_STATE_SYNC_APPLY_MAX_BYTES",
+        default_max_bytes=512 * 1024,
+    )
     if not isinstance(body, dict):
         raise HTTPException(status_code=400, detail={"code": "bad_request", "message": "body"})
     try:

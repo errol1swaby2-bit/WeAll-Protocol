@@ -10,9 +10,10 @@ def read(rel: str) -> str:
 
 def test_messages_page_is_wired_to_messaging_state_and_send_tx() -> None:
     text = read("pages/Messaging.tsx")
-    assert "weall.stateSnapshot(apiBase)" in text
-    assert "state.messaging" in text
-    assert "inbox_by_account" in text
+    assert "weall.messageThreads" in text
+    assert "weall.messageThread" in text
+    assert "getAuthHeaders" in text
+    assert "weall.stateSnapshot(apiBase)" not in text
     assert "DIRECT_MESSAGE_SEND" in text
     assert "Send message" in text
     assert "Conversations" in text
