@@ -881,10 +881,15 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
         "tx_type": "IPFS_PIN_REQUEST",
         "signer": viewer,
         "nonce": _next_account_nonce(st, viewer),
+        # Keep the suggested IPFS_PIN_REQUEST payload schema-clean.
+        # File-byte commitments are returned below for CONTENT_MEDIA_DECLARE
+        # and media verification, but IPFS_PIN_REQUEST currently accepts only
+        # pin metadata such as cid and size_bytes.  Including sha256 here causes
+        # strict tx payload validation to reject browser-driven create-post
+        # flows before the media declaration can carry the commitment.
         "payload": {
             "cid": cid,
             "size_bytes": int(final_size) if int(final_size) > 0 else 0,
-            "sha256": sha256_hex,
         },
         "upload_ref": cid,
         "ref": cid,
@@ -892,7 +897,16 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
         "parent": None,
         "system": False,
     }
-    pin_request["envelope"] = suggested_env
+    pin_request["envelope"] = {
+        **suggested_env,
+        "payload": {
+            **suggested_env["payload"],
+            "sha256": sha256_hex,
+        },
+    }
+    # Browser-facing compatibility keeps sha256 visible above, while actual
+    # tx submission below still uses schema-clean `suggested_env`.
+    pin_request["schema_safe_envelope"] = suggested_env
 
     if auto_pin_request:
         try:

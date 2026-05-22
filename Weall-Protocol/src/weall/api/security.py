@@ -244,11 +244,32 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
             },
         )
 
+    def _multipart_upload_cap(self, *, max_bytes_env: str, default_file_bytes: int) -> int:
+        max_file = _env_int(max_bytes_env, default_file_bytes)
+        overhead = _env_int("WEALL_MEDIA_MULTIPART_OVERHEAD_BYTES", 256 * 1024)
+        return max(0, int(max_file) + max(0, int(overhead)))
+
     def _effective_max_bytes(self, path: str) -> int:
+        # Keep JSON/tx routes on the strict generic cap, but allow explicitly
+        # enabled multipart evidence upload routes to reach their own
+        # route-level file caps. Without this, the global 1MB request cap rejects
+        # valid 60-120 second PoH recordings before the PoH upload route can
+        # enforce WEALL_POH_*_VIDEO_MAX_BYTES and return a useful error.
         if path.startswith("/v1/media/upload"):
-            max_file = _env_int("WEALL_IPFS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
-            overhead = _env_int("WEALL_MEDIA_MULTIPART_OVERHEAD_BYTES", 256 * 1024)
-            return max(0, int(max_file) + max(0, int(overhead)))
+            return self._multipart_upload_cap(
+                max_bytes_env="WEALL_IPFS_MAX_UPLOAD_BYTES",
+                default_file_bytes=10 * 1024 * 1024,
+            )
+        if path.startswith("/v1/poh/async/evidence/video/upload"):
+            return self._multipart_upload_cap(
+                max_bytes_env="WEALL_POH_ASYNC_VIDEO_MAX_BYTES",
+                default_file_bytes=25 * 1024 * 1024,
+            )
+        if path.startswith("/v1/poh/tier2/video/upload"):
+            return self._multipart_upload_cap(
+                max_bytes_env="WEALL_POH_TIER2_VIDEO_MAX_BYTES",
+                default_file_bytes=25 * 1024 * 1024,
+            )
         return self._max_bytes
 
     async def _read_body_capped(self, request: Request, cap_bytes: int) -> bytes | None:

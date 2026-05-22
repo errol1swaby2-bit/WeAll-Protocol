@@ -464,6 +464,61 @@ def _outbox_counts(rows: list[Json]) -> Json:
     return counts
 
 
+def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
+    """Return a bounded, non-recursive observer outbox diagnostic result.
+
+    Outbox records are operator diagnostics, not consensus state.  They should
+    help explain whether an upstream accepted/confirmed a tx without embedding
+    previous outbox summaries recursively inside later status probes.
+    """
+
+    if _depth > 2:
+        return {"truncated": True, "reason": "max_depth"}
+    if not isinstance(value, dict):
+        return {}
+
+    def _one(item: Any) -> Json:
+        if not isinstance(item, dict):
+            return {}
+        out: Json = {}
+        for key in (
+            "ok",
+            "attempted",
+            "accepted",
+            "status",
+            "error",
+            "tx_id",
+            "expected_tx_id",
+            "tx_type",
+            "signer",
+            "height",
+            "block_id",
+            "included_ts_ms",
+            "upstream",
+            "local_state_synced",
+            "confirmed_height",
+            "confirmed_block_id",
+        ):
+            if key in item:
+                out[key] = item.get(key)
+        # Deliberately omit nested outbound_propagation/last_result trees.
+        return out
+
+    out: Json = {}
+    for key in ("attempted", "accepted", "skipped", "queued", "error", "status"):
+        if key in value:
+            out[key] = value.get(key)
+    if isinstance(value.get("results"), list):
+        rows = [_one(item) for item in value.get("results", [])[:10]]
+        out["results"] = [row for row in rows if row]
+        out["result_count"] = len(value.get("results", []))
+    if isinstance(value.get("status_reconciliation"), list):
+        rows = [_one(item) for item in value.get("status_reconciliation", [])[:10]]
+        out["status_reconciliation"] = [row for row in rows if row]
+        out["status_reconciliation_count"] = len(value.get("status_reconciliation", []))
+    return out
+
+
 def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str) -> Json:
     with _tx_outbox_lock():
         rows = _load_tx_outbox_unlocked()
@@ -498,7 +553,15 @@ def _update_tx_outbox_record(tx_id: str, updates: Json) -> Json:
         if rec is None:
             rec = {"tx_id": str(tx_id), "created_ms": _now_ms()}
             rows.append(rec)
-        rec.update(updates)
+        safe_updates = dict(updates)
+        if "last_result" in safe_updates:
+            safe_updates["last_result"] = _compact_tx_outbox_result(safe_updates.get("last_result"))
+        if "last_status_probe" in safe_updates and isinstance(safe_updates.get("last_status_probe"), list):
+            safe_updates["last_status_probe"] = [
+                _compact_tx_outbox_result(item) if isinstance(item, dict) else {}
+                for item in safe_updates.get("last_status_probe", [])[:10]
+            ]
+        rec.update(safe_updates)
         rec["updated_ms"] = _now_ms()
         _write_tx_outbox_unlocked(rows)
         return dict(rec)
@@ -750,7 +813,7 @@ def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None)
                 else:
                     rec["upstream_status"] = "pending"
                     rec["last_error"] = ";".join(str(r.get("error") or "upstream_rejected") for r in per_tx_results if isinstance(r, dict))[:512]
-                rec["last_result"] = {"attempted": True, "accepted": bool(accepted), "results": per_tx_results}
+                rec["last_result"] = _compact_tx_outbox_result({"attempted": True, "accepted": bool(accepted), "results": per_tx_results})
                 rec["updated_ms"] = _now_ms()
                 _write_tx_outbox_unlocked(rows)
         results.append({"tx_id": tx_id, "accepted": bool(accepted), "results": per_tx_results})
@@ -772,7 +835,7 @@ def _outbox_summary_for_tx(tx_id: str) -> Json | None:
         "confirmed_height": int(rec.get("confirmed_height") or 0),
         "confirmed_block_id": str(rec.get("confirmed_block_id") or ""),
         "local_state_synced": bool(rec.get("local_state_synced", False)),
-        "last_result": rec.get("last_result") if isinstance(rec.get("last_result"), dict) else {},
+        "last_result": _compact_tx_outbox_result(rec.get("last_result")),
     }
 
 

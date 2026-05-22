@@ -10,7 +10,7 @@ const DEV_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
   "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
-  "connect-src 'self' http: https: ws: wss:; frame-src 'self';";
+  "connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-src 'self';";
 
 const PREVIEW_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
@@ -43,7 +43,11 @@ function safeGitSha(): string {
 const PKG_VERSION = safeReadPackageVersion();
 const GIT_SHA = safeGitSha();
 
-// Vite dev proxy: /v1 -> localhost:8000 to avoid CORS in dev.
+// Vite dev proxy: /v1 -> local observer/API to avoid CORS in dev.
+// For local observer rehearsal, set:
+//   VITE_WEALL_DEV_PROXY_TARGET=http://127.0.0.1:8002
+const DEV_PROXY_TARGET = process.env.VITE_WEALL_DEV_PROXY_TARGET || "http://127.0.0.1:8000";
+
 // In production, you can either:
 // - Serve UI and API behind the same origin (recommended), OR
 // - Allow CORS and keep connect-src open as above.
@@ -63,13 +67,13 @@ export default defineConfig({
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",
       "X-Frame-Options": "DENY",
-      "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+      "Permissions-Policy": "geolocation=(), microphone=(self), camera=(self)",
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Resource-Policy": "same-origin",
       "Content-Security-Policy": DEV_CSP,
     },
     proxy: {
-      "/v1": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/v1": { target: DEV_PROXY_TARGET, changeOrigin: true },
       "/ipfs": { target: "http://127.0.0.1:8080", changeOrigin: true },
     },
   },
@@ -92,7 +96,7 @@ export default defineConfig({
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",
       "X-Frame-Options": "DENY",
-      "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+      "Permissions-Policy": "geolocation=(), microphone=(self), camera=(self)",
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Resource-Policy": "same-origin",
       "Content-Security-Policy": PREVIEW_CSP,

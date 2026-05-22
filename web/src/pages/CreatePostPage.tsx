@@ -143,6 +143,24 @@ function readComposerGroupIdFromHash(): string {
   return String(params.get("group_id") || "").trim();
 }
 
+
+function schemaSafePinRequestPayload(raw: any, fallbackCid: string): Record<string, unknown> {
+  const cid = String(raw?.cid || raw?.ipfs_cid || raw?.content_cid || fallbackCid || "").trim();
+  const out: Record<string, unknown> = {};
+  if (cid) out.cid = cid;
+
+  const rawSize = raw?.size_bytes ?? raw?.bytes ?? raw?.size;
+  const size = Number(rawSize);
+  if (Number.isFinite(size) && size >= 0) {
+    out.size_bytes = Math.floor(size);
+  }
+
+  const pinId = String(raw?.pin_id || raw?.id || "").trim();
+  if (pinId) out.pin_id = pinId;
+
+  return out;
+}
+
 function validateSelectedFile(file: File | null): string | null {
   if (!file) return null;
   const mime = String(file.type || "").trim().toLowerCase();
@@ -473,10 +491,7 @@ export default function CreatePostPage(): JSX.Element {
               }
             } else if (pinEnvelope) {
               setStatus("Submitting pin request");
-              const pinPayload = { ...(pinEnvelope.payload || {}) };
-              if (typeof pinPayload.ts_ms === "number" && pinPayload.ts_ms === 0) {
-                pinPayload.ts_ms = Date.now();
-              }
+              const pinPayload = schemaSafePinRequestPayload(pinEnvelope.payload || {}, cid);
               const pinReq: any = await submitSignedTxInSequence({
                 sequence,
                 tx_type: String(pinEnvelope.tx_type || "IPFS_PIN_REQUEST"),

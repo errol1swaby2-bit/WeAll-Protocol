@@ -67,10 +67,30 @@ def _demo_seed_enabled() -> bool:
     return _env_true("WEALL_ENABLE_DEMO_SEED_ROUTE") and _seeded_demo_profile_enabled()
 
 
+def _controlled_devnet_bootstrap_secret_enabled() -> bool:
+    """Allow local two-node rehearsals to hydrate browser sessions safely.
+
+    This remains an explicit dev-only route.  It is never available in prod and
+    never inherited from the broader demo-seed surface.  The route is useful for
+    controlled-devnet browser rehearsals where two local frontends need separate
+    accounts without manual recovery-file or localStorage surgery.
+    """
+
+    if not _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE"):
+        return False
+    if _runtime_mode() in {"prod", "production", "production_like"}:
+        return False
+    return _runtime_profile() == "controlled_devnet"
+
+
 def _dev_bootstrap_secret_enabled() -> bool:
     # Do not inherit the powerful bootstrap-secret route from demo-seed by
-    # default. It must be independently enabled and fenced to seeded_demo.
-    return _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE") and _seeded_demo_profile_enabled()
+    # default. It must be independently enabled and fenced to seeded_demo or
+    # explicit local controlled-devnet rehearsal mode.
+    return (
+        _seeded_demo_profile_enabled()
+        and _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE")
+    ) or _controlled_devnet_bootstrap_secret_enabled()
 
 
 def demo_seed_router_should_mount() -> bool:

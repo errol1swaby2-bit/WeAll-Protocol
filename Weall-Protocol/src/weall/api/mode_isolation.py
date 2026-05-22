@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from pathlib import Path
 
 Env = Mapping[str, str | None]
 
@@ -28,6 +29,78 @@ _DEV_SESSION_MUTATION_FLAGS = {
     "WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE",
 }
 _OPERATOR_POH_FLAGS = {"WEALL_ENABLE_OPERATOR_POH"}
+
+def _path_under(child: str | None, parent: str | None) -> bool:
+    if not child or not parent:
+        return False
+    try:
+        child_path = Path(child).expanduser().resolve(strict=False)
+        parent_path = Path(parent).expanduser().resolve(strict=False)
+    except OSError:
+        return False
+    try:
+        child_path.relative_to(parent_path)
+    except ValueError:
+        return False
+    return True
+
+
+def _bind_is_loopback(bind: str | None) -> bool:
+    raw = str(bind or "").strip()
+    if not raw:
+        return False
+    host = raw.rsplit(":", 1)[0].strip().strip("[]")
+    return host in {"127.0.0.1", "localhost", "::1"}
+
+
+def controlled_devnet_bootstrap_secret_route_allowed(environ: Env | None = None) -> bool:
+    """Allow the browser bootstrap-secret route only for local controlled-devnet rehearsals.
+
+    The route exists so the one-command local two-frontend rehearsal can hydrate
+    two browser sessions without direct session mutation.  It must remain
+    loopback-only, path-fenced under the generated devnet directory, and absent
+    from production-like modes or generic multi-machine devnet launches.
+    """
+
+    env = environ or os.environ
+    if not _truthy(env.get("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE")):
+        return False
+
+    mode = runtime_mode_name(env)
+    profile = runtime_profile_name(env)
+    if mode in _PRODUCTION_LIKE_MODES or profile in _PRODUCTION_LIKE_MODES:
+        return False
+    if profile != "controlled_devnet":
+        return False
+    if _truthy(env.get("WEALL_ENABLE_DEMO_SEED_ROUTE")):
+        return False
+    if any(_truthy(env.get(name)) for name in _DEV_SESSION_MUTATION_FLAGS):
+        return False
+    if any(_truthy(env.get(name)) for name in _OPERATOR_POH_FLAGS):
+        return False
+    if not _bind_is_loopback(env.get("GUNICORN_BIND")):
+        return False
+
+    devnet_dir = env.get("WEALL_DEVNET_DIR")
+    secret_path = env.get("WEALL_DEV_BOOTSTRAP_SECRET_PATH")
+    generated_dir = str(Path(str(devnet_dir or "")).expanduser() / "generated") if devnet_dir else None
+    return _path_under(secret_path, generated_dir)
+
+
+def dev_bootstrap_secret_route_allowed(environ: Env | None = None) -> bool:
+    """Return whether the dev bootstrap secret route is safe to mount."""
+
+    env = environ or os.environ
+    if not _truthy(env.get("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE")):
+        return False
+    mode = runtime_mode_name(env)
+    profile = runtime_profile_name(env)
+    if mode in _PRODUCTION_LIKE_MODES or profile in _PRODUCTION_LIKE_MODES:
+        return False
+    if profile == "seeded_demo" and mode not in {"prod", "production", "production_like", "devnet", "multi_node_devnet"}:
+        return True
+    return controlled_devnet_bootstrap_secret_route_allowed(env)
+
 
 
 def runtime_profile_name(environ: Env | None = None) -> str:
@@ -154,7 +227,7 @@ def demo_mode_isolation_issue(environ: Env | None = None) -> str | None:
         return "seeded_demo_profile_forbidden_in_devnet_or_prod"
     if dangerous_mode and demo_env_enabled:
         return "demo_seed_route_forbidden_in_devnet_or_prod"
-    if dangerous_mode and secret_env_enabled:
+    if dangerous_mode and secret_env_enabled and not dev_bootstrap_secret_route_allowed(env):
         return "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
 
     # Controlled multi-node devnet must exercise the normal protocol onboarding

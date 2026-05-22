@@ -23,4 +23,12 @@ if [ -z "${WEALL_NODE_PUBKEY_FILE:-${WEALL_NODE_PUBKEY:-}}" ]; then
   exit 2
 fi
 
+
+if [ -z "${WEALL_GENESIS_LEDGER_PATH:-}" ] && [ -f "./configs/genesis.ledger.prod.json" ]; then
+  export WEALL_GENESIS_LEDGER_PATH="./configs/genesis.ledger.prod.json"
+fi
+
+export WEALL_REQUIRE_PRODUCTION_GENESIS_LEDGER="${WEALL_REQUIRE_PRODUCTION_GENESIS_LEDGER:-1}"
+export WEALL_PREVENT_REBOOTSTRAP_ON_EXISTING_DB="${WEALL_PREVENT_REBOOTSTRAP_ON_EXISTING_DB:-1}"
+
 exec bash "$(dirname "$0")/run_node.sh"

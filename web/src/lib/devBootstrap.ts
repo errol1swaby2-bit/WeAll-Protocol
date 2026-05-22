@@ -1,5 +1,5 @@
-import { setAccount, setApiBase } from "../api/weall";
-import { clearNonceReservation, clearSession, ensureBackendSession, getKeypair, getSession, issueSessionFromSecretKey, syncNonceReservation } from "../auth/session";
+import { setAccount, setApiBase, weall } from "../api/weall";
+import { clearNonceReservation, clearSession, ensureBackendSession, getKeypair, getSession, issueSessionFromSecretKey, submitSignedTx, syncNonceReservation } from "../auth/session";
 import type { AppConfig } from "./config";
 
 export type DevBootstrapStep = {
@@ -12,6 +12,11 @@ export type DevBootstrapManifest = {
   generated_at?: string;
   account?: string;
   pubkeyB64?: string;
+  publicKeyB64?: string;
+  secretKeyB64?: string;
+  secret_key_b64?: string;
+  createAccount?: boolean;
+  create_account?: boolean;
   apiBase?: string;
   api_base?: string;
   sessionTtlSeconds?: number;
@@ -19,6 +24,8 @@ export type DevBootstrapManifest = {
   seededGroup?: { group_id?: string; member_visible?: boolean; visibility?: string };
   seededProposal?: { proposal_id?: string; stage?: string };
   seededDispute?: { dispute_id?: string; stage?: string; juror?: string; juror_status?: string; target_id?: string };
+  waitForAccountMs?: number;
+  wait_for_account_ms?: number;
   recommendedPath?: DevBootstrapStep[];
   fallbackInstructions?: string[];
   resetInstructions?: string[];
@@ -93,6 +100,18 @@ function manifestApiBase(config: AppConfig, manifest: DevBootstrapManifest): str
 async function fetchSecret(config: AppConfig, manifest: DevBootstrapManifest): Promise<DevBootstrapSecretResponse | null> {
   const account = String(manifest.account || "").trim();
   if (!account) return null;
+
+  const inlineSecret = String(manifest.secretKeyB64 || manifest.secret_key_b64 || "").trim();
+  if (inlineSecret) {
+    return {
+      account,
+      secretKeyB64: inlineSecret,
+      secret_key_b64: inlineSecret,
+      pubkeyB64: String(manifest.pubkeyB64 || manifest.publicKeyB64 || "").trim(),
+      sessionTtlSeconds: manifest.sessionTtlSeconds,
+    };
+  }
+
   const base = manifestApiBase(config, manifest);
   const url = apiJoin(base, `/v1/dev/bootstrap-secret?account=${encodeURIComponent(account)}`);
   try {
@@ -102,6 +121,59 @@ async function fetchSecret(config: AppConfig, manifest: DevBootstrapManifest): P
     return body && typeof body === "object" ? body : null;
   } catch {
     return null;
+  }
+}
+
+function shouldCreateAccount(manifest: DevBootstrapManifest): boolean {
+  return manifest.createAccount === true || manifest.create_account === true;
+}
+
+function accountRecordLooksPresent(value: any): boolean {
+  const state = value?.state && typeof value.state === "object" ? value.state : null;
+  if (!state) return false;
+  if (Number(state.nonce || 0) > 0) return true;
+  if (typeof state.pubkey === "string" && state.pubkey.trim()) return true;
+  if (Array.isArray(state.pubkeys) && state.pubkeys.length > 0) return true;
+  if (Array.isArray(state.active_keys) && state.active_keys.length > 0) return true;
+  return !!(state.keys && typeof state.keys === "object");
+}
+
+async function waitForAccountRecord(account: string, base: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, Number(timeoutMs || 20_000)));
+  while (Date.now() <= deadline) {
+    try {
+      const view = await weall.account(account, base);
+      if (accountRecordLooksPresent(view)) return true;
+    } catch {
+      // Account may not be visible locally until observer reconciliation catches up.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+  }
+  return false;
+}
+
+async function ensureAccountRecord(_config: AppConfig, manifest: DevBootstrapManifest, account: string, pubkeyB64: string, base: string): Promise<void> {
+  if (!shouldCreateAccount(manifest)) return;
+
+  try {
+    const existing = await weall.account(account, base);
+    if (accountRecordLooksPresent(existing)) return;
+  } catch {
+    // Continue into ACCOUNT_REGISTER.
+  }
+
+  await submitSignedTx({
+    account,
+    tx_type: "ACCOUNT_REGISTER",
+    payload: { pubkey: pubkeyB64 },
+    parent: null,
+    base,
+  });
+
+  const timeoutMs = Number(manifest.waitForAccountMs || manifest.wait_for_account_ms || 30_000);
+  const visible = await waitForAccountRecord(account, base, timeoutMs);
+  if (!visible) {
+    throw new Error("dev_bootstrap_account_not_visible_after_register");
   }
 }
 
@@ -120,7 +192,7 @@ async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest):
   setApiBase(normalizedBase);
   setAccount(account);
   clearNonceReservation(account);
-  issueSessionFromSecretKey({
+  const issued = issueSessionFromSecretKey({
     account,
     secretKeyB64,
     ttlSeconds,
@@ -128,6 +200,7 @@ async function applyManifest(config: AppConfig, manifest: DevBootstrapManifest):
   clearSession();
 
   try {
+    await ensureAccountRecord(config, manifest, account, issued.keypair.pubkeyB64, normalizedBase);
     await ensureBackendSession({
       account,
       ttlSeconds,

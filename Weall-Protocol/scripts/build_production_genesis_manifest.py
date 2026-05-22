@@ -79,6 +79,10 @@ def _compute_state_root(state: Json) -> str:
         return _sha256(_canon(state))
 
 
+def _key_id(pubkey: str) -> str:
+    return f"k:{_sha256(pubkey)[:16]}"
+
+
 def _build_genesis(
     *,
     chain_id: str,
@@ -89,8 +93,11 @@ def _build_genesis(
     bootstrap_expires_height: int,
 ) -> Json:
     from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
+    from weall.runtime.protocol_profile import PROTOCOL_VERSION
 
     unlock_time = int(genesis_time) + int(econ_unlock_days) * SECONDS_PER_DAY
+    founding_key_id = _key_id(founding_pubkey)
+    founder_reputation_milli = 5000
     genesis = {
         "chain_id": chain_id,
         "height": 0,
@@ -113,26 +120,95 @@ def _build_genesis(
                 "banned": False,
                 "locked": False,
                 "balance": 0,
-                "reputation": 0.0,
+                "reputation": "5.000",
+                "reputation_milli": founder_reputation_milli,
                 "keys": {
-                    founding_pubkey: {
-                        "active": True,
-                        "label": "bootstrap",
+                    "by_id": {
+                        founding_key_id: {
+                            "pubkey": founding_pubkey,
+                            "key_type": "main",
+                            "revoked": False,
+                            "revoked_at": None,
+                            "label": "bootstrap",
+                        }
                     }
                 },
                 "devices": {
-                    "node:founding": {
+                    "by_id": {
+                        "node:founding": {
+                            "active": True,
+                            "revoked": False,
+                            "device_type": "node",
+                            "label": "node_bootstrap",
+                            "pubkey": founding_pubkey,
+                        }
+                    }
+                },
+                "recovery": {"config": None, "proposals": {}},
+                "session_keys": {},
+            },
+        },
+        "roles": {
+            "node_operators": {
+                "active_set": [founding_account],
+                "by_id": {
+                    founding_account: {
+                        "enrolled": True,
                         "active": True,
-                        "device_type": "node",
-                        "label": "node_bootstrap",
-                        "pubkey": founding_pubkey,
+                        "enrolled_at_nonce": 0,
+                        "activated_at_nonce": 0,
+                        "source": "production_genesis_manifest",
+                        "responsibilities": {
+                            "validator": {
+                                "opted_in": True,
+                                "active": True,
+                                "readiness_status": "ready",
+                                "readiness_expires_height": 0,
+                                "readiness_receipt_hash": "genesis_bootstrap_validator_ready",
+                                "reputation_required_milli": founder_reputation_milli,
+                                "manifest_hash": "production_genesis_manifest",
+                                "tx_index_hash": "production_genesis_manifest",
+                                "runtime_profile_hash": "production_genesis_manifest",
+                                "chain_id": chain_id,
+                                "schema_version": "1",
+                                "protocol_version": PROTOCOL_VERSION,
+                                "bft_pubkey": founding_pubkey,
+                            }
+                        },
+                    }
+                },
+            },
+            "validators": {
+                "active_set": [founding_account],
+                "by_id": {
+                    founding_account: {
+                        "enrolled": True,
+                        "active": True,
+                        "source": "production_genesis_manifest",
                     }
                 },
             },
         },
-        "roles": {
+        "consensus": {
             "validators": {
-                "active_set": [founding_account],
+                "registry": {
+                    founding_account: {
+                        "account_id": founding_account,
+                        "pubkey": founding_pubkey,
+                        "status": "active",
+                        "source": "production_genesis_manifest",
+                    }
+                }
+            }
+        },
+        "validators": {
+            "registry": {
+                founding_account: {
+                    "account_id": founding_account,
+                    "pubkey": founding_pubkey,
+                    "status": "active",
+                    "source": "production_genesis_manifest",
+                }
             }
         },
         "finalized": False,

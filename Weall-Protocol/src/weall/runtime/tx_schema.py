@@ -177,6 +177,13 @@ class PohAsyncEvidenceDeclarePayload(_StrictModel):
     evidence_commitment: str | None = None
     response_commitment: str | None = None
     public_evidence_id: str | None = None
+    evidence_cid: str | None = Field(default=None, min_length=1)
+    uri: str | None = Field(default=None, min_length=1)
+    mime: str | None = Field(default=None, min_length=1)
+    name: str | None = Field(default=None, min_length=1)
+    filename: str | None = Field(default=None, min_length=1)
+    size: int | None = Field(default=None, ge=0)
+    video_commitment: str | None = Field(default=None, min_length=1)
     kind: str | None = None
     note: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)

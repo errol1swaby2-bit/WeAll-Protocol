@@ -25,6 +25,7 @@ export type OnboardingSnapshot = {
   hasLocalSigner: boolean;
   accountCreated: boolean;
   registered: boolean;
+  postingEligible: boolean;
   tier: number;
   reputation: number;
   banned: boolean;
@@ -50,6 +51,7 @@ function hasRecordShape(state: Record<string, unknown>): boolean {
   if (activeKeys && typeof activeKeys === "object" && Object.keys(activeKeys as Record<string, unknown>).length > 0) {
     return true;
   }
+  if (Array.isArray(state.pubkeys) && state.pubkeys.length > 0) return true;
   if (typeof state.pubkey === "string" && state.pubkey.trim()) return true;
   if (typeof state.handle === "string" && state.handle.trim()) return true;
   return false;
@@ -83,14 +85,17 @@ export function resolveOnboardingSnapshot(args: {
     accountView: args.accountView,
     registrationView: args.registrationView,
   });
+  // A basic account exists once the on-chain account record is visible.  This
+  // must not be confused with content/posting eligibility, which remains Tier 2+.
   const registered = accountCreated;
-  const canPost =
+  const postingEligible =
     hasSession &&
     hasLocalSigner &&
     accountCreated &&
     tier >= POSTING_MIN_TIER &&
     !banned &&
     !locked;
+  const canPost = postingEligible;
 
   let stage: OnboardingStage;
   let next: NextAction;
@@ -152,6 +157,7 @@ export function resolveOnboardingSnapshot(args: {
     hasLocalSigner,
     accountCreated,
     registered,
+    postingEligible,
     tier,
     reputation,
     banned,
@@ -184,8 +190,8 @@ export function summarizeNextRequirements(
       label: "On-chain account",
       ok: snapshot.accountCreated,
       hint: snapshot.accountCreated
-        ? "An on-chain account record is visible."
-        : "Finish account creation before posting or other signed actions.",
+        ? "A basic on-chain account record is visible. Posting still requires live verification."
+        : "Finish account creation before account verification can continue.",
     },
     {
       label: "Account verification",

@@ -190,6 +190,30 @@ def _active_validator_accounts(state: Json) -> list[str]:
                 return _canonical_account_list(out)
     return []
 
+
+def _bootstrap_reviewer_accounts(state: Json) -> list[str]:
+    """Return deterministic bootstrap reviewer fallback accounts.
+
+    Controlled genesis/local-devnet report escalation can be emitted by SYSTEM
+    before a first external reviewer pool exists.  In that narrow bootstrap
+    posture, use the audited genesis bootstrap account as the reviewer fallback
+    instead of leaving the review unassigned.  Normal role/validator assignment
+    above remains preferred.
+    """
+
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return []
+    candidates = [
+        params.get("bootstrap_founder_account"),
+        params.get("bootstrap_operator"),
+        params.get("genesis_bootstrap_account"),
+    ]
+    allowlist = params.get("bootstrap_allowlist")
+    if isinstance(allowlist, dict):
+        candidates.extend(list(allowlist.keys()))
+    return _canonical_account_list([_resolve_account_identity(state, item) for item in candidates])
+
 def _require_system(env: TxEnvelope) -> None:
     if not bool(getattr(env, "system", False)):
         raise ContentApplyError("forbidden", "system_only", {"tx_type": str(env.tx_type or "")})
@@ -969,6 +993,7 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         _canonical_account_list(dispute_obj.get("eligible_juror_ids"))
         or _active_juror_accounts(state)
         or _active_validator_accounts(state)
+        or _bootstrap_reviewer_accounts(state)
     )
     if not assigned_jurors:
         content_root = _ensure_root(state)
@@ -984,7 +1009,10 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
         if target_author:
             assigned_jurors = _canonical_account_list([target_author])
     if not assigned_jurors:
-        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, env.signer)])
+        fallback_signer = "" if _as_str(env.signer).strip().upper() == "SYSTEM" else env.signer
+        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, fallback_signer)])
+    if not assigned_jurors:
+        assigned_jurors = _bootstrap_reviewer_accounts(state)
 
     current_height = _as_int(payload.get("_due_height"), _as_int(state.get("height") or 0))
     followup_height = int(current_height) + 1

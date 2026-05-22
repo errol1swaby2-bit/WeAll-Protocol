@@ -390,6 +390,84 @@ class ExecutorError(RuntimeError):
     pass
 
 
+
+
+def _resolve_repo_relative_path(raw: str) -> Path:
+    path = Path(str(raw or "").strip()).expanduser()
+    if path.is_absolute():
+        return path
+    if path.exists():
+        return path.resolve()
+    return (Path(__file__).resolve().parents[3] / path).resolve()
+
+
+def _production_genesis_ledger_path() -> str:
+    raw = str(os.environ.get("WEALL_GENESIS_LEDGER_PATH") or "").strip()
+    if raw:
+        return str(_resolve_repo_relative_path(raw))
+    if _mode() == "prod" and _env_bool("WEALL_REQUIRE_PRODUCTION_GENESIS_LEDGER", False):
+        default = Path(__file__).resolve().parents[3] / "configs" / "genesis.ledger.prod.json"
+        return str(default.resolve())
+    return ""
+
+
+def _load_production_genesis_ledger_or_none(*, chain_id: str) -> Json | None:
+    path_raw = _production_genesis_ledger_path()
+    if not path_raw:
+        return None
+    path = Path(path_raw)
+    if not path.is_file():
+        raise ExecutorError(f"production_genesis_ledger_missing:{path}")
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ExecutorError(f"production_genesis_ledger_invalid_json:{path}") from exc
+    if not isinstance(obj, dict):
+        raise ExecutorError("production_genesis_ledger_root_not_object")
+    if str(obj.get("chain_id") or "").strip() != str(chain_id or "").strip():
+        raise ExecutorError("production_genesis_ledger_chain_id_mismatch")
+    try:
+        height = int(obj.get("height") or 0)
+    except Exception:
+        height = -1
+    if height != 0:
+        raise ExecutorError("production_genesis_ledger_height_not_zero")
+
+    manifest_path = str(
+        os.environ.get("WEALL_CHAIN_MANIFEST_PATH")
+        or os.environ.get("WEALL_CHAIN_MANIFEST")
+        or ""
+    ).strip()
+    if manifest_path:
+        mpath = _resolve_repo_relative_path(manifest_path)
+    else:
+        mpath = Path(__file__).resolve().parents[3] / "configs" / "chains" / "weall-genesis.json"
+    if mpath.is_file():
+        try:
+            manifest = json.loads(mpath.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise ExecutorError(f"production_genesis_manifest_invalid_json:{mpath}") from exc
+        if isinstance(manifest, dict):
+            expected_hash = str(manifest.get("genesis_hash") or "").strip().lower()
+            expected_root = str(manifest.get("genesis_state_root") or "").strip().lower()
+            canon = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            actual_hash = hashlib.sha256(canon.encode("utf-8")).hexdigest()
+            if expected_hash and expected_hash != actual_hash:
+                raise ExecutorError("production_genesis_ledger_manifest_hash_mismatch")
+            try:
+                from weall.runtime.state_hash import compute_state_root
+
+                actual_root = str(compute_state_root(obj)).strip().lower()
+            except Exception:
+                actual_root = actual_hash
+            if expected_root and expected_root != actual_root:
+                raise ExecutorError("production_genesis_ledger_manifest_state_root_mismatch")
+    obj.setdefault("meta", {})
+    if isinstance(obj.get("meta"), dict):
+        obj["meta"].setdefault("production_genesis_ledger_path", str(path))
+        obj["meta"].setdefault("production_genesis_ledger_loaded", True)
+    return obj
+
 class WeAllExecutor:
     """WeAll executor using SQLite for persistence (ledger + queues)."""
 
@@ -406,6 +484,7 @@ class WeAllExecutor:
         self.tx_index_path = str(tx_index_path)
 
         self.db_path = str(db_path)
+        db_file_existed_before_init = Path(self.db_path).exists()
         _ensure_parent(self.db_path)
         aux_db_override = str(os.environ.get("WEALL_AUX_DB_PATH") or "").strip()
         self.aux_db_path = aux_db_override or derive_aux_db_path(self.db_path)
@@ -453,11 +532,21 @@ class WeAllExecutor:
         if self._ledger_store.exists():
             self.state = self._ledger_store.read()
         else:
-            self.state = self._initial_state()
-            # Genesis-only bootstrap hooks.
-            # IMPORTANT: never "auto-elevate" based on being the first node.
-            # Any bootstrap privileges must be explicit in the genesis builder.
-            self._apply_genesis_bootstrap_live(self.state)
+            if (
+                _mode() == "prod"
+                and db_file_existed_before_init
+                and _env_bool("WEALL_PREVENT_REBOOTSTRAP_ON_EXISTING_DB", True)
+            ):
+                raise ExecutorError("production_rebootstrap_refused_existing_db_without_ledger")
+            pinned_genesis = _load_production_genesis_ledger_or_none(chain_id=self.chain_id)
+            if pinned_genesis is not None:
+                self.state = pinned_genesis
+            else:
+                self.state = self._initial_state()
+                # Genesis-only bootstrap hooks.
+                # IMPORTANT: never "auto-elevate" based on being the first node.
+                # Any bootstrap privileges must be explicit in the genesis builder.
+                self._apply_genesis_bootstrap_live(self.state)
             self._ledger_store.write(self.state)
 
         # Storage-boundary block identity caches must exist before any startup

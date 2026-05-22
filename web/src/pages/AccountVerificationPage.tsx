@@ -2,7 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
-import { getAuthHeaders, getKeypair, getSession, setSession, submitSignedTx } from "../auth/session";
+import {
+  beginNonceSequence,
+  getAuthHeaders,
+  getKeypair,
+  getSession,
+  setSession,
+  submitSignedTx,
+  submitSignedTxInSequence,
+} from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -177,7 +185,7 @@ async function reconcileAsyncCompatibilityCase(account: string, base: string, he
   } catch {
     // ignore
   }
-  return reconcileVerificationLevel(account, 2, base);
+  return reconcileVerificationLevel(account, 1, base);
 }
 
 async function reconcileLiveCaseVisible(account: string, base: string, headers?: HeadersInit): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
@@ -188,7 +196,62 @@ async function reconcileLiveCaseVisible(account: string, base: string, headers?:
   } catch {
     // ignore
   }
-  return reconcileVerificationLevel(account, 2, base);
+  return reconcileVerificationLevel(account, 1, base);
+}
+
+
+async function waitForSubmittedTxVisible(
+  base: string,
+  txId: string,
+  options?: { maxWaitMs?: number; intervalMs?: number; requireLocalStateSynced?: boolean; acceptAccepted?: boolean },
+): Promise<boolean> {
+  const clean = String(txId || "").trim();
+  if (!clean) return true;
+  const started = Date.now();
+  const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 20000));
+  const intervalMs = Math.max(250, Number(options?.intervalMs ?? 500));
+  const requireLocalStateSynced = options?.requireLocalStateSynced === true;
+  const acceptAccepted = options?.acceptAccepted === true;
+
+  while (Date.now() - started < maxWaitMs) {
+    try {
+      const st: any = await weall.txStatus(clean, base);
+      const status = String(st?.status || st?.phase || "").trim().toLowerCase();
+      const statusVisible = status === "confirmed" || status === "committed" || (acceptAccepted && status === "accepted");
+      const localSynced = st?.local_state_synced === true;
+      if (st?.ok === true && statusVisible && (!requireLocalStateSynced || localSynced)) {
+        return true;
+      }
+    } catch {
+      // The observer may not know the tx immediately while the durable outbox
+      // forwards it upstream. Keep polling until the bounded wait expires.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+  }
+  return false;
+}
+
+async function waitForAsyncCaseVisible(account: string, caseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<boolean> {
+  const acct = normalizeAccount(account);
+  const cleanCaseId = String(caseId || "").trim();
+  if (!acct || !cleanCaseId) return false;
+  const started = Date.now();
+  const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 25000));
+  const intervalMs = Math.max(250, Number(options?.intervalMs ?? 600));
+
+  while (Date.now() - started < maxWaitMs) {
+    try {
+      const mine = await weall.pohAsyncMyCases(acct, base, headers);
+      const cases = Array.isArray(mine?.cases) ? mine.cases : [];
+      if (cases.some((item: any) => String(item?.case_id || "").trim() === cleanCaseId)) {
+        return true;
+      }
+    } catch {
+      // keep polling
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+  }
+  return false;
 }
 
 export default function AccountVerificationPage(): JSX.Element {
@@ -317,7 +380,9 @@ export default function AccountVerificationPage(): JSX.Element {
   const accountLevel = snapshot.tier;
   const currentLabel = verificationLabel(accountLevel);
   const currentSummary = verificationSummary(accountLevel);
-  const registered = snapshot.registered;
+  const basicAccountCreated = snapshot.accountCreated;
+  const registered = basicAccountCreated; // Basic account visibility, not content-posting eligibility.
+  const contentPostingEligible = snapshot.postingEligible;
   const banned = snapshot.banned;
   const locked = snapshot.locked;
 
@@ -329,11 +394,11 @@ export default function AccountVerificationPage(): JSX.Element {
     if (!acct) return "Sign in or create an account on this device.";
     if (!hasLocalKeypair) return "Restore the saved account key for this account.";
     if (!sessionKeyPresent) return "Save a session key so authenticated account calls work on this device.";
-    if (!registered) return "Register your account so the network can recognize it.";
+    if (!basicAccountCreated) return "Register your basic account so the network can recognize it.";
     if (accountLevel < 1) return "Record a fresh 1–2 minute video and submit it for async human review.";
     if (accountLevel < 2) return "Complete live verification to unlock high-trust social and community actions.";
     return "You can now apply for trusted responsibilities where you meet the requirements.";
-  }, [acct, accountLevel, hasLocalKeypair, registered, sessionKeyPresent]);
+  }, [acct, accountLevel, basicAccountCreated, hasLocalKeypair, sessionKeyPresent]);
 
   async function registerAccount(): Promise<void> {
     if (!acct) {
@@ -429,7 +494,7 @@ export default function AccountVerificationPage(): JSX.Element {
       message: "The primary path is native async human review finalized by WeAll account state. This frontend does not require an external identity provider.",
       next_steps: registered
         ? ["Record and submit a fresh account-verification video.", "Refresh account status after reviewers finalize the result."]
-        : ["Register the account first.", "Return here to start or inspect verification."],
+        : ["Register the basic account first.", "Return here to start or inspect verification."],
     });
   }
 
@@ -669,26 +734,39 @@ export default function AccountVerificationPage(): JSX.Element {
           const evidenceCommitment = upload.video_commitment || await sha256HexText(`weall:poh_async_evidence_v1:${upload.cid || ""}`);
           const evidenceId = `async-evidence:${challenge.challengeId}`;
 
-          const open = await submitSignedTx({
-            account: acct,
+          // Submit the three native async-verification transactions as one
+          // signer sequence.  This prevents the observer-edge UI from reusing
+          // stale local nonce reservations between request-open, evidence
+          // declaration, and evidence binding while still keeping each step as a
+          // normal signed protocol tx forwarded through the observer outbox.
+          const sequence = await beginNonceSequence(acct, base);
+          const openedAtMs = Date.now();
+
+          const open = await submitSignedTxInSequence({
+            sequence,
             tx_type: "POH_ASYNC_REQUEST_OPEN",
-            payload: {
+            payloadFactory: () => ({
               account_id: acct,
               case_id: caseId,
               challenge_id: challenge.challengeId,
               challenge_commitment: challengeCommitment,
               response_commitment: responseCommitment,
               note: "fresh_recorded_video_v1",
-              ts_ms: Date.now(),
-            },
+              ts_ms: openedAtMs,
+            }),
             parent: null,
             base,
           });
 
-          const declare = await submitSignedTx({
-            account: acct,
+          const openVisible = await waitForSubmittedTxVisible(base, String(open?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
+          if (!openVisible) throw new Error("Async verification request was not confirmed on the observer yet. Wait for local sync and try again.");
+          const openCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 90000, intervalMs: 1000 });
+          if (!openCaseVisible) throw new Error("Async verification case did not become visible after request open.");
+
+          const declare = await submitSignedTxInSequence({
+            sequence,
             tx_type: "POH_ASYNC_EVIDENCE_DECLARE",
-            payload: {
+            payloadFactory: () => ({
               case_id: caseId,
               evidence_id: evidenceId,
               evidence_commitment: evidenceCommitment,
@@ -702,24 +780,32 @@ export default function AccountVerificationPage(): JSX.Element {
               name: upload.name || file.name,
               size: upload.size || file.size,
               video_commitment: upload.video_commitment || evidenceCommitment,
-              ts_ms: Date.now(),
-            },
-            parent: open?.result?.tx_id || open?.tx_id || null,
+              ts_ms: openedAtMs,
+            }),
+            parent: open?.result?.tx_id || null,
             base,
           });
 
-          const bind = await submitSignedTx({
-            account: acct,
+          const declareVisible = await waitForSubmittedTxVisible(base, String(declare?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
+          if (!declareVisible) throw new Error("Async verification evidence declaration was not confirmed on the observer yet. Wait for local sync and try again.");
+
+          const bind = await submitSignedTxInSequence({
+            sequence,
             tx_type: "POH_ASYNC_EVIDENCE_BIND",
-            payload: {
+            payloadFactory: () => ({
               case_id: caseId,
               evidence_id: evidenceId,
               target_id: caseId,
-              ts_ms: Date.now(),
-            },
-            parent: declare?.result?.tx_id || declare?.tx_id || null,
+              ts_ms: openedAtMs,
+            }),
+            parent: declare?.result?.tx_id || null,
             base,
           });
+
+          const bindVisible = await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
+          if (!bindVisible) throw new Error("Async verification evidence binding was not confirmed on the observer yet. Wait for local sync and try again.");
+          const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 90000, intervalMs: 1000 });
+          if (!boundCaseVisible) throw new Error("Async verification case did not remain visible after evidence binding.");
 
           return { challenge, case_id: caseId, upload, open, declare, bind };
         },
@@ -823,8 +909,8 @@ export default function AccountVerificationPage(): JSX.Element {
                 <span className={`statusPill ${!!acct ? "ok" : ""}`}>{acct ? "Signed in" : "Not signed in"}</span>
                 <span className={`statusPill ${hasLocalKeypair ? "ok" : ""}`}>{hasLocalKeypair ? "Device ready" : "Device setup needed"}</span>
                 <span className={`statusPill ${sessionKeyPresent ? "ok" : ""}`}>{sessionKeyPresent ? "Session ready" : "Session key needed"}</span>
-                <span className={`statusPill ${registered ? "ok" : ""}`}>{registered ? "Account registered" : "Registration needed"}</span>
-                <span className={`statusPill ${accountLevel >= 2 ? "ok" : ""}`}>{currentLabel}</span>
+                <span className={`statusPill ${basicAccountCreated ? "ok" : ""}`}>{basicAccountCreated ? "Basic account ready" : "Basic account needed"}</span>
+                <span className={`statusPill ${contentPostingEligible ? "ok" : ""}`}>{contentPostingEligible ? "Posting eligible" : currentLabel}</span>
               </div>
               <div className="calloutInfo">
                 <strong>Next step:</strong> {nextStep}
@@ -843,7 +929,7 @@ export default function AccountVerificationPage(): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Create posts</span>
-              <span className="statValue">{snapshot.canPost ? "Available" : "Live verification needed"}</span>
+              <span className="statValue">{contentPostingEligible ? "Available" : "Live verification needed"}</span>
             </div>
           </div>
 
@@ -902,13 +988,16 @@ export default function AccountVerificationPage(): JSX.Element {
             <p className="cardDesc">
               This device needs a browser session, the matching saved account key, and a visible account record before verification actions can complete.
             </p>
+            <div className="calloutInfo">
+              <strong>Basic account creation is not posting permission.</strong> Posting and community decision actions stay locked until live verification is reflected in account state.
+            </div>
             <div className="buttonRowWide">
               <button
                 className="btn btnPrimary"
                 onClick={() => void registerAccount()}
-                disabled={!acct || !hasLocalKeypair || registered || registerBusy || signerSubmission.busy}
+                disabled={!acct || !hasLocalKeypair || basicAccountCreated || registerBusy || signerSubmission.busy}
               >
-                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting…" : registered ? "Account registered" : "Register account"}
+                {registerBusy ? "Registering…" : signerSubmission.busy ? "Waiting…" : basicAccountCreated ? "Basic account ready" : "Register basic account"}
               </button>
               <button className="btn" onClick={() => void issueSessionKey()} disabled={!acct || !hasLocalKeypair || sessionBusy || signerSubmission.busy}>
                 {sessionBusy ? "Saving…" : signerSubmission.busy ? "Waiting…" : "Save session key"}
@@ -923,7 +1012,7 @@ export default function AccountVerificationPage(): JSX.Element {
           eyebrow="Account"
           title={VERIFICATION_LABELS.basic}
           status={basicStatus}
-          description="You can browse, set up your profile, and start account verification."
+          description="You can browse, set up your profile, and start account verification. Creating a basic account does not unlock posting."
         />
         <StatusCard
           eyebrow="Basic human review"
@@ -964,7 +1053,7 @@ export default function AccountVerificationPage(): JSX.Element {
               <button
                 className="btn btnPrimary"
                 onClick={() => void startAsyncRecording()}
-                disabled={!acct || !registered || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
+                disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncRecordingState === "recording" || asyncEvidenceBusy || signerSubmission.busy}
               >
                 {asyncRecordingState === "recording" ? "Recording…" : "Record fresh verification video"}
               </button>
@@ -997,7 +1086,7 @@ export default function AccountVerificationPage(): JSX.Element {
             <button
               className="btn btnPrimary"
               onClick={() => void submitAsyncEvidence()}
-              disabled={!acct || !registered || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok}
+              disabled={!acct || !basicAccountCreated || accountLevel >= 1 || asyncEvidenceBusy || signerSubmission.busy || !asyncSubmitCheck.ok}
             >
               {asyncEvidenceBusy ? "Submitting…" : signerSubmission.busy ? "Waiting…" : accountLevel >= 1 ? "Async verification complete" : "Submit async verification evidence"}
             </button>

@@ -204,9 +204,19 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
 
     founder = accounts.get(founding_account) if founding_account and isinstance(accounts.get(founding_account), dict) else {}
     keys = founder.get("keys") if isinstance(founder.get("keys"), dict) else {}
+    founder_key_values: list[str] = []
     if founding_account and not keys:
         _issue(issues, "genesis_founder_keys_missing", founding_account)
-    for key in keys.keys():
+    by_id = keys.get("by_id") if isinstance(keys.get("by_id"), dict) else None
+    if isinstance(by_id, dict):
+        for rec in by_id.values():
+            if isinstance(rec, dict):
+                founder_key_values.append(str(rec.get("pubkey") or ""))
+    else:
+        founder_key_values.extend(str(key or "") for key in keys.keys())
+    if founding_account and not [item for item in founder_key_values if str(item).strip()]:
+        _issue(issues, "genesis_founder_keys_missing", founding_account)
+    for key in founder_key_values:
         key_text = str(key or "").strip().lower()
         if _is_placeholder(key_text):
             _issue(issues, "genesis_founder_key_unpinned", key_text)

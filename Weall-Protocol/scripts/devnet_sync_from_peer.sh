@@ -51,7 +51,15 @@ _post_json() {
   local out_file="$3"
   local code_file="$4"
   local code
-  code="$(curl -sS -H 'content-type: application/json' --data-binary "@${in_file}" \
+  local headers=(-H 'content-type: application/json')
+  if [[ -n "${WEALL_STATE_SYNC_OPERATOR_TOKEN:-}" ]]; then
+    headers+=(-H "x-weall-state-sync-operator-token: ${WEALL_STATE_SYNC_OPERATOR_TOKEN}")
+  elif [[ -n "${WEALL_OBSERVER_EDGE_OPERATOR_TOKEN:-}" ]]; then
+    headers+=(-H "x-weall-observer-operator-token: ${WEALL_OBSERVER_EDGE_OPERATOR_TOKEN}")
+  elif [[ -n "${WEALL_OPERATOR_TOKEN:-}" ]]; then
+    headers+=(-H "x-weall-operator-token: ${WEALL_OPERATOR_TOKEN}")
+  fi
+  code="$(curl -sS "${headers[@]}" --data-binary "@${in_file}" \
     -o "${out_file}" -w '%{http_code}' "${url}" || true)"
   printf '%s' "${code}" > "${code_file}"
   if [[ "${code}" -lt 200 || "${code}" -ge 300 ]]; then

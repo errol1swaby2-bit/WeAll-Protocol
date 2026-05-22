@@ -405,10 +405,19 @@ export default function LoginPage() {
     }
     setDevBootstrapBusy(true)
     try {
-      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), manifestApiBase(devManifest, apiBaseInput))
+      const apiBase = manifestApiBase(devManifest, apiBaseInput)
+      const secret = await fetchDevBootstrapSecret(String(devManifest.account || ""), apiBase)
       const secretKeyB64 = String(secret?.secretKeyB64 || secret?.secret_key_b64 || "").trim()
       if (!secretKeyB64) throw new Error("Demo recovery key is unavailable from the local backend.")
-      await restoreAccountAndLoginOnThisDevice({ account: normalizeAccount(devManifest.account), secretKeyB64 })
+      const ttlSeconds = Number(secret?.sessionTtlSeconds || devManifest.sessionTtlSeconds || 24 * 60 * 60)
+      setApiBase(apiBase)
+      setApiBaseInput(apiBase)
+      await restoreAccountAndLoginOnThisDevice({
+        account: normalizeAccount(devManifest.account),
+        secretKeyB64,
+        ttlSeconds,
+        base: apiBase,
+      })
       setNotice("Demo account loaded.")
       nav(consumeReturnTo("/home"))
     } catch (err) {

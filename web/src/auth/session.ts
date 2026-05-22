@@ -567,6 +567,45 @@ function isDeviceAlreadyRegisteredError(error: unknown): boolean {
   return code === "device_exists" || message.includes("device_exists") || message.includes("device exists");
 }
 
+function accountNonceFromView(value: any): number {
+  const n = Number(value?.state?.nonce ?? value?.account?.nonce ?? 0);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+async function waitForLocalAccountNonceAtLeast(args: {
+  account: string;
+  minNonce: number;
+  base?: string;
+  timeoutMs?: number;
+}): Promise<boolean> {
+  const acct = normalizeAccount(args.account);
+  if (!acct) return false;
+  const minNonce = Math.max(0, Math.floor(Number(args.minNonce || 0)));
+  if (minNonce <= 0) return true;
+  const deadline = Date.now() + Math.max(1_000, Math.min(120_000, Number(args.timeoutMs ?? 30_000)));
+  while (Date.now() <= deadline) {
+    try {
+      const view = await weall.account(acct, args.base);
+      if (accountNonceFromView(view) >= minNonce) return true;
+    } catch {
+      // The account may still be syncing from the upstream confirmer.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
+function observerReconciliationPendingError(txType: string, nonce: number): Error {
+  const err = new Error(
+    `The ${txType} action reached submission, but this local observer has not reconciled nonce ${nonce} yet. Keep the local observer reconciliation worker running and retry after it catches up.`,
+  );
+  (err as any).code = "observer_local_state_not_reconciled";
+  (err as any).tx_type = txType;
+  (err as any).nonce = nonce;
+  return err;
+}
+
+
 function friendlyNonceError(error: unknown): Error {
   const err = new Error("Another signed action is still settling or the backend is catching up on nonce state. Refresh the affected object, wait a moment, and try again.");
   (err as any).cause = error;
@@ -1013,32 +1052,44 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
   // Production/canonical fallback: if the API refuses direct session mutation,
   // issue browser device/session state through normal signed transactions.
   try {
-    await submitSignedTx({
+    const deviceResult = await submitSignedTxWithNonce({
       account: acct,
       tx_type: "ACCOUNT_DEVICE_REGISTER",
-      payload: {
+      payloadFactory: () => ({
         device_id: deviceId,
         device_type: "browser",
         label: "Browser session",
         pubkey: kp.pubkeyB64,
-      },
+      }),
       parent: null,
       base: args.base,
     });
+    const synced = await waitForLocalAccountNonceAtLeast({
+      account: acct,
+      minNonce: deviceResult.env.nonce,
+      base: args.base,
+      timeoutMs: 30_000,
+    });
+    if (!synced) throw observerReconciliationPendingError("ACCOUNT_DEVICE_REGISTER", deviceResult.env.nonce);
   } catch (error) {
     if (!isDeviceAlreadyRegisteredError(error)) throw error;
   }
 
-  const issueResult = await submitSignedTx({
+  const issueResult = await submitSignedTxWithNonce({
     account: acct,
     tx_type: "ACCOUNT_SESSION_KEY_ISSUE",
-    payload: {
+    payloadFactory: () => ({
       session_key: requestedSessionKey,
       ttl_s: ttlSeconds,
-      device_id: deviceId,
-    },
+    }),
     parent: null,
     base: args.base,
+  });
+  await waitForLocalAccountNonceAtLeast({
+    account: acct,
+    minNonce: issueResult.env.nonce,
+    base: args.base,
+    timeoutMs: 30_000,
   });
 
   setSession({
