@@ -130,6 +130,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [notice, setNotice] = useState<string>("");
+  const [casePendingSync, setCasePendingSync] = useState<boolean>(false);
   const [cameraEnabled, setCameraEnabled] = useState<boolean>(true);
   const [micEnabled, setMicEnabled] = useState<boolean>(true);
   const [showEmbeddedRoom, setShowEmbeddedRoom] = useState<boolean>(liveRoomEmbedEnabled());
@@ -199,11 +200,21 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
         weall.pohLiveCase(caseId, apiBase, headers),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
       ]);
+      setCasePendingSync(false);
       setLiveCase(caseRes?.case || null);
       const nextSessions = Array.isArray(sessionRes?.sessions) ? sessionRes.sessions : [];
       setSessions(nextSessions);
     } catch (e) {
-      setError(prettyError(e));
+      const message = prettyError(e);
+      if (message === "live_case_not_found" || message.includes("live_case_not_found")) {
+        // Batch 417: the verification page may navigate to the deterministic
+        // case id before observer-local state has caught up with genesis.
+        // Keep polling instead of stranding the user on a dead room page.
+        setCasePendingSync(true);
+        setError("");
+      } else {
+        setError(message);
+      }
     } finally {
       setBusy("");
     }
@@ -226,6 +237,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   useEffect(() => {
     void load();
   }, [caseId, apiBase]);
+
+  useEffect(() => {
+    if (!caseId || liveCase?.case_id) return undefined;
+    const id = window.setInterval(() => {
+      void load();
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [caseId, apiBase, liveCase?.case_id]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -504,6 +523,11 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             <div className="statusCard"><span>Tier result</span><strong>{liveCase?.tier_awarded ? `Tier ${liveCase.tier_awarded}` : "Pending"}</strong></div>
           </div>
           <p className="noticeText">{liveRoomTransportNotice()}</p>
+          {casePendingSync ? (
+            <div className="actionStatus">
+              Live request accepted. Waiting for the live case and session to sync into this frontend…
+            </div>
+          ) : null}
           {error ? <div className="errorBanner">{error}</div> : null}
           {notice ? <div className="successBanner">{notice}</div> : null}
           {busy ? <div className="actionStatus">{busy}</div> : null}

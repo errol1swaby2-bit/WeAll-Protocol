@@ -270,6 +270,88 @@ def test_live_scheduler_bootstraps_with_partial_eligible_pool() -> None:
     assert queued["payload"]["live_quorum"]["required_passes"] == 1
 
 
+
+def test_live_scheduler_enqueues_init_and_assignment_for_requested_case_batch424() -> None:
+    st = _state(juror_count=1)
+    st.setdefault("params", {})["poh"] = {
+        "live_partial_panels_enabled": True,
+        "live_partial_until_height": 5,
+    }
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "requested",
+                "session_commitment": "sc:1",
+                "room_commitment": "room:1",
+                "prompt_commitment": "prompt:1",
+                "jurors": {},
+            }
+        }
+    }
+
+    enq = schedule_poh_live_system_txs(st, next_height=2)
+
+    assert enq == 2
+    queued = st.get("system_queue") or []
+    assert [item["tx_type"] for item in queued] == [
+        "POH_LIVE_SESSION_INIT",
+        "POH_LIVE_JUROR_ASSIGN",
+    ]
+    assert queued[1]["parent"] == "POH_LIVE_SESSION_INIT"
+    assert queued[1]["payload"]["jurors"] == ["j1"]
+    assert queued[1]["payload"]["live_quorum"]["active_reviewers"] == 1
+
+
+def test_live_scheduler_does_not_assign_requested_case_without_commitments_batch424() -> None:
+    st = _state(juror_count=1)
+    st.setdefault("params", {})["poh"] = {
+        "live_partial_panels_enabled": True,
+        "live_partial_until_height": 5,
+    }
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "requested",
+                "session_commitment": "sc:1",
+                "jurors": {},
+            }
+        }
+    }
+
+    enq = schedule_poh_live_system_txs(st, next_height=2)
+
+    assert enq == 1
+    queued = st.get("system_queue") or []
+    assert [item["tx_type"] for item in queued] == ["POH_LIVE_SESSION_INIT"]
+
+
+def test_live_scheduler_keeps_legacy_open_case_assignment_without_commitments_batch425() -> None:
+    st = _state(juror_count=1)
+    st.setdefault("params", {})["poh"] = {
+        "live_partial_panels_enabled": True,
+        "live_partial_until_height": 5,
+    }
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "open",
+                "jurors": {},
+            }
+        }
+    }
+
+    enq = schedule_poh_live_system_txs(st, next_height=2)
+
+    assert enq == 1
+    queued = st.get("system_queue") or []
+    assert [item["tx_type"] for item in queued] == ["POH_LIVE_JUROR_ASSIGN"]
+
 def test_live_scheduler_rejects_partial_panel_after_bootstrap_sunset() -> None:
     st = _state(juror_count=1)
     st.setdefault("params", {})["poh"] = {

@@ -320,6 +320,12 @@ class PohAsyncCaseModel(BaseModel):
     reviewable_evidence: dict[str, object] = Field(default_factory=dict)
     reviewer_private_evidence: dict[str, object] = Field(default_factory=dict)
     receipt: dict[str, object] = Field(default_factory=dict)
+    evidence_declared: bool = False
+    evidence_bound: bool = False
+    reviewable: bool = False
+    assigned: bool = False
+    missing_steps: list[str] = Field(default_factory=list)
+    reviewer_queue_reason: str | None = None
 
 
 def _as_async_case(case_id: str, r: dict[str, object], *, include_private_evidence: bool = False) -> PohAsyncCaseModel:
@@ -329,10 +335,50 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
     def _dict(v: Any) -> dict[str, object]:
         return dict(v) if isinstance(v, dict) else {}
 
+    evidence_commitments = _dict(r.get("evidence_commitments"))
+    evidence_binds = _dict(r.get("evidence_binds"))
+    public_evidence_ids = _list(r.get("public_evidence_ids"))
+    reviewable_evidence_raw = _dict(r.get("reviewable_evidence"))
+    reviewer_private_raw = _dict(r.get("reviewer_private_evidence"))
+    assigned_jurors = _list(r.get("assigned_jurors"))
+    jurors = _dict(r.get("jurors"))
+    status = str(r.get("status") or "unknown").strip() or "unknown"
+    outcome = str(r.get("outcome") or "").strip()
+    final_or_reviewed = bool(
+        status.lower() in {"approved", "rejected", "finalized"}
+        or outcome
+        or _dict(r.get("receipt"))
+        or _opt_int_value(r.get("finalized_height")) is not None
+    )
+    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    # Batch 422: older rehearsal runs could enqueue POH_ASYNC_JUROR_ASSIGN after
+    # evidence declare and before evidence bind, making the bind tx fail while
+    # reviewer-private evidence still became visible and the case finalized.
+    # Surface that case as effectively complete instead of leaving the observer
+    # UI stuck on missing evidence_bind.  New scheduler logic prevents the race.
+    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    assigned = bool([j for j in assigned_jurors if str(j or "").strip()] or jurors)
+    reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound))
+    missing_steps: list[str] = []
+    if not evidence_declared:
+        missing_steps.append("evidence_declare")
+    if not evidence_bound:
+        missing_steps.append("evidence_bind")
+    if not assigned and not final_or_reviewed:
+        missing_steps.append("juror_assignment")
+    if final_or_reviewed:
+        reviewer_queue_reason = "finalized"
+    elif not evidence_declared or not evidence_bound:
+        reviewer_queue_reason = "case_opened_not_reviewable"
+    elif not assigned:
+        reviewer_queue_reason = "case_reviewable_not_assigned"
+    else:
+        reviewer_queue_reason = "assigned"
+
     return PohAsyncCaseModel(
         case_id=str(case_id),
         account_id=str(r.get("account_id") or "").strip(),
-        status=str(r.get("status") or "unknown").strip() or "unknown",
+        status=status,
         opened_height=_opt_int_value(r.get("opened_height")),
         expires_height=_opt_int_value(r.get("expires_height")),
         finalized_height=_opt_int_value(r.get("finalized_height")),
@@ -340,17 +386,23 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
         outcome=str(r.get("outcome") or "").strip() or None,
         tier_awarded=_opt_int_value(r.get("tier_awarded")),
         challenge_id=str(r.get("challenge_id") or "").strip() or None,
-        assigned_jurors=_list(r.get("assigned_jurors")),
+        assigned_jurors=assigned_jurors,
         accepted_jurors=_list(r.get("accepted_jurors")),
         declined_jurors=_list(r.get("declined_jurors")),
-        jurors=_dict(r.get("jurors")),
+        jurors=jurors,
         reviews=_dict(r.get("reviews")),
-        evidence_commitments=_dict(r.get("evidence_commitments")),
-        evidence_binds=_dict(r.get("evidence_binds")),
-        public_evidence_ids=_list(r.get("public_evidence_ids")),
+        evidence_commitments=evidence_commitments,
+        evidence_binds=evidence_binds,
+        public_evidence_ids=public_evidence_ids,
         reviewable_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else r.get("reviewable_evidence")),
         reviewer_private_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else {}),
         receipt=_dict(r.get("receipt")),
+        evidence_declared=evidence_declared,
+        evidence_bound=evidence_bound,
+        reviewable=reviewable,
+        assigned=assigned,
+        missing_steps=missing_steps,
+        reviewer_queue_reason=reviewer_queue_reason,
     )
 
 
@@ -421,6 +473,7 @@ class PohAsyncCaseResponse(BaseModel):
 class PohAsyncCaseListResponse(BaseModel):
     ok: bool
     cases: list[PohAsyncCaseModel]
+    diagnostics: dict[str, object] = Field(default_factory=dict)
 
 
 @router.get("/poh/async/case/{case_id}", response_model=PohAsyncCaseResponse, name="poh_async_case")
@@ -454,7 +507,17 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
             include_private = principal == acct
             out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
-    return PohAsyncCaseListResponse(ok=True, cases=out)
+    return PohAsyncCaseListResponse(
+        ok=True,
+        cases=out,
+        diagnostics={
+            "account": acct,
+            "total_cases": len(out),
+            "reviewable_cases": len([c for c in out if c.reviewable]),
+            "assigned_cases": len([c for c in out if c.assigned]),
+            "opened_not_reviewable_cases": len([c for c in out if c.reviewer_queue_reason == "case_opened_not_reviewable"]),
+        },
+    )
 
 
 @router.get(
@@ -477,7 +540,28 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
             include_private = principal == j
             out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
-    return PohAsyncCaseListResponse(ok=True, cases=out)
+    roles = st.get("roles") if isinstance(st.get("roles"), dict) else {}
+    juror_roles = roles.get("jurors") if isinstance(roles.get("jurors"), dict) else {}
+    active_set = juror_roles.get("active_set") if isinstance(juror_roles.get("active_set"), list) else []
+    active_juror = j in [str(x) for x in active_set]
+    modeled_cases = [_as_async_case(str(cid), raw, include_private_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
+    return PohAsyncCaseListResponse(
+        ok=True,
+        cases=out,
+        diagnostics={
+            "juror": j,
+            "active_juror": active_juror,
+            "assigned_cases": len(out),
+            "reviewable_unassigned_cases": len([c for c in modeled_cases if c.reviewable and not c.assigned]),
+            "opened_not_reviewable_cases": len([c for c in modeled_cases if c.reviewer_queue_reason == "case_opened_not_reviewable"]),
+            "empty_queue_reason": None if out else (
+                "juror_not_active" if not active_juror else
+                "cases_exist_but_not_reviewable" if any(c.reviewer_queue_reason == "case_opened_not_reviewable" for c in modeled_cases) else
+                "reviewable_cases_not_assigned" if any(c.reviewable and not c.assigned for c in modeled_cases) else
+                "no_async_cases"
+            ),
+        },
+    )
 
 # ---------------------------------------------------------------------------
 # PoH Tier2: Read-only views (for product UI / juror dashboards)
@@ -764,6 +848,14 @@ def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
 
     out.sort(key=lambda c: c.case_id)
     return PohLiveAssignedResponse(ok=True, cases=out)
+
+
+@router.get(
+    "/poh/live/juror-cases", response_model=PohLiveAssignedResponse, name="poh_live_juror_cases"
+)
+def poh_live_juror_cases(juror: str, request: Request) -> PohLiveAssignedResponse:
+    # Compatibility alias for async juror-cases and operator probes.
+    return poh_live_assigned(juror=juror, request=request)
 
 
 @router.get(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from weall.runtime.apply.poh import (
+    apply_poh_async_evidence_bind,
     apply_poh_async_evidence_declare,
     apply_poh_async_finalize,
     apply_poh_async_juror_accept,
@@ -63,7 +64,16 @@ def _async_case_to_tier1(state: dict, account: str, *, case_id: str, nonce_base:
             "POH_ASYNC_EVIDENCE_DECLARE",
             account,
             nonce_base + 1,
-            {"case_id": case_id, "evidence_commitment": f"evidence:{case_id}"},
+            {"case_id": case_id, "evidence_id": f"evidence:{case_id}", "evidence_commitment": f"evidence:{case_id}"},
+        ),
+    )
+    apply_poh_async_evidence_bind(
+        state,
+        _env(
+            "POH_ASYNC_EVIDENCE_BIND",
+            account,
+            nonce_base + 2,
+            {"case_id": case_id, "evidence_id": f"evidence:{case_id}", "target_id": case_id},
         ),
     )
     before = len(state.get("system_queue") or [])
@@ -74,19 +84,19 @@ def _async_case_to_tier1(state: dict, account: str, *, case_id: str, nonce_base:
     assert queued["payload"]["jurors"] == ["@founder"]
     apply_poh_async_juror_assign(
         state,
-        _env("POH_ASYNC_JUROR_ASSIGN", "SYSTEM", nonce_base + 2, queued["payload"], system=True),
+        _env("POH_ASYNC_JUROR_ASSIGN", "SYSTEM", nonce_base + 3, queued["payload"], system=True),
     )
     apply_poh_async_juror_accept(
         state,
-        _env("POH_ASYNC_JUROR_ACCEPT", "@founder", nonce_base + 3, {"case_id": case_id}),
+        _env("POH_ASYNC_JUROR_ACCEPT", "@founder", nonce_base + 4, {"case_id": case_id}),
     )
     apply_poh_async_review_submit(
         state,
-        _env("POH_ASYNC_REVIEW_SUBMIT", "@founder", nonce_base + 4, {"case_id": case_id, "verdict": "approve"}),
+        _env("POH_ASYNC_REVIEW_SUBMIT", "@founder", nonce_base + 5, {"case_id": case_id, "verdict": "approve"}),
     )
     out = apply_poh_async_finalize(
         state,
-        _env("POH_ASYNC_FINALIZE", "SYSTEM", nonce_base + 5, {"case_id": case_id}, system=True),
+        _env("POH_ASYNC_FINALIZE", "SYSTEM", nonce_base + 6, {"case_id": case_id}, system=True),
     )
     assert out["outcome"] == "approved"
     assert state["accounts"][account]["poh_tier"] == 1
@@ -131,7 +141,17 @@ def test_async_quorum_expands_with_active_validator_count() -> None:
             "POH_ASYNC_EVIDENCE_DECLARE",
             "@alice",
             2,
-            {"case_id": "async-alice", "evidence_commitment": "evidence"},
+            {"case_id": "async-alice", "evidence_id": "evidence", "evidence_commitment": "evidence"},
+        ),
+    )
+    assert schedule_poh_async_system_txs(state, next_height=2) == 0
+    apply_poh_async_evidence_bind(
+        state,
+        _env(
+            "POH_ASYNC_EVIDENCE_BIND",
+            "@alice",
+            3,
+            {"case_id": "async-alice", "evidence_id": "evidence", "target_id": "async-alice"},
         ),
     )
 

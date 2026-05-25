@@ -71,6 +71,8 @@ def read_rows() -> list[dict]:
     return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
 
 idle = 0
+next_reconcile_at: dict[str, float] = {}
+reconcile_attempts: dict[str, int] = {}
 print(f'==> observer reconcile loop api={api} outbox={outbox}', flush=True)
 while True:
     changed = False
@@ -92,11 +94,28 @@ while True:
         # The reconcile route also probes upstream status, so call it for accepted
         # and confirmed rows. Pending rows will return a bounded diagnostic.
         if upstream_status in {'accepted', 'confirmed'}:
+            now = time.time()
+            due_at = float(next_reconcile_at.get(tx_id, 0.0))
+            if now < due_at:
+                continue
             enc = urllib.parse.quote(tx_id, safe=':')
             status, body = request('POST', f'/v1/observer/edge/reconcile/{enc}')
             ok = bool(body.get('ok') and body.get('local_state_synced'))
             changed = changed or ok
-            print(f'==> reconcile tx={tx_id} status={status} ok={ok} err={body.get("error", "")}', flush=True)
+            err = body.get("error", "")
+            print(f'==> reconcile tx={tx_id} status={status} ok={ok} err={err}', flush=True)
+            if ok:
+                next_reconcile_at.pop(tx_id, None)
+                reconcile_attempts.pop(tx_id, None)
+            else:
+                # Avoid hammering accepted-but-not-yet-confirmed rows into the
+                # API rate limiter.  The outbox still remains durable; this only
+                # spaces local operator probes while genesis catches up.
+                attempts = int(reconcile_attempts.get(tx_id, 0)) + 1
+                reconcile_attempts[tx_id] = attempts
+                if status == 429 or str(err).find('upstream_not_confirmed') >= 0 or str(err).find('rate_limited') >= 0:
+                    backoff = min(30.0, max(poll, 1.0) * (2 ** min(attempts, 5)))
+                    next_reconcile_at[tx_id] = time.time() + backoff
 
     if run_once:
         break

@@ -14,23 +14,22 @@ def _submit_async_body(src: str) -> str:
     return src.split("async function submitAsyncEvidence()", 1)[1].split("async function submitLiveRequest()", 1)[0]
 
 
-def test_batch400_async_evidence_submits_full_sequence_before_waiting_for_case_visibility() -> None:
+def test_batch400_async_evidence_submits_full_sequence_and_waits_for_reviewable_truth() -> None:
     body = _submit_async_body(_page())
 
-    assert "Batch 400: keep the native async evidence sequence contiguous" in body
+    assert "Batch 408: node admission is still sequential-nonce based" in body
     assert "POH_ASYNC_REQUEST_OPEN" in body
     assert "POH_ASYNC_EVIDENCE_DECLARE" in body
     assert "POH_ASYNC_EVIDENCE_BIND" in body
     assert body.index("POH_ASYNC_REQUEST_OPEN") < body.index("POH_ASYNC_EVIDENCE_DECLARE") < body.index("POH_ASYNC_EVIDENCE_BIND")
 
-    # The old flow waited after request-open and evidence-declare.  That could
-    # stall forever when observer-local status was stricter than genesis case
-    # visibility, leaving no complete reviewable case for the genesis reviewer.
-    assert "Async verification request was not confirmed on the observer yet" not in body
-    assert "Async verification evidence declaration was not confirmed on the observer yet" not in body
-
-    # The only post-sequence wait should be for the complete async case to be
-    # visible, with a fallback diagnostic that does not require local sync truth.
-    assert "maxWaitMs: 120000" in body
-    assert "Async verification evidence was submitted, but the reviewable case is not visible yet" in body
+    # The frontend may not claim that verification evidence is submitted just
+    # because request-open committed.  It must wait for each nonce-dependent tx
+    # to reconcile before submitting the next tx, then require reviewable case
+    # state after evidence-bind.
+    assert "waitForAccountNonceAtLeast(acct, Number(open?.env?.nonce || 0)" in body
+    assert "waitForAccountNonceAtLeast(acct, Number(declare?.env?.nonce || 0)" in body
+    assert "waitForAsyncCaseReviewable" in body
+    assert "reviewability.reviewable" in body
+    assert "Async verification txs were submitted, but the case is not reviewable yet" in body
     assert "acceptAccepted: true" in body

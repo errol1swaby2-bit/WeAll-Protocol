@@ -49,6 +49,9 @@ IPFS_SERVICE="${WEALL_IPFS_SERVICE:-ipfs}"
 IPFS_API_BASE="${WEALL_IPFS_API_BASE:-http://127.0.0.1:5001}"
 IPFS_GATEWAY_BASE="${WEALL_IPFS_GATEWAY_BASE:-http://127.0.0.1:8080}"
 IPFS_WAIT_SECONDS="${WEALL_LOCAL_REHEARSAL_IPFS_WAIT_SECONDS:-180}"
+IPFS_PORT_REPAIR="${WEALL_LOCAL_REHEARSAL_IPFS_PORT_REPAIR:-1}"
+IPFS_API_FALLBACK_PORT="${WEALL_LOCAL_REHEARSAL_IPFS_API_FALLBACK_PORT:-15001}"
+IPFS_GATEWAY_FALLBACK_PORT="${WEALL_LOCAL_REHEARSAL_IPFS_GATEWAY_FALLBACK_PORT:-18080}"
 IPFS_PARTITION_PATH="${WEALL_IPFS_PARTITION_PATH:-${DEVNET_DIR}/ipfs_partition}"
 
 NODE1_PID=""
@@ -171,13 +174,31 @@ _wait_ipfs_api() {
 }
 
 _prepare_local_ipfs_repo_dirs() {
-  # Kubo's flatfs/blockstore add path expects blocks/temp to already exist in
-  # some bind-mounted repos. In local rehearsal, reset can remove/recreate the
-  # host partition while a previous container is still alive, which later
-  # surfaces as: "failed to create batch temp directory ... no such file or
-  # directory". Pre-create the parent tree before every health check/start.
-  mkdir -p "${IPFS_PARTITION_PATH}" "${IPFS_PARTITION_PATH}/blocks" "${IPFS_PARTITION_PATH}/blocks/temp"
-  chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" "${IPFS_PARTITION_PATH}/blocks" "${IPFS_PARTITION_PATH}/blocks/temp" 2>/dev/null || true
+  # Kubo must create its own blockstore layout during `ipfs init`.
+  # Do not pre-create blocks/ or blocks/temp before initialization; doing so
+  # produces: "directory missing SHARDING file: /data/ipfs/blocks".
+  mkdir -p "${IPFS_PARTITION_PATH}"
+  chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
+
+  if [[ -d "${IPFS_PARTITION_PATH}/blocks" && ! -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
+    echo "==> Resetting corrupt local IPFS repo: blocks/ exists without SHARDING"
+    rm -rf "${IPFS_PARTITION_PATH}"
+    mkdir -p "${IPFS_PARTITION_PATH}"
+    chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" 2>/dev/null || true
+  fi
+
+  # Batch 388 compatibility/safety: after Kubo has initialized a valid
+  # sharded blockstore, make sure its transient batch directory exists and is
+  # writable for local rehearsal uploads.  This is intentionally after the
+  # corrupt-blockstore reset guard above so we never preserve a blocks/ tree
+  # without SHARDING.
+  if [[ -f "${IPFS_PARTITION_PATH}/blocks/SHARDING" ]]; then
+    mkdir -p "${IPFS_PARTITION_PATH}/blocks/temp" || {
+      echo "ERROR: failed to create batch temp directory: ${IPFS_PARTITION_PATH}/blocks/temp" >&2
+      return 1
+    }
+    chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}/blocks/temp" 2>/dev/null || true
+  fi
 }
 
 _ipfs_add_healthcheck() {
@@ -192,17 +213,191 @@ _ipfs_add_healthcheck() {
     >/dev/null 2>&1
 }
 
-_stop_local_ipfs_daemon() {
-  if ! _bool_true "${START_IPFS}"; then
+_url_port() {
+  local url="${1:-}"
+  python3 - "${url}" <<'PY'
+from urllib.parse import urlparse
+import sys
+
+url = sys.argv[1]
+parsed = urlparse(url if "://" in url else f"http://{url}")
+port = parsed.port
+if port is None:
+    if parsed.scheme == "https":
+        port = 443
+    else:
+        port = 80
+print(port)
+PY
+}
+
+_replace_url_port() {
+  local url="${1:-}"
+  local port="${2:-}"
+  python3 - "${url}" "${port}" <<'PY'
+from urllib.parse import urlparse, urlunparse
+import sys
+
+url, port = sys.argv[1], sys.argv[2]
+parsed = urlparse(url if "://" in url else f"http://{url}")
+host = parsed.hostname or "127.0.0.1"
+netloc = f"{host}:{port}"
+print(urlunparse((parsed.scheme or "http", netloc, parsed.path or "", parsed.params, parsed.query, parsed.fragment)))
+PY
+}
+
+_ipfs_compose_failure_looks_like_port_forward() {
+  local log_path="${1:-}"
+  [[ -f "${log_path}" ]] || return 1
+  grep -Eiq 'ports are not available|forwards/expose|address already in use|Bind for .* failed|port is already allocated|listen tcp' "${log_path}"
+}
+
+_kill_local_port_listener() {
+  local port="${1:-}"
+  [[ -n "${port}" ]] || return 0
+
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -k "${port}/tcp" >/dev/null 2>&1 || true
     return 0
   fi
+
+  ss -ltnp 2>/dev/null \
+    | grep -E ":${port}\\b" \
+    | sed -n 's/.*pid=\\([0-9][0-9]*\\).*/\\1/p' \
+    | sort -u \
+    | xargs -r kill >/dev/null 2>&1 || true
+}
+
+_repair_local_ipfs_ports() {
+  if ! _bool_true "${IPFS_PORT_REPAIR}"; then
+    return 0
+  fi
+
+  local api_port
+  local gateway_port
+  api_port="$(_url_port "${IPFS_API_BASE}")"
+  gateway_port="$(_url_port "${IPFS_GATEWAY_BASE}")"
+
+  echo "==> Cleaning stale local IPFS containers and port users (${api_port}/${gateway_port})"
+
+  pkill -f "ipfs daemon" >/dev/null 2>&1 || true
+
   if command -v docker >/dev/null 2>&1 && [[ -f "${IPFS_COMPOSE_FILE}" ]]; then
     (
       cd "${REPO_ROOT}"
       export WEALL_IPFS_PARTITION_PATH="${IPFS_PARTITION_PATH}"
       docker compose -f "${IPFS_COMPOSE_FILE}" rm -sf "${IPFS_SERVICE}" >/dev/null 2>&1 || true
+      docker compose -f "${IPFS_COMPOSE_FILE}" down --remove-orphans >/dev/null 2>&1 || true
     )
+    docker rm -f weall-ipfs ipfs Weall-Protocol-ipfs-1 weall-protocol-ipfs-1 >/dev/null 2>&1 || true
   fi
+
+  _kill_local_port_listener "${api_port}"
+  _kill_local_port_listener "${gateway_port}"
+}
+
+_print_ipfs_port_diagnostics() {
+  echo >&2
+  echo "=== IPFS port diagnostics ===" >&2
+  echo "api=${IPFS_API_BASE} gateway=${IPFS_GATEWAY_BASE}" >&2
+  ss -ltnp 2>/dev/null | grep -E ':4001|:5001|:8080|:15001|:18080' >&2 || true
+  if command -v docker >/dev/null 2>&1; then
+    docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}' >&2 || true
+  fi
+}
+
+_docker_compose_up_ipfs() {
+  local api_port
+  local gateway_port
+  api_port="$(_url_port "${IPFS_API_BASE}")"
+  gateway_port="$(_url_port "${IPFS_GATEWAY_BASE}")"
+
+  (
+    cd "${REPO_ROOT}"
+    export WEALL_IPFS_PARTITION_PATH="${IPFS_PARTITION_PATH}"
+    # These exports let docker-compose.ipfs.yml use fallback ports when Docker
+    # Desktop/WSL keeps a stale localhost forward even though `ss` shows no
+    # Linux listener. Compose files that do not consume the variables continue
+    # to use their existing literal mapping.
+    export WEALL_IPFS_API_PORT="${api_port}"
+    export WEALL_IPFS_GATEWAY_PORT="${gateway_port}"
+    export IPFS_API_PORT="${api_port}"
+    export IPFS_GATEWAY_PORT="${gateway_port}"
+    docker compose -f "${IPFS_COMPOSE_FILE}" up -d --remove-orphans "${IPFS_SERVICE}"
+  )
+}
+
+_start_ipfs_with_docker_compose_repair() {
+  local compose_log="${LOG_DIR}/local-ipfs-compose-up.log"
+  : >"${compose_log}"
+
+  if _docker_compose_up_ipfs >"${compose_log}" 2>&1; then
+    return 0
+  fi
+
+  cat "${compose_log}" >&2 || true
+  if ! _ipfs_compose_failure_looks_like_port_forward "${compose_log}"; then
+    return 1
+  fi
+
+  echo "==> Docker reported a local IPFS port bind/WSL forward problem; retrying after cleanup"
+  _repair_local_ipfs_ports
+  sleep 2
+
+  : >"${compose_log}"
+  if _docker_compose_up_ipfs >"${compose_log}" 2>&1; then
+    return 0
+  fi
+
+  cat "${compose_log}" >&2 || true
+  if ! _ipfs_compose_failure_looks_like_port_forward "${compose_log}"; then
+    return 1
+  fi
+
+  # Docker Desktop on WSL can retain a stale localhost forward that is invisible
+  # to `ss` inside the distro. Avoid forcing the operator to run `wsl --shutdown`
+  # by moving this rehearsal's IPFS ports to known alternate localhost ports.
+  local old_api="${IPFS_API_BASE}"
+  local old_gateway="${IPFS_GATEWAY_BASE}"
+  IPFS_API_BASE="$(_replace_url_port "${IPFS_API_BASE}" "${IPFS_API_FALLBACK_PORT}")"
+  IPFS_GATEWAY_BASE="$(_replace_url_port "${IPFS_GATEWAY_BASE}" "${IPFS_GATEWAY_FALLBACK_PORT}")"
+
+  echo "==> Falling back IPFS ports for this rehearsal:"
+  echo "    api: ${old_api} -> ${IPFS_API_BASE}"
+  echo "    gateway: ${old_gateway} -> ${IPFS_GATEWAY_BASE}"
+
+  _repair_local_ipfs_ports
+  sleep 2
+
+  : >"${compose_log}"
+  if _docker_compose_up_ipfs >"${compose_log}" 2>&1; then
+    return 0
+  fi
+
+  cat "${compose_log}" >&2 || true
+  cat >&2 <<EOF_REPAIR
+ERROR: Docker still could not expose IPFS ports after cleanup and fallback.
+
+This usually means Docker Desktop/WSL has a stale port-forward outside the
+Linux process table. The script already tried:
+  - docker compose rm/down
+  - removing likely stale IPFS containers
+  - killing local Linux listeners
+  - retrying on fallback ports ${IPFS_API_BASE} / ${IPFS_GATEWAY_BASE}
+
+Last resort from Windows PowerShell:
+  wsl --shutdown
+
+Then reopen WSL and rerun this script.
+EOF_REPAIR
+  return 1
+}
+
+_stop_local_ipfs_daemon() {
+  if ! _bool_true "${START_IPFS}"; then
+    return 0
+  fi
+  _repair_local_ipfs_ports
 }
 
 _start_local_ipfs_daemon() {
@@ -228,13 +423,15 @@ _start_local_ipfs_daemon() {
   echo "==> Starting local IPFS daemon for PoH evidence uploads"
 
   if command -v docker >/dev/null 2>&1 && [[ -f "${IPFS_COMPOSE_FILE}" ]]; then
-    (
-      cd "${REPO_ROOT}"
-      export WEALL_IPFS_PARTITION_PATH="${IPFS_PARTITION_PATH}"
-      docker compose -f "${IPFS_COMPOSE_FILE}" up -d --remove-orphans "${IPFS_SERVICE}"
-    )
+    if ! _start_ipfs_with_docker_compose_repair; then
+      _print_ipfs_port_diagnostics
+      docker compose -f "${IPFS_COMPOSE_FILE}" ps "${IPFS_SERVICE}" >&2 || true
+      docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
+      exit 2
+    fi
     if ! _wait_ipfs_api "${IPFS_API_BASE}" "${IPFS_WAIT_SECONDS}"; then
       echo "ERROR: IPFS daemon did not become reachable at ${IPFS_API_BASE}" >&2
+      _print_ipfs_port_diagnostics
       docker compose -f "${IPFS_COMPOSE_FILE}" ps "${IPFS_SERVICE}" >&2 || true
       docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
       exit 2

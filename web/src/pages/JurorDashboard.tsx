@@ -376,6 +376,11 @@ export default function JurorDashboard(): JSX.Element {
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const showing = tab === "async" ? asyncCases : liveCases;
+  const livePendingSessions = liveSessions.filter((session: any) => {
+    const caseId = String(session?.case_id || "").trim();
+    if (!caseId) return false;
+    return !liveCases.some((liveCase: any) => String(liveCase?.case_id || liveCase?.id || "").trim() === caseId);
+  });
   const assignedContentReports = contentReports.filter((item) => {
     const targetType = String(item?.target_type || "content").trim().toLowerCase();
     const status = disputeJurorStatus(item, account);
@@ -540,7 +545,42 @@ export default function JurorDashboard(): JSX.Element {
         right={<span className={`statusPill ${showing.length ? "ok" : ""}`}>{showing.length} case(s)</span>}
       >
         {showing.length === 0 ? (
-          <div className="cardDesc">No assigned cases right now.</div>
+          tab === "live" && livePendingSessions.length > 0 ? (
+            <div className="pageStack">
+              <div className="calloutInfo">
+                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Keep the genesis block loop and downstream sync running.
+              </div>
+              {livePendingSessions.map((session: any) => {
+                const caseId = String(session?.case_id || "").trim();
+                return (
+                  <article key={String(session?.session_id || caseId)} className="card">
+                    <div className="cardBody formStack">
+                      <div className="sectionHead">
+                        <div>
+                          <div className="eyebrow">Pending live session</div>
+                          <h3 className="cardTitle">{caseId || "(missing case id)"}</h3>
+                        </div>
+                        <span className="statusPill">{String(session?.status || "requested")}</span>
+                      </div>
+                      <p className="cardDesc">
+                        The live room/session exists, but this account has not been assigned as a reviewer yet.
+                      </p>
+                      <div className="buttonRow">
+                        <button className="btn" onClick={() => caseId && joinLiveRoom(caseId)} disabled={!caseId}>
+                          Open live room
+                        </button>
+                        <button className="btn" onClick={() => void refreshJurorSurface()}>
+                          Refresh queue
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="cardDesc">No assigned cases right now.</div>
+          )
         ) : (
           <div className="pageStack">
             {showing.map((c) => {

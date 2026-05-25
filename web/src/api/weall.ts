@@ -728,6 +728,10 @@ export const weall = {
     return apiGet(withSearch('/v1/poh/live/assigned', { juror: account }), base, headers);
   },
 
+  pohLiveJurorCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(withSearch('/v1/poh/live/juror-cases', { juror: account }), base, headers);
+  },
+
   pohLiveMyCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(withSearch('/v1/poh/live/my-cases', { account }), base, headers);
   },

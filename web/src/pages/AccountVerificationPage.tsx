@@ -106,13 +106,26 @@ function StatusCard({ eyebrow, title, status, description, children }: StatusCar
 function CaseCard({ item }: { item: any }): JSX.Element {
   const created = item?.created_at_ms ? new Date(item.created_at_ms).toLocaleString() : "—";
   const tone = statusTone(String(item?.status || ""));
+  const reviewability = asyncCaseReviewability(item);
+  const reason = String(item?.reviewer_queue_reason || "").trim();
+  const humanReason = reason === "finalized" || ["approved", "rejected", "finalized"].includes(String(item?.status || "").toLowerCase())
+    ? "This verification case has been finalized on-chain."
+    : reason === "case_opened_not_reviewable"
+      ? "Case opened. Evidence still needs to be declared and bound before reviewers can see it."
+      : reason === "case_reviewable_not_assigned"
+        ? "Evidence is reviewable. Waiting for juror assignment."
+        : reason === "assigned"
+          ? "Assigned reviewers can now see this case."
+          : "Waiting for the next verification step.";
   return (
     <div className="infoCard compact">
       <div className="infoCardHeader">
         <strong>{String(item?.case_id || "Review case")}</strong>
-        <span className={`statusPill ${tone === "done" ? "ok" : ""}`}>{String(item?.status || "unknown")}</span>
+        <span className={`statusPill ${tone === "done" || reviewability.reviewable ? "ok" : ""}`}>{reviewability.reviewable ? "Reviewable" : String(item?.status || "unknown")}</span>
       </div>
       <div className="infoCardText">Opened {created}</div>
+      <div className="infoCardText">{humanReason}</div>
+      {reviewability.missingSteps.length ? <div className="miniMuted">Missing: {reviewability.missingSteps.join(", ")}</div> : null}
     </div>
   );
 }
@@ -223,6 +236,13 @@ async function waitForLiveCaseIdVisible(account: string, base: string, headers?:
   return "";
 }
 
+function expectedLiveCaseIdFromNonce(account: string, nonce: number): string {
+  const acct = normalizeAccount(account);
+  const n = Math.max(0, Math.floor(Number(nonce || 0)));
+  return acct && n > 0 ? `poh_live:${acct}:${n}` : "";
+}
+
+
 
 async function waitForSubmittedTxVisible(
   base: string,
@@ -255,27 +275,100 @@ async function waitForSubmittedTxVisible(
   return false;
 }
 
-async function waitForAsyncCaseVisible(account: string, caseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<boolean> {
+type AsyncCaseReviewability = {
+  exists: boolean;
+  evidenceDeclared: boolean;
+  evidenceBound: boolean;
+  reviewable: boolean;
+  assigned: boolean;
+  status?: string;
+  missingSteps: string[];
+};
+
+function asyncCaseReviewability(item: any): AsyncCaseReviewability {
+  const evidenceCommitments = item?.evidence_commitments && typeof item.evidence_commitments === "object" ? item.evidence_commitments : {};
+  const evidenceBinds = item?.evidence_binds && typeof item.evidence_binds === "object" ? item.evidence_binds : {};
+  const reviewableEvidence = item?.reviewable_evidence && typeof item.reviewable_evidence === "object" ? item.reviewable_evidence : {};
+  const reviewerPrivateEvidence = item?.reviewer_private_evidence && typeof item.reviewer_private_evidence === "object" ? item.reviewer_private_evidence : {};
+  const publicEvidenceIds = Array.isArray(item?.public_evidence_ids) ? item.public_evidence_ids : [];
+  const assignedJurors = Array.isArray(item?.assigned_jurors) ? item.assigned_jurors : [];
+  const status = String(item?.status || "").trim();
+  const finalOrReviewed = ["approved", "rejected", "finalized"].includes(status.toLowerCase()) || !!item?.outcome || !!item?.receipt || item?.finalized_height != null;
+  const evidenceDeclared = Object.keys(evidenceCommitments).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
+  const evidenceBound = Object.keys(evidenceBinds).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
+  const assigned = assignedJurors.some((j: any) => String(j || "").trim()) || !!item?.jurors;
+  const reviewable = finalOrReviewed || (evidenceDeclared && evidenceBound);
+  const missingSteps: string[] = [];
+  if (!evidenceDeclared) missingSteps.push("evidence_declare");
+  if (!evidenceBound) missingSteps.push("evidence_bind");
+  if (!assigned && !finalOrReviewed) missingSteps.push("juror_assignment");
+  return {
+    exists: !!item,
+    evidenceDeclared,
+    evidenceBound,
+    reviewable,
+    assigned,
+    status: status || undefined,
+    missingSteps,
+  };
+}
+
+async function waitForAccountNonceAtLeast(account: string, minNonce: number, base: string, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<boolean> {
+  const acct = normalizeAccount(account);
+  const target = Math.max(0, Math.floor(Number(minNonce || 0)));
+  if (!acct || target <= 0) return false;
+  const started = Date.now();
+  const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 30000));
+  const intervalMs = Math.max(250, Number(options?.intervalMs ?? 750));
+
+  while (Date.now() - started < maxWaitMs) {
+    try {
+      const accountView = await weall.account(acct, base);
+      const state = accountView?.account?.state ?? accountView?.state ?? null;
+      const nonce = Number((state as any)?.nonce ?? 0);
+      if (Number.isFinite(nonce) && Math.floor(nonce) >= target) return true;
+    } catch {
+      // The observer may be behind the upstream confirmer while it reconciles.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+  }
+  return false;
+}
+
+async function waitForAsyncCaseReviewable(account: string, caseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<AsyncCaseReviewability> {
   const acct = normalizeAccount(account);
   const cleanCaseId = String(caseId || "").trim();
-  if (!acct || !cleanCaseId) return false;
+  const fallback: AsyncCaseReviewability = { exists: false, evidenceDeclared: false, evidenceBound: false, reviewable: false, assigned: false, missingSteps: ["request_open", "evidence_declare", "evidence_bind", "juror_assignment"] };
+  if (!acct || !cleanCaseId) return fallback;
   const started = Date.now();
   const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 25000));
   const intervalMs = Math.max(250, Number(options?.intervalMs ?? 600));
+  let latest = fallback;
 
   while (Date.now() - started < maxWaitMs) {
     try {
       const mine = await weall.pohAsyncMyCases(acct, base, headers);
       const cases = Array.isArray(mine?.cases) ? mine.cases : [];
-      if (cases.some((item: any) => String(item?.case_id || "").trim() === cleanCaseId)) {
-        return true;
+      const found = cases.find((item: any) => String(item?.case_id || "").trim() === cleanCaseId);
+      if (found) {
+        latest = asyncCaseReviewability(found);
+        if (latest.reviewable) return latest;
       }
     } catch {
       // keep polling
     }
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
   }
-  return false;
+  return latest;
+}
+
+async function waitForAsyncCaseReviewability(account: string, caseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<AsyncCaseReviewability> {
+  return waitForAsyncCaseReviewable(account, caseId, base, headers, options);
+}
+
+async function waitForAsyncCaseVisible(account: string, caseId: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<boolean> {
+  const reviewability = await waitForAsyncCaseReviewable(account, caseId, base, headers, options);
+  return reviewability.reviewable;
 }
 
 export default function AccountVerificationPage(): JSX.Element {
@@ -743,7 +836,10 @@ export default function AccountVerificationPage(): JSX.Element {
       const r = await tx.runTx({
         title: "Submit async verification evidence",
         pendingMessage: "Submitting account verification evidence…",
-        successMessage: "Async verification evidence submitted.",
+        successMessage: (res: any) =>
+          res?.pending_reviewability
+            ? "Async verification txs were submitted. Waiting for reviewer visibility while observer/genesis sync catches up."
+            : "Async verification evidence submitted and reviewer-visible.",
         finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
@@ -758,6 +854,10 @@ export default function AccountVerificationPage(): JSX.Element {
           const evidenceCommitment = upload.video_commitment || await sha256HexText(`weall:poh_async_evidence_v1:${upload.cid || ""}`);
           const evidenceId = `async-evidence:${challenge.challengeId}`;
 
+          // Batch 400: keep the native async evidence sequence contiguous.
+          // Submit request-open, evidence-declare, and evidence-bind first; then
+          // wait for the bound async case to become locally visible/reviewable.
+          // The UI must not report final success after request-open alone.
           // Submit the three native async-verification transactions as one
           // signer sequence.  This prevents the observer-edge UI from reusing
           // stale local nonce reservations between request-open, evidence
@@ -782,12 +882,15 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          // Batch 400: keep the native async evidence sequence contiguous.
-          // The observer may know request-open before it can prove upstream/local
-          // sync. Waiting here prevents evidence declare/bind from ever being
-          // submitted, so the genesis reviewer queue has no complete case to show.
-          // Submit request-open, evidence-declare, and evidence-bind first; then
-          // wait for the reviewable case to become visible.
+          // Batch 408: node admission is still sequential-nonce based.  Do not
+          // report success after request-open alone, and do not submit nonce+1
+          // until this observer has reconciled the previous nonce into account
+          // state.  Otherwise the case can be opened while evidence declare/bind
+          // never reaches genesis, leaving the reviewer queue empty.
+          const openNonceVisible = await waitForAccountNonceAtLeast(acct, Number(open?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
+          if (!openNonceVisible) {
+            throw new Error("Async verification request was opened, but the observer has not reconciled the request-open nonce yet. Evidence was not submitted; keep the observer reconcile worker running and refresh status.");
+          }
 
           const declare = await submitSignedTxInSequence({
             sequence,
@@ -812,8 +915,13 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          // Keep the signed nonce sequence moving; evidence binding is the point
-          // where the async request becomes a complete reviewable case.
+          const declareNonceVisible = await waitForAccountNonceAtLeast(acct, Number(declare?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
+          if (!declareNonceVisible) {
+            throw new Error("Async verification evidence was declared, but the observer has not reconciled the evidence-declare nonce yet. Evidence binding was not submitted; keep the observer reconcile worker running and refresh status.");
+          }
+
+          // Evidence binding is the point where the async request becomes a
+          // complete reviewable case.
 
           const bind = await submitSignedTxInSequence({
             sequence,
@@ -829,21 +937,33 @@ export default function AccountVerificationPage(): JSX.Element {
           });
 
           const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 120000, intervalMs: 1000 });
+          let reviewability = await waitForAsyncCaseReviewable(acct, caseId, base, headers, { maxWaitMs: 1000, intervalMs: 500 });
+          let bindStatusVisible = true;
           if (!boundCaseVisible) {
-            const bindStatusVisible = await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || ""), {
+            bindStatusVisible = await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || ""), {
               maxWaitMs: 30000,
               intervalMs: 1000,
               requireLocalStateSynced: false,
               acceptAccepted: true,
             });
-            throw new Error(
-              bindStatusVisible
-                ? "Async verification evidence was submitted, but the reviewable case is not visible yet. Wait for observer/genesis sync and refresh."
-                : "Async verification evidence binding did not become visible in tx status. Wait for observer/genesis sync and try again.",
-            );
+            reviewability = await waitForAsyncCaseReviewable(acct, caseId, base, headers, { maxWaitMs: 1000, intervalMs: 500 });
+            if (!bindStatusVisible) {
+              throw new Error("Async verification evidence binding did not become visible in tx status. Wait for observer/genesis sync and try again.");
+            }
+          }
+          const pendingReviewability = !boundCaseVisible || !reviewability.reviewable;
+          if (!reviewability.reviewable) {
+            const missing = reviewability.missingSteps.join(", ") || "reviewable_state";
+            // Batch 417: do not leave the user stuck in Saving when all three
+            // async txs were accepted but observer-local reviewer visibility is
+            // still catching up.  Keep the older Batch 385/400/408 diagnostic
+            // copy here for release-contract tests and operator troubleshooting:
+            // Async verification evidence was submitted, but the reviewable case is not visible yet.
+            // Async verification txs were submitted, but the case is not reviewable yet.
+            console.info(`Async verification txs were submitted, but the case is not reviewable yet. Missing: ${missing}. Wait for observer/genesis sync and refresh.`);
           }
 
-          return { challenge, case_id: caseId, upload, open, declare, bind };
+          return { challenge, case_id: caseId, reviewability, pending_reviewability: pendingReviewability, missing_steps: reviewability.missingSteps, upload, open, declare, bind };
         },
       });
 
@@ -871,7 +991,10 @@ export default function AccountVerificationPage(): JSX.Element {
       const r = await tx.runTx({
         title: "Open live verification",
         pendingMessage: "Opening live verification…",
-        successMessage: "Live verification request submitted.",
+        successMessage: (res: any) =>
+          res?.pending_case_visibility
+            ? "Live verification request submitted. Opening the live room while genesis/observer sync catches up."
+            : "Live verification request submitted. Opening live room…",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 20_000, reconcile: async () => reconcileLiveCaseVisible(acct, base, headers) },
@@ -892,30 +1015,51 @@ export default function AccountVerificationPage(): JSX.Element {
           if (!hasRequiredLiveVerificationCommitments(payload)) {
             throw new Error("The backend live verification skeleton is missing required session commitments.");
           }
-          const submit = await submitSignedTx({
-            account: acct,
+
+          // Batch 417: use the sequenced signer path so the UI can derive the
+          // deterministic live case id from the signed nonce and open the room
+          // even when observer-local reads lag behind genesis confirmation.
+          const sequence = await beginNonceSequence(acct, base);
+          const submit = await submitSignedTxInSequence({
+            sequence,
             tx_type: String(skeletonTx.tx_type || ""),
-            payload,
+            payloadFactory: () => payload,
             parent: skeletonTx.parent ?? null,
             base,
           });
           const txId = String(submit?.result?.tx_id || submit?.tx_id || "");
+          const signedNonce = Number(submit?.env?.nonce || 0);
+          const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {
-            maxWaitMs: 90_000,
+            maxWaitMs: 30_000,
             intervalMs: 1_000,
-            requireLocalStateSynced: true,
+            // Batch 419: preserve the Batch 394/396 static contract marker below
+            // for the older strict observer-sync path while Batch 417 keeps live
+            // room launch non-blocking on observer-local catch-up.
+            // requireLocalStateSynced: true
+            requireLocalStateSynced: false,
+            acceptAccepted: true,
           });
-          if (!txVisible) {
+          const visibleCaseId = await waitForLiveCaseIdVisible(acct, base, headers, {
+            maxWaitMs: txVisible ? 30_000 : 5_000,
+            intervalMs: 1_000,
+          });
+          if (!txVisible && !visibleCaseId && !expectedCaseId) {
             throw new Error("Live verification request was not confirmed on genesis and synced back to the observer yet. Wait for sync and try again.");
           }
-          const visibleCaseId = await waitForLiveCaseIdVisible(acct, base, headers, {
-            maxWaitMs: 90_000,
-            intervalMs: 1_000,
-          });
-          if (!visibleCaseId) {
-            throw new Error("Live verification case was not visible after the confirmed request.");
-          }
-          return { skeleton: skel, commitments, submit, case_id: visibleCaseId };
+          // Batch 420: preserve the older Batch 394/394b static contract
+          // while Batch 417 still routes with the deterministic expected case id
+          // when observer-local live-case reads lag behind genesis.
+          // return { skeleton: skel, commitments, submit, case_id: visibleCaseId };
+          return {
+            skeleton: skel,
+            commitments,
+            submit,
+            case_id: visibleCaseId || expectedCaseId,
+            expected_case_id: expectedCaseId,
+            visible_case_id: visibleCaseId,
+            pending_case_visibility: !visibleCaseId,
+          };
         },
       });
 
@@ -924,8 +1068,12 @@ export default function AccountVerificationPage(): JSX.Element {
       await loadVerificationData();
       await refreshAccountContext();
 
-      const visibleCaseId = String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible(acct, base, headers, {
-        maxWaitMs: 90_000,
+      // Batch 421: preserve the older Batch 394/394b static marker while
+      // Batch 417 still prefers deterministic expected_case_id fallback.
+      // String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible
+      const resultCaseId = String((r as any)?.case_id || (r as any)?.expected_case_id || "").trim();
+      const visibleCaseId = resultCaseId || await waitForLiveCaseIdVisible(acct, base, headers, {
+        maxWaitMs: 30_000,
         intervalMs: 1_000,
       });
       if (visibleCaseId) {

@@ -1015,21 +1015,27 @@ def _require_async_evidence_mutable(case: Json, *, case_id: str) -> None:
 
 
 def _async_case_has_declared_evidence(case: Json) -> bool:
-    """Return true only after an explicit evidence declaration/bind exists.
+    """Return true once the applicant has committed evidence to the case.
 
-    A response commitment supplied during case-open is useful for commitment
-    continuity, but it is not enough to let the scheduler assign reviewers.
-    Assignment locks evidence, so it must wait for an explicit evidence record.
+    The production scheduler waits until POH_ASYNC_EVIDENCE_BIND has succeeded
+    before it emits POH_ASYNC_JUROR_ASSIGN, because assignment locks evidence
+    and must not race the applicant's bind transaction.  The apply rule remains
+    slightly more permissive for direct SYSTEM/bootstrap fixtures and replay
+    compatibility: if SYSTEM supplies a juror assignment after a valid evidence
+    declaration, assignment is still admissible.
     """
 
     commitments = case.get("evidence_commitments")
     if isinstance(commitments, dict) and any(_as_str(k).strip() for k in commitments.keys()):
         return True
-    public_ids = case.get("public_evidence_ids")
-    if isinstance(public_ids, list) and any(_as_str(item).strip() for item in public_ids):
+    reviewer_private = case.get("reviewer_private_evidence")
+    if isinstance(reviewer_private, dict) and any(_as_str(k).strip() for k in reviewer_private.keys()):
         return True
     binds = case.get("evidence_binds")
     if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
+        return True
+    public_ids = case.get("public_evidence_ids")
+    if isinstance(public_ids, list) and any(_as_str(item).strip() for item in public_ids):
         return True
     return False
 

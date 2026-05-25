@@ -175,11 +175,33 @@ def _case_needs_init(case: Json) -> bool:
     return case.get("init_ts_ms") is None
 
 
+def _case_has_live_commitments(case: Json) -> bool:
+    if not isinstance(case, dict):
+        return False
+    return all(
+        _as_str(case.get(key) or "").strip()
+        for key in ("session_commitment", "room_commitment", "prompt_commitment")
+    )
+
+
 def _case_needs_assign(case: Json) -> bool:
     if not isinstance(case, dict):
         return False
     status = _as_str(case.get("status") or "").strip().lower()
-    if status not in ("open", "init"):
+    # Batch 424: requested Live cases are allowed to receive an assignment in
+    # the same post-system pass that emits POH_LIVE_SESSION_INIT.  Without this,
+    # a live request can open the deterministic room but strand the genesis
+    # reviewer at an unassigned pending session until some unrelated tx causes
+    # another block/scheduler pass.  Assignment still requires committed request
+    # commitments and remains a SYSTEM tx; this only removes the extra-block
+    # liveness dependency.
+    if status not in ("requested", "open", "init"):
+        return False
+    # Batch 425: strict commitment gating applies to pre-init requested
+    # Live cases only.  Legacy fixtures and already-open/init cases represent
+    # canonical state after POH_LIVE_SESSION_INIT and must remain assignable
+    # without re-validating request-open commitment fields in the scheduler.
+    if status == "requested" and not _case_has_live_commitments(case):
         return False
     jm = case.get("jurors")
     if not isinstance(jm, dict) or len(jm) == 0:

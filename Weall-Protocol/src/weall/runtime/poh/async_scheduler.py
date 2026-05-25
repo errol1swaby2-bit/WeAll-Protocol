@@ -77,13 +77,17 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
 
 
 def _case_has_evidence(case: Json) -> bool:
-    # Assignment locks evidence, so a request-open response commitment alone is
-    # not enough. Wait for an explicit declared/bound evidence record.
-    if isinstance(case.get("evidence_commitments"), dict) and bool(case.get("evidence_commitments")):
+    # Assignment locks evidence.  A declaration proves the applicant committed
+    # something, but the reviewer set must not be assigned until the evidence is
+    # explicitly bound to the case.  Otherwise the scheduler can assign jurors
+    # in the block after POH_ASYNC_EVIDENCE_DECLARE and make the subsequent
+    # POH_ASYNC_EVIDENCE_BIND fail with async_evidence_locked.  Therefore
+    # assignment waits until POH_ASYNC_EVIDENCE_BIND has succeeded.
+    binds = case.get("evidence_binds")
+    if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
         return True
-    if isinstance(case.get("public_evidence_ids"), list) and bool(case.get("public_evidence_ids")):
-        return True
-    if isinstance(case.get("evidence_binds"), dict) and bool(case.get("evidence_binds")):
+    public_ids = case.get("public_evidence_ids")
+    if isinstance(public_ids, list) and any(_as_str(item).strip() for item in public_ids):
         return True
     return False
 
