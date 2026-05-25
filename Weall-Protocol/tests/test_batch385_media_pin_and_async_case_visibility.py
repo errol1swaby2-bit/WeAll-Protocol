@@ -67,7 +67,9 @@ def test_async_verification_waits_for_case_visibility_between_tx_steps_batch385(
 
     assert "async function waitForSubmittedTxVisible" in page
     assert "async function waitForAsyncCaseVisible" in page
-    assert "await waitForSubmittedTxVisible(base, String(open?.result?.tx_id || \"\")" in page
-    assert "await waitForAsyncCaseVisible(acct, caseId, base, headers" in page
-    assert "await waitForSubmittedTxVisible(base, String(declare?.result?.tx_id || \"\")" in page
-    assert "await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || \"\")" in page
+    assert "Batch 400: keep the native async evidence sequence contiguous" in page
+    assert 'tx_type: "POH_ASYNC_REQUEST_OPEN"' in page
+    assert 'tx_type: "POH_ASYNC_EVIDENCE_DECLARE"' in page
+    assert 'tx_type: "POH_ASYNC_EVIDENCE_BIND"' in page
+    assert "const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers" in page
+    assert "Async verification evidence was submitted, but the reviewable case is not visible yet" in page

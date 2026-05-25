@@ -118,6 +118,19 @@ def _juror_key_for_actor(d: Json, juror: str) -> str:
     return _as_str(juror).strip()
 
 
+def _eligible_key_for_actor(d: Json, juror: str) -> str:
+    variants = set(_identity_variants(juror))
+    for source_key in ("assigned_jurors", "eligible_juror_ids"):
+        values = d.get(source_key)
+        if not isinstance(values, list):
+            continue
+        for candidate in values:
+            candidate_s = _as_str(candidate).strip()
+            if candidate_s and variants.intersection(_identity_variants(candidate_s)):
+                return candidate_s
+    return ""
+
+
 def _active_validator_ids(state: Json) -> list[str]:
     roles = _as_dict(state.get("roles"))
     validators = _as_dict(roles.get("validators"))
@@ -597,6 +610,27 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
         jurors = {}
         d["jurors"] = jurors
     juror_key = _juror_key_for_actor(d, env.signer)
+    if not isinstance(jurors.get(juror_key), dict):
+        eligible_key = _eligible_key_for_actor(d, env.signer)
+        if not eligible_key:
+            # Recompute the deterministic eligibility snapshot with the signer
+            # as the bootstrap fallback.  SYSTEM-created report escalations can
+            # reach the accept action before the queued assignment receipt has
+            # surfaced, but the accept tx should still be able to materialize
+            # the caller's own assignment if the committed dispute policy permits it.
+            eligible_now = _dispute_eligible_juror_ids(state, d, env.signer)
+            signer_variants = set(_identity_variants(env.signer))
+            for candidate in eligible_now:
+                candidate_s = _as_str(candidate).strip()
+                if candidate_s and signer_variants.intersection(_identity_variants(candidate_s)):
+                    eligible_key = candidate_s
+                    break
+        if eligible_key:
+            juror_key = eligible_key
+            jurors[juror_key] = {"status": "assigned", "assigned_at_nonce": int(env.nonce), "source": "eligible_juror_ids"}
+            d["jurors"] = jurors
+            assigned = _normalized_str_list(list(jurors.keys()))
+            d["assigned_jurors"] = list(assigned)
     j = _require_assigned_juror(d, env.signer)
     status = _as_str(j.get("status")).strip().lower()
     if status in {"accepted", "attended", "present"}:

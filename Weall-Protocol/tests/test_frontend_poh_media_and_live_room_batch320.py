@@ -6,13 +6,14 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTER = ROOT.parent
 
 
-def test_frontend_has_self_hosted_live_room_transport_only_copy() -> None:
+def test_frontend_has_decentralized_p2p_live_room_transport_only_copy() -> None:
     live_room = (OUTER / "web/src/lib/liveRoom.ts").read_text(encoding="utf-8")
     account_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(encoding="utf-8")
     juror_page = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
     env_example = (OUTER / "web/.env.example").read_text(encoding="utf-8")
 
-    assert "VITE_WEALL_LIVE_ROOM_BASE_URL" in live_room
+    assert "VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE" in live_room
+    assert "p2p-webrtc" in live_room
     assert "weall-live-" in live_room
     assert "transport only" in live_room
     assert "liveRoomUrlFromCommitment" in account_page

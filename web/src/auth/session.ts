@@ -369,11 +369,12 @@ export function issueSessionFromSecretKey(args: {
 export function getAuthHeaders(account?: string): Record<string, string> {
   const s = getSession();
   if (!s) return {};
-  const acct = normalizeAccount(account || s.account);
-  if (!acct || acct !== s.account) return {};
+  const sessionAccount = normalizeAccount(s.account);
+  const acct = normalizeAccount(account || sessionAccount);
+  if (!acct || !sessionAccount || acct !== sessionAccount) return {};
   if (!s.sessionKey) return {};
   return {
-    "x-weall-account": acct,
+    "x-weall-account": sessionAccount,
     "x-weall-session-key": String(s.sessionKey),
   };
 }

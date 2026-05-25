@@ -1552,6 +1552,24 @@ class WeAllExecutor:
             "tier2_pass_threshold": "WEALL_POH_TIER2_PASS_THRESHOLD",
             "tier2_fail_max": "WEALL_POH_TIER2_FAIL_MAX",
             "tier2_min_rep_milli": "WEALL_POH_TIER2_MIN_REP_MILLI",
+            # Native async Tier-1 review parameters.  These are normally
+            # governance/chain defaults, but controlled local rehearsals need a
+            # deterministic one-reviewer quorum so the end-to-end browser path
+            # can complete with only the genesis reviewer online.
+            "async_n_jurors": "WEALL_POH_ASYNC_N_JURORS",
+            "async_min_reviews": "WEALL_POH_ASYNC_MIN_REVIEWS",
+            "async_approval_threshold": "WEALL_POH_ASYNC_APPROVAL_THRESHOLD",
+            "async_rejection_threshold": "WEALL_POH_ASYNC_REJECTION_THRESHOLD",
+            "async_expiry_window_blocks": "WEALL_POH_ASYNC_EXPIRY_WINDOW_BLOCKS",
+            "async_min_rep_milli": "WEALL_POH_ASYNC_MIN_REP_MILLI",
+            # Native live Tier-2 review parameters.  Controlled local
+            # rehearsals use a one-reviewer bootstrap panel so the browser
+            # conference path can progress with only the genesis reviewer
+            # online. Production remains governed by committed params.
+            "live_min_rep_milli": "WEALL_POH_LIVE_MIN_REP_MILLI",
+            "live_pass_threshold_num": "WEALL_POH_LIVE_PASS_THRESHOLD_NUM",
+            "live_pass_threshold_den": "WEALL_POH_LIVE_PASS_THRESHOLD_DEN",
+            "live_partial_until_height": "WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT",
         }
         for _param_key, _env_key in _tier2_env_map.items():
             _raw = os.environ.get(_env_key)
@@ -1563,6 +1581,18 @@ class WeAllExecutor:
                 raise ExecutorError(
                     f"genesis_config_error: {_env_key} must be an integer when set"
                 )
+        _live_partial_raw = os.environ.get("WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED")
+        if _live_partial_raw is not None and str(_live_partial_raw).strip() != "":
+            _live_partial_text = str(_live_partial_raw).strip().lower()
+            if _live_partial_text in {"1", "true", "yes", "y", "on"}:
+                poh_params["live_partial_panels_enabled"] = True
+            elif _live_partial_text in {"0", "false", "no", "n", "off"}:
+                poh_params["live_partial_panels_enabled"] = False
+            else:
+                raise ExecutorError(
+                    "genesis_config_error: WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED must be boolean-like when set"
+                )
+
         if poh_params:
             params["poh"] = poh_params
 

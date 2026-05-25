@@ -292,8 +292,16 @@ class PohLiveRequestOpenPayload(_StrictModel):
 
 
 class PohLiveSessionInitPayload(_StrictModel):
+    # Runtime/apply/poh.py requires case binding plus the same session
+    # commitment opened by POH_LIVE_REQUEST_OPEN.  Optional transport
+    # commitments are commitment-only; raw live-room authority stays off-chain.
+    case_id: str = Field(..., min_length=1)
     account_id: str = Field(..., min_length=1)
-    session_commitment: str | None = None
+    session_commitment: str = Field(..., min_length=1)
+    room_commitment: str | None = None
+    prompt_commitment: str | None = None
+    device_pairing_commitment: str | None = None
+    relay_commitment: str | None = None
     note: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 

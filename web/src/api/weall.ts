@@ -752,6 +752,18 @@ export const weall = {
     return apiPost(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/presence`, payload, base, headers);
   },
 
+  pohLiveWebRTCSignals(sessionId: string, sinceSeq = 0, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/webrtc/signals?since_seq=${encodeURIComponent(String(sinceSeq || 0))}`, base, headers);
+  },
+
+  pohLiveWebRTCRelayConfig(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/poh/live/webrtc/relay-config", base, headers);
+  },
+
+  pohLiveWebRTCSignalSend(sessionId: string, payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/poh/live/session/${encodeURIComponent(sessionId)}/webrtc/signals`, payload, base, headers);
+  },
+
   pohOperatorLiveFinalize(payload: unknown, base?: string, token?: string): Promise<any> {
     const headers = token ? { "X-WeAll-Operator-Token": token } : undefined;
     return apiPost("/v1/poh/operator/live/finalize", payload, base, headers);
@@ -885,3 +897,8 @@ export const api = {
     },
   },
 };
+
+
+export async function pohLiveWebRTCSignalDiagnostics(headers?: Record<string, string>): Promise<any> {
+  return request(`/v1/poh/live/webrtc/signals/diagnostics`, { method: "GET", headers: headers || {} });
+}

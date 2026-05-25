@@ -40,13 +40,13 @@ def test_async_evidence_waits_for_local_sync_before_dependent_txs_batch386() -> 
     assert "requireLocalStateSynced?: boolean" in page
     assert "const localSynced = st?.local_state_synced === true" in page
     assert "return false" in re.search(r"async function waitForSubmittedTxVisible\(.*?\n\}", page, re.S).group(0)
-    assert "const openVisible = await waitForSubmittedTxVisible" in page
-    assert "requireLocalStateSynced: true" in page
-    assert "if (!openVisible) throw new Error" in page
-    assert "if (!declareVisible) throw new Error" in page
-    assert "if (!bindVisible) throw new Error" in page
-    assert "if (!openCaseVisible) throw new Error" in page
-    assert "if (!boundCaseVisible) throw new Error" in page
+    assert "Batch 400: keep the native async evidence sequence contiguous" in page
+    assert "Submit request-open, evidence-declare, and evidence-bind first; then" in page
+    assert "const boundCaseVisible = await waitForAsyncCaseVisible" in page
+    assert "if (!boundCaseVisible)" in page
+    assert "bindStatusVisible = await waitForSubmittedTxVisible" in page
+    assert "requireLocalStateSynced: false" in page
+    assert "acceptAccepted: true" in page
 
 
 def test_content_escalation_has_bootstrap_reviewer_fallback_batch386() -> None:

@@ -29,7 +29,7 @@ import {
   validateAsyncVideoDuration,
 } from "../lib/verificationEvidence";
 import { createLiveVerificationCommitments, hasRequiredLiveVerificationCommitments } from "../lib/liveVerification";
-import { liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import {
   TRUSTED_RESPONSIBILITIES,
   VERIFICATION_LABELS,
@@ -196,7 +196,31 @@ async function reconcileLiveCaseVisible(account: string, base: string, headers?:
   } catch {
     // ignore
   }
-  return reconcileVerificationLevel(account, 1, base);
+  return null;
+}
+
+async function waitForLiveCaseIdVisible(account: string, base: string, headers?: HeadersInit, options?: { maxWaitMs?: number; intervalMs?: number }): Promise<string> {
+  const acct = normalizeAccount(account);
+  if (!acct) return "";
+  const started = Date.now();
+  const maxWaitMs = Math.max(1000, Number(options?.maxWaitMs ?? 45000));
+  const intervalMs = Math.max(250, Number(options?.intervalMs ?? 750));
+
+  while (Date.now() - started < maxWaitMs) {
+    try {
+      const mine = await weall.pohLiveMyCases(acct, base, headers);
+      const cases = Array.isArray(mine?.cases) ? mine.cases : [];
+      const visible = cases
+        .map((item: any) => String(item?.case_id || item?.id || "").trim())
+        .filter(Boolean);
+      if (visible.length > 0) return visible[visible.length - 1];
+    } catch {
+      // The request may be confirmed upstream before the read-model exposes the
+      // live case locally. Keep polling within a bounded local rehearsal window.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+  }
+  return "";
 }
 
 
@@ -758,10 +782,12 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          const openVisible = await waitForSubmittedTxVisible(base, String(open?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
-          if (!openVisible) throw new Error("Async verification request was not confirmed on the observer yet. Wait for local sync and try again.");
-          const openCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 90000, intervalMs: 1000 });
-          if (!openCaseVisible) throw new Error("Async verification case did not become visible after request open.");
+          // Batch 400: keep the native async evidence sequence contiguous.
+          // The observer may know request-open before it can prove upstream/local
+          // sync. Waiting here prevents evidence declare/bind from ever being
+          // submitted, so the genesis reviewer queue has no complete case to show.
+          // Submit request-open, evidence-declare, and evidence-bind first; then
+          // wait for the reviewable case to become visible.
 
           const declare = await submitSignedTxInSequence({
             sequence,
@@ -786,8 +812,8 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          const declareVisible = await waitForSubmittedTxVisible(base, String(declare?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
-          if (!declareVisible) throw new Error("Async verification evidence declaration was not confirmed on the observer yet. Wait for local sync and try again.");
+          // Keep the signed nonce sequence moving; evidence binding is the point
+          // where the async request becomes a complete reviewable case.
 
           const bind = await submitSignedTxInSequence({
             sequence,
@@ -802,10 +828,20 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          const bindVisible = await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || ""), { maxWaitMs: 90000, intervalMs: 1000, requireLocalStateSynced: true });
-          if (!bindVisible) throw new Error("Async verification evidence binding was not confirmed on the observer yet. Wait for local sync and try again.");
-          const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 90000, intervalMs: 1000 });
-          if (!boundCaseVisible) throw new Error("Async verification case did not remain visible after evidence binding.");
+          const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 120000, intervalMs: 1000 });
+          if (!boundCaseVisible) {
+            const bindStatusVisible = await waitForSubmittedTxVisible(base, String(bind?.result?.tx_id || ""), {
+              maxWaitMs: 30000,
+              intervalMs: 1000,
+              requireLocalStateSynced: false,
+              acceptAccepted: true,
+            });
+            throw new Error(
+              bindStatusVisible
+                ? "Async verification evidence was submitted, but the reviewable case is not visible yet. Wait for observer/genesis sync and refresh."
+                : "Async verification evidence binding did not become visible in tx status. Wait for observer/genesis sync and try again.",
+            );
+          }
 
           return { challenge, case_id: caseId, upload, open, declare, bind };
         },
@@ -863,7 +899,23 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: skeletonTx.parent ?? null,
             base,
           });
-          return { skeleton: skel, commitments, submit };
+          const txId = String(submit?.result?.tx_id || submit?.tx_id || "");
+          const txVisible = await waitForSubmittedTxVisible(base, txId, {
+            maxWaitMs: 90_000,
+            intervalMs: 1_000,
+            requireLocalStateSynced: true,
+          });
+          if (!txVisible) {
+            throw new Error("Live verification request was not confirmed on genesis and synced back to the observer yet. Wait for sync and try again.");
+          }
+          const visibleCaseId = await waitForLiveCaseIdVisible(acct, base, headers, {
+            maxWaitMs: 90_000,
+            intervalMs: 1_000,
+          });
+          if (!visibleCaseId) {
+            throw new Error("Live verification case was not visible after the confirmed request.");
+          }
+          return { skeleton: skel, commitments, submit, case_id: visibleCaseId };
         },
       });
 
@@ -871,6 +923,14 @@ export default function AccountVerificationPage(): JSX.Element {
       await refresh();
       await loadVerificationData();
       await refreshAccountContext();
+
+      const visibleCaseId = String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible(acct, base, headers, {
+        maxWaitMs: 90_000,
+        intervalMs: 1_000,
+      });
+      if (visibleCaseId) {
+        nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`);
+      }
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -1111,19 +1171,25 @@ export default function AccountVerificationPage(): JSX.Element {
           {liveCommitments ? (
             <div className="infoCard compact">
               <div className="infoCardHeader">
-                <strong>Self-hosted live room</strong>
+                <strong>Decentralized P2P live room</strong>
                 <span className="statusPill">Transport only</span>
               </div>
               <div className="infoCardText">{liveRoomTransportNotice()}</div>
               {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
-                    Join live room
+                    Open compatibility room
                   </a>
                 </div>
               ) : (
-                <div className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL for a self-hosted room link.</div>
+                <div className="miniMuted">A decentralized P2P room descriptor will be created from the room commitment. No centralized room URL is required.</div>
               )}
+              {liveRoomDescriptorText(liveCommitments.room_commitment) ? (
+                <details className="advancedDetails">
+                  <summary>Advanced: P2P room descriptor</summary>
+                  <pre className="jsonBlock">{liveRoomDescriptorText(liveCommitments.room_commitment)}</pre>
+                </details>
+              ) : null}
             </div>
           ) : null}
           {liveCommitments ? <JsonDetails title="Advanced: prepared live request commitments" value={liveCommitments} /> : null}
@@ -1174,6 +1240,7 @@ export default function AccountVerificationPage(): JSX.Element {
               <div className="infoGrid">
                 {liveCases.map((it: any, idx: number) => {
                   const roomUrl = liveRoomUrlFromCommitment(it?.room_commitment);
+                  const p2pDescriptor = liveRoomDescriptorText(it?.room_commitment);
                   return (
                     <div key={String(it?.case_id || idx)} className="infoCard compact">
                       <CaseCard item={it} />
@@ -1183,11 +1250,17 @@ export default function AccountVerificationPage(): JSX.Element {
                         </button>
                         {roomUrl ? (
                           <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Open video transport
+                            Open compatibility transport
                           </a>
                         ) : null}
                       </div>
                       <div className="miniMuted">{liveRoomTransportNotice()}</div>
+                      {p2pDescriptor ? (
+                        <details className="advancedDetails">
+                          <summary>P2P room descriptor</summary>
+                          <pre className="jsonBlock">{p2pDescriptor}</pre>
+                        </details>
+                      ) : null}
                     </div>
                   );
                 })}

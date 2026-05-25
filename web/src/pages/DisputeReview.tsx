@@ -77,9 +77,10 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   async function load(): Promise<void> {
     setErr(null);
     try {
+      const headers = account ? getAuthHeaders(account) : undefined;
       const [detailRes, votesRes] = await Promise.all([
-        weall.dispute(id, apiBase),
-        weall.disputeVotes(id, apiBase),
+        weall.dispute(id, apiBase, headers),
+        weall.disputeVotes(id, apiBase, headers),
       ]);
       const nextDispute = (detailRes as any)?.dispute || null;
       setDispute(nextDispute);

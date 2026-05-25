@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import json
 import mimetypes
 import os
+import threading
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, File, Request, UploadFile
@@ -11,6 +18,7 @@ from pydantic import BaseModel, Field
 from weall.api.errors import ApiError
 from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
+from weall.api.security import require_account_session
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.util.ipfs_cid import validate_ipfs_cid
 
@@ -59,6 +67,11 @@ def _env_bool(name: str, default: bool = False) -> bool:
         raise PohRouteConfigError(f"invalid_boolean_env:{name}")
     return bool(default)
 
+
+
+
+def _now_ms() -> int:
+    return int(time.time() * 1000)
 
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
@@ -305,10 +318,11 @@ class PohAsyncCaseModel(BaseModel):
     evidence_binds: dict[str, object] = Field(default_factory=dict)
     public_evidence_ids: list[object] = Field(default_factory=list)
     reviewable_evidence: dict[str, object] = Field(default_factory=dict)
+    reviewer_private_evidence: dict[str, object] = Field(default_factory=dict)
     receipt: dict[str, object] = Field(default_factory=dict)
 
 
-def _as_async_case(case_id: str, r: dict[str, object]) -> PohAsyncCaseModel:
+def _as_async_case(case_id: str, r: dict[str, object], *, include_private_evidence: bool = False) -> PohAsyncCaseModel:
     def _list(v: Any) -> list[object]:
         return list(v) if isinstance(v, list) else []
 
@@ -334,9 +348,69 @@ def _as_async_case(case_id: str, r: dict[str, object]) -> PohAsyncCaseModel:
         evidence_commitments=_dict(r.get("evidence_commitments")),
         evidence_binds=_dict(r.get("evidence_binds")),
         public_evidence_ids=_list(r.get("public_evidence_ids")),
-        reviewable_evidence=_dict(r.get("reviewable_evidence")),
+        reviewable_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else r.get("reviewable_evidence")),
+        reviewer_private_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else {}),
         receipt=_dict(r.get("receipt")),
     )
+
+
+def _request_account(request: Request) -> str:
+    return str(request.headers.get("x-weall-account") or "").strip()
+
+
+def _allow_header_scoped_private_poh_compat() -> bool:
+    """Allow legacy header-only PoH private access only outside production.
+
+    Production private evidence and live-room transport control must be bound to
+    an authenticated backend session, not a forgeable account header.  Local
+    rehearsal and older tests keep a deliberate opt-out compatibility path.
+    """
+
+    return (not _is_prod()) and _env_bool("WEALL_DEV_ALLOW_HEADER_SCOPED_PRIVATE_POH", True)
+
+
+def _session_principal_for_private_poh(request: Request, st: Json) -> str:
+    try:
+        return str(require_account_session(request, st) or "").strip()
+    except PermissionError:
+        if _allow_header_scoped_private_poh_compat():
+            return _request_account(request)
+        return ""
+
+
+def _require_session_principal_for_poh_private(request: Request, st: Json, *, purpose: str) -> str:
+    try:
+        acct = str(require_account_session(request, st) or "").strip()
+    except PermissionError as exc:
+        if _allow_header_scoped_private_poh_compat():
+            acct = _request_account(request)
+        else:
+            raise ApiError.forbidden(
+                "session_required",
+                f"authenticated session required for {purpose}",
+                {"purpose": purpose},
+            ) from exc
+    if not acct:
+        raise ApiError.forbidden(
+            "session_required",
+            f"authenticated session required for {purpose}",
+            {"purpose": purpose},
+        )
+    return acct
+
+
+def _async_case_allows_private_evidence(raw: dict[str, object], *, account: str) -> bool:
+    if not account:
+        return False
+    if str(raw.get("account_id") or "").strip() == account:
+        return True
+    assigned = raw.get("assigned_jurors")
+    if isinstance(assigned, list) and account in [str(x) for x in assigned]:
+        return True
+    jurors = raw.get("jurors")
+    if isinstance(jurors, dict) and account in jurors:
+        return True
+    return False
 
 
 class PohAsyncCaseResponse(BaseModel):
@@ -357,7 +431,9 @@ def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
     raw = cases.get(cid)
     if not isinstance(raw, dict):
         raise ApiError.not_found("not_found", "async_case_not_found")
-    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw))
+    principal = _session_principal_for_private_poh(request, st)
+    include_private = _async_case_allows_private_evidence(raw, account=principal)
+    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_private_evidence=include_private))
 
 
 @router.get(
@@ -374,7 +450,9 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
         if not isinstance(raw, dict):
             continue
         if str(raw.get("account_id") or "").strip() == acct:
-            out.append(_as_async_case(str(cid), raw))
+            principal = _session_principal_for_private_poh(request, st)
+            include_private = principal == acct
+            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(ok=True, cases=out)
 
@@ -395,7 +473,9 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
         assigned = raw.get("assigned_jurors")
         jurors = raw.get("jurors")
         if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
-            out.append(_as_async_case(str(cid), raw))
+            principal = _session_principal_for_private_poh(request, st)
+            include_private = principal == j
+            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(ok=True, cases=out)
 
@@ -1010,7 +1090,7 @@ def poh_live_session_presence_update(
     if not account_id:
         raise ApiError.bad_request("bad_request", "missing account_id", {})
 
-    header_account = str(request.headers.get("x-weall-account") or "").strip()
+    header_account = _request_account(request)
     if not header_account:
         raise ApiError.forbidden(
             "forbidden",
@@ -1024,11 +1104,21 @@ def poh_live_session_presence_update(
             {"header_account": header_account, "account_id": account_id},
         )
 
+    st = _snapshot(request)
+    principal = _require_session_principal_for_poh_private(
+        request, st, purpose="live room presence"
+    )
+    if principal != account_id:
+        raise ApiError.forbidden(
+            "forbidden",
+            "presence_account_mismatch",
+            {"session_account": principal, "account_id": account_id},
+        )
+
     status = str(req.status or "heartbeat").strip().lower()
     if status not in _ALLOWED_LIVE_PRESENCE_STATUSES:
         raise ApiError.bad_request("bad_request", "invalid_presence_status", {"status": status})
 
-    st = _snapshot(request)
     case_id, role = _require_live_room_participant(st, session_id=sid, account_id=account_id)
 
     try:
@@ -1063,6 +1153,1124 @@ def poh_live_session_presence_update(
 
     session_store[account_id] = rec
     return PohLivePresenceUpdateResponse(ok=True, record=_as_presence(sid, account_id, rec))
+
+
+# ---------------------------------------------------------------------------
+# PoH Live: decentralized WebRTC signaling (transport only)
+# ---------------------------------------------------------------------------
+
+_ALLOWED_WEBRTC_SIGNAL_TYPES = {"hello", "offer", "answer", "ice", "leave"}
+_MAX_WEBRTC_SDP_BYTES = 64 * 1024
+_MAX_WEBRTC_CANDIDATE_BYTES = 8 * 1024
+
+
+def _webrtc_signal_ttl_ms() -> int:
+    return max(10_000, _env_int("WEALL_P2P_SIGNAL_TTL_MS", 10 * 60 * 1000))
+
+
+def _normalize_webrtc_signal_ts_ms(value: object) -> int:
+    """Use receive-time when a browser supplies stale, missing, or future signal time."""
+    now_ms = int(time.time() * 1000)
+    try:
+        ts_ms = int(value or 0)
+    except Exception:
+        ts_ms = 0
+    ttl_ms = _webrtc_signal_ttl_ms()
+    if ts_ms <= 0 or ts_ms < now_ms - ttl_ms or ts_ms > now_ms + 60_000:
+        return now_ms
+    return ts_ms
+
+
+def _validate_webrtc_bridge_signal_ts_ms(value: object, *, source_node: str) -> int:
+    """Reject stale/future bridge imports instead of making replayed signals fresh."""
+    now_ms = _now_ms()
+    try:
+        ts_ms = int(value or 0)
+    except Exception as exc:
+        _record_webrtc_bridge_rejection("webrtc_bridge_signal_ts_invalid", source_node=source_node)
+        raise ApiError.bad_request("bad_request", "webrtc_bridge_signal_ts_invalid", {"source_node": source_node}) from exc
+    ttl_ms = _webrtc_signal_ttl_ms()
+    if ts_ms <= 0:
+        _record_webrtc_bridge_rejection("webrtc_bridge_signal_ts_required", source_node=source_node)
+        raise ApiError.bad_request("bad_request", "webrtc_bridge_signal_ts_required", {"source_node": source_node})
+    if now_ms - ts_ms > ttl_ms:
+        _record_webrtc_bridge_rejection("webrtc_bridge_signal_replay_window_expired", source_node=source_node)
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_bridge_signal_replay_window_expired",
+            {"source_node": source_node, "ts_ms": ts_ms, "ttl_ms": ttl_ms},
+        )
+    future_skew_ms = max(1_000, _env_int("WEALL_WEBRTC_SIGNAL_FUTURE_SKEW_MS", 60_000))
+    if ts_ms > now_ms + future_skew_ms:
+        _record_webrtc_bridge_rejection("webrtc_bridge_signal_ts_future", source_node=source_node)
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_bridge_signal_ts_future",
+            {"source_node": source_node, "ts_ms": ts_ms, "future_skew_ms": future_skew_ms},
+        )
+    return ts_ms
+
+
+class PohLiveWebRTCSignalRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    type: Literal["hello", "offer", "answer", "ice", "leave"]
+    to_account: str | None = Field(default=None, max_length=128)
+    sdp: str | None = Field(default=None, max_length=_MAX_WEBRTC_SDP_BYTES)
+    candidate: dict[str, object] | None = None
+    client_signal_id: str | None = Field(default=None, max_length=128)
+    ts_ms: int | None = None
+
+
+class PohLiveWebRTCSignalModel(BaseModel):
+    seq: int
+    signal_id: str
+    session_id: str
+    case_id: str
+    from_account: str
+    to_account: str | None = None
+    type: str
+    sdp: str | None = None
+    candidate: dict[str, object] | None = None
+    ts_ms: int
+    authority: str = "transport_only_ephemeral"
+
+
+class PohLiveWebRTCSignalResponse(BaseModel):
+    ok: bool
+    signal: PohLiveWebRTCSignalModel
+    authority: str = "transport_only_ephemeral"
+    message: str = "WebRTC signaling is transport-only and may be bridged across operator-configured peers; chain state remains authoritative."
+
+
+class PohLiveWebRTCSignalListResponse(BaseModel):
+    ok: bool
+    session_id: str
+    case_id: str
+    account_id: str
+    signals: list[PohLiveWebRTCSignalModel]
+    next_seq: int
+    authority: str = "transport_only_ephemeral"
+
+
+class PohLiveWebRTCIceServerModel(BaseModel):
+    urls: str | list[str]
+    username: str | None = None
+    credential: str | None = None
+    credential_expires_ms: int | None = None
+
+
+class PohLiveWebRTCRelayConfigResponse(BaseModel):
+    ok: bool
+    ice_servers: list[PohLiveWebRTCIceServerModel]
+    relay_policy: str = "optional_community_relay_fallback"
+    authority: str = "transport_only_non_consensus"
+
+
+class PohLiveWebRTCSignalBridgeRequest(BaseModel):
+    signal: dict[str, object]
+    source_node: str | None = Field(default=None, max_length=128)
+    source_chain_id: str | None = Field(default=None, max_length=128)
+    signature: str | None = Field(default=None, max_length=256)
+
+
+class PohLiveWebRTCSignalBridgeResponse(BaseModel):
+    ok: bool
+    imported: bool
+    signal: PohLiveWebRTCSignalModel | None = None
+    authority: str = "transport_only_bridge"
+
+
+
+
+def _split_csv_env(name: str) -> list[str]:
+    raw = str(os.environ.get(name) or "").strip()
+    if not raw:
+        return []
+    return [part.strip() for part in raw.replace(";", ",").split(",") if part.strip()]
+
+
+def _valid_ice_url(url: str) -> bool:
+    u = str(url or "").strip().lower()
+    return u.startswith("stun:") or u.startswith("turn:") or u.startswith("turns:")
+
+
+def _ice_urls_include_turn(urls: object) -> bool:
+    url_list = [str(urls)] if isinstance(urls, str) else [str(u) for u in urls] if isinstance(urls, list) else []
+    return any(u.strip().lower().startswith(("turn:", "turns:")) for u in url_list)
+
+
+def _validate_webrtc_turn_credential_expiry(expires_ms: int, *, has_credential: bool, urls: object) -> None:
+    if not (_is_prod() and has_credential and _ice_urls_include_turn(urls)):
+        return
+    now_ms = _now_ms()
+    max_ttl_ms = _env_int("WEALL_WEBRTC_TURN_MAX_CREDENTIAL_TTL_MS", 24 * 60 * 60 * 1000)
+    if expires_ms <= now_ms or expires_ms > now_ms + max_ttl_ms:
+        raise PohRouteConfigError("prod_webrtc_turn_credentials_must_be_short_lived")
+
+
+def _webrtc_ice_servers_from_env() -> list[Json]:
+    raw_json = str(os.environ.get("WEALL_WEBRTC_ICE_SERVERS_JSON") or os.environ.get("WEALL_P2P_ICE_SERVERS_JSON") or "").strip()
+    out: list[Json] = []
+    if raw_json:
+        try:
+            parsed = json.loads(raw_json)
+        except Exception as exc:
+            if _is_prod():
+                raise PohRouteConfigError("invalid_webrtc_ice_servers_json") from exc
+            parsed = []
+        rows = parsed if isinstance(parsed, list) else []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            urls = row.get("urls")
+            url_list = [str(urls)] if isinstance(urls, str) else [str(u) for u in urls] if isinstance(urls, list) else []
+            url_list = [u.strip() for u in url_list if _valid_ice_url(u)]
+            if not url_list:
+                if _is_prod():
+                    raise PohRouteConfigError("webrtc_ice_server_invalid_url")
+                continue
+            rec: Json = {"urls": url_list[0] if len(url_list) == 1 else url_list}
+            if row.get("username"):
+                rec["username"] = str(row.get("username"))
+            credential = str(row.get("credential") or "")
+            expires_ms = 0
+            try:
+                expires_ms = int(row.get("credential_expires_ms") or row.get("expires_ms") or 0)
+            except Exception:
+                expires_ms = 0
+            _validate_webrtc_turn_credential_expiry(expires_ms, has_credential=bool(credential), urls=url_list)
+            if credential:
+                rec["credential"] = credential
+            if expires_ms > 0:
+                rec["credential_expires_ms"] = expires_ms
+            out.append(rec)
+    stun_urls = [u for u in _split_csv_env("WEALL_WEBRTC_STUN_URLS") if _valid_ice_url(u)]
+    if stun_urls:
+        out.append({"urls": stun_urls if len(stun_urls) > 1 else stun_urls[0]})
+    turn_urls = [u for u in _split_csv_env("WEALL_WEBRTC_TURN_URLS") if _valid_ice_url(u)]
+    if turn_urls:
+        rec = {"urls": turn_urls if len(turn_urls) > 1 else turn_urls[0]}
+        username = str(os.environ.get("WEALL_WEBRTC_TURN_USERNAME") or "").strip()
+        credential = str(os.environ.get("WEALL_WEBRTC_TURN_CREDENTIAL") or "").strip()
+        if username:
+            rec["username"] = username
+        expires_ms = _env_int("WEALL_WEBRTC_TURN_CREDENTIAL_EXPIRES_MS", 0)
+        now_ms = _now_ms()
+        if credential:
+            _validate_webrtc_turn_credential_expiry(expires_ms, has_credential=True, urls=turn_urls)
+            rec["credential"] = credential
+        if expires_ms > 0:
+            rec["credential_expires_ms"] = expires_ms
+        out.append(rec)
+    # Deduplicate while preserving order.
+    seen: set[str] = set()
+    clean: list[Json] = []
+    for rec in out:
+        key = json.dumps(rec, sort_keys=True)
+        if key not in seen:
+            clean.append(rec)
+            seen.add(key)
+    return clean[: max(1, _env_int("WEALL_WEBRTC_MAX_ICE_SERVERS", 8))]
+
+def _live_webrtc_store(request: Request) -> Json:
+    store = getattr(request.app.state, "poh_live_webrtc_signals", None)
+    if not isinstance(store, dict):
+        store = {}
+        request.app.state.poh_live_webrtc_signals = store
+    return store
+
+
+def _live_webrtc_next_seq(request: Request) -> int:
+    raw = getattr(request.app.state, "poh_live_webrtc_next_seq", 0)
+    try:
+        seq = int(raw) + 1
+    except Exception:
+        seq = 1
+    request.app.state.poh_live_webrtc_next_seq = seq
+    return seq
+
+
+def _webrtc_chain_id() -> str:
+    return str(os.environ.get("WEALL_CHAIN_ID") or os.environ.get("WEALL_CHAIN") or "weall-controlled-devnet").strip()
+
+
+def _webrtc_bridge_diag() -> Json:
+    diag = globals().setdefault("_WEALL_WEBRTC_SIGNAL_BRIDGE_DIAGNOSTICS", {})
+    if not isinstance(diag, dict):
+        diag = {}
+        globals()["_WEALL_WEBRTC_SIGNAL_BRIDGE_DIAGNOSTICS"] = diag
+    diag.setdefault("last_drain_result", {})
+    diag.setdefault("rejected_peers", {})
+    diag.setdefault("stale_signal_pruned", 0)
+    diag.setdefault("stale_outbox_pruned", 0)
+    diag.setdefault("max_record_pruned", 0)
+    return diag
+
+
+def _record_webrtc_bridge_rejection(reason: str, *, source_node: str = "", peer: str = "") -> None:
+    diag = _webrtc_bridge_diag()
+    rejected = diag.setdefault("rejected_peers", {})
+    if not isinstance(rejected, dict):
+        rejected = {}
+        diag["rejected_peers"] = rejected
+    key = str(source_node or peer or "unknown").strip() or "unknown"
+    row = rejected.setdefault(key, {"count": 0, "last_reason": ""})
+    if isinstance(row, dict):
+        row["count"] = int(row.get("count") or 0) + 1
+        row["last_reason"] = str(reason)
+        row["updated_ms"] = _now_ms()
+
+
+def _canonical_webrtc_bridge_signing_payload(*, source_node: str, source_chain_id: str, signal: Json) -> bytes:
+    return json.dumps(
+        {
+            "source_node": str(source_node or ""),
+            "source_chain_id": str(source_chain_id or ""),
+            "signal": signal,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _sign_webrtc_bridge_payload(*, secret: str, source_node: str, source_chain_id: str, signal: Json) -> str:
+    payload = _canonical_webrtc_bridge_signing_payload(
+        source_node=source_node, source_chain_id=source_chain_id, signal=signal
+    )
+    return hmac.new(str(secret).encode("utf-8"), payload, hashlib.sha256).hexdigest()
+
+
+def _webrtc_bridge_token() -> str:
+    return str(
+        os.environ.get("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN")
+        or os.environ.get("WEALL_STATE_SYNC_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OBSERVER_EDGE_OPERATOR_TOKEN")
+        or os.environ.get("WEALL_OPERATOR_TOKEN")
+        or ""
+    ).strip()
+
+
+def _request_webrtc_bridge_token(request: Request) -> str:
+    for name in (
+        "x-weall-webrtc-signal-bridge-token",
+        "x-weall-state-sync-operator-token",
+        "x-weall-observer-operator-token",
+        "x-weall-operator-token",
+    ):
+        got = str(request.headers.get(name) or "").strip()
+        if got:
+            return got
+    return ""
+
+
+def _require_webrtc_bridge_operator(request: Request) -> None:
+    want = _webrtc_bridge_token()
+    if not want:
+        _record_webrtc_bridge_rejection("webrtc_signal_bridge_token_required")
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_signal_bridge_token_required",
+            {"message": "WebRTC signal bridge import requires WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN or an operator token"},
+        )
+    if _request_webrtc_bridge_token(request) != want:
+        _record_webrtc_bridge_rejection("bad_webrtc_signal_bridge_token")
+        raise ApiError.forbidden("forbidden", "bad_webrtc_signal_bridge_token", {})
+
+
+def _bridge_peer_token(spec: Json) -> str:
+    return str(spec.get("bridge_token") or spec.get("token") or "").strip()
+
+
+def _bridge_peer_secret(spec: Json) -> str:
+    return str(spec.get("bridge_secret") or spec.get("secret") or "").strip()
+
+
+def _require_webrtc_bridge_import_auth(request: Request, req: "PohLiveWebRTCSignalBridgeRequest", raw: Json, spec: Json | None, *, source_node: str, source_chain_id: str) -> None:
+    spec = spec if isinstance(spec, dict) else {}
+    peer_token = _bridge_peer_token(spec)
+    peer_secret = _bridge_peer_secret(spec)
+    if peer_token:
+        if _request_webrtc_bridge_token(request) != peer_token:
+            _record_webrtc_bridge_rejection("bad_webrtc_peer_bridge_token", source_node=source_node)
+            raise ApiError.forbidden("forbidden", "bad_webrtc_peer_bridge_token", {"source_node": source_node})
+        return
+    if peer_secret:
+        supplied = str(req.signature or raw.get("signature") or request.headers.get("x-weall-webrtc-signal-bridge-signature") or "").strip()
+        expected = _sign_webrtc_bridge_payload(
+            secret=peer_secret,
+            source_node=source_node,
+            source_chain_id=source_chain_id,
+            signal=dict(req.signal or {}),
+        )
+        if not supplied or not hmac.compare_digest(supplied, expected):
+            _record_webrtc_bridge_rejection("bad_webrtc_bridge_signature", source_node=source_node)
+            raise ApiError.forbidden("forbidden", "bad_webrtc_bridge_signature", {"source_node": source_node})
+        return
+    if _is_prod() and spec:
+        _record_webrtc_bridge_rejection("webrtc_peer_bridge_auth_required", source_node=source_node)
+        raise ApiError.forbidden("forbidden", "webrtc_peer_bridge_auth_required", {"source_node": source_node})
+    _require_webrtc_bridge_operator(request)
+
+
+def _webrtc_node_id() -> str:
+    return str(os.environ.get("WEALL_NODE_ID") or os.environ.get("WEALL_NODE_ACCOUNT") or "weall-node").strip()
+
+
+def _safe_webrtc_peer_url(url: str) -> str:
+    out = str(url or "").strip().rstrip("/")
+    if not (out.startswith("http://") or out.startswith("https://")):
+        return ""
+    return out
+
+
+def _webrtc_signal_peer_specs() -> list[Json]:
+    """Return operator-pinned WebRTC signal bridge peers.
+
+    Production nodes should use WEALL_WEBRTC_SIGNAL_PEERS_JSON with explicit
+    node_id/url entries. Raw URL lists remain available only for controlled dev
+    rehearsals or when explicitly allowed.
+    """
+    limit = max(1, _env_int("WEALL_WEBRTC_SIGNAL_MAX_PEERS", 4))
+    raw_json = str(
+        os.environ.get("WEALL_WEBRTC_SIGNAL_PEERS_JSON")
+        or os.environ.get("WEALL_LIVE_WEBRTC_SIGNAL_PEERS_JSON")
+        or ""
+    ).strip()
+    manifest_path = str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_MANIFEST_PATH") or "").strip()
+    if not raw_json and manifest_path:
+        try:
+            raw_json = Path(manifest_path).read_text(encoding="utf-8")
+        except Exception as exc:
+            if _is_prod():
+                raise PohRouteConfigError("invalid_webrtc_signal_peer_manifest_path") from exc
+            raw_json = ""
+    specs: list[Json] = []
+    if raw_json:
+        try:
+            parsed = json.loads(raw_json)
+        except Exception as exc:
+            if _is_prod():
+                raise PohRouteConfigError("invalid_webrtc_signal_peers_json") from exc
+            parsed = []
+        if isinstance(parsed, dict) and isinstance(parsed.get("webrtc_signal_peers"), list):
+            parsed = parsed.get("webrtc_signal_peers")
+        rows = parsed if isinstance(parsed, list) else []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            url = _safe_webrtc_peer_url(str(row.get("url") or ""))
+            node_id = str(row.get("node_id") or row.get("id") or "").strip()
+            chain_id = str(row.get("chain_id") or "").strip()
+            if not url or not node_id:
+                if _is_prod():
+                    raise PohRouteConfigError("webrtc_signal_peer_requires_node_id_and_url")
+                continue
+            rec: Json = {"url": url, "node_id": node_id}
+            if chain_id:
+                rec["chain_id"] = chain_id
+            bridge_token = str(row.get("bridge_token") or row.get("token") or "").strip()
+            bridge_secret = str(row.get("bridge_secret") or row.get("secret") or "").strip()
+            if bridge_token:
+                rec["bridge_token"] = bridge_token
+            if bridge_secret:
+                rec["bridge_secret"] = bridge_secret
+            if _is_prod() and not bridge_token and not bridge_secret:
+                raise PohRouteConfigError("webrtc_signal_peer_requires_token_or_signed_envelope")
+            if rec not in specs:
+                specs.append(rec)
+            if len(specs) >= limit:
+                break
+        return specs
+
+    raw_urls = str(
+        os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_URLS")
+        or os.environ.get("WEALL_LIVE_WEBRTC_SIGNAL_PEER_URLS")
+        or ""
+    ).strip()
+    if not raw_urls:
+        return []
+    if _is_prod() and not _env_bool("WEALL_ALLOW_RAW_WEBRTC_SIGNAL_PEER_URLS", False):
+        raise PohRouteConfigError("prod_webrtc_signal_peers_must_be_node_pinned")
+
+    node_ids = [p.strip() for p in str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_NODE_IDS") or "").replace(";", ",").split(",") if p.strip()]
+    for idx, part in enumerate(raw_urls.replace(";", ",").split(",")):
+        url = _safe_webrtc_peer_url(part)
+        if not url:
+            continue
+        node_id = node_ids[idx] if idx < len(node_ids) else f"dev-peer-{idx + 1}"
+        rec = {"url": url, "node_id": node_id, "raw_url_compat": True}
+        chain_id = str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_CHAIN_ID") or _webrtc_chain_id()).strip()
+        if chain_id:
+            rec["chain_id"] = chain_id
+        bridge_token = str(os.environ.get("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN") or "").strip()
+        if bridge_token:
+            rec["bridge_token"] = bridge_token
+        if rec not in specs:
+            specs.append(rec)
+        if len(specs) >= limit:
+            break
+    return specs
+
+
+def _normalized_webrtc_signal_peer_urls() -> list[str]:
+    # Compatibility helper retained for older tests and diagnostics.
+    return [str(spec.get("url") or "") for spec in _webrtc_signal_peer_specs() if str(spec.get("url") or "")]
+
+
+def _allowed_webrtc_bridge_source_nodes() -> set[str]:
+    allowed = {str(spec.get("node_id") or "").strip() for spec in _webrtc_signal_peer_specs() if str(spec.get("node_id") or "").strip()}
+    extra = str(os.environ.get("WEALL_WEBRTC_SIGNAL_ALLOWED_SOURCE_NODE_IDS") or "").strip()
+    for part in extra.replace(";", ",").split(","):
+        if part.strip():
+            allowed.add(part.strip())
+    return allowed
+
+
+def _webrtc_signal_peer_spec_for_source(source_node: str) -> Json | None:
+    node = str(source_node or "").strip()
+    if not node:
+        return None
+    for spec in _webrtc_signal_peer_specs():
+        if str(spec.get("node_id") or "").strip() == node:
+            return spec
+    return None
+
+
+def _validate_webrtc_bridge_source_chain(*, source_node: str, source_chain_id: str, spec: Json | None) -> None:
+    expected_chain = str((spec or {}).get("chain_id") or _webrtc_chain_id()).strip()
+    got_chain = str(source_chain_id or "").strip()
+    if (_is_prod() or spec) and not got_chain:
+        _record_webrtc_bridge_rejection("webrtc_bridge_source_chain_id_required", source_node=source_node)
+        raise ApiError.forbidden("forbidden", "webrtc_bridge_source_chain_id_required", {"source_node": source_node})
+    if got_chain and expected_chain and got_chain != expected_chain:
+        _record_webrtc_bridge_rejection("webrtc_bridge_chain_id_mismatch", source_node=source_node)
+        raise ApiError.forbidden("forbidden", "webrtc_bridge_chain_id_mismatch", {"source_node": source_node, "source_chain_id": got_chain, "expected_chain_id": expected_chain})
+
+
+def _redact_webrtc_peer_url(url: str) -> str:
+    if "@" in url:
+        scheme, rest = url.split("://", 1) if "://" in url else ("", url)
+        rest = rest.split("@", 1)[-1]
+        return f"{scheme}://{rest}" if scheme else rest
+    return url
+
+
+def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
+    # Bridge records are transport-only and explicitly non-consensus. The peer
+    # allocates its own local sequence number on import so browser polling stays
+    # monotonic per node.
+    signal = {
+        "signal_id": str(rec.get("signal_id") or ""),
+        "session_id": str(rec.get("session_id") or ""),
+        "case_id": str(rec.get("case_id") or ""),
+        "from_account": str(rec.get("from_account") or ""),
+        "to_account": str(rec.get("to_account") or ""),
+        "type": str(rec.get("type") or ""),
+        "sdp": str(rec.get("sdp") or ""),
+        "candidate": dict(rec.get("candidate")) if isinstance(rec.get("candidate"), dict) else {},
+        "ts_ms": int(rec.get("ts_ms") or 0),
+        "authority": "transport_only_ephemeral",
+    }
+    source_node = _webrtc_node_id()
+    source_chain_id = _webrtc_chain_id()
+    payload: Json = {"signal": signal, "source_node": source_node, "source_chain_id": source_chain_id}
+    secret = _bridge_peer_secret(spec or {})
+    if secret:
+        payload["signature"] = _sign_webrtc_bridge_payload(
+            secret=secret, source_node=source_node, source_chain_id=source_chain_id, signal=signal
+        )
+    return payload
+
+
+def _webrtc_signal_outbox_path() -> Path:
+    raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_OUTBOX_PATH") or "").strip()
+    if raw:
+        return Path(raw)
+    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_outbox.json"
+
+
+def _webrtc_signal_outbox_lock():
+    path = _webrtc_signal_outbox_path()
+    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_OUTBOX_LOCKS", {})
+    lock = locks.get(str(path))
+    if lock is None:
+        lock = threading.Lock()
+        locks[str(path)] = lock
+    return lock
+
+
+def _load_webrtc_signal_outbox_unlocked() -> list[Json]:
+    path = _webrtc_signal_outbox_path()
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8") or "[]")
+    except Exception:
+        bad = path.with_suffix(path.suffix + f".corrupt-{int(time.time() * 1000)}")
+        try:
+            path.replace(bad)
+        except Exception:
+            pass
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _write_webrtc_signal_outbox_unlocked(rows: list[Json]) -> None:
+    path = _webrtc_signal_outbox_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    max_rows = max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024))
+    ttl_ms = max(10_000, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_TTL_MS", _webrtc_signal_ttl_ms()))
+    now = _now_ms()
+    clean: list[Json] = []
+    seen: set[str] = set()
+    stale_outbox_pruned = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        created = int(row.get("created_ms") or 0)
+        if created and now - created > ttl_ms:
+            stale_outbox_pruned += 1
+            continue
+        key = str(row.get("outbox_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
+        if key in seen:
+            continue
+        seen.add(key)
+        clean.append(row)
+    if stale_outbox_pruned:
+        diag = _webrtc_bridge_diag()
+        diag["stale_outbox_pruned"] = int(diag.get("stale_outbox_pruned") or 0) + stale_outbox_pruned
+    overflow_pruned = max(0, len(clean) - max_rows)
+    if overflow_pruned:
+        diag = _webrtc_bridge_diag()
+        diag["max_record_pruned"] = int(diag.get("max_record_pruned") or 0) + overflow_pruned
+    clean = clean[-max_rows:]
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(clean, sort_keys=True, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _read_webrtc_signal_outbox() -> list[Json]:
+    with _webrtc_signal_outbox_lock():
+        rows = _load_webrtc_signal_outbox_unlocked()
+        _write_webrtc_signal_outbox_unlocked(rows)
+        return _load_webrtc_signal_outbox_unlocked()
+
+
+def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
+    specs = _webrtc_signal_peer_specs()
+    if not specs:
+        return {"attempted": False, "queued": 0, "mode": "durable_outbox", "results": []}
+    created = _now_ms()
+    with _webrtc_signal_outbox_lock():
+        rows = _load_webrtc_signal_outbox_unlocked()
+        queued = 0
+        for spec in specs:
+            url = str(spec.get("url") or "").strip()
+            node_id = str(spec.get("node_id") or "").strip()
+            if not url or not node_id:
+                continue
+            payload = _bridge_payload_for_signal(rec, spec)
+            outbox_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
+            if any(isinstance(r, dict) and r.get("outbox_id") == outbox_id for r in rows):
+                continue
+            rows.append({
+                "outbox_id": outbox_id,
+                "peer_url": url,
+                "peer_node_id": node_id,
+                "peer_chain_id": str(spec.get("chain_id") or _webrtc_chain_id()),
+                "payload": payload,
+                "session_id": str(rec.get("session_id") or ""),
+                "created_ms": created,
+                "attempts": 0,
+                "last_error": "",
+            })
+            queued += 1
+        _write_webrtc_signal_outbox_unlocked(rows)
+    return {"attempted": bool(specs), "queued": queued, "mode": "durable_outbox", "results": []}
+
+
+def _post_webrtc_signal_outbox_row(row: Json, *, timeout_s: int) -> Json:
+    url = str(row.get("peer_url") or "").strip()
+    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+    signal = payload.get("signal") if isinstance(payload.get("signal"), dict) else {}
+    sid = str(signal.get("session_id") or row.get("session_id") or "").strip()
+    if not url or not sid:
+        return {"ok": False, "error": "missing_peer_or_session", "peer": _redact_webrtc_peer_url(url)}
+    body = json.dumps(payload, sort_keys=True).encode("utf-8")
+    headers = {"content-type": "application/json"}
+    peer_node_id = str(row.get("peer_node_id") or "").strip()
+    spec = _webrtc_signal_peer_spec_for_source(peer_node_id) if peer_node_id else None
+    token = _bridge_peer_token(spec or {}) or _webrtc_bridge_token()
+    if token:
+        headers["x-weall-webrtc-signal-bridge-token"] = token
+    if payload.get("source_node"):
+        headers["x-weall-webrtc-signal-bridge-source-node"] = str(payload.get("source_node"))
+    if payload.get("source_chain_id"):
+        headers["x-weall-webrtc-signal-bridge-chain-id"] = str(payload.get("source_chain_id"))
+    if payload.get("signature"):
+        headers["x-weall-webrtc-signal-bridge-signature"] = str(payload.get("signature"))
+    req = urllib.request.Request(
+        f"{url.rstrip('/')}/v1/poh/live/session/{sid}/webrtc/signals/import",
+        data=body,
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=max(1, int(timeout_s))) as resp:  # noqa: S310 - operator-pinned peer URL
+            parsed = json.loads(resp.read().decode("utf-8") or "{}")
+            return {"ok": bool(isinstance(parsed, dict) and parsed.get("ok")), "peer": _redact_webrtc_peer_url(url), "peer_node_id": str(row.get("peer_node_id") or ""), "status": int(resp.status)}
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "error": "peer_http_error", "status": int(exc.code), "peer": _redact_webrtc_peer_url(url)}
+    except Exception as exc:
+        return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:160], "peer": _redact_webrtc_peer_url(url)}
+
+
+def _drain_webrtc_signal_outbox(*, limit: int | None = None) -> Json:
+    limit_n = max(1, int(limit or _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_DRAIN_BATCH", 32)))
+    timeout_s = max(1, _env_int("WEALL_WEBRTC_SIGNAL_PEER_TIMEOUT_S", 3))
+    results: list[Json] = []
+    with _webrtc_signal_outbox_lock():
+        rows = _load_webrtc_signal_outbox_unlocked()
+        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024)):]
+        keep: list[Json] = []
+        selected = 0
+        for row in rows:
+            if selected >= limit_n:
+                keep.append(row)
+                continue
+            selected += 1
+            result = _post_webrtc_signal_outbox_row(row, timeout_s=timeout_s)
+            results.append(result)
+            if not bool(result.get("ok")):
+                row["attempts"] = int(row.get("attempts") or 0) + 1
+                row["last_error"] = str(result.get("error") or "peer_rejected")
+                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ATTEMPTS", 5)):
+                    keep.append(row)
+        _write_webrtc_signal_outbox_unlocked(keep)
+    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_outbox()), "results": results}
+    diag = _webrtc_bridge_diag()
+    diag["last_drain_result"] = summary
+    diag["last_drain_ms"] = _now_ms()
+    return summary
+
+
+def _bridge_webrtc_signal_to_peers(rec: Json) -> Json:
+    # Request path durability only: the worker/operator drain performs network IO.
+    return _enqueue_webrtc_signal_bridge(rec)
+
+
+def _webrtc_signal_bridge_autodrain_enabled() -> bool:
+    return _env_bool("WEALL_WEBRTC_SIGNAL_BRIDGE_AUTODRAIN", False)
+
+
+def _webrtc_signal_bridge_interval_s() -> float:
+    return max(0.25, _env_int("WEALL_WEBRTC_SIGNAL_BRIDGE_INTERVAL_MS", 1000) / 1000.0)
+
+
+def start_webrtc_signal_bridge_autodrain() -> threading.Thread | None:
+    if not _webrtc_signal_bridge_autodrain_enabled():
+        return None
+    existing = globals().get("_WEALL_WEBRTC_SIGNAL_BRIDGE_THREAD")
+    if isinstance(existing, threading.Thread) and existing.is_alive():
+        return existing
+    stop = threading.Event()
+    globals()["_WEALL_WEBRTC_SIGNAL_BRIDGE_STOP"] = stop
+
+    def _loop() -> None:
+        while not stop.is_set():
+            try:
+                _drain_webrtc_signal_outbox()
+            except Exception:
+                pass
+            stop.wait(_webrtc_signal_bridge_interval_s())
+
+    thread = threading.Thread(target=_loop, name="weall-webrtc-signal-bridge-drain", daemon=True)
+    thread.start()
+    globals()["_WEALL_WEBRTC_SIGNAL_BRIDGE_THREAD"] = thread
+    return thread
+
+
+def stop_webrtc_signal_bridge_autodrain(_thread: threading.Thread | None = None) -> None:
+    stop = globals().get("_WEALL_WEBRTC_SIGNAL_BRIDGE_STOP")
+    if hasattr(stop, "set"):
+        stop.set()
+    thread = _thread or globals().get("_WEALL_WEBRTC_SIGNAL_BRIDGE_THREAD")
+    if isinstance(thread, threading.Thread) and thread.is_alive():
+        thread.join(timeout=2.0)
+
+
+def _webrtc_signal_dedup_key(raw: Json) -> str:
+    origin = str(raw.get("origin_signal_id") or raw.get("source_signal_id") or raw.get("signal_id") or "").strip()
+    if origin:
+        return origin
+    candidate = raw.get("candidate") if isinstance(raw.get("candidate"), dict) else {}
+    return json.dumps(
+        {
+            "session_id": str(raw.get("session_id") or ""),
+            "case_id": str(raw.get("case_id") or ""),
+            "from_account": str(raw.get("from_account") or ""),
+            "to_account": str(raw.get("to_account") or ""),
+            "type": str(raw.get("type") or ""),
+            "sdp": str(raw.get("sdp") or ""),
+            "candidate": candidate,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _store_webrtc_signal_record(request: Request, sid: str, rec: Json) -> tuple[bool, Json]:
+    store = _live_webrtc_store(request)
+    records = store.get(sid)
+    if not isinstance(records, list):
+        records = []
+    key = _webrtc_signal_dedup_key(rec)
+    for existing in records:
+        if isinstance(existing, dict) and _webrtc_signal_dedup_key(existing) == key:
+            return False, existing
+    records.append(rec)
+    store[sid] = _prune_webrtc_session_records(records)
+    return True, rec
+
+
+def _live_case_participant_ids(raw: Json) -> set[str]:
+    out: set[str] = set()
+    subject = str(raw.get("account_id") or "").strip()
+    if subject:
+        out.add(subject)
+    jurors = raw.get("jurors")
+    if isinstance(jurors, dict):
+        out.update(str(j).strip() for j in jurors.keys() if str(j).strip())
+    assigned = raw.get("assigned_jurors")
+    if isinstance(assigned, list):
+        out.update(str(j).strip() for j in assigned if str(j).strip())
+    return out
+
+
+def _live_case_for_session(st: Json, session_id: str) -> tuple[str, Json]:
+    cid = _live_session_case_id(st, session_id)
+    raw = _live_cases_from_snapshot(st).get(cid)
+    if not isinstance(raw, dict):
+        raise ApiError.not_found("not_found", "live_case_not_found", {"case_id": cid})
+    return cid, raw
+
+
+def _validate_webrtc_target(case: Json, *, from_account: str, to_account: str) -> None:
+    if not to_account:
+        return
+    participants = _live_case_participant_ids(case)
+    if to_account not in participants:
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_target_must_be_case_participant",
+            {"from_account": from_account, "to_account": to_account},
+        )
+
+
+def _validate_webrtc_signal(req: PohLiveWebRTCSignalRequest) -> tuple[str, str, str, Json | None]:
+    signal_type = str(req.type or "").strip().lower()
+    if signal_type not in _ALLOWED_WEBRTC_SIGNAL_TYPES:
+        raise ApiError.bad_request("bad_request", "invalid_webrtc_signal_type", {"type": signal_type})
+
+    sdp = str(req.sdp or "")
+    candidate = req.candidate if isinstance(req.candidate, dict) else None
+
+    if signal_type in {"offer", "answer"}:
+        if not sdp.strip():
+            raise ApiError.bad_request("bad_request", "webrtc_sdp_required", {"type": signal_type})
+        if len(sdp.encode("utf-8")) > _MAX_WEBRTC_SDP_BYTES:
+            raise ApiError.bad_request("bad_request", "webrtc_sdp_too_large", {})
+        candidate = None
+    elif signal_type == "ice":
+        if not candidate:
+            raise ApiError.bad_request("bad_request", "webrtc_candidate_required", {})
+        try:
+            encoded = json.dumps(candidate, sort_keys=True, separators=(",", ":"))
+        except Exception as exc:
+            raise ApiError.bad_request("bad_request", "webrtc_candidate_invalid", {}) from exc
+        if len(encoded.encode("utf-8")) > _MAX_WEBRTC_CANDIDATE_BYTES:
+            raise ApiError.bad_request("bad_request", "webrtc_candidate_too_large", {})
+        cand = str(candidate.get("candidate") or "").strip()
+        if not cand:
+            raise ApiError.bad_request("bad_request", "webrtc_candidate_required", {})
+        sdp = ""
+    else:
+        sdp = ""
+        candidate = None
+
+    to_account = str(req.to_account or "").strip()
+    if signal_type in {"offer", "answer", "ice"} and not to_account:
+        raise ApiError.bad_request("bad_request", "webrtc_target_required", {"type": signal_type})
+    return signal_type, to_account, sdp, candidate
+
+
+def _as_webrtc_signal(raw: Json) -> PohLiveWebRTCSignalModel:
+    return PohLiveWebRTCSignalModel(
+        seq=int(raw.get("seq") or 0),
+        signal_id=str(raw.get("signal_id") or ""),
+        session_id=str(raw.get("session_id") or ""),
+        case_id=str(raw.get("case_id") or ""),
+        from_account=str(raw.get("from_account") or ""),
+        to_account=str(raw.get("to_account") or "").strip() or None,
+        type=str(raw.get("type") or ""),
+        sdp=str(raw.get("sdp") or "").strip() or None,
+        candidate=dict(raw.get("candidate")) if isinstance(raw.get("candidate"), dict) else None,
+        ts_ms=int(raw.get("ts_ms") or 0),
+    )
+
+
+def _prune_webrtc_session_records(records: list[Json]) -> list[Json]:
+    max_records = max(16, _env_int("WEALL_P2P_SIGNAL_MAX_RECORDS_PER_SESSION", 256))
+    ttl_ms = _webrtc_signal_ttl_ms()
+    now = _now_ms()
+    kept: list[Json] = []
+    stale_count = 0
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        try:
+            ts_ms = int(rec.get("ts_ms") or 0)
+        except Exception:
+            ts_ms = 0
+        if ts_ms and now - ts_ms > ttl_ms:
+            stale_count += 1
+            continue
+        kept.append(rec)
+    if stale_count:
+        diag = _webrtc_bridge_diag()
+        diag["stale_signal_pruned"] = int(diag.get("stale_signal_pruned") or 0) + stale_count
+    if len(kept) <= max_records:
+        return kept
+    dropped = len(kept) - max_records
+    diag = _webrtc_bridge_diag()
+    diag["max_record_pruned"] = int(diag.get("max_record_pruned") or 0) + dropped
+    return kept[-max_records:]
+
+
+
+
+@router.get(
+    "/poh/live/webrtc/relay-config",
+    response_model=PohLiveWebRTCRelayConfigResponse,
+    name="poh_live_webrtc_relay_config",
+)
+def poh_live_webrtc_relay_config() -> PohLiveWebRTCRelayConfigResponse:
+    """Return optional STUN/TURN/community relay settings for browser WebRTC.
+
+    This endpoint is transport-only: the chain remains authoritative for live
+    verification acceptance, attendance, verdicts, and finalization.
+    """
+    return PohLiveWebRTCRelayConfigResponse(
+        ok=True,
+        ice_servers=[PohLiveWebRTCIceServerModel(**rec) for rec in _webrtc_ice_servers_from_env()],
+    )
+
+
+@router.get("/poh/live/webrtc/signals/diagnostics")
+def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
+    _require_webrtc_bridge_operator(request)
+    diag = dict(_webrtc_bridge_diag())
+    rows = _read_webrtc_signal_outbox()
+    diag.update({
+        "ok": True,
+        "authority": "transport_only_operator_diagnostics",
+        "queue_depth": len(rows),
+        "peer_count": len(_webrtc_signal_peer_specs()),
+        "source_node": _webrtc_node_id(),
+        "chain_id": _webrtc_chain_id(),
+    })
+    return diag
+
+
+@router.post("/poh/live/webrtc/signals/outbox/drain")
+def poh_live_webrtc_signal_outbox_drain(request: Request, limit: int | None = None) -> Json:
+    _require_webrtc_bridge_operator(request)
+    return _drain_webrtc_signal_outbox(limit=limit)
+
+@router.get(
+    "/poh/live/session/{session_id}/webrtc/signals",
+    response_model=PohLiveWebRTCSignalListResponse,
+    name="poh_live_webrtc_signals",
+)
+def poh_live_webrtc_signals(
+    session_id: str, request: Request, since_seq: int = 0
+) -> PohLiveWebRTCSignalListResponse:
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise ApiError.bad_request("bad_request", "missing session_id", {})
+
+    st = _snapshot(request)
+    account = _require_session_principal_for_poh_private(
+        request, st, purpose="WebRTC live-room signaling"
+    )
+    case_id, case = _live_case_for_session(st, sid)
+    _require_live_room_participant(st, session_id=sid, account_id=account)
+
+    try:
+        since = int(since_seq or 0)
+    except Exception:
+        since = 0
+
+    signal_store = _live_webrtc_store(request)
+    raw_records = signal_store.get(sid)
+    records = _prune_webrtc_session_records(raw_records if isinstance(raw_records, list) else [])
+    signal_store[sid] = records
+    visible: list[PohLiveWebRTCSignalModel] = []
+    max_seq = since
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        seq = int(rec.get("seq") or 0)
+        max_seq = max(max_seq, seq)
+        if seq <= since:
+            continue
+        to_account = str(rec.get("to_account") or "").strip()
+        from_account = str(rec.get("from_account") or "").strip()
+        if to_account and to_account != account and from_account != account:
+            continue
+        # Only chain-authorized case participants can list signaling records.
+        # This assertion keeps stale records from leaking if case membership changes.
+        if from_account not in _live_case_participant_ids(case):
+            continue
+        visible.append(_as_webrtc_signal(rec))
+
+    return PohLiveWebRTCSignalListResponse(
+        ok=True,
+        session_id=sid,
+        case_id=case_id,
+        account_id=account,
+        signals=visible[:100],
+        next_seq=max_seq,
+    )
+
+
+@router.post(
+    "/poh/live/session/{session_id}/webrtc/signals/import",
+    response_model=PohLiveWebRTCSignalBridgeResponse,
+    name="poh_live_webrtc_signal_bridge_import",
+)
+def poh_live_webrtc_signal_bridge_import(
+    session_id: str, req: PohLiveWebRTCSignalBridgeRequest, request: Request
+) -> PohLiveWebRTCSignalBridgeResponse:
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise ApiError.bad_request("bad_request", "missing session_id", {})
+    raw = dict(req.signal or {})
+    raw_sid = str(raw.get("session_id") or sid).strip()
+    if raw_sid != sid:
+        raise ApiError.bad_request("bad_request", "webrtc_session_mismatch", {"session_id": sid, "signal_session_id": raw_sid})
+
+    st = _snapshot(request)
+    case_id, case = _live_case_for_session(st, sid)
+    source_node = str(req.source_node or raw.get("source_node") or request.headers.get("x-weall-webrtc-signal-bridge-source-node") or "").strip()
+    source_chain_id = str(req.source_chain_id or raw.get("source_chain_id") or request.headers.get("x-weall-webrtc-signal-bridge-chain-id") or "").strip()
+    allowed_sources = _allowed_webrtc_bridge_source_nodes()
+    source_spec = _webrtc_signal_peer_spec_for_source(source_node)
+    if (_is_prod() or allowed_sources) and source_node not in allowed_sources:
+        _record_webrtc_bridge_rejection("webrtc_bridge_source_node_not_allowed", source_node=source_node)
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_bridge_source_node_not_allowed",
+            {"source_node": source_node, "allowed_source_nodes": sorted(allowed_sources)},
+        )
+    _validate_webrtc_bridge_source_chain(source_node=source_node, source_chain_id=source_chain_id, spec=source_spec)
+    _require_webrtc_bridge_import_auth(request, req, raw, source_spec, source_node=source_node, source_chain_id=source_chain_id)
+    signal_type = str(raw.get("type") or "").strip().lower()
+    bridge_req = PohLiveWebRTCSignalRequest(
+        account_id=str(raw.get("from_account") or ""),
+        type=signal_type,  # type: ignore[arg-type]
+        to_account=str(raw.get("to_account") or "").strip() or None,
+        sdp=str(raw.get("sdp") or "") or None,
+        candidate=dict(raw.get("candidate")) if isinstance(raw.get("candidate"), dict) else None,
+        ts_ms=int(raw.get("ts_ms") or 0) or None,
+    )
+    signal_type, to_account, sdp, candidate = _validate_webrtc_signal(bridge_req)
+    from_account = str(bridge_req.account_id or "").strip()
+    if from_account not in _live_case_participant_ids(case):
+        raise ApiError.forbidden("forbidden", "webrtc_source_must_be_case_participant", {"from_account": from_account})
+    _validate_webrtc_target(case, from_account=from_account, to_account=to_account)
+
+    ts_ms = _validate_webrtc_bridge_signal_ts_ms(bridge_req.ts_ms or raw.get("ts_ms"), source_node=source_node)
+    seq = _live_webrtc_next_seq(request)
+    rec: Json = {
+        "seq": seq,
+        "signal_id": f"webrtc:{sid}:bridge:{seq}",
+        "origin_signal_id": str(raw.get("signal_id") or raw.get("origin_signal_id") or ""),
+        "source_node": source_node or "peer",
+        "source_chain_id": source_chain_id,
+        "session_id": sid,
+        "case_id": case_id,
+        "from_account": from_account,
+        "to_account": to_account,
+        "type": signal_type,
+        "sdp": sdp,
+        "candidate": candidate or {},
+        "ts_ms": ts_ms,
+        "authority": "transport_only_bridge",
+    }
+    imported, stored = _store_webrtc_signal_record(request, sid, rec)
+    return PohLiveWebRTCSignalBridgeResponse(
+        ok=True,
+        imported=bool(imported),
+        signal=_as_webrtc_signal(stored) if isinstance(stored, dict) else None,
+    )
+
+
+@router.post(
+    "/poh/live/session/{session_id}/webrtc/signals",
+    response_model=PohLiveWebRTCSignalResponse,
+    name="poh_live_webrtc_signal_send",
+)
+def poh_live_webrtc_signal_send(
+    session_id: str, req: PohLiveWebRTCSignalRequest, request: Request
+) -> PohLiveWebRTCSignalResponse:
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise ApiError.bad_request("bad_request", "missing session_id", {})
+
+    account_id = str(req.account_id or "").strip()
+    if not account_id:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+
+    st = _snapshot(request)
+    account = _require_session_principal_for_poh_private(
+        request, st, purpose="WebRTC live-room signaling"
+    )
+    if account != account_id:
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_account_mismatch",
+            {"session_account": account, "account_id": account_id},
+        )
+
+    case_id, case = _live_case_for_session(st, sid)
+    _require_live_room_participant(st, session_id=sid, account_id=account_id)
+    signal_type, to_account, sdp, candidate = _validate_webrtc_signal(req)
+    _validate_webrtc_target(case, from_account=account_id, to_account=to_account)
+
+    seq = _live_webrtc_next_seq(request)
+    ts_ms = _normalize_webrtc_signal_ts_ms(req.ts_ms)
+
+    rec: Json = {
+        "seq": seq,
+        "signal_id": f"webrtc:{sid}:{seq}",
+        "session_id": sid,
+        "case_id": case_id,
+        "from_account": account_id,
+        "to_account": to_account,
+        "type": signal_type,
+        "sdp": sdp,
+        "candidate": candidate or {},
+        "ts_ms": ts_ms,
+        "authority": "transport_only_ephemeral",
+    }
+
+    _store_webrtc_signal_record(request, sid, rec)
+    bridge_result = _bridge_webrtc_signal_to_peers(rec)
+    rec["bridge_propagation"] = bridge_result
+
+    return PohLiveWebRTCSignalResponse(ok=True, signal=_as_webrtc_signal(rec))
+
 
 # ---------------------------------------------------------------------------
 # PoH Operator endpoints (MVP)

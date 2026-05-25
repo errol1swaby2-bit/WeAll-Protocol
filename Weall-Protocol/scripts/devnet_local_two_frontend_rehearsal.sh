@@ -26,12 +26,19 @@ GENESIS_BIND="${GENESIS_BIND:-127.0.0.1:8001}"
 OBSERVER_BIND="${OBSERVER_BIND:-127.0.0.1:8002}"
 OBSERVER_FRONTEND_PORT="${OBSERVER_FRONTEND_PORT:-5173}"
 GENESIS_FRONTEND_PORT="${GENESIS_FRONTEND_PORT:-5174}"
+
+# Bind Vite to all WSL interfaces by default so Windows browsers can reach it.
+FRONTEND_BIND_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_BIND_HOST:-0.0.0.0}"
+FRONTEND_PUBLIC_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_PUBLIC_HOST:-127.0.0.1}"
 OBSERVER_ACCOUNT="${WEALL_OBSERVER_TEST_ACCOUNT:-@errol}"
 GENESIS_ACCOUNT="${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-@devnet-genesis}"
 OBSERVER_KEYFILE="${WEALL_OBSERVER_TEST_KEYFILE:-${DEVNET_DIR}/accounts/errol.json}"
 GENESIS_KEYFILE="${WEALL_GENESIS_OPERATOR_KEYFILE:-${DEVNET_DIR}/genesis-operator.json}"
 OBSERVER_TOKEN="${WEALL_OBSERVER_EDGE_OPERATOR_TOKEN:-local-observer-operator-token}"
 SYNC_TOKEN="${WEALL_STATE_SYNC_OPERATOR_TOKEN:-local-rehearsal-sync-token}"
+LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"
+LIVE_ROOM_BASE_URL="${VITE_WEALL_LIVE_ROOM_BASE_URL:-}"
+LIVE_ROOM_EMBED="${VITE_WEALL_LIVE_ROOM_EMBED:-0}"
 RESET="${WEALL_LOCAL_REHEARSAL_RESET:-1}"
 KEEP_RUNNING="${WEALL_LOCAL_REHEARSAL_KEEP_RUNNING:-1}"
 NPM_INSTALL="${WEALL_LOCAL_REHEARSAL_NPM_INSTALL:-1}"
@@ -123,6 +130,34 @@ _wait_http() {
   done
 }
 
+
+_wait_frontend_root() {
+  local base_url="${1%/}"
+  local timeout_s="${2:-90}"
+  local log_path="${3:-}"
+  local deadline=$((SECONDS + timeout_s))
+  local body=""
+  until body="$(curl -fsS --max-time 5 "${base_url}/" 2>/dev/null || true)" && \
+    printf '%s' "${body}" | grep -Eq 'id="root"|src="/src/main\.tsx"|src="/src/main\.ts"'; do
+    if (( SECONDS >= deadline )); then
+      echo "ERROR: timed out waiting for frontend index ${base_url}/" >&2
+      echo >&2
+      echo "=== curl probe: ${base_url}/ ===" >&2
+      curl -sv --max-time 8 "${base_url}/" -o /tmp/weall-frontend-index-probe.html >&2 || true
+      echo >&2
+      echo "=== recent frontend log: ${log_path} ===" >&2
+      if [[ -n "${log_path}" && -f "${log_path}" ]]; then
+        tail -n 180 "${log_path}" >&2 || true
+      fi
+      echo >&2
+      echo "=== listening ports ===" >&2
+      ss -ltnp 2>/dev/null | grep -E ':8001|:8002|:5173|:5174' >&2 || true
+      return 1
+    fi
+    sleep 0.5
+  done
+}
+
 _wait_ipfs_api() {
   local api_base="${1%/}"
   local timeout_s="${2:-60}"
@@ -135,18 +170,61 @@ _wait_ipfs_api() {
   done
 }
 
+_prepare_local_ipfs_repo_dirs() {
+  # Kubo's flatfs/blockstore add path expects blocks/temp to already exist in
+  # some bind-mounted repos. In local rehearsal, reset can remove/recreate the
+  # host partition while a previous container is still alive, which later
+  # surfaces as: "failed to create batch temp directory ... no such file or
+  # directory". Pre-create the parent tree before every health check/start.
+  mkdir -p "${IPFS_PARTITION_PATH}" "${IPFS_PARTITION_PATH}/blocks" "${IPFS_PARTITION_PATH}/blocks/temp"
+  chmod u+rwX,go+rwX "${IPFS_PARTITION_PATH}" "${IPFS_PARTITION_PATH}/blocks" "${IPFS_PARTITION_PATH}/blocks/temp" 2>/dev/null || true
+}
+
+_ipfs_add_healthcheck() {
+  local api_base="${1%/}"
+  local tmp_file="${LOG_DIR}/ipfs-add-healthcheck.txt"
+  mkdir -p "${LOG_DIR}"
+  printf 'weall local rehearsal ipfs healthcheck\n' >"${tmp_file}"
+  curl -fsS --max-time 15 \
+    -X POST \
+    -F "file=@${tmp_file};filename=weall-healthcheck.txt;type=text/plain" \
+    "${api_base}/api/v0/add?pin=false&wrap-with-directory=false&progress=false" \
+    >/dev/null 2>&1
+}
+
+_stop_local_ipfs_daemon() {
+  if ! _bool_true "${START_IPFS}"; then
+    return 0
+  fi
+  if command -v docker >/dev/null 2>&1 && [[ -f "${IPFS_COMPOSE_FILE}" ]]; then
+    (
+      cd "${REPO_ROOT}"
+      export WEALL_IPFS_PARTITION_PATH="${IPFS_PARTITION_PATH}"
+      docker compose -f "${IPFS_COMPOSE_FILE}" rm -sf "${IPFS_SERVICE}" >/dev/null 2>&1 || true
+    )
+  fi
+}
+
 _start_local_ipfs_daemon() {
   if ! _bool_true "${START_IPFS}"; then
     echo "==> Skipping IPFS daemon startup (WEALL_LOCAL_REHEARSAL_START_IPFS=${START_IPFS})"
     return 0
   fi
 
+  mkdir -p "${LOG_DIR}"
+  _prepare_local_ipfs_repo_dirs
+
   if _wait_ipfs_api "${IPFS_API_BASE}" 2; then
-    echo "==> IPFS daemon already reachable at ${IPFS_API_BASE}"
-    return 0
+    if _ipfs_add_healthcheck "${IPFS_API_BASE}"; then
+      echo "==> IPFS daemon already reachable and add-healthy at ${IPFS_API_BASE}"
+      return 0
+    fi
+    echo "==> IPFS daemon is reachable but add-unhealthy; restarting local rehearsal IPFS"
+    _stop_local_ipfs_daemon
+    sleep 2
   fi
 
-  mkdir -p "${LOG_DIR}" "${IPFS_PARTITION_PATH}"
+  _prepare_local_ipfs_repo_dirs
   echo "==> Starting local IPFS daemon for PoH evidence uploads"
 
   if command -v docker >/dev/null 2>&1 && [[ -f "${IPFS_COMPOSE_FILE}" ]]; then
@@ -161,13 +239,19 @@ _start_local_ipfs_daemon() {
       docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
       exit 2
     fi
-    echo "==> IPFS daemon ready at ${IPFS_API_BASE}"
+    _prepare_local_ipfs_repo_dirs
+    if ! _ipfs_add_healthcheck "${IPFS_API_BASE}"; then
+      echo "ERROR: IPFS daemon is reachable but /api/v0/add failed at ${IPFS_API_BASE}" >&2
+      docker compose -f "${IPFS_COMPOSE_FILE}" logs "${IPFS_SERVICE}" --tail 160 >&2 || true
+      exit 2
+    fi
+    echo "==> IPFS daemon ready and add-healthy at ${IPFS_API_BASE}"
     return 0
   fi
 
   if command -v ipfs >/dev/null 2>&1; then
     export IPFS_PATH="${WEALL_IPFS_PATH:-${DEVNET_DIR}/ipfs}"
-    mkdir -p "${IPFS_PATH}"
+    mkdir -p "${IPFS_PATH}" "${IPFS_PATH}/blocks" "${IPFS_PATH}/blocks/temp"
     if [[ ! -f "${IPFS_PATH}/config" ]]; then
       ipfs init --profile=server >/dev/null
     fi
@@ -177,7 +261,12 @@ _start_local_ipfs_daemon() {
       tail -n 160 "${LOG_DIR}/local-ipfs-daemon.log" >&2 || true
       exit 2
     fi
-    echo "==> IPFS daemon ready at ${IPFS_API_BASE}"
+    if ! _ipfs_add_healthcheck "${IPFS_API_BASE}"; then
+      echo "ERROR: local ipfs daemon is reachable but /api/v0/add failed at ${IPFS_API_BASE}" >&2
+      tail -n 160 "${LOG_DIR}/local-ipfs-daemon.log" >&2 || true
+      exit 2
+    fi
+    echo "==> IPFS daemon ready and add-healthy at ${IPFS_API_BASE}"
     return 0
   fi
 
@@ -191,8 +280,8 @@ EOF2
 
 _stop_existing_rehearsal_processes() {
   echo "==> Stopping old local rehearsal processes on 8001/8002/5173/5174"
-  pkill -f "vite --host 127.0.0.1 --port ${OBSERVER_FRONTEND_PORT}" >/dev/null 2>&1 || true
-  pkill -f "vite --host 127.0.0.1 --port ${GENESIS_FRONTEND_PORT}" >/dev/null 2>&1 || true
+  pkill -f "vite .*--port ${OBSERVER_FRONTEND_PORT}" >/dev/null 2>&1 || true
+  pkill -f "vite .*--port ${GENESIS_FRONTEND_PORT}" >/dev/null 2>&1 || true
   pkill -f "gunicorn.*weall" >/dev/null 2>&1 || true
   pkill -f "uvicorn.*weall" >/dev/null 2>&1 || true
 
@@ -380,6 +469,7 @@ fi
 
 if _bool_true "${RESET}"; then
   echo "==> Resetting local controlled-devnet state"
+  _stop_local_ipfs_daemon
   WEALL_DEVNET_DIR="${DEVNET_DIR}" bash scripts/devnet_reset_state.sh
   rm -f "${REPO_ROOT}/data/observer_tx_outbox.json"
   mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public"
@@ -404,8 +494,8 @@ DOWNSTREAM_SYNC_LOG="${LOG_DIR}/local-genesis-to-observer-sync.log"
 FRONTEND_OBSERVER_LOG="${LOG_DIR}/frontend-observer-5173.log"
 FRONTEND_GENESIS_LOG="${LOG_DIR}/frontend-genesis-5174.log"
 
-pkill -f "vite --host 127.0.0.1 --port ${OBSERVER_FRONTEND_PORT}" >/dev/null 2>&1 || true
-pkill -f "vite --host 127.0.0.1 --port ${GENESIS_FRONTEND_PORT}" >/dev/null 2>&1 || true
+pkill -f "vite .*--port ${OBSERVER_FRONTEND_PORT}" >/dev/null 2>&1 || true
+pkill -f "vite .*--port ${GENESIS_FRONTEND_PORT}" >/dev/null 2>&1 || true
 
 if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
   echo "==> Booting genesis backend ${NODE1_API}"
@@ -419,6 +509,11 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE=1
     export WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN=1
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
+    export WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN="${SYNC_TOKEN}"
+    export WEALL_WEBRTC_SIGNAL_BRIDGE_AUTODRAIN=1
+    export WEALL_WEBRTC_SIGNAL_PEER_URLS="${NODE2_API}"
+    export WEALL_WEBRTC_SIGNAL_PEERS_JSON='[{"node_id":"@local-observer","url":"'"${NODE2_API}"'","chain_id":"weall-controlled-devnet","bridge_token":"'"${SYNC_TOKEN}"'"}]'
+    export WEALL_WEBRTC_STUN_URLS="${WEALL_WEBRTC_STUN_URLS:-}"
     export WEALL_STATE_RAW_READ_TOKEN="${SYNC_TOKEN}"
     export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE=1
     export WEALL_STATE_SYNC_APPLY_REQUIRE_OPERATOR_TOKEN=1
@@ -433,6 +528,19 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
     # weakening production defaults; the route still enforces its own explicit
     # PoH video cap.
     export WEALL_POH_ASYNC_VIDEO_MAX_BYTES="${WEALL_POH_ASYNC_VIDEO_MAX_BYTES:-104857600}"
+    export WEALL_POH_ASYNC_N_JURORS="${WEALL_POH_ASYNC_N_JURORS:-1}"
+    export WEALL_POH_ASYNC_MIN_REVIEWS="${WEALL_POH_ASYNC_MIN_REVIEWS:-1}"
+    export WEALL_POH_ASYNC_APPROVAL_THRESHOLD="${WEALL_POH_ASYNC_APPROVAL_THRESHOLD:-1}"
+    export WEALL_POH_ASYNC_REJECTION_THRESHOLD="${WEALL_POH_ASYNC_REJECTION_THRESHOLD:-1}"
+    export WEALL_POH_ASYNC_MIN_REP_MILLI="${WEALL_POH_ASYNC_MIN_REP_MILLI:-0}"
+    # Local one-reviewer live verification quorum.  This keeps the controlled
+    # two-frontend rehearsal usable before a real reviewer pool exists while
+    # preserving production defaults unless these env vars are explicitly set.
+    export WEALL_POH_LIVE_MIN_REP_MILLI="${WEALL_POH_LIVE_MIN_REP_MILLI:-0}"
+    export WEALL_POH_LIVE_PASS_THRESHOLD_NUM="${WEALL_POH_LIVE_PASS_THRESHOLD_NUM:-1}"
+    export WEALL_POH_LIVE_PASS_THRESHOLD_DEN="${WEALL_POH_LIVE_PASS_THRESHOLD_DEN:-1}"
+    export WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"
+    export WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT="${WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT:-500}"
     export WEALL_IPFS_API_BASE="${IPFS_API_BASE}"
     export WEALL_IPFS_GATEWAY_BASE="${IPFS_GATEWAY_BASE}"
     exec bash scripts/devnet_boot_genesis_node.sh
@@ -472,6 +580,12 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
+    export WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN="${SYNC_TOKEN}"
+    export WEALL_WEBRTC_SIGNAL_BRIDGE_AUTODRAIN=1
+    export WEALL_WEBRTC_SIGNAL_PEER_URLS="${NODE1_API}"
+    # pinned peer marker: "node_id":"${GENESIS_ACCOUNT}"
+    export WEALL_WEBRTC_SIGNAL_PEERS_JSON='[{"node_id":"'"${GENESIS_ACCOUNT}"'","url":"'"${NODE1_API}"'","chain_id":"weall-controlled-devnet","bridge_token":"'"${SYNC_TOKEN}"'"}]'
+    export WEALL_WEBRTC_STUN_URLS="${WEALL_WEBRTC_STUN_URLS:-}"
     export WEALL_STATE_RAW_READ_TOKEN="${SYNC_TOKEN}"
     export WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE=1
     export WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN=1
@@ -487,9 +601,22 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     # backend. Use an explicit local rehearsal cap large enough for a 60-120
     # second browser recording while preserving fail-closed production defaults.
     export WEALL_POH_ASYNC_VIDEO_MAX_BYTES="${WEALL_POH_ASYNC_VIDEO_MAX_BYTES:-104857600}"
+    export WEALL_POH_ASYNC_N_JURORS="${WEALL_POH_ASYNC_N_JURORS:-1}"
+    export WEALL_POH_ASYNC_MIN_REVIEWS="${WEALL_POH_ASYNC_MIN_REVIEWS:-1}"
+    export WEALL_POH_ASYNC_APPROVAL_THRESHOLD="${WEALL_POH_ASYNC_APPROVAL_THRESHOLD:-1}"
+    export WEALL_POH_ASYNC_REJECTION_THRESHOLD="${WEALL_POH_ASYNC_REJECTION_THRESHOLD:-1}"
+    export WEALL_POH_ASYNC_MIN_REP_MILLI="${WEALL_POH_ASYNC_MIN_REP_MILLI:-0}"
+    # Local one-reviewer live verification quorum.  This keeps the controlled
+    # two-frontend rehearsal usable before a real reviewer pool exists while
+    # preserving production defaults unless these env vars are explicitly set.
+    export WEALL_POH_LIVE_MIN_REP_MILLI="${WEALL_POH_LIVE_MIN_REP_MILLI:-0}"
+    export WEALL_POH_LIVE_PASS_THRESHOLD_NUM="${WEALL_POH_LIVE_PASS_THRESHOLD_NUM:-1}"
+    export WEALL_POH_LIVE_PASS_THRESHOLD_DEN="${WEALL_POH_LIVE_PASS_THRESHOLD_DEN:-1}"
+    export WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"
+    export WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT="${WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT:-500}"
     export WEALL_IPFS_API_BASE="${IPFS_API_BASE}"
     export WEALL_IPFS_GATEWAY_BASE="${IPFS_GATEWAY_BASE}"
-    export WEALL_CORS_ORIGINS="http://127.0.0.1:${OBSERVER_FRONTEND_PORT},http://localhost:${OBSERVER_FRONTEND_PORT},http://127.0.0.1:${GENESIS_FRONTEND_PORT},http://localhost:${GENESIS_FRONTEND_PORT}"
+    export WEALL_CORS_ORIGINS="http://${FRONTEND_PUBLIC_HOST}:${OBSERVER_FRONTEND_PORT},http://localhost:${OBSERVER_FRONTEND_PORT},http://${FRONTEND_PUBLIC_HOST}:${GENESIS_FRONTEND_PORT},http://localhost:${GENESIS_FRONTEND_PORT}"
     exec bash scripts/devnet_boot_joining_node.sh
   ) >"${OBSERVER_LOG}" 2>&1 &
   NODE2_PID="$!"
@@ -554,7 +681,13 @@ _write_secret_and_manifest "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" "${OBSERV
 # see the account's active key.
 _wait_account_nonce "${NODE1_API}" "${OBSERVER_ACCOUNT}" 1 75
 if [[ -n "${OBSERVER_REGISTER_TX_ID}" ]]; then
-  _wait_tx_local_state_synced "${NODE2_API}" "${OBSERVER_REGISTER_TX_ID}" 90
+  if ! _wait_tx_local_state_synced "${NODE2_API}" "${OBSERVER_REGISTER_TX_ID}" 90; then
+    echo "==> Observer account-registration tx status has not proven upstream confirmation yet."
+    echo "==> Falling back only for this setup account to state proof on both nodes."
+    echo "==> Live/async verification txs still require confirmed-and-synced tx/case visibility."
+    _wait_account_nonce "${NODE1_API}" "${OBSERVER_ACCOUNT}" 1 30
+    _wait_account_nonce "${NODE2_API}" "${OBSERVER_ACCOUNT}" 1 30
+  fi
 fi
 _wait_account_nonce "${NODE2_API}" "${OBSERVER_ACCOUNT}" 1 75
 
@@ -570,44 +703,59 @@ fi
 
 rm -rf "${WEB_ROOT}/node_modules/.vite" "${WEB_ROOT}/dist"
 
-echo "==> Starting observer frontend on http://127.0.0.1:${OBSERVER_FRONTEND_PORT}"
+echo "==> Starting observer frontend on http://${FRONTEND_PUBLIC_HOST}:${OBSERVER_FRONTEND_PORT}"
 (
   cd "${WEB_ROOT}"
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE2_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
   export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-observer.json"
-  exec npm run dev -- --host 127.0.0.1 --port "${OBSERVER_FRONTEND_PORT}" --force
+  export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
+  export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
+  export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"
+  exec npm run dev -- --host "${FRONTEND_BIND_HOST}" --port "${OBSERVER_FRONTEND_PORT}" --strictPort --force
 ) >"${FRONTEND_OBSERVER_LOG}" 2>&1 &
 FRONTEND_OBSERVER_PID="$!"
 
-echo "==> Starting genesis frontend on http://127.0.0.1:${GENESIS_FRONTEND_PORT}"
+echo "==> Starting genesis frontend on http://${FRONTEND_PUBLIC_HOST}:${GENESIS_FRONTEND_PORT}"
 (
   cd "${WEB_ROOT}"
   export VITE_WEALL_API_BASE="/"
   export VITE_WEALL_DEV_PROXY_TARGET="${NODE1_API}"
   export VITE_WEALL_ENABLE_DEV_BOOTSTRAP=1
   export VITE_WEALL_DEV_BOOTSTRAP_MANIFEST="/dev-bootstrap-genesis.json"
-  exec npm run dev -- --host 127.0.0.1 --port "${GENESIS_FRONTEND_PORT}" --force
+  export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"
+  export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"
+  export VITE_WEALL_LIVE_ROOM_EMBED="${LIVE_ROOM_EMBED}"
+  exec npm run dev -- --host "${FRONTEND_BIND_HOST}" --port "${GENESIS_FRONTEND_PORT}" --strictPort --force
 ) >"${FRONTEND_GENESIS_LOG}" 2>&1 &
 FRONTEND_GENESIS_PID="$!"
 
-_wait_http "http://127.0.0.1:${OBSERVER_FRONTEND_PORT}/v1/status" 90 "${FRONTEND_OBSERVER_LOG}"
-_wait_http "http://127.0.0.1:${GENESIS_FRONTEND_PORT}/v1/status" 90 "${FRONTEND_GENESIS_LOG}"
+# Readiness must prove both the frontend shell and proxied backend route.
+# A proxied /v1/status alone can pass while the browser still cannot load the app.
+_wait_frontend_root "http://${FRONTEND_PUBLIC_HOST}:${OBSERVER_FRONTEND_PORT}" 90 "${FRONTEND_OBSERVER_LOG}"
+_wait_frontend_root "http://${FRONTEND_PUBLIC_HOST}:${GENESIS_FRONTEND_PORT}" 90 "${FRONTEND_GENESIS_LOG}"
+_wait_http "http://${FRONTEND_PUBLIC_HOST}:${OBSERVER_FRONTEND_PORT}/v1/status" 90 "${FRONTEND_OBSERVER_LOG}"
+_wait_http "http://${FRONTEND_PUBLIC_HOST}:${GENESIS_FRONTEND_PORT}/v1/status" 90 "${FRONTEND_GENESIS_LOG}"
 
 cat <<EOF3
 
 ==> Local two-frontend rehearsal ready
-observer_ui=http://127.0.0.1:${OBSERVER_FRONTEND_PORT}/#/verification
+frontend_bind_host=${FRONTEND_BIND_HOST}
+observer_ui=http://${FRONTEND_PUBLIC_HOST}:${OBSERVER_FRONTEND_PORT}/#/verification
 observer_account=${OBSERVER_ACCOUNT}
 observer_backend=${NODE2_API}
-genesis_ui=http://127.0.0.1:${GENESIS_FRONTEND_PORT}/#/reviews
+genesis_ui=http://${FRONTEND_PUBLIC_HOST}:${GENESIS_FRONTEND_PORT}/#/reviews
 genesis_account=${GENESIS_ACCOUNT}
 genesis_backend=${NODE1_API}
 reconcile_worker_log=${RECONCILE_LOG}
 downstream_sync_log=${DOWNSTREAM_SYNC_LOG}
 ipfs_api=${IPFS_API_BASE}
 ipfs_gateway=${IPFS_GATEWAY_BASE}
+live_room_transport=${LIVE_ROOM_TRANSPORT_MODE}
+live_room_base_url=${LIVE_ROOM_BASE_URL}
+webrtc_signal_bridge=enabled
+live_room_embed=${LIVE_ROOM_EMBED}
 
 Use the observer UI for evidence submission and the genesis UI for review.
 No manual recovery-file import or localStorage session injection should be needed.

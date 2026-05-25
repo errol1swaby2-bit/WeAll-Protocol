@@ -367,6 +367,7 @@ async def _lifespan(app: FastAPI):
     net_loop = None
     net = None
     observer_outbox_loop = None
+    webrtc_signal_bridge_loop = None
     prod_mode = (os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
 
     if executor is not None:
@@ -421,20 +422,33 @@ async def _lifespan(app: FastAPI):
         except Exception:
             observer_outbox_loop = None
 
+        try:
+            from weall.api.routes_public_parts.poh import start_webrtc_signal_bridge_autodrain
+
+            webrtc_signal_bridge_loop = start_webrtc_signal_bridge_autodrain()
+            app.state.webrtc_signal_bridge_loop = webrtc_signal_bridge_loop
+        except Exception:
+            webrtc_signal_bridge_loop = None
+
     try:
         yield
     finally:
         try:
-            from weall.api.routes_public_parts.tx import stop_observer_outbox_autodrain
+            from weall.api.routes_public_parts.poh import stop_webrtc_signal_bridge_autodrain
 
-            stop_observer_outbox_autodrain(observer_outbox_loop)
+            stop_webrtc_signal_bridge_autodrain(webrtc_signal_bridge_loop)
         finally:
             try:
-                if net_loop is not None:
-                    _stop_net_loop(net_loop)
+                from weall.api.routes_public_parts.tx import stop_observer_outbox_autodrain
+
+                stop_observer_outbox_autodrain(observer_outbox_loop)
             finally:
-                if block_loop is not None:
-                    _stop_block_loop(block_loop)
+                try:
+                    if net_loop is not None:
+                        _stop_net_loop(net_loop)
+                finally:
+                    if block_loop is not None:
+                        _stop_block_loop(block_loop)
 
 
 def create_app(*, boot_runtime: bool) -> FastAPI:

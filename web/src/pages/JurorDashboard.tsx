@@ -14,7 +14,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { refreshMutationSlices } from "../lib/revalidation";
-import { liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -251,6 +251,14 @@ export default function JurorDashboard(): JSX.Element {
     return null;
   }
 
+  function joinLiveRoom(caseId: string): void {
+    if (!caseId) return;
+    // Reviewers stay in the PoH verification feed until they intentionally
+    // accept the call. Accepting records the chain action, then transports the
+    // reviewer directly into the WebRTC verification room.
+    nav(`/verification/live/${encodeURIComponent(caseId)}`);
+  }
+
   async function refreshJurorSurface(): Promise<void> {
     await refreshMutationSlices(loadQueues, refreshAccountContext);
   }
@@ -324,7 +332,8 @@ export default function JurorDashboard(): JSX.Element {
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept live verification case", "Live verification case accepted.");
+    await submitSkeletonTx(skel, "Accept live verification call", "Live verification call accepted. Opening the WebRTC room…");
+    joinLiveRoom(caseId);
   }
 
   async function liveDecline(caseId: string): Promise<void> {
@@ -597,8 +606,8 @@ export default function JurorDashboard(): JSX.Element {
                         <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
                           Load details
                         </button>
-                        <button className="btn" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Accept"}
+                        <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                          {signerSubmission.busy ? "Waiting…" : "Accept review and join call"}
                         </button>
                         <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Decline"}
@@ -632,20 +641,30 @@ export default function JurorDashboard(): JSX.Element {
                           status: {String(sessionRec?.status || "unknown")} • created: {fmtTs(sessionRec?.created_ts_ms)}
                         </div>
                         {(() => {
-                          const joinUrl = String(sessionRec?.join_url || "").trim() || liveRoomUrlFromCommitment(sessionRec?.room_commitment || c?.room_commitment);
+                          const roomCommitment = sessionRec?.room_commitment || c?.room_commitment;
+                          const joinUrl = String(sessionRec?.join_url || "").trim() || liveRoomUrlFromCommitment(roomCommitment);
+                          const p2pDescriptor = liveRoomDescriptorText(roomCommitment);
                           return (
-                            <div className="buttonRow" style={{ marginTop: 10 }}>
-                              <button className="btn btnPrimary" onClick={() => nav(`/verification/live/${encodeURIComponent(caseId)}`)} disabled={!caseId}>
-                                Open live room
-                              </button>
-                              {joinUrl ? (
-                                <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
-                                  Open video transport
-                                </a>
-                              ) : (
-                                <span className="miniMuted">Set VITE_WEALL_LIVE_ROOM_BASE_URL to enable a self-hosted room link.</span>
-                              )}
-                            </div>
+                            <>
+                              <div className="buttonRow" style={{ marginTop: 10 }}>
+                                <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={!caseId}>
+                                  Open WebRTC room
+                                </button>
+                                {joinUrl ? (
+                                  <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
+                                    Open compatibility transport
+                                  </a>
+                                ) : (
+                                  <span className="miniMuted">Decentralized P2P room descriptor ready; no centralized room URL is required.</span>
+                                )}
+                              </div>
+                              {p2pDescriptor ? (
+                                <details className="advancedDetails">
+                                  <summary>P2P room descriptor</summary>
+                                  <pre className="jsonBlock">{p2pDescriptor}</pre>
+                                </details>
+                              ) : null}
+                            </>
                           );
                         })()}
                         <div className="feedMediaMeta">{liveRoomTransportNotice()}</div>

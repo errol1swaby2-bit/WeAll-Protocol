@@ -73,9 +73,13 @@ def test_async_evidence_declare_stores_reviewable_video_reference_without_granti
 
     case = st["poh"]["async_cases"]["case:@alice:1"]
     rec = case["evidence_commitments"]["evidence:video:1"]
-    assert rec["evidence_cid"] == "bafyvideo"
-    assert rec["mime"] == "video/webm"
     assert rec["kind"] == "fresh_recorded_video_v1"
-    assert "ipfs://bafyvideo" in case["public_evidence_ids"]
-    assert case["reviewable_evidence"]["evidence:video:1"]["evidence_cid"] == "bafyvideo"
+    assert "evidence_cid" not in rec
+    assert "mime" not in rec
+    assert case["public_evidence_ids"] == []
+    assert case["reviewable_evidence"] == {}
+    private = case["reviewer_private_evidence"]["evidence:video:1"]
+    assert private["evidence_cid"] == "bafyvideo"
+    assert private["mime"] == "video/webm"
+    assert private["uri"] == "ipfs://bafyvideo"
     assert st["accounts"]["@alice"]["poh_tier"] == 0

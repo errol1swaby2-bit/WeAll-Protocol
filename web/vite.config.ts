@@ -10,13 +10,13 @@ const DEV_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
   "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
-  "connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-src 'self';";
+  "connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-src 'self' http://127.0.0.1:* http://localhost:*;";
 
 const PREVIEW_CSP =
   "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; " +
   "script-src 'self'; " +
   "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; media-src 'self' blob: http: https:; " +
-  "connect-src 'self' http: https: ws: wss:; frame-src 'self';";
+  "connect-src 'self' http: https: ws: wss:; frame-src 'self' http://127.0.0.1:* http://localhost:*;";
 
 function safeReadPackageVersion(): string {
   try {

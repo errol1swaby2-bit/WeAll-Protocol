@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { getApiBaseUrl, weall } from "../api/weall";
-import { liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { liveRoomDescriptorText, liveRoomEmbedEnabled, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { createWeAllPeerConnection, getWeAllLocalMedia, normalizeWeAllIceServers, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
 import { nav } from "../lib/router";
 
 type LiveJuror = {
@@ -131,8 +132,32 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const [notice, setNotice] = useState<string>("");
   const [cameraEnabled, setCameraEnabled] = useState<boolean>(true);
   const [micEnabled, setMicEnabled] = useState<boolean>(true);
-  const [showEmbeddedRoom, setShowEmbeddedRoom] = useState<boolean>(false);
+  const [showEmbeddedRoom, setShowEmbeddedRoom] = useState<boolean>(liveRoomEmbedEnabled());
   const [operatorToken, setOperatorToken] = useState<string>("");
+  const [p2pRunning, setP2pRunning] = useState<boolean>(false);
+  const [p2pStatus, setP2pStatus] = useState<string>("idle");
+  const [p2pError, setP2pError] = useState<string>("");
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+  const [iceServers, setIceServers] = useState<RTCIceServer[]>([]);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const signalSeqRef = useRef<number>(0);
+
+  async function loadRelayConfig(): Promise<void> {
+    try {
+      const res = await weall.pohLiveWebRTCRelayConfig(apiBase, headers);
+      setIceServers(normalizeWeAllIceServers(res?.ice_servers));
+    } catch {
+      setIceServers([]);
+    }
+  }
+
+  useEffect(() => {
+    void loadRelayConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBase, account]);
 
   const sessionForCase = useMemo(() => {
     return sessions.find((item) => String(item.case_id || "") === String(caseId)) || null;
@@ -140,6 +165,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
 
   const sessionId = String(sessionForCase?.session_id || (caseId ? `session:${caseId}` : "")).trim();
   const roomUrl = String(sessionForCase?.join_url || liveRoomUrlFromCommitment(liveCase?.room_commitment || sessionForCase?.room_commitment)).trim();
+  const p2pRoomDescriptor = liveRoomDescriptorText(liveCase?.room_commitment || sessionForCase?.room_commitment);
   const jurors = Array.isArray(liveCase?.jurors) ? liveCase.jurors : [];
   const myJuror = jurors.find((j) => normalizeAccount(j.juror_id) === account) || null;
   const isSubject = !!account && normalizeAccount(liveCase?.account_id) === account;
@@ -149,6 +175,20 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const canCheckIn = !!myJuror && myJuror.accepted === true && myJuror.attended !== true && !isFinal;
   const canVote = !!myJuror && myJuror.accepted === true && myJuror.attended === true && String(myJuror.role || "") === "interacting" && !myJuror.verdict && !isFinal;
   const canPresenceCheckIn = !!account && (isSubject || !!myJuror) && !!sessionId;
+  const p2pParticipantAccounts = useMemo(() => {
+    const out = new Set<string>();
+    const subject = normalizeAccount(liveCase?.account_id);
+    if (subject) out.add(subject);
+    jurors.forEach((j) => {
+      const jid = normalizeAccount(j.juror_id);
+      if (jid) out.add(jid);
+    });
+    return Array.from(out).sort();
+  }, [liveCase?.account_id, jurors]);
+  const p2pRemoteAccounts = useMemo(() => {
+    return p2pParticipantAccounts.filter((item) => normalizeAccount(item) && normalizeAccount(item) !== account);
+  }, [p2pParticipantAccounts, account]);
+  const remoteStreamEntries = useMemo(() => Object.entries(remoteStreams), [remoteStreams]);
 
   async function load(): Promise<void> {
     if (!caseId) return;
@@ -193,13 +233,26 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [sessionId, apiBase]);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (!p2pRunning || !sessionId) return undefined;
     const id = window.setInterval(() => {
-      void load();
-      void loadRoomSidecars(sessionId);
-    }, 12_000);
+      void pollWebRTCSignals();
+    }, 2500);
     return () => window.clearInterval(id);
-  }, [sessionId, caseId, apiBase]);
+  }, [p2pRunning, sessionId, apiBase, account]);
+
+  useEffect(() => {
+    return () => {
+      stopWeAllMediaStream(localStreamRef.current);
+      peerConnectionsRef.current.forEach((pc) => pc.close());
+      peerConnectionsRef.current.clear();
+    };
+  }, []);
 
   async function updatePresence(status: "joined" | "left" | "reconnect" | "heartbeat"): Promise<void> {
     if (!account || !sessionId) return;
@@ -213,6 +266,143 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     };
     await weall.pohLiveSessionPresenceUpdate(sessionId, payload, apiBase, headers);
     await loadRoomSidecars(sessionId);
+  }
+
+  async function sendWebRTCSignal(payload: Partial<WeAllWebRTCSignal> & { type: WeAllWebRTCSignal["type"] }): Promise<void> {
+    if (!account || !sessionId) return;
+    await weall.pohLiveWebRTCSignalSend(
+      sessionId,
+      {
+        account_id: account,
+        type: payload.type,
+        to_account: payload.to_account || undefined,
+        sdp: payload.sdp || undefined,
+        candidate: payload.candidate || undefined,
+        ts_ms: Date.now(),
+      },
+      apiBase,
+      headers,
+    );
+  }
+
+  async function ensureLocalP2PMedia(): Promise<MediaStream> {
+    if (localStreamRef.current) return localStreamRef.current;
+    const stream = await getWeAllLocalMedia({ camera: cameraEnabled, mic: micEnabled });
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    return stream;
+  }
+
+  function rememberRemoteStream(peer: string, stream: MediaStream): void {
+    setRemoteStreams((prev) => ({ ...prev, [peer]: stream }));
+  }
+
+  function getOrCreatePeerConnection(peer: string): RTCPeerConnection {
+    const remote = normalizeAccount(peer);
+    const existing = peerConnectionsRef.current.get(remote);
+    if (existing) return existing;
+    const pc = createWeAllPeerConnection({
+      onIceCandidate: (candidate) => sendWebRTCSignal({ type: "ice", to_account: remote, candidate }),
+      onRemoteStream: (stream) => rememberRemoteStream(remote, stream),
+      onStateChange: (state) => setP2pStatus(`peer ${remote}: ${state}`),
+    }, iceServers);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current as MediaStream));
+    }
+    peerConnectionsRef.current.set(remote, pc);
+    return pc;
+  }
+
+  async function createOfferForPeer(peer: string): Promise<void> {
+    const remote = normalizeAccount(peer);
+    if (!remote || remote === account) return;
+    await ensureLocalP2PMedia();
+    const pc = getOrCreatePeerConnection(remote);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await sendWebRTCSignal({ type: "offer", to_account: remote, sdp: offer.sdp || "" });
+  }
+
+  async function handleWebRTCSignal(signal: WeAllWebRTCSignal): Promise<void> {
+    const from = normalizeAccount(signal.from_account);
+    if (!from || from === account) return;
+    await ensureLocalP2PMedia();
+    const pc = getOrCreatePeerConnection(from);
+    if (signal.type === "hello") {
+      if (account && shouldCreateOffer(account, from)) await createOfferForPeer(from);
+      return;
+    }
+    if (signal.type === "offer" && signal.sdp) {
+      await pc.setRemoteDescription({ type: "offer", sdp: signal.sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await sendWebRTCSignal({ type: "answer", to_account: from, sdp: answer.sdp || "" });
+      return;
+    }
+    if (signal.type === "answer" && signal.sdp) {
+      if (pc.signalingState !== "stable") {
+        await pc.setRemoteDescription({ type: "answer", sdp: signal.sdp });
+      }
+      return;
+    }
+    if (signal.type === "ice" && signal.candidate) {
+      await pc.addIceCandidate(signal.candidate);
+      return;
+    }
+    if (signal.type === "leave") {
+      pc.close();
+      peerConnectionsRef.current.delete(from);
+      setRemoteStreams((prev) => {
+        const next = { ...prev };
+        delete next[from];
+        return next;
+      });
+    }
+  }
+
+  async function pollWebRTCSignals(): Promise<void> {
+    if (!sessionId || !account) return;
+    const res = await weall.pohLiveWebRTCSignals(sessionId, signalSeqRef.current, apiBase, headers);
+    const signals = Array.isArray(res?.signals) ? res.signals as WeAllWebRTCSignal[] : [];
+    const nextSeq = Number(res?.next_seq || signalSeqRef.current);
+    for (const signal of signals) {
+      await handleWebRTCSignal(signal);
+    }
+    if (Number.isFinite(nextSeq)) signalSeqRef.current = Math.max(signalSeqRef.current, nextSeq);
+  }
+
+  async function startP2PRoom(): Promise<void> {
+    await runAction("Starting decentralized P2P room…", async () => {
+      if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the P2P room.");
+      setP2pError("");
+      await ensureLocalP2PMedia();
+      await updatePresence("joined");
+      setP2pRunning(true);
+      setP2pStatus("p2p signaling active");
+      await sendWebRTCSignal({ type: "hello" });
+      for (const peer of p2pRemoteAccounts) {
+        if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer);
+      }
+      await pollWebRTCSignals();
+    }).catch((e) => {
+      setP2pError(prettyError(e));
+      throw e;
+    });
+  }
+
+  async function stopP2PRoom(): Promise<void> {
+    await runAction("Stopping P2P room…", async () => {
+      await sendWebRTCSignal({ type: "leave" });
+      peerConnectionsRef.current.forEach((pc) => pc.close());
+      peerConnectionsRef.current.clear();
+      stopWeAllMediaStream(localStreamRef.current);
+      localStreamRef.current = null;
+      setLocalStream(null);
+      setRemoteStreams({});
+      setP2pRunning(false);
+      setP2pStatus("stopped");
+      await updatePresence("left");
+    });
   }
 
   async function submitSkeletonTx(skeleton: any, success: string): Promise<void> {
@@ -255,6 +445,11 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function checkIntoRoom(): Promise<void> {
+    const shouldEmbed = liveRoomEmbedEnabled();
+    const externalRoomUrl = roomUrl && !shouldEmbed ? roomUrl : "";
+    if (externalRoomUrl) {
+      window.open(externalRoomUrl, "_blank", "noopener,noreferrer");
+    }
     await runAction("Checking into live room…", async () => {
       await updatePresence("joined");
       if (myJuror) {
@@ -263,7 +458,11 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       } else {
         setNotice("Live room presence updated. Verification authority still requires signed juror attendance and verdicts.");
       }
-      setShowEmbeddedRoom(true);
+      if (shouldEmbed) {
+        setShowEmbeddedRoom(true);
+      } else if (roomUrl) {
+        setNotice("Live room opened in a separate tab. Keep this page open for chain-recorded attendance and reviewer votes.");
+      }
     });
   }
 
@@ -321,27 +520,92 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               </div>
               {roomUrl ? <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">Open room</a> : null}
             </div>
-            {roomUrl && showEmbeddedRoom ? (
+            {roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
               <iframe
                 className="liveRoomFrame"
                 src={roomUrl}
                 title="WeAll Live Verification Room"
                 allow="camera; microphone; fullscreen; display-capture"
               />
-            ) : (
+            ) : roomUrl ? (
               <div className="videoPlaceholder">
-                <strong>{roomUrl ? "Room ready" : "Self-hosted room URL not configured"}</strong>
-                <p>{roomUrl ? "Check in to embed the room here, or open it in a separate tab." : "Set VITE_WEALL_LIVE_ROOM_BASE_URL to use an embedded self-hosted video transport such as Jitsi or LiveKit."}</p>
+                <strong>Compatibility room link ready</strong>
+                <p>Open the compatibility transport in a separate tab. This page records attendance, verdicts, and finalization on-chain.</p>
+              </div>
+            ) : (
+              <div className="p2pRoomPanel">
+                <div className="videoPlaceholder">
+                  <strong>Decentralized P2P WebRTC room</strong>
+                  <p>Browser media runs peer-to-peer using case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
+                  <small>Status: {p2pStatus}</small>
+                  <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
+                  {p2pError ? <small className="errorText">{p2pError}</small> : null}
+                </div>
+                <div className="p2pVideoGrid">
+                  <div className="p2pVideoTile">
+                    <video ref={localVideoRef} autoPlay playsInline muted />
+                    <span>{account || "Local participant"}</span>
+                  </div>
+                  {remoteStreamEntries.map(([peer, stream]) => (
+                    <div className="p2pVideoTile" key={peer}>
+                      <video
+                        autoPlay
+                        playsInline
+                        ref={(node) => {
+                          if (node && node.srcObject !== stream) node.srcObject = stream;
+                        }}
+                      />
+                      <span>{peer}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+            {p2pRoomDescriptor ? (
+              <details className="advancedDetails" open={!roomUrl}>
+
+            <p className="text-sm text-slate-600">Use the decentralized P2P room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
+                <summary>Decentralized P2P room descriptor</summary>
+                <pre className="jsonBlock">{p2pRoomDescriptor}</pre>
+              </details>
+            ) : null}
             <div className="toggleRow">
               <label><input type="checkbox" checked={cameraEnabled} onChange={(e) => setCameraEnabled(e.currentTarget.checked)} /> Camera on</label>
               <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
             </div>
             <div className="buttonRow">
               <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in</button>
+              <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
+              <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
+              <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>
               <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
               <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
+            </div>
+            <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
+              <div className="eyebrow">In-call chain voting</div>
+              <h3 className="cardTitle">Reviewer vote inside the WebRTC room</h3>
+              {!myJuror ? (
+                <p className="cardDesc">Voting controls appear here for assigned reviewers. The video room remains transport only.</p>
+              ) : (
+                <>
+                  <p className="cardDesc">Use these controls without leaving the WebRTC page. Accept the assignment, record attendance, then cast the live verification vote.</p>
+                  <div className="statusGrid">
+                    <div className="statusCard"><span>Your assignment</span><strong>{myJuror.accepted ? "Accepted" : "Pending"}</strong></div>
+                    <div className="statusCard"><span>Your attendance</span><strong>{myJuror.attended ? "Recorded" : "Needed"}</strong></div>
+                    <div className="statusCard"><span>Your vote</span><strong>{myJuror.verdict ? statusLabel(myJuror.verdict) : "Not cast"}</strong></div>
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={acceptCase}>Accept review</button>
+                    <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
+                    <button className="btn btnPrimary" disabled={!canCheckIn || !!busy} onClick={checkIntoRoom}>Record attendance</button>
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn btnPrimary" disabled={!canVote || !!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
+                    <button className="btn" disabled={!canVote || !!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                  </div>
+                  {!canVote && !isFinal ? <p className="helpText">Voting unlocks only for an assigned interacting reviewer after review acceptance and on-chain attendance.</p> : null}
+                </>
+              )}
             </div>
           </div>
         </article>

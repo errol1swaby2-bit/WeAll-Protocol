@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
+from weall.api.security import require_account_session
 
 router = APIRouter()
 
@@ -30,6 +31,59 @@ def _as_dict(value: Any) -> dict[str, Any]:
 
 
 
+
+
+def _identity_variants(value: Any) -> list[str]:
+    raw = str(value or "").strip()
+    if not raw:
+        return []
+    base = raw[1:] if raw.startswith("@") else raw
+    out: list[str] = []
+    for candidate in (raw, base, f"@{base}" if base else ""):
+        c = str(candidate or "").strip()
+        if c and c not in out:
+            out.append(c)
+    return out
+
+
+def _viewer_from_request(request: Request, st: dict[str, Any]) -> str:
+    try:
+        return str(require_account_session(request, st) or "").strip()
+    except Exception:
+        return ""
+
+
+def _viewer_juror_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
+    if not viewer:
+        return {}
+    variants = _identity_variants(viewer)
+    jurors = _as_dict(obj.get("jurors"))
+    for variant in variants:
+        rec = jurors.get(variant)
+        if isinstance(rec, dict):
+            out = dict(rec)
+            out.setdefault("account", variant)
+            out.setdefault("juror", variant)
+            return out
+
+    assigned = obj.get("assigned_jurors")
+    if isinstance(assigned, list):
+        for candidate in assigned:
+            c = str(candidate or "").strip()
+            if c and any(c == v for v in variants):
+                return {"account": c, "juror": c, "status": "assigned"}
+
+    # Older/system-escalated report states may expose the reviewer only through
+    # eligible_juror_ids until the queued assignment receipt is replayed. Keep
+    # global juror maps redacted, but let the logged-in reviewer see their own
+    # actionable assignment so accept/vote controls do not remain locked.
+    eligible = obj.get("eligible_juror_ids")
+    if isinstance(eligible, list):
+        for candidate in eligible:
+            c = str(candidate or "").strip()
+            if c and any(c == v for v in variants):
+                return {"account": c, "juror": c, "status": "assigned", "source": "eligible_juror_ids"}
+    return {"account": viewer, "juror": viewer, "status": "unassigned"}
 
 def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
     _cursor_n, cursor_key = _cursor_unpack(cursor)
@@ -101,7 +155,7 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
 
 
 
-def _redact_dispute_detail_maps(obj: dict[str, Any]) -> dict[str, Any]:
+def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "") -> dict[str, Any]:
     """Return dispute detail/list shape without unbounded maps/lists."""
 
     normalized = _normalize_dispute(obj)
@@ -117,6 +171,14 @@ def _redact_dispute_detail_maps(obj: dict[str, Any]) -> dict[str, Any]:
     normalized["votes_redacted"] = True
     normalized["evidence_redacted"] = True
     normalized["appeals_redacted"] = True
+    viewer_juror = _viewer_juror_record(obj, viewer)
+    if viewer_juror:
+        # Keep the global juror map redacted, but expose the caller's own
+        # assignment record so the normal review UI can enable accept/vote
+        # controls without leaking other reviewers.
+        normalized["viewer_juror"] = viewer_juror
+        normalized["current_juror"] = viewer_juror
+        normalized["juror_self"] = viewer_juror
     normalized["counts_total"] = {
         "jurors": len(jurors),
         "votes": len(votes),
@@ -147,6 +209,7 @@ def _dispute_obj_from_snapshot(st: dict[str, Any], dispute_id: str) -> dict[str,
 @router.get("/disputes")
 def v1_disputes_list(request: Request):
     st = _snapshot(request)
+    viewer = _viewer_from_request(request, st)
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 50)
     limit = max(1, min(200, limit))
@@ -178,7 +241,7 @@ def v1_disputes_list(request: Request):
             continue
         if active_only and not is_active:
             continue
-        items.append(_redact_dispute_detail_maps(obj))
+        items.append(_redact_dispute_detail_maps(obj, viewer=viewer))
 
     items.sort(
         key=lambda x: (
@@ -197,7 +260,8 @@ def v1_disputes_list(request: Request):
 def v1_dispute_get(dispute_id: str, request: Request):
     st = _snapshot(request)
     obj = _dispute_obj_from_snapshot(st, dispute_id)
-    return {"ok": True, "dispute": _redact_dispute_detail_maps(obj)}
+    viewer = _viewer_from_request(request, st)
+    return {"ok": True, "dispute": _redact_dispute_detail_maps(obj, viewer=viewer)}
 
 
 @router.get("/disputes/{dispute_id}/votes")

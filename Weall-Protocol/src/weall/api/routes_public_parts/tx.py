@@ -990,26 +990,40 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
+    outbound_existing = _outbox_summary_for_tx(t)
     local = _locally_confirmed_tx(request, t)
-    if isinstance(local, dict):
-        _update_tx_outbox_record(
-            t,
-            {
-                "upstream_status": "confirmed",
-                "local_state_synced": True,
-                "confirmed_height": int(local.get("height") or 0),
-                "confirmed_block_id": str(local.get("block_id") or ""),
-                "last_error": "",
-                "last_local_sync_ms": _now_ms(),
-            },
-        )
-        return {"ok": True, "tx_id": t, "local_state_synced": True, "source": "local", "local_confirmation": local}
 
+    if not isinstance(outbound_existing, dict):
+        if isinstance(local, dict):
+            return {"ok": True, "tx_id": t, "local_state_synced": True, "source": "local", "local_confirmation": local}
+        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_outbox"}
+
+    # observer_local_confirmed_not_upstream_synced: an observer may optimistically
+    # apply an outbound tx locally before genesis confirms it. Never convert a
+    # local tx-index hit into upstream confirmation; first prove upstream
+    # confirmation, then apply/verify trusted state sync.
     outbound = _reconcile_outbox_confirmation(t)
     if not isinstance(outbound, dict):
-        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_outbox"}
+        outbound = outbound_existing
     if str(outbound.get("upstream_status") or "") != "confirmed":
-        return {"ok": False, "tx_id": t, "error": "upstream_not_confirmed", "outbound_propagation": outbound}
+        return {
+            "ok": False,
+            "tx_id": t,
+            "error": "upstream_not_confirmed",
+            "local_state_synced": False,
+            "local_confirmation": local or {},
+            "outbound_propagation": outbound,
+        }
+
+    if bool(outbound.get("local_state_synced")):
+        return {
+            "ok": True,
+            "tx_id": t,
+            "local_state_synced": True,
+            "source": "already_synced",
+            "local_confirmation": local or {},
+            "outbound_propagation": outbound,
+        }
 
     target_height = int(outbound.get("confirmed_height") or 0)
     urls = _normalized_tx_upstream_urls()
@@ -1235,6 +1249,37 @@ def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> J
                             "signer": str(receipt.get("signer") or ""),
                             "included_ts_ms": included_ts_ms,
                         }
+
+            # Header tx_ids are consensus-visible committed tx IDs. Some
+            # controlled-devnet paths can momentarily expose committed state
+            # before receipt/tx_index fallback lookup catches up; checking the
+            # block header preserves chain authority without trusting mempool
+            # residency or observer-local state.
+            header_tx_ids = header.get("tx_ids")
+            if isinstance(header_tx_ids, list):
+                committed_ids = [str(item or "").strip() for item in header_tx_ids]
+                if want in committed_ids:
+                    tx_type = ""
+                    signer = ""
+                    txs_for_header = block.get("txs")
+                    if isinstance(txs_for_header, list):
+                        try:
+                            idx = committed_ids.index(want)
+                            env_for_header = txs_for_header[idx] if idx < len(txs_for_header) else {}
+                            if isinstance(env_for_header, dict):
+                                tx_type = str(env_for_header.get("tx_type") or "")
+                                signer = str(env_for_header.get("signer") or "")
+                        except Exception:
+                            tx_type = ""
+                            signer = ""
+                    return {
+                        "tx_id": want,
+                        "height": height,
+                        "block_id": block_id,
+                        "tx_type": tx_type,
+                        "signer": signer,
+                        "included_ts_ms": included_ts_ms,
+                    }
 
             # Fallback path: compute deterministic tx_id from tx envelopes.
             txs = block.get("txs")
@@ -1488,8 +1533,27 @@ def tx_status(request: Request, tx_id: str) -> Json:
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):
         if outbound:
-            _update_tx_outbox_record(t, {"upstream_status": "confirmed", "confirmed_height": int(idx.get("height") or 0), "confirmed_block_id": str(idx.get("block_id") or ""), "local_state_synced": True})
-            outbound = _outbox_summary_for_tx(t)
+            reconciled = _reconcile_outbox_confirmation(t)
+            if isinstance(reconciled, dict):
+                outbound = reconciled
+            local_synced = bool(isinstance(outbound, dict) and outbound.get("local_state_synced") is True)
+            upstream_confirmed = bool(
+                isinstance(outbound, dict)
+                and str(outbound.get("upstream_status") or "") == "confirmed"
+            )
+            return {
+                "ok": True,
+                "tx_id": t,
+                "status": "confirmed" if upstream_confirmed else "local_confirmed",
+                "source": "upstream_synced" if local_synced else "observer_local_confirmed_not_upstream_synced",
+                "height": int(idx.get("height") or 0),
+                "block_id": str(idx.get("block_id") or ""),
+                "included_ts_ms": int(idx.get("included_ts_ms") or 0),
+                "local_state_synced": local_synced,
+                "tx_type": str(idx.get("tx_type") or ""),
+                "signer": str(idx.get("signer") or ""),
+                "outbound_propagation": outbound or {},
+            }
         return {
             "ok": True,
             "tx_id": t,
@@ -1500,6 +1564,25 @@ def tx_status(request: Request, tx_id: str) -> Json:
             "local_state_synced": True,
             "tx_type": str(idx.get("tx_type") or ""),
             "signer": str(idx.get("signer") or ""),
+            "outbound_propagation": {},
+        }
+
+    # Confirmed chain state is authoritative over stale mempool residency; observer reconciliation can prove upstream confirmation.
+    # A tx may remain visible in mempool after block production in controlled
+    # devnet paths; status must still report the committed block so observer
+    # reconciliation can prove upstream confirmation before local sync.
+    blk = _tx_block_lookup(request, t)
+    if isinstance(blk, dict):
+        return {
+            "ok": True,
+            "tx_id": t,
+            "status": "confirmed",
+            "height": int(blk.get("height") or 0),
+            "block_id": str(blk.get("block_id") or ""),
+            "included_ts_ms": int(blk.get("included_ts_ms") or 0),
+            "local_state_synced": True,
+            "tx_type": str(blk.get("tx_type") or ""),
+            "signer": str(blk.get("signer") or ""),
             "outbound_propagation": outbound or {},
         }
 
@@ -1521,21 +1604,6 @@ def tx_status(request: Request, tx_id: str) -> Json:
             return {"ok": True, "tx_id": t, "status": "pending", "outbound_propagation": reconciled or outbound or {}}
     except Exception:
         pass
-
-    blk = _tx_block_lookup(request, t)
-    if isinstance(blk, dict):
-        return {
-            "ok": True,
-            "tx_id": t,
-            "status": "confirmed",
-            "height": int(blk.get("height") or 0),
-            "block_id": str(blk.get("block_id") or ""),
-            "included_ts_ms": int(blk.get("included_ts_ms") or 0),
-            "local_state_synced": True,
-            "tx_type": str(blk.get("tx_type") or ""),
-            "signer": str(blk.get("signer") or ""),
-            "outbound_propagation": outbound or {},
-        }
 
     reconciled = _reconcile_outbox_confirmation(t) if outbound else None
     if isinstance(reconciled, dict) and str(reconciled.get("upstream_status") or "") == "confirmed":

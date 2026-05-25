@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any
 
 from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_validators
@@ -27,8 +28,66 @@ from weall.runtime.poh.state import (
 
 Json = dict[str, Any]
 
+_COMMITMENT_RE = re.compile(
+    r"^(?:[0-9a-f]{64}|sha256:[0-9a-f]{64}|[a-z][a-z0-9_-]{1,32}:[a-z0-9][a-z0-9:._/-]{0,191}|[a-z][a-z0-9_-]{1,63})$"
+)
+
+
+def _require_system_tx(env: Any, tx_type: str) -> None:
+    """Require a scheduler/system-owned tx envelope for PoH lifecycle actions."""
+
+    if not bool(_get_env(env, "system", False)):
+        raise ApplyError("forbidden", "system_only", {"tx_type": str(tx_type or _tx_type(env) or "")})
+
+
+def _validate_commitment_format(
+    value: Any,
+    *,
+    field: str,
+    case_id: str = "",
+    required: bool = False,
+) -> str:
+    """Validate PoH commitment strings without requiring raw evidence on-chain.
+
+    The protocol-preferred production format is a lowercase sha256 hex digest.
+    Legacy/dev test prefixes such as ``commit:...`` and ``session:...`` remain
+    accepted only as bounded commitment labels. Raw URLs, whitespace, data URLs,
+    JSON-like blobs, and unbounded strings fail closed.
+    """
+
+    raw = _as_str(value).strip()
+    if not raw:
+        if required:
+            raise ApplyError("invalid_tx", "bad_commitment_format", {"field": field, "case_id": case_id})
+        return ""
+
+    lowered = raw.lower()
+    if lowered != raw:
+        raise ApplyError("invalid_tx", "bad_commitment_format", {"field": field, "case_id": case_id})
+    if any(ch.isspace() for ch in raw):
+        raise ApplyError("invalid_tx", "bad_commitment_format", {"field": field, "case_id": case_id})
+    if lowered.startswith(("http://", "https://", "ipfs://", "data:", "file:", "blob:")):
+        raise ApplyError("invalid_tx", "bad_commitment_format", {"field": field, "case_id": case_id})
+    if not _COMMITMENT_RE.fullmatch(raw):
+        raise ApplyError("invalid_tx", "bad_commitment_format", {"field": field, "case_id": case_id})
+    return raw
+
+
+def _validate_ipfs_uri(value: Any, *, field: str, case_id: str = "") -> str:
+    raw = _as_str(value).strip()
+    if not raw:
+        return ""
+    if not raw.startswith("ipfs://"):
+        raise ApplyError("invalid_tx", "bad_evidence_uri", {"field": field, "case_id": case_id})
+    cid = raw.removeprefix("ipfs://").split("/", 1)[0].strip()
+    if not cid:
+        raise ApplyError("invalid_tx", "bad_evidence_uri", {"field": field, "case_id": case_id})
+    return raw
+
 
 def _as_str(v: Any) -> str:
+    if v is None:
+        return ""
     try:
         return str(v)
     except Exception:
@@ -198,6 +257,11 @@ def _require_live_request_commitments(payload: Json) -> Json:
             "missing_live_session_commitment",
             {"missing": missing},
         )
+    for field in ("session_commitment", "room_commitment", "prompt_commitment", "device_pairing_commitment"):
+        if commitments.get(field):
+            commitments[field] = _validate_commitment_format(
+                commitments[field], field=field, required=(field in ("session_commitment", "room_commitment", "prompt_commitment"))
+            )
     return commitments
 
 
@@ -219,6 +283,11 @@ def _require_live_case_commitments(case: Json, *, case_id: str) -> Json:
             "live_session_commitment_missing",
             {"case_id": case_id, "missing": missing},
         )
+    for field in ("session_commitment", "room_commitment", "prompt_commitment", "device_pairing_commitment"):
+        if commitments.get(field):
+            commitments[field] = _validate_commitment_format(
+                commitments[field], field=field, case_id=case_id, required=(field in ("session_commitment", "room_commitment", "prompt_commitment"))
+            )
     return commitments
 
 
@@ -1048,7 +1117,12 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
     challenge_commitment = _as_str(p.get("challenge_commitment") or "").strip()
     if not challenge_commitment:
         challenge_commitment = _sha256_hex(f"{_chain_id(state)}|POH_ASYNC_CHALLENGE|{case_id}|{account_id}|{challenge_id}".encode())
-    response_commitment = _as_str(p.get("response_commitment") or "").strip()
+    challenge_commitment = _validate_commitment_format(
+        challenge_commitment, field="challenge_commitment", case_id=case_id, required=True
+    )
+    response_commitment = _validate_commitment_format(
+        p.get("response_commitment"), field="response_commitment", case_id=case_id, required=False
+    )
     expires_height = _as_int(p.get("expires_height") or 0, 0) or height + expiry_window
     if expires_height <= height:
         raise ApplyError("invalid_tx", "invalid_expiry_height", {"case_id": case_id, "expires_height": expires_height})
@@ -1119,6 +1193,12 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     response_commitment = _as_str(p.get("response_commitment") or "").strip()
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
+    evidence_commitment = _validate_commitment_format(
+        evidence_commitment, field="evidence_commitment", case_id=case_id, required=False
+    )
+    response_commitment = _validate_commitment_format(
+        response_commitment, field="response_commitment", case_id=case_id, required=False
+    )
     if not evidence_commitment and not response_commitment:
         raise ApplyError("invalid_tx", "missing_evidence_commitment", {"case_id": case_id})
     case = _get_async_case(state, case_id)
@@ -1144,21 +1224,23 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
         "declared_height": int(state.get("height") or 0),
     }
 
-    # Reviewable async evidence may intentionally expose a public/content-addressed
-    # reference to the recorded verification video.  These fields are safe review
-    # metadata only: they do not grant PoH and do not replace juror review,
-    # verdicts, or finalization.  Raw private notes/biometrics remain rejected by
-    # _reject_native_async_private_fields().
-    for key in (
-        "public_evidence_id",
-        "evidence_cid",
-        "uri",
-        "mime",
-        "name",
-        "filename",
-        "size",
-        "video_commitment",
-    ):
+    commitments[evidence_id] = rec
+    if response_commitment:
+        case["response_commitment"] = response_commitment
+
+    # Option B privacy posture: async evidence remains reviewer-private by
+    # default.  Public case state keeps only commitments.  Content-addressed
+    # evidence references are stored in a separate reviewer-private envelope and
+    # are exposed only through scoped reviewer/subject APIs.
+    private_rec: Json = {
+        "evidence_id": evidence_id,
+        "evidence_commitment": evidence_commitment,
+        "response_commitment": response_commitment,
+        "kind": rec["kind"],
+        "declared_height": rec["declared_height"],
+        "visibility": "reviewer_private",
+    }
+    for key in ("evidence_cid", "mime", "name", "filename", "size"):
         value = p.get(key)
         if value is None:
             continue
@@ -1166,28 +1248,29 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
             value = value.strip()
             if not value:
                 continue
-        rec[key] = value
+        private_rec[key] = value
 
-    commitments[evidence_id] = rec
-    if response_commitment:
-        case["response_commitment"] = response_commitment
+    uri = _validate_ipfs_uri(p.get("uri"), field="uri", case_id=case_id)
+    if uri:
+        private_rec["uri"] = uri
 
-    public_evidence_ids = case.get("public_evidence_ids")
-    public_evidence_id = _as_str(p.get("public_evidence_id") or p.get("uri") or "").strip()
-    evidence_cid = _as_str(p.get("evidence_cid") or "").strip()
-    if public_evidence_id:
-        public_evidence_ids = _append_unique_str(public_evidence_ids, public_evidence_id)
-    if evidence_cid:
-        public_evidence_ids = _append_unique_str(public_evidence_ids, f"ipfs://{evidence_cid}")
-    if public_evidence_ids:
-        case["public_evidence_ids"] = public_evidence_ids
+    video_commitment = _validate_commitment_format(
+        p.get("video_commitment"), field="video_commitment", case_id=case_id, required=False
+    )
+    if video_commitment:
+        private_rec["video_commitment"] = video_commitment
 
-    reviewable = case.get("reviewable_evidence")
-    if not isinstance(reviewable, dict):
-        reviewable = {}
-        case["reviewable_evidence"] = reviewable
-    if any(k in rec for k in ("public_evidence_id", "evidence_cid", "uri")):
-        reviewable[evidence_id] = dict(rec)
+    reviewer_private = case.get("reviewer_private_evidence")
+    if not isinstance(reviewer_private, dict):
+        reviewer_private = {}
+        case["reviewer_private_evidence"] = reviewer_private
+    if any(k in private_rec for k in ("evidence_cid", "uri", "video_commitment")):
+        reviewer_private[evidence_id] = private_rec
+
+    # Preserve the old fields as explicitly empty public surfaces so stale
+    # clients/tests do not mistake absence for unredacted public evidence.
+    case["public_evidence_ids"] = []
+    case["reviewable_evidence"] = {}
 
     case["status"] = "evidence_submitted"
     return {"applied": "POH_ASYNC_EVIDENCE_DECLARE", "case_id": case_id, "evidence_id": evidence_id}
@@ -1219,6 +1302,7 @@ def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
 
 
 def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_ASYNC_JUROR_ASSIGN")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     juror_values = p.get("jurors")
@@ -1379,6 +1463,7 @@ def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
 
 
 def apply_poh_async_finalize(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_ASYNC_FINALIZE")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     if not case_id:
@@ -1479,6 +1564,7 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
 
 
 def apply_poh_async_receipt(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_ASYNC_RECEIPT")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     if not case_id:
@@ -1989,6 +2075,7 @@ def _get_live_case(state: Json, case_id: str) -> Json:
 
 
 def apply_poh_live_session_init(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_LIVE_SESSION_INIT")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     account_id = _as_str(p.get("account_id") or "").strip()
@@ -2022,10 +2109,15 @@ def apply_poh_live_session_init(state: Json, env: Any) -> Json:
     room_commitment = _as_str(p.get("room_commitment") or "").strip()
     prompt_commitment = _as_str(p.get("prompt_commitment") or "").strip()
     device_pairing_commitment = _as_str(p.get("device_pairing_commitment") or "").strip()
-    relay_commitment = _as_str(p.get("relay_commitment") or "").strip()
+    relay_commitment = _validate_commitment_format(
+        p.get("relay_commitment"), field="relay_commitment", case_id=case_id, required=False
+    )
     join_url = _as_str(p.get("join_url") or "").strip()
-    if join_url and not relay_commitment:
-        relay_commitment = _sha256_hex(join_url.encode("utf-8"))
+    if join_url:
+        # The chain stores relay commitments only.  Raw live-room join URLs
+        # belong in self-hosted/access-controlled transport, not consensus state.
+        if not relay_commitment:
+            relay_commitment = _sha256_hex(join_url.encode("utf-8"))
 
     status = _as_str(case.get("status") or "").strip().lower()
     if status not in ("requested", "open"):
@@ -2095,8 +2187,7 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
 
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
-    if not bool(_get_env(env, "system", False)):
-        raise ApplyError("forbidden", "system_only", {"tx_type": "POH_LIVE_JUROR_ASSIGN"})
+    _require_system_tx(env, "POH_LIVE_JUROR_ASSIGN")
     if not isinstance(jurors, list) or not (1 <= len(jurors) <= MAX_LIVE_JURORS):
         raise ApplyError(
             "invalid_tx",
@@ -2432,6 +2523,7 @@ def apply_poh_live_verdict_submit(state: Json, env: Any) -> Json:
 
 
 def apply_poh_live_finalize(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_LIVE_FINALIZE")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
 
@@ -2563,6 +2655,7 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
 
 
 def apply_poh_live_receipt(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_LIVE_RECEIPT")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
     receipt_id = _as_str(p.get("receipt_id") or "").strip()
