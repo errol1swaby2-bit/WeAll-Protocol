@@ -100,9 +100,21 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                   Chain <span className="mono">{probe.chainId || "—"}</span> · Height <span className="mono">{probe.height ?? "—"}</span> · Latency <span className="mono">{probe.latencyMs ? `${probe.latencyMs}ms` : "—"}</span>
                 </span>
                 {!compact ? (
-                  <span className="cardDesc">
-                    tx index <span className="mono">{compactHash(probe.txIndexHash)}</span> · profile <span className="mono">{compactHash(probe.protocolProfileHash)}</span>
-                  </span>
+                  <>
+                    <span className="cardDesc">
+                      tx index <span className="mono">{compactHash(probe.txIndexHash)}</span> · profile <span className="mono">{compactHash(probe.protocolProfileHash)}</span>
+                    </span>
+                    {probe.compatibilitySourceBaseUrl ? (
+                      <span className="cardDesc">
+                        Expected from <span className="mono">{probe.compatibilitySourceBaseUrl}</span>: chain <span className="mono">{probe.expectedChainId || "—"}</span> · tx index <span className="mono">{compactHash(probe.expectedTxIndexHash)}</span> · profile <span className="mono">{compactHash(probe.expectedProtocolProfileHash)}</span>
+                      </span>
+                    ) : null}
+                    {probe.errors.length ? (
+                      <span className="cardDesc">
+                        Diagnostics: <span className="mono">{probe.errors.join(", ")}</span>
+                      </span>
+                    ) : null}
+                  </>
                 ) : null}
               </span>
               <span className="buttonColumn" style={{ display: "grid", gap: 8, justifyItems: "end" }}>

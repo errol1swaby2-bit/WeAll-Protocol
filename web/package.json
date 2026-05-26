@@ -11,6 +11,7 @@
     "contract-check": "node scripts/contract_check.mjs",
     "production-safety-check": "node scripts/guard_production_ux_safety.mjs",
     "dependency-audit": "npm audit --audit-level=moderate",
+    "test:node-manager": "node scripts/test_node_connection_manager_source.mjs",
     "contract-check:api": "bash ../scripts/run_frontend_contract_check.sh"
   },
   "dependencies": {

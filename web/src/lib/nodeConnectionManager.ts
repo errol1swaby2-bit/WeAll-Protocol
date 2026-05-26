@@ -13,6 +13,13 @@ export type SeedNode = {
 
 export type NodeProbePhase = "healthy" | "syncing" | "incompatible" | "offline";
 
+export type NodeCompatibilityBaseline = {
+  sourceBaseUrl?: string;
+  chainId?: string;
+  txIndexHash?: string;
+  protocolProfileHash?: string;
+};
+
 export type NodeProbe = {
   baseUrl: string;
   label: string;
@@ -27,6 +34,10 @@ export type NodeProbe = {
   height?: number;
   txIndexHash?: string;
   protocolProfileHash?: string;
+  expectedChainId?: string;
+  expectedTxIndexHash?: string;
+  expectedProtocolProfileHash?: string;
+  compatibilitySourceBaseUrl?: string;
   mode?: string;
   service?: string;
   errors: string[];
@@ -203,6 +214,81 @@ function scoreProbe(phase: NodeProbePhase, ready: boolean, height?: number, late
   return Math.round(score);
 }
 
+export function buildCompatibilityBaseline(probes: NodeProbe[]): NodeCompatibilityBaseline | null {
+  const candidates = [
+    probes.find((probe) => probe.isCurrent && probe.reachable),
+    probes.find((probe) => probe.phase === "healthy" && probe.reachable),
+    probes.find((probe) => probe.reachable),
+  ].filter((probe): probe is NodeProbe => !!probe);
+
+  for (const probe of candidates) {
+    if (probe.chainId || probe.txIndexHash || probe.protocolProfileHash) {
+      return {
+        sourceBaseUrl: probe.baseUrl,
+        chainId: probe.chainId,
+        txIndexHash: probe.txIndexHash,
+        protocolProfileHash: probe.protocolProfileHash,
+      };
+    }
+  }
+
+  return null;
+}
+
+export function compatibilityErrors(probe: NodeProbe, baseline: NodeCompatibilityBaseline | null | undefined): string[] {
+  if (!baseline || !probe.reachable) return [];
+  const errors: string[] = [];
+
+  if (baseline.chainId && probe.chainId && probe.chainId !== baseline.chainId) {
+    errors.push(`incompatible:chain_id_mismatch:${probe.chainId}`);
+  }
+  if (baseline.txIndexHash && probe.txIndexHash && probe.txIndexHash !== baseline.txIndexHash) {
+    errors.push("incompatible:tx_index_hash_mismatch");
+  }
+  if (
+    baseline.protocolProfileHash &&
+    probe.protocolProfileHash &&
+    probe.protocolProfileHash !== baseline.protocolProfileHash
+  ) {
+    errors.push("incompatible:protocol_profile_hash_mismatch");
+  }
+
+  return errors;
+}
+
+export function applyCompatibilityBaseline(
+  probes: NodeProbe[],
+  explicitBaseline?: NodeCompatibilityBaseline | null,
+): NodeProbe[] {
+  const baseline = explicitBaseline === undefined ? buildCompatibilityBaseline(probes) : explicitBaseline;
+
+  return probes.map((probe) => {
+    const compatibility = compatibilityErrors(probe, baseline);
+    const errors = Array.from(new Set([...probe.errors, ...compatibility]));
+    const phase = compatibility.length ? "incompatible" : classifyProbe({
+      reachable: probe.reachable,
+      statusOk: probe.reachable && !probe.errors.some((e) => e.startsWith("status:")),
+      ready: probe.ready,
+      chainId: probe.chainId,
+      txIndexHash: probe.txIndexHash,
+      protocolProfileHash: probe.protocolProfileHash,
+      errors,
+    });
+
+    return {
+      ...probe,
+      phase,
+      ok: phase === "healthy",
+      errors,
+      expectedChainId: baseline?.chainId,
+      expectedTxIndexHash: baseline?.txIndexHash,
+      expectedProtocolProfileHash: baseline?.protocolProfileHash,
+      compatibilitySourceBaseUrl: baseline?.sourceBaseUrl,
+      score: scoreProbe(phase, probe.ready, probe.height, probe.latencyMs),
+    };
+  });
+}
+
 export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; currentBase?: string }): Promise<NodeProbe> {
   const baseUrl = displayBase(seed.url);
   const currentBase = displayBase(opts?.currentBase || getApiBaseUrl());
@@ -269,7 +355,8 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
 export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise<NodeProbe[]> {
   const currentBase = displayBase(getApiBaseUrl());
   const seeds = await discoverCandidateNodes();
-  const probes = await Promise.all(seeds.map((seed) => probeNode(seed, { timeoutMs: opts?.timeoutMs, currentBase })));
+  const rawProbes = await Promise.all(seeds.map((seed) => probeNode(seed, { timeoutMs: opts?.timeoutMs, currentBase })));
+  const probes = applyCompatibilityBaseline(rawProbes);
   return probes.sort((a, b) => {
     if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
     return b.score - a.score || String(a.baseUrl).localeCompare(String(b.baseUrl));
@@ -294,8 +381,8 @@ export function nodePhaseLabel(phase: NodeProbePhase): string {
 }
 
 export function nodePhaseHint(probe: NodeProbe): string {
-  if (probe.phase === "healthy") return "This node is reachable and ready for normal reads and submissions.";
+  if (probe.phase === "healthy") return "This node is reachable, ready, and matches the expected chain/profile identity.";
   if (probe.phase === "syncing") return "This node is reachable but may still be catching up or missing readiness details.";
-  if (probe.phase === "incompatible") return "This node responded, but its reported protocol identity does not look compatible.";
+  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, or protocol profile hash differs from the expected node identity.";
   return "This node could not be reached from this browser.";
 }
