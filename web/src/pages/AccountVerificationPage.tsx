@@ -1027,7 +1027,7 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: skeletonTx.parent ?? null,
             base,
           });
-          const txId = String(submit?.result?.tx_id || submit?.tx_id || "");
+          const txId = String(submit?.result?.tx_id || (submit as any)?.tx_id || "");
           const signedNonce = Number(submit?.env?.nonce || 0);
           const expectedCaseId = expectedLiveCaseIdFromNonce(acct, signedNonce);
           const txVisible = await waitForSubmittedTxVisible(base, txId, {

@@ -113,6 +113,160 @@ def _resolve_account_identity(state: Json, value: Any) -> str:
     return variants[0]
 
 
+def _canonical_tags(value: Any) -> list[str]:
+    if isinstance(value, str):
+        raw_values = value.replace(",", " ").split()
+    elif isinstance(value, list):
+        raw_values = value
+    else:
+        raw_values = []
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_values:
+        tag = _as_str(raw).strip().lstrip("#")
+        if not tag or tag in seen:
+            continue
+        seen.add(tag)
+        out.append(tag)
+    return out
+
+
+def _groups_by_id(state: Json) -> Json:
+    roles = state.get("roles")
+    if isinstance(roles, dict):
+        gbid = roles.get("groups_by_id")
+        if isinstance(gbid, dict):
+            return gbid
+    gbid2 = state.get("groups_by_id")
+    return gbid2 if isinstance(gbid2, dict) else {}
+
+
+def _group_record(state: Json, group_id: str) -> Json | None:
+    gid = _as_str(group_id).strip()
+    if not gid:
+        return None
+    g = _groups_by_id(state).get(gid)
+    return g if isinstance(g, dict) else None
+
+
+def _group_members(group: Json) -> Json:
+    members = group.get("members")
+    return members if isinstance(members, dict) else {}
+
+
+def _group_role_accounts(group: Json, role_name: str) -> set[str]:
+    roles = group.get("roles")
+    if not isinstance(roles, dict):
+        return set()
+    raw = roles.get(role_name)
+    if isinstance(raw, list):
+        return {_as_str(x).strip() for x in raw if _as_str(x).strip()}
+    if isinstance(raw, dict):
+        return {_as_str(k).strip() for k in raw.keys() if _as_str(k).strip()}
+    return set()
+
+
+def _group_signers(group: Json) -> set[str]:
+    raw = group.get("signers")
+    if isinstance(raw, list):
+        return {_as_str(x).strip() for x in raw if _as_str(x).strip()}
+    return set()
+
+
+def _group_post_authorized_accounts(group: Json) -> set[str]:
+    out: set[str] = set()
+    out.update(_group_members(group).keys())
+    out.update(_group_signers(group))
+    for role in (
+        "poster",
+        "posters",
+        "publisher",
+        "publishers",
+        "moderator",
+        "moderators",
+        "admin",
+        "admins",
+        "creator",
+        "creators",
+        "emissary",
+        "emissaries",
+    ):
+        out.update(_group_role_accounts(group, role))
+    return {_as_str(x).strip() for x in out if _as_str(x).strip()}
+
+
+def _group_tag_targets(tags: Any) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for tag in _canonical_tags(tags):
+        if not tag.startswith("group:"):
+            continue
+        gid = tag.split(":", 1)[1].strip()
+        if gid and gid not in seen:
+            seen.add(gid)
+            out.append(gid)
+    return out
+
+
+def _require_group_post_authority(state: Json, *, signer: str, payload: Json, existing_post: Json | None = None) -> tuple[str, list[str]]:
+    """Enforce protocol authority for group-scoped content.
+
+    The frontend may guide users into group posting, but the protocol apply path
+    must be the authority.  A post may not enter a group feed by direct group_id
+    or by `group:<id>` tag unless the signer is a recognized member/posting
+    authority for that group.
+    """
+
+    signer_id = _as_str(signer).strip()
+    visibility = _as_str(payload.get("visibility", (existing_post or {}).get("visibility", "public"))).strip().lower() or "public"
+    group_id = _as_str(payload.get("group_id", (existing_post or {}).get("group_id", ""))).strip()
+    tags = payload.get("tags", (existing_post or {}).get("tags", []))
+    tag_targets = _group_tag_targets(tags)
+
+    if visibility == "group" and not group_id:
+        raise ContentApplyError("invalid_payload", "missing_group_id_for_group_visibility", {"visibility": visibility})
+
+    if group_id and visibility != "group":
+        raise ContentApplyError(
+            "invalid_payload",
+            "group_id_requires_group_visibility",
+            {"group_id": group_id, "visibility": visibility},
+        )
+
+    target_ids: list[str] = []
+    if group_id:
+        target_ids.append(group_id)
+    for gid in tag_targets:
+        if gid not in target_ids:
+            target_ids.append(gid)
+
+    if not target_ids:
+        return "", []
+
+    if group_id and any(gid != group_id for gid in tag_targets):
+        raise ContentApplyError(
+            "invalid_payload",
+            "group_tag_target_mismatch",
+            {"group_id": group_id, "tag_targets": tag_targets},
+        )
+
+    for gid in target_ids:
+        group = _group_record(state, gid)
+        if not isinstance(group, dict):
+            raise ContentApplyError("not_found", "group_not_found", {"group_id": gid})
+
+        authorized = _group_post_authorized_accounts(group)
+        if signer_id not in authorized:
+            raise ContentApplyError(
+                "forbidden",
+                "group_post_authority_required",
+                {"group_id": gid, "signer": signer_id},
+            )
+
+    return group_id, tag_targets
+
+
 def _active_role_accounts(state: Json, role_name: str, active_statuses: set[str]) -> list[str]:
     roles = state.get("roles")
     if not isinstance(roles, dict):
@@ -397,6 +551,10 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
     if post_id in posts:
         return {"applied": "CONTENT_POST_CREATE", "post_id": post_id, "deduped": True}
 
+    group_id, _group_tag_targets_for_receipt = _require_group_post_authority(
+        state, signer=env.signer, payload=payload
+    )
+
     created_height = _as_int(state.get("height"), 0)
     maturity_blocks = content_reputation_maturity_blocks(state)
     posts[post_id] = {
@@ -406,11 +564,11 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
         # media may contain media_ids or app-specific attachment refs
         "media": _as_list(payload.get("media")),
         "created_nonce": int(env.nonce),
-        "visibility": payload.get("visibility", "public"),
+        "visibility": _as_str(payload.get("visibility", "public")).strip().lower() or "public",
         "locked": False,
         # Feed indexing helpers
-        "tags": payload.get("tags", []),
-        "group_id": payload.get("group_id"),
+        "tags": _canonical_tags(payload.get("tags", [])),
+        "group_id": group_id or None,
         "labels": [],
         "flags": [],
         "deleted": False,
@@ -444,14 +602,28 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
     if post.get("author") != env.signer:
         raise ContentApplyError("forbidden", "not_author", {"post_id": post_id})
 
+    candidate: Json = dict(post)
+    if "visibility" in payload:
+        candidate["visibility"] = _as_str(payload.get("visibility")).strip().lower() or "public"
+    if "tags" in payload:
+        candidate["tags"] = _canonical_tags(payload.get("tags"))
+    if "group_id" in payload:
+        candidate["group_id"] = _as_str(payload.get("group_id")).strip() or None
+
+    group_id, _group_tag_targets_for_receipt = _require_group_post_authority(
+        state, signer=env.signer, payload=candidate, existing_post=post
+    )
+
     post["body"] = payload.get("body", post.get("body"))
     post["media"] = _as_list(payload.get("media", post.get("media")))
 
     # Only mutate if explicitly provided
+    if "visibility" in payload:
+        post["visibility"] = candidate["visibility"]
     if "tags" in payload:
-        post["tags"] = payload.get("tags")
+        post["tags"] = candidate["tags"]
     if "group_id" in payload:
-        post["group_id"] = payload.get("group_id")
+        post["group_id"] = group_id or None
 
     post["edited_nonce"] = int(env.nonce)
 

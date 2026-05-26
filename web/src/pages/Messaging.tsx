@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
@@ -15,6 +15,10 @@ import { useAccount } from "../context/AccountContext";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Messages failed to load.");
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 type MessagingMode = "hub" | "compose" | "thread";
@@ -123,6 +127,8 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
+  const [lastMessageRefreshMs, setLastMessageRefreshMs] = useState<number>(0);
+  const loadingMessagesRef = useRef<boolean>(false);
 
   const gate = checkGates({ loggedIn: !!account, canSign, accountState: acctState, requireTier: 1 });
 
@@ -139,9 +145,14 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     }
   }
 
-  async function loadMessages(): Promise<void> {
-    setBusy(true);
-    setErr(null);
+  async function loadMessages(opts?: { silent?: boolean }): Promise<void> {
+    if (loadingMessagesRef.current) return;
+    loadingMessagesRef.current = true;
+    const silent = opts?.silent === true;
+    if (!silent) {
+      setBusy(true);
+      setErr(null);
+    }
     try {
       await refreshAccount();
       if (!account) {
@@ -180,11 +191,15 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       }
 
       setSurface({ threads, messagesById });
+      setLastMessageRefreshMs(Date.now());
     } catch (e: any) {
-      setErr(prettyErr(e));
-      setSurface({ threads: [], messagesById: {} });
+      if (!silent) {
+        setErr(prettyErr(e));
+        setSurface({ threads: [], messagesById: {} });
+      }
     } finally {
-      setBusy(false);
+      loadingMessagesRef.current = false;
+      if (!silent) setBusy(false);
     }
   }
 
@@ -192,8 +207,17 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     void loadMessages();
   }, [account, apiBase, threadId]);
 
+  useEffect(() => {
+    if (!account) return undefined;
+    const intervalMs = mode === "thread" ? 2500 : 5000;
+    const id = window.setInterval(() => {
+      void loadMessages({ silent: true });
+    }, intervalMs);
+    return () => window.clearInterval(id);
+  }, [account, apiBase, threadId, mode]);
+
   useMutationRefresh({
-    entityTypes: ["account"],
+    entityTypes: ["account", "message"],
     account,
     onRefresh: async () => {
       await loadMessages();
@@ -240,8 +264,15 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       setResult(res);
       setBody("");
       setReplyBody("");
-      await refreshMutationSlices(loadMessages, refreshAccountContext);
       const nextThread = args?.afterThread || args?.thread_id || defaultThreadId(account, to);
+      await refreshMutationSlices(loadMessages, refreshAccountContext);
+      // Batch 426: chain commit/read-model refresh can lag after several back-and-forth
+      // messages across observer/genesis frontends. Poll the exact thread briefly so
+      // the open conversation continues converging without a manual refresh.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await sleep(650);
+        await loadMessages({ silent: true });
+      }
       if (nextThread) nav(`/messages/${encodeURIComponent(nextThread)}`);
     } catch (e: any) {
       setErr(prettyErr(e));
@@ -401,6 +432,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
               <h2 className="cardTitle">{selectedRecipient}</h2>
             </div>
             <span className="statusPill">{selectedMessages.length} message{selectedMessages.length === 1 ? "" : "s"}</span>
+            <span className="statusPill">Auto-refresh {lastMessageRefreshMs ? "active" : "pending"}</span>
           </div>
 
           <div className="messengerMessages" aria-label="Message thread">

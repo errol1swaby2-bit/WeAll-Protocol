@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, setApiBaseUrl, validateApiBaseInput } from "../api/weall";
+import NodeConnectionPanel from "../components/NodeConnectionPanel";
 import { getKeypair, getSession } from "../auth/session";
 import { useAppConfig } from "../lib/config";
 import { nav } from "../lib/router";
@@ -262,6 +263,8 @@ export default function Settings(): JSX.Element {
           </div>
         </div>
       </section>
+
+      <NodeConnectionPanel />
 
       <section className="card">
         <div className="cardBody pageStack">

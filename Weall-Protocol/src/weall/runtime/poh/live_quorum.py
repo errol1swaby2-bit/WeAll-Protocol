@@ -9,6 +9,12 @@ MAX_LIVE_INTERACTING_JURORS = 3
 DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR = 2
 DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR = 3
 
+PRODUCTION_LIVE_PANEL_SIZE = 5
+PRODUCTION_LIVE_MIN_PRESENT = 3
+PRODUCTION_LIVE_MIN_VERDICTS = 3
+PRODUCTION_LIVE_APPROVAL_THRESHOLD = 3
+PRODUCTION_LIVE_REJECTION_THRESHOLD = 3
+
 
 def as_int(value: Any, default: int) -> int:
     try:
@@ -84,4 +90,23 @@ def live_quorum_summary(
         "pass_threshold_den": den,
         "required_verdicts": active,
         "required_passes": required_live_passes(active, numerator=num, denominator=den),
+    }
+
+
+def production_live_quorum_summary() -> Json:
+    """Canonical fixed-denominator production Live PoH policy.
+
+    Bootstrap/devnet profiles may use adaptive 1..10 panel sizing.  Production
+    profiles require a 5-person panel with 3 interacting reviewers, 3 verdicts,
+    and 3 approvals for a Tier 2 pass.
+    """
+
+    return {
+        "mode": "production",
+        "juror_count": PRODUCTION_LIVE_PANEL_SIZE,
+        "active_reviewers": PRODUCTION_LIVE_MIN_PRESENT,
+        "watching_observers": PRODUCTION_LIVE_PANEL_SIZE - PRODUCTION_LIVE_MIN_PRESENT,
+        "required_verdicts": PRODUCTION_LIVE_MIN_VERDICTS,
+        "required_passes": PRODUCTION_LIVE_APPROVAL_THRESHOLD,
+        "rejection_threshold": PRODUCTION_LIVE_REJECTION_THRESHOLD,
     }

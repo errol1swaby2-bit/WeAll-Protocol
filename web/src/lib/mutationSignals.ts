@@ -1,4 +1,4 @@
-export type MutationEntityType = "proposal" | "dispute" | "group" | "content" | "account" | "session" | "unknown";
+export type MutationEntityType = "proposal" | "dispute" | "group" | "content" | "message" | "account" | "session" | "unknown";
 
 export type MutationSignalStatus = "recorded" | "confirmed" | "failed" | "submitted";
 

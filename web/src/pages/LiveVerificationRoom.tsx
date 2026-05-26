@@ -137,6 +137,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const [operatorToken, setOperatorToken] = useState<string>("");
   const [p2pRunning, setP2pRunning] = useState<boolean>(false);
   const [p2pStatus, setP2pStatus] = useState<string>("idle");
+  const [p2pSignalsSent, setP2pSignalsSent] = useState<number>(0);
+  const [p2pSignalsReceived, setP2pSignalsReceived] = useState<number>(0);
   const [p2pError, setP2pError] = useState<string>("");
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
@@ -184,8 +186,16 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       const jid = normalizeAccount(j.juror_id);
       if (jid) out.add(jid);
     });
+    chainParticipants.forEach((p: any) => {
+      const participant = normalizeAccount(p?.account_id || p?.account || p?.juror_id);
+      if (participant) out.add(participant);
+    });
+    presence.forEach((p) => {
+      const participant = normalizeAccount(p.account_id);
+      if (participant) out.add(participant);
+    });
     return Array.from(out).sort();
-  }, [liveCase?.account_id, jurors]);
+  }, [liveCase?.account_id, jurors, chainParticipants, presence]);
   const p2pRemoteAccounts = useMemo(() => {
     return p2pParticipantAccounts.filter((item) => normalizeAccount(item) && normalizeAccount(item) !== account);
   }, [p2pParticipantAccounts, account]);
@@ -302,6 +312,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       apiBase,
       headers,
     );
+    setP2pSignalsSent((n) => n + 1);
   }
 
   async function ensureLocalP2PMedia(): Promise<MediaStream> {
@@ -384,25 +395,31 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     const res = await weall.pohLiveWebRTCSignals(sessionId, signalSeqRef.current, apiBase, headers);
     const signals = Array.isArray(res?.signals) ? res.signals as WeAllWebRTCSignal[] : [];
     const nextSeq = Number(res?.next_seq || signalSeqRef.current);
+    const inboundSignals = signals.filter((signal) => normalizeAccount(signal.from_account) !== account);
+    if (inboundSignals.length) setP2pSignalsReceived((n) => n + inboundSignals.length);
     for (const signal of signals) {
       await handleWebRTCSignal(signal);
     }
     if (Number.isFinite(nextSeq)) signalSeqRef.current = Math.max(signalSeqRef.current, nextSeq);
   }
 
+  async function ensureP2PRoomStarted(): Promise<void> {
+    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the P2P room.");
+    setP2pError("");
+    await ensureLocalP2PMedia();
+    await updatePresence("joined");
+    setP2pRunning(true);
+    setP2pStatus("p2p signaling active");
+    await sendWebRTCSignal({ type: "hello" });
+    for (const peer of p2pRemoteAccounts) {
+      if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer);
+    }
+    await pollWebRTCSignals();
+  }
+
   async function startP2PRoom(): Promise<void> {
     await runAction("Starting decentralized P2P room…", async () => {
-      if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the P2P room.");
-      setP2pError("");
-      await ensureLocalP2PMedia();
-      await updatePresence("joined");
-      setP2pRunning(true);
-      setP2pStatus("p2p signaling active");
-      await sendWebRTCSignal({ type: "hello" });
-      for (const peer of p2pRemoteAccounts) {
-        if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer);
-      }
-      await pollWebRTCSignals();
+      await ensureP2PRoomStarted();
     }).catch((e) => {
       setP2pError(prettyError(e));
       throw e;
@@ -476,6 +493,15 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
         await submitSkeletonTx(skeleton, "Live room attendance recorded on-chain.");
       } else {
         setNotice("Live room presence updated. Verification authority still requires signed juror attendance and verdicts.");
+      }
+      if (!roomUrl) {
+        try {
+          await ensureP2PRoomStarted();
+          setNotice("Live room attendance recorded and P2P media started. Keep this page open while the other participant joins.");
+        } catch (mediaError) {
+          setP2pError(prettyError(mediaError));
+          setNotice("Live room attendance was recorded. Start P2P media when camera/microphone access is ready.");
+        }
       }
       if (shouldEmbed) {
         setShowEmbeddedRoom(true);
@@ -563,6 +589,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <p>Browser media runs peer-to-peer using case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
                   <small>Status: {p2pStatus}</small>
                   <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
+                  <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
+                  <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived}</small>
                   {p2pError ? <small className="errorText">{p2pError}</small> : null}
                 </div>
                 <div className="p2pVideoGrid">
@@ -598,7 +626,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
             </div>
             <div className="buttonRow">
-              <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in</button>
+              <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in + start media</button>
               <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
               <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
               <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>

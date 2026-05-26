@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import { summarizeNodeConnection } from "../lib/status";
 import { nav } from "../lib/router";
+import { WEALL_API_BASE_CHANGED_EVENT } from "../lib/nodeConnectionManager";
 
 function statusClass(kind: "online" | "degraded" | "offline"): string {
   if (kind === "online") return "ok";
@@ -11,11 +12,13 @@ function statusClass(kind: "online" | "degraded" | "offline"): string {
 }
 
 export default function ConnectionPill(): JSX.Element {
-  const base = useMemo(() => getApiBaseUrl(), []);
+  const [base, setBase] = useState<string>(() => getApiBaseUrl());
   const [statusView, setStatusView] = useState<any | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    const refreshBase = () => setBase(getApiBaseUrl());
 
     async function run() {
       try {
@@ -26,6 +29,9 @@ export default function ConnectionPill(): JSX.Element {
       }
     }
 
+    window.addEventListener(WEALL_API_BASE_CHANGED_EVENT, refreshBase);
+    window.addEventListener("storage", refreshBase);
+
     void run();
     const timer = window.setInterval(() => {
       void run();
@@ -34,6 +40,8 @@ export default function ConnectionPill(): JSX.Element {
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      window.removeEventListener(WEALL_API_BASE_CHANGED_EVENT, refreshBase);
+      window.removeEventListener("storage", refreshBase);
     };
   }, [base]);
 

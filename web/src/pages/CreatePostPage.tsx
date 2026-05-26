@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getApiBaseUrl, weall } from "../api/weall";
+import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { beginNonceSequence, ensureBackendSession, getAuthHeaders, getKeypair, getSession, submitSignedTxInSequence, syncNonceReservation } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -161,6 +161,29 @@ function schemaSafePinRequestPayload(raw: any, fallbackCid: string): Record<stri
   return out;
 }
 
+
+type ComposerGroupOption = {
+  id: string;
+  name: string;
+  visibility: string;
+};
+
+function normalizeComposerGroup(raw: any): ComposerGroupOption | null {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  const meta = obj?.meta && typeof obj.meta === "object" ? obj.meta : {};
+  const charter = obj?.charter && typeof obj.charter === "object" ? obj.charter : {};
+  const id = String(obj?.group_id || obj?.id || meta?.group_id || "").trim();
+  if (!id) return null;
+  const name = String(charter?.name || meta?.name || obj?.name || id).trim() || id;
+  const visibility = String(obj?.visibility || obj?.privacy || meta?.visibility || meta?.privacy || "public").trim().toLowerCase() || "public";
+  return { id, name, visibility };
+}
+
+function groupDisplayName(group: ComposerGroupOption | null, groupId: string): string {
+  if (group) return `${group.name} (${group.id})`;
+  return groupId ? groupId : "Public feed";
+}
+
 function validateSelectedFile(file: File | null): string | null {
   if (!file) return null;
   const mime = String(file.type || "").trim().toLowerCase();
@@ -200,6 +223,8 @@ export default function CreatePostPage(): JSX.Element {
   const [file, setFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string>("");
   const [composerGroupId, setComposerGroupId] = useState<string>(() => readComposerGroupIdFromHash());
+  const [groupOptions, setGroupOptions] = useState<ComposerGroupOption[]>([]);
+  const [groupOptionsError, setGroupOptionsError] = useState<string>("");
 
   const [busy, setBusy] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("");
@@ -237,9 +262,30 @@ export default function CreatePostPage(): JSX.Element {
     }
   }
 
+
+  async function refreshGroupOptions(): Promise<void> {
+    setGroupOptionsError("");
+    try {
+      const res: any = await api.groups.list({ limit: 250 }, base);
+      const raw = Array.isArray(res?.items) ? res.items : Array.isArray(res?.groups) ? res.groups : [];
+      const options = raw
+        .map((item: any) => normalizeComposerGroup(item))
+        .filter((item: ComposerGroupOption | null): item is ComposerGroupOption => !!item)
+        .sort((a: ComposerGroupOption, b: ComposerGroupOption) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+      setGroupOptions(options);
+    } catch (e: any) {
+      setGroupOptions([]);
+      setGroupOptionsError(String(e?.message || e?.payload?.detail?.message || "Unable to load groups for the composer."));
+    }
+  }
+
   useEffect(() => {
     void refresh();
   }, [acct]);
+
+  useEffect(() => {
+    void refreshGroupOptions();
+  }, [base]);
 
   useEffect(() => {
     const sync = () => setComposerGroupId(readComposerGroupIdFromHash());
@@ -777,6 +823,8 @@ export default function CreatePostPage(): JSX.Element {
 
   const observedReplication = Number(mediaDurability?.replication_factor ?? 0);
   const observedOperators = Number(mediaDurability?.ok_unique_ops ?? 0);
+  const selectedGroup = groupOptions.find((g) => g.id === composerGroupId) || null;
+  const audienceLabel = composerGroupId ? `Group: ${groupDisplayName(selectedGroup, composerGroupId)}` : "Public";
 
   return (
     <div className="pageStack pageNarrow actionPage createPostPage">
@@ -827,7 +875,7 @@ export default function CreatePostPage(): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Audience</span>
-              <span className="statValue">Public</span>
+              <span className="statValue">{composerGroupId ? "Group" : "Public"}</span>
             </div>
           </div>
         </div>
@@ -901,7 +949,24 @@ export default function CreatePostPage(): JSX.Element {
             <div className="grid2 formGrid">
               <label className="fieldLabel">
                 Audience
-                <input value="Public" readOnly />
+                <select
+                  value={composerGroupId}
+                  onChange={(e) => {
+                    const nextGroupId = e.target.value.trim();
+                    setComposerGroupId(nextGroupId);
+                    setVisibility(nextGroupId ? "group" : "public");
+                  }}
+                >
+                  <option value="">Public feed</option>
+                  {groupOptions.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} · {group.visibility} · {group.id}
+                    </option>
+                  ))}
+                  {composerGroupId && !selectedGroup ? (
+                    <option value={composerGroupId}>Selected group · {composerGroupId}</option>
+                  ) : null}
+                </select>
               </label>
 
               <label className="fieldLabel">
@@ -917,8 +982,11 @@ export default function CreatePostPage(): JSX.Element {
             <div className="calloutInfo">
               <strong>Current publishing truth</strong>
               <div style={{ marginTop: 6 }}>
-                This deployment currently publishes public posts only. Followers-only, group-only, and private composer options stay hidden until the backend supports them end to end.
+                {composerGroupId
+                  ? `This post will be submitted to ${groupDisplayName(selectedGroup, composerGroupId)} with visibility=group and group_id=${composerGroupId}.`
+                  : "This post will be submitted to the public feed. Choose a group above to route it into a group feed."}
               </div>
+              {groupOptionsError ? <div style={{ marginTop: 6 }}>{groupOptionsError}</div> : null}
             </div>
 
             <div className="actionStateRow">
@@ -1010,7 +1078,7 @@ export default function CreatePostPage(): JSX.Element {
               <span className={`statusPill ${registered ? "ok" : ""}`}>
                 {registered ? "Account registered" : "Registration required"}
               </span>
-              <span className="statusPill">public</span>
+              <span className="statusPill">{audienceLabel}</span>
             </div>
 
             <div className="feedBodyText">{text.trim() || "Your draft preview appears here."}</div>

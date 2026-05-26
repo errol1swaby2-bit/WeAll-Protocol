@@ -12,6 +12,11 @@ from weall.runtime.poh.live_quorum import (
     DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR,
     MAX_LIVE_INTERACTING_JURORS,
     MAX_LIVE_JURORS,
+    PRODUCTION_LIVE_APPROVAL_THRESHOLD,
+    PRODUCTION_LIVE_MIN_PRESENT,
+    PRODUCTION_LIVE_MIN_VERDICTS,
+    PRODUCTION_LIVE_PANEL_SIZE,
+    production_live_quorum_summary,
     live_active_reviewer_count,
     live_quorum_summary,
     normalize_live_threshold,
@@ -110,6 +115,42 @@ def _state_poh_param_int(state: Json, key: str, default: int) -> int:
     except Exception:
         pass
     return int(default)
+
+
+def _state_poh_param_str(state: Json, key: str, default: str = "") -> str:
+    try:
+        params = state.get("params")
+        if isinstance(params, dict):
+            poh = params.get("poh")
+            if isinstance(poh, dict) and key in poh:
+                return _as_str(poh.get(key)).strip().lower()
+            if key in params:
+                return _as_str(params.get(key)).strip().lower()
+    except Exception:
+        pass
+    return str(default).strip().lower()
+
+
+def _live_poh_policy_mode(state: Json) -> str:
+    mode = (
+        _state_poh_param_str(state, "live_poh_policy_mode")
+        or _state_poh_param_str(state, "live_quorum_mode")
+        or _state_poh_param_str(state, "poh_live_policy_mode")
+    )
+    if mode in {"production", "prod", "fixed", "constitutional"}:
+        return "production"
+    return "bootstrap"
+
+
+def _live_poh_production_mode(state: Json) -> bool:
+    return _live_poh_policy_mode(state) == "production"
+
+
+def _apply_production_live_quorum_overlay(quorum: Json) -> Json:
+    out = dict(quorum)
+    out.update(production_live_quorum_summary())
+    out["policy_locked"] = True
+    return out
 
 
 def _live_threshold_from_assignment(state: Json, payload: Json) -> tuple[int, int]:
@@ -2180,7 +2221,7 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
 
     Production hardening:
     - requires SYSTEM tx (env.system True)
-    - accepts 1..10 unique juror ids so genesis can bootstrap from one Live account
+    - accepts adaptive 1..10 unique juror ids only in bootstrap mode; production mode requires fixed 5-person panel
     - first up-to-3 jurors are active/interacting reviewers
     - remaining jurors are watching/observing witnesses
     - pass/fail uses a frozen deterministic n-of-m threshold over active reviewers
@@ -2199,6 +2240,22 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
             "invalid_tx",
             "bad_jurors",
             {"min": 1, "max": MAX_LIVE_JURORS, "actual": len(jurors) if isinstance(jurors, list) else 0},
+        )
+
+    production_policy = _live_poh_production_mode(state)
+    if production_policy and len(jurors) != PRODUCTION_LIVE_PANEL_SIZE:
+        raise ApplyError(
+            "invalid_tx",
+            "live_production_panel_size_required",
+            {"expected": PRODUCTION_LIVE_PANEL_SIZE, "actual": len(jurors)},
+        )
+    if production_policy and (
+        p.get("pass_threshold_num") is not None or p.get("pass_threshold_den") is not None
+    ):
+        raise ApplyError(
+            "invalid_tx",
+            "live_production_threshold_override_forbidden",
+            {"case_id": case_id},
         )
 
     case = _get_live_case(state, case_id)
@@ -2227,6 +2284,9 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
     quorum = live_quorum_summary(
         panel_size=len(cleaned), numerator=threshold_num, denominator=threshold_den
     )
+    quorum["mode"] = "production" if production_policy else "bootstrap"
+    if production_policy:
+        quorum = _apply_production_live_quorum_overlay(quorum)
 
     jm: Json = {}
     active_count = live_active_reviewer_count(len(cleaned))
@@ -2570,11 +2630,19 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
             continue
         active[jid] = jrec
 
+    production_policy = _live_poh_production_mode(state)
+
     if not (1 <= len(active) <= MAX_LIVE_JURORS):
         raise ApplyError(
             "invalid_tx",
             "jurors_not_ready",
             {"case_id": case_id, "min": 1, "max": MAX_LIVE_JURORS, "actual": len(active)},
+        )
+    if production_policy and len(active) != PRODUCTION_LIVE_PANEL_SIZE:
+        raise ApplyError(
+            "invalid_tx",
+            "live_production_panel_size_required",
+            {"case_id": case_id, "expected": PRODUCTION_LIVE_PANEL_SIZE, "actual": len(active)},
         )
 
     configured_quorum = case.get("live_quorum") if isinstance(case.get("live_quorum"), dict) else {}
@@ -2588,7 +2656,7 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
         if _as_str(jrec.get("role") or "") == "interacting":
             active_reviewers.append(jrec)
 
-    expected_active = live_active_reviewer_count(len(active))
+    expected_active = PRODUCTION_LIVE_MIN_PRESENT if production_policy else live_active_reviewer_count(len(active))
     if len(active_reviewers) != expected_active or expected_active <= 0:
         raise ApplyError(
             "invalid_tx",
@@ -2611,15 +2679,26 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
         else:
             failures += 1
 
-    required_pass = required_live_passes(
-        have, numerator=threshold_num, denominator=threshold_den
+    required_pass = (
+        PRODUCTION_LIVE_APPROVAL_THRESHOLD
+        if production_policy
+        else required_live_passes(have, numerator=threshold_num, denominator=threshold_den)
     )
+    if production_policy and have < PRODUCTION_LIVE_MIN_VERDICTS:
+        raise ApplyError(
+            "invalid_tx",
+            "live_production_verdict_quorum_required",
+            {"case_id": case_id, "need": PRODUCTION_LIVE_MIN_VERDICTS, "have": have},
+        )
     if have != expected_active or required_pass <= 0:
         raise ApplyError("invalid_tx", "verdicts_not_ready", {"case_id": case_id})
 
     quorum = live_quorum_summary(
         panel_size=len(active), numerator=threshold_num, denominator=threshold_den
     )
+    quorum["mode"] = "production" if production_policy else "bootstrap"
+    if production_policy:
+        quorum = _apply_production_live_quorum_overlay(quorum)
     quorum["actual_verdicts"] = have
     quorum["actual_passes"] = passes
     quorum["actual_failures"] = failures
