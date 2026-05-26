@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
+from weall.runtime.constitution import active_constitution_commitment
 from weall.runtime.state_hash import compute_state_root
 from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
@@ -712,6 +713,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         state.get("node_id") or getattr(ex, "node_id", None) or os.environ.get("WEALL_NODE_ID"),
         "",
     )
+    constitution = active_constitution_commitment()
     return {
         "ok": True,
         "service": "weall-node",
@@ -722,6 +724,10 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "mode": _status_mode_label(ex, state),
         "height": _safe_int(state.get("height"), 0),
         "tip": _safe_str(state.get("tip"), ""),
+        "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
+        "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
+        "protocol_profile_hash": runtime_protocol_profile_hash(),
+        "constitution": constitution,
     }
 
 
@@ -738,7 +744,13 @@ def status(request: Request) -> dict[str, Any]:
         base_readyz_payload={"ready": True, "checks": ["status"]},
         helper_surface=helper_surface,
     ).to_json()
-    return shape["status_payload"]
+    payload = shape["status_payload"]
+    # Keep normal-user node compatibility fields on /v1/status so the frontend
+    # can fail closed without relying on operator-only endpoints.
+    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "constitution"):
+        if key in base:
+            payload[key] = base[key]
+    return payload
 
 
 @router.get("/status/operator")
@@ -987,6 +999,8 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         chain_manifest = load_chain_manifest(required=False, mode=manifest_mode)
     except Exception:
         chain_manifest = None
+    raw_manifest = chain_manifest.raw if chain_manifest is not None else None
+    constitution = active_constitution_commitment(raw_manifest)
     chain_manifest_report = chain_manifest_status(
         manifest=chain_manifest,
         chain_id=chain_id,
@@ -1031,6 +1045,7 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
         "chain_manifest": chain_manifest_report,
+        "constitution": constitution,
         "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
         "protocol_version": _safe_str(meta.get("protocol_version"), ""),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
@@ -1085,6 +1100,7 @@ def chain_genesis(request: Request) -> dict[str, Any]:
         "genesis_hash": ident.get("genesis_hash", ""),
         "tx_index_hash": ident["tx_index_hash"],
         "chain_manifest": ident.get("chain_manifest", {"enabled": False}),
+        "constitution": ident.get("constitution", {}),
         "production_consensus_profile_hash": ident["production_consensus_profile_hash"],
         "protocol_profile_hash": ident["protocol_profile_hash"],
         "genesis_bootstrap": ident["genesis_bootstrap"],

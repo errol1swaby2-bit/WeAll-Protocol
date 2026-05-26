@@ -239,18 +239,17 @@ export function compatibilityErrors(probe: NodeProbe, baseline: NodeCompatibilit
   if (!baseline || !probe.reachable) return [];
   const errors: string[] = [];
 
-  if (baseline.chainId && probe.chainId && probe.chainId !== baseline.chainId) {
-    errors.push(`incompatible:chain_id_mismatch:${probe.chainId}`);
+  if (baseline.chainId) {
+    if (!probe.chainId) errors.push("incompatible:chain_id_missing");
+    else if (probe.chainId !== baseline.chainId) errors.push(`incompatible:chain_id_mismatch:${probe.chainId}`);
   }
-  if (baseline.txIndexHash && probe.txIndexHash && probe.txIndexHash !== baseline.txIndexHash) {
-    errors.push("incompatible:tx_index_hash_mismatch");
+  if (baseline.txIndexHash) {
+    if (!probe.txIndexHash) errors.push("incompatible:tx_index_hash_missing");
+    else if (probe.txIndexHash !== baseline.txIndexHash) errors.push("incompatible:tx_index_hash_mismatch");
   }
-  if (
-    baseline.protocolProfileHash &&
-    probe.protocolProfileHash &&
-    probe.protocolProfileHash !== baseline.protocolProfileHash
-  ) {
-    errors.push("incompatible:protocol_profile_hash_mismatch");
+  if (baseline.protocolProfileHash) {
+    if (!probe.protocolProfileHash) errors.push("incompatible:protocol_profile_hash_missing");
+    else if (probe.protocolProfileHash !== baseline.protocolProfileHash) errors.push("incompatible:protocol_profile_hash_mismatch");
   }
 
   return errors;
@@ -363,6 +362,10 @@ export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise
   });
 }
 
+export function canSwitchToNode(probe: NodeProbe): boolean {
+  return !!probe && !probe.isCurrent && probe.phase === "healthy" && probe.ok === true;
+}
+
 export function switchToNode(baseUrl: string): string {
   const runtimeBase = setApiBaseUrl(baseUrl);
   try {
@@ -383,6 +386,6 @@ export function nodePhaseLabel(phase: NodeProbePhase): string {
 export function nodePhaseHint(probe: NodeProbe): string {
   if (probe.phase === "healthy") return "This node is reachable, ready, and matches the expected chain/profile identity.";
   if (probe.phase === "syncing") return "This node is reachable but may still be catching up or missing readiness details.";
-  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, or protocol profile hash differs from the expected node identity.";
+  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, protocol profile hash, or required compatibility commitment is missing or different.";
   return "This node could not be reached from this browser.";
 }

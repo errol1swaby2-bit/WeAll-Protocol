@@ -5,6 +5,7 @@ import {
   nodePhaseHint,
   nodePhaseLabel,
   NodeProbe,
+  canSwitchToNode,
   switchToNode,
 } from "../lib/nodeConnectionManager";
 
@@ -46,6 +47,9 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
   async function chooseNode(probe: NodeProbe): Promise<void> {
     setErr("");
     try {
+      if (!canSwitchToNode(probe)) {
+        throw new Error("Only healthy, compatible nodes can be selected from the normal connection manager.");
+      }
       switchToNode(probe.baseUrl);
       setSwitchedTo(probe.baseUrl);
       await refresh();
@@ -120,10 +124,12 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
               <span className="buttonColumn" style={{ display: "grid", gap: 8, justifyItems: "end" }}>
                 <span className={`statusPill ${phaseClass(probe.phase)}`}>{nodePhaseLabel(probe.phase)}</span>
                 {probe.isCurrent ? <span className="statusPill ok">Current</span> : null}
-                {!probe.isCurrent && probe.phase !== "offline" ? (
+                {canSwitchToNode(probe) ? (
                   <button className="btn btnPrimary" onClick={() => void chooseNode(probe)}>
                     Switch to this node
                   </button>
+                ) : !probe.isCurrent ? (
+                  <span className="statusPill warn">Switch blocked</span>
                 ) : null}
               </span>
             </div>

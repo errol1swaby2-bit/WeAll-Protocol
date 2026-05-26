@@ -32,8 +32,10 @@ ledger["messaging"] = {
           "thread_id": str,
           "sender": str,
           "to": str,
-          "body": str,                      # optional if cid provided
-          "cid": str,                       # optional (ipfs)
+          "body": "",                       # plaintext is forbidden for DMs
+          "cid": "",                        # plaintext content CIDs are forbidden for DMs
+          "encrypted": True,
+          "encryption": {...},              # client E2EE envelope only
           "created_at_nonce": int,
           "redacted": bool,
           "redacted_at_nonce": int,
@@ -53,7 +55,9 @@ ledger["messaging"] = {
 Payload expectations (runtime enforced, since canon does not define schemas):
 - DIRECT_MESSAGE_SEND requires:
   - recipient: one of ["to", "recipient", "to_account", "account_id"]
-  - content: "body" (string) OR "cid" (string)
+  - encrypted client envelope: encryption=WEALL_E2EE_V1, ciphertext_b64, iv_b64,
+    sender/recipient encryption public JWKs and key ids
+  - plaintext "body" and plaintext content "cid" are rejected
   - optional: "thread_id", "message_id"
 - DIRECT_MESSAGE_REDACT requires:
   - "message_id" (or "id")
@@ -158,6 +162,57 @@ def _thread_id_default(a: str, b: str) -> str:
     return f"dm:{pair[0]}:{pair[1]}"
 
 
+
+
+def _validate_public_jwk(value: Any, field: str) -> Json:
+    jwk = _as_dict(value)
+    if not jwk:
+        raise MessagingApplyError("invalid_payload", f"missing_{field}", {"field": field})
+    kty = _as_str(jwk.get("kty")).strip()
+    crv = _as_str(jwk.get("crv")).strip()
+    x = _as_str(jwk.get("x")).strip()
+    if kty != "EC" or crv != "P-256" or not x:
+        raise MessagingApplyError("invalid_payload", f"invalid_{field}", {"kty": kty, "crv": crv})
+    # Keep only public, deterministic fields.  Never accept d/private material.
+    return {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": x,
+        "y": _as_str(jwk.get("y")).strip(),
+        "ext": True,
+    }
+
+
+def _encrypted_envelope(payload: Json) -> Json:
+    if _as_str(payload.get("body")).strip():
+        raise MessagingApplyError("invalid_payload", "plaintext_body_forbidden", {"tx_type": "DIRECT_MESSAGE_SEND"})
+    if _pick(payload, "cid", "content_cid", "ipfs_cid"):
+        raise MessagingApplyError("invalid_payload", "plaintext_cid_forbidden", {"tx_type": "DIRECT_MESSAGE_SEND"})
+
+    scheme = _as_str(payload.get("encryption")).strip()
+    if scheme != "WEALL_E2EE_V1":
+        raise MessagingApplyError("invalid_payload", "e2ee_required", {"expected": "WEALL_E2EE_V1"})
+
+    ciphertext_b64 = _as_str(payload.get("ciphertext_b64")).strip()
+    iv_b64 = _as_str(payload.get("iv_b64")).strip()
+    sender_key_id = _as_str(payload.get("sender_encryption_key_id")).strip()
+    recipient_key_id = _as_str(payload.get("recipient_encryption_key_id")).strip()
+    if not ciphertext_b64 or not iv_b64 or not sender_key_id or not recipient_key_id:
+        raise MessagingApplyError("invalid_payload", "missing_encrypted_message_fields", {})
+    if len(ciphertext_b64) > 262144:
+        raise MessagingApplyError("invalid_payload", "ciphertext_too_large", {"max_b64_bytes": 262144})
+
+    return {
+        "scheme": scheme,
+        "ciphertext_b64": ciphertext_b64,
+        "iv_b64": iv_b64,
+        "aad_b64": _as_str(payload.get("aad_b64")).strip(),
+        "sender_encryption_key_id": sender_key_id,
+        "recipient_encryption_key_id": recipient_key_id,
+        "sender_encryption_public_jwk": _validate_public_jwk(payload.get("sender_encryption_public_jwk"), "sender_encryption_public_jwk"),
+        "recipient_encryption_public_jwk": _validate_public_jwk(payload.get("recipient_encryption_public_jwk"), "recipient_encryption_public_jwk"),
+    }
+
 def _ensure_inbox(m: Json, acct: str) -> Json:
     inbox = m["inbox_by_account"].get(acct)
     if not isinstance(inbox, dict):
@@ -207,12 +262,7 @@ def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
     if not to:
         raise MessagingApplyError("invalid_payload", "missing_recipient", {"tx_type": env.tx_type})
 
-    body = _as_str(payload.get("body"))
-    cid = _pick(payload, "cid", "content_cid", "ipfs_cid")
-    if not body and not cid:
-        raise MessagingApplyError(
-            "invalid_payload", "missing_body_or_cid", {"tx_type": env.tx_type}
-        )
+    encrypted = _encrypted_envelope(payload)
 
     # thread_id is optional; deterministic default for 1:1
     thread_id = _pick(payload, "thread_id")
@@ -240,19 +290,28 @@ def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
         thread["last_message_at_nonce"] = int(env.nonce)
         m["threads_by_id"][thread_id] = thread
 
-        # write message
+        # write encrypted message envelope only; plaintext never enters consensus state.
         messages[message_id] = {
             "message_id": message_id,
             "thread_id": thread_id,
             "sender": sender,
             "to": to,
-            "body": body,
-            "cid": cid,
+            "body": "",
+            "cid": "",
+            "encrypted": True,
+            "encryption": encrypted,
             "created_at_nonce": int(env.nonce),
             "redacted": False,
             "redacted_at_nonce": 0,
             "redact_reason": "",
-            "payload": payload,
+            "payload": {
+                "to": to,
+                "thread_id": thread_id,
+                "message_id": message_id,
+                "encryption": encrypted["scheme"],
+                "sender_encryption_key_id": encrypted["sender_encryption_key_id"],
+                "recipient_encryption_key_id": encrypted["recipient_encryption_key_id"],
+            },
         }
 
         # update inboxes
@@ -313,9 +372,11 @@ def _apply_direct_message_redact(state: Json, env: TxEnvelope) -> Json:
     if reason:
         rec["redact_reason"] = reason
 
-    # For privacy, wipe body on redact; keep cid only if you want (here we wipe both)
+    # For privacy, wipe visible and encrypted content on redact.
     rec["body"] = ""
     rec["cid"] = ""
+    rec["encrypted"] = False
+    rec["encryption"] = {}
 
     # retain raw payload for traceability
     rec["redact_payload"] = payload

@@ -1,8 +1,8 @@
 # WeAll Constitutional Traceability Map — Draft 2
 
-Status: draft audit reference.
+Status: genesis-bound draft commitment with partial enforcement.
 
-This document maps the WeAll Genesis Constitution Draft 2 to protocol surfaces that future recursive audits must inspect. The Constitution is a normative design reference until it is explicitly bound into genesis state by protocol code.
+This document maps the WeAll Genesis Constitution Draft 2 to protocol surfaces that future recursive audits must inspect. The Constitution Draft 2 is now hash-bound in the canonical production chain manifest and exposed through chain/status identity surfaces; many constitutional protections remain implementation targets until the linked code/tests enforce them end-to-end.
 
 ## Audit classification
 
@@ -47,14 +47,14 @@ When the Constitution states a right or principle not yet enforced in code, recu
 
 ## Immediate implementation gaps to track
 
-1. The Constitution is present as a draft reference, but it is not yet bound into genesis state by hash.
-2. The active constitution hash/version is not yet exposed in `/v1/status` or operator status surfaces.
-3. Constitutional amendment transaction types and amendment history roots are not yet implemented.
+1. The Constitution Draft 2 document is hash-bound in `configs/chains/weall-genesis.json` through `constitution_hash` and `constitution_version`.
+2. The active constitution commitment is exposed in `/v1/status`, `/v1/chain/identity`, and `/v1/chain/genesis` as an auditable commitment, not as a claim that every article is fully enforced.
+3. Constitutional amendment transaction types, protected rights-floor checks, and amendment history roots are not yet implemented.
 4. Healthy node access is partially implemented and should continue to mature into multi-node comparison and switching.
 5. Constitutional review of protocol upgrades, tx canon changes, PoH threshold changes, and role authority changes should be added before public governance activation.
 
 ## Batch 428 scope
 
-Batch 428 adds the Constitution and traceability map as source-controlled audit references and introduces a frontend healthy-node connection manager MVP. It does not yet make the Constitution protocol-enforced genesis law.
+Batch 428 added the Constitution and traceability map as source-controlled audit references and introduced a frontend healthy-node connection manager MVP. Batch 430 binds Draft 2 into the canonical production chain manifest and status surfaces. It still does not implement amendment txs, emergency-power limits, or the full protected rights floor.
 
 Audit keyword: constitutional amendment tx types.

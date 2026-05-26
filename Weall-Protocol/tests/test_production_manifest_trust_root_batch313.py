@@ -30,6 +30,10 @@ def _manifest_obj(*, tx_index_hash: str, authority_key: str = "c" * 64, profile_
         "genesis_state_root": "b" * 64,
         "tx_index_hash": tx_index_hash,
         "protocol_profile_hash": profile_hash,
+        "constitution_version": "draft-2",
+        "constitution_hash": "f" * 64,
+        "constitution_traceability_hash": "1" * 64,
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
         "authority_snapshot_version": 1,
         "trusted_authority_pubkeys": [authority_key],
     }

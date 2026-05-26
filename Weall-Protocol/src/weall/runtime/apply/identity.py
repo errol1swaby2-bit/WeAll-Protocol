@@ -194,6 +194,14 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         # API security expects accounts[acct]["session_keys"][session_key] dicts.
         "session_keys": {},
     }
+    encryption_pub = p.get("messaging_encryption_public_jwk")
+    encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
+    if isinstance(encryption_pub, dict) and encryption_pub:
+        accounts[signer]["security_policy"] = {
+            "messaging_encryption_public_jwk": dict(encryption_pub),
+            "messaging_encryption_key_id": encryption_key_id,
+            "messaging_encryption_scheme": "WEALL_E2EE_V1",
+        }
     _sync_account_key_views(accounts[signer])
     return state
 
@@ -600,6 +608,13 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
             policy[key] = bool(p.get(key))
     if p.get("session_ttl_s") is not None:
         policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
+    encryption_pub = p.get("messaging_encryption_public_jwk")
+    if isinstance(encryption_pub, dict) and encryption_pub:
+        policy["messaging_encryption_public_jwk"] = dict(encryption_pub)
+        policy["messaging_encryption_scheme"] = "WEALL_E2EE_V1"
+    encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
+    if encryption_key_id:
+        policy["messaging_encryption_key_id"] = encryption_key_id
 
     a["security_policy"] = policy
     a["nonce"] = exp

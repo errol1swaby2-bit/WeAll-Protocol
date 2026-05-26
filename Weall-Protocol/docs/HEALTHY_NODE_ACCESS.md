@@ -58,3 +58,7 @@ Future recursive audits should verify:
 - Chain/profile mismatches are surfaced before switching.
 - Account/session identity remains local and unchanged by node switching.
 - User copy avoids implying that a node owns or controls the account.
+
+## Batch 430 fail-closed rule
+
+For normal users, the switch button must only be shown for candidate nodes classified as `healthy` and compatible with the expected chain identity. A reachable node with a missing `chain_id`, missing `tx_index_hash`, missing `protocol_profile_hash`, mismatched `tx_index_hash`, or mismatched `protocol_profile_hash` is not a safe equivalent access node. It may be shown for diagnostics, but normal switching must remain blocked.

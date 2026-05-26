@@ -43,6 +43,10 @@ class ChainManifest:
     genesis_state_root: str
     tx_index_hash: str
     protocol_profile_hash: str
+    constitution_version: str
+    constitution_hash: str
+    constitution_traceability_hash: str
+    constitution_document_path: str
     authority_snapshot_version: int
     trusted_authority_pubkeys: tuple[str, ...]
     raw: Json
@@ -221,6 +225,10 @@ def load_chain_manifest(
         genesis_state_root=str(obj.get("genesis_state_root") or "").strip().lower(),
         tx_index_hash=str(obj.get("tx_index_hash") or "").strip().lower(),
         protocol_profile_hash=str(obj.get("protocol_profile_hash") or "").strip().lower(),
+        constitution_version=str(obj.get("constitution_version") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("version") or "").strip(),
+        constitution_hash=str(obj.get("constitution_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("hash") or "").strip().lower(),
+        constitution_traceability_hash=str(obj.get("constitution_traceability_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("traceability_hash") or "").strip().lower(),
+        constitution_document_path=str(obj.get("constitution_document_path") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("document_path") or "").strip(),
         authority_snapshot_version=_safe_int(obj.get("authority_snapshot_version"), 1),
         trusted_authority_pubkeys=_normalized_pubkeys(obj),
         raw=dict(obj),
@@ -274,6 +282,10 @@ def _manifest_summary(manifest: ChainManifest | None) -> Json:
         "genesis_state_root": manifest.genesis_state_root,
         "tx_index_hash": manifest.tx_index_hash,
         "protocol_profile_hash": manifest.protocol_profile_hash,
+        "constitution_version": manifest.constitution_version,
+        "constitution_hash": manifest.constitution_hash,
+        "constitution_traceability_hash": manifest.constitution_traceability_hash,
+        "constitution_document_path": manifest.constitution_document_path,
         "authority_snapshot_version": manifest.authority_snapshot_version,
         "trusted_authority_pubkeys_count": len(manifest.trusted_authority_pubkeys),
         "manifest_hash": manifest.manifest_hash,
@@ -343,6 +355,15 @@ def chain_manifest_issues(
             issues.append("chain_manifest_protocol_profile_hash_unpinned")
         elif manifest.protocol_profile_hash and not _is_hex_string(manifest.protocol_profile_hash, length=64):
             issues.append("chain_manifest_protocol_profile_hash_invalid")
+
+        if is_placeholder(manifest.constitution_version):
+            issues.append("chain_manifest_constitution_version_unpinned")
+        if is_placeholder(manifest.constitution_hash):
+            issues.append("chain_manifest_constitution_hash_unpinned")
+        elif not _is_hex_string(manifest.constitution_hash, length=64):
+            issues.append("chain_manifest_constitution_hash_invalid")
+        if manifest.constitution_traceability_hash and not _is_hex_string(manifest.constitution_traceability_hash, length=64):
+            issues.append("chain_manifest_constitution_traceability_hash_invalid")
 
         if not manifest.trusted_authority_pubkeys:
             issues.append("chain_manifest_trusted_authority_pubkeys_missing")

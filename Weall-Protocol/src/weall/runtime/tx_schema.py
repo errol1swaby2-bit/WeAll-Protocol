@@ -24,6 +24,8 @@ class _StrictModel(BaseModel):
 
 class AccountRegisterPayload(_StrictModel):
     pubkey: str = Field(..., min_length=1)
+    messaging_encryption_public_jwk: Json | None = None
+    messaging_encryption_key_id: str | None = Field(default=None, min_length=1)
 
 
 class AccountKeyAddPayload(_StrictModel):
@@ -73,6 +75,8 @@ class AccountSecurityPolicySetPayload(_StrictModel):
     lock_on_recovery_request: bool | None = None
     session_ttl_s: int | None = Field(default=None, ge=0)
     require_guardian_threshold_for_unlock: bool | None = None
+    messaging_encryption_public_jwk: Json | None = None
+    messaging_encryption_key_id: str | None = Field(default=None, min_length=1)
 
 
 class AccountLockPayload(_StrictModel):
@@ -500,12 +504,17 @@ class DirectMessageSendPayload(_StrictModel):
         min_length=1,
         validation_alias=AliasChoices("to", "recipient", "to_account", "account_id"),
     )
-    body: str | None = None
-    cid: str | None = Field(
-        default=None,
-        min_length=1,
-        validation_alias=AliasChoices("cid", "content_cid", "ipfs_cid"),
-    )
+    # Batch 430+: direct messages are end-to-end encrypted at the client.
+    # Plaintext body/cid fields are intentionally rejected so consensus state and
+    # backend APIs never become the readable message store.
+    encryption: str = Field(..., min_length=1)
+    ciphertext_b64: str = Field(..., min_length=1)
+    iv_b64: str = Field(..., min_length=1)
+    aad_b64: str | None = Field(default=None, min_length=1)
+    sender_encryption_public_jwk: Json
+    recipient_encryption_public_jwk: Json
+    sender_encryption_key_id: str = Field(..., min_length=1)
+    recipient_encryption_key_id: str = Field(..., min_length=1)
     thread_id: str | None = Field(default=None, min_length=1)
     message_id: str | None = Field(
         default=None,
@@ -514,9 +523,13 @@ class DirectMessageSendPayload(_StrictModel):
     )
 
     @model_validator(mode="after")
-    def _require_body_or_cid(self) -> "DirectMessageSendPayload":
-        if not (self.body or self.cid):
-            raise ValueError("body or cid is required")
+    def _require_encrypted_payload(self) -> "DirectMessageSendPayload":
+        if str(self.encryption or "").strip() != "WEALL_E2EE_V1":
+            raise ValueError("DIRECT_MESSAGE_SEND requires WEALL_E2EE_V1 encryption")
+        if not isinstance(self.sender_encryption_public_jwk, dict) or not self.sender_encryption_public_jwk:
+            raise ValueError("sender encryption public key is required")
+        if not isinstance(self.recipient_encryption_public_jwk, dict) or not self.recipient_encryption_public_jwk:
+            raise ValueError("recipient encryption public key is required")
         return self
 
 

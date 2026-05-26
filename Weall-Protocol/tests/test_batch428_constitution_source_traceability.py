@@ -64,7 +64,7 @@ def test_constitutional_traceability_maps_articles_to_protocol_surfaces() -> Non
         assert surface.lower() in lowered
 
 
-def test_constitution_is_marked_draft_not_protocol_enforced_law() -> None:
+def test_constitution_traceability_distinguishes_binding_from_full_enforcement() -> None:
     text = TRACEABILITY.read_text(encoding="utf-8")
-    assert "not yet bound into genesis state by hash" in text
-    assert "does not yet make the Constitution protocol-enforced genesis law" in text
+    assert "hash-bound in the canonical production chain manifest" in text
+    assert "does not implement amendment txs" in text

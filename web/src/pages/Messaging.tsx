@@ -8,6 +8,14 @@ import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { nav } from "../lib/router";
+import { WEALL_API_BASE_CHANGED_EVENT } from "../lib/nodeConnectionManager";
+import {
+  accountMessagingKeyId,
+  accountMessagingPublicJwk,
+  decryptDirectMessage,
+  encryptDirectMessage,
+  ensureMessagingEncryptionIdentity,
+} from "../lib/messageCrypto";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -30,6 +38,8 @@ type MessageRecord = {
   to: string;
   body: string;
   cid?: string;
+  encrypted?: boolean;
+  encryption?: Record<string, any>;
   created_at_nonce: number;
   redacted?: boolean;
 };
@@ -65,6 +75,8 @@ function normalizeMessage(raw: any): MessageRecord {
     to: String(rec.to || rec.recipient || "").trim(),
     body: String(rec.body || ""),
     cid: String(rec.cid || "").trim() || undefined,
+    encrypted: !!rec.encrypted,
+    encryption: rec.encryption && typeof rec.encryption === "object" ? rec.encryption : undefined,
     created_at_nonce: Number(rec.created_at_nonce || 0),
     redacted: !!rec.redacted,
   };
@@ -82,8 +94,11 @@ function normalizeThread(raw: any): ThreadRecord {
   };
 }
 
-function messageText(message: MessageRecord): string {
+function messageText(message: MessageRecord, decryptedBodies?: Record<string, string>): string {
   if (message.redacted) return "This message was removed by the sender.";
+  const decrypted = decryptedBodies?.[message.message_id];
+  if (decrypted) return decrypted;
+  if (message.encrypted) return "Encrypted message — decrypting on this device…";
   if (message.body.trim()) return message.body.trim();
   if (message.cid) return `Attached message content: ${message.cid}`;
   return "No message text.";
@@ -111,7 +126,7 @@ function defaultThreadId(account: string, recipient: string): string {
 }
 
 export default function Messaging({ mode = "hub", threadId = "" }: { mode?: MessagingMode; threadId?: string }): JSX.Element {
-  const apiBase = useMemo(() => getApiBaseUrl(), []);
+  const [apiBase, setApiBaseState] = useState<string>(() => getApiBaseUrl());
   const session = getSession();
   const account = session ? normalizeAccount(session.account) : "";
   const canSign = account ? !!getKeypair(account)?.secretKeyB64 : false;
@@ -128,6 +143,8 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [lastMessageRefreshMs, setLastMessageRefreshMs] = useState<number>(0);
+  const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({});
+  const [encryptionBusy, setEncryptionBusy] = useState<boolean>(false);
   const loadingMessagesRef = useRef<boolean>(false);
 
   const gate = checkGates({ loggedIn: !!account, canSign, accountState: acctState, requireTier: 1 });
@@ -204,6 +221,16 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   }
 
   useEffect(() => {
+    const onBaseChanged = () => setApiBaseState(getApiBaseUrl());
+    window.addEventListener(WEALL_API_BASE_CHANGED_EVENT, onBaseChanged as EventListener);
+    window.addEventListener("storage", onBaseChanged);
+    return () => {
+      window.removeEventListener(WEALL_API_BASE_CHANGED_EVENT, onBaseChanged as EventListener);
+      window.removeEventListener("storage", onBaseChanged);
+    };
+  }, []);
+
+  useEffect(() => {
     void loadMessages();
   }, [account, apiBase, threadId]);
 
@@ -231,7 +258,85 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     : [];
   const selectedRecipient = selectedThread ? otherMembers(selectedThread, account) : "";
   const selectedReplyRecipient = selectedThread ? otherMemberAccount(selectedThread, account) : "";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function decryptSelected(): Promise<void> {
+      if (!account || selectedMessages.length === 0) {
+        setDecryptedBodies({});
+        return;
+      }
+      const next: Record<string, string> = {};
+      for (const message of selectedMessages) {
+        if (!message.encrypted || !message.encryption || message.redacted) continue;
+        try {
+          next[message.message_id] = await decryptDirectMessage({
+            viewer: account,
+            sender: message.sender,
+            recipient: message.to,
+            encryption: message.encryption,
+          });
+        } catch {
+          next[message.message_id] = "Encrypted message — this device does not have the matching messaging key.";
+        }
+      }
+      if (!cancelled) setDecryptedBodies(next);
+    }
+    void decryptSelected();
+    return () => {
+      cancelled = true;
+    };
+  }, [account, selectedMessages.map((m) => m.message_id).join("|"), selectedMessages.length]);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
+  const localMessagingPublicJwk = acctState ? accountMessagingPublicJwk(acctState) : null;
+  const localMessagingKeyId = acctState ? accountMessagingKeyId(acctState) : "";
+  const messagingEncryptionReady = !!localMessagingPublicJwk && !!localMessagingKeyId;
+
+  async function publishMessagingEncryptionKey(): Promise<void> {
+    if (!account) {
+      setErr({ msg: "Sign in before enabling encrypted messages.", details: null });
+      return;
+    }
+    if (!gate.ok) {
+      setErr({ msg: gate.reason || "Messages require account verification before enabling encryption.", details: null });
+      return;
+    }
+    setEncryptionBusy(true);
+    setErr(null);
+    try {
+      const identity = await ensureMessagingEncryptionIdentity(account);
+      const currentPolicy = asRecord(acctState?.security_policy);
+      const policy = {
+        ...currentPolicy,
+        messaging_encryption_public_jwk: identity.publicJwk,
+        messaging_encryption_key_id: identity.keyId,
+        messaging_encryption_scheme: "WEALL_E2EE_V1",
+      };
+      await tx.runTx({
+        title: "Enable encrypted messages",
+        pendingKey: txPendingKey(["message-encryption", account, identity.keyId]),
+        pendingMessage: "Publishing your messaging encryption public key…",
+        successMessage: "Encrypted messaging key published.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (raw: any) => raw?.result?.tx_id || raw?.tx_id,
+        task: () => submitSignedTx({
+          account,
+          tx_type: "ACCOUNT_SECURITY_POLICY_SET",
+          payload: {
+            policy,
+            messaging_encryption_public_jwk: identity.publicJwk,
+            messaging_encryption_key_id: identity.keyId,
+          },
+          base: apiBase,
+        }),
+      });
+      await refreshMutationSlices(loadMessages, refreshAccountContext);
+    } catch (e: any) {
+      setErr(prettyErr(e));
+    } finally {
+      setEncryptionBusy(false);
+    }
+  }
 
   async function sendMessage(args?: { to?: string; messageBody?: string; thread_id?: string; afterThread?: string }): Promise<void> {
     setErr(null);
@@ -244,8 +349,23 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       if (!messageBody) throw new Error("Write a message first.");
       if (signerSubmission.busy) throw new Error("Another signed action is still settling for this account.");
 
-      const payload: Record<string, string> = { to, body: messageBody };
-      if (args?.thread_id) payload.thread_id = args.thread_id;
+      if (!messagingEncryptionReady) {
+        throw new Error("Enable encrypted messages for your account before sending.");
+      }
+      const recipientAccount: any = await weall.account(to, apiBase);
+      const recipientPublicJwk = accountMessagingPublicJwk(recipientAccount?.state);
+      const recipientKeyId = accountMessagingKeyId(recipientAccount?.state);
+      if (!recipientPublicJwk) {
+        throw new Error("This recipient has not published a messaging encryption key yet.");
+      }
+      const payload = await encryptDirectMessage({
+        sender: account,
+        recipient: to,
+        plaintext: messageBody,
+        recipientPublicJwk,
+        recipientKeyId,
+        threadId: args?.thread_id,
+      });
 
       const res = await tx.runTx({
         title: args?.thread_id ? "Send reply" : "Send message",
@@ -335,7 +455,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
             <div>
               <div className="eyebrow">Compose</div>
               <h2 className="cardTitle">Send a direct message</h2>
-              <div className="cardDesc">Choose one person and send a direct message. The backend remains authoritative for every send.</div>
+              <div className="cardDesc">Choose one person and send an end-to-end encrypted direct message. The backend commits only encrypted ciphertext and never receives plaintext.</div>
             </div>
             <button className="btn" onClick={() => nav("/messages")}>Back to chats</button>
           </div>
@@ -355,7 +475,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
           </label>
           {!gate.ok ? <div className="calloutInfo">{gate.reason || "Complete account verification before sending messages."}</div> : null}
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !recipient.trim() || !body.trim() || signerSubmission.busy}>
+            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !messagingEncryptionReady || !recipient.trim() || !body.trim() || signerSubmission.busy}>
               {signerSubmission.busy ? "Waiting…" : "Send message"}
             </button>
             {account ? <button className="btn" onClick={() => setRecipient(account)}>Message myself for demo</button> : null}
@@ -440,7 +560,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
               <div key={message.message_id} className={`messageBubbleRow ${message.sender === account ? "mine" : "theirs"}`}>
                 <div className="messageBubble">
                   <div className="messageBubbleSender">{message.sender === account ? "You" : message.sender}</div>
-                  <div>{messageText(message)}</div>
+                  <div>{messageText(message, decryptedBodies)}</div>
                   <div className="messageBubbleMeta mono">{message.message_id}</div>
                 </div>
               </div>
@@ -457,7 +577,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
               <button
                 className="btn btnPrimary"
                 onClick={() => void sendMessage({ to: selectedReplyRecipient, messageBody: replyBody, thread_id: selectedThread.thread_id, afterThread: selectedThread.thread_id })}
-                disabled={!gate.ok || !replyBody.trim() || signerSubmission.busy}
+                disabled={!gate.ok || !messagingEncryptionReady || !replyBody.trim() || signerSubmission.busy}
               >
                 {signerSubmission.busy ? "Waiting…" : "Send reply"}
               </button>
@@ -474,6 +594,21 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
 
       <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void refreshMutationSlices(loadMessages, refreshAccountContext)} />
       {renderNoSession()}
+
+      {account && !messagingEncryptionReady ? (
+        <section className="card">
+          <div className="cardBody formStack">
+            <div className="calloutWarn">
+              <strong>Encrypted messaging key required.</strong> Direct messages are end-to-end encrypted. Publish this device's messaging public key before sending or reading encrypted conversations on this account.
+            </div>
+            <div className="buttonRow">
+              <button className="btn btnPrimary" onClick={() => void publishMessagingEncryptionKey()} disabled={!gate.ok || encryptionBusy || signerSubmission.busy}>
+                {encryptionBusy ? "Publishing…" : "Enable encrypted messages"}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {mode === "compose" ? renderCompose() : null}
       {mode === "thread" ? renderThread() : null}

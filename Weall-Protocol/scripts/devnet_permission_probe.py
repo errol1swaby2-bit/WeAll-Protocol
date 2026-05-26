@@ -156,7 +156,19 @@ def probe_payload(tx_type: str, *, account: str, suffix: str) -> Json:
     if tx == "BALANCE_TRANSFER":
         return {"to_account_id": "@permission_probe_sink", "amount": 1, "memo": f"probe:{s}"}
     if tx == "DIRECT_MESSAGE_SEND":
-        return {"to_account_id": "@permission_probe_sink", "body": f"permission probe {s}"}
+        jwk_a = {"kty": "EC", "crv": "P-256", "x": "probe_sender_x", "y": "probe_sender_y", "ext": True}
+        jwk_b = {"kty": "EC", "crv": "P-256", "x": "probe_recipient_x", "y": "probe_recipient_y", "ext": True}
+        return {
+            "to": "@permission_probe_sink",
+            "encryption": "WEALL_E2EE_V1",
+            "ciphertext_b64": "cGVybWlzc2lvbi1wcm9iZS1jaXBoZXJ0ZXh0",
+            "iv_b64": "MTIzNDU2Nzg5MDEy",
+            "aad_b64": "cGVybWlzc2lvbi1wcm9iZS1hYWQ=",
+            "sender_encryption_public_jwk": jwk_a,
+            "recipient_encryption_public_jwk": jwk_b,
+            "sender_encryption_key_id": "msgenc:permission-probe-sender",
+            "recipient_encryption_key_id": "msgenc:permission-probe-recipient",
+        }
     if tx == "GROUP_CREATE":
         return {"group_id": f"grp-permission-probe-{s}", "charter": "Permission probe group."}
     if tx == "CONTENT_REACTION_SET":

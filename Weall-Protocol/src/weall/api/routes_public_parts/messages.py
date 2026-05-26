@@ -67,6 +67,7 @@ def _message_summary(raw: Any, *, viewer: str) -> Json:
     redacted = bool(rec.get("redacted", False))
     body = "" if redacted else str(rec.get("body") or "")
     cid = "" if redacted else str(rec.get("cid") or "").strip()
+    encryption = _as_dict(rec.get("encryption")) if not redacted else {}
     out: Json = {
         "message_id": str(rec.get("message_id") or rec.get("id") or "").strip(),
         "thread_id": str(rec.get("thread_id") or "").strip(),
@@ -74,6 +75,8 @@ def _message_summary(raw: Any, *, viewer: str) -> Json:
         "to": to,
         "body": body,
         "cid": cid,
+        "encrypted": bool(rec.get("encrypted", False)) and not redacted,
+        "encryption": encryption,
         "created_at_nonce": _safe_int(rec.get("created_at_nonce"), 0),
         "redacted": redacted,
     }
