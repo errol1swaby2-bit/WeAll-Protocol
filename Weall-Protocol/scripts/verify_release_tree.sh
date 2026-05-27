@@ -67,6 +67,59 @@ check_web_dir_absent() {
 }
 
 
+check_web_package_script_targets() {
+  if [[ ! -d "$WEB_ROOT" ]]; then
+    echo "[verify] OK: no outer web tree present for package script target check"
+    return
+  fi
+  if [[ ! -f "$WEB_ROOT/package.json" ]]; then
+    echo "[verify] OK: no outer web package.json present for package script target check"
+    return
+  fi
+
+  local missing
+  missing="$(WEB_ROOT="$WEB_ROOT" python3 - <<'PY'
+from __future__ import annotations
+
+import json
+import os
+import shlex
+from pathlib import Path
+
+root = Path(os.environ["WEB_ROOT"])
+pkg = json.loads((root / "package.json").read_text(encoding="utf-8"))
+scripts = pkg.get("scripts") if isinstance(pkg.get("scripts"), dict) else {}
+missing: list[str] = []
+
+for name, cmd in sorted(scripts.items()):
+    if not isinstance(cmd, str):
+        continue
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        tokens = cmd.split()
+    for token in tokens:
+        if not token.startswith("scripts/"):
+            continue
+        if not token.endswith((".js", ".mjs", ".cjs", ".sh")):
+            continue
+        target = root / token
+        if not target.is_file():
+            missing.append(f"{name}:{token}")
+
+for item in missing:
+    print(item)
+PY
+)"
+  if [[ -n "$missing" ]]; then
+    echo "[verify] FAIL: missing outer web package script targets"
+    echo "$missing"
+    fail=1
+  else
+    echo "[verify] OK: outer web package script targets exist"
+  fi
+}
+
 check_secret_tree_safe() {
   if [[ ! -d "secrets" ]]; then
     echo "[verify] OK: no secrets directory present"
@@ -99,6 +152,7 @@ check_dir_absent 'dist' 'frontend dist directories'
 check_web_path_absent '*.tsbuildinfo' 'outer web TypeScript build info files'
 check_web_dir_absent 'node_modules' 'outer web node_modules directories'
 check_web_dir_absent 'dist' 'outer web dist directories'
+check_web_package_script_targets
 check_dir_absent '.provider-cli' 'provider local state directories'
 check_path_absent '.env' '.env files'
 check_path_absent '.env.local' '.env.local files'

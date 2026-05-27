@@ -22,6 +22,8 @@ import time
 from dataclasses import dataclass
 
 from weall.runtime.executor_boot import build_executor
+from weall.runtime.chain_manifest import load_chain_manifest
+from weall.runtime.constitutional_clock import policy_from_manifest
 
 
 class ProducerLifecycleError(RuntimeError):
@@ -65,9 +67,18 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _load_cfg() -> ProducerConfig:
-    interval_ms = _env_int("WEALL_PRODUCER_INTERVAL_MS", 20_000)
+    try:
+        manifest = load_chain_manifest(required=False, mode=_mode())
+    except Exception:
+        manifest = None
+    clock_policy = policy_from_manifest(manifest)
+    if clock_policy.enabled:
+        interval_ms = int(clock_policy.target_block_interval_ms)
+        allow_empty = bool(clock_policy.empty_blocks_enabled)
+    else:
+        interval_ms = _env_int("WEALL_PRODUCER_INTERVAL_MS", 20_000)
+        allow_empty = _env_bool("WEALL_PRODUCER_ALLOW_EMPTY", False)
     max_txs = _env_int("WEALL_PRODUCER_MAX_TXS", 1000)
-    allow_empty = _env_bool("WEALL_PRODUCER_ALLOW_EMPTY", False)
 
     if interval_ms < 50:
         raise SystemExit("WEALL_PRODUCER_INTERVAL_MS too small; must be >= 50ms")

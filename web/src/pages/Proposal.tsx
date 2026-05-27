@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import ProcedureTimeline from "../components/ProcedureTimeline";
 import { getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
@@ -21,6 +22,7 @@ import {
   reconcileProposalVote,
   reconcileProposalWithdrawal,
 } from "../lib/governance";
+import { currentProcedureHeight, proposalDeadlineHeight, targetBlockIntervalMs } from "../lib/procedureClock";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Decision action failed.");
@@ -396,6 +398,11 @@ export default function Proposal({ id }: Props): JSX.Element {
   });
   const readiness = actionReadinessLabel({ stage, canVote, canEdit, canWithdraw });
   const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
+  const procedureCurrentHeight = currentProcedureHeight(proposal);
+  const procedureDeadlineHeight = proposalDeadlineHeight(proposal);
+  const procedureIntervalMs = targetBlockIntervalMs(proposal);
+  const proposalVersions = Array.isArray(proposal?.versions) ? proposal.versions : [];
+  const proposalComments = Array.isArray(proposal?.comments) ? proposal.comments : [];
 
   return (
     <div className="pageStack pageNarrow detailPage proposalDetailPage">
@@ -455,6 +462,34 @@ export default function Proposal({ id }: Props): JSX.Element {
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)} onDismiss={() => setErr(null)} />
       <ErrorBanner message={voteErr?.msg} details={voteErr?.details} onDismiss={() => setVoteErr(null)} />
       <ErrorBanner message={adminErr?.msg} details={adminErr?.details} onDismiss={() => setAdminErr(null)} />
+
+
+      <ProcedureTimeline
+        title="Decision timeline"
+        stage={stage}
+        currentHeight={procedureCurrentHeight}
+        deadlineHeight={procedureDeadlineHeight}
+        targetBlockIntervalMs={procedureIntervalMs}
+        nextAction={voteHelp}
+      >
+        <div className="summaryCardGrid">
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Frozen voting version</div>
+            <div className="summaryCardValue mono">{Number(proposal?.frozen_version || 0) || "not frozen"}</div>
+            <div className="summaryCardText">Voters should only vote on the frozen proposal text once voting opens.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Version history</div>
+            <div className="summaryCardValue mono">{proposalVersions.length || 1}</div>
+            <div className="summaryCardText">Revisions are retained so deliberation cannot become a bait-and-switch.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Deliberation comments</div>
+            <div className="summaryCardValue mono">{proposalComments.length}</div>
+            <div className="summaryCardText">Comments are protocol-visible input before final voting.</div>
+          </article>
+        </div>
+      </ProcedureTimeline>
 
       <section className="detailFocusStrip">
         <article className="detailFocusCard">

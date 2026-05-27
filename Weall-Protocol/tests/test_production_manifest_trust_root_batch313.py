@@ -34,6 +34,18 @@ def _manifest_obj(*, tx_index_hash: str, authority_key: str = "c" * 64, profile_
         "constitution_hash": "f" * 64,
         "constitution_traceability_hash": "1" * 64,
         "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "genesis_time_ms": 0,
+        "constitutional_clock": {
+            "enabled": True,
+            "target_block_interval_ms": 20000,
+            "empty_blocks_enabled": True,
+            "procedure_time_source": "finalized_block_height",
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "no_fast_forward": True,
+            "no_height_skip": True,
+            "allowed_clock_skew_ms": 2000,
+            "genesis_time_ms": 0,
+        },
         "authority_snapshot_version": 1,
         "trusted_authority_pubkeys": [authority_key],
     }

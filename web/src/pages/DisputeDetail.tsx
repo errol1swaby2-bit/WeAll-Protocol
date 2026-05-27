@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import ProcedureTimeline from "../components/ProcedureTimeline";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
@@ -22,6 +23,7 @@ import {
 } from "../lib/disputeSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
+import { currentProcedureHeight, disputeDeadlineHeight, targetBlockIntervalMs } from "../lib/procedureClock";
 
 function prettyErr(e: any): { msg: string; details: any } {
   return actionableTxError(e, "Report action failed.");
@@ -163,6 +165,10 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const contentBody = String(contentObj?.body || contentObj?.text || "").trim();
   const contentAuthor = String(contentObj?.author || "").trim();
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
+  const disputeProcedureHeight = currentProcedureHeight(dispute);
+  const disputeDeadline = disputeDeadlineHeight(dispute);
+  const disputeIntervalMs = targetBlockIntervalMs(dispute);
+  const appealCount = Array.isArray(dispute?.appeals) ? dispute.appeals.length : 0;
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
@@ -227,6 +233,29 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)} />
 
       {signerSubmission.busy ? <div className="calloutInfo">Another signed action is still settling. Review actions stay read-only until the current action finishes.</div> : null}
+
+
+      <ProcedureTimeline
+        title="Review and appeal timeline"
+        stage={String(dispute?.stage || "open")}
+        currentHeight={disputeProcedureHeight}
+        deadlineHeight={disputeDeadline}
+        targetBlockIntervalMs={disputeIntervalMs}
+        nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
+      >
+        <div className="summaryCardGrid">
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Appeal deadline</div>
+            <div className="summaryCardValue mono">{Number(dispute?.appeal_deadline_height || 0) || "—"}</div>
+            <div className="summaryCardText">Serious outcomes remain reviewable until this block when appeal mode is active.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Appeals filed</div>
+            <div className="summaryCardValue mono">{appealCount}</div>
+            <div className="summaryCardText">Appeal records are backend state, not frontend-only notes.</div>
+          </article>
+        </div>
+      </ProcedureTimeline>
 
       <section className="detailFocusStrip">
         <article className="detailFocusCard">

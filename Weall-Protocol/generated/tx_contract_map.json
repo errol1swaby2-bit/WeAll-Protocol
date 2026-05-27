@@ -1049,6 +1049,20 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
+      "tx_type": "GOV_PROPOSAL_COMMENT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "governance"
+      ],
+      "context": "mempool",
+      "domain": "Governance",
+      "handler": "governance",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
       "tx_type": "GOV_PROPOSAL_CREATE"
     },
     {
@@ -3222,8 +3236,8 @@
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 230,
-  "single_claim_count": 230,
-  "tx_count": 230,
+  "schema_covered_count": 231,
+  "single_claim_count": 231,
+  "tx_count": 231,
   "unclaimed_count": 0
 }

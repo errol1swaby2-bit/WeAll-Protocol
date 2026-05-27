@@ -47,6 +47,8 @@ class ChainManifest:
     constitution_hash: str
     constitution_traceability_hash: str
     constitution_document_path: str
+    genesis_time_ms: int
+    constitutional_clock: Json
     authority_snapshot_version: int
     trusted_authority_pubkeys: tuple[str, ...]
     raw: Json
@@ -229,6 +231,8 @@ def load_chain_manifest(
         constitution_hash=str(obj.get("constitution_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("hash") or "").strip().lower(),
         constitution_traceability_hash=str(obj.get("constitution_traceability_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("traceability_hash") or "").strip().lower(),
         constitution_document_path=str(obj.get("constitution_document_path") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("document_path") or "").strip(),
+        genesis_time_ms=_safe_int(obj.get("genesis_time_ms"), 0),
+        constitutional_clock=dict(obj.get("constitutional_clock") if isinstance(obj.get("constitutional_clock"), dict) else {}),
         authority_snapshot_version=_safe_int(obj.get("authority_snapshot_version"), 1),
         trusted_authority_pubkeys=_normalized_pubkeys(obj),
         raw=dict(obj),
@@ -286,6 +290,8 @@ def _manifest_summary(manifest: ChainManifest | None) -> Json:
         "constitution_hash": manifest.constitution_hash,
         "constitution_traceability_hash": manifest.constitution_traceability_hash,
         "constitution_document_path": manifest.constitution_document_path,
+        "genesis_time_ms": manifest.genesis_time_ms,
+        "constitutional_clock": dict(manifest.constitutional_clock),
         "authority_snapshot_version": manifest.authority_snapshot_version,
         "trusted_authority_pubkeys_count": len(manifest.trusted_authority_pubkeys),
         "manifest_hash": manifest.manifest_hash,
@@ -364,6 +370,28 @@ def chain_manifest_issues(
             issues.append("chain_manifest_constitution_hash_invalid")
         if manifest.constitution_traceability_hash and not _is_hex_string(manifest.constitution_traceability_hash, length=64):
             issues.append("chain_manifest_constitution_traceability_hash_invalid")
+
+        clock = manifest.constitutional_clock if isinstance(manifest.constitutional_clock, dict) else {}
+        if profile_required:
+            if not clock:
+                issues.append("chain_manifest_constitutional_clock_missing")
+            elif bool(clock.get("enabled")):
+                try:
+                    interval = int(clock.get("target_block_interval_ms") or 0)
+                except Exception:
+                    interval = 0
+                if interval != 20_000:
+                    issues.append("chain_manifest_constitutional_clock_interval_not_20000")
+                if not bool(clock.get("empty_blocks_enabled")):
+                    issues.append("chain_manifest_constitutional_clock_empty_blocks_disabled")
+                if str(clock.get("procedure_time_source") or "") != "finalized_block_height":
+                    issues.append("chain_manifest_constitutional_clock_source_invalid")
+                if str(clock.get("block_time_derivation") or "") != "genesis_time_plus_height_times_interval":
+                    issues.append("chain_manifest_constitutional_clock_derivation_invalid")
+                if not bool(clock.get("no_fast_forward", True)):
+                    issues.append("chain_manifest_constitutional_clock_fast_forward_allowed")
+                if not bool(clock.get("no_height_skip", True)):
+                    issues.append("chain_manifest_constitutional_clock_height_skip_allowed")
 
         if not manifest.trusted_authority_pubkeys:
             issues.append("chain_manifest_trusted_authority_pubkeys_missing")

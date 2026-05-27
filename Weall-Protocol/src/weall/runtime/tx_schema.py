@@ -1117,7 +1117,16 @@ class GovProposalEditPayload(_StrictModel):
     body: str | None = None
     rules: Json | None = None
     actions: list[Json] | None = None
+    reason: str | None = None
+    revision_reason: str | None = None
     due_height: int | None = Field(default=None, ge=0, alias="_due_height")
+
+
+class GovProposalCommentPayload(_StrictModel):
+    proposal_id: str = Field(..., min_length=1)
+    body: str | None = None
+    comment: str | None = None
+    comment_id: str | None = None
 
 
 class GovProposalWithdrawPayload(_StrictModel):
@@ -2034,6 +2043,7 @@ TX_PAYLOADS: dict[str, Any] = {
     "GOV_PROPOSAL_CREATE": GovProposalCreatePayload,
     "GOV_VOTE_CAST": GovVoteCastPayload,
     "GOV_PROPOSAL_EDIT": GovProposalEditPayload,
+    "GOV_PROPOSAL_COMMENT": GovProposalCommentPayload,
     "GOV_PROPOSAL_WITHDRAW": GovProposalWithdrawPayload,
     "GOV_STAGE_SET": GovStageSetPayload,
     "GOV_QUORUM_SET": GovQuorumSetPayload,

@@ -10,8 +10,20 @@
   "constitution_hash": "ba271fc6a70aad1c16e7d0f55b58bb14db7050f3898cdfc277762ce94cf16d1e",
   "constitution_traceability_hash": "d59ac5b1f74976c693011e5ed4350d0864cd3a2f7af1df002b3e0eb578ddfcc4",
   "constitution_version": "draft-2",
+  "constitutional_clock": {
+    "allowed_clock_skew_ms": 2000,
+    "block_time_derivation": "genesis_time_plus_height_times_interval",
+    "empty_blocks_enabled": true,
+    "enabled": true,
+    "genesis_time_ms": 0,
+    "no_fast_forward": true,
+    "no_height_skip": true,
+    "procedure_time_source": "finalized_block_height",
+    "target_block_interval_ms": 20000
+  },
   "genesis_hash": "309ef919aa5d3d2610f22fd687b2c0c7fe9939fa6c87cf1b61a12f0028cb158f",
   "genesis_state_root": "309ef919aa5d3d2610f22fd687b2c0c7fe9939fa6c87cf1b61a12f0028cb158f",
+  "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",
   "notes": "Pinned production chain identity. Private keys must never be committed or included in observer bundles.",
@@ -21,6 +33,6 @@
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "9b812b2d7436468313d18d3c0bf4a9efb9c4ddf248d2d08c0cf8bf6412f78137",
+  "tx_index_hash": "5f5735d60bfeed6b45a2f36485cb5cd68e0a4f0efafdc1d3d4df37b674d74b3d",
   "version": 1
 }

@@ -7,6 +7,8 @@ import time
 from dataclasses import dataclass, replace
 
 from weall.runtime.metrics import inc_counter, set_gauge
+from weall.runtime.chain_manifest import load_chain_manifest
+from weall.runtime.constitutional_clock import policy_from_manifest
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 from weall.runtime.runtime_authority import effective_bft_enabled, strict_runtime_authority_mode
 
@@ -59,9 +61,18 @@ def _mode() -> str:
 def block_loop_config_from_env() -> BlockLoopConfig:
     validate_runtime_consensus_profile()
     enabled = _env_bool("WEALL_BLOCK_LOOP_ENABLED", True)
-    interval_ms = _env_int("WEALL_BLOCK_INTERVAL_MS", 20_000)
+    try:
+        _manifest = load_chain_manifest(required=False, mode=_mode())
+    except Exception:
+        _manifest = None
+    _clock_policy = policy_from_manifest(_manifest)
+    if _clock_policy.enabled:
+        interval_ms = int(_clock_policy.target_block_interval_ms)
+        produce_empty = bool(_clock_policy.empty_blocks_enabled)
+    else:
+        interval_ms = _env_int("WEALL_BLOCK_INTERVAL_MS", 20_000)
+        produce_empty = _env_bool("WEALL_PRODUCE_EMPTY_BLOCKS", False)
     interval_ms = max(250, int(interval_ms))
-    produce_empty = _env_bool("WEALL_PRODUCE_EMPTY_BLOCKS", False)
     lock_path = os.environ.get("WEALL_BLOCK_LOOP_LOCK_PATH", "./data/block_loop.lock")
     max_block_txs = _env_int("WEALL_BLOCK_MAX_TXS", 1000)
     max_block_txs = max(1, int(max_block_txs))
@@ -193,8 +204,10 @@ def _bft_view_from_executor(executor) -> int:
 class BlockProducerLoop:
     """Internal block producer loop.
 
-    Legacy mode:
-      - produces blocks from mempool at interval.
+    Constitutional clock mode:
+      - ticks at the manifest-pinned interval and attempts heartbeat production.
+      - the previous idle-skip legacy path is intentionally removed so
+        proposal/dispute deadlines cannot freeze when there are no user txs.
 
     BFT mode (HotStuff rollout):
       - leader-only proposal logic
@@ -397,27 +410,20 @@ class BlockProducerLoop:
                 continue
 
             # --------------------------
-            # Legacy mode: produce blocks
+            # Constitutional heartbeat mode: always attempt production on the
+            # pinned cadence.  The executor remains the authority and may return
+            # a no-op, but this loop no longer skips idle ticks locally.
             # --------------------------
-            try:
-                m = int(self._mempool.size())
-            except Exception:
-                m = 0
-            try:
-                a = int(self._att_pool.size())
-            except Exception:
-                a = 0
-
-            if (m <= 0 and a <= 0) and (not self._cfg.produce_empty_blocks):
-                continue
-
             try:
                 if hasattr(self._executor, "produce_block_from_pools"):
                     self._executor.produce_block_from_pools(
                         mempool=self._mempool, attestation_pool=self._att_pool
                     )
                 else:
-                    self._executor.produce_block(max_txs=int(self._cfg.max_block_txs))
+                    self._executor.produce_block(
+                        max_txs=int(self._cfg.max_block_txs),
+                        allow_empty=bool(self._cfg.produce_empty_blocks),
+                    )
                 inc_counter("block_loop_produce_ok_total", 1)
                 self._clear_error()
             except Exception as err:

@@ -50,7 +50,7 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 
 This backend snapshot is synchronized at:
 
-- **Transaction canon:** 230 tx types, version 1.25.0
+- **Transaction canon:** 231 tx types, version 1.25.0
 - **Latest full backend test checkpoint:** 2,789 passed, 1 warning
 
 
@@ -163,7 +163,7 @@ To scrub local runtime artifacts before packaging or pushing:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
 - Latest full backend test checkpoint: **2789 passed, 1 warning**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.

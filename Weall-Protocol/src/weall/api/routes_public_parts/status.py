@@ -10,6 +10,7 @@ from fastapi import APIRouter, Request
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
 from weall.runtime.constitution import active_constitution_commitment
+from weall.runtime.constitutional_clock import policy_from_manifest, policy_from_state, policy_to_json, procedure_height as constitutional_procedure_height
 from weall.runtime.state_hash import compute_state_root
 from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
@@ -714,6 +715,14 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "",
     )
     constitution = active_constitution_commitment()
+    try:
+        manifest_for_clock = load_chain_manifest(required=False, mode=str(os.environ.get("WEALL_MODE", "") or ""))
+    except Exception:
+        manifest_for_clock = None
+    clock_policy = policy_from_manifest(manifest_for_clock)
+    if not clock_policy.enabled:
+        clock_policy = policy_from_state(state if isinstance(state, dict) else {})
+    constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
     return {
         "ok": True,
         "service": "weall-node",
@@ -728,6 +737,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
         "constitution": constitution,
+        "constitutional_clock": constitutional_clock,
     }
 
 
@@ -1001,6 +1011,10 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         chain_manifest = None
     raw_manifest = chain_manifest.raw if chain_manifest is not None else None
     constitution = active_constitution_commitment(raw_manifest)
+    clock_policy = policy_from_manifest(chain_manifest)
+    if not clock_policy.enabled:
+        clock_policy = policy_from_state(state if isinstance(state, dict) else {})
+    constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
     chain_manifest_report = chain_manifest_status(
         manifest=chain_manifest,
         chain_id=chain_id,
@@ -1046,6 +1060,7 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
         "chain_manifest": chain_manifest_report,
         "constitution": constitution,
+        "constitutional_clock": constitutional_clock,
         "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
         "protocol_version": _safe_str(meta.get("protocol_version"), ""),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
@@ -1101,6 +1116,7 @@ def chain_genesis(request: Request) -> dict[str, Any]:
         "tx_index_hash": ident["tx_index_hash"],
         "chain_manifest": ident.get("chain_manifest", {"enabled": False}),
         "constitution": ident.get("constitution", {}),
+        "constitutional_clock": ident.get("constitutional_clock", {"enabled": False}),
         "production_consensus_profile_hash": ident["production_consensus_profile_hash"],
         "protocol_profile_hash": ident["protocol_profile_hash"],
         "genesis_bootstrap": ident["genesis_bootstrap"],

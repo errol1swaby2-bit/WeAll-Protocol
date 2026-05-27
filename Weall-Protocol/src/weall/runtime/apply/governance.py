@@ -469,6 +469,56 @@ def _ensure_root(state: Json) -> dict[str, Any]:
     return root
 
 
+def _proposal_versions(pr: dict[str, Any]) -> list[dict[str, Any]]:
+    versions = pr.get("versions")
+    if not isinstance(versions, list):
+        versions = []
+        pr["versions"] = versions
+    if not versions:
+        versions.append({
+            "version": 1,
+            "title": _s(pr.get("title")),
+            "body": _s(pr.get("body")),
+            "actions": list(pr.get("actions") if isinstance(pr.get("actions"), list) else []),
+            "created_by": _s(pr.get("creator")),
+            "created_at_height": _i(pr.get("created_at_height"), 0),
+            "revision_reason": "initial proposal",
+        })
+        pr["current_version"] = 1
+    return versions
+
+
+def _append_proposal_version(pr: dict[str, Any], *, signer: str, title: str, body: str, actions: list[dict[str, Any]], height: int, reason: str = "") -> int:
+    versions = _proposal_versions(pr)
+    next_v = max([_i(v.get("version"), 0) for v in versions if isinstance(v, dict)] + [0]) + 1
+    versions.append({
+        "version": int(next_v),
+        "title": str(title),
+        "body": str(body),
+        "actions": list(actions),
+        "created_by": str(signer),
+        "created_at_height": int(height),
+        "revision_reason": str(reason or "proposal revision"),
+    })
+    pr["versions"] = versions
+    pr["current_version"] = int(next_v)
+    return int(next_v)
+
+
+def _freeze_current_proposal_version(pr: dict[str, Any], *, height: int) -> None:
+    _proposal_versions(pr)
+    cur = _i(pr.get("current_version"), 0) or 1
+    if _i(pr.get("frozen_version"), 0) <= 0:
+        pr["frozen_version"] = int(cur)
+        pr["frozen_at_height"] = int(height)
+
+
+def _constitutional_clock_enabled(state: Json) -> bool:
+    meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
+    clock = meta.get("constitutional_clock") if isinstance(meta, dict) else {}
+    return isinstance(clock, dict) and bool(clock.get("enabled"))
+
+
 def _proposal(root: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     pr = root.get(proposal_id)
     if not isinstance(pr, dict):
@@ -708,11 +758,16 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     h = _height_hint(state, env)
 
     # Spec lifecycle: Draft → Poll → Revision → Validation → Vote → Execution.
-    # Backward compatibility: allow rules.start_stage="voting" to preserve older flows.
     raw_start_stage = _s(rules.get("start_stage") if isinstance(rules, dict) else "").strip().lower()
     start_stage = raw_start_stage or "draft"
     if start_stage not in {"draft", "poll", "revision", "validation", "voting", "vote"}:
         start_stage = "draft"
+    if _constitutional_clock_enabled(state) and actions and start_stage in {"voting", "vote"}:
+        raise ApplyError(
+            "forbidden",
+            "constitutional_proposal_must_deliberate_before_voting",
+            {"proposal_id": proposal_id, "requested_stage": start_stage},
+        )
 
     proposal_electorate_seed = {"creator": str(env.signer), "actions": actions}
     eligible_validators = _proposal_eligible_validator_ids(state, proposal_electorate_seed)
@@ -745,6 +800,21 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         # then close/tally explicitly; those paths must not be silently finalized
         # by the apply function after the first threshold-sized vote set.
         "auto_progress_enabled": bool(raw_start_stage in {"poll", "voting", "vote"}),
+        "comments": [],
+        "versions": [
+            {
+                "version": 1,
+                "title": _s(p.get("title")).strip(),
+                "body": _s(p.get("body")).strip(),
+                "actions": list(actions),
+                "created_by": str(env.signer),
+                "created_at_height": int(h),
+                "revision_reason": "initial proposal",
+            }
+        ],
+        "current_version": 1,
+        "frozen_version": 1 if start_stage in {"voting", "vote"} else 0,
+        "frozen_at_height": int(h) if start_stage in {"voting", "vote"} else 0,
         "tallies": [],
         "poll_tallies": [],
         "executions": [],
@@ -813,8 +883,49 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
             )
 
     h = _height_hint(state, env)
+    if stg in {"draft", "revision"}:
+        _append_proposal_version(
+            pr,
+            signer=str(env.signer),
+            title=_s(pr.get("title")),
+            body=_s(pr.get("body")),
+            actions=[a for a in list(pr.get("actions") if isinstance(pr.get("actions"), list) else []) if isinstance(a, dict)],
+            height=int(h),
+            reason=_s(p.get("revision_reason") or p.get("reason") or "proposal edit"),
+        )
     pr["updated_at_height"] = int(h)
     return {"applied": True, "proposal_id": proposal_id}
+
+
+def _apply_gov_proposal_comment(state: Json, env: TxEnvelope) -> dict[str, Any]:
+    root = _ensure_root(state)
+    p = _d(env.payload)
+    proposal_id = _s(p.get("proposal_id")).strip()
+    body = _s(p.get("body") or p.get("comment")).strip()
+    if not proposal_id:
+        raise ApplyError("invalid_payload", "missing_proposal_id", {})
+    if not body:
+        raise ApplyError("invalid_payload", "missing_comment_body", {"proposal_id": proposal_id})
+    if len(body) > 4000:
+        raise ApplyError("invalid_payload", "comment_too_large", {"proposal_id": proposal_id})
+    pr = _proposal(root, proposal_id)
+    stg = _stage(pr)
+    if stg not in {"draft", "poll", "revision", "validation"}:
+        raise ApplyError("forbidden", "proposal_comment_window_closed", {"proposal_id": proposal_id, "stage": stg})
+    comments = pr.get("comments")
+    if not isinstance(comments, list):
+        comments = []
+        pr["comments"] = comments
+    h = _height_hint(state, env)
+    comment_id = _s(p.get("comment_id")).strip() or f"comment:{proposal_id}:{env.signer}:{int(env.nonce)}"
+    comments.append({
+        "comment_id": comment_id,
+        "by": str(env.signer),
+        "body": body,
+        "height": int(h),
+    })
+    pr["updated_at_height"] = int(h)
+    return {"applied": True, "proposal_id": proposal_id, "comment_id": comment_id}
 
 
 def _apply_gov_proposal_withdraw(state: Json, env: TxEnvelope) -> dict[str, Any]:
@@ -1195,8 +1306,10 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
             pr["revision_opened_at_height"] = h
         if stage == "validation" and int(_i(pr.get("validation_opened_at_height"), 0)) <= 0:
             pr["validation_opened_at_height"] = h
+            _freeze_current_proposal_version(pr, height=h)
         if stage in {"voting", "vote"} and int(_i(pr.get("voting_opened_at_height"), 0)) <= 0:
             pr["voting_opened_at_height"] = h
+            _freeze_current_proposal_version(pr, height=h)
 
         if "poll_tally" in p or "poll_total_votes" in p:
             pt = pr.get("poll_tallies")
@@ -1288,6 +1401,7 @@ def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
 _GOV_HANDLERS = {
     "GOV_PROPOSAL_CREATE": _apply_gov_proposal_create,
     "GOV_PROPOSAL_EDIT": _apply_gov_proposal_edit,
+    "GOV_PROPOSAL_COMMENT": _apply_gov_proposal_comment,
     "GOV_PROPOSAL_WITHDRAW": _apply_gov_proposal_withdraw,
     "GOV_VOTE_CAST": _apply_gov_vote_cast,
     "GOV_VOTE_REVOKE": _apply_gov_vote_revoke,

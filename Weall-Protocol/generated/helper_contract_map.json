@@ -2396,6 +2396,38 @@
       "requires_concrete_instance": false,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
+        "gov:proposal:anon:GOV_PROPOSAL_COMMENT"
+      ],
+      "tx_type": "GOV_PROPOSAL_COMMENT",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "gov:proposal:anon:GOV_PROPOSAL_COMMENT"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Governance",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "GOVERNANCE",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "GOVERNANCE",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
         "gov:proposal:anon:GOV_PROPOSAL_CREATE"
       ],
       "tx_type": "GOV_PROPOSAL_CREATE",
@@ -8008,7 +8040,7 @@
       "PARALLEL_ECONOMY": 12,
       "PARALLEL_IDENTITY": 39,
       "PARALLEL_SOCIAL": 3,
-      "SERIAL": 150
+      "SERIAL": 151
     },
     "family_counts": {
       "CASES": 3,
@@ -8016,7 +8048,7 @@
       "CONTENT": 15,
       "DISPUTE": 12,
       "ECONOMICS": 7,
-      "GOVERNANCE": 16,
+      "GOVERNANCE": 17,
       "GROUPS": 20,
       "IDENTITY": 18,
       "INDEXING": 8,
@@ -8043,9 +8075,9 @@
       "global_authority_placeholder": 28,
       "global_barrier": 18,
       "helper_parallel_allowed": 80,
-      "planner_serial": 76
+      "planner_serial": 77
     },
-    "tx_count": 230,
+    "tx_count": 231,
     "unknown_family_count": 0
   }
 }

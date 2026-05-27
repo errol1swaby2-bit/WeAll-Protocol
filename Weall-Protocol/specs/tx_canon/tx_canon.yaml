@@ -503,6 +503,13 @@ txs:
   gate: Tier2+
   context: mempool
   receipt_only: false
+- id: 405
+  name: GOV_PROPOSAL_COMMENT
+  domain: Governance
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
 - id: 402
   name: GOV_PROPOSAL_WITHDRAW
   domain: Governance

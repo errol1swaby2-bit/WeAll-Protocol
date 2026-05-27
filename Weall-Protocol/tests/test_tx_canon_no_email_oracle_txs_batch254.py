@@ -41,4 +41,4 @@ def test_generated_tx_index_count_is_225_after_external_identity_removal() -> No
     data = json.loads((ROOT / "generated/tx_index.json").read_text(encoding="utf-8"))
     by_name = data.get("by_name") or data.get("tx_types") or {}
     if isinstance(by_name, dict):
-        assert len(by_name) == 230
+        assert len(by_name) == 231

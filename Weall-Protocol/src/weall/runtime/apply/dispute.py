@@ -17,6 +17,7 @@ from typing import Any
 
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.system_tx_engine import enqueue_system_tx
+from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
 
 Json = dict[str, Any]
@@ -455,6 +456,18 @@ def _ensure_disputes(state: Json) -> Json:
     return _ensure_root_dict(state, "disputes_by_id")
 
 
+def _constitutional_clock_enabled(state: Json) -> bool:
+    return bool(policy_from_state(state).enabled)
+
+
+def _appeal_window_blocks(d: Json, *, default: int = 72) -> int:
+    rules = _as_dict(d.get("rules"))
+    try:
+        return max(1, int(d.get("appeal_window_blocks", rules.get("appeal_window_blocks", default))))
+    except Exception:
+        return int(default)
+
+
 def _get_dispute(state: Json, dispute_id: str) -> Json:
     disputes = _ensure_disputes(state)
     d = disputes.get(dispute_id)
@@ -757,9 +770,26 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     d["resolved"] = True
-    d["stage"] = "resolved"
     d["resolution"] = payload.get("resolution")
     d["resolved_at_nonce"] = int(env.nonce)
+
+    # Constitutional-clock testnet mode makes dispute finality appealable.
+    # The resolution/verdict is recorded now, but final receipt/enforcement is
+    # delayed until the deterministic appeal window closes or the appeal path
+    # is resolved. Legacy/dev flows keep the historical immediate final receipt.
+    constitutional_appeal_mode = _constitutional_clock_enabled(state)
+    if constitutional_appeal_mode:
+        try:
+            verdict_h = int(payload.get("_due_height") or state.get("height") or 0)
+        except Exception:
+            verdict_h = int(state.get("height", 0) or 0)
+        d["stage"] = "appeal_window"
+        d["verdict_at_height"] = int(verdict_h)
+        d["resolved_at_height"] = int(verdict_h)
+        d["appeal_window_blocks"] = int(_appeal_window_blocks(d))
+        d["appeal_deadline_height"] = int(verdict_h) + int(_appeal_window_blocks(d))
+    else:
+        d["stage"] = "resolved"
 
     # Enqueue follow-up enforcement receipts/actions.
     # Canon says DISPUTE_FINAL_RECEIPT and several enforcement txs have parent=DISPUTE_RESOLVE.
@@ -781,21 +811,23 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
         or f"tx:{env.signer}:{int(env.nonce)}"
     )
 
-    # 1) Always emit DISPUTE_FINAL_RECEIPT for audits.
-    enqueue_system_tx(
-        state,
-        tx_type="DISPUTE_FINAL_RECEIPT",
-        payload={
-            "dispute_id": dispute_id,
-            "resolution": payload.get("resolution") or {},
-            "_parent_ref": parent_ref,
-        },
-        due_height=due_height,
-        signer="SYSTEM",
-        once=True,
-        parent=parent_ref,
-        phase="post",
-    )
+    # 1) Emit DISPUTE_FINAL_RECEIPT immediately only in legacy/dev mode.
+    # Constitutional-clock mode delays final receipt until the appeal window closes.
+    if not constitutional_appeal_mode:
+        enqueue_system_tx(
+            state,
+            tx_type="DISPUTE_FINAL_RECEIPT",
+            payload={
+                "dispute_id": dispute_id,
+                "resolution": payload.get("resolution") or {},
+                "_parent_ref": parent_ref,
+            },
+            due_height=due_height,
+            signer="SYSTEM",
+            once=True,
+            parent=parent_ref,
+            phase="post",
+        )
 
     # 2) Optional enforcement actions. Apply content moderation actions inline so
     # the visible target state changes deterministically with dispute resolution,
@@ -805,7 +837,7 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     queued_actions: list[Json] = []
     if isinstance(res, dict):
         actions = res.get("actions")
-        if isinstance(actions, list):
+        if isinstance(actions, list) and not constitutional_appeal_mode:
             applied_actions = _apply_inline_content_enforcement(
                 state,
                 actions=[a for a in actions if isinstance(a, dict)],
@@ -850,10 +882,18 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    stage = _as_str(d.get("stage")).strip().lower()
+    if _constitutional_clock_enabled(state):
+        if stage not in {"appeal_window", "appealed", "appeal_review"}:
+            raise DisputeApplyError("forbidden", "appeal_window_not_open", {"dispute_id": dispute_id, "stage": stage})
+        deadline = int(d.get("appeal_deadline_height") or 0)
+        current_h = int(state.get("height", 0) or 0)
+        if deadline > 0 and current_h > deadline:
+            raise DisputeApplyError("forbidden", "appeal_window_closed", {"dispute_id": dispute_id, "deadline_height": deadline, "height": current_h})
     appeals = d.get("appeals")
     if not isinstance(appeals, list):
         appeals = []
-    appeals.append({"by": env.signer, "at_nonce": int(env.nonce), "payload": payload})
+    appeals.append({"by": env.signer, "at_nonce": int(env.nonce), "height": int(state.get("height", 0) or 0), "payload": payload})
     d["appeals"] = appeals
     d["stage"] = "appealed"
     return {"applied": "DISPUTE_APPEAL", "dispute_id": dispute_id}
@@ -872,6 +912,14 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
             "at_nonce": int(env.nonce),
             "payload": payload,
         }
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    if dispute_id:
+        try:
+            d = _get_dispute(state, dispute_id)
+            d["stage"] = "finalized"
+            d["finalized_at_nonce"] = int(env.nonce)
+        except Exception:
+            pass
     return {"applied": "DISPUTE_FINAL_RECEIPT", "receipt_id": rid, "receipt": True}
 
 

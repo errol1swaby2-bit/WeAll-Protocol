@@ -43,6 +43,17 @@ from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
 from weall.runtime.block_hash import compute_block_hash, compute_helper_execution_root, compute_receipts_root, ensure_block_hash, make_block_header
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.chain_config import load_chain_config
+from weall.runtime.chain_manifest import load_chain_manifest
+from weall.runtime.constitutional_clock import (
+    commit_clock_policy_to_state,
+    expected_block_time_ms,
+    is_too_early,
+    policy_from_manifest,
+    policy_to_json,
+    procedure_height as constitutional_procedure_height,
+)
+from weall.runtime.gov_engine import tick_governance_lifecycle
+from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import ApplyError, apply_tx_atomic_meta
 from weall.runtime.failpoints import maybe_trigger_failpoint
 from weall.runtime.mempool import PersistentMempool, compute_tx_id
@@ -2624,12 +2635,22 @@ class WeAllExecutor:
             )
 
         if allow_empty is None:
-            allow_empty = str(os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or "").strip().lower() in {
-                "1",
-                "true",
-                "yes",
-                "on",
-            }
+            try:
+                _clock_manifest = load_chain_manifest(
+                    required=False, mode=str(os.environ.get("WEALL_MODE", "") or "")
+                )
+            except Exception:
+                _clock_manifest = None
+            _clock_policy = policy_from_manifest(_clock_manifest)
+            if bool(_clock_policy.enabled):
+                allow_empty = bool(_clock_policy.empty_blocks_enabled)
+            else:
+                allow_empty = str(os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or "").strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                    "on",
+                }
 
         blk, st2, applied_ids, invalid_ids, err = self.build_block_candidate(
             max_txs=int(max_txs),
@@ -2688,15 +2709,35 @@ class WeAllExecutor:
         chain_floor_ms = self.chain_time_floor_ms()
         successor_ts_ms = max(1, int(chain_floor_ms) + 1)
 
-        if force_ts_ms is not None:
+        try:
+            _clock_manifest = load_chain_manifest(required=False, mode=str(os.environ.get("WEALL_MODE", "") or ""))
+        except Exception:
+            _clock_manifest = None
+        clock_policy = policy_from_manifest(_clock_manifest)
+        next_height_for_clock = int(height) + 1
+        if bool(clock_policy.enabled):
+            expected_ts_ms = expected_block_time_ms(clock_policy, height=next_height_for_clock)
+            if force_ts_ms is not None and int(force_ts_ms) != int(expected_ts_ms):
+                return None, None, [], [], "invalid_block_ts:not_constitutional_slot"
+            # The wall clock may only decide whether a producer is too early; it
+            # never decides procedure eligibility.  genesis_time_ms=0 is kept as
+            # a legacy/dev fixture value and intentionally disables real-time
+            # not-before gating until a launch manifest pins a real genesis time.
+            if int(getattr(clock_policy, "genesis_time_ms", 0) or 0) > 0 and is_too_early(
+                clock_policy, height=next_height_for_clock
+            ):
+                return None, None, [], [], "invalid_block_ts:before_constitutional_slot"
+            ts_ms = int(expected_ts_ms)
+        elif force_ts_ms is not None:
             ts_ms = int(force_ts_ms)
         else:
             ts_ms = successor_ts_ms
 
-        if ts_ms < successor_ts_ms:
-            return None, None, [], [], "invalid_block_ts:before_chain_floor"
-        if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
-            return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
+        if not bool(clock_policy.enabled):
+            if ts_ms < successor_ts_ms:
+                return None, None, [], [], "invalid_block_ts:before_chain_floor"
+            if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
+                return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
 
         runtime_selection_policy = _normalize_mempool_selection_policy(
             str(getattr(self._mempool, "selection_policy", lambda: "canonical")())
@@ -2728,6 +2769,8 @@ class WeAllExecutor:
             return None, None, [], [], "empty"
 
         working: Json = copy.deepcopy(self.state)
+        if bool(clock_policy.enabled):
+            commit_clock_policy_to_state(working, clock_policy)
 
         applied_ids: list[str] = []
         invalid_ids: list[str] = []
@@ -2772,6 +2815,8 @@ class WeAllExecutor:
             schedule_poh_live_system_txs(working, next_height=next_height)
             schedule_node_operator_system_txs(working, next_height=next_height)
             schedule_reputation_accrual_system_txs(working, next_height=next_height)
+            tick_governance_lifecycle(working, next_height=next_height)
+            tick_dispute_lifecycle(working, next_height=next_height)
         except Exception as exc:
             if _consensus_fail_closed():
                 return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -3021,6 +3066,15 @@ class WeAllExecutor:
             working["time"] = int(int(ts_ms) // 1000)
         except Exception:
             pass
+        if bool(clock_policy.enabled):
+            try:
+                meta_clock = working.get("meta") if isinstance(working.get("meta"), dict) else {}
+                meta_clock["constitutional_clock"] = policy_to_json(
+                    clock_policy, current_height=constitutional_procedure_height(working)
+                )
+                working["meta"] = meta_clock
+            except Exception:
+                pass
 
         # ------------------------------------------------------------
         # Verifiable randomness ("sig-VRF")

@@ -43,7 +43,7 @@ Current audited production profile:
 
 - protocol version: `2026.03-prod.6`
 - protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
-- transaction canon: `230 tx types, version 1.25.0`
+- transaction canon: `231 tx types, version 1.25.0`
 
 The production profile includes tx payload limits. Public validators must not
 change these through local environment drift; mismatched values are startup or
@@ -59,7 +59,7 @@ hash compatibility before signing.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
