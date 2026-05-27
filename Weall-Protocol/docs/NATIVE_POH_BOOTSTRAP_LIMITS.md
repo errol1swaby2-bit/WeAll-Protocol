@@ -29,3 +29,12 @@ Bootstrap grants must be:
 ## What this milestone should claim
 
 This milestone may claim that WeAll has a protocol-native PoH architecture and implementation path that does not require centralized identity infrastructure for primary verification. It should not claim that the reviewer set is already fully decentralized unless a live network transcript proves it.
+
+
+## Batch 437-446 bootstrap/live policy observability
+
+The status surface now exposes `testnet_readiness.poh`, derived from committed state, so reviewers can see whether bootstrap PoH is `closed`, `open`, `allowlist`, or invalid, whether open/allowlist windows are expired, whether active-validator quorum auto-locks bootstrap, and whether live PoH is using production quorum policy.
+
+For external testers, open bootstrap must be explicitly height-bounded with `poh_bootstrap_max_height`; allowlist bootstrap must be explicitly bounded with `bootstrap_expires_height`; production live PoH must not accept payload-level quorum weakening.
+
+Live verification room records store commitments only. Raw room/join URLs belong in access-controlled transport and must not appear in consensus state or public session responses.

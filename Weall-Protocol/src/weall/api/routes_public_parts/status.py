@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from fastapi import APIRouter, Request
 
+from weall.runtime.apply.poh import poh_bootstrap_policy_summary
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
 from weall.runtime.constitution import active_constitution_commitment
@@ -705,6 +706,53 @@ def _local_validator_signing_requested(state: Mapping[str, Any]) -> bool:
     return _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False) or _env_bool("WEALL_BFT_ENABLED", False)
 
 
+
+
+def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Expose safe/limited feature posture for external tester UIs/docs.
+
+    This endpoint data is not authority. It is a truthful status surface derived
+    from chain state so frontends and reviewer docs cannot make locked economics,
+    limited governance, or bootstrap PoH look more ready than they are.
+    """
+    params = state.get("params") if isinstance(state.get("params"), dict) else {}
+    gov = state.get("governance") if isinstance(state.get("governance"), dict) else {}
+    disputes = state.get("disputes") if isinstance(state.get("disputes"), dict) else {}
+    try:
+        economics_unlocked = bool(is_econ_unlocked(state if isinstance(state, dict) else {}))
+        economics_enabled = bool(econ_allowed_from_state(state if isinstance(state, dict) else {}))
+    except Exception:
+        economics_unlocked = False
+        economics_enabled = False
+    try:
+        poh_policy = poh_bootstrap_policy_summary(state if isinstance(state, dict) else {})
+    except Exception as exc:
+        poh_policy = {"valid": False, "mode": "invalid", "mode_error": str(exc)}
+
+    governance_mode = _safe_str(params.get("governance_mode") or gov.get("mode") or os.environ.get("WEALL_GOVERNANCE_TESTNET_MODE") or "limited_testnet", "limited_testnet")
+    dispute_mode = _safe_str(params.get("dispute_mode") or disputes.get("mode") or os.environ.get("WEALL_DISPUTE_TESTNET_MODE") or "limited_testnet", "limited_testnet")
+
+    return {
+        "external_observer_stage": "trusted_external_observer",
+        "governance": {
+            "mode": governance_mode,
+            "full_public_governance_ready": governance_mode in {"production", "public"},
+            "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete",
+        },
+        "disputes": {
+            "mode": dispute_mode,
+            "full_public_moderation_ready": dispute_mode in {"production", "public"},
+            "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete",
+        },
+        "economics": {
+            "unlocked": economics_unlocked,
+            "enabled": economics_enabled,
+            "locked": not economics_enabled,
+            "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
+        },
+        "poh": poh_policy,
+    }
+
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
@@ -723,6 +771,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
     if not clock_policy.enabled:
         clock_policy = policy_from_state(state if isinstance(state, dict) else {})
     constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
+    testnet_readiness = _testnet_readiness_payload(state if isinstance(state, dict) else {})
     return {
         "ok": True,
         "service": "weall-node",
@@ -738,6 +787,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "protocol_profile_hash": runtime_protocol_profile_hash(),
         "constitution": constitution,
         "constitutional_clock": constitutional_clock,
+        "testnet_readiness": testnet_readiness,
     }
 
 
@@ -757,7 +807,7 @@ def status(request: Request) -> dict[str, Any]:
     payload = shape["status_payload"]
     # Keep normal-user node compatibility fields on /v1/status so the frontend
     # can fail closed without relying on operator-only endpoints.
-    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "constitution"):
+    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "constitution", "constitutional_clock", "testnet_readiness"):
         if key in base:
             payload[key] = base[key]
     return payload
@@ -1069,6 +1119,7 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
             "mode": _safe_str(genesis_bootstrap.get("mode"), ""),
             "profile_hash": _safe_str(genesis_bootstrap.get("profile_hash"), ""),
         },
+        "testnet_readiness": _testnet_readiness_payload(state if isinstance(state, dict) else {}),
         "validator_epoch": _safe_int(epochs.get("current"), 0),
         "validator_set_hash": _safe_str(validator_set.get("set_hash"), ""),
     }

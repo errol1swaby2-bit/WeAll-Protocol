@@ -602,6 +602,50 @@ def _consensus_bootstrap_policy_mode(state: Json) -> str:
     return "closed"
 
 
+
+
+def poh_bootstrap_policy_summary(state: Json) -> Json:
+    """Return consensus-visible PoH bootstrap/live policy commitments.
+
+    This is read-only observability for status endpoints and tester gates. It
+    deliberately derives the policy from committed state instead of local env or
+    frontend flags, so external testers can see whether bootstrap identity is
+    closed, open-bounded, allowlist-bounded, or auto-locked by validator quorum.
+    """
+    params = state.get("params")
+    params = params if isinstance(params, dict) else {}
+    height = _as_int(state.get("height") or 0, 0)
+    auto_locked, auto_meta = _bootstrap_auto_locked_by_validator_quorum(state)
+    try:
+        mode = _consensus_bootstrap_policy_mode(state)
+        mode_error = ""
+    except ApplyError as exc:
+        mode = "invalid"
+        mode_error = str(getattr(exc, "reason", "bootstrap_policy_invalid") or "bootstrap_policy_invalid")
+
+    open_max_height = _as_int(params.get("poh_bootstrap_max_height") or 0, 0)
+    allowlist_expires_height = _as_int(params.get("bootstrap_expires_height") or 0, 0)
+    allowlist = params.get("bootstrap_allowlist")
+    allowlist_count = len(allowlist) if isinstance(allowlist, dict) else 0
+
+    return {
+        "mode": mode,
+        "valid": not bool(mode_error),
+        "mode_error": mode_error,
+        "open_enabled": _consensus_bootstrap_open_enabled(state),
+        "allowlist_enabled": _bootstrap_allowlist_enabled(params),
+        "open_max_height": open_max_height or None,
+        "open_expired": bool(mode == "open" and open_max_height > 0 and height > open_max_height),
+        "allowlist_expires_height": allowlist_expires_height or None,
+        "allowlist_expired": bool(mode == "allowlist" and allowlist_expires_height > 0 and height > allowlist_expires_height),
+        "allowlist_count": int(allowlist_count),
+        "auto_locked_by_validator_quorum": bool(auto_locked),
+        "auto_lock": auto_meta,
+        "live_policy_mode": _live_poh_policy_mode(state),
+        "production_live_quorum_required": _live_poh_production_mode(state),
+    }
+
+
 def _account_has_pubkey(acct: Json, pubkey: str) -> bool:
     """Return True if acct exposes pubkey in any supported active-key schema."""
     if not pubkey:
@@ -2166,6 +2210,13 @@ def apply_poh_live_session_init(state: Json, env: Any) -> Json:
         if not relay_commitment:
             relay_commitment = _sha256_hex(join_url.encode("utf-8"))
 
+    # Defense in depth for migrated/legacy states and future caller mistakes:
+    # consensus live-room records may expose commitments, never raw join URLs or
+    # one-time room links. The API sanitizes too, but apply-time state remains
+    # the primary authority.
+    for raw_key in ("join_url", "room_url", "relay_url", "meeting_url"):
+        case.pop(raw_key, None)
+
     status = _as_str(case.get("status") or "").strip().lower()
     if status not in ("requested", "open"):
         raise ApplyError("invalid_tx", "live_case_not_requested", {"case_id": case_id, "status": status})
@@ -2194,6 +2245,9 @@ def apply_poh_live_session_init(state: Json, env: Any) -> Json:
     session["started_ts_ms"] = _as_int(p.get("ts_ms") or 0)
     session["session_commitment"] = session_commitment
     session["relay_authority"] = "transport_only"
+    for raw_key in ("join_url", "room_url", "relay_url", "meeting_url"):
+        session.pop(raw_key, None)
+
     for key, value in (
         ("room_commitment", room_commitment),
         ("prompt_commitment", prompt_commitment),

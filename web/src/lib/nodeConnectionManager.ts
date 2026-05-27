@@ -15,6 +15,7 @@ export type NodeProbePhase = "healthy" | "syncing" | "incompatible" | "offline";
 
 export type NodeCompatibilityBaseline = {
   sourceBaseUrl?: string;
+  source?: "build" | "seed-manifest" | "current-node";
   chainId?: string;
   txIndexHash?: string;
   protocolProfileHash?: string;
@@ -121,6 +122,61 @@ function seedsFromPayload(payload: unknown): SeedNode[] {
   return candidates.map(seedFromUnknown).filter((x): x is SeedNode => !!x);
 }
 
+function baselineFromPayload(payload: unknown): NodeCompatibilityBaseline | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const rec = payload as Record<string, unknown>;
+  const compatibility = rec.compatibility && typeof rec.compatibility === "object" && !Array.isArray(rec.compatibility)
+    ? (rec.compatibility as Record<string, unknown>)
+    : {};
+  const manifest = rec.chain_manifest && typeof rec.chain_manifest === "object" && !Array.isArray(rec.chain_manifest)
+    ? (rec.chain_manifest as Record<string, unknown>)
+    : {};
+
+  const chainId = safeStr(rec.expected_chain_id || rec.chain_id || compatibility.chain_id || manifest.chain_id);
+  const txIndexHash = safeStr(rec.expected_tx_index_hash || rec.tx_index_hash || compatibility.tx_index_hash || manifest.tx_index_hash);
+  const protocolProfileHash = safeStr(
+    rec.expected_protocol_profile_hash || rec.protocol_profile_hash || compatibility.protocol_profile_hash || manifest.protocol_profile_hash,
+  );
+
+  if (!chainId && !txIndexHash && !protocolProfileHash) return null;
+  return {
+    source: "seed-manifest",
+    sourceBaseUrl: String(rec.source || rec.manifest_url || "seed-manifest"),
+    chainId,
+    txIndexHash,
+    protocolProfileHash,
+  };
+}
+
+export function buildConfiguredCompatibilityBaseline(): NodeCompatibilityBaseline | null {
+  const chainId = safeStr(config.expectedChainId);
+  const txIndexHash = safeStr(config.expectedTxIndexHash);
+  const protocolProfileHash = safeStr(config.expectedProtocolProfileHash);
+  if (!chainId && !txIndexHash && !protocolProfileHash) return null;
+  return {
+    source: "build",
+    sourceBaseUrl: "build-env",
+    chainId,
+    txIndexHash,
+    protocolProfileHash,
+  };
+}
+
+async function loadSeedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promise<NodeCompatibilityBaseline | null> {
+  const configured = String(seedsUrl || "").trim();
+  if (!configured) return null;
+  try {
+    const payload = await fetchJsonWithTimeout(configured, 2500);
+    return baselineFromPayload(payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function loadExpectedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promise<NodeCompatibilityBaseline | null> {
+  return buildConfiguredCompatibilityBaseline() || (await loadSeedCompatibilityBaseline(seedsUrl));
+}
+
 function dedupeSeeds(seeds: SeedNode[]): SeedNode[] {
   const seen = new Set<string>();
   const out: SeedNode[] = [];
@@ -224,6 +280,7 @@ export function buildCompatibilityBaseline(probes: NodeProbe[]): NodeCompatibili
   for (const probe of candidates) {
     if (probe.chainId || probe.txIndexHash || probe.protocolProfileHash) {
       return {
+        source: "current-node",
         sourceBaseUrl: probe.baseUrl,
         chainId: probe.chainId,
         txIndexHash: probe.txIndexHash,
@@ -354,8 +411,9 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
 export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise<NodeProbe[]> {
   const currentBase = displayBase(getApiBaseUrl());
   const seeds = await discoverCandidateNodes();
+  const explicitBaseline = await loadExpectedCompatibilityBaseline();
   const rawProbes = await Promise.all(seeds.map((seed) => probeNode(seed, { timeoutMs: opts?.timeoutMs, currentBase })));
-  const probes = applyCompatibilityBaseline(rawProbes);
+  const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);
   return probes.sort((a, b) => {
     if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
     return b.score - a.score || String(a.baseUrl).localeCompare(String(b.baseUrl));
@@ -386,6 +444,6 @@ export function nodePhaseLabel(phase: NodeProbePhase): string {
 export function nodePhaseHint(probe: NodeProbe): string {
   if (probe.phase === "healthy") return "This node is reachable, ready, and matches the expected chain/profile identity.";
   if (probe.phase === "syncing") return "This node is reachable but may still be catching up or missing readiness details.";
-  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, protocol profile hash, or required compatibility commitment is missing or different.";
+  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, protocol profile hash, or required compatibility commitment is missing or different from the pinned network identity.";
   return "This node could not be reached from this browser.";
 }

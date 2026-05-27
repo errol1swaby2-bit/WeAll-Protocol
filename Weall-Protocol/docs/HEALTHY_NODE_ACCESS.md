@@ -62,3 +62,16 @@ Future recursive audits should verify:
 ## Batch 430 fail-closed rule
 
 For normal users, the switch button must only be shown for candidate nodes classified as `healthy` and compatible with the expected chain identity. A reachable node with a missing `chain_id`, missing `tx_index_hash`, missing `protocol_profile_hash`, mismatched `tx_index_hash`, or mismatched `protocol_profile_hash` is not a safe equivalent access node. It may be shown for diagnostics, but normal switching must remain blocked.
+
+
+## Manifest-pinned compatibility baseline
+
+External/testnet web builds should pin the expected network identity from the published chain manifest instead of learning it from the first reachable/current node. The frontend supports build-pinned values through:
+
+- `VITE_WEALL_EXPECTED_CHAIN_ID`
+- `VITE_WEALL_EXPECTED_TX_INDEX_HASH`
+- `VITE_WEALL_EXPECTED_PROTOCOL_PROFILE_HASH`
+
+Seed JSON may also expose a top-level `compatibility` or `chain_manifest` object with `chain_id`, `tx_index_hash`, and `protocol_profile_hash`. If no build or seed-manifest baseline is present, the node manager may fall back to the current/reachable node for local development diagnostics only. A hosted external tester build should not rely on that fallback.
+
+Switching nodes changes only the browser API target. It must never change the user's account id, local signer, PoH status, roles, reputation, groups, messages, receipts, or governance rights; those remain backend/chain state.

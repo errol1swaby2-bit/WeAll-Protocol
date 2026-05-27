@@ -24,6 +24,12 @@ export type AppConfig = {
   defaultApiBase: string;
   // Where to fetch initial seed node list (JSON). If empty, node selection falls back to user list / configured base.
   seedsUrl: string;
+  // Optional build-pinned compatibility commitments. External/testnet builds should set these
+  // from the public chain manifest so the first reachable/current node cannot define the
+  // expected network identity for the user.
+  expectedChainId: string;
+  expectedTxIndexHash: string;
+  expectedProtocolProfileHash: string;
   // Dev-only manifest used to preload a local tester account/signer/session.
   devBootstrapManifestUrl: string;
 };
@@ -68,6 +74,9 @@ export const config: AppConfig = {
 
   // Default to same-origin /seeds.json so a static webfront can ship its own seed list.
   seedsUrl: env("VITE_WEALL_SEEDS_URL").trim() || "/seeds.json",
+  expectedChainId: env("VITE_WEALL_EXPECTED_CHAIN_ID").trim(),
+  expectedTxIndexHash: env("VITE_WEALL_EXPECTED_TX_INDEX_HASH").trim(),
+  expectedProtocolProfileHash: env("VITE_WEALL_EXPECTED_PROTOCOL_PROFILE_HASH").trim(),
   devBootstrapManifestUrl: env("VITE_WEALL_DEV_BOOTSTRAP_MANIFEST").trim() || "/dev-bootstrap.json",
 };
 

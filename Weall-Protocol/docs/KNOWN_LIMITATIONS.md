@@ -39,3 +39,16 @@ Observer-to-validator scripts and runbooks are readiness gates. They must not be
 ## Frontend boundary
 
 The frontend is not authority. Disabled buttons and capability messages are advisory. Direct API calls must still be rejected by backend gates. Production UI must avoid stale email, Cloudflare, CAPTCHA, OAuth, KYC, oracle, or inbox-control assumptions for primary verification.
+
+
+## Batch 437-446 remaining limits
+
+The next hardening batch adds explicit P0/P2 proof surfaces but does not convert the project into a public or multi-validator testnet. The safe claim after these checks pass is narrower:
+
+- a trusted external observer can prove local observer-only authority posture;
+- frontend node compatibility can be pinned to a manifest/build baseline;
+- bootstrap PoH policy is visible and bounded by committed state;
+- live-room API responses expose commitments, not raw join URLs;
+- status surfaces label governance/disputes/economics as limited or locked unless activation/enforcement rules prove otherwise.
+
+Public governance, public moderation, public economics, and multi-validator BFT remain separate milestones.

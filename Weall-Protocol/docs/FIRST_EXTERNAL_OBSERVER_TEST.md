@@ -101,3 +101,37 @@ These files are local tester artifacts and must not be committed, uploaded, or s
 
 A single trusted external observer-node tester is a **CONDITIONAL GO** only after this live gate passes and the resulting transaction statuses are archived privately by the operator.
 Multiple observer testers remain a **NO-GO** until one tester completes this gate and relay/rate-limit capacity checks are repeated under load.
+
+
+## Batch 437-446 external tester gates
+
+Before inviting the first trusted external observer tester, run the explicit authority-lock gate from the observer machine or observer runtime environment:
+
+```bash
+WEALL_CHAIN_MANIFEST_PATH=./configs/chains/weall-genesis.json \
+WEALL_OBSERVER_MODE=1 \
+WEALL_VALIDATOR_SIGNING_ENABLED=0 \
+WEALL_BFT_ENABLED=0 \
+WEALL_HELPER_MODE_ENABLED=0 \
+WEALL_BLOCK_LOOP_AUTOSTART=0 \
+bash scripts/external_observer_authority_lock_gate.sh
+```
+
+If the observer node is already booted, also pass its API base so the gate checks runtime status surfaces:
+
+```bash
+WEALL_API_BASE=https://observer.example.org \
+bash scripts/external_observer_authority_lock_gate.sh
+```
+
+A successful observer gate proves only this limited claim: the node is in observer posture, validator signing/BFT/helper authority/block-loop autostart are off, and no local validator/service authority role is requested. It does not promote the observer, prove multi-validator BFT, or activate economics.
+
+Transaction results must be read as a lifecycle, not a single success word:
+
+1. local validation accepted,
+2. observer outbox queued,
+3. upstream submitted,
+4. canonical node confirmed,
+5. visible from another healthy compatible node.
+
+Only step 4/5 should be described as committed on the shared test chain.

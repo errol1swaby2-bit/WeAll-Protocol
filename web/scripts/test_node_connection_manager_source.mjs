@@ -19,7 +19,14 @@ const required = [
   "expectedTxIndexHash",
   "expectedProtocolProfileHash",
   "compatibilitySourceBaseUrl",
-  "const probes = applyCompatibilityBaseline(rawProbes);",
+  "buildConfiguredCompatibilityBaseline",
+  "loadExpectedCompatibilityBaseline",
+  "baselineFromPayload",
+  "source: \"build\"",
+  "source: \"seed-manifest\"",
+  "source: \"current-node\"",
+  "const explicitBaseline = await loadExpectedCompatibilityBaseline();",
+  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);",
 ];
 
 for (const token of required) {
@@ -28,8 +35,9 @@ for (const token of required) {
 
 const expectedOrdering = [
   "const currentBase = displayBase(getApiBaseUrl());",
+  "const explicitBaseline = await loadExpectedCompatibilityBaseline();",
   "const rawProbes = await Promise.all",
-  "const probes = applyCompatibilityBaseline(rawProbes);",
+  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);",
   "return probes.sort",
 ];
 

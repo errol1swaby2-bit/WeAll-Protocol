@@ -892,8 +892,8 @@ class PohLiveSessionModel(BaseModel):
     device_pairing_commitment: str | None = None
     relay_commitment: str | None = None
     relay_authority: str | None = None
-    # Kept for response compatibility. New protocol-native Live state should
-    # expose commitments, not raw relay URLs.
+    # Kept as an always-null compatibility field so older clients do not break.
+    # Protocol-native Live state exposes commitments only, never raw relay URLs.
     join_url: str | None = None
 
 
@@ -927,7 +927,7 @@ def _as_live_session(session_id: str, r: dict[str, object]) -> PohLiveSessionMod
         device_pairing_commitment=str(r.get("device_pairing_commitment") or "").strip() or None,
         relay_commitment=str(r.get("relay_commitment") or "").strip() or None,
         relay_authority=str(r.get("relay_authority") or "").strip() or None,
-        join_url=str(r.get("join_url") or "").strip() or None,
+        join_url=None,
     )
 
 

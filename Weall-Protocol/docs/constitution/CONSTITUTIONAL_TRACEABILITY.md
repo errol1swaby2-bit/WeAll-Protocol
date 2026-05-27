@@ -58,3 +58,10 @@ When the Constitution states a right or principle not yet enforced in code, recu
 Batch 428 added the Constitution and traceability map as source-controlled audit references and introduced a frontend healthy-node connection manager MVP. Batch 430 binds Draft 2 into the canonical production chain manifest and status surfaces. It still does not implement amendment txs, emergency-power limits, or the full protected rights floor.
 
 Audit keyword: constitutional amendment tx types.
+
+
+## Batch 437-446 traceability hardening
+
+The normal `/v1/status` and chain identity surfaces expose the active constitution commitment together with a `testnet_readiness` object. That object intentionally labels governance, disputes, economics, and PoH as limited/locked/open/allowlisted/production-quorum where applicable so frontend and reviewer copy cannot turn constitutional intent into an overclaim.
+
+This still does not mean all Articles I-XV are fully enforced. Emergency powers, constitutional amendment transactions, unamendable rights-floor review, and full public-governance due-process guarantees remain implementation targets unless separately proven by code/tests.
