@@ -190,6 +190,7 @@ export default function Proposal({ id }: Props): JSX.Element {
 
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
+  const [commentBody, setCommentBody] = useState("");
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -275,7 +276,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
-          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
+          mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: tx_type },
           reconcile: async () => {
             if (tx_type === "GOV_PROPOSAL_WITHDRAW") return reconcileProposalWithdrawal({ proposalId: pid, base });
             if (tx_type === "GOV_PROPOSAL_EDIT") return reconcileProposalEdit({ proposalId: pid, title: payload?.title, body: payload?.body, base });
@@ -359,6 +360,21 @@ export default function Proposal({ id }: Props): JSX.Element {
     await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawn.");
   }
 
+  async function submitProposalComment(): Promise<void> {
+    const body = commentBody.trim();
+    if (!body) {
+      setAdminErr({ msg: "Write a deliberation comment before submitting.", details: null });
+      return;
+    }
+    await doTx(
+      "GOV_PROPOSAL_COMMENT",
+      { proposal_id: pid, body },
+      "Add deliberation comment",
+      "Deliberation comment recorded.",
+    );
+    setCommentBody("");
+  }
+
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
   const finalVotes = asVoteMap(proposalVotes?.votes ?? proposal?.votes);
 
@@ -403,6 +419,8 @@ export default function Proposal({ id }: Props): JSX.Element {
   const procedureIntervalMs = targetBlockIntervalMs(proposal);
   const proposalVersions = Array.isArray(proposal?.versions) ? proposal.versions : [];
   const proposalComments = Array.isArray(proposal?.comments) ? proposal.comments : [];
+  const commentWindowOpen = ["draft", "poll", "revision", "validation"].includes(stage);
+  const canComment = gate.ok && commentWindowOpen && !signerBusy;
 
   return (
     <div className="pageStack pageNarrow detailPage proposalDetailPage">
@@ -490,6 +508,77 @@ export default function Proposal({ id }: Props): JSX.Element {
           </article>
         </div>
       </ProcedureTimeline>
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Deliberation</div>
+              <h2 className="cardTitle">Comments and revisions</h2>
+            </div>
+            <div className="statusSummary">
+              <span className={`statusPill ${commentWindowOpen ? "ok" : ""}`}>{commentWindowOpen ? "Comments open" : "Comments closed"}</span>
+            </div>
+          </div>
+          <div className="cardDesc">
+            Comments are signed protocol-visible input before the frozen voting version. The backend decides whether the comment window is open.
+          </div>
+
+          <label className="fieldLabel">
+            Add deliberation comment
+            <textarea
+              rows={4}
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+              placeholder="Share a concern, suggested wording, or reason this decision should be revised before voting."
+              disabled={!commentWindowOpen || signerBusy}
+            />
+          </label>
+          <div className="buttonRow">
+            <button className="btn btnPrimary" onClick={() => void submitProposalComment()} disabled={!canComment || !commentBody.trim()}>
+              Submit comment
+            </button>
+            {!gate.ok ? <span className="statusPill warn">{gate.reason || "Live verification required"}</span> : null}
+            {!commentWindowOpen ? <span className="statusPill warn">Comment window closed for stage: {stage}</span> : null}
+          </div>
+
+          <div className="grid2">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Deliberation comments</div>
+              {proposalComments.length > 0 ? (
+                <div className="pageStack">
+                  {proposalComments.map((comment: any, idx: number) => (
+                    <div key={String(comment?.comment_id || idx)} className="infoCard">
+                      <div className="feedMediaTitle mono">{String(comment?.by || "unknown")}</div>
+                      <div className="cardDesc">Block {Number(comment?.height || 0) || "—"}</div>
+                      <div className="feedBodyText">{String(comment?.body || "")}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="cardDesc">No deliberation comments recorded yet.</div>
+              )}
+            </article>
+
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Version history</div>
+              {proposalVersions.length > 0 ? (
+                <div className="pageStack">
+                  {proposalVersions.map((version: any, idx: number) => (
+                    <div key={String(version?.version || idx)} className="infoCard">
+                      <div className="feedMediaTitle">Version {Number(version?.version || idx + 1)}</div>
+                      <div className="cardDesc">Block {Number(version?.created_at_height || 0) || "—"} · {String(version?.revision_reason || "proposal version")}</div>
+                      <div className="feedBodyText">{String(version?.title || "Untitled")}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="cardDesc">No explicit version history is available.</div>
+              )}
+            </article>
+          </div>
+        </div>
+      </section>
 
       <section className="detailFocusStrip">
         <article className="detailFocusCard">

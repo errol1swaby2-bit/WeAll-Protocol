@@ -228,3 +228,32 @@ def test_batch431_not_before_gate_uses_real_genesis_time_only() -> None:
     launch_policy = policy_from_manifest({"constitutional_clock": {**_clock_meta(), "genesis_time_ms": 1_000_000}})
     assert is_too_early(launch_policy, height=1, now_ms=1_010_000) is True
     assert is_too_early(launch_policy, height=1, now_ms=1_018_000) is False
+
+def test_batch437_constitutional_clock_default_draft_proposals_auto_progress_unless_disabled() -> None:
+    st = _state()
+
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            payload={"proposal_id": "p-default", "title": "Default", "body": "Default draft should advance by clock"},
+        ),
+    )
+    assert st["gov_proposals_by_id"]["p-default"]["stage"] == "draft"
+    assert st["gov_proposals_by_id"]["p-default"]["auto_progress_enabled"] is True
+
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            nonce=2,
+            payload={
+                "proposal_id": "p-manual",
+                "title": "Manual",
+                "body": "Manual fixture can opt out",
+                "rules": {"auto_progress_enabled": False},
+            },
+        ),
+    )
+    assert st["gov_proposals_by_id"]["p-manual"]["auto_progress_enabled"] is False
+

@@ -795,11 +795,15 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         "eligible_validator_count": int(len(eligible_validators)),
         "required_votes": int(quorum_threshold(len(eligible_validators))) if eligible_validators else 0,
         "electorate_source": _s(proposal_electorate_seed.get("electorate_source")).strip(),
-        # Auto-progress is intentionally opt-in at proposal creation time.
-        # Legacy/manual tests and operator flows may stage a draft into voting and
-        # then close/tally explicitly; those paths must not be silently finalized
-        # by the apply function after the first threshold-sized vote set.
-        "auto_progress_enabled": bool(raw_start_stage in {"poll", "voting", "vote"}),
+        # Constitutional-clock chains are meant to use block-height procedure as
+        # the authority for proposal progress. Keep old manual behavior only for
+        # clock-disabled legacy/dev fixtures, or when a fixture explicitly opts
+        # out with rules.auto_progress_enabled=false.
+        "auto_progress_enabled": (
+            bool(rules.get("auto_progress_enabled"))
+            if rules.get("auto_progress_enabled") is not None
+            else (bool(_constitutional_clock_enabled(state)) or bool(raw_start_stage in {"poll", "voting", "vote"}))
+        ),
         "comments": [],
         "versions": [
             {
