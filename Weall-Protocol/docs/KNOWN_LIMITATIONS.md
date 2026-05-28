@@ -81,3 +81,25 @@ there is no Signal-style ratchet/forward secrecy yet. See
 The local live verification room uses browser WebRTC as non-authoritative transport. Batch 453 hardens local two-tab/two-node media setup by materializing remote track-only streams, queuing ICE candidates that arrive before a remote description, retrying deterministic offers for missing remote media, and surfacing peer connection state in the UI.
 
 This improves the local rehearsal, but it does not make media transport authoritative. Live verification authority still comes only from chain-recorded attendance, reviewer verdicts, and finalization. Remote media may still require TURN/relay configuration on real external networks, and a failed media connection must remain visible as a transport problem rather than a failed or passed verification outcome.
+
+## Batch 456 production-readiness gates
+
+The repository now contains explicit production-oriented readiness gates for the remaining pre-external-tester blockers: block production production-profile proof, locked tokenomics/economics, full local production-oriented rehearsal completion, reviewer/CI evidence, and production P2P encrypted messaging requirements.
+
+These gates do not mean the blockers are complete. They make the blockers reviewable and prevent overclaiming:
+
+- block production remains local/rehearsal-oriented until production-profile proof and adversarial BFT evidence pass;
+- tokenomics remain locked by default and live economics are not claimed;
+- direct-message bodies are encrypted, but metadata remains visible and Signal-grade/private P2P messaging is not claimed;
+- the reviewer readiness workflow is a targeted reproducibility gate, not a substitute for full pytest or a public testnet.
+
+## Batch 458-461 implementation limits
+
+This batch begins implementation of the remaining production-oriented surfaces:
+local block-production proof, economics activation/transfer/treasury read models,
+P2P E2EE device-key backup/recovery controls, and TURN/ICE live-room diagnostics.
+
+These are still not public-testnet or mainnet claims. The repository now exposes
+stronger proof and user-facing controls, but public multi-validator BFT, live
+tokenomics, Signal-grade private messaging, and external-network media reliability
+remain follow-up milestones.

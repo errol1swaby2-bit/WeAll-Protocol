@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from typing import Any
+
 from fastapi import APIRouter, Request
 from pydantic import ValidationError
 
@@ -149,3 +152,161 @@ async def consensus_attest_submit(request: Request):
         "attestation_pool_size": ap_size,
         "block_id": block_id,
     }
+
+
+def _boolish(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    s = str(value or "").strip().lower()
+    return s in {"1", "true", "yes", "y", "on"}
+
+
+def _value_boolish(obj: Any, name: str, default: bool = False) -> bool:
+    value = getattr(obj, name, default)
+    if callable(value):
+        try:
+            value = value()
+        except Exception:
+            value = default
+    return _boolish(value)
+
+
+@router.get("/consensus/block-production/readiness")
+def consensus_block_production_readiness(request: Request):
+    """Read-only production-orientation status for block production.
+
+    This does not grant proposer authority and never produces a block.  It gives
+    reviewers and the UI one canonical place to inspect whether this node is in
+    observer mode, whether the local producer loop is running, and whether the
+    current posture is only local rehearsal or a production-profile candidate.
+    """
+    ex = _executor(request)
+    st = _snapshot(request)
+    meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
+    mode = str(meta.get("mode") or meta.get("runtime_mode") or "").strip().lower()
+    observer_mode = bool(meta.get("observer_mode", False)) or _value_boolish(ex, "observer_mode", False)
+    block_loop_running = bool(getattr(ex, "block_loop_running", False))
+    block_loop_unhealthy = bool(getattr(ex, "block_loop_unhealthy", False))
+    last_error = str(getattr(ex, "block_loop_last_error", "") or "").strip()
+    height = int(st.get("height") or 0) if isinstance(st, dict) else 0
+    bft_enabled = _boolish(meta.get("bft_enabled")) or _value_boolish(ex, "bft_enabled", False)
+    validator_signing = _boolish(meta.get("validator_signing_enabled")) or _value_boolish(ex, "validator_signing_enabled", False)
+
+    production_profile_candidate = bool(mode == "prod" and not observer_mode and not block_loop_unhealthy)
+    can_locally_produce = bool(block_loop_running and not block_loop_unhealthy and not observer_mode)
+
+    return {
+        "ok": True,
+        "height": height,
+        "mode": mode or "unknown",
+        "observer_mode": observer_mode,
+        "block_loop": {
+            "running": block_loop_running,
+            "unhealthy": block_loop_unhealthy,
+            "last_error": last_error,
+            "consecutive_failures": int(getattr(ex, "block_loop_consecutive_failures", 0) or 0),
+        },
+        "authority": {
+            "validator_signing_enabled": validator_signing,
+            "bft_enabled": bft_enabled,
+            "observer_cannot_produce": observer_mode,
+        },
+        "can_locally_produce": can_locally_produce,
+        "production_profile_candidate": production_profile_candidate,
+        "public_multi_validator_bft_ready": False,
+        "claim": "This is read-only block production posture evidence. It does not grant authority or prove public multi-validator BFT.",
+    }
+
+def _as_dict_any(v: Any) -> dict[str, Any]:
+    return v if isinstance(v, dict) else {}
+
+
+def _latest_block_from_executor(ex: Any, st: dict[str, Any]) -> dict[str, Any]:
+    """Return the latest committed block object if the local DB/state can prove one.
+
+    This is read-only evidence for production-profile block-production rehearsal.
+    The endpoint intentionally never creates a block and never grants proposer
+    authority; it only exposes the block roots already committed by the runtime.
+    """
+
+    # Prefer the atomic SQLite block table because it contains the canonical block
+    # object with header roots and receipts.  Fall back to the ancestry map in
+    # state so tests/lightweight fixtures can still surface limited evidence.
+    db = getattr(ex, "_db", None)
+    try:
+        if db is not None and hasattr(db, "connection"):
+            with db.connection() as con:
+                row = con.execute(
+                    "SELECT block_json FROM blocks ORDER BY height DESC LIMIT 1;"
+                ).fetchone()
+                if row is not None:
+                    raw = row["block_json"] if "block_json" in row.keys() else row[0]
+                    block = json.loads(str(raw))
+                    if isinstance(block, dict):
+                        return block
+    except Exception:
+        pass
+
+    blocks = st.get("blocks") if isinstance(st.get("blocks"), dict) else {}
+    tip = str(st.get("tip") or "").strip()
+    rec = _as_dict_any(blocks.get(tip)) if tip else {}
+    if rec:
+        return {
+            "block_id": tip,
+            "height": int(rec.get("height") or st.get("height") or 0),
+            "block_ts_ms": int(rec.get("block_ts_ms") or st.get("tip_ts_ms") or 0),
+            "prev_block_id": str(rec.get("prev_block_id") or ""),
+            "header": {
+                "state_root": "",
+                "receipts_root": "",
+                "helper_execution_root": "",
+            },
+            "txs": [],
+            "receipts": [],
+            "state_ancestry_only": True,
+        }
+    return {}
+
+
+def block_production_proof_from_state(ex: Any, st: dict[str, Any]) -> dict[str, Any]:
+    block = _latest_block_from_executor(ex, st if isinstance(st, dict) else {})
+    header = _as_dict_any(block.get("header"))
+    block_id = str(block.get("block_id") or "").strip()
+    height = int(block.get("height") or header.get("height") or 0)
+    receipts = block.get("receipts") if isinstance(block.get("receipts"), list) else []
+    txs = block.get("txs") if isinstance(block.get("txs"), list) else []
+    state_root = str(header.get("state_root") or "").strip()
+    receipts_root = str(header.get("receipts_root") or "").strip()
+    helper_root = str(header.get("helper_execution_root") or "").strip()
+    block_hash = str(block.get("block_hash") or header.get("block_hash") or "").strip()
+    ancestry_only = bool(block.get("state_ancestry_only"))
+    has_root_evidence = bool(state_root and receipts_root and block_hash and not ancestry_only)
+    return {
+        "ok": True,
+        "has_committed_block": bool(block_id and height > 0),
+        "height": int(height),
+        "block_id": block_id,
+        "block_hash": block_hash,
+        "prev_block_id": str(block.get("prev_block_id") or ""),
+        "prev_block_hash": str(block.get("prev_block_hash") or header.get("prev_block_hash") or ""),
+        "block_ts_ms": int(block.get("block_ts_ms") or header.get("block_ts_ms") or 0),
+        "state_root": state_root,
+        "receipts_root": receipts_root,
+        "helper_execution_root": helper_root,
+        "tx_count": int(len(txs)),
+        "receipt_count": int(len(receipts)),
+        "has_root_evidence": has_root_evidence,
+        "state_ancestry_only": ancestry_only,
+        "claim": "Latest committed local block evidence only; public multi-validator BFT still requires a separate adversarial proof.",
+    }
+
+
+@router.get("/consensus/block-production/proof")
+def consensus_block_production_proof(request: Request):
+    ex = _executor(request)
+    st = _snapshot(request)
+    proof = block_production_proof_from_state(ex, st if isinstance(st, dict) else {})
+    readiness = consensus_block_production_readiness(request)
+    proof["readiness"] = readiness
+    return proof
+

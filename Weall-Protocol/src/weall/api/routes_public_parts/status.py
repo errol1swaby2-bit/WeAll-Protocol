@@ -750,6 +750,29 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "locked": not economics_enabled,
             "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free",
         },
+        "tokenomics": {
+            "stage": "locked_genesis_model",
+            "live_transfers_enabled": economics_enabled,
+            "treasury_spend_enabled": economics_enabled,
+            "rewards_enabled": economics_enabled,
+            "civic_social_governance_fee_free": True,
+            "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet",
+        },
+        "block_production": {
+            "stage": "local_rehearsal_proof_required",
+            "production_profile_proven": False,
+            "public_multi_validator_bft_ready": False,
+            "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
+        },
+        "p2p_encrypted_messaging": {
+            "scheme": "WEALL_E2EE_V1",
+            "body_plaintext_rejected": True,
+            "metadata_visible": True,
+            "forward_secrecy": False,
+            "signal_grade": False,
+            "production_ready": False,
+            "claim": "direct-message bodies are client-side encrypted and plaintext is rejected; metadata remains visible and production P2P private messaging requires ratcheting, device lifecycle, key verification, and external crypto review",
+        },
         "poh": poh_policy,
     }
 

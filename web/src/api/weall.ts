@@ -460,6 +460,30 @@ export const weall = {
     return fetchStatus(base);
   },
 
+  economicsStatus(params?: { account?: string }, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(withSearch("/v1/economics/status", { account: params?.account }), base, headers);
+  },
+
+  walletStatus(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/wallet/${encodeURIComponent(account)}`, base, headers);
+  },
+
+  economicsActivationReadiness(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/economics/activation/readiness", base, headers);
+  },
+
+  economicsTransferPreview(params: { from_account?: string; to_account?: string; amount?: number }, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(withSearch("/v1/economics/transfer/preview", params || {}), base, headers);
+  },
+
+  treasuryStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/treasury/status", base, headers);
+  },
+
+  blockProductionProof(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/consensus/block-production/proof", base, headers);
+  },
+
   readyz(base?: string) {
     return apiGet("/v1/readyz", base);
   },

@@ -24,6 +24,7 @@ export type RightRailContext =
   | "settings"
   | "advanced"
   | "transactions"
+  | "economics"
   | "content_detail"
   | "thread";
 
@@ -88,6 +89,7 @@ export type RouteMatch =
   | { path: "/advanced" }
   | { path: "/tools" }
   | { path: "/transactions" }
+  | { path: "/economics" }
   | { path: "/profile" }
   | { path: "/account/:account"; account: string }
   | { path: "/content/:id"; id: string }
@@ -615,6 +617,25 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: ["Account session", "Advanced mode"],
     }),
   },
+
+  "/economics": {
+    section: "Economics",
+    label: "Economics",
+    title: "Economics & Treasury",
+    description: "View the locked WeCoin, fee, reward, and treasury activation posture without enabling economics.",
+    public: false,
+    authRequired: true,
+    requiresReady: true,
+    mode: "utility",
+    fab: "none",
+    rightRail: "economics",
+    normalNav: true,
+    dataContract: contract({
+      primaryObject: "Economics status",
+      contextPanelData: "Locked tokenomics, wallet balance, fee-free civic protections, and treasury readiness",
+      blockingDependencies: ["Account session", "Economics status"],
+    }),
+  },
   "/profile": {
     section: "Profile",
     label: "Profile",
@@ -704,6 +725,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/reviews", label: "Reviews", description: "Assigned community review work.", icon: "✓", public: false, requiresReady: true, minPohTier: 2 },
       { href: "/verification", label: "Account Verification", description: "Account status and next steps.", icon: "◇", public: false, requiresReady: true },
       { href: "/profile", label: "Profile", description: "Profile and trusted responsibilities.", icon: "☺", public: false, requiresReady: true },
+      { href: "/economics", label: "Economics", description: "Locked WeCoin and treasury status.", icon: "◎", public: false, requiresReady: true },
       { href: "/settings", label: "Settings", description: "Preferences and account safety.", icon: "⚙", public: true },
       { href: "/advanced", label: "Advanced", description: "Technical records and network status.", icon: "⋯", public: false, requiresReady: true, advancedOnly: true },
     ],
@@ -752,6 +774,7 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/session") return { path: "/session" };
   if (r === "/advanced" || r === "/tools" || r === "/network" || r === "/operator" || r === "/developer") return { path: "/advanced" };
   if (r === "/transactions") return { path: "/transactions" };
+  if (r === "/economics" || r === "/wallet") return { path: "/economics" };
   if (r === "/profile") return { path: "/profile" };
 
   if (r.startsWith("/reviews/")) {

@@ -16,8 +16,16 @@ import {
   encryptDirectMessage,
   ensureMessagingEncryptionIdentity,
   messagingEncryptionFingerprint,
+  messagingPeerTrustState,
   readMessagingEncryptionIdentity,
   sameMessagingPublicJwk,
+  trustMessagingPeerKey,
+  exportMessagingIdentityBackup,
+  importMessagingIdentityBackup,
+  listLocalMessagingDevices,
+  messagingDeviceRecord,
+  revokeLocalMessagingDevice,
+  forgetTrustedMessagingPeer,
 } from "../lib/messageCrypto";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
@@ -149,6 +157,9 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({});
   const [encryptionBusy, setEncryptionBusy] = useState<boolean>(false);
   const [encryptionSetupPending, setEncryptionSetupPending] = useState<boolean>(false);
+  const [backupPassphrase, setBackupPassphrase] = useState<string>("");
+  const [backupJson, setBackupJson] = useState<string>("");
+  const [deviceStatus, setDeviceStatus] = useState<string>("");
   const loadingMessagesRef = useRef<boolean>(false);
   const autoPublishAttemptedRef = useRef<string>("");
 
@@ -303,6 +314,47 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   const messagingKeyProblem = messagingKeyMismatch || publishedKeyMissingLocally;
   const publishedKeyFingerprint = messagingEncryptionFingerprint(publishedMessagingPublicJwk);
   const localKeyFingerprint = messagingEncryptionFingerprint(localMessagingIdentity?.publicJwk);
+  const localMessagingDevices = account ? listLocalMessagingDevices(account) : [];
+
+  useEffect(() => {
+    if (!account || !localMessagingIdentity) return;
+    void messagingDeviceRecord(account).then((rec) => {
+      if (rec) setDeviceStatus(`Device ${rec.deviceId} recorded for key ${rec.keyId}`);
+    }).catch(() => undefined);
+  }, [account, localMessagingIdentity?.keyId]);
+
+  async function exportLocalBackup(): Promise<void> {
+    try {
+      const backup = await exportMessagingIdentityBackup(account, backupPassphrase);
+      setBackupJson(JSON.stringify(backup, null, 2));
+      setDeviceStatus("Encrypted messaging key backup created. Store it somewhere safe; WeAll cannot recover it without the passphrase.");
+    } catch (e: any) {
+      setErr({ msg: e?.message || "Could not export messaging key backup.", details: null });
+    }
+  }
+
+  async function importLocalBackup(): Promise<void> {
+    try {
+      const parsed = JSON.parse(backupJson || "null");
+      await importMessagingIdentityBackup(account, backupPassphrase, parsed);
+      setDeviceStatus("Messaging key backup restored on this device. Refresh or publish only if the account policy expects this key.");
+      await refreshMutationSlices(loadMessages, refreshAccountContext);
+    } catch (e: any) {
+      setErr({ msg: e?.message || "Could not import messaging key backup.", details: null });
+    }
+  }
+
+  function revokeLocalDevice(): void {
+    revokeLocalMessagingDevice(account);
+    setDeviceStatus("Local messaging device record revoked. The published account key is unchanged until explicit rotation.");
+  }
+
+  function forgetPeerTrustForRecipient(): void {
+    const peer = recipient.trim() || selectedReplyRecipient;
+    if (!peer) return;
+    forgetTrustedMessagingPeer(account, peer);
+    setDeviceStatus(`Forgot trusted messaging key for ${peer}. The next send will require trust-on-first-use again.`);
+  }
 
   async function publishMessagingEncryptionKey(opts?: { silent?: boolean; rotate?: boolean }): Promise<boolean> {
     if (!account) {
@@ -421,6 +473,14 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       if (!recipientPublicJwk) {
         throw new Error("This recipient's messaging encryption key is not visible on this node yet. Keep both accounts open, refresh messages, and try again after the key syncs.");
       }
+      const trust = messagingPeerTrustState({ viewer: account, peer: to, keyId: recipientKeyId, publicJwk: recipientPublicJwk });
+      if (trust.status === "changed") {
+        const ok = window.confirm(`The messaging key for ${to} changed. Previous fingerprint: ${trust.trustedFingerprint || trust.trustedKeyId}. New fingerprint: ${trust.fingerprint}. Continue only if this key change is expected.`);
+        if (!ok) throw new Error("Recipient messaging key changed. Message not sent until you confirm the new key fingerprint.");
+      }
+      if (trust.status === "untrusted" || trust.status === "changed") {
+        trustMessagingPeerKey({ viewer: account, peer: to, keyId: recipientKeyId, publicJwk: recipientPublicJwk });
+      }
       const payload = await encryptDirectMessage({
         sender: account,
         recipient: to,
@@ -518,7 +578,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
             <div>
               <div className="eyebrow">Compose</div>
               <h2 className="cardTitle">Send a direct message</h2>
-              <div className="cardDesc">Choose one person and send an end-to-end encrypted direct message. The backend commits only encrypted ciphertext and never receives plaintext.</div>
+              <div className="cardDesc">Choose one person and send an end-to-end encrypted direct message. The backend commits only encrypted ciphertext and never receives plaintext. Recipient keys are trusted on first use and key changes require explicit confirmation.</div>
             </div>
             <button className="btn" onClick={() => nav("/messages")}>Back to chats</button>
           </div>
@@ -689,6 +749,34 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
                 </button>
               ) : null}
             </div>
+          </div>
+        </section>
+      ) : null}
+
+      {account ? (
+        <section className="card messagingDeviceCard">
+          <div className="cardBody formStack">
+            <div className="sectionHead">
+              <div>
+                <div className="eyebrow">Encrypted messaging device</div>
+                <h2 className="cardTitle">Device key lifecycle</h2>
+                <div className="cardDesc">Back up or restore the local private messaging key. This is local-device protection; it does not hide metadata or add a Signal-style ratchet.</div>
+              </div>
+              <span className="statusPill">{localMessagingDevices.length} local device{localMessagingDevices.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className="grid2">
+              <label className="fieldLabel">Backup passphrase<input type="password" value={backupPassphrase} onChange={(e) => setBackupPassphrase(e.target.value)} placeholder="Required to export/import backup" /></label>
+              <label className="fieldLabel">Current fingerprint<input value={localKeyFingerprint || publishedKeyFingerprint || "No key yet"} readOnly /></label>
+            </div>
+            <label className="fieldLabel">Encrypted key backup JSON<textarea value={backupJson} onChange={(e) => setBackupJson(e.target.value)} rows={5} placeholder="Exported encrypted backup appears here, or paste one to import." /></label>
+            <div className="buttonRow">
+              <button className="btn" onClick={() => void exportLocalBackup()} disabled={!localMessagingIdentity || !backupPassphrase.trim()}>Export encrypted backup</button>
+              <button className="btn" onClick={() => void importLocalBackup()} disabled={!backupJson.trim() || !backupPassphrase.trim()}>Import encrypted backup</button>
+              <button className="btn btnDanger" onClick={revokeLocalDevice} disabled={!localMessagingDevices.length}>Revoke local device record</button>
+              <button className="btn" onClick={forgetPeerTrustForRecipient}>Forget selected peer trust</button>
+            </div>
+            {deviceStatus ? <div className="calloutInfo">{deviceStatus}</div> : null}
+            {localMessagingDevices.length ? <pre className="codePanel mono">{JSON.stringify(localMessagingDevices, null, 2)}</pre> : null}
           </div>
         </section>
       ) : null}

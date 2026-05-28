@@ -164,9 +164,10 @@ def _dispute_vote_tally_hides_target(raw: Json) -> bool:
     """Return True when recorded review votes are sufficient to hide a target.
 
     Constitutional-clock mode can keep a report in an active/appeal stage while
-    final enforcement receipts are delayed.  Normal feeds must still hide the
-    target once the recorded review tally has deterministically upheld removal;
-    dispute/appeal routes remain the place to inspect or challenge the outcome.
+    final enforcement receipts are delayed.  The appeal window remains open for
+    the affected creator, but normal feeds must still hide the target once the
+    recorded review tally has deterministically upheld removal; dispute/appeal
+    routes remain the place to inspect or challenge the outcome.
     """
 
     votes = _as_dict(raw.get("votes"))

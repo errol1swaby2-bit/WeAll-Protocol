@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { getApiBaseUrl, weall } from "../api/weall";
 import { liveRoomDescriptorText, liveRoomEmbedEnabled, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
-import { createWeAllPeerConnection, getWeAllLocalMedia, normalizeWeAllIceServers, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
+import { createWeAllPeerConnection, getWeAllLocalMedia, iceServerDiagnostics, loadWeAllIceServersJson, normalizeWeAllIceServers, saveWeAllIceServersJson, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
 import { nav } from "../lib/router";
 
 type LiveJuror = {
@@ -143,6 +143,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const [iceServers, setIceServers] = useState<RTCIceServer[]>([]);
+  const [iceConfigText, setIceConfigText] = useState<string>(() => loadWeAllIceServersJson());
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -208,6 +209,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     const seen = new Set(remoteStreamEntries.map(([peer]) => normalizeAccount(peer)));
     return p2pRemoteAccounts.filter((peer) => !seen.has(normalizeAccount(peer)));
   }, [p2pRemoteAccounts, remoteStreamEntries]);
+  const iceDiag = useMemo(() => iceServerDiagnostics(iceServers), [iceServers]);
+
+  function saveIceConfig(): void {
+    try {
+      const normalized = saveWeAllIceServersJson(iceConfigText);
+      setIceServers(normalized);
+      setP2pStatus(iceConfigText.trim() ? "ICE/TURN configuration saved for this browser" : "Using build default ICE configuration");
+    } catch (e) {
+      setP2pError(`Invalid ICE/TURN JSON: ${prettyError(e)}`);
+    }
+  }
 
   async function load(): Promise<void> {
     if (!caseId) return;
@@ -555,6 +567,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     window.setTimeout(() => void recoverMissingPeerMedia("startup recovery"), 6500);
   }
 
+  useEffect(() => {
+    if (!p2pRunning || !sessionId || !account) return undefined;
+    const id = window.setInterval(() => {
+      void pollWebRTCSignals().catch((e) => setP2pError(prettyError(e)));
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, [p2pRunning, sessionId, account, p2pRemoteAccounts.join("|")]);
+
   async function startP2PRoom(): Promise<void> {
     await runAction("Starting decentralized P2P room…", async () => {
       await ensureP2PRoomStarted();
@@ -735,7 +755,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <small>Status: {p2pStatus}</small>
                   <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
                   <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
-                  <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived}</small>
+                  <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived} · ICE {iceDiag.count} server(s) {iceDiag.hasTurn ? "with TURN" : "no TURN"}</small>
                   {Object.keys(peerStates).length ? <small>Peer states: {Object.entries(peerStates).map(([peer, state]) => `${peer}=${state}`).join(" · ")}</small> : null}
                   {p2pError ? <small className="errorText">{p2pError}</small> : null}
                 </div>
@@ -785,6 +805,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
               <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
             </div>
+            <details className="advancedDetails">
+              <summary>TURN / relay config</summary>
+              <p className="cardDesc">External networks often need TURN. These browser-local settings are transport-only and never become verification authority.</p>
+              <textarea value={iceConfigText} onChange={(e) => setIceConfigText(e.target.value)} rows={4} placeholder='[{"urls":"turn:turn.example.org","username":"user","credential":"pass"}]' />
+              <div className="buttonRow"><button className="btn" onClick={saveIceConfig}>Save ICE/TURN config</button></div>
+              {iceDiag.relayRecommended ? <div className="calloutInfo">No TURN relay is configured. Same-LAN tests may work, but external participants will likely need TURN.</div> : null}
+            </details>
             <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
               <div className="eyebrow">In-call chain voting</div>
               <h3 className="cardTitle">Reviewer vote inside the WebRTC room</h3>

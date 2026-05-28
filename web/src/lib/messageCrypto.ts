@@ -32,6 +32,14 @@ function storageKey(account: string): string {
   return `${STORAGE_PREFIX}${normalizeAccount(account)}`;
 }
 
+function deviceStorageKey(account: string): string {
+  return `${STORAGE_PREFIX}device::${normalizeAccount(account)}`;
+}
+
+function backupStorageKey(account: string): string {
+  return `${STORAGE_PREFIX}backup::${normalizeAccount(account)}`;
+}
+
 function bytesToB64(bytes: Uint8Array): string {
   let binary = "";
   const chunk = 0x8000;
@@ -62,6 +70,11 @@ function canonicalJson(value: any): string {
 async function sha256B64(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
   return bytesToB64(new Uint8Array(digest));
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export async function messagingEncryptionKeyId(publicJwk: JsonWebKey): Promise<string> {
@@ -116,6 +129,131 @@ export async function ensureMessagingEncryptionIdentity(account: string): Promis
   return generateIdentity(account);
 }
 
+export type MessagingDeviceRecord = {
+  version: 1;
+  account: string;
+  deviceId: string;
+  keyId: string;
+  fingerprint: string;
+  createdAt: string;
+  lastSeenAt: string;
+  revoked?: boolean;
+  revokedAt?: string;
+};
+
+export type MessagingIdentityBackup = {
+  version: 1;
+  account: string;
+  keyId: string;
+  fingerprint: string;
+  kdf: "PBKDF2-SHA256";
+  iterations: number;
+  salt_b64: string;
+  iv_b64: string;
+  ciphertext_b64: string;
+  createdAt: string;
+};
+
+function readDeviceRecord(account: string): MessagingDeviceRecord | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(deviceStorageKey(account)) || "null") as MessagingDeviceRecord | null;
+    if (!parsed || parsed.version !== 1) return null;
+    if (normalizeAccount(parsed.account) !== normalizeAccount(account)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function messagingDeviceRecord(account: string): Promise<MessagingDeviceRecord | null> {
+  const identity = readMessagingEncryptionIdentity(account);
+  if (!identity) return null;
+  const existing = readDeviceRecord(account);
+  const fingerprint = messagingEncryptionFingerprint(identity.publicJwk);
+  if (existing && existing.keyId === identity.keyId && !existing.revoked) {
+    const updated = { ...existing, fingerprint, lastSeenAt: new Date().toISOString() };
+    localStorage.setItem(deviceStorageKey(account), JSON.stringify(updated));
+    return updated;
+  }
+  const deviceHash = await sha256Hex(`${normalizeAccount(account)}|${identity.keyId}|${identity.createdAt}`);
+  const rec: MessagingDeviceRecord = {
+    version: 1,
+    account: normalizeAccount(account),
+    deviceId: `msgdev:${deviceHash.slice(0, 24)}`,
+    keyId: identity.keyId,
+    fingerprint,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    lastSeenAt: new Date().toISOString(),
+  };
+  localStorage.setItem(deviceStorageKey(account), JSON.stringify(rec));
+  return rec;
+}
+
+export function listLocalMessagingDevices(account: string): MessagingDeviceRecord[] {
+  const rec = readDeviceRecord(account);
+  return rec ? [rec] : [];
+}
+
+export function revokeLocalMessagingDevice(account: string): void {
+  const rec = readDeviceRecord(account);
+  if (!rec) return;
+  localStorage.setItem(deviceStorageKey(account), JSON.stringify({ ...rec, revoked: true, revokedAt: new Date().toISOString() }));
+}
+
+async function deriveBackupKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
+  if (!String(passphrase || "").trim()) throw new Error("backup_passphrase_required");
+  const material = await crypto.subtle.importKey("raw", encoder.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 210000 }, material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+
+export async function exportMessagingIdentityBackup(account: string, passphrase: string): Promise<MessagingIdentityBackup> {
+  const identity = readMessagingEncryptionIdentity(account);
+  if (!identity) throw new Error("messaging_identity_missing");
+  const salt = new Uint8Array(16);
+  const iv = new Uint8Array(12);
+  crypto.getRandomValues(salt);
+  crypto.getRandomValues(iv);
+  const key = await deriveBackupKey(passphrase, salt);
+  const plaintext = canonicalJson(identity);
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plaintext));
+  const backup: MessagingIdentityBackup = {
+    version: 1,
+    account: normalizeAccount(account),
+    keyId: identity.keyId,
+    fingerprint: messagingEncryptionFingerprint(identity.publicJwk),
+    kdf: "PBKDF2-SHA256",
+    iterations: 210000,
+    salt_b64: bytesToB64(salt),
+    iv_b64: bytesToB64(iv),
+    ciphertext_b64: bytesToB64(new Uint8Array(ciphertext)),
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem(backupStorageKey(account), JSON.stringify({ ...backup, ciphertext_b64: "<redacted-local-export-only>" }));
+  return backup;
+}
+
+export async function importMessagingIdentityBackup(account: string, passphrase: string, backup: MessagingIdentityBackup): Promise<MessagingEncryptionIdentity> {
+  const acct = normalizeAccount(account);
+  if (!acct) throw new Error("account_required");
+  if (!backup || backup.version !== 1 || normalizeAccount(backup.account) !== acct) throw new Error("backup_account_mismatch");
+  const key = await deriveBackupKey(passphrase, b64ToBytes(backup.salt_b64));
+  const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(backup.iv_b64) }, key, b64ToBytes(backup.ciphertext_b64));
+  const parsed = JSON.parse(decoder.decode(plaintext)) as MessagingEncryptionIdentity;
+  if (!parsed || parsed.version !== 1 || normalizeAccount(parsed.account) !== acct || parsed.keyId !== backup.keyId || !validatePublicJwk(parsed.publicJwk)) throw new Error("invalid_messaging_identity_backup");
+  localStorage.setItem(storageKey(acct), JSON.stringify(parsed));
+  await messagingDeviceRecord(acct);
+  return parsed;
+}
+
+export function forgetTrustedMessagingPeer(viewer: string, peer: string): void {
+  localStorage.removeItem(peerTrustStorageKey(viewer, peer));
+}
+
+export function verifyMessagingPeerFingerprint(args: { viewer: string; peer: string; expectedFingerprint: string }): boolean {
+  const trusted = readTrustedMessagingPeer(args.viewer, args.peer);
+  return !!trusted && trusted.fingerprint === String(args.expectedFingerprint || "").trim();
+}
+
 
 export function messagingEncryptionFingerprint(publicJwk: JsonWebKey | null | undefined): string {
   const safe = validatePublicJwk(publicJwk);
@@ -130,6 +268,73 @@ export function sameMessagingPublicJwk(a: JsonWebKey | null | undefined, b: Json
   const bb = validatePublicJwk(b);
   if (!aa || !bb) return false;
   return aa.kty === bb.kty && aa.crv === bb.crv && aa.x === bb.x && aa.y === bb.y;
+}
+
+
+
+type TrustedPeerRecord = {
+  version: 1;
+  viewer: string;
+  peer: string;
+  keyId: string;
+  fingerprint: string;
+  publicJwk: JsonWebKey;
+  trustedAt: string;
+};
+
+function peerTrustStorageKey(viewer: string, peer: string): string {
+  return `${STORAGE_PREFIX}trust::${normalizeAccount(viewer)}::${normalizeAccount(peer)}`;
+}
+
+export function readTrustedMessagingPeer(viewer: string, peer: string): TrustedPeerRecord | null {
+  try {
+    const raw = localStorage.getItem(peerTrustStorageKey(viewer, peer));
+    const parsed = JSON.parse(raw || "null") as TrustedPeerRecord | null;
+    if (!parsed || parsed.version !== 1) return null;
+    if (normalizeAccount(parsed.viewer) !== normalizeAccount(viewer)) return null;
+    if (normalizeAccount(parsed.peer) !== normalizeAccount(peer)) return null;
+    if (!parsed.keyId || !validatePublicJwk(parsed.publicJwk)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function trustMessagingPeerKey(args: { viewer: string; peer: string; keyId: string; publicJwk: JsonWebKey }): TrustedPeerRecord {
+  const publicJwk = validatePublicJwk(args.publicJwk);
+  if (!publicJwk) throw new Error("invalid_peer_messaging_public_key");
+  const rec: TrustedPeerRecord = {
+    version: 1,
+    viewer: normalizeAccount(args.viewer),
+    peer: normalizeAccount(args.peer),
+    keyId: String(args.keyId || "").trim(),
+    fingerprint: messagingEncryptionFingerprint(publicJwk),
+    publicJwk,
+    trustedAt: new Date().toISOString(),
+  };
+  if (!rec.viewer || !rec.peer || !rec.keyId) throw new Error("missing_peer_trust_fields");
+  localStorage.setItem(peerTrustStorageKey(rec.viewer, rec.peer), JSON.stringify(rec));
+  return rec;
+}
+
+export function messagingPeerTrustState(args: { viewer: string; peer: string; keyId: string; publicJwk: JsonWebKey | null | undefined }): {
+  status: "missing" | "untrusted" | "trusted" | "changed";
+  fingerprint: string;
+  trustedFingerprint: string;
+  trustedKeyId: string;
+} {
+  const publicJwk = validatePublicJwk(args.publicJwk);
+  if (!publicJwk || !String(args.keyId || "").trim()) {
+    return { status: "missing", fingerprint: "", trustedFingerprint: "", trustedKeyId: "" };
+  }
+  const fingerprint = messagingEncryptionFingerprint(publicJwk);
+  const trusted = readTrustedMessagingPeer(args.viewer, args.peer);
+  if (!trusted) return { status: "untrusted", fingerprint, trustedFingerprint: "", trustedKeyId: "" };
+  const keyId = String(args.keyId || "").trim();
+  if (trusted.keyId !== keyId || !sameMessagingPublicJwk(trusted.publicJwk, publicJwk)) {
+    return { status: "changed", fingerprint, trustedFingerprint: trusted.fingerprint, trustedKeyId: trusted.keyId };
+  }
+  return { status: "trusted", fingerprint, trustedFingerprint: trusted.fingerprint, trustedKeyId: trusted.keyId };
 }
 
 export function accountMessagingPublicJwk(accountState: any): JsonWebKey | null {

@@ -20,8 +20,43 @@ export type WeAllPeerConnectionCallbacks = {
   onStateChange?: (state: RTCPeerConnectionState) => void;
 };
 
+
+export function loadWeAllIceServersJson(): string {
+  try {
+    return typeof localStorage !== "undefined" ? String(localStorage.getItem("weall.p2p.iceServersJson") || "") : "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveWeAllIceServersJson(value: string): RTCIceServer[] {
+  const text = String(value || "").trim();
+  if (!text) {
+    try {
+      if (typeof localStorage !== "undefined") localStorage.removeItem("weall.p2p.iceServersJson");
+    } catch {
+      // ignore browser storage failures; caller still falls back to build defaults
+    }
+    return [];
+  }
+  const parsed = JSON.parse(text);
+  const normalized = normalizeWeAllIceServers(parsed);
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem("weall.p2p.iceServersJson", JSON.stringify(normalized));
+  } catch {
+    // ignore browser storage failures; caller still uses the parsed value in memory
+  }
+  return normalized;
+}
+
 export function parseIceServersFromEnv(): RTCIceServer[] {
-  const json = String(import.meta.env.VITE_WEALL_P2P_ICE_SERVERS_JSON || "").trim();
+  let json = String(import.meta.env.VITE_WEALL_P2P_ICE_SERVERS_JSON || "").trim();
+  try {
+    const stored = typeof localStorage !== "undefined" ? String(localStorage.getItem("weall.p2p.iceServersJson") || "").trim() : "";
+    if (stored) json = stored;
+  } catch {
+    // ignore storage failures
+  }
   if (json) {
     try {
       const parsed = JSON.parse(json);
@@ -46,6 +81,17 @@ export function normalizeWeAllIceServers(value: unknown): RTCIceServer[] {
 
 export function configuredWeAllIceServers(extra?: RTCIceServer[]): RTCIceServer[] {
   return extra && extra.length ? extra : parseIceServersFromEnv();
+}
+
+export function iceServerDiagnostics(extra?: RTCIceServer[]): { count: number; hasTurn: boolean; hasStun: boolean; relayRecommended: boolean } {
+  const servers = configuredWeAllIceServers(extra);
+  const urls = servers.flatMap((server) => Array.isArray(server.urls) ? server.urls : [server.urls]).map((url) => String(url || "").toLowerCase());
+  return {
+    count: servers.length,
+    hasTurn: urls.some((url) => url.startsWith("turn:" ) || url.startsWith("turns:")),
+    hasStun: urls.some((url) => url.startsWith("stun:")),
+    relayRecommended: !urls.some((url) => url.startsWith("turn:" ) || url.startsWith("turns:")),
+  };
 }
 
 export function weallWebRTCAvailable(): boolean {
@@ -81,10 +127,20 @@ export async function getWeAllLocalMedia(options: { camera: boolean; mic: boolea
   if (!options.camera && !options.mic) {
     throw new Error("Turn on camera or microphone before starting the P2P room.");
   }
-  return navigator.mediaDevices.getUserMedia({
-    video: options.camera,
-    audio: options.mic,
-  });
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video: options.camera, audio: options.mic });
+  } catch (firstError) {
+    // Same-machine/two-tab rehearsals commonly fail the second camera capture.
+    // Keep the participant visible with audio-only fallback when possible.
+    if (options.camera && options.mic) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      } catch {
+        throw firstError;
+      }
+    }
+    throw firstError;
+  }
 }
 
 export function stopWeAllMediaStream(stream?: MediaStream | null): void {
