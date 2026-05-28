@@ -443,6 +443,20 @@ def _read_tx_outbox() -> list[Json]:
         return [dict(r) for r in pruned]
 
 
+def _read_tx_outbox_best_effort() -> list[Json]:
+    """Read observer outbox for public status paths without crashing.
+
+    The observer tx outbox is local diagnostic/propagation state, not consensus
+    state. Public tx-status must remain read-only-safe even when a deployment
+    runs with a read-only application tree or the outbox path is unavailable.
+    In that case, fail closed by reporting no local outbox record.
+    """
+    try:
+        return _read_tx_outbox()
+    except OSError:
+        return []
+
+
 def _write_tx_outbox(rows: list[Json]) -> None:
     with _tx_outbox_lock():
         _write_tx_outbox_unlocked(rows)
@@ -821,7 +835,7 @@ def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None)
 
 
 def _outbox_summary_for_tx(tx_id: str) -> Json | None:
-    rec = _outbox_record_for(_read_tx_outbox(), tx_id)
+    rec = _outbox_record_for(_read_tx_outbox_best_effort(), tx_id)
     if not isinstance(rec, dict):
         return None
     return {
