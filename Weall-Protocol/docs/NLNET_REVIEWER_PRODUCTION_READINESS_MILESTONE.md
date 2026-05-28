@@ -12,7 +12,7 @@ This repository should be reviewed as a serious implementation seeking support t
 
 ## What this milestone will complete
 
-1. Production-profile block production proof.
+1. Local block-production root proof with an explicit boundary that production validator/BFT readiness is not yet claimed.
 2. Locked tokenomics/economics model and UI truth-sync.
 3. Full local production-oriented rehearsal completion.
 4. Reviewer/CI reproducibility evidence.
@@ -25,4 +25,4 @@ cd Weall-Protocol
 bash scripts/reviewer_production_readiness_gate.sh
 ```
 
-The command is intentionally targeted. Full pytest may still be run separately by reviewers with more time.
+The command is intentionally targeted. Full pytest may still be run separately by reviewers with more time. The block-production check in this gate is local evidence only; public multi-validator BFT and production validator authority require separate future proof.

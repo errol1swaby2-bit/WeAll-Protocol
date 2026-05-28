@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -183,7 +184,7 @@ def consensus_block_production_readiness(request: Request):
     ex = _executor(request)
     st = _snapshot(request)
     meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
-    mode = str(meta.get("mode") or meta.get("runtime_mode") or "").strip().lower()
+    mode = str(meta.get("mode") or meta.get("runtime_mode") or os.environ.get("WEALL_MODE") or "").strip().lower()
     observer_mode = bool(meta.get("observer_mode", False)) or _value_boolish(ex, "observer_mode", False)
     block_loop_running = bool(getattr(ex, "block_loop_running", False))
     block_loop_unhealthy = bool(getattr(ex, "block_loop_unhealthy", False))

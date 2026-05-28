@@ -37,7 +37,7 @@ def test_docs_do_not_overclaim_tokenomics_or_e2ee_batch456() -> None:
     milestone = _read("Weall-Protocol/docs/NLNET_REVIEWER_PRODUCTION_READINESS_MILESTONE.md")
 
     assert "not yet safe" in gap
-    assert "block production production-profile proof" in gap
+    assert "block production proof truth boundary" in gap
     assert "locked Genesis model" in econ
     assert "Permanently fee-free" in econ
     assert "not final production P2P private messaging" in msg

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Reproducible local block-production proof gate.
+"""Reproducible local block-production evidence gate.
 
-This gate boots a fresh isolated node, starts the existing block producer loop,
-waits for one empty block, and verifies that /v1/consensus/block-production/proof
-exposes a committed block with state_root, receipts_root, and block_hash.
+This gate boots a fresh isolated local node, starts the existing block producer
+loop, waits for one empty block, and verifies that
+/v1/consensus/block-production/proof exposes a committed block with state_root,
+receipts_root, and block_hash.
 
-It is intentionally local-only evidence. It does not claim public multi-validator
-BFT readiness and it never uses an observer profile as a producer.
+It is intentionally local-only evidence. It does not claim production-profile
+validator readiness, public multi-validator BFT readiness, or external testnet
+readiness. A true production validator/BFT proof must use a separate gate with
+on-chain validator authority and BFT enabled.
 """
 from __future__ import annotations
 
@@ -26,11 +29,6 @@ def _bootstrap_repo_imports() -> None:
 
 
 _bootstrap_repo_imports()
-
-from fastapi.testclient import TestClient
-
-from weall.api.app import create_app
-from weall.runtime.block_loop import BlockLoopConfig, BlockProducerLoop
 
 
 def _env_int(name: str, default: int) -> int:
@@ -54,13 +52,21 @@ def main() -> int:
     temp_dir = tempfile.mkdtemp(prefix="weall-block-proof-")
     old_env = dict(os.environ)
     try:
+        requested_mode = str(os.environ.get("WEALL_MODE", "") or "").strip().lower()
+        if requested_mode == "prod":
+            raise RuntimeError(
+                "production_block_production_rehearsal_gate is intentionally local-only. "
+                "Do not use it as a production-profile validator/BFT proof. Run a "
+                "separate BFT/validator-authority gate for production validator readiness."
+            )
+
         os.environ.update(
             {
                 "WEALL_DB_PATH": os.path.join(temp_dir, "weall.db"),
                 "WEALL_NODE_ID": "block-proof-node",
                 "WEALL_CHAIN_ID": "block-proof-chain",
                 "WEALL_TX_INDEX_PATH": os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json"),
-                "WEALL_MODE": os.environ.get("WEALL_MODE", "dev"),
+                "WEALL_MODE": "dev",
                 "WEALL_OBSERVER_MODE": "0",
                 "WEALL_BFT_ENABLED": "0",
                 "WEALL_VALIDATOR_SIGNING_ENABLED": "1",
@@ -71,6 +77,16 @@ def main() -> int:
                 "WEALL_BLOCK_LOOP_LOCK_PATH": os.path.join(temp_dir, "block_loop.lock"),
             }
         )
+
+        # Import after the isolated environment is installed. The API module
+        # creates a module-level app on import unless WEALL_API_BOOT_RUNTIME=0,
+        # so importing before the temporary DB/chain env is set can accidentally
+        # boot against a stale operator database.
+        from fastapi.testclient import TestClient
+
+        from weall.api.app import create_app
+        from weall.runtime.block_loop import BlockLoopConfig, BlockProducerLoop
+
         app = create_app(boot_runtime=True)
         ex = app.state.executor
         cfg = BlockLoopConfig(
@@ -109,7 +125,7 @@ def main() -> int:
                     raise RuntimeError(f"missing {key} in proof: {proof}")
             if not proof.get("has_root_evidence"):
                 raise RuntimeError(f"proof does not expose root evidence: {proof}")
-            print("OK: local production-profile block proof", proof)
+            print("OK: local block-production proof", proof)
             return 0
         finally:
             loop.stop()

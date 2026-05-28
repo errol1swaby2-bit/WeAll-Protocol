@@ -16,16 +16,16 @@ WeAll has a working controlled local two-node/two-frontend rehearsal with native
 - Live tokenomics/economics.
 - A reproducible external tester path where every surface can be used as intended without founder intervention.
 
-## Blocker 1 — block production production-profile proof
+## Blocker 1 — block production proof truth boundary
 
-The local rehearsal may exercise block production and synchronization paths, but the production-profile proof is not complete until a reviewer can run a documented gate proving:
+The local rehearsal may exercise block production and synchronization paths, but the current gate is intentionally local block-production evidence, not production-profile validator/BFT proof. Reviewer docs must keep that boundary explicit until a separate production validator/BFT gate exists proving:
 
-- the genesis/producer node can start with an explicit chain manifest;
+- the genesis/producer node can start with an explicit chain manifest under the intended profile;
 - observer nodes cannot sign or produce blocks;
 - block-loop status is exposed in `/v1/status` and `/v1/readyz`;
 - produced blocks commit state/receipt/helper roots deterministically;
 - a node restart does not create replay divergence;
-- the docs distinguish local block production, observer mode, and multi-validator BFT.
+- the docs distinguish local block production, production validator authority, observer mode, and multi-validator BFT.
 
 Required acceptance evidence:
 
@@ -99,7 +99,7 @@ External-testnet-safe wording:
 The remaining issues have begun moving from documentation-only gates into product
 and API implementation:
 
-- block-production root evidence is available through a proof endpoint and local proof gate;
+- block-production root evidence is available through a proof endpoint and local-only proof gate;
 - economics activation, transfer preview, and treasury lock status are visible to users/reviewers;
 - E2EE v1 now has local device backup/import/revocation controls and peer trust reset;
 - live-room transport now supports browser-local TURN/ICE configuration and automatic polling.

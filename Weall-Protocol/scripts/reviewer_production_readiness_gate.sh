@@ -14,6 +14,15 @@ bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
 bash scripts/verify_release_dependencies.sh
 
+
+echo "[reviewer-gate] local observer readiness and authority preconditions"
+if [[ "${WEALL_REVIEWER_INCLUDE_LOCAL_OBSERVER_GATES:-0}" == "1" ]]; then
+  bash scripts/external_observer_authority_lock_gate.sh
+  bash scripts/local_observer_readiness_gate.sh
+else
+  echo "[reviewer-gate] NOTE: local observer precondition gates skipped by default; run scripts/first_external_observer_reproducibility_gate.sh before inviting a tester."
+fi
+
 echo "[reviewer-gate] targeted backend tests"
 PYTHONPATH=src pytest -q \
   tests/test_batch437_446_external_testnet_p0_p2_hardening.py \
@@ -24,6 +33,7 @@ PYTHONPATH=src pytest -q \
   tests/test_batch454_rehearsal_review_visibility_and_viewer_vote.py \
   tests/test_batch456_production_readiness_and_p2p_e2ee_gates.py \
   tests/test_batch457_economics_block_p2p_implementation.py \
+  tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then
@@ -45,4 +55,5 @@ echo "[reviewer-gate] local block production proof"
 python3 scripts/production_block_production_rehearsal_gate.py
 
 echo "[reviewer-gate] OK: targeted production-oriented rehearsal evidence passed"
-echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, or Signal-grade messaging readiness."
+echo "[reviewer-gate] NOTE: local observer gates are preconditions only unless the remote signed observer gate is run."
+echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, production validator/BFT readiness, or Signal-grade messaging readiness."
