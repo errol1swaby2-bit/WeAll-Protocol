@@ -15,7 +15,7 @@ from weall.api.routes_public_parts.common import (
     _str_param,
 )
 from weall.api.security import require_account_session
-from weall.api.routes_public_parts.content import _with_media_summaries
+from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
@@ -36,17 +36,26 @@ def _iter_posts_by_author(st: dict[str, Any], *, author: str) -> list[dict[str, 
             continue
         if bool(obj.get("deleted", False)):
             continue
+        post_id = _str_param(obj.get("post_id") or obj.get("id") or pid).strip()
+        if post_id and _content_post_hidden_by_moderation(st, obj, post_id):
+            continue
         if _str_param(obj.get("author")).strip() != author:
             continue
 
         row = dict(obj)
-        post_id = _str_param(row.get("post_id") or row.get("id") or pid).strip()
         row.setdefault("id", post_id)
         row.setdefault("created_at_nonce", int(row.get("created_nonce", 0) or 0))
         row.setdefault("visibility", "public")
         out.append(row)
 
     return out
+
+
+def _content_post_hidden_by_moderation(st: dict[str, Any], post: dict[str, Any], post_id: str = "") -> bool:
+    """Return True when moderation/dispute outcome removes a post from normal reads."""
+
+    pid = _str_param(post_id or post.get("post_id") or post.get("id") or "").strip()
+    return _content_target_hidden_by_review(st, pid, post)
 
 
 def _normalize_keys(acct: dict[str, Any]) -> list[dict]:

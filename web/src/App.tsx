@@ -3,6 +3,7 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import AppShell from "./components/AppShell";
 import ErrorBanner from "./components/ErrorBanner";
 import SessionRecoveryBanner from "./components/SessionRecoveryBanner";
+import MessagingKeyBootstrapper from "./components/MessagingKeyBootstrapper";
 import { getKeypair, getSession } from "./auth/session";
 import { CLIENT_SETTINGS_CHANGED_EVENT, applySettingsToDocument, loadSettings } from "./lib/settings";
 import { useAppConfig } from "./lib/config";
@@ -351,6 +352,7 @@ export default function App(): JSX.Element {
 
   return (
     <AppShell route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode}>
+      {readyForApp ? <MessagingKeyBootstrapper /> : null}
       {meta.authRequired && sessionHealth.state !== "active" ? <SessionRecoveryBanner health={sessionHealth} compact /> : null}
       <Suspense fallback={<RouteTransitionFallback route={route} />}>
         {renderPage(route, readyForApp, showAdvancedMode)}

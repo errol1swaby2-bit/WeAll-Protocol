@@ -3052,3 +3052,114 @@ body {
     min-height: 320px;
   }
 }
+
+/* Batch 449: keep dense action/detail content inside the center column. */
+.appShellBody,
+.appShellContent,
+.appShellRightRail,
+.card,
+.cardBody,
+.pageStack,
+.heroSplit,
+.grid2,
+.grid3,
+.summaryGrid4,
+.liveRoomGrid,
+.p2pRoomPanel,
+.videoPlaceholder,
+.advancedDetails,
+.jsonBlock,
+.codePanel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.appShellContent {
+  overflow-x: clip;
+}
+
+.appShellRightRail {
+  min-width: 300px;
+}
+
+.jsonBlock,
+.advancedDetails pre,
+.codePanel {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.p2pRoomPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.p2pVideoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.p2pVideoTile {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.86);
+}
+
+.p2pVideoTile video,
+.p2pVideoTile .videoPlaceholder {
+  width: 100%;
+  min-height: 220px;
+  max-height: 420px;
+  object-fit: cover;
+  border: 0;
+  border-radius: 0;
+}
+
+.p2pVideoTile span {
+  display: block;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1420px) {
+  .appShellBody {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1320px) {
+  .liveRoomGrid,
+  .heroSplit,
+  .summaryGrid4,
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quickCardSplit {
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.quickCardMain {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.quickCardMain strong,
+.quickCardMain small {
+  overflow-wrap: anywhere;
+}

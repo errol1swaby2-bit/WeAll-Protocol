@@ -39,6 +39,14 @@ function fmtNonce(v: any): string {
 }
 
 
+function sameAccount(a: any, b: any): boolean {
+  const av = String(a || "").trim();
+  const bv = String(b || "").trim();
+  if (!av || !bv) return false;
+  return av === bv || av.replace(/^@/, "") === bv.replace(/^@/, "");
+}
+
+
 function disputeActionHint(args: {
   account: string;
   tierGateOk: boolean;
@@ -99,9 +107,10 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   async function load(): Promise<void> {
     setErr(null);
     try {
+      const headers = account ? getAuthHeaders(account) : undefined;
       const [detailRes, votesRes] = await Promise.all([
-        weall.dispute(id, apiBase),
-        weall.disputeVotes(id, apiBase),
+        weall.dispute(id, apiBase, headers),
+        weall.disputeVotes(id, apiBase, headers),
       ]);
       const nextDispute = (detailRes as any)?.dispute || null;
       setDispute(nextDispute);
@@ -110,7 +119,6 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       const targetId = String(nextDispute?.target_id || "").trim();
       if (targetType === "content" && targetId) {
         try {
-          const headers = account ? getAuthHeaders(account) : undefined;
           const contentRes = headers
             ? await weall.contentScoped(targetId, apiBase, headers)
             : await weall.content(targetId, apiBase);
@@ -173,7 +181,12 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const disputeStage = String(dispute?.stage || "open").toLowerCase();
   const appealWindowOpen = disputeStage === "appeal_window" || disputeStage === "appealed" || disputeStage === "appeal_review";
   const appealDeadlinePassed = Number(dispute?.appeal_deadline_height || 0) > 0 && disputeProcedureHeight > Number(dispute?.appeal_deadline_height || 0);
-  const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealWindowOpen && !appealDeadlinePassed;
+  const appealEligibility = asRecord(dispute?.appeal_eligibility);
+  const targetOwner = String(appealEligibility?.target_owner || dispute?.target_owner || contentAuthor || "").trim();
+  const appealActorEligible =
+    appealEligibility?.can_file === true ||
+    (!!account && !!targetOwner && sameAccount(account, targetOwner));
+  const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealWindowOpen && !appealDeadlinePassed && appealActorEligible;
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
@@ -282,41 +295,48 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         </div>
       </ProcedureTimeline>
 
+      {(appealActorEligible || appealCount > 0) ? (
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
             <div>
               <div className="eyebrow">Appeal</div>
-              <h2 className="cardTitle">File an appeal during the appeal window</h2>
+              <h2 className="cardTitle">{appealActorEligible ? "File an appeal during the appeal window" : "Appeal history"}</h2>
             </div>
             <div className="statusSummary">
-              <span className={`statusPill ${appealWindowOpen && !appealDeadlinePassed ? "ok" : ""}`}>
-                {appealWindowOpen && !appealDeadlinePassed ? "Appeal filing open" : "Appeal filing closed"}
+              <span className={`statusPill ${appealWindowOpen && !appealDeadlinePassed && appealActorEligible ? "ok" : ""}`}>
+                {appealActorEligible
+                  ? (appealWindowOpen && !appealDeadlinePassed ? "Appeal filing open" : "Appeal filing closed")
+                  : "Creator-only action"}
               </span>
             </div>
           </div>
           <div className="cardDesc">
-            Appeals are signed protocol actions. The frontend explains the window, but the backend enforces whether <span className="mono">DISPUTE_APPEAL</span> is accepted.
+            Appeals are signed protocol actions for the affected content creator. Reviewers can inspect appeal history, but reviewer accounts do not get the filing control unless they also created the content.
           </div>
 
-          <label className="fieldLabel">
-            Appeal reason
-            <textarea
-              rows={4}
-              value={appealReason}
-              onChange={(e) => setAppealReason(e.target.value)}
-              placeholder="Explain what was missed, why the outcome should be reviewed, or what new evidence should be considered."
-              disabled={!appealWindowOpen || appealDeadlinePassed || signerSubmission.busy}
-            />
-          </label>
+          {appealActorEligible ? (
+            <>
+              <label className="fieldLabel">
+                Appeal reason
+                <textarea
+                  rows={4}
+                  value={appealReason}
+                  onChange={(e) => setAppealReason(e.target.value)}
+                  placeholder="Explain what was missed, why the outcome should be reviewed, or what new evidence should be considered."
+                  disabled={!appealWindowOpen || appealDeadlinePassed || signerSubmission.busy}
+                />
+              </label>
 
-          <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void fileAppeal()} disabled={!canFileAppeal || !appealReason.trim()}>
-              File appeal
-            </button>
-            {!tierGate.ok ? <span className="statusPill warn">{tierGate.reason || "Live verification required"}</span> : null}
-            {appealDeadlinePassed ? <span className="statusPill warn">Appeal deadline has passed</span> : null}
-          </div>
+              <div className="buttonRow">
+                <button className="btn btnPrimary" onClick={() => void fileAppeal()} disabled={!canFileAppeal || !appealReason.trim()}>
+                  File appeal
+                </button>
+                {!tierGate.ok ? <span className="statusPill warn">{tierGate.reason || "Live verification required"}</span> : null}
+                {appealDeadlinePassed ? <span className="statusPill warn">Appeal deadline has passed</span> : null}
+              </div>
+            </>
+          ) : null}
 
           {Array.isArray(dispute?.appeals) && dispute.appeals.length > 0 ? (
             <div className="pageStack">
@@ -334,6 +354,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           )}
         </div>
       </section>
+      ) : null}
 
       <section className="detailFocusStrip">
         <article className="detailFocusCard">

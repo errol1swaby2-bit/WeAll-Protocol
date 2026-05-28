@@ -147,6 +147,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const signalSeqRef = useRef<number>(0);
+  const processedSignalsRef = useRef<Set<string>>(new Set());
+  const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const lastOfferAtRef = useRef<Map<string, number>>(new Map());
+  const [peerStates, setPeerStates] = useState<Record<string, string>>({});
 
   async function loadRelayConfig(): Promise<void> {
     try {
@@ -200,6 +204,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     return p2pParticipantAccounts.filter((item) => normalizeAccount(item) && normalizeAccount(item) !== account);
   }, [p2pParticipantAccounts, account]);
   const remoteStreamEntries = useMemo(() => Object.entries(remoteStreams), [remoteStreams]);
+  const missingRemoteAccounts = useMemo(() => {
+    const seen = new Set(remoteStreamEntries.map(([peer]) => normalizeAccount(peer)));
+    return p2pRemoteAccounts.filter((peer) => !seen.has(normalizeAccount(peer)));
+  }, [p2pRemoteAccounts, remoteStreamEntries]);
 
   async function load(): Promise<void> {
     if (!caseId) return;
@@ -265,6 +273,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
+    if (localStream) {
+      peerConnectionsRef.current.forEach((pc) => {
+        const existingTrackIds = new Set(pc.getSenders().map((sender) => sender.track?.id).filter(Boolean));
+        localStream.getTracks().forEach((track) => {
+          if (!existingTrackIds.has(track.id)) pc.addTrack(track, localStream);
+        });
+      });
+    }
   }, [localStream]);
 
   useEffect(() => {
@@ -280,6 +296,9 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       stopWeAllMediaStream(localStreamRef.current);
       peerConnectionsRef.current.forEach((pc) => pc.close());
       peerConnectionsRef.current.clear();
+      pendingIceCandidatesRef.current.clear();
+      processedSignalsRef.current.clear();
+      lastOfferAtRef.current.clear();
     };
   }, []);
 
@@ -295,6 +314,71 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     };
     await weall.pohLiveSessionPresenceUpdate(sessionId, payload, apiBase, headers);
     await loadRoomSidecars(sessionId);
+  }
+
+  function signalDedupeKey(signal: WeAllWebRTCSignal): string {
+    const id = String(signal.signal_id || "").trim();
+    if (id) return id;
+    const candidate = signal.candidate ? JSON.stringify(signal.candidate) : "";
+    return [signal.session_id || sessionId, signal.from_account || "", signal.to_account || "", signal.type || "", signal.sdp || "", candidate].join("|");
+  }
+
+  function rememberPeerState(peer: string, state: string): void {
+    const remote = normalizeAccount(peer);
+    if (!remote) return;
+    setPeerStates((prev) => ({ ...prev, [remote]: state }));
+  }
+
+  function resetPeerConnection(peer: string): void {
+    const remote = normalizeAccount(peer);
+    const pc = peerConnectionsRef.current.get(remote);
+    if (pc) {
+      try { pc.close(); } catch { /* ignore */ }
+    }
+    peerConnectionsRef.current.delete(remote);
+    pendingIceCandidatesRef.current.delete(remote);
+    setRemoteStreams((prev) => {
+      const next = { ...prev };
+      delete next[remote];
+      return next;
+    });
+  }
+
+  function canRetryOffer(peer: string, force = false): boolean {
+    if (force) return true;
+    const remote = normalizeAccount(peer);
+    const last = lastOfferAtRef.current.get(remote) || 0;
+    const now = Date.now();
+    if (now - last < 3500) return false;
+    lastOfferAtRef.current.set(remote, now);
+    return true;
+  }
+
+  async function flushPendingIceCandidates(peer: string, pc: RTCPeerConnection): Promise<void> {
+    const remote = normalizeAccount(peer);
+    const pending = pendingIceCandidatesRef.current.get(remote) || [];
+    if (!pending.length || !pc.remoteDescription) return;
+    pendingIceCandidatesRef.current.delete(remote);
+    for (const candidate of pending) {
+      try {
+        await pc.addIceCandidate(candidate);
+      } catch (e) {
+        setP2pError(`Could not apply pending ICE from ${remote}: ${prettyError(e)}`);
+      }
+    }
+  }
+
+  async function addOrQueueIceCandidate(peer: string, candidate: RTCIceCandidateInit): Promise<void> {
+    const remote = normalizeAccount(peer);
+    const pc = getOrCreatePeerConnection(remote);
+    if (!pc.remoteDescription) {
+      const rows = pendingIceCandidatesRef.current.get(remote) || [];
+      rows.push(candidate);
+      pendingIceCandidatesRef.current.set(remote, rows.slice(-24));
+      rememberPeerState(remote, "queued remote ICE until description arrives");
+      return;
+    }
+    await pc.addIceCandidate(candidate);
   }
 
   async function sendWebRTCSignal(payload: Partial<WeAllWebRTCSignal> & { type: WeAllWebRTCSignal["type"] }): Promise<void> {
@@ -333,8 +417,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     if (existing) return existing;
     const pc = createWeAllPeerConnection({
       onIceCandidate: (candidate) => sendWebRTCSignal({ type: "ice", to_account: remote, candidate }),
-      onRemoteStream: (stream) => rememberRemoteStream(remote, stream),
-      onStateChange: (state) => setP2pStatus(`peer ${remote}: ${state}`),
+      onRemoteStream: (stream) => {
+        rememberRemoteStream(remote, stream);
+        rememberPeerState(remote, "remote media flowing");
+      },
+      onStateChange: (state) => {
+        setP2pStatus(`peer ${remote}: ${state}`);
+        rememberPeerState(remote, String(state));
+        if (["failed", "disconnected", "closed"].includes(String(state))) {
+          lastOfferAtRef.current.delete(remote);
+        }
+      },
     }, iceServers);
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current as MediaStream));
@@ -343,50 +436,89 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     return pc;
   }
 
-  async function createOfferForPeer(peer: string): Promise<void> {
+  async function createOfferForPeer(peer: string, opts: { force?: boolean; reason?: string } = {}): Promise<void> {
     const remote = normalizeAccount(peer);
     if (!remote || remote === account) return;
+    if (!canRetryOffer(remote, !!opts.force)) return;
     await ensureLocalP2PMedia();
-    const pc = getOrCreatePeerConnection(remote);
-    const offer = await pc.createOffer();
+    let pc = getOrCreatePeerConnection(remote);
+    if (["closed", "failed"].includes(pc.connectionState)) {
+      resetPeerConnection(remote);
+      pc = getOrCreatePeerConnection(remote);
+    }
+    if (pc.signalingState !== "stable") {
+      rememberPeerState(remote, `waiting for stable signaling before offer (${pc.signalingState})`);
+      return;
+    }
+    rememberPeerState(remote, opts.reason ? `sending offer: ${opts.reason}` : "sending offer");
+    const offer = await pc.createOffer({ iceRestart: opts.force === true });
     await pc.setLocalDescription(offer);
     await sendWebRTCSignal({ type: "offer", to_account: remote, sdp: offer.sdp || "" });
+  }
+
+  async function recoverMissingPeerMedia(reason = "missing remote media"): Promise<void> {
+    if (!p2pRunning || !account) return;
+    for (const peer of missingRemoteAccounts) {
+      const remote = normalizeAccount(peer);
+      if (!remote || !shouldCreateOffer(account, remote)) continue;
+      await createOfferForPeer(remote, { reason });
+    }
   }
 
   async function handleWebRTCSignal(signal: WeAllWebRTCSignal): Promise<void> {
     const from = normalizeAccount(signal.from_account);
     if (!from || from === account) return;
+    const key = signalDedupeKey(signal);
+    if (processedSignalsRef.current.has(key)) return;
+    processedSignalsRef.current.add(key);
+    if (processedSignalsRef.current.size > 500) {
+      processedSignalsRef.current = new Set(Array.from(processedSignalsRef.current).slice(-250));
+    }
     await ensureLocalP2PMedia();
-    const pc = getOrCreatePeerConnection(from);
-    if (signal.type === "hello") {
-      if (account && shouldCreateOffer(account, from)) await createOfferForPeer(from);
-      return;
-    }
-    if (signal.type === "offer" && signal.sdp) {
-      await pc.setRemoteDescription({ type: "offer", sdp: signal.sdp });
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      await sendWebRTCSignal({ type: "answer", to_account: from, sdp: answer.sdp || "" });
-      return;
-    }
-    if (signal.type === "answer" && signal.sdp) {
-      if (pc.signalingState !== "stable") {
-        await pc.setRemoteDescription({ type: "answer", sdp: signal.sdp });
+    let pc = getOrCreatePeerConnection(from);
+    try {
+      if (signal.type === "hello") {
+        rememberPeerState(from, "peer hello received");
+        if (account && shouldCreateOffer(account, from)) await createOfferForPeer(from, { reason: "peer hello" });
+        return;
       }
-      return;
-    }
-    if (signal.type === "ice" && signal.candidate) {
-      await pc.addIceCandidate(signal.candidate);
-      return;
-    }
-    if (signal.type === "leave") {
-      pc.close();
-      peerConnectionsRef.current.delete(from);
-      setRemoteStreams((prev) => {
-        const next = { ...prev };
-        delete next[from];
-        return next;
-      });
+      if (signal.type === "offer" && signal.sdp) {
+        if (pc.signalingState !== "stable") {
+          try {
+            await pc.setLocalDescription({ type: "rollback" } as RTCSessionDescriptionInit);
+          } catch {
+            resetPeerConnection(from);
+            pc = getOrCreatePeerConnection(from);
+          }
+        }
+        await pc.setRemoteDescription({ type: "offer", sdp: signal.sdp });
+        await flushPendingIceCandidates(from, pc);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await sendWebRTCSignal({ type: "answer", to_account: from, sdp: answer.sdp || "" });
+        rememberPeerState(from, "answered peer offer");
+        return;
+      }
+      if (signal.type === "answer" && signal.sdp) {
+        if (pc.signalingState === "have-local-offer") {
+          await pc.setRemoteDescription({ type: "answer", sdp: signal.sdp });
+          await flushPendingIceCandidates(from, pc);
+          rememberPeerState(from, "peer answer applied");
+        }
+        return;
+      }
+      if (signal.type === "ice" && signal.candidate) {
+        await addOrQueueIceCandidate(from, signal.candidate);
+        return;
+      }
+      if (signal.type === "leave") {
+        resetPeerConnection(from);
+        rememberPeerState(from, "peer left");
+      }
+    } catch (e) {
+      const msg = prettyError(e);
+      rememberPeerState(from, `signal error: ${msg}`);
+      setP2pError(`Could not apply ${signal.type} from ${from}: ${msg}`);
     }
   }
 
@@ -401,6 +533,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       await handleWebRTCSignal(signal);
     }
     if (Number.isFinite(nextSeq)) signalSeqRef.current = Math.max(signalSeqRef.current, nextSeq);
+    await recoverMissingPeerMedia("poll recovery");
   }
 
   async function ensureP2PRoomStarted(): Promise<void> {
@@ -412,9 +545,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     setP2pStatus("p2p signaling active");
     await sendWebRTCSignal({ type: "hello" });
     for (const peer of p2pRemoteAccounts) {
-      if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer);
+      await sendWebRTCSignal({ type: "hello", to_account: peer });
+      if (account && shouldCreateOffer(account, peer)) await createOfferForPeer(peer, { force: true, reason: "room start" });
     }
     await pollWebRTCSignals();
+    window.setTimeout(() => void pollWebRTCSignals(), 750);
+    window.setTimeout(() => void pollWebRTCSignals(), 1750);
+    window.setTimeout(() => void recoverMissingPeerMedia("startup recovery"), 3000);
+    window.setTimeout(() => void recoverMissingPeerMedia("startup recovery"), 6500);
   }
 
   async function startP2PRoom(): Promise<void> {
@@ -431,10 +569,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       await sendWebRTCSignal({ type: "leave" });
       peerConnectionsRef.current.forEach((pc) => pc.close());
       peerConnectionsRef.current.clear();
+      pendingIceCandidatesRef.current.clear();
+      processedSignalsRef.current.clear();
+      lastOfferAtRef.current.clear();
       stopWeAllMediaStream(localStreamRef.current);
       localStreamRef.current = null;
       setLocalStream(null);
       setRemoteStreams({});
+      setPeerStates({});
+      pendingIceCandidatesRef.current.clear();
+      processedSignalsRef.current.clear();
+      lastOfferAtRef.current.clear();
       setP2pRunning(false);
       setP2pStatus("stopped");
       await updatePresence("left");
@@ -590,7 +735,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <small>Status: {p2pStatus}</small>
                   <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
                   <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
-                  <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived}</small>
+                  <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived}</small>
+                  {Object.keys(peerStates).length ? <small>Peer states: {Object.entries(peerStates).map(([peer, state]) => `${peer}=${state}`).join(" · ")}</small> : null}
                   {p2pError ? <small className="errorText">{p2pError}</small> : null}
                 </div>
                 <div className="p2pVideoGrid">
@@ -607,6 +753,12 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                           if (node && node.srcObject !== stream) node.srcObject = stream;
                         }}
                       />
+                      <span>{peer}</span>
+                    </div>
+                  ))}
+                  {missingRemoteAccounts.map((peer) => (
+                    <div className="p2pVideoTile" key={`waiting:${peer}`}>
+                      <div className="videoPlaceholder">Waiting for media from {peer}. Keep both tabs open and use Poll P2P if the remote camera is not visible yet.{peerStates[peer] ? ` State: ${peerStates[peer]}` : ""}</div>
                       <span>{peer}</span>
                     </div>
                   ))}

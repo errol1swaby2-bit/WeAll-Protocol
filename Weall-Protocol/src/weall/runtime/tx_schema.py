@@ -77,6 +77,8 @@ class AccountSecurityPolicySetPayload(_StrictModel):
     require_guardian_threshold_for_unlock: bool | None = None
     messaging_encryption_public_jwk: Json | None = None
     messaging_encryption_key_id: str | None = Field(default=None, min_length=1)
+    messaging_encryption_previous_key_id: str | None = Field(default=None, min_length=1)
+    messaging_encryption_rotation_reason: str | None = Field(default=None, min_length=1)
 
 
 class AccountLockPayload(_StrictModel):

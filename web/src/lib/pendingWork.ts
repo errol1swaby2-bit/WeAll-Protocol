@@ -100,6 +100,10 @@ function reportCurrentStatus(dispute: Record<string, any>, account: string): str
   return disputeJurorStatus(dispute, account);
 }
 
+function reportStageNeedsReviewerAction(stage: string): boolean {
+  return ["open", "assigned", "review", "voting", "in_review"].includes(stage);
+}
+
 function reportUrgency(reviewerStatus: string, attendancePresent: boolean, vote: string): PendingWorkUrgency {
   if ((reviewerStatus === "accepted" || reviewerStatus === "review") && attendancePresent && !vote) return "high";
   if (reviewerStatus === "assigned") return "high";
@@ -184,7 +188,9 @@ export function derivePendingWork(args: {
       const reviewerStatus = reportCurrentStatus(dispute, account);
       const attendancePresent = disputeAttendancePresent(dispute, account);
       const vote = disputeCurrentVote(dispute, account);
+      if (vote || !reportStageNeedsReviewerAction(stage)) return null;
       const assigned = reviewerStatus !== "unassigned" && reviewerStatus !== "declined";
+      if (account && !assigned) return null;
       const available = assigned || !account;
       const urgency = reportUrgency(reviewerStatus, attendancePresent, vote);
       return {

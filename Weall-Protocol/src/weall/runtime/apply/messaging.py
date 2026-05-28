@@ -183,6 +183,61 @@ def _validate_public_jwk(value: Any, field: str) -> Json:
     }
 
 
+def _same_public_jwk(a: Any, b: Any) -> bool:
+    aa = _as_dict(a)
+    bb = _as_dict(b)
+    return {
+        "kty": _as_str(aa.get("kty")).strip(),
+        "crv": _as_str(aa.get("crv")).strip(),
+        "x": _as_str(aa.get("x")).strip(),
+        "y": _as_str(aa.get("y")).strip(),
+    } == {
+        "kty": _as_str(bb.get("kty")).strip(),
+        "crv": _as_str(bb.get("crv")).strip(),
+        "x": _as_str(bb.get("x")).strip(),
+        "y": _as_str(bb.get("y")).strip(),
+    }
+
+
+def _messaging_policy_for_account(state: Json, account: str) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        return {}
+    acct = accounts.get(account)
+    if not isinstance(acct, dict):
+        return {}
+    return _as_dict(acct.get("security_policy"))
+
+
+def _enforce_envelope_matches_account_keys(state: Json, *, sender: str, to: str, encrypted: Json) -> None:
+    # Consensus-critical trust boundary: when account records are present, the
+    # DM envelope must use the public messaging keys currently published by the
+    # sender and recipient accounts.  This prevents a client, relay, stale node,
+    # or compromised UI from silently substituting an arbitrary recipient key
+    # while still submitting a canon-valid encrypted envelope.
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        return
+
+    sender_policy = _messaging_policy_for_account(state, sender)
+    recipient_policy = _messaging_policy_for_account(state, to)
+    sender_key_id = _as_str(sender_policy.get("messaging_encryption_key_id") or "").strip()
+    recipient_key_id = _as_str(recipient_policy.get("messaging_encryption_key_id") or "").strip()
+    if not sender_key_id:
+        raise MessagingApplyError("invalid_payload", "sender_missing_messaging_encryption_key", {"account": sender})
+    if not recipient_key_id:
+        raise MessagingApplyError("invalid_payload", "recipient_missing_messaging_encryption_key", {"account": to})
+
+    if _as_str(encrypted.get("sender_encryption_key_id") or "").strip() != sender_key_id:
+        raise MessagingApplyError("invalid_payload", "sender_messaging_encryption_key_mismatch", {"account": sender})
+    if _as_str(encrypted.get("recipient_encryption_key_id") or "").strip() != recipient_key_id:
+        raise MessagingApplyError("invalid_payload", "recipient_messaging_encryption_key_mismatch", {"account": to})
+    if not _same_public_jwk(encrypted.get("sender_encryption_public_jwk"), sender_policy.get("messaging_encryption_public_jwk")):
+        raise MessagingApplyError("invalid_payload", "sender_messaging_encryption_public_key_mismatch", {"account": sender})
+    if not _same_public_jwk(encrypted.get("recipient_encryption_public_jwk"), recipient_policy.get("messaging_encryption_public_jwk")):
+        raise MessagingApplyError("invalid_payload", "recipient_messaging_encryption_public_key_mismatch", {"account": to})
+
+
 def _encrypted_envelope(payload: Json) -> Json:
     if _as_str(payload.get("body")).strip():
         raise MessagingApplyError("invalid_payload", "plaintext_body_forbidden", {"tx_type": "DIRECT_MESSAGE_SEND"})
@@ -263,6 +318,7 @@ def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
         raise MessagingApplyError("invalid_payload", "missing_recipient", {"tx_type": env.tx_type})
 
     encrypted = _encrypted_envelope(payload)
+    _enforce_envelope_matches_account_keys(state, sender=sender, to=to, encrypted=encrypted)
 
     # thread_id is optional; deterministic default for 1:1
     thread_id = _pick(payload, "thread_id")

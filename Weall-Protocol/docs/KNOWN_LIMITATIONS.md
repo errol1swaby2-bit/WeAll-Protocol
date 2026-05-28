@@ -52,3 +52,32 @@ The next hardening batch adds explicit P0/P2 proof surfaces but does not convert
 - status surfaces label governance/disputes/economics as limited or locked unless activation/enforcement rules prove otherwise.
 
 Public governance, public moderation, public economics, and multi-validator BFT remain separate milestones.
+
+## Batch 448 review/read-model QoL hardening
+
+Local two-frontend rehearsal exposed a read-model drift class: completed reviews could remain in active queues, removed content could still appear in account-authored feeds, and appeal controls could depend on fetching content that had already been hidden. Batch 448 treats these as first-tester readiness bugs, not cosmetic polish.
+
+Current intended behavior:
+
+- removed/hidden/deleted content must be suppressed consistently from public, scoped, group, and account-authored feed reads;
+- appeal ownership must come from the dispute record and viewer session, not from a best-effort content fetch;
+- the affected creator can file an appeal during the appeal window when eligible;
+- reviewer accounts that already acted should see history/status, not pending work;
+- finalized async/Tier2/live PoH cases should leave active juror queues by default and appear only when `include_completed=1` is requested.
+
+This does not complete public moderation or constitutional due-process for mainnet. It closes the local rehearsal contradiction where successful actions remained visible as stale active work.
+
+## Messaging E2EE v1 limitations
+
+Direct-message plaintext is rejected and ciphertext envelopes are bound to the
+currently published account messaging keys. This is safer for trusted testnet
+use, but it is not final production-safe private messaging. Metadata remains
+visible, browser-local key storage is still a controlled-testnet compromise, and
+there is no Signal-style ratchet/forward secrecy yet. See
+`docs/MESSAGING_E2EE_SECURITY_MODEL.md`.
+
+## Batch 453 live-room media transport limits
+
+The local live verification room uses browser WebRTC as non-authoritative transport. Batch 453 hardens local two-tab/two-node media setup by materializing remote track-only streams, queuing ICE candidates that arrive before a remote description, retrying deterministic offers for missing remote media, and surfacing peer connection state in the UI.
+
+This improves the local rehearsal, but it does not make media transport authoritative. Live verification authority still comes only from chain-recorded attendance, reviewer verdicts, and finalization. Remote media may still require TURN/relay configuration on real external networks, and a failed media connection must remain visible as a transport problem rather than a failed or passed verification outcome.

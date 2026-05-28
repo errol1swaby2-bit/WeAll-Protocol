@@ -536,6 +536,8 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
         assigned = raw.get("assigned_jurors")
         jurors = raw.get("jurors")
         if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
+            if _async_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
+                continue
             principal = _session_principal_for_private_poh(request, st)
             include_private = principal == j
             out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
@@ -598,6 +600,44 @@ def _live_session_participants_from_snapshot(st: Json) -> Json:
         return {}
     sp = poh.get("live_session_participants")
     return sp if isinstance(sp, dict) else {}
+
+
+def _query_truthy(request: Request, key: str, default: bool = False) -> bool:
+    raw = str(request.query_params.get(key) or "").strip().lower()
+    if not raw:
+        return bool(default)
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _async_case_finalized(raw: dict[str, object]) -> bool:
+    status = str(raw.get("status") or "").strip().lower()
+    return bool(
+        status in {"approved", "rejected", "finalized", "complete", "completed", "closed"}
+        or str(raw.get("outcome") or "").strip()
+        or (raw.get("receipt") if isinstance(raw.get("receipt"), dict) else {})
+        or _opt_int_value(raw.get("finalized_height")) is not None
+        or _opt_int_value(raw.get("finalized_ts_ms")) is not None
+    )
+
+
+def _tier2_case_finalized(raw: dict[str, object]) -> bool:
+    status = str(raw.get("status") or "").strip().lower()
+    return bool(
+        status in {"approved", "rejected", "finalized", "passed", "failed", "complete", "completed", "closed"}
+        or str(raw.get("outcome") or "").strip()
+        or _opt_int_value(raw.get("finalized_height")) is not None
+        or _opt_int_value(raw.get("finalized_ts_ms")) is not None
+    )
+
+
+def _live_case_finalized(raw: dict[str, object]) -> bool:
+    status = str(raw.get("status") or "").strip().lower()
+    return bool(
+        status in {"approved", "rejected", "finalized", "passed", "failed", "complete", "completed", "closed"}
+        or str(raw.get("outcome") or "").strip()
+        or _opt_int_value(raw.get("finalized_height")) is not None
+        or _opt_int_value(raw.get("finalized_ts_ms")) is not None
+    )
 
 
 class PohTier2CaseModel(BaseModel):
@@ -705,6 +745,8 @@ def poh_tier2_juror_cases(juror: str, request: Request) -> PohTier2CaseListRespo
         if not isinstance(jm, dict):
             continue
         if j in jm:
+            if _tier2_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
+                continue
             out.append(_as_tier2_case(str(cid), raw))
 
     out.sort(key=lambda c: c.case_id)
@@ -844,6 +886,8 @@ def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
         if not isinstance(jm, dict):
             continue
         if j in jm:
+            if _live_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
+                continue
             out.append(_as_live_case(str(cid), raw))
 
     out.sort(key=lambda c: c.case_id)

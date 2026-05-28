@@ -46,6 +46,77 @@ def _identity_variants(value: Any) -> list[str]:
     return out
 
 
+def _same_identity(a: Any, b: Any) -> bool:
+    av = _identity_variants(a)
+    bv = _identity_variants(b)
+    return bool(av and bv and any(x == y for x in av for y in bv))
+
+
+def _content_target_owner(st: dict[str, Any], *, target_type: str, target_id: str) -> str:
+    if str(target_type or "").strip().lower() not in {"content", "post", "comment"}:
+        return ""
+    tid = str(target_id or "").strip()
+    content = _as_dict(st.get("content"))
+    for bucket_name in ("posts", "comments"):
+        bucket = _as_dict(content.get(bucket_name))
+        rec = _as_dict(bucket.get(tid))
+        if not rec:
+            continue
+        return str(
+            rec.get("author")
+            or rec.get("owner")
+            or rec.get("account_id")
+            or rec.get("created_by")
+            or rec.get("signer")
+            or ""
+        ).strip()
+    return ""
+
+
+def _resolved_target_owner(st: dict[str, Any], obj: dict[str, Any]) -> str:
+    owner = str(obj.get("target_owner") or obj.get("target_author") or "").strip()
+    if owner:
+        return owner
+    return _content_target_owner(
+        st,
+        target_type=str(obj.get("target_type") or "content"),
+        target_id=str(obj.get("target_id") or ""),
+    )
+
+
+def _appeal_allowed_accounts(st: dict[str, Any], obj: dict[str, Any]) -> list[str]:
+    raw = obj.get("appeal_allowed_accounts")
+    out: list[str] = []
+    if isinstance(raw, list):
+        out.extend(str(x or "").strip() for x in raw if str(x or "").strip())
+    owner = _resolved_target_owner(st, obj)
+    if owner:
+        out.append(owner)
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for acct in out:
+        key = acct.lstrip("@")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(acct)
+    return normalized
+
+
+def _appeal_eligibility(st: dict[str, Any], obj: dict[str, Any], *, viewer: str) -> dict[str, Any]:
+    allowed = _appeal_allowed_accounts(st, obj)
+    stage = str(obj.get("stage") or "open").strip().lower()
+    can_window = stage in {"appeal_window", "appealed", "appeal_review"}
+    can_actor = bool(viewer and allowed and any(_same_identity(viewer, acct) for acct in allowed))
+    return {
+        "viewer": viewer or None,
+        "can_file": bool(can_window and can_actor),
+        "reason": "eligible_target_owner" if can_window and can_actor else ("not_target_owner" if can_window and allowed else "appeal_window_not_open"),
+        "allowed_accounts": allowed,
+        "target_owner": allowed[0] if allowed else None,
+    }
+
+
 def _viewer_from_request(request: Request, st: dict[str, Any]) -> str:
     try:
         return str(require_account_session(request, st) or "").strip()
@@ -85,6 +156,38 @@ def _viewer_juror_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
                 return {"account": c, "juror": c, "status": "assigned", "source": "eligible_juror_ids"}
     return {"account": viewer, "juror": viewer, "status": "unassigned"}
 
+
+
+def _viewer_vote_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
+    """Expose only the caller's own vote while keeping global vote maps redacted."""
+
+    if not viewer:
+        return {}
+    variants = _identity_variants(viewer)
+    votes = _as_dict(obj.get("votes"))
+    for variant in variants:
+        rec = votes.get(variant)
+        if isinstance(rec, dict):
+            out = dict(rec)
+            out.setdefault("account", variant)
+            out.setdefault("juror", variant)
+            return out
+    return {}
+
+
+def _vote_choice_from_record(record: dict[str, Any]) -> str:
+    choice = str(
+        record.get("vote")
+        or record.get("choice")
+        or record.get("decision")
+        or record.get("outcome")
+        or ""
+    ).strip().lower()
+    if choice:
+        return choice
+    resolution = _as_dict(record.get("resolution"))
+    return str(resolution.get("outcome") or resolution.get("action") or "").strip().lower()
+
 def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
     _cursor_n, cursor_key = _cursor_unpack(cursor)
     rows = [(str(k), v) for k, v in votes.items()]
@@ -112,10 +215,10 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     for _, record in sorted(votes.items(), key=lambda item: str(item[0])):
         if not isinstance(record, dict):
             continue
-        choice = str(record.get("vote") or "").strip().lower()
-        if choice == "yes":
+        choice = _vote_choice_from_record(record)
+        if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
             vote_counts["yes"] += 1
-        elif choice == "no":
+        elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
             vote_counts["no"] += 1
         elif choice:
             vote_counts["abstain"] += 1
@@ -155,9 +258,10 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
 
 
 
-def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "") -> dict[str, Any]:
+def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: dict[str, Any] | None = None) -> dict[str, Any]:
     """Return dispute detail/list shape without unbounded maps/lists."""
 
+    st = st if isinstance(st, dict) else {}
     normalized = _normalize_dispute(obj)
     jurors = _as_dict(normalized.get("jurors"))
     votes = _as_dict(normalized.get("votes"))
@@ -185,7 +289,50 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "") -> dic
         "evidence": len(evidence),
         "appeals": len(appeals),
     }
+    viewer_vote = _viewer_vote_record(obj, viewer)
+    if viewer_vote:
+        normalized["viewer_vote"] = viewer_vote
+        normalized["current_vote"] = viewer_vote
+        normalized["vote_self"] = viewer_vote
+    target_owner = _resolved_target_owner(st, obj)
+    if target_owner:
+        # Keep owner/appeal identity in the redacted dispute record even when the
+        # disputed content has already been hidden from normal content reads. The
+        # affected creator should not have to fetch removed content to see or file
+        # their appeal.
+        normalized["target_owner"] = target_owner
+        normalized["target_author"] = target_owner
+    normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
+    normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
     return normalized
+
+
+def _redact_dispute_detail_for_viewer(
+    obj: dict[str, Any],
+    *,
+    viewer: str = "",
+    st: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Redact global maps while preserving Batch 389 viewer-scope invariant.
+
+    Batch 448 needs chain-state context to expose creator appeal eligibility even
+    after target content is hidden from normal reads. Keep the historical
+    redaction call shape intact so older scope guards continue to prove the API
+    redacts global juror/vote/evidence/appeal maps before adding viewer-safe
+    appeal context.
+    """
+
+    normalized = _redact_dispute_detail_maps(obj, viewer=viewer)
+    st = st if isinstance(st, dict) else {}
+
+    target_owner = _resolved_target_owner(st, obj)
+    if target_owner:
+        normalized["target_owner"] = target_owner
+        normalized["target_author"] = target_owner
+    normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
+    normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
+    return normalized
+
 
 def _dispute_obj_from_snapshot(st: dict[str, Any], dispute_id: str) -> dict[str, Any]:
     by_id = _disputes_by_id(st)
@@ -241,7 +388,7 @@ def v1_disputes_list(request: Request):
             continue
         if active_only and not is_active:
             continue
-        items.append(_redact_dispute_detail_maps(obj, viewer=viewer))
+        items.append(_redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st))
 
     items.sort(
         key=lambda x: (
@@ -261,7 +408,7 @@ def v1_dispute_get(dispute_id: str, request: Request):
     st = _snapshot(request)
     obj = _dispute_obj_from_snapshot(st, dispute_id)
     viewer = _viewer_from_request(request, st)
-    return {"ok": True, "dispute": _redact_dispute_detail_maps(obj, viewer=viewer)}
+    return {"ok": True, "dispute": _redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st)}
 
 
 @router.get("/disputes/{dispute_id}/votes")

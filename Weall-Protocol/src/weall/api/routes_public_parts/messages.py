@@ -142,8 +142,21 @@ def message_threads(request: Request) -> Json:
     inbox = _inbox_for(st, viewer)
     inbox_thread_ids = [str(t).strip() for t in _as_list(inbox.get("threads")) if str(t).strip()]
 
+    # Batch 451: treat the inbox index as a cache, not the authority.
+    # Observer/downstream sync can briefly contain the thread/message record before
+    # the convenience inbox index is visible on the same read model.  A normal
+    # user should still see conversations where the thread membership includes
+    # them; otherwise the detail page can show a message while the hub says
+    # "0 chats".
+    membership_thread_ids = [
+        str(tid).strip()
+        for tid, thread in threads_by_id.items()
+        if str(tid).strip() and _member_of(_as_dict(thread), viewer)
+    ]
+    candidate_thread_ids = sorted(set(inbox_thread_ids + membership_thread_ids))
+
     out: list[Json] = []
-    for thread_id in sorted(set(inbox_thread_ids)):
+    for thread_id in candidate_thread_ids:
         summary = _thread_summary(threads_by_id.get(thread_id), viewer=viewer, messages=messages)
         if not summary:
             continue

@@ -46,6 +46,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [acctState, setAcctState] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
+  const [reportBusyId, setReportBusyId] = useState<string | null>(null);
+  const [reportInfo, setReportInfo] = useState<{ msg: string; details?: any } | null>(null);
 
   const session = getSession();
   const acct = session ? normalizeAccount(session.account) : null;
@@ -217,6 +219,70 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
     }
   }
 
+  async function waitForGroupDispute(targetId: string, attempts = 8): Promise<any | null> {
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        const headers = acct ? getAuthHeaders(acct) : undefined;
+        const r: any = await weall.disputes({ targetId, limit: 5 }, base, headers);
+        const items = Array.isArray(r?.items) ? r.items : [];
+        const found = items.find((item: any) => String(item?.target_id || "") === String(targetId));
+        if (found) return found;
+      } catch {
+        // keep polling; the observer/genesis read models can lag briefly.
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
+    }
+    return null;
+  }
+
+  async function reportGroupPost(post: any): Promise<void> {
+    const targetId = String(post?.post_id || post?.id || "").trim();
+    if (!targetId) return;
+    setErr(null);
+    setReportInfo(null);
+    if (!acct || !canSign) {
+      setErr({ msg: "You are not logged in on this device.", details: "Restore your device signer before reporting group content." });
+      return;
+    }
+    if (!membershipGate.ok) {
+      setErr({ msg: membershipGate.reason || "Complete live verification before reporting group content.", details: acctState });
+      return;
+    }
+    const reason = window.prompt("Why are you reporting this group post? (optional)", "") || "";
+    setReportBusyId(targetId);
+    try {
+      await tx.runTx({
+        title: "Report group content",
+        pendingKey: txPendingKey(["group-content-flag", selected, targetId, acct]),
+        pendingMessage: "Sending this group post for community review…",
+        successMessage: "Report sent. Checking whether the review record is visible yet…",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: {
+          mutation: { entityType: "content", entityId: targetId, account: acct || undefined, routeHint: `/groups/${encodeURIComponent(selected)}`, txType: "CONTENT_FLAG" },
+        },
+        task: async () =>
+          submitSignedTx({
+            account: acct,
+            tx_type: "CONTENT_FLAG",
+            payload: reason.trim() ? { target_id: targetId, reason: reason.trim() } : { target_id: targetId },
+            parent: null,
+            base,
+          }),
+      });
+      const dispute = await waitForGroupDispute(targetId);
+      setReportInfo({
+        msg: dispute?.id ? `Report sent for this group post. Review ${String(dispute.id)} is visible.` : "Report sent for this group post. Community review may take a moment to appear.",
+        details: dispute || { target_id: targetId },
+      });
+      await refreshMutationSlices(refreshSelected, refreshAccountContext);
+    } catch (e: any) {
+      setErr(prettyErr(e));
+    } finally {
+      setReportBusyId(null);
+    }
+  }
+
   const detailCharterText = typeof detail?.charter === "string" ? detail.charter.trim() : "";
   const detailCharterParts = detailCharterText
     ? detailCharterText.split(/\n{2,}|\r\n\r\n/).map((part: string) => part.trim()).filter(Boolean)
@@ -352,6 +418,20 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         onDismiss={() => setErr(null)}
       />
 
+      {reportInfo ? (
+        <section className="card">
+          <div className="cardBody formStack">
+            <div className="eyebrow">Report status</div>
+            <h3 className="cardTitle">Group post report recorded</h3>
+            <div className="cardDesc">{reportInfo.msg}</div>
+            <div className="buttonRow buttonRowWide">
+              <button className="btn" onClick={() => nav("/reports")}>Open reports</button>
+              <button className="btn" onClick={() => setReportInfo(null)}>Dismiss</button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -437,12 +517,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               {groupPosts.map((post: any) => {
                 const pid = String(post?.post_id || post?.id || "").trim();
                 return (
-                  <button key={pid} className="quickCard" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
-                    <span>
-                      <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
-                      <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")}</small>
-                    </span>
-                  </button>
+                  <div key={pid} className="quickCard quickCardSplit">
+                    <button className="quickCardMain" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
+                      <span>
+                        <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
+                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")}</small>
+                      </span>
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={(event) => { event.stopPropagation(); void reportGroupPost(post); }}
+                      disabled={!pid || reportBusyId === pid || signerSubmission.busy || !membershipGate.ok}
+                      title={membershipGate.ok ? "Report this group post for community review" : (membershipGate.reason || "Complete verification before reporting")}
+                    >
+                      {reportBusyId === pid ? "Reporting…" : "Report"}
+                    </button>
+                  </div>
                 );
               })}
             </div>

@@ -94,6 +94,20 @@ function statusTone(statusRaw: any): "done" | "active" | "todo" {
   return "todo";
 }
 
+function reportStageNeedsReviewerAction(stageRaw: any): boolean {
+  const stage = String(stageRaw || "open").trim().toLowerCase() || "open";
+  return ["open", "assigned", "review", "voting", "in_review"].includes(stage);
+}
+
+function reportNeedsCurrentReviewer(item: any, account: string): boolean {
+  const targetType = String(item?.target_type || "content").trim().toLowerCase();
+  if (targetType !== "content") return false;
+  if (disputeCurrentVote(item, account)) return false;
+  if (!reportStageNeedsReviewerAction(item?.stage || item?.status)) return false;
+  const status = disputeJurorStatus(item, account);
+  return status !== "unassigned" && status !== "declined";
+}
+
 function SectionCard({
   eyebrow,
   title,
@@ -183,10 +197,7 @@ export default function JurorDashboard(): JSX.Element {
       setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
 
       const assignedReports = (Array.isArray(disputesRes?.items) ? disputesRes.items : [])
-        .filter((item: any) => {
-          const status = disputeJurorStatus(item, account);
-          return status !== "unassigned" && status !== "declined";
-        });
+        .filter((item: any) => reportNeedsCurrentReviewer(item, account));
       setContentReports(assignedReports);
 
       const previews: Record<string, any> = {};
@@ -381,11 +392,7 @@ export default function JurorDashboard(): JSX.Element {
     if (!caseId) return false;
     return !liveCases.some((liveCase: any) => String(liveCase?.case_id || liveCase?.id || "").trim() === caseId);
   });
-  const assignedContentReports = contentReports.filter((item) => {
-    const targetType = String(item?.target_type || "content").trim().toLowerCase();
-    const status = disputeJurorStatus(item, account);
-    return targetType === "content" && status !== "unassigned" && status !== "declined";
-  });
+  const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
 
   return (
     <div className="pageStack">

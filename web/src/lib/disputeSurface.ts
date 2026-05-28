@@ -64,8 +64,26 @@ export function disputeAttendancePresent(dispute: unknown, account: string): boo
   return !!asRecord(disputeJurorRecord(dispute, account).attendance).present;
 }
 
+function voteChoiceFromRecord(record: Record<string, any> | null | undefined): string {
+  const rec = asRecord(record);
+  const direct = String(rec.vote || rec.choice || rec.decision || rec.outcome || "").trim().toLowerCase();
+  if (direct) return direct;
+  const resolution = asRecord(rec.resolution);
+  return String(resolution.outcome || resolution.action || "").trim().toLowerCase();
+}
+
 export function disputeCurrentVote(dispute: unknown, account: string): string {
-  return String(voteForAccount(asRecord(dispute).votes, account)?.vote || "").trim().toLowerCase();
+  const src = asRecord(dispute);
+  for (const key of ["current_vote", "viewer_vote", "vote_self"]) {
+    const raw = src[key];
+    if (typeof raw === "string") {
+      const direct = raw.trim().toLowerCase();
+      if (direct) return direct;
+    }
+    const scoped = voteChoiceFromRecord(asRecord(raw));
+    if (scoped) return scoped;
+  }
+  return voteChoiceFromRecord(voteForAccount(src.votes, account) as any);
 }
 
 export function disputeVoteCountSummary(dispute: unknown): { yes: number; no: number; abstain: number; total: number } {
@@ -74,9 +92,9 @@ export function disputeVoteCountSummary(dispute: unknown): { yes: number; no: nu
   let no = 0;
   let abstain = 0;
   for (const key of Object.keys(votes).sort()) {
-    const vote = String(asRecord(votes[key]).vote || "").trim().toLowerCase();
-    if (vote === "yes") yes += 1;
-    else if (vote === "no") no += 1;
+    const vote = voteChoiceFromRecord(asRecord(votes[key]));
+    if (["yes", "remove", "removed", "uphold", "upheld", "report_upheld"].includes(vote)) yes += 1;
+    else if (["no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"].includes(vote)) no += 1;
     else if (vote) abstain += 1;
   }
   return { yes, no, abstain, total: yes + no + abstain };

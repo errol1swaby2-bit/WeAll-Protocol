@@ -73,10 +73,210 @@ def _moderation_targets(st: Json) -> Json:
     return _as_dict(moderation.get("targets"))
 
 
-def _post_visible(post: Json) -> bool:
+def _moderation_record_hides(rec: Json) -> bool:
+    if not isinstance(rec, dict):
+        return False
+    if bool(rec.get("deleted", False)):
+        return True
+    vis = str(rec.get("visibility", "") or "").strip().lower()
+    action = str(rec.get("last_action", "") or "").strip().lower()
+    return vis in {"hidden", "deleted", "removed"} or action in {"hide", "delete", "remove"}
+
+
+def _target_key_variants(target_id: str = "", obj: Json | None = None) -> list[str]:
+    """Return deterministic aliases for a content target id.
+
+    The local rehearsal exposed a read-model split where a moderation/dispute
+    record could be keyed by the canonical target id while an account/group feed
+    looked up a post object's alternate id field.  Normal reads must treat all
+    aliases as the same target so removed or appeal-window content cannot remain
+    visible on one surface.
+    """
+
+    obj = obj if isinstance(obj, dict) else {}
+    candidates: list[str] = []
+    for raw in (target_id, obj.get("post_id"), obj.get("id"), obj.get("content_id")):
+        text = str(raw or "").strip()
+        if text and text not in candidates:
+            candidates.append(text)
+
+    author = str(obj.get("author") or obj.get("owner") or obj.get("account_id") or "").strip()
+    for nonce_key in ("created_nonce", "created_at_nonce", "nonce"):
+        try:
+            nonce = int(obj.get(nonce_key) or 0)
+        except Exception:
+            nonce = 0
+        if author and nonce > 0:
+            for acct in (author, author.lstrip("@"), f"@{author.lstrip('@')}"):
+                cand = f"post:{acct}:{nonce}"
+                if cand not in candidates:
+                    candidates.append(cand)
+
+    return candidates
+
+
+def _resolution_hides_target(resolution: Json) -> bool:
+    if not isinstance(resolution, dict):
+        return False
+    outcome = str(resolution.get("outcome") or resolution.get("action") or "").strip().lower()
+    if outcome in {"report_upheld", "remove", "removed", "delete", "deleted", "hide", "hidden"}:
+        return True
+    actions = resolution.get("actions")
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        tx_type = str(action.get("tx_type") or "").strip()
+        payload = _as_dict(action.get("payload"))
+        if tx_type == "CONTENT_VISIBILITY_SET":
+            visibility = str(payload.get("visibility") or "").strip().lower()
+            if visibility in {"hidden", "deleted", "removed"}:
+                return True
+        if tx_type == "MOD_ACTION_RECEIPT":
+            act = str(payload.get("action") or "").strip().lower()
+            visibility = str(payload.get("visibility") or "").strip().lower()
+            if act in {"hide", "delete", "remove"} or visibility in {"hidden", "deleted", "removed"}:
+                return True
+    return False
+
+
+def _vote_choice_from_record(rec: Json) -> str:
+    """Return the reviewer choice from old/new dispute vote record shapes."""
+
+    choice = str(
+        rec.get("vote")
+        or rec.get("choice")
+        or rec.get("decision")
+        or rec.get("outcome")
+        or ""
+    ).strip().lower()
+    if choice:
+        return choice
+    resolution = _as_dict(rec.get("resolution"))
+    outcome = str(resolution.get("outcome") or resolution.get("action") or "").strip().lower()
+    if outcome:
+        return outcome
+    return ""
+
+
+def _dispute_vote_tally_hides_target(raw: Json) -> bool:
+    """Return True when recorded review votes are sufficient to hide a target.
+
+    Constitutional-clock mode can keep a report in an active/appeal stage while
+    final enforcement receipts are delayed.  Normal feeds must still hide the
+    target once the recorded review tally has deterministically upheld removal;
+    dispute/appeal routes remain the place to inspect or challenge the outcome.
+    """
+
+    votes = _as_dict(raw.get("votes"))
+    if not votes:
+        return False
+
+    yes = 0
+    no = 0
+    active_votes = 0
+    for rec in votes.values():
+        if not isinstance(rec, dict):
+            continue
+        choice = _vote_choice_from_record(rec)
+        if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
+            yes += 1
+            active_votes += 1
+        elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
+            no += 1
+            active_votes += 1
+        elif choice in {"abstain", "need_more_review", "need-more-review", "more_review"}:
+            active_votes += 1
+
+    try:
+        required = int(raw.get("required_votes") or 0)
+    except Exception:
+        required = 0
+    if required <= 0:
+        try:
+            required = int(raw.get("eligible_validator_count") or 0)
+        except Exception:
+            required = 0
+    if required <= 0:
+        required = max(1, active_votes)
+
+    return yes > no and yes >= required
+
+
+def _candidate_dispute_records_for_target(st: Json, *, target_keys: list[str]) -> list[Json]:
+    key_set = {str(k or "").strip() for k in target_keys if str(k or "").strip()}
+    if not key_set:
+        return []
+
+    disputes = _as_dict(st.get("disputes_by_id"))
+    out: list[Json] = []
+    seen: set[int] = set()
+
+    def add(raw: Any) -> None:
+        if not isinstance(raw, dict):
+            return
+        marker = id(raw)
+        if marker in seen:
+            return
+        seen.add(marker)
+        out.append(raw)
+
+    # Direct scan is the canonical path.
+    for raw in disputes.values():
+        if not isinstance(raw, dict):
+            continue
+        target_type = str(raw.get("target_type") or "content").strip().lower()
+        if target_type not in {"content", "post", "comment"}:
+            continue
+        target_id = str(raw.get("target_id") or "").strip()
+        if target_id in key_set:
+            add(raw)
+
+    # Rehearsal nodes can have the target index even when a surface only has an
+    # alias of the post id.  Consult it too so account/group feeds do not show
+    # removed content while the detail route has already suppressed it.
+    by_target = _as_dict(st.get("disputes_by_target"))
+    for key in sorted(key_set):
+        for target_type in ("content", "post", "comment"):
+            did = str(by_target.get(f"{target_type}:{key}") or "").strip()
+            if did and did in disputes:
+                add(disputes.get(did))
+
+    return out
+
+
+def _dispute_record_hides_target(st: Json, *, target_keys: list[str]) -> bool:
+    for raw in _candidate_dispute_records_for_target(st, target_keys=target_keys):
+        stage = str(raw.get("stage") or raw.get("status") or "").strip().lower()
+        if stage in {"dismissed", "expired", "unassigned", "declined", "report_not_upheld"}:
+            continue
+        resolution = _as_dict(raw.get("resolution"))
+        if _resolution_hides_target(resolution):
+            return True
+        if _dispute_vote_tally_hides_target(raw):
+            return True
+    return False
+
+
+def _content_target_hidden_by_review(st: Json, target_id: str = "", obj: Json | None = None) -> bool:
+    keys = _target_key_variants(target_id, obj)
+    if not keys:
+        return False
+    targets = _moderation_targets(st)
+    for key in keys:
+        if _moderation_record_hides(_as_dict(targets.get(key))):
+            return True
+    return _dispute_record_hides_target(st, target_keys=keys)
+
+
+def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
     if not isinstance(post, dict):
         return False
+    pid = str(post_id or post.get("post_id") or post.get("id") or "").strip()
     if bool(post.get("deleted", False)):
+        return False
+    if _content_target_hidden_by_review(st, pid, post):
         return False
     # Conservative default: only return public posts on the public feed.
     vis = str(post.get("visibility", "public") or "public").strip().lower()
@@ -95,7 +295,7 @@ def _comment_visible(st: Json, comment: Json) -> bool:
     if not root_id:
         return True
     root = _as_dict(_posts(st).get(root_id))
-    return bool(root and _post_visible(root))
+    return bool(root and _post_visible(st, root, root_id))
 
 
 
@@ -242,6 +442,9 @@ def _group_id_of_content(obj: Json) -> str:
 def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
     if not isinstance(post, dict) or bool(post.get("deleted", False)):
         return False
+    pid = str(post.get("post_id") or post.get("id") or "").strip()
+    if _content_target_hidden_by_review(st, pid, post):
+        return False
 
     vis = _visibility_of_content(post)
     owner = _owner_of_content(post)
@@ -357,7 +560,7 @@ def feed(request: Request) -> dict[str, object]:
         post.setdefault("created_at_nonce", _safe_int(post.get("created_nonce"), 0))
         created_at_nonce = _safe_int(post.get("created_at_nonce") or post.get("created_nonce"), 0)
 
-        if not _post_visible(post):
+        if not _post_visible(st, post, post_id):
             continue
 
         if visibility in {"public", "private"}:
@@ -419,7 +622,7 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     posts = _posts(st)
     if pid in posts:
         post = _with_reaction_counts(_as_dict(posts.get(pid)), _reaction_counts_by_target(st))
-        if bool(post.get("deleted", False)) or not _post_visible(post):
+        if bool(post.get("deleted", False)) or not _post_visible(st, post, pid):
             raise HTTPException(
                 status_code=404, detail={"code": "not_found", "message": "content not found"}
             )
@@ -520,7 +723,7 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
         )
 
     # Public endpoint: hide non-public roots.
-    if not _post_visible(root):
+    if not _post_visible(st, root, tid):
         raise HTTPException(
             status_code=404, detail={"code": "not_found", "message": "thread not found"}
         )

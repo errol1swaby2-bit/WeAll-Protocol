@@ -59,7 +59,14 @@ export function createWeAllPeerConnection(callbacks: WeAllPeerConnectionCallback
   };
   pc.ontrack = (event) => {
     const [stream] = event.streams;
-    if (stream) callbacks.onRemoteStream(stream);
+    // Some browsers/tests deliver the track without a populated streams array.
+    // Do not drop the remote participant's media in that case; materialize a
+    // stream from the track so the conference tile can render it.
+    if (stream) {
+      callbacks.onRemoteStream(stream);
+      return;
+    }
+    if (event.track) callbacks.onRemoteStream(new MediaStream([event.track]));
   };
   pc.onconnectionstatechange = () => {
     callbacks.onStateChange?.(pc.connectionState);

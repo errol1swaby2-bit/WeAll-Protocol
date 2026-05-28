@@ -48,6 +48,8 @@ type TxQueueContextValue = {
 const TX_HISTORY_KEY = "weall_tx_activity_v3";
 const TX_HISTORY_FALLBACK_KEYS = ["weall_tx_activity_v2", "weall_tx_activity_v1"];
 const TX_HISTORY_LIMIT = 40;
+const TX_VISIBLE_STALE_MS = 2 * 60 * 1000;
+const TX_RECORDED_AUTO_DISMISS_MS = 20 * 1000;
 const TxQueueContext = createContext<TxQueueContextValue | null>(null);
 
 function uid(): string {
@@ -131,12 +133,17 @@ function shouldAttemptSessionRepair(error: unknown): boolean {
   );
 }
 
+function isTransientToastStatus(status: TxLifecycleStatus): boolean {
+  return status === "recorded" || status === "refreshing" || status === "confirmed" || status === "failed";
+}
+
 function safeLoadHistory(): TxToastItem[] {
   try {
     const raw = localStorage.getItem(TX_HISTORY_KEY) || TX_HISTORY_FALLBACK_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
+    const now = Date.now();
     return parsed
       .filter((item) => item && typeof item === "object")
       .map((item) => ({
@@ -145,9 +152,10 @@ function safeLoadHistory(): TxToastItem[] {
         status: normalizeStoredTxStatus((item as any).status),
         message: typeof (item as any).message === "string" ? (item as any).message : undefined,
         txId: typeof (item as any).txId === "string" ? (item as any).txId : undefined,
-        createdAt: Number((item as any).createdAt || Date.now()),
-        updatedAt: Number((item as any).updatedAt || Date.now()),
+        createdAt: Number((item as any).createdAt || now),
+        updatedAt: Number((item as any).updatedAt || now),
       }))
+      .filter((item) => !isTransientToastStatus(item.status) || now - Number(item.updatedAt || item.createdAt || now) < TX_VISIBLE_STALE_MS)
       .slice(0, TX_HISTORY_LIMIT);
   } catch {
     return [];
@@ -186,6 +194,19 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
     itemsRef.current = items;
     persistHistory(items);
   }, [items]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setItems((prev) => prev.filter((item) => {
+        if (!isTransientToastStatus(item.status)) return true;
+        const age = now - Number(item.updatedAt || item.createdAt || now);
+        if (item.status === "recorded" || item.status === "refreshing") return age < TX_RECORDED_AUTO_DISMISS_MS;
+        return age < TX_VISIBLE_STALE_MS;
+      }));
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));

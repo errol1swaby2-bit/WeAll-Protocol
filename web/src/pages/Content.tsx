@@ -5,7 +5,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import MediaGallery from "../components/MediaGallery";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { nav } from "../lib/router";
-import { getKeypair, getSession, submitSignedTx } from "../auth/session";
+import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -129,7 +129,19 @@ export default function Content({ id }: { id: string }): JSX.Element {
     setErr(null);
     setLoading(true);
     try {
-      const r = await weall.content(id, base);
+      const activeSession = getSession();
+      const activeAccount = activeSession ? normalizeAccount(activeSession.account) : "";
+      const headers = activeAccount ? getAuthHeaders(activeAccount) : undefined;
+      let r: any;
+      try {
+        // Prefer the scoped read path when the viewer has a session so group posts
+        // opened from a group feed do not fall back to the public feed and appear
+        // missing merely because their visibility is `group`.
+        r = headers ? await weall.contentScoped(routeContentId, base, headers) : await weall.content(routeContentId, base);
+      } catch (scopedErr: any) {
+        if (!headers) throw scopedErr;
+        r = await weall.content(routeContentId, base);
+      }
       setData(r);
       const c = (r as any)?.content;
       if ((r as any)?.type === "post" && c && typeof c === "object") {

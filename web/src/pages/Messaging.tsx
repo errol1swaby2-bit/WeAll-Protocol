@@ -15,6 +15,9 @@ import {
   decryptDirectMessage,
   encryptDirectMessage,
   ensureMessagingEncryptionIdentity,
+  messagingEncryptionFingerprint,
+  readMessagingEncryptionIdentity,
+  sameMessagingPublicJwk,
 } from "../lib/messageCrypto";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
@@ -145,7 +148,9 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
   const [lastMessageRefreshMs, setLastMessageRefreshMs] = useState<number>(0);
   const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({});
   const [encryptionBusy, setEncryptionBusy] = useState<boolean>(false);
+  const [encryptionSetupPending, setEncryptionSetupPending] = useState<boolean>(false);
   const loadingMessagesRef = useRef<boolean>(false);
+  const autoPublishAttemptedRef = useRef<string>("");
 
   const gate = checkGates({ loggedIn: !!account, canSign, accountState: acctState, requireTier: 1 });
 
@@ -288,29 +293,46 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
     };
   }, [account, selectedMessages.map((m) => m.message_id).join("|"), selectedMessages.length]);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
-  const localMessagingPublicJwk = acctState ? accountMessagingPublicJwk(acctState) : null;
-  const localMessagingKeyId = acctState ? accountMessagingKeyId(acctState) : "";
-  const messagingEncryptionReady = !!localMessagingPublicJwk && !!localMessagingKeyId;
+  const publishedMessagingPublicJwk = acctState ? accountMessagingPublicJwk(acctState) : null;
+  const publishedMessagingKeyId = acctState ? accountMessagingKeyId(acctState) : "";
+  const messagingEncryptionReady = !!publishedMessagingPublicJwk && !!publishedMessagingKeyId;
+  const localMessagingIdentity = account ? readMessagingEncryptionIdentity(account) : null;
+  const localMessagingMatchesPublished = !!localMessagingIdentity && !!publishedMessagingPublicJwk && localMessagingIdentity.keyId === publishedMessagingKeyId && sameMessagingPublicJwk(localMessagingIdentity.publicJwk, publishedMessagingPublicJwk);
+  const messagingKeyMismatch = !!localMessagingIdentity && messagingEncryptionReady && !localMessagingMatchesPublished;
+  const publishedKeyMissingLocally = messagingEncryptionReady && !localMessagingIdentity;
+  const messagingKeyProblem = messagingKeyMismatch || publishedKeyMissingLocally;
+  const publishedKeyFingerprint = messagingEncryptionFingerprint(publishedMessagingPublicJwk);
+  const localKeyFingerprint = messagingEncryptionFingerprint(localMessagingIdentity?.publicJwk);
 
-  async function publishMessagingEncryptionKey(): Promise<void> {
+  async function publishMessagingEncryptionKey(opts?: { silent?: boolean; rotate?: boolean }): Promise<boolean> {
     if (!account) {
-      setErr({ msg: "Sign in before enabling encrypted messages.", details: null });
-      return;
+      if (!opts?.silent) setErr({ msg: "Sign in before enabling encrypted messages.", details: null });
+      return false;
     }
     if (!gate.ok) {
-      setErr({ msg: gate.reason || "Messages require account verification before enabling encryption.", details: null });
-      return;
+      if (!opts?.silent) setErr({ msg: gate.reason || "Messages require account verification before enabling encryption.", details: null });
+      return false;
     }
     setEncryptionBusy(true);
     setErr(null);
     try {
       const identity = await ensureMessagingEncryptionIdentity(account);
       const currentPolicy = asRecord(acctState?.security_policy);
+      const currentKeyId = String(currentPolicy.messaging_encryption_key_id || "").trim();
+      const replacingPublishedKey = !!currentKeyId && currentKeyId !== identity.keyId;
+      if (replacingPublishedKey && !opts?.rotate) {
+        throw new Error("This browser has a different local messaging key than the one already published for this account. For safety, WeAll will not silently replace it. Use explicit key rotation only after confirming older messages may become unreadable on this device.");
+      }
+      const rotationReason = replacingPublishedKey ? "explicit user requested messaging key rotation from current device" : "";
       const policy = {
         ...currentPolicy,
         messaging_encryption_public_jwk: identity.publicJwk,
         messaging_encryption_key_id: identity.keyId,
         messaging_encryption_scheme: "WEALL_E2EE_V1",
+        ...(replacingPublishedKey ? {
+          messaging_encryption_previous_key_id: currentKeyId,
+          messaging_encryption_rotation_reason: rotationReason,
+        } : {}),
       };
       await tx.runTx({
         title: "Enable encrypted messages",
@@ -326,16 +348,51 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
             policy,
             messaging_encryption_public_jwk: identity.publicJwk,
             messaging_encryption_key_id: identity.keyId,
+            ...(replacingPublishedKey ? {
+              messaging_encryption_previous_key_id: currentKeyId,
+              messaging_encryption_rotation_reason: rotationReason,
+            } : {}),
           },
           base: apiBase,
         }),
       });
+      setEncryptionSetupPending(true);
       await refreshMutationSlices(loadMessages, refreshAccountContext);
+      return true;
     } catch (e: any) {
-      setErr(prettyErr(e));
+      setEncryptionSetupPending(false);
+      if (!opts?.silent) setErr(prettyErr(e));
+      return false;
     } finally {
       setEncryptionBusy(false);
     }
+  }
+
+  useEffect(() => {
+    if (messagingEncryptionReady) setEncryptionSetupPending(false);
+  }, [messagingEncryptionReady]);
+
+  useEffect(() => {
+    if (!account || !gate.ok || !canSign || messagingEncryptionReady || encryptionBusy || encryptionSetupPending || signerSubmission.busy) return;
+    const attemptKey = `${account}:auto-publish-messaging-key`;
+    if (autoPublishAttemptedRef.current === attemptKey) return;
+    autoPublishAttemptedRef.current = attemptKey;
+    void publishMessagingEncryptionKey({ silent: true });
+  }, [account, gate.ok, canSign, messagingEncryptionReady, encryptionBusy, encryptionSetupPending, signerSubmission.busy]);
+
+  async function loadRecipientAccountWithMessagingKey(to: string): Promise<any> {
+    let last: any = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate: any = await weall.account(to, apiBase);
+      last = candidate;
+      if (accountMessagingPublicJwk(candidate?.state) && accountMessagingKeyId(candidate?.state)) return candidate;
+      // Local observer/genesis rehearsal can lag between key publication and the
+      // current node's read model.  Briefly refresh and retry so compose does
+      // not fail while the key is already being synced.
+      await refreshMutationSlices(loadMessages, refreshAccountContext);
+      await sleep(650 + attempt * 250);
+    }
+    return last;
   }
 
   async function sendMessage(args?: { to?: string; messageBody?: string; thread_id?: string; afterThread?: string }): Promise<void> {
@@ -349,14 +406,20 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       if (!messageBody) throw new Error("Write a message first.");
       if (signerSubmission.busy) throw new Error("Another signed action is still settling for this account.");
 
-      if (!messagingEncryptionReady) {
-        throw new Error("Enable encrypted messages for your account before sending.");
+      if (messagingKeyProblem) {
+        throw new Error(publishedKeyMissingLocally
+          ? "This account already has a published messaging key, but this browser does not have the matching private key. Restore the device/key or explicitly rotate the messaging key before sending."
+          : "This browser has a different local messaging key than the one published for this account. WeAll will not silently replace it. Restore the matching key or explicitly rotate before sending.");
       }
-      const recipientAccount: any = await weall.account(to, apiBase);
+      if (!messagingEncryptionReady) {
+        const enabled = await publishMessagingEncryptionKey({ silent: true });
+        if (!enabled) throw new Error("Encrypted messaging is still being prepared for this account. Try again after the key finishes saving.");
+      }
+      const recipientAccount: any = await loadRecipientAccountWithMessagingKey(to);
       const recipientPublicJwk = accountMessagingPublicJwk(recipientAccount?.state);
       const recipientKeyId = accountMessagingKeyId(recipientAccount?.state);
       if (!recipientPublicJwk) {
-        throw new Error("This recipient has not published a messaging encryption key yet.");
+        throw new Error("This recipient's messaging encryption key is not visible on this node yet. Keep both accounts open, refresh messages, and try again after the key syncs.");
       }
       const payload = await encryptDirectMessage({
         sender: account,
@@ -475,7 +538,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
           </label>
           {!gate.ok ? <div className="calloutInfo">{gate.reason || "Complete account verification before sending messages."}</div> : null}
           <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !messagingEncryptionReady || !recipient.trim() || !body.trim() || signerSubmission.busy}>
+            <button className="btn btnPrimary" onClick={() => void sendMessage()} disabled={!gate.ok || !recipient.trim() || !body.trim() || signerSubmission.busy || encryptionBusy}>
               {signerSubmission.busy ? "Waiting…" : "Send message"}
             </button>
             {account ? <button className="btn" onClick={() => setRecipient(account)}>Message myself for demo</button> : null}
@@ -577,7 +640,7 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
               <button
                 className="btn btnPrimary"
                 onClick={() => void sendMessage({ to: selectedReplyRecipient, messageBody: replyBody, thread_id: selectedThread.thread_id, afterThread: selectedThread.thread_id })}
-                disabled={!gate.ok || !messagingEncryptionReady || !replyBody.trim() || signerSubmission.busy}
+                disabled={!gate.ok || !replyBody.trim() || signerSubmission.busy || encryptionBusy || messagingKeyProblem}
               >
                 {signerSubmission.busy ? "Waiting…" : "Send reply"}
               </button>
@@ -595,16 +658,36 @@ export default function Messaging({ mode = "hub", threadId = "" }: { mode?: Mess
       <ErrorBanner message={err?.msg} details={err?.details} onDismiss={() => setErr(null)} onRetry={() => void refreshMutationSlices(loadMessages, refreshAccountContext)} />
       {renderNoSession()}
 
-      {account && !messagingEncryptionReady ? (
+      {account && (!messagingEncryptionReady || messagingKeyProblem) ? (
         <section className="card">
           <div className="cardBody formStack">
-            <div className="calloutWarn">
-              <strong>Encrypted messaging key required.</strong> Direct messages are end-to-end encrypted. Publish this device's messaging public key before sending or reading encrypted conversations on this account.
+            <div className={messagingKeyProblem ? "calloutWarn" : "calloutInfo"}>
+              <strong>{messagingKeyProblem ? "Messaging key needs attention." : encryptionSetupPending ? "Encrypted messaging key recorded." : "Encrypted messaging is being prepared."}</strong>{" "}
+              {publishedKeyMissingLocally
+                ? "This account has a published messaging key, but this browser does not have the matching private key. Restore the original browser/device key or explicitly rotate the key; older messages may not decrypt after rotation."
+                : messagingKeyMismatch
+                  ? "This browser has a different local messaging key than the one published for the account. WeAll will not silently replace the published key."
+                  : encryptionSetupPending
+                    ? "Waiting for the local read model to show the saved messaging key before sending."
+                    : "This device publishes a messaging public key automatically so sending does not require a separate setup step."}
             </div>
+            {messagingKeyProblem ? (
+              <div className="calloutInfo mono">
+                published={publishedMessagingKeyId || "none"} {publishedKeyFingerprint ? `(${publishedKeyFingerprint})` : ""}<br />
+                local={localMessagingIdentity?.keyId || "none"} {localKeyFingerprint ? `(${localKeyFingerprint})` : ""}
+              </div>
+            ) : null}
             <div className="buttonRow">
-              <button className="btn btnPrimary" onClick={() => void publishMessagingEncryptionKey()} disabled={!gate.ok || encryptionBusy || signerSubmission.busy}>
-                {encryptionBusy ? "Publishing…" : "Enable encrypted messages"}
-              </button>
+              {!messagingEncryptionReady ? (
+                <button className="btn btnPrimary" onClick={() => void publishMessagingEncryptionKey()} disabled={!gate.ok || encryptionBusy || encryptionSetupPending || signerSubmission.busy}>
+                  {encryptionBusy ? "Publishing…" : encryptionSetupPending ? "Waiting for sync…" : "Retry key setup"}
+                </button>
+              ) : null}
+              {messagingKeyProblem ? (
+                <button className="btn btnDanger" onClick={() => void publishMessagingEncryptionKey({ rotate: true })} disabled={!gate.ok || encryptionBusy || signerSubmission.busy}>
+                  {encryptionBusy ? "Rotating…" : "Rotate messaging key"}
+                </button>
+              ) : null}
             </div>
           </div>
         </section>

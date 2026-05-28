@@ -76,7 +76,7 @@ function validatePublicJwk(value: any): JsonWebKey | null {
   return { kty: "EC", crv: "P-256", x: String(jwk.x), y: String(jwk.y), ext: true };
 }
 
-function readStoredIdentity(account: string): MessagingEncryptionIdentity | null {
+export function readMessagingEncryptionIdentity(account: string): MessagingEncryptionIdentity | null {
   try {
     const parsed = JSON.parse(localStorage.getItem(storageKey(account)) || "null") as MessagingEncryptionIdentity | null;
     if (!parsed || parsed.version !== 1 || normalizeAccount(parsed.account) !== normalizeAccount(account)) return null;
@@ -111,9 +111,25 @@ async function generateIdentity(account: string): Promise<MessagingEncryptionIde
 }
 
 export async function ensureMessagingEncryptionIdentity(account: string): Promise<MessagingEncryptionIdentity> {
-  const existing = readStoredIdentity(account);
+  const existing = readMessagingEncryptionIdentity(account);
   if (existing) return existing;
   return generateIdentity(account);
+}
+
+
+export function messagingEncryptionFingerprint(publicJwk: JsonWebKey | null | undefined): string {
+  const safe = validatePublicJwk(publicJwk);
+  if (!safe) return "";
+  const x = String(safe.x || "");
+  const y = String(safe.y || "");
+  return `P-256:${x.slice(0, 8)}…${x.slice(-6)}:${y.slice(0, 8)}…${y.slice(-6)}`;
+}
+
+export function sameMessagingPublicJwk(a: JsonWebKey | null | undefined, b: JsonWebKey | null | undefined): boolean {
+  const aa = validatePublicJwk(a);
+  const bb = validatePublicJwk(b);
+  if (!aa || !bb) return false;
+  return aa.kty === bb.kty && aa.crv === bb.crv && aa.x === bb.x && aa.y === bb.y;
 }
 
 export function accountMessagingPublicJwk(accountState: any): JsonWebKey | null {

@@ -444,6 +444,88 @@ def _index_dispute_target(state: Json, d: Json) -> None:
     idx[f"{tgt_type}:{tgt_id}"] = did
 
 
+def _content_target_owner(state: Json, *, target_type: str, target_id: str) -> str:
+    """Return the creator/owner of a disputed content target when known."""
+
+    if _as_str(target_type).strip().lower() not in {"content", "post", "comment"}:
+        return ""
+    tid = _as_str(target_id).strip()
+    if not tid:
+        return ""
+    content = state.get("content")
+    if not isinstance(content, dict):
+        return ""
+    for bucket_name in ("posts", "comments"):
+        bucket = content.get(bucket_name)
+        if not isinstance(bucket, dict):
+            continue
+        rec = bucket.get(tid)
+        if not isinstance(rec, dict):
+            continue
+        return _as_str(
+            rec.get("author")
+            or rec.get("owner")
+            or rec.get("account_id")
+            or rec.get("created_by")
+            or rec.get("signer")
+            or ""
+        ).strip()
+    return ""
+
+
+def _same_account(a: str, b: str) -> bool:
+    aa = _as_str(a).strip()
+    bb = _as_str(b).strip()
+    if not aa or not bb:
+        return False
+    return aa == bb or aa.lstrip("@") == bb.lstrip("@")
+
+
+def _appeal_allowed_accounts(state: Json, d: Json) -> list[str]:
+    raw = d.get("appeal_allowed_accounts")
+    out: list[str] = []
+    if isinstance(raw, list):
+        out.extend(_as_str(x).strip() for x in raw if _as_str(x).strip())
+    owner = _as_str(d.get("target_owner") or d.get("target_author") or "").strip()
+    if not owner:
+        owner = _content_target_owner(
+            state,
+            target_type=_as_str(d.get("target_type") or "content"),
+            target_id=_as_str(d.get("target_id") or ""),
+        )
+    if owner:
+        out.append(owner)
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for acct in out:
+        key = acct.lstrip("@")
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(acct)
+    return normalized
+
+
+def _require_dispute_appeal_actor(state: Json, d: Json, signer: str) -> None:
+    """Appeals are for the person directly affected by the outcome.
+
+    For content moderation outcomes, that is the content creator/owner, not the
+    reviewer who voted on the report and not every Tier 2 account that can see
+    the appeal window.  Older non-content dispute records without an owner keep
+    their historical permissive behavior until a dedicated subject field exists.
+    """
+
+    allowed = _appeal_allowed_accounts(state, d)
+    if not allowed:
+        return
+    if not any(_same_account(signer, acct) for acct in allowed):
+        raise DisputeApplyError(
+            "forbidden",
+            "appeal_not_target_owner",
+            {"dispute_id": _as_str(d.get("id") or d.get("dispute_id")), "signer": signer, "allowed_accounts": allowed},
+        )
+
+
 def _ensure_root_dict(state: Json, key: str) -> Json:
     cur = state.get(key)
     if not isinstance(cur, dict):
@@ -494,6 +576,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     fallback_signer = "" if bool(getattr(env, "system", False)) or _as_str(env.signer).strip().upper() == "SYSTEM" else str(env.signer)
     eligible_jurors = _dispute_eligible_juror_ids(state, {"opened_by": env.signer}, fallback_signer)
 
+    target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
     disputes[dispute_id] = {
         "id": dispute_id,
         "stage": "open",
@@ -501,6 +584,8 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "opened_at_nonce": int(env.nonce),
         "target_type": target_type,
         "target_id": target_id,
+        "target_owner": target_owner or None,
+        "appeal_allowed_accounts": [target_owner] if target_owner else [],
         "reason": reason,
         "evidence": [],
         "jurors": {},
@@ -890,6 +975,7 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
         current_h = int(state.get("height", 0) or 0)
         if deadline > 0 and current_h > deadline:
             raise DisputeApplyError("forbidden", "appeal_window_closed", {"dispute_id": dispute_id, "deadline_height": deadline, "height": current_h})
+    _require_dispute_appeal_actor(state, d, _as_str(env.signer).strip())
     appeals = d.get("appeals")
     if not isinstance(appeals, list):
         appeals = []

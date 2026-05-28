@@ -18,7 +18,7 @@ from weall.api.routes_public_parts.common import (
     _str_param,
 )
 from weall.api.security import require_account_session
-from weall.api.routes_public_parts.content import _with_media_summaries
+from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 
 router = APIRouter()
 
@@ -66,6 +66,33 @@ def _tags_list(obj: dict[str, Any]) -> list[str]:
     return []
 
 
+def _content_root(st: dict[str, Any]) -> dict[str, Any]:
+    content = st.get("content")
+    return content if isinstance(content, dict) else {}
+
+
+def _moderation_targets(st: dict[str, Any]) -> dict[str, Any]:
+    moderation = _content_root(st).get("moderation")
+    moderation = moderation if isinstance(moderation, dict) else {}
+    targets = moderation.get("targets")
+    return targets if isinstance(targets, dict) else {}
+
+
+def _moderation_record_hides(rec: dict[str, Any]) -> bool:
+    if not isinstance(rec, dict):
+        return False
+    if bool(rec.get("deleted", False)):
+        return True
+    vis = str(rec.get("visibility", "") or "").strip().lower()
+    action = str(rec.get("last_action", "") or "").strip().lower()
+    return vis in {"hidden", "deleted", "removed"} or action in {"hide", "delete", "remove"}
+
+
+def _post_moderated_hidden(st: dict[str, Any], post_id: str, post: dict[str, Any] | None = None) -> bool:
+    pid = str(post_id or "").strip()
+    return _content_target_hidden_by_review(st, pid, post if isinstance(post, dict) else {})
+
+
 def _iter_group_posts(st: dict[str, Any], *, group_id: str) -> list[dict[str, Any]]:
     content = st.get("content")
     if not isinstance(content, dict):
@@ -78,11 +105,11 @@ def _iter_group_posts(st: dict[str, Any], *, group_id: str) -> list[dict[str, An
     for pid, obj in posts.items():
         if not isinstance(obj, dict):
             continue
-        if bool(obj.get("deleted", False)):
-            continue
-
         row = dict(obj)
         post_id = _str_param(row.get("post_id") or row.get("id") or pid).strip()
+        if bool(obj.get("deleted", False)) or _post_moderated_hidden(st, post_id, row):
+            continue
+
         row.setdefault("id", post_id)
         row.setdefault("created_at_nonce", int(row.get("created_nonce", 0) or 0))
         row.setdefault("visibility", "public")
@@ -269,6 +296,12 @@ def _group_content_can_show(
 
     vis = _post_visibility(post)
     if vis in {"public", ""}:
+        return True
+
+    # Group-scoped posts are intentionally not shown in the global public feed,
+    # but they must surface in their own group feed after backend group-authority
+    # checks already accepted the post.
+    if vis == "group":
         return True
 
     # Explicitly requesting public never returns non-public posts.
@@ -474,15 +507,15 @@ def v1_group_content(group_id: str, request: Request):
     limit = _int_param(qp.get("limit"), 25)
     limit = max(1, min(100, limit))
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
-    default_visibility = "all" if _group_is_private(g) else "public"
+    default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "all", "members", "scoped"}:
+    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
     filtered: list[dict[str, Any]] = []
     for obj in posts:
-        if visibility in {"public", "private"} and _post_visibility(obj) != visibility:
+        if visibility in {"public", "private", "group"} and _post_visibility(obj) != visibility:
             continue
         if not _group_content_can_show(
             request,
@@ -532,9 +565,9 @@ def v1_group_feed(group_id: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     tags = _normalize_tags_param(qp.get("tags"))
     author = _str_param(qp.get("author")).strip()
-    default_visibility = "all" if _group_is_private(g) else "public"
+    default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "all", "members", "scoped"}:
+    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
@@ -547,7 +580,7 @@ def v1_group_feed(group_id: str, request: Request):
         if author and _str_param(obj.get("author")).strip() != author:
             continue
 
-        if visibility in {"public", "private"}:
+        if visibility in {"public", "private", "group"}:
             if _post_visibility(obj) != visibility:
                 continue
         if not _group_content_can_show(

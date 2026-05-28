@@ -48,3 +48,30 @@ def test_messaging_thread_auto_refreshes_and_polls_after_send_batch426() -> None
     assert "await sleep(650)" in page
     assert "await loadMessages({ silent: true })" in page
     assert "Auto-refresh" in page
+
+
+def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
+    page = _read("pages/LiveVerificationRoom.tsx")
+
+    assert "missingRemoteAccounts" in page
+    assert "Waiting for media from" in page
+    assert "window.setTimeout(() => void pollWebRTCSignals(), 750)" in page
+    assert "waiting {missingRemoteAccounts.length}" in page
+
+
+def test_batch447_messaging_auto_publishes_encryption_key_before_send() -> None:
+    page = _read("pages/Messaging.tsx")
+
+    assert "autoPublishAttemptedRef" in page
+    assert "publishMessagingEncryptionKey({ silent: true })" in page
+    assert "Encrypted messaging is being prepared" in page
+    assert "Retry key setup" in page
+
+
+def test_batch447_appeal_controls_are_creator_only_in_dispute_detail() -> None:
+    page = _read("pages/DisputeDetail.tsx")
+
+    assert "appealActorEligible" in page
+    assert "Creator-only action" in page
+    assert "Reviewers can inspect appeal history" in page
+    assert "reviewer accounts do not get the filing control" in page
