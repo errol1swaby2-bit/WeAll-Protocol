@@ -1159,6 +1159,120 @@ def chain_identity(request: Request) -> dict[str, Any]:
     return _chain_identity_payload(request)
 
 
+
+
+def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
+    """Read-only compatibility contract for the first external observer gate.
+
+    This surface is deliberately not authority. It tells an external observer
+    what must be compared before trusting this node as the Genesis API for the
+    first signed observer-onboarding rehearsal. The live gate treats this as a
+    fail-closed compatibility checklist before it submits any signed txs.
+    """
+
+    ident = _chain_identity_payload(request)
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    mode = _safe_str(os.environ.get("WEALL_MODE") or ident.get("chain_manifest", {}).get("mode"), "prod")
+    manifest = ident.get("chain_manifest") if isinstance(ident.get("chain_manifest"), dict) else {}
+    constitution = ident.get("constitution") if isinstance(ident.get("constitution"), dict) else {}
+    readiness = ident.get("testnet_readiness") if isinstance(ident.get("testnet_readiness"), dict) else _testnet_readiness_payload(state if isinstance(state, dict) else {})
+    chain_id = _safe_str(ident.get("chain_id"), "")
+    tx_index_hash = _safe_str(ident.get("tx_index_hash"), "")
+    protocol_profile_hash = _safe_str(ident.get("protocol_profile_hash"), "")
+    manifest_issues = list(manifest.get("issues", [])) if isinstance(manifest.get("issues"), list) else []
+
+    # This endpoint is an explicit remote contract for first-observer rehearsal.
+    # It must remain read-only, and it must never grant validator, helper, BFT,
+    # treasury, juror, governance, storage-provider, or genesis authority.
+    return {
+        "ok": bool(chain_id and tx_index_hash and protocol_profile_hash and not manifest_issues),
+        "stage": "first_trusted_external_observer_rehearsal",
+        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, mainnet readiness, or production-grade private messaging.",
+        "compatibility": {
+            "chain_id": chain_id,
+            "height": _safe_int(ident.get("height"), 0),
+            "tip_hash": _safe_str(ident.get("tip_hash"), ""),
+            "state_root": _safe_str(ident.get("state_root"), ""),
+            "schema_version": _safe_str(ident.get("schema_version"), ""),
+            "tx_index_hash": tx_index_hash,
+            "protocol_profile_hash": protocol_profile_hash,
+            "constitution_hash": _safe_str(constitution.get("sha256") or constitution.get("hash"), ""),
+            "manifest_enabled": bool(manifest.get("enabled", False)),
+            "manifest_ok": bool(manifest.get("enabled", False)) and not bool(manifest_issues),
+            "manifest_issues": manifest_issues,
+            "remote_observer_must_compare_bundle_fields": [
+                "chain_id",
+                "tx_index_hash",
+                "protocol_profile_hash",
+                "genesis_hash",
+                "constitution_hash",
+            ],
+        },
+        "endpoints": {
+            "health": "/v1/health",
+            "readiness": "/v1/readyz",
+            "status": "/v1/status",
+            "chain_identity": "/v1/chain/identity",
+            "chain_manifest": "/v1/chain/manifest",
+            "observer_readiness": "/v1/genesis/observer/readiness",
+            "tx_submit": "/v1/tx/submit",
+            "tx_status": "/v1/tx/status/{tx_id}",
+            "economics_status": "/v1/economics/status",
+            "block_production_readiness": "/v1/consensus/block-production/readiness",
+        },
+        "observer_authority_boundary": {
+            "observer_receives_validator_authority": False,
+            "observer_receives_bft_signing_authority": False,
+            "observer_receives_helper_authority": False,
+            "observer_receives_treasury_or_governance_authority": False,
+            "requires_genesis_or_validator_private_keys": False,
+            "requires_external_identity_provider": False,
+            "authority_is_granted_only_by_committed_protocol_state": True,
+            "frontend_or_bundle_cannot_grant_authority": True,
+        },
+        "public_tx_ingress": {
+            "signed_user_tx_submit_enabled": True,
+            "tx_submit_endpoint": "/v1/tx/submit",
+            "status_endpoint_template": "/v1/tx/status/{tx_id}",
+            "prod_http_requires_signatures": True,
+            "system_signer_rejected_from_public_ingress": True,
+            "system_flag_rejected_from_public_ingress": True,
+            "canonical_schema_required": True,
+            "chain_id_must_match": True,
+        },
+        "first_observer_required_gates": {
+            "local_preconditions": "bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bundle.json>",
+            "remote_preflight": "WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 WEALL_GENESIS_API_BASE=<remote-api> bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bundle.json>",
+            "signed_onboarding": "WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1 WEALL_GENESIS_API_BASE=<remote-api> bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bundle.json>",
+        },
+        "testnet_readiness": readiness,
+        "not_proven_by_this_endpoint": [
+            "signed observer onboarding",
+            "Tier 1 PoH finalization",
+            "Tier 2 live PoH",
+            "validator promotion",
+            "public multi-validator BFT",
+            "live economics or treasury spending",
+            "production-grade private messaging",
+            "mainnet readiness",
+        ],
+        "mode": mode,
+    }
+
+
+@router.get("/genesis/observer/readiness")
+def genesis_observer_readiness(request: Request) -> dict[str, Any]:
+    return _genesis_observer_readiness_payload(request)
+
+
+@router.get("/genesis/api/readiness")
+def genesis_api_readiness(request: Request) -> dict[str, Any]:
+    payload = _genesis_observer_readiness_payload(request)
+    payload["endpoint_alias"] = "/v1/genesis/api/readiness"
+    return payload
+
+
 @router.get("/chain/state-root")
 def chain_state_root(request: Request) -> dict[str, Any]:
     ident = _chain_identity_payload(request)

@@ -34,6 +34,7 @@ PYTHONPATH=src pytest -q \
   tests/test_batch456_production_readiness_and_p2p_e2ee_gates.py \
   tests/test_batch457_economics_block_p2p_implementation.py \
   tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
+  tests/test_batch464_genesis_api_external_observer_readiness.py \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then

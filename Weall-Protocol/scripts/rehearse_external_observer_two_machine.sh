@@ -179,7 +179,41 @@ if expected_profile_hash and remote_profile_hash and remote_profile_hash != expe
 if expected_profile_hash and not remote_profile_hash:
     raise SystemExit("remote_protocol_profile_hash_missing")
 
-print("OK: remote genesis health/status/identity compatibility checks passed")
+readiness = fetch_json("/v1/genesis/observer/readiness")
+if readiness.get("ok") is not True:
+    raise SystemExit("remote_genesis_observer_readiness_not_ok")
+if str(readiness.get("stage") or "") != "first_trusted_external_observer_rehearsal":
+    raise SystemExit("remote_genesis_observer_readiness_stage_invalid")
+compat = readiness.get("compatibility") if isinstance(readiness.get("compatibility"), dict) else {}
+remote_readiness_chain_id = str(compat.get("chain_id") or "").strip()
+if expected_chain_id and remote_readiness_chain_id and remote_readiness_chain_id != expected_chain_id:
+    raise SystemExit(f"remote_observer_readiness_chain_id_mismatch:{remote_readiness_chain_id}!={expected_chain_id}")
+remote_readiness_tx_hash = str(compat.get("tx_index_hash") or "").strip().lower()
+if expected_tx_hash and remote_readiness_tx_hash and remote_readiness_tx_hash != expected_tx_hash:
+    raise SystemExit(f"remote_observer_readiness_tx_index_hash_mismatch:{remote_readiness_tx_hash}!={expected_tx_hash}")
+remote_readiness_profile_hash = str(compat.get("protocol_profile_hash") or "").strip().lower()
+if expected_profile_hash and remote_readiness_profile_hash and remote_readiness_profile_hash != expected_profile_hash:
+    raise SystemExit(f"remote_observer_readiness_protocol_profile_hash_mismatch:{remote_readiness_profile_hash}!={expected_profile_hash}")
+authority = readiness.get("observer_authority_boundary") if isinstance(readiness.get("observer_authority_boundary"), dict) else {}
+if authority.get("observer_receives_validator_authority") is not False:
+    raise SystemExit("remote_observer_readiness_validator_authority_not_false")
+if authority.get("requires_genesis_or_validator_private_keys") is not False:
+    raise SystemExit("remote_observer_readiness_requires_private_keys")
+if authority.get("requires_external_identity_provider") is not False:
+    raise SystemExit("remote_observer_readiness_requires_external_identity_provider")
+public_tx = readiness.get("public_tx_ingress") if isinstance(readiness.get("public_tx_ingress"), dict) else {}
+if public_tx.get("signed_user_tx_submit_enabled") is not True:
+    raise SystemExit("remote_observer_readiness_signed_tx_submit_not_enabled")
+if public_tx.get("system_signer_rejected_from_public_ingress") is not True:
+    raise SystemExit("remote_observer_readiness_system_signer_not_rejected")
+if public_tx.get("system_flag_rejected_from_public_ingress") is not True:
+    raise SystemExit("remote_observer_readiness_system_flag_not_rejected")
+endpoints = readiness.get("endpoints") if isinstance(readiness.get("endpoints"), dict) else {}
+for key in ("tx_submit", "tx_status", "chain_identity", "observer_readiness"):
+    if not str(endpoints.get(key) or "").strip():
+        raise SystemExit(f"remote_observer_readiness_missing_endpoint:{key}")
+
+print("OK: remote genesis health/status/identity/readiness compatibility checks passed")
 PY_REMOTE_CHECK
 
 if [ -n "${RELAY_URLS}" ]; then

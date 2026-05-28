@@ -135,3 +135,28 @@ Transaction results must be read as a lifecycle, not a single success word:
 5. visible from another healthy compatible node.
 
 Only step 4/5 should be described as committed on the shared test chain.
+
+## Batch 464 Genesis API readiness contract
+
+Before the observer submits signed onboarding transactions, the remote Genesis API must expose the read-only observer-readiness contract:
+
+```bash
+curl -fsS "$WEALL_GENESIS_API_BASE/v1/genesis/observer/readiness"
+```
+
+The response must report `stage: first_trusted_external_observer_rehearsal`, matching `chain_id`, `tx_index_hash`, and `protocol_profile_hash`, plus an explicit authority boundary showing that the observer receives no validator, BFT, helper, treasury, governance, or external identity-provider authority. This endpoint is a compatibility truth surface only; it does not grant authority and does not prove signed onboarding by itself.
+
+Use the combined gate for the next real proof:
+
+```bash
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_GENESIS_API_BASE="https://<your-public-genesis-api>" \
+bash scripts/first_external_observer_reproducibility_gate.sh /path/to/weall-external-observer-bundle.json
+
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1 \
+WEALL_GENESIS_API_BASE="https://<your-public-genesis-api>" \
+bash scripts/first_external_observer_reproducibility_gate.sh /path/to/weall-external-observer-bundle.json
+```
+
+A first trusted external observer remains a no-go until the remote Genesis observer readiness contract, the two-machine preflight, and the signed onboarding gate all pass against the same non-local Genesis API.

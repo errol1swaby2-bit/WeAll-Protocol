@@ -201,3 +201,36 @@ npm run production-safety-check
 ```
 
 The first trusted observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.
+
+## Batch 464: Production-oriented Genesis API check
+
+The tester must verify the remote Genesis observer readiness contract before running signed onboarding:
+
+```bash
+curl -fsS "$WEALL_GENESIS_API_BASE/v1/genesis/observer/readiness"
+```
+
+Expected properties:
+
+- `stage` is `first_trusted_external_observer_rehearsal`;
+- `compatibility.chain_id`, `compatibility.tx_index_hash`, and `compatibility.protocol_profile_hash` match the public observer bundle;
+- `observer_authority_boundary.observer_receives_validator_authority` is `false`;
+- `observer_authority_boundary.requires_genesis_or_validator_private_keys` is `false`;
+- `observer_authority_boundary.requires_external_identity_provider` is `false`;
+- `public_tx_ingress.signed_user_tx_submit_enabled` is `true`;
+- `public_tx_ingress.system_signer_rejected_from_public_ingress` and `system_flag_rejected_from_public_ingress` are `true`.
+
+The preferred command path is now the combined external-observer gate:
+
+```bash
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_GENESIS_API_BASE=https://<genesis-api-host> \
+bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1 \
+WEALL_GENESIS_API_BASE=https://<genesis-api-host> \
+bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
+```
+
+Passing the Genesis observer readiness endpoint is necessary but not sufficient. Signed onboarding is proven only when the second command submits and confirms the account/device/peer/async-PoH transactions and then verifies that the observer account has no validator, BFT, helper, treasury, governance, storage-provider, or juror authority.

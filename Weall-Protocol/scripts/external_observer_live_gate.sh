@@ -118,6 +118,73 @@ export WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API="1"
 
 echo "[live-gate] verifying public observer bundle/manifest and forced observer-only runtime posture"
 echo "[live-gate] signed transaction helper: scripts/devnet_tx.py (used here as a generic signed tx CLI, not as a devnet authority)"
+echo "[live-gate] checking remote Genesis observer readiness contract"
+
+python3 - "${GENESIS_API_BASE}" "${BUNDLE_PATH}" <<'PY_REMOTE_OBSERVER_READINESS'
+from __future__ import annotations
+
+import json
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+api = sys.argv[1].rstrip("/")
+bundle = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+chain = bundle.get("chain") if isinstance(bundle.get("chain"), dict) else {}
+expected_chain_id = str(chain.get("chain_id") or "").strip()
+expected_tx_hash = str(chain.get("tx_index_hash") or "").strip().lower()
+expected_profile_hash = str(chain.get("protocol_profile_hash") or "").strip().lower()
+
+def fetch_json(path: str) -> dict:
+    try:
+        with urllib.request.urlopen(api + path, timeout=10) as resp:
+            if resp.status >= 400:
+                raise SystemExit(f"remote_endpoint_failed:{path}:{resp.status}")
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        raise SystemExit(f"remote_endpoint_failed:{path}:{exc.code}") from exc
+    try:
+        obj = json.loads(body)
+    except Exception as exc:
+        raise SystemExit(f"remote_endpoint_non_json:{path}:{exc}") from exc
+    if not isinstance(obj, dict):
+        raise SystemExit(f"remote_endpoint_not_object:{path}")
+    return obj
+
+readiness = fetch_json("/v1/genesis/observer/readiness")
+if readiness.get("ok") is not True:
+    raise SystemExit("remote_genesis_observer_readiness_not_ok")
+if str(readiness.get("stage") or "") != "first_trusted_external_observer_rehearsal":
+    raise SystemExit("remote_genesis_observer_readiness_stage_invalid")
+compat = readiness.get("compatibility") if isinstance(readiness.get("compatibility"), dict) else {}
+remote_chain_id = str(compat.get("chain_id") or "").strip()
+if expected_chain_id and remote_chain_id and remote_chain_id != expected_chain_id:
+    raise SystemExit(f"remote_observer_readiness_chain_id_mismatch:{remote_chain_id}!={expected_chain_id}")
+remote_tx_hash = str(compat.get("tx_index_hash") or "").strip().lower()
+if expected_tx_hash and remote_tx_hash and remote_tx_hash != expected_tx_hash:
+    raise SystemExit(f"remote_observer_readiness_tx_index_hash_mismatch:{remote_tx_hash}!={expected_tx_hash}")
+remote_profile_hash = str(compat.get("protocol_profile_hash") or "").strip().lower()
+if expected_profile_hash and remote_profile_hash and remote_profile_hash != expected_profile_hash:
+    raise SystemExit(f"remote_observer_readiness_protocol_profile_hash_mismatch:{remote_profile_hash}!={expected_profile_hash}")
+if expected_profile_hash and not remote_profile_hash:
+    raise SystemExit("remote_observer_readiness_protocol_profile_hash_missing")
+authority = readiness.get("observer_authority_boundary") if isinstance(readiness.get("observer_authority_boundary"), dict) else {}
+if authority.get("observer_receives_validator_authority") is not False:
+    raise SystemExit("remote_observer_readiness_validator_authority_not_false")
+if authority.get("requires_genesis_or_validator_private_keys") is not False:
+    raise SystemExit("remote_observer_readiness_requires_private_keys")
+if authority.get("requires_external_identity_provider") is not False:
+    raise SystemExit("remote_observer_readiness_requires_external_identity_provider")
+public_tx = readiness.get("public_tx_ingress") if isinstance(readiness.get("public_tx_ingress"), dict) else {}
+if public_tx.get("signed_user_tx_submit_enabled") is not True:
+    raise SystemExit("remote_observer_readiness_signed_tx_submit_not_enabled")
+if public_tx.get("system_signer_rejected_from_public_ingress") is not True:
+    raise SystemExit("remote_observer_readiness_system_signer_not_rejected")
+if public_tx.get("system_flag_rejected_from_public_ingress") is not True:
+    raise SystemExit("remote_observer_readiness_system_flag_not_rejected")
+print("OK: remote Genesis observer readiness contract passed")
+PY_REMOTE_OBSERVER_READINESS
 
 bash "${ROOT_DIR}/scripts/external_observer_onboarding_smoke.sh" "${BUNDLE_PATH}"
 

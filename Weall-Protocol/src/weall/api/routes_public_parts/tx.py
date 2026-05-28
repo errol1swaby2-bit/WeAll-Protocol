@@ -1370,6 +1370,17 @@ async def tx_submit(request: Request) -> Json:
             "system-only txs cannot be submitted through the public tx endpoint",
             {"tx_type": tx_type, "signer": signer},
         )
+    if (
+        tx_type.endswith("_RECEIPT")
+        or bool(body.get("receipt_only", False))
+        or isinstance(body.get("receipt"), dict)
+        or isinstance(body.get("receipts"), list)
+    ):
+        raise ApiError.forbidden(
+            "receipt_submission_forbidden",
+            "block receipts cannot be submitted through the public tx endpoint",
+            {"tx_type": tx_type, "signer": signer},
+        )
 
     # Enforce signer registration / gating for user tx.
     st = _snapshot(request)

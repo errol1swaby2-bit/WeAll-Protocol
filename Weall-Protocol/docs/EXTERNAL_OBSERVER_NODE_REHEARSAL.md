@@ -167,3 +167,28 @@ Only after this runbook and `scripts/external_observer_live_gate.sh` pass should
 one trusted external observer tester be treated as proven. Multiple observers,
 validator candidates, governance writes, and WeCoin/economics remain separate
 gates.
+
+## Batch 464 Genesis API compatibility surface
+
+The remote Genesis API must expose the observer-readiness contract before the two-machine rehearsal is considered valid:
+
+```bash
+curl -fsS "$WEALL_GENESIS_API_BASE/v1/genesis/observer/readiness"
+```
+
+This read-only surface lets the observer fail closed before trusting a remote API. It must expose the chain/profile commitments, the expected public transaction submission/status endpoints, and the authority boundary proving that observer onboarding does not require genesis secrets, validator keys, BFT signing, helper authority, external identity providers, or frontend-granted authority.
+
+The rehearsal command sequence should use the combined gate:
+
+```bash
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_GENESIS_API_BASE='https://<GENESIS_HOST>' \
+bash scripts/first_external_observer_reproducibility_gate.sh 'dist/weall-external-observer-bundle.json'
+
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1 \
+WEALL_GENESIS_API_BASE='https://<GENESIS_HOST>' \
+bash scripts/first_external_observer_reproducibility_gate.sh 'dist/weall-external-observer-bundle.json'
+```
+
+A successful remote Genesis observer readiness check proves compatibility only. A successful signed onboarding gate is still required before claiming the first trusted external observer path has been proven.

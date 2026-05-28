@@ -103,3 +103,25 @@ These are still not public-testnet or mainnet claims. The repository now exposes
 stronger proof and user-facing controls, but public multi-validator BFT, live
 tokenomics, Signal-grade private messaging, and external-network media reliability
 remain follow-up milestones.
+
+## Batch 464 Production-oriented Genesis API boundary
+
+The next external-tester milestone is a Production-oriented Genesis API for a first trusted external observer rehearsal. This is not a public mainnet Genesis API and not a public multi-validator BFT claim.
+
+The Genesis API now has a required read-only observer-readiness contract at `/v1/genesis/observer/readiness`. It exposes chain/profile compatibility commitments, public tx-ingress expectations, and a no-authority observer boundary. The endpoint is only a truth surface: it does not grant authority, finalize PoH, promote validators, activate economics, or prove public network safety.
+
+The first external observer claim remains conditional until both remote gates pass against the same non-local Genesis API:
+
+```bash
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_GENESIS_API_BASE=<remote-genesis-api> \
+bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bundle.json>
+
+WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1 \
+WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1 \
+WEALL_GENESIS_API_BASE=<remote-genesis-api> \
+bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bundle.json>
+```
+
+Until the signed onboarding gate passes, the safe claim is limited to local observer preconditions and remote compatibility readiness, not first external observer completion.
+
