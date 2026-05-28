@@ -101,6 +101,10 @@ esac
 if [ "${WEALL_MODE}" = "prod" ]; then
   export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-./configs/chains/weall-genesis.json}"
   export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
+  if [ -z "${WEALL_GENESIS_LEDGER_PATH:-}" ] && [ -f "./configs/genesis.ledger.prod.json" ]; then
+    export WEALL_GENESIS_LEDGER_PATH="./configs/genesis.ledger.prod.json"
+  fi
+  export WEALL_REQUIRE_PRODUCTION_GENESIS_LEDGER="${WEALL_REQUIRE_PRODUCTION_GENESIS_LEDGER:-1}"
   if [ -z "${WEALL_CHAIN_ID:-}" ]; then
     WEALL_CHAIN_ID="$(read_json_field "${WEALL_CHAIN_MANIFEST_PATH}" chain_id || true)"
     if [ -n "${WEALL_CHAIN_ID:-}" ]; then export WEALL_CHAIN_ID; fi

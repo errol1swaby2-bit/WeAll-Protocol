@@ -44,6 +44,7 @@ COPY src /app/src
 COPY scripts /app/scripts
 COPY specs /app/specs
 COPY configs /app/configs
+COPY docs /app/docs
 COPY generated /app/generated
 
 # Install deps (prefer lockfiles when present) + package
@@ -87,6 +88,7 @@ RUN pip install --no-cache-dir -U pip setuptools wheel \
  && pip install --no-cache-dir . --no-deps
 
 # Ensure runtime dirs exist (data is typically mounted)
+RUN mkdir -p /var/lib/weall && chown -R appuser:appuser /var/lib/weall && chmod 700 /var/lib/weall
 RUN chmod +x /app/scripts/run_node.sh \
  && chown -R appuser:appuser /app /tmp
 

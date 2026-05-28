@@ -35,6 +35,7 @@ PYTHONPATH=src pytest -q \
   tests/test_batch457_economics_block_p2p_implementation.py \
   tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
   tests/test_batch464_genesis_api_external_observer_readiness.py \
+  tests/test_batch465_runtime_config_env_precedence.py \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then
@@ -54,6 +55,13 @@ fi
 cd "${ROOT}"
 echo "[reviewer-gate] local block production proof"
 python3 scripts/production_block_production_rehearsal_gate.py
+
+if [[ "${WEALL_DOCKER_GENESIS_BOOT_GATE:-0}" == "1" ]]; then
+  echo "[reviewer-gate] Docker Genesis API boot gate"
+  bash scripts/docker_genesis_api_boot_gate.sh
+else
+  echo "[reviewer-gate] NOTE: Docker Genesis API boot gate skipped by default; set WEALL_DOCKER_GENESIS_BOOT_GATE=1 when Docker is available."
+fi
 
 echo "[reviewer-gate] OK: targeted production-oriented rehearsal evidence passed"
 echo "[reviewer-gate] NOTE: local observer gates are preconditions only unless the remote signed observer gate is run."
