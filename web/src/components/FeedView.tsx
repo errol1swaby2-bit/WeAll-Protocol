@@ -12,6 +12,7 @@ import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import MediaGallery from "./MediaGallery";
+import ContentTipButton from "./ContentTipButton";
 
 type FeedScope =
   | { kind: "public" }
@@ -592,7 +593,11 @@ export default function FeedView({
               <div className="cardBody formStack">
                 <div className="sectionHead">
                   <div>
-                    <div className="statusSummary">
+  
+                  {id && author ? (
+                    <ContentTipButton base={base} targetId={String(id)} author={String(author)} />
+                  ) : null}
+                  <div className="statusSummary">
                       <button className="btn" onClick={() => nav(`/account/${encodeURIComponent(author)}`)} disabled={!author}>
                         {author || "unknown author"}
                       </button>

@@ -106,7 +106,7 @@ export default function MessagingKeyBootstrapper(): null {
         if (!cancelled) {
           requestGlobalRefresh({
             reason: "messaging-key-autopublished",
-            scopes: ["account", "message", "pending_work"],
+            scopes: ["account", "route", "pending_work"],
           });
         }
       } catch {

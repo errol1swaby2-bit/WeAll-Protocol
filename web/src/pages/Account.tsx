@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import FeedView from "../components/FeedView";
+import WalletPanel from "../components/WalletPanel";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { createNodeKeyFile, downloadNodeKeyFile, type NodeKeyFile } from "../auth/nodeKeys";
@@ -498,6 +499,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
           </div>
         </article>
       </section>
+
+      <WalletPanel account={acct} base={base} />
 
       <section className="card">
         <div className="cardBody formStack">

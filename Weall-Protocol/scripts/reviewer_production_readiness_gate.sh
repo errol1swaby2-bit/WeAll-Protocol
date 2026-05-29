@@ -57,6 +57,8 @@ PYTHONPATH=src pytest -q tests/test_batch479_tester_boot_exports_gunicorn_bind.p
 
 PYTHONPATH=src pytest -q tests/test_batch480_tester_boot_uses_repo_venv.py
 
+PYTHONPATH=src pytest -q tests/test_batch481_real_tokenomics_policy.py
+
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
   node scripts/test_batch450_messaging_e2ee_source.mjs
