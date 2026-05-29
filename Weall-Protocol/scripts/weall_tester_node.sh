@@ -114,6 +114,14 @@ rm -f /tmp/weall-tester-install.out
 # shellcheck disable=SC1090
 source "${ENV_FILE}"
 
+# Batch 471: tester node boot intentionally clears bundle authority profile.
+# Private rehearsal bundles may carry authority.profile="rehearsal" so the bundle
+# verifier can allow private HTTP/non-public URLs, but a normal observer node
+# must still boot under production/unset authority profile. Authority is granted
+# only by committed chain state, never by the onboarding bundle.
+unset WEALL_AUTHORITY_PROFILE
+
+
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE="${BUNDLE_PATH}"
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
 export WEALL_REQUIRE_CHAIN_MANIFEST=1
@@ -173,4 +181,4 @@ if [[ "${RUN_NODE}" != "1" ]]; then
   exit 0
 fi
 
-exec "${ROOT_DIR}/scripts/boot_onboarding_node.sh"
+exec bash "${ROOT_DIR}/scripts/boot_onboarding_node.sh"

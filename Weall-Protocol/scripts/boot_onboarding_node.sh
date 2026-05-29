@@ -64,4 +64,4 @@ cat >&2 <<'MSG'
 [weall] Blocked: validator signing, block proposal, helper authority, storage/service rewards.
 MSG
 
-exec "${SCRIPT_DIR}/boot_weall_node.sh"
+exec bash "${SCRIPT_DIR}/boot_weall_node.sh"

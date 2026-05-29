@@ -43,7 +43,11 @@ PYTHONPATH=src pytest -q \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then
-  echo "[reviewer-gate] frontend source checks"
+  PYTHONPATH=src pytest -q tests/test_batch471_tester_boot_authority_profile_sanitized.py
+
+PYTHONPATH=src pytest -q tests/test_batch472_tester_boot_invokes_boot_script_with_bash.py
+
+echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
   node scripts/test_batch450_messaging_e2ee_source.mjs
   node scripts/test_batch451_messaging_rehearsal_source.mjs
