@@ -36,6 +36,8 @@ PYTHONPATH=src pytest -q \
   tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
   tests/test_batch464_genesis_api_external_observer_readiness.py \
   tests/test_batch465_runtime_config_env_precedence.py \
+  tests/test_batch467_external_observer_account_id_format.py \
+  tests/test_batch466_tx_status_outbox_runtime_path.py \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then

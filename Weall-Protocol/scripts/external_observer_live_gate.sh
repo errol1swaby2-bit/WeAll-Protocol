@@ -200,7 +200,7 @@ import secrets
 print(secrets.token_hex(6))
 PY_ACCOUNT_SUFFIX
 )"
-ACCOUNT_ID="${WEALL_EXTERNAL_OBSERVER_ACCOUNT:-@external-observer-${ACCOUNT_SUFFIX}}"
+ACCOUNT_ID="${WEALL_EXTERNAL_OBSERVER_ACCOUNT:-@extobs_${ACCOUNT_SUFFIX}}"
 ACCOUNT_KEYFILE="${WORK_DIR}/observer-account.json"
 NODE_KEYFILE="${WORK_DIR}/observer-node-key.json"
 RESULTS_JSONL="${WORK_DIR}/live-gate-results.jsonl"
