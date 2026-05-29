@@ -41,4 +41,11 @@ if [ -z "${WEALL_CHAIN_ID:-}" ]; then
   exit 2
 fi
 
-exec "$(dirname "$0")/run_node.sh"
+# Batch 478: preserve tester-selected API bind port through final boot wrapper.
+# weall_tester_node.sh exports WEALL_API_PORT/PORT, but run_node.sh is the final
+# runtime binder. Re-export here so nested boot wrappers cannot fall back to 8000.
+if [ -n "${WEALL_API_PORT:-}" ]; then
+  export PORT="${WEALL_API_PORT}"
+fi
+
+exec bash "$(dirname "$0")/run_node.sh"

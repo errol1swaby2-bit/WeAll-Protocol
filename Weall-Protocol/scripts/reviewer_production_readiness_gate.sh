@@ -47,6 +47,14 @@ if [[ -d "${WEB_ROOT}" ]]; then
 
 PYTHONPATH=src pytest -q tests/test_batch472_tester_boot_invokes_boot_script_with_bash.py
 
+PYTHONPATH=src pytest -q tests/test_batch474_clean_clone_tester_boot_docs.py
+
+PYTHONPATH=src pytest -q tests/test_batch476_tester_boot_sets_local_cors.py
+
+PYTHONPATH=src pytest -q tests/test_batch477_tester_boot_exports_runtime_port.py
+
+PYTHONPATH=src pytest -q tests/test_batch479_tester_boot_exports_gunicorn_bind.py
+
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
   node scripts/test_batch450_messaging_e2ee_source.mjs

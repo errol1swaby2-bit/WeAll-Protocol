@@ -138,6 +138,17 @@ export WEALL_DB_PATH="${RUNTIME_DIR}/observer.db"
 export WEALL_TX_OUTBOX_PATH="${RUNTIME_DIR}/observer_tx_outbox.json"
 export WEALL_API_HOST="${API_HOST}"
 export WEALL_API_PORT="${API_PORT}"
+# Batch 477: bridge tester-selected API port into the runtime bind variable.
+# run_node/gunicorn uses PORT for the actual socket bind, while WEALL_API_PORT
+# is the WeAll-facing config/readiness value.
+export PORT="${API_PORT}"
+# Batch 479: run_node.sh binds via GUNICORN_BIND, not PORT.
+export GUNICORN_BIND="${GUNICORN_BIND:-0.0.0.0:${API_PORT}}"
+
+# Batch 476: production-mode tester observer boot must set explicit local CORS.
+# This keeps production fail-closed CORS behavior while making the one-command
+# tester path usable without requiring a tester to know WEALL_CORS_ORIGINS.
+export WEALL_CORS_ORIGINS="${WEALL_CORS_ORIGINS:-http://127.0.0.1:${FRONTEND_PORT},http://localhost:${FRONTEND_PORT}}"
 if [[ -n "${GENESIS_API_BASE}" ]]; then
   export WEALL_TX_UPSTREAM_URLS="${GENESIS_API_BASE}"
 fi
