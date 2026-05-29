@@ -608,7 +608,7 @@ export default function LoginPage() {
                   </div>
                   <div className="row gap-sm wrap">
                     <button type="button" onClick={() => void handleDownloadRecoveryKey()}>
-                      Download recovery file
+                      Download recovery file\n                  <span className="text-xs opacity-80">Do not rely on a checkbox like “I saved my recovery key somewhere private”; WeAll verifies your recovery file or recovery key before account setup can continue.</span>
                     </button>
                     <button type="button" className="secondary" onClick={() => void handleCopyRecoveryKey()}>
                       Copy recovery key
