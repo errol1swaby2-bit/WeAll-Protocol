@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${ROOT_DIR}/.." && pwd)"
 WEB_ROOT="${REPO_ROOT}/web"
+
+# Batch 480: one-command tester boot should use the repo virtualenv when present.
+# Fresh-clone testers should not need to remember to activate .venv manually.
+if [ -x "${ROOT_DIR}/.venv/bin/python" ]; then
+  export VIRTUAL_ENV="${ROOT_DIR}/.venv"
+  export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
+
 RUNTIME_DIR="${WEALL_TESTER_RUNTIME_DIR:-${HOME}/.weall/tester-node}"
 BUNDLE_ARG=""
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-}"
