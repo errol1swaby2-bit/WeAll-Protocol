@@ -160,3 +160,6 @@ bash scripts/first_external_observer_reproducibility_gate.sh /path/to/weall-exte
 ```
 
 A first trusted external observer remains a no-go until the remote Genesis observer readiness contract, the two-machine preflight, and the signed onboarding gate all pass against the same non-local Genesis API.
+
+The combined gate prints a scope summary. Treat `first_trusted_external_observer_ready: yes` as the only local transcript line that permits the first trusted external observer readiness claim. If the summary says `remote_preflight: skipped`, `signed_observer_onboarding: skipped`, or `first_trusted_external_observer_ready: no`, the result proves only the requested narrower scope and must be described as local/precondition evidence.
+

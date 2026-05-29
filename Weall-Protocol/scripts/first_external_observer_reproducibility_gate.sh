@@ -49,10 +49,17 @@ run_signed_onboarding() {
   bash scripts/rehearse_external_observer_signed_onboarding.sh "$BUNDLE_PATH"
 }
 
+LOCAL_PRECONDITIONS_STATUS="not_run"
+REMOTE_PREFLIGHT_STATUS="skipped"
+SIGNED_ONBOARDING_STATUS="skipped"
+FIRST_TRUSTED_EXTERNAL_OBSERVER_READY="no"
+
 run_local_preconditions
+LOCAL_PRECONDITIONS_STATUS="passed"
 
 if truthy "$RUN_REMOTE_PREFLIGHT"; then
   run_remote_preflight
+  REMOTE_PREFLIGHT_STATUS="passed"
 else
   cat <<'MSG'
 [first-external-observer-gate] remote preflight skipped
@@ -62,6 +69,7 @@ fi
 
 if truthy "$RUN_SIGNED_ONBOARDING"; then
   run_signed_onboarding
+  SIGNED_ONBOARDING_STATUS="passed"
 else
   cat <<'MSG'
 [first-external-observer-gate] signed onboarding skipped
@@ -69,12 +77,23 @@ Set WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1, WEALL_GENESIS_API_BASE, and pass the
 MSG
 fi
 
-cat <<'MSG'
+if [ "$REMOTE_PREFLIGHT_STATUS" = "passed" ] && [ "$SIGNED_ONBOARDING_STATUS" = "passed" ]; then
+  FIRST_TRUSTED_EXTERNAL_OBSERVER_READY="yes"
+fi
+
+cat <<MSG
 OK: first external observer reproducibility gate completed for the requested scope
+
+Scope summary:
+- local_preconditions: ${LOCAL_PRECONDITIONS_STATUS}
+- remote_preflight: ${REMOTE_PREFLIGHT_STATUS}
+- signed_observer_onboarding: ${SIGNED_ONBOARDING_STATUS}
+- first_trusted_external_observer_ready: ${FIRST_TRUSTED_EXTERNAL_OBSERVER_READY}
 
 Truth boundary:
 - Local preconditions passing means the observer bundle and environment are safe to prepare.
 - Remote preflight passing means the observer can verify remote genesis compatibility.
 - Signed onboarding passing is required before claiming first trusted external observer readiness.
+- first_trusted_external_observer_ready=yes is emitted only when both remote_preflight and signed_observer_onboarding pass in the same requested gate run.
 - None of these gates prove public multi-validator BFT, live economics, mainnet readiness, or production-grade private messaging.
 MSG

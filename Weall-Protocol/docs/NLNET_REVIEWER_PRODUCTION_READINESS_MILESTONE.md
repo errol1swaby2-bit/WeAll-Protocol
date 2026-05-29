@@ -2,7 +2,7 @@
 
 Status: bounded production-readiness milestone for NLnet resubmission.
 
-This repository should be reviewed as a serious implementation seeking support to complete public-testnet readiness. It is not a finished public mainnet, not public multi-validator BFT ready, and not live-economics ready.
+This repository should be reviewed as a serious implementation seeking support to complete public-testnet readiness, not as a finished public mainnet. It is not public multi-validator BFT ready, not public validator authority ready, and not live-economics ready.
 
 See also:
 

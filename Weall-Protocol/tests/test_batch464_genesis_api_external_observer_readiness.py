@@ -112,4 +112,8 @@ def test_first_external_observer_gate_still_passes_local_scope_batch464() -> Non
     assert "observer authority lock" in proc.stdout
     assert "remote preflight skipped" in proc.stdout
     assert "signed onboarding skipped" in proc.stdout
+    assert "local_preconditions: passed" in proc.stdout
+    assert "remote_preflight: skipped" in proc.stdout
+    assert "signed_observer_onboarding: skipped" in proc.stdout
+    assert "first_trusted_external_observer_ready: no" in proc.stdout
     assert "Signed onboarding passing is required before claiming first trusted external observer readiness" in proc.stdout

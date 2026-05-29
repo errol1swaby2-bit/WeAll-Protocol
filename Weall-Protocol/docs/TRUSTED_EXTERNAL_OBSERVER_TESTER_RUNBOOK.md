@@ -233,4 +233,7 @@ WEALL_GENESIS_API_BASE=https://<genesis-api-host> \
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
+
+The combined gate prints a scope summary. Treat `first_trusted_external_observer_ready: yes` as the only local transcript line that permits the first trusted external observer readiness claim. If the summary says `remote_preflight: skipped`, `signed_observer_onboarding: skipped`, or `first_trusted_external_observer_ready: no`, the result proves only the requested narrower scope and must be described as local/precondition evidence.
+
 Passing the Genesis observer readiness endpoint is necessary but not sufficient. Signed onboarding is proven only when the second command submits and confirms the account/device/peer/async-PoH transactions and then verifies that the observer account has no validator, BFT, helper, treasury, governance, storage-provider, or juror authority.

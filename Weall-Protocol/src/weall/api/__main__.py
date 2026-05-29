@@ -1,7 +1,9 @@
 # src/weall/api/__main__.py
 from __future__ import annotations
 
+import argparse
 import os
+from collections.abc import Sequence
 
 import uvicorn
 
@@ -49,17 +51,63 @@ def _env_int(name: str, default: int) -> int:
         return int(default)
 
 
-def main() -> None:
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="python -m weall.api",
+        description="Start the WeAll Node API."
+    )
+    parser.add_argument(
+        "--host",
+        default=_env_str("WEALL_API_HOST", "127.0.0.1"),
+        help="API bind host; defaults to WEALL_API_HOST or 127.0.0.1.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=_env_int("WEALL_API_PORT", 8080),
+        help="API bind port; defaults to WEALL_API_PORT or 8080.",
+    )
+
+    runtime = parser.add_mutually_exclusive_group()
+    runtime.add_argument(
+        "--boot-runtime",
+        dest="boot_runtime",
+        action="store_true",
+        default=None,
+        help="Force runtime/executor boot even when WEALL_API_BOOT_RUNTIME is unset.",
+    )
+    runtime.add_argument(
+        "--no-boot-runtime",
+        dest="boot_runtime",
+        action="store_false",
+        help="Start the API shell without booting runtime/executor state.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> None:
     # Load .env early so WEALL_* vars exist before anything reads them.
     load_dotenv_if_present()
 
-    # Import after dotenv load (prevents "config read before env" surprises)
-    from weall.api.app import create_app
+    parser = _build_parser()
+    args = parser.parse_args(argv)
 
-    host = _env_str("WEALL_API_HOST", "127.0.0.1")
-    port = _env_int("WEALL_API_PORT", 8080)
+    # Import after dotenv load and CLI parsing. This keeps `python -m weall.api
+    # --help` lightweight and preserves the existing app-level runtime default.
+    from weall.api.app import create_app, _module_app_boot_runtime_default
 
-    uvicorn.run(create_app(), host=host, port=port, log_level="info")
+    boot_runtime = (
+        bool(args.boot_runtime)
+        if args.boot_runtime is not None
+        else _module_app_boot_runtime_default()
+    )
+
+    uvicorn.run(
+        create_app(boot_runtime=boot_runtime),
+        host=str(args.host),
+        port=int(args.port),
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":
