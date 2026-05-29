@@ -6,6 +6,7 @@ from fastapi import APIRouter, Query, Request
 
 from weall.api.routes_public_parts.common import _snapshot, _str_param
 from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
+from weall.ledger.tokenomics import tokenomics_policy_from_state
 
 Json = dict[str, Any]
 
@@ -72,6 +73,7 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
 
     acct = _str_param(account).strip()
     balance = _account_balance(state, acct) if acct else None
+    tokenomics = tokenomics_policy_from_state(state)
 
     civic_fee_free_keys = [
         "post_fee_int",
@@ -109,6 +111,7 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
             "fee policy may not make civic, social, governance, PoH, or review actions pay-to-participate",
             "treasury spend remains locked until economics activation and treasury governance rules are satisfied",
         ],
+        "tokenomics": tokenomics,
         "capabilities": {
             "balance_transfer_enabled": bool(enabled),
             "fee_policy_enabled": bool(enabled),

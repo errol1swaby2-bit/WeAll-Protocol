@@ -493,7 +493,15 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
     _wrap_disabled(state, "BALANCE_TRANSFER")
 
     payload = _as_dict(env.payload)
-    to = _as_str(payload.get("to") or payload.get("target") or payload.get("account")).strip()
+
+    # Batch 483: canonical frontend/API payload accepts to_account_id.
+    # Legacy aliases remain accepted for compatibility.
+    to = _as_str(
+        payload.get("to_account_id")
+        or payload.get("to")
+        or payload.get("target")
+        or payload.get("account")
+    ).strip()
     amount = payload.get("amount")
 
     if not to:
@@ -506,6 +514,42 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": amount})
 
     frm = _as_str(env.signer).strip()
+    claimed_from = _as_str(payload.get("from_account_id") or payload.get("from")).strip()
+    if claimed_from and claimed_from != frm:
+        raise EconomicsApplyError(
+            "forbidden",
+            "from_account_must_match_signer",
+            {"signer": frm, "from_account_id": claimed_from},
+        )
+
+    econ = _ensure_econ_root(state)
+    transfers = econ.get("transfers")
+    if not isinstance(transfers, list):
+        transfers = []
+        econ["transfers"] = transfers
+
+    transfers_by_id = econ.get("transfers_by_id")
+    if not isinstance(transfers_by_id, dict):
+        transfers_by_id = {}
+        econ["transfers_by_id"] = transfers_by_id
+
+    transfer_id = _as_str(payload.get("transfer_id") or payload.get("tx_id")).strip()
+    if not transfer_id:
+        transfer_id = f"transfer:{frm}:{int(env.nonce)}"
+
+    existing = transfers_by_id.get(transfer_id)
+    if isinstance(existing, dict):
+        return {
+            "applied": "BALANCE_TRANSFER",
+            "from": existing.get("from", frm),
+            "to": existing.get("to", to),
+            "amount": _as_int(existing.get("amount"), 0),
+            "transfer_id": transfer_id,
+            "purpose": _as_str(existing.get("purpose")),
+            "content_id": _as_str(existing.get("content_id")),
+            "deduped": True,
+        }
+
     fa = _require_existing_account(state, frm, field="from")
     ta = _require_existing_account(state, to, field="to")
 
@@ -517,8 +561,93 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
     fa["balance"] = fb - amt
     ta["balance"] = tb + amt
 
-    return {"applied": "BALANCE_TRANSFER", "from": frm, "to": to, "amount": amt}
+    purpose = _as_str(payload.get("purpose")).strip()
+    content_id = _as_str(
+        payload.get("content_id")
+        or payload.get("target_id")
+        or payload.get("post_id")
+    ).strip()
+    memo = _as_str(payload.get("memo"))[:280]
 
+    record = {
+        "transfer_id": transfer_id,
+        "at_nonce": int(env.nonce),
+        "from": frm,
+        "to": to,
+        "amount": int(amt),
+        "purpose": purpose,
+        "content_id": content_id,
+        "memo": memo,
+        "parent": env.parent,
+        "payload": payload,
+    }
+    transfers_by_id[transfer_id] = record
+    transfers.append(record)
+
+    tip_indexed = False
+    if purpose == "content_tip" and content_id:
+        tips_by_content = econ.get("tips_by_content_id")
+        if not isinstance(tips_by_content, dict):
+            tips_by_content = {}
+            econ["tips_by_content_id"] = tips_by_content
+
+        tips_by_creator = econ.get("tips_by_creator")
+        if not isinstance(tips_by_creator, dict):
+            tips_by_creator = {}
+            econ["tips_by_creator"] = tips_by_creator
+
+        content_entry = tips_by_content.get(content_id)
+        if not isinstance(content_entry, dict):
+            content_entry = {"content_id": content_id, "count": 0, "total_amount": 0, "tips": []}
+            tips_by_content[content_id] = content_entry
+
+        creator_entry = tips_by_creator.get(to)
+        if not isinstance(creator_entry, dict):
+            creator_entry = {"creator": to, "count": 0, "total_amount": 0, "tips": []}
+            tips_by_creator[to] = creator_entry
+
+        content_entry["count"] = _as_int(content_entry.get("count"), 0) + 1
+        content_entry["total_amount"] = _as_int(content_entry.get("total_amount"), 0) + int(amt)
+        content_entry.setdefault("tips", []).append(transfer_id)
+
+        creator_entry["count"] = _as_int(creator_entry.get("count"), 0) + 1
+        creator_entry["total_amount"] = _as_int(creator_entry.get("total_amount"), 0) + int(amt)
+        creator_entry.setdefault("tips", []).append(transfer_id)
+        tip_indexed = True
+
+    base_receipt = {
+        "applied": "BALANCE_TRANSFER",
+        "from": frm,
+        "to": to,
+        "amount": amt,
+    }
+
+    extended_payload = any(
+        payload.get(k)
+        for k in (
+            "from_account_id",
+            "to_account_id",
+            "transfer_id",
+            "tx_id",
+            "purpose",
+            "content_id",
+            "target_id",
+            "post_id",
+            "memo",
+        )
+    )
+
+    if not extended_payload and not tip_indexed:
+        return base_receipt
+
+    return {
+        **base_receipt,
+        "transfer_id": transfer_id,
+        "purpose": purpose,
+        "content_id": content_id,
+        "tip_indexed": bool(tip_indexed),
+        "deduped": False,
+    }
 
 def _apply_rate_limit_strike_apply(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)

@@ -86,6 +86,7 @@ export default function WalletPanel({
   const capabilities = asRecord(status?.capabilities);
   const accountInfo = asRecord(status?.account);
   const atomicPerCoin = Math.max(1, asNumber(precision.atomic_units_per_coin, 100_000_000));
+  const balanceKnown = accountInfo.balance_known !== false && accountInfo.balance !== null && accountInfo.balance !== undefined;
   const balanceAtomic = asNumber(accountInfo.balance, 0);
   const enabled = asBool(status?.enabled) && asBool(capabilities.balance_transfer_enabled);
   const locked = !enabled;
@@ -152,7 +153,7 @@ export default function WalletPanel({
         <div className="statsGrid statsGridCompact">
           <div className="statCard">
             <span className="statLabel">Balance</span>
-            <span className="statValue">{formatAtomic(balanceAtomic, atomicPerCoin)}</span>
+            <span className="statValue">{balanceKnown ? formatAtomic(balanceAtomic, atomicPerCoin) : "Balance unavailable"}</span>
           </div>
           <div className="statCard">
             <span className="statLabel">Transfer status</span>

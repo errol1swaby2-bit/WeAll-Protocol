@@ -203,22 +203,13 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     already = isinstance(existing, dict)
 
     if not already:
-        mints[block_id] = {
-            "block_id": block_id,
-            "amount": int(amount),
-            "minted_at_nonce": int(env.nonce),
-            "payload": payload,
-        }
-        r["stats"]["minted_total"] = _as_int(r["stats"].get("minted_total"), 0) + int(amount)
-
-        # Monetary policy accounting: treat BLOCK_REWARD_MINT as issuance.
+        # Batch 485: validate supply cap before mutating reward/mint state.
         mp = _ensure_monetary_policy(state)
         issued = _as_int(mp.get("issued"), 0)
         max_supply = _as_int(mp.get("max_supply"), int(MAX_SUPPLY))
         amt = int(max(amount, 0))
+
         if max_supply > 0 and (issued + amt) > max_supply:
-            # Fail closed: the system scheduler must cap mint to remaining
-            # supply. Silent capping here can hide protocol bugs.
             raise RewardsApplyError(
                 "forbidden",
                 "mint_exceeds_max_supply",
@@ -229,6 +220,15 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
                     "max_supply": int(max_supply),
                 },
             )
+
+        mints[block_id] = {
+            "block_id": block_id,
+            "amount": int(amount),
+            "minted_at_nonce": int(env.nonce),
+            "payload": payload,
+        }
+        r["stats"]["minted_total"] = _as_int(r["stats"].get("minted_total"), 0) + int(amount)
+
         mp["issued"] = int(issued + amt)
         try:
             mp["last_reward_height"] = max(
@@ -237,8 +237,6 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
         except Exception:
             pass
 
-        # Credit the internal mint pool so downstream distribution can debit
-        # from it and preserve supply conservation.
         if amt > 0:
             pool = _ensure_account(state, MINT_POOL_ACCOUNT_ID)
             pool["balance"] = _as_int(pool.get("balance"), 0) + int(amt)
@@ -251,7 +249,6 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
         "deduped": already,
     }
 
-
 def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     _wrap_econ_gate(state, env.tx_type)
@@ -262,53 +259,141 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     if not block_id:
         raise RewardsApplyError("invalid_payload", "missing_block_id", {"tx_type": env.tx_type})
 
-    dists = _ensure_root_dict(state, "reward_distributions_by_block")
-    existing = dists.get(block_id)
+    distributions = r.get("block_reward_distributions_by_id")
+    if not isinstance(distributions, dict):
+        distributions = r.get("block_distributions_by_id")
+    if not isinstance(distributions, dict):
+        distributions = r.get("distributions_by_id")
+    if not isinstance(distributions, dict):
+        distributions = {}
+    r["block_reward_distributions_by_id"] = distributions
+    r["block_distributions_by_id"] = distributions
+    r["distributions_by_id"] = distributions
+
+    existing = distributions.get(block_id)
     already = isinstance(existing, dict)
+    if already:
+        return {
+            "applied": "BLOCK_REWARD_DISTRIBUTE",
+            "block_id": block_id,
+            "distributed_total": _as_int(existing.get("distributed_total"), 0),
+            "debited_total": _as_int(existing.get("debited_total"), 0),
+            "deduped": True,
+        }
 
+    transfers = payload.get("transfers")
+    if transfers is None:
+        transfers = payload.get("allocations")
+    if not isinstance(transfers, list):
+        transfers = []
+
+    debits = payload.get("debits")
+    if debits is None:
+        debits = []
+    if not isinstance(debits, list):
+        debits = []
+
+    # Batch 486 repair: reward distribution must be atomic.
+    # Preflight all debit funding and all transfer targets before mutating any
+    # account balance. A failed debit must not partially credit recipients.
+    normalized_debits: list[dict[str, int | str]] = []
+    debit_totals: dict[str, int] = {}
+    for debit in debits:
+        d = _as_dict(debit)
+        src = _as_str(d.get("from") or d.get("account") or d.get("source")).strip()
+        amt = _as_int(d.get("amount"), 0)
+        if not src or amt <= 0:
+            continue
+        normalized_debits.append({"from": src, "amount": int(amt)})
+        debit_totals[src] = debit_totals.get(src, 0) + int(amt)
+
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        accounts = {}
+        state["accounts"] = accounts
+
+    normalized_transfers: list[dict[str, int | str]] = []
     distributed_total = 0
-    if not already:
-        transfers = _as_list(payload.get("transfers"))
-        debits = _as_list(payload.get("debits"))
+    for transfer in transfers:
+        t = _as_dict(transfer)
+        to = _as_str(t.get("to") or t.get("account") or t.get("target")).strip()
+        amt = _as_int(t.get("amount"), 0)
+        if not to or amt <= 0:
+            continue
 
-        credited_total, debited_total = _apply_transfers_and_debits(
-            state, payload, strict_debits=True
-        )
-        if int(credited_total) != int(debited_total):
+        # Batch 486 repair: credit recipients must already exist.
+        # Reward distribution must not silently create missing accounts.
+        if to not in accounts or not isinstance(accounts.get(to), dict):
             raise RewardsApplyError(
                 "invalid_payload",
-                "credits_must_equal_debits",
-                {
-                    "block_id": block_id,
-                    "credited_total": int(credited_total),
-                    "debited_total": int(debited_total),
-                },
+                "to_account_missing",
+                {"account": to, "block_id": block_id},
             )
-        distributed_total = int(credited_total)
 
-        dists[block_id] = {
-            "block_id": block_id,
-            "transfers": transfers,
-            "debits": debits,
-            "distributed_at_nonce": int(env.nonce),
-            "payload": payload,
-            "credited_total": int(credited_total),
-            "debited_total": int(debited_total),
-        }
-        r["stats"]["distributed_total"] = _as_int(r["stats"].get("distributed_total"), 0) + int(
-            distributed_total
+        normalized_transfers.append({"to": to, "amount": int(amt)})
+        distributed_total += int(amt)
+
+    debited_total = sum(int(v) for v in debit_totals.values())
+
+    for src, amt in debit_totals.items():
+        acct = _ensure_account(state, src)
+        bal = _as_int(acct.get("balance"), 0)
+        if bal < amt:
+            raise RewardsApplyError(
+                "forbidden",
+                "insufficient_funds_for_debit",
+                {"account": src, "balance": bal, "amount": amt},
+            )
+
+    # Optional but safer: explicit funding must cover explicit distributions.
+    if normalized_debits and debited_total < distributed_total:
+        raise RewardsApplyError(
+            "forbidden",
+            "distribution_exceeds_debits",
+            {
+                "block_id": block_id,
+                "distributed_total": int(distributed_total),
+                "debited_total": int(debited_total),
+            },
         )
 
-    r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
+    for debit in normalized_debits:
+        src = str(debit["from"])
+        amt = int(debit["amount"])
+        acct = _ensure_account(state, src)
+        acct["balance"] = _as_int(acct.get("balance"), 0) - amt
+
+    for transfer in normalized_transfers:
+        to = str(transfer["to"])
+        amt = int(transfer["amount"])
+        acct = accounts[to]
+        acct["balance"] = _as_int(acct.get("balance"), 0) + amt
+
+    distributions[block_id] = {
+        "block_id": block_id,
+        "distributed_at_nonce": int(env.nonce),
+        "distributed_total": int(distributed_total),
+        "debited_total": int(debited_total),
+        "transfers": normalized_transfers,
+        "debits": normalized_debits,
+        "payload": payload,
+    }
+
+    stats = r.get("stats")
+    if not isinstance(stats, dict):
+        stats = {}
+        r["stats"] = stats
+    stats["distributed_total"] = _as_int(stats.get("distributed_total"), 0) + int(distributed_total)
+    stats["debited_total"] = _as_int(stats.get("debited_total"), 0) + int(debited_total)
+    stats["last_nonce"] = max(_as_int(stats.get("last_nonce"), 0), int(env.nonce))
+
     return {
         "applied": "BLOCK_REWARD_DISTRIBUTE",
         "block_id": block_id,
-        "distributed_total": int(distributed_total)
-        if not already
-        else _as_int(existing.get("credited_total"), 0),
-        "deduped": already,
+        "distributed_total": int(distributed_total),
+        "debited_total": int(debited_total),
+        "deduped": False,
     }
-
 
 def _apply_transfers_and_debits(
     state: Json, payload: Json, *, strict_debits: bool = True

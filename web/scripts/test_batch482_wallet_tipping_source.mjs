@@ -15,6 +15,8 @@ assertIncludes(wallet, "WeCoin balance", "wallet surface");
 assertIncludes(wallet, "BALANCE_TRANSFER", "wallet transfer tx");
 assertIncludes(wallet, "Genesis economics are locked", "wallet lock copy");
 assertIncludes(wallet, "balance_transfer_enabled", "wallet capability gate");
+assertIncludes(wallet, "balanceKnown", "wallet balance known flag");
+assertIncludes(wallet, "Balance unavailable", "wallet unknown balance copy");
 assertIncludes(wallet, "from_account_id", "wallet transfer sender");
 assertIncludes(wallet, "to_account_id", "wallet transfer recipient");
 
