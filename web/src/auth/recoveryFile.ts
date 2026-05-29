@@ -100,3 +100,30 @@ export async function readRecoveryKeyFile(file: File): Promise<RecoveryKeyFileV1
   const text = await file.text();
   return parseRecoveryKeyFileText(text);
 }
+
+export function verifyRecoveryKeyFileForAccount(file: RecoveryKeyFileV1, expected: {
+  account: string;
+  publicKeyB64: string;
+  secretKeyB64?: string;
+}): { ok: true } | { ok: false; reason: string } {
+  const account = normalizeAccount(expected.account);
+  const publicKeyB64 = String(expected.publicKeyB64 || "").trim();
+  const secretKeyB64 = String(expected.secretKeyB64 || "").trim();
+
+  if (!file || file.type !== "weall_recovery_key" || file.version !== 1) {
+    return { ok: false, reason: "invalid_recovery_file" };
+  }
+  if (!account || normalizeAccount(file.account) !== account) {
+    return { ok: false, reason: "recovery_account_mismatch" };
+  }
+  if (!publicKeyB64 || String(file.publicKeyB64 || "").trim() !== publicKeyB64) {
+    return { ok: false, reason: "recovery_public_key_mismatch" };
+  }
+  if (secretKeyB64 && String(file.secretKeyB64 || "").trim() !== secretKeyB64) {
+    return { ok: false, reason: "recovery_secret_key_mismatch" };
+  }
+
+  const valid = validateKeypair(file.publicKeyB64, file.secretKeyB64);
+  if (!valid.ok) return { ok: false, reason: valid.reason || "invalid_recovery_key" };
+  return { ok: true };
+}

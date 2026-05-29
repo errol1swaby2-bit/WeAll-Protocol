@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase } from "../api/weall"
 import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
-import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText } from "../auth/recoveryFile"
+import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
 import { consumeReturnTo, nav } from "../lib/router"
 import { useAppConfig } from "../lib/config"
@@ -161,6 +161,9 @@ export default function LoginPage() {
   const [accountInput, setAccountInput] = useState("")
   const [createdKey, setCreatedKey] = useState<CreatedKeyState | null>(null)
   const [recoverySaved, setRecoverySaved] = useState(false)
+  const [recoveryDownloaded, setRecoveryDownloaded] = useState(false)
+  const [recoveryVerified, setRecoveryVerified] = useState(false)
+  const [recoveryVerificationText, setRecoveryVerificationText] = useState("")
   const [easySignInAdded, setEasySignInAdded] = useState(false)
 
   const [restoreAccountInput, setRestoreAccountInput] = useState("")
@@ -247,8 +250,11 @@ export default function LoginPage() {
       issueSessionFromSecretKey({ account, secretKeyB64: keypair.secretKeyB64 })
       setCreatedKey({ account, pubkeyB64: keypair.pubkeyB64, secretKeyB64: keypair.secretKeyB64 })
       setRecoverySaved(false)
+      setRecoveryDownloaded(false)
+      setRecoveryVerified(false)
+      setRecoveryVerificationText("")
       setEasySignInAdded(!!getEasySignInForAccount(account))
-      setNotice("Your account key was created. Save your recovery key before continuing.")
+      setNotice("Your account key was created locally. Download your recovery file, then verify it before registering or continuing.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not create your account key."))
     } finally {
@@ -264,8 +270,10 @@ export default function LoginPage() {
         publicKeyB64: createdKey.pubkeyB64,
         secretKeyB64: createdKey.secretKeyB64,
       })
-      setRecoverySaved(true)
-      setNotice("Recovery file downloaded. Keep it somewhere private.")
+      setRecoveryDownloaded(true)
+      setRecoverySaved(false)
+      setRecoveryVerified(false)
+      setNotice("Recovery file downloaded. Upload or paste it below once to prove you can restore this account before continuing.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not download the recovery file."))
     }
@@ -280,8 +288,10 @@ export default function LoginPage() {
         secretKeyB64: createdKey.secretKeyB64,
       })
       await navigator.clipboard.writeText(recoveryFileText(file))
-      setRecoverySaved(true)
-      setNotice("Recovery key copied. Store it somewhere private.")
+      setRecoveryDownloaded(true)
+      setRecoverySaved(false)
+      setRecoveryVerified(false)
+      setNotice("Recovery key copied. Paste the recovery JSON below once to prove you can restore this account before continuing.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not copy the recovery key."))
     }
@@ -309,11 +319,66 @@ export default function LoginPage() {
 
   function handleContinueAfterRecovery() {
     if (!createdKey) return
-    if (!recoverySaved) {
-      setError("Save your recovery key before continuing.")
+    if (!recoveryVerified) {
+      setError("Verify your saved recovery file or pasted recovery JSON before continuing.")
       return
     }
     nav(consumeReturnTo("/verification"))
+  }
+
+  function verifyCreatedRecoveryFile(parsed: ReturnType<typeof parseRecoveryKeyFileText>) {
+    if (!createdKey) {
+      setError("Create an account key before verifying a recovery file.")
+      return
+    }
+    const result = verifyRecoveryKeyFileForAccount(parsed, {
+      account: createdKey.account,
+      publicKeyB64: createdKey.pubkeyB64,
+      secretKeyB64: createdKey.secretKeyB64,
+    })
+    if (!result.ok) {
+      setRecoverySaved(false)
+      setRecoveryVerified(false)
+      setError(`Recovery verification failed: ${result.reason}`)
+      return
+    }
+    setRecoverySaved(true)
+    setRecoveryVerified(true)
+    setNotice("Recovery verified. You can restore this account if this browser is lost or reset.")
+  }
+
+  async function handleVerifyCreatedRecoveryFileSelected(file: File | null) {
+    setError("")
+    setNotice("")
+    if (!file) return
+    try {
+      const parsed = await readRecoveryKeyFile(file)
+      verifyCreatedRecoveryFile(parsed)
+    } catch (err) {
+      setRecoverySaved(false)
+      setRecoveryVerified(false)
+      setError(humanizeApiError(err, "Could not verify that recovery file."))
+    }
+  }
+
+  function handleVerifyCreatedRecoveryText(value: string) {
+    const text = String(value || "")
+    setRecoveryVerificationText(text)
+    setRecoverySaved(false)
+    setRecoveryVerified(false)
+    const trimmed = text.trim()
+    if (!trimmed) return
+    if (!trimmed.startsWith("{")) {
+      setError("Paste the full recovery JSON from your saved file to verify it.")
+      return
+    }
+    try {
+      const parsed = parseRecoveryKeyFileText(trimmed)
+      setError("")
+      verifyCreatedRecoveryFile(parsed)
+    } catch (err) {
+      setError(humanizeApiError(err, "Could not verify the pasted recovery JSON."))
+    }
   }
 
   async function handleRecoveryFileSelected(file: File | null) {
@@ -450,11 +515,12 @@ export default function LoginPage() {
             <p className="eyebrow">Welcome</p>
             <h1>Sign in to WeAll</h1>
             <p className="muted">
-              Create an account key, save your recovery key, then use easy sign-in on this device for faster access later.
+              Create an account key, verify your recovery file, then use easy sign-in on this device for faster access later.
             </p>
             <div className="statusRowWrap">
               <StepPill done={!!createdKey || !!session?.account}>Account key</StepPill>
-              <StepPill done={recoverySaved}>Recovery saved</StepPill>
+              <StepPill done={recoveryDownloaded}>Recovery downloaded</StepPill>
+              <StepPill done={recoveryVerified}>Recovery verified</StepPill>
               <StepPill done={easySignInAdded || !!savedEasySignIns.length}>Easy sign-in optional</StepPill>
             </div>
           </div>
@@ -515,7 +581,7 @@ export default function LoginPage() {
                     <input value={accountInput} onChange={(e) => setAccountInput(e.target.value)} placeholder="@yourname" autoComplete="username" />
                   </label>
                   <div className="calloutInfo">
-                    WeAll will create an account key on this device. You must save the recovery key before continuing.
+                    WeAll will create an account key on this device. You must download and verify the recovery file before registration or verification continues.
                   </div>
                   <button type="submit" disabled={busy || backendReachable === false}>
                     {busy ? "Creating…" : "Create account key"}
@@ -527,7 +593,7 @@ export default function LoginPage() {
                     <p className="eyebrow">Recovery key</p>
                     <h3>Save this before continuing</h3>
                     <p className="muted">
-                      This recovery key is how you sign in on another device. WeAll cannot reset it for you.
+                      This recovery key is how you sign in on another device. WeAll cannot reset it for you. You must verify the saved file before continuing.
                     </p>
                   </div>
                   <div className="authMetaGrid">
@@ -548,18 +614,41 @@ export default function LoginPage() {
                       Copy recovery key
                     </button>
                   </div>
-                  <label className="checkboxRow">
-                    <input type="checkbox" checked={recoverySaved} onChange={(e) => setRecoverySaved(e.target.checked)} />
-                    <span>I saved my recovery key somewhere private.</span>
-                  </label>
+                  <div className="stack-sm" data-testid="recovery-verify-step">
+                    <label className="field">
+                      <span>Verify saved recovery file</span>
+                      <input
+                        type="file"
+                        accept="application/json,.json"
+                        data-testid="verify-created-recovery-file"
+                        onChange={(e) => void handleVerifyCreatedRecoveryFileSelected(e.currentTarget.files?.[0] || null)}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Or paste recovery JSON to verify</span>
+                      <textarea
+                        value={recoveryVerificationText}
+                        onChange={(e) => handleVerifyCreatedRecoveryText(e.target.value)}
+                        placeholder="Paste the recovery JSON you saved"
+                        rows={4}
+                        spellCheck={false}
+                        data-testid="verify-created-recovery-json"
+                      />
+                    </label>
+                    <div className={recoveryVerified ? "calloutSuccess" : "calloutInfo"} data-testid="recovery-verification-status">
+                      {recoveryVerified
+                        ? "Recovery verified. You can restore this account if this browser is lost or reset."
+                        : "Download or copy the recovery file, then upload or paste it here to prove you saved a working backup."}
+                    </div>
+                  </div>
                   <div className="calloutInfo">
-                    Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported.
+                    Optional: add easy sign-in so this device can use fingerprint, face unlock, or device PIN when supported. It never replaces the verified recovery file.
                   </div>
                   <div className="row gap-sm wrap">
-                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady}>
+                    <button type="button" className="secondary" onClick={() => void handleAddEasySignIn()} disabled={easySignInBusy || !passkeyReady || !recoveryVerified}>
                       {easySignInBusy ? "Adding…" : easySignInAdded ? "Easy sign-in added" : "Add easy sign-in"}
                     </button>
-                    <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoverySaved}>
+                    <button type="button" onClick={handleContinueAfterRecovery} disabled={!recoveryVerified}>
                       Continue to account verification
                     </button>
                   </div>

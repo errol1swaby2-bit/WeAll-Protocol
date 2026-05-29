@@ -37,6 +37,8 @@ PYTHONPATH=src pytest -q \
   tests/test_batch464_genesis_api_external_observer_readiness.py \
   tests/test_batch465_runtime_config_env_precedence.py \
   tests/test_batch467_external_observer_account_id_format.py \
+  tests/test_batch469_frontend_account_custody_docs.py \
+  tests/test_batch468_one_command_tester_boot.py \
   tests/test_batch466_tx_status_outbox_runtime_path.py \
   tests/test_batch458_461_production_implementation.py
 
@@ -51,6 +53,7 @@ if [[ -d "${WEB_ROOT}" ]]; then
   node scripts/test_batch456_production_readiness_source.mjs
   node scripts/test_batch457_economics_block_p2p_source.mjs
   node scripts/test_batch458_461_implementation_source.mjs
+  node scripts/test_batch469_account_custody_source.mjs
   node scripts/guard_production_ux_safety.mjs
 fi
 
