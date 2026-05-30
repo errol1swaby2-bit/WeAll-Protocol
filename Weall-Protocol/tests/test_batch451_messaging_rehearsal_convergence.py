@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT.parent / "web"
 
 
-def _auth_headers(account: str = "@errol") -> dict[str, str]:
+def _auth_headers(account: str = "@observer-user") -> dict[str, str]:
     return {
         "x-weall-account": account,
         "x-weall-session-key": "session-key",
@@ -21,25 +21,25 @@ def _auth_headers(account: str = "@errol") -> dict[str, str]:
 def test_message_thread_list_falls_back_to_thread_membership_when_inbox_index_lags_batch451(monkeypatch) -> None:
     state = {
         "accounts": {
-            "@errol": {"session_keys": {"session-key": {"active": True}}},
+            "@observer-user": {"session_keys": {"session-key": {"active": True}}},
         },
         "messaging": {
-            "inbox_by_account": {"@errol": {"threads": [], "messages": [], "last_nonce": 0}},
+            "inbox_by_account": {"@observer-user": {"threads": [], "messages": [], "last_nonce": 0}},
             "threads_by_id": {
-                "dm:@devnet-genesis:@errol": {
-                    "thread_id": "dm:@devnet-genesis:@errol",
-                    "members": ["@devnet-genesis", "@errol"],
+                "dm:@devnet-genesis:@observer-user": {
+                    "thread_id": "dm:@devnet-genesis:@observer-user",
+                    "members": ["@devnet-genesis", "@observer-user"],
                     "created_at_nonce": 1,
                     "last_message_at_nonce": 20,
-                    "last_message_id": "dm:@errol:20",
-                    "message_ids": ["dm:@errol:20"],
+                    "last_message_id": "dm:@observer-user:20",
+                    "message_ids": ["dm:@observer-user:20"],
                 }
             },
             "messages_by_id": {
-                "dm:@errol:20": {
-                    "message_id": "dm:@errol:20",
-                    "thread_id": "dm:@devnet-genesis:@errol",
-                    "sender": "@errol",
+                "dm:@observer-user:20": {
+                    "message_id": "dm:@observer-user:20",
+                    "thread_id": "dm:@devnet-genesis:@observer-user",
+                    "sender": "@observer-user",
                     "to": "@devnet-genesis",
                     "body": "",
                     "encrypted": True,
@@ -51,7 +51,7 @@ def test_message_thread_list_falls_back_to_thread_membership_when_inbox_index_la
     }
 
     monkeypatch.setattr(message_routes, "_snapshot", lambda request: state)
-    monkeypatch.setattr(message_routes, "require_account_session", lambda request, st: "@errol")
+    monkeypatch.setattr(message_routes, "require_account_session", lambda request, st: "@observer-user")
     app = FastAPI()
     app.include_router(message_routes.router, prefix="/v1")
     client = TestClient(app)
@@ -60,7 +60,7 @@ def test_message_thread_list_falls_back_to_thread_membership_when_inbox_index_la
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["ok"] is True
-    assert [t["thread_id"] for t in body["threads"]] == ["dm:@devnet-genesis:@errol"]
+    assert [t["thread_id"] for t in body["threads"]] == ["dm:@devnet-genesis:@observer-user"]
 
 
 def test_batch451_frontend_has_quiet_messaging_key_bootstrapper_and_retrying_recipient_lookup() -> None:

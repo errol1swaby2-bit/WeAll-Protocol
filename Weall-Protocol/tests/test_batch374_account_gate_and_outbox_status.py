@@ -41,7 +41,7 @@ def test_outbox_result_compaction_removes_recursive_propagation_batch374() -> No
                 "status": "confirmed",
                 "tx_id": "tx:abc",
                 "tx_type": "ACCOUNT_REGISTER",
-                "signer": "@errol",
+                "signer": "@observer-user",
                 "height": 1,
                 "block_id": "block:1",
                 "local_state_synced": True,

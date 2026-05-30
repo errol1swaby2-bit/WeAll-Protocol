@@ -2,6 +2,37 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/rehearse_external_observer_two_machine.sh <public-observer-bundle.json>
+
+Runs the external observer two-machine preflight against a non-local Genesis API.
+
+Required:
+  <public-observer-bundle.json> or WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE
+  WEALL_GENESIS_API_BASE or WEALL_API_BASE
+
+Optional:
+  WEALL_CHAIN_MANIFEST_PATH
+  WEALL_ALLOW_PRIVATE_GENESIS_API=1   Allow private LAN Genesis API for controlled rehearsal only.
+  WEALL_NET_RELAY_URLS
+  WEALL_NET_RELAY_RECIPIENT_PUBKEYS
+
+Truth boundary:
+  Passing this rehearsal proves remote Genesis API compatibility for the supplied bundle.
+  It does not by itself prove signed observer onboarding, public multi-validator BFT,
+  live economics, mainnet readiness, or production-grade private messaging.
+EOF
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
+
 BUNDLE_PATH="${1:-${WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE:-}}"
 MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-}"
 GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-${WEALL_API_BASE:-}}"

@@ -1,6 +1,17 @@
 #!/usr/bin/env sh
 set -eu
 
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+REPO_ROOT="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+if [ -d "${REPO_ROOT}/src" ]; then
+  if [ -n "${PYTHONPATH:-}" ]; then
+    export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH}"
+  else
+    export PYTHONPATH="${REPO_ROOT}/src"
+  fi
+fi
+
 read_secret_file() {
   p="$1"
   if [ -z "${p:-}" ] || [ ! -f "$p" ]; then

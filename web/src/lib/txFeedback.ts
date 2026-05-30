@@ -210,16 +210,26 @@ export function inferFeedbackFromUnknown(error: unknown, fallback = "Something f
 
   if (
     code.includes("nonce") ||
+    code.includes("tx_id_conflict") ||
+    needle.includes("already used") ||
+    needle.includes("stale") ||
+    needle.includes("nonce")
+  ) {
+    return createFeedback(
+      "backend_failure",
+      rawMessage,
+      payload,
+      { title: "Refresh and try again", retryable: true, safeToRetry: false },
+    );
+  }
+
+  if (
     code.includes("duplicate_submission_blocked") ||
     code.includes("signer_submission_busy") ||
-    code.includes("tx_id_conflict") ||
     needle.includes("already submitting") ||
     needle.includes("signed action") ||
     needle.includes("signer is busy") ||
     needle.includes("still settling") ||
-    needle.includes("already used") ||
-    needle.includes("stale") ||
-    needle.includes("nonce") ||
     needle.includes("not yet visible") ||
     needle.includes("check the affected object")
   ) {

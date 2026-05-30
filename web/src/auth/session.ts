@@ -557,6 +557,70 @@ function isNonceReservationConflictError(error: unknown): boolean {
   return message.includes("nonce") || message.includes("already used") || message.includes("stale") || message.includes("conflict");
 }
 
+type NonceConflictHint = {
+  nonce: number;
+  expected: number;
+  got: number;
+};
+
+function nonceConflictHintFromError(error: unknown): NonceConflictHint {
+  const candidates: any[] = [];
+  const push = (value: any) => {
+    if (value && typeof value === "object") candidates.push(value);
+  };
+
+  push(error as any);
+  push((error as any)?.body);
+  push((error as any)?.payload);
+  push((error as any)?.cause);
+  push((error as any)?.body?.error);
+  push((error as any)?.payload?.error);
+  push((error as any)?.body?.error?.details);
+  push((error as any)?.payload?.error?.details);
+  push((error as any)?.body?.error?.details?.details);
+  push((error as any)?.payload?.error?.details?.details);
+  push((error as any)?.body?.error?.details?.details?.details);
+  push((error as any)?.payload?.error?.details?.details?.details);
+
+  for (const candidate of candidates) {
+    const nestedDetails = candidate?.details && typeof candidate.details === "object" ? candidate.details : {};
+    const expected = Number(candidate?.expected ?? nestedDetails?.expected ?? candidate?.want ?? nestedDetails?.want ?? 0);
+    const got = Number(candidate?.got ?? nestedDetails?.got ?? 0);
+    const nonce = Number(candidate?.nonce ?? nestedDetails?.nonce ?? candidate?.existing_nonce ?? nestedDetails?.existing_nonce ?? 0);
+    const out = {
+      nonce: Number.isFinite(nonce) && nonce > 0 ? Math.floor(nonce) : 0,
+      expected: Number.isFinite(expected) && expected > 0 ? Math.floor(expected) : 0,
+      got: Number.isFinite(got) && got > 0 ? Math.floor(got) : 0,
+    };
+    if (out.nonce || out.expected || out.got) return out;
+  }
+
+  return { nonce: 0, expected: 0, got: 0 };
+}
+
+function nonceConflictNonceFromError(error: unknown): number {
+  const hint = nonceConflictHintFromError(error);
+  return hint.nonce || hint.got || hint.expected || 0;
+}
+
+function rewindNonceReservationFromError(account: string, error: unknown): number {
+  const signer = normalizeAccount(account);
+  if (!signer) return 0;
+  const hint = nonceConflictHintFromError(error);
+
+  // Apply-time bad_nonce can mean the browser advanced ahead of the chain
+  // (for example after a gated tx failed without consuming a nonce). In that
+  // case the correct retry is the backend's expected nonce, not got+1 and not
+  // the locally reserved higher nonce. Rewind only for got > expected; never
+  // use this path for duplicate/pending same-nonce conflicts.
+  if (hint.expected > 0 && hint.got > hint.expected) {
+    setReservedNonce(signer, hint.expected - 1);
+    return hint.expected;
+  }
+
+  return 0;
+}
+
 function isDirectSessionMutationForbidden(error: unknown): boolean {
   const code = extractErrorCode(error);
   return code.startsWith("direct_session_mutation_forbidden");
@@ -683,13 +747,20 @@ export async function syncNonceReservation(account: string, base?: string): Prom
     const a: any = await weall.account(acct, base);
     const onChain = Number(a?.state?.nonce ?? 0);
     if (Number.isFinite(onChain) && onChain >= 0) {
-      setReservedNonce(acct, Math.floor(onChain));
-      return Math.floor(onChain);
+      // Local observer reads can lag the upstream confirmer. Never lower the
+      // browser-side reservation from a newer local claim to an older observer
+      // account snapshot; doing so makes repeated actions retry the same
+      // already-pending nonce and surfaces mempool_signer_nonce_conflict.
+      const synced = Math.max(getReservedNonce(acct), Math.floor(onChain));
+      setReservedNonce(acct, synced);
+      return synced;
     }
   } catch {
-    // ignore and fall through to clear
+    // ignore and fall through to clear only when there is no local claim
   }
 
+  const reserved = getReservedNonce(acct);
+  if (reserved > 0) return reserved;
   clearNonceReservation(acct);
   return 0;
 }
@@ -785,6 +856,21 @@ export async function submitSignedTxInSequence(args: {
         return { env: signed, result };
       } catch (error) {
         if (attempt < 3 && isNonceReservationConflictError(error)) {
+          const rewoundNext = rewindNonceReservationFromError(signer, error);
+          if (rewoundNext > 0) {
+            args.sequence.nextNonce = rewoundNext;
+            await sleep(250 * (attempt + 1));
+            continue;
+          }
+          const conflictNonce = nonceConflictNonceFromError(error);
+          if (conflictNonce > 0) {
+            await waitForLocalAccountNonceAtLeast({
+              account: signer,
+              minNonce: conflictNonce,
+              base: args.base,
+              timeoutMs: 5_000,
+            });
+          }
           const synced = await syncNonceReservation(signer, args.base);
           args.sequence.nextNonce = Math.max(1, synced + 1);
           await sleep(250 * (attempt + 1));
@@ -913,6 +999,20 @@ export async function submitSignedTx(args: {
       } catch (error) {
         rollbackNonceClaim(claim);
         if (attempt < 3 && isNonceReservationConflictError(error)) {
+          const rewoundNext = rewindNonceReservationFromError(signer, error);
+          if (rewoundNext > 0) {
+            await sleep(250 * (attempt + 1));
+            continue;
+          }
+          const conflictNonce = nonceConflictNonceFromError(error);
+          if (conflictNonce > 0) {
+            await waitForLocalAccountNonceAtLeast({
+              account: signer,
+              minNonce: conflictNonce,
+              base: args.base,
+              timeoutMs: 5_000,
+            });
+          }
           await syncNonceReservation(signer, args.base);
           await sleep(250 * (attempt + 1));
           continue;
@@ -960,6 +1060,20 @@ export async function submitSignedTxWithNonce(args: {
       } catch (error) {
         rollbackNonceClaim(claim);
         if (attempt < 3 && isNonceReservationConflictError(error)) {
+          const rewoundNext = rewindNonceReservationFromError(signer, error);
+          if (rewoundNext > 0) {
+            await sleep(250 * (attempt + 1));
+            continue;
+          }
+          const conflictNonce = nonceConflictNonceFromError(error);
+          if (conflictNonce > 0) {
+            await waitForLocalAccountNonceAtLeast({
+              account: signer,
+              minNonce: conflictNonce,
+              base: args.base,
+              timeoutMs: 5_000,
+            });
+          }
           await syncNonceReservation(signer, args.base);
           await sleep(250 * (attempt + 1));
           continue;

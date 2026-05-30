@@ -14,6 +14,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { verificationLabel } from "../lib/userLanguage";
+import { POSTING_MIN_REPUTATION, POSTING_MIN_TIER } from "../lib/onboarding";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -168,7 +169,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const accountExists = !!acctView?.ok && !!state;
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
-  const canPost = tier >= 2 && accountExists && !banned && !locked && reputation >= 0.75;
+  const canPost = tier >= POSTING_MIN_TIER && accountExists && !banned && !locked && reputation >= POSTING_MIN_REPUTATION;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
 
   const localKeypair = isSelf ? getKeypair(acct) : null;

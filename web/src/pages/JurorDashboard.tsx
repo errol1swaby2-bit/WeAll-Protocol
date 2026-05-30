@@ -96,7 +96,7 @@ function statusTone(statusRaw: any): "done" | "active" | "todo" {
 
 function reportStageNeedsReviewerAction(stageRaw: any): boolean {
   const stage = String(stageRaw || "open").trim().toLowerCase() || "open";
-  return ["open", "assigned", "review", "voting", "in_review"].includes(stage);
+  return ["open", "assigned", "review", "juror_review", "voting", "in_review"].includes(stage);
 }
 
 function reportNeedsCurrentReviewer(item: any, account: string): boolean {

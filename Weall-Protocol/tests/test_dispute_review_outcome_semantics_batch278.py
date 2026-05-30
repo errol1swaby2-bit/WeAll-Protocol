@@ -15,8 +15,11 @@ def _base_state() -> dict:
         "height": 0,
         "time": 0,
         "params": {"system_signer": "SYSTEM", "economics_enabled": True, "economic_unlock_time": 0},
-        "accounts": {"alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}},
-        "roles": {"validators": {"active_set": ["alice"]}},
+        "accounts": {
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+            "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+        },
+        "roles": {"validators": {"active_set": ["bob"]}},
         "system_queue": [],
         "content": {
             "posts": {"post:alice:1": {"id": "post:alice:1", "post_id": "post:alice:1", "author": "alice", "body": "flagged", "visibility": "public"}},
@@ -31,13 +34,13 @@ def _base_state() -> dict:
 
 
 def _open_accept_vote(st: dict, *, vote: str, resolution: dict | None = None) -> None:
-    apply_tx(st, _env("DISPUTE_OPEN", "alice", 1, {"dispute_id": "d1", "target_type": "content", "target_id": "post:alice:1", "reason": "test"}))
-    apply_tx(st, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 1, {"dispute_id": "d1", "juror": "alice"}, system=True, parent="tx:alice:1"))
-    apply_tx(st, _env("DISPUTE_JUROR_ACCEPT", "alice", 2, {"dispute_id": "d1"}))
+    apply_tx(st, _env("DISPUTE_OPEN", "bob", 1, {"dispute_id": "d1", "target_type": "content", "target_id": "post:alice:1", "reason": "test"}))
+    apply_tx(st, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 1, {"dispute_id": "d1", "juror": "bob"}, system=True, parent="tx:bob:1"))
+    apply_tx(st, _env("DISPUTE_JUROR_ACCEPT", "bob", 2, {"dispute_id": "d1"}))
     payload = {"dispute_id": "d1", "vote": vote}
     if resolution is not None:
         payload["resolution"] = resolution
-    apply_tx(st, _env("DISPUTE_VOTE_SUBMIT", "alice", 3, payload))
+    apply_tx(st, _env("DISPUTE_VOTE_SUBMIT", "bob", 3, payload))
 
 
 def test_remove_post_vote_upholds_report_and_deletes_content_batch278() -> None:

@@ -101,7 +101,7 @@ function reportCurrentStatus(dispute: Record<string, any>, account: string): str
 }
 
 function reportStageNeedsReviewerAction(stage: string): boolean {
-  return ["open", "assigned", "review", "voting", "in_review"].includes(stage);
+  return ["open", "assigned", "review", "juror_review", "voting", "in_review"].includes(stage);
 }
 
 function reportUrgency(reviewerStatus: string, attendancePresent: boolean, vote: string): PendingWorkUrgency {

@@ -178,38 +178,49 @@ def _active_validator_ids(state: Json) -> list[str]:
 
 
 def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str = "") -> list[str]:
-    snap = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))])
+    snap = _filter_neutral_dispute_jurors(
+        state,
+        dispute,
+        _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))]),
+    )
     if snap:
         dispute["eligible_juror_ids"] = list(snap)
         dispute["eligible_validator_count"] = int(len(snap))
         dispute["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
         return snap
 
-    assigned = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))])
+    assigned = _filter_neutral_dispute_jurors(
+        state,
+        dispute,
+        _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))]),
+    )
     if assigned:
         dispute["eligible_juror_ids"] = list(assigned)
         dispute["eligible_validator_count"] = int(len(assigned))
         dispute["required_votes"] = int(quorum_threshold(len(assigned))) if assigned else 0
         return assigned
 
-    active = _active_validator_ids(state)
+    active = _filter_neutral_dispute_jurors(state, dispute, _active_validator_ids(state))
     if active:
         dispute["eligible_juror_ids"] = list(active)
         dispute["eligible_validator_count"] = int(len(active))
         dispute["required_votes"] = int(quorum_threshold(len(active))) if active else 0
         return active
 
-    raw_signer = fallback_signer or dispute.get("opened_by")
+    raw_signer = fallback_signer or dispute.get("flagged_by") or dispute.get("reporter") or dispute.get("opened_by")
     signer = _resolve_account_identity(state, raw_signer)
-    if signer and signer.upper() != "SYSTEM":
-        dispute["eligible_juror_ids"] = [signer]
-        dispute["eligible_validator_count"] = 1
-        dispute["required_votes"] = 1
-        return [signer]
+    fallback = _filter_neutral_dispute_jurors(state, dispute, [signer] if signer and signer.upper() != "SYSTEM" else [])
+    if fallback:
+        dispute["eligible_juror_ids"] = list(fallback)
+        dispute["eligible_validator_count"] = int(len(fallback))
+        dispute["required_votes"] = int(quorum_threshold(len(fallback)))
+        return fallback
 
     dispute["eligible_juror_ids"] = []
     dispute["eligible_validator_count"] = 0
     dispute["required_votes"] = 0
+    if _dispute_target_owner(state, dispute):
+        dispute["review_blocked_reason"] = "no_neutral_reviewer_available"
     return []
 
 
@@ -481,6 +492,88 @@ def _same_account(a: str, b: str) -> bool:
     return aa == bb or aa.lstrip("@") == bb.lstrip("@")
 
 
+def _dispute_target_owner(state: Json, d: Json) -> str:
+    owner = _as_str(
+        d.get("target_owner")
+        or d.get("target_author")
+        or d.get("content_author")
+        or d.get("owner")
+        or ""
+    ).strip()
+    if owner:
+        return _resolve_account_identity(state, owner)
+    owner = _content_target_owner(
+        state,
+        target_type=_as_str(d.get("target_type") or "content"),
+        target_id=_as_str(d.get("target_id") or ""),
+    )
+    if owner:
+        owner = _resolve_account_identity(state, owner)
+        d["target_owner"] = owner
+        allowed = d.get("appeal_allowed_accounts")
+        if not isinstance(allowed, list):
+            allowed = []
+        if not any(_same_account(owner, _as_str(item)) for item in allowed):
+            allowed.append(owner)
+        d["appeal_allowed_accounts"] = allowed
+    return owner
+
+
+def _filter_neutral_dispute_jurors(state: Json, d: Json, candidates: list[str]) -> list[str]:
+    owner = _dispute_target_owner(state, d)
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        acct = _resolve_account_identity(state, candidate)
+        if not acct:
+            continue
+        if owner and _same_account(acct, owner):
+            continue
+        if acct in seen:
+            continue
+        seen.add(acct)
+        out.append(acct)
+    out.sort()
+    if out:
+        d.pop("review_blocked_reason", None)
+    elif owner:
+        d["review_blocked_reason"] = "no_neutral_reviewer_available"
+        d["review_blocked_owner"] = owner
+    return out
+
+
+def _seeded_demo_assignment_compat_allowed(state: Json, *, action: str) -> bool:
+    """Compatibility only for the explicitly fenced seeded-demo route.
+
+    The normal runtime must never allow a target owner to accept or vote on their
+    own case.  Older seeded-demo fixtures, however, materialize a self-assigned
+    review object to prove the route surface.  Keep that compatibility limited to
+    SYSTEM assignment setup and only when the demo route set the explicit flag.
+    """
+
+    if str(action or "").strip().lower() != "assign":
+        return False
+    params = _as_dict(state.get("params"))
+    return bool(params.get("seeded_demo_review_fallback")) is True
+
+
+def _require_neutral_dispute_reviewer(state: Json, d: Json, signer: str, *, action: str) -> None:
+    owner = _dispute_target_owner(state, d)
+    if owner and _same_account(signer, owner):
+        if _seeded_demo_assignment_compat_allowed(state, action=action):
+            return
+        raise DisputeApplyError(
+            "forbidden",
+            "target_owner_cannot_review",
+            {
+                "dispute_id": d.get("id", ""),
+                "juror": signer,
+                "target_owner": owner,
+                "action": action,
+            },
+        )
+
+
 def _appeal_allowed_accounts(state: Json, d: Json) -> list[str]:
     raw = d.get("appeal_allowed_accounts")
     out: list[str] = []
@@ -573,14 +666,24 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     if dispute_id in disputes:
         raise DisputeApplyError("duplicate", "dispute_id_exists", {"dispute_id": dispute_id})
 
-    fallback_signer = "" if bool(getattr(env, "system", False)) or _as_str(env.signer).strip().upper() == "SYSTEM" else str(env.signer)
-    eligible_jurors = _dispute_eligible_juror_ids(state, {"opened_by": env.signer}, fallback_signer)
-
     target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
+    reporter = _as_str(payload.get("flagged_by") or payload.get("reporter") or payload.get("opened_by") or "").strip()
+    fallback_signer = (
+        reporter
+        if reporter
+        else "" if bool(getattr(env, "system", False)) or _as_str(env.signer).strip().upper() == "SYSTEM" else str(env.signer)
+    )
+    eligible_jurors = _dispute_eligible_juror_ids(
+        state,
+        {"opened_by": env.signer, "flagged_by": reporter, "target_owner": target_owner, "target_type": target_type, "target_id": target_id},
+        fallback_signer,
+    )
+
     disputes[dispute_id] = {
         "id": dispute_id,
         "stage": "open",
         "opened_by": env.signer,
+        "flagged_by": reporter or None,
         "opened_at_nonce": int(env.nonce),
         "target_type": target_type,
         "target_id": target_id,
@@ -678,6 +781,7 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
             "invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type}
         )
     d = _get_dispute(state, dispute_id)
+    _require_neutral_dispute_reviewer(state, d, juror, action="assign")
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -703,6 +807,7 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_neutral_dispute_reviewer(state, d, env.signer, action="accept")
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -760,6 +865,7 @@ def _apply_dispute_juror_decline(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_neutral_dispute_reviewer(state, d, env.signer, action="decline")
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -781,6 +887,7 @@ def _apply_dispute_juror_attendance(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_neutral_dispute_reviewer(state, d, env.signer, action="attendance")
     juror_key = _juror_key_for_actor(d, env.signer)
     j = _require_juror_status(d, env.signer, {"assigned", "accepted"})
     jurors = d.get("jurors")
@@ -805,6 +912,7 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_neutral_dispute_reviewer(state, d, env.signer, action="vote")
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
     j = _require_juror_status(d, env.signer, {"assigned", "accepted"})

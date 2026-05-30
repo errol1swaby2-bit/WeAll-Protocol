@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_production_genesis_bootstrap_grant_is_visible_and_receipt_backed() -> None:
     genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
     accounts = genesis["accounts"]
-    founder = accounts["@errol-genesis"]
+    founder = accounts["@genesis-founder"]
     grant_id = founder["poh_bootstrap_grant_id"]
     receipt_id = founder["poh_bootstrap_receipt_id"]
 
@@ -19,7 +19,7 @@ def test_production_genesis_bootstrap_grant_is_visible_and_receipt_backed() -> N
 
     grants = genesis["poh"]["bootstrap_grants"]
     grant = grants["by_id"][grant_id]
-    assert grant["account_id"] == "@errol-genesis"
+    assert grant["account_id"] == "@genesis-founder"
     assert grant["grant_type"] == "poh_tier2_live_verified"
     assert grant["authority_path"] in {
         "genesis_bootstrap_profile",
@@ -33,7 +33,7 @@ def test_production_genesis_bootstrap_grant_is_visible_and_receipt_backed() -> N
     assert grant["auditable"] is True
     assert grant["transitional"] is True
     assert isinstance(grant.get("height", grant.get("grant_height")), int)
-    assert grants["by_account"]["@errol-genesis"] == [grant_id]
+    assert grants["by_account"]["@genesis-founder"] == [grant_id]
 
 
 def test_bootstrap_grant_docs_are_transitional_and_no_tier3() -> None:

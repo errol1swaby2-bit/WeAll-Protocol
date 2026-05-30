@@ -15,6 +15,7 @@ from weall.api.routes_public_parts.common import (
     _str_param,
 )
 from weall.api.security import require_account_session
+from weall.api.routes_public_parts.observer_sync import sync_observer_from_upstream_if_enabled
 
 router = APIRouter()
 
@@ -541,6 +542,7 @@ def feed(request: Request) -> dict[str, object]:
     the user's viewport.
     """
 
+    sync_observer_from_upstream_if_enabled(request, reason="public_feed")
     st = _snapshot(request)
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 25)
@@ -610,6 +612,7 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     Returns 404 if not found.
     """
 
+    sync_observer_from_upstream_if_enabled(request, reason="content_get")
     st = _snapshot(request)
 
     pid = str(content_id or "").strip()

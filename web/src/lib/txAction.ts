@@ -89,7 +89,7 @@ export function actionableTxError(error: any, fallback = "Transaction failed."):
     msgNeedle.includes("stale")
   ) {
     const feedback = createFeedback(
-      "recorded_not_yet_visible",
+      "backend_failure",
       "Something changed. Refresh and try again.",
       details,
       {

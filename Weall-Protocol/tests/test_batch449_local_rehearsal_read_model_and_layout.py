@@ -12,9 +12,9 @@ WEB = ROOT.parent / "web"
 
 def _state_with_removed_group_post() -> dict:
     post = {
-        "id": "post:@errol:12",
-        "post_id": "post:@errol:12",
-        "author": "@errol",
+        "id": "post:@observer-user:12",
+        "post_id": "post:@observer-user:12",
+        "author": "@observer-user",
         "body": "removed group post",
         "visibility": "group",
         "group_id": "g:test",
@@ -23,19 +23,19 @@ def _state_with_removed_group_post() -> dict:
         "deleted": False,
     }
     return {
-        "content": {"posts": {"post:@errol:12": post}, "comments": {}, "moderation": {"targets": {}}},
+        "content": {"posts": {"post:@observer-user:12": post}, "comments": {}, "moderation": {"targets": {}}},
         "disputes_by_id": {
             "d1": {
                 "dispute_id": "d1",
                 "stage": "appeal_window",
                 "target_type": "content",
-                "target_id": "post:@errol:12",
+                "target_id": "post:@observer-user:12",
                 "resolution": {
                     "outcome": "report_upheld",
                     "actions": [
                         {
                             "tx_type": "CONTENT_VISIBILITY_SET",
-                            "payload": {"target_id": "post:@errol:12", "visibility": "deleted"},
+                            "payload": {"target_id": "post:@observer-user:12", "visibility": "deleted"},
                         }
                     ],
                 },
@@ -46,11 +46,11 @@ def _state_with_removed_group_post() -> dict:
 
 def test_batch449_removed_content_is_hidden_from_author_and_group_feeds_before_final_receipt() -> None:
     st = _state_with_removed_group_post()
-    post = st["content"]["posts"]["post:@errol:12"]
+    post = st["content"]["posts"]["post:@observer-user:12"]
 
-    assert _content_target_hidden_by_review(st, "post:@errol:12", post)
-    assert not _post_visible(st, post, "post:@errol:12")
-    assert _iter_posts_by_author(st, author="@errol") == []
+    assert _content_target_hidden_by_review(st, "post:@observer-user:12", post)
+    assert not _post_visible(st, post, "post:@observer-user:12")
+    assert _iter_posts_by_author(st, author="@observer-user") == []
     assert _iter_group_posts(st, group_id="g:test") == []
 
 

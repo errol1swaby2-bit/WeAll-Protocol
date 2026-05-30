@@ -87,6 +87,16 @@ ACTION_REQUIRED_POH_TIER: dict[str, int] = {
     "DISPUTE_APPEAL": 2,
     "DISPUTE_EVIDENCE_DECLARE": 2,
     "DISPUTE_EVIDENCE_BIND": 2,
+    # Assigned report-review actions are not open to every account; the
+    # dispute apply layer remains authoritative for assignment, attendance,
+    # and target-owner neutrality.  The tier gate must still recognize these
+    # canonical user-origin tx types so a Tier 2 assigned reviewer is not
+    # rejected as an unknown/legacy action before the dispute-specific checks
+    # run.
+    "DISPUTE_JUROR_ACCEPT": 2,
+    "DISPUTE_JUROR_DECLINE": 2,
+    "DISPUTE_JUROR_ATTENDANCE": 2,
+    "DISPUTE_VOTE_SUBMIT": 2,
     "GROUP_MEMBERSHIP_REQUEST": 1,
     "POH_LIVE_REQUEST_OPEN": 1,
     "ROLE_NODE_OPERATOR_ENROLL": 2,

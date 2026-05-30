@@ -473,6 +473,11 @@ def _dispute_assignment_match(ledger: Json, signer: str, payload: Json) -> bool:
     if not dispute:
         return False
 
+    target_owner = str(dispute.get("target_owner") or dispute.get("target_author") or "").strip()
+    if target_owner and set(_identity_variants(signer)).intersection(_identity_variants(target_owner)):
+        if not _seeded_demo_review_fallback_allowed(ledger):
+            return False
+
     jurors = _as_dict(dispute.get("jurors"))
     signer_variants = set(_identity_variants(signer))
     for juror_id, rec in jurors.items():
@@ -573,14 +578,34 @@ def _seeded_demo_review_fallback_allowed(ledger: Json) -> bool:
     params = _as_dict(ledger.get("params"))
     return _truthy(params.get("seeded_demo_review_fallback"))
 
-def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
-    """Return True for active Juror authority.
 
-    Juror is a service authority, not merely a PoH tier or case label. In normal
-    production posture it requires Tier2 plus an active Juror role/badge.
-    Case-scoped assignment is still required for case-bound payloads, but it is
-    not sufficient by itself unless an explicit chain-state bootstrap flag is
-    present. Validators no longer inherit Juror authority implicitly.
+def _case_scoped_dispute_review_allowed(ledger: Json) -> bool:
+    """Allow assigned Tier2 dispute reviewers only in explicit rehearsal scopes.
+
+    Production-shaped Juror authority still requires an active Juror role.  The
+    local two-node controlled-devnet rehearsal needs a narrow exception so an
+    assigned Tier2 observer can reach dispute.py, where assignment, target-owner
+    neutrality, attendance, double-vote, and finality remain authoritative.
+    """
+
+    params = _as_dict(ledger.get("params"))
+    if _truthy(params.get("seeded_demo_review_fallback")):
+        return True
+    if _truthy(params.get("allow_case_scoped_dispute_review")):
+        return True
+    if _truthy(params.get("bootstrap_allow_case_scoped_dispute_review")):
+        return True
+    chain_id = str(ledger.get("chain_id") or "").strip().lower()
+    return chain_id == "weall-controlled-devnet"
+
+def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
+    """Return True for active or case-assigned Juror authority.
+
+    Global Juror remains a service responsibility.  Dispute and PoH review
+    actions, however, are case-scoped: once the chain has assigned an available
+    Tier2 account to a specific case, admission must let that account reach the
+    dispute/PoH apply layer.  The apply layer remains authoritative for
+    assignment, target-owner neutrality, attendance, double-vote, and finality.
     """
 
     has_dispute_scope = bool(_payload_dispute_id(payload))
@@ -602,11 +627,12 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
             return poh_assigned
         return True
 
+    if tier2 and has_dispute_scope and _case_scoped_dispute_review_allowed(ledger):
+        return dispute_assigned
+
     if tier2 and _case_scoped_juror_without_role_allowed(ledger):
         if has_poh_scope:
             return poh_assigned
-        if has_dispute_scope and _seeded_demo_review_fallback_allowed(ledger):
-            return dispute_assigned
 
     return False
 
@@ -658,7 +684,7 @@ def _is_group_signer(ledger: Json, signer: str, payload: Json) -> bool:
     )
 
 
-def _is_group_moderator(ledger: Json, signer: str, payload: Json) -> bool:
+def _is_group_moderator(ledger: Json, signer: str, payload: Json, *, tx_type: str = "") -> bool:
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
     roles = _as_dict(ledger.get("roles"))
@@ -666,6 +692,22 @@ def _is_group_moderator(ledger: Json, signer: str, payload: Json) -> bool:
     if not gid:
         return False
     g = _as_dict(_as_dict(roles.get("groups_by_id")).get(gid))
+
+    # Self-leave is not a moderator action.  It reuses the canonical
+    # GROUP_MEMBERSHIP_REMOVE tx because there is no separate leave tx in the
+    # current tx vocabulary.  Only allow this special case when the signer is
+    # removing their own active membership from the scoped group.
+    if str(tx_type or "").strip().upper() == "GROUP_MEMBERSHIP_REMOVE":
+        target = str(payload.get("account") or payload.get("account_id") or "").strip()
+        if target and set(_identity_variants(target)).intersection(_identity_variants(signer)):
+            # Leaving a group is self-removal, not moderation.  The apply layer
+            # removes only payload.account and is idempotent when the local
+            # read model is slightly stale.  Allow the signer to submit their
+            # own removal as long as the scoped group exists and the account is
+            # otherwise eligible; never allow this exception to remove another
+            # account.
+            return True
+
     return _authority_member_active(
         g,
         signer,
@@ -757,7 +799,7 @@ def _is_emissary(ledger: Json, signer: str, payload: Json) -> bool:
     return _global_emissary_active(roles, signer)
 
 
-def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
+def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json, *, tx_type: str = "") -> bool:
     atom = atom.strip()
 
     if atom.lower().startswith("tier") and atom.endswith("+"):
@@ -784,7 +826,7 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
         return _is_group_signer(ledger, signer, payload)
 
     if atom == "GroupModerator":
-        return _is_group_moderator(ledger, signer, payload)
+        return _is_group_moderator(ledger, signer, payload, tx_type=tx_type)
 
     if atom == "Emissary":
         return _is_emissary(ledger, signer, payload)
@@ -824,7 +866,7 @@ def eval_gate(
 
     def _eval(node: _Node) -> bool:
         if node.kind == "ATOM":
-            return _eval_atom(node.value, signer, ledger_dict, payload or {})
+            return _eval_atom(node.value, signer, ledger_dict, payload or {}, tx_type=tx_type)
         if node.kind == "AND":
             return _eval(node.left) and _eval(node.right)
         if node.kind == "OR":

@@ -629,7 +629,11 @@ def _gate_ok(env: TxEnvelope, ledger: LedgerView, spec: Json) -> AdmissionVerdic
         return None
 
     ok, meta = eval_gate(
-        signer=env.signer or "", state=ledger, expr=gate, payload=env.payload or {}
+        signer=env.signer or "",
+        state=ledger,
+        expr=gate,
+        payload=env.payload or {},
+        tx_type=env.tx_type or "",
     )
     if not ok:
         return _rej("gate_denied", f"gate:{gate}", gate=gate, gate_meta=meta)

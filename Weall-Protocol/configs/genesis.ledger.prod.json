@@ -1,6 +1,6 @@
 {
   "accounts": {
-    "@errol-genesis": {
+    "@genesis-founder": {
       "balance": 0,
       "banned": false,
       "devices": {
@@ -54,8 +54,8 @@
   "consensus": {
     "validators": {
       "registry": {
-        "@errol-genesis": {
-          "account_id": "@errol-genesis",
+        "@genesis-founder": {
+          "account_id": "@genesis-founder",
           "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
           "source": "production_genesis_manifest",
           "status": "active"
@@ -70,13 +70,13 @@
   "params": {
     "bft_signing_public_beta_gate_enabled": true,
     "bootstrap_allowlist": {
-      "@errol-genesis": {
+      "@genesis-founder": {
         "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
         "source": "genesis_bootstrap"
       }
     },
     "bootstrap_expires_height": 1008,
-    "bootstrap_founder_account": "@errol-genesis",
+    "bootstrap_founder_account": "@genesis-founder",
     "economic_unlock_time": 1786144894,
     "economics_enabled": false,
     "genesis_time": 1778368894,
@@ -97,13 +97,13 @@
   "poh": {
     "bootstrap_grants": {
       "by_account": {
-        "@errol-genesis": [
+        "@genesis-founder": [
           "poh_bootstrap_grant:e20283d6f2d9ea59be472b61"
         ]
       },
       "by_id": {
         "poh_bootstrap_grant:e20283d6f2d9ea59be472b61": {
-          "account_id": "@errol-genesis",
+          "account_id": "@genesis-founder",
           "auditable": true,
           "authority_path": "production_genesis_manifest",
           "expires_height": 1008,
@@ -116,7 +116,7 @@
           "reason_code": "founder_live_bootstrap",
           "receipt_id": "poh_bootstrap_receipt:192325155752f3c454ed01f8",
           "review_condition": "native_poh_juror_quorum_or_governance_review",
-          "signer": "@errol-genesis",
+          "signer": "@genesis-founder",
           "source": "genesis_state",
           "status": "active",
           "transitional": true,
@@ -128,10 +128,10 @@
   "roles": {
     "node_operators": {
       "active_set": [
-        "@errol-genesis"
+        "@genesis-founder"
       ],
       "by_id": {
-        "@errol-genesis": {
+        "@genesis-founder": {
           "activated_at_nonce": 0,
           "active": true,
           "enrolled": true,
@@ -159,10 +159,10 @@
     },
     "validators": {
       "active_set": [
-        "@errol-genesis"
+        "@genesis-founder"
       ],
       "by_id": {
-        "@errol-genesis": {
+        "@genesis-founder": {
           "active": true,
           "enrolled": true,
           "source": "production_genesis_manifest"
@@ -174,8 +174,8 @@
   "tip": "",
   "validators": {
     "registry": {
-      "@errol-genesis": {
-        "account_id": "@errol-genesis",
+      "@genesis-founder": {
+        "account_id": "@genesis-founder",
         "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
         "source": "production_genesis_manifest",
         "status": "active"

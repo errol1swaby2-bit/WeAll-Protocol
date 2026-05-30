@@ -9,7 +9,7 @@ from weall.runtime.executor import ExecutorError, WeAllExecutor
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
 ROOT = Path(__file__).resolve().parents[1]
-FOUNDER = "@errol-genesis"
+FOUNDER = "@genesis-founder"
 FOUNDER_PUBKEY = "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
 
 

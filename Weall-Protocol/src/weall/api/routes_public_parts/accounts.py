@@ -16,6 +16,7 @@ from weall.api.routes_public_parts.common import (
 )
 from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
+from weall.api.routes_public_parts.observer_sync import sync_observer_from_upstream_if_enabled
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
@@ -124,6 +125,7 @@ def v1_account_get(account: str, request: Request):
       GET /v1/accounts/{account}
     """
 
+    sync_observer_from_upstream_if_enabled(request, reason="account_get")
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
     a = ledger.accounts.get(account)
@@ -155,6 +157,7 @@ def v1_account_registered(account: str, request: Request):
       GET /v1/accounts/{account}/registered
     """
 
+    sync_observer_from_upstream_if_enabled(request, reason="account_registered")
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
 
@@ -206,6 +209,7 @@ def v1_account_feed(account: str, request: Request):
       - all: treated as public unless author session matches; then returns public+private
     """
 
+    sync_observer_from_upstream_if_enabled(request, reason="account_feed")
     st = _snapshot(request)
     qp = request.query_params
 

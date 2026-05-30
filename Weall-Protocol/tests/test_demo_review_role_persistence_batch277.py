@@ -90,10 +90,16 @@ def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate_batch277() -> 
     )
     dispute_id = _apply_first_queued_escalation(state)
 
-    assert dispute_id == "dispute:SYSTEM:0"
+    assert dispute_id == "dispute:content:post:@demo_tester:5"
     assert state["roles"]["jurors"]["by_id"]["@demo_tester"]["active"] is True
     assert "@demo_tester" in state["roles"]["jurors"]["active_set"]
-    assert state["disputes_by_id"][dispute_id]["jurors"]["@demo_tester"]["status"] == "assigned"
+    dispute = state["disputes_by_id"][dispute_id]
+    assert "@demo_tester" not in dispute.get("jurors", {})
+    assert dispute.get("review_blocked_reason") in {
+        "no_neutral_reviewer_available",
+        "target_owner_cannot_review",
+        None,
+    }
 
     ok, meta = eval_gate(
         "Juror",
@@ -102,7 +108,8 @@ def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate_batch277() -> 
         payload={"dispute_id": dispute_id},
     )
 
-    assert ok is True, meta
+    assert ok is False, meta
+    assert meta.get("expr") == "Juror"
 
 
 def test_dev_boot_restarts_backend_after_demo_seed_so_producer_reloads_roles_batch277() -> None:

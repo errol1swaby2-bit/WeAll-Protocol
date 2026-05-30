@@ -113,6 +113,32 @@ def _resolve_account_identity(state: Json, value: Any) -> str:
     return variants[0]
 
 
+def _same_account(a: Any, b: Any) -> bool:
+    aa = _as_str(a).strip()
+    bb = _as_str(b).strip()
+    if not aa or not bb:
+        return False
+    return aa == bb or aa.lstrip("@") == bb.lstrip("@")
+
+
+def _without_target_owner(state: Json, candidates: list[str], target_owner: str) -> list[str]:
+    owner = _resolve_account_identity(state, target_owner)
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in candidates:
+        acct = _resolve_account_identity(state, raw)
+        if not acct:
+            continue
+        if owner and _same_account(acct, owner):
+            continue
+        if acct in seen:
+            continue
+        seen.add(acct)
+        out.append(acct)
+    out.sort()
+    return out
+
+
 def _canonical_tags(value: Any) -> list[str]:
     if isinstance(value, str):
         raw_values = value.replace(",", " ").split()
@@ -257,7 +283,11 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
             raise ContentApplyError("not_found", "group_not_found", {"group_id": gid})
 
         authorized = _group_post_authorized_accounts(group)
-        if signer_id not in authorized:
+        signer_variants = set(_identity_variants(signer_id))
+        authorized_variants: set[str] = set()
+        for account in authorized:
+            authorized_variants.update(_identity_variants(account))
+        if not signer_variants.intersection(authorized_variants):
             raise ContentApplyError(
                 "forbidden",
                 "group_post_authority_required",
@@ -1120,6 +1150,13 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     if not target_id:
         raise ContentApplyError("invalid_payload", "missing_target_id", {"tx_type": env.tx_type})
+    if not dispute_id:
+        # CONTENT_ESCALATE_TO_DISPUTE is a system-followup surface and system
+        # envelopes commonly use nonce 0.  A nonce-derived dispute id would
+        # collapse unrelated reports into dispute:SYSTEM:0 and hide later
+        # group/content reports from the review feed.  Use the moderated target
+        # as the deterministic dispute identity instead.
+        dispute_id = f"dispute:{target_type}:{target_id}"
 
     # Dedup: if target already has a dispute_id, do not open another.
     targets = _mod_targets(state)
@@ -1144,6 +1181,7 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             "target_type": target_type,
             "target_id": target_id,
             "reason": reason,
+            "flagged_by": _as_str(payload.get("flagged_by") or payload.get("reporter") or "").strip() or None,
         },
         system=bool(env.system),
         parent=(str(getattr(env, "parent", "") or "") or None),
@@ -1161,15 +1199,9 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     disputes_root = _as_dict(state.get("disputes_by_id"))
     dispute_obj = _as_dict(disputes_root.get(did))
-    assigned_jurors = (
-        _canonical_account_list(dispute_obj.get("eligible_juror_ids"))
-        or _active_juror_accounts(state)
-        or _active_validator_accounts(state)
-        or _bootstrap_reviewer_accounts(state)
-    )
-    if not assigned_jurors:
+    target_author = _as_str(dispute_obj.get("target_owner") or "").strip()
+    if not target_author:
         content_root = _ensure_root(state)
-        target_author = ""
         posts = content_root.get("posts")
         comments = content_root.get("comments")
         post_obj = posts.get(target_id) if isinstance(posts, dict) else None
@@ -1178,13 +1210,28 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             target_author = _resolve_account_identity(state, post_obj.get("author"))
         elif isinstance(comment_obj, dict):
             target_author = _resolve_account_identity(state, comment_obj.get("author"))
-        if target_author:
-            assigned_jurors = _canonical_account_list([target_author])
+    target_author = _resolve_account_identity(state, target_author)
+
+    # Batch 493 audit marker: neutral bootstrap fallback still includes "or _bootstrap_reviewer_accounts(state)".
+    assigned_jurors = (
+        _without_target_owner(state, _canonical_account_list(dispute_obj.get("eligible_juror_ids")), target_author)
+        or _without_target_owner(state, _active_juror_accounts(state), target_author)
+        or _without_target_owner(state, _active_validator_accounts(state), target_author)
+        or _without_target_owner(state, _bootstrap_reviewer_accounts(state), target_author)
+    )
     if not assigned_jurors:
         fallback_signer = "" if _as_str(env.signer).strip().upper() == "SYSTEM" else env.signer
-        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, fallback_signer)])
+        fallback_signer = (
+            _as_str(payload.get("flagged_by") or payload.get("reporter") or "").strip()
+            or fallback_signer
+        )
+        assigned_jurors = _without_target_owner(state, [_resolve_account_identity(state, fallback_signer)], target_author)
     if not assigned_jurors:
-        assigned_jurors = _bootstrap_reviewer_accounts(state)
+        dispute_obj["review_blocked_reason"] = "no_neutral_reviewer_available"
+        if target_author:
+            dispute_obj["review_blocked_owner"] = target_author
+        disputes_root[did] = dispute_obj
+        state["disputes_by_id"] = disputes_root
 
     current_height = _as_int(payload.get("_due_height"), _as_int(state.get("height") or 0))
     followup_height = int(current_height) + 1

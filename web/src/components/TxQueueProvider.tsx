@@ -121,6 +121,15 @@ function shouldAttemptSessionRepair(error: unknown): boolean {
     .trim()
     .toLowerCase();
   const status = Number((error as any)?.status || payload?.status || payload?.error?.status || 0);
+  if (
+    code.includes("nonce") ||
+    code.includes("tx_id_conflict") ||
+    message.includes("nonce") ||
+    message.includes("already used") ||
+    message.includes("stale")
+  ) {
+    return false;
+  }
   return (
     code === "session_invalid" ||
     code === "pubkey_not_authorized" ||
