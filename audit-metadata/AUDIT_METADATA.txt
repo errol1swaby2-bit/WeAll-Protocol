@@ -1,0 +1,14 @@
+created_at=2026-05-31T11:11:32-07:00
+repo_root=/home/errol/WeAll-Protocol
+git_head=d3febe52adb4d4f5070c77dac5acf538eaf2ba78
+git_branch=main
+
+latest_commit:
+d3febe5 Batch 488: add reviewer LAN rehearsal flow
+
+git_status_short:
+ M Weall-Protocol/docs/REVIEWER_LAN_REHEARSAL_QUICKSTART.md
+ M Weall-Protocol/scripts/reviewer_lan_genesis_rehearsal.sh
+?? Weall-Protocol/scripts/build_reviewer_lan_genesis.py
+?? Weall-Protocol/tests/test_batch489_reviewer_disposable_genesis.py
+?? audit-metadata/
