@@ -12,7 +12,9 @@ A successful full run proves:
 - a clean clone can prepare the Python environment.
 - the Genesis machine can generate a disposable reviewer chain.
 - the disposable Genesis API can produce blocks with local-only generated keys.
-- a public observer bundle can be generated and verified.
+- the Genesis machine can expose only public reviewer artifacts.
+- the observer machine can pull the public observer bundle and reviewer manifest.
+- the public observer bundle can be generated and verified.
 - the observer machine can verify the remote Genesis API.
 - the observer machine can submit signed onboarding transactions.
 - signed observer onboarding transactions can confirm.
@@ -45,8 +47,8 @@ The Genesis script prints:
 
 - the detected Genesis API base.
 - the disposable reviewer work directory.
-- the public observer bundle path.
-- the disposable reviewer manifest path.
+- the public reviewer artifact directory.
+- the artifact index route.
 - the observer command.
 - Windows PowerShell port-forwarding commands when running under WSL.
 
@@ -60,23 +62,18 @@ Clone the repo and prepare the environment:
     cd WeAll-Protocol/Weall-Protocol
     bash scripts/reviewer_setup_env.sh
 
-Copy these two files from Machine A to the observer machine:
-
-    weall-external-observer-bundle.json
-    reviewer-chain-manifest.json
-
-Suggested observer paths:
-
-    ~/weall-observer/weall-external-observer-bundle.json
-    ~/weall-observer/reviewer-chain-manifest.json
-
 Run the observer proof with the Genesis API base printed by Machine A:
 
     bash scripts/reviewer_observer_rehearsal.sh \
       --genesis-api-base http://GENESIS_LAN_IP:8000 \
-      --bundle ~/weall-observer/weall-external-observer-bundle.json \
-      --manifest ~/weall-observer/reviewer-chain-manifest.json \
+      --pull-reviewer-artifacts \
       --allow-private-genesis-api
+
+The observer script downloads these public files automatically:
+
+    ~/weall-observer/weall-external-observer-bundle.json
+    ~/weall-observer/reviewer-chain-manifest.json
+    ~/weall-observer/artifact-index.json
 
 ## Expected success
 
@@ -87,6 +84,22 @@ The Genesis side should report:
 The observer side should end with:
 
     OK: reviewer observer rehearsal passed
+
+## Public artifact routes
+
+The Genesis API exposes only public reviewer files when reviewer artifacts are enabled:
+
+    /v1/reviewer/artifacts
+    /v1/reviewer/artifacts/bundle
+    /v1/reviewer/artifacts/manifest
+
+These routes must not expose:
+
+- reviewer-genesis.env.
+- reviewer private keys.
+- local ledger files.
+- runtime databases.
+- authority or validator private material.
 
 ## Common failures
 
@@ -100,16 +113,15 @@ Run:
 
 Use the reviewer Genesis script. It builds the public observer bundle with a safe HTTPS authority metadata URL while keeping the LAN Genesis API as the actual transaction endpoint.
 
-### Bundle/manifest mismatch
+### Artifact route missing
 
-Copy both generated files from Machine A:
+Confirm Genesis was started by the reviewer Genesis script and that the terminal reported:
 
-    weall-external-observer-bundle.json
-    reviewer-chain-manifest.json
+    OK: disposable reviewer Genesis is producing blocks
 
-Then pass the copied manifest with:
+Then check:
 
-    --manifest ~/weall-observer/reviewer-chain-manifest.json
+    curl -fsS http://GENESIS_LAN_IP:8000/v1/reviewer/artifacts
 
 ### Private LAN API rejected
 
@@ -127,6 +139,6 @@ When Genesis runs inside WSL, the Windows host may need port forwarding. The Gen
 
 Use this wording:
 
-    The controlled two-machine reviewer rehearsal passed on a disposable reviewer chain: the observer verified Genesis compatibility, remained non-authoritative, submitted signed onboarding transactions, and verified committed account/device/peer/async-PoH state through the Genesis API.
+    The controlled two-machine reviewer rehearsal passed on a disposable reviewer chain: the observer pulled public reviewer artifacts from Genesis, verified Genesis compatibility, remained non-authoritative, submitted signed onboarding transactions, and verified committed account/device/peer/async-PoH state through the Genesis API.
 
 Do not claim canonical production Genesis authority, public mainnet readiness, public multi-validator BFT readiness, live economics, validator promotion, or production-grade public governance from this rehearsal alone.

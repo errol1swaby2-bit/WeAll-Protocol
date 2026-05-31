@@ -67,15 +67,15 @@ def test_reviewer_genesis_wrapper_uses_sanitized_bundle_build_and_height_gate() 
     assert "verify_node_operator_onboarding_bundle.py" in text
     assert "Waiting for block height to advance" in text
     assert "Genesis height did not advance above 0" in text
-    assert "--manifest ~/weall-observer/reviewer-chain-manifest.json" in text
+    assert "--pull-reviewer-artifacts" in text
 
 
-def test_reviewer_quickstart_requires_bundle_and_manifest_copy() -> None:
+def test_reviewer_quickstart_documents_artifact_pull_flow() -> None:
     text = _read("docs/REVIEWER_LAN_REHEARSAL_QUICKSTART.md")
     assert "disposable reviewer Genesis chain" in text
     assert "canonical production Genesis private key" in text
     assert "reviewer-chain-manifest.json" in text
-    assert "--manifest ~/weall-observer/reviewer-chain-manifest.json" in text
+    assert "--pull-reviewer-artifacts" in text
     assert "canonical production Genesis authority" in text
     assert "public multi-validator BFT readiness" in text
     assert "nlnet" not in text.lower()

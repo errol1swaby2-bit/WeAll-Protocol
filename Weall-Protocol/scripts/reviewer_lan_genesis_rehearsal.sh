@@ -7,7 +7,10 @@ cd "${ROOT_DIR}"
 API_PORT="${WEALL_REVIEWER_API_PORT:-8000}"
 FRONTEND_PORT="${WEALL_REVIEWER_FRONTEND_PORT:-5173}"
 WORK_DIR="${WEALL_REVIEWER_WORK_DIR:-/tmp/weall-reviewer-lan-genesis}"
-BUNDLE_OUT="${WEALL_REVIEWER_BUNDLE_OUT:-${WORK_DIR}/weall-external-observer-bundle.json}"
+PUBLIC_DIR="${WEALL_REVIEWER_PUBLIC_ARTIFACTS_DIR:-${WORK_DIR}/public}"
+BUNDLE_OUT="${WEALL_REVIEWER_BUNDLE_OUT:-${PUBLIC_DIR}/weall-external-observer-bundle.json}"
+PUBLIC_MANIFEST_OUT="${WEALL_REVIEWER_PUBLIC_MANIFEST_OUT:-${PUBLIC_DIR}/reviewer-chain-manifest.json}"
+ARTIFACT_INDEX_OUT="${WEALL_REVIEWER_ARTIFACT_INDEX_OUT:-${PUBLIC_DIR}/artifact-index.json}"
 AUTHORITY_URL="${WEALL_REVIEWER_AUTHORITY_URL:-https://weall-rehearsal-authority.invalid}"
 NO_BOOT="${WEALL_REVIEWER_GENESIS_NO_BOOT:-0}"
 HEIGHT_WAIT_SECONDS="${WEALL_REVIEWER_HEIGHT_WAIT_SECONDS:-75}"
@@ -25,6 +28,7 @@ Options:
   --api-port <port>          Genesis API port. Default: 8000.
   --frontend-port <port>     Frontend port used for CORS. Default: 5173.
   --work-dir <path>          Local disposable reviewer chain directory.
+  --public-dir <path>        Directory containing public observer artifacts.
   --bundle-out <path>        Public observer bundle output path.
   --chain-id <id>            Disposable reviewer chain id.
   --account <account>        Disposable reviewer Genesis account.
@@ -35,12 +39,11 @@ Options:
 
 Purpose:
   Prepare a reviewer-friendly LAN Genesis API using a disposable reviewer chain,
-  build a public observer bundle, verify it, boot Genesis with generated local-only
-  keys, and wait for block height to advance before printing the observer command.
+  publish public reviewer artifacts, boot Genesis with generated local-only keys,
+  and wait for block height to advance before printing the observer command.
 
 Truth boundary:
-  Disposable reviewer rehearsal chain.
-  This is a disposable reviewer rehearsal chain. It is not canonical production
+  Disposable reviewer rehearsal chain only. This is not canonical production
   Genesis, not public mainnet readiness, and not public multi-validator BFT.
 USAGE
 }
@@ -66,7 +69,21 @@ while [[ $# -gt 0 ]]; do
     --wsl-ip) WSL_IP="${2:-}"; shift 2 ;;
     --api-port) API_PORT="${2:-}"; shift 2 ;;
     --frontend-port) FRONTEND_PORT="${2:-}"; shift 2 ;;
-    --work-dir) WORK_DIR="${2:-}"; shift 2 ;;
+    --work-dir)
+      WORK_DIR="${2:-}"
+      PUBLIC_DIR="${WEALL_REVIEWER_PUBLIC_ARTIFACTS_DIR:-${WORK_DIR}/public}"
+      BUNDLE_OUT="${WEALL_REVIEWER_BUNDLE_OUT:-${PUBLIC_DIR}/weall-external-observer-bundle.json}"
+      PUBLIC_MANIFEST_OUT="${WEALL_REVIEWER_PUBLIC_MANIFEST_OUT:-${PUBLIC_DIR}/reviewer-chain-manifest.json}"
+      ARTIFACT_INDEX_OUT="${WEALL_REVIEWER_ARTIFACT_INDEX_OUT:-${PUBLIC_DIR}/artifact-index.json}"
+      shift 2
+      ;;
+    --public-dir)
+      PUBLIC_DIR="${2:-}"
+      BUNDLE_OUT="${WEALL_REVIEWER_BUNDLE_OUT:-${PUBLIC_DIR}/weall-external-observer-bundle.json}"
+      PUBLIC_MANIFEST_OUT="${WEALL_REVIEWER_PUBLIC_MANIFEST_OUT:-${PUBLIC_DIR}/reviewer-chain-manifest.json}"
+      ARTIFACT_INDEX_OUT="${WEALL_REVIEWER_ARTIFACT_INDEX_OUT:-${PUBLIC_DIR}/artifact-index.json}"
+      shift 2
+      ;;
     --bundle-out) BUNDLE_OUT="${2:-}"; shift 2 ;;
     --chain-id) CHAIN_ID="${2:-}"; shift 2 ;;
     --account) ACCOUNT="${2:-}"; shift 2 ;;
@@ -96,13 +113,13 @@ fi
 GENESIS_API_BASE="http://${LAN_IP}:${API_PORT}"
 LOCAL_API_BASE="http://127.0.0.1:${API_PORT}"
 
-# shellcheck disable=SC1091
 if [[ -f ".venv/bin/activate" ]]; then
+  # shellcheck disable=SC1091
   . .venv/bin/activate
 fi
 
 rm -rf "${WORK_DIR}"
-mkdir -p "${WORK_DIR}"
+mkdir -p "${WORK_DIR}" "${PUBLIC_DIR}"
 
 echo "[reviewer-genesis] Building disposable reviewer Genesis chain in ${WORK_DIR}"
 
@@ -175,10 +192,60 @@ env \
     --authority-url "${AUTHORITY_URL}" \
     --out "${BUNDLE_OUT}"
 
+cp "${MANIFEST_PATH}" "${PUBLIC_MANIFEST_OUT}"
+
+python3 - "${PUBLIC_DIR}" "${BUNDLE_OUT}" "${PUBLIC_MANIFEST_OUT}" "${ARTIFACT_INDEX_OUT}" "${GENESIS_API_BASE}" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+public_dir = Path(sys.argv[1]).resolve()
+bundle_path = Path(sys.argv[2]).resolve()
+manifest_path = Path(sys.argv[3]).resolve()
+index_path = Path(sys.argv[4]).resolve()
+genesis_api_base = sys.argv[5].rstrip("/")
+
+def digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+obj = {
+    "ok": True,
+    "type": "weall_reviewer_public_artifact_index",
+    "version": 1,
+    "truth_boundary": (
+        "Disposable reviewer rehearsal artifacts only. Public bundle and manifest "
+        "may be downloaded by observers. Local env, private keys, ledgers, and DBs "
+        "must not be exposed."
+    ),
+    "genesis_api_base": genesis_api_base,
+    "public_dir": str(public_dir),
+    "artifacts": {
+        "bundle": {
+            "filename": bundle_path.name,
+            "url": "/v1/reviewer/artifacts/bundle",
+            "sha256": digest(bundle_path),
+            "bytes": bundle_path.stat().st_size,
+        },
+        "manifest": {
+            "filename": manifest_path.name,
+            "url": "/v1/reviewer/artifacts/manifest",
+            "sha256": digest(manifest_path),
+            "bytes": manifest_path.stat().st_size,
+        },
+    },
+}
+index_path.write_text(json.dumps(obj, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+PY
+
 WEALL_ALLOW_PRIVATE_GENESIS_API=1 \
 python3 scripts/verify_node_operator_onboarding_bundle.py \
   --bundle "${BUNDLE_OUT}" \
-  --manifest "${MANIFEST_PATH}" \
+  --manifest "${PUBLIC_MANIFEST_OUT}" \
   --json | tee "${WORK_DIR}/bundle-verify.json"
 
 cat <<MSG
@@ -186,17 +253,16 @@ cat <<MSG
 OK: disposable reviewer Genesis prepared
 - Genesis API base: ${GENESIS_API_BASE}
 - Work dir: ${WORK_DIR}
-- Manifest: ${MANIFEST_PATH}
-- Ledger: ${LEDGER_PATH}
+- Public artifact dir: ${PUBLIC_DIR}
 - Observer bundle: ${BUNDLE_OUT}
+- Reviewer manifest: ${PUBLIC_MANIFEST_OUT}
+- Artifact index: ${ARTIFACT_INDEX_OUT}
 
-Copy these two public files to the observer machine:
-  ${BUNDLE_OUT}
-  ${MANIFEST_PATH}
-
-Suggested observer paths:
-  ~/weall-observer/weall-external-observer-bundle.json
-  ~/weall-observer/reviewer-chain-manifest.json
+Observer pull command:
+  bash scripts/reviewer_observer_rehearsal.sh \\
+    --genesis-api-base ${GENESIS_API_BASE} \\
+    --pull-reviewer-artifacts \\
+    --allow-private-genesis-api
 
 MSG
 
@@ -220,6 +286,8 @@ export WEALL_NET_ENABLED=0
 export WEALL_NET_LOOP_AUTOSTART=0
 export WEALL_BFT_ENABLED=0
 export WEALL_VALIDATOR_SIGNING_ENABLED=0
+export WEALL_REVIEWER_ARTIFACTS_ENABLED=1
+export WEALL_REVIEWER_ARTIFACTS_DIR="${PUBLIC_DIR}"
 export WEALL_CORS_ORIGINS="http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT},http://${LAN_IP}:${FRONTEND_PORT}"
 export GUNICORN_BIND="0.0.0.0:${API_PORT}"
 
@@ -232,6 +300,10 @@ cat <<MSG
   curl -fsS ${LOCAL_API_BASE}/v1/health
 [reviewer-genesis] LAN health check:
   curl -fsS ${GENESIS_API_BASE}/v1/health
+[reviewer-genesis] Public reviewer artifact checks:
+  curl -fsS ${GENESIS_API_BASE}/v1/reviewer/artifacts
+  curl -fsS ${GENESIS_API_BASE}/v1/reviewer/artifacts/bundle
+  curl -fsS ${GENESIS_API_BASE}/v1/reviewer/artifacts/manifest
 
 MSG
 
@@ -253,6 +325,15 @@ deadline=$((SECONDS + 30))
 until curl -fsS "${LOCAL_API_BASE}/v1/health" >/dev/null 2>&1; do
   if (( SECONDS >= deadline )); then
     fail "Genesis API did not become healthy on ${LOCAL_API_BASE}"
+  fi
+  sleep 1
+done
+
+echo "[reviewer-genesis] Waiting for reviewer artifact routes..."
+deadline=$((SECONDS + 30))
+until curl -fsS "${LOCAL_API_BASE}/v1/reviewer/artifacts" >/dev/null 2>&1; do
+  if (( SECONDS >= deadline )); then
+    fail "reviewer artifact route did not become healthy on ${LOCAL_API_BASE}"
   fi
   sleep 1
 done
@@ -279,15 +360,16 @@ OK: disposable reviewer Genesis is producing blocks
 - local API: ${LOCAL_API_BASE}
 - LAN API: ${GENESIS_API_BASE}
 - current height: ${height}
+- public artifact index: ${GENESIS_API_BASE}/v1/reviewer/artifacts
 
 Observer command:
   bash scripts/reviewer_observer_rehearsal.sh \\
     --genesis-api-base ${GENESIS_API_BASE} \\
-    --bundle ~/weall-observer/weall-external-observer-bundle.json \\
-    --manifest ~/weall-observer/reviewer-chain-manifest.json \\
+    --pull-reviewer-artifacts \\
     --allow-private-genesis-api
 
 Truth boundary:
+  Disposable reviewer rehearsal chain.
   This is a disposable reviewer rehearsal chain. It proves reviewer LAN setup,
   signed observer onboarding, and tx confirmation on a generated local chain.
   It does not prove canonical production Genesis authority, public mainnet

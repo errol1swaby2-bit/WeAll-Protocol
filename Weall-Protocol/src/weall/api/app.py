@@ -18,6 +18,9 @@ from weall.api.routes_public import public_router
 from weall.api.routes_public_parts.helper_readiness import (
     router as helper_readiness_router,
 )
+from weall.api.routes_public_parts.reviewer_artifacts import (
+    router as reviewer_artifacts_router,
+)
 from weall.api.security import RateLimitMiddleware, RequestSizeLimitMiddleware
 from weall.net.net_loop import NetMeshLoop
 from weall.runtime.block_loop import BlockProducerLoop
@@ -525,6 +528,7 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
 
     app.include_router(public_router)
     app.include_router(helper_readiness_router, prefix="/v1")
+    app.include_router(reviewer_artifacts_router, prefix="/v1")
     _maybe_mount_web(app)
 
     return app

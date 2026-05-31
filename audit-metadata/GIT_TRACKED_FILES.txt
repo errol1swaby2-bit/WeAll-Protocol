@@ -113,6 +113,7 @@ Weall-Protocol/scripts/build_external_observer_bundle.py
 Weall-Protocol/scripts/build_node_operator_onboarding_bundle.py
 Weall-Protocol/scripts/build_operator_incident_report.py
 Weall-Protocol/scripts/build_production_genesis_manifest.py
+Weall-Protocol/scripts/build_reviewer_lan_genesis.py
 Weall-Protocol/scripts/build_validator_bootstrap_bundle.py
 Weall-Protocol/scripts/check_generated.py
 Weall-Protocol/scripts/check_reviewer_truth_boundaries.py
@@ -642,6 +643,7 @@ Weall-Protocol/tests/test_batch482_wallet_tipping_frontend_surfaces.py
 Weall-Protocol/tests/test_batch483_484_transfer_tip_contract.py
 Weall-Protocol/tests/test_batch485_reward_issuance_invariants.py
 Weall-Protocol/tests/test_batch488_reviewer_rehearsal_wrappers.py
+Weall-Protocol/tests/test_batch489_reviewer_disposable_genesis.py
 Weall-Protocol/tests/test_batch4_determinism_profile_and_clock.py
 Weall-Protocol/tests/test_batch5_adversarial_consensus.py
 Weall-Protocol/tests/test_batch6_operator_observability.py
@@ -1261,6 +1263,9 @@ Weall-Protocol/tests/weall_genesis_bootstrap_tier2_updates.py
 Weall-Protocol/tooling/canon_lint.py
 Weall-Protocol/tooling/gen_helper_contract_map.py
 Weall-Protocol/tooling/gen_tx_contract_map.py
+audit-metadata/AUDIT_INCLUDED_PATHS.txt
+audit-metadata/AUDIT_METADATA.txt
+audit-metadata/GIT_TRACKED_FILES.txt
 boot_weall.sh
 cleanup_pre_github_artifacts.sh
 dev_up.sh
