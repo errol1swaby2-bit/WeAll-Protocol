@@ -1,14 +1,16 @@
-# NLnet Reviewer Production-Readiness Milestone
+# Reviewer Production-Readiness Milestone
 
-Status: bounded production-readiness milestone for NLnet resubmission.
+Status: bounded production-readiness milestone for reviewer submission.
+
+This milestone must be presented as a bounded reviewer-readiness package, not as a finished public mainnet.
 
 This repository should be reviewed as a serious implementation seeking support to complete public-testnet readiness. It is not a finished public mainnet, not public multi-validator BFT ready, and not live-economics ready.
 
 See also:
 
 - `docs/TRUTH_BOUNDARY.md`
-- `docs/NLNET_EVIDENCE_INDEX.md`
-- `docs/NLNET_MILESTONE_REVIEWER.md`
+- `docs/REVIEWER_EVIDENCE_INDEX.md`
+- `docs/REVIEWER_MILESTONE_GUIDE.md`
 
 ## What is proven today
 

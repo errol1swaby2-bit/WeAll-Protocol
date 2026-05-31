@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check NLnet-facing docs for high-risk unbounded readiness claims.
+"""Check reviewert-facing docs for high-risk unbounded readiness claims.
 
 This is a conservative documentation guard. It is not a semantic proof. It scans
 Markdown files for risky phrases that should normally appear only with explicit
@@ -90,10 +90,10 @@ def main() -> int:
         print("[truth-boundary] FAIL: high-risk unbounded readiness claims found")
         for finding in findings:
             print(finding)
-        print("\nRewrite these lines with explicit truth boundaries before NLnet submission.")
+        print("\nRewrite these lines with explicit truth boundaries before reviewert submission.")
         return 1
 
-    print("[truth-boundary] OK: no high-risk unbounded NLnet readiness claims found")
+    print("[truth-boundary] OK: no high-risk unbounded reviewert readiness claims found")
     return 0
 
 

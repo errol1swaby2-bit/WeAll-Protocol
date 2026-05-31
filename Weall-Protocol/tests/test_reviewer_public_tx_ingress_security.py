@@ -18,7 +18,7 @@ def client_with_executor(tmp_path: Path) -> TestClient:
     previous = getattr(app.state, "executor", None)
     ex = WeAllExecutor(
         db_path=str(tmp_path / "weall.db"),
-        node_id="nlnet-public-ingress",
+        node_id="reviewer-public-ingress",
         chain_id="weall-dev",
         tx_index_path=str(ROOT / "generated" / "tx_index.json"),
     )
@@ -32,7 +32,7 @@ def client_with_executor(tmp_path: Path) -> TestClient:
 
 
 def _account_register_tx(
-    account: str = "@nlnet-ingress", *, chain_id: str = "weall-dev"
+    account: str = "@reviewer-ingress", *, chain_id: str = "weall-dev"
 ) -> tuple[dict, str]:
     seed = bytes.fromhex("11" * 32)
     sk = Ed25519PrivateKey.from_private_bytes(seed)
@@ -103,7 +103,7 @@ def test_public_tx_submit_rejects_system_signer_even_with_schema_valid_user_tx(c
 
 
 def test_public_tx_submit_accepts_signed_account_register_then_status_is_explicit(client_with_executor: TestClient) -> None:
-    tx, _pubkey = _account_register_tx("@nlnet-ingress-signed")
+    tx, _pubkey = _account_register_tx("@reviewer-ingress-signed")
     r = client_with_executor.post("/v1/tx/submit", json=tx)
     assert r.status_code == 200, r.text
     body = r.json()

@@ -1,10 +1,10 @@
 # WeAll Protocol Truth Boundary
 
-Status: NLnet resubmission and external-review truth boundary.
+Status: reviewer submission and external-review truth boundary.
 
 Last reviewed: 2026-05-29.
 
-This document defines what the current repository may claim, what it must not claim, and what remains milestone work. It is intended to prevent accidental overclaiming during NLnet review, external observer onboarding, public testnet preparation, and future production-readiness work.
+This document defines what the current repository may claim, what it must not claim, and what remains milestone work. It is intended to prevent accidental overclaiming during reviewert review, external observer onboarding, public testnet preparation, and future production-readiness work.
 
 ## Current posture
 
@@ -136,15 +136,15 @@ Avoid these phrases unless they are directly negated or marked future work:
 - fully decentralized moderation complete;
 - complete HotStuff deployment.
 
-## NLnet framing
+## reviewert framing
 
-The correct NLnet framing is:
+The correct reviewert framing is:
 
 > WeAll has crossed from specification into a serious, reviewable implementation with reproducible local/reviewer gates and private/external-observer rehearsal evidence. Funding will move it into a documented public testnet with external observers, Proof-of-Humanity verification, content/groups, dispute/review, governance, locked testnet tokenomics, deterministic block progression, validator promotion, and eventually adversarial multi-validator BFT readiness.
 
 ## Work-after-submission boundary
 
-After NLnet resubmission, development may continue safely if the submitted evidence is versioned and the application remains honest about which commit was submitted.
+After reviewer submission, development may continue safely if the submitted evidence is versioned and the application remains honest about which commit was submitted.
 
 Required practice:
 
@@ -152,6 +152,6 @@ Required practice:
 2. Save the evidence transcripts used in the application.
 3. Continue work on normal branches or main after submission.
 4. Do not rewrite the submitted evidence after the fact.
-5. If NLnet asks for clarification, state which improvements happened after the submitted commit.
+5. If reviewert asks for clarification, state which improvements happened after the submitted commit.
 
 This lets the project keep moving quickly without confusing reviewers about what was true at submission time.

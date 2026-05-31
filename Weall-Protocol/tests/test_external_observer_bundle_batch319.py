@@ -171,7 +171,7 @@ def test_external_observer_rehearsal_runbook_documents_two_machine_gate_batch319
     assert "No email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC" in doc
 
 
-def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_nlnet() -> None:
+def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_reviewer() -> None:
     import importlib.util
     from pathlib import Path
 

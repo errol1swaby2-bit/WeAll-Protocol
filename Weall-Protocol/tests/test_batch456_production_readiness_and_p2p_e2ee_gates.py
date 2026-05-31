@@ -34,7 +34,7 @@ def test_docs_do_not_overclaim_tokenomics_or_e2ee_batch456() -> None:
     gap = _read("Weall-Protocol/docs/PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md")
     econ = _read("Weall-Protocol/docs/ECONOMICS_LOCKED_TOKENOMICS_MODEL.md")
     msg = _read("Weall-Protocol/docs/P2P_ENCRYPTED_MESSAGING_PRODUCTION_GATE.md")
-    milestone = _read("Weall-Protocol/docs/NLNET_REVIEWER_PRODUCTION_READINESS_MILESTONE.md")
+    milestone = _read("Weall-Protocol/docs/REVIEWER_PRODUCTION_READINESS_MILESTONE.md")
 
     assert "not yet safe" in gap
     assert "block production proof truth boundary" in gap

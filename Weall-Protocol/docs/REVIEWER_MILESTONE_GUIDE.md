@@ -1,12 +1,12 @@
-# WeAll NLnet Milestone Reviewer Guide
+# WeAll Reviewer Milestone Reviewer Guide
 
-Status: NLnet resubmission reviewer guide for a pre-public-testnet implementation.
+Status: reviewer submission reviewer guide for a pre-public-testnet implementation.
 
 This document is intentionally conservative. It does not claim public mainnet readiness, public multi-validator BFT readiness, live economics, or a fully self-bootstrapped public Proof-of-Humanity network.
 
 For the authoritative truth boundary, see `docs/TRUTH_BOUNDARY.md`.
 
-For command evidence and captured outputs, see `docs/NLNET_EVIDENCE_INDEX.md`.
+For command evidence and captured outputs, see `docs/REVIEWER_EVIDENCE_INDEX.md`.
 
 ## Current resubmission posture
 
@@ -134,7 +134,7 @@ bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERAT
 
 Use `WEALL_ALLOW_PRIVATE_GENESIS_API=1` only for private LAN rehearsal. Public testnet deployment requires a public security posture that is not proven by this private LAN command.
 
-## Required evidence to capture before NLnet submission
+## Required evidence to capture before reviewert submission
 
 Save command transcripts for:
 
@@ -154,7 +154,7 @@ If item 11 has not been run yet, the correct claim is:
 
 > Local observer preconditions and authority lock pass. Signed remote external observer onboarding remains the next proof before claiming first trusted external observer readiness.
 
-## NLnet milestone plan
+## reviewer milestone plan
 
 ### Milestone 1: Clean clone and external observer onboarding hardening
 
@@ -317,7 +317,7 @@ Truth boundary: public multi-validator BFT readiness only after adversarial gate
 
 ### Milestone 6: Documentation, reproducibility, security hardening, and external tester reporting
 
-Objective: make the project reviewable by NLnet, external testers, and future contributors.
+Objective: make the project reviewable by reviewert, external testers, and future contributors.
 
 Current evidence:
 
@@ -335,14 +335,14 @@ Work remaining:
 Deliverables:
 
 - `docs/TRUTH_BOUNDARY.md`.
-- `docs/NLNET_EVIDENCE_INDEX.md`.
+- `docs/REVIEWER_EVIDENCE_INDEX.md`.
 - Public testnet prep checklist.
 - External tester report template.
 - CI-backed reviewer gate evidence.
 
 Acceptance criteria:
 
-- NLnet can see what is implemented, visible/locked, scaffolded, and unfinished.
+- reviewert can see what is implemented, visible/locked, scaffolded, and unfinished.
 - Testers can reproduce flows without private context.
 - Docs match code/tests/scripts.
 
@@ -354,12 +354,12 @@ The backend/chain state is authoritative. The frontend explains and guides only.
 
 ## Work after resubmission
 
-It is safe to continue development during NLnet review if the submitted commit and evidence are preserved.
+It is safe to continue development during reviewert review if the submitted commit and evidence are preserved.
 
 Recommended practice:
 
 1. Create a tag for the submitted state.
-2. Save evidence transcripts under `audit-metadata/nlnet-resubmission-YYYY-MM-DD/`.
+2. Save evidence transcripts under `audit-metadata/reviewer-resubmission-YYYY-MM-DD/`.
 3. Continue development after submission.
-4. If NLnet asks questions, distinguish submitted evidence from later improvements.
+4. If reviewert asks questions, distinguish submitted evidence from later improvements.
 5. Do not retroactively imply later commits were part of the original submission.

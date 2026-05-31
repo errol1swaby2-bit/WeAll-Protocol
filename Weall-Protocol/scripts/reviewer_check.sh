@@ -13,7 +13,7 @@ run() {
   "$@"
 }
 
-echo "WeAll NLnet reviewer check"
+echo "WeAll reviewer check"
 echo "backend root: ${ROOT_DIR}"
 echo "outer root:   ${OUTER_ROOT}"
 echo
@@ -37,7 +37,7 @@ if command -v pytest >/dev/null 2>&1; then
   run pytest \
     tests/test_batch326_production_p0_p1_hardening.py \
     tests/test_batch327_vrf_manifest_fixture_compat.py \
-    tests/test_nlnet_public_tx_ingress_security.py
+    tests/test_reviewer_public_tx_ingress_security.py
 else
   echo
   echo "WARN: pytest not found; skipping targeted backend tests" >&2
@@ -66,4 +66,4 @@ else
 fi
 
 echo
-echo "OK: NLnet reviewer smoke checks completed"
+echo "OK: reviewer smoke checks completed"
