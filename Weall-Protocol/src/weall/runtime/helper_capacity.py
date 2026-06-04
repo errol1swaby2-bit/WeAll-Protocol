@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
+from weall.runtime.runtime_env import safe_int
 
 Json = dict[str, object]
 
@@ -9,10 +10,7 @@ DEFAULT_SERIAL_CAPACITY_UNITS = 0
 
 
 def _safe_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return int(default)
+    return safe_int(value, default)
 
 
 def normalize_helper_capacity_map(

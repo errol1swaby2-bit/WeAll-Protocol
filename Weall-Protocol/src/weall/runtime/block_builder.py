@@ -17,26 +17,11 @@ from weall.runtime.scheduler_pipeline import (
 )
 
 
+from weall.runtime.executor_symbols import bind_executor_globals
+
+
 def _bind_executor_globals() -> None:
-    """Lazily mirror executor globals after executor import has completed.
-
-    The first refactor pass is deliberately behavior-preserving. Existing method
-    bodies reference executor-level imports and helpers. Binding lazily avoids
-    circular imports while keeping this patch focused on module boundaries rather
-    than protocol semantics.
-    """
-    from weall.runtime import executor as _executor_mod
-
-    for _name, _value in vars(_executor_mod).items():
-        if _name not in globals():
-            globals()[_name] = _value
-
-    # These symbols are intentionally refreshed on every delegated call. Several
-    # fail-closed regression tests monkeypatch the public executor module, which
-    # was the pre-refactor import location. The extracted modules must continue
-    # observing those patches until the tests and call sites move to explicit
-    # dependency-injected contexts.
-    for _name in (
+    bind_executor_globals(globals(), refresh=(
         "apply_tx_atomic_meta",
         "schedule_poh_async_system_txs",
         "schedule_poh_tier2_system_txs",
@@ -47,9 +32,7 @@ def _bind_executor_globals() -> None:
         "tick_dispute_lifecycle",
         "system_tx_emitter",
         "prune_emitted_system_queue",
-    ):
-        if hasattr(_executor_mod, _name):
-            globals()[_name] = getattr(_executor_mod, _name)
+    ))
 
 
 def produce_block(

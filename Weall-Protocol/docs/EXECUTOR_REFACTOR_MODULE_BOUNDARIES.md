@@ -76,3 +76,15 @@ future canonical JSON consolidation. Moving hash/ID call sites to those helpers
 requires byte-for-byte golden tests and should be done separately from protocol
 logic changes.
 
+
+
+## Batch C2/C3/C6 cleanup boundary
+
+The second cleanup pass further reduces hidden coupling by:
+
+- centralizing staged executor-symbol binding in `executor_symbols.py` and BFT binding in `bft_executor_symbols.py`;
+- splitting BFT helper domains into `bft_votecheck.py`, `bft_artifact_cache.py`, `bft_pending_frontier.py`, `bft_fetch_requests.py`, `bft_diagnostics.py`, and `bft_outbound.py`;
+- moving obvious canonical JSON call sites behind `json_tools.canonical_json_str()` / `canonical_json_bytes()` without changing separators, key ordering, or UTF-8 behavior;
+- moving small consensus-adjacent time/safe-int helpers to `runtime_time.py` and `runtime_env.py` wrappers where semantics are byte-for-byte compatible.
+
+The adapter/facade method names remain stable. BFT proposal, vote, QC, timeout, and commit semantics are not intentionally changed by this pass.

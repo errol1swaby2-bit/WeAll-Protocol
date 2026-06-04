@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Sequence
+from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.conflict_lanes import lane_base_id
 from weall.runtime.helper_assignment import (
@@ -43,7 +44,7 @@ Json = dict[str, Any]
 
 def _canonical_json(value: Any) -> str:
     import json
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(value)
 
 
 def lane_descriptor_hash(access_sets: Sequence[TxAccessSet]) -> str:

@@ -9,19 +9,11 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
+from weall.runtime.executor_symbols import bind_executor_globals
+
+
 def _bind_executor_globals() -> None:
-    """Lazily mirror executor globals after executor import has completed.
-
-    The first refactor pass is deliberately behavior-preserving. Existing method
-    bodies reference executor-level imports and helpers. Binding lazily avoids
-    circular imports while keeping this patch focused on module boundaries rather
-    than protocol semantics.
-    """
-    from weall.runtime import executor as _executor_mod
-
-    for _name, _value in vars(_executor_mod).items():
-        if _name not in globals():
-            globals()[_name] = _value
+    bind_executor_globals(globals())
 
 
 def commit_block_candidate(

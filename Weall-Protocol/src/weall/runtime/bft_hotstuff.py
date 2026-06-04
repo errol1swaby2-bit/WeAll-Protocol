@@ -4,6 +4,7 @@ import hashlib
 import time
 from dataclasses import dataclass
 from typing import Any
+from weall.runtime.runtime_time import now_ms
 
 from weall.crypto.sig import verify_ed25519_signature
 from weall.runtime.ancestry import walk_ancestry
@@ -95,7 +96,7 @@ def consensus_contract_summary(validators: list[str] | None = None) -> Json:
 
 
 def _now_ms() -> int:
-    return int(time.time() * 1000)
+    return now_ms()
 
 
 def _as_int(v: Any, default: int = 0) -> int:

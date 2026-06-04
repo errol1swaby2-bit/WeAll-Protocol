@@ -4,6 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
+from weall.runtime.json_tools import canonical_json_bytes
 
 from weall.runtime.helper_certificates import hash_receipts, hash_state_delta_ops
 from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
@@ -12,7 +13,7 @@ Json = dict[str, Any]
 
 
 def _canon_json(value: Any) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return canonical_json_bytes(value)
 
 
 @dataclass(frozen=True, slots=True)

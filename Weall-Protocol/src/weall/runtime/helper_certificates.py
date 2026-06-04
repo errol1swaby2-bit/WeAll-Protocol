@@ -5,6 +5,7 @@ import hmac
 import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
+from weall.runtime.json_tools import canonical_json_str
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
@@ -13,7 +14,7 @@ CERTIFICATE_DOMAIN = "WEALL/HELPER_CERTIFICATE/V1"
 
 
 def canonical_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def hash_json(obj: Any) -> str:

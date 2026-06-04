@@ -10,6 +10,8 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any
+from weall.runtime.runtime_time import now_ms
+from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.failpoints import maybe_trigger_failpoint
 
@@ -49,7 +51,7 @@ def _process_local_write_lock_for(path: str) -> threading.RLock:
 
 
 def _now_ms() -> int:
-    return int(time.time() * 1000)
+    return now_ms()
 
 
 def _canon_json(obj: Any) -> str:
@@ -60,7 +62,7 @@ def _canon_json(obj: Any) -> str:
     # IMPORTANT: Do not silently coerce unknown types (e.g. default=str). If
     # non-JSON types leak into consensus or persisted structures, we must fail
     # fast to avoid non-determinism across nodes.
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def _mode() -> str:

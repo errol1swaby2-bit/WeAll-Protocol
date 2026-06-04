@@ -6,6 +6,7 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
@@ -13,7 +14,7 @@ Json = dict[str, Any]
 
 
 def canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def _sha256_hex(data: bytes) -> str:

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]
 
 
 def serialize_incident_report(report: Json) -> str:
-    return json.dumps(report, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(report)
 
 
 def deserialize_incident_report(payload: str) -> Json:

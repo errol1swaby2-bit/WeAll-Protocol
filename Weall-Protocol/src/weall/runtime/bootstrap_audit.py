@@ -11,6 +11,7 @@ records are consensus-visible state, not local operator logs.
 import hashlib
 import json
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]
 
@@ -27,7 +28,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 
 
 def _canonical_hash(value: Json) -> str:
-    blob = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    blob = canonical_json_str(value)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 

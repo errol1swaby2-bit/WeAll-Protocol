@@ -5,6 +5,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str
 from urllib.parse import urlparse
 
 Json = dict[str, Any]
@@ -96,7 +97,7 @@ def _env_int_status(name: str, default: int) -> tuple[int, bool]:
 
 
 def canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def chain_config_compatibility_payload(cfg: ChainConfig) -> Json:
