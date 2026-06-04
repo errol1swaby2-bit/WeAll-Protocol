@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Batch 315 synchronizes public-facing documentation with the current post-hardening repository state after Batches 309 through 314.
+Batch 315 synchronizes public-facing documentation with the current post-hardening repository state after Batches 309 through 314. This file has also been truth-synced after the later executor/runtime refactor evidence pass.
 
 ## Current checkpoint
 
-- Transaction canon: 230 tx types, version 1.25.0
-- Latest full backend test checkpoint: 2789 passed, 1 warning
+- Transaction canon: 231 tx types, version 1.25.0
+- Latest full backend test checkpoint: 3405 passed, 2 warnings
 - Backend release locks: `requirements.lock`, `requirements-dev.lock`
 - Frontend release lock: `web/package-lock.json`
 - Frontend checks verified: `npm ci`, contract check against local backend, typecheck, production build

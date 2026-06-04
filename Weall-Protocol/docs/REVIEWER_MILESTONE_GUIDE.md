@@ -1,6 +1,6 @@
 # WeAll Reviewer Milestone Reviewer Guide
 
-Status: reviewer submission reviewer guide for a pre-public-testnet implementation.
+Status: reviewer guide for a pre-public-testnet implementation.
 
 This document is intentionally conservative. It does not claim public mainnet readiness, public multi-validator BFT readiness, live economics, or a fully self-bootstrapped public Proof-of-Humanity network.
 
@@ -8,9 +8,9 @@ For the authoritative truth boundary, see `docs/TRUTH_BOUNDARY.md`.
 
 For command evidence and captured outputs, see `docs/REVIEWER_EVIDENCE_INDEX.md`.
 
-## Current resubmission posture
+## Current reviewer posture
 
-WeAll should be reviewed as a serious open-source Layer 1 coordination protocol implementation seeking support to move from private/local and external-observer rehearsal readiness into public testnet readiness.
+WeAll should be reviewed as a serious open-source Layer 1 coordination protocol implementation moving from private/local and external-observer rehearsal readiness toward public testnet readiness.
 
 The repository currently exposes:
 
@@ -70,6 +70,18 @@ npm run typecheck
 ```
 
 Frontend typecheck proves type safety. It does not replace browser E2E proof for account recovery, PoH, content, review, governance, or wallet flows.
+
+### Same-machine dual-node controlled-devnet evidence
+
+From `Weall-Protocol/`:
+
+```bash
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_LIVE=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
+```
+
+This is the preferred reviewer rehearsal path for proving two local nodes can run on one machine, exercise native async/live PoH, converge on the same tip and state root, and verify restart/catch-up without using the seeded demo shortcut. It does not prove public multi-validator adversarial readiness.
 
 ### Local block-production evidence
 
@@ -134,7 +146,7 @@ bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERAT
 
 Use `WEALL_ALLOW_PRIVATE_GENESIS_API=1` only for private LAN rehearsal. Public testnet deployment requires a public security posture that is not proven by this private LAN command.
 
-## Required evidence to capture before reviewer submission
+## Required evidence to capture before the reviewer package
 
 Save command transcripts for:
 
@@ -147,8 +159,9 @@ Save command transcripts for:
 7. Frontend `npm ci` and `npm run typecheck`.
 8. Local observer readiness.
 9. Observer authority lock.
-10. Local block-production proof with `public_multi_validator_bft_ready: False`.
-11. First external observer remote/signed proof, if it has actually been run.
+10. Same-machine dual-node controlled-devnet proof.
+11. Local block-production proof with `public_multi_validator_bft_ready: False`.
+12. First external observer remote/signed proof, if it has actually been run.
 
 If item 11 has not been run yet, the correct claim is:
 
@@ -352,14 +365,14 @@ Truth boundary: documentation/reviewer readiness; not feature completion by itse
 
 The backend/chain state is authoritative. The frontend explains and guides only. Helpers, relay, rendezvous, gossip, IPFS/media/content storage, and UI state are non-authoritative unless deterministic protocol state commits the relevant hash, receipt, role, badge, assignment, or transaction result.
 
-## Work after resubmission
+## Work after this reviewer package
 
 It is safe to continue development during reviewer review if the submitted commit and evidence are preserved.
 
 Recommended practice:
 
 1. Create a tag for the submitted state.
-2. Save evidence transcripts under `audit-metadata/reviewer-resubmission-YYYY-MM-DD/`.
-3. Continue development after submission.
-4. If reviewer asks questions, distinguish submitted evidence from later improvements.
-5. Do not retroactively imply later commits were part of the original submission.
+2. Save evidence transcripts under `audit-metadata/reviewer-evidence-YYYY-MM-DD/`.
+3. Continue development after the evidence package is captured.
+4. If reviewers ask questions, distinguish captured evidence from later improvements.
+5. Do not retroactively imply later commits were part of the captured evidence package.

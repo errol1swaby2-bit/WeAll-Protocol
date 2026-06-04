@@ -1,6 +1,6 @@
 # WeAll reviewer Evidence Index
 
-Status: funder-facing evidence index for reviewer submission.
+Status: reviewer-facing evidence index for external review.
 
 Last reviewed: 2026-06-04.
 
@@ -30,6 +30,7 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 | Release tree hygiene | `bash scripts/verify_release_tree.sh` | Pass | Proves no known release-blocking generated/runtime artifacts in the current tree. |
 | Dependency locks | `bash scripts/verify_release_dependencies.sh` | Pass | Proves lockfiles are present/pinned/hashed. |
 | Reviewer gate | `bash scripts/reviewer_production_readiness_gate.sh` | Pass targeted reviewer suite | Targeted readiness gate, not a public-mainnet proof. |
+| Same-machine dual-node controlled devnet | `WEALL_DEVNET_SUITE_RUN_TIER2=1 WEALL_DEVNET_SUITE_RUN_LIVE=1 bash scripts/devnet_controlled_readiness_suite.sh` | Pass | Runs a controlled genesis node and joining node on one machine; proves local convergence/restart rehearsal, not public multi-validator adversarial readiness. |
 | Targeted backend tests | reviewer gate or targeted `pytest` list | Pass | Bounded suite; full pytest should be run from a clean dependency environment. |
 | Frontend install | `cd ../web && npm ci` | Pass, 0 vulnerabilities reported at install time | Creates `node_modules`; remove before release-tree check. |
 | Frontend typecheck | `cd ../web && npm run typecheck` | Pass | Type safety only; not browser E2E proof. |
@@ -46,7 +47,7 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 Evidence in this document must be treated as a command checklist, not as a
 permanent transcript archive.
 
-For reviewer or grant submission, capture fresh output from the exact Git commit being submitted. Do not reuse stale audit-export output, sandbox output, or
+For reviewer submission, capture fresh output from the exact Git commit being submitted. Do not reuse stale audit-export output, sandbox output, or
 sample pass counts as proof of the current repository state.
 
 A valid evidence bundle must include:
@@ -140,6 +141,14 @@ checks:
 
 Truth boundary: type safety only. This is not browser E2E proof for account
 recovery, PoH, content, dispute/review, governance, or wallet flows.
+
+### Same-machine dual-node controlled-devnet proof
+
+    WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+    WEALL_DEVNET_SUITE_RUN_LIVE=1 \
+    bash scripts/devnet_controlled_readiness_suite.sh
+
+Truth boundary: runs a controlled genesis node and joining node on one machine, exercises native async/live PoH and convergence/restart behavior through protocol paths, and intentionally avoids `/v1/dev/demo-seed`. It does not prove public multi-validator adversarial readiness.
 
 ### Local observer readiness
 
@@ -236,7 +245,7 @@ If either remote preflight or signed onboarding is skipped, say:
 Use this folder layout outside runtime state and attach it to the reviewer package or keep it as reviewer support material:
 
 ```text
-audit-metadata/reviewer-resubmission-YYYY-MM-DD/
+audit-metadata/reviewer-evidence-YYYY-MM-DD/
   00_git_identity.txt
   01_tx_canon.txt
   02_secret_guard.txt

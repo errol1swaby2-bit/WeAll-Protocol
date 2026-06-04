@@ -130,7 +130,7 @@ Those require additional testing, review, hardening, documentation, and operatio
 This repository snapshot is synchronized at:
 
 - **Transaction canon:** 231 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** `2789 passed, 1 warning`
+- **Latest full backend test checkpoint:** `3405 passed, 2 warnings`
 - **PoH posture:** two-tier native async/live human verification; no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider
 - **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers
 - **Consensus authority hardening:** follower-side SYSTEM tx replay binding is enforced against deterministic scheduler output before apply
@@ -139,6 +139,20 @@ This repository snapshot is synchronized at:
 - **Release checks:** tx canon synchronization, secret guard, release-tree hygiene, and dependency-lock verification should pass before publishing changes
 
 This checkpoint is included so reviewers can compare the public README against generated artifacts without treating the repository as public-mainnet-ready.
+
+---
+
+## Reviewer Starting Point
+
+For architecture and readiness review, start with these documents:
+
+1. `Weall-Protocol/docs/TRUTH_BOUNDARY.md` — current claim boundaries and what is not yet claimed.
+2. `Weall-Protocol/docs/REVIEWER_MILESTONE_GUIDE.md` — milestone-oriented review guide and remaining proof path.
+3. `Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md` — command evidence checklist and transcript expectations.
+4. `RELEASE_CHECKLIST.md` — release and external tester packaging checks.
+5. `Weall-Protocol/docs/EXECUTOR_REFACTOR_MODULE_BOUNDARIES.md` — runtime/executor refactor boundary map.
+
+Reviewers who want a protocol-native two-node proof on one machine should use the controlled-devnet rehearsal path below rather than the seeded demo path.
 
 ---
 
@@ -189,6 +203,25 @@ http://127.0.0.1:5173
 ```
 
 The demo account should be surfaced through the local dev bootstrap flow.
+
+---
+
+## Dual-Node Same-Machine Rehearsal for Reviewers
+
+The preferred same-machine reviewer proof is the controlled-devnet readiness suite. It starts a controlled genesis node and a joining node on the same machine, uses normal public transaction submission paths, verifies native async/live PoH, syncs both nodes, checks same tip and state root convergence, and verifies restart/catch-up behavior. It intentionally does not rely on `/v1/dev/demo-seed`.
+
+Run from the backend directory:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+pytest -q
+WEALL_DEVNET_SUITE_RUN_TIER2=1 \
+WEALL_DEVNET_SUITE_RUN_LIVE=1 \
+bash scripts/devnet_controlled_readiness_suite.sh
+```
+
+Truth boundary: this is a local two-node rehearsal on one machine. It is stronger than the seeded browser demo, but it is not a public multi-validator adversarial network proof.
 
 ---
 
