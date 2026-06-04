@@ -2,7 +2,7 @@
 
 Status: funder-facing evidence index for reviewer submission.
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-06-04.
 
 This document lists the evidence that should be captured for the reviewer submission package and the truth boundary for each item. It is intentionally conservative: it records what the repository can prove without claiming public mainnet, public multi-validator BFT, or live economics.
 
@@ -41,183 +41,145 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 | First external observer full proof | `bash scripts/first_external_observer_reproducibility_gate.sh` with remote and signed env enabled | Must pass before claiming first trusted external observer readiness | If remote/signed portions are skipped, the claim remains local-precondition only. |
 | Local block-production proof | `PYTHONPATH=src python3 scripts/production_block_production_rehearsal_gate.py` | Pass with root-bearing local block evidence | Local block evidence only; public multi-validator BFT remains future proof. |
 
-## Captured command results from latest audit export
+## Evidence freshness policy
 
-These results were captured from the 2026-05-29 audit export environment. Re-run them in the actual Git checkout before final submission and replace this section with fresh commit-bound output.
+Evidence in this document must be treated as a command checklist, not as a
+permanent transcript archive.
+
+For reviewer or grant submission, capture fresh output from the exact Git commit being submitted. Do not reuse stale audit-export output, sandbox output, or
+sample pass counts as proof of the current repository state.
+
+A valid evidence bundle must include:
+
+1. the exact branch and commit hash;
+2. clean or explained `git status --short` output;
+3. fresh command output from the current checkout;
+4. the command that produced each transcript;
+5. the truth boundary for each result;
+6. a note when a command was skipped, failed, or was run only in a local/sandbox
+   environment.
+
+Do not present full pytest, frontend typecheck, remote observer onboarding,
+public testnet readiness, public multi-validator BFT readiness, or live
+economics as passed unless the matching command has passed on the submitted
+commit and the transcript is included.
+
+## Fresh evidence commands
+
+Run these from `Weall-Protocol/` unless noted otherwise.
+
+### Git identity
+
+    git rev-parse --abbrev-ref HEAD
+    git rev-parse HEAD
+    git status --short
+    git log --oneline -10
+
+Truth boundary: proves which commit was tested. It does not prove the commit is
+deployed or that later commits share the same evidence.
 
 ### Tx canon artifact check
 
-```text
-✅ tx canon artifacts are synchronized (231 tx types, version 1.25.0)
-```
+    python3 -B -S scripts/check_tx_canon_artifacts.py
+
+Truth boundary: proves generated tx canon artifacts match the current checkout.
+It does not prove every transaction flow is externally testnet-ready.
 
 ### Secret guard
 
-```text
-[secret-guard] scanning release-relevant files…
-[secret-guard] WARN: not a git work tree; scanning exported tree instead.
-[secret-guard] OK
-```
+    bash scripts/secret_guard.sh
 
-In the real Git checkout, the warning should disappear or be replaced by git-aware scanning output.
+Truth boundary: scans release-relevant files in the current checkout. It does
+not replace full git-history secret review.
 
 ### Release tree hygiene
 
-```text
-[verify] repo: /mnt/data/weall_audit/Weall-Protocol
-[verify] OK: no Python bytecode files
-[verify] OK: no __pycache__ directories
-[verify] OK: no .pytest_cache directories
-[verify] OK: no Python egg-info directories
-[verify] OK: no TypeScript build info files
-[verify] OK: no node_modules directories
-[verify] OK: no frontend dist directories
-[verify] OK: no outer web TypeScript build info files
-[verify] OK: no outer web node_modules directories
-[verify] OK: no outer web dist directories
-[verify] OK: outer web package script targets exist
-[verify] OK: no provider local state directories
-[verify] OK: no .env files
-[verify] OK: no .env.local files
-[verify] OK: no secrets directory present
-[verify] OK: no local devnet runtime directories
-[verify] OK: no local WeAll runtime directories
-[verify] OK: no runtime data directories
-[verify] OK: no SQLite database files
-[verify] OK: no SQLite WAL files
-[verify] OK: no SQLite shared-memory files
-[verify] OK: no SQLite files
-[verify] OK: no JSON secret artifacts
-[verify] OK: no demo bootstrap result artifacts
-[verify] OK: no aux sqlite files
-[verify] OK: no BFT journal jsonl files
-[verify] OK: no helper lane temp directories
-[verify] OK: found generated/tx_index.json
-[verify] OK: found generated/helper_contract_map.json
-[verify] OK: found generated/tx_contract_map.json
-✅ tx canon artifacts are synchronized (231 tx types, version 1.25.0)
-[verify] OK: tx canon generated artifacts are synchronized
-[verify] release tree check passed
-```
+    bash scripts/verify_release_tree.sh
+
+Truth boundary: proves no known release-blocking generated/runtime artifacts are
+present in the current tree at the time of the check.
 
 ### Dependency lock verification
 
-```text
-OK: lockfiles are present, pinned, and hashed.
-[deps] OK: backend and frontend release dependency locks are present
-```
+    bash scripts/verify_release_dependencies.sh
 
-### Targeted backend reviewer tests
+Truth boundary: proves backend and frontend dependency lockfiles are present and
+pinned for this checkout. It does not prove all dependencies are vulnerability
+free forever.
 
-```text
-93 passed in 20.31s
-```
+### Reviewer readiness gate
 
-A later targeted reviewer-gate run from the export showed the split reviewer target set passing as:
+    bash scripts/reviewer_production_readiness_gate.sh
 
-```text
-66 passed in 17.84s
-2 passed in 0.53s
-1 passed in 0.51s
-2 passed in 0.46s
-1 passed in 0.44s
-1 passed in 0.47s
-```
+Truth boundary: targeted reviewer gate. It is not a public-mainnet proof and not
+a substitute for the specific remote/multi-node/BFT gates.
 
-### Full pytest truth boundary
+### Full pytest
 
-A plain full pytest run in the audit sandbox did not complete because the sandbox environment did not have `nacl` importable:
+    python3 -m venv .venv
+    . .venv/bin/activate
+    python3 -m pip install -r requirements-dev.lock
+    PYTHONPATH=src pytest
 
-```text
-ModuleNotFoundError: No module named 'nacl'
-```
+Truth boundary: may be claimed only when the command passes on the submitted
+commit and the full transcript is captured. If the command is skipped, partially
+run, or fails due to environment/dependency issues, say so explicitly.
 
-This should be handled in the real checkout by creating a clean dependency environment first:
+### Frontend install and typecheck
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements-dev.lock
-PYTHONPATH=src pytest
-```
+Run from the outer repository root:
 
-Do not present full pytest as passed unless this command has passed in the actual checkout.
+    cd web
+    npm ci
+    npm run typecheck
 
-### Frontend clean install and typecheck
+After frontend checks, remove generated frontend artifacts before release hygiene
+checks:
 
-```text
-added 77 packages, and audited 78 packages in 10s
-found 0 vulnerabilities
+    rm -rf node_modules dist tsconfig.tsbuildinfo
 
-> weall-web@0.1.0 typecheck
-> tsc -b --pretty false
-```
-
-After running frontend checks, remove generated frontend artifacts before release hygiene checks:
-
-```bash
-rm -rf ../web/node_modules ../web/dist ../web/tsconfig.tsbuildinfo
-```
+Truth boundary: type safety only. This is not browser E2E proof for account
+recovery, PoH, content, dispute/review, governance, or wallet flows.
 
 ### Local observer readiness
 
-```text
-OK: local observer bundle is public-only and observer-safe
-OK: local observer readiness gate passed
-- tx canon synchronized
-- production chain manifest pinned
-- public observer bundle generated and verified
-- observer preflight forces observer-only mode
-- validator signing, BFT, helper authority, and block loop are disabled
-- no authority, validator, node private key, external identity-provider, or legacy oracle secret is required
+    bash scripts/local_observer_readiness_gate.sh
 
-This is not a substitute for scripts/rehearse_external_observer_two_machine.sh.
-It is the local precondition that should pass before the real second-machine rehearsal.
-```
+Truth boundary: local precondition only. It does not prove remote signed observer
+onboarding.
 
-### External observer authority lock
+### Observer authority lock
 
-```text
-OK: external observer authority lock gate passed
-- production preflight accepted the manifest and rejected authority secrets
-- observer mode is forced on
-- validator signing, BFT, helper mode, and block-loop autostart are forced off
-- validator/service authority roles are absent from the local observer environment
-```
+    bash scripts/external_observer_authority_lock_gate.sh
+
+Truth boundary: proves local observer authority-lock posture. It does not
+promote the observer to validator and does not prove public network safety.
+
+### Disposable reviewer Genesis and artifact-pull rehearsal
+
+Genesis machine:
+
+    bash scripts/reviewer_lan_genesis_rehearsal.sh \
+      --lan-ip <GENESIS_LAN_IP> \
+      --wsl-ip <WSL_OR_LOCAL_IP>
+
+Observer machine:
+
+    bash scripts/reviewer_observer_rehearsal.sh \
+      --genesis-api-base http://<GENESIS_LAN_IP>:8000 \
+      --pull-reviewer-artifacts \
+      --allow-private-genesis-api
+
+Truth boundary: controlled LAN/reviewer rehearsal only. It does not prove public
+mainnet readiness, public multi-validator BFT readiness, live economics, or a
+public HTTPS deployment.
 
 ### Local block-production proof
 
-```text
-OK: local block-production proof {
-  'ok': True,
-  'has_committed_block': True,
-  'height': 1,
-  'has_root_evidence': True,
-  'state_ancestry_only': False,
-  'claim': 'Latest committed local block evidence only; public multi-validator BFT still requires a separate adversarial proof.',
-  'readiness': {
-    'ok': True,
-    'height': 1,
-    'mode': 'dev',
-    'observer_mode': False,
-    'block_loop': {
-      'running': True,
-      'unhealthy': False,
-      'last_error': '',
-      'consecutive_failures': 0
-    },
-    'authority': {
-      'validator_signing_enabled': True,
-      'bft_enabled': False,
-      'observer_cannot_produce': False
-    },
-    'can_locally_produce': True,
-    'production_profile_candidate': False,
-    'public_multi_validator_bft_ready': False,
-    'claim': 'This is read-only block production posture evidence. It does not grant authority or prove public multi-validator BFT.'
-  }
-}
-```
+    PYTHONPATH=src python3 scripts/production_block_production_rehearsal_gate.py
+
+Truth boundary: local block evidence only. Public multi-validator BFT remains a
+separate adversarial proof.
 
 ## Required before claiming first trusted external observer readiness
 
