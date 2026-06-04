@@ -152,7 +152,7 @@ For architecture and readiness review, start with these documents:
 4. `RELEASE_CHECKLIST.md` — release and external tester packaging checks.
 5. `Weall-Protocol/docs/EXECUTOR_REFACTOR_MODULE_BOUNDARIES.md` — runtime/executor refactor boundary map.
 
-Reviewers who want a protocol-native two-node proof on one machine should use the controlled-devnet rehearsal path below rather than the seeded demo path.
+The expected reviewer path for protocol-native verification is the controlled-devnet same-machine rehearsal below. The seeded demo path remains useful for fast UI review, but it is not the primary protocol proof path.
 
 ---
 
@@ -206,9 +206,9 @@ The demo account should be surfaced through the local dev bootstrap flow.
 
 ---
 
-## Dual-Node Same-Machine Rehearsal for Reviewers
+## Expected Reviewer Path: Dual-Node Same-Machine Rehearsal
 
-The preferred same-machine reviewer proof is the controlled-devnet readiness suite. It starts a controlled genesis node and a joining node on the same machine, uses normal public transaction submission paths, verifies native async/live PoH, syncs both nodes, checks same tip and state root convergence, and verifies restart/catch-up behavior. It intentionally does not rely on `/v1/dev/demo-seed`.
+The expected same-machine reviewer proof is the existing controlled-devnet readiness suite. It starts a controlled genesis node and a joining node on the same machine, uses normal public transaction submission paths, verifies native async/live PoH, syncs both nodes, checks same tip and state root convergence, and verifies restart/catch-up behavior. It intentionally does not rely on `/v1/dev/demo-seed`.
 
 Run from the backend directory:
 

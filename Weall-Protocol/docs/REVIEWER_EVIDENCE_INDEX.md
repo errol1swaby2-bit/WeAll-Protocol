@@ -30,7 +30,7 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 | Release tree hygiene | `bash scripts/verify_release_tree.sh` | Pass | Proves no known release-blocking generated/runtime artifacts in the current tree. |
 | Dependency locks | `bash scripts/verify_release_dependencies.sh` | Pass | Proves lockfiles are present/pinned/hashed. |
 | Reviewer gate | `bash scripts/reviewer_production_readiness_gate.sh` | Pass targeted reviewer suite | Targeted readiness gate, not a public-mainnet proof. |
-| Same-machine dual-node controlled devnet | `WEALL_DEVNET_SUITE_RUN_TIER2=1 WEALL_DEVNET_SUITE_RUN_LIVE=1 bash scripts/devnet_controlled_readiness_suite.sh` | Pass | Runs a controlled genesis node and joining node on one machine; proves local convergence/restart rehearsal, not public multi-validator adversarial readiness. |
+| Expected reviewer path: same-machine dual-node controlled devnet | `WEALL_DEVNET_SUITE_RUN_TIER2=1 WEALL_DEVNET_SUITE_RUN_LIVE=1 bash scripts/devnet_controlled_readiness_suite.sh` | Pass | Runs a controlled genesis node and joining node on one machine; proves local convergence/restart rehearsal, not public multi-validator adversarial readiness. |
 | Targeted backend tests | reviewer gate or targeted `pytest` list | Pass | Bounded suite; full pytest should be run from a clean dependency environment. |
 | Frontend install | `cd ../web && npm ci` | Pass, 0 vulnerabilities reported at install time | Creates `node_modules`; remove before release-tree check. |
 | Frontend typecheck | `cd ../web && npm run typecheck` | Pass | Type safety only; not browser E2E proof. |

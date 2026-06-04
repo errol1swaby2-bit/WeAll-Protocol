@@ -54,9 +54,9 @@ This backend snapshot is synchronized at:
 - **Latest full backend test checkpoint:** 3,405 passed, 2 warnings
 
 
-## Controlled-devnet same-machine readiness proof
+## Expected reviewer path: controlled-devnet same-machine readiness proof
 
-For protocol-review sessions, the backend includes a non-seeded dual-node controlled-devnet readiness suite that runs on one machine:
+For protocol-review sessions, the expected backend path is the existing non-seeded dual-node controlled-devnet readiness suite that runs on one machine:
 
 ```bash
 cd Weall-Protocol

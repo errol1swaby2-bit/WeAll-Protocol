@@ -139,7 +139,7 @@ For external testers, the supported walkthrough is:
 - frontend via Vite dev server
 - demo state via `scripts/demo_bootstrap_tester.sh` or the repository root `scripts/dev_boot_full_stack.sh`
 
-For protocol reviewers, the supported non-seeded readiness proof is:
+For protocol reviewers, the expected non-seeded readiness proof is:
 
 - `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh` for the same-machine dual-node controlled-devnet proof
 - `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh` for the fuller onboarding path
