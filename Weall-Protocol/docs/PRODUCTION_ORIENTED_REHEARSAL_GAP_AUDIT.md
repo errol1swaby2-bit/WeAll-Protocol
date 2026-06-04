@@ -2,7 +2,7 @@
 
 Status: local multi-node rehearsal is working, but the repository must not claim external tester, public testnet, or mainnet readiness until the gates below pass.
 
-This document turns the current gaps into explicit engineering targets for reviewert/reviewer visibility. It is intentionally conservative: if a feature is not proven by code, tests, and a reproducible runbook, it is listed as a blocker rather than treated as complete.
+This document turns the current gaps into explicit engineering targets for reviewer/reviewer visibility. It is intentionally conservative: if a feature is not proven by code, tests, and a reproducible runbook, it is listed as a blocker rather than treated as complete.
 
 ## Current safe claim
 

@@ -1,4 +1,4 @@
-# Known limitations for the reviewert external observer milestone
+# Known limitations for the reviewer external observer milestone
 
 WeAll is pre-production. These limits should be disclosed in reviewer docs and grant materials.
 

@@ -134,7 +134,7 @@ bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERAT
 
 Use `WEALL_ALLOW_PRIVATE_GENESIS_API=1` only for private LAN rehearsal. Public testnet deployment requires a public security posture that is not proven by this private LAN command.
 
-## Required evidence to capture before reviewert submission
+## Required evidence to capture before reviewer submission
 
 Save command transcripts for:
 
@@ -317,7 +317,7 @@ Truth boundary: public multi-validator BFT readiness only after adversarial gate
 
 ### Milestone 6: Documentation, reproducibility, security hardening, and external tester reporting
 
-Objective: make the project reviewable by reviewert, external testers, and future contributors.
+Objective: make the project reviewable by reviewer, external testers, and future contributors.
 
 Current evidence:
 
@@ -342,7 +342,7 @@ Deliverables:
 
 Acceptance criteria:
 
-- reviewert can see what is implemented, visible/locked, scaffolded, and unfinished.
+- reviewer can see what is implemented, visible/locked, scaffolded, and unfinished.
 - Testers can reproduce flows without private context.
 - Docs match code/tests/scripts.
 
@@ -354,12 +354,12 @@ The backend/chain state is authoritative. The frontend explains and guides only.
 
 ## Work after resubmission
 
-It is safe to continue development during reviewert review if the submitted commit and evidence are preserved.
+It is safe to continue development during reviewer review if the submitted commit and evidence are preserved.
 
 Recommended practice:
 
 1. Create a tag for the submitted state.
 2. Save evidence transcripts under `audit-metadata/reviewer-resubmission-YYYY-MM-DD/`.
 3. Continue development after submission.
-4. If reviewert asks questions, distinguish submitted evidence from later improvements.
+4. If reviewer asks questions, distinguish submitted evidence from later improvements.
 5. Do not retroactively imply later commits were part of the original submission.

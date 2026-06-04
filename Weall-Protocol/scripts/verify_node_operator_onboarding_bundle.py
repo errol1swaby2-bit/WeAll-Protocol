@@ -304,7 +304,7 @@ def _validate(
     issues.extend(_validate_relay_recipient_pubkeys(bundle))
     # Legacy read-only node-operator bundles from the pre-observer schema did not
     # include an observer section. They remain verifiable only with an explicit
-    # flag so the default reviewert/external-observer path cannot accidentally pass a
+    # flag so the default reviewer/external-observer path cannot accidentally pass a
     # bundle that omits observer-mode fail-closed posture.
     legacy_read_only_bundle = "authority" not in bundle and isinstance(bundle.get("oracle"), dict)
     if not (legacy_read_only_bundle and allow_legacy_bundle):
@@ -397,7 +397,7 @@ def main() -> int:
         action="store_true",
         help=(
             "Allow archival pre-observer bundles that lack an observer posture section. "
-            "Do not use for reviewert/external observer onboarding."
+            "Do not use for reviewer/external observer onboarding."
         ),
     )
     parser.add_argument("--emit-shell-env", action="store_true")

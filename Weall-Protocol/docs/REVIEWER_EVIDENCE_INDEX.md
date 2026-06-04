@@ -1,4 +1,4 @@
-# WeAll reviewert Evidence Index
+# WeAll reviewer Evidence Index
 
 Status: funder-facing evidence index for reviewer submission.
 
@@ -17,7 +17,7 @@ git status --short
 git log --oneline -10
 ```
 
-Attach or paste the output into the reviewert evidence bundle.
+Attach or paste the output into the reviewer evidence bundle.
 
 If the repository is being reviewed from a zip/export, note that Git commit identity is unavailable and must be supplied from the source checkout.
 
@@ -271,7 +271,7 @@ If either remote preflight or signed onboarding is skipped, say:
 
 ## Recommended evidence archive layout
 
-Use this folder layout outside runtime state and attach it to the reviewert package or keep it as reviewer support material:
+Use this folder layout outside runtime state and attach it to the reviewer package or keep it as reviewer support material:
 
 ```text
 audit-metadata/reviewer-resubmission-YYYY-MM-DD/
