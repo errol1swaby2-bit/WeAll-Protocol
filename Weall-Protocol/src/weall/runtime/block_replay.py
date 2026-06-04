@@ -8,6 +8,7 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
     prune_emitted,
@@ -67,6 +68,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
       - We verify receipts_root and state_root (if present) against a fresh replay.
     """
     _bind_executor_globals()
+    runtime_ctx = RuntimeContext.from_executor(self)
+    scheduler_set = runtime_ctx.scheduler_set
+    apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
     if not isinstance(block, dict):
         return ExecutorMeta(ok=False, error="bad_block:not_object", height=0, block_id="")
 
@@ -154,15 +158,15 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     next_height = int(height)
 
     def _run_poh_schedulers() -> None:
-        run_replay_pre_schedulers(working, next_height=next_height)
+        run_replay_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
 
     def _run_post_schedulers() -> None:
-        run_replay_post_schedulers(working, next_height=next_height)
+        run_replay_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
 
     def _run_system_emitter_side_effects(phase: str) -> None:
         # We discard envelopes; the block already contains the tx list.
         _ = emit_system_txs(
-            working, self.tx_index, next_height=next_height, phase=str(phase), proposer=""
+            working, self.tx_index, next_height=next_height, phase=str(phase), proposer="", scheduler_set=scheduler_set
         )
 
     def _queue_item_phase(queue_id: str) -> str:
@@ -362,7 +366,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -429,7 +433,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     # system envelopes are in the block. Prune them here before computing the
     # state root, then commit_block_candidate() will prune again as a no-op.
     try:
-        prune_emitted(working)
+        prune_emitted(working, scheduler_set=scheduler_set)
     except Exception as exc:
         if _consensus_fail_closed():
             return ExecutorMeta(

@@ -8,6 +8,7 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
     prune_emitted,
@@ -135,6 +136,9 @@ def build_block_candidate(
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
     _bind_executor_globals()
+    runtime_ctx = RuntimeContext.from_executor(self)
+    scheduler_set = runtime_ctx.scheduler_set
+    apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
     height = _safe_int(self.state.get("height"), 0)
     tip = str(self.state.get("tip") or "")
     tip_hash = str(self.state.get("tip_hash") or "")
@@ -214,7 +218,7 @@ def build_block_candidate(
 
     def _apply_system_env(env: TxEnvelope) -> None:
         try:
-            meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=False)
+            meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
         except ApplyError:
             j = env.to_json()
             tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
@@ -243,7 +247,7 @@ def build_block_candidate(
     # before candidate tx admission, so production must fail closed here the
     # same way follower-side replay does.
     try:
-        run_leader_pre_schedulers(working, next_height=next_height)
+        run_leader_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -251,7 +255,7 @@ def build_block_candidate(
     # Phase: system emitter pre. These side effects also feed state_root and
     # must not be swallowed during local proposal construction in production.
     try:
-        sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre")
+        sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre", scheduler_set=scheduler_set)
         for env in sys_pre:
             _apply_system_env(env)
     except Exception as exc:
@@ -352,7 +356,7 @@ def build_block_candidate(
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_atomic_meta(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -392,14 +396,14 @@ def build_block_candidate(
     # Phase: schedule PoH system txs. In production these deterministic
     # side effects are consensus-adjacent and must fail closed.
     try:
-        run_leader_post_schedulers(working, next_height=next_height)
+        run_leader_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
 
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
-        sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post")
+        sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post", scheduler_set=scheduler_set)
         for env in sys_post:
             _apply_system_env(env)
     except Exception as exc:
@@ -419,7 +423,7 @@ def build_block_candidate(
     # verify the block against a transient pre-prune root and then diverge
     # when replaying later blocks from the durable committed state.
     try:
-        prune_emitted(working)
+        prune_emitted(working, scheduler_set=scheduler_set)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"system_queue_prune_failed:{type(exc).__name__}"

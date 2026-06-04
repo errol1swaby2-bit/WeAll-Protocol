@@ -59,3 +59,20 @@ After applying this patch and running the wider suite, the next pass should focu
 2. Collapsing leader/replay scheduler profiles only if replay/root tests prove behavior is unchanged or intentionally corrected.
 3. Moving the remaining executor initialization wiring into a dedicated boot/context constructor without changing startup semantics.
 4. Deleting compatibility wrappers once all API routes/tests import the new stable interfaces directly.
+
+## Batch C1 follow-up boundary
+
+The second cleanup batch introduces `runtime_context.py` as the explicit
+dependency boundary for extracted runtime delegates. Scheduler and tx execution
+dependencies are now carried through `SchedulerSet` and `TxExecutionSet` instead
+of being looked up directly inside `scheduler_pipeline.py`.
+
+Compatibility with legacy tests that monkeypatch `weall.runtime.executor` is kept
+only at context construction time. New runtime code should prefer explicit
+context/dependency objects and should not add new executor-module symbol lookups.
+
+`json_tools.py` now exposes `canonical_json_str` and `canonical_json_bytes` for
+future canonical JSON consolidation. Moving hash/ID call sites to those helpers
+requires byte-for-byte golden tests and should be done separately from protocol
+logic changes.
+
