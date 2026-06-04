@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 from typing import Any, Mapping
-from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.execution_lanes import ALL_LANES, LANE_SERIAL
 from weall.runtime.helper_instance_corpus import DEFAULT_HELPER_INSTANCE_CORPUS
@@ -48,9 +48,6 @@ class HelperContract:
             out[key] = list(out[key])
         return out
 
-
-def _canon_json(value: Any) -> str:
-    return canonical_json_str(value)
 
 
 def _tx_type_of(tx: Mapping[str, Any]) -> str:

@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any
-from weall.runtime.runtime_time import now_ms
+from weall.runtime.runtime_time import now_ms as _now_ms
 from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.failpoints import maybe_trigger_failpoint
@@ -49,9 +49,6 @@ def _process_local_write_lock_for(path: str) -> threading.RLock:
             _PROCESS_LOCAL_WRITE_LOCKS[key] = lock
         return lock
 
-
-def _now_ms() -> int:
-    return now_ms()
 
 
 def _canon_json(obj: Any) -> str:

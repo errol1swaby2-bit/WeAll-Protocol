@@ -3,8 +3,9 @@ from __future__ import annotations
 """Shared staged compatibility binder for extracted runtime delegates.
 
 The executor split is moving toward explicit RuntimeContext dependency injection.
-This helper keeps the remaining temporary executor-module symbol mirroring in one
-small file so new extracted modules do not grow their own compatibility shims.
+This is now the single temporary executor-module symbol mirror for both runtime
+and BFT submodules; the separate BFT binder has been retired.  New code should
+prefer explicit dependency objects and should not introduce additional binders.
 """
 
 from collections.abc import Iterable

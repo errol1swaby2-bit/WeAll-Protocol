@@ -88,3 +88,11 @@ The second cleanup pass further reduces hidden coupling by:
 - moving small consensus-adjacent time/safe-int helpers to `runtime_time.py` and `runtime_env.py` wrappers where semantics are byte-for-byte compatible.
 
 The adapter/facade method names remain stable. BFT proposal, vote, QC, timeout, and commit semantics are not intentionally changed by this pass.
+
+
+## NEXT cleanup result
+
+- The separate BFT executor-symbol binder has been retired; remaining staged symbol mirroring is centralized in `runtime/executor_symbols.py`.
+- `bft_pending_frontier.py` is now a thin facade over `bft_pending_frontier_impl.py`, keeping the public adapter names stable while isolating the larger pending frontier state machine.
+- Obvious canonical JSON and time/safe-int wrapper definitions were collapsed to direct aliases where byte-for-byte behavior is unchanged.
+- Remaining `executor_symbols.py` usage is intentionally temporary and should be replaced domain-by-domain with explicit dependency/context objects.

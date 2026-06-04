@@ -5,13 +5,10 @@ from hashlib import sha256
 import hmac
 import json
 from typing import Any, Dict, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
-
-def _canon_json(value: Any) -> str:
-    return canonical_json_str(value)
 
 
 def _sha256_hex(value: Any) -> str:

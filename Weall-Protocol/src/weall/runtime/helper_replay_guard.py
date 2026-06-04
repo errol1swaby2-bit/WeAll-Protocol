@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from hashlib import sha256
 import json
 from typing import Any, Deque, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.helper_lane_journal import HelperLaneJournal
@@ -20,9 +20,6 @@ def _expected_helper_id(orchestrator: HelperProposalOrchestrator | None, lane_id
     lane = orchestrator.lane_plans.get(str(lane_id or ""))
     return str(getattr(lane, "helper_id", "") or "") if lane is not None else ""
 
-
-def _canon_json(value: Any) -> str:
-    return canonical_json_str(value)
 
 
 def _sha256_hex(value: Any) -> str:

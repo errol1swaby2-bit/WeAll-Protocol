@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_outbound.py)."""
 
-from weall.runtime.bft_executor_symbols import bind_executor_globals
+from weall.runtime.executor_symbols import bind_executor_globals
 
 
 def _bind_executor_globals() -> None:

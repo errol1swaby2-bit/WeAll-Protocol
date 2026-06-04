@@ -4,15 +4,12 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
-from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from .conflict_lanes import lane_base_id as planned_lane_base_id
 from .read_write_sets import build_tx_access_set
 from .tx_conflicts import build_conflict_descriptor
 
-
-def _canon_json(value: Any) -> str:
-    return canonical_json_str(value)
 
 
 def _sha256_hex(value: Any) -> str:

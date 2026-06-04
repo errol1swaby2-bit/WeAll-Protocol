@@ -6,20 +6,13 @@ import os
 import time
 from dataclasses import dataclass
 from typing import Any
-from weall.runtime.runtime_env import safe_int
-from weall.runtime.runtime_time import now_ms
+from weall.runtime.runtime_env import safe_int as _safe_int
+from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
 Json = dict[str, Any]
 
-
-def _now_ms() -> int:
-    return now_ms()
-
-
-def _safe_int(v: Any, default: int) -> int:
-    return safe_int(v, default)
 
 
 def _mode() -> str:
