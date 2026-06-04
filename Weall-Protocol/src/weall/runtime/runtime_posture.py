@@ -9,15 +9,22 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-from weall.runtime.executor_symbols import bind_executor_globals
 
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
-
+from weall.runtime.executor import (
+    BFT_MIN_VALIDATORS,
+    CONSENSUS_PHASE_BFT_ACTIVE,
+    ExecutorError,
+    PRODUCTION_CONSENSUS_PROFILE,
+    PRODUCTION_SERVICE,
+    _env_bool,
+    _helper_execution_profile_hash,
+    _mode,
+    _now_ms,
+    evaluate_node_lifecycle_status,
+    os,
+)
 
 def _runtime_meta(self) -> Json:
-    _bind_executor_globals()
     meta = self.state.get("meta")
     if not isinstance(meta, dict):
         meta = {}
@@ -25,11 +32,9 @@ def _runtime_meta(self) -> Json:
     return meta
 
 def _persist_runtime_meta(self) -> None:
-    _bind_executor_globals()
     self._ledger_store.write(self.state)
 
 def _evaluate_node_lifecycle_status(self):
-    _bind_executor_globals()
     return evaluate_node_lifecycle_status(
         state=self.state,
         node_id=str(getattr(self, "node_id", "") or ""),
@@ -40,7 +45,6 @@ def _evaluate_node_lifecycle_status(self):
     )
 
 def _apply_node_lifecycle_runtime_overrides(self) -> None:
-    _bind_executor_globals()
     status = self._evaluate_node_lifecycle_status()
     effective_roles = tuple(str(r) for r in (getattr(status, "service_roles_effective", ()) or ()))
     requested_state = str(getattr(status, "requested_state", "") or "")
@@ -84,13 +88,11 @@ def _apply_node_lifecycle_runtime_overrides(self) -> None:
     )
 
 def _persist_node_lifecycle_meta(self) -> None:
-    _bind_executor_globals()
     meta = self._runtime_meta()
     status = self._evaluate_node_lifecycle_status()
     meta["node_lifecycle"] = status.to_json()
 
 def _enforce_node_lifecycle_startup(self) -> None:
-    _bind_executor_globals()
     status = self._evaluate_node_lifecycle_status()
     if bool(getattr(status, "startup_refusal_required", False)):
         reasons = list(getattr(status, "promotion_failure_reasons", ()) or ())
@@ -98,7 +100,6 @@ def _enforce_node_lifecycle_startup(self) -> None:
         raise ExecutorError(f"node_lifecycle_startup_refused:{detail}")
 
 def _init_validator_runtime_posture(self) -> None:
-    _bind_executor_globals()
     meta = self._runtime_meta()
     runtime_open = bool(meta.get("runtime_open", False))
     previous_clean = bool(meta.get("last_shutdown_clean", True)) and not runtime_open
@@ -157,7 +158,6 @@ def _init_validator_runtime_posture(self) -> None:
     self._persist_runtime_meta()
 
 def mark_clean_shutdown(self) -> None:
-    _bind_executor_globals()
     meta = self._runtime_meta()
     meta["last_shutdown_clean"] = True
     meta["runtime_open"] = False
@@ -189,7 +189,6 @@ def _pytest_local_prod_status_compat_allows_requested_signing(self) -> bool:
     safety-critical path still fails closed for real production and for tests
     that are actually checking validator-set or consensus-phase authority.
     """
-    _bind_executor_globals()
     if not os.environ.get("PYTEST_CURRENT_TEST"):
         return False
     if _mode() != "prod":
@@ -219,7 +218,6 @@ def _pytest_local_prod_status_compat_allows_requested_signing(self) -> bool:
     return True
 
 def _effective_validator_signing_state(self) -> tuple[bool, str]:
-    _bind_executor_globals()
     enabled = bool(self._validator_signing_enabled)
     reason = str(self._signing_block_reason or "")
     if not enabled:
@@ -255,7 +253,6 @@ def _effective_validator_signing_state(self) -> tuple[bool, str]:
     return True, ""
 
 def node_lifecycle_status(self) -> Json:
-    _bind_executor_globals()
     state = self.read_state()
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     persisted = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
@@ -272,12 +269,10 @@ def validator_signing_enabled(self) -> bool:
     # test helpers that manufacture signed artifacts can still use
     # _validator_signing_permitted(), which has the narrow pytest-local
     # compatibility override below.
-    _bind_executor_globals()
     enabled, _reason = self._effective_validator_signing_state()
     return bool(enabled)
 
 def _effective_signing_block_reason(self) -> str:
-    _bind_executor_globals()
     enabled, reason = self._effective_validator_signing_state()
     return "" if enabled else str(reason or "")
 
@@ -290,7 +285,6 @@ def _pytest_local_missing_vrf_allowed(self) -> bool:
     turning every old executor persistence/unit test into a key-management
     fixture.
     """
-    _bind_executor_globals()
     if not os.environ.get("PYTEST_CURRENT_TEST"):
         return False
 
@@ -323,7 +317,6 @@ def _explicit_validator_signing_override(self) -> bool:
     BFT fixtures may still use explicit validator env tuples to manufacture
     signed artifacts without constructing the full node-operator lifecycle.
     """
-    _bind_executor_globals()
     if _mode() == "prod" and not os.environ.get("PYTEST_CURRENT_TEST"):
         return False
     if _mode() == "prod":
@@ -350,16 +343,13 @@ def _explicit_validator_signing_override(self) -> bool:
     return (not expected) or expected == pub
 
 def _validator_signing_permitted(self) -> bool:
-    _bind_executor_globals()
     enabled, _reason = self._effective_validator_signing_state()
     return bool(enabled) or self._explicit_validator_signing_override()
 
 def observer_mode(self) -> bool:
-    _bind_executor_globals()
     return not bool(self.validator_signing_enabled())
 
 def _prod_observer_block_production_reason(self) -> str:
-    _bind_executor_globals()
     if _mode() != "prod":
         return ""
     lifecycle_state = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE") or "").strip().lower()

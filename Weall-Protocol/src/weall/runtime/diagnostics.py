@@ -9,29 +9,24 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-from weall.runtime.executor_symbols import bind_executor_globals
 
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
-
+from weall.runtime.executor import (
+    Json,
+    _now_ms,
+)
 
 def mempool(self) -> PersistentMempool:
-    _bind_executor_globals()
     return self._mempool
 
 def attestation_pool(self) -> PersistentAttestationPool:
-    _bind_executor_globals()
     return self._att_pool
 
 def read_mempool(self, *, limit: int = 10_000) -> list[Json]:
     """Ops/test helper: inspect the current mempool."""
-    _bind_executor_globals()
     lim = int(limit) if int(limit) > 0 else 10_000
     return self._mempool.peek(limit=lim)
 
 def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
-    _bind_executor_globals()
     base: Json = {}
     fn = getattr(self._mempool, "selection_diagnostics", None)
     if callable(fn):
@@ -49,7 +44,6 @@ def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
     return base
 
 def helper_execution_diagnostics(self) -> Json:
-    _bind_executor_globals()
     meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
     marker = meta_root.get("helper_execution_last") if isinstance(meta_root.get("helper_execution_last"), dict) else None
     if not isinstance(marker, dict):
@@ -95,7 +89,6 @@ def helper_execution_diagnostics(self) -> Json:
     return out
 
 def transition_guardrail_diagnostics(self) -> Json:
-    _bind_executor_globals()
     meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
     marker = meta_root.get("transition_guardrail_last")
     if isinstance(marker, dict):
@@ -115,7 +108,6 @@ def get_tx_status(self, tx_id: str) -> dict[str, object]:
     database access from callers and ensures tx lifecycle semantics stay
     centralized.
     """
-    _bind_executor_globals()
     tx_id = str(tx_id or "").strip()
     if not tx_id:
         return {"ok": True, "tx_id": tx_id, "status": "unknown"}
@@ -171,7 +163,6 @@ def read_state(self) -> Json:
     This keeps read-only API processes coherent when a separate producer
     process commits blocks into the shared SQLite store.
     """
-    _bind_executor_globals()
     try:
         self.state = self._ledger_store.read()
     except Exception:
@@ -180,12 +171,10 @@ def read_state(self) -> Json:
 
 def snapshot(self) -> Json:
     """Return a full in-memory snapshot of chain state."""
-    _bind_executor_globals()
     return self.read_state()
 
 def tx_index_hash(self) -> str:
     """Return SHA-256 hex digest of the canonical tx index file."""
-    _bind_executor_globals()
     return str(getattr(self, "_tx_index_hash", "") or "")
 
 def sqlite_maintenance_tick(self) -> None:
@@ -196,7 +185,6 @@ def sqlite_maintenance_tick(self) -> None:
 
     This must never be consensus-critical: it should not mutate chain state.
     """
-    _bind_executor_globals()
     if not getattr(self, "_sqlite_maintenance_enabled", False):
         return
 

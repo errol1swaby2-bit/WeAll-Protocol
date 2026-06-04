@@ -2,14 +2,17 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_artifact_cache.py)."""
 
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
+from weall.runtime.executor import (
+    OrderedDict,
+    _bounded_put,
+    _canon_json,
+    _now_ms,
+    _safe_int,
+    hashlib,
+    os,
+)
 
 def _ensure_recent_bft_artifact_caches(self) -> None:
-    _bind_executor_globals()
     if not hasattr(self, "_max_recent_bft_proposals"):
         self._max_recent_bft_proposals = max(
             1, _safe_int(os.environ.get("WEALL_BFT_RECENT_PROPOSALS"), 2048)
@@ -60,7 +63,6 @@ def _ensure_recent_bft_artifact_caches(self) -> None:
         self._recent_bft_sender_budgets = OrderedDict()
 
 def _bft_sender_budget_key(self, artifact: Json) -> str:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     if not isinstance(artifact, dict):
         return ""
@@ -90,7 +92,6 @@ def _bft_sender_budget_key(self, artifact: Json) -> str:
     return ""
 
 def _consume_bft_sender_budget(self, artifact: Json) -> bool:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     sender = self._bft_sender_budget_key(artifact)
     if not sender:
@@ -124,7 +125,6 @@ def _consume_bft_sender_budget(self, artifact: Json) -> bool:
     return True
 
 def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     try:
         key = hashlib.sha256(_canon_json(dict(proposal)).encode("utf-8")).hexdigest()
@@ -143,7 +143,6 @@ def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
     return False
 
 def _recent_bft_qc_key(self, qcj: Json) -> str:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     try:
         return hashlib.sha256(_canon_json(dict(qcj)).encode("utf-8")).hexdigest()
@@ -151,28 +150,24 @@ def _recent_bft_qc_key(self, qcj: Json) -> str:
         return ""
 
 def _has_recent_bft_qc(self, qcj: Json) -> bool:
-    _bind_executor_globals()
     key = self._recent_bft_qc_key(qcj)
     if not key:
         return False
     return key in self._recent_bft_qcs
 
 def _record_recent_bft_qc(self, qcj: Json) -> None:
-    _bind_executor_globals()
     key = self._recent_bft_qc_key(qcj)
     if not key:
         return
     _bounded_put(self._recent_bft_qcs, key, _now_ms(), cap=int(self._max_recent_bft_qcs))
 
 def _remember_recent_bft_qc(self, qcj: Json) -> bool:
-    _bind_executor_globals()
     if self._has_recent_bft_qc(qcj):
         return True
     self._record_recent_bft_qc(qcj)
     return False
 
 def _remember_recent_bft_vote(self, votej: Json) -> bool:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     try:
         key = hashlib.sha256(_canon_json(dict(votej)).encode("utf-8")).hexdigest()
@@ -191,7 +186,6 @@ def _remember_recent_bft_vote(self, votej: Json) -> bool:
     return False
 
 def _remember_recent_bft_timeout(self, timeoutj: Json) -> bool:
-    _bind_executor_globals()
     self._ensure_recent_bft_artifact_caches()
     try:
         key = hashlib.sha256(_canon_json(dict(timeoutj)).encode("utf-8")).hexdigest()
@@ -210,7 +204,6 @@ def _remember_recent_bft_timeout(self, timeoutj: Json) -> bool:
     return False
 
 def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(payload, dict):
         return False
 

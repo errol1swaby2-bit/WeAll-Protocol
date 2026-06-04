@@ -9,19 +9,36 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-from weall.runtime.executor_symbols import bind_executor_globals
 
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
-
+from weall.runtime.executor import (
+    HelperCertificateStore,
+    HelperDispatchContext,
+    HelperLaneJournal,
+    Json,
+    Path,
+    _helper_execution_profile,
+    apply_helper_quarantine_to_lane_plans,
+    build_lane_audit_plan,
+    build_validator_execution_manifest,
+    canonical_lane_plan_fingerprint,
+    evaluate_lane_audit_plan,
+    merge_helper_lane_results,
+    plan_parallel_execution,
+    sign_validator_execution_manifest,
+    summarize_assignment_counts,
+    summarize_helper_capabilities,
+    summarize_helper_capacity_usage,
+    summarize_helper_reputation_state,
+    summarize_lane_audit_results,
+    update_helper_reputation_state,
+    validator_execution_summary,
+    verify_block_helper_plan_metadata,
+)
 
 def _helper_mode_enabled_runtime(self) -> bool:
-    _bind_executor_globals()
     return bool(getattr(self, "_helper_mode_enabled_effective", False))
 
 def _requested_helper_execution_profile(self) -> Json:
-    _bind_executor_globals()
     return _helper_execution_profile(
         helper_mode_enabled=bool(self._helper_mode_enabled_default),
         helper_fast_path_enabled=bool(self._helper_fast_path_enabled_default),
@@ -29,7 +46,6 @@ def _requested_helper_execution_profile(self) -> Json:
     )
 
 def _effective_helper_execution_profile(self) -> Json:
-    _bind_executor_globals()
     return _helper_execution_profile(
         helper_mode_enabled=bool(self._helper_mode_enabled_runtime()),
         helper_fast_path_enabled=bool(self._helper_fast_path_enabled()),
@@ -37,11 +53,9 @@ def _effective_helper_execution_profile(self) -> Json:
     )
 
 def _helper_fast_path_enabled(self) -> bool:
-    _bind_executor_globals()
     return bool(getattr(self, "_helper_fast_path_enabled_effective", False))
 
 def _helper_lane_journal_path(self, *, block_height: int) -> str:
-    _bind_executor_globals()
     name = f"lane_journal_h{int(block_height)}.jsonl"
     return str(Path(self._helper_lane_journal_dir) / name)
 
@@ -60,7 +74,6 @@ def _helper_dispatch_context(
     strict_helper_state_delta_hash: bool = False,
     plan_id: str = "",
 ) -> HelperDispatchContext:
-    _bind_executor_globals()
     return HelperDispatchContext(
         chain_id=self.chain_id,
         block_height=int(block_height),
@@ -91,7 +104,6 @@ def _build_helper_execution_metadata(
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
     helper_state_deltas_by_lane: dict[str, list[Json]] | None = None,
 ) -> Json:
-    _bind_executor_globals()
     if not self._helper_fast_path_enabled():
         return {}
     ctx0 = self._helper_dispatch_context(block_height=int(block_height))

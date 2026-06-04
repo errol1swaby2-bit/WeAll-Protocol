@@ -9,15 +9,33 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-from weall.runtime.executor_symbols import bind_executor_globals
 
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
-
+from weall.runtime.executor import (
+    CLOCK_SKEW_WARN_MS,
+    ExecutorError,
+    GENESIS_CREATED_MS,
+    Json,
+    MAX_BLOCK_FUTURE_DRIFT_MS,
+    PRODUCTION_CONSENSUS_PROFILE,
+    PROTOCOL_VERSION,
+    REPUTATION_SCALE,
+    _env_bool,
+    _env_int,
+    _genesis_bootstrap_profile_hash,
+    _helper_execution_profile_hash,
+    _mode,
+    _normalize_mempool_selection_policy,
+    account_reputation_units,
+    ensure_roles_schema,
+    hashlib,
+    os,
+    record_bootstrap_tier2_grant,
+    sync_account_reputation,
+    threshold_to_units,
+    units_to_reputation_text,
+)
 
 def _current_genesis_bootstrap_profile(self) -> Json:
-    _bind_executor_globals()
     explicit_enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
     genesis_mode_enabled = _env_bool("WEALL_GENESIS_MODE", False)
     acct = str(os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT") or "").strip()
@@ -61,7 +79,6 @@ def _current_genesis_bootstrap_profile(self) -> Json:
     }
 
 def _initial_state(self) -> Json:
-    _bind_executor_globals()
     genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
     # Open PoH bootstrap is a local-dev-only escape hatch.  It must never be
     # enabled implicitly, because controlled multi-node devnet readiness must
@@ -171,7 +188,6 @@ def _initial_state(self) -> Json:
 
 def _mk_key_id(pubkey: str) -> str:
     """Stable deterministic key id for accounts[acct]["keys"]["by_id"]."""
-    _bind_executor_globals()
     h = hashlib.sha256(str(pubkey).encode("utf-8")).hexdigest()
     return f"k:{h[:16]}"
 
@@ -201,7 +217,6 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
       - Missing or partial config fails closed.
       - If WEALL_NODE_ID is set and differs from BOOTSTRAP_ACCOUNT, fail-closed.
     """
-    _bind_executor_globals()
 
     try:
         height = int(state.get("height", 0) or 0)

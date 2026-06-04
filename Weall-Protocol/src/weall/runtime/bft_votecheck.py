@@ -2,14 +2,20 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_votecheck.py)."""
 
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
+from weall.runtime.executor import (
+    Path,
+    WeAllExecutor,
+    _bounded_put,
+    _canon_json,
+    _now_ms,
+    _safe_int,
+    copy,
+    ensure_block_hash,
+    os,
+    verify_block_helper_plan_metadata,
+)
 
 def _votecheck_cache_get(self, block_hash: str) -> bool | None:
-    _bind_executor_globals()
     key = str(block_hash or "").strip()
     if not key:
         return None
@@ -23,14 +29,12 @@ def _votecheck_cache_get(self, block_hash: str) -> bool | None:
         return None
 
 def _votecheck_cache_put(self, block_hash: str, ok: bool) -> None:
-    _bind_executor_globals()
     key = str(block_hash or "").strip()
     if not key:
         return
     _bounded_put(self._votecheck_cache, key, bool(ok), cap=self._max_votecheck_cache)
 
 def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
-    _bind_executor_globals()
     key = str(peer_id or "").strip() or "<unknown>"
     now_ms = _now_ms()
     entry = self._proposal_peer_budget.get(key)
@@ -51,7 +55,6 @@ def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
     return count <= self._proposal_peer_budget_max
 
 def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
-    _bind_executor_globals()
     root = self._spec_exec_pool_root / str(slot)
     root.mkdir(parents=True, exist_ok=True)
     db_path = str(root / "votecheck.sqlite")
@@ -59,24 +62,20 @@ def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
     return db_path, aux_path
 
 def _make_spec_exec_slot(self) -> tuple[str, str]:
-    _bind_executor_globals()
     slot = f"slot-{len(self._spec_exec_pool)}-{_now_ms()}"
     return self._spec_exec_paths_for_slot(slot)
 
 def _acquire_spec_exec_slot(self) -> tuple[str, str]:
-    _bind_executor_globals()
     if self._spec_exec_pool:
         return self._spec_exec_pool.pop()
     return self._make_spec_exec_slot()
 
 def _release_spec_exec_slot(self, slot: tuple[str, str]) -> None:
-    _bind_executor_globals()
     if len(self._spec_exec_pool) >= self._max_spec_exec_pool:
         return
     self._spec_exec_pool.append(slot)
 
 def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
-    _bind_executor_globals()
     db_path, aux_path = slot
     for path in (db_path, aux_path):
         try:
@@ -105,7 +104,6 @@ def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
     return clone
 
 def _proposal_votecheck_static_ok(self, block: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return False
     header = block.get("header") if isinstance(block.get("header"), dict) else {}
@@ -139,7 +137,6 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
     return True
 
 def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return False
     try:

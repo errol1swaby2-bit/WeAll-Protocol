@@ -8,31 +8,52 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.executor import (
+    ApplyError,
+    ExecutorMeta,
+    Json,
+    LedgerView,
+    MAX_BLOCK_TIME_ADVANCE_MS,
+    TxEnvelope,
+    _consensus_fail_closed,
+    _helper_execution_profile_hash,
+    _normalize_mempool_selection_policy,
+    _pinned_helper_execution_profile,
+    _pinned_mempool_selection_policy,
+    _safe_int,
+    _sanitize_mempool_selection_marker,
+    _summarize_transition_guardrail_receipts,
+    admit_block_txs,
+    commit_clock_policy_to_state,
+    compute_block_id,
+    compute_helper_execution_root,
+    compute_receipts_root,
+    compute_state_root,
+    compute_tx_id,
+    constitutional_procedure_height,
+    copy,
+    ensure_block_hash,
+    expected_block_time_ms,
+    is_too_early,
+    load_chain_manifest,
+    make_block_header,
+    make_vrf_record,
+    os,
+    policy_from_manifest,
+    policy_to_json,
+    runtime_vrf_required,
+    validate_system_tx_queue_binding,
+)
+
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
     prune_emitted,
     run_leader_post_schedulers,
     run_leader_pre_schedulers,
+    queue_item_phase,
 )
 
-
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals(), refresh=(
-        "apply_tx_atomic_meta",
-        "schedule_poh_async_system_txs",
-        "schedule_poh_tier2_system_txs",
-        "schedule_poh_live_system_txs",
-        "schedule_node_operator_system_txs",
-        "schedule_reputation_accrual_system_txs",
-        "tick_governance_lifecycle",
-        "tick_dispute_lifecycle",
-        "system_tx_emitter",
-        "prune_emitted_system_queue",
-    ))
 
 
 def produce_block(
@@ -41,7 +62,6 @@ def produce_block(
     max_txs: int = 1000,
     allow_empty: bool | None = None,
 ) -> ExecutorMeta:
-    _bind_executor_globals()
     h0 = _safe_int(self.state.get("height"), 0)
 
     block_forbidden_reason = self._prod_observer_block_production_reason()
@@ -118,7 +138,6 @@ def build_block_candidate(
     helper_certificates: dict[str, HelperExecutionCertificate] | None = None,
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
-    _bind_executor_globals()
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
@@ -303,7 +322,7 @@ def build_block_candidate(
                 if isinstance(payload_for_phase, dict)
                 else ""
             )
-            phase_for_binding = _queue_item_phase(qid_for_phase) or "post"
+            phase_for_binding = queue_item_phase(working, qid_for_phase) or "post"
             ok_binding, why_binding = validate_system_tx_queue_binding(
                 working,
                 self.tx_index,

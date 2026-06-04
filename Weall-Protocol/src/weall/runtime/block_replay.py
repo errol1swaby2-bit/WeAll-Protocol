@@ -8,6 +8,38 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.executor import (
+    ApplyError,
+    ExecutorMeta,
+    Json,
+    LedgerView,
+    MAX_BLOCK_TIME_ADVANCE_MS,
+    TxEnvelope,
+    _call_admit_bft_commit_block,
+    _consensus_fail_closed,
+    _helper_execution_profile_hash,
+    _mode,
+    _normalize_mempool_selection_policy,
+    _pinned_helper_execution_profile,
+    _pinned_mempool_selection_policy,
+    _safe_int,
+    _sanitize_mempool_selection_marker,
+    _summarize_transition_guardrail_receipts,
+    admit_block_txs,
+    compute_block_hash,
+    compute_block_id,
+    compute_helper_execution_root,
+    compute_receipts_root,
+    compute_state_root,
+    copy,
+    effective_bft_enabled,
+    ensure_block_hash,
+    runtime_mode,
+    runtime_vrf_required,
+    validate_system_tx_queue_binding,
+    verify_vrf_record,
+)
+
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -17,23 +49,6 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_pre_schedulers,
 )
 
-
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals(), refresh=(
-        "apply_tx_atomic_meta",
-        "schedule_poh_async_system_txs",
-        "schedule_poh_tier2_system_txs",
-        "schedule_poh_live_system_txs",
-        "schedule_node_operator_system_txs",
-        "schedule_reputation_accrual_system_txs",
-        "tick_governance_lifecycle",
-        "tick_dispute_lifecycle",
-        "system_tx_emitter",
-        "prune_emitted_system_queue",
-    ))
 
 
 def apply_block(self, block: Json) -> ExecutorMeta:
@@ -50,7 +65,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         subtrees exist, enqueue system queue items, confirm emitted queue items).
       - We verify receipts_root and state_root (if present) against a fresh replay.
     """
-    _bind_executor_globals()
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_fetch_requests.py)."""
 
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
+from weall.runtime.executor import (
+    Json,
+    OrderedDict,
+    _safe_int,
+    os,
+)
 
 def _ensure_pending_fetch_budgets(self) -> None:
-    _bind_executor_globals()
     if not hasattr(self, "_max_missing_parent_fetches_per_call"):
         self._max_missing_parent_fetches_per_call = max(
             1,
@@ -26,7 +26,6 @@ def _ensure_pending_fetch_budgets(self) -> None:
         self._missing_qc_fetch_cursor = 0
 
 def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Json]:
-    _bind_executor_globals()
     self._ensure_pending_fetch_budgets()
     if not descriptors:
         self._missing_parent_fetch_cursor = 0
@@ -77,7 +76,6 @@ def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Js
     return out
 
 def bft_pending_fetch_request_descriptors(self) -> list[Json]:
-    _bind_executor_globals()
     wants: OrderedDict[str, Json] = OrderedDict()
 
     for bid in list(self._pending_missing_qc_entries().keys()):
@@ -131,7 +129,6 @@ def bft_pending_fetch_request_descriptors(self) -> list[Json]:
     return self._bounded_fetch_request_descriptors(out)
 
 def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
-    _bind_executor_globals()
     if not isinstance(desc, dict):
         return None
     bid = str(desc.get("block_id") or "").strip()
@@ -162,7 +159,6 @@ def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
     return out
 
 def bft_resolved_pending_fetch_request_descriptors(self) -> list[Json]:
-    _bind_executor_globals()
     out: list[Json] = []
     seen: set[tuple[str, str]] = set()
     for item in self.bft_pending_fetch_request_descriptors():
@@ -179,7 +175,6 @@ def bft_resolved_pending_fetch_request_descriptors(self) -> list[Json]:
     return out
 
 def bft_pending_fetch_requests(self) -> list[str]:
-    _bind_executor_globals()
     return [
         str(d.get("block_id") or "").strip()
         for d in self.bft_resolved_pending_fetch_request_descriptors()
@@ -187,7 +182,6 @@ def bft_pending_fetch_requests(self) -> list[str]:
     ]
 
 def bft_resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
-    _bind_executor_globals()
     out = self._resolve_fetch_request_descriptor(desc)
     if isinstance(out, dict):
         out = dict(out)

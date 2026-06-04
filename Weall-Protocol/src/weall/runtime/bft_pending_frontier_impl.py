@@ -2,14 +2,23 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_pending_frontier.py)."""
 
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
+from weall.runtime.executor import (
+    ExecutorMeta,
+    Json,
+    OrderedDict,
+    _block_hash_from_any,
+    _bounded_put,
+    _canon_json,
+    _mode,
+    _now_ms,
+    _safe_int,
+    ensure_block_hash,
+    is_descendant,
+    json,
+    leader_for_view,
+)
 
 def _persist_pending_bft_artifact(self, *, kind: str, block_id: str, payload: Json) -> None:
-    _bind_executor_globals()
     skind = str(kind or "").strip()
     bid = str(block_id or "").strip()
     if not skind or not bid or not isinstance(payload, dict):
@@ -31,7 +40,6 @@ def _persist_pending_bft_artifact(self, *, kind: str, block_id: str, payload: Js
         return
 
 def _delete_pending_bft_artifact(self, *, kind: str, block_id: str) -> None:
-    _bind_executor_globals()
     skind = str(kind or "").strip()
     bid = str(block_id or "").strip()
     if not skind or not bid:
@@ -45,7 +53,6 @@ def _delete_pending_bft_artifact(self, *, kind: str, block_id: str) -> None:
         return
 
 def _restore_pending_bft_frontier(self) -> None:
-    _bind_executor_globals()
     stale_rows: list[tuple[str, str]] = []
     try:
         with self._aux_db.connection() as con:
@@ -102,7 +109,6 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(
     previous_epoch: int,
     previous_set_hash: str,
 ) -> bool:
-    _bind_executor_globals()
     current_epoch = self._current_validator_epoch()
     current_set_hash = self._current_validator_set_hash() if int(current_epoch) > 0 else ""
     if (
@@ -113,7 +119,6 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(
     return self._prune_pending_bft_artifacts()
 
 def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     bh = str(block_hash or "").strip()
     if not bid or not bh:
@@ -122,7 +127,6 @@ def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
     _bounded_put(self._known_block_ids_by_hash, bh, bid, cap=self._max_known_block_ids_by_hash)
 
 def _lookup_committed_block_hash_index(self, block_id: str) -> str:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return ""
@@ -145,7 +149,6 @@ def _lookup_committed_block_hash_index(self, block_id: str) -> str:
     return bh
 
 def _lookup_committed_block_id_by_hash(self, block_hash: str) -> str:
-    _bind_executor_globals()
     bh = str(block_hash or "").strip()
     if not bh:
         return ""
@@ -168,7 +171,6 @@ def _lookup_committed_block_id_by_hash(self, block_hash: str) -> str:
     return bid
 
 def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = False) -> str:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return ""
@@ -239,7 +241,6 @@ def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = Fa
     return ""
 
 def _known_block_id_for_hash(self, block_hash: str) -> str:
-    _bind_executor_globals()
     bh = str(block_hash or "").strip()
     if not bh:
         return ""
@@ -333,17 +334,14 @@ def _known_block_id_for_hash(self, block_hash: str) -> str:
     return ""
 
 def _is_conflicted_block_id(self, block_id: str) -> bool:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     return bool(bid and bid in self._conflicted_block_ids)
 
 def _is_conflicted_block_hash(self, block_hash: str) -> bool:
-    _bind_executor_globals()
     bh = str(block_hash or "").strip()
     return bool(bh and bh in self._conflicted_block_hashes)
 
 def _drop_pending_candidate_artifacts(self, block_id: str) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return
@@ -360,7 +358,6 @@ def _drop_pending_candidate_artifacts(self, block_id: str) -> None:
 def _mark_block_id_conflict(
     self, *, block_id: str, known_hash: str, new_hash: str, source: str, parent_id: str = ""
 ) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return
@@ -394,7 +391,6 @@ def _mark_block_hash_conflict(
     source: str,
     parent_id: str = "",
 ) -> None:
-    _bind_executor_globals()
     bh = str(block_hash or "").strip()
     if not bh:
         return
@@ -424,7 +420,6 @@ def _mark_block_hash_conflict(
     )
 
 def _qc_identity_conflicts(self, qcj: Json, *, source: str = "qc") -> bool:
-    _bind_executor_globals()
     if not isinstance(qcj, dict):
         return False
     bid = str(qcj.get("block_id") or "").strip()
@@ -459,7 +454,6 @@ def _qc_identity_conflicts(self, qcj: Json, *, source: str = "qc") -> bool:
     return False
 
 def _block_identity_conflicts(self, block: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return False
     bid = str(block.get("block_id") or "").strip()
@@ -495,7 +489,6 @@ def _block_identity_conflicts(self, block: Json) -> bool:
     return False
 
 def _block_height_hint(self, block: Json) -> int:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return 0
     try:
@@ -505,7 +498,6 @@ def _block_height_hint(self, block: Json) -> int:
         return 0
 
 def _has_local_block(self, block_id: str) -> bool:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return False
@@ -520,7 +512,6 @@ def _has_local_block(self, block_id: str) -> bool:
         return False
 
 def _index_pending_remote_block(self, block: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return
     bid = str(block.get("block_id") or "").strip()
@@ -531,7 +522,6 @@ def _index_pending_remote_block(self, block: Json) -> None:
         )
 
 def _index_quarantined_remote_block(self, block: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return
     bid = str(block.get("block_id") or "").strip()
@@ -545,7 +535,6 @@ def _index_quarantined_remote_block(self, block: Json) -> None:
         )
 
 def _quarantine_remote_block(self, block: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return
     bid = str(block.get("block_id") or "").strip()
@@ -567,7 +556,6 @@ def _quarantine_remote_block(self, block: Json) -> None:
     self._index_quarantined_remote_block(incoming)
 
 def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return
@@ -581,7 +569,6 @@ def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
         self._quarantined_remote_block_ids_by_hash.pop(bh, None)
 
 def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid or not isinstance(block, dict):
         return
@@ -600,7 +587,6 @@ def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
 def _promote_quarantined_remote_block(
     self, block_id: str, *, block: Json | None = None
 ) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     blk = dict(block) if isinstance(block, dict) else None
     if blk is None and bid:
@@ -613,7 +599,6 @@ def _promote_quarantined_remote_block(
     self._put_pending_remote_block(block_id=bid, block=blk)
 
 def _index_pending_candidate(self, block: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(block, dict):
         return
     bid = str(block.get("block_id") or "").strip()
@@ -624,7 +609,6 @@ def _index_pending_candidate(self, block: Json) -> None:
         )
 
 def _index_pending_missing_qc(self, qcj: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(qcj, dict):
         return
     bh = str(qcj.get("block_hash") or "").strip()
@@ -634,7 +618,6 @@ def _index_pending_missing_qc(self, qcj: Json) -> None:
         )
 
 def _put_pending_missing_qc(self, qcj: Json) -> None:
-    _bind_executor_globals()
     if not isinstance(qcj, dict):
         return
     bid = str(qcj.get("block_id") or "").strip()
@@ -656,7 +639,6 @@ def _put_pending_missing_qc(self, qcj: Json) -> None:
 def _drop_pending_missing_qc_aliases(
     self, *, block_id: str = "", qcj: Json | None = None
 ) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     q = dict(qcj) if isinstance(qcj, dict) else None
     if q is None and bid:
@@ -670,7 +652,6 @@ def _drop_pending_missing_qc_aliases(
             self._pending_missing_qcs_by_hash.pop(bh, None)
 
 def _remove_pending_missing_qc(self, *, block_id: str) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return
@@ -682,7 +663,6 @@ def _remove_pending_missing_qc(self, *, block_id: str) -> None:
     self._delete_pending_bft_artifact(kind="pending_missing_qc", block_id=bid)
 
 def _pending_missing_qc_json(self, *, block_id: str = "", block_hash: str = "") -> Json | None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if bid:
         cached = self._pending_missing_qcs.get(bid)
@@ -711,7 +691,6 @@ def _pending_missing_qc_json(self, *, block_id: str = "", block_hash: str = "") 
     return None
 
 def _pending_missing_qc_entries(self) -> OrderedDict[str, Json]:
-    _bind_executor_globals()
     out: OrderedDict[str, Json] = OrderedDict()
     for bid, qcj in list(self._pending_missing_qcs.items()):
         sbid = str(bid or "").strip()
@@ -729,7 +708,6 @@ def _pending_missing_qc_entries(self) -> OrderedDict[str, Json]:
     return out
 
 def _drop_pending_hash_aliases(self, *, block_id: str, block: Json | None = None) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     blk = block if isinstance(block, dict) else None
     if blk is None and bid:
@@ -752,7 +730,6 @@ def _drop_pending_hash_aliases(self, *, block_id: str, block: Json | None = None
             self._pending_candidate_ids_by_hash.pop(bh, None)
 
 def _pending_block_identity_tuple(self, block_id: str) -> tuple[int, str, str]:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     blk = self._bft_pending_block_json(bid)
     if not isinstance(blk, dict):
@@ -760,7 +737,6 @@ def _pending_block_identity_tuple(self, block_id: str) -> tuple[int, str, str]:
     return (int(self._block_height_hint(blk) or 0), _block_hash_from_any(blk), bid)
 
 def _ordered_pending_block_ids(self) -> list[str]:
-    _bind_executor_globals()
     ids = list(
         dict.fromkeys(
             list(self._pending_remote_blocks.keys())
@@ -773,7 +749,6 @@ def _ordered_pending_block_ids(self) -> list[str]:
     return ids
 
 def _drop_pending_remote_artifacts(self, block_id: str) -> None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid:
         return
@@ -788,7 +763,6 @@ def _drop_pending_remote_artifacts(self, block_id: str) -> None:
     self._remove_pending_missing_qc(block_id=bid)
 
 def _bft_speculative_blocks_map(self) -> dict[str, Json]:
-    _bind_executor_globals()
     blocks_any = self.state.get("blocks")
     blocks_map: dict[str, Json] = dict(blocks_any) if isinstance(blocks_any, dict) else {}
 
@@ -832,7 +806,6 @@ def _bft_speculative_blocks_map(self) -> dict[str, Json]:
     return blocks_map
 
 def _bft_pending_block_json(self, block_id: str) -> Json | None:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     if not bid or self._is_conflicted_block_id(bid):
         return None
@@ -848,7 +821,6 @@ def _bft_pending_block_json(self, block_id: str) -> Json | None:
     return None
 
 def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
-    _bind_executor_globals()
     bh = str(block_hash or "").strip()
     if not bh or self._is_conflicted_block_hash(bh):
         return None
@@ -883,7 +855,6 @@ def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
 def _resolve_pending_block_identity(
     self, *, block_id: str = "", block_hash: str = ""
 ) -> tuple[str, Json | None]:
-    _bind_executor_globals()
     bid = str(block_id or "").strip()
     bh = str(block_hash or "").strip()
     blk = self._bft_pending_block_json(bid) if bid else None
@@ -896,7 +867,6 @@ def _resolve_pending_block_identity(
     return (bid, None)
 
 def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(payload, dict):
         return False
     if not self._bft_payload_phase_is_cache_compatible(payload):
@@ -916,7 +886,6 @@ def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
     return True
 
 def _prune_pending_bft_artifacts(self) -> bool:
-    _bind_executor_globals()
     changed = False
     finalized_block_id = str(self._bft.finalized_block_id or "").strip()
     local_height = _safe_int(self.state.get("height"), 0)
@@ -978,7 +947,6 @@ def _prune_pending_bft_artifacts(self) -> bool:
 def _bft_block_is_applyable_finalized_descendant(
     self, block: Json, finalized_block_id: str
 ) -> bool:
-    _bind_executor_globals()
     bid = str(block.get("block_id") or "").strip()
     fin = str(finalized_block_id or "").strip()
     if not bid or not fin:
@@ -988,7 +956,6 @@ def _bft_block_is_applyable_finalized_descendant(
     return is_descendant(self._bft_speculative_blocks_map(), candidate=bid, ancestor=fin)
 
 def _bft_parent_ready_for_apply(self, block: Json) -> bool:
-    _bind_executor_globals()
     parent_id = str(block.get("prev_block_id") or "").strip()
     height = self._block_height_hint(block)
     if height <= 1:
@@ -1007,7 +974,6 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     catch-up behavior and allow contiguous QC-backed replay from the local
     tip even before a later QC advances finalization.
     """
-    _bind_executor_globals()
     results: list[ExecutorMeta] = []
     self._prune_pending_bft_artifacts()
     if _mode() == "prod" and not self._bft_phase_allows_artifact_processing():
@@ -1173,7 +1139,6 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
 def _bft_try_apply_pending_remote_blocks_followup(
     self, *, max_extra: int
 ) -> list[ExecutorMeta]:
-    _bind_executor_globals()
     if max_extra <= 0:
         return []
     saved = int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8)
@@ -1189,7 +1154,6 @@ def bft_cache_remote_block(self, block_json: Json) -> bool:
     Returns True when the block is locally compatible and stored (or already
     present locally), else False.
     """
-    _bind_executor_globals()
     if not isinstance(block_json, dict) or not block_json:
         return False
     try:

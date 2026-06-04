@@ -2,14 +2,23 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_diagnostics.py)."""
 
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
+from weall.runtime.executor import (
+    CLOCK_SKEW_WARN_MS,
+    Json,
+    MAX_BLOCK_FUTURE_DRIFT_MS,
+    MAX_BLOCK_TIME_ADVANCE_MS,
+    PRODUCTION_CONSENSUS_PROFILE,
+    REPUTATION_SCALE,
+    STARTUP_CLOCK_HARD_FAIL_MS,
+    _block_hash_from_any,
+    _helper_execution_profile_hash,
+    _mode,
+    _now_ms,
+    _safe_int,
+    _sanitize_helper_execution_profile,
+)
 
 def bft_diagnostics(self) -> Json:
-    _bind_executor_globals()
     pending_pruned = self._prune_pending_bft_artifacts()
     pending_remote_blocks = self._ordered_pending_block_ids()
     pending_remote_block_hashes = [
@@ -285,7 +294,6 @@ def bft_diagnostics(self) -> Json:
     }
 
 def bft_recent_rejection_summary(self, *, limit: int = 25) -> Json:
-    _bind_executor_globals()
     tail = list(self._bft_journal.read_tail(limit=max(1, int(limit) * 4)) or [])
     items: list[Json] = []
     by_reason: dict[str, int] = {}
@@ -329,14 +337,11 @@ def bft_recent_rejection_summary(self, *, limit: int = 25) -> Json:
     }
 
 def bft_current_view(self) -> int:
-    _bind_executor_globals()
     return int(self._bft.view)
 
 def bft_current_validator_epoch(self) -> int:
-    _bind_executor_globals()
     return int(self._current_validator_epoch())
 
 def bft_current_validator_set_hash(self) -> str:
-    _bind_executor_globals()
     return str(self._current_validator_set_hash() or "").strip()
 

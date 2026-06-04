@@ -9,12 +9,19 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-from weall.runtime.executor_symbols import bind_executor_globals
 
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
-
+from weall.runtime.executor import (
+    ExecutorMeta,
+    Path,
+    _canon_json,
+    _consensus_fail_closed,
+    _format_commit_failure,
+    _now_ms,
+    ensure_block_hash,
+    maybe_trigger_failpoint,
+    os,
+    prune_emitted_system_queue,
+)
 
 def commit_block_candidate(
     self,
@@ -29,7 +36,6 @@ def commit_block_candidate(
     Production invariant: a node crash or SIGKILL during commit must not leave
     a partially-committed DB (e.g., block row without ledger_state update).
     """
-    _bind_executor_globals()
     try:
         height = int(block.get("height") or 0)
         block_id = str(block.get("block_id") or "")

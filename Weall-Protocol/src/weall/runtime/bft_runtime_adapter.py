@@ -8,18 +8,44 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.executor import (
+    BFT_MIN_VALIDATORS,
+    BftTimeout,
+    BftVote,
+    CONSENSUS_PHASE_BFT_ACTIVE,
+    Json,
+    QuorumCert,
+    _bounded_put,
+    _call_admit_bft_block,
+    _env_bool,
+    _mode,
+    _now_ms,
+    _safe_int,
+    canonical_proposal_message,
+    canonical_timeout_message,
+    canonical_vote_message,
+    compute_block_id,
+    effective_bft_enabled,
+    ensure_block_hash,
+    leader_for_view,
+    maybe_trigger_failpoint,
+    normalize_consensus_phase,
+    normalize_validators,
+    os,
+    qc_from_json,
+    sign_ed25519,
+    verify_proposal_json,
+    verify_qc,
+)
+
+from weall.runtime.bft_hotstuff import validator_set_hash
+
 from weall.runtime import bft_artifact_cache as _bft_artifact_cache
 from weall.runtime import bft_diagnostics as _bft_diagnostics
 from weall.runtime import bft_fetch_requests as _bft_fetch_requests
 from weall.runtime import bft_outbound as _bft_outbound
 from weall.runtime import bft_pending_frontier as _bft_pending_frontier
 from weall.runtime import bft_votecheck as _bft_votecheck
-
-from weall.runtime.executor_symbols import bind_executor_globals
-
-
-def _bind_executor_globals() -> None:
-    bind_executor_globals(globals())
 
 
 def _restore_bft_restart_hints(self, *args, **kwargs):
@@ -147,7 +173,6 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
 
     Returns a vote JSON if we should vote, else None.
     """
-    _bind_executor_globals()
     if not isinstance(proposal, dict):
         return None
 
@@ -402,13 +427,11 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
 
 def bft_on_vote(self, vote: Json) -> Json | None:
     """Handle a vote and return a QC JSON if one was formed."""
-    _bind_executor_globals()
     qc = self.bft_handle_vote(vote)
     return qc.to_json() if qc is not None else None
 
 def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
     """Handle a QC and commit if it refers to a known block."""
-    _bind_executor_globals()
     if not isinstance(qcj, dict):
         return None
     if not self._bft_artifact_shape_fast_fail("qc", qcj):
@@ -454,13 +477,11 @@ def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
 
 def bft_on_timeout(self, timeoutj: Json) -> Json | None:
     """Handle a timeout and return a QC JSON if one was formed."""
-    _bind_executor_globals()
     qc = self.bft_handle_timeout(timeoutj)
     return qc.to_json() if qc is not None else None
 
 def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
     """Return any timeout messages we should broadcast."""
-    _bind_executor_globals()
     if not _env_bool("WEALL_AUTOTIMEOUT", False):
         return []
     try:
@@ -487,7 +508,6 @@ def _active_validators(self) -> list[str]:
     authoritative production source. The role active_set fallback remains only
     for older tests/persisted states that predate the consensus validator_set.
     """
-    _bind_executor_globals()
     st = getattr(self, "state", {})
     if not isinstance(st, dict):
         st = {}
@@ -518,7 +538,6 @@ def _active_validators(self) -> list[str]:
     return []
 
 def _validator_pubkeys(self) -> dict[str, str]:
-    _bind_executor_globals()
     out: dict[str, str] = {}
     c = self.state.get("consensus")
     if not isinstance(c, dict):
@@ -538,7 +557,6 @@ def _validator_pubkeys(self) -> dict[str, str]:
     return out
 
 def _current_validator_epoch(self) -> int:
-    _bind_executor_globals()
     c = self.state.get("consensus")
     if isinstance(c, dict):
         ep = c.get("epochs")
@@ -554,7 +572,6 @@ def _current_validator_epoch(self) -> int:
     return 0
 
 def _current_validator_set_hash(self) -> str:
-    _bind_executor_globals()
     c = self.state.get("consensus")
     if isinstance(c, dict):
         vs = c.get("validator_set")
@@ -566,7 +583,6 @@ def _current_validator_set_hash(self) -> str:
     return validator_set_hash(vals) if vals else ""
 
 def _current_consensus_phase(self) -> str:
-    _bind_executor_globals()
     c = self.state.get("consensus")
     phase_raw = ""
     if isinstance(c, dict):
@@ -588,13 +604,11 @@ def _bft_phase_allows_artifact_processing(self) -> bool:
     # Pre-phase legacy/dev/test states still rely on BFT artifacts, so only the
     # explicit committed bootstrap phases in production suppress vote/timeout/QC
     # processing. Non-production modes retain their historical behavior.
-    _bind_executor_globals()
     if _mode() != "prod":
         return True
     return self._current_consensus_phase() == CONSENSUS_PHASE_BFT_ACTIVE
 
 def _pending_consensus_phase(self) -> str:
-    _bind_executor_globals()
     c = self.state.get("consensus")
     pending_phase = ""
     active_count = len(self._active_validators())
@@ -624,7 +638,6 @@ def _pending_consensus_phase(self) -> str:
     return normalize_consensus_phase(pending_phase, validator_count=active_count)
 
 def _bft_payload_phase_matches_current_security_model(self, payload: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(payload, dict):
         return False
     payload_phase = str(payload.get("consensus_phase") or "").strip()
@@ -651,7 +664,6 @@ def _bft_payload_phase_is_cache_compatible(self, payload: Json) -> bool:
     ability to remember a fetched block. Explicitly phase-labeled artifacts
     must still match the committed security model.
     """
-    _bind_executor_globals()
     if not isinstance(payload, dict):
         return False
     payload_phase = str(payload.get("consensus_phase") or "").strip()
@@ -665,18 +677,15 @@ def _bft_payload_phase_is_cache_compatible(self, payload: Json) -> bool:
 
 def _validator_epoch(self) -> tuple[int, str]:
     """Back-compat helper used by existing tests/batches."""
-    _bind_executor_globals()
     return (self._current_validator_epoch(), self._current_validator_set_hash())
 
 def _bft_strict_epoch_binding_enabled(self) -> bool:
-    _bind_executor_globals()
     raw = os.environ.get("WEALL_BFT_STRICT_EPOCH_BINDING")
     if raw is not None:
         return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
     return (os.environ.get("WEALL_MODE") or "prod").strip().lower() == "prod"
 
 def _bft_epoch_binding_matches(self, payload: Json) -> bool:
-    _bind_executor_globals()
     if not isinstance(payload, dict):
         return False
     local_epoch = self._current_validator_epoch()
@@ -702,7 +711,6 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(self, *args, **kw
 
 
 def _local_validator_account(self) -> str:
-    _bind_executor_globals()
     registry = self._validator_pubkeys()
     env_pubkey = str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
     configured = str(os.environ.get("WEALL_VALIDATOR_ACCOUNT") or "").strip()
@@ -724,7 +732,6 @@ def _local_validator_account(self) -> str:
     return ""
 
 def _local_validator_identity(self) -> tuple[str, str, str]:
-    _bind_executor_globals()
     signer = self._local_validator_account()
     pubkey = str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
     privkey = str(os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
@@ -900,7 +907,6 @@ def _bft_try_apply_pending_remote_blocks_followup(self, *args, **kwargs):
 
 
 def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]:
-    _bind_executor_globals()
     try:
         blocks_map = self.state.get("blocks")
         if not isinstance(blocks_map, dict):
@@ -922,14 +928,12 @@ def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]
         return []
 
 def committed_chain_median_time_past_ms(self, *, limit: int = 11) -> int:
-    _bind_executor_globals()
     vals = sorted(self._committed_chain_recent_timestamps_ms(limit=limit))
     if not vals:
         return _safe_int(self.state.get("tip_ts_ms") or self.state.get("last_block_ts_ms"), 0)
     return int(vals[len(vals) // 2])
 
 def chain_time_floor_ms(self) -> int:
-    _bind_executor_globals()
     tip_ts_ms = _safe_int(self.state.get("tip_ts_ms") or self.state.get("last_block_ts_ms"), 0)
     mtp_ms = self.committed_chain_median_time_past_ms()
     return max(int(tip_ts_ms), int(mtp_ms))
@@ -987,7 +991,6 @@ def bft_current_validator_set_hash(self, *args, **kwargs):
 
 
 def bft_set_view(self, view: int) -> None:
-    _bind_executor_globals()
     requested = int(view)
     current = int(self._bft.view)
     if requested > current:
@@ -995,7 +998,6 @@ def bft_set_view(self, view: int) -> None:
     self._persist_bft_state()
 
 def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
-    _bind_executor_globals()
     local_epoch = int(self._current_validator_epoch())
     local_set_hash = (
         str(self._current_validator_set_hash() or "").strip() if local_epoch > 0 else ""
@@ -1061,7 +1063,6 @@ def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
         pass
 
 def _persist_bft_state(self) -> None:
-    _bind_executor_globals()
     self._prune_bft_liveness_caches_for_current_epoch()
     self.state["bft"] = self._bft.export_state()
     maybe_trigger_failpoint("bft_state_before_persist")
@@ -1074,7 +1075,6 @@ def _persist_bft_state(self) -> None:
     )
 
 def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
-    _bind_executor_globals()
     if not self._bft_phase_allows_artifact_processing():
         return None
     if not self._bft_payload_phase_matches_current_security_model(qcj):
@@ -1093,7 +1093,6 @@ def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
     return qc
 
 def bft_handle_qc(self, qcj: Json) -> bool:
-    _bind_executor_globals()
     qc = self.bft_verify_qc_json(qcj)
     if qc is None:
         return False
@@ -1114,7 +1113,6 @@ def bft_handle_qc(self, qcj: Json) -> bool:
     return True
 
 def _bft_best_justify_qc_json(self) -> Json | None:
-    _bind_executor_globals()
     if self._bft.high_qc is not None:
         return self._bft.high_qc.to_json()
 
@@ -1132,7 +1130,6 @@ def _bft_best_justify_qc_json(self) -> Json | None:
     return None
 
 def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
-    _bind_executor_globals()
     if not self._validator_signing_permitted():
         return None
 
@@ -1212,7 +1209,6 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
     return blk
 
 def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
-    _bind_executor_globals()
     if not isinstance(vote_json, dict):
         return None
     if str(vote_json.get("t") or "") != "VOTE":
@@ -1264,7 +1260,6 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
     return qc
 
 def bft_commit_if_ready(self, qc: QuorumCert) -> ExecutorMeta | None:
-    _bind_executor_globals()
     validators = self._active_validators()
     vpub = self._validator_pubkeys()
     if not verify_qc(qc=qc, validators=validators, validator_pubkeys=vpub):
@@ -1281,7 +1276,6 @@ def bft_commit_if_ready(self, qc: QuorumCert) -> ExecutorMeta | None:
 def bft_make_vote_for_block(
     self, *, view: int, block_id: str, block_hash: str, parent_id: str
 ) -> Json | None:
-    _bind_executor_globals()
     if not self._validator_signing_permitted():
         return None
     if not self._bft_phase_allows_artifact_processing():
@@ -1322,7 +1316,6 @@ def bft_make_vote_for_block(
     return out
 
 def bft_make_timeout(self, *, view: int) -> Json | None:
-    _bind_executor_globals()
     if not self._validator_signing_permitted():
         return None
     if not self._bft_phase_allows_artifact_processing():
@@ -1370,7 +1363,6 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
     return tjson
 
 def bft_handle_timeout(self, timeout_json: Json) -> int | None:
-    _bind_executor_globals()
     if not isinstance(timeout_json, dict):
         return None
     if str(timeout_json.get("t") or "") != "TIMEOUT":
@@ -1415,7 +1407,6 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
     return None
 
 def bft_timeout_check(self) -> Json | None:
-    _bind_executor_globals()
     timeout_ms = int(self._bft.pacemaker_timeout_ms())
     now = _now_ms()
     if (now - int(self._bft.last_progress_ms)) < timeout_ms:
