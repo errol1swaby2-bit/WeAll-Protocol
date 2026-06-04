@@ -66,6 +66,7 @@ from weall.runtime.constitutional_clock import (
 from weall.runtime.gov_engine import tick_governance_lifecycle
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import ApplyError, apply_tx_atomic_meta
+from weall.runtime.executor_boot import prepare_executor_init_paths
 from weall.runtime.failpoints import maybe_trigger_failpoint
 from weall.runtime.mempool import PersistentMempool, compute_tx_id
 from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
@@ -122,7 +123,7 @@ from weall.runtime.reputation_units import (
     units_to_reputation,
     units_to_reputation_text,
 )
-from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore, _canon_json, derive_aux_db_path
+from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore, _canon_json
 from weall.runtime.state_hash import compute_state_root
 
 # SqliteLedgerStore is defined in weall.runtime.sqlite_db in this repo layout
@@ -466,23 +467,18 @@ class WeAllExecutor:
         self.chain_id = str(chain_id)
         self.tx_index_path = str(tx_index_path)
 
-        self.db_path = str(db_path)
-        db_file_existed_before_init = Path(self.db_path).exists()
-        _ensure_parent(self.db_path)
-        aux_db_override = str(os.environ.get("WEALL_AUX_DB_PATH") or "").strip()
-        self.aux_db_path = aux_db_override or derive_aux_db_path(self.db_path)
-        _ensure_parent(self.aux_db_path)
+        _init_paths = prepare_executor_init_paths(
+            db_path=str(db_path),
+            tx_index_path=self.tx_index_path,
+        )
+        self.db_path = _init_paths.db_path
+        db_file_existed_before_init = _init_paths.db_file_existed_before_init
+        self.aux_db_path = _init_paths.aux_db_path
 
         validate_runtime_consensus_profile()
 
-        self._schema_version_cached = (
-            str(os.environ.get("WEALL_SCHEMA_VERSION") or "1").strip() or "1"
-        )
-        try:
-            _b = Path(self.tx_index_path).read_bytes()
-            self._tx_index_hash = hashlib.sha256(_b).hexdigest()
-        except Exception:
-            self._tx_index_hash = ""
+        self._schema_version_cached = _init_paths.schema_version
+        self._tx_index_hash = _init_paths.tx_index_hash
 
         self._db = SqliteDB(path=self.db_path)
         self._db.init_schema()

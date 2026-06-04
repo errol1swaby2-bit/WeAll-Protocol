@@ -13,7 +13,7 @@ Covers common Tier-2 social/account surface:
 
 IMPORTANT:
 - This file is staged only.
-- domain_apply_all.py is NOT modified yet.
+- domain dispatch remains the stable apply boundary.
 - Final router hookup happens after all apply/* modules exist.
 
 Design notes:
