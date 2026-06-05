@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import Any
+from weall.runtime.json_tools import canonical_json_bytes
 
 # NOTE: TxEnvelope lives in tx_admission_types.
 # Importing it directly avoids accidental circular imports and keeps this module
@@ -14,9 +15,7 @@ Json = dict[str, Any]
 
 
 def _json_canonical(obj: Any) -> bytes:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-        "utf-8"
-    )
+    return canonical_json_bytes(obj)
 
 
 def _sha256_hex(data: bytes) -> str:

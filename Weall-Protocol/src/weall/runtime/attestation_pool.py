@@ -5,21 +5,13 @@ import json
 import time
 from dataclasses import dataclass
 from typing import Any
+from weall.runtime.runtime_env import safe_int as _safe_int
+from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
 Json = dict[str, Any]
 
-
-def _now_ms() -> int:
-    return int(time.time() * 1000)
-
-
-def _safe_int(v: Any, default: int) -> int:
-    try:
-        return int(v)
-    except Exception:
-        return int(default)
 
 
 def _envelope_for_id(env: Json) -> Json:

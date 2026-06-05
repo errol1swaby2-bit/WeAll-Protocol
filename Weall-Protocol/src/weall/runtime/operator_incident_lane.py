@@ -4,6 +4,7 @@ import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.chain_config import ChainConfig
 from weall.runtime.operator_incident_actions import evaluate_incident_actions
@@ -13,9 +14,6 @@ from weall.runtime.operator_safe_mode import safe_mode_gate
 
 Json = dict[str, Any]
 
-
-def _canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _coerce_json_object(value: Any) -> Json:

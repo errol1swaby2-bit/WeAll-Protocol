@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
@@ -19,9 +20,6 @@ from weall.runtime.validator_execution_model import verify_validator_execution_m
 
 Json = dict[str, Any]
 
-
-def _canon_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _sha256_hex(value: Any) -> str:

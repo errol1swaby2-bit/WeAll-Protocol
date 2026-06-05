@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]
 
 
 def _canon(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def _as_dict(value: Any) -> Json:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.bootstrap_manifest import (
     expected_startup_fingerprint,
@@ -18,9 +19,6 @@ from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
 Json = dict[str, Any]
 
-
-def _canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _coerce_json_object(value: Any) -> Json:

@@ -51,12 +51,12 @@ That root-level flow wraps backend startup, demo bootstrap, frontend startup, an
 This backend snapshot is synchronized at:
 
 - **Transaction canon:** 231 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** 2,789 passed, 1 warning
+- **Latest full backend test checkpoint:** 3,405 passed, 2 warnings
 
 
-## Controlled-devnet readiness proof
+## Expected reviewer path: controlled-devnet same-machine readiness proof
 
-For protocol-review sessions, the backend also includes a non-seeded controlled-devnet readiness suite:
+For protocol-review sessions, the expected backend path is the existing non-seeded dual-node controlled-devnet readiness suite that runs on one machine:
 
 ```bash
 cd Weall-Protocol
@@ -68,7 +68,7 @@ WEALL_DEVNET_SUITE_RUN_LIVE=1 \
 bash scripts/devnet_controlled_readiness_suite.sh
 ```
 
-This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 native async PoH through protocol commitments, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
+This flow uses normal public transaction submission paths. It verifies direct API permission gating, auto-starts a controlled genesis node and a joining node on the same machine, resets stale controlled-devnet state when auto-starting, creates a fresh account, verifies Tier-1 native async PoH through protocol commitments, syncs node 2, submits a Tier-1-gated action from node 2, syncs node 1 back from node 2, completes Tier-2 live PoH, proves both nodes converge on the same tip and state root, and verifies restart/catch-up.
 
 The readiness suite intentionally never calls `/v1/dev/demo-seed`.
 
@@ -164,7 +164,7 @@ To scrub local runtime artifacts before packaging or pushing:
 ## Release truth checkpoint
 
 - Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
-- Latest full backend test checkpoint: **2789 passed, 1 warning**.
+- Latest full backend test checkpoint: **3405 passed, 2 warnings**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.

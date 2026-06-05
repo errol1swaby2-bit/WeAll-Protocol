@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
+from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]
 
@@ -60,7 +61,7 @@ def _repo_root() -> Path:
 
 
 def canonical_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def sha256_hex(data: bytes | str) -> str:

@@ -5,12 +5,10 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
+from weall.runtime.runtime_time import now_ms as _now_ms
 
 Json = dict[str, Any]
 
-
-def _now_ms() -> int:
-    return int(time.time() * 1000)
 
 
 class BftJournal:

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from typing import Any, Dict, Mapping, Sequence
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 import binascii
 
@@ -12,9 +13,6 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from .helper_planner import HelperPlan, build_helper_plan, canonicalize_txs, stable_tx_id
 from .helper_receipts import HelperReceipt, sign_helper_receipt, verify_helper_receipt
 
-
-def _canon_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _sha256_hex(value: Any) -> str:

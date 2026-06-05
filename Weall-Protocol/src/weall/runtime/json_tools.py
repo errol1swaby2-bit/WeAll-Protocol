@@ -40,3 +40,19 @@ def deep_get(obj: Any, path: Sequence[Any] | Iterable[Any], default: Any = None)
         else:
             return default
     return cur
+
+
+def canonical_json_str(value: Any) -> str:
+    """Return the consensus canonical JSON string used for hashes/IDs.
+
+    Keep separators and key ordering aligned with the existing sqlite/runtime
+    canonical helper so moving call sites here is byte-preserving.
+    """
+    import json
+
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def canonical_json_bytes(value: Any) -> bytes:
+    """Return UTF-8 bytes for ``canonical_json_str(value)``."""
+    return canonical_json_str(value).encode("utf-8")

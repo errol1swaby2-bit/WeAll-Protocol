@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
+from weall.runtime.runtime_env import safe_int
 
 from weall.runtime.helper_audit import LaneAuditResult
 from weall.runtime.parallel_execution import LanePlan
@@ -10,10 +11,7 @@ Json = dict[str, Any]
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return int(default)
+    return safe_int(value, default)
 
 
 @dataclass(frozen=True, slots=True)

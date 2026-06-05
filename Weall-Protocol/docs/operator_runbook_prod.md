@@ -43,8 +43,8 @@ bash scripts/verify_release_dependencies.sh
 Expected current checkpoint:
 
 ```text
-tx canon: 230 tx types, version 1.25.0
-latest full backend suite: 2789 passed, 1 warning
+tx canon: 231 tx types, version 1.25.0
+latest full backend suite: 3405 passed, 2 warnings
 backend locks: requirements.lock, requirements-dev.lock
 frontend lock: ../web/package-lock.json
 ```

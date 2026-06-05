@@ -4,7 +4,7 @@ from __future__ import annotations
 """Dispute state transitions.
 
 This module contains deterministic apply semantics for dispute-related tx types.
-The legacy router (weall.runtime.domain_apply_all) delegates to `apply_dispute()`
+The canonical runtime dispatcher delegates to `apply_dispute()`
 so we can keep the codebase maintainable.
 
 This module raises DisputeApplyError (instead of ApplyError) so it can remain

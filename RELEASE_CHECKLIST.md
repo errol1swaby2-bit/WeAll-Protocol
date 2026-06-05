@@ -73,7 +73,7 @@ cd Weall-Protocol
 ./scripts/demo_bootstrap_tester.sh
 ```
 
-Controlled-devnet non-seeded readiness proof:
+Controlled-devnet same-machine non-seeded readiness proof:
 
 ```bash
 cd Weall-Protocol
@@ -105,13 +105,14 @@ Check that these files all describe the same startup path and current proof post
 
 The root README should only reference files that are actually tracked in this repository.
 
-## 5. Verify environment examples are present
+## 5. Verify environment templates are present
 
 Confirm these files exist and are current:
 
-- `.env.example`
-- `Weall-Protocol/.env.example`
+- `Weall-Protocol/configs/production.env.example`
 - `web/.env.example`
+
+Local override files such as `.env`, `Weall-Protocol/.env`, and `web/.env.local` should remain untracked.
 
 ## 6. Verify public trust files are present
 
@@ -138,18 +139,18 @@ For external testers, the supported walkthrough is:
 - frontend via Vite dev server
 - demo state via `scripts/demo_bootstrap_tester.sh` or the repository root `scripts/dev_boot_full_stack.sh`
 
-For protocol reviewers, the supported non-seeded readiness proof is:
+For protocol reviewers, the expected non-seeded readiness proof is:
 
-- `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh`
-- `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh`
+- `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh` for the same-machine dual-node controlled-devnet proof
+- `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh` for the fuller onboarding path
 
-Browser onboarding and PoH verification are Cloudflare-free, email-free, and routed through the active WeAll API plus native async/live PoH surfaces. The controlled-devnet proof remains the protocol-native readiness path, while the default general tester flow may still use deterministic demo bootstrap for speed.
+Browser onboarding and PoH verification are Cloudflare-free, email-free, and routed through the active WeAll API plus native async/live PoH surfaces. The controlled-devnet proof is the preferred same-machine reviewer rehearsal because it runs a controlled genesis node and a joining node without using the seeded demo shortcut. The default general tester flow may still use deterministic demo bootstrap for speed.
 
 ## 9. Current validated checkpoint
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: `2789 passed, 1 warning` for the latest audited snapshot; rerun locally before release
+- full backend suite: `3405 passed, 2 warnings` for the latest audited snapshot; rerun locally before release
 - tx canon artifacts: `231 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed

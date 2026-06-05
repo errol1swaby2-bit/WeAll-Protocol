@@ -9,8 +9,8 @@ import copy
 from typing import Any
 
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
-from weall.runtime.domain_apply_all import ApplyError
-from weall.runtime.domain_apply_all import apply_tx as _apply_tx_internal
+from weall.runtime.domain_dispatch import apply_tx as _apply_tx_internal
+from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 Json = dict[str, Any]

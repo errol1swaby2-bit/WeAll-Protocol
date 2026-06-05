@@ -7,9 +7,63 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from weall.runtime.chain_manifest import load_chain_manifest
-from weall.runtime.executor import WeAllExecutor
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 from weall.tx.canon import CanonError, ensure_tx_index_json
+
+
+
+
+@dataclass(frozen=True)
+class ExecutorInitPaths:
+    db_path: str
+    aux_db_path: str
+    db_file_existed_before_init: bool
+    schema_version: str
+    tx_index_hash: str
+
+
+def _ensure_parent_path(path: str) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
+
+def _sha256_file_or_empty(path: str) -> str:
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    except Exception:
+        return ""
+
+
+def prepare_executor_init_paths(*, db_path: str, tx_index_path: str) -> ExecutorInitPaths:
+    """Prepare path-derived executor boot values without mutating consensus state.
+
+    This is deliberately small and behavior-preserving: it only centralizes the
+    filesystem/path setup that used to live inline in ``WeAllExecutor.__init__``.
+    The executor still owns all state loading, profile checks, BFT setup, and
+    posture decisions.
+    """
+    db_path_s = str(db_path)
+    db_file_existed_before_init = Path(db_path_s).exists()
+    _ensure_parent_path(db_path_s)
+    aux_db_override = str(os.environ.get("WEALL_AUX_DB_PATH") or "").strip()
+    # Local import avoids coupling executor_boot to sqlite/runtime internals at
+    # module import time and prevents a circular import with executor.py.
+    from weall.runtime.sqlite_db import derive_aux_db_path
+
+    aux_db_path = aux_db_override or derive_aux_db_path(db_path_s)
+    _ensure_parent_path(aux_db_path)
+    schema_version = str(os.environ.get("WEALL_SCHEMA_VERSION") or "1").strip() or "1"
+    tx_index_hash = _sha256_file_or_empty(str(tx_index_path))
+    return ExecutorInitPaths(
+        db_path=db_path_s,
+        aux_db_path=str(aux_db_path),
+        db_file_existed_before_init=bool(db_file_existed_before_init),
+        schema_version=schema_version,
+        tx_index_hash=tx_index_hash,
+    )
 
 
 @dataclass
@@ -116,6 +170,8 @@ def build_executor(cfg: ExecutorBootConfig | None = None) -> WeAllExecutor:
             ensure_tx_index_json(out_path=c.tx_index_path)
         except CanonError:
             raise
+
+    from weall.runtime.executor import WeAllExecutor
 
     return WeAllExecutor(
         db_path=c.db_path,

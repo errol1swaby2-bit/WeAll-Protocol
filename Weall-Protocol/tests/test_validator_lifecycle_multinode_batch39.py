@@ -5,7 +5,7 @@ from typing import Any
 
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.domain_dispatch import apply_tx
-from weall.runtime.tx_envelope import TxEnvelope
+from weall.runtime.tx_admission_types import TxEnvelope
 
 
 Json = dict[str, Any]
