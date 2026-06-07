@@ -6,10 +6,17 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.constants import (
-    HALVING_INTERVAL_BLOCKS,
-    INITIAL_BLOCK_REWARD,
+    HALVING_INTERVAL_ISSUANCE_EPOCHS,
+    INITIAL_ISSUANCE_PER_EPOCH,
+    ISSUANCE_EPOCH_BLOCKS,
     MAX_SUPPLY,
     TREASURY_ACCOUNT_ID,
+)
+from weall.ledger.issuance import (
+    cap_issuance_by_remaining_supply,
+    issuance_due_at_height,
+    issuance_epoch_index_for_due_height,
+    issuance_subsidy_for_height,
 )
 from weall.ledger.roles_schema import ensure_roles_schema
 
@@ -88,32 +95,23 @@ def _ensure_monetary_policy(econ: Json) -> Json:
 
     mp.setdefault("issued", 0)
     mp.setdefault("max_supply", MAX_SUPPLY)
-    mp.setdefault("initial_reward", INITIAL_BLOCK_REWARD)
-    mp.setdefault("halving_interval_blocks", HALVING_INTERVAL_BLOCKS)
+    mp.setdefault("initial_epoch_issuance", INITIAL_ISSUANCE_PER_EPOCH)
+    mp.setdefault("issuance_epoch_blocks", ISSUANCE_EPOCH_BLOCKS)
+    mp.setdefault("halving_interval_issuance_epochs", HALVING_INTERVAL_ISSUANCE_EPOCHS)
+    mp.setdefault("last_issuance_epoch", -1)
     mp.setdefault("last_reward_height", 0)
 
     return mp
 
 
 def block_subsidy(height: int) -> int:
-    """Return the block subsidy (new issuance) for a given block height (1-indexed)."""
-    h = int(height)
-    if h <= 0:
-        return 0
-    halvings = h // int(HALVING_INTERVAL_BLOCKS)
-    reward = int(INITIAL_BLOCK_REWARD) >> int(halvings)
-    return max(int(reward), 0)
+    """Compatibility wrapper: return epoch issuance only at epoch boundary heights."""
+
+    return int(issuance_subsidy_for_height(int(height)))
 
 
 def _cap_subsidy_by_remaining_supply(issued: int, subsidy: int) -> tuple[int, int]:
-    issued_i = int(issued)
-    sub_i = int(subsidy)
-    if issued_i >= MAX_SUPPLY:
-        return 0, 0
-    remaining = MAX_SUPPLY - issued_i
-    if sub_i > remaining:
-        sub_i = remaining
-    return sub_i, remaining - sub_i
+    return cap_issuance_by_remaining_supply(issued, subsidy, max_supply=MAX_SUPPLY)
 
 
 def _uniq_strs(xs: Iterable[Any]) -> list[str]:
@@ -184,10 +182,12 @@ def apply_genesis_block_rewards(
     receipts: list[Json] | None = None,
     explicit_fee_total: int | None = None,
 ) -> Json:
-    """Apply Genesis (v2.1) subsidy + fees, split 20/20/20/20/20.
+    """Apply Genesis v1.5 epoch issuance + fees, split 20/20/20/20/20.
 
-    Treasury receives its 20% bucket plus all remainder from empty buckets
-    or integer division.
+    New issuance is emitted only at 10-minute issuance epoch boundaries. At the
+    20-second target block interval this means once every 30 blocks. Treasury
+    receives its 20% bucket plus all remainder from empty buckets or integer
+    division.
     """
     if not isinstance(state, dict):
         raise RewardError("invalid_state", "state_not_dict", {"type": str(type(state))})
@@ -200,6 +200,8 @@ def apply_genesis_block_rewards(
     mp = _ensure_monetary_policy(econ)
 
     issued = _as_int(mp.get("issued"), 0)
+    issuance_due = issuance_due_at_height(h)
+    issuance_epoch = issuance_epoch_index_for_due_height(h) if issuance_due else -1
     raw_subsidy = block_subsidy(h)
     subsidy, remaining_after = _cap_subsidy_by_remaining_supply(issued, raw_subsidy)
 
@@ -214,10 +216,14 @@ def apply_genesis_block_rewards(
     _ensure_account(state, TREASURY_ACCOUNT_ID)
 
     if total_reward <= 0:
+        if issuance_due:
+            mp["last_issuance_epoch"] = int(issuance_epoch)
         mp["last_reward_height"] = h
         return {
             "applied": "GENESIS_BLOCK_REWARDS",
             "height": h,
+            "issuance_epoch": int(issuance_epoch),
+            "issuance_due": bool(issuance_due),
             "proposer": str(proposer),
             "subsidy": int(subsidy),
             "fees": int(fee_total),
@@ -258,11 +264,15 @@ def apply_genesis_block_rewards(
         acct["balance"] = _as_int(acct.get("balance"), 0) + int(amt)
 
     mp["issued"] = int(issued) + int(subsidy)
+    if issuance_due:
+        mp["last_issuance_epoch"] = int(issuance_epoch)
     mp["last_reward_height"] = h
 
     return {
         "applied": "GENESIS_BLOCK_REWARDS",
         "height": h,
+        "issuance_epoch": int(issuance_epoch),
+        "issuance_due": bool(issuance_due),
         "proposer": str(proposer),
         "subsidy": int(subsidy),
         "fees": int(fee_total),

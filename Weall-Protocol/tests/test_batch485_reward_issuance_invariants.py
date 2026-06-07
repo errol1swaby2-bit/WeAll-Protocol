@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID
+from weall.ledger.constants import INITIAL_ISSUANCE_PER_EPOCH, MAX_SUPPLY, MINT_POOL_ACCOUNT_ID
+from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
 from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
 from weall.runtime.tx_admission_types import TxEnvelope
 
@@ -10,7 +11,7 @@ from weall.runtime.tx_admission_types import TxEnvelope
 def _active_state() -> dict:
     return {
         "time": 1,
-        "height": 1,
+        "height": 30,
         "params": {"genesis_time": 0, "economic_unlock_time": 0, "economics_enabled": True},
         "accounts": {
             MINT_POOL_ACCOUNT_ID: {"balance": 0},
@@ -36,79 +37,143 @@ def _sys(tx_type: str, payload: dict, nonce: int = 1) -> TxEnvelope:
     return TxEnvelope(tx_type=tx_type, signer="SYSTEM", nonce=nonce, payload=payload, system=True)
 
 
+def _mint_payload(epoch: int = 0, amount: int = INITIAL_ISSUANCE_PER_EPOCH) -> dict:
+    height = (epoch + 1) * 30
+    return {
+        "block_id": f"issuance_epoch:{epoch}",
+        "height": height,
+        "issuance_epoch": epoch,
+        "epoch_id": f"issuance_epoch:{epoch}",
+        "amount": amount,
+    }
+
+
 def test_block_reward_mint_is_locked_before_activation_batch485() -> None:
     st = _locked_state()
 
     with pytest.raises(Exception):
-        apply_rewards(st, _sys("BLOCK_REWARD_MINT", {"block_id": "b1", "amount": 100}))
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload()))
 
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
 
 
-def test_block_reward_mint_credits_issuance_and_mint_pool_batch485() -> None:
+def test_public_transfer_and_reward_activation_remain_locked_batch485() -> None:
+    st = _locked_state()
+    st["accounts"]["@alice"] = {"balance": 100, "poh_tier": 1, "banned": False, "locked": False}
+    st["accounts"]["@bob"] = {"balance": 0, "poh_tier": 1, "banned": False, "locked": False}
+
+    with pytest.raises(EconomicsApplyError):
+        apply_economics(
+            st,
+            TxEnvelope(
+                tx_type="BALANCE_TRANSFER",
+                signer="@alice",
+                nonce=1,
+                payload={"to": "@bob", "amount": 1},
+            ),
+        )
+
+    with pytest.raises(Exception):
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=2))
+
+    assert st["accounts"]["@alice"]["balance"] == 100
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
+
+
+def test_epoch_issuance_mint_credits_issuance_and_mint_pool_batch485() -> None:
     st = _active_state()
 
-    res = apply_rewards(st, _sys("BLOCK_REWARD_MINT", {"block_id": "b1", "height": 1, "amount": 100}))
+    res = apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0)))
 
     assert res["applied"] == "BLOCK_REWARD_MINT"
     assert res["deduped"] is False
-    assert st["economics"]["monetary_policy"]["issued"] == 100
-    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 100
-    assert st["rewards"]["stats"]["minted_total"] == 100
+    assert res["issuance_epoch"] == 0
+    assert st["economics"]["monetary_policy"]["issued"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert st["economics"]["monetary_policy"]["last_issuance_epoch"] == 0
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert st["rewards"]["stats"]["minted_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_block_reward_mint_replay_is_deduped_without_extra_supply_batch485() -> None:
+def test_exact_block_reward_mint_replay_is_deduped_without_extra_supply_batch485() -> None:
     st = _active_state()
-    payload = {"block_id": "b1", "height": 1, "amount": 100}
+    payload = _mint_payload(epoch=0)
 
     first = apply_rewards(st, _sys("BLOCK_REWARD_MINT", payload, nonce=1))
     replay = apply_rewards(st, _sys("BLOCK_REWARD_MINT", payload, nonce=2))
 
     assert first["deduped"] is False
     assert replay["deduped"] is True
-    assert st["economics"]["monetary_policy"]["issued"] == 100
-    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 100
-    assert st["rewards"]["stats"]["minted_total"] == 100
+    assert st["economics"]["monetary_policy"]["issued"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert st["rewards"]["stats"]["minted_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_block_reward_mint_rejects_cap_without_partial_mutation_batch485() -> None:
+def test_duplicate_issuance_epoch_rejects_different_mint_batch485() -> None:
+    st = _active_state()
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
+
+    duplicate = _mint_payload(epoch=0)
+    duplicate["block_id"] = "different-block-for-same-epoch"
+
+    with pytest.raises(RewardsApplyError) as ei:
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", duplicate, nonce=2))
+
+    assert ei.value.reason == "duplicate_issuance_epoch"
+    assert st["economics"]["monetary_policy"]["issued"] == INITIAL_ISSUANCE_PER_EPOCH
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
+
+
+def test_epoch_issuance_can_stop_exactly_at_cap_batch485() -> None:
+    st = _active_state()
+    st["economics"]["monetary_policy"]["issued"] = MAX_SUPPLY - 10
+
+    res = apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=1, amount=10)))
+
+    assert res["amount"] == 10
+    assert st["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY
+    assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 10
+
+
+def test_epoch_issuance_rejects_cap_overflow_without_partial_mutation_batch485() -> None:
     st = _active_state()
     st["economics"]["monetary_policy"]["issued"] = MAX_SUPPLY - 10
 
     with pytest.raises(RewardsApplyError) as ei:
-        apply_rewards(st, _sys("BLOCK_REWARD_MINT", {"block_id": "b-cap", "height": 1, "amount": 11}))
+        apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=1, amount=11)))
 
     assert ei.value.reason == "mint_exceeds_max_supply"
-    assert "b-cap" not in st.get("rewards", {}).get("block_rewards_by_id", {})
+    assert "issuance_epoch:1" not in st.get("rewards", {}).get("block_rewards_by_id", {})
     assert st["economics"]["monetary_policy"]["issued"] == MAX_SUPPLY - 10
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
 
 
 def test_block_reward_distribute_conserves_minted_pool_batch485() -> None:
     st = _active_state()
-    apply_rewards(st, _sys("BLOCK_REWARD_MINT", {"block_id": "b2", "height": 2, "amount": 100}, nonce=1))
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
 
+    share = INITIAL_ISSUANCE_PER_EPOCH // 5
     payload = {
-        "block_id": "b2",
+        "block_id": "issuance_epoch:0",
+        "issuance_epoch": 0,
         "transfers": [
-            {"to": "@validator", "amount": 20},
-            {"to": "@operator", "amount": 20},
-            {"to": "@juror", "amount": 20},
-            {"to": "@creator", "amount": 20},
-            {"to": "TREASURY", "amount": 20},
+            {"to": "@validator", "amount": share},
+            {"to": "@operator", "amount": share},
+            {"to": "@juror", "amount": share},
+            {"to": "@creator", "amount": share},
+            {"to": "TREASURY", "amount": INITIAL_ISSUANCE_PER_EPOCH - share * 4},
         ],
-        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": 100}],
+        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": INITIAL_ISSUANCE_PER_EPOCH}],
     }
     res = apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, nonce=2))
 
-    assert res["distributed_total"] == 100
+    assert res["distributed_total"] == INITIAL_ISSUANCE_PER_EPOCH
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
-    assert st["accounts"]["@validator"]["balance"] == 20
-    assert st["accounts"]["@operator"]["balance"] == 20
-    assert st["accounts"]["@juror"]["balance"] == 20
-    assert st["accounts"]["@creator"]["balance"] == 20
-    assert st["accounts"]["TREASURY"]["balance"] == 20
-    assert st["rewards"]["stats"]["distributed_total"] == 100
+    assert st["accounts"]["@validator"]["balance"] == share
+    assert st["accounts"]["@operator"]["balance"] == share
+    assert st["accounts"]["@juror"]["balance"] == share
+    assert st["accounts"]["@creator"]["balance"] == share
+    assert st["accounts"]["TREASURY"]["balance"] == INITIAL_ISSUANCE_PER_EPOCH - share * 4
+    assert st["rewards"]["stats"]["distributed_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
 def test_block_reward_distribute_rejects_unfunded_distribution_batch485() -> None:
@@ -120,7 +185,7 @@ def test_block_reward_distribute_rejects_unfunded_distribution_batch485() -> Non
             _sys(
                 "BLOCK_REWARD_DISTRIBUTE",
                 {
-                    "block_id": "b-unfunded",
+                    "block_id": "issuance_epoch:unfunded",
                     "transfers": [{"to": "@validator", "amount": 100}],
                     "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": 100}],
                 },
@@ -133,12 +198,12 @@ def test_block_reward_distribute_rejects_unfunded_distribution_batch485() -> Non
 
 def test_block_reward_distribute_replay_is_deduped_without_double_credit_batch485() -> None:
     st = _active_state()
-    apply_rewards(st, _sys("BLOCK_REWARD_MINT", {"block_id": "b3", "height": 3, "amount": 100}, nonce=1))
+    apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
 
     payload = {
-        "block_id": "b3",
-        "transfers": [{"to": "@validator", "amount": 100}],
-        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": 100}],
+        "block_id": "issuance_epoch:0",
+        "transfers": [{"to": "@validator", "amount": INITIAL_ISSUANCE_PER_EPOCH}],
+        "debits": [{"from": MINT_POOL_ACCOUNT_ID, "amount": INITIAL_ISSUANCE_PER_EPOCH}],
     }
 
     first = apply_rewards(st, _sys("BLOCK_REWARD_DISTRIBUTE", payload, nonce=2))
@@ -146,6 +211,6 @@ def test_block_reward_distribute_replay_is_deduped_without_double_credit_batch48
 
     assert first["deduped"] is False
     assert replay["deduped"] is True
-    assert st["accounts"]["@validator"]["balance"] == 100
+    assert st["accounts"]["@validator"]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
-    assert st["rewards"]["stats"]["distributed_total"] == 100
+    assert st["rewards"]["stats"]["distributed_total"] == INITIAL_ISSUANCE_PER_EPOCH

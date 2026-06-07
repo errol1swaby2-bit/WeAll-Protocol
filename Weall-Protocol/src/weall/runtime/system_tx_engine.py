@@ -6,10 +6,16 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-# Rewards scheduling (Genesis v2.1): leaders enqueue deterministic reward system txs
-# inside the block. Followers never run the scheduler; they replay the included txs.
+# Rewards scheduling (Genesis v1.5): leaders enqueue deterministic epoch-issuance
+# system txs inside the block. Followers never run the scheduler; they replay the
+# included txs.
 from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID, TREASURY_ACCOUNT_ID
-from weall.ledger.rewards import block_subsidy
+from weall.ledger.issuance import (
+    cap_issuance_by_remaining_supply,
+    epoch_issuance_subsidy_atomic,
+    issuance_due_at_height,
+    issuance_epoch_index_for_due_height,
+)
 from weall.ledger.roles_schema import ensure_roles_schema
 from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.tx_admission import TxEnvelope
@@ -182,10 +188,14 @@ def schedule_block_rewards_system_txs(
     proposer: str,
     phase: str,
 ) -> None:
-    """Enqueue Genesis block reward system txs.
+    """Enqueue Genesis v1.5 epoch issuance system txs.
 
     Gate:
-      - During the Genesis economic lock OR when economics are disabled, rewards are not emitted.
+      - During the Genesis economic lock OR when economics are disabled, issuance/rewards are not emitted.
+
+    Cadence:
+      - WeCoin issuance is epoch-based, not per-block. At the 20-second target
+        block interval, one 10-minute issuance epoch closes every 30 blocks.
 
     Split:
       - 20/20/20/20/20 across validators/proposer, operators, jurors, creators, treasury.
@@ -204,19 +214,20 @@ def schedule_block_rewards_system_txs(
     if h <= 0:
         return
 
-    reward_block_id = f"height:{h}"
+    if not issuance_due_at_height(h):
+        return
+
+    issuance_epoch = issuance_epoch_index_for_due_height(h)
+    epoch_id = f"issuance_epoch:{issuance_epoch}"
+    reward_block_id = epoch_id
 
     mp = _monetary_policy_snapshot(state)
     issued = int(mp.get("issued", 0))
 
-    raw_subsidy = int(block_subsidy(h))
-    if issued >= int(MAX_SUPPLY):
-        subsidy = 0
-    else:
-        remaining = int(MAX_SUPPLY) - int(issued)
-        subsidy = raw_subsidy if raw_subsidy <= remaining else remaining
-        if subsidy < 0:
-            subsidy = 0
+    raw_subsidy = int(epoch_issuance_subsidy_atomic(issuance_epoch))
+    subsidy, _remaining_after = cap_issuance_by_remaining_supply(
+        issued, raw_subsidy, max_supply=int(MAX_SUPPLY)
+    )
 
     fee_total = 0
     total_reward = int(subsidy) + int(fee_total)
@@ -271,6 +282,8 @@ def schedule_block_rewards_system_txs(
         payload={
             "block_id": reward_block_id,
             "height": h,
+            "issuance_epoch": int(issuance_epoch),
+            "epoch_id": epoch_id,
             "amount": int(subsidy),
             "fees": int(fee_total),
             "total": int(total_reward),
@@ -289,6 +302,8 @@ def schedule_block_rewards_system_txs(
         payload={
             "block_id": reward_block_id,
             "height": h,
+            "issuance_epoch": int(issuance_epoch),
+            "epoch_id": epoch_id,
             "subsidy": int(subsidy),
             "fees": int(fee_total),
             "total": int(total_reward),

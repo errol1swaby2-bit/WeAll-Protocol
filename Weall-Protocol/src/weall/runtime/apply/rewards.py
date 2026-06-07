@@ -5,7 +5,7 @@ from __future__ import annotations
 Rewards domain apply semantics.
 
 This module implements deterministic state transitions for:
-- block reward mint/distribute
+- epoch issuance mint/distribute (legacy tx names: BLOCK_REWARD_MINT/DISTRIBUTE)
 - creator reward allocations
 - treasury reward allocations
 - forfeiture application
@@ -18,7 +18,14 @@ missing preconditions.
 from dataclasses import dataclass
 from typing import Any
 
-from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID
+from weall.ledger.constants import (
+    HALVING_INTERVAL_ISSUANCE_EPOCHS,
+    INITIAL_ISSUANCE_PER_EPOCH,
+    ISSUANCE_EPOCH_BLOCKS,
+    MAX_SUPPLY,
+    MINT_POOL_ACCOUNT_ID,
+)
+from weall.ledger.issuance import issuance_epoch_index_for_height
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -124,6 +131,8 @@ def _ensure_rewards(state: Json) -> Json:
         r["reward_pools_by_account"] = {}
     if not isinstance(r.get("block_rewards_by_id"), dict):
         r["block_rewards_by_id"] = {}
+    if not isinstance(r.get("issuance_epochs_by_id"), dict):
+        r["issuance_epochs_by_id"] = {}
     if not isinstance(r.get("creator_allocations_by_id"), dict):
         r["creator_allocations_by_id"] = {}
     if not isinstance(r.get("treasury_allocations_by_id"), dict):
@@ -162,6 +171,10 @@ def _ensure_monetary_policy(state: Json) -> Json:
         econ["monetary_policy"] = mp
     mp.setdefault("issued", 0)
     mp.setdefault("max_supply", int(MAX_SUPPLY))
+    mp.setdefault("initial_epoch_issuance", int(INITIAL_ISSUANCE_PER_EPOCH))
+    mp.setdefault("issuance_epoch_blocks", int(ISSUANCE_EPOCH_BLOCKS))
+    mp.setdefault("halving_interval_issuance_epochs", int(HALVING_INTERVAL_ISSUANCE_EPOCHS))
+    mp.setdefault("last_issuance_epoch", -1)
     mp.setdefault("last_reward_height", 0)
     return mp
 
@@ -170,6 +183,56 @@ def _wrap_econ_gate(state: Json, tx_type: str) -> None:
     """Rewards mint/distribution are economic actions and must respect Genesis gating."""
     deny_if_econ_time_locked(state)
     deny_if_econ_disabled(state, tx_type=str(tx_type or "").strip().upper())
+
+
+def _parse_issuance_epoch_index(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        epoch = int(value)
+        return epoch if epoch >= 0 else None
+    except Exception:
+        s = _as_str(value).strip()
+        if not s:
+            return None
+        token = s.split(":")[-1]
+        try:
+            epoch = int(token)
+            return epoch if epoch >= 0 else None
+        except Exception:
+            return None
+
+
+def _issuance_epoch_id(epoch_index: int) -> str:
+    return f"issuance_epoch:{int(epoch_index)}"
+
+
+def _derive_issuance_epoch_index(payload: Json) -> int:
+    for key in (
+        "issuance_epoch",
+        "issuance_epoch_index",
+        "epoch_index",
+        "epoch",
+        "issuance_epoch_id",
+        "epoch_id",
+    ):
+        epoch = _parse_issuance_epoch_index(payload.get(key))
+        if epoch is not None:
+            return int(epoch)
+
+    # Compatibility for older system payloads that carried only height.  Height
+    # 1..30 map to issuance epoch 0, 31..60 to epoch 1, etc.  The scheduler now
+    # emits only at epoch boundaries, but direct apply remains replay-compatible.
+    height = _as_int(payload.get("height"), 0)
+    epoch = issuance_epoch_index_for_height(height)
+    if epoch >= 0:
+        return int(epoch)
+
+    raise RewardsApplyError(
+        "invalid_payload",
+        "missing_issuance_epoch",
+        {"height": height},
+    )
 
 
 def _apply_reward_pool_opt_in_set(state: Json, env: TxEnvelope) -> Json:
@@ -198,12 +261,31 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     if amount < 0:
         amount = 0
 
+    issuance_epoch = _derive_issuance_epoch_index(payload)
+    epoch_id = _issuance_epoch_id(issuance_epoch)
+
     mints = r["block_rewards_by_id"]
+    epoch_mints = r["issuance_epochs_by_id"]
     existing = mints.get(block_id)
     already = isinstance(existing, dict)
 
+    existing_epoch = epoch_mints.get(epoch_id)
+    if isinstance(existing_epoch, dict) and not already:
+        raise RewardsApplyError(
+            "forbidden",
+            "duplicate_issuance_epoch",
+            {
+                "issuance_epoch": int(issuance_epoch),
+                "epoch_id": epoch_id,
+                "existing_block_id": existing_epoch.get("block_id"),
+                "block_id": block_id,
+            },
+        )
+
     if not already:
-        # Batch 485: validate supply cap before mutating reward/mint state.
+        # Validate supply cap before mutating reward/mint state.  The scheduler
+        # caps the final epoch issuance to the remaining supply; direct apply
+        # rejects overflow so issuance stops exactly at MAX_SUPPLY.
         mp = _ensure_monetary_policy(state)
         issued = _as_int(mp.get("issued"), 0)
         max_supply = _as_int(mp.get("max_supply"), int(MAX_SUPPLY))
@@ -215,21 +297,30 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
                 "mint_exceeds_max_supply",
                 {
                     "block_id": block_id,
+                    "issuance_epoch": int(issuance_epoch),
+                    "epoch_id": epoch_id,
                     "issued": int(issued),
                     "amount": int(amt),
                     "max_supply": int(max_supply),
                 },
             )
 
-        mints[block_id] = {
+        mint_record = {
             "block_id": block_id,
+            "issuance_epoch": int(issuance_epoch),
+            "epoch_id": epoch_id,
             "amount": int(amount),
             "minted_at_nonce": int(env.nonce),
             "payload": payload,
         }
+        mints[block_id] = mint_record
+        epoch_mints[epoch_id] = mint_record
         r["stats"]["minted_total"] = _as_int(r["stats"].get("minted_total"), 0) + int(amount)
 
         mp["issued"] = int(issued + amt)
+        mp["last_issuance_epoch"] = max(
+            _as_int(mp.get("last_issuance_epoch"), -1), int(issuance_epoch)
+        )
         try:
             mp["last_reward_height"] = max(
                 _as_int(mp.get("last_reward_height"), 0), _as_int(payload.get("height"), 0)
@@ -245,6 +336,8 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
     return {
         "applied": "BLOCK_REWARD_MINT",
         "block_id": block_id,
+        "issuance_epoch": int(issuance_epoch),
+        "epoch_id": epoch_id,
         "amount": int(amount),
         "deduped": already,
     }

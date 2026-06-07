@@ -1,9 +1,19 @@
-# src/weall/ledger/tokenomics.py
 from __future__ import annotations
 
 from typing import Any
 
 from weall.ledger import constants as ledger_constants
+from weall.ledger.issuance import (
+    cap_issuance_by_remaining_supply,
+    epoch_issuance_subsidy_atomic,
+    issuance_due_at_height,
+    issuance_epoch_index_for_due_height,
+    issuance_epoch_index_for_height,
+    issuance_height_for_epoch,
+    issuance_subsidy_for_height,
+    next_halving_issuance_epoch,
+    next_issuance_height_after_height,
+)
 from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
 
 Json = dict[str, Any]
@@ -12,10 +22,25 @@ COIN = int(getattr(ledger_constants, "COIN", 100_000_000))
 COIN_DECIMALS = int(getattr(ledger_constants, "COIN_DECIMALS", 8))
 MAX_SUPPLY_WCN = int(getattr(ledger_constants, "MAX_SUPPLY_WCN", 21_000_000))
 MAX_SUPPLY = int(getattr(ledger_constants, "MAX_SUPPLY", MAX_SUPPLY_WCN * COIN))
-INITIAL_BLOCK_REWARD_WCN = int(getattr(ledger_constants, "INITIAL_BLOCK_REWARD_WCN", 100))
-INITIAL_BLOCK_REWARD = int(getattr(ledger_constants, "INITIAL_BLOCK_REWARD", INITIAL_BLOCK_REWARD_WCN * COIN))
-HALVING_INTERVAL_BLOCKS = int(getattr(ledger_constants, "HALVING_INTERVAL_BLOCKS", 105_120))
-TARGET_BLOCK_TIME_SECONDS = int(getattr(ledger_constants, "TARGET_BLOCK_TIME_SECONDS", 600))
+TARGET_BLOCK_INTERVAL_SECONDS = int(getattr(ledger_constants, "TARGET_BLOCK_INTERVAL_SECONDS", 20))
+ISSUANCE_EPOCH_SECONDS = int(getattr(ledger_constants, "ISSUANCE_EPOCH_SECONDS", 600))
+ISSUANCE_EPOCH_BLOCKS = int(getattr(ledger_constants, "ISSUANCE_EPOCH_BLOCKS", 30))
+INITIAL_ISSUANCE_PER_EPOCH_WCN = int(getattr(ledger_constants, "INITIAL_ISSUANCE_PER_EPOCH_WCN", 100))
+INITIAL_ISSUANCE_PER_EPOCH = int(
+    getattr(ledger_constants, "INITIAL_ISSUANCE_PER_EPOCH", INITIAL_ISSUANCE_PER_EPOCH_WCN * COIN)
+)
+HALVING_INTERVAL_ISSUANCE_EPOCHS = int(
+    getattr(ledger_constants, "HALVING_INTERVAL_ISSUANCE_EPOCHS", 105_120)
+)
+HALVING_INTERVAL_BLOCKS = int(
+    getattr(ledger_constants, "HALVING_INTERVAL_BLOCKS", HALVING_INTERVAL_ISSUANCE_EPOCHS * ISSUANCE_EPOCH_BLOCKS)
+)
+
+# Compatibility aliases for older callers.  The values now point to the v1.5
+# epoch issuance schedule, not a per-block mint schedule.
+TARGET_BLOCK_TIME_SECONDS = TARGET_BLOCK_INTERVAL_SECONDS
+INITIAL_BLOCK_REWARD_WCN = INITIAL_ISSUANCE_PER_EPOCH_WCN
+INITIAL_BLOCK_REWARD = INITIAL_ISSUANCE_PER_EPOCH
 
 REWARD_BUCKETS = tuple(
     getattr(
@@ -52,8 +77,8 @@ FEE_FREE_ACTION_CLASSES: tuple[str, ...] = (
 ECONOMIC_ACTION_CLASSES: tuple[str, ...] = (
     "balance_transfer",
     "fee_payment",
-    "block_reward_mint",
-    "block_reward_distribution",
+    "epoch_issuance_mint",
+    "epoch_issuance_distribution",
     "creator_reward_allocation",
     "treasury_reward_allocation",
     "treasury_spend",
@@ -73,25 +98,16 @@ def _as_int(v: Any, default: int = 0) -> int:
 
 
 def block_subsidy_atomic(height: int) -> int:
-    """Return deterministic block subsidy in atomic WeCoin units.
+    """Compatibility wrapper: return issuance only at epoch boundary heights."""
 
-    Height is treated as the reward-bearing block height. Height 0 receives no
-    subsidy. Height 1 begins the initial subsidy schedule.
-    """
-
-    h = int(height)
-    if h <= 0:
-        return 0
-
-    halvings = h // int(HALVING_INTERVAL_BLOCKS)
-    subsidy = int(INITIAL_BLOCK_REWARD) >> int(halvings)
-    return max(int(subsidy), 0)
+    return int(issuance_subsidy_for_height(int(height)))
 
 
 def next_halving_height(height: int) -> int:
-    h = max(0, int(height))
-    current_epoch = h // int(HALVING_INTERVAL_BLOCKS)
-    return int((current_epoch + 1) * int(HALVING_INTERVAL_BLOCKS))
+    """Compatibility wrapper returning the block height of the next halving boundary."""
+
+    current_epoch = max(0, issuance_epoch_index_for_height(int(height)))
+    return issuance_height_for_epoch(next_halving_issuance_epoch(current_epoch))
 
 
 def _balances_total_atomic(state: Json) -> int:
@@ -130,9 +146,15 @@ def tokenomics_policy_from_state(state: Json) -> Json:
     except Exception:
         enabled = False
 
-    raw_next_subsidy = block_subsidy_atomic(max(1, height + 1))
     remaining_supply = max(0, int(MAX_SUPPLY) - int(issued))
-    capped_next_subsidy = min(int(raw_next_subsidy), int(remaining_supply))
+    current_epoch = issuance_epoch_index_for_height(height)
+    next_issuance_height = next_issuance_height_after_height(height)
+    next_epoch = issuance_epoch_index_for_due_height(next_issuance_height)
+    raw_next_epoch_issuance = epoch_issuance_subsidy_atomic(next_epoch)
+    capped_next_epoch_issuance, remaining_after_next = cap_issuance_by_remaining_supply(
+        issued, raw_next_epoch_issuance, max_supply=MAX_SUPPLY
+    )
+    next_halving_epoch = next_halving_issuance_epoch(max(0, current_epoch))
 
     return {
         "ok": True,
@@ -147,25 +169,37 @@ def tokenomics_policy_from_state(state: Json) -> Json:
             "max_supply_atomic": int(MAX_SUPPLY),
             "issued_atomic": int(issued),
             "remaining_issuance_atomic": int(remaining_supply),
+            "remaining_after_next_epoch_issuance_atomic": int(remaining_after_next),
             "circulating_account_balances_atomic": int(circulating),
             "premine_atomic": int(circulating) if height == 0 else None,
         },
         "emission": {
-            "target_block_time_seconds": int(TARGET_BLOCK_TIME_SECONDS),
-            "initial_block_reward_wcn": int(INITIAL_BLOCK_REWARD_WCN),
-            "initial_block_reward_atomic": int(INITIAL_BLOCK_REWARD),
-            "halving_interval_blocks": int(HALVING_INTERVAL_BLOCKS),
+            "issuance_model": "epoch_based",
+            "per_block_issuance": False,
+            "target_block_interval_seconds": int(TARGET_BLOCK_INTERVAL_SECONDS),
+            "issuance_epoch_seconds": int(ISSUANCE_EPOCH_SECONDS),
+            "issuance_epoch_blocks": int(ISSUANCE_EPOCH_BLOCKS),
+            "initial_epoch_issuance_wcn": int(INITIAL_ISSUANCE_PER_EPOCH_WCN),
+            "initial_epoch_issuance_atomic": int(INITIAL_ISSUANCE_PER_EPOCH),
+            "halving_interval_issuance_epochs": int(HALVING_INTERVAL_ISSUANCE_EPOCHS),
+            "halving_interval_blocks_at_target": int(HALVING_INTERVAL_BLOCKS),
             "current_height": int(height),
-            "next_reward_height": int(height + 1),
-            "next_block_subsidy_atomic": int(capped_next_subsidy),
-            "raw_next_block_subsidy_atomic": int(raw_next_subsidy),
-            "next_halving_height": int(next_halving_height(height)),
+            "current_issuance_epoch": int(current_epoch),
+            "height_is_issuance_boundary": bool(issuance_due_at_height(height)),
+            "next_issuance_height": int(next_issuance_height),
+            "next_issuance_epoch": int(next_epoch),
+            "next_epoch_issuance_atomic": int(capped_next_epoch_issuance),
+            "raw_next_epoch_issuance_atomic": int(raw_next_epoch_issuance),
+            "next_halving_issuance_epoch": int(next_halving_epoch),
+            "next_halving_height_at_target": int(issuance_height_for_epoch(next_halving_epoch)),
             "supply_cap_enforced": True,
+            "duplicate_epoch_issuance_invalid": True,
         },
         "reward_split": {
             "basis_points": dict(REWARD_BUCKET_BPS),
             "buckets": list(REWARD_BUCKETS),
             "equal_20_percent_buckets": True,
+            "locked_with_economics": not bool(enabled),
         },
         "activation": {
             "unlocked": bool(unlocked),
@@ -180,7 +214,9 @@ def tokenomics_policy_from_state(state: Json) -> Json:
         "economic_action_classes": list(ECONOMIC_ACTION_CLASSES),
         "truth_label": "real_tokenomics_locked" if not enabled else "real_tokenomics_active",
         "claim": (
-            "WeCoin tokenomics are defined and supply-capped. Transfers, rewards, "
+            "WeCoin tokenomics are epoch-based and supply-capped. Issuance occurs "
+            "once per 10-minute issuance epoch, equal to 30 blocks at the 20-second "
+            "target interval, and stops at the 21,000,000 WCN cap. Transfers, rewards, "
             "fees, and treasury spends remain locked until the Genesis economic lock "
             "and governance activation path are satisfied. Civic, social, PoH, review, "
             "and governance participation remain fee-free."
@@ -194,13 +230,28 @@ __all__ = [
     "ECONOMIC_ACTION_CLASSES",
     "FEE_FREE_ACTION_CLASSES",
     "HALVING_INTERVAL_BLOCKS",
+    "HALVING_INTERVAL_ISSUANCE_EPOCHS",
     "INITIAL_BLOCK_REWARD",
     "INITIAL_BLOCK_REWARD_WCN",
+    "INITIAL_ISSUANCE_PER_EPOCH",
+    "INITIAL_ISSUANCE_PER_EPOCH_WCN",
+    "ISSUANCE_EPOCH_BLOCKS",
+    "ISSUANCE_EPOCH_SECONDS",
     "MAX_SUPPLY",
     "MAX_SUPPLY_WCN",
     "REWARD_BUCKET_BPS",
+    "TARGET_BLOCK_INTERVAL_SECONDS",
     "TARGET_BLOCK_TIME_SECONDS",
     "block_subsidy_atomic",
+    "cap_issuance_by_remaining_supply",
+    "epoch_issuance_subsidy_atomic",
+    "issuance_due_at_height",
+    "issuance_epoch_index_for_due_height",
+    "issuance_epoch_index_for_height",
+    "issuance_height_for_epoch",
+    "issuance_subsidy_for_height",
     "next_halving_height",
+    "next_halving_issuance_epoch",
+    "next_issuance_height_after_height",
     "tokenomics_policy_from_state",
 ]

@@ -1384,12 +1384,29 @@ class RewardPoolOptInSetPayload(_StrictModel):
 
 
 class BlockRewardMintPayload(_StrictModel):
+    # Legacy tx name retained for compatibility; payload now represents one
+    # v1.5 issuance epoch, not a per-block mint.
     block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
     amount: int | None = Field(default=None, ge=0)
+    height: int | None = Field(default=None, ge=0)
+    issuance_epoch: int | None = Field(default=None, ge=0)
+    epoch_id: str | None = Field(default=None, min_length=1)
+    fees: int | None = Field(default=None, ge=0)
+    total: int | None = Field(default=None, ge=0)
+    proposer: str | None = None
 
 
 class BlockRewardDistributePayload(_StrictModel):
+    # Legacy tx name retained for compatibility; payload now distributes one
+    # v1.5 issuance epoch, not a per-block reward.
     block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    height: int | None = Field(default=None, ge=0)
+    issuance_epoch: int | None = Field(default=None, ge=0)
+    epoch_id: str | None = Field(default=None, min_length=1)
+    subsidy: int | None = Field(default=None, ge=0)
+    fees: int | None = Field(default=None, ge=0)
+    total: int | None = Field(default=None, ge=0)
+    proposer: str | None = None
     transfers: list[Json] | None = None
     debits: list[Json] | None = None
 

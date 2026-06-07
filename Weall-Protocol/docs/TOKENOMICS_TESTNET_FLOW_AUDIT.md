@@ -6,8 +6,8 @@ Status: implemented locked-tokenomics flow with activated-state tests.
 
 This batch covers:
 
-1. block reward minting
-2. reward distribution conservation
+1. epoch issuance minting
+2. reward/issuance distribution conservation
 3. supply-cap enforcement
 4. activated user-to-user balance transfer
 5. content tipping as transfer metadata
@@ -53,10 +53,12 @@ The backend indexes tips under:
 
 This makes content tips auditable without adding a new token transfer type.
 
-## Block rewards
+## Epoch issuance
 
-`BLOCK_REWARD_MINT` validates the supply cap before mutating reward state.
+WeCoin issuance is epoch-based, not per-block. One issuance epoch is 10 minutes. At the 20-second target block interval, one issuance epoch equals 30 blocks.
+
+`BLOCK_REWARD_MINT` is retained as the legacy system transaction name, but its v1.5 payload represents a single issuance epoch. It validates the supply cap before mutating reward state and records the issuance epoch so a second mint for the same epoch is invalid.
 
 `BLOCK_REWARD_DISTRIBUTE` must debit a funding source such as `MINT_POOL` and credit recipients with equal debit/credit totals.
 
-Duplicate reward mints/distributions by block id are deduped and must not inflate supply or double-credit recipients.
+Exact replay by the same block/epoch id is deduped and must not inflate supply or double-credit recipients. A different mint for an already-issued epoch is rejected.

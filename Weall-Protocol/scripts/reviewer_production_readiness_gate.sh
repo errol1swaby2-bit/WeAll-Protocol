@@ -63,6 +63,8 @@ PYTHONPATH=src pytest -q tests/test_batch483_484_transfer_tip_contract.py
 
 PYTHONPATH=src pytest -q tests/test_batch485_reward_issuance_invariants.py
 
+PYTHONPATH=src pytest -q tests/test_batch491_v15_epoch_issuance_scheduler.py
+
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
   node scripts/test_batch450_messaging_e2ee_source.mjs
