@@ -107,7 +107,16 @@ HotStuff/BFT enabled. The following mixed posture is forbidden:
 - `WEALL_VALIDATOR_SIGNING_ENABLED=1` without `WEALL_BFT_ENABLED=1`
 - `WEALL_NODE_LIFECYCLE_STATE=production_service` with `validator` in `WEALL_SERVICE_ROLES` without `WEALL_BFT_ENABLED=1`
 
-### 3.5 Production Consensus Profile Pinning
+### 3.5 v1.5 Block Timing and Economics Configuration
+
+Production and public-testnet chain configuration MUST use the v1.5 block cadence and locked-economics posture:
+
+- `block_interval_ms: 20000`
+- `block_reward: 0`
+
+`block_interval_ms` is block-production cadence only. WeCoin issuance is not configured as a per-block reward; it is scheduled by the v1.5 issuance-epoch constants and remains locked unless the existing governance activation path proves activation.
+
+### 3.6 Production Consensus Profile Pinning
 
 Consensus-affecting limits MUST be profile-pinned and included in the production
 profile hash. In production, local `WEALL_MAX_TX_PAYLOAD_*` overrides are not
@@ -126,7 +135,7 @@ Current pinned tx payload limits:
 | `max_tx_payload_str_len` | 65536 |
 | `max_tx_payload_nodes` | 50000 |
 
-### 3.6 SYSTEM Transaction Replay Binding
+### 3.7 SYSTEM Transaction Replay Binding
 
 Mutating SYSTEM transactions are protocol authority actions, not proposer discretion.
 A received block MUST reject a SYSTEM tx before domain apply unless the tx is bound

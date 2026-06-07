@@ -5,7 +5,12 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from weall.ledger.constants import TARGET_BLOCK_INTERVAL_SECONDS
 from weall.runtime.json_tools import canonical_json_str
+
+DEFAULT_CHAIN_BLOCK_INTERVAL_MS = int(TARGET_BLOCK_INTERVAL_SECONDS) * 1000
+
 from urllib.parse import urlparse
 
 Json = dict[str, Any]
@@ -812,6 +817,12 @@ def validate_chain_config(cfg: ChainConfig) -> None:
     if int(cfg.block_reward) < 0:
         raise ValueError("block_reward must be >= 0")
 
+    if mode in {"prod", "testnet", "controlled_devnet"} and int(cfg.block_reward) != 0:
+        raise ValueError(
+            "block_reward must be 0 in v1.5 production/testnet configs; "
+            "WeCoin issuance is epoch-based and scheduled by protocol constants"
+        )
+
     if not isinstance(cfg.api_host, str) or not cfg.api_host.strip():
         raise ValueError("api_host must be a non-empty string")
 
@@ -900,7 +911,7 @@ def load_chain_config(path: str | None = None) -> ChainConfig:
         mode=_as_str(payload.get("mode"), raw_mode or "dev"),
         db_path=_as_str(env_db_path or payload.get("db_path"), "./data/weall.db"),
         tx_index_path=_as_str(env_tx_index_path or payload.get("tx_index_path"), "./generated/tx_index.json"),
-        block_interval_ms=_as_int(payload.get("block_interval_ms"), 600_000),
+        block_interval_ms=_as_int(payload.get("block_interval_ms"), DEFAULT_CHAIN_BLOCK_INTERVAL_MS),
         max_txs_per_block=_as_int(payload.get("max_txs_per_block"), 1000),
         block_reward=_as_int(payload.get("block_reward"), 0),
         api_host=_as_str(env_api_host or payload.get("api_host"), "127.0.0.1"),

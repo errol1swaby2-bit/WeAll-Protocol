@@ -297,7 +297,7 @@ def _group_is_private(g: Json) -> bool:
 def _default_emissary_election_window_blocks(state: Json) -> int:
     """Default election window length in blocks.
 
-    Default = 1008 blocks (~7 days at 10-minute blocks).
+    Default = 1008 finalized blocks (~5.6 hours at the v1.5 20-second target; governance may change this parameter).
     Override via state.params.group_emissary_election_window_blocks.
     """
     params = state.get("params")
