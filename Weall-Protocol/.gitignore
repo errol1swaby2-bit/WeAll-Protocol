@@ -53,6 +53,10 @@ generated/*
 !generated/api_contract_map_v1_5.json
 !generated/launch_disabled_matrix_v1_5.json
 !generated/v15_implementation_gap_register.json
+!generated/v15_mechanics_gap_register.json
+!generated/state_root_vectors_v1_5.json
+!generated/tokenomics_simulation_v1_5.json
+!generated/b499_b503_mechanics_proof_v1_5.json
 
 # SQLite runtime files (safety net if someone points WEALL_DB_PATH outside data/)
 *.db

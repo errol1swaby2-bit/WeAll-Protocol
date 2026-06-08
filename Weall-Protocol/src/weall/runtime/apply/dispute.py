@@ -985,28 +985,105 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "DISPUTE_APPEAL", "dispute_id": dispute_id}
 
 
+def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]:
+    """Return the effective final resolution and appeal metadata.
+
+    Constitutional-clock disputes delay enforcement until final receipt.  If an
+    appeal was submitted, a system final receipt may carry an ``appeal_resolution``
+    object with a deterministic decision.  ``reverse`` suppresses original
+    enforcement actions; ``modify`` uses the appeal-provided actions; ``uphold``
+    keeps the original resolution unless replacement actions are supplied.
+    """
+
+    original = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else dispute.get("resolution")
+    resolution: Json = dict(original) if isinstance(original, dict) else {}
+    appeal_resolution = payload.get("appeal_resolution")
+    if not isinstance(appeal_resolution, dict):
+        appeal_resolution = {}
+
+    appeals = dispute.get("appeals") if isinstance(dispute.get("appeals"), list) else []
+    appeal_meta: Json = {
+        "appealed": bool(appeals),
+        "appeal_count": len(appeals),
+        "decision": "none",
+    }
+    if appeal_resolution:
+        decision = _as_str(appeal_resolution.get("decision") or appeal_resolution.get("outcome") or "uphold").strip().lower()
+        if decision not in {"uphold", "reverse", "modify"}:
+            decision = "uphold"
+        appeal_meta["decision"] = decision
+        appeal_meta["resolution"] = dict(appeal_resolution)
+        if decision == "reverse":
+            resolution["appeal_decision"] = "reverse"
+            resolution["actions"] = []
+            resolution["summary"] = _as_str(appeal_resolution.get("summary") or "Appeal reversed the dispute outcome.")
+        elif decision == "modify":
+            resolution.update({k: v for k, v in appeal_resolution.items() if k != "decision"})
+            resolution["appeal_decision"] = "modify"
+        else:
+            replacement_actions = appeal_resolution.get("actions")
+            if isinstance(replacement_actions, list):
+                resolution["actions"] = replacement_actions
+            if _as_str(appeal_resolution.get("summary")):
+                resolution["summary"] = _as_str(appeal_resolution.get("summary"))
+            resolution["appeal_decision"] = "uphold"
+    elif appeals:
+        appeal_meta["decision"] = "pending_review"
+
+    return resolution, appeal_meta
+
+
 def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
     # Keep a light receipt surface for audits
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    applied_actions: list[Json] = []
+    appeal_meta: Json = {"appealed": False, "decision": "none", "appeal_count": 0}
+    final_resolution: Json = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else {}
+
+    if dispute_id:
+        d = _get_dispute(state, dispute_id)
+        final_resolution, appeal_meta = _final_receipt_resolution(d, payload)
+        d["final_resolution"] = dict(final_resolution)
+        d["appeal_finalization"] = dict(appeal_meta)
+        # If an appeal exists but no appeal decision has been supplied, do not
+        # silently finalize enforcement.  Keep the case in appeal review and
+        # record an audit receipt for the attempted finalization.
+        if appeal_meta.get("decision") == "pending_review":
+            d["stage"] = "appeal_review"
+        else:
+            parent_ref = _as_str(payload.get("_parent_ref") or env.parent or f"tx:{env.signer}:{int(env.nonce)}").strip()
+            actions = final_resolution.get("actions") if isinstance(final_resolution.get("actions"), list) else []
+            applied_actions = _apply_inline_content_enforcement(
+                state,
+                actions=[a for a in actions if isinstance(a, dict)],
+                current_height=int(state.get("height", 0) or 0),
+                parent_ref=parent_ref,
+            )
+            d["stage"] = "finalized"
+            d["finalized_at_nonce"] = int(env.nonce)
+            d["final_enforcement_applied"] = list(applied_actions)
+
     if rid not in root:
         root[rid] = {
             "receipt_id": rid,
             "tx_type": str(env.tx_type or ""),
             "at_nonce": int(env.nonce),
             "payload": payload,
+            "resolution": dict(final_resolution),
+            "appeal_finalization": dict(appeal_meta),
+            "enforcement_applied": list(applied_actions),
         }
-    dispute_id = _as_str(payload.get("dispute_id")).strip()
-    if dispute_id:
-        try:
-            d = _get_dispute(state, dispute_id)
-            d["stage"] = "finalized"
-            d["finalized_at_nonce"] = int(env.nonce)
-        except Exception:
-            pass
-    return {"applied": "DISPUTE_FINAL_RECEIPT", "receipt_id": rid, "receipt": True}
+    return {
+        "applied": "DISPUTE_FINAL_RECEIPT",
+        "receipt_id": rid,
+        "receipt": True,
+        "appeal_finalization": appeal_meta,
+        "enforcement_applied": applied_actions,
+    }
 
 
 def _ensure_cases(state: Json) -> Json:

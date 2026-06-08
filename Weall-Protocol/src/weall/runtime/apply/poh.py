@@ -354,6 +354,64 @@ def _challenges(state: Json) -> Json:
     return challenges
 
 
+def _reverification_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reverification")
+    if not isinstance(root, dict):
+        root = {}
+        poh["reverification"] = root
+    by_account = root.get("by_account")
+    if not isinstance(by_account, dict):
+        by_account = {}
+        root["by_account"] = by_account
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_reverification_required(
+    state: Json,
+    *,
+    account_id: str,
+    challenge_id: str,
+    reason: str,
+) -> Json:
+    root = _reverification_root(state)
+    by_account = root.get("by_account")
+    assert isinstance(by_account, dict)
+    events = root.get("events")
+    assert isinstance(events, list)
+
+    height = int(state.get("height") or 0)
+    rec = by_account.get(account_id)
+    existed = isinstance(rec, dict)
+    if not existed:
+        rec = {"account_id": account_id, "history": []}
+    history = rec.get("history")
+    if not isinstance(history, list):
+        history = []
+    event = {
+        "event": "reverification_required",
+        "account_id": account_id,
+        "challenge_id": challenge_id,
+        "reason": reason,
+        "height": height,
+    }
+    history.append(event)
+    rec["status"] = "required"
+    rec["reason"] = reason
+    rec["challenge_id"] = challenge_id
+    rec["required_at_height"] = height
+    rec["history"] = history
+    by_account[account_id] = rec
+    events.append(event)
+    root["by_account"] = by_account
+    root["events"] = events
+    return dict(rec)
+
+
 def _poh_nfts_root(state: Json) -> Json:
     root = state.get("poh_nfts")
     if not isinstance(root, dict):
@@ -994,11 +1052,19 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             reason="challenge_upheld",
             last_updated_height=int(state.get("height") or 0),
         )
+        reverify = _record_reverification_required(
+            state,
+            account_id=account_id,
+            challenge_id=cid,
+            reason="challenge_upheld",
+        )
         ch["consequence"] = {
             "type": "poh_status_revoked",
             "account_id": account_id,
             "poh_tier": 0,
             "status": _as_str(rec.get("status") or "revoked"),
+            "reverification_status": _as_str(reverify.get("status") or "required"),
+            "reverification_required": True,
         }
         consequence = dict(ch["consequence"])
         consequence["applied"] = True
