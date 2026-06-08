@@ -835,6 +835,8 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     votes[juror_key] = vote_entry
     d["votes"] = votes
 
+    appeal_panel_result = _maybe_record_appeal_panel_vote(state, d, env, payload, juror_key)
+
     parent_ref = env.parent or _as_str(payload.get("_parent_ref")).strip() or f"tx:{env.signer}:{int(env.nonce)}"
     _maybe_schedule_dispute_auto_resolution(
         state,
@@ -844,8 +846,95 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
         parent_ref=parent_ref,
     )
 
-    return {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id}
+    out: Json = {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id}
+    if appeal_panel_result is not None:
+        out["appeal_panel_result"] = appeal_panel_result
+    return out
 
+
+
+def _maybe_record_appeal_panel_vote(state: Json, d: Json, env: TxEnvelope, payload: Json, juror_key: str) -> Json | None:
+    """Record deterministic appeal-panel votes using existing DISPUTE_VOTE_SUBMIT.
+
+    Batch 508 avoids adding a new transaction type.  During appeal review, the
+    same assigned/accepted juror path can submit an appeal decision.  Once the
+    configured dispute quorum is reached, a canonical panel result is derived and
+    later consumed by DISPUTE_FINAL_RECEIPT if no explicit system
+    appeal_resolution is supplied.
+    """
+
+    stage = _as_str(d.get("stage") or "").strip().lower()
+    appeal_resolution = payload.get("appeal_resolution") if isinstance(payload.get("appeal_resolution"), dict) else None
+    raw_decision = _as_str(
+        payload.get("appeal_decision")
+        or payload.get("appeal_vote")
+        or (appeal_resolution or {}).get("decision")
+        or (appeal_resolution or {}).get("outcome")
+        or ""
+    ).strip().lower()
+    if stage not in {"appealed", "appeal_review"} and not raw_decision:
+        return None
+    if raw_decision not in {"uphold", "reverse", "modify"}:
+        return None
+
+    panel_votes = d.get("appeal_panel_votes")
+    if not isinstance(panel_votes, dict):
+        panel_votes = {}
+    vote_entry: Json = {
+        "decision": raw_decision,
+        "at_nonce": int(env.nonce),
+        "height": int(state.get("height", 0) or 0),
+    }
+    if isinstance(appeal_resolution, dict):
+        vote_entry["resolution"] = dict(appeal_resolution)
+    summary = _as_str(payload.get("summary") or (appeal_resolution or {}).get("summary") or "").strip()
+    if summary:
+        vote_entry["summary"] = summary
+    panel_votes[juror_key] = vote_entry
+    d["appeal_panel_votes"] = panel_votes
+    d["stage"] = "appeal_review"
+
+    eligible = _dispute_eligible_juror_ids(state, d, str(env.signer))
+    required = int(d.get("required_votes") or 0)
+    if required <= 0:
+        required = int(quorum_threshold(len(eligible))) if eligible else 1
+    counts: dict[str, int] = {"uphold": 0, "reverse": 0, "modify": 0}
+    for vote in panel_votes.values():
+        if isinstance(vote, dict):
+            decision = _as_str(vote.get("decision") or "").strip().lower()
+            if decision in counts:
+                counts[decision] += 1
+    decision = ""
+    for candidate in ("reverse", "modify", "uphold"):
+        if counts.get(candidate, 0) >= required:
+            decision = candidate
+            break
+    result: Json = {
+        "votes": len(panel_votes),
+        "required_votes": int(required),
+        "counts": counts,
+        "reached": bool(decision),
+    }
+    if decision:
+        resolution: Json = {"decision": decision}
+        # Deterministic tie-break for supplemental resolution details: use the
+        # lexicographically first juror key that voted for the winning decision.
+        for key in sorted(panel_votes):
+            vote = panel_votes.get(key)
+            if not isinstance(vote, dict) or _as_str(vote.get("decision") or "").strip().lower() != decision:
+                continue
+            if isinstance(vote.get("resolution"), dict):
+                resolution.update(dict(vote["resolution"]))
+                resolution["decision"] = decision
+            if _as_str(vote.get("summary") or "").strip():
+                resolution.setdefault("summary", _as_str(vote.get("summary")).strip())
+            break
+        result["decision"] = decision
+        result["resolution"] = resolution
+        d["appeal_panel_result"] = result
+    else:
+        d["appeal_panel_result"] = result
+    return result
 
 def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -1000,6 +1089,11 @@ def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]
     appeal_resolution = payload.get("appeal_resolution")
     if not isinstance(appeal_resolution, dict):
         appeal_resolution = {}
+    if not appeal_resolution:
+        panel_result = dispute.get("appeal_panel_result")
+        if isinstance(panel_result, dict) and bool(panel_result.get("reached")) and isinstance(panel_result.get("resolution"), dict):
+            appeal_resolution = dict(panel_result["resolution"])
+            appeal_resolution.setdefault("source", "appeal_panel")
 
     appeals = dispute.get("appeals") if isinstance(dispute.get("appeals"), list) else []
     appeal_meta: Json = {

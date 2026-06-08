@@ -88,3 +88,5 @@ docker-compose.yml.bak*
 
 # Local configs that may contain secrets
 configs/local/
+
+!generated/b505_b509_mechanics_proof_v1_5.json

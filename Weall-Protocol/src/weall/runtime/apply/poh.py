@@ -412,6 +412,56 @@ def _record_reverification_required(
     return dict(rec)
 
 
+
+def _mark_reverification_completed(
+    state: Json,
+    *,
+    account_id: str,
+    case_id: str,
+    height: int,
+) -> Json:
+    """Close a pending challenge-driven reverification after successful PoH proof.
+
+    Batch 507 keeps the challenge consequence deterministic but adds the missing
+    completion mechanic: once a revoked account completes a fresh native PoH
+    verification, the prior reverification requirement is closed with an audit
+    event.  This does not bypass review; it only records completion after the
+    existing finalize path has already awarded active PoH status.
+    """
+
+    root = _reverification_root(state)
+    by_account = root.get("by_account")
+    assert isinstance(by_account, dict)
+    events = root.get("events")
+    assert isinstance(events, list)
+
+    rec = by_account.get(account_id)
+    if not isinstance(rec, dict):
+        return {"applied": False, "reason": "no_reverification_required"}
+    if _as_str(rec.get("status") or "").strip().lower() != "required":
+        return {"applied": False, "reason": "reverification_not_required"}
+
+    history = rec.get("history")
+    if not isinstance(history, list):
+        history = []
+    event = {
+        "event": "reverification_completed",
+        "account_id": account_id,
+        "case_id": case_id,
+        "challenge_id": _as_str(rec.get("challenge_id") or "").strip(),
+        "height": int(height),
+    }
+    history.append(event)
+    rec["status"] = "completed"
+    rec["completed_by_case_id"] = case_id
+    rec["completed_at_height"] = int(height)
+    rec["history"] = history
+    by_account[account_id] = rec
+    events.append(event)
+    root["by_account"] = by_account
+    root["events"] = events
+    return {"applied": True, "account_id": account_id, "case_id": case_id, "status": "completed"}
+
 def _poh_nfts_root(state: Json) -> Json:
     root = state.get("poh_nfts")
     if not isinstance(root, dict):
@@ -1731,6 +1781,11 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
         token_id = _mint_poh_nft(
             state, owner=account_id, tier=1, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
+        reverify_completion = _mark_reverification_completed(
+            state, account_id=account_id, case_id=case_id, height=height
+        )
+        if bool(reverify_completion.get("applied")):
+            case["reverification_completed"] = dict(reverify_completion)
 
     case["status"] = outcome
     case["outcome"] = outcome
