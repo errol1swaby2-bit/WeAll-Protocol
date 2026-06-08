@@ -1557,6 +1557,7 @@ def _record_slash_accountability(
             "parent": parent_norm,
             "economic_penalty_applied": False,
             "validator_set_mutation_applied": False,
+            "requires_explicit_validator_suspend_or_remove": True,
             "non_economic_suspension_queued": bool(target_is_active),
             "effective_epoch": int(effective_epoch) if target_is_active else None,
         }
@@ -1600,6 +1601,7 @@ def _record_slash_accountability(
         "slash_id": slash_id,
         "economic_penalty_applied": False,
         "validator_set_mutation_applied": False,
+        "requires_explicit_validator_suspend_or_remove": True,
         "non_economic_suspension_queued": bool(target_is_active),
         "effective_epoch": int(effective_epoch) if target_is_active else None,
         "suspension_queue_id": suspension_queue_id,
