@@ -1,0 +1,56 @@
+{
+  "assertions": [
+    {
+      "kind": "equal",
+      "left": "base",
+      "right": "reordered_dicts_same_semantics"
+    },
+    {
+      "kind": "equal",
+      "left": "base",
+      "right": "with_ephemeral_fields_same_semantics"
+    },
+    {
+      "kind": "not_equal",
+      "left": "list_order_reference",
+      "right": "list_order_changed"
+    }
+  ],
+  "canonicalization_contract": {
+    "dict_keys_sorted": true,
+    "ephemeral_keys_ignored": [
+      "created_ms",
+      "bft",
+      "meta",
+      "tip_hash",
+      "tip_ts_ms"
+    ],
+    "list_order_preserved": true
+  },
+  "schema": "weall.v1_5.state_root_vectors",
+  "vectors": [
+    {
+      "name": "base",
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+    },
+    {
+      "name": "reordered_dicts_same_semantics",
+      "same_root_as": "base",
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+    },
+    {
+      "name": "with_ephemeral_fields_same_semantics",
+      "same_root_as": "base",
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+    },
+    {
+      "name": "list_order_reference",
+      "state_root": "b452f8f7a57981503cfd551079c66d02eadf1166d06d1e5beed3a98fc8363e6f"
+    },
+    {
+      "different_root_from": "list_order_reference",
+      "name": "list_order_changed",
+      "state_root": "f7e1bc38262e8831dab414198441091b7cb969e0ee3882ceb2580963a846ffaf"
+    }
+  ]
+}

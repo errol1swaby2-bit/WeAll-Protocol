@@ -1,0 +1,261 @@
+{
+  "batch": "M-01-through-M-10",
+  "mechanics": [
+    {
+      "acceptance_tests": [
+        "scripts/rehearse_mechanics_m1_m10.sh --bft-local",
+        "pytest -q tests/test_batch498_mechanics_m1_m10.py"
+      ],
+      "current_files": [
+        "src/weall/runtime/bft_hotstuff.py",
+        "src/weall/runtime/bft_journal.py",
+        "src/weall/runtime/bft_runtime_adapter.py",
+        "src/weall/net/net_loop.py",
+        "scripts/bft_adversarial_matrix.py",
+        "scripts/bft_consensus_resilience_matrix.py"
+      ],
+      "do_not_cross": [
+        "do not enable public validators",
+        "do not claim public BFT readiness"
+      ],
+      "domain": "consensus/bft",
+      "id": "M-01",
+      "locked_features": [
+        "public_validator_promotion",
+        "public_multi_validator_bft"
+      ],
+      "missing_mechanics": [
+        "four independent validator processes reaching matching finalized height and state root",
+        "partition/rejoin convergence proof",
+        "equivocation rejection evidence captured from the same harness",
+        "observer cannot propose, vote, or validate under rehearsal"
+      ],
+      "status": "partial_mechanic_proof_missing",
+      "title": "Public multi-validator BFT proof harness"
+    },
+    {
+      "acceptance_tests": [
+        "scripts/rehearse_mechanics_m1_m10.sh --state-sync-live"
+      ],
+      "current_files": [
+        "src/weall/net/state_sync.py",
+        "src/weall/runtime/block_replay.py",
+        "scripts/devnet_sync_from_peer.sh",
+        "scripts/devnet_compare_state_roots.sh"
+      ],
+      "do_not_cross": [
+        "do not copy trusted databases as sync proof"
+      ],
+      "domain": "state-sync/catchup",
+      "id": "M-02",
+      "missing_mechanics": [
+        "empty database node catches up from a trusted anchor",
+        "invalid snapshot and wrong-chain data are rejected",
+        "synced node reaches identical state root and tx index hash"
+      ],
+      "status": "implemented_mechanic_needs_fresh_node_proof",
+      "title": "Fresh-node bootstrap and state sync proof"
+    },
+    {
+      "acceptance_tests": [
+        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"
+      ],
+      "current_files": [
+        "src/weall/runtime/apply/consensus.py"
+      ],
+      "do_not_cross": [
+        "do not add stake slashing while economics is locked"
+      ],
+      "domain": "validator/slashing",
+      "id": "M-03",
+      "implemented_in_this_batch": [
+        "SLASH_EXECUTE mirrors a deterministic non-economic accountability record into validators.registry[account].accountability",
+        "accountability record explicitly marks economic_penalty_applied=false and validator_set_mutation_applied=false"
+      ],
+      "missing_mechanics": [
+        "epoch-bound suspension/removal policy after slash quorum",
+        "stake or bond penalty mechanics after economics activation"
+      ],
+      "status": "non_economic_accountability_added_stake_slashing_locked",
+      "title": "Validator accountability mechanics"
+    },
+    {
+      "acceptance_tests": [
+        "scripts/rehearse_mechanics_m1_m10.sh --network-live"
+      ],
+      "current_files": [
+        "src/weall/net/gossip.py",
+        "src/weall/net/handshake.py",
+        "src/weall/net/messages.py",
+        "src/weall/net/peer_identity.py",
+        "src/weall/net/relay.py",
+        "src/weall/net/net_loop.py"
+      ],
+      "do_not_cross": [
+        "do not treat relay success as validator-network readiness"
+      ],
+      "domain": "p2p/network",
+      "id": "M-04",
+      "missing_mechanics": [
+        "validator-only BFT message acceptance proof",
+        "mempool gossip convergence under reconnect",
+        "duplicate/replayed gossip suppression under load",
+        "malicious peer backpressure proof"
+      ],
+      "status": "implemented_components_need_multi_process_adversarial_proof",
+      "title": "P2P validator networking adversarial rehearsal"
+    },
+    {
+      "acceptance_tests": [
+        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"
+      ],
+      "current_files": [
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/poh/state.py"
+      ],
+      "do_not_cross": [
+        "do not claim full one-human-one-account Sybil resistance"
+      ],
+      "domain": "poh/identity",
+      "id": "M-05",
+      "implemented_in_this_batch": [
+        "upheld POH_CHALLENGE_RESOLVE revokes the target account PoH status using revoke_account_poh_status",
+        "dismissed challenges record no consequence"
+      ],
+      "missing_mechanics": [
+        "reverification lifecycle after challenge-upheld revocation",
+        "reviewer/juror accountability for bad approvals",
+        "duplicate-human detection beyond reused proof commitments"
+      ],
+      "status": "initial_consequence_added_reverification_missing",
+      "title": "PoH challenge consequences and reverification mechanics"
+    },
+    {
+      "acceptance_tests": [
+        "future: tests/test_dispute_appeal_panel_lifecycle.py"
+      ],
+      "current_files": [
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/apply/content.py"
+      ],
+      "do_not_cross": [
+        "do not silently enforce unsupported target types"
+      ],
+      "domain": "disputes/moderation",
+      "id": "M-06",
+      "missing_mechanics": [
+        "full appeal panel vote/tally/finalize path",
+        "non-content enforcement targets",
+        "moderator misconduct appeal path",
+        "deterministic remedy/reversal mechanics"
+      ],
+      "status": "partial_mechanic_non_content_enforcement_missing",
+      "title": "Dispute appeal and enforcement completion"
+    },
+    {
+      "acceptance_tests": [
+        "future: tests/test_governance_execution_vectors_v15.py"
+      ],
+      "current_files": [
+        "src/weall/runtime/apply/governance.py"
+      ],
+      "do_not_cross": [
+        "do not allow governance to bypass locked economics"
+      ],
+      "domain": "governance/execution",
+      "id": "M-07",
+      "missing_mechanics": [
+        "machine-readable vector for every allowed governance action",
+        "deterministic failed-execution receipt vectors",
+        "conflicting parameter-change handling proof"
+      ],
+      "status": "implemented_mechanic_vector_pack_missing",
+      "title": "Governance execution vectors"
+    },
+    {
+      "acceptance_tests": [
+        "python3 scripts/gen_tokenomics_simulation_v1_5.py --check",
+        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m08_tokenomics_simulation_artifact_keeps_economics_locked_boundary"
+      ],
+      "current_files": [
+        "src/weall/runtime/econ_phase.py",
+        "src/weall/runtime/apply/economics.py",
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/ledger/issuance.py",
+        "scripts/gen_tokenomics_simulation_v1_5.py"
+      ],
+      "do_not_cross": [
+        "do not enable transfers, tips, rewards, or treasury spend"
+      ],
+      "domain": "tokenomics/economics",
+      "id": "M-08",
+      "locked_features": [
+        "live_economics",
+        "balance_transfer",
+        "reward_issuance",
+        "treasury_spend"
+      ],
+      "missing_mechanics": [
+        "activation go/no-go checklist enforced by runtime preconditions",
+        "reward concentration/farming resistance vectors",
+        "stake/slash economics after validator proof"
+      ],
+      "status": "locked_mechanic_simulation_added_activation_missing",
+      "title": "Economics activation blockade and simulation"
+    },
+    {
+      "acceptance_tests": [
+        "future: scripts/rehearse_storage_replication.sh"
+      ],
+      "current_files": [
+        "src/weall/runtime/apply/storage.py",
+        "src/weall/storage",
+        "src/weall/ipfs"
+      ],
+      "do_not_cross": [
+        "do not claim media durability from CID recording alone"
+      ],
+      "domain": "storage/media",
+      "id": "M-09",
+      "missing_mechanics": [
+        "multi-node pin durability proof",
+        "pin target failure detection and reassignment",
+        "private evidence retention/deletion lifecycle",
+        "operator accountability for failed storage duty"
+      ],
+      "status": "partial_mechanic_durability_proof_missing",
+      "title": "Storage/IPFS durability proof"
+    },
+    {
+      "acceptance_tests": [
+        "future: tests/test_helper_serial_equivalence_v15.py"
+      ],
+      "current_files": [
+        "src/weall/runtime/helper_execution.py",
+        "src/weall/runtime/helper_receipts.py",
+        "src/weall/runtime/conflict_lanes.py",
+        "generated/helper_contract_map.json"
+      ],
+      "do_not_cross": [
+        "do not claim production helper execution"
+      ],
+      "domain": "helper/parallel-execution",
+      "id": "M-10",
+      "missing_mechanics": [
+        "serial-vs-helper equivalence across all helper-eligible txs",
+        "deterministic lane assignment across nodes",
+        "Byzantine helper-output rejection corpus",
+        "crash/restart helper replay proof"
+      ],
+      "status": "locked_or_serial_only_until_proven",
+      "title": "Helper/parallel execution proof corpus"
+    }
+  ],
+  "schema": "weall.v1_5.mechanics_gap_register",
+  "truth_boundaries": {
+    "automatic_protocol_upgrade_apply_enabled": false,
+    "live_economics_enabled": false,
+    "production_helper_execution_claimed": false,
+    "public_validators_enabled": false
+  }
+}
