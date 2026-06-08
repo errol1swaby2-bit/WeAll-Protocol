@@ -91,6 +91,37 @@ def _ensure_params(state: Json) -> Json:
     return params
 
 
+
+
+def _activation_precondition_report(state: Json) -> Json:
+    econ = _ensure_econ_root(state)
+    sim = state.get("tokenomics_simulation")
+    launch = state.get("launch_disabled_matrix")
+    treasury_wallets = state.get("treasury_wallets")
+    reward_policy = econ.get("reward_policy")
+    wallet_policy = econ.get("wallet_policy")
+    checks = {
+        "tokenomics_simulation_present": isinstance(sim, dict) or bool(econ.get("tokenomics_simulation_hash")),
+        "reward_policy_present": isinstance(reward_policy, dict),
+        "wallet_policy_present": isinstance(wallet_policy, dict),
+        "treasury_wallets_present": isinstance(treasury_wallets, dict) and bool(treasury_wallets),
+        "fee_free_civic_policy_present": isinstance(econ.get("fee_policy"), dict),
+        "activation_authority_system": True,
+    }
+    missing = [k for k, ok in sorted(checks.items()) if not bool(ok)]
+    return {"checks": checks, "missing": missing, "ready": not missing}
+
+
+def _require_activation_preconditions(state: Json) -> Json:
+    report = _activation_precondition_report(state)
+    if not bool(report.get("ready")):
+        raise EconomicsApplyError(
+            "forbidden",
+            "economics_activation_preconditions_not_satisfied",
+            {"missing": report.get("missing", []), "checks": report.get("checks", {})},
+        )
+    return report
+
 def _ensure_econ_root(state: Json) -> Json:
     econ = state.get("economics")
     if not isinstance(econ, dict):
@@ -342,6 +373,10 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
     elif "enabled" in payload:
         desired = _as_bool(payload.get("enabled"), True)
 
+    activation_report: Json | None = None
+    if bool(desired) and (_as_bool(payload.get("enforce_preconditions"), False) or bool(params.get("economics_activation_preconditions_required", False))):
+        activation_report = _require_activation_preconditions(state)
+
     current = bool(params.get("economics_enabled", False))
     if bool(desired) == bool(current):
         raise EconomicsApplyError(
@@ -351,7 +386,9 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
         )
 
     params["economics_enabled"] = bool(desired)
-    _ensure_econ_root(state)
+    econ = _ensure_econ_root(state)
+    if activation_report is not None:
+        econ["activation_preconditions"] = activation_report
 
     return {"applied": "ECONOMICS_ACTIVATION", "enabled": bool(params["economics_enabled"])}
 

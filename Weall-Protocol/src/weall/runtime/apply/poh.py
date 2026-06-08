@@ -1057,6 +1057,65 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
     _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap", ts_ms=0)
 
 
+
+
+def _reviewer_accountability_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reviewer_accountability")
+    if not isinstance(root, dict):
+        root = {"by_reviewer": {}, "events": []}
+        poh["reviewer_accountability"] = root
+    by_reviewer = root.get("by_reviewer")
+    if not isinstance(by_reviewer, dict):
+        by_reviewer = {}
+        root["by_reviewer"] = by_reviewer
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
+    if not case_id:
+        return {"applied": False, "reason": "missing_case_id"}
+    cases = _async_cases(state)
+    case = cases.get(case_id)
+    if not isinstance(case, dict):
+        return {"applied": False, "reason": "case_not_found", "case_id": case_id}
+    reviews = case.get("reviews")
+    if not isinstance(reviews, dict) or not reviews:
+        return {"applied": False, "reason": "no_reviews", "case_id": case_id}
+
+    root = _reviewer_accountability_root(state)
+    by_reviewer = root["by_reviewer"]
+    events = root["events"]
+    recorded: list[str] = []
+    for reviewer_id in sorted(str(k) for k in reviews.keys() if str(k).strip()):
+        review = reviews.get(reviewer_id)
+        if not isinstance(review, dict):
+            continue
+        verdict = _as_str(review.get("verdict") or "").strip().lower()
+        if verdict not in {"approve", "approved", "pass", "yes"}:
+            continue
+        rec = by_reviewer.get(reviewer_id)
+        if not isinstance(rec, dict):
+            rec = {"reviewer_id": reviewer_id, "challenge_upheld_review_count": 0, "events": []}
+        event = {
+            "event": "challenge_upheld_prior_approval",
+            "challenge_id": challenge_id,
+            "case_id": case_id,
+            "account_id": account_id,
+            "height": int(state.get("height") or 0),
+        }
+        rec["challenge_upheld_review_count"] = _as_int(rec.get("challenge_upheld_review_count") or 0, 0) + 1
+        rec["status"] = "reviewer_accountability_flagged"
+        rec.setdefault("events", []).append(event)
+        by_reviewer[reviewer_id] = rec
+        events.append({"reviewer_id": reviewer_id, **event})
+        recorded.append(reviewer_id)
+    return {"applied": bool(recorded), "reviewers": recorded, "case_id": case_id}
+
 def _challenge_id(*, account_id: str, nonce: int) -> str:
     return f"pohc:{account_id}:{max(0, int(nonce))}"
 
@@ -1076,6 +1135,9 @@ def apply_poh_challenge_open(state: Json, env: Any) -> Json:
         "reason": reason,
         "status": "open",
     }
+    case_id = _as_str(p.get("case_id") or p.get("target_case_id") or "").strip()
+    if case_id:
+        ch["case_id"] = case_id
 
     challenges = _challenges(state)
     challenges[cid] = ch
@@ -1121,6 +1183,12 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             challenge_id=cid,
             reason="challenge_upheld",
         )
+        accountability = _record_challenge_reviewer_accountability(
+            state,
+            challenge_id=cid,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            account_id=account_id,
+        )
         ch["consequence"] = {
             "type": "poh_status_revoked",
             "account_id": account_id,
@@ -1128,6 +1196,7 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             "status": _as_str(rec.get("status") or "revoked"),
             "reverification_status": _as_str(reverify.get("status") or "required"),
             "reverification_required": True,
+            "reviewer_accountability": accountability,
         }
         consequence = dict(ch["consequence"])
         consequence["applied"] = True

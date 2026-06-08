@@ -36,6 +36,72 @@ class DisputeApplyError(RuntimeError):
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
+_ALLOWED_DISPUTE_TARGET_TYPES = frozenset({
+    "content",
+    "post",
+    "comment",
+    "account",
+    "group",
+    "membership",
+    "moderator",
+    "reviewer",
+    "poh",
+})
+
+_ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES = frozenset({
+    "CONTENT_LABEL_SET",
+    "CONTENT_VISIBILITY_SET",
+    "CONTENT_THREAD_LOCK_SET",
+    "ACCOUNT_LOCK",  # legacy queue-bound account action preserved for compatibility
+    "ACCOUNT_RESTRICTION_SET",
+    "GROUP_MEMBERSHIP_RESTRICT",
+})
+
+
+def _dispute_enforcement_rejections(state: Json) -> list[Json]:
+    root = state.get("dispute_enforcement_rejections")
+    if not isinstance(root, list):
+        root = []
+        state["dispute_enforcement_rejections"] = root
+    return root
+
+
+def _validate_dispute_target_type(target_type: str) -> str:
+    t = _as_str(target_type).strip().lower()
+    if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:
+        raise DisputeApplyError(
+            "forbidden",
+            "unsupported_dispute_target_type",
+            {"target_type": target_type, "allowed": sorted(_ALLOWED_DISPUTE_TARGET_TYPES)},
+        )
+    return t
+
+
+def _validate_dispute_enforcement_actions(state: Json, *, actions: list[Json], dispute_id: str, parent_ref: str | None) -> list[Json]:
+    valid: list[Json] = []
+    for index, action in enumerate(actions):
+        if not isinstance(action, dict):
+            _dispute_enforcement_rejections(state).append({
+                "dispute_id": dispute_id,
+                "index": int(index),
+                "reason": "action_not_object",
+                "parent": parent_ref or "",
+            })
+            continue
+        tx_type = _as_str(action.get("tx_type")).strip().upper()
+        if tx_type not in _ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES:
+            _dispute_enforcement_rejections(state).append({
+                "dispute_id": dispute_id,
+                "index": int(index),
+                "tx_type": tx_type,
+                "reason": "unsupported_enforcement_action",
+                "parent": parent_ref or "",
+            })
+            continue
+        payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
+        valid.append({"tx_type": tx_type, "payload": dict(payload)})
+    return valid
+
 
 def _as_str(x: Any) -> str:
     return x if isinstance(x, str) else ""
@@ -617,6 +683,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
 
     if not target_type or not target_id:
         raise DisputeApplyError("invalid_payload", "missing_target", {"tx_type": env.tx_type})
+    target_type = _validate_dispute_target_type(target_type)
 
     disputes = _ensure_disputes(state)
     if dispute_id in disputes:
@@ -1061,9 +1128,10 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     if isinstance(res, dict):
         actions = res.get("actions")
         if isinstance(actions, list) and not constitutional_appeal_mode:
+            valid_actions = _validate_dispute_enforcement_actions(state, actions=[a for a in actions if isinstance(a, dict)], dispute_id=dispute_id, parent_ref=parent_ref)
             applied_actions = _apply_inline_content_enforcement(
                 state,
-                actions=[a for a in actions if isinstance(a, dict)],
+                actions=valid_actions,
                 current_height=int(base_due_h),
                 parent_ref=parent_ref,
             )
@@ -1074,9 +1142,7 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
                 )
                 for a in applied_actions
             }
-            for a in actions:
-                if not isinstance(a, dict):
-                    continue
+            for a in valid_actions:
                 tx_type = _as_str(a.get("tx_type") or "").strip()
                 pl = a.get("payload") if isinstance(a.get("payload"), dict) else {}
                 if not tx_type:
@@ -1200,9 +1266,10 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
         else:
             parent_ref = _as_str(payload.get("_parent_ref") or env.parent or f"tx:{env.signer}:{int(env.nonce)}").strip()
             actions = final_resolution.get("actions") if isinstance(final_resolution.get("actions"), list) else []
+            valid_actions = _validate_dispute_enforcement_actions(state, actions=[a for a in actions if isinstance(a, dict)], dispute_id=dispute_id, parent_ref=parent_ref)
             applied_actions = _apply_inline_content_enforcement(
                 state,
-                actions=[a for a in actions if isinstance(a, dict)],
+                actions=valid_actions,
                 current_height=int(state.get("height", 0) or 0),
                 parent_ref=parent_ref,
             )

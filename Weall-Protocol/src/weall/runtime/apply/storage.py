@@ -1194,6 +1194,26 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
         rec["confirmed_at_nonce"] = int(env.nonce)
         rec["confirmed_at_height"] = int(_height(state))
 
+        retrieval_flag = payload.get("retrieval_ok")
+        if retrieval_flag is None:
+            retrieval_flag = payload.get("availability_ok")
+        if bool(retrieval_flag):
+            proofs = rec.get("retrieval_proofs")
+            if not isinstance(proofs, list):
+                proofs = []
+            proof = {
+                "operator_id": operator_id or None,
+                "at_nonce": int(env.nonce),
+                "at_height": int(_height(state)),
+                "cid": cid,
+                "status": "retrievable",
+            }
+            if proof not in proofs:
+                proofs.append(proof)
+            rec["retrieval_proofs"] = proofs
+            rec["durability_status"] = "retrieval_confirmed"
+            rec["availability_status"] = "available"
+
         if operator_id:
             size_bytes = _as_int(rec.get("size_bytes"), 0)
             if size_bytes > 0:

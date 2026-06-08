@@ -488,9 +488,69 @@ def _viewer_can_read_comment(st: Json, comment: Json, viewer: str) -> bool:
         return _viewer_can_read_post(st, root, viewer)
     return _visibility_of_content(comment) in {"public", ""}
 
+def _content_identity(obj: Json) -> str:
+    return str(obj.get("post_id") or obj.get("comment_id") or obj.get("content_id") or obj.get("id") or "").strip()
+
+
 def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
     def k(obj: Json) -> tuple[int, str]:
-        return (_safe_int(obj.get(key), 0), str(obj.get("post_id") or obj.get("comment_id") or ""))
+        return (_safe_int(obj.get(key), 0), _content_identity(obj))
+
+    return sorted(items, key=k, reverse=True)
+
+
+def _comment_counts_by_post(st: Json) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for _, raw in sorted(_comments(st).items(), key=lambda item: str(item[0])):
+        com = _as_dict(raw)
+        if not _comment_visible(st, com):
+            continue
+        post_id = str(com.get("post_id") or com.get("thread_id") or "").strip()
+        if post_id:
+            counts[post_id] = int(counts.get(post_id, 0)) + 1
+    return counts
+
+
+def _feed_rank_mode(raw: Any) -> str:
+    mode = _str_param(raw, "recency").strip().lower().replace("-", "_") or "recency"
+    if mode in {"latest", "new", "newest", "chronological"}:
+        return "recency"
+    if mode in {"engagement", "reaction", "reactions"}:
+        return "engagement"
+    if mode in {"balanced", "quality", "default_ranked"}:
+        return "balanced"
+    return "recency"
+
+
+def _feed_rank_score(obj: Json, *, mode: str) -> int:
+    created = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    reactions = _safe_int(obj.get("reaction_total"), 0)
+    comments = _safe_int(obj.get("comment_total"), 0)
+    moderation_penalty = 0
+    labels = obj.get("labels")
+    if isinstance(labels, list):
+        bad = {"policy_violation", "dispute_upheld", "spam", "abuse"}
+        moderation_penalty = 10_000 if any(str(x).strip().lower() in bad for x in labels) else 0
+
+    # All scores are integer-only and state-derived.  No wall clock, randomness,
+    # floats, locale, or personalized client state participates in ranking.
+    if mode == "engagement":
+        return int((reactions * 1_000) + (comments * 250) + created - moderation_penalty)
+    if mode == "balanced":
+        return int(created + (reactions * 100) + (comments * 40) - moderation_penalty)
+    return int(created)
+
+
+def _sort_feed_items(items: list[Json], *, mode: str) -> list[Json]:
+    if mode == "recency":
+        return _sort_by_nonce_desc(items, key="created_at_nonce")
+
+    def k(obj: Json) -> tuple[int, int, str]:
+        return (
+            _safe_int(obj.get("feed_rank_score"), 0),
+            _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0),
+            _content_identity(obj),
+        )
 
     return sorted(items, key=k, reverse=True)
 
@@ -552,6 +612,8 @@ def feed(request: Request) -> dict[str, object]:
 
     posts = _posts(st)
     reaction_counts = _reaction_counts_by_target(st)
+    comment_counts = _comment_counts_by_post(st)
+    rank_mode = _feed_rank_mode(qp.get("rank") or qp.get("ranking"))
 
     filtered: list[Json] = []
     for pid, p in posts.items():
@@ -578,6 +640,11 @@ def feed(request: Request) -> dict[str, object]:
         if tags and not any(t in _tags_list(post) for t in tags):
             continue
 
+        comment_total = int(comment_counts.get(post_id, 0))
+        post["comment_total"] = comment_total
+        post["feed_rank_mode"] = rank_mode
+        post["feed_rank_score"] = _feed_rank_score(post, mode=rank_mode)
+
         if cursor_n is not None and cursor_id is not None:
             if created_at_nonce > cursor_n:
                 continue
@@ -586,7 +653,7 @@ def feed(request: Request) -> dict[str, object]:
 
         filtered.append(_with_media_summaries(st, post))
 
-    filtered = _sort_by_nonce_desc(filtered, key="created_at_nonce")
+    filtered = _sort_feed_items(filtered, mode=rank_mode)
     page = filtered[:limit]
     next_cursor = None
     if len(page) == limit:
@@ -596,7 +663,17 @@ def feed(request: Request) -> dict[str, object]:
             content_id=str(last.get("id") or last.get("post_id") or ""),
         )
 
-    return {"ok": True, "items": page, "next_cursor": next_cursor}
+    return {
+        "ok": True,
+        "items": page,
+        "next_cursor": next_cursor,
+        "ranking": {
+            "mode": rank_mode,
+            "deterministic": True,
+            "personalized": False,
+            "default_order": "created_at_nonce_desc" if rank_mode == "recency" else "feed_rank_score_desc",
+        },
+    }
 
 
 @router.get("/content/{content_id}")

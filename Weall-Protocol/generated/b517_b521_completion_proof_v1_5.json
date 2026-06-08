@@ -1,0 +1,157 @@
+{
+  "batch": "517-521",
+  "feed_ranking_review": {
+    "complete_ranking": false,
+    "current_default": "created_at_nonce_desc",
+    "new_optional_modes": [
+      "recency",
+      "engagement",
+      "balanced"
+    ],
+    "notes": "Default feed remains deterministic recency for compatibility; optional ranking is deterministic and state-derived but not a full personalized/reputation feed.",
+    "personalized_ranking": false
+  },
+  "fresh_node_replay_sync": {
+    "batch": "518",
+    "fresh_height": 5,
+    "fresh_state_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+    "interrupted_resume_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+    "ok": true,
+    "snapshot_used": false,
+    "source_height": 5,
+    "source_state_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+    "verified_block_count": 5
+  },
+  "full_lifecycle": {
+    "batch": "521",
+    "fresh_node_replay_sync": {
+      "batch": "518",
+      "fresh_height": 5,
+      "fresh_state_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+      "interrupted_resume_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+      "ok": true,
+      "snapshot_used": false,
+      "source_height": 5,
+      "source_state_root": "0bb7c9e5c423ded7c5038ecfdc1a7b74ff7930fb795a5a5fb0f94d212750c952",
+      "verified_block_count": 5
+    },
+    "lifecycle_domains": [
+      "account",
+      "poh",
+      "content",
+      "feed",
+      "dispute",
+      "governance",
+      "validator",
+      "state_sync",
+      "storage",
+      "locked_economics"
+    ],
+    "locked_boundaries": {
+      "automatic_upgrades": false,
+      "live_economics": false,
+      "production_helpers": false,
+      "public_validators": false
+    },
+    "ok": true,
+    "validator_network": {
+      "batch": "517",
+      "claim": "private_validator_rehearsal_only",
+      "minority_partition_result": "finality_threshold_not_met",
+      "observer_attempt": {
+        "can_propose": false,
+        "can_vote": false,
+        "rejected_reason": "observer_not_validator",
+        "role": "observer"
+      },
+      "ok": true,
+      "public_validator_enabled": false,
+      "rejoin_root_matches_reference": true,
+      "roots_after_restart": [
+        "80c1b98c9505d9c510684992ef7bbc2f9c97f202fe2cdb3da2e2512d4753d76a",
+        "885fd2cc0ae9b83bb60cd3e8e2ee3eec582ac192d19545eafe5dc3316629e9c8",
+        "abf2a8f516e3071be1d6774d339e4c61d5876b2dcdd2c15d373b10dac01066e6",
+        "d1830e31ad7b2e5e2fcf06faa0cfa3d6505a4ab5ca389c6d0ba16a29eba4d455"
+      ],
+      "roots_before_restart": [
+        "80c1b98c9505d9c510684992ef7bbc2f9c97f202fe2cdb3da2e2512d4753d76a",
+        "885fd2cc0ae9b83bb60cd3e8e2ee3eec582ac192d19545eafe5dc3316629e9c8",
+        "abf2a8f516e3071be1d6774d339e4c61d5876b2dcdd2c15d373b10dac01066e6",
+        "d1830e31ad7b2e5e2fcf06faa0cfa3d6505a4ab5ca389c6d0ba16a29eba4d455"
+      ],
+      "rounds": [
+        {
+          "block_id": "block:1:0:validator-a",
+          "height": 1,
+          "proposer": "validator-a",
+          "quorum": 3,
+          "view": 0,
+          "votes": 4
+        },
+        {
+          "block_id": "block:2:1:validator-b",
+          "height": 2,
+          "proposer": "validator-b",
+          "quorum": 3,
+          "view": 1,
+          "votes": 4
+        }
+      ],
+      "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+    }
+  },
+  "locked_boundaries_preserved": {
+    "automatic_protocol_upgrades": true,
+    "live_economics": true,
+    "production_helpers": true,
+    "public_validators": true
+  },
+  "ok": true,
+  "public_claim_allowed": "private_rehearsal_only",
+  "validator_network": {
+    "batch": "517",
+    "claim": "private_validator_rehearsal_only",
+    "minority_partition_result": "finality_threshold_not_met",
+    "observer_attempt": {
+      "can_propose": false,
+      "can_vote": false,
+      "rejected_reason": "observer_not_validator",
+      "role": "observer"
+    },
+    "ok": true,
+    "public_validator_enabled": false,
+    "rejoin_root_matches_reference": true,
+    "roots_after_restart": [
+      "80c1b98c9505d9c510684992ef7bbc2f9c97f202fe2cdb3da2e2512d4753d76a",
+      "885fd2cc0ae9b83bb60cd3e8e2ee3eec582ac192d19545eafe5dc3316629e9c8",
+      "abf2a8f516e3071be1d6774d339e4c61d5876b2dcdd2c15d373b10dac01066e6",
+      "d1830e31ad7b2e5e2fcf06faa0cfa3d6505a4ab5ca389c6d0ba16a29eba4d455"
+    ],
+    "roots_before_restart": [
+      "80c1b98c9505d9c510684992ef7bbc2f9c97f202fe2cdb3da2e2512d4753d76a",
+      "885fd2cc0ae9b83bb60cd3e8e2ee3eec582ac192d19545eafe5dc3316629e9c8",
+      "abf2a8f516e3071be1d6774d339e4c61d5876b2dcdd2c15d373b10dac01066e6",
+      "d1830e31ad7b2e5e2fcf06faa0cfa3d6505a4ab5ca389c6d0ba16a29eba4d455"
+    ],
+    "rounds": [
+      {
+        "block_id": "block:1:0:validator-a",
+        "height": 1,
+        "proposer": "validator-a",
+        "quorum": 3,
+        "view": 0,
+        "votes": 4
+      },
+      {
+        "block_id": "block:2:1:validator-b",
+        "height": 2,
+        "proposer": "validator-b",
+        "quorum": 3,
+        "view": 1,
+        "votes": 4
+      }
+    ],
+    "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+  },
+  "version": 1
+}
