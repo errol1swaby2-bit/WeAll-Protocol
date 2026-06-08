@@ -90,3 +90,5 @@ docker-compose.yml.bak*
 configs/local/
 
 !generated/b505_b509_mechanics_proof_v1_5.json
+
+!generated/b510_b515_completion_proof_v1_5.json

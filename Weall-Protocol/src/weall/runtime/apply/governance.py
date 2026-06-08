@@ -1,6 +1,8 @@
 # src/weall/runtime/apply/governance.py
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from weall.runtime.apply.economics import EconomicsApplyError, _normalize_rate_limit_policy_payload
@@ -39,6 +41,17 @@ def _sorted_dict(d: dict[str, Any]) -> dict[str, Any]:
     for k in sorted(d.keys(), key=lambda x: str(x)):
         out[str(k)] = d[k]
     return out
+
+def _canonical_json_hash(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _execution_audit_root(state: Json) -> list[Json]:
+    root = state.get("governance_execution_audit")
+    if not isinstance(root, list):
+        root = []
+        state["governance_execution_audit"] = root
+    return root
 
 
 def _height_hint(state: Json, env: TxEnvelope) -> int:
@@ -1165,7 +1178,8 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _assert_governance_actions_allowed(state, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
-    for a in actions:
+    emitted_actions: list[dict[str, Any]] = []
+    for index, a in enumerate(actions):
         tx_type = _s(a.get("tx_type")).strip().upper()
         if not tx_type:
             continue
@@ -1173,7 +1187,7 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         if parent_ref:
             ap.setdefault("_parent_ref", parent_ref)
 
-        enqueue_system_tx(
+        queue_id = enqueue_system_tx(
             state,
             tx_type=tx_type,
             payload=ap,
@@ -1183,12 +1197,28 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
             phase="post",
             once=True,
         )
+        emitted_actions.append({
+            "index": int(index),
+            "tx_type": tx_type,
+            "payload_hash": _canonical_json_hash(ap),
+            "queue_id": str(queue_id or ""),
+            "due_height": int(h + 1),
+        })
+
+    execution_hash = _canonical_json_hash({"proposal_id": proposal_id, "height": int(h), "emitted_actions": emitted_actions})
+    _execution_audit_root(state).append({
+        "proposal_id": proposal_id,
+        "height": int(h),
+        "parent": parent_ref or "",
+        "execution_hash": execution_hash,
+        "emitted_actions": list(emitted_actions),
+    })
 
     execs = pr.get("executions")
     if not isinstance(execs, list):
         execs = []
         pr["executions"] = execs
-    execs.append({"height": int(h), "actions": actions})
+    execs.append({"height": int(h), "actions": actions, "execution_hash": execution_hash, "emitted_actions": list(emitted_actions)})
 
     pr["stage"] = "executed"
     pr["executed_at_height"] = int(h)
@@ -1207,6 +1237,9 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         once=True,
     )
 
+    # Keep the public apply return shape stable for older callers/tests.
+    # The deterministic execution audit data is committed to proposal state and
+    # state["governance_execution_audit"] above, where replay/reviewer tooling reads it.
     return {"applied": True, "proposal_id": proposal_id}
 
 

@@ -1,0 +1,222 @@
+{
+  "artifact": "b510_b515_completion_proof_v1_5",
+  "batches": {
+    "510": {
+      "artifact": "b510_private_validator_network_completion_v1_5",
+      "candidate_join": {
+        "active_after_join": [
+          "validator-a",
+          "validator-b",
+          "validator-c",
+          "validator-d",
+          "validator-e"
+        ],
+        "approve": {
+          "account": "validator-e",
+          "activate_at_epoch": 1,
+          "applied": "VALIDATOR_CANDIDATE_APPROVE",
+          "status": "pending_activation",
+          "validator_set_hash": "bebcf126b307d9909d4c6b8d40d27e3714b3caa271cd40d625dabc0e7495f73a"
+        },
+        "epoch_open": {
+          "applied": "EPOCH_OPEN",
+          "epoch": 1,
+          "validator_set_activated": {
+            "activate_at_epoch": 1,
+            "active_set": [
+              "validator-a",
+              "validator-b",
+              "validator-c",
+              "validator-d",
+              "validator-e"
+            ],
+            "consensus_phase": "multi_validator_bootstrap",
+            "validator_epoch": 1,
+            "validator_set_hash": "bebcf126b307d9909d4c6b8d40d27e3714b3caa271cd40d625dabc0e7495f73a"
+          }
+        }
+      },
+      "initial_active_set": [
+        "validator-a",
+        "validator-b",
+        "validator-c",
+        "validator-d"
+      ],
+      "initial_threshold": 3,
+      "minority_partition_finalize_result": "finality_threshold_not_met",
+      "ok": true,
+      "public_validator_enabled": false,
+      "quorum_finalize_result": "finalized",
+      "restart_roots": [
+        "af189c77cfc27632bd668420649dbc3897ccc4d42fa8b65c64160a9a9658876f",
+        "af189c77cfc27632bd668420649dbc3897ccc4d42fa8b65c64160a9a9658876f",
+        "af189c77cfc27632bd668420649dbc3897ccc4d42fa8b65c64160a9a9658876f"
+      ],
+      "slash_accountability": {
+        "active_after_slash": [
+          "validator-b",
+          "validator-c",
+          "validator-d",
+          "validator-e"
+        ],
+        "epoch_open": {
+          "applied": "EPOCH_OPEN",
+          "epoch": 2,
+          "validator_set_activated": {
+            "activate_at_epoch": 2,
+            "active_set": [
+              "validator-b",
+              "validator-c",
+              "validator-d",
+              "validator-e"
+            ],
+            "consensus_phase": "multi_validator_bootstrap",
+            "validator_epoch": 2,
+            "validator_set_hash": "122dbb871f25edf9a181776d6854f43905387dbe52000a4d1b0819ac8c03907b"
+          }
+        },
+        "slash": {
+          "applied": "SLASH_EXECUTE",
+          "consequence": {
+            "account": "validator-a",
+            "applied": true,
+            "economic_penalty_applied": false,
+            "effective_epoch": 2,
+            "non_economic_suspension_queued": true,
+            "requires_explicit_validator_suspend_or_remove": true,
+            "slash_id": "slash:validator-a:1",
+            "suspension_queue_id": "19b1ef95b1ba2eb90ab0604e7096624b290b2e82a311782cfb0783400ab79254",
+            "validator_set_mutation_applied": false
+          },
+          "existed": false,
+          "slash_id": "slash:validator-a:1"
+        },
+        "suspend": {
+          "account": "validator-a",
+          "applied": "VALIDATOR_SUSPEND",
+          "effective_epoch": 2,
+          "status": "pending_suspension",
+          "validator_set_hash": "122dbb871f25edf9a181776d6854f43905387dbe52000a4d1b0819ac8c03907b"
+        }
+      },
+      "state_root": "af189c77cfc27632bd668420649dbc3897ccc4d42fa8b65c64160a9a9658876f",
+      "validator_set_hash": "122dbb871f25edf9a181776d6854f43905387dbe52000a4d1b0819ac8c03907b"
+    },
+    "511": {
+      "dispute": {
+        "account": {
+          "latest_restriction": "posting_limited",
+          "restricted": true,
+          "restrictions": [
+            {
+              "dispute_parent": "d-account",
+              "height": 8,
+              "reason": "abuse_upheld",
+              "restriction": "posting_limited"
+            }
+          ]
+        },
+        "enforcement_applied": [
+          {
+            "applied_to": "mallory",
+            "payload": {
+              "account_id": "mallory",
+              "reason": "abuse_upheld",
+              "restriction": "posting_limited"
+            },
+            "tx_type": "ACCOUNT_RESTRICTION_SET"
+          }
+        ],
+        "ok": true
+      },
+      "ok": true,
+      "poh": {
+        "canonical_status": {
+          "account_id": "alice",
+          "expires_at_height": null,
+          "issuer_authority_id": null,
+          "last_updated_height": 11,
+          "poh_tier": 1,
+          "poh_tier_label": "Async Verified Human",
+          "proof_commitment": "a50a5849e4926bb09e19d974f5772e6e3c15b5cac090772b77798588f3f1198f",
+          "status": "active",
+          "verified_at_height": 11
+        },
+        "challenge_status": "resolved_reverified",
+        "ok": true,
+        "post_challenge_reverification": {
+          "case_id": "pohasync:alice:3",
+          "height": 11,
+          "status": "completed"
+        }
+      }
+    },
+    "512": {
+      "audit": {
+        "emitted_actions": [
+          {
+            "due_height": 22,
+            "index": 0,
+            "payload_hash": "27f36953de2ad6250553c77fc8220fd3edc0bf52c87004dbc1480e772b77ca2a",
+            "queue_id": "6681024b10d3af3a87be68814d906341e7e611cfdbc999724ed78ecf205a8ae7",
+            "tx_type": "GOV_QUORUM_SET"
+          }
+        ],
+        "execution_hash": "d4e3e22322118993b9a17e3fcc68618c4a5ff47a5f6e937a3d1364c06eb2b37d",
+        "height": 21,
+        "parent": "gp-audit",
+        "proposal_id": "gp-audit"
+      },
+      "emitted_actions": [
+        {
+          "due_height": 22,
+          "index": 0,
+          "payload_hash": "27f36953de2ad6250553c77fc8220fd3edc0bf52c87004dbc1480e772b77ca2a",
+          "queue_id": "6681024b10d3af3a87be68814d906341e7e611cfdbc999724ed78ecf205a8ae7",
+          "tx_type": "GOV_QUORUM_SET"
+        }
+      ],
+      "execution_hash": "d4e3e22322118993b9a17e3fcc68618c4a5ff47a5f6e937a3d1364c06eb2b37d",
+      "ok": true
+    },
+    "513": {
+      "durability_status": "reassignment_pending_confirmation",
+      "failed_operator_id": "op-a",
+      "final_targets": [
+        "op-b",
+        "op-c"
+      ],
+      "initial_targets": [
+        "op-a",
+        "op-b"
+      ],
+      "ok": true,
+      "reassignment": {
+        "failed_operator_id": "op-a",
+        "reassigned": true,
+        "replacement_operator_id": "op-c",
+        "targets": [
+          "op-b",
+          "op-c"
+        ]
+      }
+    },
+    "514": {
+      "artifact": "b510_fresh_node_sync_completion_v1_5",
+      "fresh_height": 42,
+      "fresh_state_root": "a57f21ec18cedf71bdb8cbed4dbadfc4af298eb101391b42504c0dc68c906be3",
+      "ok": true,
+      "source_height": 42,
+      "source_state_root": "a57f21ec18cedf71bdb8cbed4dbadfc4af298eb101391b42504c0dc68c906be3",
+      "trusted_anchor_height": 42,
+      "verified": true
+    }
+  },
+  "ok": true,
+  "truth_boundaries": {
+    "automatic_protocol_upgrades_enabled": false,
+    "live_economics_enabled": false,
+    "production_helper_execution_enabled": false,
+    "public_validators_enabled": false
+  }
+}

@@ -460,7 +460,20 @@ def _mark_reverification_completed(
     events.append(event)
     root["by_account"] = by_account
     root["events"] = events
-    return {"applied": True, "account_id": account_id, "case_id": case_id, "status": "completed"}
+
+    challenge_id = _as_str(rec.get("challenge_id") or "").strip()
+    challenges = _challenges(state)
+    ch = challenges.get(challenge_id) if challenge_id else None
+    if isinstance(ch, dict):
+        ch["post_challenge_reverification"] = {
+            "status": "completed",
+            "case_id": case_id,
+            "height": int(height),
+        }
+        ch["status"] = "resolved_reverified"
+        challenges[challenge_id] = ch
+
+    return {"applied": True, "account_id": account_id, "case_id": case_id, "status": "completed", "challenge_id": challenge_id}
 
 def _poh_nfts_root(state: Json) -> Json:
     root = state.get("poh_nfts")

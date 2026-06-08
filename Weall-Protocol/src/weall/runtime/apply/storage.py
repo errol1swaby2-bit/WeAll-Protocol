@@ -428,6 +428,94 @@ def _select_targets_for_cid(cid: str, operator_ids: list[str], n: int) -> list[s
     return targets
 
 
+def _pin_failures(rec: Json) -> Json:
+    failures = rec.get("failed_targets")
+    if not isinstance(failures, dict):
+        failures = {}
+        rec["failed_targets"] = failures
+    return failures
+
+
+def _pin_reassignments(rec: Json) -> list[Json]:
+    reassignments = rec.get("reassignments")
+    if not isinstance(reassignments, list):
+        reassignments = []
+        rec["reassignments"] = reassignments
+    return reassignments
+
+
+def _maybe_reassign_failed_pin_target(
+    state: Json,
+    *,
+    pin_id: str,
+    rec: Json,
+    failed_operator_id: str,
+    nonce: int,
+) -> Json:
+    """Deterministically replace a failed pin target when spare capacity exists.
+
+    This is intentionally an in-state durability mechanic, not a background task.
+    The next pin worker/reconciler can act on the updated targets list, and all
+    nodes derive the same replacement from the same state, CID, size, and failure
+    record.  If no spare operator is available, the pin remains degraded instead
+    of pretending durability was restored.
+    """
+
+    cid = _as_str(rec.get("cid") or "").strip()
+    if not pin_id or not cid or not failed_operator_id:
+        return {"reassigned": False, "reason": "missing_pin_or_operator"}
+
+    size_bytes = _as_int(rec.get("size_bytes"), 0)
+    rf = _as_int(rec.get("replication_factor"), _replication_factor(state))
+    targets = [str(t).strip() for t in rec.get("targets", []) if _as_str(t).strip()] if isinstance(rec.get("targets"), list) else []
+    if failed_operator_id not in targets:
+        return {"reassigned": False, "reason": "operator_not_current_target"}
+
+    failures = _pin_failures(rec)
+    failures[failed_operator_id] = {
+        "failed_at_nonce": int(nonce),
+        "failed_at_height": int(_height(state)),
+    }
+
+    excluded = set(targets) | set(str(k) for k in failures.keys())
+    eligible = [op for op in _eligible_operator_ids_for_size(state, int(size_bytes)) if op not in excluded]
+    replacement = _select_targets_for_cid(f"{cid}:reassign:{pin_id}:{failed_operator_id}:{len(failures)}", eligible, 1)
+    if not replacement:
+        rec["status"] = "degraded"
+        rec["durability_status"] = "degraded_no_spare_target"
+        return {
+            "reassigned": False,
+            "reason": "no_spare_target",
+            "failed_operator_id": failed_operator_id,
+            "active_targets": [t for t in targets if t != failed_operator_id],
+        }
+
+    new_target = replacement[0]
+    next_targets = [t for t in targets if t != failed_operator_id]
+    if new_target not in next_targets:
+        next_targets.append(new_target)
+    next_targets.sort()
+    rec["targets"] = next_targets
+    rec["status"] = "reassigned"
+    rec["durability_status"] = "reassignment_pending_confirmation"
+    rec["replication_factor"] = int(rf)
+    reassignments = _pin_reassignments(rec)
+    reassignments.append({
+        "failed_operator_id": failed_operator_id,
+        "replacement_operator_id": new_target,
+        "at_nonce": int(nonce),
+        "at_height": int(_height(state)),
+    })
+    if size_bytes > 0 and _pin_accounting_marker_set(state, _pin_operator_key(pin_id, new_target, "allocated")):
+        _adjust_storage_accounting(state, new_target, allocated_delta=int(size_bytes))
+    return {
+        "reassigned": True,
+        "failed_operator_id": failed_operator_id,
+        "replacement_operator_id": new_target,
+        "targets": list(next_targets),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Offers / Leases / Proofs / Challenges
 # ---------------------------------------------------------------------------
@@ -1126,10 +1214,19 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
         rec["status"] = "confirm_failed"
         rec["failed_at_nonce"] = int(env.nonce)
         rec["failed_at_height"] = int(_height(state))
+        reassignment: Json = {"reassigned": False}
         if operator_id:
             size_bytes = _as_int(rec.get("size_bytes"), 0)
             if size_bytes > 0:
                 _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
+            reassignment = _maybe_reassign_failed_pin_target(
+                state,
+                pin_id=pin_id,
+                rec=rec,
+                failed_operator_id=operator_id,
+                nonce=int(env.nonce),
+            )
+        rec["latest_reassignment"] = reassignment
 
     rec["confirm_payload"] = payload
     pins[pin_id] = rec
@@ -1146,7 +1243,13 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
         }
     )
 
-    return {"applied": "IPFS_PIN_CONFIRM", "pin_id": pin_id, "ok": bool(ok_bool), "receipt": True}
+    return {
+        "applied": "IPFS_PIN_CONFIRM",
+        "pin_id": pin_id,
+        "ok": bool(ok_bool),
+        "receipt": True,
+        "reassignment": rec.get("latest_reassignment") if isinstance(rec.get("latest_reassignment"), dict) else {"reassigned": False},
+    }
 
 
 # ---------------------------------------------------------------------------

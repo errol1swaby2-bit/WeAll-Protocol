@@ -305,11 +305,60 @@ def _apply_inline_content_enforcement(state: Json, *, actions: list[Json], curre
             continue
         tx_type = _as_str(action.get("tx_type")).strip()
         payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
-        if tx_type not in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}:
+        if tx_type in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}:
+            env = _system_env(tx_type, payload, height=int(current_height), parent_ref=parent_ref)
+            apply_content(state, env)
+            applied.append({"tx_type": tx_type, "payload": dict(payload)})
             continue
-        env = _system_env(tx_type, payload, height=int(current_height), parent_ref=parent_ref)
-        apply_content(state, env)
-        applied.append({"tx_type": tx_type, "payload": dict(payload)})
+
+        if tx_type == "ACCOUNT_RESTRICTION_SET":
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id")).strip()
+            restriction = _as_str(payload.get("restriction") or payload.get("status") or "restricted_by_dispute").strip()
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            restrictions = rec.get("restrictions") if isinstance(rec.get("restrictions"), list) else []
+            entry = {
+                "restriction": restriction,
+                "reason": _as_str(payload.get("reason") or "dispute_enforcement"),
+                "dispute_parent": parent_ref or "",
+                "height": int(current_height),
+            }
+            if entry not in restrictions:
+                restrictions.append(entry)
+            rec["restrictions"] = restrictions
+            rec["restricted"] = True
+            rec["latest_restriction"] = restriction
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id})
+            continue
+
+        if tx_type == "GROUP_MEMBERSHIP_RESTRICT":
+            group_id = _as_str(payload.get("group_id") or payload.get("target_id")).strip()
+            account_id = _as_str(payload.get("account_id") or payload.get("member") or payload.get("target_account")).strip()
+            if not group_id or not account_id:
+                continue
+            groups = state.get("groups")
+            if not isinstance(groups, dict):
+                groups = {}
+                state["groups"] = groups
+            by_id = groups.get("by_id") if isinstance(groups.get("by_id"), dict) else {}
+            groups["by_id"] = by_id
+            grec = by_id.get(group_id) if isinstance(by_id.get(group_id), dict) else {"group_id": group_id}
+            restricted = grec.get("restricted_members") if isinstance(grec.get("restricted_members"), dict) else {}
+            restricted[account_id] = {
+                "reason": _as_str(payload.get("reason") or "dispute_enforcement"),
+                "height": int(current_height),
+                "dispute_parent": parent_ref or "",
+            }
+            grec["restricted_members"] = restricted
+            by_id[group_id] = grec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id})
+            continue
     return applied
 
 
