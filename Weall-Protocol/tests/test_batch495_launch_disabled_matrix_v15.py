@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+from weall.api.routes_public_parts.status import status_launch_matrix
 from weall.runtime.launch_matrix import (
     FEATURE_AUTO_PROTOCOL_UPGRADE,
     FEATURE_EMERGENCY_SAFETY_CONTROLS,
@@ -57,3 +59,19 @@ def test_launch_matrix_aliases_and_state_read_model_batch495() -> None:
     assert status["phase"] == "public_beta_candidate"
     assert FEATURE_LIVE_ECONOMICS in status["disabled_features"]
     assert status["feature_status"][FEATURE_AUTO_PROTOCOL_UPGRADE]["enabled"] is False
+
+
+def test_launch_matrix_status_route_is_public_read_only_truth_surface_batch495() -> None:
+    class FakeExecutor:
+        def read_state(self):
+            return {"params": {"launch_phase": "public_beta"}, "height": 7}
+
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(executor=FakeExecutor())))
+    payload = status_launch_matrix(request)  # type: ignore[arg-type]
+
+    assert payload["ok"] is True
+    assert payload["schema"] == "weall.launch_disabled_matrix.v1_5"
+    assert payload["phase"] == "public_beta_candidate"
+    assert FEATURE_LIVE_ECONOMICS in payload["disabled_features"]
+    assert payload["feature_status"][FEATURE_PUBLIC_BFT]["enabled"] is False
+    assert "does not activate" in payload["truth_boundary"].lower()

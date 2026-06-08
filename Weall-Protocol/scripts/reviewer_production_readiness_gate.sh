@@ -10,6 +10,8 @@ cd "${ROOT}"
 echo "[reviewer-gate] repo: ${ROOT}"
 echo "[reviewer-gate] checking canon, secrets, release tree, and dependencies"
 python3 -S scripts/check_tx_canon_artifacts.py
+python3 scripts/gen_api_contract_map.py --check
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_v15_public_readiness_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
 bash scripts/verify_release_dependencies.sh

@@ -50,6 +50,9 @@ generated/*
 !generated/tx_index.json
 !generated/helper_contract_map.json
 !generated/tx_contract_map.json
+!generated/api_contract_map_v1_5.json
+!generated/launch_disabled_matrix_v1_5.json
+!generated/v15_implementation_gap_register.json
 
 # SQLite runtime files (safety net if someone points WEALL_DB_PATH outside data/)
 *.db

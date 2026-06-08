@@ -1,0 +1,70 @@
+{
+  "schema": "weall.api_route_metadata.v1_5",
+  "version": "2026-06-v1.5-artifact-determinism-batch9",
+  "truth_boundary": "Sidecar metadata overrides static heuristics for public-readiness API inventory. Runtime route code remains authoritative for enforcement.",
+  "routes": {
+    "GET /v1/messages/threads": {
+      "auth": "account_session_required",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
+      "cache_policy": "no_store_private_account_read",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots."
+    },
+    "GET /v1/messages/threads/{thread_id:path}": {
+      "auth": "account_session_required",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
+      "cache_policy": "no_store_private_account_read",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Thread detail reads are viewer-scoped and require membership plus a valid account session."
+    },
+    "GET /v1/reviewer/artifacts": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_index",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Reviewer artifacts are disabled unless WEALL_REVIEWER_ARTIFACTS_ENABLED and artifact directory are explicitly configured."
+    },
+    "GET /v1/reviewer/artifacts/bundle": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_bundle",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Disposable reviewer bundle read only; not canonical production authority."
+    },
+    "GET /v1/reviewer/artifacts/manifest": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_manifest",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Disposable reviewer manifest read only; not canonical production authority."
+    },
+    "GET /v1/status/operator": {
+      "auth": "operator_diagnostic_read_redacted_by_runtime_posture",
+      "error_model": "standard_api_error_envelope_or_status_config_error",
+      "cache_policy": "no_store_operator_diagnostic_snapshot",
+      "idempotency": "safe_diagnostic_read_no_state_mutation",
+      "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
+    },
+    "GET /v1/status/launch-matrix": {
+      "auth": "public_read_launch_capability_truth_boundary",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Read-only public launch capability matrix; does not activate or disable consensus rules by itself."
+    },
+    "GET /v1/metrics": {
+      "auth": "metrics_env_gated_public_when_enabled",
+      "error_model": "404 metrics_disabled unless WEALL_METRICS_ENABLED is set",
+      "cache_policy": "no_store_metrics_snapshot",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Metrics exposure is deployment-gated and not a generic public read surface."
+    },
+    "GET /v1/net/peers": {
+      "auth": "network_debug_env_gated_or_runtime_limited",
+      "error_model": "404 debug_disabled or route-specific network diagnostic error",
+      "cache_policy": "no_store_network_debug_snapshot",
+      "idempotency": "safe_diagnostic_read_no_state_mutation",
+      "truth_boundary": "Network peer diagnostics are not generic public state snapshots."
+    }
+  }
+}

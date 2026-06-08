@@ -21,6 +21,7 @@ from weall.runtime.helper_startup_integration import (
 )
 from weall.runtime.helper_status_route_adapter import build_api_status_response_shape
 from weall.runtime.helper_status_surface import build_helper_status_surface
+from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
 from weall.runtime.runtime_authority import (
     authority_contract_from_lifecycle,
@@ -834,6 +835,32 @@ def status(request: Request) -> dict[str, Any]:
         if key in base:
             payload[key] = base[key]
     return payload
+
+
+@router.get("/status/launch-matrix")
+def status_launch_matrix(request: Request) -> dict[str, Any]:
+    """Return the read-only v1.5 launch-disabled capability matrix.
+
+    This is a public-readiness truth-boundary surface. It does not activate live
+    economics, public validators, helper production execution, automatic
+    upgrades, migrations, rollbacks, treasury spending, or emergency controls.
+    Runtime apply/admission paths remain authoritative for actual mutation.
+    """
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    runtime = launch_matrix_from_state(state if isinstance(state, dict) else {})
+    canonical = launch_matrix_payload()
+    return {
+        "ok": True,
+        "schema": canonical["schema"],
+        "version": canonical["version"],
+        "phase": runtime["phase"],
+        "disabled_features": runtime["disabled_features"],
+        "feature_status": runtime["feature_status"],
+        "high_risk_features": canonical["high_risk_features"],
+        "phases": canonical["phases"],
+        "truth_boundary": canonical["truth_boundary"],
+    }
 
 
 @router.get("/status/operator")

@@ -40,12 +40,18 @@ def _decorated_route_count() -> int:
     return count
 
 
+def _routes_by_key() -> dict[str, dict]:
+    payload = json.loads(MAP_PATH.read_text(encoding="utf-8"))
+    return {f"{route['method']} {route['path']}": route for route in payload["routes"]}
+
+
 def test_api_contract_map_is_generated_and_complete_batch494() -> None:
     payload = json.loads(MAP_PATH.read_text(encoding="utf-8"))
     routes = payload["routes"]
 
     assert payload["schema"] == "weall.api_contract_map.v1_5"
     assert payload["route_prefix"] == "/v1"
+    assert payload["metadata_source"] == "specs/api_contracts/v1_5_route_metadata.json"
     assert payload["route_count"] == len(routes) == _decorated_route_count()
     assert payload["route_count"] >= 120
 
@@ -63,10 +69,10 @@ def test_api_contract_map_is_generated_and_complete_batch494() -> None:
     assert len(ids) == len(routes)
 
 
-def test_api_contract_generator_is_deterministic_batch494() -> None:
+def test_api_contract_generator_is_deterministic_and_checkable_batch494() -> None:
     before = MAP_PATH.read_text(encoding="utf-8")
     result = subprocess.run(
-        [sys.executable, "scripts/gen_api_contract_map.py"],
+        [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
         cwd=ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -76,3 +82,23 @@ def test_api_contract_generator_is_deterministic_batch494() -> None:
     after = MAP_PATH.read_text(encoding="utf-8")
     assert result.returncode == 0, result.stdout + result.stderr
     assert before == after
+
+
+def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes_batch494() -> None:
+    routes = _routes_by_key()
+
+    assert routes["GET /v1/messages/threads"]["auth"] == "account_session_required"
+    assert routes["GET /v1/messages/threads/{thread_id:path}"]["auth"] == "account_session_required"
+    assert "public_read_redacted_snapshot" not in routes["GET /v1/messages/threads"]["auth"]
+    assert routes["GET /v1/messages/threads"]["cache_policy"] == "no_store_private_account_read"
+
+    for key in [
+        "GET /v1/reviewer/artifacts",
+        "GET /v1/reviewer/artifacts/bundle",
+        "GET /v1/reviewer/artifacts/manifest",
+    ]:
+        assert routes[key]["auth"] == "reviewer_artifacts_env_gated_public_when_enabled"
+        assert "public_read_redacted_snapshot" not in routes[key]["auth"]
+        assert "metadata_source" in routes[key]
+
+    assert routes["GET /v1/status/launch-matrix"]["auth"] == "public_read_launch_capability_truth_boundary"
