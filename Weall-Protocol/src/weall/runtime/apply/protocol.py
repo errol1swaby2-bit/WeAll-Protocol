@@ -102,6 +102,39 @@ def _height_now(state: Json) -> int:
     return _as_int(state.get("height"), 0) + 1
 
 
+_EXECUTION_REQUEST_FIELDS = (
+    "auto_apply",
+    "apply_patch",
+    "apply_package",
+    "artifact_url",
+    "migration",
+    "migration_steps",
+    "execute_migration",
+    "rollback",
+    "rollback_steps",
+    "restart_node",
+)
+
+
+def _record_only_boundary(payload: Json) -> Json:
+    requested = []
+    for key in _EXECUTION_REQUEST_FIELDS:
+        if key in payload and payload.get(key) not in (None, "", False, [], {}):
+            requested.append(key)
+    return {
+        "execution_model": "record_only_no_auto_apply",
+        "artifact_apply_enabled": False,
+        "migration_execution_enabled": False,
+        "rollback_execution_enabled": False,
+        "restart_or_process_control_enabled": False,
+        "requested_execution_fields_ignored": requested,
+        "truth_boundary": (
+            "Protocol upgrade txs record declaration/activation metadata only. "
+            "They do not fetch, verify, apply, migrate, restart, or roll back node software."
+        ),
+    }
+
+
 def _infer_upgrade_id(payload: Json, env: TxEnvelope) -> str:
     uid = _as_str(
         payload.get("upgrade_id") or payload.get("id") or payload.get("proposal_id")
@@ -145,6 +178,7 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "activated_at_nonce": None,
         "parent": env.parent,
         "payload": payload,
+        "record_only_boundary": _record_only_boundary(payload),
     }
 
     return {
@@ -152,6 +186,7 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "upgrade_id": uid,
         "version": version,
         "hash": hsh,
+        "record_only_boundary": _record_only_boundary(payload),
     }
 
 
@@ -169,12 +204,18 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         raise ProtocolApplyError("not_found", "upgrade_not_declared", {"upgrade_id": uid})
 
     if rec.get("status") == "activated":
-        return {"applied": "PROTOCOL_UPGRADE_ACTIVATE", "upgrade_id": uid, "deduped": True}
+        return {
+            "applied": "PROTOCOL_UPGRADE_ACTIVATE",
+            "upgrade_id": uid,
+            "deduped": True,
+            "record_only_boundary": _record_only_boundary(_as_dict(rec.get("activate_payload") or rec.get("payload"))),
+        }
 
     rec["status"] = "activated"
     rec["activated_at_height"] = int(_height_now(state))
     rec["activated_at_nonce"] = int(env.nonce)
     rec["activate_payload"] = payload
+    rec["record_only_boundary"] = _record_only_boundary(payload)
     upgrades[uid] = rec
 
     version = _as_str(payload.get("version")).strip() or _as_str(rec.get("version")).strip() or None
@@ -186,6 +227,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "hash": hsh,
         "activated_at_height": int(_height_now(state)),
         "activated_at_nonce": int(env.nonce),
+        "record_only_boundary": _record_only_boundary(payload),
     }
 
     return {
@@ -194,6 +236,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "version": version,
         "hash": hsh,
         "deduped": False,
+        "record_only_boundary": _record_only_boundary(payload),
     }
 
 

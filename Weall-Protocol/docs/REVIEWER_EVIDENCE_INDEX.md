@@ -262,3 +262,17 @@ audit-metadata/reviewer-evidence-YYYY-MM-DD/
 ```
 
 Only include `10_first_external_observer_remote_signed.txt` after the remote signed proof has actually passed.
+
+## v1.5 public-readiness evidence and guardrails
+
+The following artifacts were added to keep the full-scope v1.5 audit aligned with current code without overclaiming public beta, public BFT, live economics, automatic upgrades, or legal approval.
+
+| Evidence item | Command | Expected result | Truth boundary |
+|---|---|---|---|
+| v1.5 implementation evidence map | `cat docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md` | Current resolved/gap map is present | Planning/evidence artifact only. |
+| v1.5 gap register | `cat generated/v15_implementation_gap_register.json` | Recent tokenomics/runtime config drift marked resolved; remaining P0/P1 gaps listed | Does not prove the gaps are closed unless status says resolved. |
+| API contract map | `python3 scripts/gen_api_contract_map.py && pytest tests/test_batch494_api_contract_map_v15.py` | Generated route inventory is deterministic and complete for current public route decorators | Static map only; response schema vector pack remains future work. |
+| Launch-disabled matrix | `pytest tests/test_batch495_launch_disabled_matrix_v15.py` | High-risk features remain disabled across current phases | Matrix is a guardrail; apply/admission code remains authoritative. |
+| Protocol-upgrade record-only boundary | `pytest tests/test_batch496_protocol_upgrade_record_only_boundary.py` | Upgrade txs record metadata and expose no auto-apply/migration/rollback execution | Automatic protocol upgrades are not implemented. |
+| Legal/compliance draft pack | `pytest tests/test_batch497_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
+| Public validator/BFT proof plan | `cat docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Required public-validator adversarial proof matrix exists | Plan only; public multi-validator readiness is not claimed. |

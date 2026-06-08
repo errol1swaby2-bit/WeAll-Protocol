@@ -65,6 +65,14 @@ PYTHONPATH=src pytest -q tests/test_batch485_reward_issuance_invariants.py
 
 PYTHONPATH=src pytest -q tests/test_batch491_v15_epoch_issuance_scheduler.py
 
+PYTHONPATH=src pytest -q tests/test_batch493_v15_runtime_config_alignment.py
+
+PYTHONPATH=src pytest -q \
+  tests/test_batch494_api_contract_map_v15.py \
+  tests/test_batch495_launch_disabled_matrix_v15.py \
+  tests/test_batch496_protocol_upgrade_record_only_boundary.py \
+  tests/test_batch497_public_readiness_artifacts_v15.py
+
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
   node scripts/test_batch450_messaging_e2ee_source.mjs
