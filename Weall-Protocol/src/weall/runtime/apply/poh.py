@@ -983,7 +983,35 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
     if note:
         ch["note"] = note
 
-    return {"applied": "POH_CHALLENGE_RESOLVE", "challenge_id": cid, "resolution": resolution}
+    consequence: Json = {"applied": False}
+    if resolution == "upheld":
+        account_id = _as_str(ch.get("account_id") or "").strip()
+        if not account_id:
+            raise ApplyError("invalid_tx", "challenge_missing_account_id", {"challenge_id": cid})
+        rec = revoke_account_poh_status(
+            state,
+            account_id=account_id,
+            reason="challenge_upheld",
+            last_updated_height=int(state.get("height") or 0),
+        )
+        ch["consequence"] = {
+            "type": "poh_status_revoked",
+            "account_id": account_id,
+            "poh_tier": 0,
+            "status": _as_str(rec.get("status") or "revoked"),
+        }
+        consequence = dict(ch["consequence"])
+        consequence["applied"] = True
+    else:
+        ch["consequence"] = {"type": "none", "applied": False}
+        consequence = dict(ch["consequence"])
+
+    return {
+        "applied": "POH_CHALLENGE_RESOLVE",
+        "challenge_id": cid,
+        "resolution": resolution,
+        "consequence": consequence,
+    }
 
 
 

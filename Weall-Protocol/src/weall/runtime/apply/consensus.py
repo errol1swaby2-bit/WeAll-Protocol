@@ -1497,6 +1497,72 @@ def _apply_slash_vote(state: Json, env: TxEnvelope) -> Json:
     }
 
 
+def _record_slash_accountability(
+    state: Json,
+    *,
+    slash_id: str,
+    account: str,
+    reason: str,
+    payload: Json,
+    parent: str,
+) -> Json:
+    """Record deterministic non-economic validator accountability for a slash event.
+
+    Economics/stake slashing remains disabled.  This helper gives the consensus
+    layer a replayable consequence that reviewers can inspect without enabling
+    token penalties or public validator promotion: the targeted validator gets a
+    slash record mirrored into the validator lifecycle registry and, when
+    already registered, is marked as under-accountability review.  Validator-set
+    membership changes still require the explicit epoch-bound
+    VALIDATOR_SUSPEND/VALIDATOR_REMOVE mechanics.
+    """
+
+    if not account:
+        return {"applied": False, "reason": "missing_account"}
+
+    vroot = _ensure_validators_root(state)
+    reg = vroot.get("registry")
+    assert isinstance(reg, dict)
+    rec = reg.get(account)
+    if not isinstance(rec, dict):
+        rec = {"account": account, "status": "unknown", "active": False}
+
+    accountability = rec.get("accountability")
+    if not isinstance(accountability, dict):
+        accountability = {}
+    slashes = accountability.get("slashes")
+    if not isinstance(slashes, dict):
+        slashes = {}
+
+    existed = slash_id in slashes
+    if not existed:
+        slashes[slash_id] = {
+            "slash_id": slash_id,
+            "reason": reason,
+            "payload": dict(payload),
+            "parent": parent,
+            "economic_penalty_applied": False,
+            "validator_set_mutation_applied": False,
+            "requires_explicit_validator_suspend_or_remove": True,
+        }
+
+    accountability["slashes"] = slashes
+    accountability["slash_count"] = len(slashes)
+    accountability["latest_slash_id"] = slash_id
+    rec["accountability"] = accountability
+    rec["accountability_status"] = "slashed_non_economic"
+    reg[account] = rec
+    vroot["registry"] = reg
+
+    return {
+        "applied": not existed,
+        "account": account,
+        "slash_id": slash_id,
+        "economic_penalty_applied": False,
+        "validator_set_mutation_applied": False,
+    }
+
+
 def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
@@ -1534,7 +1600,21 @@ def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
         )
         sl["events"] = ev
 
-    return {"applied": "SLASH_EXECUTE", "slash_id": slash_id, "existed": existed}
+    consequence = _record_slash_accountability(
+        state,
+        slash_id=slash_id,
+        account=account,
+        reason=reason,
+        payload=payload,
+        parent=_as_str(env.parent),
+    )
+
+    return {
+        "applied": "SLASH_EXECUTE",
+        "slash_id": slash_id,
+        "existed": existed,
+        "consequence": consequence,
+    }
 
 
 def _apply_slash_legacy(state: Json, env: TxEnvelope) -> Json:
