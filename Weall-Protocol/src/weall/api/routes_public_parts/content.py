@@ -521,18 +521,118 @@ def _feed_rank_mode(raw: Any) -> str:
         return "engagement"
     if mode in {"balanced", "quality", "default_ranked"}:
         return "balanced"
+    if mode in {"production", "prod", "social", "social_production", "for_you", "discovery"}:
+        return "production"
     return "recency"
 
 
-def _feed_rank_score(obj: Json, *, mode: str) -> int:
+def _author_of_feed_item(obj: Json) -> str:
+    return _str_param(obj.get("author") or obj.get("owner") or obj.get("account_id") or obj.get("created_by")).strip()
+
+
+def _account_record(st: Json, account_id: str) -> Json:
+    accounts = _as_dict(st.get("accounts"))
+    acct = _str_param(account_id).strip()
+    if acct in accounts and isinstance(accounts.get(acct), dict):
+        return _as_dict(accounts.get(acct))
+    if acct and not acct.startswith("@") and f"@{acct}" in accounts:
+        return _as_dict(accounts.get(f"@{acct}"))
+    if acct.startswith("@") and acct[1:] in accounts:
+        return _as_dict(accounts.get(acct[1:]))
+    return {}
+
+
+def _account_reputation_score(st: Json, account_id: str) -> int:
+    acct = _account_record(st, account_id)
+    rep = _safe_int(acct.get("reputation") or acct.get("rep") or acct.get("score"), 0)
+    tier = _safe_int(acct.get("poh_tier"), 0)
+    if bool(acct.get("banned", False)) or bool(acct.get("locked", False)):
+        return -500
+    # Bounded so reputation helps quality ranking without letting whales or old
+    # accounts dominate the public feed.
+    return max(-500, min(500, rep * 5)) + max(0, min(3, tier)) * 25
+
+
+def _reaction_weight_for_actor(st: Json, actor: str) -> int:
+    acct = _account_record(st, actor)
+    if bool(acct.get("banned", False)) or bool(acct.get("locked", False)):
+        return 0
+    tier = max(0, min(3, _safe_int(acct.get("poh_tier"), 0)))
+    rep = max(0, min(80, _safe_int(acct.get("reputation") or acct.get("rep"), 0)))
+    return 100 + tier * 25 + rep * 3
+
+
+def _production_reaction_stats_by_target(st: Json) -> dict[str, Json]:
+    content = _content_root(st)
+    reactions = _as_dict(content.get("reactions"))
+    stats: dict[str, Json] = {}
+    seen: set[tuple[str, str]] = set()
+    positive = {"like", "love", "up", "upvote", "agree", "helpful", "support", "+1"}
+    negative = {"down", "downvote", "dislike", "spam", "abuse", "-1"}
+    for key, raw in sorted(reactions.items(), key=lambda item: str(item[0])):
+        rec = _as_dict(raw)
+        target_id = str(rec.get("target_id") or "").strip()
+        actor = str(rec.get("by") or rec.get("actor") or rec.get("account_id") or str(key).split(":", 1)[0]).strip()
+        reaction = str(rec.get("reaction") or "").strip().lower()
+        if not target_id or not actor or not reaction:
+            continue
+        actor_key = (target_id, actor)
+        if actor_key in seen:
+            continue
+        seen.add(actor_key)
+        bucket = stats.setdefault(target_id, {"weighted_positive": 0, "weighted_negative": 0, "unique_reactors": 0})
+        weight = _reaction_weight_for_actor(st, actor)
+        if reaction in negative:
+            bucket["weighted_negative"] = int(bucket.get("weighted_negative", 0)) + weight
+        elif reaction in positive or reaction:
+            bucket["weighted_positive"] = int(bucket.get("weighted_positive", 0)) + weight
+        bucket["unique_reactors"] = int(bucket.get("unique_reactors", 0)) + 1
+    return stats
+
+
+def _author_frequency_penalties(posts: list[Json]) -> dict[str, int]:
+    by_author: dict[str, list[Json]] = {}
+    for post in posts:
+        author = _author_of_feed_item(post)
+        if not author:
+            continue
+        by_author.setdefault(author, []).append(post)
+    penalties: dict[str, int] = {}
+    for author, author_posts in by_author.items():
+        ordered = sorted(author_posts, key=lambda obj: (_safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0), _content_identity(obj)), reverse=True)
+        for index, post in enumerate(ordered):
+            if index <= 0:
+                continue
+            penalties[_content_identity(post)] = int(index * 120)
+    return penalties
+
+
+def _feed_safety_penalty(obj: Json) -> int:
+    labels = obj.get("labels")
+    penalty = 0
+    if isinstance(labels, list):
+        severe = {"policy_violation", "dispute_upheld", "abuse", "illegal"}
+        soft = {"spam", "low_quality", "duplicate", "brigading_suspected"}
+        for label in {str(x).strip().lower() for x in labels}:
+            if label in severe:
+                penalty += 50_000
+            elif label in soft:
+                penalty += 5_000
+    return penalty
+
+
+def _feed_rank_score(
+    obj: Json,
+    *,
+    mode: str,
+    state: Json | None = None,
+    max_created_nonce: int | None = None,
+    author_frequency_penalty: int = 0,
+) -> int:
     created = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
     reactions = _safe_int(obj.get("reaction_total"), 0)
     comments = _safe_int(obj.get("comment_total"), 0)
-    moderation_penalty = 0
-    labels = obj.get("labels")
-    if isinstance(labels, list):
-        bad = {"policy_violation", "dispute_upheld", "spam", "abuse"}
-        moderation_penalty = 10_000 if any(str(x).strip().lower() in bad for x in labels) else 0
+    moderation_penalty = _feed_safety_penalty(obj)
 
     # All scores are integer-only and state-derived.  No wall clock, randomness,
     # floats, locale, or personalized client state participates in ranking.
@@ -540,6 +640,20 @@ def _feed_rank_score(obj: Json, *, mode: str) -> int:
         return int((reactions * 1_000) + (comments * 250) + created - moderation_penalty)
     if mode == "balanced":
         return int(created + (reactions * 100) + (comments * 40) - moderation_penalty)
+    if mode == "production":
+        st = state if isinstance(state, dict) else {}
+        max_nonce = int(max_created_nonce if max_created_nonce is not None else created)
+        age = max(0, max_nonce - created)
+        freshness = max(0, 30_000 - age * 35)
+        author = _author_of_feed_item(obj)
+        author_quality = _account_reputation_score(st, author)
+        weighted_positive = _safe_int(obj.get("weighted_positive_reactions"), reactions * 100)
+        weighted_negative = _safe_int(obj.get("weighted_negative_reactions"), 0)
+        unique_reactors = min(250, _safe_int(obj.get("unique_reactors"), reactions))
+        comment_quality = min(20_000, comments * 1_000)
+        engagement = min(80_000, weighted_positive * 4 + unique_reactors * 500 + comment_quality)
+        downrank = min(60_000, weighted_negative * 2) + moderation_penalty + max(0, int(author_frequency_penalty))
+        return int(freshness + engagement + author_quality - downrank)
     return int(created)
 
 
@@ -678,6 +792,7 @@ def feed(request: Request) -> dict[str, object]:
 
     posts = _posts(st)
     reaction_counts = _reaction_counts_by_target(st)
+    production_reaction_stats = _production_reaction_stats_by_target(st)
     comment_counts = _comment_counts_by_post(st)
     rank_mode = _feed_rank_mode(qp.get("rank") or qp.get("ranking"))
 
@@ -708,10 +823,35 @@ def feed(request: Request) -> dict[str, object]:
 
         comment_total = int(comment_counts.get(post_id, 0))
         post["comment_total"] = comment_total
+        if rank_mode == "production":
+            stats = _as_dict(production_reaction_stats.get(post_id))
+            post["weighted_positive_reactions"] = _safe_int(stats.get("weighted_positive"), 0)
+            post["weighted_negative_reactions"] = _safe_int(stats.get("weighted_negative"), 0)
+            post["unique_reactors"] = _safe_int(stats.get("unique_reactors"), 0)
         post["feed_rank_mode"] = rank_mode
-        post["feed_rank_score"] = _feed_rank_score(post, mode=rank_mode)
 
         filtered.append(_with_media_summaries(st, post))
+
+    max_created_nonce = max([_safe_int(p.get("created_at_nonce") or p.get("created_nonce"), 0) for p in filtered] or [0])
+    author_penalties = _author_frequency_penalties(filtered) if rank_mode == "production" else {}
+    for post in filtered:
+        ident = _content_identity(post)
+        post["feed_rank_score"] = _feed_rank_score(
+            post,
+            mode=rank_mode,
+            state=st,
+            max_created_nonce=max_created_nonce,
+            author_frequency_penalty=_safe_int(author_penalties.get(ident), 0),
+        )
+        if rank_mode == "production":
+            post["feed_rank_breakdown"] = {
+                "weighted_positive_reactions": _safe_int(post.get("weighted_positive_reactions"), 0),
+                "weighted_negative_reactions": _safe_int(post.get("weighted_negative_reactions"), 0),
+                "unique_reactors": _safe_int(post.get("unique_reactors"), 0),
+                "comment_total": _safe_int(post.get("comment_total"), 0),
+                "author_frequency_penalty": _safe_int(author_penalties.get(ident), 0),
+                "safety_penalty": _feed_safety_penalty(post),
+            }
 
     filtered = _sort_feed_items(filtered, mode=rank_mode)
     filtered = _apply_feed_cursor(filtered, mode=rank_mode, raw_cursor=qp.get("cursor"))
@@ -731,6 +871,11 @@ def feed(request: Request) -> dict[str, object]:
             "personalized": False,
             "default_order": "created_at_nonce_desc" if rank_mode == "recency" else "feed_rank_score_desc",
             "cursor_model": "legacy_nonce_id" if rank_mode == "recency" else "rank_score_nonce_id",
+            "production_social_feed": rank_mode == "production",
+            "personalized": False,
+            "uses_reputation_weighting": rank_mode == "production",
+            "uses_anti_brigading_caps": rank_mode == "production",
+            "uses_author_diversity_dampening": rank_mode == "production",
         },
     }
 

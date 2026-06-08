@@ -100,16 +100,38 @@ def _activation_precondition_report(state: Json) -> Json:
     treasury_wallets = state.get("treasury_wallets")
     reward_policy = econ.get("reward_policy")
     wallet_policy = econ.get("wallet_policy")
+    anti_farming = econ.get("anti_farming_policy")
+    treasury_policy = econ.get("treasury_accountability_policy")
+    transfer_policy = econ.get("transfer_receipt_policy")
     checks = {
         "tokenomics_simulation_present": isinstance(sim, dict) or bool(econ.get("tokenomics_simulation_hash")),
         "reward_policy_present": isinstance(reward_policy, dict),
+        "reward_recipient_eligibility_present": isinstance(reward_policy, dict) and (isinstance(reward_policy.get("recipient_eligibility"), dict) or isinstance(reward_policy.get("eligible_roles"), list)),
         "wallet_policy_present": isinstance(wallet_policy, dict),
+        "wallet_initialization_policy_present": isinstance(wallet_policy, dict) and bool(wallet_policy.get("initialization")),
         "treasury_wallets_present": isinstance(treasury_wallets, dict) and bool(treasury_wallets),
+        "treasury_accountability_policy_present": isinstance(treasury_policy, dict),
+        "anti_farming_policy_present": isinstance(anti_farming, dict),
+        "transfer_receipt_policy_present": isinstance(transfer_policy, dict),
         "fee_free_civic_policy_present": isinstance(econ.get("fee_policy"), dict),
         "activation_authority_system": True,
     }
-    missing = [k for k, ok in sorted(checks.items()) if not bool(ok)]
-    return {"checks": checks, "missing": missing, "ready": not missing}
+    required = [
+        "tokenomics_simulation_present",
+        "reward_policy_present",
+        "reward_recipient_eligibility_present",
+        "wallet_policy_present",
+        "wallet_initialization_policy_present",
+        "treasury_wallets_present",
+        "fee_free_civic_policy_present",
+        "activation_authority_system",
+    ]
+    strict_v2 = bool(_as_dict(_as_dict(state.get("params")).get("economics", {})).get("strict_activation_preconditions_v2") or _as_dict(state.get("params")).get("economics_strict_activation_preconditions_v2"))
+    if strict_v2:
+        required.extend(["treasury_accountability_policy_present", "anti_farming_policy_present", "transfer_receipt_policy_present"])
+    missing = [k for k in required if not bool(checks.get(k))]
+    advisory_missing = [k for k, ok in sorted(checks.items()) if not bool(ok) and k not in missing]
+    return {"checks": checks, "missing": missing, "advisory_missing": advisory_missing, "ready": not missing}
 
 
 def _require_activation_preconditions(state: Json) -> Json:

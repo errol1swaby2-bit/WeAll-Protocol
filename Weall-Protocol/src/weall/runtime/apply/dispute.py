@@ -1189,6 +1189,49 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "DISPUTE_APPEAL", "dispute_id": dispute_id}
 
 
+def _record_dispute_juror_accountability(state: Json, dispute: Json, *, dispute_id: str) -> Json:
+    assigned = _normalized_str_list(dispute.get("assigned_jurors"))
+    votes = _as_dict(dispute.get("votes"))
+    voted: set[str] = set()
+    for voter in votes.keys():
+        for variant in _identity_variants(voter):
+            voted.add(variant)
+    root = state.get("dispute_juror_accountability")
+    if not isinstance(root, dict):
+        root = {"by_juror": {}, "events": []}
+        state["dispute_juror_accountability"] = root
+    by_juror = root.get("by_juror")
+    if not isinstance(by_juror, dict):
+        by_juror = {}
+        root["by_juror"] = by_juror
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    recorded: list[str] = []
+    accounts = _as_dict(state.get("accounts"))
+    for juror in assigned:
+        if any(variant in voted for variant in _identity_variants(juror)):
+            continue
+        rec = by_juror.get(juror)
+        if not isinstance(rec, dict):
+            rec = {"juror_id": juror, "missed_vote_count": 0, "events": []}
+        event = {"event": "assigned_dispute_vote_missed", "dispute_id": dispute_id, "height": int(state.get("height") or 0)}
+        rec["missed_vote_count"] = int(rec.get("missed_vote_count") or 0) + 1
+        rec["eligible_for_dispute_jury"] = False
+        rec["status"] = "juror_accountability_flagged"
+        rec.setdefault("events", []).append(event)
+        by_juror[juror] = rec
+        acct = accounts.get(juror)
+        if isinstance(acct, dict):
+            acct["dispute_juror_eligible"] = False
+            acct["dispute_juror_suspended_reason"] = "assigned_dispute_vote_missed"
+            acct["dispute_juror_suspended_at_height"] = int(state.get("height") or 0)
+        events.append({"juror_id": juror, **event})
+        recorded.append(juror)
+    return {"applied": bool(recorded), "jurors": recorded}
+
+
 def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]:
     """Return the effective final resolution and appeal metadata.
 
@@ -1258,6 +1301,7 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
         final_resolution, appeal_meta = _final_receipt_resolution(d, payload)
         d["final_resolution"] = dict(final_resolution)
         d["appeal_finalization"] = dict(appeal_meta)
+        d["juror_accountability"] = _record_dispute_juror_accountability(state, d, dispute_id=dispute_id)
         # If an appeal exists but no appeal decision has been supplied, do not
         # silently finalize enforcement.  Keep the case in appeal review and
         # record an audit receipt for the attempted finalization.

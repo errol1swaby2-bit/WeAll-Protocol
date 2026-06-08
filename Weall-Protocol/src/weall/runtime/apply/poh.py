@@ -1110,8 +1110,24 @@ def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str,
         }
         rec["challenge_upheld_review_count"] = _as_int(rec.get("challenge_upheld_review_count") or 0, 0) + 1
         rec["status"] = "reviewer_accountability_flagged"
+        rec["eligible_for_poh_review"] = False
+        rec["eligibility_reason"] = "prior_approval_challenge_upheld"
         rec.setdefault("events", []).append(event)
         by_reviewer[reviewer_id] = rec
+        acct = state.get("accounts", {}).get(reviewer_id) if isinstance(state.get("accounts"), dict) else None
+        if isinstance(acct, dict):
+            acct["poh_reviewer_eligible"] = False
+            acct["poh_reviewer_suspended_reason"] = "prior_approval_challenge_upheld"
+            acct["poh_reviewer_suspended_at_height"] = int(state.get("height") or 0)
+        roles = state.get("roles")
+        if isinstance(roles, dict):
+            reviewers = roles.get("poh_reviewers")
+            if isinstance(reviewers, dict):
+                suspended = reviewers.get("suspended")
+                if not isinstance(suspended, dict):
+                    suspended = {}
+                    reviewers["suspended"] = suspended
+                suspended[reviewer_id] = {"reason": "prior_approval_challenge_upheld", "challenge_id": challenge_id, "case_id": case_id}
         events.append({"reviewer_id": reviewer_id, **event})
         recorded.append(reviewer_id)
     return {"applied": bool(recorded), "reviewers": recorded, "case_id": case_id}
