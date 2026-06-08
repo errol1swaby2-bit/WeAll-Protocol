@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import json
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -555,6 +557,70 @@ def _sort_feed_items(items: list[Json], *, mode: str) -> list[Json]:
     return sorted(items, key=k, reverse=True)
 
 
+def _feed_position(obj: Json, *, mode: str) -> tuple[int, int, str]:
+    identity = _content_identity(obj)
+    nonce = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    if mode == "recency":
+        return (nonce, 0, identity)
+    return (_safe_int(obj.get("feed_rank_score"), 0), nonce, identity)
+
+
+def _feed_cursor_pack(*, mode: str, obj: Json) -> str:
+    """Encode a deterministic feed cursor.
+
+    Recency mode preserves the legacy nonce|id cursor so existing clients and
+    tests remain compatible.  Ranked modes require the score in the cursor;
+    otherwise old-but-popular posts can make cursor filtering skip newer quiet
+    posts that should appear later in the ranked order.
+    """
+
+    nonce = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    identity = str(obj.get("id") or obj.get("post_id") or "").strip()
+    if mode == "recency":
+        return _cursor_pack(created_at_nonce=nonce, content_id=identity)
+    payload = {
+        "v": 1,
+        "mode": mode,
+        "score": _safe_int(obj.get("feed_rank_score"), 0),
+        "nonce": nonce,
+        "id": identity,
+    }
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _feed_cursor_unpack(raw: Any, *, mode: str) -> tuple[int, int, str] | None:
+    text = _str_param(raw).strip()
+    if not text:
+        return None
+
+    # Ranked cursor format first.
+    pad = "=" * ((4 - (len(text) % 4)) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode((text + pad).encode("ascii")).decode("utf-8", errors="strict")
+        data = json.loads(decoded)
+        if isinstance(data, dict) and int(data.get("v") or 0) == 1:
+            if str(data.get("mode") or "") != mode:
+                return None
+            return (_safe_int(data.get("score"), 0), _safe_int(data.get("nonce"), 0), str(data.get("id") or "").strip())
+    except Exception:
+        pass
+
+    # Legacy recency cursor.
+    if mode == "recency":
+        nonce, content_id = _cursor_unpack(text)
+        if nonce is not None and content_id is not None:
+            return (int(nonce), 0, str(content_id))
+    return None
+
+
+def _apply_feed_cursor(items: list[Json], *, mode: str, raw_cursor: Any) -> list[Json]:
+    cursor = _feed_cursor_unpack(raw_cursor, mode=mode)
+    if cursor is None:
+        return items
+    return [obj for obj in items if _feed_position(obj, mode=mode) < cursor]
+
+
 def _reaction_counts_by_target(st: Json) -> dict[str, dict[str, int]]:
     content = _content_root(st)
     reactions = _as_dict(content.get("reactions"))
@@ -645,23 +711,15 @@ def feed(request: Request) -> dict[str, object]:
         post["feed_rank_mode"] = rank_mode
         post["feed_rank_score"] = _feed_rank_score(post, mode=rank_mode)
 
-        if cursor_n is not None and cursor_id is not None:
-            if created_at_nonce > cursor_n:
-                continue
-            if created_at_nonce == cursor_n and post_id >= cursor_id:
-                continue
-
         filtered.append(_with_media_summaries(st, post))
 
     filtered = _sort_feed_items(filtered, mode=rank_mode)
+    filtered = _apply_feed_cursor(filtered, mode=rank_mode, raw_cursor=qp.get("cursor"))
     page = filtered[:limit]
     next_cursor = None
     if len(page) == limit:
         last = page[-1]
-        next_cursor = _cursor_pack(
-            created_at_nonce=_safe_int(last.get("created_at_nonce") or last.get("created_nonce"), 0),
-            content_id=str(last.get("id") or last.get("post_id") or ""),
-        )
+        next_cursor = _feed_cursor_pack(mode=rank_mode, obj=last)
 
     return {
         "ok": True,
@@ -672,6 +730,7 @@ def feed(request: Request) -> dict[str, object]:
             "deterministic": True,
             "personalized": False,
             "default_order": "created_at_nonce_desc" if rank_mode == "recency" else "feed_rank_score_desc",
+            "cursor_model": "legacy_nonce_id" if rank_mode == "recency" else "rank_score_nonce_id",
         },
     }
 

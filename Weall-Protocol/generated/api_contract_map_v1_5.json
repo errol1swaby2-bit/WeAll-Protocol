@@ -341,7 +341,7 @@
       "route_id": "1fb9dfa2e3a3bc38",
       "route_path_without_v1_prefix": "/content/{content_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 680,
+      "source_lineno": 739,
       "summary": "",
       "tags": [
         "content"
@@ -363,7 +363,7 @@
       "route_id": "b0081d6b1b60e647",
       "route_path_without_v1_prefix": "/content/{content_id}/scoped",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 734,
+      "source_lineno": 793,
       "summary": "",
       "tags": [
         "content"
@@ -371,13 +371,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
+      "cache_policy": "no_store_dev_bootstrap_secret",
+      "error_model": "404/403 when disabled; route-specific bootstrap diagnostics",
       "function": "v1_dev_bootstrap_secret",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "demo_seed",
       "path": "/v1/dev/bootstrap-secret",
@@ -390,7 +390,7 @@
       "tags": [
         "demo_seed"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Developer bootstrap secret route is local/rehearsal gated by runtime posture and must not be treated as a public production secret surface."
     },
     {
       "auth": "dev_or_controlled_demo_only",
@@ -547,13 +547,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "public_feed_read_ranked_cursor_safe",
+      "cache_policy": "no_store_public_feed_dynamic_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "feed",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_ranked_public_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "content",
       "path": "/v1/feed",
@@ -561,12 +561,12 @@
       "route_id": "f11984242f1bc865",
       "route_path_without_v1_prefix": "/feed",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 590,
+      "source_lineno": 656,
       "summary": "",
       "tags": [
         "content"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1163,13 +1163,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "node_or_observer_route_specific_authority",
+      "cache_policy": "no_store_relay_transport_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "v1_net_relay_fetch_legacy",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "route_specific_replay_or_cursor_guard",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "net_relay",
       "path": "/v1/net/relay/fetch",
@@ -1182,16 +1182,16 @@
       "tags": [
         "net_relay"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay fetch is a node/observer transport queue read with route-specific authority and cursor/replay semantics, not generic public state."
     },
     {
       "auth": "node_or_observer_route_specific_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "cache_policy": "no_store_relay_transport_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "v1_net_relay_fetch",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "route_specific_replay_or_cursor_guard",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "net_relay",
       "path": "/v1/net/relay/fetch",
@@ -1204,7 +1204,7 @@
       "tags": [
         "net_relay"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay fetch POST is a node/observer transport queue interaction with route-specific authority and replay/cursor semantics."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1383,13 +1383,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "observer_edge_diagnostic_runtime_scoped",
+      "cache_policy": "no_store_observer_edge_diagnostic",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "observer_edge_status",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_diagnostic_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "tx",
       "path": "/v1/observer/edge/status",
@@ -1402,16 +1402,16 @@
       "tags": [
         "tx"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Observer edge status is diagnostic posture/status for the observer edge path and grants no validator or mutation authority."
     },
     {
-      "auth": "public_read_redacted_snapshot",
+      "auth": "session_aware_poh_case_read_redacts_private_evidence",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_case",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/async/case/{case_id}",
@@ -1424,7 +1424,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions."
     },
     {
       "auth": "route_specific_signed_or_local_authority",
@@ -1449,13 +1449,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_juror_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/async/juror-cases",
@@ -1468,16 +1468,16 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Async PoH juror-cases is reviewer-scoped and requires a valid account session."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_my_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/async/my-cases",
@@ -1490,7 +1490,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session."
     },
     {
       "auth": "route_specific_signed_or_local_authority",
@@ -1735,13 +1735,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_session_signal_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_webrtc_signals",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/webrtc/signals",
@@ -1754,16 +1754,16 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "WebRTC signal reads are live-session participant scoped and must not be indexed as generic public snapshots."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_session_signal_mutation",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid/not_participant; replay/size failures route-specific",
       "function": "poh_live_webrtc_signal_send",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "route_specific_replay_guarded_signal_write",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/webrtc/signals",
@@ -1776,16 +1776,16 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "WebRTC signal writes are participant-scoped transport messages, not public state mutations."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "bridge_source_node_or_authorized_live_session_relay",
+      "cache_policy": "no_store_live_session_signal_import",
+      "error_model": "standard_api_error_envelope; chain/source/replay validation route-specific",
       "function": "poh_live_webrtc_signal_bridge_import",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "route_specific_bridge_import_replay_guard",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/webrtc/signals/import",
@@ -1798,7 +1798,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Bridge imports are cross-node rehearsal transport records; not a public write surface."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -2065,13 +2065,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
+      "auth": "session_aware_poh_tier2_case_read",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_case",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/tier2/case/{case_id}",
@@ -2084,16 +2084,16 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Tier-2 PoH case reads may include sensitive evidence/status fields and must be treated as session-aware redacted case reads, not generic public snapshots."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_juror_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/tier2/juror-cases",
@@ -2106,16 +2106,16 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Tier-2 juror-cases is reviewer-scoped and requires a valid account session."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_my_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/tier2/my-cases",
@@ -2128,7 +2128,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session."
     },
     {
       "auth": "route_specific_signed_or_local_authority",
@@ -2373,13 +2373,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "session_probe_optional_account_session",
+      "cache_policy": "no_store_session_probe",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "v1_session_me",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_session_probe_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "session",
       "path": "/v1/session/me",
@@ -2392,7 +2392,7 @@
       "tags": [
         "session"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Returns unauthenticated diagnostic status when headers are absent and scoped session status only when valid session headers are present; not a generic state snapshot."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -2761,7 +2761,7 @@
       "route_id": "72282a3231bedf33",
       "route_path_without_v1_prefix": "/thread/{thread_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 786,
+      "source_lineno": 845,
       "summary": "",
       "tags": [
         "content"

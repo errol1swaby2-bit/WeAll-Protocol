@@ -1,15 +1,31 @@
 {
-  "batch": "517-521",
-  "feed_ranking_review": {
-    "complete_ranking": false,
-    "current_default": "created_at_nonce_desc",
-    "new_optional_modes": [
+  "api_access_model": {
+    "explicit_sensitive_route_metadata": true,
+    "routes_hardened": [
+      "GET /v1/session/me",
+      "GET /v1/dev/bootstrap-secret",
+      "GET /v1/poh/async/case/{case_id}",
+      "GET /v1/poh/tier2/case/{case_id}",
+      "GET /v1/poh/live/session/{session_id}/webrtc/signals",
+      "GET /v1/net/relay/fetch",
+      "GET /v1/observer/edge/status",
+      "GET /v1/feed"
+    ]
+  },
+  "batch": "523-527",
+  "claim": "v1.5_private_rehearsal_completion_not_public_validator_or_mainnet",
+  "feed_ranking": {
+    "complete_for_deterministic_public_pagination": true,
+    "complete_for_recommendation_discovery": false,
+    "default_mode": "recency",
+    "legacy_recency_cursor_preserved": true,
+    "personalized_ranking": false,
+    "rank_modes": [
       "recency",
       "engagement",
       "balanced"
     ],
-    "notes": "Default feed remains deterministic recency for compatibility; optional ranking is deterministic and state-derived but not a full personalized/reputation feed.",
-    "personalized_ranking": false
+    "ranked_cursor_model": "rank_score_nonce_id"
   },
   "fresh_node_replay_sync": {
     "batch": "524",
@@ -139,8 +155,7 @@
     "public_validators": true
   },
   "ok": true,
-  "public_claim_allowed": "private_rehearsal_only",
-  "validator_network": {
+  "validator_process_rehearsal": {
     "batch": "523",
     "claim": "private_process_validator_rehearsal_only",
     "minority_partition_result": "finality_threshold_not_met",

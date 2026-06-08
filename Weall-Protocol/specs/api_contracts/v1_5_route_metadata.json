@@ -1,70 +1,175 @@
 {
-  "schema": "weall.api_route_metadata.v1_5",
-  "version": "2026-06-v1.5-artifact-determinism-batch9",
-  "truth_boundary": "Sidecar metadata overrides static heuristics for public-readiness API inventory. Runtime route code remains authoritative for enforcement.",
   "routes": {
+    "GET /v1/dev/bootstrap-secret": {
+      "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
+      "cache_policy": "no_store_dev_bootstrap_secret",
+      "error_model": "404/403 when disabled; route-specific bootstrap diagnostics",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Developer bootstrap secret route is local/rehearsal gated by runtime posture and must not be treated as a public production secret surface."
+    },
+    "GET /v1/feed": {
+      "auth": "public_feed_read_ranked_cursor_safe",
+      "cache_policy": "no_store_public_feed_dynamic_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_ranked_public_read_no_state_mutation",
+      "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
+    },
     "GET /v1/messages/threads": {
       "auth": "account_session_required",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
       "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots."
     },
     "GET /v1/messages/threads/{thread_id:path}": {
       "auth": "account_session_required",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
       "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Thread detail reads are viewer-scoped and require membership plus a valid account session."
     },
-    "GET /v1/reviewer/artifacts": {
-      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
-      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
-      "cache_policy": "no_store_reviewer_rehearsal_artifact_index",
-      "idempotency": "safe_env_gated_read_no_state_mutation",
-      "truth_boundary": "Reviewer artifacts are disabled unless WEALL_REVIEWER_ARTIFACTS_ENABLED and artifact directory are explicitly configured."
-    },
-    "GET /v1/reviewer/artifacts/bundle": {
-      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
-      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
-      "cache_policy": "no_store_reviewer_rehearsal_artifact_bundle",
-      "idempotency": "safe_env_gated_read_no_state_mutation",
-      "truth_boundary": "Disposable reviewer bundle read only; not canonical production authority."
-    },
-    "GET /v1/reviewer/artifacts/manifest": {
-      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
-      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
-      "cache_policy": "no_store_reviewer_rehearsal_artifact_manifest",
-      "idempotency": "safe_env_gated_read_no_state_mutation",
-      "truth_boundary": "Disposable reviewer manifest read only; not canonical production authority."
-    },
-    "GET /v1/status/operator": {
-      "auth": "operator_diagnostic_read_redacted_by_runtime_posture",
-      "error_model": "standard_api_error_envelope_or_status_config_error",
-      "cache_policy": "no_store_operator_diagnostic_snapshot",
-      "idempotency": "safe_diagnostic_read_no_state_mutation",
-      "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
-    },
-    "GET /v1/status/launch-matrix": {
-      "auth": "public_read_launch_capability_truth_boundary",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "idempotency": "safe_read_no_state_mutation",
-      "truth_boundary": "Read-only public launch capability matrix; does not activate or disable consensus rules by itself."
-    },
     "GET /v1/metrics": {
       "auth": "metrics_env_gated_public_when_enabled",
-      "error_model": "404 metrics_disabled unless WEALL_METRICS_ENABLED is set",
       "cache_policy": "no_store_metrics_snapshot",
+      "error_model": "404 metrics_disabled unless WEALL_METRICS_ENABLED is set",
       "idempotency": "safe_env_gated_read_no_state_mutation",
       "truth_boundary": "Metrics exposure is deployment-gated and not a generic public read surface."
     },
     "GET /v1/net/peers": {
       "auth": "network_debug_env_gated_or_runtime_limited",
-      "error_model": "404 debug_disabled or route-specific network diagnostic error",
       "cache_policy": "no_store_network_debug_snapshot",
+      "error_model": "404 debug_disabled or route-specific network diagnostic error",
       "idempotency": "safe_diagnostic_read_no_state_mutation",
       "truth_boundary": "Network peer diagnostics are not generic public state snapshots."
+    },
+    "GET /v1/net/relay/fetch": {
+      "auth": "node_or_observer_route_specific_authority",
+      "cache_policy": "no_store_relay_transport_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "route_specific_replay_or_cursor_guard",
+      "truth_boundary": "Relay fetch is a node/observer transport queue read with route-specific authority and cursor/replay semantics, not generic public state."
+    },
+    "GET /v1/observer/edge/status": {
+      "auth": "observer_edge_diagnostic_runtime_scoped",
+      "cache_policy": "no_store_observer_edge_diagnostic",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_diagnostic_read_no_state_mutation",
+      "truth_boundary": "Observer edge status is diagnostic posture/status for the observer edge path and grants no validator or mutation authority."
+    },
+    "GET /v1/poh/async/case/{case_id}": {
+      "auth": "session_aware_poh_case_read_redacts_private_evidence",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions."
+    },
+    "GET /v1/poh/async/juror-cases": {
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Async PoH juror-cases is reviewer-scoped and requires a valid account session."
+    },
+    "GET /v1/poh/async/my-cases": {
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session."
+    },
+    "GET /v1/poh/live/session/{session_id}/webrtc/signals": {
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_session_signal_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "WebRTC signal reads are live-session participant scoped and must not be indexed as generic public snapshots."
+    },
+    "GET /v1/poh/tier2/case/{case_id}": {
+      "auth": "session_aware_poh_tier2_case_read",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Tier-2 PoH case reads may include sensitive evidence/status fields and must be treated as session-aware redacted case reads, not generic public snapshots."
+    },
+    "GET /v1/poh/tier2/juror-cases": {
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Tier-2 juror-cases is reviewer-scoped and requires a valid account session."
+    },
+    "GET /v1/poh/tier2/my-cases": {
+      "auth": "account_session_required",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session."
+    },
+    "GET /v1/reviewer/artifacts": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_index",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Reviewer artifacts are disabled unless WEALL_REVIEWER_ARTIFACTS_ENABLED and artifact directory are explicitly configured."
+    },
+    "GET /v1/reviewer/artifacts/bundle": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_bundle",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Disposable reviewer bundle read only; not canonical production authority."
+    },
+    "GET /v1/reviewer/artifacts/manifest": {
+      "auth": "reviewer_artifacts_env_gated_public_when_enabled",
+      "cache_policy": "no_store_reviewer_rehearsal_artifact_manifest",
+      "error_model": "404 reviewer_artifacts_disabled/not_configured/missing; 500 invalid_artifact_json",
+      "idempotency": "safe_env_gated_read_no_state_mutation",
+      "truth_boundary": "Disposable reviewer manifest read only; not canonical production authority."
+    },
+    "GET /v1/session/me": {
+      "auth": "session_probe_optional_account_session",
+      "cache_policy": "no_store_session_probe",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_session_probe_no_state_mutation",
+      "truth_boundary": "Returns unauthenticated diagnostic status when headers are absent and scoped session status only when valid session headers are present; not a generic state snapshot."
+    },
+    "GET /v1/status/launch-matrix": {
+      "auth": "public_read_launch_capability_truth_boundary",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Read-only public launch capability matrix; does not activate or disable consensus rules by itself."
+    },
+    "GET /v1/status/operator": {
+      "auth": "operator_diagnostic_read_redacted_by_runtime_posture",
+      "cache_policy": "no_store_operator_diagnostic_snapshot",
+      "error_model": "standard_api_error_envelope_or_status_config_error",
+      "idempotency": "safe_diagnostic_read_no_state_mutation",
+      "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
+    },
+    "POST /v1/net/relay/fetch": {
+      "auth": "node_or_observer_route_specific_authority",
+      "cache_policy": "no_store_relay_transport_read",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "route_specific_replay_or_cursor_guard",
+      "truth_boundary": "Relay fetch POST is a node/observer transport queue interaction with route-specific authority and replay/cursor semantics."
+    },
+    "POST /v1/poh/live/session/{session_id}/webrtc/signals": {
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_session_signal_mutation",
+      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid/not_participant; replay/size failures route-specific",
+      "idempotency": "route_specific_replay_guarded_signal_write",
+      "truth_boundary": "WebRTC signal writes are participant-scoped transport messages, not public state mutations."
+    },
+    "POST /v1/poh/live/session/{session_id}/webrtc/signals/import": {
+      "auth": "bridge_source_node_or_authorized_live_session_relay",
+      "cache_policy": "no_store_live_session_signal_import",
+      "error_model": "standard_api_error_envelope; chain/source/replay validation route-specific",
+      "idempotency": "route_specific_bridge_import_replay_guard",
+      "truth_boundary": "Bridge imports are cross-node rehearsal transport records; not a public write surface."
     }
-  }
+  },
+  "schema": "weall.api_route_metadata.v1_5",
+  "truth_boundary": "Sidecar metadata overrides static heuristics for public-readiness API inventory. Runtime route code remains authoritative for enforcement.",
+  "version": "2026-06-v1.5-artifact-determinism-batch9"
 }
