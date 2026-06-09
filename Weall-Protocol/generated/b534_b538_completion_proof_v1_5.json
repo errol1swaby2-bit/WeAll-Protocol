@@ -1,0 +1,110 @@
+{
+  "api_lifecycle": {
+    "api_route_count": 6,
+    "api_routes_exercised": [
+      "GET /v1/session/me",
+      "GET /v1/feed?rank=production",
+      "GET /v1/groups/{group_id}",
+      "GET /v1/groups/{group_id}/feed",
+      "GET /v1/messages/threads",
+      "GET /v1/disputes/{dispute_id}"
+    ],
+    "batch": "536",
+    "dispute_remedy_applied": true,
+    "economics_locked_rejection": true,
+    "feed_ranking": {
+      "cursor_model": "rank_score_nonce_id",
+      "default_order": "feed_rank_score_desc",
+      "deterministic": true,
+      "mode": "production",
+      "personalized": false,
+      "production_social_feed": true,
+      "uses_anti_brigading_caps": true,
+      "uses_author_diversity_dampening": true,
+      "uses_reputation_weighting": true
+    },
+    "feed_status_code": 200,
+    "final_state_root": "31ca843b8e57c633da394bc383edf840e1bd0dc7f1dd851638ad6c99a841daca",
+    "group_status_code": 200,
+    "message_applied": false,
+    "messages_status_code": 403,
+    "ok": true,
+    "poh_reverification_status": "completed",
+    "protocol_upgrade_record_only": true,
+    "storage_retrieval_confirmed": true
+  },
+  "artifact": "b534_b538_completion_proof_v1_5",
+  "batches": [
+    "534",
+    "535",
+    "536",
+    "537",
+    "538"
+  ],
+  "locked_boundaries": {
+    "automatic_upgrades": false,
+    "live_economics": false,
+    "production_helpers": false,
+    "public_validators": false
+  },
+  "ok": true,
+  "replay_sync": {
+    "batch": "535",
+    "block_commit_tables_used": [
+      "blocks",
+      "block_hash_index",
+      "ledger_state"
+    ],
+    "block_hashes_verified": true,
+    "corrupt_block_rejected": true,
+    "fresh_db_backed": true,
+    "fresh_height": 7,
+    "fresh_state_root": "62637acdf00a511f2519ccfe5e9dcd87cdfb7e73e74de086957fc70c3abcfd00",
+    "interrupted_resume_verified": true,
+    "ok": true,
+    "receipt_roots_verified": true,
+    "source_db_backed": true,
+    "source_height": 7,
+    "source_state_root": "62637acdf00a511f2519ccfe5e9dcd87cdfb7e73e74de086957fc70c3abcfd00"
+  },
+  "scope": [
+    "full_node_process_private_validator_rehearsal",
+    "real_db_block_commit_replay_sync",
+    "api_driven_v15_lifecycle",
+    "poh_dispute_remedy_reinstatement",
+    "storage_operator_durability_rehearsal"
+  ],
+  "storage_durability": {
+    "availability_status": "available",
+    "batch": "538",
+    "cid": "bafyzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+    "failed_operator": "op-c",
+    "initial_targets": [
+      "op-c"
+    ],
+    "ok": true,
+    "operator_failure_recovery": "failed_pin_reassigned_then_retrieval_confirmed",
+    "pin_id": "pin-live",
+    "reassignment_recorded": true,
+    "replacement_operator": "op-a",
+    "retrieval_confirmed": true,
+    "retrieval_proof_count": 1
+  },
+  "truth_boundary": "local_private_full_node_process_rehearsal_not_public_beta_or_mainnet",
+  "validator_rehearsal": {
+    "batch": "534",
+    "claim": "local_private_node_process_rehearsal_not_public_validator_readiness",
+    "lagging_rejoin_root_matches_reference": true,
+    "minority_partition_result": "finality_threshold_not_met",
+    "network_transport": "127.0.0.1_http_json",
+    "node_processes": 4,
+    "observer_vote_rejected": true,
+    "ok": true,
+    "ports_bound": 4,
+    "process_model": "actual_fastapi_uvicorn_processes",
+    "public_validator_enabled": false,
+    "quorum_threshold": 3,
+    "readyz_route_checked": true,
+    "restart_root_preserved": true
+  }
+}

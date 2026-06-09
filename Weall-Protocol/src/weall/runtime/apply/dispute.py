@@ -53,8 +53,11 @@ _ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES = frozenset({
     "CONTENT_VISIBILITY_SET",
     "CONTENT_THREAD_LOCK_SET",
     "ACCOUNT_LOCK",  # legacy queue-bound account action preserved for compatibility
+    "ACCOUNT_REINSTATE",
     "ACCOUNT_RESTRICTION_SET",
     "GROUP_MEMBERSHIP_RESTRICT",
+    "ROLE_ELIGIBILITY_SET",
+    "ROLE_JUROR_REINSTATE",
 })
 
 
@@ -401,6 +404,71 @@ def _apply_inline_content_enforcement(state: Json, *, actions: list[Json], curre
             rec["latest_restriction"] = restriction
             accounts[account_id] = rec
             applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id})
+            continue
+
+        if tx_type == "ACCOUNT_REINSTATE":
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id")).strip()
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            prior = {
+                "restricted": bool(rec.get("restricted", False)),
+                "locked": bool(rec.get("locked", False)),
+                "banned": bool(rec.get("banned", False)),
+                "latest_restriction": _as_str(rec.get("latest_restriction") or ""),
+            }
+            rec["restricted"] = False
+            rec["locked"] = False
+            rec["banned"] = False
+            rec["latest_restriction"] = ""
+            remedies = rec.get("remedies") if isinstance(rec.get("remedies"), list) else []
+            remedy = {
+                "remedy": "account_reinstated",
+                "reason": _as_str(payload.get("reason") or "dispute_appeal_remedy"),
+                "height": int(current_height),
+                "dispute_parent": parent_ref or "",
+                "prior": prior,
+            }
+            if remedy not in remedies:
+                remedies.append(remedy)
+            rec["remedies"] = remedies
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id, "remedy": "account_reinstated"})
+            continue
+
+        if tx_type in {"ROLE_ELIGIBILITY_SET", "ROLE_JUROR_REINSTATE"}:
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id") or payload.get("juror_id")).strip()
+            role = _as_str(payload.get("role") or ("dispute_juror" if tx_type == "ROLE_JUROR_REINSTATE" else "")).strip() or "dispute_juror"
+            eligible = bool(payload.get("eligible", True))
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            eligibility = rec.get("role_eligibility") if isinstance(rec.get("role_eligibility"), dict) else {}
+            eligibility[role] = {
+                "eligible": bool(eligible),
+                "height": int(current_height),
+                "reason": _as_str(payload.get("reason") or "dispute_appeal_remedy"),
+                "dispute_parent": parent_ref or "",
+            }
+            rec["role_eligibility"] = eligibility
+            if role in {"dispute_juror", "juror"}:
+                rec["dispute_juror_eligible"] = bool(eligible)
+                if bool(eligible):
+                    rec.pop("dispute_juror_suspended_reason", None)
+            if role in {"poh_reviewer", "reviewer"}:
+                rec["poh_reviewer_eligible"] = bool(eligible)
+                if bool(eligible):
+                    rec.pop("poh_reviewer_suspended_reason", None)
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id, "role": role, "eligible": bool(eligible)})
             continue
 
         if tx_type == "GROUP_MEMBERSHIP_RESTRICT":
