@@ -1,0 +1,159 @@
+{
+  "batch_range": "539-543",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "production_helper_execution": false,
+    "public_multi_validator_bft": false,
+    "public_validator_readiness": false
+  },
+  "live_storage_worker_durability": {
+    "availability_status": "available",
+    "batch": "542",
+    "confirmation_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": true,
+      "pin_id": "pin-live",
+      "reassignment": {
+        "failed_operator_id": "op-a",
+        "reassigned": true,
+        "replacement_operator_id": "op-b",
+        "targets": [
+          "op-b"
+        ]
+      },
+      "receipt": true
+    },
+    "failed_operator": "op-a",
+    "failure_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": false,
+      "pin_id": "pin-live",
+      "reassignment": {
+        "failed_operator_id": "op-a",
+        "reassigned": true,
+        "replacement_operator_id": "op-b",
+        "targets": [
+          "op-b"
+        ]
+      },
+      "receipt": true
+    },
+    "initial_targets": [
+      "op-a"
+    ],
+    "ok": true,
+    "operator_file_sha256": "deec079a00ba038fa28675b7c49077bed8f7aa56f2c772ff502ce979500a7941",
+    "reassignment_recorded": true,
+    "replacement_operator": "op-b",
+    "retrieval_confirmed": true,
+    "retrieval_proof_count": 1,
+    "worker_model": "local_operator_file_pin_worker"
+  },
+  "ok": true,
+  "production_bft_path": {
+    "batch": "539",
+    "db_files_created": {
+      "v1": "v1.sqlite",
+      "v2": "v2.sqlite",
+      "v3": "v3.sqlite",
+      "v4": "v4.sqlite"
+    },
+    "locked_boundaries": {
+      "automatic_upgrades": false,
+      "live_economics": false,
+      "production_helpers": false,
+      "public_validators": false
+    },
+    "ok": true,
+    "production_bft_methods_used": [
+      "WeAllExecutor.bft_leader_propose",
+      "WeAllExecutor.bft_make_vote_for_block",
+      "WeAllExecutor.bft_handle_vote",
+      "WeAllExecutor.produce_block",
+      "WeAllExecutor.get_block_by_height",
+      "WeAllExecutor.apply_block"
+    ],
+    "production_replay": {
+      "height": 3,
+      "issues": [],
+      "ok": true
+    },
+    "proof_endpoint_used": false,
+    "proposal_block_hash": "68fb4f95efe51cf297b06048b83fc0116503d1d1539305ca27b6fe1e285f6b47",
+    "proposal_block_id": "ff1cf84786b7491ea58a6d0b37d7b3d00f45aead70d6b5b55f840b1ecb9a260f",
+    "qc_formed": true,
+    "quorum_threshold": 3,
+    "state_roots": {
+      "replay": "ce2109db3271eba30626a5e2f6d95f156609bdb6f2c422f4d40ac170794946e5",
+      "source": "ce2109db3271eba30626a5e2f6d95f156609bdb6f2c422f4d40ac170794946e5"
+    },
+    "state_roots_match": true,
+    "validator_count": 4,
+    "vote_count": 4
+  },
+  "production_block_replay": {
+    "batch": "540",
+    "block_commit_tables_used": [
+      "blocks",
+      "block_hash_index",
+      "ledger_state",
+      "tx_index"
+    ],
+    "corrupt_block_rejected": true,
+    "fresh_replay_db_backed": true,
+    "height": 3,
+    "issues": [],
+    "ok": true,
+    "production_commit_path": true,
+    "replay_table_counts": {
+      "block_hash_index": 3,
+      "blocks": 3,
+      "ledger_state": 1,
+      "tx_index": 6
+    },
+    "source_db_backed": true,
+    "source_table_counts": {
+      "block_hash_index": 3,
+      "blocks": 3,
+      "ledger_state": 1,
+      "tx_index": 6
+    },
+    "state_roots_match": true
+  },
+  "public_api_write_lifecycle": {
+    "api_read_routes_exercised": [
+      "GET /v1/feed?rank=production",
+      "GET /v1/session/me",
+      "GET /v1/disputes/{dispute_id}"
+    ],
+    "api_write_routes_exercised": [
+      "POST /v1/tx/submit ACCOUNT_REGISTER",
+      "POST /v1/tx/submit CONTENT_POST_CREATE"
+    ],
+    "batch": "541",
+    "direct_apply_write_domains_remaining": [
+      "poh_challenge",
+      "dispute_final_receipt",
+      "storage_receipt",
+      "protocol_upgrade_record"
+    ],
+    "dispute_remedy_applied": true,
+    "feed_items": 1,
+    "feed_rank_mode": "production",
+    "final_state_root": "674216f82253d94086897811b73aa7dde9a0850bca003689a00840143bd1cf79",
+    "ok": true,
+    "poh_challenge_status": "resolved",
+    "protocol_upgrade_record_only": true,
+    "session_route_ok": true,
+    "storage_retrieval_confirmed": true
+  },
+  "remaining_public_testnet_gaps": [
+    "production P2P/net-loop validator rehearsal still needed before public validators",
+    "full external-client API write lifecycle still has direct-apply domains listed in api_write_lifecycle.direct_apply_write_domains_remaining",
+    "live multi-daemon IPFS/operator rehearsal still needed before public media durability claims",
+    "economics remains activation-complete-but-locked and must not be enabled without legal/economic review"
+  ],
+  "schema": "weall.v1_5.batch539_543.production_path_proof"
+}
