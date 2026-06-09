@@ -1152,6 +1152,62 @@ def _reviewer_accountability_root(state: Json) -> Json:
     return root
 
 
+
+
+def _reviewer_collusion_suspicion_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reviewer_collusion_suspicions")
+    if not isinstance(root, dict):
+        root = {"by_case": {}, "events": []}
+        poh["reviewer_collusion_suspicions"] = root
+    by_case = root.get("by_case")
+    if not isinstance(by_case, dict):
+        by_case = {}
+        root["by_case"] = by_case
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_reviewer_collusion_suspicion(
+    state: Json,
+    *,
+    challenge_id: str,
+    case_id: str,
+    account_id: str,
+    reviewers: list[str],
+) -> Json:
+    cleaned = sorted({str(r).strip() for r in reviewers if str(r).strip()})
+    if len(cleaned) < 2 or not case_id:
+        return {"applied": False, "reason": "insufficient_common_prior_approvals", "reviewer_count": len(cleaned)}
+    root = _reviewer_collusion_suspicion_root(state)
+    by_case = root["by_case"]
+    events = root["events"]
+    height = int(state.get("height") or 0)
+    suspicion_id = f"poh-reviewer-collusion:{case_id}:{challenge_id}"
+    rec = {
+        "suspicion_id": suspicion_id,
+        "challenge_id": challenge_id,
+        "case_id": case_id,
+        "account_id": account_id,
+        "reviewers": cleaned,
+        "reviewer_count": len(cleaned),
+        "status": "suspected_prior_approval_cluster",
+        "reason": "challenge_upheld_multiple_prior_approvals",
+        "height": height,
+        "requires_followup_review": True,
+        "escalation_level": "review_required",
+        "review_window_open_height": height,
+        "review_window_close_height": height + 1440,
+        "recovery_eligible_after_height": height + 1440,
+        "recovery_policy": "eligible_after_followup_review_or_successful_reverification",
+    }
+    by_case[suspicion_id] = rec
+    events.append({"event": "poh_reviewer_collusion_suspicion", **rec})
+    return {"applied": True, "suspicion_id": suspicion_id, "reviewers": cleaned, "reviewer_count": len(cleaned)}
+
 def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
     if not case_id:
         return {"applied": False, "reason": "missing_case_id"}
@@ -1206,7 +1262,14 @@ def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str,
                 suspended[reviewer_id] = {"reason": "prior_approval_challenge_upheld", "challenge_id": challenge_id, "case_id": case_id}
         events.append({"reviewer_id": reviewer_id, **event})
         recorded.append(reviewer_id)
-    return {"applied": bool(recorded), "reviewers": recorded, "case_id": case_id}
+    collusion = _record_reviewer_collusion_suspicion(
+        state,
+        challenge_id=challenge_id,
+        case_id=case_id,
+        account_id=account_id,
+        reviewers=recorded,
+    )
+    return {"applied": bool(recorded), "reviewers": recorded, "case_id": case_id, "collusion_suspicion": collusion}
 
 def _challenge_id(*, account_id: str, nonce: int) -> str:
     return f"pohc:{account_id}:{max(0, int(nonce))}"
