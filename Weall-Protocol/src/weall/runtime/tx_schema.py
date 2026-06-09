@@ -154,6 +154,7 @@ class PohChallengeOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     reason: str | None = None
     evidence_id: str | None = None
+    case_id: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
 

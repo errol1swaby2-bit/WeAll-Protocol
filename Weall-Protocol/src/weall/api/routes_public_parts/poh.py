@@ -2663,6 +2663,50 @@ class PohAsyncReviewSkeletonRequest(BaseModel):
     reason_code: str | None = Field(default=None, max_length=128)
 
 
+class PohChallengeOpenSkeletonRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    reason: str | None = Field(default=None, max_length=512)
+    case_id: str | None = Field(default=None, max_length=128)
+
+
+@router.post(
+    "/poh/challenge/tx/open",
+    response_model=TxSkeletonResponseAsync,
+    name="poh_challenge_tx_open",
+)
+def poh_challenge_tx_open(
+    req: PohChallengeOpenSkeletonRequest, request: Request
+) -> TxSkeletonResponseAsync:
+    """Return a public-client tx skeleton for opening a PoH challenge.
+
+    This route does not mutate consensus state.  It makes the previously
+    direct-apply-only POH_CHALLENGE_OPEN path visible as an ordinary signed
+    user transaction that clients submit through /v1/tx/submit.  The resulting
+    transaction is still subject to canonical tx admission, signer registration,
+    nonce checks, and public HTTP system/receipt fail-closed guards.
+    """
+
+    acct = str(req.account_id or "").strip()
+    if not acct:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+    payload: Json = {"account_id": acct}
+    reason = str(req.reason or "").strip()
+    if reason:
+        payload["reason"] = reason
+    case_id = str(req.case_id or "").strip()
+    if case_id:
+        payload["case_id"] = case_id
+    return TxSkeletonResponseAsync(
+        ok=True,
+        tx=TxSkeletonAsync(
+            tx_type="POH_CHALLENGE_OPEN",
+            signer_hint="<CHALLENGER_ACCOUNT_ID>",
+            parent=None,
+            payload=payload,
+        ),
+    )
+
+
 @router.post(
     "/poh/async/tx/juror-accept",
     response_model=TxSkeletonResponseAsync,

@@ -371,6 +371,74 @@ def _reverification_root(state: Json) -> Json:
     return root
 
 
+def _evidence_retention_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("evidence_retention")
+    if not isinstance(root, dict):
+        root = {"by_challenge": {}, "events": []}
+        poh["evidence_retention"] = root
+    by_challenge = root.get("by_challenge")
+    if not isinstance(by_challenge, dict):
+        by_challenge = {}
+        root["by_challenge"] = by_challenge
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_challenge_evidence_retention_policy(
+    state: Json,
+    *,
+    challenge_id: str,
+    account_id: str,
+    status: str,
+    reason: str,
+    case_id: str = "",
+) -> Json:
+    """Record deterministic retention/remedy policy for PoH challenge evidence.
+
+    This is protocol state, not a storage delete command.  It makes the evidence
+    lifecycle explicit for private-testnet review: upheld challenges retain
+    evidence until appeal/reverification/remedy is complete; dismissed
+    challenges retain only minimal audit metadata unless another policy keeps
+    the evidence alive.
+    """
+
+    root = _evidence_retention_root(state)
+    by_challenge = root["by_challenge"]
+    events = root["events"]
+    height = int(state.get("height") or 0)
+    status_norm = _as_str(status or "").strip() or "retained"
+    rec: Json = {
+        "challenge_id": challenge_id,
+        "account_id": account_id,
+        "case_id": case_id,
+        "status": status_norm,
+        "reason": reason,
+        "updated_height": height,
+        "deletion_eligible": status_norm in {"dismissed_minimal_retention", "remedy_completed_minimal_retention"},
+        "appeal_remedy_available": status_norm in {"retain_until_reverification_or_appeal", "retain_until_remedy_complete"},
+        "history": [],
+    }
+    prev = by_challenge.get(challenge_id)
+    if isinstance(prev, dict) and isinstance(prev.get("history"), list):
+        rec["history"] = list(prev.get("history") or [])
+    event = {
+        "event": "poh_challenge_evidence_retention_policy",
+        "challenge_id": challenge_id,
+        "account_id": account_id,
+        "case_id": case_id,
+        "status": status_norm,
+        "height": height,
+    }
+    rec["history"].append(event)
+    by_challenge[challenge_id] = rec
+    events.append(event)
+    return dict(rec)
+
+
 def _record_reverification_required(
     state: Json,
     *,
@@ -472,6 +540,14 @@ def _mark_reverification_completed(
         }
         ch["status"] = "resolved_reverified"
         challenges[challenge_id] = ch
+        _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=challenge_id,
+            account_id=account_id,
+            case_id=case_id,
+            status="remedy_completed_minimal_retention",
+            reason="reverification_completed",
+        )
 
     return {"applied": True, "account_id": account_id, "case_id": case_id, "status": "completed", "challenge_id": challenge_id}
 
@@ -1199,6 +1275,14 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             challenge_id=cid,
             reason="challenge_upheld",
         )
+        retention = _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=cid,
+            account_id=account_id,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            status="retain_until_reverification_or_appeal",
+            reason="challenge_upheld",
+        )
         accountability = _record_challenge_reviewer_accountability(
             state,
             challenge_id=cid,
@@ -1212,11 +1296,26 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
             "status": _as_str(rec.get("status") or "revoked"),
             "reverification_status": _as_str(reverify.get("status") or "required"),
             "reverification_required": True,
+            "evidence_retention": retention,
             "reviewer_accountability": accountability,
         }
         consequence = dict(ch["consequence"])
         consequence["applied"] = True
     else:
+        account_id = _as_str(ch.get("account_id") or "").strip()
+        retention = _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=cid,
+            account_id=account_id,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            status="dismissed_minimal_retention",
+            reason="challenge_dismissed",
+        )
+        # Preserve the legacy dismissed/no-op consequence shape for callers and
+        # older compatibility tests.  The evidence-retention policy is still
+        # recorded on the challenge record and canonical PoH evidence-retention
+        # state, but it must not change the stable no-op consequence envelope.
+        ch["evidence_retention"] = retention
         ch["consequence"] = {"type": "none", "applied": False}
         consequence = dict(ch["consequence"])
 

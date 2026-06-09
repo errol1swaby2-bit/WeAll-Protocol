@@ -154,6 +154,13 @@
       "idempotency": "route_specific_replay_or_cursor_guard",
       "truth_boundary": "Relay fetch POST is a node/observer transport queue interaction with route-specific authority and replay/cursor semantics."
     },
+    "POST /v1/poh/challenge/tx/open": {
+      "auth": "public_tx_skeleton_no_state_mutation_submit_via_signed_tx",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope; 400 missing account_id",
+      "idempotency": "safe_skeleton_read_no_state_mutation",
+      "truth_boundary": "Returns a POH_CHALLENGE_OPEN tx skeleton only. Clients must sign and submit through /v1/tx/submit; the skeleton route grants no PoH status or system authority."
+    },
     "POST /v1/poh/live/session/{session_id}/webrtc/signals": {
       "auth": "live_session_participant_session_required",
       "cache_policy": "no_store_live_session_signal_mutation",

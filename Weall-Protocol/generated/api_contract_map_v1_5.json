@@ -18,7 +18,7 @@
     "net_relay": 5,
     "net_self": 1,
     "nodes": 3,
-    "poh": 38,
+    "poh": 39,
     "reviewer_artifacts": 3,
     "session": 3,
     "social": 2,
@@ -37,7 +37,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 129,
+  "route_count": 130,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -1353,7 +1353,7 @@
       "route_id": "9641f450c5bc09d9",
       "route_path_without_v1_prefix": "/observer/edge/outbox/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1520,
+      "source_lineno": 1521,
       "summary": "",
       "tags": [
         "tx"
@@ -1375,7 +1375,7 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1528,
+      "source_lineno": 1529,
       "summary": "",
       "tags": [
         "tx"
@@ -1397,7 +1397,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1496,
+      "source_lineno": 1497,
       "summary": "",
       "tags": [
         "tx"
@@ -1507,7 +1507,7 @@
       "route_id": "12a4a958fa5fcd2a",
       "route_path_without_v1_prefix": "/poh/async/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2671,
+      "source_lineno": 2715,
       "summary": "",
       "tags": [
         "poh"
@@ -1529,7 +1529,7 @@
       "route_id": "be06f0d4139fe7aa",
       "route_path_without_v1_prefix": "/poh/async/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2693,
+      "source_lineno": 2737,
       "summary": "",
       "tags": [
         "poh"
@@ -1551,12 +1551,34 @@
       "route_id": "9151bff52b2cf766",
       "route_path_without_v1_prefix": "/poh/async/tx/review",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2713,
+      "source_lineno": 2757,
       "summary": "",
       "tags": [
         "poh"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_tx_skeleton_no_state_mutation_submit_via_signed_tx",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope; 400 missing account_id",
+      "function": "poh_challenge_tx_open",
+      "idempotency": "safe_skeleton_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "module": "poh",
+      "path": "/v1/poh/challenge/tx/open",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "e139645dfeef0a37",
+      "route_path_without_v1_prefix": "/poh/challenge/tx/open",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 2677,
+      "summary": "",
+      "tags": [
+        "poh"
+      ],
+      "truth_boundary": "Returns a POH_CHALLENGE_OPEN tx skeleton only. Clients must sign and submit through /v1/tx/submit; the skeleton route grants no PoH status or system authority."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1837,7 +1859,7 @@
       "route_id": "3b510142384c0f6c",
       "route_path_without_v1_prefix": "/poh/live/tx/attendance",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3000,
+      "source_lineno": 3044,
       "summary": "",
       "tags": [
         "poh"
@@ -1859,7 +1881,7 @@
       "route_id": "80c07db3b871c67a",
       "route_path_without_v1_prefix": "/poh/live/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2955,
+      "source_lineno": 2999,
       "summary": "",
       "tags": [
         "poh"
@@ -1881,7 +1903,7 @@
       "route_id": "7603d54bb3a23c2f",
       "route_path_without_v1_prefix": "/poh/live/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2979,
+      "source_lineno": 3023,
       "summary": "",
       "tags": [
         "poh"
@@ -1903,7 +1925,7 @@
       "route_id": "8a6c1d57f380c187",
       "route_path_without_v1_prefix": "/poh/live/tx/request",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2905,
+      "source_lineno": 2949,
       "summary": "",
       "tags": [
         "poh"
@@ -1925,7 +1947,7 @@
       "route_id": "dffb7e2a46ceec82",
       "route_path_without_v1_prefix": "/poh/live/tx/verdict",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3042,
+      "source_lineno": 3086,
       "summary": "",
       "tags": [
         "poh"
@@ -2145,7 +2167,7 @@
       "route_id": "b16a56f9fefd2c13",
       "route_path_without_v1_prefix": "/poh/tier2/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2788,
+      "source_lineno": 2832,
       "summary": "",
       "tags": [
         "poh"
@@ -2167,7 +2189,7 @@
       "route_id": "a7fac56ce4f0f8dd",
       "route_path_without_v1_prefix": "/poh/tier2/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2811,
+      "source_lineno": 2855,
       "summary": "",
       "tags": [
         "poh"
@@ -2189,7 +2211,7 @@
       "route_id": "58f57b645c175632",
       "route_path_without_v1_prefix": "/poh/tier2/tx/request",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2742,
+      "source_lineno": 2786,
       "summary": "",
       "tags": [
         "poh"
@@ -2211,7 +2233,7 @@
       "route_id": "1b281fdf7386987b",
       "route_path_without_v1_prefix": "/poh/tier2/tx/review",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2832,
+      "source_lineno": 2876,
       "summary": "",
       "tags": [
         "poh"
@@ -2805,7 +2827,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1699,
+      "source_lineno": 1700,
       "summary": "",
       "tags": [
         "tx"
@@ -2827,7 +2849,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1541,
+      "source_lineno": 1542,
       "summary": "",
       "tags": [
         "tx"
@@ -2849,7 +2871,7 @@
       "route_id": "961aec58581a92df",
       "route_path_without_v1_prefix": "/tx/submit",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1340,
+      "source_lineno": 1341,
       "summary": "",
       "tags": [
         "tx"

@@ -142,7 +142,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "674216f82253d94086897811b73aa7dde9a0850bca003689a00840143bd1cf79",
+    "final_state_root": "421fbeb3fbba00c6a690f0fc8756c0267208246081dc42d7c81b14e98deea969",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,

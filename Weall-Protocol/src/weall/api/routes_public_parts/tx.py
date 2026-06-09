@@ -42,6 +42,7 @@ _OUTBOX_AUTODRAIN_THREAD: threading.Thread | None = None
 
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
     "BLOCK_ATTEST": ["/v1/consensus/attest/submit"],
+    "POH_CHALLENGE_OPEN": ["/v1/poh/challenge/tx/open", "/v1/tx/submit"],
     "POH_TIER2_REQUEST_OPEN": ["/v1/poh/tier2/tx/request", "/v1/tx/submit"],
     "POH_LIVE_REQUEST_OPEN": ["/v1/poh/live/tx/request", "/v1/tx/submit"],
     "POH_TIER2_JUROR_ACCEPT": ["/v1/poh/tier2/tx/juror-accept", "/v1/tx/submit"],
