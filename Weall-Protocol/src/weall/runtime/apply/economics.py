@@ -337,6 +337,74 @@ def economics_locked_long_run_stress_summary(
     simulations[sim_id] = rec
     return dict(rec)
 
+
+def economics_locked_sybil_farming_adversarial_summary(
+    state: Json,
+    *,
+    epochs: int = 36,
+    honest_accounts: list[str] | None = None,
+    sybil_accounts: list[str] | None = None,
+    max_claims_per_epoch: int = 2,
+) -> Json:
+    """Stress locked economics against coordinated Sybil/farming patterns.
+
+    This remains a read-model/stress primitive only.  It records deterministic
+    rejection categories and leaves economics_enabled=false and balances
+    untouched.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    epoch_count = max(1, min(_as_int(epochs, 36), 20_000))
+    max_claims = max(1, min(_as_int(max_claims_per_epoch, 2), 100))
+    honest = sorted({_as_str(a).strip() for a in (honest_accounts or ["alice", "bob", "carol"]) if _as_str(a).strip()})
+    sybils = sorted({_as_str(a).strip() for a in (sybil_accounts or ["sybil-a", "sybil-b", "sybil-c", "sybil-d"]) if _as_str(a).strip()})
+    accepted: list[Json] = []
+    rejected: list[Json] = []
+    seen_work: set[str] = set()
+    per_epoch_actor: dict[str, int] = {}
+    for epoch in range(1, epoch_count + 1):
+        actors = honest + sybils
+        for actor_index, actor in enumerate(actors):
+            base = f"work:{epoch}:{actor_index % 3}"
+            # Sybil accounts deliberately reuse work IDs across the ring.
+            work_id = base if actor.startswith("sybil") else f"{base}:{actor}"
+            key = f"{epoch}:{actor}"
+            if work_id in seen_work:
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_or_ring_reused_work"})
+                continue
+            if actor.startswith("sybil"):
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "sybil_ring_recipient_not_eligible"})
+                seen_work.add(work_id)
+                continue
+            per_epoch_actor[key] = per_epoch_actor.get(key, 0) + 1
+            if per_epoch_actor[key] > max_claims:
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                continue
+            seen_work.add(work_id)
+            accepted.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
+
+    sim_id = f"locked-econ-sybil-farming:{epoch_count}:{len(honest)}:{len(sybils)}"
+    rec = {
+        "simulation_id": sim_id,
+        "epochs": epoch_count,
+        "honest_account_count": len(honest),
+        "sybil_account_count": len(sybils),
+        "accepted_claim_count": len(accepted),
+        "rejected_claim_count": len(rejected),
+        "duplicate_or_ring_reuse_rejections": sum(1 for r in rejected if r.get("reason") == "duplicate_or_ring_reused_work"),
+        "sybil_recipient_rejections": sum(1 for r in rejected if r.get("reason") == "sybil_ring_recipient_not_eligible"),
+        "max_claim_rejections": sum(1 for r in rejected if r.get("reason") == "max_claims_per_epoch"),
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "live_mutation_enabled": False,
+        "balances_mutated": False,
+        "treasury_report_required_before_activation": True,
+        "legal_compliance_review_boundary": "required_before_activation",
+        "live_economics_claimed": False,
+    }
+    econ.setdefault("locked_sybil_farming_simulations", {})[sim_id] = rec
+    return dict(rec)
+
 def _wrap_time_lock(state: Json) -> None:
     """
     deny_if_econ_time_locked() raises when now < economic_unlock_time.

@@ -1490,6 +1490,123 @@ def select_poh_adjudication_panel(
         events.append({"event": "poh_adjudication_panel_selected", "signal_id": sid, "panel_id": panel_id, "selected_count": len(panel), "height": rec["height"]})
     return dict(rec)
 
+
+def select_poh_adjudication_panel_conflict_aware(
+    state: Json,
+    *,
+    signal_id: str,
+    candidate_reviewers: list[str],
+    excluded_reviewers: list[str] | None = None,
+    panel_size: int = 3,
+    seed: str = "",
+    conflict_reason: str = "prior_case_involvement",
+) -> Json:
+    """Select an adjudication panel while deterministically excluding conflicts.
+
+    This is a private-testnet mechanics primitive.  It separates suspicion from
+    adjudication by preventing reviewers with known conflicts from joining the
+    panel, then records the exclusion set for auditability.
+    """
+
+    excluded = sorted({_as_str(r).strip() for r in (excluded_reviewers or []) if _as_str(r).strip()})
+    candidates = sorted({_as_str(r).strip() for r in candidate_reviewers if _as_str(r).strip() and _as_str(r).strip() not in set(excluded)})
+    panel = select_poh_adjudication_panel(
+        state,
+        signal_id=signal_id,
+        candidate_reviewers=candidates,
+        panel_size=panel_size,
+        seed=seed,
+    )
+    poh = _poh_root(state)
+    panels = poh.setdefault("adjudication_panels", {"by_signal": {}, "events": []})
+    by_signal = panels.setdefault("by_signal", {})
+    rec = by_signal.get(_as_str(signal_id).strip())
+    if isinstance(rec, dict):
+        rec["conflict_exclusion_applied"] = True
+        rec["excluded_reviewers"] = excluded
+        rec["conflict_reason"] = _as_str(conflict_reason)
+        rec["conflict_free_panel"] = not any(r in set(excluded) for r in rec.get("selected_reviewers", []))
+    panel.update({
+        "conflict_exclusion_applied": True,
+        "excluded_reviewers": excluded,
+        "conflict_reason": _as_str(conflict_reason),
+        "conflict_free_panel": not any(r in set(excluded) for r in panel.get("selected_reviewers", [])),
+    })
+    return panel
+
+
+def record_poh_adjudication_appeal(
+    state: Json,
+    *,
+    signal_id: str,
+    panel_id: str,
+    appellant: str,
+    decision: str,
+    reason: str = "",
+) -> Json:
+    """Record deterministic appeal/recovery outcome for an adjudication panel.
+
+    The appeal path intentionally does not erase the original adjudication.  It
+    appends a bounded recovery record and, when granted, marks associated
+    reviewer-history entries eligible again.
+    """
+
+    sid = _as_str(signal_id).strip()
+    pid = _as_str(panel_id).strip()
+    actor = _as_str(appellant).strip()
+    dec = _as_str(decision).strip().lower()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_signal_id", {})
+    if not pid:
+        raise ApplyError("invalid_tx", "missing_panel_id", {})
+    if not actor:
+        raise ApplyError("invalid_tx", "missing_appellant", {})
+    if dec not in {"remedy_granted", "dismissed", "needs_more_review"}:
+        raise ApplyError("invalid_tx", "bad_adjudication_appeal_decision", {"decision": decision})
+
+    poh = _poh_root(state)
+    panels = poh.setdefault("adjudication_panels", {"by_signal": {}, "events": []})
+    appeals = panels.setdefault("appeals", {})
+    events = panels.setdefault("events", [])
+    panel = panels.setdefault("by_signal", {}).get(sid)
+    selected = list(panel.get("selected_reviewers", [])) if isinstance(panel, dict) else []
+    scores = poh.setdefault("reviewer_history_scores", {})
+    recovered: list[str] = []
+    if dec == "remedy_granted":
+        # Recovery is limited to the appellant when present in reviewer history,
+        # otherwise to no one.  This avoids a broad silent rollback.
+        score = scores.get(actor)
+        if isinstance(score, dict):
+            score["eligible"] = True
+            score["appeal_recovery_count"] = _as_int(score.get("appeal_recovery_count"), 0) + 1
+            score.pop("suspended_until_height", None)
+            recovered.append(actor)
+        roles = state.get("roles") if isinstance(state.get("roles"), dict) else {}
+        poh_reviewers = roles.get("poh_reviewers") if isinstance(roles.get("poh_reviewers"), dict) else {}
+        if isinstance(poh_reviewers, dict):
+            active = poh_reviewers.setdefault("active", {})
+            suspended = poh_reviewers.setdefault("suspended", {})
+            active[actor] = True
+            suspended.pop(actor, None)
+
+    appeal_id = "poh-adjudication-appeal:" + _sha256_hex(f"{sid}|{pid}|{actor}|{dec}".encode("utf-8"))[:16]
+    rec = {
+        "appeal_id": appeal_id,
+        "signal_id": sid,
+        "panel_id": pid,
+        "appellant": actor,
+        "decision": dec,
+        "reason": _as_str(reason),
+        "height": int(state.get("height") or 0),
+        "selected_reviewers_at_appeal": selected,
+        "recovered_reviewers": recovered,
+        "recovery_applied": bool(recovered),
+    }
+    appeals[appeal_id] = rec
+    if isinstance(events, list):
+        events.append({"event": "poh_adjudication_appeal_recorded", **rec})
+    return dict(rec)
+
 def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
     if not case_id:
         return {"applied": False, "reason": "missing_case_id"}

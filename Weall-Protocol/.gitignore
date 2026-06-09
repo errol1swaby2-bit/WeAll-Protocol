@@ -109,3 +109,5 @@ configs/local/
 !generated/b567_b571_autonomous_mechanics_proof_v1_5.json
 
 !generated/b572_b576_multimachine_soak_proof_v1_5.json
+
+!generated/b577_b581_containerized_adversarial_proof_v1_5.json

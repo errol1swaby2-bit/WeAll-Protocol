@@ -1,0 +1,261 @@
+{
+  "anti_sybil_conflict_appeal_recovery": {
+    "adjudication": {
+      "applied": true,
+      "decision": "confirmed",
+      "event": {
+        "decision": "confirmed",
+        "event": "poh_reviewer_collusion_adjudication",
+        "height": 900,
+        "reviewer_count": 3,
+        "status": "adjudicated_confirmed",
+        "suspicion_id": "poh-reviewer-collusion:case:challenge"
+      },
+      "reviewer_updates": [
+        {
+          "confirmed_collusion_count": 2,
+          "eligible": false,
+          "last_adjudication_height": 900,
+          "reviewer_id": "reviewer-a",
+          "suspended_until_height": 5220
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "last_adjudication_height": 900,
+          "reviewer_id": "reviewer-b",
+          "suspended_until_height": 5220
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "last_adjudication_height": 900,
+          "reviewer_id": "reviewer-c",
+          "suspended_until_height": 5220
+        }
+      ],
+      "status": "adjudicated_confirmed",
+      "suspicion_id": "poh-reviewer-collusion:case:challenge"
+    },
+    "appeal": {
+      "appeal_id": "poh-adjudication-appeal:f587410c07639ed4",
+      "appellant": "reviewer-a",
+      "decision": "remedy_granted",
+      "height": 900,
+      "panel_id": "poh-panel:c3f36b5b14d37a70",
+      "reason": "new exculpatory evidence accepted",
+      "recovered_reviewers": [
+        "reviewer-a"
+      ],
+      "recovery_applied": true,
+      "selected_reviewers_at_appeal": [
+        "reviewer-g",
+        "reviewer-d",
+        "reviewer-f"
+      ],
+      "signal_id": "signal:subject"
+    },
+    "automatic_collusion_detection_claimed": false,
+    "automatic_duplicate_human_detection_claimed": false,
+    "conflict_exclusion_worked": true,
+    "evidence_deletion": {
+      "applied": true,
+      "challenge_id": "challenge",
+      "deleted": true,
+      "height": 900,
+      "minimal_audit_hash": "123083f8739f926ac36e8dc3577f846dcc812ed045ce244ead9ac0d7cf6f2459"
+    },
+    "ok": true,
+    "panel_selection": {
+      "conflict_exclusion_applied": true,
+      "conflict_free_panel": true,
+      "conflict_reason": "prior_case_involvement",
+      "deterministic_selection": true,
+      "eligible_candidate_count": 4,
+      "excluded_reviewers": [
+        "reviewer-a",
+        "reviewer-b",
+        "reviewer-c"
+      ],
+      "height": 900,
+      "panel_id": "poh-panel:c3f36b5b14d37a70",
+      "panel_size_requested": 3,
+      "selected_count": 3,
+      "selected_reviewers": [
+        "reviewer-g",
+        "reviewer-d",
+        "reviewer-f"
+      ],
+      "selection_seed_hash": "66d12cb801cdb09c99feed520fd7fee0282f1db455d136ef4ee4a47aecb32607",
+      "signal_id": "signal:subject",
+      "status": "panel_selected"
+    },
+    "signal_aggregation": {
+      "automatic_collusion_detection_claimed": false,
+      "automatic_duplicate_human_detection_claimed": false,
+      "components": {
+        "challenge_history_count": 1,
+        "coordinated_review_window_count": 1,
+        "duplicate_evidence_commitment_count": 2,
+        "reviewer_overlap_count": 3,
+        "shared_device_hint_count": 2
+      },
+      "height": 900,
+      "reason": "scheduled_signal_aggregation",
+      "requires_adjudication_panel": true,
+      "severity": "high",
+      "signal_id": "signal:subject",
+      "status": "signals_aggregated_review_required",
+      "subject_account": "subject",
+      "suspicion_score": 82
+    }
+  },
+  "batch_range": "577-581",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "complete_anti_sybil_solved": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "personalized_feed_ranking": false,
+    "production_helper_execution": false,
+    "public_multi_validator_bft": false,
+    "public_validator_readiness": false
+  },
+  "containerized_validator_network": {
+    "container_roots_created": true,
+    "final_roots": {
+      "validator-a": "acf040ba715b49fd1e4da979b36390a10cdbf522b34246847a098cbe9a517c4c",
+      "validator-b": "acf040ba715b49fd1e4da979b36390a10cdbf522b34246847a098cbe9a517c4c",
+      "validator-c": "acf040ba715b49fd1e4da979b36390a10cdbf522b34246847a098cbe9a517c4c",
+      "validator-d": "acf040ba715b49fd1e4da979b36390a10cdbf522b34246847a098cbe9a517c4c"
+    },
+    "mempool_gossip_exercised": true,
+    "node_count": 4,
+    "ok": true,
+    "peer_discovery_configured": true,
+    "peer_matrix_edges": 12,
+    "ports_bound_count": 4,
+    "process_ids_unique": true,
+    "process_model": "containerized_local_port_independent_validator_nodes",
+    "proposal_vote_qc_commit_exercised": true,
+    "public_validator_enabled": false,
+    "public_validator_readiness_claimed": false,
+    "restart_catchup_exercised": true,
+    "restart_node": "validator-c",
+    "restart_root_recomputed": "aaf5e385787fe21c84da0ddc793e93d904f03f903b1f4c4b0bfbb20315edf063",
+    "rounds": 8,
+    "state_roots_match": true
+  },
+  "economics_sybil_farming_adversarial_stress": {
+    "legal_compliance_review_boundary": "required_before_activation",
+    "live_economics_claimed": false,
+    "ok": true,
+    "read_model": {
+      "economics_enabled": false,
+      "failed_transfers": {},
+      "live_mutation_enabled": false,
+      "pending_transfers": {},
+      "reward_claim_ledger": {
+        "by_epoch": {},
+        "claims": {}
+      },
+      "treasury_reporting": {
+        "events": [
+          {
+            "event": "treasury_report_recorded",
+            "height": 1234,
+            "report_id": "treasury:stress:48"
+          }
+        ],
+        "reports": {
+          "treasury:stress:48": {
+            "closing_balance": 21000000,
+            "height": 1234,
+            "opening_balance": 21000000,
+            "period": "epochs:1-48",
+            "public_accountability_report": true,
+            "report_id": "treasury:stress:48",
+            "spend_count": 0,
+            "spends": []
+          }
+        }
+      }
+    },
+    "stress_summary": {
+      "accepted_claim_count": 192,
+      "balances_mutated": false,
+      "duplicate_or_ring_reuse_rejections": 144,
+      "economics_enabled": false,
+      "epochs": 48,
+      "honest_account_count": 4,
+      "legal_compliance_review_boundary": "required_before_activation",
+      "live_economics_claimed": false,
+      "live_mutation_enabled": false,
+      "max_claim_rejections": 0,
+      "rejected_claim_count": 288,
+      "simulation_id": "locked-econ-sybil-farming:48:4:6",
+      "sybil_account_count": 6,
+      "sybil_recipient_rejections": 144,
+      "treasury_report_required_before_activation": true
+    },
+    "treasury_report": {
+      "closing_balance": 21000000,
+      "height": 1234,
+      "opening_balance": 21000000,
+      "period": "epochs:1-48",
+      "public_accountability_report": true,
+      "report_id": "treasury:stress:48",
+      "spend_count": 0,
+      "spends": []
+    }
+  },
+  "extended_seeded_network_soak": {
+    "committed_height": 160,
+    "delayed_delivery_events": 122,
+    "dropped_delivery_windows": 5,
+    "duplicate_delivery_events": 20,
+    "heights_final": {
+      "v-a": 160,
+      "v-b": 160,
+      "v-c": 160,
+      "v-d": 160
+    },
+    "leader_rotation_exercised": true,
+    "max_queue_depth": 164,
+    "ok": true,
+    "partition_rejoin_cycles": 6,
+    "public_validator_readiness_claimed": false,
+    "resource_pressure_events": 9,
+    "restart_cycles": 3,
+    "rounds": 160,
+    "seed": 577581,
+    "soak_model": "extended_seeded_local_network_soak_with_resource_pressure",
+    "state_roots_match": true,
+    "validator_count": 4
+  },
+  "ok": true,
+  "private_testnet_candidate_strengthened": true,
+  "public_beta_ready": false,
+  "real_ipfs_daemon_durability": {
+    "availability_status": "available",
+    "cat_ok": true,
+    "cid": "bafkrei4ee3bc8be8a32cb2ed82df840f69db30160ab9bb2b42474a35ac",
+    "daemon_mode": "hermetic_ipfs_http_daemon_fallback",
+    "ipfs_api_port_bound": true,
+    "ipfs_api_port_label": "deterministic_local_test_port",
+    "ok": true,
+    "pin_add_ok": true,
+    "public_decentralized_media_claimed": false,
+    "real_ipfs_daemon_requested": true,
+    "real_kubo_ipfs_daemon_used": false,
+    "retrieval_confirmed": true,
+    "worker_model": "real_ipfs_daemon_or_kubo_compatible_http_daemon"
+  },
+  "remaining_gaps": [
+    "validator rehearsal now uses independent local process roots and bound ports, but public validator readiness still requires independent operators and longer multi-machine rehearsal",
+    "IPFS durability now attempts a real Kubo daemon when available and records a daemon-compatible fallback in CI, so public decentralized media durability remains unclaimed unless real daemon mode is used in operator rehearsal",
+    "anti-Sybil signal aggregation now excludes conflicts and supports appeals, but automatic duplicate-human/collusion detection remains unclaimed",
+    "economics Sybil/farming stress remains locked and read-model only; live economics still requires governance/legal/wallet/treasury review"
+  ],
+  "schema": "weall.v1_5.batch577_581.containerized_adversarial_proof"
+}
