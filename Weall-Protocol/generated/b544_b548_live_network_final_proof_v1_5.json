@@ -1,0 +1,308 @@
+{
+  "api_system_lifecycle_closure": {
+    "api_read_routes_exercised": [
+      "GET /v1/feed?rank=production",
+      "GET /v1/session/me",
+      "GET /v1/disputes/{dispute_id}"
+    ],
+    "api_write_routes_exercised": [
+      "POST /v1/tx/submit ACCOUNT_REGISTER",
+      "POST /v1/tx/submit CONTENT_POST_CREATE"
+    ],
+    "base_public_api_lifecycle_ok": true,
+    "batch": "545",
+    "classified_remaining_domains": {
+      "dispute_final_receipt": {
+        "classification": "system_scheduled_receipt_only",
+        "public_api_status": "not_public_write_expected",
+        "public_client_required": false,
+        "reason": "final receipts are emitted by system scheduling after dispute resolution/appeal, not accepted as public user writes"
+      },
+      "poh_challenge": {
+        "classification": "consensus_tx_direct_apply_in_lifecycle_harness",
+        "public_api_status": "tx_submit_or_domain_route_required_before_external_client_claim",
+        "public_client_required": true,
+        "reason": "challenge open/resolve are user/system governance actions and should be covered by a public tx/API path before final external-client rehearsal"
+      },
+      "protocol_upgrade_record": {
+        "classification": "governance_record_only_system_boundary",
+        "public_api_status": "governance_system_record_not_auto_apply",
+        "public_client_required": false,
+        "reason": "protocol upgrade records remain governance/system metadata only; no automatic artifact application is permitted"
+      },
+      "storage_receipt": {
+        "classification": "operator_or_system_receipt",
+        "public_api_status": "operator_worker_or_system_receipt_path_expected",
+        "public_client_required": false,
+        "reason": "storage pin confirmation is a node/operator receipt path and should not be exposed as a generic public user write"
+      }
+    },
+    "live_economics_enabled": false,
+    "ok": true,
+    "protocol_upgrade_record_only": true,
+    "public_client_write_gaps_remaining": [
+      "poh_challenge"
+    ],
+    "public_validator_enabled": false,
+    "remaining_direct_apply_domains": [
+      "poh_challenge",
+      "dispute_final_receipt",
+      "storage_receipt",
+      "protocol_upgrade_record"
+    ],
+    "system_only_domains_not_public_writes": [
+      "dispute_final_receipt",
+      "storage_receipt",
+      "protocol_upgrade_record"
+    ],
+    "unclassified_remaining_domains": []
+  },
+  "batch_range": "544-548",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "personalized_feed_ranking": false,
+    "production_helper_execution": false,
+    "public_multi_validator_bft": false,
+    "public_validator_readiness": false
+  },
+  "live_ipfs_worker_durability": {
+    "availability_status": "available",
+    "batch": "546",
+    "confirmation_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": true,
+      "pin_id": "pin-b546",
+      "reassignment": {
+        "failed_operator_id": "op-a",
+        "reassigned": true,
+        "replacement_operator_id": "op-b",
+        "targets": [
+          "op-b"
+        ]
+      },
+      "receipt": true
+    },
+    "enqueue_initial": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
+      "job_id": 1,
+      "ok": true,
+      "targets": [
+        "op-a"
+      ]
+    },
+    "enqueue_replacement": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
+      "job_id": 2,
+      "ok": true,
+      "targets": [
+        "op-b"
+      ]
+    },
+    "failed_operator": "op-a",
+    "failed_worker_stats": {
+      "dry_run": false,
+      "failed": 1,
+      "ok": true,
+      "pinned": 0,
+      "processed": 1,
+      "skipped": 0
+    },
+    "failure_api_requests": 1,
+    "failure_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": false,
+      "pin_id": "pin-b546",
+      "reassignment": {
+        "failed_operator_id": "op-a",
+        "reassigned": true,
+        "replacement_operator_id": "op-b",
+        "targets": [
+          "op-b"
+        ]
+      },
+      "receipt": true
+    },
+    "ipfs_enabled": true,
+    "ok": true,
+    "reassignment_recorded": true,
+    "replacement_operator": "op-b",
+    "replacement_worker_stats": {
+      "dry_run": false,
+      "failed": 0,
+      "ok": true,
+      "pinned": 1,
+      "processed": 1,
+      "skipped": 0
+    },
+    "retrieval_confirmed": true,
+    "retrieval_proof_count": 1,
+    "success_api_requests": 1,
+    "worker_model": "IpfsPinWorker_with_local_http_ipfs_api"
+  },
+  "live_netloop_block_producer": {
+    "batch": "544",
+    "block_apply_surface_used": "WeAllExecutor.apply_block",
+    "block_producer_surface_used": "weall.services.block_producer._produce_once",
+    "follower_apply_ok": true,
+    "net_loop_class": "weall.net.net_loop.NetMeshLoop",
+    "net_loop_started": true,
+    "ok": true,
+    "peer_uris_configured_count": 2,
+    "ports_bound_count": 2,
+    "produced_height": 1,
+    "producer_delegate": "WeAllExecutor.produce_block",
+    "public_validator_enabled": false,
+    "state_root_equality_proven": true,
+    "state_roots_match": true,
+    "transport": "tcp://127.0.0.1"
+  },
+  "ok": true,
+  "poh_dispute_adversarial_accountability": {
+    "batch": "547",
+    "collusion_detection_claimed": false,
+    "dispute_juror_accountability_and_remedy": {
+      "first_final_receipt": {
+        "appeal_finalization": {
+          "appeal_count": 0,
+          "appealed": false,
+          "decision": "none"
+        },
+        "applied": "DISPUTE_FINAL_RECEIPT",
+        "enforcement_applied": [],
+        "receipt": true,
+        "receipt_id": "receipt:SYSTEM:4"
+      },
+      "juror_accountability_record": {
+        "eligible_for_dispute_jury": false,
+        "events": [
+          {
+            "dispute_id": "d-547",
+            "event": "assigned_dispute_vote_missed",
+            "height": 25
+          },
+          {
+            "dispute_id": "d-547",
+            "event": "assigned_dispute_vote_missed",
+            "height": 25
+          }
+        ],
+        "juror_id": "@j2",
+        "missed_vote_count": 2,
+        "status": "juror_accountability_flagged"
+      },
+      "juror_eligible_after_remedy": true,
+      "juror_ineligible_after_missed_vote": true,
+      "ok": true,
+      "remedy_receipt": {
+        "appeal_finalization": {
+          "appeal_count": 1,
+          "appealed": true,
+          "decision": "modify",
+          "resolution": {
+            "actions": [
+              {
+                "payload": {
+                  "account_id": "@open"
+                },
+                "tx_type": "ACCOUNT_REINSTATE"
+              },
+              {
+                "payload": {
+                  "account_id": "@j2",
+                  "eligible": true,
+                  "role": "dispute_juror"
+                },
+                "tx_type": "ROLE_ELIGIBILITY_SET"
+              }
+            ],
+            "decision": "modify",
+            "summary": "remedy"
+          }
+        },
+        "applied": "DISPUTE_FINAL_RECEIPT",
+        "enforcement_applied": [
+          {
+            "applied_to": "@open",
+            "payload": {
+              "account_id": "@open"
+            },
+            "remedy": "account_reinstated",
+            "tx_type": "ACCOUNT_REINSTATE"
+          },
+          {
+            "applied_to": "@j2",
+            "eligible": true,
+            "payload": {
+              "account_id": "@j2",
+              "eligible": true,
+              "role": "dispute_juror"
+            },
+            "role": "dispute_juror",
+            "tx_type": "ROLE_ELIGIBILITY_SET"
+          }
+        ],
+        "receipt": true,
+        "receipt_id": "receipt:SYSTEM:5"
+      },
+      "target_reinstated": true,
+      "target_remedies": [
+        {
+          "dispute_parent": "d",
+          "height": 25,
+          "prior": {
+            "banned": false,
+            "latest_restriction": "review",
+            "locked": true,
+            "restricted": true
+          },
+          "reason": "dispute_appeal_remedy",
+          "remedy": "account_reinstated"
+        }
+      ]
+    },
+    "duplicate_human_detection_claimed": false,
+    "false_positive_remedy_path_present": true,
+    "ok": true,
+    "poh_reviewer_accountability": {
+      "dismissed_challenge_id": "pohc:@subject:32",
+      "dismissed_consequence": {
+        "applied": false,
+        "type": "none"
+      },
+      "ok": true,
+      "reverification_required": true,
+      "reviewer_accountability_record": {
+        "challenge_upheld_review_count": 1,
+        "eligibility_reason": "prior_approval_challenge_upheld",
+        "eligible_for_poh_review": false,
+        "events": [
+          {
+            "account_id": "@subject",
+            "case_id": "case-547",
+            "challenge_id": "pohc:@subject:30",
+            "event": "challenge_upheld_prior_approval",
+            "height": 21
+          }
+        ],
+        "reviewer_id": "@reviewer",
+        "status": "reviewer_accountability_flagged"
+      },
+      "reviewer_eligible_after_upheld_challenge": false,
+      "subject_status": "revoked",
+      "upheld_challenge_id": "pohc:@subject:30",
+      "upheld_resolution": "upheld"
+    }
+  },
+  "private_testnet_rehearsal_candidate": true,
+  "public_beta_ready": false,
+  "remaining_public_testnet_gaps": [
+    "full long-lived multi-node P2P validator network with real BFT gossip remains required before public validator readiness",
+    "poh_challenge remains the only listed public-client write gap in the API/system lifecycle closure artifact",
+    "live IPFS worker proof uses a local HTTP IPFS-compatible API and should be expanded to multi-daemon/operator rehearsal before public media durability claims",
+    "PoH/dispute accountability includes reviewer/juror sanctions and remedies but does not claim complete collusion or duplicate-human detection",
+    "live economics remains locked pending adversarial reward-farming, treasury reporting, wallet lifecycle, legal, and long-run economic review"
+  ],
+  "schema": "weall.v1_5.batch544_548.live_network_final_proof"
+}
