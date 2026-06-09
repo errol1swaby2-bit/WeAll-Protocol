@@ -271,6 +271,72 @@ def record_treasury_report(state: Json, *, report_id: str, period: str, opening_
     events.append({"event": "treasury_report_recorded", "report_id": rid, "height": rec["height"]})
     return dict(rec)
 
+
+def economics_locked_long_run_stress_summary(
+    state: Json,
+    *,
+    epochs: int = 16,
+    accounts: list[str] | None = None,
+    max_claims_per_epoch: int = 3,
+) -> Json:
+    """Run a deterministic locked-economics stress simulation without balances mutating.
+
+    The simulation records rejected farming patterns and treasury reporting
+    expectations while preserving economics_enabled=false.  It is used by
+    private-testnet candidate evidence only; it is not an activation switch.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    actors = sorted({_as_str(a).strip() for a in (accounts or []) if _as_str(a).strip()}) or ["alice", "bob", "carol", "dave"]
+    epoch_count = max(1, min(_as_int(epochs, 16), 10_000))
+    max_per_epoch = max(1, min(_as_int(max_claims_per_epoch, 3), 100))
+    accepted_claims: list[Json] = []
+    rejected_claims: list[Json] = []
+    seen_work: set[str] = set()
+    per_actor_epoch: dict[str, dict[str, int]] = {}
+    for epoch in range(1, epoch_count + 1):
+        for i, actor in enumerate(actors):
+            # Every fifth epoch intentionally repeats the same work id to prove duplicate farming rejection.
+            work_id = f"work:{actor}:{epoch if epoch % 5 else epoch - 1}:{i % 2}"
+            key = f"{epoch}:{actor}"
+            actor_epochs = per_actor_epoch.setdefault(actor, {})
+            actor_epochs.setdefault(str(epoch), 0)
+            if work_id in seen_work:
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_work_id"})
+                continue
+            if actor_epochs[str(epoch)] >= max_per_epoch:
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                continue
+            if actor.startswith("locked") or actor.startswith("banned"):
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "recipient_not_eligible"})
+                continue
+            seen_work.add(work_id)
+            actor_epochs[str(epoch)] += 1
+            accepted_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
+    rejected_transfer = {"status": "failed", "reason": "economics_disabled", "height": _as_int(state.get("height"), 0)}
+    sim_id = f"locked-econ-stress:{epoch_count}:{len(actors)}:{max_per_epoch}"
+    simulations = econ.setdefault("locked_stress_simulations", {})
+    rec = {
+        "simulation_id": sim_id,
+        "epochs": epoch_count,
+        "account_count": len(actors),
+        "accepted_claim_count": len(accepted_claims),
+        "rejected_claim_count": len(rejected_claims),
+        "duplicate_work_rejections": sum(1 for r in rejected_claims if r.get("reason") == "duplicate_work_id"),
+        "recipient_eligibility_rejections": sum(1 for r in rejected_claims if r.get("reason") == "recipient_not_eligible"),
+        "max_claim_rejections": sum(1 for r in rejected_claims if r.get("reason") == "max_claims_per_epoch"),
+        "treasury_report_epochs": epoch_count,
+        "pending_failed_transfer_read_model_present": True,
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "live_mutation_enabled": False,
+        "transfer_before_activation": rejected_transfer,
+        "live_economics_claimed": False,
+        "legal_compliance_review_boundary": "required_before_activation",
+    }
+    simulations[sim_id] = rec
+    return dict(rec)
+
 def _wrap_time_lock(state: Json) -> None:
     """
     deny_if_econ_time_locked() raises when now < economic_unlock_time.

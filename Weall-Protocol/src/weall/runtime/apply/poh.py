@@ -1348,6 +1348,148 @@ def execute_poh_evidence_deletion(state: Json, *, challenge_id: str, reason: str
     events.append(event)
     return {"applied": True, "challenge_id": cid, "deleted": True, "minimal_audit_hash": audit_hash, "height": height}
 
+
+def aggregate_poh_sybil_signals(
+    state: Json,
+    *,
+    subject_account: str,
+    signal_id: str,
+    signals: Json,
+    reason: str = "scheduled_signal_aggregation",
+) -> Json:
+    """Aggregate bounded anti-Sybil suspicion signals without adjudicating guilt.
+
+    This primitive deliberately records a suspicion score and review requirement; it
+    does not claim automatic duplicate-human detection.  Inputs must be canonical
+    counts or lists already produced by deterministic protocol/state analysis.
+    """
+
+    subject = _as_str(subject_account).strip()
+    sid = _as_str(signal_id).strip() or f"poh-sybil-signal:{subject}"
+    if not subject:
+        raise ApplyError("invalid_tx", "missing_subject_account", {})
+    if not isinstance(signals, dict):
+        raise ApplyError("invalid_tx", "sybil_signals_must_be_object", {"signal_id": sid})
+
+    def _count(name: str) -> int:
+        value = signals.get(name)
+        if isinstance(value, list):
+            return len(value)
+        if isinstance(value, dict):
+            return len(value)
+        return _as_int(value, 0)
+
+    components = {
+        "duplicate_evidence_commitment_count": _count("duplicate_evidence_commitments"),
+        "reviewer_overlap_count": _count("reviewer_overlap"),
+        "shared_device_hint_count": _count("shared_device_hints"),
+        "challenge_history_count": _count("challenge_history"),
+        "coordinated_review_window_count": _count("coordinated_review_windows"),
+    }
+    score = (
+        components["duplicate_evidence_commitment_count"] * 15
+        + components["reviewer_overlap_count"] * 10
+        + components["shared_device_hint_count"] * 5
+        + components["challenge_history_count"] * 4
+        + components["coordinated_review_window_count"] * 8
+    )
+    severity = "high" if score >= 30 else "medium" if score >= 15 else "low"
+    height = int(state.get("height") or 0)
+    poh = _poh_root(state)
+    root = poh.get("sybil_signal_aggregations")
+    if not isinstance(root, dict):
+        root = {"by_subject": {}, "events": []}
+        poh["sybil_signal_aggregations"] = root
+    by_subject = root.setdefault("by_subject", {})
+    if not isinstance(by_subject, dict):
+        by_subject = {}
+        root["by_subject"] = by_subject
+    events = root.setdefault("events", [])
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    subject_records = by_subject.setdefault(subject, {})
+    if not isinstance(subject_records, dict):
+        subject_records = {}
+        by_subject[subject] = subject_records
+    rec = {
+        "signal_id": sid,
+        "subject_account": subject,
+        "components": components,
+        "suspicion_score": score,
+        "severity": severity,
+        "requires_adjudication_panel": score >= 15,
+        "status": "signals_aggregated_review_required" if score >= 15 else "signals_aggregated_monitor",
+        "height": height,
+        "reason": _as_str(reason),
+        "automatic_duplicate_human_detection_claimed": False,
+        "automatic_collusion_detection_claimed": False,
+    }
+    subject_records[sid] = rec
+    events.append({"event": "poh_sybil_signals_aggregated", "signal_id": sid, "subject_account": subject, "score": score, "severity": severity, "height": height})
+    return dict(rec)
+
+
+def select_poh_adjudication_panel(
+    state: Json,
+    *,
+    signal_id: str,
+    candidate_reviewers: list[str],
+    panel_size: int = 3,
+    seed: str = "",
+) -> Json:
+    """Select a deterministic adjudication panel from eligible reviewer candidates."""
+
+    sid = _as_str(signal_id).strip()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_signal_id", {})
+    size = max(1, _as_int(panel_size, 3))
+    poh = _poh_root(state)
+    scores = poh.get("reviewer_history_scores")
+    if not isinstance(scores, dict):
+        scores = {}
+        poh["reviewer_history_scores"] = scores
+    cleaned: list[str] = []
+    for reviewer in sorted({_as_str(r).strip() for r in candidate_reviewers if _as_str(r).strip()}):
+        score = scores.get(reviewer)
+        if isinstance(score, dict) and score.get("eligible") is False:
+            continue
+        acct = state.get("accounts", {}).get(reviewer) if isinstance(state.get("accounts"), dict) else None
+        if isinstance(acct, dict) and (acct.get("banned") or acct.get("locked")):
+            continue
+        cleaned.append(reviewer)
+    ranked = sorted(
+        cleaned,
+        key=lambda r: (
+            _sha256_hex(f"{sid}|{seed}|{r}".encode("utf-8")),
+            r,
+        ),
+    )
+    panel = ranked[:size]
+    panel_id = "poh-panel:" + _sha256_hex(json.dumps({"signal_id": sid, "panel": panel}, sort_keys=True, separators=(",", ":")).encode("utf-8"))[:16]
+    panels = poh.get("adjudication_panels")
+    if not isinstance(panels, dict):
+        panels = {"by_signal": {}, "events": []}
+        poh["adjudication_panels"] = panels
+    by_signal = panels.setdefault("by_signal", {})
+    events = panels.setdefault("events", [])
+    rec = {
+        "panel_id": panel_id,
+        "signal_id": sid,
+        "panel_size_requested": size,
+        "eligible_candidate_count": len(cleaned),
+        "selected_reviewers": panel,
+        "selected_count": len(panel),
+        "selection_seed_hash": _sha256_hex(f"{sid}|{seed}".encode("utf-8")),
+        "status": "panel_selected" if len(panel) == size else "insufficient_eligible_reviewers",
+        "height": int(state.get("height") or 0),
+        "deterministic_selection": True,
+    }
+    by_signal[sid] = rec
+    if isinstance(events, list):
+        events.append({"event": "poh_adjudication_panel_selected", "signal_id": sid, "panel_id": panel_id, "selected_count": len(panel), "height": rec["height"]})
+    return dict(rec)
+
 def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
     if not case_id:
         return {"applied": False, "reason": "missing_case_id"}
