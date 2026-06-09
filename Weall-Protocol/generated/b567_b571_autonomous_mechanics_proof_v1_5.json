@@ -1,0 +1,390 @@
+{
+  "anti_sybil_adjudication_deletion": {
+    "automatic_collusion_detection_claimed": false,
+    "batch": "570",
+    "challenge_id": "pohc:@subject:61",
+    "confirmed_adjudication": {
+      "applied": true,
+      "decision": "confirmed",
+      "event": {
+        "decision": "confirmed",
+        "event": "poh_reviewer_collusion_adjudication",
+        "height": 120,
+        "reviewer_count": 3,
+        "status": "adjudicated_confirmed",
+        "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+      },
+      "reviewer_updates": [
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r1",
+          "suspended_until_height": 4440
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r2",
+          "suspended_until_height": 4440
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r3",
+          "suspended_until_height": 4440
+        }
+      ],
+      "status": "adjudicated_confirmed",
+      "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+    },
+    "dismissed_adjudication": {
+      "applied": true,
+      "decision": "dismissed",
+      "event": {
+        "decision": "dismissed",
+        "event": "poh_reviewer_collusion_adjudication",
+        "height": 5000,
+        "reviewer_count": 3,
+        "status": "adjudicated_dismissed",
+        "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+      },
+      "reviewer_updates": [
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r1"
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r2"
+        },
+        {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r3"
+        }
+      ],
+      "status": "adjudicated_dismissed",
+      "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+    },
+    "duplicate_human_detection_claimed": false,
+    "evidence_deletion": {
+      "applied": true,
+      "challenge_id": "pohc:@subject:61",
+      "deleted": true,
+      "height": 5000,
+      "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc"
+    },
+    "false_positive_compensation_policy": "eligibility_reinstatement_and_minimal_retention_deletion",
+    "final_retention_record": {
+      "account_id": "@subject",
+      "appeal_remedy_available": true,
+      "case_id": "case-adjudicate",
+      "challenge_id": "pohc:@subject:61",
+      "deleted": true,
+      "deleted_height": 5000,
+      "deletion_eligible": true,
+      "deletion_reason": "false_positive_remedy_completed",
+      "history": [
+        {
+          "account_id": "@subject",
+          "case_id": "case-adjudicate",
+          "challenge_id": "pohc:@subject:61",
+          "event": "poh_challenge_evidence_retention_policy",
+          "height": 120,
+          "status": "retain_until_reverification_or_appeal"
+        }
+      ],
+      "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc",
+      "raw_evidence_retained": false,
+      "reason": "challenge_upheld",
+      "status": "remedy_completed_minimal_retention",
+      "updated_height": 120
+    },
+    "ok": true,
+    "scores_after_confirm": {
+      "@r1": {
+        "confirmed_collusion_count": 1,
+        "eligible": false,
+        "false_positive_recovery_count": 0,
+        "last_adjudication_height": 120,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r1",
+        "suspended_until_height": 4440
+      },
+      "@r2": {
+        "confirmed_collusion_count": 1,
+        "eligible": false,
+        "false_positive_recovery_count": 0,
+        "last_adjudication_height": 120,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r2",
+        "suspended_until_height": 4440
+      },
+      "@r3": {
+        "confirmed_collusion_count": 1,
+        "eligible": false,
+        "false_positive_recovery_count": 0,
+        "last_adjudication_height": 120,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r3",
+        "suspended_until_height": 4440
+      }
+    },
+    "scores_after_dismiss": {
+      "@r1": {
+        "confirmed_collusion_count": 1,
+        "eligible": true,
+        "false_positive_recovery_count": 1,
+        "last_adjudication_height": 5000,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r1"
+      },
+      "@r2": {
+        "confirmed_collusion_count": 1,
+        "eligible": true,
+        "false_positive_recovery_count": 1,
+        "last_adjudication_height": 5000,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r2"
+      },
+      "@r3": {
+        "confirmed_collusion_count": 1,
+        "eligible": true,
+        "false_positive_recovery_count": 1,
+        "last_adjudication_height": 5000,
+        "missed_duty_count": 0,
+        "reviewer_id": "@r3"
+      }
+    },
+    "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+  },
+  "autonomous_validator_gossip_loop": {
+    "autonomous_loop_model": "threaded_validator_gossip_loops",
+    "batch": "567",
+    "delivery_count": 63,
+    "fresh_catchup_from_live_peer_log": true,
+    "heights_final": {
+      "v-a": 2,
+      "v-b": 2,
+      "v-c": 2,
+      "v-d": 2
+    },
+    "majority_qc_formed": true,
+    "mempool_counts_after_gossip": {
+      "v-a": 3,
+      "v-b": 3,
+      "v-c": 3,
+      "v-d": 3
+    },
+    "mempool_gossip_autonomous": true,
+    "minority_partition_can_finalize": false,
+    "network_delay_reordering_exercised": true,
+    "node_count": 4,
+    "ok": true,
+    "partition_drop_count": 6,
+    "partition_rejoin_exercised": true,
+    "proposal_gossip_autonomous": true,
+    "public_validator_readiness_claimed": false,
+    "restarted_validator_old_root": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+    "roots_final": {
+      "v-a": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+      "v-b": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+      "v-c": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+      "v-d": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db"
+    },
+    "state_roots_match": true,
+    "validator_churn_restart_exercised": true,
+    "vote_qc_gossip_autonomous": true
+  },
+  "batch_range": "567-571",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "complete_anti_sybil_solved": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "personalized_feed_ranking": false,
+    "production_helper_execution": false,
+    "public_multi_validator_bft": false,
+    "public_validator_readiness": false
+  },
+  "economics_locked_read_models": {
+    "batch": "571",
+    "economics_enabled": false,
+    "failed_transfer_record": {
+      "amount": 500,
+      "from_account": "@alice",
+      "height": 200,
+      "reason": "economics_disabled",
+      "status": "failed",
+      "to_account": "@mallory",
+      "transfer_id": "tx-failed-1"
+    },
+    "legal_compliance_review_boundary": "required_before_activation",
+    "live_economics_claimed": false,
+    "live_mutation_enabled": false,
+    "ok": true,
+    "pending_transfer_record": {
+      "amount": 50,
+      "from_account": "@alice",
+      "height": 200,
+      "reason": "awaiting_activation",
+      "status": "pending",
+      "to_account": "@bob",
+      "transfer_id": "tx-pending-1"
+    },
+    "reward_claim_ledger_claim_count": 2,
+    "reward_claim_ledger_epoch_12": [
+      "reward-1",
+      "reward-2"
+    ],
+    "reward_claim_records": [
+      {
+        "account_id": "@alice",
+        "amount": 7,
+        "claim_id": "reward-1",
+        "epoch": 12,
+        "height": 200,
+        "reason": "",
+        "status": "eligible_pending_activation"
+      },
+      {
+        "account_id": "@locked",
+        "amount": 7,
+        "claim_id": "reward-2",
+        "epoch": 12,
+        "height": 200,
+        "reason": "recipient_locked_or_banned",
+        "status": "failed"
+      }
+    ],
+    "transfer_before_activation_rejected_reason": "economics_disabled",
+    "treasury_report": {
+      "closing_balance": 950,
+      "height": 200,
+      "opening_balance": 1000,
+      "period": "epoch-12",
+      "public_accountability_report": true,
+      "report_id": "treasury-q1",
+      "spend_count": 1,
+      "spends": [
+        {
+          "amount": 50,
+          "spend_id": "spend-1",
+          "status": "approved_pending_activation"
+        }
+      ]
+    },
+    "treasury_report_count": 1
+  },
+  "fresh_node_catchup_autonomous_network": {
+    "applied_results": [
+      true,
+      true
+    ],
+    "batch": "568",
+    "corrupt_peer_data_rejected": true,
+    "final_root": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+    "first_peer": "v-b",
+    "fresh_node_started_empty": true,
+    "interrupted_height": 1,
+    "ok": true,
+    "public_peer_network_claimed": false,
+    "resume_peer": "v-c",
+    "snapshot_used": false,
+    "source_network_model": "threaded_validator_gossip_loops",
+    "state_roots_match": true,
+    "trusted_anchor_height": 2,
+    "trusted_anchor_root": "40ac7bbc261bd9aeb494a7fe7a09d873daf00c07fd314f666400fe4ea75159db",
+    "trusted_anchor_source": "live_validator_peer_finalized_tip",
+    "wrong_chain_rejected": true
+  },
+  "multiprocess_ipfs_operator_durability": {
+    "availability_status": "available",
+    "batch": "569",
+    "confirm_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": true,
+      "pin_id": "pin-b569",
+      "reassignment": {
+        "failed_operator_id": "op-b",
+        "reassigned": true,
+        "replacement_operator_id": "op-a",
+        "targets": [
+          "op-a",
+          "op-c"
+        ]
+      },
+      "receipt": true
+    },
+    "failed_operator": "op-b",
+    "failed_process_exitcode": -15,
+    "failure_receipt": {
+      "applied": "IPFS_PIN_CONFIRM",
+      "ok": false,
+      "pin_id": "pin-b569",
+      "reassignment": {
+        "failed_operator_id": "op-b",
+        "reassigned": true,
+        "replacement_operator_id": "op-a",
+        "targets": [
+          "op-a",
+          "op-c"
+        ]
+      },
+      "receipt": true
+    },
+    "ok": true,
+    "operator_count": 4,
+    "public_decentralized_media_claimed": false,
+    "reassignment_recorded": true,
+    "replacement_add_result": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVZRnGzr1rRkNvztNFVQVw1Gc7Y",
+      "ok": true,
+      "op": "add_pin",
+      "operator_id": "op-a",
+      "sha256": "c7c476d0c031c895cf7709b603720abe89907b0221b29844df8b061fa6636594"
+    },
+    "replacement_cat_result": {
+      "cid": "QmYwAPJzv5CZsnAzt8auVZRnGzr1rRkNvztNFVQVw1Gc7Y",
+      "ok": true,
+      "op": "cat",
+      "operator_id": "op-a",
+      "sha256": "c7c476d0c031c895cf7709b603720abe89907b0221b29844df8b061fa6636594"
+    },
+    "replacement_operator": "op-a",
+    "retrieval_confirmed": true,
+    "retrieval_proof_count": 1,
+    "worker_model": "multiprocess_ipfs_compatible_operator_workers"
+  },
+  "ok": true,
+  "private_testnet_candidate_strengthened": true,
+  "public_beta_ready": false,
+  "remaining_gaps": [
+    "autonomous validator gossip is modeled in local threaded processes; public validator readiness still requires multi-machine independent operators and full production transport under adversarial timing",
+    "fresh-node catch-up validates live-peer commit logs, but public network churn and malicious peer diversity require broader soak tests",
+    "storage durability now uses multi-process IPFS-compatible workers, but public media durability still requires multi-daemon or multi-machine IPFS operator rehearsal",
+    "anti-Sybil adjudication and evidence deletion execution exist, but automatic duplicate-human detection and legal/privacy review remain outside the current claim",
+    "economics read models exist while locked; live economics remains disabled pending legal, treasury, wallet UX, and long-run economic review"
+  ],
+  "schema": "weall.v1_5.batch567_571.autonomous_mechanics_proof"
+}

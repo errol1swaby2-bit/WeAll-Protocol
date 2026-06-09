@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from typing import Any
 
@@ -1207,6 +1208,145 @@ def _record_reviewer_collusion_suspicion(
     by_case[suspicion_id] = rec
     events.append({"event": "poh_reviewer_collusion_suspicion", **rec})
     return {"applied": True, "suspicion_id": suspicion_id, "reviewers": cleaned, "reviewer_count": len(cleaned)}
+
+
+
+def record_poh_collusion_adjudication(
+    state: Json,
+    *,
+    suspicion_id: str,
+    decision: str,
+    adjudicator_panel_id: str = "",
+    note: str = "",
+) -> Json:
+    """Record deterministic follow-up adjudication for a reviewer-collusion suspicion.
+
+    This is intentionally a state-level primitive used by system/governance
+    rehearsal paths.  It does not claim automatic collusion detection; it turns
+    a suspicion record into an auditable adjudication outcome with deterministic
+    reviewer history scoring and recovery windows.
+    """
+
+    sid = _as_str(suspicion_id).strip()
+    dec = _as_str(decision).strip().lower()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_suspicion_id", {})
+    if dec not in {"confirmed", "dismissed", "needs_more_review"}:
+        raise ApplyError("invalid_tx", "bad_collusion_adjudication_decision", {"decision": decision})
+
+    root = _reviewer_collusion_suspicion_root(state)
+    by_case = root["by_case"]
+    events = root["events"]
+    rec = by_case.get(sid)
+    if not isinstance(rec, dict):
+        raise ApplyError("not_found", "reviewer_collusion_suspicion_not_found", {"suspicion_id": sid})
+
+    height = int(state.get("height") or 0)
+    reviewers = [str(r) for r in rec.get("reviewers", []) if str(r)]
+    outcome_status = {
+        "confirmed": "adjudicated_confirmed",
+        "dismissed": "adjudicated_dismissed",
+        "needs_more_review": "adjudication_pending_followup",
+    }[dec]
+    rec["status"] = outcome_status
+    rec["adjudication_decision"] = dec
+    rec["adjudicated_height"] = height
+    rec["adjudicator_panel_id"] = _as_str(adjudicator_panel_id).strip()
+    if note:
+        rec["adjudication_note"] = note
+    rec["requires_followup_review"] = dec == "needs_more_review"
+    if dec == "dismissed":
+        rec["recovery_policy"] = "reviewers_reinstatable_after_false_positive_dismissal"
+    elif dec == "confirmed":
+        rec["recovery_policy"] = "reviewers_recover_after_remediation_window"
+
+    poh = _poh_root(state)
+    scores = poh.get("reviewer_history_scores")
+    if not isinstance(scores, dict):
+        scores = {}
+        poh["reviewer_history_scores"] = scores
+    roles = state.setdefault("roles", {}) if isinstance(state.get("roles"), dict) else {}
+    state["roles"] = roles
+    poh_reviewers = roles.setdefault("poh_reviewers", {}) if isinstance(roles.get("poh_reviewers"), dict) else {}
+    roles["poh_reviewers"] = poh_reviewers
+    suspended = poh_reviewers.setdefault("suspended", {}) if isinstance(poh_reviewers.get("suspended"), dict) else {}
+    active = poh_reviewers.setdefault("active", {}) if isinstance(poh_reviewers.get("active"), dict) else {}
+
+    reviewer_updates: list[Json] = []
+    for reviewer in reviewers:
+        score = scores.get(reviewer)
+        if not isinstance(score, dict):
+            score = {"reviewer_id": reviewer, "confirmed_collusion_count": 0, "false_positive_recovery_count": 0, "missed_duty_count": 0, "eligible": True}
+        if dec == "confirmed":
+            score["confirmed_collusion_count"] = _as_int(score.get("confirmed_collusion_count"), 0) + 1
+            score["eligible"] = False
+            score["suspended_until_height"] = height + 4320
+            suspended[reviewer] = {"reason": "collusion_adjudicated_confirmed", "suspicion_id": sid, "until_height": height + 4320}
+            active[reviewer] = False
+        elif dec == "dismissed":
+            score["false_positive_recovery_count"] = _as_int(score.get("false_positive_recovery_count"), 0) + 1
+            score["eligible"] = True
+            score.pop("suspended_until_height", None)
+            if isinstance(suspended, dict):
+                suspended.pop(reviewer, None)
+            active[reviewer] = True
+        else:
+            score["eligible"] = False
+            suspended[reviewer] = {"reason": "collusion_adjudication_pending_followup", "suspicion_id": sid}
+            active[reviewer] = False
+        score["last_adjudication_height"] = height
+        scores[reviewer] = score
+        reviewer_updates.append(dict(score))
+
+    event = {
+        "event": "poh_reviewer_collusion_adjudication",
+        "suspicion_id": sid,
+        "decision": dec,
+        "status": outcome_status,
+        "height": height,
+        "reviewer_count": len(reviewers),
+    }
+    events.append(event)
+    return {"applied": True, "suspicion_id": sid, "decision": dec, "status": outcome_status, "reviewer_updates": reviewer_updates, "event": event}
+
+
+def execute_poh_evidence_deletion(state: Json, *, challenge_id: str, reason: str = "retention_policy_completed") -> Json:
+    """Execute deterministic evidence-deletion eligibility as protocol state.
+
+    Raw evidence remains off-chain; this records that protocol-controlled
+    retention reached deletion eligibility and preserves only bounded audit
+    metadata.  It fails closed unless the retention record is already marked
+    deletion_eligible.
+    """
+
+    cid = _as_str(challenge_id).strip()
+    if not cid:
+        raise ApplyError("invalid_tx", "missing_challenge_id", {})
+    root = _evidence_retention_root(state)
+    by_challenge = root["by_challenge"]
+    events = root["events"]
+    rec = by_challenge.get(cid)
+    if not isinstance(rec, dict):
+        raise ApplyError("not_found", "evidence_retention_not_found", {"challenge_id": cid})
+    if not bool(rec.get("deletion_eligible")):
+        raise ApplyError("forbidden", "evidence_deletion_not_eligible", {"challenge_id": cid, "status": rec.get("status")})
+    height = int(state.get("height") or 0)
+    audit_material = {
+        "challenge_id": cid,
+        "account_id": rec.get("account_id", ""),
+        "case_id": rec.get("case_id", ""),
+        "status": rec.get("status", ""),
+        "reason": reason,
+    }
+    audit_hash = _sha256_hex(json.dumps(audit_material, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    rec["deleted"] = True
+    rec["deleted_height"] = height
+    rec["deletion_reason"] = reason
+    rec["minimal_audit_hash"] = audit_hash
+    rec["raw_evidence_retained"] = False
+    event = {"event": "poh_evidence_deletion_executed", "challenge_id": cid, "height": height, "minimal_audit_hash": audit_hash}
+    events.append(event)
+    return {"applied": True, "challenge_id": cid, "deleted": True, "minimal_audit_hash": audit_hash, "height": height}
 
 def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
     if not case_id:

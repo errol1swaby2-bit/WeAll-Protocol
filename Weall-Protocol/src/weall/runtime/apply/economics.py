@@ -161,6 +161,116 @@ def _ensure_econ_root(state: Json) -> Json:
     return econ
 
 
+
+
+def economics_locked_read_models(state: Json) -> Json:
+    """Return deterministic economics read models while live economics is locked.
+
+    The read model is intentionally side-effect free. It gives reviewers and UI
+    surfaces a canonical view of pending/failed transfers, reward claims, and
+    treasury reports before activation, without enabling balance mutation.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    transfers = econ.get("transfers")
+    if not isinstance(transfers, dict):
+        transfers = {}
+        econ["transfers"] = transfers
+    pending = transfers.get("pending")
+    if not isinstance(pending, dict):
+        pending = {}
+        transfers["pending"] = pending
+    failed = transfers.get("failed")
+    if not isinstance(failed, dict):
+        failed = {}
+        transfers["failed"] = failed
+    rewards = econ.get("reward_claim_ledger")
+    if not isinstance(rewards, dict):
+        rewards = {"claims": {}, "by_epoch": {}}
+        econ["reward_claim_ledger"] = rewards
+    treasury_reports = econ.get("treasury_reports")
+    if not isinstance(treasury_reports, dict):
+        treasury_reports = {"reports": {}, "events": []}
+        econ["treasury_reports"] = treasury_reports
+    return {
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "pending_transfers": dict(sorted(pending.items())),
+        "failed_transfers": dict(sorted(failed.items())),
+        "reward_claim_ledger": rewards,
+        "treasury_reporting": treasury_reports,
+        "live_mutation_enabled": False,
+    }
+
+
+def record_locked_transfer_attempt(state: Json, *, transfer_id: str, from_account: str, to_account: str, amount: int, status: str, reason: str) -> Json:
+    econ = _ensure_econ_root(state)
+    transfers = econ.setdefault("transfers", {})
+    pending = transfers.setdefault("pending", {})
+    failed = transfers.setdefault("failed", {})
+    tid = _as_str(transfer_id).strip() or f"transfer:{from_account}:{to_account}:{amount}"
+    rec = {
+        "transfer_id": tid,
+        "from_account": _as_str(from_account),
+        "to_account": _as_str(to_account),
+        "amount": _as_int(amount),
+        "status": _as_str(status) or "pending",
+        "reason": _as_str(reason),
+        "height": _as_int(state.get("height"), 0),
+    }
+    if rec["status"] == "failed":
+        failed[tid] = rec
+        pending.pop(tid, None)
+    else:
+        pending[tid] = rec
+    return dict(rec)
+
+
+def record_locked_reward_claim(state: Json, *, claim_id: str, account_id: str, epoch: int, amount: int, status: str, reason: str = "") -> Json:
+    econ = _ensure_econ_root(state)
+    ledger = econ.setdefault("reward_claim_ledger", {"claims": {}, "by_epoch": {}})
+    claims = ledger.setdefault("claims", {})
+    by_epoch = ledger.setdefault("by_epoch", {})
+    cid = _as_str(claim_id).strip() or f"reward:{account_id}:{epoch}"
+    rec = {
+        "claim_id": cid,
+        "account_id": _as_str(account_id),
+        "epoch": _as_int(epoch),
+        "amount": _as_int(amount),
+        "status": _as_str(status) or "pending",
+        "reason": _as_str(reason),
+        "height": _as_int(state.get("height"), 0),
+    }
+    claims[cid] = rec
+    ep = str(rec["epoch"])
+    by_epoch.setdefault(ep, [])
+    if cid not in by_epoch[ep]:
+        by_epoch[ep].append(cid)
+    by_epoch[ep].sort()
+    return dict(rec)
+
+
+def record_treasury_report(state: Json, *, report_id: str, period: str, opening_balance: int, closing_balance: int, spends: list[Json] | None = None) -> Json:
+    econ = _ensure_econ_root(state)
+    reports_root = econ.setdefault("treasury_reports", {"reports": {}, "events": []})
+    reports = reports_root.setdefault("reports", {})
+    events = reports_root.setdefault("events", [])
+    rid = _as_str(report_id).strip() or f"treasury-report:{period}"
+    clean_spends = list(spends or [])
+    rec = {
+        "report_id": rid,
+        "period": _as_str(period),
+        "opening_balance": _as_int(opening_balance),
+        "closing_balance": _as_int(closing_balance),
+        "spend_count": len(clean_spends),
+        "spends": clean_spends,
+        "height": _as_int(state.get("height"), 0),
+        "public_accountability_report": True,
+    }
+    reports[rid] = rec
+    events.append({"event": "treasury_report_recorded", "report_id": rid, "height": rec["height"]})
+    return dict(rec)
+
 def _wrap_time_lock(state: Json) -> None:
     """
     deny_if_econ_time_locked() raises when now < economic_unlock_time.
