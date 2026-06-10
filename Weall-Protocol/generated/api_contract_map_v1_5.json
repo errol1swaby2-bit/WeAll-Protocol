@@ -107,17 +107,17 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "public_read_redacted_snapshot",
+      "auth": "public_read_redacted_operator_responsibility_snapshot",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "v1_account_operator_status",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "accounts",
       "path": "/v1/accounts/{account}/operator-status",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
@@ -126,7 +126,7 @@
       "tags": [
         "accounts"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -2021,17 +2021,17 @@
       "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
       "function": "operator_poh_live_finalize",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/operator/live/finalize",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
       "route_id": "1f380f1cb2f458e2",
       "route_path_without_v1_prefix": "/poh/operator/live/finalize",
       "source": "src/weall/api/routes_public_parts/poh.py",
@@ -2040,20 +2040,20 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
       "function": "operator_poh_live_init",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/operator/live/init",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
       "route_id": "161379008d997528",
       "route_path_without_v1_prefix": "/poh/operator/live/init",
       "source": "src/weall/api/routes_public_parts/poh.py",
@@ -2062,20 +2062,20 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
       "function": "operator_poh_tier2_finalize",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/operator/tier2/finalize",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
       "route_id": "c2a705c5bbf3ead6",
       "route_path_without_v1_prefix": "/poh/operator/tier2/finalize",
       "source": "src/weall/api/routes_public_parts/poh.py",
@@ -2084,7 +2084,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
     },
     {
       "auth": "session_aware_poh_tier2_case_read",

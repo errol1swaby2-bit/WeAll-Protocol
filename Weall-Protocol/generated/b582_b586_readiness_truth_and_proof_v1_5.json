@@ -1,0 +1,806 @@
+{
+  "anti_sybil_suspicion_review_lifecycle": {
+    "automatic_collusion_detection_claimed": false,
+    "batch": "585",
+    "collusion_adjudication_claimed": true,
+    "complete_anti_sybil_solved": false,
+    "duplicate_human_detection_claimed": false,
+    "evidence_retention_policy": {
+      "after_recovery": {
+        "account_id": "@subject",
+        "appeal_remedy_available": false,
+        "case_id": "case-window-reverified",
+        "challenge_id": "pohc:@subject:31",
+        "deletion_eligible": true,
+        "history": [
+          {
+            "account_id": "@subject",
+            "case_id": "case-window",
+            "challenge_id": "pohc:@subject:31",
+            "event": "poh_challenge_evidence_retention_policy",
+            "height": 75,
+            "status": "retain_until_reverification_or_appeal"
+          },
+          {
+            "account_id": "@subject",
+            "case_id": "case-window-reverified",
+            "challenge_id": "pohc:@subject:31",
+            "event": "poh_challenge_evidence_retention_policy",
+            "height": 1516,
+            "status": "remedy_completed_minimal_retention"
+          }
+        ],
+        "reason": "reverification_completed",
+        "status": "remedy_completed_minimal_retention",
+        "updated_height": 1516
+      },
+      "before_recovery": {
+        "account_id": "@subject",
+        "appeal_remedy_available": true,
+        "case_id": "case-window",
+        "challenge_id": "pohc:@subject:31",
+        "deletion_eligible": false,
+        "history": [
+          {
+            "account_id": "@subject",
+            "case_id": "case-window",
+            "challenge_id": "pohc:@subject:31",
+            "event": "poh_challenge_evidence_retention_policy",
+            "height": 75,
+            "status": "retain_until_reverification_or_appeal"
+          }
+        ],
+        "reason": "challenge_upheld",
+        "status": "retain_until_reverification_or_appeal",
+        "updated_height": 75
+      },
+      "final_retention_record": {
+        "account_id": "@subject",
+        "appeal_remedy_available": true,
+        "case_id": "case-adjudicate",
+        "challenge_id": "pohc:@subject:61",
+        "deleted": true,
+        "deleted_height": 5000,
+        "deletion_eligible": true,
+        "deletion_reason": "false_positive_remedy_completed",
+        "history": [
+          {
+            "account_id": "@subject",
+            "case_id": "case-adjudicate",
+            "challenge_id": "pohc:@subject:61",
+            "event": "poh_challenge_evidence_retention_policy",
+            "height": 120,
+            "status": "retain_until_reverification_or_appeal"
+          }
+        ],
+        "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc",
+        "raw_evidence_retained": false,
+        "reason": "challenge_upheld",
+        "status": "remedy_completed_minimal_retention",
+        "updated_height": 120
+      }
+    },
+    "false_positive_appeal_recovery_path": {
+      "dismissed_adjudication": {
+        "applied": true,
+        "decision": "dismissed",
+        "event": {
+          "decision": "dismissed",
+          "event": "poh_reviewer_collusion_adjudication",
+          "height": 5000,
+          "reviewer_count": 3,
+          "status": "adjudicated_dismissed",
+          "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+        },
+        "reviewer_updates": [
+          {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r1"
+          },
+          {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r2"
+          },
+          {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r3"
+          }
+        ],
+        "status": "adjudicated_dismissed",
+        "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+      },
+      "evidence_deletion": {
+        "applied": true,
+        "challenge_id": "pohc:@subject:61",
+        "deleted": true,
+        "height": 5000,
+        "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc"
+      },
+      "false_positive_compensation_policy": "eligibility_reinstatement_and_minimal_retention_deletion"
+    },
+    "follow_up_panel_assignment": {
+      "deterministic_selection": true,
+      "eligible_candidate_count": 3,
+      "height": 900,
+      "panel_id": "poh-panel:a8df4dce8718498a",
+      "panel_size_requested": 3,
+      "selected_count": 3,
+      "selected_reviewers": [
+        "reviewer-a",
+        "reviewer-c",
+        "reviewer-b"
+      ],
+      "selection_seed_hash": "f6491b5157e03614ebed74c1d6f68bbbfe2da04d929de3aaa70cda289b1da94c",
+      "signal_id": "sybil-signal:subject:1",
+      "status": "panel_selected"
+    },
+    "lifecycle_model": "anti_sybil_suspicion_to_review_to_appeal_recovery_without_auto_deletion",
+    "no_automatic_duplicate_human_deletion": true,
+    "ok": true,
+    "reviewer_accountability_record": {
+      "scores_after_confirm": {
+        "@r1": {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r1",
+          "suspended_until_height": 4440
+        },
+        "@r2": {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r2",
+          "suspended_until_height": 4440
+        },
+        "@r3": {
+          "confirmed_collusion_count": 1,
+          "eligible": false,
+          "false_positive_recovery_count": 0,
+          "last_adjudication_height": 120,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r3",
+          "suspended_until_height": 4440
+        }
+      },
+      "scores_after_dismiss": {
+        "@r1": {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r1"
+        },
+        "@r2": {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r2"
+        },
+        "@r3": {
+          "confirmed_collusion_count": 1,
+          "eligible": true,
+          "false_positive_recovery_count": 1,
+          "last_adjudication_height": 5000,
+          "missed_duty_count": 0,
+          "reviewer_id": "@r3"
+        }
+      }
+    },
+    "source_rehearsals": {
+      "adjudication_deletion": {
+        "automatic_collusion_detection_claimed": false,
+        "batch": "570",
+        "challenge_id": "pohc:@subject:61",
+        "confirmed_adjudication": {
+          "applied": true,
+          "decision": "confirmed",
+          "event": {
+            "decision": "confirmed",
+            "event": "poh_reviewer_collusion_adjudication",
+            "height": 120,
+            "reviewer_count": 3,
+            "status": "adjudicated_confirmed",
+            "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+          },
+          "reviewer_updates": [
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "false_positive_recovery_count": 0,
+              "last_adjudication_height": 120,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r1",
+              "suspended_until_height": 4440
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "false_positive_recovery_count": 0,
+              "last_adjudication_height": 120,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r2",
+              "suspended_until_height": 4440
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "false_positive_recovery_count": 0,
+              "last_adjudication_height": 120,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r3",
+              "suspended_until_height": 4440
+            }
+          ],
+          "status": "adjudicated_confirmed",
+          "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+        },
+        "dismissed_adjudication": {
+          "applied": true,
+          "decision": "dismissed",
+          "event": {
+            "decision": "dismissed",
+            "event": "poh_reviewer_collusion_adjudication",
+            "height": 5000,
+            "reviewer_count": 3,
+            "status": "adjudicated_dismissed",
+            "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+          },
+          "reviewer_updates": [
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": true,
+              "false_positive_recovery_count": 1,
+              "last_adjudication_height": 5000,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r1"
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": true,
+              "false_positive_recovery_count": 1,
+              "last_adjudication_height": 5000,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r2"
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": true,
+              "false_positive_recovery_count": 1,
+              "last_adjudication_height": 5000,
+              "missed_duty_count": 0,
+              "reviewer_id": "@r3"
+            }
+          ],
+          "status": "adjudicated_dismissed",
+          "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+        },
+        "duplicate_human_detection_claimed": false,
+        "evidence_deletion": {
+          "applied": true,
+          "challenge_id": "pohc:@subject:61",
+          "deleted": true,
+          "height": 5000,
+          "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc"
+        },
+        "false_positive_compensation_policy": "eligibility_reinstatement_and_minimal_retention_deletion",
+        "final_retention_record": {
+          "account_id": "@subject",
+          "appeal_remedy_available": true,
+          "case_id": "case-adjudicate",
+          "challenge_id": "pohc:@subject:61",
+          "deleted": true,
+          "deleted_height": 5000,
+          "deletion_eligible": true,
+          "deletion_reason": "false_positive_remedy_completed",
+          "history": [
+            {
+              "account_id": "@subject",
+              "case_id": "case-adjudicate",
+              "challenge_id": "pohc:@subject:61",
+              "event": "poh_challenge_evidence_retention_policy",
+              "height": 120,
+              "status": "retain_until_reverification_or_appeal"
+            }
+          ],
+          "minimal_audit_hash": "d23c5268e1894a38fcce167acfb6dd999531bb3159bc54cc208149ccf2bc52dc",
+          "raw_evidence_retained": false,
+          "reason": "challenge_upheld",
+          "status": "remedy_completed_minimal_retention",
+          "updated_height": 120
+        },
+        "ok": true,
+        "scores_after_confirm": {
+          "@r1": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "false_positive_recovery_count": 0,
+            "last_adjudication_height": 120,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r1",
+            "suspended_until_height": 4440
+          },
+          "@r2": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "false_positive_recovery_count": 0,
+            "last_adjudication_height": 120,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r2",
+            "suspended_until_height": 4440
+          },
+          "@r3": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "false_positive_recovery_count": 0,
+            "last_adjudication_height": 120,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r3",
+            "suspended_until_height": 4440
+          }
+        },
+        "scores_after_dismiss": {
+          "@r1": {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r1"
+          },
+          "@r2": {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r2"
+          },
+          "@r3": {
+            "confirmed_collusion_count": 1,
+            "eligible": true,
+            "false_positive_recovery_count": 1,
+            "last_adjudication_height": 5000,
+            "missed_duty_count": 0,
+            "reviewer_id": "@r3"
+          }
+        },
+        "suspicion_id": "poh-reviewer-collusion:case-adjudicate:pohc:@subject:61"
+      },
+      "escalation_recovery_windows": {
+        "batch": "565",
+        "challenge_id": "pohc:@subject:31",
+        "collusion_adjudication_claimed": false,
+        "duplicate_human_detection_claimed": false,
+        "escalation_level": "review_required",
+        "ok": true,
+        "recovery_eligible_after_height": 1515,
+        "recovery_policy": "eligible_after_followup_review_or_successful_reverification",
+        "retention_after_recovery": {
+          "account_id": "@subject",
+          "appeal_remedy_available": false,
+          "case_id": "case-window-reverified",
+          "challenge_id": "pohc:@subject:31",
+          "deletion_eligible": true,
+          "history": [
+            {
+              "account_id": "@subject",
+              "case_id": "case-window",
+              "challenge_id": "pohc:@subject:31",
+              "event": "poh_challenge_evidence_retention_policy",
+              "height": 75,
+              "status": "retain_until_reverification_or_appeal"
+            },
+            {
+              "account_id": "@subject",
+              "case_id": "case-window-reverified",
+              "challenge_id": "pohc:@subject:31",
+              "event": "poh_challenge_evidence_retention_policy",
+              "height": 1516,
+              "status": "remedy_completed_minimal_retention"
+            }
+          ],
+          "reason": "reverification_completed",
+          "status": "remedy_completed_minimal_retention",
+          "updated_height": 1516
+        },
+        "retention_before_recovery": {
+          "account_id": "@subject",
+          "appeal_remedy_available": true,
+          "case_id": "case-window",
+          "challenge_id": "pohc:@subject:31",
+          "deletion_eligible": false,
+          "history": [
+            {
+              "account_id": "@subject",
+              "case_id": "case-window",
+              "challenge_id": "pohc:@subject:31",
+              "event": "poh_challenge_evidence_retention_policy",
+              "height": 75,
+              "status": "retain_until_reverification_or_appeal"
+            }
+          ],
+          "reason": "challenge_upheld",
+          "status": "retain_until_reverification_or_appeal",
+          "updated_height": 75
+        },
+        "review_window_close_height": 1515,
+        "review_window_open_height": 75,
+        "reviewer_count": 3,
+        "suspicion_id": "poh-reviewer-collusion:case-window:pohc:@subject:31"
+      },
+      "panel_signal_aggregation": {
+        "adjudication": {
+          "applied": true,
+          "decision": "confirmed",
+          "event": {
+            "decision": "confirmed",
+            "event": "poh_reviewer_collusion_adjudication",
+            "height": 900,
+            "reviewer_count": 3,
+            "status": "adjudicated_confirmed",
+            "suspicion_id": "poh-reviewer-collusion:case-1:pohc:subject:1"
+          },
+          "reviewer_updates": [
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "false_positive_recovery_count": 0,
+              "last_adjudication_height": 900,
+              "missed_duty_count": 0,
+              "reviewer_id": "reviewer-a",
+              "suspended_until_height": 5220
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "false_positive_recovery_count": 0,
+              "last_adjudication_height": 900,
+              "missed_duty_count": 0,
+              "reviewer_id": "reviewer-b",
+              "suspended_until_height": 5220
+            },
+            {
+              "confirmed_collusion_count": 1,
+              "eligible": false,
+              "last_adjudication_height": 900,
+              "reviewer_id": "reviewer-c",
+              "suspended_until_height": 5220
+            }
+          ],
+          "status": "adjudicated_confirmed",
+          "suspicion_id": "poh-reviewer-collusion:case-1:pohc:subject:1"
+        },
+        "automatic_collusion_detection_claimed": false,
+        "automatic_duplicate_human_detection_claimed": false,
+        "batch": "575",
+        "evidence_deletion": {
+          "applied": true,
+          "challenge_id": "pohc:subject:1",
+          "deleted": true,
+          "height": 900,
+          "minimal_audit_hash": "2acfa68eebcaebb55631630843b4cd8fe55e257aabea8bc0d22005d50c26ae65"
+        },
+        "ok": true,
+        "panel_selection": {
+          "deterministic_selection": true,
+          "eligible_candidate_count": 3,
+          "height": 900,
+          "panel_id": "poh-panel:a8df4dce8718498a",
+          "panel_size_requested": 3,
+          "selected_count": 3,
+          "selected_reviewers": [
+            "reviewer-a",
+            "reviewer-c",
+            "reviewer-b"
+          ],
+          "selection_seed_hash": "f6491b5157e03614ebed74c1d6f68bbbfe2da04d929de3aaa70cda289b1da94c",
+          "signal_id": "sybil-signal:subject:1",
+          "status": "panel_selected"
+        },
+        "reviewer_scores": {
+          "reviewer-a": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "false_positive_recovery_count": 0,
+            "last_adjudication_height": 900,
+            "missed_duty_count": 0,
+            "reviewer_id": "reviewer-a",
+            "suspended_until_height": 5220
+          },
+          "reviewer-b": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "false_positive_recovery_count": 0,
+            "last_adjudication_height": 900,
+            "missed_duty_count": 0,
+            "reviewer_id": "reviewer-b",
+            "suspended_until_height": 5220
+          },
+          "reviewer-c": {
+            "confirmed_collusion_count": 1,
+            "eligible": false,
+            "last_adjudication_height": 900,
+            "reviewer_id": "reviewer-c",
+            "suspended_until_height": 5220
+          },
+          "reviewer-d": {
+            "eligible": true,
+            "reviewer_id": "reviewer-d"
+          }
+        },
+        "signal_aggregation": {
+          "automatic_collusion_detection_claimed": false,
+          "automatic_duplicate_human_detection_claimed": false,
+          "components": {
+            "challenge_history_count": 1,
+            "coordinated_review_window_count": 2,
+            "duplicate_evidence_commitment_count": 2,
+            "reviewer_overlap_count": 3,
+            "shared_device_hint_count": 1
+          },
+          "height": 900,
+          "reason": "scheduled_signal_aggregation",
+          "requires_adjudication_panel": true,
+          "severity": "high",
+          "signal_id": "sybil-signal:subject:1",
+          "status": "signals_aggregated_review_required",
+          "subject_account": "subject",
+          "suspicion_score": 85
+        }
+      }
+    },
+    "suspicion_record": {
+      "escalation_level": "review_required",
+      "recorded": true,
+      "review_window_close_height": 1515,
+      "review_window_open_height": 75,
+      "suspicion_id": "poh-reviewer-collusion:case-window:pohc:@subject:31"
+    }
+  },
+  "batch_range": "582-586",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "complete_anti_sybil_solved": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "personalized_feed_ranking": false,
+    "production_helper_execution": false,
+    "public_beta_readiness": false,
+    "public_decentralized_media_durability": false,
+    "public_multi_validator_bft": false,
+    "public_storage_provider_market": false,
+    "public_validator_readiness": false
+  },
+  "gap_register_truth_refresh": {
+    "batch": "582",
+    "economic_simulation_gap_status": "initial_simulation_added_activation_still_blocked",
+    "economic_simulation_next_gate": "Expand locked simulation into adversarial reward-concentration, treasury-capture, Sybil-farming, wallet-read-model, and governance activation go/no-go evidence before any activation.",
+    "live_economics_claimed": false,
+    "ok": true,
+    "public_beta_ready_claimed": false,
+    "public_validator_readiness_claimed": false,
+    "state_root_next_gate": "Run cross-machine/cross-implementation vector verification and include public reviewer fixture exports before public beta.",
+    "state_root_vector_gap_status": "initial_vector_pack_added_needs_cross_machine_release_vectors"
+  },
+  "helper_equivalence_corpus_expansion": {
+    "batch": "586",
+    "byzantine_helper_rejection": true,
+    "corpus_model": "helper_serial_equivalence_corpus_expansion_without_production_activation",
+    "deterministic_merge_preserves_tx_order": true,
+    "helper_eligible_domain_count": 7,
+    "helper_eligible_domains": [
+      "content",
+      "social",
+      "poh",
+      "storage",
+      "groups",
+      "messaging",
+      "reputation"
+    ],
+    "helper_lane_count": 8,
+    "lane_count": 9,
+    "missing_helper_fallback": true,
+    "ok": true,
+    "production_helper_execution_enabled": false,
+    "public_helper_execution_claimed": false,
+    "serial_equivalence_ok": true,
+    "source_helper_expansion": {
+      "batch": "561",
+      "byzantine_helper_preserves_tx_order": true,
+      "byzantine_helper_rejection_reasons": [
+        "tx_order_hash_mismatch",
+        "serial_lane"
+      ],
+      "helper_lane_count": 8,
+      "lane_count": 9,
+      "missing_helper_fallback_reasons": [
+        "missing_helper_certificate",
+        "serial_lane"
+      ],
+      "missing_helper_preserves_tx_order": true,
+      "ok": true,
+      "production_helper_execution_enabled": false,
+      "serial_equivalence_ok": true,
+      "serial_equivalence_reason": "ok",
+      "tx_count": 10
+    },
+    "state_root_equality_proven_by_serial_equivalence": true,
+    "tx_count": 10
+  },
+  "ok": true,
+  "poh_operator_route_metadata": {
+    "batch": "583",
+    "ok": true,
+    "operator_route_count": 3,
+    "operator_routes": {
+      "POST /v1/poh/operator/live/finalize": {
+        "auth": "poh_operator_token_required_env_gated",
+        "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+        "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+        "function": "operator_poh_live_finalize",
+        "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+        "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "module": "poh",
+        "path": "/v1/poh/operator/live/finalize",
+        "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+        "route_id": "1f380f1cb2f458e2",
+        "route_path_without_v1_prefix": "/poh/operator/live/finalize",
+        "source": "src/weall/api/routes_public_parts/poh.py",
+        "source_lineno": 2592,
+        "summary": "",
+        "tags": [
+          "poh"
+        ],
+        "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
+      },
+      "POST /v1/poh/operator/live/init": {
+        "auth": "poh_operator_token_required_env_gated",
+        "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+        "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+        "function": "operator_poh_live_init",
+        "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+        "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "module": "poh",
+        "path": "/v1/poh/operator/live/init",
+        "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+        "route_id": "161379008d997528",
+        "route_path_without_v1_prefix": "/poh/operator/live/init",
+        "source": "src/weall/api/routes_public_parts/poh.py",
+        "source_lineno": 2536,
+        "summary": "",
+        "tags": [
+          "poh"
+        ],
+        "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
+      },
+      "POST /v1/poh/operator/tier2/finalize": {
+        "auth": "poh_operator_token_required_env_gated",
+        "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+        "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+        "function": "operator_poh_tier2_finalize",
+        "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+        "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "module": "poh",
+        "path": "/v1/poh/operator/tier2/finalize",
+        "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+        "route_id": "c2a705c5bbf3ead6",
+        "route_path_without_v1_prefix": "/poh/operator/tier2/finalize",
+        "source": "src/weall/api/routes_public_parts/poh.py",
+        "source_lineno": 2488,
+        "summary": "",
+        "tags": [
+          "poh"
+        ],
+        "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
+      }
+    },
+    "operator_routes_explicit_metadata": true,
+    "operator_routes_public_poh_finalization_claimed": false,
+    "operator_routes_public_validator_authority_claimed": false
+  },
+  "private_testnet_candidate_strengthened": true,
+  "public_beta_ready": false,
+  "remaining_gaps": [
+    "State-root vectors and tokenomics simulation now have accurate gap-register status, but public beta still needs cross-machine vectors and deeper economics adversarial analysis.",
+    "PoH operator routes now have explicit metadata, but operator routes remain env/token gated and do not grant public validator or public PoH authority.",
+    "Storage durability now rejects wrong/corrupt content and retrieves from a non-origin local daemon-compatible process, but public decentralized media durability still requires multi-machine operator proof.",
+    "Anti-Sybil suspicion records now flow through panel/adjudication/recovery/deletion rehearsals, but complete Sybil resistance and automatic duplicate-human detection remain unclaimed.",
+    "Helper equivalence corpus evidence expanded without activating production helper execution; multi-node helper production proof remains required."
+  ],
+  "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof",
+  "storage_ipfs_durability_rehearsal": {
+    "add_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "add",
+      "operator": "op-a"
+    },
+    "automatic_evidence_deletion_claimed": false,
+    "availability_status": "available",
+    "batch": "584",
+    "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+    "corrupt_cat_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "cat",
+      "operator": "op-b",
+      "sha256": "630b0853f2f8ec489894fd3494b6e6b1446523230a450dcc5759a420141004d3"
+    },
+    "corrupt_content_rejected_by_expected_hash": true,
+    "corrupt_replicate_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "replicate",
+      "operator": "op-b"
+    },
+    "daemon_count": 3,
+    "expected_sha256": "b0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5eda0d04",
+    "failed_operator": "op-b",
+    "failed_process_exitcode": -15,
+    "ok": true,
+    "operator_failure_exercised": true,
+    "private_evidence_boundary_preserved": true,
+    "public_decentralized_media_claimed": false,
+    "reassignment_recorded": true,
+    "replacement_cat_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "cat",
+      "operator": "op-c",
+      "sha256": "b0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5eda0d04"
+    },
+    "replacement_operator": "op-c",
+    "replacement_replicate_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "replicate",
+      "operator": "op-c"
+    },
+    "retrieval_confirmed": true,
+    "retrieval_from_non_origin_operator_confirmed": true,
+    "source_operator": "op-a",
+    "source_pin_result": {
+      "cid": "bafyb0a280029f23ff94a1275f100cb95b2ddfad1d9b4ac279b1dfc11d0a5ed",
+      "ok": true,
+      "op": "pin",
+      "operator": "op-a"
+    },
+    "storage_provider_market_claimed": false,
+    "worker_model": "multi_daemon_ipfs_compatible_operator_processes_with_failure_and_corruption_checks",
+    "wrong_cid_cat_result": {
+      "cid": "bafy00000000000000000000000000000000000000000000000000000000000",
+      "ok": false,
+      "op": "cat",
+      "operator": "op-c",
+      "sha256": ""
+    },
+    "wrong_cid_rejected": true
+  },
+  "trusted_observer_candidate_strengthened": true
+}

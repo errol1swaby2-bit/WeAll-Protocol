@@ -1,5 +1,13 @@
 {
   "routes": {
+    "GET /v1/accounts/{account}/operator-status": {
+      "auth": "public_read_redacted_operator_responsibility_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
+    },
     "GET /v1/dev/bootstrap-secret": {
       "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
       "cache_policy": "no_store_dev_bootstrap_secret",
@@ -356,6 +364,30 @@
       "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
       "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
       "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
+    },
+    "POST /v1/poh/operator/live/finalize": {
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
+    },
+    "POST /v1/poh/operator/live/init": {
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
+    },
+    "POST /v1/poh/operator/tier2/finalize": {
+      "auth": "poh_operator_token_required_env_gated",
+      "cache_policy": "no_store_operator_mutation_or_system_queue_submission",
+      "error_model": "404 operator_poh_disabled unless WEALL_ENABLE_OPERATOR_POH=true; 403 operator_token_required/operator_token_invalid unless X-WeAll-Operator-Token matches; standard_api_error_envelope for bad request",
+      "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
+      "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
     },
     "POST /v1/poh/tier2/tx/juror-accept": {
       "auth": "signed_tx_skeleton_local_client_helper",

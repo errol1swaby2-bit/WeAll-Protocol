@@ -113,3 +113,5 @@ configs/local/
 !generated/b572_b576_multimachine_soak_proof_v1_5.json
 
 !generated/b577_b581_containerized_adversarial_proof_v1_5.json
+
+!generated/b582_b586_readiness_truth_and_proof_v1_5.json

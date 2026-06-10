@@ -1,12 +1,88 @@
 {
-  "schema": "weall.v15_implementation_gap_register",
-  "version": "2026-06-v1.5-public-readiness-batch",
-  "truth_boundary": "Evidence/gap register for reviewer/public-readiness planning. It is not a claim of public mainnet, public validator, live economics, legal approval, or automatic upgrade readiness.",
+  "remaining_p0_p1_gaps": [
+    {
+      "evidence": [
+        "generated/api_contract_map_v1_5.json",
+        "scripts/gen_api_contract_map.py",
+        "tests/test_batch494_api_contract_map_v15.py"
+      ],
+      "id": "P0-API-CONTRACT-MAP",
+      "next_gate": "Generate route-level JSON schema vectors and compare against live TestClient responses.",
+      "status": "mitigated_by_batch_artifact",
+      "summary": "A generated public API contract inventory now exists, but route-level response/error schemas still need deeper generated schema vectors before public beta."
+    },
+    {
+      "evidence": [
+        "src/weall/runtime/launch_matrix.py",
+        "generated/launch_disabled_matrix_v1_5.json",
+        "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md"
+      ],
+      "id": "P0-LAUNCH-DISABLED-MATRIX",
+      "next_gate": "Wire matrix into all public read models and route capability responses.",
+      "status": "mitigated_by_batch_artifact",
+      "summary": "A centralized launch-disabled matrix now records high-risk features that must remain disabled across current phases."
+    },
+    {
+      "evidence": [
+        "src/weall/runtime/apply/protocol.py",
+        "docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md",
+        "tests/test_batch496_protocol_upgrade_record_only_boundary.py"
+      ],
+      "id": "P0-PROTOCOL-UPGRADE-DELIVERY",
+      "next_gate": "Signed artifact manifest, staged compatibility window, deterministic migration vectors, rollback semantics, and multi-node upgrade rehearsal.",
+      "status": "record_only_hardened_not_automatic",
+      "summary": "Protocol upgrade txs remain record-only. Batch hardening adds explicit record-only metadata so payloads cannot be mistaken for automatic patch/apply/migration/rollback execution."
+    },
+    {
+      "evidence": [
+        "docs/legal/"
+      ],
+      "id": "P0-LEGAL-COMPLIANCE-PACK",
+      "next_gate": "Counsel review, jurisdiction-specific edits, public claims checklist approval.",
+      "status": "draft_pending_counsel_review",
+      "summary": "Non-lawyer legal/compliance posture docs now exist and are explicitly pending counsel review."
+    },
+    {
+      "evidence": [
+        "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md"
+      ],
+      "id": "P0-PUBLIC-VALIDATOR-BFT-PROOF",
+      "next_gate": "Run external multi-process adversarial validator proof with churn, equivocation, partition/rejoin, restart/replay, state sync, and incident evidence.",
+      "status": "proof_plan_defined_not_passed",
+      "summary": "Public validator/BFT proof requirements are centralized, but public multi-validator readiness is still not claimed."
+    },
+    {
+      "claim_boundary": "Initial vectors improve reviewer evidence; they do not prove public BFT readiness, cross-client compatibility, or public beta readiness.",
+      "evidence": [
+        "src/weall/runtime/state_hash.py",
+        "scripts/gen_state_root_vectors_v1_5.py",
+        "generated/state_root_vectors_v1_5.json",
+        "tests/test_state_root_ephemeral_contract.py",
+        "tests/test_batch10a_15_readiness_hardening.py"
+      ],
+      "id": "P1-STATE-ROOT-VECTORS",
+      "next_gate": "Run cross-machine/cross-implementation vector verification and include public reviewer fixture exports before public beta.",
+      "status": "initial_vector_pack_added_needs_cross_machine_release_vectors",
+      "summary": "An expanded v1.5 state-root vector artifact now exists with representative PoH, governance/protocol, dispute/group, and locked-economics fixtures. Public beta still needs external cross-machine/cross-implementation vector validation."
+    },
+    {
+      "claim_boundary": "Simulation is read-only and locked; it does not activate transfers, rewards, treasury spend, fee markets, or public token economics.",
+      "evidence": [
+        "src/weall/ledger/issuance.py",
+        "src/weall/ledger/tokenomics.py",
+        "scripts/gen_tokenomics_simulation_v1_5.py",
+        "generated/tokenomics_simulation_v1_5.json",
+        "tests/test_batch10a_15_readiness_hardening.py",
+        "tests/test_batch498_mechanics_m1_m10.py"
+      ],
+      "id": "P1-ECONOMIC-SIMULATION-PACK",
+      "next_gate": "Expand locked simulation into adversarial reward-concentration, treasury-capture, Sybil-farming, wallet-read-model, and governance activation go/no-go evidence before any activation.",
+      "status": "initial_simulation_added_activation_still_blocked",
+      "summary": "A v1.5 tokenomics simulation artifact now exists with locked-economics truth boundaries, activation blockade checklist, and initial farming/capture scenario placeholders. Live economics remains disabled."
+    }
+  ],
   "resolved_since_prior_evidence_map": [
     {
-      "id": "V15-TOKENOMICS-EPOCH-ISSUANCE",
-      "status": "resolved_locked_implementation",
-      "summary": "Tokenomics no longer uses per-block monetary issuance. Issuance is epoch-based with 10-minute epochs, 30 blocks per epoch at 20-second target timing, 100 WCN initial issuance, 105120 issuance epochs per halving, cap stop at 21000000 WCN, duplicate epoch protection, and locked-economics preservation.",
       "evidence": [
         "src/weall/ledger/issuance.py",
         "src/weall/ledger/tokenomics.py",
@@ -16,70 +92,37 @@
         "tests/test_batch485_reward_issuance_invariants.py",
         "tests/test_batch491_v15_epoch_issuance_scheduler.py"
       ],
+      "id": "V15-TOKENOMICS-EPOCH-ISSUANCE",
+      "status": "resolved_locked_implementation",
+      "summary": "Tokenomics no longer uses per-block monetary issuance. Issuance is epoch-based with 10-minute epochs, 30 blocks per epoch at 20-second target timing, 100 WCN initial issuance, 105120 issuance epochs per halving, cap stop at 21000000 WCN, duplicate epoch protection, and locked-economics preservation.",
       "truth_boundary": "Policy and locked apply behavior are implemented; live economics remains disabled until separate activation/legal/economic-governance proof."
     },
     {
-      "id": "V15-RUNTIME-BLOCK-TIMING-CONFIG",
-      "status": "resolved_config_alignment",
-      "summary": "Production/testnet runtime config is aligned to 20-second target block timing and no per-block block_reward config.",
       "evidence": [
         "configs/prod.chain.json",
         "configs/testnet.chain.json",
         "src/weall/runtime/chain_config.py",
         "tests/test_batch493_v15_runtime_config_alignment.py"
       ],
+      "id": "V15-RUNTIME-BLOCK-TIMING-CONFIG",
+      "status": "resolved_config_alignment",
+      "summary": "Production/testnet runtime config is aligned to 20-second target block timing and no per-block block_reward config.",
       "truth_boundary": "Config alignment does not by itself prove public multi-validator BFT."
+    },
+    {
+      "evidence": [
+        "generated/v15_implementation_gap_register.json",
+        "specs/api_contracts/v1_5_route_metadata.json",
+        "generated/api_contract_map_v1_5.json",
+        "tests/test_batch582_586_readiness_truth_and_proof.py"
+      ],
+      "id": "V15-B582-B583-READINESS-TRUTH-AND-OPERATOR-METADATA",
+      "status": "resolved_audit_truth_alignment",
+      "summary": "The gap register now distinguishes initial vector/simulation artifacts from remaining public-beta proof, and PoH operator routes have explicit API contract metadata instead of static heuristic classification.",
+      "truth_boundary": "This improves reviewer truthfulness and route contract metadata only; it does not enable operator PoH finalization, public validators, public beta, or live economics."
     }
   ],
-  "remaining_p0_p1_gaps": [
-    {
-      "id": "P0-API-CONTRACT-MAP",
-      "status": "mitigated_by_batch_artifact",
-      "summary": "A generated public API contract inventory now exists, but route-level response/error schemas still need deeper generated schema vectors before public beta.",
-      "evidence": ["generated/api_contract_map_v1_5.json", "scripts/gen_api_contract_map.py", "tests/test_batch494_api_contract_map_v15.py"],
-      "next_gate": "Generate route-level JSON schema vectors and compare against live TestClient responses."
-    },
-    {
-      "id": "P0-LAUNCH-DISABLED-MATRIX",
-      "status": "mitigated_by_batch_artifact",
-      "summary": "A centralized launch-disabled matrix now records high-risk features that must remain disabled across current phases.",
-      "evidence": ["src/weall/runtime/launch_matrix.py", "generated/launch_disabled_matrix_v1_5.json", "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md"],
-      "next_gate": "Wire matrix into all public read models and route capability responses."
-    },
-    {
-      "id": "P0-PROTOCOL-UPGRADE-DELIVERY",
-      "status": "record_only_hardened_not_automatic",
-      "summary": "Protocol upgrade txs remain record-only. Batch hardening adds explicit record-only metadata so payloads cannot be mistaken for automatic patch/apply/migration/rollback execution.",
-      "evidence": ["src/weall/runtime/apply/protocol.py", "docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md", "tests/test_batch496_protocol_upgrade_record_only_boundary.py"],
-      "next_gate": "Signed artifact manifest, staged compatibility window, deterministic migration vectors, rollback semantics, and multi-node upgrade rehearsal."
-    },
-    {
-      "id": "P0-LEGAL-COMPLIANCE-PACK",
-      "status": "draft_pending_counsel_review",
-      "summary": "Non-lawyer legal/compliance posture docs now exist and are explicitly pending counsel review.",
-      "evidence": ["docs/legal/"],
-      "next_gate": "Counsel review, jurisdiction-specific edits, public claims checklist approval."
-    },
-    {
-      "id": "P0-PUBLIC-VALIDATOR-BFT-PROOF",
-      "status": "proof_plan_defined_not_passed",
-      "summary": "Public validator/BFT proof requirements are centralized, but public multi-validator readiness is still not claimed.",
-      "evidence": ["docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md"],
-      "next_gate": "Run external multi-process adversarial validator proof with churn, equivocation, partition/rejoin, restart/replay, state sync, and incident evidence."
-    },
-    {
-      "id": "P1-STATE-ROOT-VECTORS",
-      "status": "remaining",
-      "summary": "State roots and commitment docs exist, but a complete v1.5 vector pack should still be generated for public reviewers.",
-      "evidence": ["docs/STATE_ROOT_COMMITMENT_CONTRACT.md", "src/weall/runtime/state_hash.py"],
-      "next_gate": "Add specs/state/STATE_ROOT_VECTORS_V1_5.json and deterministic cross-machine vector tests."
-    },
-    {
-      "id": "P1-ECONOMIC-SIMULATION-PACK",
-      "status": "remaining",
-      "summary": "Tokenomics code is locked and tested, but economic activation still requires supply/capture/reward-concentration simulations.",
-      "evidence": ["docs/REAL_TOKENOMICS_IMPLEMENTATION.md", "docs/TOKENOMICS_TESTNET_FLOW_AUDIT.md"],
-      "next_gate": "Add economics simulation scripts, reports, and activation go/no-go checklist."
-    }
-  ]
+  "schema": "weall.v15_implementation_gap_register",
+  "truth_boundary": "Evidence/gap register for reviewer/public-readiness planning. It is not a claim of public mainnet, public validator, live economics, legal approval, or automatic upgrade readiness.",
+  "version": "2026-06-v1.5-public-readiness-batch"
 }

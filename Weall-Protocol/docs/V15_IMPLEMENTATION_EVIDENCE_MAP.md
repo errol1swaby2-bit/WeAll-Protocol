@@ -19,6 +19,7 @@ This document synchronizes the v1.5 implementation evidence after the first two 
 | Protocol upgrade truth boundary | `src/weall/runtime/apply/protocol.py`, `docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md` | Hardened record-only status | No automatic patch/application/migration/rollback exists yet. |
 | Legal/compliance posture | `docs/legal/*` | Draft pack added | Non-lawyer, counsel-review-pending posture only. |
 | Public validator/BFT proof | `docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Proof plan added | Public multi-validator BFT readiness is not claimed. |
+| Batch 582-586 proof pack | `generated/b582_b586_readiness_truth_and_proof_v1_5.json`, `scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py`, `tests/test_batch582_586_readiness_truth_and_proof.py` | New audit-truth/proof artifact | Refreshes gap-register truth, PoH operator route metadata, storage durability rehearsal, anti-Sybil review lifecycle proof, and helper equivalence corpus while preserving all public-beta/live-economics/public-validator/helper-production prohibitions. |
 
 ## Remaining P0/P1 gaps
 
@@ -31,8 +32,11 @@ Priority remaining gates:
 3. Build signed protocol-upgrade artifact manifest, migration-vector, staged-rollout, and rollback tests before enabling any upgrade delivery.
 4. Complete counsel review of legal/compliance docs before public token/governance claims.
 5. Run public validator/BFT adversarial proof with multiple external processes, churn, equivocation, partition/rejoin, restart/replay, cold state sync, and incident evidence.
-6. Expand state-root vectors into external cross-implementation fixtures before public beta.
-7. Expand economics simulation from locked policy checks into adversarial reward-farming and concentration analysis before any live economics activation.
+6. Validate the existing state-root vector pack across external machines/cross-implementation fixtures before public beta.
+7. Expand the existing locked-economics simulation artifact into deeper adversarial reward-farming and concentration analysis before any live economics activation.
+8. Move storage/IPFS durability from local daemon-compatible rehearsal toward multi-machine operator evidence before public decentralized media claims.
+9. Extend anti-Sybil suspicion records into full review/appeal/accountability operations without claiming complete Sybil resistance.
+10. Expand helper equivalence corpus and multi-node proof while keeping production helper execution disabled.
 
 ## Claims allowed from this evidence map
 
