@@ -460,6 +460,12 @@
         "present": true,
         "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
       },
+      "b587_b594_mechanism_completion": {
+        "ok": true,
+        "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+        "present": true,
+        "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+      },
       "failure_code_registry": {
         "ok": true,
         "path": "generated/failure_code_registry_v1_5.json",

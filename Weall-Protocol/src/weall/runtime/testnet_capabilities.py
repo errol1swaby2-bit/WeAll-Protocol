@@ -48,6 +48,7 @@ _REQUIRED_ARTIFACTS = {
     "tokenomics_simulation": "generated/tokenomics_simulation_v1_5.json",
     "public_validator_preflight": "generated/public_validator_bft_preflight_matrix_v1_5.json",
     "b582_b586_proof": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+    "b587_b594_mechanism_completion": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
 }
 
 

@@ -4,23 +4,29 @@
       "evidence": [
         "generated/api_contract_map_v1_5.json",
         "scripts/gen_api_contract_map.py",
-        "tests/test_batch494_api_contract_map_v15.py"
+        "tests/test_batch494_api_contract_map_v15.py",
+        "generated/api_response_vectors_v1_5.json",
+        "scripts/gen_api_response_vectors_v1_5.py",
+        "tests/test_batch587_594_testnet_mechanism_completion.py"
       ],
       "id": "P0-API-CONTRACT-MAP",
-      "next_gate": "Generate route-level JSON schema vectors and compare against live TestClient responses.",
-      "status": "mitigated_by_batch_artifact",
-      "summary": "A generated public API contract inventory now exists, but route-level response/error schemas still need deeper generated schema vectors before public beta."
+      "next_gate": "Expand API response vectors and attach external route transcripts through the controlled-testnet go-gate evidence bundle.",
+      "status": "initial_api_response_vectors_added_go_gate_required",
+      "summary": "Generated API contract inventory and an initial high-risk API response vector pack now exist; broader live response/schema vectors remain required before public beta."
     },
     {
       "evidence": [
         "src/weall/runtime/launch_matrix.py",
         "generated/launch_disabled_matrix_v1_5.json",
-        "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md"
+        "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md",
+        "src/weall/runtime/testnet_capabilities.py",
+        "web/src/lib/testnetCapabilitySurface.ts",
+        "generated/controlled_testnet_go_gate_v1_5.json"
       ],
       "id": "P0-LAUNCH-DISABLED-MATRIX",
-      "next_gate": "Wire matrix into all public read models and route capability responses.",
-      "status": "mitigated_by_batch_artifact",
-      "summary": "A centralized launch-disabled matrix now records high-risk features that must remain disabled across current phases."
+      "next_gate": "Capture frontend/API capability snapshots in the controlled-testnet go-gate evidence bundle.",
+      "status": "capability_surface_added_go_gate_required",
+      "summary": "Launch-disabled matrix now feeds a backend testnet capability surface and frontend helper so high-risk features remain visibly blocked; final public UX evidence remains required before public beta."
     },
     {
       "evidence": [
@@ -120,6 +126,17 @@
       "status": "resolved_audit_truth_alignment",
       "summary": "The gap register now distinguishes initial vector/simulation artifacts from remaining public-beta proof, and PoH operator routes have explicit API contract metadata instead of static heuristic classification.",
       "truth_boundary": "This improves reviewer truthfulness and route contract metadata only; it does not enable operator PoH finalization, public validators, public beta, or live economics."
+    },
+    {
+      "evidence": [
+        "generated/controlled_testnet_go_gate_v1_5.json",
+        "scripts/run_controlled_testnet_go_gate_v1_5.py",
+        "tests/test_batch595_controlled_testnet_go_gate.py"
+      ],
+      "id": "V15-B595-CONTROLLED-TESTNET-GO-GATE",
+      "status": "controlled_testnet_go_gate_manifest_added",
+      "summary": "A deterministic controlled-testnet go-gate manifest and runner now collect the final internal evidence surface for controlled private-testnet candidacy, including artifact freshness, B587-B594 mechanism completion, API response vectors, launch-matrix capability blockers, validator harness snapshot, and storage durability snapshot.",
+      "truth_boundary": "This is a go-gate evidence manifest and runner. It does not claim public beta, public validator readiness, live economics, automatic upgrades, production helper execution, public decentralized media durability, legal/compliance readiness, or mainnet readiness."
     }
   ],
   "schema": "weall.v15_implementation_gap_register",

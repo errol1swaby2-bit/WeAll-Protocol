@@ -21,6 +21,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/public_validator_bft_preflight_matrix_v1_5.json"),
     Path("generated/api_response_vectors_v1_5.json"),
     Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
+    Path("generated/controlled_testnet_go_gate_v1_5.json"),
 ]
 GITIGNORE_EXCEPTIONS = [f"!{path.as_posix()}" for path in RELEASE_ARTIFACTS]
 
@@ -167,6 +168,28 @@ def _check_b587_b594_mechanisms() -> list[str]:
             errors.append(f"B587-B594 boundary must keep {key}=false")
     return errors
 
+
+def _check_controlled_testnet_go_gate() -> list[str]:
+    errors = _run_check("run_controlled_testnet_go_gate_v1_5.py")
+    payload = _load_json(Path("generated/controlled_testnet_go_gate_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.controlled_testnet_go_gate":
+        errors.append("controlled testnet go-gate schema mismatch")
+    if payload.get("controlled_testnet_go_gate_ready_to_run") is not True:
+        errors.append("controlled testnet go-gate must be ready to run")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("controlled testnet go-gate must not claim public beta readiness")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in (
+        "live_economics",
+        "public_validator_readiness",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+        "legal_compliance_ready",
+    ):
+        if boundaries.get(key) is not False:
+            errors.append(f"controlled testnet go-gate boundary must keep {key}=false")
+    return errors
+
 def _check_public_validator_preflight() -> list[str]:
     errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
@@ -218,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_validator_preflight())
         errors.extend(_check_api_response_vectors())
         errors.extend(_check_b587_b594_mechanisms())
+        errors.extend(_check_controlled_testnet_go_gate())
     if args.require_git_tracked:
         errors.extend(_check_git_tracked())
     if errors:

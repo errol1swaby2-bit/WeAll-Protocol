@@ -119,3 +119,5 @@ configs/local/
 !generated/api_response_vectors_v1_5.json
 
 !generated/b587_b594_testnet_mechanism_completion_v1_5.json
+
+!generated/controlled_testnet_go_gate_v1_5.json
