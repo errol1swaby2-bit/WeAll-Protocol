@@ -14,9 +14,26 @@
       "kind": "not_equal",
       "left": "list_order_reference",
       "right": "list_order_changed"
+    },
+    {
+      "kind": "domain_fixture_present",
+      "name": "poh_async_and_live_commitments"
+    },
+    {
+      "kind": "domain_fixture_present",
+      "name": "governance_protocol_record_only"
+    },
+    {
+      "kind": "domain_fixture_present",
+      "name": "dispute_and_group_membership"
+    },
+    {
+      "kind": "domain_fixture_present",
+      "name": "economics_locked_supply_surface"
     }
   ],
   "canonicalization_contract": {
+    "consensus_relevant_policy_must_not_live_under_meta": true,
     "dict_keys_sorted": true,
     "ephemeral_keys_ignored": [
       "created_ms",
@@ -25,32 +42,129 @@
       "tip_hash",
       "tip_ts_ms"
     ],
+    "float_values_forbidden_by_admission": true,
+    "json_separators": [
+      ",",
+      ":"
+    ],
     "list_order_preserved": true
   },
   "schema": "weall.v1_5.state_root_vectors",
   "vectors": [
     {
       "name": "base",
-      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "params",
+        "state_version"
+      ]
     },
     {
       "name": "reordered_dicts_same_semantics",
       "same_root_as": "base",
-      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "params",
+        "state_version"
+      ]
     },
     {
       "name": "with_ephemeral_fields_same_semantics",
       "same_root_as": "base",
-      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f"
+      "state_root": "996ba81ca1fb70518c286207fcf7f5822512cd8fa39e944d69c09ae839aa3b0f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "created_ms",
+        "height",
+        "meta",
+        "params",
+        "state_version",
+        "tip_hash"
+      ]
     },
     {
       "name": "list_order_reference",
-      "state_root": "b452f8f7a57981503cfd551079c66d02eadf1166d06d1e5beed3a98fc8363e6f"
+      "state_root": "b452f8f7a57981503cfd551079c66d02eadf1166d06d1e5beed3a98fc8363e6f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "notifications",
+        "params",
+        "state_version"
+      ]
     },
     {
       "different_root_from": "list_order_reference",
       "name": "list_order_changed",
-      "state_root": "f7e1bc38262e8831dab414198441091b7cb969e0ee3882ceb2580963a846ffaf"
+      "state_root": "f7e1bc38262e8831dab414198441091b7cb969e0ee3882ceb2580963a846ffaf",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "notifications",
+        "params",
+        "state_version"
+      ]
+    },
+    {
+      "name": "poh_async_and_live_commitments",
+      "state_root": "6956b72d8634f84a2ff549a11f7749d2f9084b1761058aaf864b1c78a014c19f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "params",
+        "poh",
+        "state_version"
+      ]
+    },
+    {
+      "name": "governance_protocol_record_only",
+      "state_root": "eab7321046a388b1c6eb2fafca3b65ab9ff4aeba17caf887e96410b0268405e2",
+      "state_summary": [
+        "accounts",
+        "content",
+        "gov_proposals_by_id",
+        "height",
+        "params",
+        "protocol",
+        "state_version"
+      ]
+    },
+    {
+      "name": "dispute_and_group_membership",
+      "state_root": "1b43cfea07104a74a0a8f926b413fc08c2080479b3f4bb62df1d04d93fc88d0f",
+      "state_summary": [
+        "accounts",
+        "content",
+        "disputes_by_id",
+        "groups",
+        "height",
+        "params",
+        "state_version"
+      ]
+    },
+    {
+      "name": "economics_locked_supply_surface",
+      "state_root": "db8bb598afa27341aaa1b95efe54aea560bba6d887527dc698b42bb3c73ac3cf",
+      "state_summary": [
+        "accounts",
+        "balances",
+        "content",
+        "height",
+        "params",
+        "state_version",
+        "tokenomics"
+      ]
     }
-  ]
+  ],
+  "version": "2026-06-batch13-expanded"
 }

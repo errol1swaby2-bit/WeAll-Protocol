@@ -1,0 +1,115 @@
+{
+  "do_not_cross": [
+    "do not enable public validator promotion from this artifact",
+    "do not claim public BFT readiness until every required scenario has executable evidence",
+    "do not enable live economics or validator payouts",
+    "do not enable production helper execution"
+  ],
+  "launch_matrix_bindings": {
+    "public_multi_validator_bft": {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    "public_validator_promotion": {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    }
+  },
+  "required_scenarios": [
+    {
+      "current_status": "planned_or_private_rehearsal_only",
+      "id": "bft-multiprocess-finality",
+      "minimum_result": "same finalized height/hash/root across honest validators",
+      "required_evidence": [
+        "process logs",
+        "block roots",
+        "quorum certificates",
+        "receipt root comparison"
+      ],
+      "title": "independent multi-process validator finality"
+    },
+    {
+      "current_status": "must_be_captured_before_public_claim",
+      "id": "minority-partition-no-finality",
+      "minimum_result": "finality_threshold_not_met",
+      "required_evidence": [
+        "partition topology",
+        "vote counts",
+        "no-QC proof"
+      ],
+      "title": "minority partition cannot finalize"
+    },
+    {
+      "current_status": "must_be_captured_before_public_claim",
+      "id": "restart-replay-root-stability",
+      "minimum_result": "identical roots and no skipped committed blocks",
+      "required_evidence": [
+        "pre-restart root",
+        "post-replay root",
+        "receipt root audit"
+      ],
+      "title": "restart/replay preserves state root"
+    },
+    {
+      "current_status": "must_be_captured_before_public_claim",
+      "id": "equivocation-rejection",
+      "minimum_result": "equivocation cannot finalize conflicting blocks",
+      "required_evidence": [
+        "double proposal/vote fixture",
+        "rejection receipt",
+        "active set/accountability state"
+      ],
+      "title": "equivocating validator evidence is rejected/accounted"
+    },
+    {
+      "current_status": "must_be_captured_before_public_claim",
+      "id": "lagging-node-catchup",
+      "minimum_result": "fresh node reaches same root from canonical blocks",
+      "required_evidence": [
+        "source block range",
+        "fresh replay transcript",
+        "final root equality"
+      ],
+      "title": "lagging/fresh node catches up by verified replay"
+    },
+    {
+      "current_status": "must_be_captured_before_public_claim",
+      "id": "observer-non-authority",
+      "minimum_result": "observer grants no validator authority",
+      "required_evidence": [
+        "observer route transcript",
+        "vote rejection",
+        "block production rejection"
+      ],
+      "title": "observer cannot vote, validate, or produce blocks"
+    },
+    {
+      "current_status": "guardrail_required",
+      "id": "helper-production-disabled",
+      "minimum_result": "production_helper_execution_enabled=false",
+      "required_evidence": [
+        "launch matrix",
+        "helper readiness surface",
+        "serial fallback transcript"
+      ],
+      "title": "helper execution cannot become production authority during validator proof"
+    }
+  ],
+  "schema": "weall.v1_5.public_validator_bft_preflight_matrix",
+  "truth_boundaries": {
+    "artifact_is_readiness_plan_not_proof": true,
+    "live_economics_enabled": false,
+    "production_helper_execution_enabled": false,
+    "public_bft_feature_enabled": false,
+    "public_multi_validator_bft_ready": false,
+    "public_validator_enabled": false,
+    "public_validator_promotion_enabled": false
+  },
+  "version": "2026-06-batch15-preflight"
+}

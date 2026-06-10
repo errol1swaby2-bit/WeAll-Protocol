@@ -451,6 +451,18 @@ def _require_session_principal_for_poh_private(request: Request, st: Json, *, pu
     return acct
 
 
+
+
+def _require_poh_session_matches(request: Request, st: Json, *, expected: str, purpose: str) -> str:
+    principal = _require_session_principal_for_poh_private(request, st, purpose=purpose)
+    if str(principal or "").strip() != str(expected or "").strip():
+        raise ApiError.forbidden(
+            "session_mismatch",
+            f"authenticated session does not match {purpose}",
+            {"expected": str(expected or "").strip(), "principal": str(principal or "").strip(), "purpose": purpose},
+        )
+    return principal
+
 def _async_case_allows_private_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
         return False

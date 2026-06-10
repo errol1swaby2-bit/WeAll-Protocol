@@ -1141,13 +1141,13 @@
       "truth_boundary": "Network peer diagnostics are not generic public state snapshots."
     },
     {
-      "auth": "node_or_observer_route_specific_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "signed_recipient_or_nonprod_legacy_relay_ack",
+      "cache_policy": "no_store_relay_transport_ack",
+      "error_model": "standard_api_error_envelope; 404 relay_disabled; 400 invalid relay ack; 403 unauthorized relay ack",
       "function": "v1_net_relay_ack",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "route_specific_replay_or_cursor_guard",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "net_relay",
       "path": "/v1/net/relay/ack",
@@ -1160,7 +1160,7 @@
       "tags": [
         "net_relay"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay ACK is transport-only queue mutation and requires signed recipient authorization in production."
     },
     {
       "auth": "node_or_observer_route_specific_authority",
@@ -1207,13 +1207,13 @@
       "truth_boundary": "Relay fetch POST is a node/observer transport queue interaction with route-specific authority and replay/cursor semantics."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "relay_diagnostic_env_gated_transport_status",
+      "cache_policy": "no_store_relay_status",
+      "error_model": "404 relay_disabled or route-specific diagnostic payload",
       "function": "v1_net_relay_status",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_transport_diagnostic_read_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "net_relay",
       "path": "/v1/net/relay/status",
@@ -1226,16 +1226,16 @@
       "tags": [
         "net_relay"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay status is a transport diagnostic and grants no observer, validator, or consensus authority."
     },
     {
-      "auth": "node_or_observer_route_specific_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "relay_submit_transport_only_signature_validated_by_relay_envelope",
+      "cache_policy": "no_store_relay_submit",
+      "error_model": "standard_api_error_envelope; 404 relay_disabled; 400 invalid relay envelope",
       "function": "v1_net_relay_submit",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "transport_queue_write_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "net_relay",
       "path": "/v1/net/relay/submit",
@@ -1248,7 +1248,7 @@
       "tags": [
         "net_relay"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay submit stores transport envelopes only. It does not submit chain transactions or grant consensus authority."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1339,13 +1339,13 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "node_or_observer_route_specific_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_transport_queue",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
       "function": "observer_edge_outbox_drain",
-      "idempotency": "route_specific_replay_or_cursor_guard",
+      "idempotency": "operator_transport_queue_drain_no_validator_authority",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "tx",
       "path": "/v1/observer/edge/outbox/drain",
@@ -1358,16 +1358,16 @@
       "tags": [
         "tx"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Observer outbox drain is operator/observer transport handling and grants no block production or validation authority."
     },
     {
-      "auth": "node_or_observer_route_specific_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_reconcile",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
       "function": "observer_edge_reconcile_tx",
-      "idempotency": "route_specific_replay_or_cursor_guard",
+      "idempotency": "observer_edge_reconcile_no_validator_authority",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "tx",
       "path": "/v1/observer/edge/reconcile/{tx_id}",
@@ -1380,7 +1380,7 @@
       "tags": [
         "tx"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority."
     },
     {
       "auth": "observer_edge_diagnostic_runtime_scoped",
@@ -1419,7 +1419,7 @@
       "route_id": "de2dac068d796cb2",
       "route_path_without_v1_prefix": "/poh/async/case/{case_id}",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 480,
+      "source_lineno": 492,
       "summary": "",
       "tags": [
         "poh"
@@ -1427,13 +1427,13 @@
       "truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
+      "cache_policy": "no_store_private_evidence_upload_response",
+      "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "function": "poh_async_video_upload",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/async/evidence/video/upload",
@@ -1446,7 +1446,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Async PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
     },
     {
       "auth": "account_session_required",
@@ -1463,7 +1463,7 @@
       "route_id": "eeee495f990ef4c0",
       "route_path_without_v1_prefix": "/poh/async/juror-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 526,
+      "source_lineno": 538,
       "summary": "",
       "tags": [
         "poh"
@@ -1485,7 +1485,7 @@
       "route_id": "234bb4245b09d5f5",
       "route_path_without_v1_prefix": "/poh/async/my-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 495,
+      "source_lineno": 507,
       "summary": "",
       "tags": [
         "poh"
@@ -1493,13 +1493,13 @@
       "truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_tx_juror_accept",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/async/tx/juror-accept",
@@ -1507,21 +1507,21 @@
       "route_id": "12a4a958fa5fcd2a",
       "route_path_without_v1_prefix": "/poh/async/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2715,
+      "source_lineno": 2727,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH async juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_tx_juror_decline",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/async/tx/juror-decline",
@@ -1529,21 +1529,21 @@
       "route_id": "be06f0d4139fe7aa",
       "route_path_without_v1_prefix": "/poh/async/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2737,
+      "source_lineno": 2749,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH async juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_tx_review",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/async/tx/review",
@@ -1551,12 +1551,12 @@
       "route_id": "9151bff52b2cf766",
       "route_path_without_v1_prefix": "/poh/async/tx/review",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2757,
+      "source_lineno": 2769,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH async review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
       "auth": "public_tx_skeleton_no_state_mutation_submit_via_signed_tx",
@@ -1573,7 +1573,7 @@
       "route_id": "e139645dfeef0a37",
       "route_path_without_v1_prefix": "/poh/challenge/tx/open",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2677,
+      "source_lineno": 2689,
       "summary": "",
       "tags": [
         "poh"
@@ -1581,13 +1581,13 @@
       "truth_boundary": "Returns a POH_CHALLENGE_OPEN tx skeleton only. Clients must sign and submit through /v1/tx/submit; the skeleton route grants no PoH status or system authority."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "account_session_required_live_reviewer_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "function": "poh_live_assigned",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/assigned",
@@ -1595,21 +1595,21 @@
       "route_id": "3483cefd5376332d",
       "route_path_without_v1_prefix": "/poh/live/assigned",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 874,
+      "source_lineno": 886,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live assigned cases are reviewer-scoped queue reads, not generic public snapshots."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "session_aware_live_case_read_commitments_only",
+      "cache_policy": "no_store_live_poh_case_read",
+      "error_model": "standard_api_error_envelope; 404 live_case_not_found",
       "function": "poh_live_case",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/case/{case_id}",
@@ -1617,21 +1617,21 @@
       "route_id": "824636f74f97e96c",
       "route_path_without_v1_prefix": "/poh/live/case/{case_id}",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 861,
+      "source_lineno": 873,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or private evidence."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "account_session_required_live_reviewer_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "function": "poh_live_juror_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/juror-cases",
@@ -1639,21 +1639,21 @@
       "route_id": "2ebef3fbe85e9fd4",
       "route_path_without_v1_prefix": "/poh/live/juror-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 900,
+      "source_lineno": 912,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live juror-cases is a reviewer-scoped alias and requires authenticated viewer alignment."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "account_session_required_live_account_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing account; 403 session_required/session_mismatch",
       "function": "poh_live_my_cases",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/my-cases",
@@ -1661,21 +1661,21 @@
       "route_id": "92669bf461ed2fe0",
       "route_path_without_v1_prefix": "/poh/live/my-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 908,
+      "source_lineno": 920,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live my-cases is account-scoped and requires authenticated viewer alignment."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "session_aware_live_session_read_commitments_only",
+      "cache_policy": "no_store_live_session_read",
+      "error_model": "standard_api_error_envelope; 404 live_session_not_found",
       "function": "poh_live_session",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}",
@@ -1683,21 +1683,21 @@
       "route_id": "5db946b1c3135280",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 983,
+      "source_lineno": 995,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live session reads expose chain-derived commitments only. They never return raw relay URLs or authority to join as a participant."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "session_aware_live_session_participants_commitments_only",
+      "cache_policy": "no_store_live_participant_read",
+      "error_model": "standard_api_error_envelope; 404 live_session_participants_not_found",
       "function": "poh_live_session_participants",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/participants",
@@ -1705,21 +1705,21 @@
       "route_id": "ce07795e18c6d1a4",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/participants",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1048,
+      "source_lineno": 1060,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live participants read exposes chain-derived participant status only and no media/signaling secrets."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_presence_ephemeral",
+      "error_model": "standard_api_error_envelope; 403 session_required/live_room_participant_required",
       "function": "poh_live_session_presence",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_authenticated_ephemeral_transport_read_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/presence",
@@ -1727,21 +1727,21 @@
       "route_id": "29f4d157ab23f9af",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/presence",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1194,
+      "source_lineno": 1206,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live presence is node-local transport-only data and is participant-scoped; chain authority still comes from signed attendance/verdict/finalize txs."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_presence_ephemeral",
+      "error_model": "standard_api_error_envelope; 403 session_required/live_room_participant_required/header_mismatch",
       "function": "poh_live_session_presence_update",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "ephemeral_transport_write_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/session/{session_id}/presence",
@@ -1749,12 +1749,12 @@
       "route_id": "f5f48f664d2beac5",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/presence",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1218,
+      "source_lineno": 1230,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Presence updates are participant-scoped transport hints only and do not create attendance, verdict, or finalization authority."
     },
     {
       "auth": "live_session_participant_session_required",
@@ -1771,7 +1771,7 @@
       "route_id": "1ae57906a6c10dd9",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/webrtc/signals",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2231,
+      "source_lineno": 2243,
       "summary": "",
       "tags": [
         "poh"
@@ -1793,7 +1793,7 @@
       "route_id": "31725535871b965a",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/webrtc/signals",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2360,
+      "source_lineno": 2372,
       "summary": "",
       "tags": [
         "poh"
@@ -1815,7 +1815,7 @@
       "route_id": "7a94963aec4e0704",
       "route_path_without_v1_prefix": "/poh/live/session/{session_id}/webrtc/signals/import",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2288,
+      "source_lineno": 2300,
       "summary": "",
       "tags": [
         "poh"
@@ -1823,13 +1823,13 @@
       "truth_boundary": "Bridge imports are cross-node rehearsal transport records; not a public write surface."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "session_aware_live_session_index_commitments_only",
+      "cache_policy": "no_store_live_session_index",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_sessions",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/sessions",
@@ -1837,21 +1837,21 @@
       "route_id": "32c3880615a4f33b",
       "route_path_without_v1_prefix": "/poh/live/sessions",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 996,
+      "source_lineno": 1008,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Live session list exposes commitment/status metadata only and does not grant room participation authority."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_tx_attendance",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/tx/attendance",
@@ -1859,21 +1859,21 @@
       "route_id": "3b510142384c0f6c",
       "route_path_without_v1_prefix": "/poh/live/tx/attendance",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3044,
+      "source_lineno": 3056,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Live attendance skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_tx_juror_accept",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/tx/juror-accept",
@@ -1881,21 +1881,21 @@
       "route_id": "80c07db3b871c67a",
       "route_path_without_v1_prefix": "/poh/live/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2999,
+      "source_lineno": 3011,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Live juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_tx_juror_decline",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/tx/juror-decline",
@@ -1903,21 +1903,21 @@
       "route_id": "7603d54bb3a23c2f",
       "route_path_without_v1_prefix": "/poh/live/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3023,
+      "source_lineno": 3035,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Live juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_tx_request",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/tx/request",
@@ -1925,21 +1925,21 @@
       "route_id": "8a6c1d57f380c187",
       "route_path_without_v1_prefix": "/poh/live/tx/request",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2949,
+      "source_lineno": 2961,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Live request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_tx_verdict",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/tx/verdict",
@@ -1947,21 +1947,21 @@
       "route_id": "dffb7e2a46ceec82",
       "route_path_without_v1_prefix": "/poh/live/tx/verdict",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3086,
+      "source_lineno": 3098,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Live verdict skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "auth": "public_webrtc_relay_config_no_secret_material",
+      "cache_policy": "no_store_transport_config",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_live_webrtc_relay_config",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_transport_config_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/webrtc/relay-config",
@@ -1969,21 +1969,21 @@
       "route_id": "0aa2a6a29208c781",
       "route_path_without_v1_prefix": "/poh/live/webrtc/relay-config",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2193,
+      "source_lineno": 2205,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Relay config may expose non-secret connection hints only. It does not grant signaling, room, reviewer, or consensus authority."
     },
     {
-      "auth": "public_read_redacted_snapshot",
-      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "webrtc_bridge_operator_required",
+      "cache_policy": "no_store_operator_diagnostic",
+      "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
       "function": "poh_live_webrtc_signal_diagnostics",
-      "idempotency": "safe_read_no_state_mutation",
+      "idempotency": "safe_operator_diagnostic_read_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "poh",
       "path": "/v1/poh/live/webrtc/signals/diagnostics",
@@ -1991,21 +1991,21 @@
       "route_id": "adb9c94f94b373b9",
       "route_path_without_v1_prefix": "/poh/live/webrtc/signals/diagnostics",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2206,
+      "source_lineno": 2218,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "WebRTC diagnostics are operator-gated transport diagnostics and must not be indexed as public read snapshots."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "webrtc_bridge_operator_required",
+      "cache_policy": "no_store_operator_transport_queue",
+      "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
       "function": "poh_live_webrtc_signal_outbox_drain",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/live/webrtc/signals/outbox/drain",
@@ -2013,12 +2013,12 @@
       "route_id": "e2e513dae474bdc9",
       "route_path_without_v1_prefix": "/poh/live/webrtc/signals/outbox/drain",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2222,
+      "source_lineno": 2234,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
     },
     {
       "auth": "route_specific_signed_or_local_authority",
@@ -2035,7 +2035,7 @@
       "route_id": "1f380f1cb2f458e2",
       "route_path_without_v1_prefix": "/poh/operator/live/finalize",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2580,
+      "source_lineno": 2592,
       "summary": "",
       "tags": [
         "poh"
@@ -2057,7 +2057,7 @@
       "route_id": "161379008d997528",
       "route_path_without_v1_prefix": "/poh/operator/live/init",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2524,
+      "source_lineno": 2536,
       "summary": "",
       "tags": [
         "poh"
@@ -2079,7 +2079,7 @@
       "route_id": "c2a705c5bbf3ead6",
       "route_path_without_v1_prefix": "/poh/operator/tier2/finalize",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2476,
+      "source_lineno": 2488,
       "summary": "",
       "tags": [
         "poh"
@@ -2101,7 +2101,7 @@
       "route_id": "8a348262c0adab75",
       "route_path_without_v1_prefix": "/poh/tier2/case/{case_id}",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 699,
+      "source_lineno": 711,
       "summary": "",
       "tags": [
         "poh"
@@ -2123,7 +2123,7 @@
       "route_id": "75826a5435bef3f8",
       "route_path_without_v1_prefix": "/poh/tier2/juror-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 733,
+      "source_lineno": 745,
       "summary": "",
       "tags": [
         "poh"
@@ -2145,7 +2145,7 @@
       "route_id": "ece28e4f22a4cde8",
       "route_path_without_v1_prefix": "/poh/tier2/my-cases",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 712,
+      "source_lineno": 724,
       "summary": "",
       "tags": [
         "poh"
@@ -2153,13 +2153,13 @@
       "truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_tx_juror_accept",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/tier2/tx/juror-accept",
@@ -2167,21 +2167,21 @@
       "route_id": "b16a56f9fefd2c13",
       "route_path_without_v1_prefix": "/poh/tier2/tx/juror-accept",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2832,
+      "source_lineno": 2844,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Tier-2 juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_tx_juror_decline",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/tier2/tx/juror-decline",
@@ -2189,21 +2189,21 @@
       "route_id": "a7fac56ce4f0f8dd",
       "route_path_without_v1_prefix": "/poh/tier2/tx/juror-decline",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2855,
+      "source_lineno": 2867,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Tier-2 juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_tx_request",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/tier2/tx/request",
@@ -2211,21 +2211,21 @@
       "route_id": "58f57b645c175632",
       "route_path_without_v1_prefix": "/poh/tier2/tx/request",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2786,
+      "source_lineno": 2798,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Tier-2 request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_tx_review",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/tier2/tx/review",
@@ -2233,21 +2233,21 @@
       "route_id": "1b281fdf7386987b",
       "route_path_without_v1_prefix": "/poh/tier2/tx/review",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2876,
+      "source_lineno": 2888,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "PoH Tier-2 review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
+      "cache_policy": "no_store_private_evidence_upload_response",
+      "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "function": "poh_tier2_video_upload",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
       "path": "/v1/poh/tier2/video/upload",
@@ -2260,7 +2260,7 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Tier-2 PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -2351,13 +2351,13 @@
       "truth_boundary": "Disposable reviewer manifest read only; not canonical production authority."
     },
     {
-      "auth": "route_specific_signed_or_local_authority",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "dev_or_local_direct_session_mutation_gated",
+      "cache_policy": "no_store_session_material",
+      "error_model": "standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
       "function": "v1_session_create",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "session",
       "path": "/v1/session/create",
@@ -2370,16 +2370,16 @@
       "tags": [
         "session"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Session create is a local/dev rehearsal helper guarded by runtime profile isolation and must not be classified as a production public write."
     },
     {
-      "auth": "local_session_login_request",
-      "cache_policy": "no_store_mutation_or_submission_route",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "auth": "signed_account_key_session_login_direct_mutation_profile_gated",
+      "cache_policy": "no_store_session_material",
+      "error_model": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
       "function": "v1_session_login",
-      "idempotency": "route_specific_no_general_idempotency_claim",
+      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "session",
       "path": "/v1/session/login",
@@ -2392,7 +2392,7 @@
       "tags": [
         "session"
       ],
-      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof and runtime direct-session gate. It is not a generic public write route."
     },
     {
       "auth": "session_probe_optional_account_session",

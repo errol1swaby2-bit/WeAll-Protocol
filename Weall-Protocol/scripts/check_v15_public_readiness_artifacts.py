@@ -15,6 +15,10 @@ RELEASE_ARTIFACTS = [
     Path("generated/api_contract_map_v1_5.json"),
     Path("generated/launch_disabled_matrix_v1_5.json"),
     Path("generated/v15_implementation_gap_register.json"),
+    Path("generated/state_root_vectors_v1_5.json"),
+    Path("generated/tokenomics_simulation_v1_5.json"),
+    Path("generated/failure_code_registry_v1_5.json"),
+    Path("generated/public_validator_bft_preflight_matrix_v1_5.json"),
 ]
 GITIGNORE_EXCEPTIONS = [f"!{path.as_posix()}" for path in RELEASE_ARTIFACTS]
 
@@ -71,6 +75,20 @@ def _check_launch_matrix() -> list[str]:
     return errors
 
 
+def _run_check(script: str) -> list[str]:
+    result = subprocess.run(
+        [sys.executable, f"scripts/{script}", "--check"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        return [(result.stdout + result.stderr).strip() or f"{script} check failed"]
+    return []
+
+
 def _check_gap_register() -> list[str]:
     errors: list[str] = []
     payload = _load_json(Path("generated/v15_implementation_gap_register.json"))
@@ -82,10 +100,59 @@ def _check_gap_register() -> list[str]:
     return errors
 
 
+
+
+def _check_state_root_vectors() -> list[str]:
+    errors = _run_check("gen_state_root_vectors_v1_5.py")
+    payload = _load_json(Path("generated/state_root_vectors_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.state_root_vectors":
+        errors.append("state root vectors schema mismatch")
+    vectors = payload.get("vectors")
+    if not isinstance(vectors, list) or len(vectors) < 8:
+        errors.append("state root vector pack missing expanded domain fixtures")
+    return errors
+
+
+def _check_tokenomics_simulation() -> list[str]:
+    errors = _run_check("gen_tokenomics_simulation_v1_5.py")
+    payload = _load_json(Path("generated/tokenomics_simulation_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.tokenomics_simulation":
+        errors.append("tokenomics simulation schema mismatch")
+    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    if boundaries.get("live_economics_enabled") is not False:
+        errors.append("tokenomics simulation must preserve live_economics_enabled=false")
+    if not isinstance(payload.get("activation_blockade_checklist"), list) or not payload.get("activation_blockade_checklist"):
+        errors.append("tokenomics simulation missing activation blockade checklist")
+    return errors
+
+
+def _check_failure_code_registry() -> list[str]:
+    errors = _run_check("gen_failure_code_registry_v1_5.py")
+    payload = _load_json(Path("generated/failure_code_registry_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.failure_code_registry":
+        errors.append("failure-code registry schema mismatch")
+    if int(payload.get("unique_code_count") or 0) < 20:
+        errors.append("failure-code registry unexpectedly small")
+    return errors
+
+
+def _check_public_validator_preflight() -> list[str]:
+    errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
+    payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.public_validator_bft_preflight_matrix":
+        errors.append("public validator preflight matrix schema mismatch")
+    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    if boundaries.get("public_validator_enabled") is not False:
+        errors.append("public validator preflight must preserve public_validator_enabled=false")
+    if boundaries.get("artifact_is_readiness_plan_not_proof") is not True:
+        errors.append("public validator preflight must remain plan-not-proof")
+    return errors
+
+
 def _check_git_tracked() -> list[str]:
     errors: list[str] = []
     if not (ROOT / ".git").exists() and not (ROOT.parent / ".git").exists():
-        return errors
+        return ["cannot verify git tracking because this checkout has no .git directory"]
     for rel in RELEASE_ARTIFACTS:
         result = subprocess.run(
             ["git", "ls-files", "--error-unmatch", rel.as_posix()],
@@ -114,6 +181,10 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_api_contract())
         errors.extend(_check_launch_matrix())
         errors.extend(_check_gap_register())
+        errors.extend(_check_state_root_vectors())
+        errors.extend(_check_tokenomics_simulation())
+        errors.extend(_check_failure_code_registry())
+        errors.extend(_check_public_validator_preflight())
     if args.require_git_tracked:
         errors.extend(_check_git_tracked())
     if errors:

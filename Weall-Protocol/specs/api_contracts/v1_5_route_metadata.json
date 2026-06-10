@@ -49,6 +49,13 @@
       "idempotency": "route_specific_replay_or_cursor_guard",
       "truth_boundary": "Relay fetch is a node/observer transport queue read with route-specific authority and cursor/replay semantics, not generic public state."
     },
+    "GET /v1/net/relay/status": {
+      "auth": "relay_diagnostic_env_gated_transport_status",
+      "cache_policy": "no_store_relay_status",
+      "error_model": "404 relay_disabled or route-specific diagnostic payload",
+      "idempotency": "safe_transport_diagnostic_read_no_consensus_state_mutation",
+      "truth_boundary": "Relay status is a transport diagnostic and grants no observer, validator, or consensus authority."
+    },
     "GET /v1/observer/edge/status": {
       "auth": "observer_edge_diagnostic_runtime_scoped",
       "cache_policy": "no_store_observer_edge_diagnostic",
@@ -77,12 +84,82 @@
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session."
     },
+    "GET /v1/poh/live/assigned": {
+      "auth": "account_session_required_live_reviewer_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Live assigned cases are reviewer-scoped queue reads, not generic public snapshots."
+    },
+    "GET /v1/poh/live/case/{case_id}": {
+      "auth": "session_aware_live_case_read_commitments_only",
+      "cache_policy": "no_store_live_poh_case_read",
+      "error_model": "standard_api_error_envelope; 404 live_case_not_found",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or private evidence."
+    },
+    "GET /v1/poh/live/juror-cases": {
+      "auth": "account_session_required_live_reviewer_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Live juror-cases is a reviewer-scoped alias and requires authenticated viewer alignment."
+    },
+    "GET /v1/poh/live/my-cases": {
+      "auth": "account_session_required_live_account_queue",
+      "cache_policy": "no_store_private_account_read",
+      "error_model": "standard_api_error_envelope; 400 missing account; 403 session_required/session_mismatch",
+      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "truth_boundary": "Live my-cases is account-scoped and requires authenticated viewer alignment."
+    },
+    "GET /v1/poh/live/session/{session_id}": {
+      "auth": "session_aware_live_session_read_commitments_only",
+      "cache_policy": "no_store_live_session_read",
+      "error_model": "standard_api_error_envelope; 404 live_session_not_found",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Live session reads expose chain-derived commitments only. They never return raw relay URLs or authority to join as a participant."
+    },
+    "GET /v1/poh/live/session/{session_id}/participants": {
+      "auth": "session_aware_live_session_participants_commitments_only",
+      "cache_policy": "no_store_live_participant_read",
+      "error_model": "standard_api_error_envelope; 404 live_session_participants_not_found",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Live participants read exposes chain-derived participant status only and no media/signaling secrets."
+    },
+    "GET /v1/poh/live/session/{session_id}/presence": {
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_presence_ephemeral",
+      "error_model": "standard_api_error_envelope; 403 session_required/live_room_participant_required",
+      "idempotency": "safe_authenticated_ephemeral_transport_read_no_consensus_state_mutation",
+      "truth_boundary": "Live presence is node-local transport-only data and is participant-scoped; chain authority still comes from signed attendance/verdict/finalize txs."
+    },
     "GET /v1/poh/live/session/{session_id}/webrtc/signals": {
       "auth": "live_session_participant_session_required",
       "cache_policy": "no_store_live_session_signal_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "WebRTC signal reads are live-session participant scoped and must not be indexed as generic public snapshots."
+    },
+    "GET /v1/poh/live/sessions": {
+      "auth": "session_aware_live_session_index_commitments_only",
+      "cache_policy": "no_store_live_session_index",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Live session list exposes commitment/status metadata only and does not grant room participation authority."
+    },
+    "GET /v1/poh/live/webrtc/relay-config": {
+      "auth": "public_webrtc_relay_config_no_secret_material",
+      "cache_policy": "no_store_transport_config",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_transport_config_read_no_state_mutation",
+      "truth_boundary": "Relay config may expose non-secret connection hints only. It does not grant signaling, room, reviewer, or consensus authority."
+    },
+    "GET /v1/poh/live/webrtc/signals/diagnostics": {
+      "auth": "webrtc_bridge_operator_required",
+      "cache_policy": "no_store_operator_diagnostic",
+      "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
+      "idempotency": "safe_operator_diagnostic_read_no_consensus_state_mutation",
+      "truth_boundary": "WebRTC diagnostics are operator-gated transport diagnostics and must not be indexed as public read snapshots."
     },
     "GET /v1/poh/tier2/case/{case_id}": {
       "auth": "session_aware_poh_tier2_case_read",
@@ -147,6 +224,13 @@
       "idempotency": "safe_diagnostic_read_no_state_mutation",
       "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
     },
+    "POST /v1/net/relay/ack": {
+      "auth": "signed_recipient_or_nonprod_legacy_relay_ack",
+      "cache_policy": "no_store_relay_transport_ack",
+      "error_model": "standard_api_error_envelope; 404 relay_disabled; 400 invalid relay ack; 403 unauthorized relay ack",
+      "idempotency": "route_specific_replay_or_cursor_guard",
+      "truth_boundary": "Relay ACK is transport-only queue mutation and requires signed recipient authorization in production."
+    },
     "POST /v1/net/relay/fetch": {
       "auth": "node_or_observer_route_specific_authority",
       "cache_policy": "no_store_relay_transport_read",
@@ -154,12 +238,68 @@
       "idempotency": "route_specific_replay_or_cursor_guard",
       "truth_boundary": "Relay fetch POST is a node/observer transport queue interaction with route-specific authority and replay/cursor semantics."
     },
+    "POST /v1/net/relay/submit": {
+      "auth": "relay_submit_transport_only_signature_validated_by_relay_envelope",
+      "cache_policy": "no_store_relay_submit",
+      "error_model": "standard_api_error_envelope; 404 relay_disabled; 400 invalid relay envelope",
+      "idempotency": "transport_queue_write_no_consensus_state_mutation",
+      "truth_boundary": "Relay submit stores transport envelopes only. It does not submit chain transactions or grant consensus authority."
+    },
+    "POST /v1/observer/edge/outbox/drain": {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_transport_queue",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
+      "idempotency": "operator_transport_queue_drain_no_validator_authority",
+      "truth_boundary": "Observer outbox drain is operator/observer transport handling and grants no block production or validation authority."
+    },
+    "POST /v1/observer/edge/reconcile/{tx_id}": {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_reconcile",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
+      "idempotency": "observer_edge_reconcile_no_validator_authority",
+      "truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority."
+    },
+    "POST /v1/poh/async/evidence/video/upload": {
+      "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
+      "cache_policy": "no_store_private_evidence_upload_response",
+      "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
+      "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
+      "truth_boundary": "Async PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
+    },
+    "POST /v1/poh/async/tx/juror-accept": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH async juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/async/tx/juror-decline": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH async juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/async/tx/review": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH async review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
     "POST /v1/poh/challenge/tx/open": {
       "auth": "public_tx_skeleton_no_state_mutation_submit_via_signed_tx",
       "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope; 400 missing account_id",
       "idempotency": "safe_skeleton_read_no_state_mutation",
       "truth_boundary": "Returns a POH_CHALLENGE_OPEN tx skeleton only. Clients must sign and submit through /v1/tx/submit; the skeleton route grants no PoH status or system authority."
+    },
+    "POST /v1/poh/live/session/{session_id}/presence": {
+      "auth": "live_session_participant_session_required",
+      "cache_policy": "no_store_live_presence_ephemeral",
+      "error_model": "standard_api_error_envelope; 403 session_required/live_room_participant_required/header_mismatch",
+      "idempotency": "ephemeral_transport_write_no_consensus_state_mutation",
+      "truth_boundary": "Presence updates are participant-scoped transport hints only and do not create attendance, verdict, or finalization authority."
     },
     "POST /v1/poh/live/session/{session_id}/webrtc/signals": {
       "auth": "live_session_participant_session_required",
@@ -174,6 +314,97 @@
       "error_model": "standard_api_error_envelope; chain/source/replay validation route-specific",
       "idempotency": "route_specific_bridge_import_replay_guard",
       "truth_boundary": "Bridge imports are cross-node rehearsal transport records; not a public write surface."
+    },
+    "POST /v1/poh/live/tx/attendance": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Live attendance skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/live/tx/juror-accept": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Live juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/live/tx/juror-decline": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Live juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/live/tx/request": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Live request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/live/tx/verdict": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Live verdict skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/live/webrtc/signals/outbox/drain": {
+      "auth": "webrtc_bridge_operator_required",
+      "cache_policy": "no_store_operator_transport_queue",
+      "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
+      "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
+      "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
+    },
+    "POST /v1/poh/tier2/tx/juror-accept": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Tier-2 juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/tier2/tx/juror-decline": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Tier-2 juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/tier2/tx/request": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Tier-2 request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/tier2/tx/review": {
+      "auth": "signed_tx_skeleton_local_client_helper",
+      "cache_policy": "no_store_tx_skeleton",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
+      "truth_boundary": "PoH Tier-2 review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
+    },
+    "POST /v1/poh/tier2/video/upload": {
+      "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
+      "cache_policy": "no_store_private_evidence_upload_response",
+      "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
+      "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
+      "truth_boundary": "Tier-2 PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
+    },
+    "POST /v1/session/create": {
+      "auth": "dev_or_local_direct_session_mutation_gated",
+      "cache_policy": "no_store_session_material",
+      "error_model": "standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
+      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+      "truth_boundary": "Session create is a local/dev rehearsal helper guarded by runtime profile isolation and must not be classified as a production public write."
+    },
+    "POST /v1/session/login": {
+      "auth": "signed_account_key_session_login_direct_mutation_profile_gated",
+      "cache_policy": "no_store_session_material",
+      "error_model": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
+      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof and runtime direct-session gate. It is not a generic public write route."
     }
   },
   "schema": "weall.api_route_metadata.v1_5",

@@ -56,6 +56,8 @@ generated/*
 !generated/v15_mechanics_gap_register.json
 !generated/state_root_vectors_v1_5.json
 !generated/tokenomics_simulation_v1_5.json
+!generated/public_validator_bft_preflight_matrix_v1_5.json
+!generated/failure_code_registry_v1_5.json
 !generated/b499_b503_mechanics_proof_v1_5.json
 
 # SQLite runtime files (safety net if someone points WEALL_DB_PATH outside data/)

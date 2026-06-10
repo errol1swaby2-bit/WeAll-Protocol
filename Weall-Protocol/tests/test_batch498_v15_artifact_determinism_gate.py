@@ -10,6 +10,10 @@ ARTIFACTS = [
     "generated/api_contract_map_v1_5.json",
     "generated/launch_disabled_matrix_v1_5.json",
     "generated/v15_implementation_gap_register.json",
+    "generated/state_root_vectors_v1_5.json",
+    "generated/tokenomics_simulation_v1_5.json",
+    "generated/failure_code_registry_v1_5.json",
+    "generated/public_validator_bft_preflight_matrix_v1_5.json",
 ]
 
 

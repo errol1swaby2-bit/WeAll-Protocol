@@ -2,9 +2,32 @@
 
 Status: v1.5 safety boundary.
 
-`PROTOCOL_UPGRADE_DECLARE` and `PROTOCOL_UPGRADE_ACTIVATE` currently record upgrade metadata for auditability. They do **not** fetch, verify, stage, apply, migrate, restart, or roll back node software.
+`PROTOCOL_UPGRADE_DECLARE` and `PROTOCOL_UPGRADE_ACTIVATE` currently record governance upgrade metadata for auditability. They do **not** fetch, verify, stage, apply, migrate, restart, or roll back node software.
 
 The apply path stores explicit `record_only_boundary` metadata on declarations and activations so upgrade records cannot be mistaken for an automatic upgrade delivery system.
+
+## Activation record semantics
+
+A governance-passed protocol upgrade may create a `governance_activation_record`. That record means only:
+
+- governance recorded intent/activation metadata;
+- operators may need to review the record;
+- future software delivery is still manual and out of band unless a later audited mechanism exists.
+
+The record explicitly preserves these fields:
+
+```json
+{
+  "software_applied": false,
+  "artifact_fetched": false,
+  "migration_executed": false,
+  "rollback_available": false,
+  "operator_action_required": true,
+  "automatic_upgrade_supported": false
+}
+```
+
+`protocol.active` is retained as a compatibility read model, but it must be interpreted as a governance activation record, not as proof that software has been applied.
 
 ## Not implemented yet
 
@@ -20,4 +43,4 @@ Before automatic protocol upgrades can exist, the protocol needs:
 8. operator opt-in/coordination policy;
 9. public incident/rollback runbook.
 
-Until those gates exist, any payload fields such as `auto_apply`, `artifact_url`, `migration`, or `rollback` are audit metadata only and must not execute software changes.
+Until those gates exist, any payload fields such as `auto_apply`, `artifact_url`, `migration`, `execute_migration`, `rollback`, or `restart_node` are audit metadata only and must not execute software changes.

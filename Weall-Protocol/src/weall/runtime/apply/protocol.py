@@ -123,9 +123,16 @@ def _record_only_boundary(payload: Json) -> Json:
             requested.append(key)
     return {
         "execution_model": "record_only_no_auto_apply",
+        "governance_activation_record_only": True,
+        "software_applied": False,
+        "artifact_fetched": False,
         "artifact_apply_enabled": False,
+        "migration_executed": False,
         "migration_execution_enabled": False,
+        "rollback_available": False,
         "rollback_execution_enabled": False,
+        "operator_action_required": True,
+        "automatic_upgrade_supported": False,
         "restart_or_process_control_enabled": False,
         "requested_execution_fields_ignored": requested,
         "truth_boundary": (
@@ -204,11 +211,14 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         raise ProtocolApplyError("not_found", "upgrade_not_declared", {"upgrade_id": uid})
 
     if rec.get("status") == "activated":
+        boundary = _record_only_boundary(_as_dict(rec.get("activate_payload") or rec.get("payload")))
+        active = _as_dict(proto.get("governance_activation_record") or proto.get("active"))
         return {
             "applied": "PROTOCOL_UPGRADE_ACTIVATE",
             "upgrade_id": uid,
             "deduped": True,
-            "record_only_boundary": _record_only_boundary(_as_dict(rec.get("activate_payload") or rec.get("payload"))),
+            "governance_activation_record": dict(active) if active else {},
+            "record_only_boundary": boundary,
         }
 
     rec["status"] = "activated"
@@ -221,14 +231,23 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     version = _as_str(payload.get("version")).strip() or _as_str(rec.get("version")).strip() or None
     hsh = _as_str(payload.get("hash")).strip() or _as_str(rec.get("hash")).strip() or None
 
-    proto["active"] = {
+    boundary = _record_only_boundary(payload)
+    activation_record = {
         "upgrade_id": uid,
         "version": version,
         "hash": hsh,
         "activated_at_height": int(_height_now(state)),
         "activated_at_nonce": int(env.nonce),
-        "record_only_boundary": _record_only_boundary(payload),
+        "record_only_boundary": boundary,
+        "software_applied": False,
+        "artifact_fetched": False,
+        "migration_executed": False,
+        "rollback_available": False,
+        "operator_action_required": True,
+        "automatic_upgrade_supported": False,
     }
+    proto["active"] = dict(activation_record)
+    proto["governance_activation_record"] = dict(activation_record)
 
     return {
         "applied": "PROTOCOL_UPGRADE_ACTIVATE",
@@ -236,7 +255,8 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "version": version,
         "hash": hsh,
         "deduped": False,
-        "record_only_boundary": _record_only_boundary(payload),
+        "governance_activation_record": dict(activation_record),
+        "record_only_boundary": boundary,
     }
 
 
