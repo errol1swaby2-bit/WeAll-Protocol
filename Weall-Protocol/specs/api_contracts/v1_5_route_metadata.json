@@ -232,6 +232,13 @@
       "idempotency": "safe_diagnostic_read_no_state_mutation",
       "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
     },
+    "GET /v1/status/testnet-capabilities": {
+      "auth": "public_read_launch_matrix_bound_testnet_capability_surface",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Testnet capability status is a launch-matrix-bound claim-control surface. It reports completed mechanisms and disabled high-risk capabilities but grants no validator, economic, helper, upgrade, legal, or public beta authority."
+    },
     "POST /v1/net/relay/ack": {
       "auth": "signed_recipient_or_nonprod_legacy_relay_ack",
       "cache_policy": "no_store_relay_transport_ack",

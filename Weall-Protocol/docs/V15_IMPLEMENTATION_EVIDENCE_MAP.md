@@ -20,6 +20,7 @@ This document synchronizes the v1.5 implementation evidence after the first two 
 | Legal/compliance posture | `docs/legal/*` | Draft pack added | Non-lawyer, counsel-review-pending posture only. |
 | Public validator/BFT proof | `docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Proof plan added | Public multi-validator BFT readiness is not claimed. |
 | Batch 582-586 proof pack | `generated/b582_b586_readiness_truth_and_proof_v1_5.json`, `scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py`, `tests/test_batch582_586_readiness_truth_and_proof.py` | New audit-truth/proof artifact | Refreshes gap-register truth, PoH operator route metadata, storage durability rehearsal, anti-Sybil review lifecycle proof, and helper equivalence corpus while preserving all public-beta/live-economics/public-validator/helper-production prohibitions. |
+| Batch 587-594 testnet mechanism completion | `generated/b587_b594_testnet_mechanism_completion_v1_5.json`, `generated/api_response_vectors_v1_5.json`, `src/weall/runtime/testnet_capabilities.py`, `scripts/rehearse_protocol_upgrade_signed_staging_b589_v1_5.py`, `scripts/rehearse_external_multimachine_validator_harness_b590_v1_5.py`, `scripts/rehearse_multimachine_storage_ipfs_durability_b591_v1_5.py`, `scripts/rehearse_reviewer_accountability_appeal_b592_v1_5.py`, `scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py`, `scripts/rehearse_locked_economics_adversarial_expansion_b594_v1_5.py`, `tests/test_batch587_594_testnet_mechanism_completion.py` | New controlled-testnet mechanism pack | Completes the remaining controlled-testnet mechanism scaffolds and gates, but public beta readiness still requires external go-gate evidence; no live economics, public validator readiness, automatic upgrades, production helper execution, or legal/compliance approval is claimed. |
 
 ## Remaining P0/P1 gaps
 
@@ -27,16 +28,16 @@ The machine-readable register is `generated/v15_implementation_gap_register.json
 
 Priority remaining gates:
 
-1. Generate route-level response/schema vectors from live TestClient responses for the remaining public surfaces.
-2. Wire launch-matrix capability flags into all relevant public read models.
-3. Build signed protocol-upgrade artifact manifest, migration-vector, staged-rollout, and rollback tests before enabling any upgrade delivery.
+1. Compare the new API response vector pack against live TestClient/OpenAPI schemas and external route transcripts before public beta.
+2. Capture frontend/API release evidence showing launch-matrix capability flags block every high-risk public claim surface.
+3. Extend signed protocol-upgrade staging into deterministic migration/rollback vectors and multi-node staged-rollout rehearsal before enabling any upgrade execution.
 4. Complete counsel review of legal/compliance docs before public token/governance claims.
-5. Run public validator/BFT adversarial proof with multiple external processes, churn, equivocation, partition/rejoin, restart/replay, cold state sync, and incident evidence.
+5. Run the external multi-machine validator harness with independent operators, real network transport, churn, equivocation, partition/rejoin, restart/replay, cold state sync, and incident evidence.
 6. Validate the existing state-root vector pack across external machines/cross-implementation fixtures before public beta.
-7. Expand the existing locked-economics simulation artifact into deeper adversarial reward-farming and concentration analysis before any live economics activation.
-8. Move storage/IPFS durability from local daemon-compatible rehearsal toward multi-machine operator evidence before public decentralized media claims.
-9. Extend anti-Sybil suspicion records into full review/appeal/accountability operations without claiming complete Sybil resistance.
-10. Expand helper equivalence corpus and multi-node proof while keeping production helper execution disabled.
+7. Run external locked-economics review covering reward farming, concentration, wallet/read-model posture, treasury capture, and governance go/no-go evidence before any live economics activation.
+8. Run storage/IPFS durability against real multi-machine operator daemons before public decentralized media claims.
+9. Extend reviewer accountability and anti-Sybil appeal hardening into live reviewer operations without claiming complete Sybil resistance.
+10. Run helper block-path adversarial rehearsals through real multi-node proposal/replay paths while keeping production helper execution disabled.
 
 ## Claims allowed from this evidence map
 

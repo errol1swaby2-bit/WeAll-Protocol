@@ -23,6 +23,7 @@ from weall.runtime.helper_status_route_adapter import build_api_status_response_
 from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 from weall.runtime.runtime_authority import (
     authority_contract_from_lifecycle,
     startup_authority_contract_from_app_state,
@@ -775,6 +776,7 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "claim": "direct-message bodies are client-side encrypted and plaintext is rejected; metadata remains visible and production P2P private messaging requires ratcheting, device lifecycle, key verification, and external crypto review",
         },
         "poh": poh_policy,
+        "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),
     }
 
 def _base_status_payload(request: Request) -> dict[str, Any]:
@@ -861,6 +863,21 @@ def status_launch_matrix(request: Request) -> dict[str, Any]:
         "phases": canonical["phases"],
         "truth_boundary": canonical["truth_boundary"],
     }
+
+
+@router.get("/status/testnet-capabilities")
+def status_testnet_capabilities(request: Request) -> dict[str, Any]:
+    """Return launch-matrix-bound controlled-testnet capability posture.
+
+    This public read model is a claim-control surface. It reports which
+    mechanisms have proof artifacts and which high-risk capabilities remain
+    blocked. It does not enable live economics, public validators, automatic
+    protocol upgrades, or production helper execution.
+    """
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    payload = build_testnet_capability_surface(state if isinstance(state, dict) else {})
+    return {"ok": True, **payload}
 
 
 @router.get("/status/operator")

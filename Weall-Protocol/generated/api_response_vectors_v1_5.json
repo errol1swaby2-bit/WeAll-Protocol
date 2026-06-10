@@ -1,0 +1,281 @@
+{
+  "missing_required_registry_codes": [],
+  "missing_routes": [],
+  "ok": true,
+  "schema": "weall.v1_5.api_response_vectors",
+  "standard_error_envelope": {
+    "error": {
+      "code": "stable_machine_code",
+      "details": "optional bounded object",
+      "message": "human-readable stable failure summary"
+    },
+    "ok": false
+  },
+  "truth_boundaries": {
+    "live_economics_enabled": false,
+    "public_beta_ready": false,
+    "public_validator_enabled": false,
+    "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
+  },
+  "vector_count": 10,
+  "vectors": [
+    {
+      "auth_case": "anonymous_public_read",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "chain_id",
+        "height",
+        "testnet_readiness"
+      ],
+      "id": "status-public-ok",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/status",
+      "privacy_boundary": "redacted public node status only; grants no authority",
+      "route_key": "GET /v1/status",
+      "route_present": true
+    },
+    {
+      "auth_case": "anonymous_public_read",
+      "contract_auth": "public_read_launch_capability_truth_boundary",
+      "contract_truth_boundary": "Read-only public launch capability matrix; does not activate or disable consensus rules by itself.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "schema",
+        "phase",
+        "disabled_features",
+        "feature_status"
+      ],
+      "id": "launch-matrix-public-ok",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/status/launch-matrix",
+      "privacy_boundary": "public guardrail status only; does not activate disabled features",
+      "route_key": "GET /v1/status/launch-matrix",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_required_or_empty_session_probe",
+      "contract_auth": "session_probe_optional_account_session",
+      "contract_truth_boundary": "Returns unauthenticated diagnostic status when headers are absent and scoped session status only when valid session headers are present; not a generic state snapshot.",
+      "error_codes": [
+        "session_required",
+        "session_invalid"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        200,
+        403
+      ],
+      "id": "session-me-requires-session",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/session/me",
+      "privacy_boundary": "session introspection must not become generic public account state",
+      "route_key": "GET /v1/session/me",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_required",
+      "contract_auth": "account_session_required",
+      "contract_truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots.",
+      "error_codes": [
+        "session_required",
+        "session_invalid",
+        "not_found"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403
+      ],
+      "id": "messages-require-session",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/messages/threads",
+      "privacy_boundary": "thread summaries are viewer-scoped and never public feed data",
+      "route_key": "GET /v1/messages/threads",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_required",
+      "contract_auth": "account_session_required",
+      "contract_truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session.",
+      "error_codes": [
+        "session_required",
+        "session_mismatch"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403
+      ],
+      "id": "poh-async-my-cases-requires-session",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/poh/async/my-cases",
+      "privacy_boundary": "viewer-scoped PoH case queue; private evidence is not public",
+      "route_key": "GET /v1/poh/async/my-cases",
+      "route_present": true
+    },
+    {
+      "auth_case": "session_aware_optional_public_read",
+      "contract_auth": "session_aware_poh_case_read_redacts_private_evidence",
+      "contract_truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions.",
+      "error_codes": [
+        "not_found",
+        "session_required",
+        "session_mismatch"
+      ],
+      "expected_http_statuses": [
+        200,
+        404
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "case"
+      ],
+      "id": "poh-async-case-redacts-private-evidence",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/poh/async/case/{case_id}",
+      "privacy_boundary": "public case reads redact private evidence unless applicant/reviewer session is authorized",
+      "route_key": "GET /v1/poh/async/case/{case_id}",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_and_live_room_participant_required",
+      "contract_auth": "live_session_participant_session_required",
+      "contract_truth_boundary": "WebRTC signal reads are live-session participant scoped and must not be indexed as generic public snapshots.",
+      "error_codes": [
+        "session_required",
+        "session_mismatch",
+        "not_found"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403,
+        404
+      ],
+      "id": "poh-live-signals-require-session-and-participation",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/poh/live/session/{session_id}/webrtc/signals",
+      "privacy_boundary": "transport-only signal queue visible only to the live-room participant",
+      "route_key": "GET /v1/poh/live/session/{session_id}/webrtc/signals",
+      "route_present": true
+    },
+    {
+      "auth_case": "poh_operator_token_required_env_gated",
+      "contract_auth": "poh_operator_token_required_env_gated",
+      "contract_truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves.",
+      "error_codes": [
+        "operator_poh_disabled",
+        "operator_token_required",
+        "operator_token_invalid"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "operator_poh_disabled"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403,
+        404
+      ],
+      "id": "poh-operator-disabled-or-token-gated",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "path": "/v1/poh/operator/live/init",
+      "privacy_boundary": "operator helper route enqueues deterministic system txs only; no public validator authority",
+      "route_key": "POST /v1/poh/operator/live/init",
+      "route_present": true
+    },
+    {
+      "auth_case": "node_or_observer_route_specific_authority",
+      "contract_auth": "relay_submit_transport_only_signature_validated_by_relay_envelope",
+      "contract_truth_boundary": "Relay submit stores transport envelopes only. It does not submit chain transactions or grant consensus authority.",
+      "error_codes": [
+        "relay_disabled",
+        "relay_auth_required",
+        "relay_auth_invalid"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "relay_disabled"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403,
+        404
+      ],
+      "id": "relay-submit-node-or-observer-authority",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "path": "/v1/net/relay/submit",
+      "privacy_boundary": "relay transport is not validator or consensus authority",
+      "route_key": "POST /v1/net/relay/submit",
+      "route_present": true
+    },
+    {
+      "auth_case": "signed_user_tx_required",
+      "contract_auth": "signed_canonical_tx_required",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [
+        "invalid_tx",
+        "signature_required",
+        "signature_invalid",
+        "chain_id_mismatch"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "invalid_tx"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        400,
+        403,
+        422
+      ],
+      "id": "tx-submit-user-signed-only",
+      "metadata_source": "static_generator_heuristic",
+      "method": "POST",
+      "path": "/v1/tx/submit",
+      "privacy_boundary": "public ingress rejects SYSTEM and receipt-only submissions",
+      "route_key": "POST /v1/tx/submit",
+      "route_present": true
+    }
+  ],
+  "version": "2026-06-b587-testnet-mechanism-pack"
+}

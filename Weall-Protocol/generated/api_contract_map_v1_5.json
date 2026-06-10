@@ -23,7 +23,7 @@
     "session": 3,
     "social": 2,
     "state": 5,
-    "status": 14,
+    "status": 15,
     "storage_ops": 1,
     "tx": 6
   },
@@ -37,7 +37,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 130,
+  "route_count": 131,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -165,7 +165,7 @@
       "route_id": "0d0c21fba15f0d7d",
       "route_path_without_v1_prefix": "/chain/genesis",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1318,
+      "source_lineno": 1335,
       "summary": "",
       "tags": [
         "status"
@@ -187,7 +187,7 @@
       "route_id": "d90596655609b2d1",
       "route_path_without_v1_prefix": "/chain/head",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1350,
+      "source_lineno": 1367,
       "summary": "",
       "tags": [
         "status"
@@ -209,7 +209,7 @@
       "route_id": "4ecc6d509148c5f2",
       "route_path_without_v1_prefix": "/chain/identity",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1179,
+      "source_lineno": 1196,
       "summary": "",
       "tags": [
         "status"
@@ -231,7 +231,7 @@
       "route_id": "e2da20eef560658e",
       "route_path_without_v1_prefix": "/chain/manifest",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1342,
+      "source_lineno": 1359,
       "summary": "",
       "tags": [
         "status"
@@ -253,7 +253,7 @@
       "route_id": "86cd04c4c5a90d93",
       "route_path_without_v1_prefix": "/chain/state-root",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1304,
+      "source_lineno": 1321,
       "summary": "",
       "tags": [
         "status"
@@ -583,7 +583,7 @@
       "route_id": "216390ead2051b33",
       "route_path_without_v1_prefix": "/genesis/api/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1297,
+      "source_lineno": 1314,
       "summary": "",
       "tags": [
         "status"
@@ -605,7 +605,7 @@
       "route_id": "661f19e1d30f08fb",
       "route_path_without_v1_prefix": "/genesis/observer/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1292,
+      "source_lineno": 1309,
       "summary": "",
       "tags": [
         "status"
@@ -2541,7 +2541,7 @@
       "route_id": "be5d9602f9599ef5",
       "route_path_without_v1_prefix": "/status",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 819,
+      "source_lineno": 821,
       "summary": "",
       "tags": [
         "status"
@@ -2563,7 +2563,7 @@
       "route_id": "db51cc46f9730dc6",
       "route_path_without_v1_prefix": "/status/attestations",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1084,
+      "source_lineno": 1101,
       "summary": "",
       "tags": [
         "status"
@@ -2585,7 +2585,7 @@
       "route_id": "74a5409421093209",
       "route_path_without_v1_prefix": "/status/consensus",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 958,
+      "source_lineno": 975,
       "summary": "",
       "tags": [
         "status"
@@ -2607,7 +2607,7 @@
       "route_id": "fa72cedc5632f049",
       "route_path_without_v1_prefix": "/status/consensus/forensics",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1018,
+      "source_lineno": 1035,
       "summary": "",
       "tags": [
         "status"
@@ -2651,7 +2651,7 @@
       "route_id": "1534569b4cda4bd2",
       "route_path_without_v1_prefix": "/status/launch-matrix",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 841,
+      "source_lineno": 843,
       "summary": "",
       "tags": [
         "status"
@@ -2673,7 +2673,7 @@
       "route_id": "208a266861a653b0",
       "route_path_without_v1_prefix": "/status/mempool",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1051,
+      "source_lineno": 1068,
       "summary": "",
       "tags": [
         "status"
@@ -2695,12 +2695,34 @@
       "route_id": "a210b04d984754f9",
       "route_path_without_v1_prefix": "/status/operator",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 867,
+      "source_lineno": 884,
       "summary": "",
       "tags": [
         "status"
       ],
       "truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting."
+    },
+    {
+      "auth": "public_read_launch_matrix_bound_testnet_capability_surface",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "status_testnet_capabilities",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "status",
+      "path": "/v1/status/testnet-capabilities",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "928b6cc7afdccd75",
+      "route_path_without_v1_prefix": "/status/testnet-capabilities",
+      "source": "src/weall/api/routes_public_parts/status.py",
+      "source_lineno": 869,
+      "summary": "",
+      "tags": [
+        "status"
+      ],
+      "truth_boundary": "Testnet capability status is a launch-matrix-bound claim-control surface. It reports completed mechanisms and disabled high-risk capabilities but grants no validator, economic, helper, upgrade, legal, or public beta authority."
     },
     {
       "auth": "public_read_redacted_snapshot",

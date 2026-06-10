@@ -19,6 +19,8 @@ RELEASE_ARTIFACTS = [
     Path("generated/tokenomics_simulation_v1_5.json"),
     Path("generated/failure_code_registry_v1_5.json"),
     Path("generated/public_validator_bft_preflight_matrix_v1_5.json"),
+    Path("generated/api_response_vectors_v1_5.json"),
+    Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
 ]
 GITIGNORE_EXCEPTIONS = [f"!{path.as_posix()}" for path in RELEASE_ARTIFACTS]
 
@@ -136,6 +138,35 @@ def _check_failure_code_registry() -> list[str]:
     return errors
 
 
+
+def _check_api_response_vectors() -> list[str]:
+    errors = _run_check("gen_api_response_vectors_v1_5.py")
+    payload = _load_json(Path("generated/api_response_vectors_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.api_response_vectors":
+        errors.append("api response vector schema mismatch")
+    if int(payload.get("vector_count") or 0) < 8:
+        errors.append("api response vector pack unexpectedly small")
+    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    if boundaries.get("public_beta_ready") is not False:
+        errors.append("api response vectors must not claim public beta readiness")
+    return errors
+
+
+def _check_b587_b594_mechanisms() -> list[str]:
+    errors = _run_check("gen_b587_b594_testnet_mechanism_completion_v1_5.py")
+    payload = _load_json(Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.batch587_594.testnet_mechanism_completion":
+        errors.append("B587-B594 mechanism artifact schema mismatch")
+    if payload.get("controlled_testnet_mechanisms_complete") is not True:
+        errors.append("B587-B594 artifact must complete controlled testnet mechanisms")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("B587-B594 artifact must not claim public beta readiness")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("live_economics", "public_validator_readiness", "production_helper_execution", "automatic_protocol_upgrades"):
+        if boundaries.get(key) is not False:
+            errors.append(f"B587-B594 boundary must keep {key}=false")
+    return errors
+
 def _check_public_validator_preflight() -> list[str]:
     errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
@@ -185,6 +216,8 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_tokenomics_simulation())
         errors.extend(_check_failure_code_registry())
         errors.extend(_check_public_validator_preflight())
+        errors.extend(_check_api_response_vectors())
+        errors.extend(_check_b587_b594_mechanisms())
     if args.require_git_tracked:
         errors.extend(_check_git_tracked())
     if errors:
