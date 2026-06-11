@@ -515,6 +515,7 @@ _register_many(
         "DISPUTE_EVIDENCE_BIND",
         "DISPUTE_JUROR_ACCEPT",
         "DISPUTE_JUROR_DECLINE",
+        "DISPUTE_JUROR_WITHDRAW",
         "DISPUTE_VOTE_SUBMIT",
         "DISPUTE_APPEAL",
         "DISPUTE_FINAL_RECEIPT",
@@ -523,7 +524,7 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ATTENDANCE", "DISPUTE_RESOLVE"], TxFamily.DISPUTE, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_TIMEOUT", "DISPUTE_JUROR_ATTENDANCE", "DISPUTE_RESOLVE"], TxFamily.DISPUTE, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
 
 _register_many(["CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"], TxFamily.CASES, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["MOD_ACTION_RECEIPT", "FLAG_ESCALATION_RECEIPT"], TxFamily.MODERATION, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)

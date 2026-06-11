@@ -146,6 +146,8 @@
     "2619": 228,
     "2620": 229,
     "2621": 230,
+    "2622": 231,
+    "2623": 232,
     "3": 2,
     "300": 46,
     "301": 47,
@@ -293,6 +295,8 @@
     "DISPUTE_JUROR_ASSIGN": 38,
     "DISPUTE_JUROR_ATTENDANCE": 41,
     "DISPUTE_JUROR_DECLINE": 40,
+    "DISPUTE_JUROR_TIMEOUT": 232,
+    "DISPUTE_JUROR_WITHDRAW": 231,
     "DISPUTE_OPEN": 34,
     "DISPUTE_RESOLVE": 43,
     "DISPUTE_STAGE_SET": 35,
@@ -470,7 +474,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "079db6ee41a626bb2f77e162f4de04340e4fc1a3a4c5ab70c33645aefe970504",
+  "source_sha256": "58fcd0decd71466c2a5f67dc38b3bb3616c0b2afda4988ff8e7e206b8f43ca97",
   "tx_types": [
     {
       "context": "mempool",
@@ -3147,6 +3151,30 @@
       "name": "VALIDATOR_READINESS_VERIFY",
       "origin": "SYSTEM",
       "receipt_only": true
+    },
+    {
+      "context": "mempool",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "03934286ea69168f",
+      "name": "DISPUTE_JUROR_WITHDRAW",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Juror"
+    },
+    {
+      "context": "block",
+      "domain": "Dispute",
+      "gates": {
+        "subject_gate": "Juror"
+      },
+      "id": "4e0d11268ba9b680",
+      "name": "DISPUTE_JUROR_TIMEOUT",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "subject_gate": "Juror"
     }
   ]
 }

@@ -19,6 +19,7 @@
     "net_self": 1,
     "nodes": 3,
     "poh": 39,
+    "reputation": 2,
     "reviewer_artifacts": 3,
     "session": 3,
     "social": 2,
@@ -37,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 131,
+  "route_count": 133,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -2281,6 +2282,50 @@
       "summary": "",
       "tags": [
         "health"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_reputation_events",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "reputation",
+      "path": "/v1/reputation/{account}/events",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "07458def0b2ed72f",
+      "route_path_without_v1_prefix": "/reputation/{account}/events",
+      "source": "src/weall/api/routes_public_parts/reputation.py",
+      "source_lineno": 34,
+      "summary": "",
+      "tags": [
+        "reputation"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_reputation_summary",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "reputation",
+      "path": "/v1/reputation/{account}/summary",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "6d8522c10c4fd74f",
+      "route_path_without_v1_prefix": "/reputation/{account}/summary",
+      "source": "src/weall/api/routes_public_parts/reputation.py",
+      "source_lineno": 25,
+      "summary": "",
+      "tags": [
+        "reputation"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },

@@ -6,7 +6,7 @@ Batch 315 synchronizes public-facing documentation with the current post-hardeni
 
 ## Current checkpoint
 
-- Transaction canon: 231 tx types, version 1.25.0
+- Transaction canon: 233 tx types, version 1.25.0
 - Latest full backend test checkpoint: 3405 passed, 2 warnings
 - Backend release locks: `requirements.lock`, `requirements-dev.lock`
 - Frontend release lock: `web/package-lock.json`

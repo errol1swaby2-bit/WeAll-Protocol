@@ -846,6 +846,34 @@
       "claim_handlers": [
         "dispute"
       ],
+      "context": "block",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "DISPUTE_JUROR_TIMEOUT"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "dispute"
+      ],
+      "context": "mempool",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "DISPUTE_JUROR_WITHDRAW"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "dispute"
+      ],
       "context": "mempool",
       "domain": "Dispute",
       "handler": "dispute",
@@ -3236,8 +3264,8 @@
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 231,
-  "single_claim_count": 231,
-  "tx_count": 231,
+  "schema_covered_count": 233,
+  "single_claim_count": 233,
+  "tx_count": 233,
   "unclaimed_count": 0
 }

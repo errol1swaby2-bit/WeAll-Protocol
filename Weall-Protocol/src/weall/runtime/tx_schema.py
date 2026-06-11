@@ -1237,6 +1237,17 @@ class DisputeJurorDeclinePayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
 
 
+class DisputeJurorWithdrawPayload(_StrictModel):
+    dispute_id: str = Field(..., min_length=1)
+    reason: str | None = None
+
+
+class DisputeJurorTimeoutPayload(_StrictModel):
+    dispute_id: str = Field(..., min_length=1)
+    juror_id: str = Field(..., min_length=1, validation_alias=AliasChoices("juror_id", "juror"))
+    deadline_height: int | None = Field(default=None, ge=0)
+
+
 class DisputeJurorAttendancePayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
     present: bool | int | None = None
@@ -2083,6 +2094,8 @@ TX_PAYLOADS: dict[str, Any] = {
     "DISPUTE_JUROR_ASSIGN": DisputeJurorAssignPayload,
     "DISPUTE_JUROR_ACCEPT": DisputeJurorAcceptPayload,
     "DISPUTE_JUROR_DECLINE": DisputeJurorDeclinePayload,
+    "DISPUTE_JUROR_WITHDRAW": DisputeJurorWithdrawPayload,
+    "DISPUTE_JUROR_TIMEOUT": DisputeJurorTimeoutPayload,
     "DISPUTE_JUROR_ATTENDANCE": DisputeJurorAttendancePayload,
     "DISPUTE_EVIDENCE_DECLARE": DisputeEvidenceDeclarePayload,
     "DISPUTE_EVIDENCE_BIND": DisputeEvidenceBindPayload,

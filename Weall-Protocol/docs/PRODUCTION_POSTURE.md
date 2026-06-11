@@ -253,7 +253,7 @@ Violations of this production posture MUST result in:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **233 transaction types**, canon version **1.25.0**.
 - Latest full backend test checkpoint: **3405 passed, 2 warnings**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.

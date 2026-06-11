@@ -23,6 +23,7 @@ from weall.api.routes_public_parts.net_relay import router as net_relay_router
 from weall.api.routes_public_parts.net_self import router as net_self_router
 from weall.api.routes_public_parts.nodes import router as nodes_router
 from weall.api.routes_public_parts.poh import router as poh_router
+from weall.api.routes_public_parts.reputation import router as reputation_router
 from weall.api.routes_public_parts.session import router as session_router
 from weall.api.routes_public_parts.social import router as social_router
 from weall.api.routes_public_parts.state import router as state_router
@@ -47,6 +48,7 @@ public_router.include_router(mempool_router, prefix="/v1", tags=["mempool"])
 public_router.include_router(tx_router, prefix="/v1", tags=["tx"])
 public_router.include_router(consensus_router, prefix="/v1", tags=["consensus"])
 public_router.include_router(poh_router, prefix="/v1", tags=["poh"])
+public_router.include_router(reputation_router, prefix="/v1", tags=["reputation"])
 public_router.include_router(content_router, prefix="/v1", tags=["content"])
 public_router.include_router(disputes_router, prefix="/v1", tags=["disputes"])
 public_router.include_router(economics_router, prefix="/v1", tags=["economics"])

@@ -291,7 +291,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 758
+      "source_lineno": 868
     },
     {
       "code": "duplicate",
@@ -669,7 +669,7 @@
       "http_status": null,
       "sample_reason": "missing_target",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 753
+      "source_lineno": 863
     },
     {
       "code": "invalid_payload",
@@ -732,7 +732,7 @@
       "http_status": null,
       "sample_reason": "missing_account_id",
       "source": "src/weall/runtime/apply/reputation.py",
-      "source_lineno": 302
+      "source_lineno": 326
     },
     {
       "code": "invalid_payload",
@@ -1227,7 +1227,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 740
+      "source_lineno": 850
     },
     {
       "code": "not_found",
@@ -1542,7 +1542,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1469
+      "source_lineno": 1712
     },
     {
       "code": "validator_mismatch",

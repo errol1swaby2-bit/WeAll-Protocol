@@ -514,6 +514,14 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/operator-status${query}`, base, headers);
   },
 
+  reputationSummary(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/summary`, base, headers);
+  },
+
+  reputationEvents(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/events`, base, headers);
+  },
+
   accountNonce(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers).then((r: any) => ({ ok: true, account, nonce: r?.state?.nonce ?? 0, next_nonce: r?.state?.nonce ?? 0 }));
   },

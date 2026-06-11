@@ -4,7 +4,7 @@ Repository snapshot date: 2026-05-02
 Protocol version: `2026.03-prod.6`
 Protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
 Transaction canon index: `1.25.0`
-Transaction canon count: `231`
+Transaction canon count: `233`
 
 ## Enforced production posture
 
@@ -68,7 +68,7 @@ Before enabling signing, validators should verify:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **233 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.

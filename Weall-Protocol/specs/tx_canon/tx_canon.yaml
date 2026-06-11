@@ -1848,3 +1848,20 @@ txs:
   receipt_only: true
   parent: NODE_OPERATOR_VALIDATOR_OPT_IN
   system_only: true
+
+- id: 2622
+  name: DISPUTE_JUROR_WITHDRAW
+  domain: Dispute
+  origin: USER
+  gate: Juror
+  context: mempool
+  receipt_only: false
+- id: 2623
+  name: DISPUTE_JUROR_TIMEOUT
+  domain: Dispute
+  origin: SYSTEM
+  gate: Juror
+  context: block
+  receipt_only: true
+  parent: DISPUTE_JUROR_ACCEPT
+  system_only: true

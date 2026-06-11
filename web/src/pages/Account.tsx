@@ -88,6 +88,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [nonce, setNonce] = useState<any>(null);
   const [acctView, setAcctView] = useState<any>(null);
   const [operatorStatus, setOperatorStatus] = useState<any>(null);
+  const [reputationMatrix, setReputationMatrix] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [following, setFollowing] = useState<any>(null);
   const [socialMe, setSocialMe] = useState<any>(null);
@@ -112,6 +113,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       nonce: weall.accountNonce(acct, base),
       account: weall.account(acct, base),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
+      reputationMatrix: weall.reputationSummary(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
       following: weall.socialFollowing(acct, base),
     };
@@ -133,6 +135,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
     setOperatorStatus(out.operatorStatus ?? null);
+    setReputationMatrix(out.reputationMatrix ?? null);
     setRegistered(out.registered ?? null);
     setFollowing(out.following ?? null);
     setSocialMe(out.socialMe ?? null);
@@ -165,6 +168,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const locked = !!state?.locked;
   const follows = Array.isArray(following?.following) ? following.following : [];
   const tone = reputationTone(reputation);
+  const matrixDimensions = asRecord(reputationMatrix?.dimensions);
+  const matrixPublicDimensionRows = Object.values(matrixDimensions).filter(
+    (row: any) => row && typeof row === "object" && row.visibility !== "private",
+  );
+  const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
@@ -501,6 +509,68 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       <WalletPanel account={acct} base={base} />
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Reputation Matrix</div>
+              <h2 className="cardTitle">Public trust dimensions</h2>
+            </div>
+            <span className="statusPill ok">Deterministic read model</span>
+          </div>
+
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Public aggregate</div>
+              <div className="summaryCardValue">{matrixAggregateScore}</div>
+              <div className="summaryCardText">
+                Derived from canonical protocol state and public matrix dimensions only.
+              </div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Formula version</div>
+              <div className="summaryCardValue">v{num(reputationMatrix?.version, 1)}</div>
+              <div className="summaryCardText">
+                Integer milli-units, no frontend-only scoring, and no local wall-clock penalties.
+              </div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Private boundary</div>
+              <div className="summaryCardValue">{reputationMatrix?.visibility?.private_revealed ? "Owner view" : "Public view"}</div>
+              <div className="summaryCardText">
+                Internal abuse-risk signals stay hidden unless the account owner is authenticated.
+              </div>
+            </article>
+          </div>
+
+          <div className="infoGrid">
+            {matrixPublicDimensionRows.length ? (
+              matrixPublicDimensionRows.map((row: any) => (
+                <div key={String(row.dimension)} className="infoCard compact">
+                  <div className="infoCardHeader">
+                    <span className={`statusPill ${num(row.score_milli, 0) >= 0 ? "ok" : ""}`}>
+                      {String(row.level || "neutral")}
+                    </span>
+                    <strong>{String(row.dimension || "dimension").replace(/_/g, " ")}</strong>
+                  </div>
+                  <div className="infoCardText">
+                    {num(row.score_milli, 0)} milli • {num(row.event_count, 0)} event{num(row.event_count, 0) === 1 ? "" : "s"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="infoCard compact">
+                <div className="infoCardHeader">
+                  <span className="statusPill">Loading</span>
+                  <strong>Matrix unavailable</strong>
+                </div>
+                <div className="infoCardText">The reputation matrix read model has not loaded yet.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="card">
         <div className="cardBody formStack">
