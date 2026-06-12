@@ -334,7 +334,9 @@ class SqliteDB:
                   tx_type TEXT NOT NULL,
                   nonce INTEGER,
                   received_ms INTEGER NOT NULL,
-                  expires_ms INTEGER NOT NULL
+                  expires_ms INTEGER NOT NULL,
+                  admitted_at_height INTEGER NOT NULL DEFAULT 0,
+                  expires_at_height INTEGER NOT NULL DEFAULT 0
                 );
                 """
             )
@@ -347,6 +349,11 @@ class SqliteDB:
             }
             if "nonce" not in mempool_cols:
                 con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
+            if "admitted_at_height" not in mempool_cols:
+                con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+            if "expires_at_height" not in mempool_cols:
+                con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);")
             con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);")
             con.execute(
                 """

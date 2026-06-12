@@ -197,7 +197,13 @@ def build_block_candidate(
     )
     fetch_for_block = getattr(self._mempool, "fetch_for_block", None)
     if callable(fetch_for_block):
-        txs = list(fetch_for_block(limit=int(max_txs), policy=pinned_selection_policy))
+        txs = list(
+            fetch_for_block(
+                limit=int(max_txs),
+                policy=pinned_selection_policy,
+                candidate_height=int(next_height_for_clock),
+            )
+        )
     else:
         txs = self._mempool.peek(limit=int(max_txs))
     runtime_helper_execution_profile = self._requested_helper_execution_profile()

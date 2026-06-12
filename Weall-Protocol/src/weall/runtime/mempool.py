@@ -105,7 +105,17 @@ def _envelope_for_id(env: Json) -> Json:
     """
     out: Json = {}
     for k, v in env.items():
-        if k in {"tx_id", "received_ms", "expires_ms"}:
+        if k in {
+            "tx_id",
+            "received_ms",
+            "expires_ms",
+            # Local mempool metadata. These fields are stamped by the receiving
+            # node for storage/diagnostics and must never affect the canonical
+            # transaction identity or signature domain. Consensus candidate
+            # eligibility is anchored by the persisted height columns below.
+            "mempool_admitted_height",
+            "mempool_expires_height",
+        }:
             continue
         out[k] = v
     return out
@@ -134,6 +144,40 @@ def _expires_ms(env: Json, *, fallback_ttl_ms: int) -> int:
         return _safe_int(ex, _now_ms() + fallback_ttl_ms)
     return _now_ms() + fallback_ttl_ms
 
+
+
+
+def _extract_height_field(env: Json, *names: str) -> int:
+    """Extract a non-negative protocol-height field from a raw envelope.
+
+    Mempool height fields are local protocol metadata, not transaction payload
+    semantics. We intentionally only inspect the envelope top-level. Domain
+    payloads commonly contain their own expiry heights (for PoH/storage/etc.),
+    and those must not be confused with mempool candidate eligibility.
+    """
+
+    if not isinstance(env, dict):
+        return 0
+    for name in names:
+        raw = env.get(name)
+        if raw is None:
+            continue
+        try:
+            value = int(raw)
+        except Exception:
+            continue
+        if value > 0:
+            return int(value)
+    return 0
+
+
+def _height_or_zero(value: int | None) -> int:
+    try:
+        if value is None:
+            return 0
+        return max(0, int(value))
+    except Exception:
+        return 0
 
 def _extract_nonce(env: Json) -> int | None:
     try:
@@ -202,7 +246,10 @@ class PersistentMempool:
     """SQLite-backed mempool.
 
     Table schema:
-      mempool(tx_id PK, envelope_json, signer, tx_type, nonce, received_ms, expires_ms)
+      mempool(
+        tx_id PK, envelope_json, signer, tx_type, nonce,
+        received_ms, expires_ms, admitted_at_height, expires_at_height
+      )
 
     Admission hardening:
       - at most one pending tx per (signer, nonce) pair (indexed in SQLite)
@@ -301,20 +348,29 @@ class PersistentMempool:
         ).fetchone()
         return int(row["n"]) if row is not None else 0
 
-    def _mempool_has_nonce_column(self, *, con) -> bool:
+    def _mempool_has_column(self, *, con, column: str) -> bool:
         rows = con.execute("PRAGMA table_info(mempool);").fetchall()
         for row in rows:
             try:
-                if str(row["name"]) == "nonce":
+                if str(row["name"]) == str(column):
                     return True
             except Exception:
                 continue
         return False
 
+    def _mempool_has_nonce_column(self, *, con) -> bool:
+        return self._mempool_has_column(con=con, column="nonce")
+
     def _add_nonce_column_if_missing(self, *, con) -> None:
         if self._mempool_has_nonce_column(con=con):
             return
         con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
+
+    def _add_height_columns_if_missing(self, *, con) -> None:
+        if not self._mempool_has_column(con=con, column="admitted_at_height"):
+            con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+        if not self._mempool_has_column(con=con, column="expires_at_height"):
+            con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
 
     def _backfill_nonce_column(self, *, con) -> None:
         rows = con.execute(
@@ -373,11 +429,18 @@ class PersistentMempool:
             """
         )
 
+    def _ensure_height_indexes(self, *, con) -> None:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);"
+        )
+
     def _ensure_nonce_index_ready(self) -> None:
         with self.db.write_tx() as con:
             self._add_nonce_column_if_missing(con=con)
+            self._add_height_columns_if_missing(con=con)
             self._backfill_nonce_column(con=con)
             self._ensure_nonce_indexes(con=con)
+            self._ensure_height_indexes(con=con)
 
     def _prune_expired_if_due(self, *, con, now_ms: int) -> None:
         if not self.prune_on_add:
@@ -455,7 +518,13 @@ class PersistentMempool:
             self._last_prune_ms = int(now)
             return int(n)
 
-    def add(self, env: Json) -> Json:
+    def add(
+        self,
+        env: Json,
+        *,
+        current_height: int | None = None,
+        expires_at_height: int | None = None,
+    ) -> Json:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
 
@@ -474,6 +543,16 @@ class PersistentMempool:
 
         requested_received_ms = _now_ms()
         expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
+        admitted_at_height = _height_or_zero(current_height)
+        protocol_expires_at_height = _height_or_zero(expires_at_height)
+        if protocol_expires_at_height <= 0:
+            protocol_expires_at_height = _extract_height_field(
+                env,
+                "mempool_expires_height",
+                "valid_until_height",
+                "expires_at_height",
+                "expires_height",
+            )
 
         with self.db.write_tx() as con:
             now = _now_ms()
@@ -496,6 +575,8 @@ class PersistentMempool:
             env_persist["tx_id"] = tx_id
             env_persist["received_ms"] = received_ms
             env_persist["expires_ms"] = expires_ms
+            env_persist["mempool_admitted_height"] = admitted_at_height
+            env_persist["mempool_expires_height"] = protocol_expires_at_height
             env_json = _canon_json(env_persist)
 
             nonce = _extract_nonce(env)
@@ -598,11 +679,22 @@ class PersistentMempool:
             con.execute(
                 """
                 INSERT OR IGNORE INTO mempool(
-                    tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms
+                    tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms,
+                    admitted_at_height, expires_at_height
                 )
-                VALUES(?, ?, ?, ?, ?, ?, ?);
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
-                (tx_id, env_json, signer, tx_type, nonce, int(received_ms), int(expires_ms)),
+                (
+                    tx_id,
+                    env_json,
+                    signer,
+                    tx_type,
+                    nonce,
+                    int(received_ms),
+                    int(expires_ms),
+                    int(admitted_at_height),
+                    int(protocol_expires_at_height),
+                ),
             )
 
             row = con.execute(
@@ -628,12 +720,18 @@ class PersistentMempool:
                         env["received_ms"] = existing_env.get("received_ms")
                     if "expires_ms" in existing_env:
                         env["expires_ms"] = existing_env.get("expires_ms")
+                    if "mempool_admitted_height" in existing_env:
+                        env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                    if "mempool_expires_height" in existing_env:
+                        env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
                     return {
                         "ok": True,
                         "tx_id": tx_id,
                         "already_known": True,
                         "received_ms": existing_env.get("received_ms"),
                         "expires_ms": existing_env.get("expires_ms"),
+                        "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                        "expires_at_height": existing_env.get("mempool_expires_height", 0),
                     }
                 return {"ok": False, "error": "tx_id_conflict"}
 
@@ -641,7 +739,16 @@ class PersistentMempool:
         env["tx_id"] = tx_id
         env["received_ms"] = received_ms
         env["expires_ms"] = expires_ms
-        return {"ok": True, "tx_id": tx_id, "received_ms": received_ms, "expires_ms": expires_ms}
+        env["mempool_admitted_height"] = admitted_at_height
+        env["mempool_expires_height"] = protocol_expires_at_height
+        return {
+            "ok": True,
+            "tx_id": tx_id,
+            "received_ms": received_ms,
+            "expires_ms": expires_ms,
+            "admitted_at_height": admitted_at_height,
+            "expires_at_height": protocol_expires_at_height,
+        }
 
     def remove(self, env_or_tx_id: Any) -> Json:
         if isinstance(env_or_tx_id, str):
@@ -699,6 +806,17 @@ class PersistentMempool:
                 env = json.loads(str(r["envelope_json"]))
             except Exception:
                 env = {}
+            try:
+                admitted_at_height = int(r["admitted_at_height"] or 0)
+            except Exception:
+                admitted_at_height = _extract_height_field(env, "mempool_admitted_height")
+            try:
+                expires_at_height = int(r["expires_at_height"] or 0)
+            except Exception:
+                expires_at_height = _extract_height_field(env, "mempool_expires_height")
+            if isinstance(env, dict):
+                env.setdefault("mempool_admitted_height", admitted_at_height)
+                env.setdefault("mempool_expires_height", expires_at_height)
             out.append((env, int(r["received_ms"]), str(r["tx_id"])))
         return out
 
@@ -707,7 +825,7 @@ class PersistentMempool:
         with self.db.connection() as con:
             rows = con.execute(
                 """
-                SELECT envelope_json, received_ms, tx_id
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
                 FROM mempool
                 WHERE expires_ms > ?
                 ORDER BY received_ms ASC, tx_id ASC
@@ -722,7 +840,7 @@ class PersistentMempool:
         with self.db.connection() as con:
             rows = con.execute(
                 """
-                SELECT envelope_json, received_ms, tx_id
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
                 FROM mempool
                 WHERE expires_ms > ?
                 ORDER BY nonce ASC, signer ASC, tx_type ASC, tx_id ASC
@@ -732,30 +850,95 @@ class PersistentMempool:
             ).fetchall()
         return self._decode_rows(list(rows or []))
 
-    def fetch_for_block(self, *, limit: int = 1000, policy: str | None = None, now_ms: int | None = None) -> list[Json]:
+    def _load_candidate_rows_fifo(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        h = int(candidate_height)
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
+                FROM mempool
+                WHERE admitted_at_height <= ?
+                  AND (expires_at_height <= 0 OR expires_at_height >= ?)
+                ORDER BY received_ms ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (h, h, int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def _load_candidate_rows_canonical(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        h = int(candidate_height)
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
+                FROM mempool
+                WHERE admitted_at_height <= ?
+                  AND (expires_at_height <= 0 OR expires_at_height >= ?)
+                ORDER BY nonce ASC, signer ASC, tx_type ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (h, h, int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def fetch_for_block(
+        self,
+        *,
+        limit: int = 1000,
+        policy: str | None = None,
+        now_ms: int | None = None,
+        candidate_height: int | None = None,
+    ) -> list[Json]:
         lim = int(limit) if int(limit) > 0 else 1000
         pol = _selection_policy_name(policy or self.selection_policy())
-        now = int(_now_ms() if now_ms is None else int(now_ms))
         try:
-            if pol == "canonical":
-                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+            if candidate_height is not None:
+                h = int(candidate_height)
+                if pol == "canonical":
+                    rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
+                else:
+                    rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
             else:
-                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
+                # Local diagnostic/back-compat path only. Consensus block construction
+                # must pass candidate_height so eligibility is anchored to protocol
+                # height, not the receiver's wall clock.
+                now = int(_now_ms() if now_ms is None else int(now_ms))
+                if pol == "canonical":
+                    rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+                else:
+                    rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception:
             return []
         if pol == "canonical":
             rows.sort(key=lambda item: self._selection_key(item[0]))
         return [dict(env) if isinstance(env, dict) else {} for env, _received_ms, _tx_id in rows]
 
-    def selection_diagnostics(self, *, limit: int = 10, policy: str | None = None, now_ms: int | None = None) -> Json:
+    def selection_diagnostics(
+        self,
+        *,
+        limit: int = 10,
+        policy: str | None = None,
+        now_ms: int | None = None,
+        candidate_height: int | None = None,
+    ) -> Json:
         lim = int(limit) if int(limit) > 0 else 10
         pol = _selection_policy_name(policy or self.selection_policy())
         try:
-            now = int(_now_ms() if now_ms is None else int(now_ms))
-            if pol == "canonical":
-                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+            if candidate_height is not None:
+                h = int(candidate_height)
+                if pol == "canonical":
+                    rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
+                else:
+                    rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
             else:
-                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
+                now = int(_now_ms() if now_ms is None else int(now_ms))
+                if pol == "canonical":
+                    rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+                else:
+                    rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception as exc:
             return {
                 "policy": pol,
@@ -776,12 +959,15 @@ class PersistentMempool:
                     "signer": str(base.get("signer") or ""),
                     "nonce": int(_extract_nonce(base) or 0),
                     "received_ms": int(base.get("received_ms") or received_ms),
+                    "mempool_admitted_height": int(base.get("mempool_admitted_height") or 0),
+                    "mempool_expires_height": int(base.get("mempool_expires_height") or 0),
                     "order_key": list(self._selection_key(base)),
                 }
             )
         return {
             "policy": pol,
             "preview_limit": lim,
+            **({"candidate_height": int(candidate_height)} if candidate_height is not None else {}),
             "size": self.size(),
             "items": items,
         }

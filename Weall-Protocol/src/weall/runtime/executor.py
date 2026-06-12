@@ -1253,7 +1253,7 @@ class WeAllExecutor:
                 "details": verdict.details,
             }
 
-        return self._mempool.add(env)
+        return self._mempool.add(env, current_height=_safe_int(self.state.get("height"), 0))
 
     def submit_attestation(self, env: Json) -> Json:
         if not isinstance(env, dict):

@@ -1060,9 +1060,17 @@ class NetMeshLoop:
                 inc_counter(f"net_tx_reject_{code}")
                 return
 
-            # Submit to mempool (best-effort)
+            # Submit to mempool (best-effort). Persist the local admission height
+            # as protocol metadata so block-candidate eligibility is anchored to
+            # candidate height rather than wall-clock expiry.
             try:
-                self._mempool.add(tx)
+                current_height = 0
+                if isinstance(st, dict):
+                    try:
+                        current_height = int(st.get("height") or 0)
+                    except Exception:
+                        current_height = 0
+                self._mempool.add(tx, current_height=current_height)
             except Exception as e:
                 if _is_prod():
                     raise TxIngressProcessingError("tx_ingress_mempool_add_failed") from e
