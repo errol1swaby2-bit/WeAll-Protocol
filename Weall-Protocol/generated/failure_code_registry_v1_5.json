@@ -219,7 +219,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 764
+      "source_lineno": 777
     },
     {
       "code": "conflict",
@@ -1542,7 +1542,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1758
+      "source_lineno": 1778
     },
     {
       "code": "validator_mismatch",

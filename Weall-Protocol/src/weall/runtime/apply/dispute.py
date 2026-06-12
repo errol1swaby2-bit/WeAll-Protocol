@@ -1248,21 +1248,41 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     d = _get_dispute(state, dispute_id)
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
-    j = _require_juror_status(d, env.signer, {"assigned", "accepted"})
+    j = _require_juror_status(d, env.signer, {"assigned", "accepted", "present", "attended"})
     status = _as_str(j.get("status")).strip().lower()
     if status in {"", "assigned"}:
-        j["status"] = "accepted"
-        j.setdefault("accepted_at_nonce", int(env.nonce))
+        # Voting must not implicitly accept a juror assignment. The explicit
+        # accept/attendance step establishes the deterministic review window and
+        # reputation obligation before a juror can mutate the vote read model.
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_not_present",
+            {
+                "dispute_id": dispute_id,
+                "juror": env.signer,
+                "status": status or "assigned",
+                "requires": "DISPUTE_JUROR_ACCEPT",
+            },
+        )
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+        d["jurors"] = jurors
+    if status == "accepted" and _as_int(j.get("vote_deadline_height"), 0) <= 0:
         _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
-        jurors = d.get("jurors")
-        if not isinstance(jurors, dict):
-            jurors = {}
-            d["jurors"] = jurors
         jurors[juror_key] = j
     att = j.get("attendance")
-    if isinstance(att, dict) and not bool(att.get("present", False)):
+    attendance_present = (isinstance(att, dict) and bool(att.get("present", False))) or status in {"present", "attended"}
+    if not attendance_present:
         raise DisputeApplyError(
-            "forbidden", "juror_not_present", {"dispute_id": dispute_id, "juror": env.signer}
+            "forbidden",
+            "juror_not_present",
+            {
+                "dispute_id": dispute_id,
+                "juror": env.signer,
+                "status": status,
+                "requires": "DISPUTE_JUROR_ACCEPT",
+            },
         )
     deadline = _as_int(j.get("vote_deadline_height"), 0)
     if deadline > 0 and _current_height(state) > deadline:

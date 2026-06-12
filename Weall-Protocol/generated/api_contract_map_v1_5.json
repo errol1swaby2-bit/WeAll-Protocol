@@ -496,7 +496,7 @@
       "route_id": "6b48e858f7dbe6e5",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 574,
+      "source_lineno": 587,
       "summary": "",
       "tags": [
         "disputes"
@@ -562,7 +562,7 @@
       "route_id": "4828eba89b7123a6",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/votes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 582,
+      "source_lineno": 595,
       "summary": "",
       "tags": [
         "disputes"

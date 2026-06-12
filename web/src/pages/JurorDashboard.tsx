@@ -184,10 +184,11 @@ export default function JurorDashboard(): JSX.Element {
 
     try {
       const headers = getAuthHeaders(account);
-      const [t2, live, sess, disputesRes] = await Promise.all([
+      const [t2, live, sess, currentDisputesRes, fallbackDisputesRes] = await Promise.all([
         weall.pohAsyncJurorCases(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
+        weall.disputesCurrent(apiBase, headers).catch(() => ({ items: [] })),
         weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
         refreshAccount(),
       ]);
@@ -196,7 +197,9 @@ export default function JurorDashboard(): JSX.Element {
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
 
-      const assignedReports = (Array.isArray(disputesRes?.items) ? disputesRes.items : [])
+      const backendCurrentReports = Array.isArray(currentDisputesRes?.items) ? currentDisputesRes.items : [];
+      const fallbackReports = Array.isArray(fallbackDisputesRes?.items) ? fallbackDisputesRes.items : [];
+      const assignedReports = (backendCurrentReports.length > 0 ? backendCurrentReports : fallbackReports)
         .filter((item: any) => reportNeedsCurrentReviewer(item, account));
       setContentReports(assignedReports);
 

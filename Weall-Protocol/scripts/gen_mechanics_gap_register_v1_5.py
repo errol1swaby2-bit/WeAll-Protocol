@@ -140,14 +140,27 @@ MECHANICS: list[Json] = [
         "id": "M-07",
         "title": "Governance execution vectors",
         "domain": "governance/execution",
-        "status": "implemented_mechanic_vector_pack_missing",
-        "current_files": ["src/weall/runtime/apply/governance.py"],
-        "missing_mechanics": [
-            "machine-readable vector for every allowed governance action",
-            "deterministic failed-execution receipt vectors",
-            "conflicting parameter-change handling proof",
+        "status": "local_vector_pack_added_external_rehearsal_remaining",
+        "current_files": [
+            "src/weall/runtime/apply/governance.py",
+            "scripts/gen_governance_execution_vectors_v1_5.py",
+            "generated/governance_execution_vectors_v1_5.json",
         ],
-        "acceptance_tests": ["future: tests/test_governance_execution_vectors_v15.py"],
+        "implemented_in_this_batch": [
+            "machine-readable local vector pack covers every governance action type in DEFAULT_GOV_ACTION_ALLOWLIST",
+            "failure vectors capture unsupported action, invalid payload, missing explicit electorate, premature execute, and failed-vote execute rejections",
+            "conflicting quorum-change vector proves deterministic same-proposal action ordering and last-write result",
+            "GOV_QUORUM_SET and GOV_RULES_SET now validate approved action payloads after stripping deterministic system-queue metadata",
+        ],
+        "missing_mechanics": [
+            "external multi-node governance execution vector replay",
+            "cross-client governance vector verification",
+            "public beta governance operator transcript capture",
+        ],
+        "acceptance_tests": [
+            "python3 scripts/gen_governance_execution_vectors_v1_5.py --check",
+            "pytest -q tests/test_governance_execution_vectors_v1_5_batch597.py",
+        ],
         "do_not_cross": ["do not allow governance to bypass locked economics"],
     },
     {

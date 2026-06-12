@@ -555,13 +555,26 @@ async def v1_dispute_vote(dispute_id: str, request: Request):
     body = await _read_json_limited(request, max_bytes_env="WEALL_MAX_HTTP_DISPUTE_ACTION_BYTES", default_max_bytes=64 * 1024)
     payload = body if isinstance(body, dict) else {}
     payload.setdefault("dispute_id", dispute_id)
-    allowed = status in {"accepted", "present", "attended", "assigned"}
+    viewer_juror = _viewer_juror_record(obj, viewer)
+    attendance = viewer_juror.get("attendance") if isinstance(viewer_juror, dict) else None
+    attendance_present = (isinstance(attendance, dict) and bool(attendance.get("present", False))) or status in {"present", "attended"}
+    allowed = status in {"accepted", "present", "attended"} and attendance_present
+    if allowed:
+        reasons = ["eligible"]
+    elif status == "assigned":
+        reasons = ["acceptance_required", "attendance_required"]
+    elif status == "accepted" and not attendance_present:
+        reasons = ["attendance_required"]
+    else:
+        reasons = [f"status_{status}_cannot_vote"]
     return {
         "ok": bool(allowed),
         "account_id": viewer,
         "dispute_id": dispute_id,
         "eligible": bool(allowed),
-        "reasons": ["eligible"] if allowed else [f"status_{status}_cannot_vote"],
+        "reasons": reasons,
+        "requires_acceptance": bool(status == "assigned"),
+        "requires_attendance": bool(not attendance_present),
         "backend_classifies_deadline": True,
         "frontend_classifies_penalty": False,
         "deterministic_source": "signed_tx_submit",

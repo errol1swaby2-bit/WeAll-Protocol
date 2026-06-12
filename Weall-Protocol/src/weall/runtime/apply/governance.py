@@ -679,6 +679,19 @@ def _allowed_gov_action_types(state: Json) -> frozenset[str]:
     return DEFAULT_GOV_ACTION_ALLOWLIST
 
 
+def _governance_action_payload_without_queue_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the governance action payload without system-queue metadata.
+
+    Governance execution enqueues receipt-only action txs through the shared
+    SYSTEM queue, which attaches deterministic replay metadata such as
+    ``_due_height`` and ``_system_queue_id``. Action-specific validators must
+    validate the approved user/governance payload, not reject the queue envelope
+    metadata that consensus needs for replay binding.
+    """
+
+    return {str(k): v for k, v in dict(payload or {}).items() if not str(k).startswith("_")}
+
+
 def _validate_gov_quorum_payload(payload: dict[str, Any]) -> None:
     extras = sorted(str(k) for k in payload.keys() if str(k) not in _ALLOWED_GOV_QUORUM_KEYS)
     if extras:
@@ -1379,7 +1392,8 @@ def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
-    p = _d(env.payload)
+    raw_payload = _d(env.payload)
+    p = _governance_action_payload_without_queue_metadata(raw_payload)
     _validate_gov_quorum_payload(p)
 
     # Minimal bounds safety: if a quorum numeric field is present, keep it sane.
@@ -1419,7 +1433,8 @@ def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
-    p = _d(env.payload)
+    raw_payload = _d(env.payload)
+    p = _governance_action_payload_without_queue_metadata(raw_payload)
     _validate_gov_rules_payload(p)
 
     rec = _sorted_dict(dict(p))
