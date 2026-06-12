@@ -22,6 +22,11 @@ RELEASE_ARTIFACTS = [
     Path("generated/api_response_vectors_v1_5.json"),
     Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
+    Path("generated/reputation_event_registry_v1_5.json"),
+    Path("generated/reputation_matrix_contract_v1_5.json"),
+    Path("generated/reputation_flow_coverage_map_v1_5.json"),
+    Path("generated/reputation_invariant_report_v1_5.json"),
+    Path("generated/reputation_api_contract_map_v1_5.json"),
 ]
 GITIGNORE_EXCEPTIONS = [f"!{path.as_posix()}" for path in RELEASE_ARTIFACTS]
 
@@ -242,6 +247,14 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_api_response_vectors())
         errors.extend(_check_b587_b594_mechanisms())
         errors.extend(_check_controlled_testnet_go_gate())
+        for script in (
+            "gen_reputation_event_registry_v1_5.py",
+            "gen_reputation_matrix_contract_v1_5.py",
+            "gen_reputation_flow_coverage_map_v1_5.py",
+            "gen_reputation_invariant_report_v1_5.py",
+            "gen_reputation_api_contract_map_v1_5.py",
+        ):
+            errors.extend(_run_check(script))
     if args.require_git_tracked:
         errors.extend(_check_git_tracked())
     if errors:

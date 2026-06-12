@@ -121,3 +121,13 @@ configs/local/
 !generated/b587_b594_testnet_mechanism_completion_v1_5.json
 
 !generated/controlled_testnet_go_gate_v1_5.json
+
+!generated/reputation_event_registry_v1_5.json
+
+!generated/reputation_matrix_contract_v1_5.json
+
+!generated/reputation_flow_coverage_map_v1_5.json
+
+!generated/reputation_invariant_report_v1_5.json
+
+!generated/reputation_api_contract_map_v1_5.json

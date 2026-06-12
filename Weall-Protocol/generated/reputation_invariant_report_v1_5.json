@@ -1,0 +1,27 @@
+{
+  "adversarial_checks": {
+    "appeal_history_deletion": "appeals_use_reversal_of_optional",
+    "conflicted_dispute_acceptance": "eligible/current endpoints expose reasons; apply path uses assignment snapshot",
+    "dimension_bleed": "event_has_single_registry_dimension; aliases are read_model_only",
+    "duplicate_penalties": "blocked_by_event_source_index",
+    "duplicate_rewards": "blocked_by_event_source_index",
+    "frontend_timer_manipulation": "not_input_to_append_reputation_event",
+    "helper_receipt_replay": "helper event family is receipt/context bound; helper runtime remains consensus authority",
+    "timeout_divergence": "block_height_deadlines_only"
+  },
+  "invariants": [
+    "event_id_deterministic_from_canonical_inputs",
+    "append_only_events_no_delete_no_mutate",
+    "source_tx_object_actor_event_dimension_deduped",
+    "scores_reduced_from_ordered_events",
+    "appeals_append_reversal_events",
+    "dimension_isolation_enforced_by_registry_dimension",
+    "juror_time_penalties_use_block_height_not_browser_clock",
+    "voting_against_majority_has_no_negative_event",
+    "frontend_never_classifies_penalty",
+    "helper_events_preserve_serial_equivalence_boundary"
+  ],
+  "ok": true,
+  "schema": "weall.reputation_invariant_report.v1_5",
+  "version": "2026-06-v1.5-reputation-matrix"
+}

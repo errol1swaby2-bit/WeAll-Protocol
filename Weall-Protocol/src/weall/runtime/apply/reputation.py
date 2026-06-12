@@ -25,6 +25,7 @@ penalties deterministically without duplicating logic.
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.reputation_events import append_reputation_event, event_code_for_reason
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
     REPUTATION_MIN_UNITS,
@@ -306,6 +307,19 @@ def apply_reputation_delta_system(
         payload=evidence,
         ban_audit_nonce=int(at_nonce),
     )
+    event_code = _as_str(evidence.get("event_code") or "").strip().upper() or event_code_for_reason(_as_str(reason), default="SAFETY_CONFIRMED_MODERATION_ACTION")
+    rep_event = append_reputation_event(
+        state,
+        actor_id=account_id,
+        event_code=event_code,
+        source_flow=_as_str(evidence.get("source") or "reputation_delta") or "reputation_delta",
+        source_tx_id=delta_id,
+        source_object_id=_as_str(evidence.get("source_object_id") or evidence.get("slash_id") or evidence.get("parent") or delta_id),
+        delta=int(delta_units),
+        occurred_at_block=_as_int(evidence.get("height"), _as_int(state.get("height"), int(at_nonce))),
+        occurred_at_time=_as_int(evidence.get("time"), _as_int(state.get("height"), int(at_nonce))),
+        details={"reason": _as_str(reason).strip(), "legacy_delta_id": delta_id},
+    )
 
     return {
         "ok": True,
@@ -314,6 +328,7 @@ def apply_reputation_delta_system(
         "reputation_milli": int(new_rep),
         "newly_banned": bool(newly_banned),
         "deduped": False,
+        "reputation_event_id": rep_event.get("event_id"),
     }
 
 def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
@@ -371,6 +386,21 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         payload=payload,
         ban_audit_nonce=int(env.nonce),
     )
+    event_code = _as_str(payload.get("event_code") or "").strip().upper() or event_code_for_reason(reason, default="SAFETY_CONFIRMED_MODERATION_ACTION")
+    rep_event = append_reputation_event(
+        state,
+        actor_id=account_id,
+        event_code=event_code,
+        source_flow=_as_str(payload.get("source_flow") or payload.get("source") or "reputation_delta") or "reputation_delta",
+        source_tx_id=delta_id,
+        source_object_id=_as_str(payload.get("source_object_id") or payload.get("target_id") or delta_id),
+        delta=int(delta_units),
+        occurred_at_block=_as_int(payload.get("occurred_at_block"), _as_int(state.get("height"), int(env.nonce))),
+        occurred_at_time=_as_int(payload.get("occurred_at_time"), _as_int(state.get("height"), int(env.nonce))),
+        expires_at_optional=payload.get("expires_at_optional"),
+        reversal_of_optional=_as_str(payload.get("reversal_of_optional")),
+        details={"reason": reason, "legacy_delta_id": delta_id},
+    )
 
     return {
         "applied": "REPUTATION_DELTA_APPLY",
@@ -380,6 +410,7 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         "reputation": units_to_reputation(new_rep),
         "reputation_milli": int(new_rep),
         "newly_banned": bool(newly_banned),
+        "reputation_event_id": rep_event.get("event_id"),
     }
 
 def _apply_reputation_threshold_cross(state: Json, env: TxEnvelope) -> Json:

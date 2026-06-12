@@ -12,6 +12,13 @@ read model is the public/API bridge for the matrix dimensions.
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from weall.runtime.reputation_events import (
+    DIMENSION_ALIASES,
+    REPUTATION_DIMENSIONS,
+    canonical_reputation_events_for_actor,
+    derive_role_eligibility_from_dimensions,
+    reduce_reputation_events,
+)
 from weall.runtime.reputation_units import (
     REPUTATION_MAX_UNITS,
     REPUTATION_MIN_UNITS,
@@ -27,7 +34,7 @@ MATRIX_VERSION = 1
 MATRIX_SCORE_MIN = REPUTATION_MIN_UNITS
 MATRIX_SCORE_MAX = REPUTATION_MAX_UNITS
 
-PUBLIC_DIMENSIONS: tuple[str, ...] = (
+LEGACY_PUBLIC_DIMENSIONS: tuple[str, ...] = (
     "juror",
     "dispute_participation",
     "validator",
@@ -38,11 +45,23 @@ PUBLIC_DIMENSIONS: tuple[str, ...] = (
     "identity_poh",
     "social_trust",
 )
+
+PUBLIC_DIMENSIONS: tuple[str, ...] = REPUTATION_DIMENSIONS + LEGACY_PUBLIC_DIMENSIONS
 PRIVATE_DIMENSIONS: tuple[str, ...] = ("abuse_risk",)
 ALL_DIMENSIONS: tuple[str, ...] = PUBLIC_DIMENSIONS + PRIVATE_DIMENSIONS
 
 # Conservative default weights. These are read-model weights, not economic value.
 BASELINE_DIMENSION_WEIGHTS: dict[str, int] = {
+    "poh_reputation": 100,
+    "civic_reputation": 100,
+    "juror_reputation": 100,
+    "governance_reputation": 100,
+    "creator_reputation": 100,
+    "safety_reputation": 100,
+    "validator_reputation": 100,
+    "storage_reputation": 100,
+    "helper_reputation": 100,
+    "appeal_correction_history": 0,
     "juror": 100,
     "dispute_participation": 100,
     "validator": 100,
@@ -241,6 +260,59 @@ def _aggregate_public_score(dimensions: Json) -> int:
     if total_weight <= 0:
         return 0
     return int(clamp_reputation_units(weighted // total_weight))
+
+
+def _canonical_ledger_events(state: Json, account_id: str) -> list[MatrixEvent]:
+    events: list[MatrixEvent] = []
+    for rec in canonical_reputation_events_for_actor(state, account_id):
+        dimension = _as_str(rec.get("dimension"))
+        event_type = _as_str(rec.get("event_code") or rec.get("reason_code") or "REPUTATION_EVENT")
+        delta_milli = _as_int(rec.get("delta"), 0)
+        source_ref = _as_str(rec.get("event_id"))
+        details = {
+            "source_flow": _as_str(rec.get("source_flow")),
+            "source_tx_id": _as_str(rec.get("source_tx_id")),
+            "source_object_id": _as_str(rec.get("source_object_id")),
+            "severity": _as_int(rec.get("severity"), 0),
+            "appealable": bool(rec.get("appealable", False)),
+            "reversal_of_optional": _as_str(rec.get("reversal_of_optional")),
+            "explanation": _as_str(rec.get("explanation")),
+            "eligibility_impact": _as_str(rec.get("eligibility_impact")),
+        }
+        visibility = _as_str(rec.get("visibility") or "public")
+        if visibility == "permissioned":
+            visibility = "private"
+        if dimension in ALL_DIMENSIONS:
+            events.append(
+                _event(
+                    account_id=account_id,
+                    dimension=dimension,
+                    event_type=event_type,
+                    delta_milli=delta_milli,
+                    source="reputation_event_ledger",
+                    source_ref=source_ref,
+                    visibility=visibility,
+                    details=details,
+                )
+            )
+        for alias in DIMENSION_ALIASES.get(dimension, ()):
+            if alias not in ALL_DIMENSIONS:
+                continue
+            # Alias dimensions keep old UI/tests working while the canonical
+            # matrix dimensions remain the protocol source of truth.
+            events.append(
+                _event(
+                    account_id=account_id,
+                    dimension=alias,
+                    event_type=event_type,
+                    delta_milli=delta_milli,
+                    source="reputation_event_ledger_alias",
+                    source_ref=source_ref,
+                    visibility=visibility,
+                    details={**details, "canonical_dimension": dimension},
+                )
+            )
+    return events
 
 
 def _scalar_reputation_events(state: Json, account_id: str) -> list[MatrixEvent]:
@@ -760,6 +832,7 @@ def collect_reputation_matrix_events(state: Json, account_id: str) -> list[Json]
     if not acct:
         return []
     events: list[MatrixEvent] = []
+    events.extend(_canonical_ledger_events(state, acct))
     events.extend(_scalar_reputation_events(state, acct))
     events.extend(_dispute_events(state, acct))
     events.extend(_governance_events(state, acct))
@@ -788,6 +861,11 @@ def derive_reputation_matrix(
     public_dims = {name: dimensions[name] for name in PUBLIC_DIMENSIONS}
     exposed_dimensions = dict(dimensions) if reveal_private else public_dims
     exposed_events = [event.as_dict() for event in events if reveal_private or event.visibility == "public"]
+    canonical_events = canonical_reputation_events_for_actor(state, acct_id)
+    canonical_reduction = reduce_reputation_events(canonical_events)
+    canonical_actor = _as_dict(_as_dict(canonical_reduction.get("actors")).get(acct_id))
+    canonical_dimensions = _as_dict(canonical_actor.get("dimensions"))
+    eligibility = derive_role_eligibility_from_dimensions(canonical_dimensions, canonical_events)
     out: Json = {
         "ok": True,
         "version": MATRIX_VERSION,
@@ -811,6 +889,9 @@ def derive_reputation_matrix(
         "aggregate_public_score": units_to_reputation(aggregate),
         "aggregate_public_level": _score_level(aggregate),
         "dimensions": exposed_dimensions,
+        "canonical_dimensions": canonical_dimensions,
+        "eligibility": eligibility,
+        "event_history_root": canonical_reduction.get("event_history_root"),
         "visibility": {
             "public_dimensions": list(PUBLIC_DIMENSIONS),
             "private_dimensions": list(PRIVATE_DIMENSIONS),

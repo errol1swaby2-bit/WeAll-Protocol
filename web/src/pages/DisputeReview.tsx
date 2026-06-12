@@ -138,6 +138,8 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canDecline = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canVote = disputeReviewUnlocked({ dispute, account, tierGateOk: tierGate.ok, signerBusy: signerSubmission.busy });
+  const canWithdraw = !!dispute && !!account && !signerSubmission.busy && ["accepted", "present", "attended"].includes(selectedJurorStatus);
+  const reputationWarning = String(dispute?.reputation_warning?.text || "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.");
   const disputeId = String(dispute?.id || dispute?.dispute_id || id || "").trim();
   const targetId = String(dispute?.target_id || "").trim();
   const contentObj = targetContent?.content;
@@ -339,11 +341,13 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           <div className="buttonRow buttonRowWide">
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: disputeId }, "Accept assignment", "Review assignment accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: disputeId }, "Decline assignment", "Review assignment declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_WITHDRAW", { dispute_id: disputeId }, "Withdraw assignment", "Review assignment withdrawn.")} disabled={!canWithdraw}>{signerSubmission.busy ? "Waiting…" : "Withdraw"}</button>
             <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "no", resolution: { outcome: "report_not_upheld", summary: "Reviewer chose to keep the post visible.", actions: [] } }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "yes", resolution: { outcome: "report_upheld", summary: "Reviewer upheld the report and chose to remove the post.", actions: removeContentActions } }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
-          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept or decline only to resolve assignment posture; once unlocked, Keep Post records that the report should not be upheld, while Remove Post records that the report should be upheld.</div>
+          <div className="infoCard compact"><div className="infoCardHeader"><span className="statusPill">Juror reputation</span><strong>Canonical review obligation</strong></div><div className="infoCardText">{reputationWarning}</div></div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings.</div>
         </div>
       </section>
 

@@ -19,6 +19,7 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.reputation_events import append_reputation_event
 
 Json = dict[str, Any]
 
@@ -667,8 +668,21 @@ def _record_dispute_juror_reputation_event(
     existing = root.get(event_id)
     if isinstance(existing, dict):
         return dict(existing, deduped=True)
+    rep_event = append_reputation_event(
+        state,
+        actor_id=juror,
+        event_code=event_type,
+        source_flow="dispute",
+        source_tx_id=f"dispute:{dispute_id}:{event_type}:{at_nonce}",
+        source_object_id=f"{dispute_id}:{juror}",
+        delta=int(delta_milli),
+        occurred_at_block=int(at_height),
+        occurred_at_time=int(at_height),
+        details={"dispute_id": dispute_id, "reason": reason, "legacy_event_id": event_id},
+    )
     rec: Json = {
         "event_id": event_id,
+        "canonical_reputation_event_id": rep_event.get("event_id"),
         "dispute_id": dispute_id,
         "juror": juror,
         "account_id": juror,
@@ -1055,12 +1069,24 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     j["attendance"] = {"present": True, "at_nonce": int(env.nonce), "auto": True, "source": "accept"}
     jurors[juror_key] = j
     d["jurors"] = jurors
+    event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type="DISPUTE_JUROR_ACCEPTED",
+        delta_milli=0,
+        at_height=_current_height(state),
+        at_nonce=int(env.nonce),
+        reason="accepted_review_obligation",
+    )
     return {
         "applied": "DISPUTE_JUROR_ACCEPT",
         "dispute_id": dispute_id,
         "present": True,
         "vote_deadline_height": _as_int(j.get("vote_deadline_height"), 0),
         "safe_withdraw_until_height": _as_int(j.get("safe_withdraw_until_height"), 0),
+        "event_id": event.get("event_id"),
+        "canonical_reputation_event_id": event.get("canonical_reputation_event_id"),
     }
 
 
@@ -1105,7 +1131,7 @@ def _apply_dispute_juror_withdraw(state: Json, env: TxEnvelope) -> Json:
     policy = _as_dict(j.get("reputation_policy")) or _dispute_reputation_params(state, d)
     safe = int(now_h) <= int(safe_until)
     delta = 0 if safe else _as_int(policy.get("late_withdraw_penalty_milli"), -500)
-    event_type = "DISPUTE_SAFE_WITHDRAW" if safe else "DISPUTE_LATE_WITHDRAW"
+    event_type = "DISPUTE_JUROR_WITHDREW_EARLY" if safe else "DISPUTE_JUROR_WITHDREW_LATE"
     reason = "safe_withdraw_no_penalty" if safe else "late_withdraw_light_penalty"
     event = _record_dispute_juror_reputation_event(
         state,
@@ -1172,7 +1198,7 @@ def _apply_dispute_juror_timeout(state: Json, env: TxEnvelope) -> Json:
         state,
         dispute_id=dispute_id,
         juror=juror_key,
-        event_type="DISPUTE_ACCEPTED_NO_VOTE_TIMEOUT",
+        event_type="DISPUTE_JUROR_TIMED_OUT",
         delta_milli=delta,
         at_height=now_h,
         at_nonce=int(env.nonce),
@@ -1257,6 +1283,26 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
             votes.pop(alias, None)
     votes[juror_key] = vote_entry
     d["votes"] = votes
+    now_h = _current_height(state)
+    vote_event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type="DISPUTE_JUROR_VOTED_ON_TIME",
+        delta_milli=250,
+        at_height=now_h,
+        at_nonce=int(env.nonce),
+        reason="voted_before_deadline",
+    )
+    j["status"] = "completed"
+    j["completed_at_nonce"] = int(env.nonce)
+    j["completed_at_height"] = int(now_h)
+    j["completion"] = {"event_id": vote_event.get("event_id"), "delta_milli": 250}
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+    jurors[juror_key] = j
+    d["jurors"] = jurors
 
     appeal_panel_result = _maybe_record_appeal_panel_vote(state, d, env, payload, juror_key)
 
@@ -1269,7 +1315,7 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
         parent_ref=parent_ref,
     )
 
-    out: Json = {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id}
+    out: Json = {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id, "event_id": vote_event.get("event_id"), "canonical_reputation_event_id": vote_event.get("canonical_reputation_event_id")}
     if appeal_panel_result is not None:
         out["appeal_panel_result"] = appeal_panel_result
     return out

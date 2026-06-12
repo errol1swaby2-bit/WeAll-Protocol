@@ -514,8 +514,24 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/operator-status${query}`, base, headers);
   },
 
+  reputationMe(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/reputation/me", base, headers);
+  },
+
   reputationSummary(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/reputation/${encodeURIComponent(account)}/summary`, base, headers);
+  },
+
+  reputationMatrix(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/matrix`, base, headers);
+  },
+
+  reputationEligibility(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/eligibility`, base, headers);
+  },
+
+  reputationEventCodes(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/reputation/event-codes", base, headers);
   },
 
   reputationEvents(account: string, base?: string, headers?: HeadersInit): Promise<any> {
@@ -672,6 +688,26 @@ export const weall = {
 
   disputeVotes(id: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/disputes/${encodeURIComponent(id)}/votes`, base, headers);
+  },
+
+  disputesEligible(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/disputes/eligible", base, headers);
+  },
+
+  disputesCurrent(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/disputes/current", base, headers);
+  },
+
+  disputeAccept(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/accept`, {}, base, headers);
+  },
+
+  disputeWithdraw(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/withdraw`, {}, base, headers);
+  },
+
+  disputeVote(id: string, payload: Record<string, unknown>, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/vote`, payload || {}, base, headers);
   },
 
   content(id: string, base?: string, headers?: HeadersInit): Promise<any> {
