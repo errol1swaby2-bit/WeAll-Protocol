@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 """Follower-side received block replay and commitment verification delegate.
 
 This module is intentionally a structural extraction from ``weall.runtime.executor``.
@@ -40,6 +42,7 @@ from weall.runtime.executor import (
     verify_vrf_record,
 )
 
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -132,15 +135,21 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if ts_ms <= 0:
         return ExecutorMeta(ok=False, error="bad_block:ts", height=0, block_id="")
     chain_floor_ms = self.chain_time_floor_ms()
-    successor_ts_ms = max(1, int(chain_floor_ms) + 1)
-    if ts_ms < successor_ts_ms:
-        return ExecutorMeta(
-            ok=False, error="bad_block:ts_before_chain_floor", height=0, block_id=""
-        )
-    if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
-        return ExecutorMeta(
-            ok=False, error="bad_block:ts_beyond_chain_time_window", height=0, block_id=""
-        )
+    time_verdict = validate_block_timestamp(
+        state=self.state,
+        height=int(height),
+        block_ts_ms=int(ts_ms),
+        chain_floor_ms=int(chain_floor_ms),
+        max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+        mode=str(os.environ.get("WEALL_MODE", "") or ""),
+    )
+    if not bool(time_verdict.ok):
+        code = str(time_verdict.code or "ts")
+        if code == "not_constitutional_slot":
+            return ExecutorMeta(ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id="")
+        if code == "before_constitutional_slot":
+            return ExecutorMeta(ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id="")
+        return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
 
     txs = block2.get("txs")
     if not isinstance(txs, list):
@@ -148,6 +157,13 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     # Replay exactly the tx list the leader committed to.
     working: Json = copy.deepcopy(self.state)
+    clock_policy = runtime_block_clock_policy(
+        state=self.state, mode=str(os.environ.get("WEALL_MODE", "") or "")
+    )
+    if bool(clock_policy.enabled):
+        from weall.runtime.constitutional_clock import commit_clock_policy_to_state
+
+        commit_clock_policy_to_state(working, clock_policy)
 
     # IMPORTANT: match deterministic scheduler/elector side-effects that occur
     # during block production. These may initialize subtrees and/or enqueue
@@ -551,6 +567,14 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         if runtime_vrf_required() and not self._pytest_local_missing_vrf_allowed():
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
+    helper_execution_for_root = block2.get("helper_execution")
+    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
+        helper_rep = helper_execution_for_root.get("helper_reputation")
+        if isinstance(helper_rep, dict):
+            rep_state = helper_rep.get("state")
+            if isinstance(rep_state, dict):
+                working["helper_reputation"] = dict(rep_state)
+
     state_root = compute_state_root(working)
     have_sr = str(header.get("state_root") or "").strip()
     if not have_sr:
@@ -562,7 +586,21 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
         )
 
-    helper_execution_for_root = block2.get("helper_execution")
+    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
+        from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+
+        advertised_plan_id = str(helper_execution_for_root.get("plan_id") or "").strip()
+        ok_helper_meta, helper_reason = verify_block_helper_plan_metadata(
+            helper_execution=helper_execution_for_root,
+            expected_plan_id=advertised_plan_id,
+        )
+        if not ok_helper_meta:
+            return ExecutorMeta(
+                ok=False,
+                error=f"bad_block:helper_execution_metadata_invalid:{helper_reason}",
+                height=0,
+                block_id="",
+            )
     header_helper_root = str(header.get("helper_execution_root") or "").strip()
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
         computed_helper_root = compute_helper_execution_root(helper_execution=helper_execution_for_root)

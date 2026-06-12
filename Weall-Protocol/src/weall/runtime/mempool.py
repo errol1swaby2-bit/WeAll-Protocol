@@ -732,10 +732,10 @@ class PersistentMempool:
             ).fetchall()
         return self._decode_rows(list(rows or []))
 
-    def fetch_for_block(self, *, limit: int = 1000, policy: str | None = None) -> list[Json]:
+    def fetch_for_block(self, *, limit: int = 1000, policy: str | None = None, now_ms: int | None = None) -> list[Json]:
         lim = int(limit) if int(limit) > 0 else 1000
         pol = _selection_policy_name(policy or self.selection_policy())
-        now = _now_ms()
+        now = int(_now_ms() if now_ms is None else int(now_ms))
         try:
             if pol == "canonical":
                 rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
@@ -747,14 +747,15 @@ class PersistentMempool:
             rows.sort(key=lambda item: self._selection_key(item[0]))
         return [dict(env) if isinstance(env, dict) else {} for env, _received_ms, _tx_id in rows]
 
-    def selection_diagnostics(self, *, limit: int = 10, policy: str | None = None) -> Json:
+    def selection_diagnostics(self, *, limit: int = 10, policy: str | None = None, now_ms: int | None = None) -> Json:
         lim = int(limit) if int(limit) > 0 else 10
         pol = _selection_policy_name(policy or self.selection_policy())
         try:
+            now = int(_now_ms() if now_ms is None else int(now_ms))
             if pol == "canonical":
-                rows = self._load_live_rows_canonical(now_ms=_now_ms(), limit=lim)
+                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
             else:
-                rows = self._load_live_rows_fifo(now_ms=_now_ms(), limit=lim)
+                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception as exc:
             return {
                 "policy": pol,

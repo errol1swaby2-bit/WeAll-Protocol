@@ -5,7 +5,15 @@ from typing import Any
 from weall.ledger.state import LedgerView
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.block_time_admission import (
+    block_height_from_header,
+    block_ts_from_header,
+    chain_time_floor_ms_from_state,
+    has_material_block_timestamp,
+    validate_block_timestamp,
+)
 from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.runtime.tx_id import compute_tx_id_from_envelope
 from weall.tx.canon import TxIndex
@@ -429,6 +437,24 @@ def admit_bft_block(
     ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block)
     if not ok_helper_meta:
         return False, rej_helper_meta
+
+    if has_material_block_timestamp(block):
+        height_hint = block_height_from_header(block)
+        ts_hint = block_ts_from_header(block)
+        time_verdict = validate_block_timestamp(
+            state=state,
+            height=int(height_hint),
+            block_ts_ms=int(ts_hint),
+            chain_floor_ms=chain_time_floor_ms_from_state(state),
+            max_block_time_advance_ms=int(runtime_max_block_future_drift_ms()),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+        )
+        if not bool(time_verdict.ok):
+            return False, BlockReject(
+                f"bft_block_time_{time_verdict.code or 'invalid'}",
+                str(time_verdict.reason or "block_time_invalid"),
+                dict(time_verdict.details or {}),
+            )
 
     blocks = state.get("blocks")
     blocks_map = blocks if isinstance(blocks, dict) else {}

@@ -1669,6 +1669,16 @@ def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))
     dispute_id = _as_str(payload.get("dispute_id")).strip()
+    existing = root.get(rid)
+    if isinstance(existing, dict):
+        return {
+            "applied": "DISPUTE_FINAL_RECEIPT",
+            "receipt_id": rid,
+            "receipt": True,
+            "deduped": True,
+            "appeal_finalization": dict(existing.get("appeal_finalization") or {}),
+            "enforcement_applied": list(existing.get("enforcement_applied") or []),
+        }
     applied_actions: list[Json] = []
     appeal_meta: Json = {"appealed": False, "decision": "none", "appeal_count": 0}
     final_resolution: Json = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else {}

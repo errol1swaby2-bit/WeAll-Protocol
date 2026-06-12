@@ -1311,8 +1311,11 @@ def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]
     if not isinstance(lst, list):
         lst = []
         state["gov_execution_receipts"] = lst
-    lst.append(dict(p))
-    return {"applied": True}
+    rec = dict(p)
+    if rec not in lst:
+        lst.append(rec)
+        return {"applied": True, "deduped": False}
+    return {"applied": True, "deduped": True}
 
 
 def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
@@ -1322,8 +1325,11 @@ def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not isinstance(lst, list):
         lst = []
         state["gov_proposal_receipts"] = lst
-    lst.append(dict(p))
-    return {"applied": True}
+    rec = dict(p)
+    if rec not in lst:
+        lst.append(rec)
+        return {"applied": True, "deduped": False}
+    return {"applied": True, "deduped": True}
 
 
 def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:

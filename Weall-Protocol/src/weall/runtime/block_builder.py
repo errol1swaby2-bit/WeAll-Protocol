@@ -45,6 +45,7 @@ from weall.runtime.executor import (
     validate_system_tx_queue_binding,
 )
 
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -148,35 +149,44 @@ def build_block_candidate(
     chain_floor_ms = self.chain_time_floor_ms()
     successor_ts_ms = max(1, int(chain_floor_ms) + 1)
 
-    try:
-        _clock_manifest = load_chain_manifest(required=False, mode=str(os.environ.get("WEALL_MODE", "") or ""))
-    except Exception:
-        _clock_manifest = None
-    clock_policy = policy_from_manifest(_clock_manifest)
+    clock_policy = runtime_block_clock_policy(
+        state=self.state, mode=str(os.environ.get("WEALL_MODE", "") or "")
+    )
     next_height_for_clock = int(height) + 1
     if bool(clock_policy.enabled):
-        expected_ts_ms = expected_block_time_ms(clock_policy, height=next_height_for_clock)
-        if force_ts_ms is not None and int(force_ts_ms) != int(expected_ts_ms):
-            return None, None, [], [], "invalid_block_ts:not_constitutional_slot"
-        # The wall clock may only decide whether a producer is too early; it
-        # never decides procedure eligibility.  genesis_time_ms=0 is kept as
-        # a legacy/dev fixture value and intentionally disables real-time
-        # not-before gating until a launch manifest pins a real genesis time.
-        if int(getattr(clock_policy, "genesis_time_ms", 0) or 0) > 0 and is_too_early(
-            clock_policy, height=next_height_for_clock
-        ):
-            return None, None, [], [], "invalid_block_ts:before_constitutional_slot"
-        ts_ms = int(expected_ts_ms)
+        ts_ms = int(expected_block_time_ms(clock_policy, height=next_height_for_clock))
+        candidate_ts_ms = int(force_ts_ms) if force_ts_ms is not None else int(ts_ms)
+        time_verdict = validate_block_timestamp(
+            state=self.state,
+            height=next_height_for_clock,
+            block_ts_ms=candidate_ts_ms,
+            chain_floor_ms=int(chain_floor_ms),
+            max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+            enforce_not_before=True,
+        )
+        if not bool(time_verdict.ok):
+            return None, None, [], [], f"invalid_block_ts:{time_verdict.code}"
     elif force_ts_ms is not None:
         ts_ms = int(force_ts_ms)
     else:
         ts_ms = successor_ts_ms
 
     if not bool(clock_policy.enabled):
-        if ts_ms < successor_ts_ms:
-            return None, None, [], [], "invalid_block_ts:before_chain_floor"
-        if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
-            return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
+        time_verdict = validate_block_timestamp(
+            state=self.state,
+            height=next_height_for_clock,
+            block_ts_ms=int(ts_ms),
+            chain_floor_ms=int(chain_floor_ms),
+            max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+        )
+        if not bool(time_verdict.ok):
+            if str(time_verdict.code) == "ts_before_chain_floor":
+                return None, None, [], [], "invalid_block_ts:before_chain_floor"
+            if str(time_verdict.code) == "ts_beyond_chain_time_window":
+                return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
+            return None, None, [], [], f"invalid_block_ts:{time_verdict.code}"
 
     runtime_selection_policy = _normalize_mempool_selection_policy(
         str(getattr(self._mempool, "selection_policy", lambda: "canonical")())
@@ -556,6 +566,14 @@ def build_block_candidate(
         if isinstance(helper_execution, dict) and helper_execution
         else ""
     )
+    if isinstance(helper_execution, dict) and helper_execution:
+        helper_rep = helper_execution.get("helper_reputation")
+        if isinstance(helper_rep, dict):
+            rep_state = helper_rep.get("state")
+            if isinstance(rep_state, dict):
+                # Helper reputation influences future helper assignment/quarantine,
+                # so it must be committed state, not only stripped meta.
+                working["helper_reputation"] = dict(rep_state)
 
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)

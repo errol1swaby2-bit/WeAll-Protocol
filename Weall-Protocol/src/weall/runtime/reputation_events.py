@@ -474,7 +474,10 @@ def append_reputation_event(
     if not actor:
         raise ValueError("actor_id is required for reputation event")
     block = _as_int(occurred_at_block, _as_int(state.get("height"), 0))
-    protocol_time = _as_int(occurred_at_time, block)
+    # Protocol reputation time is block-height based.  Caller-supplied
+    # occurred_at_time may come from legacy payloads or UI-adjacent clocks; do
+    # not let it influence canonical event identity or protocol truth.
+    protocol_time = int(block)
     source_tx = _as_str(source_tx_id) or f"{flow}:{source_object_id or actor}:{code}"
     source_obj = _as_str(source_object_id) or source_tx
     reversal = _as_str(reversal_of_optional)
@@ -527,6 +530,8 @@ def append_reputation_event(
         "event_code": code,
         "occurred_at_block": int(block),
         "occurred_at_time": int(protocol_time),
+        "protocol_time_height": int(block),
+        "protocol_time_basis": "block_height",
         "expires_at_optional": expires_at_optional if expires_at_optional is not None else None,
         "appealable": bool(spec.appealable),
         "reversal_of_optional": reversal or None,

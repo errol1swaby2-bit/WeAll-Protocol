@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 import os
-import time
 from typing import Any, Mapping
 
 from fastapi import APIRouter, Request
@@ -24,6 +23,7 @@ from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
+from weall.runtime.protocol_time import protocol_time_height
 from weall.runtime.runtime_authority import (
     authority_contract_from_lifecycle,
     startup_authority_contract_from_app_state,
@@ -105,9 +105,6 @@ def _safe_bool(v: Any, default: bool = False) -> bool:
     except Exception:
         return bool(default)
 
-
-def _now_ms() -> int:
-    return int(time.time() * 1000)
 
 
 def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
@@ -802,7 +799,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "ok": True,
         "service": "weall-node",
         "version": "v1",
-        "ts_ms": _now_ms(),
+        "protocol_time": protocol_time_height(state if isinstance(state, dict) else {}),
         "chain_id": chain_id or None,
         "node_id": node_id or None,
         "mode": _status_mode_label(ex, state),
@@ -862,6 +859,7 @@ def status_launch_matrix(request: Request) -> dict[str, Any]:
         "high_risk_features": canonical["high_risk_features"],
         "phases": canonical["phases"],
         "truth_boundary": canonical["truth_boundary"],
+        "protocol_time": protocol_time_height(state if isinstance(state, dict) else {}),
     }
 
 
@@ -877,7 +875,7 @@ def status_testnet_capabilities(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
     payload = build_testnet_capability_surface(state if isinstance(state, dict) else {})
-    return {"ok": True, **payload}
+    return {"ok": True, **payload, "protocol_time": protocol_time_height(state if isinstance(state, dict) else {})}
 
 
 @router.get("/status/operator")
