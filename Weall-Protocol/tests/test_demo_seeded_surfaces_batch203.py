@@ -122,6 +122,6 @@ def test_demo_seed_is_idempotent_for_seeded_demo_objects() -> None:
     assert list(groups.keys()) == [first["group"]["group_id"]]
     assert list(proposals.keys()) == [first["proposal"]["proposal_id"]]
     assert list(disputes.keys()) == [first["dispute"]["dispute_id"]]
-    assert jurors["active_set"] == ["@demo_tester"]
+    assert jurors["active_set"] == ["@demo-tester-reviewer"]
     assert roles["validators"]["active_set"] == ["@demo_tester"]
     assert "@demo_tester" in groups[first["group"]["group_id"]]["members"]

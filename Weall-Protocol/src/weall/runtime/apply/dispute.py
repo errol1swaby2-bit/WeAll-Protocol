@@ -202,6 +202,43 @@ def _eligible_key_for_actor(d: Json, juror: str) -> str:
     return ""
 
 
+
+
+def _dispute_target_owner(state: Json, d: Json) -> str:
+    owner = _as_str(d.get("target_owner") or d.get("target_author") or "").strip()
+    if owner:
+        return _resolve_account_identity(state, owner)
+    owner = _content_target_owner(
+        state,
+        target_type=_as_str(d.get("target_type") or "content"),
+        target_id=_as_str(d.get("target_id") or ""),
+    )
+    return _resolve_account_identity(state, owner) if owner else ""
+
+
+def _is_dispute_target_owner(state: Json, d: Json, account: str) -> bool:
+    owner = _dispute_target_owner(state, d)
+    return bool(owner and _same_account(owner, _as_str(account).strip()))
+
+
+def _filter_target_owner_from_jurors(state: Json, d: Json, jurors: list[str]) -> list[str]:
+    owner = _dispute_target_owner(state, d)
+    filtered: list[str] = []
+    excluded: list[str] = []
+    for juror in _normalized_str_list([_resolve_account_identity(state, item) for item in jurors]):
+        if owner and _same_account(owner, juror):
+            excluded.append(juror)
+            continue
+        filtered.append(juror)
+    if owner:
+        d["target_owner"] = owner
+    if excluded:
+        existing = _normalized_str_list(d.get("conflicted_juror_ids"))
+        d["conflicted_juror_ids"] = _normalized_str_list(existing + excluded)
+        d["conflict_policy"] = "target_owner_excluded_from_content_review"
+    return filtered
+
+
 def _active_validator_ids(state: Json) -> list[str]:
     roles = _as_dict(state.get("roles"))
     validators = _as_dict(roles.get("validators"))
@@ -250,6 +287,7 @@ def _active_validator_ids(state: Json) -> list[str]:
 def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str = "") -> list[str]:
     snap = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))])
     if snap:
+        snap = _filter_target_owner_from_jurors(state, dispute, snap)
         dispute["eligible_juror_ids"] = list(snap)
         dispute["eligible_validator_count"] = int(len(snap))
         dispute["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
@@ -264,14 +302,16 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
 
     active = _active_validator_ids(state)
     if active:
+        active = _filter_target_owner_from_jurors(state, dispute, active)
         dispute["eligible_juror_ids"] = list(active)
         dispute["eligible_validator_count"] = int(len(active))
         dispute["required_votes"] = int(quorum_threshold(len(active))) if active else 0
-        return active
+        if active:
+            return active
 
     raw_signer = fallback_signer or dispute.get("opened_by")
     signer = _resolve_account_identity(state, raw_signer)
-    if signer and signer.upper() != "SYSTEM":
+    if signer and signer.upper() != "SYSTEM" and not _is_dispute_target_owner(state, dispute, signer):
         dispute["eligible_juror_ids"] = [signer]
         dispute["eligible_validator_count"] = 1
         dispute["required_votes"] = 1
@@ -885,10 +925,13 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     eligible_jurors = _dispute_eligible_juror_ids(state, {"opened_by": env.signer}, fallback_signer)
 
     target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
+    reported_by = _as_str(payload.get("reported_by") or payload.get("flagged_by") or payload.get("reporter") or "").strip()
     disputes[dispute_id] = {
         "id": dispute_id,
         "stage": "open",
         "opened_by": env.signer,
+        "reported_by": reported_by or None,
+        "flagged_by": reported_by or None,
         "opened_at_nonce": int(env.nonce),
         "target_type": target_type,
         "target_id": target_id,
@@ -905,6 +948,12 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "resolution": None,
         "appeals": [],
     }
+    # Recompute after target owner/reporter metadata is present so conflict
+    # filtering cannot select the disputed content's author as reviewer.
+    eligible_jurors = _dispute_eligible_juror_ids(state, disputes[dispute_id], fallback_signer)
+    disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
+    disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
+    disputes[dispute_id]["required_votes"] = int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
     _index_dispute_target(state, disputes[dispute_id])
     return {"applied": "DISPUTE_OPEN", "dispute_id": dispute_id}
 
@@ -986,6 +1035,12 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
             "invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type}
         )
     d = _get_dispute(state, dispute_id)
+    if _is_dispute_target_owner(state, d, juror):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": juror, "target_owner": _dispute_target_owner(state, d)},
+        )
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -1011,6 +1066,12 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    if _is_dispute_target_owner(state, d, env.signer):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": env.signer, "target_owner": _dispute_target_owner(state, d)},
+        )
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -1246,6 +1307,12 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    if _is_dispute_target_owner(state, d, env.signer):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": env.signer, "target_owner": _dispute_target_owner(state, d)},
+        )
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
     j = _require_juror_status(d, env.signer, {"assigned", "accepted", "present", "attended"})

@@ -386,7 +386,7 @@
       "route_id": "08c3c9dbee8877d9",
       "route_path_without_v1_prefix": "/dev/bootstrap-secret",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 453,
+      "source_lineno": 486,
       "summary": "",
       "tags": [
         "demo_seed"
@@ -408,7 +408,7 @@
       "route_id": "f07ef71c619c3251",
       "route_path_without_v1_prefix": "/dev/demo-seed",
       "source": "src/weall/api/routes_public_parts/demo_seed.py",
-      "source_lineno": 463,
+      "source_lineno": 496,
       "summary": "",
       "tags": [
         "demo_seed"

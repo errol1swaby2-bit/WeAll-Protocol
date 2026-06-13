@@ -157,6 +157,14 @@ def run_harness() -> dict[str, Any]:
                 loops.append(loop)
             started = [loop.start() for loop in loops]
             time.sleep(0.25)
+            # The harness proves that the public-style validator net loop can
+            # bind and start, then performs deterministic consensus/block
+            # replay below.  Stop the background loops before producing the
+            # block so no asynchronous peer observation can cache a different
+            # block identity while the follower-apply proof is replaying the
+            # same block explicitly.
+            for loop in loops:
+                loop.stop(); loop.join(timeout=1.0)
 
             txs = [_account_tx("@u1", 1), _account_tx("@u2", 1)]
             leader = executors[VALIDATORS[0]]

@@ -73,13 +73,13 @@ def test_seed_demo_state_creates_group_proposal_and_juror_ready_dispute() -> Non
     assert result["proposal"]["proposal_id"] == "proposal:demo-tester:demo-vote"
     assert result["proposal"]["stage"] == "voting"
     assert result["dispute"]["dispute_id"] == "dispute:demo-tester:demo-post"
-    assert result["dispute"]["juror"] == "@demo_tester"
+    assert result["dispute"]["juror"] == "@demo-tester-reviewer"
     assert result["dispute"]["juror_status"] == "assigned"
     assert result["dispute"]["stage"] == "juror_review"
 
     jurors = state["roles"]["jurors"]
-    assert "@demo_tester" in jurors["by_id"]
-    assert "@demo_tester" in jurors["active_set"]
+    assert "@demo-tester-reviewer" in jurors["by_id"]
+    assert "@demo-tester-reviewer" in jurors["active_set"]
     assert state["roles"]["validators"]["active_set"] == ["@demo_tester"]
     assert state["consensus"]["validator_set"]["active_set"] == ["@demo_tester"]
 

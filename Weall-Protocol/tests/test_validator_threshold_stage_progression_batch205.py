@@ -74,10 +74,11 @@ def test_governance_poll_vote_auto_progresses_immediately_batch205() -> None:
     assert latest_tally["required_votes"] == 1
 
 
-def test_content_flag_escalation_assigns_active_validators_immediately_batch205() -> None:
+def test_content_flag_escalation_assigns_opted_in_jurors_immediately_batch205() -> None:
     st = _base_state()
+    st["roles"] = {"validators": {"active_set": ["validator"]}, "jurors": {"active_set": ["bob"], "by_id": {"bob": {"active": True, "enrolled": True}}}}
     st["content"] = {
-        "posts": {"post:alice:1": {"id": "post:alice:1", "author": "alice", "body": "x"}},
+        "posts": {"post:alice:1": {"id": "post:alice:1", "author": "carol", "body": "x"}},
         "comments": {},
         "reactions": {},
         "flags": {},
@@ -86,13 +87,13 @@ def test_content_flag_escalation_assigns_active_validators_immediately_batch205(
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test"}, system=True, parent="tx:alice:5"))
+    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test", "reported_by": "alice"}, system=True, parent="tx:alice:5"))
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]
     assert dispute["stage"] == "juror_review"
-    assert "alice" in dispute["jurors"]
-    assert dispute["jurors"]["alice"]["status"] == "assigned"
+    assert "bob" in dispute["jurors"]
+    assert dispute["jurors"]["bob"]["status"] == "assigned"
 
 
 def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch205() -> None:
@@ -110,10 +111,13 @@ def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch20
 
 def test_content_escalation_assigns_canonical_account_identity_batch205() -> None:
     st = _base_state()
-    st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}}
-    st["roles"] = {"validators": {"active_set": ["alice"]}}
+    st["accounts"] = {
+        "@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+        "@bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+    }
+    st["roles"] = {"jurors": {"active_set": ["alice"], "by_id": {"alice": {"active": True, "enrolled": True}}}}
     st["content"] = {
-        "posts": {"post:@alice:1": {"id": "post:@alice:1", "author": "@alice", "body": "x"}},
+        "posts": {"post:@bob:1": {"id": "post:@bob:1", "author": "@bob", "body": "x"}},
         "comments": {},
         "reactions": {},
         "flags": {},
@@ -122,7 +126,7 @@ def test_content_escalation_assigns_canonical_account_identity_batch205() -> Non
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:@alice:1", "reason": "test"}, system=True, parent="tx:@alice:5"))
+    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:@bob:1", "reason": "test"}, system=True, parent="tx:@bob:5"))
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]
@@ -144,11 +148,11 @@ def test_governance_live_created_proposal_falls_back_to_creator_threshold_batch2
     assert pr["stage"] == "finalized"
 
 
-def test_content_escalation_falls_back_to_opening_account_for_review_batch205() -> None:
+def test_content_escalation_waits_for_reviewer_opt_in_without_implicit_reporter_fallback_batch205() -> None:
     st = _base_state()
-    st["roles"] = {"validators": {"active_set": []}}
+    st["roles"] = {"validators": {"active_set": []}, "jurors": {"active_set": [], "by_id": {}}}
     st["content"] = {
-        "posts": {"post:alice:1": {"id": "post:alice:1", "author": "alice", "body": "x"}},
+        "posts": {"post:alice:1": {"id": "post:alice:1", "author": "carol", "body": "x"}},
         "comments": {},
         "reactions": {},
         "flags": {},
@@ -157,10 +161,11 @@ def test_content_escalation_falls_back_to_opening_account_for_review_batch205() 
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test"}, system=True, parent="tx:alice:5"))
+    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test", "reported_by": "alice"}, system=True, parent="tx:alice:5"))
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]
-    assert dispute["stage"] == "juror_review"
-    assert dispute["eligible_juror_ids"] == ["alice"]
-    assert dispute["jurors"]["alice"]["status"] == "assigned"
+    assert dispute["stage"] == "unassigned"
+    assert dispute["assignment_blocked_reason"] == "no_unconflicted_content_reviewer"
+    assert dispute["eligible_juror_ids"] == []
+    assert dispute["reviewer_responsibility_policy"] == "explicit_active_juror_opt_in_required"

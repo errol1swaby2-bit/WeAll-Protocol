@@ -37,12 +37,12 @@ function reputationTone(rep: number): { label: string; note: string } {
   if (rep < 0.75) {
     return {
       label: "Building trust",
-      note: "Participation is possible, but the account is not in the higher-trust posting band.",
+      note: "Participation is possible; reputation can still affect future trusted responsibilities and ranking.",
     };
   }
   return {
     label: "Strong standing",
-    note: "Reputation is in the creator-safe range.",
+    note: "Reputation is in the higher-trust service range.",
   };
 }
 
@@ -96,7 +96,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "jurorEnroll" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -176,8 +176,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const accountExists = !!acctView?.ok && !!state;
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
-  const canPost = tier >= 2 && accountExists && !banned && !locked && reputation >= 0.75;
+  const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
+
+  const rolesState = asRecord(state?.roles);
+  const jurorBucket = asRecord(rolesState.jurors);
+  const jurorById = asRecord(jurorBucket.by_id);
+  const jurorRecord = asRecord(jurorById[acct]);
+  const jurorActiveSet = Array.isArray(jurorBucket.active_set)
+    ? jurorBucket.active_set.map((v: any) => String(v))
+    : [];
+  const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
+  const reviewerEnrolled = !!jurorRecord.enrolled || !!jurorRecord.active || jurorActiveSet.includes(acct);
+  const reviewerActive = !!jurorRecord.active || jurorActiveSet.includes(acct);
+  const contentReviewActive = reviewerActive || asRecord(reviewerResponsibilities.content_review).active === true;
 
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
@@ -202,7 +214,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const matchingNodeDevice =
     nodeDevices.find((rec) => !!nodePubkey && String(rec.pubkey || "") === nodePubkey) || null;
   const hasAnyNodeDevice = nodeDevices.length > 0;
-  const nodeOperatorBucket = asRecord(asRecord(state?.roles).node_operators);
+  const nodeOperatorBucket = asRecord(rolesState.node_operators);
   const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
   const nodeOperatorRecord = asRecord(nodeOperatorById[acct]);
   const operatorTruth = asRecord(operatorStatus?.node_operator);
@@ -286,6 +298,53 @@ export default function Account({ account }: { account: string }): JSX.Element {
     });
     setNodeKeyFile(next);
     downloadNodeKeyFile(next);
+  }
+
+  async function runReviewerTx() {
+    if (!isSelf) return;
+
+    setBusy("jurorEnroll");
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (tier < 2) throw new Error("trusted_verified_person_required_for_reviewer_responsibility");
+      if (!localPubkey) throw new Error("missing_account_signer");
+
+      const r = await tx.runTx({
+        title: "Opt into community reviewer responsibility",
+        pendingMessage: "Submitting reviewer responsibility opt-in…",
+        successMessage: "Reviewer availability is active. You may now be assigned unconflicted content reports and disputes.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "ROLE_JUROR_ENROLL",
+          payload: {
+            account_id: acct,
+            responsibilities: {
+              reviewer: {
+                content_review: { opted_in: true },
+                dispute_review: { opted_in: true },
+                poh_async_review: { opted_in: true },
+                poh_live_review: { opted_in: true },
+              },
+            },
+          },
+          base,
+        }),
+      });
+
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage") {
@@ -506,6 +565,91 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   : "Account status, standing, or signer prerequisites are still blocking operator setup."}
           </div>
         </article>
+      </section>
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Trusted responsibilities</div>
+              <h2 className="cardTitle">Opt into reviewer and service duties</h2>
+            </div>
+            <span className={`statusPill ${canServe ? "ok" : ""}`}>
+              {canServe ? "Eligible" : "Locked until Trusted Verified Person"}
+            </span>
+          </div>
+          <p className="heroText">
+            Tier 2 unlocks eligibility, but responsibility is explicit. Opt in before the protocol can assign
+            you unconflicted review work or storage validation duties. Accepted assignments may affect reputation
+            if they are missed or abandoned late.
+          </p>
+
+          <div className="grid2">
+            <article className="feedMediaCard">
+              <div className="feedMediaTitle">Community reviewer</div>
+              <div className="feedMediaMeta">
+                Review content reports and disputes when you are not the original poster or otherwise conflicted.
+                In the local two-node rehearsal, this is where the Errol account opts in before accepting the
+                report review assignment.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Reviewer opt-in</span>
+                  <span className={`statusPill ${reviewerEnrolled ? "ok" : ""}`}>{reviewerEnrolled ? "Submitted" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Reviewer availability</span>
+                  <span className={`statusPill ${contentReviewActive ? "ok" : ""}`}>{contentReviewActive ? "Active" : reviewerEnrolled ? "Pending confirmation" : "Unavailable"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Conflict rule</span>
+                  <span className="statusPill ok">Original poster excluded</span>
+                </div>
+              </div>
+              <div className="buttonRow">
+                {!reviewerActive ? (
+                  <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx()}>
+                    {busy === "jurorEnroll" ? "Opting in…" : "Opt into community review"}
+                  </button>
+                ) : (
+                  <span className="statusPill ok">Reviewer availability active</span>
+                )}
+                <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
+              </div>
+            </article>
+
+            <article className="feedMediaCard">
+              <div className="feedMediaTitle">Storage validation and provider duty</div>
+              <div className="feedMediaMeta">
+                Storage is also opt-in. Register a node device, enroll as a node operator, then declare capacity.
+                The protocol must still verify capacity before assigning storage obligations.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Node operator</span>
+                  <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>{nodeOperatorActive ? "Active" : nodeOperatorEnrolled ? "Pending" : "Not enrolled"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Storage opt-in</span>
+                  <span className={`statusPill ${storageOptedIn ? "ok" : ""}`}>{storageOptedIn ? "Declared" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Capacity proof</span>
+                  <span className={`statusPill ${storageProvenCapacityBytes > 0 ? "ok" : ""}`}>{storageProvenCapacityBytes > 0 ? "Proven" : storageProofStatus}</span>
+                </div>
+              </div>
+              <div className="buttonRow">
+                <button className="btn" disabled={busy !== null || !nodeOperatorActive || !nodePubkey || storageOptedIn} onClick={() => void runOperatorTx("storage")}>
+                  {busy === "storage" ? "Recording storage opt-in…" : storageOptedIn ? "Storage opt-in recorded" : "Opt into storage validation"}
+                </button>
+                <button className="btn" onClick={() => nav("/node")}>Open node controls</button>
+              </div>
+              {!nodeOperatorActive || !nodePubkey ? (
+                <div className="feedMediaMeta">Finish node setup in the advanced network helper section below before storage validation can be submitted.</div>
+              ) : null}
+            </article>
+          </div>
+        </div>
       </section>
 
       <WalletPanel account={acct} base={base} />

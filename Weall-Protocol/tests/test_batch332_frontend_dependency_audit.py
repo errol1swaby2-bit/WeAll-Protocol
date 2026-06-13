@@ -24,9 +24,9 @@ def test_frontend_dependency_audit_script_is_available_and_exact_versions_are_pi
     dev_dependencies = package.get("devDependencies", {})
 
     # Exact pins only: no semver ranges for the audited frontend security-critical stack.
-    assert dependencies.get("react-router-dom") == "6.30.3"
-    assert dev_dependencies.get("vite") == "7.3.3"
-    assert dev_dependencies.get("@vitejs/plugin-react") == "5.1.2"
+    assert dependencies.get("react-router-dom") == "6.30.4"
+    assert dev_dependencies.get("vite") == "8.0.16"
+    assert dev_dependencies.get("@vitejs/plugin-react") == "5.2.0"
     for name in ("react-router-dom",):
         assert not dependencies[name].startswith(("^", "~", ">", "<"))
     for name in ("vite", "@vitejs/plugin-react"):
@@ -37,29 +37,29 @@ def test_frontend_package_lock_matches_audited_dependency_versions() -> None:
     lock = _read_json(WEB / "package-lock.json")
     root = lock["packages"][""]
 
-    assert root["dependencies"]["react-router-dom"] == "6.30.3"
-    assert root["devDependencies"]["vite"] == "7.3.3"
-    assert root["devDependencies"]["@vitejs/plugin-react"] == "5.1.2"
+    assert root["dependencies"]["react-router-dom"] == "6.30.4"
+    assert root["devDependencies"]["vite"] == "8.0.16"
+    assert root["devDependencies"]["@vitejs/plugin-react"] == "5.2.0"
 
     packages = lock["packages"]
-    assert packages["node_modules/react-router-dom"]["version"] == "6.30.3"
-    assert packages["node_modules/react-router"]["version"] == "6.30.3"
-    assert packages["node_modules/vite"]["version"] == "7.3.3"
-    assert packages["node_modules/@vitejs/plugin-react"]["version"] == "5.1.2"
+    assert packages["node_modules/react-router-dom"]["version"] == "6.30.4"
+    assert packages["node_modules/react-router"]["version"] == "6.30.4"
+    assert packages["node_modules/vite"]["version"] == "8.0.16"
+    assert packages["node_modules/@vitejs/plugin-react"]["version"] == "5.2.0"
 
 
 def test_frontend_lockfile_no_longer_contains_known_vulnerable_ranges() -> None:
     lock = _read_json(WEB / "package-lock.json")
     packages = lock["packages"]
 
-    # Prior audit findings were fixed by moving react-router-dom/react-router to 6.30.3.
-    assert packages["node_modules/@remix-run/router"]["version"] == "1.23.2"
-    assert packages["node_modules/react-router"]["version"] == "6.30.3"
+    # Prior audit findings were fixed by moving react-router-dom/react-router to 6.30.4.
+    assert packages["node_modules/@remix-run/router"]["version"] == "1.23.3"
+    assert packages["node_modules/react-router"]["version"] == "6.30.4"
 
-    # Prior Vite/esbuild findings were fixed by moving to Vite 7.3.3.
+    # Prior Vite/esbuild findings were fixed by moving to Vite 8.0.16.
     vite = packages["node_modules/vite"]
     esbuild = packages["node_modules/esbuild"]
-    assert vite["version"] == "7.3.3"
+    assert vite["version"] == "8.0.16"
     assert esbuild["version"] >= "0.25.0"
 
 def test_frontend_package_lock_uses_public_registry_urls_only() -> None:

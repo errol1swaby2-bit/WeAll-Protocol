@@ -71,6 +71,14 @@ def _ensure_roles(ledger: Json) -> Json:
 
 
 
+
+def _require_self_or_system(env: TxEnvelope, acct: str, reason: str) -> None:
+    if bool(getattr(env, "system", False)):
+        return
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", reason, {"account_id": acct})
+
+
 _ROLE_ELIGIBILITY_ALIASES: dict[str, tuple[str, ...]] = {
     "juror": ("juror", "Juror", "ROLE_JUROR", "ROLE_JUROR_ACTIVATE"),
     "node_operator": (
@@ -584,11 +592,42 @@ def _apply_role_juror_enroll(ledger: Json, env: TxEnvelope) -> Json:
         jur["by_id"] = by_id
 
     rec = _touch(by_id, acct)
-    had = bool(rec.get("enrolled", False))
+    had = bool(rec.get("enrolled", False)) and bool(rec.get("active", False))
+    _require_role_activation_eligible(
+        ledger,
+        acct,
+        role="juror",
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "juror", 0),
+    )
     rec["enrolled"] = True
+    rec["active"] = True
+    rec["status"] = "active"
     rec["enrolled_at_nonce"] = int(env.nonce)
+    rec["activated_at_nonce"] = int(env.nonce)
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+    reviewer = responsibilities.get("reviewer")
+    if not isinstance(reviewer, dict):
+        reviewer = {}
+    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
+        lane_rec = reviewer.get(lane)
+        if not isinstance(lane_rec, dict):
+            lane_rec = {}
+        lane_rec["opted_in"] = True
+        lane_rec["active"] = True
+        lane_rec["updated_at_nonce"] = int(env.nonce)
+        reviewer[lane] = lane_rec
+    responsibilities["reviewer"] = reviewer
+    rec["responsibilities"] = responsibilities
     by_id[acct] = rec
 
+    aset = jur.get("active_set")
+    if not isinstance(aset, list):
+        aset = []
+    if acct not in aset:
+        aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
+    jur["active_set"] = aset
     jur["by_id"] = by_id
     return {"applied": "ROLE_JUROR_ENROLL", "account_id": acct, "deduped": had}
 
@@ -610,6 +649,7 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
         by_id = {}
         jur["by_id"] = by_id
 
+    _require_self_or_system(env, acct, "only_account_or_system_can_activate_juror")
     rec = _touch(by_id, acct)
     if not bool(rec.get("enrolled", False)):
         raise RolesApplyError("not_found", "juror_not_enrolled", {"account_id": acct})
@@ -621,8 +661,24 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
     )
 
     rec["active"] = True
+    rec["status"] = "active"
     rec["activated_at_nonce"] = int(env.nonce)
-    _ensure_node_operator_responsibilities(rec)
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+    reviewer = responsibilities.get("reviewer")
+    if not isinstance(reviewer, dict):
+        reviewer = {}
+    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
+        lane_rec = reviewer.get(lane)
+        if not isinstance(lane_rec, dict):
+            lane_rec = {}
+        lane_rec.setdefault("opted_in", True)
+        lane_rec.setdefault("active", True)
+        lane_rec["updated_at_nonce"] = int(env.nonce)
+        reviewer[lane] = lane_rec
+    responsibilities["reviewer"] = reviewer
+    rec["responsibilities"] = responsibilities
     by_id[acct] = rec
     jur["by_id"] = by_id
 
@@ -653,13 +709,23 @@ def _apply_role_juror_suspend(ledger: Json, env: TxEnvelope) -> Json:
         by_id = {}
         jur["by_id"] = by_id
 
+    _require_self_or_system(env, acct, "only_account_or_system_can_suspend_juror")
     rec = _touch(by_id, acct)
     if not bool(rec.get("enrolled", False)):
         raise RolesApplyError("not_found", "juror_not_enrolled", {"account_id": acct})
 
     already = not bool(rec.get("active", False))
     rec["active"] = False
+    rec["status"] = "paused"
     rec["suspended_at_nonce"] = int(env.nonce)
+    responsibilities = rec.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        reviewer = responsibilities.get("reviewer")
+        if isinstance(reviewer, dict):
+            for lane_rec in reviewer.values():
+                if isinstance(lane_rec, dict):
+                    lane_rec["active"] = False
+                    lane_rec["paused_at_nonce"] = int(env.nonce)
     by_id[acct] = rec
     jur["by_id"] = by_id
 
@@ -860,8 +926,24 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
     )
 
     rec["active"] = True
+    rec["status"] = "active"
     rec["activated_at_nonce"] = int(env.nonce)
-    _ensure_node_operator_responsibilities(rec)
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+    reviewer = responsibilities.get("reviewer")
+    if not isinstance(reviewer, dict):
+        reviewer = {}
+    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
+        lane_rec = reviewer.get(lane)
+        if not isinstance(lane_rec, dict):
+            lane_rec = {}
+        lane_rec.setdefault("opted_in", True)
+        lane_rec.setdefault("active", True)
+        lane_rec["updated_at_nonce"] = int(env.nonce)
+        reviewer[lane] = lane_rec
+    responsibilities["reviewer"] = reviewer
+    rec["responsibilities"] = responsibilities
     by_id[acct] = rec
     ops["by_id"] = by_id
 
@@ -898,7 +980,16 @@ def _apply_role_node_operator_suspend(ledger: Json, env: TxEnvelope) -> Json:
 
     already = not bool(rec.get("active", False))
     rec["active"] = False
+    rec["status"] = "paused"
     rec["suspended_at_nonce"] = int(env.nonce)
+    responsibilities = rec.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        reviewer = responsibilities.get("reviewer")
+        if isinstance(reviewer, dict):
+            for lane_rec in reviewer.values():
+                if isinstance(lane_rec, dict):
+                    lane_rec["active"] = False
+                    lane_rec["paused_at_nonce"] = int(env.nonce)
     by_id[acct] = rec
     ops["by_id"] = by_id
 

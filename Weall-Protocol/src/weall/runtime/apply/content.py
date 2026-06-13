@@ -113,6 +113,40 @@ def _resolve_account_identity(state: Json, value: Any) -> str:
     return variants[0]
 
 
+
+
+def _same_account(a: str, b: str) -> bool:
+    aa = _as_str(a).strip()
+    bb = _as_str(b).strip()
+    if not aa or not bb:
+        return False
+    return aa == bb or aa.lstrip("@") == bb.lstrip("@")
+
+
+def _filter_target_owner_from_jurors(state: Json, *, target_author: str, jurors: list[str]) -> list[str]:
+    owner = _resolve_account_identity(state, target_author) if target_author else ""
+    out: list[str] = []
+    for juror in _canonical_account_list([_resolve_account_identity(state, item) for item in jurors]):
+        if owner and _same_account(owner, juror):
+            continue
+        out.append(juror)
+    return _canonical_account_list(out)
+
+
+def _content_target_author(state: Json, target_id: str) -> str:
+    content_root = _ensure_root(state)
+    posts = content_root.get("posts")
+    comments = content_root.get("comments")
+    post_obj = posts.get(target_id) if isinstance(posts, dict) else None
+    comment_obj = comments.get(target_id) if isinstance(comments, dict) else None
+    target_author = ""
+    if isinstance(post_obj, dict):
+        target_author = _resolve_account_identity(state, post_obj.get("author") or post_obj.get("owner") or post_obj.get("account_id") or post_obj.get("created_by"))
+    elif isinstance(comment_obj, dict):
+        target_author = _resolve_account_identity(state, comment_obj.get("author") or comment_obj.get("owner") or comment_obj.get("account_id") or comment_obj.get("created_by"))
+    return target_author
+
+
 def _canonical_tags(value: Any) -> list[str]:
     if isinstance(value, str):
         raw_values = value.replace(",", " ").split()
@@ -1144,6 +1178,8 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             "target_type": target_type,
             "target_id": target_id,
             "reason": reason,
+            "flagged_by": payload.get("flagged_by") or payload.get("reported_by"),
+            "reported_by": payload.get("flagged_by") or payload.get("reported_by"),
         },
         system=bool(env.system),
         parent=(str(getattr(env, "parent", "") or "") or None),
@@ -1161,30 +1197,30 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     disputes_root = _as_dict(state.get("disputes_by_id"))
     dispute_obj = _as_dict(disputes_root.get(did))
-    assigned_jurors = (
-        _canonical_account_list(dispute_obj.get("eligible_juror_ids"))
-        or _active_juror_accounts(state)
-        or _active_validator_accounts(state)
-        or _bootstrap_reviewer_accounts(state)
-    )
+    target_author = _content_target_author(state, target_id)
+
+    def clean_jurors(values: list[str]) -> list[str]:
+        return _filter_target_owner_from_jurors(state, target_author=target_author, jurors=values)
+
+    # Content report review is an explicit trusted responsibility. Tier2 status
+    # makes an account eligible to opt in, but content escalation must not
+    # silently assign validators, bootstrap operators, or the reporter as a
+    # reviewer. This keeps review duty auditable and prevents accidental
+    # reputation liability for users who never accepted the responsibility.
+    assigned_jurors = clean_jurors(_active_juror_accounts(state))
+    if target_author:
+        dispute_obj["target_owner"] = target_author
+    dispute_obj["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
     if not assigned_jurors:
-        content_root = _ensure_root(state)
-        target_author = ""
-        posts = content_root.get("posts")
-        comments = content_root.get("comments")
-        post_obj = posts.get(target_id) if isinstance(posts, dict) else None
-        comment_obj = comments.get(target_id) if isinstance(comments, dict) else None
-        if isinstance(post_obj, dict):
-            target_author = _resolve_account_identity(state, post_obj.get("author"))
-        elif isinstance(comment_obj, dict):
-            target_author = _resolve_account_identity(state, comment_obj.get("author"))
-        if target_author:
-            assigned_jurors = _canonical_account_list([target_author])
+        dispute_obj["stage"] = "unassigned"
+        dispute_obj["assignment_blocked_reason"] = "no_unconflicted_content_reviewer"
+        dispute_obj["eligible_juror_ids"] = []
+        dispute_obj["eligible_validator_count"] = 0
+        dispute_obj["required_votes"] = 0
+
     if not assigned_jurors:
-        fallback_signer = "" if _as_str(env.signer).strip().upper() == "SYSTEM" else env.signer
-        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, fallback_signer)])
-    if not assigned_jurors:
-        assigned_jurors = _bootstrap_reviewer_accounts(state)
+        disputes_root[did] = dispute_obj
+        state["disputes_by_id"] = disputes_root
 
     current_height = _as_int(payload.get("_due_height"), _as_int(state.get("height") or 0))
     followup_height = int(current_height) + 1

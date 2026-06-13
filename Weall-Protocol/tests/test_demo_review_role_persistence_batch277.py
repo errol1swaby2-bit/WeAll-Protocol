@@ -91,13 +91,13 @@ def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate_batch277() -> 
     dispute_id = _apply_first_queued_escalation(state)
 
     assert dispute_id == "dispute:SYSTEM:0"
-    assert state["roles"]["jurors"]["by_id"]["@demo_tester"]["active"] is True
-    assert "@demo_tester" in state["roles"]["jurors"]["active_set"]
-    assert state["disputes_by_id"][dispute_id]["jurors"]["@demo_tester"]["status"] == "assigned"
+    assert state["roles"]["jurors"]["by_id"]["@demo-tester-reviewer"]["active"] is True
+    assert "@demo-tester-reviewer" in state["roles"]["jurors"]["active_set"]
+    assert state["disputes_by_id"][dispute_id]["jurors"]["@demo-tester-reviewer"]["status"] == "assigned"
 
     ok, meta = eval_gate(
         "Juror",
-        signer="@demo_tester",
+        signer="@demo-tester-reviewer",
         state=state,
         payload={"dispute_id": dispute_id},
     )

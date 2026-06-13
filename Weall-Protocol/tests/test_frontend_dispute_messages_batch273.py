@@ -44,10 +44,16 @@ def test_seeded_demo_allows_case_scoped_report_review_without_leaking_to_prod() 
     }
     seeded = seed_demo_state(state, account="@demo_tester", post_id="post:@demo_tester:5")
     dispute_id = seeded["dispute"]["dispute_id"]
+    reviewer = seeded["dispute"]["juror"]
 
+    assert reviewer != "@demo_tester"
     assert state["params"]["allow_case_scoped_juror_without_role"] is True
     # Prove the demo fallback is case-scoped, not dependent on a globally visible
     # role card. Production/devnet never get this flag because demo_seed is fenced.
+    # Batch 607 forbids content owners from reviewing their own reported posts,
+    # so seeded-demo now uses a separate unconflicted reviewer account.
     state["roles"]["jurors"] = {"by_id": {}, "active_set": []}
-    ok, meta = eval_gate("Juror", signer="@demo_tester", state=state, payload={"dispute_id": dispute_id})
+    ok, meta = eval_gate("Juror", signer=reviewer, state=state, payload={"dispute_id": dispute_id})
     assert ok, meta
+    owner_ok, owner_meta = eval_gate("Juror", signer="@demo_tester", state=state, payload={"dispute_id": dispute_id})
+    assert not owner_ok, owner_meta

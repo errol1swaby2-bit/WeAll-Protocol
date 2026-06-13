@@ -90,20 +90,20 @@ def test_seeded_demo_grants_real_juror_role_so_assigned_reviews_pass_gate_batch2
     dispute_id = result["dispute"]["dispute_id"]
 
     jurors = state["roles"]["jurors"]
-    rec = jurors["by_id"]["@demo_tester"]
+    rec = jurors["by_id"]["@demo-tester-reviewer"]
     assert rec["enrolled"] is True
     assert rec["active"] is True
     assert rec["status"] == "active"
-    assert "@demo_tester" in jurors["active_set"]
+    assert "@demo-tester-reviewer" in jurors["active_set"]
     assert result["juror"] == {
-        "juror_id": "@demo_tester",
+        "juror_id": "@demo-tester-reviewer",
         "active": True,
         "authority_source": "seeded_demo_role",
     }
 
     ok, _ = eval_gate(
         "Juror",
-        signer="@demo_tester",
+        signer="@demo-tester-reviewer",
         ledger=state,
         payload={"dispute_id": dispute_id},
     )
