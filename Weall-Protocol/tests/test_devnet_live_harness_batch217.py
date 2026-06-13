@@ -86,13 +86,15 @@ def test_full_live_wrapper_enables_tier2_and_live_batch217() -> None:
     assert "/v1/dev/demo-seed" not in wrapper
 
 
-def test_controlled_devnet_bootstrap_window_supports_live_reviewer_setup_batch217() -> None:
+def test_controlled_devnet_uses_partial_live_panel_not_open_bootstrap_batch217() -> None:
     genesis = _script("scripts/devnet_boot_genesis_node.sh").read_text(encoding="utf-8")
     joining = _script("scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
-    assert 'WEALL_POH_BOOTSTRAP_MAX_HEIGHT="${WEALL_POH_BOOTSTRAP_MAX_HEIGHT:-500}"' in genesis
-    assert 'WEALL_POH_BOOTSTRAP_MAX_HEIGHT="${WEALL_POH_BOOTSTRAP_MAX_HEIGHT:-500}"' in joining
-    assert "poh_bootstrap_max_height=${WEALL_POH_BOOTSTRAP_MAX_HEIGHT}" in genesis
-    assert "poh_bootstrap_max_height=${WEALL_POH_BOOTSTRAP_MAX_HEIGHT}" in joining
+    assert 'WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in genesis
+    assert 'WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in joining
+    assert 'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"' in genesis
+    assert 'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"' in joining
+    assert "live_partial_panels=${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED}" in genesis
+    assert "live_partial_panels=${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED}" in joining
 
 
 def test_live_devnet_flow_uses_normal_txs_not_operator_mutation_batch217() -> None:
@@ -104,8 +106,8 @@ def test_live_devnet_flow_uses_normal_txs_not_operator_mutation_batch217() -> No
         "scripts/devnet_tx.py",
     ]
     combined = "\n".join(_script(rel).read_text(encoding="utf-8") for rel in files)
-    assert "POH_BOOTSTRAP_TIER2_GRANT" in combined
-    assert "/v1/tx/submit" in combined
+    assert "GENESIS_REVIEWER_ACCOUNT" in combined
+    assert "POH_BOOTSTRAP_TIER2_GRANT" in _script("scripts/devnet_tx.py").read_text(encoding="utf-8")
     assert "/poh/operator/live/init" not in combined
     assert "/poh/operator/live/finalize" not in combined
     assert "WEALL_ENABLE_OPERATOR_POH" not in combined

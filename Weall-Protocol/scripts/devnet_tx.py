@@ -376,7 +376,12 @@ def _live_session_participants(api: str, session_id: str) -> Json:
 
 
 def _live_case_id(*, account: str, nonce: int) -> str:
-    return f"poh3:{str(account or '').strip()}:{max(0, int(nonce))}"
+    # Must mirror runtime apply_poh_live_request_open(), which creates
+    # case ids via _case_id("poh_live", account_id=..., nonce=...).
+    # Older rehearsal helpers derived legacy poh3:* ids, causing the
+    # production-style Live request to submit successfully but then poll
+    # a non-existent case.
+    return f"poh_live:{str(account or '').strip()}:{max(0, int(nonce))}"
 
 
 def _devnet_video_commitment(*, chain_id: str, account: str) -> str:

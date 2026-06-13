@@ -50,11 +50,20 @@ def test_bootstrap_live_cli_payload_matches_strict_schema_batch230() -> None:
     assert found_payload
 
 
-def test_live_reviewer_prepare_still_uses_normal_signed_submit_batch230() -> None:
+def test_live_reviewer_prepare_uses_genesis_bound_reviewer_batch230() -> None:
+    prepare = _script("scripts/devnet_prepare_live_jurors.sh")
+    assert "GENESIS_REVIEWER_ACCOUNT" in prepare
+    assert "Deterministic genesis-bound Live reviewer ready" in prepare
+    assert "POH_BOOTSTRAP_TIER2_GRANT" not in prepare
+    assert "devnet_bootstrap_live.sh" not in prepare
+    assert "/v1/dev/demo-seed" not in prepare
+    assert "demo-seed" not in prepare
+
+
+def test_legacy_bootstrap_live_cli_still_uses_normal_signed_submit_batch230() -> None:
     combined = "\n".join(
         _script(rel)
         for rel in [
-            "scripts/devnet_prepare_live_jurors.sh",
             "scripts/devnet_bootstrap_live.sh",
             "scripts/devnet_tx.py",
         ]

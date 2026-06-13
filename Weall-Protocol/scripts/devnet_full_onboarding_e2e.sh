@@ -321,23 +321,12 @@ print(str(cur or '').strip())
 PY_JSON_FIELD
 }
 
-_submit_devnet_tick() {
-  local api="$1"
-  local label="$2"
-  local out_file="${DEVNET_DIR}/tick-${label}.json"
-  WEALL_API="${api}" WEALL_KEYFILE="${KEYFILE}" python3 scripts/devnet_tx.py --api "${api}" tick \
-    --keyfile "${KEYFILE}" \
-    --label "${label}" \
-    --wait \
-    --timeout "${WEALL_TX_WAIT_TIMEOUT:-30}" \
-    --poll "${WEALL_TX_WAIT_POLL:-0.5}" > "${out_file}"
-}
 
 _wait_tier2_case_assigned() {
   local api="$1"
   local case_id="$2"
   local tick_api="$3"
-  local attempts="${WEALL_TIER2_ASSIGN_ATTEMPTS:-6}"
+  local attempts="${WEALL_TIER2_ASSIGN_ATTEMPTS:-36}"
   local i
   for ((i=1; i<=attempts; i++)); do
     if python3 - "${api}" "${case_id}" <<'PY_TIER2_ASSIGNED'
@@ -358,8 +347,8 @@ PY_TIER2_ASSIGNED
     then
       return 0
     fi
-    echo "==> Tier-2 case ${case_id} not assigned yet; advancing system queue tick ${i}/${attempts}"
-    _submit_devnet_tick "${tick_api}" "tier2-assign-${i}"
+    echo "==> Tier-2 case ${case_id} not assigned yet; waiting for automatic block production ${i}/${attempts}"
+    sleep "${WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5}"
   done
   echo "ERROR: Tier-2 case was not assigned: ${case_id}" >&2
   python3 scripts/devnet_tx.py --api "${api}" tier2-case "${case_id}" || true
@@ -372,7 +361,7 @@ _wait_account_tier_at_least() {
   local min_tier="$3"
   local tick_api="$4"
   local label="$5"
-  local attempts="${WEALL_TIER_WAIT_ATTEMPTS:-8}"
+  local attempts="${WEALL_TIER_WAIT_ATTEMPTS:-48}"
   local i
   for ((i=1; i<=attempts; i++)); do
     if python3 - "${api}" "${account}" "${min_tier}" <<'PY_TIER_WAIT'
@@ -390,8 +379,8 @@ PY_TIER_WAIT
     then
       return 0
     fi
-    echo "==> Account ${account} has not reached Tier-${min_tier}; advancing system queue tick ${i}/${attempts}"
-    _submit_devnet_tick "${tick_api}" "${label}-${i}"
+    echo "==> Account ${account} has not reached Tier-${min_tier}; waiting for automatic block production ${i}/${attempts}"
+    sleep "${WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5}"
   done
   echo "ERROR: account did not reach Tier-${min_tier}: ${account}" >&2
   WEALL_API="${api}" bash ./scripts/devnet_account_status.sh "${account}" || true
@@ -438,7 +427,7 @@ _wait_live_case_assigned() {
   local api="$1"
   local case_id="$2"
   local tick_api="$3"
-  local attempts="${WEALL_LIVE_ASSIGN_ATTEMPTS:-10}"
+  local attempts="${WEALL_LIVE_ASSIGN_ATTEMPTS:-36}"
   local i
   for ((i=1; i<=attempts; i++)); do
     if python3 - "${api}" "${case_id}" <<'PY_LIVE_ASSIGNED'
@@ -453,15 +442,15 @@ case = out.get('case') if isinstance(out, dict) else {}
 jurors = case.get('jurors') if isinstance(case, dict) else []
 status = str((case or {}).get('status') or '').lower()
 session_commitment = str((case or {}).get('session_commitment') or '').strip()
-if isinstance(jurors, list) and len(jurors) == 10 and status in {'init', 'open', 'awarded', 'rejected'} and session_commitment:
+if isinstance(jurors, list) and 1 <= len(jurors) <= 10 and status in {'init', 'open', 'awarded', 'rejected'} and session_commitment:
     raise SystemExit(0)
 raise SystemExit(1)
 PY_LIVE_ASSIGNED
     then
       return 0
     fi
-    echo "==> Live case ${case_id} not ready yet; advancing system queue tick ${i}/${attempts}"
-    _submit_devnet_tick "${tick_api}" "live-assign-${i}"
+    echo "==> Live case ${case_id} not ready yet; waiting for automatic block production ${i}/${attempts}"
+    sleep "${WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5}"
   done
   echo "ERROR: Live case was not initialized/assigned: ${case_id}" >&2
   python3 scripts/devnet_tx.py --api "${api}" live-case "${case_id}" || true
@@ -510,8 +499,8 @@ _run_live_devnet_flow() {
   local review_dir="${DEVNET_DIR}/live-reviews"
   mkdir -p "${review_dir}"
 
-  echo "==> Preparing 10 controlled-devnet Live reviewer accounts through normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" bash ./scripts/devnet_prepare_live_jurors.sh
+  echo "==> Verifying deterministic genesis-bound Live reviewer authority"
+  WEALL_API="${NODE1_API}" WEALL_DEVNET_DIR="${DEVNET_DIR}" WEALL_GENESIS_REVIEWER_ACCOUNT="${OPERATOR_ACCOUNT}" WEALL_GENESIS_REVIEWER_KEYFILE="${OPERATOR_KEYFILE}" bash ./scripts/devnet_prepare_live_jurors.sh
 
   echo "==> Requesting protocol-native Live live PoH through node 1 normal tx flow"
   WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_live.sh | tee "${t3_out}"
@@ -602,7 +591,7 @@ _start_node1_if_needed() {
     export GUNICORN_BIND="${NODE1_BIND:-127.0.0.1:8001}"
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export WEALL_BLOCK_LOOP_AUTOSTART="${WEALL_BLOCK_LOOP_AUTOSTART:-1}"
-    export WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-1000}"
+    export WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-20000}"
     export WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-0}"
     export WEALL_NET_LOOP_AUTOSTART="${WEALL_NET_LOOP_AUTOSTART:-0}"
     export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE="1"
@@ -631,7 +620,7 @@ _start_node2_if_needed() {
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
     export NODE1_API="${NODE1_API}"
     export WEALL_BLOCK_LOOP_AUTOSTART="${WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-0}"
-    export WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-1000}"
+    export WEALL_BLOCK_INTERVAL_MS="${WEALL_BLOCK_INTERVAL_MS:-20000}"
     export WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-0}"
     export WEALL_NET_LOOP_AUTOSTART="${WEALL_NET_LOOP_AUTOSTART:-0}"
     export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE="1"
@@ -668,17 +657,26 @@ if [[ "${WEALL_RUN_NATIVE_ASYNC_TIER1_E2E:-1}" == "1" ]]; then
     bash ./scripts/demo_native_async_tier1_e2e.sh
 fi
 
+NODE2_AVAILABLE=0
+if _start_node2_if_needed; then
+  NODE2_AVAILABLE=1
+  echo "==> Syncing node 2 from node 1 after native async Tier-1 onboarding"
+  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
+  echo "==> Comparing state roots after native async Tier-1 onboarding"
+  NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh
+fi
+
+if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]; then
+  echo "==> Completing optional native Tier-2 verification through assigned reviewer votes"
+  _run_tier2_devnet_flow "${ACCOUNT}"
+fi
+
 if [[ "${WEALL_DEVNET_RUN_LIVE}" == "1" ]]; then
   echo "==> Completing optional native live Tier-2 verification through assigned reviewer votes"
   _run_live_devnet_flow "${ACCOUNT}"
 fi
 
-if _start_node2_if_needed; then
-  echo "==> Syncing node 2 from node 1 after native async Tier-1 onboarding"
-  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Comparing state roots after native async Tier-1 onboarding"
-  NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh
-
+if [[ "${NODE2_AVAILABLE}" == "1" ]]; then
   echo "==> Submitting a node-2-originated convergence transaction"
   node2_convergence_tx_id="$(_submit_node2_convergence_tx "${ACCOUNT}")"
   echo "==> Node-2 convergence tx_id=${node2_convergence_tx_id}"

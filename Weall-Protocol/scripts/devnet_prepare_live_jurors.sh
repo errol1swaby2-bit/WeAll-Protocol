@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Prepare controlled-devnet Live reviewer accounts for live PoH testing.
-# Each reviewer is created through ACCOUNT_REGISTER and elevated through the
-# bounded POH_BOOTSTRAP_TIER2_GRANT open-bootstrap tx. This is not a demo seed:
-# every mutation goes through /v1/tx/submit and normal block execution.
+# Prepare controlled-devnet Live reviewer authority for live PoH testing.
+# Production-aligned controlled-devnet rehearsal must not self-grant reviewer
+# status after startup.  Instead, the genesis node boots with an explicit,
+# deterministic genesis bootstrap operator/reviewer identity.  This helper only
+# verifies that the genesis-bound reviewer is present, Live/Tier-2 eligible, and
+# backed by the expected keyfile so later live-review txs can use normal
+# /v1/tx/submit paths.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API="${WEALL_API:-http://127.0.0.1:8001}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${ROOT}/.weall-devnet}"
-COUNT="${WEALL_LIVE_JUROR_COUNT:-10}"
-PREFIX="${WEALL_LIVE_JUROR_PREFIX:-@devnet-live-juror-}"
-KEY_PREFIX="${WEALL_LIVE_JUROR_KEY_PREFIX:-live-juror-}"
+GENESIS_REVIEWER_ACCOUNT="${WEALL_GENESIS_REVIEWER_ACCOUNT:-${WEALL_BOOTSTRAP_OPERATOR_ACCOUNT:-${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-${WEALL_VALIDATOR_ACCOUNT:-@devnet-genesis}}}}"
+GENESIS_REVIEWER_KEYFILE="${WEALL_GENESIS_REVIEWER_KEYFILE:-${WEALL_GENESIS_OPERATOR_KEYFILE:-${DEVNET_DIR}/genesis-operator.json}}"
 mkdir -p "${DEVNET_DIR}/accounts"
 
-_account_tier() {
+_account_json() {
   local account="$1"
   /usr/bin/env python3 - "$API" "$account" <<'PY'
 import json, sys, urllib.parse, urllib.error, urllib.request
@@ -25,20 +27,20 @@ try:
         out = json.loads(resp.read().decode('utf-8'))
 except urllib.error.HTTPError as exc:
     if exc.code == 404:
-        print('missing')
+        print(json.dumps({"ok": False, "missing": True, "account": account}, sort_keys=True))
         raise SystemExit(0)
     raise
 state = out.get('state') if isinstance(out, dict) else {}
 if not isinstance(state, dict) or not state:
-    print('missing')
+    print(json.dumps({"ok": False, "missing": True, "account": account}, sort_keys=True))
     raise SystemExit(0)
 
 # GET /v1/accounts/{account} intentionally returns a harmless Tier-0
 # placeholder for unknown accounts so read clients can render a stable shape.
-# Reviewer preparation needs a stricter existence check: a real account must
-# have canonical key material recorded in state.  Treat placeholder-only shapes
-# as missing so the script registers the reviewer before submitting the
-# self-signed POH_BOOTSTRAP_TIER2_GRANT transaction.
+# Reviewer rehearsal needs a stricter existence check: a real genesis-bound
+# reviewer must have canonical key material recorded in state. Treat
+# placeholder-only shapes as missing so the rehearsal fails closed instead of
+# accidentally relying on a non-authoritative reviewer account.
 has_key_material = False
 if str(state.get('pubkey') or '').strip():
     has_key_material = True
@@ -52,41 +54,77 @@ keys = state.get('keys')
 if isinstance(keys, dict) and keys:
     has_key_material = True
 if not has_key_material:
-    print('missing')
+    print(json.dumps({"ok": False, "missing": True, "account": account}, sort_keys=True))
     raise SystemExit(0)
 
 try:
-    print(int(state.get('poh_tier') or 0))
+    tier = int(state.get('poh_tier') or 0)
 except Exception:
-    print('0')
+    tier = 0
+print(json.dumps({
+    "ok": True,
+    "account": account,
+    "poh_tier": tier,
+    "pubkey": str(state.get('pubkey') or '').strip(),
+    "reputation": str(state.get('reputation') or state.get('reputation_milli') or ''),
+}, sort_keys=True))
 PY
 }
 
-for i in $(seq 1 "$COUNT"); do
-  suffix="$(printf '%02d' "$i")"
-  account="${PREFIX}${suffix}"
-  keyfile="${DEVNET_DIR}/accounts/${KEY_PREFIX}${suffix}.json"
-  tier="$(_account_tier "$account")"
+_roles_json() {
+  /usr/bin/env python3 - "$API" "$GENESIS_REVIEWER_ACCOUNT" <<'PY'
+import json, sys, urllib.parse, urllib.request
+api, account = sys.argv[1].rstrip('/'), sys.argv[2]
+with urllib.request.urlopen(api + '/v1/status/operator', timeout=15) as resp:
+    operator = json.loads(resp.read().decode('utf-8'))
+# /v1/status/operator is intentionally broad; keep this helper defensive and
+# avoid assuming one exact response shape across rehearsal builds.
+print(json.dumps({"ok": True, "account": account, "operator_status_ok": bool(operator.get("ok"))}, sort_keys=True))
+PY
+}
 
-  if [[ "$tier" == "missing" ]]; then
-    echo "==> Creating Live reviewer account ${account}"
-    WEALL_API="$API" WEALL_ACCOUNT="$account" WEALL_KEYFILE="$keyfile" \
-      bash "$ROOT/scripts/devnet_create_account.sh" --fresh >/dev/null
-    tier="$(_account_tier "$account")"
-  fi
+if [[ -z "${GENESIS_REVIEWER_ACCOUNT}" ]]; then
+  echo "ERROR: genesis reviewer account is empty" >&2
+  exit 2
+fi
+if [[ ! -f "${GENESIS_REVIEWER_KEYFILE}" ]]; then
+  echo "ERROR: genesis reviewer keyfile missing: ${GENESIS_REVIEWER_KEYFILE}" >&2
+  exit 2
+fi
 
-  if [[ "$tier" =~ ^[0-9]+$ && "$tier" -ge 2 ]]; then
-    echo "==> Live reviewer already ready: ${account} tier=${tier} keyfile=${keyfile}"
-    continue
-  fi
+account_json="$(_account_json "${GENESIS_REVIEWER_ACCOUNT}")"
+echo "${account_json}"
 
-  echo "==> Bootstrap-granting controlled-devnet Live reviewer ${account}"
-  WEALL_API="$API" WEALL_ACCOUNT="$account" WEALL_KEYFILE="$keyfile" \
-    bash "$ROOT/scripts/devnet_bootstrap_live.sh" >/dev/null
-  tier="$(_account_tier "$account")"
-  if [[ ! "$tier" =~ ^[0-9]+$ || "$tier" -lt 2 ]]; then
-    echo "ERROR: Live reviewer did not reach Live Verified Human: ${account} tier=${tier}" >&2
-    exit 1
-  fi
-  echo "==> Live reviewer ready: ${account} tier=${tier} keyfile=${keyfile}"
-done
+account_ok="$(python3 - <<'PY' "${account_json}"
+import json, sys
+try:
+    out = json.loads(sys.argv[1])
+except Exception:
+    print('0')
+    raise SystemExit(0)
+print('1' if out.get('ok') else '0')
+PY
+)"
+if [[ "${account_ok}" != "1" ]]; then
+  echo "ERROR: deterministic genesis reviewer is missing from chain state: ${GENESIS_REVIEWER_ACCOUNT}" >&2
+  exit 1
+fi
+
+tier="$(python3 - <<'PY' "${account_json}"
+import json, sys
+out = json.loads(sys.argv[1])
+try:
+    print(int(out.get('poh_tier') or 0))
+except Exception:
+    print(0)
+PY
+)"
+if [[ ! "${tier}" =~ ^[0-9]+$ || "${tier}" -lt 2 ]]; then
+  echo "ERROR: deterministic genesis reviewer is not Live/Tier-2 eligible: ${GENESIS_REVIEWER_ACCOUNT} tier=${tier}" >&2
+  exit 1
+fi
+
+_roles_json >/dev/null || true
+
+echo "==> Deterministic genesis-bound Live reviewer ready: ${GENESIS_REVIEWER_ACCOUNT} tier=${tier} keyfile=${GENESIS_REVIEWER_KEYFILE}"
+echo "==> No open bootstrap or runtime reviewer self-grant was used"

@@ -32,15 +32,17 @@ def test_prepare_live_jurors_treats_placeholder_account_as_missing_batch231() ->
     assert "state.get('active_keys')" in script
     assert "state.get('keys')" in script
     assert "if not has_key_material:" in script
-    assert "print('missing')" in script
+    assert '"missing": True' in script
 
 
-def test_prepare_live_jurors_registers_before_bootstrap_batch231() -> None:
+def test_prepare_live_jurors_verifies_genesis_reviewer_without_self_grant_batch231() -> None:
     script = _text("scripts/devnet_prepare_live_jurors.sh")
-    create_pos = script.index("devnet_create_account.sh")
-    bootstrap_pos = script.index("devnet_bootstrap_live.sh")
-    assert create_pos < bootstrap_pos
-    assert "--fresh" in script
-    assert "POH_BOOTSTRAP_TIER2_GRANT" in script
+    assert "GENESIS_REVIEWER_ACCOUNT" in script
+    assert "GENESIS_REVIEWER_KEYFILE" in script
+    assert "Deterministic genesis-bound Live reviewer ready" in script
+    assert "No open bootstrap or runtime reviewer self-grant was used" in script
+    assert "devnet_create_account.sh" not in script
+    assert "devnet_bootstrap_live.sh" not in script
+    assert "POH_BOOTSTRAP_TIER2_GRANT" not in script
     assert "/v1/dev/demo-seed" not in script
     assert "demo-seed" not in script

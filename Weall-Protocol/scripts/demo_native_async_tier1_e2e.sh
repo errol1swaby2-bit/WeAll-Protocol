@@ -11,10 +11,10 @@ API="${WEALL_API:-${NODE1_API:-http://127.0.0.1:8001}}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${ROOT}/.weall-devnet}"
 KEYFILE="${WEALL_KEYFILE:-${DEVNET_DIR}/accounts/native-async-applicant.json}"
 ACCOUNT="${WEALL_ACCOUNT:-}"
-ASYNC_JUROR_COUNT="${WEALL_ASYNC_JUROR_COUNT:-3}"
+ASYNC_JUROR_COUNT="${WEALL_ASYNC_JUROR_COUNT:-${WEALL_POH_ASYNC_N_JURORS:-1}}"
 ASYNC_JUROR_PREFIX="${WEALL_LIVE_JUROR_PREFIX:-@devnet-live-juror-}"
 ASYNC_JUROR_KEY_PREFIX="${WEALL_LIVE_JUROR_KEY_PREFIX:-live-juror-}"
-WAIT_TIMEOUT="${WEALL_NATIVE_ASYNC_WAIT_TIMEOUT:-60}"
+WAIT_TIMEOUT="${WEALL_NATIVE_ASYNC_WAIT_TIMEOUT:-300}"
 POLL="${WEALL_NATIVE_ASYNC_WAIT_POLL:-1}"
 CREATE_ACCOUNT="${WEALL_NATIVE_ASYNC_CREATE_ACCOUNT:-1}"
 
@@ -81,7 +81,12 @@ while True:
         last = {'error': str(exc)}
     ok = False
     if mode == 'assigned':
-        ok = len([j for j in last.get('assigned_jurors', []) if str(j).strip()]) >= 3
+        assigned = [j for j in last.get('assigned_jurors', []) if str(j).strip()]
+        try:
+            expected = int(last.get('assigned_juror_count') or last.get('configured_assigned_juror_count') or 1)
+        except Exception:
+            expected = 1
+        ok = len(assigned) >= max(1, expected)
     elif mode == 'approved':
         ok = str(last.get('outcome') or '').lower() == 'approved' and int(last.get('tier_awarded') or 0) >= 1
     elif mode == 'receipt':
@@ -215,13 +220,13 @@ for juror in case.get("assigned_jurors", []):
         print(juror)
 PY
 )
-if [[ "${#jurors[@]}" -lt 3 ]]; then
-  echo "ERROR: expected 3 assigned jurors, got ${#jurors[@]}" >&2
+if [[ "${#jurors[@]}" -lt 1 ]]; then
+  echo "ERROR: expected at least 1 assigned juror, got ${#jurors[@]}" >&2
   exit 1
 fi
 
 echo "==> Accepting and voting native async verification case"
-for idx in 0 1 2; do
+for idx in "${!jurors[@]}"; do
   juror="${jurors[$idx]}"
   keyfile="$(_juror_keyfile_for_account "$juror")"
   if [[ ! -f "$keyfile" ]]; then
@@ -230,9 +235,6 @@ for idx in 0 1 2; do
   fi
   _submit "$juror" "$keyfile" "POH_ASYNC_JUROR_ACCEPT" "{\"case_id\":\"${case_id}\"}" >/dev/null
   verdict="approve"
-  if [[ "$idx" == "2" ]]; then
-    verdict="reject"
-  fi
   _submit "$juror" "$keyfile" "POH_ASYNC_REVIEW_SUBMIT" "{\"case_id\":\"${case_id}\",\"verdict\":\"${verdict}\",\"reason_code\":\"fresh_demo_review\",\"ts_ms\":0}" >/dev/null
   echo "==> Juror ${juror} submitted ${verdict}"
 done
