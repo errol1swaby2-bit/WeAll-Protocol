@@ -147,6 +147,10 @@ def apply_helper_quarantine_to_lane_plans(
         record = records.get(helper_id)
         quarantine_until_ms = int(record.quarantine_until_ms) if record else 0
         if quarantine_until_ms > int(now_ms):
+            # Preserve the complete lane descriptor while removing the helper.
+            # The descriptor participates in helper plan/root verification;
+            # dropping it during quarantine can produce a plan-id mismatch
+            # even though the fallback decision is deterministic.
             updated.append(
                 LanePlan(
                     lane_id=str(lane.lane_id),
@@ -155,6 +159,16 @@ def apply_helper_quarantine_to_lane_plans(
                     tx_ids=tuple(lane.tx_ids),
                     access_sets=tuple(lane.access_sets),
                     namespace_prefixes=tuple(lane.namespace_prefixes),
+                    helper_candidates=tuple(getattr(lane, "helper_candidates", ()) or ()),
+                    original_helper_id=str(getattr(lane, "original_helper_id", "") or helper_id),
+                    rerouted_from_helper_id=str(getattr(lane, "rerouted_from_helper_id", "") or ""),
+                    routing_mode="serial_quarantined_helper",
+                    lane_class=str(getattr(lane, "lane_class", "serial") or "serial"),
+                    lane_tx_types=tuple(getattr(lane, "lane_tx_types", ()) or ()),
+                    capability_restricted=bool(getattr(lane, "capability_restricted", False)),
+                    lane_cost_units=int(getattr(lane, "lane_cost_units", 1) or 1),
+                    helper_capacity_units=int(getattr(lane, "helper_capacity_units", 0) or 0),
+                    descriptor_hash=str(getattr(lane, "descriptor_hash", "") or ""),
                 )
             )
             continue

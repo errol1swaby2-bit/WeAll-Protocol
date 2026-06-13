@@ -492,6 +492,50 @@ export const weall = {
     return apiGet("/v1/health", base);
   },
 
+  operatorStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/operator", base, headers);
+  },
+
+  consensusStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/consensus", base, headers);
+  },
+
+  mempoolStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/mempool", base, headers);
+  },
+
+  storageIpfsOps(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/storage/ipfs/ops", base, headers);
+  },
+
+  chainHead(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/chain/head", base, headers);
+  },
+
+  chainIdentity(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/chain/identity", base, headers);
+  },
+
+  launchMatrix(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/launch-matrix", base, headers);
+  },
+
+  testnetCapabilities(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/testnet-capabilities", base, headers);
+  },
+
+  blockProductionReadiness(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/consensus/block-production/readiness", base, headers);
+  },
+
+  helperReadiness(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/helper/readiness", base, headers);
+  },
+
+  netSelf(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/net/self", base, headers);
+  },
+
   account(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers);
   },

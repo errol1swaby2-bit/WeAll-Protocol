@@ -35,6 +35,19 @@ from weall.runtime.executor import (
     verify_block_helper_plan_metadata,
 )
 
+
+
+def _root_committed_map(self, key: str) -> Json:
+    """Return a root-committed helper planning map.
+
+    ``state["meta"]`` is excluded from ``compute_state_root`` and may carry
+    node-local diagnostics.  Helper planning/assignment inputs are consensus
+    relevant whenever the helper fast path is enabled, so they must be read only
+    from root-visible state keys.
+    """
+    raw = self.state.get(str(key))
+    return dict(raw) if isinstance(raw, dict) else {}
+
 def _helper_mode_enabled_runtime(self) -> bool:
     return bool(getattr(self, "_helper_mode_enabled_effective", False))
 
@@ -108,7 +121,9 @@ def _build_helper_execution_metadata(
         return {}
     ctx0 = self._helper_dispatch_context(block_height=int(block_height))
     meta_root_existing = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
-    helper_reputation_state = dict(meta_root_existing.get("helper_reputation") or {})
+    helper_reputation_state = _root_committed_map(self, "helper_reputation")
+    helper_capacity_by_helper = _root_committed_map(self, "helper_capacity_by_helper")
+    helper_capabilities_by_helper = _root_committed_map(self, "helper_capabilities_by_helper")
     helper_reputation_pre_summary = summarize_helper_reputation_state(
         helper_reputation_state=helper_reputation_state,
         now_ms=int(started_ms),
@@ -122,12 +137,9 @@ def _build_helper_execution_metadata(
         state_snapshot_metadata={
             "validator_epoch": int(ctx0.validator_epoch),
             "quarantined_helper_ids": list(helper_reputation_pre_summary.get("quarantined_helper_ids") or []),
-            "helper_capacity_by_helper": dict(
-                (self.state.get("meta", {}).get("helper_capacity_by_helper") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
-            ),
-            "helper_capabilities_by_helper": dict((meta_root_existing.get("helper_capabilities_by_helper") or {})),
+            "helper_capacity_by_helper": dict(helper_capacity_by_helper),
+            "helper_capabilities_by_helper": dict(helper_capabilities_by_helper),
+            "helper_planning_inputs_source": "state_root",
             "allow_helper_overcommit": True,
         },
     )
@@ -345,13 +357,9 @@ def _build_helper_execution_metadata(
         chosen_by_lane={str(plan.lane_id): str(plan.helper_id or "") for plan in lane_plans if getattr(plan, "helper_id", None)},
         quarantined_helpers=helper_reputation_summary.get("quarantined_helper_ids"),
     )
-    helper_capability_summary = summarize_helper_capabilities(meta_root_existing.get("helper_capabilities_by_helper"))
+    helper_capability_summary = summarize_helper_capabilities(helper_capabilities_by_helper)
     helper_capacity_summary = summarize_helper_capacity_usage(
-        helper_capacity_by_helper=dict(
-            (self.state.get("meta", {}).get("helper_capacity_by_helper") or {})
-            if isinstance(self.state.get("meta"), dict)
-            else {}
-        ),
+        helper_capacity_by_helper=dict(helper_capacity_by_helper),
         helper_load_by_helper={
             str(plan.helper_id): sum(int(getattr(item, "lane_cost_units", 1) or 1) for item in lane_plans if getattr(item, "helper_id", None) == getattr(plan, "helper_id", None))
             for plan in lane_plans
@@ -383,6 +391,15 @@ def _build_helper_execution_metadata(
         "helper_assignment": helper_assignment_summary,
         "helper_capacity": helper_capacity_summary,
         "helper_capabilities": helper_capability_summary,
+        "helper_planning_inputs": {
+            "source": "state_root",
+            "state_root_keys": [
+                "helper_reputation",
+                "helper_capacity_by_helper",
+                "helper_capabilities_by_helper",
+            ],
+            "meta_ignored_for_consensus": True,
+        },
         "assignment_summary": validator_model,
     }
     ok_helper_meta, helper_meta_reason = verify_block_helper_plan_metadata(

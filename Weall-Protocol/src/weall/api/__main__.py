@@ -54,12 +54,17 @@ def main() -> None:
     load_dotenv_if_present()
 
     # Import after dotenv load (prevents "config read before env" surprises)
-    from weall.api.app import create_app
+    from weall.api.app import create_app, _module_app_boot_runtime_default
 
     host = _env_str("WEALL_API_HOST", "127.0.0.1")
     port = _env_int("WEALL_API_PORT", 8080)
 
-    uvicorn.run(create_app(), host=host, port=port, log_level="info")
+    uvicorn.run(
+        create_app(boot_runtime=_module_app_boot_runtime_default()),
+        host=host,
+        port=port,
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":

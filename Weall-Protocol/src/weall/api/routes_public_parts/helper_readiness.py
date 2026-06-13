@@ -140,6 +140,11 @@ def helper_readiness(request: Request) -> dict[str, Any]:
         operator_diagnostic=diagnostic,
         release_gate_report=release,
     ).to_json()
+    # Keep the helper readiness endpoint aligned with the rest of the frontend
+    # operator surfaces: `ok` means the read-only status request succeeded, not
+    # that helper authority is granted. Helper readiness itself remains encoded
+    # in the report fields below and in the authority contract.
+    report["ok"] = True
     report["chain_id"] = chain_id or None
     report["helper_mode_requested"] = helper_requested
     report["helper_mode_effective"] = bool(authority_contract.get("helper_effective", False))

@@ -126,6 +126,29 @@ async function main() {
   }
 
   {
+    console.log("\nNode/operator readiness surfaces");
+    const endpoints = [
+      ["GET /v1/status/operator", "/v1/status/operator"],
+      ["GET /v1/status/consensus", "/v1/status/consensus"],
+      ["GET /v1/status/mempool", "/v1/status/mempool"],
+      ["GET /v1/storage/ipfs/ops", "/v1/storage/ipfs/ops"],
+      ["GET /v1/chain/head", "/v1/chain/head"],
+      ["GET /v1/chain/identity", "/v1/chain/identity"],
+      ["GET /v1/status/testnet-capabilities", "/v1/status/testnet-capabilities"],
+      ["GET /v1/consensus/block-production/readiness", "/v1/consensus/block-production/readiness"],
+      ["GET /v1/status/helper/readiness", "/v1/status/helper/readiness"],
+      ["GET /v1/net/self", "/v1/net/self"],
+    ];
+    for (const [label, path] of endpoints) {
+      const r = await fetchJson(path);
+      if (assertOk(label, r)) {
+        if (!r.body || typeof r.body !== "object") fail(`${label} body is not JSON object`);
+        else assertHas(r.body, "ok", `${label} body`);
+      }
+    }
+  }
+
+  {
     const r = await fetchJson("/v1/gov/proposals?limit=5");
     assertOk("GET /v1/gov/proposals", r);
   }

@@ -38,6 +38,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SessionDevicesPage = lazy(() => import("./pages/SessionDevicesPage"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const Economics = lazy(() => import("./pages/Economics"));
+const NodeDashboard = lazy(() => import("./pages/NodeDashboard"));
 
 function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: boolean): JSX.Element {
   switch (route.path) {
@@ -91,6 +92,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp && showAdvancedMode ? <TransactionsPage /> : readyForApp ? <AdvancedModeLocked /> : <LoginPage />;
     case "/economics":
       return readyForApp ? <Economics /> : <LoginPage />;
+    case "/node":
+      return readyForApp ? <NodeDashboard /> : <LoginPage />;
     case "/account/:account":
       return <Account account={route.account} />;
     case "/post/:id":

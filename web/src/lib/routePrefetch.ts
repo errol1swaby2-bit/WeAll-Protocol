@@ -32,6 +32,8 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/settings": () => import("../pages/SettingsPage"),
   "/session": () => import("../pages/SessionDevicesPage"),
   "/transactions": () => import("../pages/TransactionsPage"),
+  "/economics": () => import("../pages/Economics"),
+  "/node": () => import("../pages/NodeDashboard"),
   "/account/:account": () => import("../pages/Account"),
   "/content/:id": () => import("../pages/Content"),
   "/thread/:id": () => import("../pages/Thread"),

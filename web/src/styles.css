@@ -3163,3 +3163,34 @@ body {
 .quickCardMain small {
   overflow-wrap: anywhere;
 }
+
+
+/* Batch 602: normal-user node dashboard accessibility proof. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(111, 231, 255, 0.82);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(111, 231, 255, 0.16);
+}
+
+.visuallyHidden {
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  height: 1px !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  position: absolute !important;
+  white-space: nowrap !important;
+  width: 1px !important;
+}
+
+.nodeDashboardPage .heroInfoList {
+  align-items: flex-start;
+}

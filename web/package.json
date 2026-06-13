@@ -13,7 +13,10 @@
     "dependency-audit": "npm audit --audit-level=moderate",
     "test:node-manager": "node scripts/test_node_connection_manager_source.mjs",
     "contract-check:api": "bash ../scripts/run_frontend_contract_check.sh",
-    "test:procedure-ui": "node scripts/test_constitutional_procedure_ui_source.mjs"
+    "test:procedure-ui": "node scripts/test_constitutional_procedure_ui_source.mjs",
+    "contract-check:local": "bash ../scripts/run_frontend_contract_check_with_backend.sh",
+    "test:node-dashboard": "node scripts/test_node_dashboard_source.mjs",
+    "test:accessibility-source": "node scripts/test_accessibility_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",
