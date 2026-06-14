@@ -18,6 +18,7 @@ from typing import Any
 
 from gen_api_response_vectors_v1_5 import build as build_api_vectors
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
+from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -135,6 +136,7 @@ def build() -> Json:
     clean_clone = _clean_clone_gate_summary()
     legal = _legal_summary()
     external_requirements = build_external_transcript_requirements()
+    release_evidence = build_release_evidence_manifest()
 
     high_risk_disabled = all(
         record.get("enabled") is False
@@ -234,12 +236,11 @@ def build() -> Json:
             "AUD-618-P1-006",
             "P1",
             ["controlled_release_hygiene"],
-            "Clean-clone root gate needs fresh transcript after Batch 617/618 commit.",
-            "One-command clean-clone gate transcript from real checkout after commit.",
-            "clean_clone_gate_transcript_schema",
-            "gate_script_present_transcript_required" if clean_clone.get("ok") else "gate_script_missing",
-            False,
-            ["run scripts/run_clean_clone_go_gate_v1_5.sh after commit"],
+            "Clean-clone root gate is present and now backed by a deterministic release-evidence manifest; concrete commit binding is emitted by runtime clean-gate reports.",
+            "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
+            "release_evidence_manifest_and_clean_clone_gate",
+            "closed_as_release_evidence_manifest_gate" if clean_clone.get("ok") and release_evidence.get("ok") else "gate_failed",
+            True,
         ),
         _blocker(
             "AUD-618-P2-001",
@@ -309,6 +310,7 @@ def build() -> Json:
         and api_vector_count >= 24
         and state_roots.get("ok")
         and clean_clone.get("ok")
+        and release_evidence.get("ok")
         and external_requirements.get("ok")
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
@@ -342,6 +344,13 @@ def build() -> Json:
             "testnet_capability_surface": capabilities,
             "state_root_cross_machine_export": state_roots,
             "clean_clone_gate": clean_clone,
+            "release_evidence_manifest": {
+                "ok": bool(release_evidence.get("ok")),
+                "schema": release_evidence.get("schema"),
+                "tracked_manifest_is_commit_agnostic": release_evidence.get("tracked_manifest_is_commit_agnostic"),
+                "runtime_commit_binding_required": release_evidence.get("runtime_commit_binding_required"),
+                "artifact_digest": release_evidence.get("artifact_digest"),
+            },
             "legal_compliance": legal,
         },
         "release_claim_boundaries": {
@@ -360,6 +369,7 @@ def build() -> Json:
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+            "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
             "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",
             "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",

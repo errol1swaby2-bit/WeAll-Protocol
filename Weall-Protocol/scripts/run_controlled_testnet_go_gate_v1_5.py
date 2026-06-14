@@ -12,6 +12,7 @@ from typing import Any
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
 from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
+from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
 from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587_b594
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -37,6 +38,7 @@ _REQUIRED_TRACKED_ARTIFACTS = [
     "generated/controlled_testnet_go_gate_v1_5.json",
     "generated/public_beta_blocker_report_v1_5.json",
     "generated/external_operator_transcript_requirements_v1_5.json",
+    "generated/release_evidence_manifest_v1_5.json",
 ]
 
 _CHECK_COMMANDS = [
@@ -50,6 +52,7 @@ _CHECK_COMMANDS = [
     ["python", "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
     ["python", "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
     ["python", "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"],
+    ["python", "scripts/gen_release_evidence_manifest_v1_5.py", "--check"],
 ]
 
 _FORBIDDEN_CLAIMS = {
@@ -109,6 +112,7 @@ def build() -> Json:
     api_vectors = build_api_response_vectors()
     public_beta_blockers = build_public_beta_blocker_report()
     external_transcripts = build_external_operator_transcript_requirements()
+    release_evidence = build_release_evidence_manifest()
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     validator = run_validator_harness()
     storage = run_storage_harness()
@@ -131,6 +135,7 @@ def build() -> Json:
         bool(api_vectors.get("ok")),
         bool(public_beta_blockers.get("ok")),
         bool(external_transcripts.get("ok")),
+        bool(release_evidence.get("ok")),
         bool(b587.get("ok")),
         bool(capabilities.get("controlled_testnet_mechanisms_complete")),
         bool(validator.get("ok")),
@@ -170,6 +175,14 @@ def build() -> Json:
             "public_beta_ready": bool(external_transcripts.get("public_beta_ready")),
             "mainnet_ready": bool(external_transcripts.get("mainnet_ready")),
             "external_attestation_required_before_public_beta": bool(external_transcripts.get("external_attestation_required_before_public_beta")),
+        },
+        "release_evidence_manifest_summary": {
+            "ok": bool(release_evidence.get("ok")),
+            "schema": release_evidence.get("schema"),
+            "public_beta_ready": bool(release_evidence.get("public_beta_ready")),
+            "mainnet_ready": bool(release_evidence.get("mainnet_ready")),
+            "runtime_commit_binding_required": bool(release_evidence.get("runtime_commit_binding_required")),
+            "tracked_manifest_is_commit_agnostic": bool(release_evidence.get("tracked_manifest_is_commit_agnostic")),
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),
@@ -211,6 +224,7 @@ def build() -> Json:
             "storage/IPFS durability transcript from real daemon/operator topology",
             "public-beta blocker report with transcript schemas and claim boundaries",
             "external operator transcript requirements artifact and validator",
+            "release evidence manifest with runtime commit binding report",
             "frontend/API capability snapshot showing launch-matrix blockers in public UX surfaces",
             "legal/compliance counsel review before public token/governance/economic claims",
         ],

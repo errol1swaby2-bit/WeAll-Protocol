@@ -19,7 +19,8 @@
     "python scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py --check",
     "python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check",
     "python scripts/gen_public_beta_blocker_report_v1_5.py --check",
-    "python scripts/gen_external_operator_transcript_requirements_v1_5.py --check"
+    "python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+    "python scripts/gen_release_evidence_manifest_v1_5.py --check"
   ],
   "artifact_inputs": {
     "generated/api_contract_map_v1_5.json": {
@@ -75,6 +76,12 @@
       "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+    },
+    "generated/release_evidence_manifest_v1_5.json": {
+      "ok": true,
+      "path": "generated/release_evidence_manifest_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.release_evidence_manifest"
     },
     "generated/state_root_vectors_v1_5.json": {
       "ok": true,
@@ -173,7 +180,7 @@
     "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
     "ok": true,
     "public_beta_ready": false,
-    "remaining_blocker_count": 9
+    "remaining_blocker_count": 8
   },
   "public_beta_ready": false,
   "public_readiness_claim_requires_external_evidence": true,
@@ -182,6 +189,14 @@
     "PYTHONPATH=src:scripts python -m pytest -q",
     "PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked"
   ],
+  "release_evidence_manifest_summary": {
+    "mainnet_ready": false,
+    "ok": true,
+    "public_beta_ready": false,
+    "runtime_commit_binding_required": true,
+    "schema": "weall.v1_5.release_evidence_manifest",
+    "tracked_manifest_is_commit_agnostic": true
+  },
   "required_manual_or_runtime_evidence_before_public_beta": [
     "full pytest suite output from repo virtualenv",
     "artifact freshness gate with --require-git-tracked inside the real git checkout",
@@ -189,6 +204,7 @@
     "storage/IPFS durability transcript from real daemon/operator topology",
     "public-beta blocker report with transcript schemas and claim boundaries",
     "external operator transcript requirements artifact and validator",
+    "release evidence manifest with runtime commit binding report",
     "frontend/API capability snapshot showing launch-matrix blockers in public UX surfaces",
     "legal/compliance counsel review before public token/governance/economic claims"
   ],

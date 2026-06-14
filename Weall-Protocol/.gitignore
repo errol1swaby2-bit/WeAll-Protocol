@@ -138,3 +138,5 @@ configs/local/
 
 # Local media/cache artifacts generated during rehearsals
 .weall-media-cache/
+
+!generated/release_evidence_manifest_v1_5.json

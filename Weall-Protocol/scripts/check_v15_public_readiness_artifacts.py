@@ -24,6 +24,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
     Path("generated/public_beta_blocker_report_v1_5.json"),
     Path("generated/external_operator_transcript_requirements_v1_5.json"),
+    Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
     Path("generated/reputation_flow_coverage_map_v1_5.json"),
@@ -241,6 +242,28 @@ def _check_external_operator_transcript_requirements() -> list[str]:
     return errors
 
 
+
+def _check_release_evidence_manifest() -> list[str]:
+    errors = _run_check("gen_release_evidence_manifest_v1_5.py")
+    payload = _load_json(Path("generated/release_evidence_manifest_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.release_evidence_manifest":
+        errors.append("release evidence manifest schema mismatch")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("release evidence manifest must keep public_beta_ready=false")
+    if payload.get("mainnet_ready") is not False:
+        errors.append("release evidence manifest must keep mainnet_ready=false")
+    if payload.get("runtime_commit_binding_required") is not True:
+        errors.append("release evidence manifest must require runtime commit binding")
+    gates = payload.get("release_evidence_gates") if isinstance(payload.get("release_evidence_gates"), dict) else {}
+    for key in ("clean_clone_go_gate", "external_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation", "rendered_operator_journey"):
+        if key not in gates:
+            errors.append(f"release evidence manifest missing gate: {key}")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("public_validator_enabled", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+        if boundaries.get(key) is not False:
+            errors.append(f"release evidence manifest must keep {key}=false")
+    return errors
+
 def _check_public_validator_preflight() -> list[str]:
     errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
@@ -294,6 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_b587_b594_mechanisms())
         errors.extend(_check_public_beta_blocker_report())
         errors.extend(_check_external_operator_transcript_requirements())
+        errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
         for script in (
             "gen_reputation_event_registry_v1_5.py",

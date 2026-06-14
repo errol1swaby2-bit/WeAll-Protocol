@@ -160,6 +160,10 @@ def build() -> Json:
         name: f"PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind {name} --path <transcript.json>"
         for name in schemas
     }
+    strict_release_validation_commands = {
+        name: f"PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind {name} --strict-release --path <transcript.json>"
+        for name in schemas
+    }
     return {
         "schema": "weall.v1_5.external_operator_transcript_requirements",
         "version": "2026-06-b620-external-evidence-gates",
@@ -169,6 +173,8 @@ def build() -> Json:
         "external_attestation_required_before_public_beta": True,
         "schemas": schemas,
         "validation_commands": validation_commands,
+        "strict_release_validation_commands": strict_release_validation_commands,
+        "strict_release_rejects_scaffold_samples": True,
         "release_claim_boundaries": {
             "controlled_private_testnet_candidate": True,
             "public_beta_ready": False,
@@ -181,7 +187,7 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "artifact_digest": _digest({"schemas": schemas, "validation_commands": validation_commands}),
+        "artifact_digest": _digest({"schemas": schemas, "validation_commands": validation_commands, "strict_release_validation_commands": strict_release_validation_commands}),
     }
 
 

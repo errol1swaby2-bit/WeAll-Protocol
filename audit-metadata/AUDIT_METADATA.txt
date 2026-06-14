@@ -1,15 +1,7 @@
-created_at=2026-05-31T12:13:40-07:00
-repo_root=/home/errol/WeAll-Protocol
-git_head=c3fe128c023b4535f6a879695ed27d6f04c71d5b
-git_branch=main
-
-latest_commit:
-c3fe128 Batch 489: use disposable reviewer Genesis for LAN rehearsal
-
-git_status_short:
- M Weall-Protocol/tests/test_batch489_reviewer_disposable_genesis.py
- D audit-metadata/AUDIT_INCLUDED_PATHS.txt
- M audit-metadata/AUDIT_METADATA.txt
- D audit-metadata/GIT_TRACKED_FILES.txt
-?? Weall-Protocol/README_batch490_reviewer_artifact_pull.txt
-?? Weall-Protocol/batch490_reviewer_artifact_pull_package.zip
+schema=weall.audit_metadata.v1
+metadata_mode=tracked_template
+metadata_generation=scripts/build_clean_release_export.sh emits concrete archive metadata at export time
+source_repo_layout=outer WeAll-Protocol repository with Weall-Protocol backend and web frontend
+truth_boundary=tracked metadata is commit-agnostic; concrete git_head, branch, clean status, and archive file lists are generated into staged release exports
+public_beta_ready=false
+mainnet_ready=false

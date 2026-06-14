@@ -1,0 +1,122 @@
+{
+  "artifact_digest": "f29b53d4d94245e6dd2ab646a6583c42db45dd34197d54ceb296344523f5678d",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_decentralized_media_durability": false,
+    "public_multi_validator_bft": false,
+    "public_storage_provider_market": false,
+    "public_validator_enabled": false
+  },
+  "controlled_private_testnet_candidate": true,
+  "mainnet_ready": false,
+  "ok": true,
+  "public_beta_ready": false,
+  "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
+    "generated/controlled_testnet_go_gate_v1_5.json",
+    "generated/public_beta_blocker_report_v1_5.json",
+    "generated/release_evidence_manifest_v1_5.json"
+  ],
+  "release_evidence_gates": {
+    "clean_clone_go_gate": {
+      "required_before_public_beta": true,
+      "runtime_report_required": true,
+      "script": "scripts/run_clean_clone_go_gate_v1_5.sh",
+      "tracked_manifest_only": true
+    },
+    "external_validator_operator_transcript": {
+      "required_before_public_beta": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>"
+    },
+    "legal_compliance_attestation": {
+      "counsel_or_control_attestation_required": true,
+      "required_before_public_beta": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "rendered_operator_journey": {
+      "clean_gate_default": "reported_not_run_unless_--run-rendered-frontend_or_WEALL_RUN_RENDERED_FRONTEND=1",
+      "command": "cd web && npm run test:rendered-operator-journey",
+      "required_before_public_beta": true
+    },
+    "storage_ipfs_operator_transcript": {
+      "required_before_public_beta": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --strict-release --path <transcript.json>"
+    }
+  },
+  "runtime_commit_binding_required": true,
+  "schema": "weall.v1_5.release_evidence_manifest",
+  "tracked_artifacts": {
+    "generated/api_contract_map_v1_5.json": {
+      "file_sha256": "10a4c76d219fb8b6b078c1b221d4c50572f1d23179828b60e3631fee3a99bb27",
+      "ok": true,
+      "path": "generated/api_contract_map_v1_5.json",
+      "present": true,
+      "schema": "weall.api_contract_map.v1_5"
+    },
+    "generated/api_response_vectors_v1_5.json": {
+      "file_sha256": "699ede5f08be99632a8be484ea20c7f3ce8d6336676fbf2c6cb926eca6312964",
+      "ok": true,
+      "path": "generated/api_response_vectors_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.api_response_vectors"
+    },
+    "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
+      "file_sha256": "4fb17123fef720c4504bd2ab2c6e6b3d58232b5511aa7bf0b9433ff4c013320f",
+      "ok": true,
+      "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+    },
+    "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
+      "file_sha256": "625f763fe5e771c29e6f941a0a9a6ec72cca8334c0204b874508fbdaad810c17",
+      "ok": true,
+      "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+    },
+    "generated/external_operator_transcript_requirements_v1_5.json": {
+      "file_sha256": "50be6c32e442e986fde6782a9f84fb2e6bdad72efecf370f0eb03b1019085f7c",
+      "ok": true,
+      "path": "generated/external_operator_transcript_requirements_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.external_operator_transcript_requirements"
+    },
+    "generated/failure_code_registry_v1_5.json": {
+      "file_sha256": "e965a05bd5c8b9794d3759818c80389f3d96a3ae79045d703064eb09bf95686d",
+      "ok": true,
+      "path": "generated/failure_code_registry_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/public_validator_bft_preflight_matrix_v1_5.json": {
+      "file_sha256": "2269bf3b14f5a9d2c53bb5971b79589e86936f8f44f9c739163361bc769941af",
+      "ok": true,
+      "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+    },
+    "generated/state_root_vectors_v1_5.json": {
+      "file_sha256": "cc18b4494a96b8680c4f9b648042b6f672ca0fc8be642b9c4775dd9dae27b6df",
+      "ok": true,
+      "path": "generated/state_root_vectors_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.state_root_vectors"
+    },
+    "generated/tokenomics_simulation_v1_5.json": {
+      "file_sha256": "04c22ae389e0ed3742efe596b6a8bc677db8e14ad87fe8cb97a24662357970e2",
+      "ok": true,
+      "path": "generated/tokenomics_simulation_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.tokenomics_simulation"
+    }
+  },
+  "tracked_manifest_is_commit_agnostic": true,
+  "version": "2026-06-b621-release-evidence-hardening",
+  "why_commit_head_is_not_tracked_here": "A generated file cannot stably contain the commit hash of the commit that contains it; concrete HEAD binding is emitted by --runtime-json and clean-clone gate reports."
+}

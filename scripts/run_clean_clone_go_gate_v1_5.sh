@@ -12,6 +12,7 @@ RUN_FRONTEND=1
 RUN_FULL_PYTEST=1
 RUN_DEPENDENCY_CHECK=1
 RUN_CONTROLLED_GO_GATE=1
+RUN_RENDERED_FRONTEND="${WEALL_RUN_RENDERED_FRONTEND:-0}"
 ALLOW_DIRTY="${WEALL_ALLOW_DIRTY:-0}"
 OUT_DIR="${WEALL_GATE_OUT_DIR:-}"
 
@@ -35,6 +36,10 @@ Options:
                        Do not run the backend dependency import smoke check.
   --skip-controlled-go-gate
                        Do not run scripts/run_controlled_testnet_go_gate_v1_5.py.
+  --run-rendered-frontend
+                       Run the Playwright rendered operator journey check.
+                       This requires browser dependencies and is otherwise
+                       reported as not run by default.
   --no-full-pytest     Run targeted Batch 615 tests, but skip the full pytest suite.
   --allow-dirty        Do not fail when git status is dirty after the gates.
   --out-dir DIR        Write generated rehearsal reports to DIR instead of a temp dir.
@@ -63,6 +68,9 @@ while [ "$#" -gt 0 ]; do
       ;;
     --skip-controlled-go-gate)
       RUN_CONTROLLED_GO_GATE=0
+      ;;
+    --run-rendered-frontend)
+      RUN_RENDERED_FRONTEND=1
       ;;
     --no-full-pytest)
       RUN_FULL_PYTEST=0
@@ -249,6 +257,17 @@ if [ "${RUN_FRONTEND}" = "1" ]; then
   fi
   if [ -f "${WEB_DIR}/scripts/test_batch620_operator_journey_and_accent_source.mjs" ]; then
     run_frontend node scripts/test_batch620_operator_journey_and_accent_source.mjs
+  fi
+  if [ "${RUN_RENDERED_FRONTEND}" = "1" ]; then
+    if run_frontend npm run | grep -q "test:rendered-operator-journey"; then
+      echo "== Running rendered operator journey check =="
+      run_frontend npm run test:rendered-operator-journey
+    else
+      echo "ERROR: rendered operator journey script is missing from web/package.json" >&2
+      exit 1
+    fi
+  else
+    echo "== Rendered operator journey check not run; use --run-rendered-frontend or WEALL_RUN_RENDERED_FRONTEND=1 when Playwright browsers are installed =="
   fi
   if [ -x "${ROOT_DIR}/scripts/run_frontend_contract_check_with_backend.sh" ]; then
     "${ROOT_DIR}/scripts/run_frontend_contract_check_with_backend.sh"
