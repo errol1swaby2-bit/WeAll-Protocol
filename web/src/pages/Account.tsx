@@ -96,7 +96,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "jurorEnroll" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -189,7 +189,18 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
   const reviewerEnrolled = !!jurorRecord.enrolled || !!jurorRecord.active || jurorActiveSet.includes(acct);
   const reviewerActive = !!jurorRecord.active || jurorActiveSet.includes(acct);
-  const contentReviewActive = reviewerActive || asRecord(reviewerResponsibilities.content_review).active === true;
+  const reviewerLaneLabels: Array<{ lane: string; label: string; duty: string }> = [
+    { lane: "content_review", label: "Content review", duty: "Review reported posts or comments when you are unconflicted." },
+    { lane: "dispute_review", label: "Dispute juror", duty: "Review active disputes and vote inside the dispute window." },
+    { lane: "poh_async_review", label: "PoH async reviewer", duty: "Review proof-of-humanity async evidence." },
+    { lane: "poh_live_review", label: "PoH live juror", duty: "Participate in live proof-of-humanity review sessions." },
+  ];
+  const reviewerLaneActive = (lane: string): boolean => {
+    const rec = asRecord(reviewerResponsibilities[lane]);
+    return rec.opted_in === true && rec.active === true;
+  };
+  const contentReviewActive = reviewerLaneActive("content_review");
+  const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneActive(row.lane));
 
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
@@ -221,8 +232,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const baselineTruth = asRecord(operatorTruth.baseline);
   const validatorTruth = asRecord(operatorTruth.validator);
   const storageTruth = asRecord(operatorTruth.storage);
+  const helperTruth = asRecord(operatorTruth.helper);
   const validatorDetails = asRecord(validatorTruth.details);
   const storageDetails = asRecord(storageTruth.details);
+  const helperDetails = asRecord(helperTruth.details);
   const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled || String(baselineTruth.status || "") !== "not_opted_in";
   const nodeOperatorActive =
     baselineTruth.active === true ||
@@ -246,6 +259,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const baselineReasons = Array.isArray(baselineTruth.reasons) ? baselineTruth.reasons : [];
   const validatorReasons = Array.isArray(validatorTruth.reasons) ? validatorTruth.reasons : [];
   const storageReasons = Array.isArray(storageTruth.reasons) ? storageTruth.reasons : [];
+  const helperStatus = String(helperTruth.status || "not_opted_in");
+  const helperReasons = Array.isArray(helperTruth.reasons) ? helperTruth.reasons : [];
+  const helperOptedIn = helperDetails.opted_in === true || (!!helperStatus && helperStatus !== "not_opted_in");
+  const helperActive = helperTruth.active === true;
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
@@ -300,10 +317,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
     downloadNodeKeyFile(next);
   }
 
-  async function runReviewerTx() {
+  async function runReviewerTx(lane: string) {
     if (!isSelf) return;
 
-    setBusy("jurorEnroll");
+    setBusy("reviewerLane");
     setOpErr(null);
     setOpResult(null);
 
@@ -314,24 +331,17 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!localPubkey) throw new Error("missing_account_signer");
 
       const r = await tx.runTx({
-        title: "Opt into community reviewer responsibility",
-        pendingMessage: "Submitting reviewer responsibility opt-in…",
-        successMessage: "Reviewer availability is active. You may now be assigned unconflicted content reports and disputes.",
+        title: "Opt into reviewer lane responsibility",
+        pendingMessage: "Submitting reviewer lane opt-in…",
+        successMessage: "Reviewer lane availability is active only for the selected responsibility lane.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => submitSignedTx({
           account: acct,
-          tx_type: "ROLE_JUROR_ENROLL",
+          tx_type: "REVIEWER_LANE_OPT_IN",
           payload: {
             account_id: acct,
-            responsibilities: {
-              reviewer: {
-                content_review: { opted_in: true },
-                dispute_review: { opted_in: true },
-                poh_async_review: { opted_in: true },
-                poh_live_review: { opted_in: true },
-              },
-            },
+            lane,
           },
           base,
         }),
@@ -347,7 +357,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     }
   }
 
-  async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage") {
+  async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage" | "helper") {
     if (!isSelf) return;
 
     setBusy(kind);
@@ -360,7 +370,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_account_signer");
       if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
-      if ((kind === "validator" || kind === "storage") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
+      if ((kind === "validator" || kind === "storage" || kind === "helper") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
 
       const r = await tx.runTx({
         title:
@@ -370,7 +380,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
               ? "Opt into validator responsibility"
               : kind === "storage"
                 ? "Opt into storage responsibility"
-                : "Submit node operator enrollment",
+                : kind === "helper"
+                  ? "Opt into helper execution responsibility"
+                  : "Submit node operator enrollment",
         pendingMessage: "Submitting operator action…",
         successMessage:
           kind === "register"
@@ -405,6 +417,19 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 validator_opt_in: true,
                 node_pubkey: nodePubkey,
                 validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,
+              },
+              base,
+            });
+          }
+          if (kind === "helper") {
+            return submitSignedTx({
+              account: acct,
+              tx_type: "NODE_OPERATOR_HELPER_OPT_IN",
+              payload: {
+                account_id: acct,
+                helper_opt_in: true,
+                node_pubkey: nodePubkey,
+                helper_capacity_units: 4,
               },
               base,
             });
@@ -594,26 +619,38 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
               <div className="progressList">
                 <div className="progressRow">
-                  <span>Reviewer opt-in</span>
-                  <span className={`statusPill ${reviewerEnrolled ? "ok" : ""}`}>{reviewerEnrolled ? "Submitted" : "Not opted in"}</span>
+                  <span>Base reviewer enrollment</span>
+                  <span className={`statusPill ${reviewerEnrolled ? "ok" : ""}`}>{reviewerEnrolled ? "Submitted" : "Not enrolled"}</span>
                 </div>
                 <div className="progressRow">
-                  <span>Reviewer availability</span>
-                  <span className={`statusPill ${contentReviewActive ? "ok" : ""}`}>{contentReviewActive ? "Active" : reviewerEnrolled ? "Pending confirmation" : "Unavailable"}</span>
+                  <span>Exact lane availability</span>
+                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : "No lane active"}</span>
                 </div>
                 <div className="progressRow">
                   <span>Conflict rule</span>
                   <span className="statusPill ok">Original poster excluded</span>
                 </div>
               </div>
+              <div className="milestoneList">
+                {reviewerLaneLabels.map((row) => {
+                  const active = reviewerLaneActive(row.lane);
+                  return (
+                    <div key={row.lane} className="feedMediaCard">
+                      <div className="feedMediaTitle">{row.label}</div>
+                      <div className="feedMediaMeta">{row.duty}</div>
+                      <div className="buttonRow">
+                        <span className={`statusPill ${active ? "ok" : ""}`}>{active ? "Active" : "Not opted in"}</span>
+                        {!active ? (
+                          <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx(row.lane)}>
+                            {busy === "reviewerLane" ? "Opting in…" : `Opt into ${row.label}`}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               <div className="buttonRow">
-                {!reviewerActive ? (
-                  <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx()}>
-                    {busy === "jurorEnroll" ? "Opting in…" : "Opt into community review"}
-                  </button>
-                ) : (
-                  <span className="statusPill ok">Reviewer availability active</span>
-                )}
                 <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
               </div>
             </article>
@@ -1035,6 +1072,39 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     ))}
                   </div>
                 ) : null}
+              </div>
+            </div>
+
+            <div className="feedMediaCard">
+              <div className="feedMediaTitle">Helper Execution Responsibility</div>
+              <div className="feedMediaMeta">
+                Helper execution is optional and separate from baseline Node Operator status. Opting in does not override the production helper release gate; it only records your exact consent for helper work if the lane is active.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Helper opt-in</span>
+                  <span className={`statusPill ${helperOptedIn ? "ok" : ""}`}>{helperOptedIn ? "Opted in" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Helper active state</span>
+                  <span className={`statusPill ${helperActive ? "ok" : ""}`}>{helperActive ? "Active" : helperStatus}</span>
+                </div>
+              </div>
+              {helperReasons.length ? (
+                <div className="feedMediaMeta">Backend helper blockers: {helperReasons.join(", ")}</div>
+              ) : null}
+              <div className="buttonRow">
+                <button
+                  className="btn"
+                  disabled={busy !== null || !nodeOperatorActive || !nodePubkey || helperOptedIn}
+                  onClick={() => void runOperatorTx("helper")}
+                >
+                  {busy === "helper"
+                    ? "Recording helper opt-in…"
+                    : helperOptedIn
+                      ? "Helper opt-in recorded"
+                      : "Opt into helper execution"}
+                </button>
               </div>
             </div>
 

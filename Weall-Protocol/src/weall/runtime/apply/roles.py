@@ -10,6 +10,7 @@ from weall.runtime.validator_readiness_runner import (
     ValidatorReadinessError,
     validate_validator_readiness_payload,
 )
+from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
 from weall.runtime.node_operator_responsibilities import (
     active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
     is_node_operator_active,
@@ -53,6 +54,145 @@ def _touch(by_id: Json, acct: str) -> Json:
         rec = {"account_id": acct, "enrolled": False, "active": False}
     rec.setdefault("account_id", acct)
     return rec
+
+
+def _account_match_key(value: Any) -> str:
+    return _as_str(value).strip().lower().lstrip("@")
+
+
+def _same_account(left: Any, right: Any) -> bool:
+    a = _account_match_key(left)
+    b = _account_match_key(right)
+    return bool(a and b and a == b)
+
+
+def _content_target_owner_for_dispute(ledger: Json, dispute: Json) -> str:
+    owner = _as_str(
+        dispute.get("target_owner")
+        or dispute.get("target_author")
+        or dispute.get("content_author")
+        or ""
+    ).strip()
+    if owner:
+        return owner
+
+    target_id = _as_str(dispute.get("target_id") or dispute.get("target") or "").strip()
+    if not target_id:
+        return ""
+
+    content = _as_dict(ledger.get("content"))
+    for bucket_name in ("posts", "comments"):
+        bucket = _as_dict(content.get(bucket_name))
+        rec = _as_dict(bucket.get(target_id))
+        if rec:
+            return _as_str(
+                rec.get("author")
+                or rec.get("account_id")
+                or rec.get("creator")
+                or rec.get("owner")
+                or ""
+            ).strip()
+    return ""
+
+
+def _is_content_review_dispute(ledger: Json, dispute: Json) -> bool:
+    target_type = _as_str(dispute.get("target_type") or dispute.get("kind") or "").strip().lower()
+    target_id = _as_str(dispute.get("target_id") or dispute.get("target") or "").strip()
+    if target_type in {"content", "post", "comment", "media"}:
+        return True
+    content = _as_dict(ledger.get("content"))
+    return bool(
+        target_id
+        and (
+            target_id in _as_dict(content.get("posts"))
+            or target_id in _as_dict(content.get("comments"))
+            or target_id.startswith(("post:", "comment:", "content:"))
+        )
+    )
+
+
+def _active_assigned_jurors(dispute: Json) -> list[str]:
+    jurors = _as_dict(dispute.get("jurors"))
+    out: list[str] = []
+    for juror, rec_any in jurors.items():
+        rec = _as_dict(rec_any)
+        status = _as_str(rec.get("status") or "").strip().lower()
+        if status in {"assigned", "accepted", "attended", "voted", "completed"}:
+            s = _as_str(juror).strip()
+            if s:
+                out.append(s)
+    if out:
+        return sorted(set(out))
+    assigned = [
+        _as_str(x).strip()
+        for x in _as_list(dispute.get("assigned_jurors"))
+        if _as_str(x).strip()
+    ]
+    return sorted(set(assigned))
+
+
+def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonce: int) -> int:
+    """Bind newly opted-in reviewers to pending unassigned content reviews.
+
+    Batch 611 made content review an explicit trusted responsibility. A report
+    can still become unassigned when it is opened before any unconflicted
+    reviewer has opted in. When a trusted user later opts into reviewer duty,
+    make that assignment deterministic in the same canonical role tx instead
+    of leaving the UI stuck on an unassigned report.
+    """
+
+    if not acct:
+        return 0
+    disputes = _as_dict(ledger.get("disputes_by_id"))
+    if not disputes:
+        return 0
+
+    assigned_count = 0
+    for dispute_id in sorted(disputes.keys()):
+        dispute = _as_dict(disputes.get(dispute_id))
+        if not dispute or not _is_content_review_dispute(ledger, dispute):
+            continue
+        stage = _as_str(dispute.get("stage") or "").strip().lower()
+        blocked = _as_str(dispute.get("assignment_blocked_reason") or "").strip().lower()
+        if stage not in {"unassigned", "open", "juror_review"}:
+            continue
+        if _active_assigned_jurors(dispute):
+            continue
+        if blocked and blocked != "no_unconflicted_content_reviewer":
+            continue
+        target_owner = _content_target_owner_for_dispute(ledger, dispute)
+        if target_owner and _same_account(target_owner, acct):
+            dispute["target_owner"] = target_owner
+            dispute["assignment_blocked_reason"] = "target_owner_cannot_review_own_content"
+            disputes[dispute_id] = dispute
+            continue
+
+        jurors = _as_dict(dispute.get("jurors"))
+        prior = _as_dict(jurors.get(acct))
+        jurors[acct] = {
+            **prior,
+            "status": _as_str(prior.get("status") or "assigned") or "assigned",
+            "assigned_at_nonce": _as_int(prior.get("assigned_at_nonce"), int(nonce)),
+            "assignment_source": "reviewer_responsibility_opt_in",
+            "reviewer_responsibility_opt_in_nonce": int(nonce),
+        }
+        dispute["jurors"] = jurors
+        dispute["stage"] = "juror_review"
+        dispute["stage_set_at_nonce"] = int(nonce)
+        dispute["assignment_blocked_reason"] = ""
+        dispute["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
+        dispute["eligible_validator_count"] = 1
+        dispute["required_votes"] = 1
+        dispute["eligible_juror_ids"] = [acct]
+        dispute["assigned_jurors"] = [acct]
+        if target_owner:
+            dispute["target_owner"] = target_owner
+        dispute["reassigned_from_unassigned_at_nonce"] = int(nonce)
+        disputes[dispute_id] = dispute
+        assigned_count += 1
+
+    ledger["disputes_by_id"] = disputes
+    return assigned_count
 
 
 def _pick_account(payload: Json, *keys: str) -> str:
@@ -178,6 +318,14 @@ def _ensure_node_operator_responsibilities(rec: Json) -> Json:
     storage.setdefault("allocated_capacity_bytes", 0)
     storage.setdefault("proof_status", "not_requested")
     responsibilities["storage"] = storage
+    helper = responsibilities.get("helper")
+    if not isinstance(helper, dict):
+        helper = {}
+    helper.setdefault("opted_in", False)
+    helper.setdefault("active", False)
+    helper.setdefault("reputation_required_milli", 2000)
+    helper.setdefault("helper_capacity_units", 0)
+    responsibilities["helper"] = helper
     return responsibilities
 
 
@@ -230,6 +378,32 @@ def _payload_validator_field(payload: Json, key: str, default: Any = None) -> An
         validator = responsibilities.get("validator")
         if isinstance(validator, dict) and key in validator:
             return validator.get(key)
+    return default
+
+
+def _has_helper_responsibility_intent(payload: Json) -> bool:
+    if bool(payload.get("helper_opt_in", False)):
+        return True
+    if payload.get("helper_endpoint_commitment") is not None:
+        return True
+    if payload.get("helper_capacity_units") is not None:
+        return True
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        helper = responsibilities.get("helper")
+        if isinstance(helper, dict):
+            return bool(helper.get("opted_in", False))
+    return False
+
+
+def _payload_helper_field(payload: Json, key: str, default: Any = None) -> Any:
+    if key in payload:
+        return payload.get(key)
+    responsibilities = payload.get("responsibilities")
+    if isinstance(responsibilities, dict):
+        helper = responsibilities.get("helper")
+        if isinstance(helper, dict) and key in helper:
+            return helper.get(key)
     return default
 
 
@@ -296,6 +470,60 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if node_pubkey:
         validator["node_pubkey"] = node_pubkey
     responsibilities["validator"] = validator
+
+
+def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+    account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
+    if not account:
+        raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
+    if _as_int(account.get("poh_tier"), 0) < 2:
+        raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
+
+    if not is_node_operator_active(ledger, acct):
+        raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
+
+    reputation_required = _as_int(_payload_helper_field(payload, "reputation_required_milli", 2000), 2000)
+    if reputation_required < 0:
+        reputation_required = 2000
+    reputation_actual = account_reputation_units(account, default=0)
+    if reputation_actual < reputation_required:
+        raise RolesApplyError(
+            "forbidden",
+            "helper_reputation_insufficient",
+            {
+                "account_id": acct,
+                "required_milli": int(reputation_required),
+                "actual_milli": int(reputation_actual),
+            },
+        )
+
+    node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key"))
+    if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
+        raise RolesApplyError("forbidden", "node_key_not_registered", {"account_id": acct})
+
+    responsibilities = _ensure_node_operator_responsibilities(rec)
+    helper = _as_dict(responsibilities.get("helper"))
+    helper.update(
+        {
+            "opted_in": True,
+            "active": True,
+            "reputation_required_milli": int(reputation_required),
+            "reputation_actual_milli": int(reputation_actual),
+            "helper_capacity_units": max(0, _as_int(_payload_helper_field(payload, "helper_capacity_units", helper.get("helper_capacity_units", 0)), 0)),
+            "updated_at_nonce": int(nonce),
+        }
+    )
+    endpoint_commitment = _as_str(
+        payload.get("helper_endpoint_commitment")
+        or _payload_helper_field(payload, "helper_endpoint_commitment")
+    )
+    if endpoint_commitment:
+        helper["helper_endpoint_commitment"] = endpoint_commitment
+    if node_pubkey:
+        helper["node_pubkey"] = node_pubkey
+    responsibilities["helper"] = helper
 
 
 def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
@@ -387,6 +615,19 @@ def _apply_node_operator_validator_opt_in_tx(ledger: Json, env: TxEnvelope) -> J
     return {"applied": "NODE_OPERATOR_VALIDATOR_OPT_IN", "account_id": acct}
 
 
+def _apply_node_operator_helper_opt_in_tx(ledger: Json, env: TxEnvelope) -> Json:
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_update_helper_responsibility", {"account_id": acct})
+    ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
+    _apply_node_helper_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    by_id[acct] = rec
+    return {"applied": "NODE_OPERATOR_HELPER_OPT_IN", "account_id": acct}
+
+
 def _apply_node_operator_responsibility_update(ledger: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
@@ -402,6 +643,9 @@ def _apply_node_operator_responsibility_update(ledger: Json, env: TxEnvelope) ->
     if _has_validator_responsibility_intent(payload):
         _apply_node_validator_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
         updated.append("validator")
+    if _has_helper_responsibility_intent(payload):
+        _apply_node_helper_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        updated.append("helper")
     if not updated:
         raise RolesApplyError("invalid_payload", "no_responsibility_update", {"account_id": acct})
     by_id[acct] = rec
@@ -567,6 +811,109 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
         treasuries[PROTOCOL_TREASURY_ID] = obj2
 
 
+def _reviewer_lane_values(payload: Json) -> list[str]:
+    raw = payload.get("lane") or payload.get("reviewer_lane") or payload.get("responsibility_lane") or payload.get("reviewer_lanes")
+    if raw is None:
+        responsibilities = payload.get("responsibilities")
+        if isinstance(responsibilities, dict):
+            reviewer = responsibilities.get("reviewer")
+            if isinstance(reviewer, dict):
+                raw = reviewer.get("lanes") or reviewer.get("lane")
+                if raw is None:
+                    raw = [lane for lane, rec in reviewer.items() if lane in REVIEWER_LANES and isinstance(rec, dict) and bool(rec.get("opted_in", False))]
+    if isinstance(raw, str):
+        values = [raw]
+    elif isinstance(raw, list):
+        values = [str(v) for v in raw]
+    else:
+        values = []
+    lanes: list[str] = []
+    for lane in values:
+        clean = _as_str(lane).strip().lower().replace("-", "_")
+        if clean in REVIEWER_LANES and clean not in lanes:
+            lanes.append(clean)
+    return lanes
+
+
+def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) -> Json:
+    roles = _ensure_roles(ledger)
+    jur = roles.get("jurors")
+    if not isinstance(jur, dict):
+        jur = {"by_id": {}, "active_set": []}
+        roles["jurors"] = jur
+
+    payload = _as_dict(env.payload)
+    acct = _pick_account(payload, "account_id", "juror", "reviewer", "target", "account")
+    if not acct:
+        raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
+    if acct != env.signer:
+        raise RolesApplyError("forbidden", "only_account_can_update_reviewer_lane", {"account_id": acct})
+    lanes = _reviewer_lane_values(payload)
+    if not lanes:
+        raise RolesApplyError("invalid_payload", "reviewer_lane_required", {"allowed_lanes": list(REVIEWER_LANES)})
+
+    by_id = jur.get("by_id")
+    if not isinstance(by_id, dict):
+        by_id = {}
+        jur["by_id"] = by_id
+    rec = _touch(by_id, acct)
+    if active:
+        _require_role_activation_eligible(
+            ledger,
+            acct,
+            role="juror",
+            minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "juror", 0),
+        )
+        rec["enrolled"] = True
+        rec["active"] = True
+        rec["status"] = "active"
+        rec.setdefault("enrolled_at_nonce", int(env.nonce))
+        rec["activated_at_nonce"] = int(env.nonce)
+    elif not bool(rec.get("enrolled", False)):
+        raise RolesApplyError("not_found", "juror_not_enrolled", {"account_id": acct})
+
+    responsibilities = rec.get("responsibilities")
+    if not isinstance(responsibilities, dict):
+        responsibilities = {}
+    reviewer = responsibilities.get("reviewer")
+    if not isinstance(reviewer, dict):
+        reviewer = {}
+    for lane in lanes:
+        lane_rec = reviewer.get(lane)
+        if not isinstance(lane_rec, dict):
+            lane_rec = {}
+        lane_rec["opted_in"] = bool(active)
+        lane_rec["active"] = bool(active)
+        lane_rec["updated_at_nonce"] = int(env.nonce)
+        if active:
+            lane_rec["opted_in_at_nonce"] = int(env.nonce)
+        else:
+            lane_rec["withdrawn_at_nonce"] = int(env.nonce)
+        reviewer[lane] = lane_rec
+    responsibilities["reviewer"] = reviewer
+    rec["responsibilities"] = responsibilities
+    by_id[acct] = rec
+
+    aset = jur.get("active_set")
+    if not isinstance(aset, list):
+        aset = []
+    if active and acct not in aset:
+        aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
+    # Withdrawing one lane does not suspend the whole Juror role; ROLE_JUROR_SUSPEND
+    # remains the explicit whole-role pause path.
+    jur["active_set"] = aset
+    jur["by_id"] = by_id
+    reassigned_reviews = 0
+    if active and "content_review" in lanes:
+        reassigned_reviews = _assign_unassigned_content_reviews_to_juror(ledger, acct, nonce=int(env.nonce))
+    return {
+        "applied": "REVIEWER_LANE_OPT_IN" if active else "REVIEWER_LANE_OPT_OUT",
+        "account_id": acct,
+        "lanes": lanes,
+        "reassigned_content_reviews": reassigned_reviews,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Jurors role
 # ---------------------------------------------------------------------------
@@ -610,16 +957,19 @@ def _apply_role_juror_enroll(ledger: Json, env: TxEnvelope) -> Json:
     reviewer = responsibilities.get("reviewer")
     if not isinstance(reviewer, dict):
         reviewer = {}
-    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
+    explicit_lanes = _reviewer_lane_values(payload)
+    for lane in explicit_lanes:
         lane_rec = reviewer.get(lane)
         if not isinstance(lane_rec, dict):
             lane_rec = {}
         lane_rec["opted_in"] = True
         lane_rec["active"] = True
         lane_rec["updated_at_nonce"] = int(env.nonce)
+        lane_rec["opted_in_at_nonce"] = int(env.nonce)
         reviewer[lane] = lane_rec
     responsibilities["reviewer"] = reviewer
     rec["responsibilities"] = responsibilities
+    rec["reviewer_lane_policy"] = "exact_lane_opt_in_required"
     by_id[acct] = rec
 
     aset = jur.get("active_set")
@@ -629,7 +979,19 @@ def _apply_role_juror_enroll(ledger: Json, env: TxEnvelope) -> Json:
         aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
     jur["active_set"] = aset
     jur["by_id"] = by_id
-    return {"applied": "ROLE_JUROR_ENROLL", "account_id": acct, "deduped": had}
+    reassigned_reviews = (
+        _assign_unassigned_content_reviews_to_juror(ledger, acct, nonce=int(env.nonce))
+        if "content_review" in explicit_lanes
+        else 0
+    )
+    return {
+        "applied": "ROLE_JUROR_ENROLL",
+        "account_id": acct,
+        "deduped": had,
+        "reviewer_lane_policy": "exact_lane_opt_in_required",
+        "reviewer_lanes": explicit_lanes,
+        "reassigned_content_reviews": reassigned_reviews,
+    }
 
 
 def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
@@ -669,16 +1031,9 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
     reviewer = responsibilities.get("reviewer")
     if not isinstance(reviewer, dict):
         reviewer = {}
-    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
-        lane_rec = reviewer.get(lane)
-        if not isinstance(lane_rec, dict):
-            lane_rec = {}
-        lane_rec.setdefault("opted_in", True)
-        lane_rec.setdefault("active", True)
-        lane_rec["updated_at_nonce"] = int(env.nonce)
-        reviewer[lane] = lane_rec
     responsibilities["reviewer"] = reviewer
     rec["responsibilities"] = responsibilities
+    rec["reviewer_lane_policy"] = "exact_lane_opt_in_required"
     by_id[acct] = rec
     jur["by_id"] = by_id
 
@@ -689,7 +1044,13 @@ def _apply_role_juror_activate(ledger: Json, env: TxEnvelope) -> Json:
     if not had:
         aset = sorted({*(str(x) for x in aset if str(x).strip()), acct})
     jur["active_set"] = aset
-    return {"applied": "ROLE_JUROR_ACTIVATE", "account_id": acct, "deduped": had}
+    return {
+        "applied": "ROLE_JUROR_ACTIVATE",
+        "account_id": acct,
+        "deduped": had,
+        "reviewer_lane_policy": "exact_lane_opt_in_required",
+        "reassigned_content_reviews": 0,
+    }
 
 
 def _apply_role_juror_suspend(ledger: Json, env: TxEnvelope) -> Json:
@@ -885,6 +1246,18 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
             nonce=int(env.nonce),
         )
         storage_opted_in = True
+
+    helper_opted_in = False
+    if _has_helper_responsibility_intent(payload):
+        _apply_node_helper_responsibility_opt_in(
+            ledger,
+            ops=ops,
+            acct=acct,
+            rec=rec,
+            payload=payload,
+            nonce=int(env.nonce),
+        )
+        helper_opted_in = True
     by_id[acct] = rec
 
     ops["by_id"] = by_id
@@ -894,6 +1267,7 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
         "deduped": had,
         "validator_opted_in": validator_opted_in,
         "storage_opted_in": storage_opted_in,
+        "helper_opted_in": helper_opted_in,
     }
 
 
@@ -928,22 +1302,7 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
     rec["active"] = True
     rec["status"] = "active"
     rec["activated_at_nonce"] = int(env.nonce)
-    responsibilities = rec.get("responsibilities")
-    if not isinstance(responsibilities, dict):
-        responsibilities = {}
-    reviewer = responsibilities.get("reviewer")
-    if not isinstance(reviewer, dict):
-        reviewer = {}
-    for lane in ("content_review", "dispute_review", "poh_async_review", "poh_live_review"):
-        lane_rec = reviewer.get(lane)
-        if not isinstance(lane_rec, dict):
-            lane_rec = {}
-        lane_rec.setdefault("opted_in", True)
-        lane_rec.setdefault("active", True)
-        lane_rec["updated_at_nonce"] = int(env.nonce)
-        reviewer[lane] = lane_rec
-    responsibilities["reviewer"] = reviewer
-    rec["responsibilities"] = responsibilities
+    _ensure_node_operator_responsibilities(rec)
     by_id[acct] = rec
     ops["by_id"] = by_id
 
@@ -982,14 +1341,6 @@ def _apply_role_node_operator_suspend(ledger: Json, env: TxEnvelope) -> Json:
     rec["active"] = False
     rec["status"] = "paused"
     rec["suspended_at_nonce"] = int(env.nonce)
-    responsibilities = rec.get("responsibilities")
-    if isinstance(responsibilities, dict):
-        reviewer = responsibilities.get("reviewer")
-        if isinstance(reviewer, dict):
-            for lane_rec in reviewer.values():
-                if isinstance(lane_rec, dict):
-                    lane_rec["active"] = False
-                    lane_rec["paused_at_nonce"] = int(env.nonce)
     by_id[acct] = rec
     ops["by_id"] = by_id
 
@@ -1338,6 +1689,8 @@ ROLES_TX_TYPES: set[str] = {
     "ROLE_JUROR_ACTIVATE",
     "ROLE_JUROR_SUSPEND",
     "ROLE_JUROR_REINSTATE",
+    "REVIEWER_LANE_OPT_IN",
+    "REVIEWER_LANE_OPT_OUT",
     "ROLE_VALIDATOR_ACTIVATE",
     "ROLE_VALIDATOR_SUSPEND",
     "ROLE_NODE_OPERATOR_ENROLL",
@@ -1345,6 +1698,7 @@ ROLES_TX_TYPES: set[str] = {
     "ROLE_NODE_OPERATOR_SUSPEND",
     "NODE_OPERATOR_STORAGE_OPT_IN",
     "NODE_OPERATOR_VALIDATOR_OPT_IN",
+    "NODE_OPERATOR_HELPER_OPT_IN",
     "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
     "VALIDATOR_READINESS_VERIFY",
     "ROLE_EMISSARY_NOMINATE",
@@ -1370,6 +1724,10 @@ def apply_roles(ledger: Json, env: TxEnvelope) -> Json | None:
         return _apply_role_juror_suspend(ledger, env)
     if t == "ROLE_JUROR_REINSTATE":
         return _apply_role_juror_reinstate(ledger, env)
+    if t == "REVIEWER_LANE_OPT_IN":
+        return _apply_reviewer_lane_update(ledger, env, active=True)
+    if t == "REVIEWER_LANE_OPT_OUT":
+        return _apply_reviewer_lane_update(ledger, env, active=False)
 
     if t == "ROLE_VALIDATOR_ACTIVATE":
         return _apply_role_validator_activate(ledger, env)
@@ -1386,6 +1744,8 @@ def apply_roles(ledger: Json, env: TxEnvelope) -> Json | None:
         return _apply_node_operator_storage_opt_in_tx(ledger, env)
     if t == "NODE_OPERATOR_VALIDATOR_OPT_IN":
         return _apply_node_operator_validator_opt_in_tx(ledger, env)
+    if t == "NODE_OPERATOR_HELPER_OPT_IN":
+        return _apply_node_operator_helper_opt_in_tx(ledger, env)
     if t == "NODE_OPERATOR_RESPONSIBILITY_UPDATE":
         return _apply_node_operator_responsibility_update(ledger, env)
     if t == "VALIDATOR_READINESS_VERIFY":

@@ -209,6 +209,7 @@ export default function NodeDashboard(): JSX.Element {
   const accountOperator = asRecord(asRecord(data.accountOperator).node_operator);
   const accountStorage = asRecord(accountOperator.storage);
   const accountValidator = asRecord(accountOperator.validator);
+  const accountHelper = asRecord(accountOperator.helper);
 
   const chainId = str(status.chain_id || chainIdentity.chain_id, "—");
   const height = num(status.height ?? chainHead.height ?? chainIdentity.height, 0);
@@ -231,6 +232,18 @@ export default function NodeDashboard(): JSX.Element {
   const provenCapacity = num(accountStorageDetails.proven_capacity_bytes, 0);
   const storageOptedIn = accountStorage.active === true || str(accountStorage.status).length > 0 && str(accountStorage.status) !== "not_opted_in";
   const validatorOptedIn = accountValidator.active === true || str(accountValidator.status).length > 0 && str(accountValidator.status) !== "not_opted_in";
+  const helperOptedIn = accountHelper.active === true || (str(accountHelper.status).length > 0 && str(accountHelper.status) !== "not_opted_in");
+  const incidentTimeline = asArray(operatorInner.incident_timeline);
+  const readinessSteps: Array<{ label: string; ok: boolean; warn?: boolean; value: string }> = [
+    { label: "1. Genesis or observer node booted", ok: status.ok === true, value: status.ok === true ? "Node API responding" : "Node API unavailable" },
+    { label: "2. Chain identity pinned", ok: !!chainId && chainId !== "—", value: chainId },
+    { label: "3. Peers visible", ok: peerCount > 0 || observerMode, warn: peerCount === 0 && !observerMode, value: observerMode ? "Observer-safe posture" : `${peerCount} peer(s)` },
+    { label: "4. Baseline node operator", ok: accountOperator.baseline?.active === true, warn: str(asRecord(accountOperator.baseline).status) !== "not_opted_in", value: str(asRecord(accountOperator.baseline).status || "not opted in") },
+    { label: "5. Validator responsibility", ok: validatorEffective, warn: validatorOptedIn && !validatorEffective, value: validatorEffective ? "Effective" : validatorOptedIn ? "Opted in, waiting on readiness" : "Not opted in" },
+    { label: "6. Helper responsibility", ok: helperEffective, warn: helperOptedIn && !helperEffective, value: helperEffective ? "Effective" : helperOptedIn ? "Opted in, release gate or authority pending" : "Not opted in" },
+    { label: "7. Storage/IPFS capacity", ok: storageOptedIn && provenCapacity > 0, warn: storageOptedIn && provenCapacity <= 0, value: storageOptedIn ? `Declared ${formatBytes(declaredCapacity)} · Proven ${formatBytes(provenCapacity)}` : "Not opted in" },
+    { label: "8. Mempool and block progression", ok: mempoolSize === 0 && blockLoop.unhealthy !== true, warn: mempoolSize > 0 || blockLoop.unhealthy === true, value: blockLoop.unhealthy === true ? "Block loop unhealthy" : mempoolSize > 0 ? `${mempoolSize} tx pending` : "No pending tx" },
+  ];
   const launchPhase = str(launchMatrix.phase || testnetCapabilities.phase || status.mode, "controlled/local");
   const publicBetaClaimed = testnetCapabilities.public_beta_ready_claimed === true;
   const prefError = storagePreferenceError(pref);
@@ -335,6 +348,29 @@ export default function NodeDashboard(): JSX.Element {
             </div>
           </div>
         </article>
+      </section>
+
+      <section className="card" aria-labelledby="operator-wizard-heading">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Operator wizard</div>
+              <h2 id="operator-wizard-heading" className="cardTitle">Fix readiness blockers in order</h2>
+              <p className="cardDesc">This checklist is derived from backend truth sources only. It does not grant protocol roles; it points you to the next safe action.</p>
+            </div>
+            <span className={statusClass(readinessSteps.every((step) => step.ok), readinessSteps.some((step) => step.warn))}>Backend-derived</span>
+          </div>
+          <div className="progressList">
+            {readinessSteps.map((step) => (
+              <DetailRow key={step.label} label={step.label} value={step.value} ok={step.ok} warn={step.warn} />
+            ))}
+          </div>
+          <div className="buttonRow buttonRowWide">
+            <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
+            <button className="btn" onClick={() => nav("/poh")}>Open proof of humanity</button>
+            <button className="btn" onClick={() => nav("/transactions")}>View transaction status</button>
+          </div>
+        </div>
       </section>
 
       <section className="card" aria-labelledby="storage-control-heading">
@@ -446,6 +482,19 @@ export default function NodeDashboard(): JSX.Element {
               <div className="infoCardText">Validator, helper, and storage responsibilities must come from committed protocol state and signed transactions.</div>
             </div>
           </div>
+          {incidentTimeline.length ? (
+            <div className="progressList" aria-label="Operator incident timeline">
+              {incidentTimeline.map((row: any, idx: number) => (
+                <DetailRow
+                  key={`${String(row.event || "event")}-${idx}`}
+                  label={String(row.event || "operator event")}
+                  value={String(row.message || row.status || "observed")}
+                  ok={String(row.severity || row.status || "").toLowerCase() === "ok"}
+                  warn={["warn", "warning", "blocked", "stalled"].includes(String(row.severity || row.status || "").toLowerCase())}
+                />
+              ))}
+            </div>
+          ) : null}
           <details className="detailsPanel">
             <summary>Raw node diagnostics</summary>
             <pre className="codePanel mono">{JSON.stringify(data, null, 2)}</pre>

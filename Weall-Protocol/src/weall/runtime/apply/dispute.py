@@ -19,6 +19,7 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.reviewer_responsibilities import DISPUTE_REVIEW_LANE, eligible_reviewer_ids, reviewer_lane_active
 from weall.runtime.reputation_events import append_reputation_event
 
 Json = dict[str, Any]
@@ -223,6 +224,8 @@ def _is_dispute_target_owner(state: Json, d: Json, account: str) -> bool:
 
 def _filter_target_owner_from_jurors(state: Json, d: Json, jurors: list[str]) -> list[str]:
     owner = _dispute_target_owner(state, d)
+    target_type = _as_str(d.get("target_type") or "").strip().lower()
+    content_review_target = target_type in {"", "content", "post", "comment"}
     filtered: list[str] = []
     excluded: list[str] = []
     for juror in _normalized_str_list([_resolve_account_identity(state, item) for item in jurors]):
@@ -232,10 +235,15 @@ def _filter_target_owner_from_jurors(state: Json, d: Json, jurors: list[str]) ->
         filtered.append(juror)
     if owner:
         d["target_owner"] = owner
+    if owner and content_review_target:
+        # Record the content-review conflict policy whenever a content/post/comment
+        # dispute has a known owner, even if that owner was never present in the
+        # active reviewer candidate set. This keeps read models truthful after the
+        # stricter explicit-reviewer opt-in filter removes non-reviewers earlier.
+        d["conflict_policy"] = "target_owner_excluded_from_content_review"
     if excluded:
         existing = _normalized_str_list(d.get("conflicted_juror_ids"))
         d["conflicted_juror_ids"] = _normalized_str_list(existing + excluded)
-        d["conflict_policy"] = "target_owner_excluded_from_content_review"
     return filtered
 
 
@@ -284,34 +292,70 @@ def _active_validator_ids(state: Json) -> list[str]:
     return []
 
 
+def _filter_active_dispute_reviewers(state: Json, jurors: list[str], dispute: Json) -> list[str]:
+    active = [
+        _resolve_account_identity(state, item)
+        for item in _normalized_str_list(jurors)
+        if reviewer_lane_active(state, _resolve_account_identity(state, item), DISPUTE_REVIEW_LANE)
+    ]
+    return _filter_target_owner_from_jurors(state, dispute, _normalized_str_list(active))
+
+
+def _require_dispute_reviewer_lane(state: Json, account_id: str, dispute: Json | None = None) -> str:
+    acct = _resolve_account_identity(state, account_id)
+    if dispute is not None and acct and _is_dispute_target_owner(state, dispute, acct):
+        # Preserve the more specific safety failure for conflicted content owners.
+        # Responsibility opt-in is still enforced for every unconflicted reviewer.
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"juror": acct, "target_owner": _dispute_target_owner(state, dispute)},
+        )
+    if not acct or not reviewer_lane_active(state, acct, DISPUTE_REVIEW_LANE):
+        raise DisputeApplyError(
+            "forbidden",
+            "reviewer_responsibility_not_active",
+            {"account_id": account_id, "lane": DISPUTE_REVIEW_LANE},
+        )
+    return acct
+
+
 def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str = "") -> list[str]:
-    snap = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))])
+    # Dispute review is a human-review responsibility. Validators, content
+    # authors, reporters, or fallback signers never inherit this duty unless
+    # they explicitly hold an active Juror/reviewer lane.
+    snap = _filter_active_dispute_reviewers(
+        state,
+        [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))],
+        dispute,
+    )
     if snap:
-        snap = _filter_target_owner_from_jurors(state, dispute, snap)
         dispute["eligible_juror_ids"] = list(snap)
         dispute["eligible_validator_count"] = int(len(snap))
         dispute["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
         return snap
 
-    assigned = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))])
+    assigned = _filter_active_dispute_reviewers(
+        state,
+        [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))],
+        dispute,
+    )
     if assigned:
         dispute["eligible_juror_ids"] = list(assigned)
         dispute["eligible_validator_count"] = int(len(assigned))
         dispute["required_votes"] = int(quorum_threshold(len(assigned))) if assigned else 0
         return assigned
 
-    active = _active_validator_ids(state)
+    active = _filter_active_dispute_reviewers(state, eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE), dispute)
     if active:
-        active = _filter_target_owner_from_jurors(state, dispute, active)
         dispute["eligible_juror_ids"] = list(active)
         dispute["eligible_validator_count"] = int(len(active))
         dispute["required_votes"] = int(quorum_threshold(len(active))) if active else 0
-        if active:
-            return active
+        return active
 
     raw_signer = fallback_signer or dispute.get("opened_by")
     signer = _resolve_account_identity(state, raw_signer)
-    if signer and signer.upper() != "SYSTEM" and not _is_dispute_target_owner(state, dispute, signer):
+    if signer and signer.upper() != "SYSTEM" and reviewer_lane_active(state, signer, DISPUTE_REVIEW_LANE) and not _is_dispute_target_owner(state, dispute, signer):
         dispute["eligible_juror_ids"] = [signer]
         dispute["eligible_validator_count"] = 1
         dispute["required_votes"] = 1
@@ -1035,6 +1079,7 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
             "invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type}
         )
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, juror, d)
     if _is_dispute_target_owner(state, d, juror):
         raise DisputeApplyError(
             "forbidden",
@@ -1066,6 +1111,7 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, env.signer, d)
     if _is_dispute_target_owner(state, d, env.signer):
         raise DisputeApplyError(
             "forbidden",
@@ -1307,6 +1353,7 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, env.signer, d)
     if _is_dispute_target_owner(state, d, env.signer):
         raise DisputeApplyError(
             "forbidden",

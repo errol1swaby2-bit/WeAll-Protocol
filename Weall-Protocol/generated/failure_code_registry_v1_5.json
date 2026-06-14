@@ -57,7 +57,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1275
+      "source_lineno": 1626
     },
     {
       "code": "bad_request",
@@ -291,7 +291,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 922
+      "source_lineno": 966
     },
     {
       "code": "duplicate",
@@ -300,7 +300,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1208
+      "source_lineno": 1559
     },
     {
       "code": "executor_missing",
@@ -381,7 +381,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 46
+      "source_lineno": 52
     },
     {
       "code": "forbidden",
@@ -399,7 +399,7 @@
       "http_status": null,
       "sample_reason": "removed_legacy_poh_tier_action",
       "source": "src/weall/runtime/poh/eligibility.py",
-      "source_lineno": 153
+      "source_lineno": 156
     },
     {
       "code": "forbidden",
@@ -426,7 +426,7 @@
       "http_status": null,
       "sample_reason": "unsupported_dispute_target_type",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 76
+      "source_lineno": 77
     },
     {
       "code": "forbidden",
@@ -516,7 +516,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 79
+      "source_lineno": 219
     },
     {
       "code": "forbidden",
@@ -669,7 +669,7 @@
       "http_status": null,
       "sample_reason": "missing_target",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 917
+      "source_lineno": 961
     },
     {
       "code": "invalid_payload",
@@ -750,7 +750,7 @@
       "http_status": null,
       "sample_reason": "declared_capacity_required",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 318
+      "source_lineno": 546
     },
     {
       "code": "invalid_payload",
@@ -822,7 +822,7 @@
       "http_status": null,
       "sample_reason": "live_session_commitment_missing",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 323
+      "source_lineno": 329
     },
     {
       "code": "invalid_state",
@@ -912,7 +912,7 @@
       "http_status": null,
       "sample_reason": "bad_commitment_format",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 67
+      "source_lineno": 73
     },
     {
       "code": "invalid_tx",
@@ -1209,7 +1209,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1242
+      "source_lineno": 1259
     },
     {
       "code": "not_found",
@@ -1227,7 +1227,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 904
+      "source_lineno": 948
     },
     {
       "code": "not_found",
@@ -1299,7 +1299,7 @@
       "http_status": null,
       "sample_reason": "account_not_found",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 101
+      "source_lineno": 241
     },
     {
       "code": "not_found",
@@ -1542,7 +1542,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1855
+      "source_lineno": 1902
     },
     {
       "code": "validator_mismatch",

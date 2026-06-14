@@ -262,7 +262,8 @@ class PersistentMempool:
       - conflicting insert: same tx_id + different envelope is rejected
 
     Determinism:
-      - peek order is (received_ms ASC, tx_id ASC)
+      - production/default peek order is canonical (chain_id, nonce, signer, tx_type, tx_id)
+      - local FIFO order remains available only through the explicit non-production policy
       - peek filters expired items
 
     Production safety:

@@ -148,6 +148,9 @@
     "2621": 230,
     "2622": 231,
     "2623": 232,
+    "2624": 233,
+    "2625": 234,
+    "2626": 235,
     "3": 2,
     "300": 46,
     "301": 47,
@@ -352,6 +355,7 @@
     "MEMPOOL_REJECT_RECEIPT": 189,
     "MOD_ACTION_RECEIPT": 152,
     "MUTE_SET": 146,
+    "NODE_OPERATOR_HELPER_OPT_IN": 235,
     "NODE_OPERATOR_PERFORMANCE_REPORT": 180,
     "NODE_OPERATOR_RESPONSIBILITY_UPDATE": 228,
     "NODE_OPERATOR_STORAGE_OPT_IN": 226,
@@ -408,6 +412,8 @@
     "RATE_LIMIT_STRIKE_APPLY": 188,
     "REPUTATION_DELTA_APPLY": 118,
     "REPUTATION_THRESHOLD_CROSS": 119,
+    "REVIEWER_LANE_OPT_IN": 233,
+    "REVIEWER_LANE_OPT_OUT": 234,
     "REWARD_POOL_OPT_IN_SET": 100,
     "ROLE_ELIGIBILITY_REVOKE": 121,
     "ROLE_ELIGIBILITY_SET": 120,
@@ -474,7 +480,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "58fcd0decd71466c2a5f67dc38b3bb3616c0b2afda4988ff8e7e206b8f43ca97",
+  "source_sha256": "eb5a9ac13e6e922bf0256abc77a6ad9bd6dfa26556a2ddbfb76d526ce2927a6f",
   "tx_types": [
     {
       "context": "mempool",
@@ -3175,6 +3181,42 @@
       "origin": "SYSTEM",
       "receipt_only": true,
       "subject_gate": "Juror"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "63b64b9f3ceadc18",
+      "name": "REVIEWER_LANE_OPT_IN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "58755a7b4ea06f7f",
+      "name": "REVIEWER_LANE_OPT_OUT",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
+    },
+    {
+      "context": "mempool",
+      "domain": "Roles",
+      "gates": {
+        "subject_gate": "Tier2+"
+      },
+      "id": "bb15b35cce8347df",
+      "name": "NODE_OPERATOR_HELPER_OPT_IN",
+      "origin": "USER",
+      "receipt_only": false,
+      "subject_gate": "Tier2+"
     }
   ]
 }

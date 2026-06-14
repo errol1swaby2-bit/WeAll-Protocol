@@ -26,7 +26,7 @@
   },
   "full_lifecycle": {
     "batch": "525",
-    "final_state_root": "30254476de269faeac71fd57b362e5bbf70da011d4cc22f364d75bf208cdd63b",
+    "final_state_root": "3cc5e0c1abef9753da4d6e3ce6576312b56303b963feb10a12ae43213d256a21",
     "fresh_node_replay_sync": {
       "batch": "524",
       "corrupt_block_rejected": true,

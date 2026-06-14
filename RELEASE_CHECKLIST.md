@@ -151,7 +151,7 @@ Browser onboarding and PoH verification are Cloudflare-free, email-free, and rou
 The current release checkpoint for this snapshot is:
 
 - full backend suite: `3405 passed, 2 warnings` for the latest audited snapshot; rerun locally before release
-- tx canon artifacts: `233 tx types, version 1.25.0`
+- tx canon artifacts: `236 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed
 - `scripts/verify_release_tree.sh`: passed
@@ -179,7 +179,7 @@ bash scripts/verify_release_dependencies.sh
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **233 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.

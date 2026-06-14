@@ -24,6 +24,12 @@ from weall.runtime.poh.live_quorum import (
     required_live_passes,
 )
 from weall.runtime.poh.bootstrap_quorum import adaptive_bootstrap_review_policy
+from weall.runtime.reviewer_responsibilities import (
+    POH_ASYNC_REVIEW_LANE,
+    POH_LIVE_REVIEW_LANE,
+    POH_TIER2_REVIEW_LANE,
+    reviewer_lane_active,
+)
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     require_valid_poh_tier,
@@ -912,6 +918,17 @@ def _require_active_live(state: Json, account_id: str, *, case_id: str = "") -> 
     if tier < 2:
         raise ApplyError(
             "invalid_tx", "juror_not_live", {"case_id": case_id, "juror": account_id, "tier": tier, "required": 2}
+        )
+    return acct
+
+
+def _require_active_reviewer_lane(state: Json, account_id: str, *, lane: str, case_id: str = "") -> Json:
+    acct = _require_active_live(state, account_id, case_id=case_id)
+    if not reviewer_lane_active(state, account_id, lane):
+        raise ApplyError(
+            "invalid_tx",
+            "reviewer_responsibility_not_active",
+            {"case_id": case_id, "juror": account_id, "lane": lane},
         )
     return acct
 
@@ -2254,7 +2271,7 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
     for jid in jurors:
         if jid == account_id:
             raise ApplyError("invalid_tx", "subject_cannot_review_self", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
 
     _validate_async_review_policy(
         assigned_jurors=assigned_needed,
@@ -2283,7 +2300,7 @@ def apply_poh_async_juror_accept(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("declined_jurors") or []):
@@ -2303,7 +2320,7 @@ def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("accepted_jurors") or []):
@@ -2327,7 +2344,7 @@ def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id not in list(case.get("accepted_jurors") or []):
@@ -2756,7 +2773,7 @@ def apply_poh_tier2_juror_assign(state: Json, env: Any) -> Json:
     for jid in normalized_jurors:
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
         jm[jid] = {"verdict": None, "ts_ms": None, "assigned_height": int(state.get("height") or 0)}
 
     if len(jm) != n_jurors:
@@ -2784,7 +2801,7 @@ def apply_poh_tier2_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2812,7 +2829,7 @@ def apply_poh_tier2_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2851,7 +2868,7 @@ def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2910,7 +2927,7 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
         jid = _as_str(_jid).strip()
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
         v = _as_str(jrec.get("verdict") or "").strip().lower()
         if v not in ("pass", "fail"):
@@ -3139,7 +3156,7 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
                 "invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": jid}
             )
         seen.add(jid)
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
         cleaned.append(jid)
 
     threshold_num, threshold_den = _live_threshold_from_assignment(state, p)
@@ -3170,7 +3187,7 @@ def apply_poh_live_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     jm = case.get("jurors")
@@ -3213,7 +3230,7 @@ def apply_poh_live_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     jm = case.get("jurors")
@@ -3308,7 +3325,7 @@ def apply_poh_live_juror_replace(state: Json, env: Any) -> Json:
             "invalid_tx", "juror_not_replaceable", {"case_id": case_id, "juror": old_id}
         )
 
-    _require_active_live(state, new_id, case_id=case_id)
+    _require_active_reviewer_lane(state, new_id, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     role = _as_str(old_rec.get("role") or "").strip() or "observing"
 
@@ -3350,7 +3367,7 @@ def apply_poh_live_attendance_mark(state: Json, env: Any) -> Json:
             {"case_id": case_id, "juror_id": juror_id, "signer": signer},
         )
 
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
@@ -3411,7 +3428,7 @@ def apply_poh_live_verdict_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "bad_verdict", {"verdict": verdict})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()

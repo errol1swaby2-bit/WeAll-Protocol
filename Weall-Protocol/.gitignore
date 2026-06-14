@@ -131,3 +131,6 @@ configs/local/
 !generated/reputation_invariant_report_v1_5.json
 
 !generated/reputation_api_contract_map_v1_5.json
+
+# Local media/cache artifacts generated during rehearsals
+.weall-media-cache/

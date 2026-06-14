@@ -217,6 +217,85 @@ def _helper_surface(request: Request, chain_id: str):
     return build_helper_status_surface(diagnostic=diagnostic)
 
 
+def _operator_incident_timeline(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Build a compact operator timeline from status truth sources.
+
+    This is intentionally derived-only: it does not create protocol state and it
+    avoids implying readiness.  The frontend can render the rows as incident
+    breadcrumbs for bootstrap, peer sync, mempool, block loop, helper, storage,
+    validator signing, and consensus posture.
+    """
+    rows: list[dict[str, Any]] = []
+
+    def add(event: str, status: str, message: str, *, severity: str = "info", details: Any = None) -> None:
+        rows.append(
+            {
+                "event": event,
+                "status": status,
+                "severity": severity,
+                "message": message,
+                "details": details if isinstance(details, (dict, list, str, int, float, bool)) or details is None else _safe_str(details),
+            }
+        )
+
+    mode = _safe_str(payload.get("mode"), "")
+    add("node_mode", "observed" if mode else "unknown", f"Node mode: {mode or 'unknown'}")
+
+    block_loop = payload.get("block_loop") if isinstance(payload.get("block_loop"), dict) else {}
+    if block_loop:
+        unhealthy = _safe_bool(block_loop.get("unhealthy"), False)
+        running = _safe_bool(block_loop.get("running"), False)
+        add(
+            "block_loop",
+            "unhealthy" if unhealthy else ("running" if running else "stopped"),
+            _safe_str(block_loop.get("last_error"), "Block loop running" if running else "Block loop stopped"),
+            severity="error" if unhealthy else ("ok" if running else "warn"),
+            details={"consecutive_failures": _safe_int(block_loop.get("consecutive_failures"), 0)},
+        )
+
+    mempool_size = _safe_int(payload.get("mempool_size"), 0)
+    add("mempool", "queued" if mempool_size else "empty", f"Mempool size: {mempool_size}", severity="warn" if mempool_size else "ok")
+
+    net = payload.get("net") if isinstance(payload.get("net"), dict) else {}
+    peer_counts = net.get("peer_counts") if isinstance(net.get("peer_counts"), dict) else {}
+    peer_total = sum(_safe_int(v, 0) for v in peer_counts.values()) if peer_counts else len(net.get("peers") or []) if isinstance(net.get("peers"), list) else 0
+    add(
+        "peer_sync",
+        "connected" if peer_total else ("enabled_no_peers" if _safe_bool(net.get("enabled"), False) else "disabled"),
+        f"Peer connections observed: {peer_total}",
+        severity="ok" if peer_total else ("warn" if _safe_bool(net.get("enabled"), False) else "info"),
+        details={"peer_counts": peer_counts},
+    )
+
+    consensus = payload.get("consensus") if isinstance(payload.get("consensus"), dict) else {}
+    if consensus:
+        stalled = _safe_bool(consensus.get("stalled"), False)
+        add(
+            "consensus",
+            "stalled" if stalled else "observed",
+            _safe_str(consensus.get("stall_reason"), "Consensus diagnostics loaded"),
+            severity="error" if stalled else "ok",
+            details={"bft_enabled": _safe_bool(consensus.get("bft_enabled"), False)},
+        )
+
+    operator = payload.get("operator") if isinstance(payload.get("operator"), dict) else {}
+    if operator:
+        add(
+            "validator_signing",
+            "allowed" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "blocked",
+            _safe_str(operator.get("signing_block_reason"), "Validator signing status reported"),
+            severity="ok" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "warn",
+        )
+        add(
+            "helper",
+            _safe_str(operator.get("helper_severity"), "unknown"),
+            _safe_str(operator.get("helper_summary"), "Helper status unavailable"),
+            severity=_safe_str(operator.get("helper_severity"), "info"),
+        )
+
+    return rows
+
+
 def _peer_debug(app_state: Any) -> dict[str, Any]:
     net = getattr(app_state, "net_node", None)
     if net is None:
@@ -966,6 +1045,8 @@ def status_operator(request: Request) -> dict[str, Any]:
         "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
         "signing_block_reason": _safe_str(getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""),
     }
+    payload["operator"]["incident_timeline"] = _operator_incident_timeline(payload)
+    payload["operator"]["incident_timeline_policy"] = "derived_status_only_no_readiness_claim"
     return payload
 
 

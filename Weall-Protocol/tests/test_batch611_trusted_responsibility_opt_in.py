@@ -51,12 +51,15 @@ def test_tier2_account_must_explicitly_opt_into_juror_responsibility_before_gate
     assert ok is False
 
     apply_tx(st, _env("ROLE_JUROR_ENROLL", "@errol", 1, {"account_id": "@errol"}))
-    ok, meta = eval_gate("Juror", signer="@errol", ledger=st, payload={"dispute_id": "d1"})
-    assert ok is True, meta
     rec = st["roles"]["jurors"]["by_id"]["@errol"]
     assert rec["active"] is True
     assert rec["status"] == "active"
-    assert rec["responsibilities"]["reviewer"]["content_review"]["active"] is True
+    assert rec["responsibilities"]["reviewer"] == {}
+
+    apply_tx(st, _env("REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "dispute_review"}))
+    ok, meta = eval_gate("Juror", signer="@errol", ledger=st, payload={"dispute_id": "d1"})
+    assert ok is True, meta
+    assert rec["responsibilities"]["reviewer"]["dispute_review"]["active"] is True
 
 
 def test_foreign_account_cannot_enroll_someone_else_juror_responsibility() -> None:
@@ -71,13 +74,14 @@ def test_foreign_account_cannot_enroll_someone_else_juror_responsibility() -> No
 def test_content_report_assignment_uses_opted_in_errol_and_excludes_original_poster() -> None:
     st = _state()
     apply_tx(st, _env("ROLE_JUROR_ENROLL", "@errol", 1, {"account_id": "@errol"}))
+    apply_tx(st, _env("REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "content_review"}))
 
     apply_tx(
         st,
         _env(
             "CONTENT_ESCALATE_TO_DISPUTE",
             "SYSTEM",
-            3,
+            4,
             {
                 "target_type": "content",
                 "target_id": "post:@genesis:1",

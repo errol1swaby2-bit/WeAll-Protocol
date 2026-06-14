@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from weall.runtime.apply.poh import apply_poh
+from weall.runtime.apply.roles import apply_roles
 from weall.runtime.tx_admission import TxEnvelope
 
 
@@ -13,7 +14,28 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, syst
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, chain_id="batch559-anti-sybil", payload=payload, sig="sig", system=system, parent=parent)
 
 
+def _ensure_poh_async_reviewers(state: dict[str, Any], reviewers: list[str]) -> None:
+    """Seed explicit Batch 616 reviewer-lane consent for legacy anti-sybil harnesses.
+
+    The production consent model no longer treats Tier-2 or coarse juror enrollment
+    as permission to perform PoH async review work.  These historical rehearsal
+    scripts are still valid readiness evidence, but they must now model the same
+    explicit lane opt-in that a real reviewer would perform before assignment.
+    """
+    for idx, reviewer in enumerate(reviewers, start=1):
+        apply_roles(
+            state,
+            _env(
+                "REVIEWER_LANE_OPT_IN",
+                reviewer,
+                1000 + idx,
+                {"account_id": reviewer, "lane": "poh_async_review"},
+            ),
+        )
+
+
 def _seed_case(state: dict[str, Any], *, case_id: str, subject: str, reviewers: list[str], commitment: str) -> None:
+    _ensure_poh_async_reviewers(state, reviewers)
     apply_poh(state, _env("POH_ASYNC_REQUEST_OPEN", subject, 1, {"case_id": case_id, "account_id": subject, "evidence_commitment": commitment}))
     apply_poh(state, _env("POH_ASYNC_EVIDENCE_DECLARE", subject, 2, {"case_id": case_id, "evidence_id": "ev-" + case_id, "evidence_commitment": commitment}))
     apply_poh(state, _env("POH_ASYNC_JUROR_ASSIGN", "SYSTEM", 1, {"case_id": case_id, "jurors": reviewers}, system=True, parent="poh"))

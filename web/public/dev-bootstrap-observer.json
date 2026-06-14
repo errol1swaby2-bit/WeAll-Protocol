@@ -1,8 +1,8 @@
 {
   "profile": "local-controlled-devnet-observer",
-  "generated_at_ms": 1781387309717,
+  "generated_at_ms": 1781398980027,
   "account": "@errol",
-  "pubkeyB64": "XEUNFai/nQpTeUNscMlW0TQURt05YBYrgUVkxJINcMQ=",
+  "pubkeyB64": "9Ql8luljdg/P01dtobA8bLOtL8qrBV8SE8EPQ/oZsGE=",
   "apiBase": "/",
   "createAccount": true,
   "waitForAccountMs": 45000,

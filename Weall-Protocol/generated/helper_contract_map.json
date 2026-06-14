@@ -3770,6 +3770,38 @@
       "write_keys": []
     },
     {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:NODE_OPERATOR_HELPER_OPT_IN"
+      ]
+    },
+    {
       "authority_keys": [],
       "barrier_class": "SCOPED_PARALLEL",
       "context": "mempool",
@@ -5593,6 +5625,70 @@
       "tx_type": "REPUTATION_THRESHOLD_CROSS",
       "uses_placeholder_keys": false,
       "write_keys": []
+    },
+    {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "REVIEWER_LANE_OPT_IN",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:REVIEWER_LANE_OPT_IN"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "REVIEWER_LANE_OPT_OUT",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:REVIEWER_LANE_OPT_OUT"
+      ]
     },
     {
       "authority_keys": [
@@ -8106,7 +8202,7 @@
       "PARALLEL_ECONOMY": 12,
       "PARALLEL_IDENTITY": 39,
       "PARALLEL_SOCIAL": 3,
-      "SERIAL": 153
+      "SERIAL": 156
     },
     "family_counts": {
       "CASES": 3,
@@ -8126,7 +8222,7 @@
       "POH": 34,
       "REPUTATION": 6,
       "REWARDS": 6,
-      "ROLES": 18,
+      "ROLES": 21,
       "SOCIAL": 5,
       "STORAGE": 13,
       "TREASURY": 15
@@ -8141,9 +8237,9 @@
       "global_authority_placeholder": 28,
       "global_barrier": 18,
       "helper_parallel_allowed": 80,
-      "planner_serial": 79
+      "planner_serial": 82
     },
-    "tx_count": 233,
+    "tx_count": 236,
     "unknown_family_count": 0
   }
 }

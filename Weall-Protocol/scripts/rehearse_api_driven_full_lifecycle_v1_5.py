@@ -56,7 +56,18 @@ def _base_state() -> dict[str, Any]:
             "@reviewer": {"nonce": 0, "poh_tier": 2, "reputation": 8, "banned": False, "locked": False},
             "SYSTEM": {"nonce": 0, "poh_tier": 0},
         },
-        "roles": {"validators": {"active_set": ["@alice", "@bob", "@juror"]}, "poh_reviewers": {"active": {"@reviewer": True}}},
+        "roles": {
+            "validators": {"active_set": ["@alice", "@bob", "@juror"]},
+            "jurors": {
+                "active_set": ["@bob", "@juror", "@reviewer"],
+                "by_id": {
+                    "@bob": {"active": True, "enrolled": True},
+                    "@juror": {"active": True, "enrolled": True},
+                    "@reviewer": {"active": True, "enrolled": True},
+                },
+            },
+            "poh_reviewers": {"active": {"@reviewer": True}},
+        },
         "system_queue": [],
         "poh": {"async_cases": {}, "challenges": {}},
         "economics": {

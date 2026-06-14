@@ -6,6 +6,12 @@ from typing import Any
 from weall.runtime.poh.live_quorum import MAX_LIVE_JURORS, live_active_reviewer_count
 
 from weall.runtime.reputation_units import account_reputation_units, threshold_to_units
+from weall.runtime.reviewer_responsibilities import (
+    POH_ASYNC_REVIEW_LANE,
+    POH_LIVE_REVIEW_LANE,
+    POH_TIER2_REVIEW_LANE,
+    reviewer_lane_active,
+)
 from weall.runtime.vrf_sig import state_vrf_output
 
 Json = dict[str, Any]
@@ -183,6 +189,7 @@ def eligible_live_jurors(
     min_rep_units: int | None = None,
     min_rep: Any = 0,
     allow_roleless_bootstrap: bool = False,
+    reviewer_lane: str = POH_ASYNC_REVIEW_LANE,
 ) -> list[str]:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -202,7 +209,7 @@ def eligible_live_jurors(
             continue
         if _blocked_juror_role(state, aid):
             continue
-        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not _active_juror_role(state, aid):
+        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not reviewer_lane_active(state, aid, reviewer_lane):
             continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
@@ -220,6 +227,7 @@ def eligible_tier2_jurors(
     min_rep_units: int | None = None,
     min_rep: Any = 0,
     allow_roleless_bootstrap: bool = False,
+    reviewer_lane: str = POH_TIER2_REVIEW_LANE,
 ) -> list[str]:
     """Eligible jurors for Tier 2 reviews.
 
@@ -243,7 +251,7 @@ def eligible_tier2_jurors(
             continue
         if _blocked_juror_role(state, aid):
             continue
-        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not _active_juror_role(state, aid):
+        if _juror_role_required_for_assignment(state, allow_roleless_bootstrap=allow_roleless_bootstrap) and not reviewer_lane_active(state, aid, reviewer_lane):
             continue
         rep_units = account_reputation_units(rec, default=0)
         if rep_units < required_units:
@@ -281,6 +289,7 @@ def pick_tier2_jurors(
         state=state,
         min_rep_units=min_rep_units,
         min_rep=min_rep,
+        reviewer_lane=POH_TIER2_REVIEW_LANE,
     )
     pool = [a for a in pool if a != target_account]
 
@@ -317,6 +326,7 @@ def pick_async_jurors(
         min_rep_units=min_rep_units,
         min_rep=min_rep,
         allow_roleless_bootstrap=bool(allow_roleless_bootstrap),
+        reviewer_lane=POH_ASYNC_REVIEW_LANE,
     )
     pool = [a for a in pool if a != target_account]
 
@@ -367,6 +377,7 @@ def pick_live_jurors(
         min_rep_units=min_rep_units,
         min_rep=min_rep,
         allow_roleless_bootstrap=bool(allow_partial),
+        reviewer_lane=POH_LIVE_REVIEW_LANE,
     )
     pool = [a for a in pool if a != target_account]
 

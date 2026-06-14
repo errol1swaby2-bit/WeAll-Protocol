@@ -1642,6 +1642,20 @@
     {
       "claim_count": 1,
       "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
         "rewards"
       ],
       "context": "mempool",
@@ -2422,6 +2436,34 @@
       "schema_covered": true,
       "subject_gate": "",
       "tx_type": "REPUTATION_THRESHOLD_CROSS"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "REVIEWER_LANE_OPT_IN"
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "REVIEWER_LANE_OPT_OUT"
     },
     {
       "claim_count": 1,
@@ -3264,8 +3306,8 @@
       "tx_type": "VALIDATOR_SUSPEND"
     }
   ],
-  "schema_covered_count": 233,
-  "single_claim_count": 233,
-  "tx_count": 233,
+  "schema_covered_count": 236,
+  "single_claim_count": 236,
+  "tx_count": 236,
   "unclaimed_count": 0
 }

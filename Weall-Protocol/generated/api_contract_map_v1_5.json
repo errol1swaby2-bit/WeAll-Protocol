@@ -166,7 +166,7 @@
       "route_id": "0d0c21fba15f0d7d",
       "route_path_without_v1_prefix": "/chain/genesis",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1333,
+      "source_lineno": 1414,
       "summary": "",
       "tags": [
         "status"
@@ -188,7 +188,7 @@
       "route_id": "d90596655609b2d1",
       "route_path_without_v1_prefix": "/chain/head",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1365,
+      "source_lineno": 1446,
       "summary": "",
       "tags": [
         "status"
@@ -210,7 +210,7 @@
       "route_id": "4ecc6d509148c5f2",
       "route_path_without_v1_prefix": "/chain/identity",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1194,
+      "source_lineno": 1275,
       "summary": "",
       "tags": [
         "status"
@@ -232,7 +232,7 @@
       "route_id": "e2da20eef560658e",
       "route_path_without_v1_prefix": "/chain/manifest",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1357,
+      "source_lineno": 1438,
       "summary": "",
       "tags": [
         "status"
@@ -254,7 +254,7 @@
       "route_id": "86cd04c4c5a90d93",
       "route_path_without_v1_prefix": "/chain/state-root",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1319,
+      "source_lineno": 1400,
       "summary": "",
       "tags": [
         "status"
@@ -694,7 +694,7 @@
       "route_id": "216390ead2051b33",
       "route_path_without_v1_prefix": "/genesis/api/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1312,
+      "source_lineno": 1393,
       "summary": "",
       "tags": [
         "status"
@@ -716,7 +716,7 @@
       "route_id": "661f19e1d30f08fb",
       "route_path_without_v1_prefix": "/genesis/observer/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1307,
+      "source_lineno": 1388,
       "summary": "",
       "tags": [
         "status"
@@ -2806,7 +2806,7 @@
       "route_id": "be5d9602f9599ef5",
       "route_path_without_v1_prefix": "/status",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 818,
+      "source_lineno": 897,
       "summary": "",
       "tags": [
         "status"
@@ -2828,7 +2828,7 @@
       "route_id": "db51cc46f9730dc6",
       "route_path_without_v1_prefix": "/status/attestations",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1099,
+      "source_lineno": 1180,
       "summary": "",
       "tags": [
         "status"
@@ -2850,7 +2850,7 @@
       "route_id": "74a5409421093209",
       "route_path_without_v1_prefix": "/status/consensus",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 973,
+      "source_lineno": 1054,
       "summary": "",
       "tags": [
         "status"
@@ -2872,7 +2872,7 @@
       "route_id": "fa72cedc5632f049",
       "route_path_without_v1_prefix": "/status/consensus/forensics",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1033,
+      "source_lineno": 1114,
       "summary": "",
       "tags": [
         "status"
@@ -2916,7 +2916,7 @@
       "route_id": "1534569b4cda4bd2",
       "route_path_without_v1_prefix": "/status/launch-matrix",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 840,
+      "source_lineno": 919,
       "summary": "",
       "tags": [
         "status"
@@ -2938,7 +2938,7 @@
       "route_id": "208a266861a653b0",
       "route_path_without_v1_prefix": "/status/mempool",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1066,
+      "source_lineno": 1147,
       "summary": "",
       "tags": [
         "status"
@@ -2960,7 +2960,7 @@
       "route_id": "a210b04d984754f9",
       "route_path_without_v1_prefix": "/status/operator",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 882,
+      "source_lineno": 961,
       "summary": "",
       "tags": [
         "status"
@@ -2982,7 +2982,7 @@
       "route_id": "928b6cc7afdccd75",
       "route_path_without_v1_prefix": "/status/testnet-capabilities",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 867,
+      "source_lineno": 946,
       "summary": "",
       "tags": [
         "status"

@@ -1865,3 +1865,24 @@ txs:
   receipt_only: true
   parent: DISPUTE_JUROR_ACCEPT
   system_only: true
+- id: 2624
+  name: REVIEWER_LANE_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2625
+  name: REVIEWER_LANE_OPT_OUT
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2626
+  name: NODE_OPERATOR_HELPER_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false

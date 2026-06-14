@@ -16,7 +16,8 @@
     "test:procedure-ui": "node scripts/test_constitutional_procedure_ui_source.mjs",
     "contract-check:local": "bash ../scripts/run_frontend_contract_check_with_backend.sh",
     "test:node-dashboard": "node scripts/test_node_dashboard_source.mjs",
-    "test:accessibility-source": "node scripts/test_accessibility_source.mjs"
+    "test:accessibility-source": "node scripts/test_accessibility_source.mjs",
+    "test:responsibility-control-surface": "node scripts/test_batch616_responsibility_control_surface_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

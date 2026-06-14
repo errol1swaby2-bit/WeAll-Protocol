@@ -137,3 +137,6 @@ Weall-Protocol/.weall-devnet/
 # Local audit/runtime scratch
 .secrets/
 artifacts/
+
+# WeAll local media/cache artifacts generated during rehearsals
+Weall-Protocol/.weall-media-cache/

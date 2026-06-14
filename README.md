@@ -129,7 +129,7 @@ Those require additional testing, review, hardening, documentation, and operatio
 
 This repository snapshot is synchronized at:
 
-- **Transaction canon:** 233 tx types, version 1.25.0
+- **Transaction canon:** 236 tx types, version 1.25.0
 - **Latest full backend test checkpoint:** `3405 passed, 2 warnings`
 - **PoH posture:** two-tier native async/live human verification; no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider
 - **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers

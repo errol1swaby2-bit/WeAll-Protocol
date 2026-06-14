@@ -1900,7 +1900,13 @@ class NetMeshLoop:
                     raise TxGossipBridgeError("tx_gossip_entry_not_object")
                 continue
             try:
-                tx_id = compute_tx_id(tx)
+                local_chain_id = str(
+                    getattr(getattr(self.node, "cfg", None), "chain_id", "")
+                    or getattr(self._executor, "chain_id", "")
+                    or os.environ.get("WEALL_CHAIN_ID", "")
+                    or ""
+                ).strip()
+                tx_id = compute_tx_id(tx, chain_id=local_chain_id or None)
             except Exception:
                 tx_id = ""
             if not tx_id:
