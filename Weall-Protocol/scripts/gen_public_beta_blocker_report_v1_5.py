@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from gen_api_response_vectors_v1_5 import build as build_api_vectors
+from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -133,6 +134,7 @@ def build() -> Json:
     state_roots = _state_root_summary()
     clean_clone = _clean_clone_gate_summary()
     legal = _legal_summary()
+    external_requirements = build_external_transcript_requirements()
 
     high_risk_disabled = all(
         record.get("enabled") is False
@@ -149,7 +151,7 @@ def build() -> Json:
             "Public validator readiness remains explicitly false and operator proof is simulated/local unless externally attested.",
             "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
             "public_validator_operator_transcript_schema",
-            "gate_present_external_attestation_required" if validator.get("ok") else "gate_failed",
+            "gate_present_external_attestation_required" if validator.get("ok") and external_requirements.get("ok") else "gate_failed",
             False,
             ["independently operated validator run", "operator-signed transcript", "fresh checkout replay of transcript digest"],
         ),
@@ -213,7 +215,7 @@ def build() -> Json:
             "Storage/IPFS durability proof is deterministic/simulated until externally operated daemon topology is attached.",
             "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
             "storage_ipfs_operator_transcript_schema",
-            "gate_present_real_operator_rehearsal_required" if storage.get("ok") else "gate_failed",
+            "gate_present_real_operator_rehearsal_required" if storage.get("ok") and external_requirements.get("ok") else "gate_failed",
             False,
             ["real IPFS daemon transcript", "independent storage operator transcript"],
         ),
@@ -307,13 +309,14 @@ def build() -> Json:
         and api_vector_count >= 24
         and state_roots.get("ok")
         and clean_clone.get("ok")
+        and external_requirements.get("ok")
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
     )
 
     return {
         "schema": "weall.v1_5.public_beta_blocker_report",
-        "version": "2026-06-b618-public-beta-evidence-gates",
+        "version": "2026-06-b620-public-beta-evidence-gates",
         "ok": ok,
         "public_beta_ready": False,
         "mainnet_ready": False,
@@ -324,6 +327,12 @@ def build() -> Json:
         "closed_code_gate_ids": closed_code_gates,
         "blockers": blockers,
         "transcript_schemas": transcript_schemas,
+        "external_operator_transcript_requirements": {
+            "ok": bool(external_requirements.get("ok")),
+            "schema_count": len(external_requirements.get("schemas") or {}),
+            "artifact_digest": external_requirements.get("artifact_digest"),
+            "external_attestation_required_before_public_beta": bool(external_requirements.get("external_attestation_required_before_public_beta")),
+        },
         "evidence_gate_summaries": {
             "public_validator": validator,
             "storage_ipfs": storage,
@@ -350,6 +359,7 @@ def build() -> Json:
         "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+            "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
             "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",
             "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",

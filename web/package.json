@@ -17,7 +17,9 @@
     "contract-check:local": "bash ../scripts/run_frontend_contract_check_with_backend.sh",
     "test:node-dashboard": "node scripts/test_node_dashboard_source.mjs",
     "test:accessibility-source": "node scripts/test_accessibility_source.mjs",
-    "test:responsibility-control-surface": "node scripts/test_batch616_responsibility_control_surface_source.mjs"
+    "test:responsibility-control-surface": "node scripts/test_batch616_responsibility_control_surface_source.mjs",
+    "test:operator-journey-source": "node scripts/test_batch620_operator_journey_and_accent_source.mjs",
+    "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts"
   },
   "dependencies": {
     "react": "18.3.1",

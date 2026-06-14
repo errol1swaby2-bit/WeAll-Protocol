@@ -202,3 +202,13 @@ bash scripts/build_clean_release_export.sh
 ```
 
 This is the preferred external-tester packaging gate because it includes the backend, frontend, and top-level scripts while excluding runtime/cache/build artifacts from a staged copy.
+
+
+## Batch 620 public-beta evidence boundary
+
+Current release posture remains: controlled multi-node private testnet candidate.
+Do not claim public beta, mainnet, public validator enablement, live economics,
+production helper execution, public storage-market readiness, or legal/compliance
+readiness until the external transcript requirements in
+`Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
+and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.

@@ -1,0 +1,150 @@
+{
+  "artifact_digest": "df47c79bbd7dbe0bf729ad41777b211f89b75815e0b8e04bc9253da93157446a",
+  "external_attestation_required_before_public_beta": true,
+  "mainnet_ready": false,
+  "ok": true,
+  "public_beta_ready": false,
+  "release_claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "controlled_private_testnet_candidate": true,
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_decentralized_media_durability": false,
+    "public_storage_provider_market": false,
+    "public_validator_enabled": false
+  },
+  "schema": "weall.v1_5.external_operator_transcript_requirements",
+  "schemas": {
+    "legal_compliance_attestation": {
+      "description": "Counsel/control attestation needed before public token, economics, governance, and launch-readiness claims.",
+      "forbidden_claims": [
+        "legal_compliance_ready_without_counsel_reference",
+        "token_sale_ready_without_counsel",
+        "live_economics_ready_without_release_gate"
+      ],
+      "minimum_counts": {
+        "approved_public_claims": 1,
+        "restricted_claims": 1
+      },
+      "name": "legal_compliance_attestation",
+      "required_fields": [
+        "schema",
+        "review_date",
+        "reviewer_or_counsel_reference",
+        "scope",
+        "approved_public_claims",
+        "restricted_claims",
+        "launch_matrix_checked",
+        "signature_or_controlled_reference",
+        "claim_boundaries"
+      ],
+      "required_truths": {
+        "claim_boundaries.legal_compliance_ready": false,
+        "claim_boundaries.live_economics": false,
+        "claim_boundaries.mainnet_ready": false,
+        "launch_matrix_checked": true
+      }
+    },
+    "public_validator_operator_transcript": {
+      "description": "Independently operated public-validator rehearsal transcript. Local simulation is not enough for public beta.",
+      "forbidden_claims": [
+        "mainnet_ready",
+        "public_beta_ready_without_release_vote",
+        "public_validator_enabled_without_external_attestation",
+        "live_economics_enabled"
+      ],
+      "minimum_counts": {
+        "machine_ids": 4,
+        "node_ids": 4,
+        "operator_ids": 4,
+        "operator_signatures": 4,
+        "rounds": 6
+      },
+      "name": "public_validator_operator_transcript",
+      "required_fields": [
+        "schema",
+        "chain_id",
+        "operator_ids",
+        "node_ids",
+        "machine_ids",
+        "rounds",
+        "threshold",
+        "state_root_by_node",
+        "partition_rejoin",
+        "minority_partition_cannot_finalize",
+        "equivocation_rejected",
+        "observer_vote_rejected",
+        "fresh_node_catchup",
+        "restart_replay",
+        "transcript_digest",
+        "operator_signatures",
+        "claim_boundaries"
+      ],
+      "required_truths": {
+        "claim_boundaries.mainnet_ready": false,
+        "claim_boundaries.public_beta_ready": false,
+        "claim_boundaries.public_validator_enabled": false,
+        "equivocation_rejected": true,
+        "fresh_node_catchup": true,
+        "minority_partition_cannot_finalize": true,
+        "observer_vote_rejected": true,
+        "partition_rejoin": true,
+        "restart_replay": true,
+        "state_roots_match": true
+      }
+    },
+    "storage_ipfs_operator_transcript": {
+      "description": "Real daemon/operator IPFS durability transcript proving decentralized media/storage claims before public beta.",
+      "forbidden_claims": [
+        "public_storage_market_enabled_without_release_gate",
+        "public_decentralized_media_durability_without_real_daemon_topology",
+        "private_evidence_publicly_visible"
+      ],
+      "minimum_counts": {
+        "ipfs_peer_ids": 3,
+        "machine_ids": 3,
+        "operator_ids": 3,
+        "operator_signatures": 3,
+        "replication_factor": 3
+      },
+      "name": "storage_ipfs_operator_transcript",
+      "required_fields": [
+        "schema",
+        "operator_ids",
+        "machine_ids",
+        "ipfs_peer_ids",
+        "cid",
+        "replication_factor",
+        "origin_failure",
+        "retrieval_from_non_origin_machine",
+        "fresh_node_retrieval",
+        "wrong_cid_rejected",
+        "corrupt_content_rejected",
+        "revalidation_exercised",
+        "transcript_digest",
+        "operator_signatures",
+        "claim_boundaries"
+      ],
+      "required_truths": {
+        "claim_boundaries.public_beta_ready": false,
+        "claim_boundaries.public_decentralized_media_durability": false,
+        "claim_boundaries.public_storage_provider_market": false,
+        "corrupt_content_rejected": true,
+        "fresh_node_retrieval": true,
+        "origin_failure": true,
+        "retrieval_from_non_origin_machine": true,
+        "revalidation_exercised": true,
+        "wrong_cid_rejected": true
+      }
+    }
+  },
+  "validation_commands": {
+    "legal_compliance_attestation": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --path <transcript.json>",
+    "public_validator_operator_transcript": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --path <transcript.json>",
+    "storage_ipfs_operator_transcript": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --path <transcript.json>"
+  },
+  "version": "2026-06-b620-external-evidence-gates"
+}

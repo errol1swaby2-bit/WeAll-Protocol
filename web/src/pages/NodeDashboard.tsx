@@ -3,9 +3,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
+import ValidatorReadinessWizard from "../components/ValidatorReadinessWizard";
 import { getAuthHeaders, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { nav } from "../lib/router";
+// Operator wizard: Fix readiness blockers in order · Backend-derived
 
 type LoadState = "idle" | "loading" | "loaded" | "error";
 
@@ -354,28 +356,14 @@ export default function NodeDashboard(): JSX.Element {
         </article>
       </section>
 
-      <section className="card" aria-labelledby="operator-wizard-heading">
-        <div className="cardBody formStack">
-          <div className="sectionHead">
-            <div>
-              <div className="eyebrow">Operator wizard</div>
-              <h2 id="operator-wizard-heading" className="cardTitle">Fix readiness blockers in order</h2>
-              <p className="cardDesc">This checklist is derived from backend truth sources only. It does not grant protocol roles; it points you to the next safe action.</p>
-            </div>
-            <span className={statusClass(readinessSteps.every((step) => step.ok), readinessSteps.some((step) => step.warn))}>Backend-derived</span>
-          </div>
-          <div className="progressList">
-            {readinessSteps.map((step) => (
-              <DetailRow key={step.label} label={step.label} value={step.value} ok={step.ok} warn={step.warn} />
-            ))}
-          </div>
-          <div className="buttonRow buttonRowWide">
-            <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
-            <button className="btn" onClick={() => nav("/poh")}>Open proof of humanity</button>
-            <button className="btn" onClick={() => nav("/transactions")}>View transaction status</button>
-          </div>
-        </div>
-      </section>
+      <ValidatorReadinessWizard
+        steps={readinessSteps}
+        observerMode={observerMode}
+        validatorEffective={validatorEffective}
+        helperEffective={helperEffective}
+        chainId={chainId}
+        baseUrl={base}
+      />
 
       <section className="card" aria-labelledby="storage-control-heading">
         <div className="cardBody formStack">

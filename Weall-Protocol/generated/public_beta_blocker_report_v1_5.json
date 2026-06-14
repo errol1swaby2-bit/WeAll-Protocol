@@ -205,7 +205,7 @@
   "evidence_gate_summaries": {
     "api_response_vectors": {
       "ok": true,
-      "vector_count": 29
+      "vector_count": 43
     },
     "clean_clone_gate": {
       "backend_wrapper_path": "Weall-Protocol/scripts/run_clean_clone_go_gate_v1_5.sh",
@@ -477,6 +477,12 @@
           "present": true,
           "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
         },
+        "external_operator_transcript_requirements": {
+          "ok": true,
+          "path": "generated/external_operator_transcript_requirements_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.external_operator_transcript_requirements"
+        },
         "failure_code_registry": {
           "ok": true,
           "path": "generated/failure_code_registry_v1_5.json",
@@ -524,6 +530,12 @@
         "public_validator_enabled": false
       }
     }
+  },
+  "external_operator_transcript_requirements": {
+    "artifact_digest": "df47c79bbd7dbe0bf729ad41777b211f89b75815e0b8e04bc9253da93157446a",
+    "external_attestation_required_before_public_beta": true,
+    "ok": true,
+    "schema_count": 3
   },
   "mainnet_ready": false,
   "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
@@ -603,10 +615,11 @@
   },
   "verification_commands": [
     "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
     "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
     "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",
     "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",
     "PYTHONPATH=src:scripts python -m pytest -q tests/prod/test_batch618_public_beta_evidence_gates.py"
   ],
-  "version": "2026-06-b618-public-beta-evidence-gates"
+  "version": "2026-06-b620-public-beta-evidence-gates"
 }

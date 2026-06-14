@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import TxPropagationTimeline from "../components/TxPropagationTimeline";
 import { getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -75,14 +76,16 @@ function summarizeList(rows: TxCatalogSummaryRow[] | undefined, limit = 4): stri
     .join(" · ");
 }
 
-function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boolean }> {
+function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boolean; detail?: string }> {
   const status = item.status;
+  const hasTxId = !!item.txId;
   return [
-    { label: "Accepted locally", done: ["recorded", "refreshing", "confirmed", "failed"].includes(status) },
-    { label: "Gossiped / pending", done: ["recorded", "refreshing", "confirmed"].includes(status) },
-    { label: "Included in block", done: status === "confirmed" },
-    { label: "Finalized", done: status === "confirmed" },
-    { label: "Removed from mempool", done: status === "confirmed" },
+    { label: "Accepted locally", done: ["recorded", "refreshing", "confirmed", "failed"].includes(status), detail: hasTxId ? "tx id captured" : "waiting for tx id" },
+    { label: "Gossiped / pending", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "peer propagation observed through backend status refresh" },
+    { label: "Pending in mempool", done: ["recorded", "refreshing"].includes(status), detail: status === "confirmed" ? "cleared after commit" : "awaiting block inclusion" },
+    { label: "Included in block", done: status === "confirmed", detail: "backend status reports confirmation" },
+    { label: "Finalized", done: status === "confirmed", detail: "canonical chain accepted the tx" },
+    { label: "Removed from mempool", done: status === "confirmed", detail: "should be absent after commit/restart" },
   ];
 }
 
@@ -212,7 +215,7 @@ export default function TransactionsPage(): JSX.Element {
             <div className="eyebrow">Protocol</div>
             <h1 className="surfaceTitle">Transaction activity</h1>
             <p className="surfaceSummaryHint">
-              This page keeps local submission history separate from backend-confirmed transaction status and now also exposes the canonical transaction catalog, including the public HTTP entrypoints that wire frontend flows to backend tx surfaces.
+              This page keeps local submission history separate from backend-confirmed transaction status and now also exposes the canonical transaction catalog, including the public HTTP entrypoints that wire frontend flows to backend tx surfaces. Propagation lifecycle evidence is shown for each stored record when available.
             </p>
           </div>
           <div className="statusRowWrap">
@@ -391,14 +394,7 @@ export default function TransactionsPage(): JSX.Element {
                 </div>
                 <div className="txRecordMessage">{item.message || "No lifecycle detail stored."}</div>
                 {item.txId ? <div className="mono wrapAnywhere">{item.txId}</div> : <div className="mutedText">No tx id captured for this local record.</div>}
-                <div className="progressList compact" aria-label={`Propagation lifecycle for ${item.title}`}>
-                  {lifecycleSteps(item).map((step) => (
-                    <div key={step.label} className="progressRow">
-                      <span>{step.label}</span>
-                      <span className={`statusPill ${step.done ? "ok" : ""}`}>{step.done ? "Observed" : "Pending evidence"}</span>
-                    </div>
-                  ))}
-                </div>
+                <TxPropagationTimeline title={item.title} steps={lifecycleSteps(item)} />
               </article>
             ))}
           </div>

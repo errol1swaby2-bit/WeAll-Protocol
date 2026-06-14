@@ -439,3 +439,13 @@ That means the project can now be cloned, booted, inspected, and audited as a ru
 
 The next major work is a final public-validator beta readiness rehearsal: fresh-clone operator packaging, multi-node launch practice, documentation review, and external security review before any public production network claims.
 
+
+
+## Batch 620 public-beta evidence boundary
+
+Current release posture remains: controlled multi-node private testnet candidate.
+Do not claim public beta, mainnet, public validator enablement, live economics,
+production helper execution, public storage-market readiness, or legal/compliance
+readiness until the external transcript requirements in
+`Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
+and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.

@@ -18,7 +18,7 @@
       "public_validator_enabled": false,
       "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
     },
-    "vector_count": 29,
+    "vector_count": 43,
     "vectors": [
       {
         "auth_case": "anonymous_public_read",
@@ -678,9 +678,336 @@
         "privacy_boundary": "live PoH queues are viewer-scoped and grant no room authority without participation",
         "route_key": "GET /v1/poh/live/my-cases",
         "route_present": true
+      },
+      {
+        "auth_case": "account_session_or_public_redacted_operator_read",
+        "contract_auth": "public_read_redacted_operator_responsibility_snapshot",
+        "contract_truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority.",
+        "error_codes": [
+          "session_required",
+          "session_mismatch",
+          "not_found"
+        ],
+        "expected_http_statuses": [
+          200,
+          403,
+          404
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "account-operator-status-readiness",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/accounts/{account}/operator-status",
+        "privacy_boundary": "operator status exposes readiness blockers, not private authority secrets",
+        "route_key": "GET /v1/accounts/{account}/operator-status",
+        "route_present": true
+      },
+      {
+        "auth_case": "anonymous_public_chain_identity_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [],
+        "expected_http_statuses": [
+          200
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "chain-manifest-trust-anchor",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/chain/manifest",
+        "privacy_boundary": "chain manifest is a trust anchor and cannot grant validator authority",
+        "route_key": "GET /v1/chain/manifest",
+        "route_present": true
+      },
+      {
+        "auth_case": "anonymous_public_chain_state_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [],
+        "expected_http_statuses": [
+          200
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "chain-state-root-public-read",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/chain/state-root",
+        "privacy_boundary": "state-root reads expose commitment metadata only",
+        "route_key": "GET /v1/chain/state-root",
+        "route_present": true
+      },
+      {
+        "auth_case": "active_validator_bft_key_required",
+        "contract_auth": "route_specific_signed_or_local_authority",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [
+          "validator_authority_required",
+          "signature_required",
+          "signature_invalid",
+          "chain_id_mismatch"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "validator_authority_required"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          400,
+          403,
+          422
+        ],
+        "id": "consensus-attest-submit-validator-only",
+        "metadata_source": "static_generator_heuristic",
+        "method": "POST",
+        "path": "/v1/consensus/attest/submit",
+        "privacy_boundary": "attestation submission is not available to observers or inactive validators",
+        "route_key": "POST /v1/consensus/attest/submit",
+        "route_present": true
+      },
+      {
+        "auth_case": "session_and_dispute_review_lane_required",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [
+          "session_required",
+          "reviewer_responsibility_not_active"
+        ],
+        "expected_http_statuses": [
+          200,
+          403
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "disputes-eligible-session-and-lane-bound",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/disputes/eligible",
+        "privacy_boundary": "eligible dispute work cannot be assigned without exact dispute_review opt-in",
+        "route_key": "GET /v1/disputes/eligible",
+        "route_present": true
+      },
+      {
+        "auth_case": "session_and_dispute_review_lane_required",
+        "contract_auth": "route_specific_signed_or_local_authority",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [
+          "reviewer_responsibility_not_active",
+          "session_required",
+          "not_found"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "reviewer_responsibility_not_active"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          200,
+          403,
+          404
+        ],
+        "id": "dispute-accept-lane-bound",
+        "metadata_source": "static_generator_heuristic",
+        "method": "POST",
+        "path": "/v1/disputes/{dispute_id}/accept",
+        "privacy_boundary": "accepting dispute work requires exact active lane consent",
+        "route_key": "POST /v1/disputes/{dispute_id}/accept",
+        "route_present": true
+      },
+      {
+        "auth_case": "signed_account_tx_required",
+        "contract_auth": "signed_tx_skeleton_local_client_helper",
+        "contract_truth_boundary": "PoH Tier-2 request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply.",
+        "error_codes": [
+          "invalid_tx",
+          "signature_required",
+          "signature_invalid",
+          "session_required"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "invalid_tx"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          200,
+          400,
+          403,
+          422
+        ],
+        "id": "poh-tier2-request-signed-account",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "path": "/v1/poh/tier2/tx/request",
+        "privacy_boundary": "tier-2 request does not imply reviewer or validator responsibility",
+        "route_key": "POST /v1/poh/tier2/tx/request",
+        "route_present": true
+      },
+      {
+        "auth_case": "signed_reviewer_lane_tx_required",
+        "contract_auth": "signed_tx_skeleton_local_client_helper",
+        "contract_truth_boundary": "PoH Tier-2 review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply.",
+        "error_codes": [
+          "reviewer_responsibility_not_active",
+          "invalid_tx",
+          "signature_required"
+        ],
+        "expected_error_envelope": {
+          "error": {
+            "code": "reviewer_responsibility_not_active"
+          },
+          "ok": false
+        },
+        "expected_http_statuses": [
+          200,
+          400,
+          403,
+          422
+        ],
+        "id": "poh-tier2-review-lane-bound",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "path": "/v1/poh/tier2/tx/review",
+        "privacy_boundary": "tier-2 review is only valid for exact active PoH reviewer/juror lanes",
+        "route_key": "POST /v1/poh/tier2/tx/review",
+        "route_present": true
+      },
+      {
+        "auth_case": "public_redacted_peer_read",
+        "contract_auth": "network_debug_env_gated_or_runtime_limited",
+        "contract_truth_boundary": "Network peer diagnostics are not generic public state snapshots.",
+        "error_codes": [],
+        "expected_http_statuses": [
+          200
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "net-peers-public-redacted",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "GET",
+        "path": "/v1/net/peers",
+        "privacy_boundary": "peer view is redacted and never leaks validator secrets",
+        "route_key": "GET /v1/net/peers",
+        "route_present": true
+      },
+      {
+        "auth_case": "observer_edge_reconcile_only",
+        "contract_auth": "observer_edge_operator_required",
+        "contract_truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority.",
+        "error_codes": [
+          "observer_edge_disabled",
+          "not_found"
+        ],
+        "expected_http_statuses": [
+          200,
+          403,
+          404
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "observer-reconcile-no-authority-grant",
+        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+        "method": "POST",
+        "path": "/v1/observer/edge/reconcile/{tx_id}",
+        "privacy_boundary": "observer reconciliation never grants validator signing authority",
+        "route_key": "POST /v1/observer/edge/reconcile/{tx_id}",
+        "route_present": true
+      },
+      {
+        "auth_case": "public_redacted_account_reputation_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [
+          "not_found"
+        ],
+        "expected_http_statuses": [
+          200,
+          404
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "reputation-eligibility-public-redacted",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/reputation/{account}/eligibility",
+        "privacy_boundary": "eligibility reads are bounded reputation summaries and do not assign duties",
+        "route_key": "GET /v1/reputation/{account}/eligibility",
+        "route_present": true
+      },
+      {
+        "auth_case": "anonymous_public_economics_boundary_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [],
+        "expected_http_statuses": [
+          200
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "economics-status-launch-blocked",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/economics/status",
+        "privacy_boundary": "economics status must keep live transfers/rewards disabled before launch",
+        "route_key": "GET /v1/economics/status",
+        "route_present": true
+      },
+      {
+        "auth_case": "anonymous_public_treasury_boundary_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [],
+        "expected_http_statuses": [
+          200
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "treasury-status-launch-blocked",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/treasury/status",
+        "privacy_boundary": "treasury status does not enable spend before launch gates",
+        "route_key": "GET /v1/treasury/status",
+        "route_present": true
+      },
+      {
+        "auth_case": "public_or_session_scoped_wallet_read",
+        "contract_auth": "public_read_redacted_snapshot",
+        "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+        "error_codes": [
+          "not_found"
+        ],
+        "expected_http_statuses": [
+          200,
+          404
+        ],
+        "expected_top_level_keys": [
+          "ok"
+        ],
+        "id": "wallet-read-no-live-economics",
+        "metadata_source": "static_generator_heuristic",
+        "method": "GET",
+        "path": "/v1/wallet/{account}",
+        "privacy_boundary": "wallet reads do not imply live economics or transfer activation",
+        "route_key": "GET /v1/wallet/{account}",
+        "route_present": true
       }
     ],
-    "version": "2026-06-b618-public-beta-evidence-pack"
+    "version": "2026-06-b620-public-beta-evidence-pack"
   },
   "batch_range": "587-594",
   "claim_boundaries": {
@@ -876,6 +1203,12 @@
         "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+      },
+      "external_operator_transcript_requirements": {
+        "ok": true,
+        "path": "generated/external_operator_transcript_requirements_v1_5.json",
+        "present": true,
+        "schema": "weall.v1_5.external_operator_transcript_requirements"
       },
       "failure_code_registry": {
         "ok": true,

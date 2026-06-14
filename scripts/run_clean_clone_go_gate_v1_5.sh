@@ -244,6 +244,12 @@ if [ "${RUN_FRONTEND}" = "1" ]; then
   if [ -f "${WEB_DIR}/scripts/test_batch616_responsibility_control_surface_source.mjs" ]; then
     run_frontend node scripts/test_batch616_responsibility_control_surface_source.mjs
   fi
+  if [ -f "${WEB_DIR}/scripts/test_batch618_public_beta_blocker_surface_source.mjs" ]; then
+    run_frontend node scripts/test_batch618_public_beta_blocker_surface_source.mjs
+  fi
+  if [ -f "${WEB_DIR}/scripts/test_batch620_operator_journey_and_accent_source.mjs" ]; then
+    run_frontend node scripts/test_batch620_operator_journey_and_accent_source.mjs
+  fi
   if [ -x "${ROOT_DIR}/scripts/run_frontend_contract_check_with_backend.sh" ]; then
     "${ROOT_DIR}/scripts/run_frontend_contract_check_with_backend.sh"
   else

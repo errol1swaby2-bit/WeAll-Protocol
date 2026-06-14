@@ -23,6 +23,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
     Path("generated/public_beta_blocker_report_v1_5.json"),
+    Path("generated/external_operator_transcript_requirements_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
     Path("generated/reputation_flow_coverage_map_v1_5.json"),
@@ -220,6 +221,26 @@ def _check_public_beta_blocker_report() -> list[str]:
     return errors
 
 
+def _check_external_operator_transcript_requirements() -> list[str]:
+    errors = _run_check("gen_external_operator_transcript_requirements_v1_5.py")
+    payload = _load_json(Path("generated/external_operator_transcript_requirements_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.external_operator_transcript_requirements":
+        errors.append("external operator transcript requirements schema mismatch")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("external operator transcript requirements must keep public_beta_ready=false")
+    if payload.get("mainnet_ready") is not False:
+        errors.append("external operator transcript requirements must keep mainnet_ready=false")
+    schemas = payload.get("schemas") if isinstance(payload.get("schemas"), dict) else {}
+    for key in ("public_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation"):
+        if key not in schemas:
+            errors.append(f"external operator transcript requirements missing {key}")
+    boundaries = payload.get("release_claim_boundaries") if isinstance(payload.get("release_claim_boundaries"), dict) else {}
+    for key in ("public_validator_enabled", "public_storage_provider_market", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+        if boundaries.get(key) is not False:
+            errors.append(f"external operator transcript requirements must keep {key}=false")
+    return errors
+
+
 def _check_public_validator_preflight() -> list[str]:
     errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
@@ -271,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_validator_preflight())
         errors.extend(_check_api_response_vectors())
         errors.extend(_check_b587_b594_mechanisms())
+        errors.extend(_check_public_beta_blocker_report())
+        errors.extend(_check_external_operator_transcript_requirements())
         errors.extend(_check_controlled_testnet_go_gate())
         for script in (
             "gen_reputation_event_registry_v1_5.py",

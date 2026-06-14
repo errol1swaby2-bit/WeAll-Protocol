@@ -71,3 +71,13 @@ A release-evidence run must not use `--allow-dirty`. The gate fails if generated
 ## Scope boundary
 
 This rehearsal proves the current local Genesis -> observer -> promoted-validator lifecycle and mempool convergence path. It does not replace external multi-machine evidence. Public beta, public validator/BFT, helper production execution, live economics, and mainnet claims remain blocked by their respective generated readiness artifacts and release gates.
+
+
+## Batch 620 public-beta evidence boundary
+
+Current release posture remains: controlled multi-node private testnet candidate.
+Do not claim public beta, mainnet, public validator enablement, live economics,
+production helper execution, public storage-market readiness, or legal/compliance
+readiness until the external transcript requirements in
+`Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
+and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.

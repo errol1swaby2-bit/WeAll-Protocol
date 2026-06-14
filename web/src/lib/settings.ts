@@ -76,6 +76,20 @@ export function saveSettings(next: ClientSettings): void {
   }
 }
 
+function setAccentVars(root: HTMLElement, accent: string, accent2: string, accentRgb: string, accent2Rgb: string): void {
+  root.style.setProperty("--accent", accent);
+  root.style.setProperty("--accent-2", accent2);
+  root.style.setProperty("--accent-rgb", accentRgb);
+  root.style.setProperty("--accent-2-rgb", accent2Rgb);
+  root.style.setProperty("--accent-soft", `rgba(${accentRgb}, 0.12)`);
+  root.style.setProperty("--accent-hover", `rgba(${accent2Rgb}, 0.1)`);
+  root.style.setProperty("--accent-border", `rgba(${accentRgb}, 0.28)`);
+  root.style.setProperty("--accent-focus", `rgba(${accentRgb}, 0.42)`);
+  root.style.setProperty("--accent-focus-ring", `rgba(${accentRgb}, 0.12)`);
+  root.style.setProperty("--accent-glow-left", `rgba(${accentRgb}, 0.12)`);
+  root.style.setProperty("--accent-glow-right", `rgba(${accent2Rgb}, 0.16)`);
+}
+
 export function applySettingsToDocument(settings: ClientSettings): void {
   const root = document.documentElement;
 
@@ -113,20 +127,16 @@ export function applySettingsToDocument(settings: ClientSettings): void {
 
   switch (settings.accentTone) {
     case "cyan":
-      root.style.setProperty("--accent", "#6fe7ff");
-      root.style.setProperty("--accent-2", "#4cc9f0");
+      setAccentVars(root, "#6fe7ff", "#4cc9f0", "111, 231, 255", "76, 201, 240");
       break;
     case "gold":
-      root.style.setProperty("--accent", "#f4c95d");
-      root.style.setProperty("--accent-2", "#ffd166");
+      setAccentVars(root, "#f4c95d", "#ffd166", "244, 201, 93", "255, 209, 102");
       break;
     case "rose":
-      root.style.setProperty("--accent", "#fb7185");
-      root.style.setProperty("--accent-2", "#f9a8d4");
+      setAccentVars(root, "#fb7185", "#f9a8d4", "251, 113, 133", "249, 168, 212");
       break;
     default:
-      root.style.setProperty("--accent", "#4ce0b3");
-      root.style.setProperty("--accent-2", "#6fe7ff");
+      setAccentVars(root, "#4ce0b3", "#6fe7ff", "76, 224, 179", "111, 231, 255");
       break;
   }
 

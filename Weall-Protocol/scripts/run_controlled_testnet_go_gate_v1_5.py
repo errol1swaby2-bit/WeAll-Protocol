@@ -5,11 +5,13 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
 from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
+from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
 from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587_b594
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -34,6 +36,7 @@ _REQUIRED_TRACKED_ARTIFACTS = [
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "generated/controlled_testnet_go_gate_v1_5.json",
     "generated/public_beta_blocker_report_v1_5.json",
+    "generated/external_operator_transcript_requirements_v1_5.json",
 ]
 
 _CHECK_COMMANDS = [
@@ -46,7 +49,7 @@ _CHECK_COMMANDS = [
     ["python", "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py", "--check"],
     ["python", "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
     ["python", "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
-    ["python", "scripts/check_v15_public_readiness_artifacts.py", "--require-git-tracked"],
+    ["python", "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"],
 ]
 
 _FORBIDDEN_CLAIMS = {
@@ -105,6 +108,7 @@ def build() -> Json:
     b587 = build_b587_b594()
     api_vectors = build_api_response_vectors()
     public_beta_blockers = build_public_beta_blocker_report()
+    external_transcripts = build_external_operator_transcript_requirements()
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     validator = run_validator_harness()
     storage = run_storage_harness()
@@ -126,6 +130,7 @@ def build() -> Json:
     deterministic_go_gate_ready = all([
         bool(api_vectors.get("ok")),
         bool(public_beta_blockers.get("ok")),
+        bool(external_transcripts.get("ok")),
         bool(b587.get("ok")),
         bool(capabilities.get("controlled_testnet_mechanisms_complete")),
         bool(validator.get("ok")),
@@ -158,6 +163,13 @@ def build() -> Json:
             "blocker_count": int(public_beta_blockers.get("blocker_count") or 0),
             "remaining_blocker_count": int(public_beta_blockers.get("remaining_blocker_count") or 0),
             "next_allowed_claim": public_beta_blockers.get("next_allowed_claim"),
+        },
+        "external_operator_transcript_requirements_summary": {
+            "ok": bool(external_transcripts.get("ok")),
+            "schema_count": len(external_transcripts.get("schemas") or {}),
+            "public_beta_ready": bool(external_transcripts.get("public_beta_ready")),
+            "mainnet_ready": bool(external_transcripts.get("mainnet_ready")),
+            "external_attestation_required_before_public_beta": bool(external_transcripts.get("external_attestation_required_before_public_beta")),
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),
@@ -198,6 +210,7 @@ def build() -> Json:
             "validator go-gate transcript from independently operated machines or isolated containers",
             "storage/IPFS durability transcript from real daemon/operator topology",
             "public-beta blocker report with transcript schemas and claim boundaries",
+            "external operator transcript requirements artifact and validator",
             "frontend/API capability snapshot showing launch-matrix blockers in public UX surfaces",
             "legal/compliance counsel review before public token/governance/economic claims",
         ],
@@ -217,15 +230,53 @@ def _canon(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, indent=2) + "\n"
 
 
+def _read_tail(path: Path, limit: int = 2000) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")[-limit:]
+    except Exception:
+        return ""
+
+
 def _run(cmd: list[str]) -> Json:
     normalized = [sys.executable if part == "python" else part for part in cmd]
-    proc = subprocess.run(normalized, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    # Use temporary files instead of subprocess.PIPE. Some rehearsal checks spawn
+    # short-lived grandchildren; if a grandchild inherits a pipe, communicate()
+    # can wait for EOF after the direct child has exited. File redirection keeps
+    # the go-gate deterministic and prevents clean-clone evidence runs from
+    # hanging on inherited descriptors.
+    with tempfile.TemporaryDirectory(prefix="weall_gate_cmd_") as tmp:
+        stdout_path = Path(tmp) / "stdout.txt"
+        stderr_path = Path(tmp) / "stderr.txt"
+        with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
+            proc = subprocess.run(normalized, cwd=ROOT, text=True, stdout=stdout, stderr=stderr, check=False)
+        return {
+            "cmd": " ".join(cmd),
+            "returncode": proc.returncode,
+            "ok": proc.returncode == 0,
+            "stdout_tail": _read_tail(stdout_path),
+            "stderr_tail": _read_tail(stderr_path),
+        }
+
+
+def _check_required_tracked_artifacts() -> Json:
+    missing: list[str] = []
+    for rel in _REQUIRED_TRACKED_ARTIFACTS:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", rel],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if proc.returncode != 0:
+            missing.append(rel)
     return {
-        "cmd": " ".join(cmd),
-        "returncode": proc.returncode,
-        "ok": proc.returncode == 0,
-        "stdout_tail": proc.stdout[-2000:],
-        "stderr_tail": proc.stderr[-2000:],
+        "cmd": "embedded required tracked artifact check",
+        "returncode": 0 if not missing else 1,
+        "ok": not missing,
+        "stdout_tail": "all required release artifacts are tracked/staged in git index" if not missing else "",
+        "stderr_tail": "" if not missing else "missing tracked artifacts: " + ", ".join(missing),
     }
 
 
@@ -236,6 +287,8 @@ def run_runtime_gates(*, require_git_tracked: bool = False, include_full_pytest:
     if include_full_pytest:
         commands.append(["python", "-m", "pytest", "-q"])
     results = [_run(cmd) for cmd in commands]
+    if require_git_tracked:
+        results.append(_check_required_tracked_artifacts())
     payload = {
         "schema": "weall.v1_5.controlled_testnet_go_gate_runtime_report",
         "ok": all(bool(r["ok"]) for r in results),
