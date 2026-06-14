@@ -17,7 +17,7 @@
     "public_validator_enabled": false,
     "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
   },
-  "vector_count": 10,
+  "vector_count": 29,
   "vectors": [
     {
       "auth_case": "anonymous_public_read",
@@ -275,7 +275,409 @@
       "privacy_boundary": "public ingress rejects SYSTEM and receipt-only submissions",
       "route_key": "POST /v1/tx/submit",
       "route_present": true
+    },
+    {
+      "auth_case": "anonymous_public_readiness_probe",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200,
+        503
+      ],
+      "expected_top_level_keys": [
+        "ready",
+        "checks"
+      ],
+      "id": "readyz-public-ok",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/readyz",
+      "privacy_boundary": "readiness does not reveal authority secrets or grant production posture",
+      "route_key": "GET /v1/readyz",
+      "route_present": true
+    },
+    {
+      "auth_case": "anonymous_public_health_probe",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "health-public-ok",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/health",
+      "privacy_boundary": "health is liveness metadata only",
+      "route_key": "GET /v1/health",
+      "route_present": true
+    },
+    {
+      "auth_case": "operator_diagnostic_read_redacted_by_runtime_posture",
+      "contract_auth": "operator_diagnostic_read_redacted_by_runtime_posture",
+      "contract_truth_boundary": "Operator status is diagnostic posture evidence and must not be treated as authority-granting.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "schema",
+        "operator"
+      ],
+      "id": "operator-status-redacted",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/status/operator",
+      "privacy_boundary": "operator diagnostics are posture evidence and never grant role authority",
+      "route_key": "GET /v1/status/operator",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "schema"
+      ],
+      "id": "consensus-status-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/status/consensus",
+      "privacy_boundary": "consensus status exposes redacted diagnostics only; it does not enable BFT signing",
+      "route_key": "GET /v1/status/consensus",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "consensus-forensics-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/status/consensus/forensics",
+      "privacy_boundary": "forensics are bounded diagnostics and not peer secrets",
+      "route_key": "GET /v1/status/consensus/forensics",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "mempool-status-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/status/mempool",
+      "privacy_boundary": "mempool size/diagnostics are visible but pending private payloads stay bounded/redacted",
+      "route_key": "GET /v1/status/mempool",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_launch_matrix_bound_testnet_capability_surface",
+      "contract_auth": "public_read_launch_matrix_bound_testnet_capability_surface",
+      "contract_truth_boundary": "Testnet capability status is a launch-matrix-bound claim-control surface. It reports completed mechanisms and disabled high-risk capabilities but grants no validator, economic, helper, upgrade, legal, or public beta authority.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "schema",
+        "capabilities",
+        "blocked_capabilities",
+        "public_beta_ready_claimed"
+      ],
+      "id": "testnet-capabilities-boundary",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/status/testnet-capabilities",
+      "privacy_boundary": "claim-control surface only; it cannot enable validators, economics, helper execution, or upgrades",
+      "route_key": "GET /v1/status/testnet-capabilities",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "chain_id"
+      ],
+      "id": "chain-identity-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/chain/identity",
+      "privacy_boundary": "chain identity is public trust-anchor metadata only",
+      "route_key": "GET /v1/chain/identity",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "height"
+      ],
+      "id": "chain-head-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/chain/head",
+      "privacy_boundary": "chain head is public progress metadata only",
+      "route_key": "GET /v1/chain/head",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_operator_responsibility_snapshot",
+      "contract_auth": "public_read_redacted_operator_responsibility_snapshot",
+      "contract_truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority.",
+      "error_codes": [
+        "not_found"
+      ],
+      "expected_http_statuses": [
+        200,
+        404
+      ],
+      "expected_top_level_keys": [
+        "ok",
+        "account",
+        "node_operator"
+      ],
+      "id": "account-operator-status-read-model",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/accounts/{account}/operator-status",
+      "privacy_boundary": "derived readiness only; not validator promotion or helper/storage assignment authority",
+      "route_key": "GET /v1/accounts/{account}/operator-status",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "net-self-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/net/self",
+      "privacy_boundary": "peer status is redacted topology data and not a trust anchor by itself",
+      "route_key": "GET /v1/net/self",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "storage-ipfs-ops-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/storage/ipfs/ops",
+      "privacy_boundary": "storage/IPFS ops status does not assign storage work or reveal private evidence",
+      "route_key": "GET /v1/storage/ipfs/ops",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "helper-readiness-disabled-boundary",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/status/helper/readiness",
+      "privacy_boundary": "helper readiness is diagnostic only; production helper execution remains disabled",
+      "route_key": "GET /v1/status/helper/readiness",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "block-production-readiness-boundary",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/consensus/block-production/readiness",
+      "privacy_boundary": "readiness diagnostics do not permit observer or inactive-validator block production",
+      "route_key": "GET /v1/consensus/block-production/readiness",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [
+        "not_found"
+      ],
+      "expected_http_statuses": [
+        200,
+        404
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "tx-status-public-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/tx/status/{tx_id}",
+      "privacy_boundary": "tx lifecycle is status-only and must not expose private evidence payloads",
+      "route_key": "GET /v1/tx/status/{tx_id}",
+      "route_present": true
+    },
+    {
+      "auth_case": "public_read_redacted_snapshot",
+      "contract_auth": "public_read_redacted_snapshot",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [],
+      "expected_http_statuses": [
+        200
+      ],
+      "expected_top_level_keys": [
+        "ok"
+      ],
+      "id": "dispute-current-redacted",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "path": "/v1/disputes/current",
+      "privacy_boundary": "dispute current queue is bounded read model; assignment still requires exact lane consent",
+      "route_key": "GET /v1/disputes/current",
+      "route_present": true
+    },
+    {
+      "auth_case": "route_specific_signed_or_local_authority",
+      "contract_auth": "route_specific_signed_or_local_authority",
+      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "error_codes": [
+        "forbidden",
+        "not_found",
+        "invalid_tx"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "forbidden"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        200,
+        400,
+        403,
+        404
+      ],
+      "id": "dispute-accept-route-specific-authority",
+      "metadata_source": "static_generator_heuristic",
+      "method": "POST",
+      "path": "/v1/disputes/{dispute_id}/accept",
+      "privacy_boundary": "accepting dispute work requires assigned juror status and active dispute reviewer responsibility",
+      "route_key": "POST /v1/disputes/{dispute_id}/accept",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_required",
+      "contract_auth": "account_session_required",
+      "contract_truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session.",
+      "error_codes": [
+        "session_required",
+        "session_mismatch"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403
+      ],
+      "id": "poh-tier2-my-cases-session",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/poh/tier2/my-cases",
+      "privacy_boundary": "Tier-2 case queues are viewer-scoped and evidence-sensitive",
+      "route_key": "GET /v1/poh/tier2/my-cases",
+      "route_present": true
+    },
+    {
+      "auth_case": "account_session_required_live_account_queue",
+      "contract_auth": "account_session_required_live_account_queue",
+      "contract_truth_boundary": "Live my-cases is account-scoped and requires authenticated viewer alignment.",
+      "error_codes": [
+        "session_required",
+        "session_mismatch"
+      ],
+      "expected_error_envelope": {
+        "error": {
+          "code": "session_required"
+        },
+        "ok": false
+      },
+      "expected_http_statuses": [
+        403
+      ],
+      "id": "poh-live-my-cases-session",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "path": "/v1/poh/live/my-cases",
+      "privacy_boundary": "live PoH queues are viewer-scoped and grant no room authority without participation",
+      "route_key": "GET /v1/poh/live/my-cases",
+      "route_present": true
     }
   ],
-  "version": "2026-06-b587-testnet-mechanism-pack"
+  "version": "2026-06-b618-public-beta-evidence-pack"
 }

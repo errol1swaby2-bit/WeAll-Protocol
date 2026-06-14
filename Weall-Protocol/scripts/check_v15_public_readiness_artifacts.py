@@ -22,6 +22,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/api_response_vectors_v1_5.json"),
     Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
+    Path("generated/public_beta_blocker_report_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
     Path("generated/reputation_flow_coverage_map_v1_5.json"),
@@ -194,6 +195,30 @@ def _check_controlled_testnet_go_gate() -> list[str]:
         if boundaries.get(key) is not False:
             errors.append(f"controlled testnet go-gate boundary must keep {key}=false")
     return errors
+
+def _check_public_beta_blocker_report() -> list[str]:
+    errors = _run_check("gen_public_beta_blocker_report_v1_5.py")
+    payload = _load_json(Path("generated/public_beta_blocker_report_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.public_beta_blocker_report":
+        errors.append("public beta blocker report schema mismatch")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("public beta blocker report must keep public_beta_ready=false")
+    if payload.get("mainnet_ready") is not False:
+        errors.append("public beta blocker report must keep mainnet_ready=false")
+    if int(payload.get("blocker_count") or 0) < 12:
+        errors.append("public beta blocker report missing expected blocker inventory")
+    boundaries = payload.get("release_claim_boundaries") if isinstance(payload.get("release_claim_boundaries"), dict) else {}
+    for key in (
+        "public_validator_enabled",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+        "live_economics",
+        "legal_compliance_ready",
+    ):
+        if boundaries.get(key) is not False:
+            errors.append(f"public beta blocker report must keep {key}=false")
+    return errors
+
 
 def _check_public_validator_preflight() -> list[str]:
     errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")

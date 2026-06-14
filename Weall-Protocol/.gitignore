@@ -122,6 +122,8 @@ configs/local/
 
 !generated/controlled_testnet_go_gate_v1_5.json
 
+!generated/public_beta_blocker_report_v1_5.json
+
 !generated/reputation_event_registry_v1_5.json
 
 !generated/reputation_matrix_contract_v1_5.json

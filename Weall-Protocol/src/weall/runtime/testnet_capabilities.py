@@ -49,6 +49,7 @@ _REQUIRED_ARTIFACTS = {
     "public_validator_preflight": "generated/public_validator_bft_preflight_matrix_v1_5.json",
     "b582_b586_proof": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
     "b587_b594_mechanism_completion": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+    "public_beta_blocker_report": "generated/public_beta_blocker_report_v1_5.json",
 }
 
 
@@ -91,6 +92,7 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         key for key, record in capabilities.items() if bool(record.get("blocked_by_launch_matrix"))
     ]
     artifact_blockers = [key for key, record in artifacts.items() if not bool(record.get("present")) or not bool(record.get("ok"))]
+    blocker_report = _load_artifact("generated/public_beta_blocker_report_v1_5.json")
     return {
         "schema": "weall.v1_5.testnet_capability_surface",
         "phase": selected_phase,
@@ -98,6 +100,15 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         "required_artifacts": artifacts,
         "blocked_capabilities": blockers,
         "artifact_blockers": artifact_blockers,
+        "public_beta_blocker_report": {
+            "present": bool(blocker_report),
+            "ok": bool(blocker_report.get("ok", False)) if blocker_report else False,
+            "public_beta_ready": bool(blocker_report.get("public_beta_ready", False)) if blocker_report else False,
+            "mainnet_ready": bool(blocker_report.get("mainnet_ready", False)) if blocker_report else False,
+            "blocker_count": int(blocker_report.get("blocker_count") or 0) if blocker_report else 0,
+            "remaining_blocker_count": int(blocker_report.get("remaining_blocker_count") or 0) if blocker_report else 0,
+            "next_allowed_claim": blocker_report.get("next_allowed_claim", "") if blocker_report else "",
+        },
         "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
         "controlled_testnet_mechanisms_complete": not artifact_blockers,
         "public_beta_ready_claimed": False,

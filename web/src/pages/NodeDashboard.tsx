@@ -244,8 +244,11 @@ export default function NodeDashboard(): JSX.Element {
     { label: "7. Storage/IPFS capacity", ok: storageOptedIn && provenCapacity > 0, warn: storageOptedIn && provenCapacity <= 0, value: storageOptedIn ? `Declared ${formatBytes(declaredCapacity)} · Proven ${formatBytes(provenCapacity)}` : "Not opted in" },
     { label: "8. Mempool and block progression", ok: mempoolSize === 0 && blockLoop.unhealthy !== true, warn: mempoolSize > 0 || blockLoop.unhealthy === true, value: blockLoop.unhealthy === true ? "Block loop unhealthy" : mempoolSize > 0 ? `${mempoolSize} tx pending` : "No pending tx" },
   ];
+  const publicBetaBlockerReport = asRecord(testnetCapabilities.public_beta_blocker_report);
+  const publicBetaRemaining = num(publicBetaBlockerReport.remaining_blocker_count, 0);
+  const blockedCapabilities = asArray(testnetCapabilities.blocked_capabilities);
   const launchPhase = str(launchMatrix.phase || testnetCapabilities.phase || status.mode, "controlled/local");
-  const publicBetaClaimed = testnetCapabilities.public_beta_ready_claimed === true;
+  const publicBetaClaimed = testnetCapabilities.public_beta_ready_claimed === true || publicBetaBlockerReport.public_beta_ready === true;
   const prefError = storagePreferenceError(pref);
   const browserStorageUsage = storageEstimate ? formatBytes(storageEstimate.usage) : "—";
   const browserStorageQuota = storageEstimate ? formatBytes(storageEstimate.quota) : "—";
@@ -304,6 +307,7 @@ export default function NodeDashboard(): JSX.Element {
         <StatCard label="Sync height" value={String(height || "0")} note={`Tip ${compact(status.tip || chainHead.tip || chainIdentity.tip_hash)}`} ok={height >= 0 && status.ok === true} />
         <StatCard label="Mempool" value={`${mempoolSize} tx`} note="Pending transaction pressure exposed by the node status surface." ok={mempoolSize === 0} warn={mempoolSize > 0} />
         <StatCard label="Launch boundary" value={statusLabel(launchPhase)} note={publicBetaClaimed ? "Unexpected public beta claim detected." : "This surface does not claim public beta or production readiness."} ok={!publicBetaClaimed} warn={publicBetaClaimed} />
+        <StatCard label="Public beta blockers" value={`${publicBetaRemaining || blockedCapabilities.length} open`} note={publicBetaBlockerReport.present === false ? "Blocker report artifact not loaded from this node." : "Remaining public-beta blockers are shown as evidence gates, not readiness claims."} ok={!publicBetaClaimed && publicBetaRemaining > 0} warn={publicBetaClaimed || publicBetaRemaining === 0} />
       </section>
 
       <NodeConnectionPanel compact={false} />
@@ -481,7 +485,32 @@ export default function NodeDashboard(): JSX.Element {
               <div className="infoCardHeader"><span className="statusPill">Authority</span><strong>Frontend cannot grant roles</strong></div>
               <div className="infoCardText">Validator, helper, and storage responsibilities must come from committed protocol state and signed transactions.</div>
             </div>
+            <div className="infoCard compact">
+              <div className="infoCardHeader"><span className="statusPill warn">Evidence gates</span><strong>Public beta remains blocked</strong></div>
+              <div className="infoCardText">Public validator, storage/IPFS, protocol upgrade, helper execution, and legal/compliance readiness require external transcripts or attestations before any public beta claim.</div>
+            </div>
           </div>
+          {blockedCapabilities.length ? (
+            <div className="progressList" aria-label="Public beta blocker snapshot">
+              <DetailRow
+                label="Blocked capabilities"
+                value={blockedCapabilities.slice(0, 8).join(", ")}
+                ok={!publicBetaClaimed}
+                warn={publicBetaClaimed}
+              />
+              <DetailRow
+                label="Remaining blocker gates"
+                value={`${publicBetaRemaining || "unknown"}`}
+                ok={!publicBetaClaimed && publicBetaRemaining > 0}
+                warn={publicBetaRemaining === 0 || publicBetaClaimed}
+              />
+              <DetailRow
+                label="Next allowed claim"
+                value={str(publicBetaBlockerReport.next_allowed_claim, "controlled private testnet candidate only")}
+                ok={!publicBetaClaimed}
+              />
+            </div>
+          ) : null}
           {incidentTimeline.length ? (
             <div className="progressList" aria-label="Operator incident timeline">
               {incidentTimeline.map((row: any, idx: number) => (

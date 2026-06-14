@@ -7,7 +7,7 @@
       "public_validator_enabled": false,
       "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
     },
-    "vector_count": 10
+    "vector_count": 29
   },
   "artifact_freshness_commands": [
     "python scripts/gen_api_contract_map.py --check",
@@ -18,6 +18,7 @@
     "python scripts/gen_public_validator_bft_preflight_matrix_v1_5.py --check",
     "python scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py --check",
     "python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check",
+    "python scripts/gen_public_beta_blocker_report_v1_5.py --check",
     "python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked"
   ],
   "artifact_inputs": {
@@ -56,6 +57,12 @@
       "path": "generated/launch_disabled_matrix_v1_5.json",
       "present": true,
       "schema": "weall.launch_disabled_matrix.v1_5"
+    },
+    "generated/public_beta_blocker_report_v1_5.json": {
+      "ok": true,
+      "path": "generated/public_beta_blocker_report_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_beta_blocker_report"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
       "ok": true,
@@ -147,6 +154,14 @@
   },
   "next_allowed_claim_if_runtime_go_gate_passes": "controlled private testnet candidate evidence captured",
   "ok": true,
+  "public_beta_blocker_report_summary": {
+    "blocker_count": 13,
+    "mainnet_ready": false,
+    "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
+    "ok": true,
+    "public_beta_ready": false,
+    "remaining_blocker_count": 9
+  },
   "public_beta_ready": false,
   "public_readiness_claim_requires_external_evidence": true,
   "recommended_gate_commands": [
@@ -159,6 +174,7 @@
     "artifact freshness gate with --require-git-tracked inside the real git checkout",
     "validator go-gate transcript from independently operated machines or isolated containers",
     "storage/IPFS durability transcript from real daemon/operator topology",
+    "public-beta blocker report with transcript schemas and claim boundaries",
     "frontend/API capability snapshot showing launch-matrix blockers in public UX surfaces",
     "legal/compliance counsel review before public token/governance/economic claims"
   ],

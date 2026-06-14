@@ -4,7 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="${BACKEND_DIR:-${ROOT_DIR}/Weall-Protocol}"
 WEB_DIR="${WEB_DIR:-${ROOT_DIR}/web}"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+HOST_PYTHON_BIN="${HOST_PYTHON_BIN:-python3}"
+BACKEND_VENV_DIR="${BACKEND_VENV_DIR:-${BACKEND_DIR}/.venv}"
+PYTHON_BIN="${PYTHON_BIN:-}"
 RUN_INSTALL=1
 RUN_FRONTEND=1
 RUN_FULL_PYTEST=1
@@ -17,13 +19,17 @@ usage() {
   cat <<'EOF'
 Usage: scripts/run_clean_clone_go_gate_v1_5.sh [options]
 
-Runs the Batch 615 clean-clone controlled-testnet go-gate from the repository root.
-The default path installs backend dependencies, runs artifact gates, runs the Batch 615
+Runs the v1.5 clean-clone controlled-testnet go-gate from the repository root.
+The default path creates/uses the backend .venv, installs backend dependencies inside
+that virtual environment, runs artifact gates, runs the Batch 615
 Genesis -> observer -> promoted-validator -> mempool rehearsal, runs full pytest, runs
 frontend production checks, and finally refuses a dirty git worktree.
 
 Options:
   --skip-install       Do not install backend Python dependencies first.
+                       The script still creates/uses the backend .venv for checks.
+  --venv-dir DIR       Use or create DIR as the backend virtualenv
+                       (default: Weall-Protocol/.venv).
   --skip-frontend      Do not run frontend checks.
   --skip-dependency-check
                        Do not run the backend dependency import smoke check.
@@ -43,6 +49,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --skip-frontend)
       RUN_FRONTEND=0
+      ;;
+    --venv-dir)
+      shift
+      if [ "$#" -eq 0 ]; then
+        echo "ERROR: --venv-dir requires a path" >&2
+        exit 2
+      fi
+      BACKEND_VENV_DIR="$1"
       ;;
     --skip-dependency-check)
       RUN_DEPENDENCY_CHECK=0
@@ -97,10 +111,37 @@ run_frontend() {
   (cd "${WEB_DIR}" && "$@")
 }
 
-echo "== Batch 615 clean-clone go-gate =="
+ensure_backend_venv() {
+  if [ -n "${PYTHON_BIN}" ]; then
+    if [ ! -x "${PYTHON_BIN}" ]; then
+      echo "ERROR: PYTHON_BIN was supplied but is not executable: ${PYTHON_BIN}" >&2
+      exit 1
+    fi
+    return 0
+  fi
+
+  if [ ! -x "${BACKEND_VENV_DIR}/bin/python" ]; then
+    echo "== Creating backend virtualenv: ${BACKEND_VENV_DIR} =="
+    if ! run_backend "${HOST_PYTHON_BIN}" -m venv "${BACKEND_VENV_DIR}"; then
+      echo "ERROR: unable to create backend virtualenv at ${BACKEND_VENV_DIR}" >&2
+      echo "Install the OS venv package if needed, for example: sudo apt install python3-venv" >&2
+      exit 1
+    fi
+  fi
+
+  PYTHON_BIN="${BACKEND_VENV_DIR}/bin/python"
+  export VIRTUAL_ENV="${BACKEND_VENV_DIR}"
+  export PATH="${BACKEND_VENV_DIR}/bin:${PATH}"
+}
+
+echo "== v1.5 clean-clone go-gate =="
 echo "Backend: ${BACKEND_DIR}"
 echo "Frontend: ${WEB_DIR}"
 echo "Output: ${OUT_DIR}"
+
+ensure_backend_venv
+echo "Python: ${PYTHON_BIN}"
+echo "Virtualenv: ${BACKEND_VENV_DIR}"
 
 if [ "${RUN_INSTALL}" = "1" ]; then
   echo "== Installing backend dependencies =="
@@ -223,5 +264,5 @@ if [ "${ALLOW_DIRTY}" != "1" ] && git -C "${ROOT_DIR}" rev-parse --is-inside-wor
   fi
 fi
 
-echo "OK: Batch 615 clean-clone go-gate passed"
+echo "OK: v1.5 clean-clone go-gate passed"
 echo "Report directory: ${OUT_DIR}"

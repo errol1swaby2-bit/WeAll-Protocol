@@ -75,6 +75,17 @@ function summarizeList(rows: TxCatalogSummaryRow[] | undefined, limit = 4): stri
     .join(" · ");
 }
 
+function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boolean }> {
+  const status = item.status;
+  return [
+    { label: "Accepted locally", done: ["recorded", "refreshing", "confirmed", "failed"].includes(status) },
+    { label: "Gossiped / pending", done: ["recorded", "refreshing", "confirmed"].includes(status) },
+    { label: "Included in block", done: status === "confirmed" },
+    { label: "Finalized", done: status === "confirmed" },
+    { label: "Removed from mempool", done: status === "confirmed" },
+  ];
+}
+
 function summarizeEntrypoints(item: TxCatalogItem): string {
   const routes = Array.isArray(item.api_entrypoints) ? item.api_entrypoints.filter(Boolean) : [];
   if (!routes.length) {
@@ -380,6 +391,14 @@ export default function TransactionsPage(): JSX.Element {
                 </div>
                 <div className="txRecordMessage">{item.message || "No lifecycle detail stored."}</div>
                 {item.txId ? <div className="mono wrapAnywhere">{item.txId}</div> : <div className="mutedText">No tx id captured for this local record.</div>}
+                <div className="progressList compact" aria-label={`Propagation lifecycle for ${item.title}`}>
+                  {lifecycleSteps(item).map((step) => (
+                    <div key={step.label} className="progressRow">
+                      <span>{step.label}</span>
+                      <span className={`statusPill ${step.done ? "ok" : ""}`}>{step.done ? "Observed" : "Pending evidence"}</span>
+                    </div>
+                  ))}
+                </div>
               </article>
             ))}
           </div>

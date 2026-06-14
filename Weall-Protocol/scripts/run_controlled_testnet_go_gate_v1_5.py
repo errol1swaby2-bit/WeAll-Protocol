@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
+from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
 from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587_b594
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -32,6 +33,7 @@ _REQUIRED_TRACKED_ARTIFACTS = [
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "generated/controlled_testnet_go_gate_v1_5.json",
+    "generated/public_beta_blocker_report_v1_5.json",
 ]
 
 _CHECK_COMMANDS = [
@@ -43,6 +45,7 @@ _CHECK_COMMANDS = [
     ["python", "scripts/gen_public_validator_bft_preflight_matrix_v1_5.py", "--check"],
     ["python", "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py", "--check"],
     ["python", "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
+    ["python", "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
     ["python", "scripts/check_v15_public_readiness_artifacts.py", "--require-git-tracked"],
 ]
 
@@ -101,6 +104,7 @@ def _summarize_b587(payload: Json) -> Json:
 def build() -> Json:
     b587 = build_b587_b594()
     api_vectors = build_api_response_vectors()
+    public_beta_blockers = build_public_beta_blocker_report()
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     validator = run_validator_harness()
     storage = run_storage_harness()
@@ -121,6 +125,7 @@ def build() -> Json:
     )
     deterministic_go_gate_ready = all([
         bool(api_vectors.get("ok")),
+        bool(public_beta_blockers.get("ok")),
         bool(b587.get("ok")),
         bool(capabilities.get("controlled_testnet_mechanisms_complete")),
         bool(validator.get("ok")),
@@ -144,6 +149,15 @@ def build() -> Json:
             "ok": bool(api_vectors.get("ok")),
             "vector_count": int(api_vectors.get("vector_count") or 0),
             "truth_boundaries": api_vectors.get("truth_boundaries", {}),
+        },
+
+        "public_beta_blocker_report_summary": {
+            "ok": bool(public_beta_blockers.get("ok")),
+            "public_beta_ready": bool(public_beta_blockers.get("public_beta_ready")),
+            "mainnet_ready": bool(public_beta_blockers.get("mainnet_ready")),
+            "blocker_count": int(public_beta_blockers.get("blocker_count") or 0),
+            "remaining_blocker_count": int(public_beta_blockers.get("remaining_blocker_count") or 0),
+            "next_allowed_claim": public_beta_blockers.get("next_allowed_claim"),
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),
@@ -183,6 +197,7 @@ def build() -> Json:
             "artifact freshness gate with --require-git-tracked inside the real git checkout",
             "validator go-gate transcript from independently operated machines or isolated containers",
             "storage/IPFS durability transcript from real daemon/operator topology",
+            "public-beta blocker report with transcript schemas and claim boundaries",
             "frontend/API capability snapshot showing launch-matrix blockers in public UX surfaces",
             "legal/compliance counsel review before public token/governance/economic claims",
         ],
