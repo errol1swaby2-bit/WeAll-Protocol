@@ -13,6 +13,7 @@ import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import MediaGallery from "./MediaGallery";
 import ContentTipButton from "./ContentTipButton";
+import { FEED_ALGORITHM_SUMMARY } from "../lib/feed";
 
 type FeedScope =
   | { kind: "public" }
@@ -137,6 +138,12 @@ function scopeLabel(scope: FeedScope): string {
   if (scope?.kind === "account") return `Account · ${scope.account}`;
   if (scope?.kind === "public") return "Public";
   return "Feed";
+}
+
+function scopeEndpointLabel(scope: FeedScope): string {
+  if (scope?.kind === "group") return "/v1/groups/{group_id}/feed";
+  if (scope?.kind === "account") return "/v1/accounts/{account}/feed";
+  return "/v1/feed";
 }
 
 function summarizeFeedScope(scope: FeedScope, count: number): string {
@@ -524,7 +531,7 @@ export default function FeedView({
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Ordering</span>
               <strong className="surfaceSummaryValue">Newest first</strong>
-              <span className="surfaceSummaryHint">Newest visible posts appear first.</span>
+              <span className="surfaceSummaryHint">Newest visible posts appear first. No personalized recommendation ranking is claimed.</span>
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Viewer state</span>
@@ -535,6 +542,11 @@ export default function FeedView({
               <span className="surfaceSummaryLabel">Interaction status</span>
               <strong className="surfaceSummaryValue">{interactionSummary.title}</strong>
               <span className="surfaceSummaryHint">{interactionSummary.text}</span>
+            </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Why items appear</span>
+              <strong className="surfaceSummaryValue">{scopeEndpointLabel(scope)}</strong>
+              <span className="surfaceSummaryHint">{FEED_ALGORITHM_SUMMARY}</span>
             </div>
           </div>
 
@@ -610,6 +622,10 @@ export default function FeedView({
                     </div>
                     <div className="cardDesc" style={{ marginTop: 8 }}>
                       {itemCreatedLabel(it)}
+                    </div>
+                    <div className="actionStateRow" aria-label="Feed item source">
+                      <span className="actionStateLabel">Why this appears</span>
+                      <span className="actionStateText">Returned by {scopeEndpointLabel(scope)} as visible {visibility} protocol activity; ordered newest-first by backend state.</span>
                     </div>
                   </div>
 

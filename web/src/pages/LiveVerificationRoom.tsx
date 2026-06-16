@@ -5,6 +5,7 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import { liveRoomDescriptorText, liveRoomEmbedEnabled, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import { createWeAllPeerConnection, getWeAllLocalMedia, iceServerDiagnostics, loadWeAllIceServersJson, normalizeWeAllIceServers, saveWeAllIceServersJson, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
 import { nav } from "../lib/router";
+import { REVIEW_CENTER_LABEL } from "../lib/reviewLanes";
 
 type LiveJuror = {
   juror_id?: string;
@@ -705,7 +706,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               <h1 className="pageTitle">{title}</h1>
               <p className="cardDesc">Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative.</p>
             </div>
-            <button className="btn" onClick={() => nav("/verification")}>Back to verification</button>
+            <div className="buttonRow">
+              <button className="btn" onClick={() => nav("/reviews?lane=poh_live_review")}>Back to {REVIEW_CENTER_LABEL}</button>
+              <button className="btn" onClick={() => nav("/verification")}>Back to verification</button>
+            </div>
           </div>
           <div className="statusGrid">
             <div className="statusCard"><span>Status</span><strong>{statusLabel(liveCase?.status)}</strong></div>

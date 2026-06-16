@@ -166,7 +166,7 @@ export default function Disputes(): JSX.Element {
           </div>
           <div className="buttonRow">
             <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh reports"}</button>
-            <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
+            <button className="btn" onClick={() => nav("/reviews")}>Open Review Center</button>
           </div>
         </div>
       </section>

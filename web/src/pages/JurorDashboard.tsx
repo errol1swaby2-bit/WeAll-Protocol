@@ -15,11 +15,24 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, type ReviewLaneId } from "../lib/reviewLanes";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
   const msg = details?.message || e?.error?.message || e?.message || "error";
   return { msg, details };
+}
+
+function asRecord(value: any): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function initialReviewTab(): "async" | "live" {
+  if (typeof window === "undefined") return "async";
+  const raw = String(window.location.hash || "");
+  const query = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : "";
+  const lane = new URLSearchParams(query).get("lane");
+  return lane === "poh_live_review" ? "live" : "async";
 }
 
 function fmtTs(v: any): string {
@@ -151,7 +164,7 @@ export default function JurorDashboard(): JSX.Element {
   const [reportContent, setReportContent] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
-  const [tab, setTab] = useState<"async" | "live">("async");
+  const [tab, setTab] = useState<"async" | "live">(() => initialReviewTab());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
@@ -389,13 +402,46 @@ export default function JurorDashboard(): JSX.Element {
 
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
+  const rolesState = asRecord(acctState?.roles);
+  const jurorBucket = asRecord(rolesState.jurors);
+  const jurorById = asRecord(jurorBucket.by_id);
+  const jurorRecord = asRecord(jurorById[account]);
+  const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
+  const reviewerLaneActive = (laneId: string): boolean => {
+    const rec = asRecord(reviewerResponsibilities[laneId]);
+    return rec.opted_in === true && rec.active === true;
+  };
+  const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
+  const laneCount = (laneId: ReviewLaneId): number => {
+    if (laneId === "content_review") return assignedContentReports.length;
+    if (laneId === "dispute_review") return contentReports.length;
+    if (laneId === "poh_async_review") return asyncCases.length;
+    if (laneId === "poh_live_review") return liveCases.length;
+    return 0;
+  };
+  const openLane = (laneId: ReviewLaneId): void => {
+    if (laneId === "dispute_review") {
+      nav("/reports");
+      return;
+    }
+    if (laneId === "poh_async_review") {
+      setTab("async");
+      nav("/reviews?lane=poh_async_review");
+      return;
+    }
+    if (laneId === "poh_live_review") {
+      setTab("live");
+      nav("/reviews?lane=poh_live_review");
+      return;
+    }
+    nav("/reviews");
+  };
   const showing = tab === "async" ? asyncCases : liveCases;
   const livePendingSessions = liveSessions.filter((session: any) => {
     const caseId = String(session?.case_id || "").trim();
     if (!caseId) return false;
     return !liveCases.some((liveCase: any) => String(liveCase?.case_id || liveCase?.id || "").trim() === caseId);
   });
-  const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
 
   return (
     <div className="pageStack">
@@ -403,10 +449,10 @@ export default function JurorDashboard(): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Review Queue</div>
-              <h1 className="heroTitle heroTitleSm">Review assigned community work</h1>
+              <div className="eyebrow">{REVIEW_CENTER_LABEL}</div>
+              <h1 className="heroTitle heroTitleSm">Choose the correct review lane</h1>
               <p className="heroText">
-                This page starts with flagged content assigned to you, then keeps account-verification and live verification tasks available below.
+                Content reports, dispute juror work, PoH async review, and PoH live review stay separated here. Tier-2 human status is eligibility, not consent to every reviewer duty.
               </p>
             </div>
 
@@ -431,14 +477,17 @@ export default function JurorDashboard(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => nav("/reports")}>
-              All reports
+            <button className="btn btnPrimary" onClick={() => openLane("content_review")}>
+              Content review lane
             </button>
-            <button className={`btn ${tab === "async" ? "btnPrimary" : ""}`} onClick={() => setTab("async")}>
-              Async verification cases
+            <button className="btn" onClick={() => openLane("dispute_review")}>
+              Reports and disputes
             </button>
-            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => setTab("live")}>
-              Live verification cases
+            <button className={`btn ${tab === "async" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_async_review")}>
+              PoH async lane
+            </button>
+            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_live_review")}>
+              PoH live lane
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh"}
@@ -455,6 +504,49 @@ export default function JurorDashboard(): JSX.Element {
           Another signed action for this reviewer account is still settling. Review decisions stay read-only until the current action finishes.
         </div>
       ) : null}
+
+      <SectionCard
+        eyebrow="Review Center"
+        title="Lane-separated responsibilities"
+        right={<span className={`statusPill ${REVIEW_LANES.some((lane) => reviewerLaneActive(lane.id)) ? "ok" : ""}`}>{REVIEW_LANES.filter((lane) => reviewerLaneActive(lane.id)).length} active lane(s)</span>}
+      >
+        <p className="cardDesc">
+          Review assigned community work from the lane-separated center. The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary.
+        </p>
+        <div className="summaryCardGrid">
+          {REVIEW_LANES.map((lane) => {
+            const active = reviewerLaneActive(lane.id);
+            const count = laneCount(lane.id);
+            return (
+              <article key={lane.id} className="summaryCard">
+                <div className="summaryCardLabel">{lane.label}</div>
+                <div className="summaryCardValue">{count}</div>
+                <div className="summaryCardText">{lane.purpose}</div>
+                <div className="progressList compact" style={{ marginTop: 10 }}>
+                  <div className="progressRow">
+                    <span>Opt-in boundary</span>
+                    <span className={`statusPill ${active ? "ok" : ""}`}>{active ? "Opted in" : "Not opted in"}</span>
+                  </div>
+                  <div className="progressRow">
+                    <span>Backend truth source</span>
+                    <span className="miniMuted">{lane.source}</span>
+                  </div>
+                  <div className="progressRow">
+                    <span>Time limit / penalty</span>
+                    <span className="miniMuted">{lane.timeLimit}</span>
+                  </div>
+                </div>
+                <p className="summaryCardHint">{lane.consentBoundary}</p>
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className={lane.id === "content_review" ? "btn btnPrimary" : "btn"} onClick={() => openLane(lane.id)}>
+                    Open {lane.shortLabel}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </SectionCard>
 
       <ErrorBanner
         message={err?.msg}

@@ -145,7 +145,7 @@ export default function Home(): JSX.Element {
         <DirectoryCard eyebrow="Feed" title="Posts and conversations" body="Read what people are sharing and join the conversation when your account is ready." cta="Open feed" href="/feed" tone="primary" />
         <DirectoryCard eyebrow="Groups" title={`${groupCount} group${groupCount === 1 ? "" : "s"}`} body="Find communities, join the ones that fit, and see their latest activity." cta="Browse groups" href="/groups" />
         <DirectoryCard eyebrow="Decisions" title={`${pending.activeProposals} open`} body="Vote on community choices and review results in plain language." cta="Open decisions" href="/decisions" />
-        <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} report${pending.availableDisputes === 1 ? "" : "s"}`} body="Help review community issues when you are selected and eligible." cta="Open reviews" href="/reviews" />
+        <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} report${pending.availableDisputes === 1 ? "" : "s"}`} body="Help review community issues when you are selected and eligible." cta="Open Review Center" href="/reviews" />
       </section>
 
       <section className="card">

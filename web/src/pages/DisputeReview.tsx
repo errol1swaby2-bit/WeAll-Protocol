@@ -212,7 +212,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             <div>
               <div className="eyebrow">Community review workspace</div>
               <h1 className="heroTitle heroTitleSm">Report review</h1>
-              <p className="heroSubtitle">This page owns the final reviewer workflow. The queue lists work, the detail page explains the report, and this action page records one final review choice.</p>
+              <p className="heroSubtitle">This page owns the final content/dispute reviewer workflow. The Review Center lists lane-specific work, the detail page explains the report, and this action page records one final review choice.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{disputeId}</strong><span className="surfaceSummaryHint">report id</span></div>
@@ -220,6 +220,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             </div>
           </div>
           <div className="buttonRow">
+            <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
             <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(id)}`)}>Back to detail</button>
             <button className="btn" onClick={() => nav("/reports")}>Back to reports</button>
             <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting…" : "Refresh review state"}</button>
@@ -239,7 +240,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
           <div className="detailFocusValue">Final reviewer action</div>
-          <div className="detailFocusText">This workspace is for one report and one reviewer account. It should feel narrower and more deliberate than the queue or detail pages.</div>
+          <div className="detailFocusText">This workspace is for one report and one reviewer account. It stays narrower and more deliberate than the Review Center or report detail pages.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Submission rule</div>

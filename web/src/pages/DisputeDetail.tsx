@@ -471,7 +471,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             </div>
             <div className="buttonRow buttonRowWide">
               <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{currentVote ? "Open recorded review" : reviewUnlocked ? "Open review workspace" : "Open review workspace"}</button>
-              <button className="btn" onClick={() => nav("/reviews")}>Back to review queue</button>
+              <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
             </div>
             <div className="cardDesc">Report detail explains what happened and which content is involved. The dedicated review workspace owns assignment acceptance, decline, and final choices so this page does not submit review transactions by accident.</div>
             {currentVote ? <div className="statusPill ok">Review choice already recorded for this account</div> : null}

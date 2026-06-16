@@ -6,6 +6,7 @@ import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { verificationLabel } from "../lib/userLanguage";
+import { FEED_ALGORITHM_SUMMARY, FEED_PUBLIC_BETA_BLOCKER } from "../lib/feed";
 
 type FeedTab = "global" | "mine";
 
@@ -44,7 +45,7 @@ export default function Feed(): JSX.Element {
   const requirements = summarizeNextRequirements(snapshot);
   const unmet = requirements.filter((item) => !item.ok);
 
-  const title = tab === "mine" && acct ? "My posts" : "Feed";
+  const title = tab === "mine" && acct ? "My posts" : "Latest protocol activity";
   const defaultFilters = { visibility: "public" as const };
   const scope = tab === "mine" && acct ? ({ kind: "account", account: acct } as const) : ({ kind: "public" } as const);
 
@@ -65,9 +66,9 @@ export default function Feed(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Feed</div>
-              <h1 className="heroTitle heroTitleSm">See what people are sharing</h1>
+              <h1 className="heroTitle heroTitleSm">Latest protocol activity</h1>
               <p className="heroText">
-                Read posts, open conversations, react, and report harmful content when your account is ready.
+                Read visible public activity returned by the backend feed endpoint. This is newest-first protocol activity, not a personalized recommendation feed.
               </p>
             </div>
 
@@ -82,7 +83,7 @@ export default function Feed(): JSX.Element {
           </div>
 
           <div className="socialHeroActions">
-            <TabButton active={tab === "global"} onClick={() => setTab("global")}>All posts</TabButton>
+            <TabButton active={tab === "global"} onClick={() => setTab("global")}>Recent public activity</TabButton>
             <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>My posts</TabButton>
             <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
             {!snapshot.canPost ? (
@@ -105,6 +106,12 @@ export default function Feed(): JSX.Element {
               <div style={{ marginTop: 6 }}>Sign in or restore your device session to see your own posts.</div>
             </div>
           ) : null}
+
+          <div className="calloutInfo">
+            <strong>Feed ranking truth</strong>
+            <div style={{ marginTop: 6 }}>{FEED_ALGORITHM_SUMMARY}</div>
+            <div style={{ marginTop: 6 }}>{FEED_PUBLIC_BETA_BLOCKER}</div>
+          </div>
         </div>
       </section>
 

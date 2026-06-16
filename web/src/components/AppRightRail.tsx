@@ -133,7 +133,7 @@ function deriveContextSummary(args: {
         body: `This is one assigned review item. Current status: ${stage}. Reviewer posture: ${reviewerStatus}. Final choices belong here, not on the queue.`,
         actions: [
           { label: "Open report detail", href: route.path === "/reviews/:id" ? `/reports/${encodeURIComponent(String((route as any).id || ""))}` : "/reports" },
-          { label: "Back to reviews", href: "/reviews" },
+          { label: "Back to Review Center", href: "/reviews" },
         ],
       };
     }
@@ -204,8 +204,8 @@ function deriveContextSummary(args: {
       };
     case "reviews":
       return {
-        title: "Review queue context",
-        body: "Community review work should stay narrow, assigned, and explicit about eligibility and lock states.",
+        title: "Review Center context",
+        body: "Review work stays lane-separated: content review, dispute juror review, PoH async review, and PoH live review each disclose assignment, opt-in, and lock states.",
       };
     case "verification":
       return {

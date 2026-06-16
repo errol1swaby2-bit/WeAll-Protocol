@@ -14,6 +14,9 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { verificationLabel } from "../lib/userLanguage";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, type ReviewLaneId } from "../lib/reviewLanes";
+
+const REVIEWER_LANE_IDS: ReviewLaneId[] = ["content_review", "dispute_review", "poh_async_review", "poh_live_review"];
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -189,12 +192,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
   const reviewerEnrolled = !!jurorRecord.enrolled || !!jurorRecord.active || jurorActiveSet.includes(acct);
   const reviewerActive = !!jurorRecord.active || jurorActiveSet.includes(acct);
-  const reviewerLaneLabels: Array<{ lane: string; label: string; duty: string }> = [
-    { lane: "content_review", label: "Content review", duty: "Review reported posts or comments when you are unconflicted." },
-    { lane: "dispute_review", label: "Dispute juror", duty: "Review active disputes and vote inside the dispute window." },
-    { lane: "poh_async_review", label: "PoH async reviewer", duty: "Review proof-of-humanity async evidence." },
-    { lane: "poh_live_review", label: "PoH live juror", duty: "Participate in live proof-of-humanity review sessions." },
-  ];
+  const reviewerLaneLabels = REVIEW_LANES.filter((lane) => REVIEWER_LANE_IDS.includes(lane.id)).map((lane) => ({ lane: lane.id, label: lane.label, duty: lane.purpose }));
   const reviewerLaneActive = (lane: string): boolean => {
     const rec = asRecord(reviewerResponsibilities[lane]);
     return rec.opted_in === true && rec.active === true;
@@ -613,9 +611,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <article className="feedMediaCard">
               <div className="feedMediaTitle">Community reviewer</div>
               <div className="feedMediaMeta">
-                Review content reports and disputes when you are not the original poster or otherwise conflicted.
-                In the local two-node rehearsal, this is where the Errol account opts in before accepting the
-                report review assignment.
+                Choose exact review lanes rather than a generic reviewer bucket. Content disputes, dispute juror work,
+                PoH async review, and PoH live review stay separated so assignments are never implied by Tier-2 status alone.
               </div>
               <div className="progressList">
                 <div className="progressRow">
@@ -651,7 +648,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 })}
               </div>
               <div className="buttonRow">
-                <button className="btn" onClick={() => nav("/reviews")}>Open review queue</button>
+                <button className="btn" onClick={() => nav("/reviews")}>Open {REVIEW_CENTER_LABEL}</button>
               </div>
             </article>
 

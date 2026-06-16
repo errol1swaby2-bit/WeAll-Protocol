@@ -92,3 +92,7 @@ export function toQueryString(query: Record<string, string>): string {
   const qs = usp.toString();
   return qs ? `?${qs}` : "";
 }
+
+export const FEED_ALGORITHM_SUMMARY = "Current feed behavior is deterministic newest-first protocol activity from backend visibility-filtered feed endpoints. It is not a personalized recommendation algorithm.";
+
+export const FEED_PUBLIC_BETA_BLOCKER = "Personalized or reputation-weighted recommendation ranking remains a future/public-beta blocker until implemented by backend truth sources and tests.";
