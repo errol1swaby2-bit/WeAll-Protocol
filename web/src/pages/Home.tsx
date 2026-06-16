@@ -5,6 +5,7 @@ import { getSession } from "../auth/session";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { nav } from "../lib/router";
 import { refreshTouches, subscribeGlobalRefresh } from "../lib/revalidation";
+import { derivePendingWork } from "../lib/pendingWork";
 
 type PendingSummary = {
   activeProposals: number;
@@ -82,15 +83,16 @@ export default function Home(): JSX.Element {
       const proposalItems = Array.isArray((proposalsRes as any)?.items) ? (proposalsRes as any).items : [];
       const disputeItems = Array.isArray((disputesRes as any)?.items) ? (disputesRes as any).items : [];
       const groups = Array.isArray((groupsRes as any)?.items) ? (groupsRes as any).items : [];
-      const accountLower = account.toLowerCase();
-      const assignedDisputes = disputeItems.filter((item: any) => {
-        const jurors = Array.isArray(item?.jurors) ? item.jurors : [];
-        return jurors.some((juror: any) => String(juror?.account || juror?.juror || "").trim().toLowerCase() === accountLower);
-      }).length;
+      const pendingWork = derivePendingWork({
+        account,
+        proposalsRaw: { items: proposalItems },
+        disputesRaw: { items: disputeItems },
+        maxItems: 100,
+      });
       setPending({
-        activeProposals: proposalItems.length,
-        assignedDisputes,
-        availableDisputes: disputeItems.length,
+        activeProposals: pendingWork.counts.decisions,
+        assignedDisputes: pendingWork.counts.assigned,
+        availableDisputes: pendingWork.counts.reports,
       });
       setGroupCount(groups.length);
     } finally {

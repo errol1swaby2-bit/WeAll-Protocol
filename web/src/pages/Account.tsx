@@ -100,7 +100,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -314,10 +314,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
     downloadNodeKeyFile(next);
   }
 
-  async function runReviewerTx(lane: string) {
+  async function runReviewerTx(lane: string, active = true) {
     if (!isSelf) return;
 
-    setBusy("reviewerLane");
+    setBusy(active ? "reviewerLane" : "reviewerLaneExit");
     setOpErr(null);
     setOpResult(null);
 
@@ -328,14 +328,16 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (!localPubkey) throw new Error("missing_account_signer");
 
       const r = await tx.runTx({
-        title: "Opt into reviewer lane responsibility",
-        pendingMessage: "Submitting reviewer lane opt-in…",
-        successMessage: "Reviewer lane availability is active only for the selected responsibility lane.",
+        title: active ? "Opt into reviewer lane responsibility" : "Opt out of reviewer lane responsibility",
+        pendingMessage: active ? "Submitting reviewer lane opt-in…" : "Submitting reviewer lane opt-out…",
+        successMessage: active
+          ? "Reviewer lane availability is active only for the selected responsibility lane."
+          : "Reviewer lane opt-out recorded. Active assignments may still need to be resolved by protocol policy.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => submitSignedTx({
           account: acct,
-          tx_type: "REVIEWER_LANE_OPT_IN",
+          tx_type: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
           payload: {
             account_id: acct,
             lane,
@@ -344,6 +346,43 @@ export default function Account({ account }: { account: string }): JSX.Element {
         }),
       });
 
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runResponsibilityPause(kind: "juror" | "validator" | "node") {
+    if (!isSelf) return;
+
+    const busyKind = kind === "juror" ? "jurorPause" : kind === "validator" ? "validatorPause" : "nodePause";
+    setBusy(busyKind);
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (!localPubkey) throw new Error("missing_account_signer");
+      const txType = kind === "juror" ? "ROLE_JUROR_SUSPEND" : kind === "validator" ? "ROLE_VALIDATOR_SUSPEND" : "ROLE_NODE_OPERATOR_SUSPEND";
+      const title = kind === "juror" ? "Pause all reviewer responsibilities" : kind === "validator" ? "Pause validator authority" : "Pause node operator service";
+      const r = await tx.runTx({
+        title,
+        pendingMessage: "Submitting responsibility pause…",
+        successMessage: "Pause request recorded. The backend state remains the source of truth for when active work is fully withdrawn.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: txType,
+          payload: { account_id: acct },
+          base,
+        }),
+      });
       setOpResult(r);
       await load();
       await refreshAccountContext();
@@ -644,17 +683,30 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       <div className="buttonRow">
                         <span className={`statusPill ${active ? "ok" : ""}`}>{active ? "Active" : "Not opted in"}</span>
                         {!active ? (
-                          <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx(row.lane)}>
+                          <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx(row.lane, true)}>
                             {busy === "reviewerLane" ? "Opting in…" : `Opt into ${row.label}`}
                           </button>
-                        ) : null}
+                        ) : (
+                          <button className="btn" disabled={busy !== null || !localPubkey} onClick={() => void runReviewerTx(row.lane, false)}>
+                            {busy === "reviewerLaneExit" ? "Opting out…" : `Opt out of ${row.label}`}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+              <div className="calloutInfo">
+                <strong>Responsibility exit controls</strong>
+                <div style={{ marginTop: 6 }}>
+                  Individual reviewer lanes can be opted out above. Use the whole-role pause only when you intend to pause all reviewer duties; active or already-accepted work may still have protocol-specific withdrawal consequences.
+                </div>
+              </div>
               <div className="buttonRow">
                 <button className="btn" onClick={() => nav("/reviews")}>Open {REVIEW_CENTER_LABEL}</button>
+                <button className="btn" disabled={busy !== null || !reviewerEnrolled || !localPubkey} onClick={() => void runResponsibilityPause("juror")}>
+                  {busy === "jurorPause" ? "Pausing reviewer role…" : "Pause all reviewer duties"}
+                </button>
               </div>
             </article>
 
@@ -1108,7 +1160,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       ? "Helper opt-in recorded"
                       : "Opt into helper execution"}
                 </button>
+                <button className="btn" disabled>
+                  Helper-specific opt-out not yet available in UI
+                </button>
               </div>
+              <div className="feedMediaMeta">Helper-specific withdrawal does not have a dedicated UI transaction yet. Pause the baseline node operator role only if you intend to pause all node service responsibilities.</div>
             </div>
 
             <div className="feedMediaCard">
@@ -1156,6 +1212,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     : validatorOptedIn
                       ? "Validator opt-in recorded"
                       : "Opt into validator responsibility"}
+                </button>
+                <button className="btn" disabled={busy !== null || !validatorOptedIn || !localPubkey} onClick={() => void runResponsibilityPause("validator")}>
+                  {busy === "validatorPause" ? "Pausing validator…" : "Pause validator authority"}
                 </button>
               </div>
             </div>
@@ -1216,7 +1275,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       ? "Storage capacity declared"
                       : "Opt into storage responsibility"}
                 </button>
+                <button className="btn" disabled>
+                  Storage-specific opt-out not yet available in UI
+                </button>
+                <button className="btn" disabled={busy !== null || !nodeOperatorActive || !localPubkey} onClick={() => void runResponsibilityPause("node")}>
+                  {busy === "nodePause" ? "Pausing node operator…" : "Pause node operator service"}
+                </button>
               </div>
+              <div className="feedMediaMeta">Storage-specific withdrawal is not exposed as a separate UI action yet. Pausing node operator service is broader and may affect validator, helper, and storage duties together.</div>
             </div>
 
             <div className="feedMediaCard">

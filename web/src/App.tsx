@@ -14,9 +14,9 @@ import { prefetchRouteChunk } from "./lib/routePrefetch";
 import { useSessionHealth } from "./hooks/useSessionHealth";
 
 const Feed = lazy(() => import("./pages/Feed"));
-const Home = lazy(() => import("./pages/Home"));
+const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
 const Messaging = lazy(() => import("./pages/Messaging"));
-const AccountVerificationPage = lazy(() => import("./pages/AccountVerificationPage"));
+const PohPage = lazy(() => import("./pages/PohPage"));
 const LiveVerificationRoom = lazy(() => import("./pages/LiveVerificationRoom"));
 const JurorDashboard = lazy(() => import("./pages/JurorDashboard"));
 const Tools = lazy(() => import("./pages/Tools"));
@@ -45,7 +45,7 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/login":
       return <LoginPage />;
     case "/home":
-      return readyForApp ? <Home /> : <LoginPage />;
+      return readyForApp ? <HomeDashboard /> : <LoginPage />;
     case "/feed":
       return readyForApp ? <Feed /> : <LoginPage />;
     case "/messages":
@@ -59,7 +59,7 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
-      return readyForApp ? <AccountVerificationPage /> : <LoginPage />;
+      return readyForApp ? <PohPage /> : <LoginPage />;
     case "/verification/live/:caseId":
       return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;
     case "/reviews":

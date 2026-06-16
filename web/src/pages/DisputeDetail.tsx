@@ -188,6 +188,17 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
     (!!account && !!targetOwner && sameAccount(account, targetOwner));
   const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealWindowOpen && !appealDeadlinePassed && appealActorEligible;
 
+  const detailCtaLabel = currentVote
+    ? "Open recorded review"
+    : reviewUnlocked
+      ? "Continue review workspace"
+      : canAccept || canDecline
+        ? "Continue to assignment response"
+        : selectedJurorStatus === "unassigned"
+          ? "Inspect report only"
+          : "Refresh and inspect";
+  const detailCtaDisabled = selectedJurorStatus === "unassigned" && !reviewUnlocked && !currentVote && !(canAccept || canDecline);
+
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
     if (signerSubmission.busy) throw new Error("Another signed action is still settling for this reviewer account.");
@@ -251,7 +262,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <div>
               <div className="eyebrow">Community review</div>
               <h1 className="heroTitle heroTitleSm">Report detail</h1>
-              <p className="heroSubtitle">Inspect the report, review the flagged content, and handle assignment posture here. Final reviewer choices stay in the dedicated review workspace.</p>
+              <p className="heroSubtitle">Inspect the report and review the flagged content here. Assignment response and final reviewer choices stay in the dedicated review workspace.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">report id</span></div>
@@ -360,11 +371,11 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
           <div className="detailFocusValue">Report detail</div>
-          <div className="detailFocusText">Inspect the report, confirm the target, and resolve assignment posture before moving into the final review workspace.</div>
+          <div className="detailFocusText">Inspect the report and confirm the target before moving into the final review workspace when this account has an assignment.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Next action</div>
-          <div className="detailFocusValue">{currentVote ? "Review already recorded" : reviewUnlocked ? "Open review workspace" : canAccept || canDecline ? "Resolve assignment" : "Refresh and inspect"}</div>
+          <div className="detailFocusValue">{detailCtaLabel}</div>
           <div className="detailFocusText">{hint}</div>
         </article>
         <article className="detailFocusCard">
@@ -470,7 +481,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
               </div>
             </div>
             <div className="buttonRow buttonRowWide">
-              <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{currentVote ? "Open recorded review" : reviewUnlocked ? "Open review workspace" : "Open review workspace"}</button>
+              <button className="btn btnPrimary" disabled={detailCtaDisabled} onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{detailCtaLabel}</button>
               <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
             </div>
             <div className="cardDesc">Report detail explains what happened and which content is involved. The dedicated review workspace owns assignment acceptance, decline, and final choices so this page does not submit review transactions by accident.</div>

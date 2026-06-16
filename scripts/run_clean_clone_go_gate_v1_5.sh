@@ -264,6 +264,9 @@ if [ "${RUN_FRONTEND}" = "1" ]; then
   if [ -f "${WEB_DIR}/scripts/test_batch623_frontend_api_truth_source.mjs" ]; then
     run_frontend node scripts/test_batch623_frontend_api_truth_source.mjs
   fi
+  if [ -f "${WEB_DIR}/scripts/test_batch624_responsibility_exit_and_route_truth_source.mjs" ]; then
+    run_frontend node scripts/test_batch624_responsibility_exit_and_route_truth_source.mjs
+  fi
   if [ "${RUN_RENDERED_FRONTEND}" = "1" ]; then
     if run_frontend npm run | grep -q "test:rendered-operator-journey"; then
       echo "== Running rendered operator journey check =="

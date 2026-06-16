@@ -281,6 +281,11 @@ export default function JurorDashboard(): JSX.Element {
     return null;
   }
 
+  function viewLiveVerificationStatus(caseId: string): void {
+    if (!caseId) return;
+    nav(`/verification/live/${encodeURIComponent(caseId)}?mode=status`);
+  }
+
   function joinLiveRoom(caseId: string): void {
     if (!caseId) return;
     // Reviewers stay in the PoH verification feed until they intentionally
@@ -668,7 +673,7 @@ export default function JurorDashboard(): JSX.Element {
                         The live room/session exists, but this account has not been assigned as a reviewer yet.
                       </p>
                       <div className="buttonRow">
-                        <button className="btn" onClick={() => caseId && joinLiveRoom(caseId)} disabled={!caseId}>
+                        <button className="btn" onClick={() => caseId && viewLiveVerificationStatus(caseId)} disabled={!caseId}>
                           View verification status
                         </button>
                         <button className="btn" onClick={() => void refreshJurorSurface()}>

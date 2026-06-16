@@ -210,6 +210,7 @@ export default function FeedView({
   const [err, setErr] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [rankingInfo, setRankingInfo] = useState<any | null>(null);
+  const [sort, setSort] = useState<"new" | "top" | "hot">(defaultSort);
 
   const session = getSession();
   const viewer = session ? normalizeAccount(session.account) : null;
@@ -256,7 +257,7 @@ export default function FeedView({
     gateOk: gateTier2.ok,
     viewerSummary,
   });
-  const rankingModeLabel = String(rankingInfo?.mode || (defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : "recency"));
+  const rankingModeLabel = String(rankingInfo?.mode || (sort === "top" ? "production" : sort === "hot" ? "balanced" : "recency"));
   const rankingPersonalized = rankingInfo?.personalized === true;
   const rankingTruth = rankingInfo
     ? `Backend ranking mode: ${rankingModeLabel}. Deterministic: ${rankingInfo.deterministic === false ? "not claimed" : "yes"}. Personalized: ${rankingPersonalized ? "yes" : "no"}.`
@@ -322,7 +323,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
-            ranking: defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : undefined,
+            ranking: sort === "top" ? "production" : sort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -348,7 +349,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
-            ranking: defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : undefined,
+            ranking: sort === "top" ? "production" : sort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -394,7 +395,7 @@ export default function FeedView({
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author]);
+  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author, sort]);
 
   useEffect(() => {
     void refreshViewerState();
@@ -557,6 +558,13 @@ export default function FeedView({
               <strong className="surfaceSummaryValue">{scopeEndpointLabel(scope)}</strong>
               <span className="surfaceSummaryHint">{FEED_ALGORITHM_SUMMARY}</span>
             </div>
+          </div>
+
+
+          <div className="buttonRow" aria-label="Feed sort controls">
+            <button className={`btn ${sort === "new" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("new")}>Newest first</button>
+            <button className={`btn ${sort === "hot" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("hot")}>Balanced backend ranking</button>
+            <button className={`btn ${sort === "top" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("top")}>Production backend ranking</button>
           </div>
 
           <div className={`calloutInfo ${interactionSummary.tone === "ok" ? "calloutSuccess" : ""}`}>

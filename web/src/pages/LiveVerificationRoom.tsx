@@ -120,6 +120,7 @@ function TechnicalCommitments({ liveCase }: { liveCase: LiveCase | null }): JSX.
 
 export default function LiveVerificationRoom({ caseId }: { caseId: string }): JSX.Element {
   const apiBase = useMemo(() => getApiBaseUrl(), []);
+  const statusOnlyMode = typeof window !== "undefined" && new URLSearchParams(String(window.location.hash || "").split("?")[1] || "").get("mode") === "status";
   const session = getSession();
   const account = normalizeAccount(session?.account);
   const headers = useMemo(() => (account ? getAuthHeaders(account) : undefined), [account]);
@@ -694,7 +695,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     });
   }
 
-  const title = cardTitleForRole(isSubject, myJuror);
+  const title = statusOnlyMode && !isSubject && !myJuror ? "Live verification status" : cardTitleForRole(isSubject, myJuror);
 
   return (
     <main className="pageStack liveRoomPage">
@@ -704,7 +705,11 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             <div>
               <div className="eyebrow">Live account verification</div>
               <h1 className="pageTitle">{title}</h1>
-              <p className="cardDesc">Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative.</p>
+              <p className="cardDesc">
+                {statusOnlyMode && !isSubject && !myJuror
+                  ? "This read-only status view is for pending live verification records before the current account receives a reviewer assignment. Open live room controls unlock only for the subject or assigned reviewers."
+                  : "Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative."}
+              </p>
             </div>
             <div className="buttonRow">
               <button className="btn" onClick={() => nav("/reviews?lane=poh_live_review")}>Back to {REVIEW_CENTER_LABEL}</button>

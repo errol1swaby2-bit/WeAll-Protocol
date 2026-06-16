@@ -1603,6 +1603,8 @@ class AccountScopedRolePayload(_StrictModel):
     storage_endpoint_commitment: str | None = None
     node_pubkey: str | None = Field(default=None, validation_alias=AliasChoices("node_pubkey", "node_public_key"))
     responsibilities: Json | None = None
+    lane: str | None = Field(default=None, validation_alias=AliasChoices("lane", "reviewer_lane", "responsibility_lane"))
+    reviewer_lanes: list[str] | None = None
 
 
 class ReputationDeltaApplyPayload(_StrictModel):

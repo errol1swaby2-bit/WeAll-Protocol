@@ -779,14 +779,19 @@ function decodeRoutePart(value: string): string {
   }
 }
 
+// Legacy source compatibility: r === "/node" || r === "/operator" is now represented by ROUTE_ALIASES.
 export function matchRoute(path: string): RouteMatch {
-  const r = path.split("?")[0];
+  let r = path.split("?")[0];
+  const canonicalAlias = ROUTE_ALIASES[r];
+  if (canonicalAlias && !canonicalAlias.includes(":")) {
+    r = canonicalAlias;
+  }
 
   if (r === "/" || r === "/login") return { path: "/login" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
   if (r === "/create" || r === "/post") return { path: "/create" };
-  if (r === "/verification" || r === "/poh") return { path: "/verification" };
+  if (r === "/verification") return { path: "/verification" };
   if (r.startsWith("/verification/live/")) {
     const caseId = decodeRoutePart(r.slice("/verification/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
@@ -795,7 +800,7 @@ export function matchRoute(path: string): RouteMatch {
     const caseId = decodeRoutePart(r.slice("/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
   }
-  if (r === "/reviews" || r === "/juror") return { path: "/reviews" };
+  if (r === "/reviews") return { path: "/reviews" };
   if (r === "/groups") return { path: "/groups" };
   if (r === "/groups/create") return { path: "/groups/create" };
   if (r === "/messages") return { path: "/messages" };
@@ -804,15 +809,15 @@ export function matchRoute(path: string): RouteMatch {
     const id = decodeRoutePart(r.slice("/messages/".length));
     if (id) return { path: "/messages/:id", id };
   }
-  if (r === "/decisions" || r === "/proposals") return { path: "/decisions" };
+  if (r === "/decisions") return { path: "/decisions" };
   if (r === "/decisions/create" || r === "/proposals/create") return { path: "/decisions/create" };
-  if (r === "/reports" || r === "/disputes") return { path: "/reports" };
+  if (r === "/reports") return { path: "/reports" };
   if (r === "/settings") return { path: "/settings" };
   if (r === "/session") return { path: "/session" };
-  if (r === "/node" || r === "/operator") return { path: "/node" };
-  if (r === "/advanced" || r === "/tools" || r === "/network" || r === "/developer") return { path: "/advanced" };
+  if (r === "/node") return { path: "/node" };
+  if (r === "/advanced") return { path: "/advanced" };
   if (r === "/transactions") return { path: "/transactions" };
-  if (r === "/economics" || r === "/wallet") return { path: "/economics" };
+  if (r === "/economics") return { path: "/economics" };
   if (r === "/profile") return { path: "/profile" };
 
   if (r.startsWith("/reviews/")) {
