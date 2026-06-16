@@ -2,8 +2,8 @@
 //
 // Backend-aligned feed utilities.
 // This module is intentionally conservative:
-// - The chain currently provides deterministic newest-first ordering.
-// - "Top" / "Hot" are UI concepts for forward-compat (not implemented on-chain yet).
+// - The chain reports its deterministic ranking mode in the feed response.
+// - The default public view remains honest as latest protocol activity; no personalization is claimed.
 // - "Following" is not implemented on-chain yet.
 // - Account feed is served by /v1/accounts/{account}/feed.
 // - Group feed is served by /v1/groups/{group_id}/feed.
@@ -46,11 +46,12 @@ export function buildFeedRequest(args: {
   const cursor = (args.cursor ?? "").trim() || "";
   const filters = args.filters ?? {};
 
-  // Sort is kept for UI; backend currently ignores it.
-  // We DO NOT encode it into query params to avoid implying support.
-  void args.sort;
-
   const q: Record<string, string> = { limit: String(limit) };
+
+  // Sort is explicit. The backend reports the accepted deterministic ranking mode in the response.
+  // Do not call this personalized; it is a backend-selected public ranking mode.
+  if (args.sort === "top") q.ranking = "production";
+  else if (args.sort === "hot") q.ranking = "balanced";
   if (cursor) q.cursor = cursor;
 
   const vis = (filters.visibility ?? "all").toLowerCase();
@@ -75,9 +76,7 @@ export function buildFeedRequest(args: {
   }
 
   if (args.scope.kind === "public") {
-    // Public feed is simple; keep only limit/cursor if supported later.
-    // (Current backend: GET /v1/feed, no paging contract guaranteed.)
-    return { path: "/v1/feed", query: {} };
+    return { path: "/v1/feed", query: q };
   }
 
   return { path: "/v1/feed", query: {} };
@@ -93,6 +92,6 @@ export function toQueryString(query: Record<string, string>): string {
   return qs ? `?${qs}` : "";
 }
 
-export const FEED_ALGORITHM_SUMMARY = "Current feed behavior is deterministic newest-first protocol activity from backend visibility-filtered feed endpoints. It is not a personalized recommendation algorithm.";
+export const FEED_ALGORITHM_SUMMARY = "Current feed behavior is deterministic protocol activity from backend visibility-filtered feed endpoints. The response reports the ranking mode used. It is not a personalized recommendation algorithm.";
 
 export const FEED_PUBLIC_BETA_BLOCKER = "Personalized or reputation-weighted recommendation ranking remains a future/public-beta blocker until implemented by backend truth sources and tests.";

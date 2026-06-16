@@ -91,6 +91,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [nonce, setNonce] = useState<any>(null);
   const [acctView, setAcctView] = useState<any>(null);
   const [operatorStatus, setOperatorStatus] = useState<any>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any>(null);
   const [reputationMatrix, setReputationMatrix] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [following, setFollowing] = useState<any>(null);
@@ -116,6 +117,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       nonce: weall.accountNonce(acct, base),
       account: weall.account(acct, base),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
+      reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
       following: weall.socialFollowing(acct, base),
@@ -138,6 +140,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
     setOperatorStatus(out.operatorStatus ?? null);
+    setReviewerStatus(out.reviewerStatus ?? null);
     setReputationMatrix(out.reputationMatrix ?? null);
     setRegistered(out.registered ?? null);
     setFollowing(out.following ?? null);
@@ -182,24 +185,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
 
-  const rolesState = asRecord(state?.roles);
-  const jurorBucket = asRecord(rolesState.jurors);
-  const jurorById = asRecord(jurorBucket.by_id);
-  const jurorRecord = asRecord(jurorById[acct]);
-  const jurorActiveSet = Array.isArray(jurorBucket.active_set)
-    ? jurorBucket.active_set.map((v: any) => String(v))
-    : [];
-  const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
-  const reviewerEnrolled = !!jurorRecord.enrolled || !!jurorRecord.active || jurorActiveSet.includes(acct);
-  const reviewerActive = !!jurorRecord.active || jurorActiveSet.includes(acct);
+  const reviewerTruth = asRecord(reviewerStatus?.reviewer);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
+  const reviewerEnrolled = reviewerTruth.enrolled === true;
+  const reviewerActive = reviewerTruth.active === true;
   const reviewerLaneLabels = REVIEW_LANES.filter((lane) => REVIEWER_LANE_IDS.includes(lane.id)).map((lane) => ({ lane: lane.id, label: lane.label, duty: lane.purpose }));
   const reviewerLaneActive = (lane: string): boolean => {
-    const rec = asRecord(reviewerResponsibilities[lane]);
-    return rec.opted_in === true && rec.active === true;
+    const rec = asRecord(reviewerLaneTruth[lane]);
+    return rec.active === true;
   };
+  const reviewerEligibilityBlockers = Array.isArray(reviewerTruth.eligibility_blockers) ? reviewerTruth.eligibility_blockers.map((x: any) => String(x)) : [];
   const contentReviewActive = reviewerLaneActive("content_review");
   const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneActive(row.lane));
 
+  const rolesState = asRecord(state?.roles);
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
   const devicesById = asRecord(asRecord(state?.devices).by_id);
@@ -624,10 +623,17 @@ export default function Account({ account }: { account: string }): JSX.Element {
                   <span className={`statusPill ${anyReviewerLaneActive ? "ok" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : "No lane active"}</span>
                 </div>
                 <div className="progressRow">
+                  <span>Reviewer truth source</span>
+                  <span className="miniMuted">/v1/accounts/{account}/reviewer-status</span>
+                </div>
+                <div className="progressRow">
                   <span>Conflict rule</span>
                   <span className="statusPill ok">Original poster excluded</span>
                 </div>
               </div>
+              {reviewerEligibilityBlockers.length ? (
+                <div className="inlineNote">Reviewer responsibility is not assignment-ready yet: {reviewerEligibilityBlockers.join(", ")}</div>
+              ) : null}
               <div className="milestoneList">
                 {reviewerLaneLabels.map((row) => {
                   const active = reviewerLaneActive(row.lane);

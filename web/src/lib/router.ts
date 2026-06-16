@@ -501,7 +501,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     mode: "hub",
     fab: "none",
     rightRail: "reports",
-    normalNav: false,
+    normalNav: true,
     dataContract: contract({
       primaryObject: "Reports",
       contextPanelData: "Report status and community review context",
@@ -731,6 +731,19 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
   },
 };
 
+export const ROUTE_ALIASES: Record<string, RouteMatch["path"]> = {
+  "/juror": "/reviews",
+  "/poh": "/verification",
+  "/live": "/verification/live/:caseId",
+  "/proposals": "/decisions",
+  "/disputes": "/reports",
+  "/operator": "/node",
+  "/tools": "/advanced",
+  "/network": "/advanced",
+  "/developer": "/advanced",
+  "/wallet": "/economics",
+};
+
 const LS_RETURN_TO = "weall_return_to_v1";
 
 const NAV_SECTIONS: NavSection[] = [
@@ -744,6 +757,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/groups", label: "Groups", description: "Communities and membership.", icon: "◌", public: true },
       { href: "/messages", label: "Messages", description: "Direct conversations.", icon: "✉", public: false, requiresReady: true, minPohTier: 1 },
       { href: "/decisions", label: "Decisions", description: "Community votes and results.", icon: "▣", public: true },
+      { href: "/reports", label: "Reports", description: "Reported content and case status.", icon: "!", public: true },
       { href: "/reviews", label: "Review Center", description: "Lane-separated review duties.", icon: "✓", public: false, requiresReady: true, minPohTier: 2 },
       { href: "/verification", label: "Account Verification", description: "Account status and next steps.", icon: "◇", public: false, requiresReady: true },
       { href: "/profile", label: "Profile", description: "Profile and trusted responsibilities.", icon: "☺", public: false, requiresReady: true },

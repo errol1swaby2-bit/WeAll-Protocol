@@ -9,7 +9,7 @@ import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { decisionStageHelp, decisionStageLabel } from "../lib/userLanguage";
-import { loadSettings } from "../lib/settings";
+import { canShowAdvancedMode } from "../lib/config";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError } from "../lib/txAction";
@@ -86,7 +86,7 @@ export default function Proposals(): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
   const acct = session ? normalizeAccount(session.account) : null;
   const canSign = acct ? !!getKeypair(acct)?.secretKeyB64 : false;
-  const showAdvancedMode = loadSettings().showAdvancedMode;
+  const showAdvancedMode = canShowAdvancedMode();
 
 
   const gate = checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 });

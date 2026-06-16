@@ -5,6 +5,7 @@
 
 import { webVersion } from "./version";
 import { useMemo } from "react";
+import { loadSettings, type ClientSettings } from "./settings";
 
 export type AppConfig = {
   appName: string;
@@ -84,4 +85,10 @@ export const config: AppConfig = {
 export function useAppConfig(): AppConfig {
   // config is static (from Vite env); memo keeps hook semantics clean.
   return useMemo(() => config, []);
+}
+
+
+export function canShowAdvancedMode(settings?: Pick<ClientSettings, "showAdvancedMode">): boolean {
+  const clientSettings = settings ?? loadSettings();
+  return config.enableDevTools && clientSettings.showAdvancedMode === true;
 }

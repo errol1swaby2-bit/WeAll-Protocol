@@ -203,13 +203,13 @@ export default function FeedView({
   defaultFilters?: FeedFilters;
   pageSize?: number;
 }): JSX.Element {
-  void defaultSort;
   const tx = useTxQueue();
   const [items, setItems] = useState<any[]>([]);
   const [mediaIndex, setMediaIndex] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [rankingInfo, setRankingInfo] = useState<any | null>(null);
 
   const session = getSession();
   const viewer = session ? normalizeAccount(session.account) : null;
@@ -256,6 +256,11 @@ export default function FeedView({
     gateOk: gateTier2.ok,
     viewerSummary,
   });
+  const rankingModeLabel = String(rankingInfo?.mode || (defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : "recency"));
+  const rankingPersonalized = rankingInfo?.personalized === true;
+  const rankingTruth = rankingInfo
+    ? `Backend ranking mode: ${rankingModeLabel}. Deterministic: ${rankingInfo.deterministic === false ? "not claimed" : "yes"}. Personalized: ${rankingPersonalized ? "yes" : "no"}.`
+    : `Backend ranking mode: ${rankingModeLabel}. Waiting for response metadata from this endpoint.`;
 
   function collectMediaIds(pageItems: any[]): string[] {
     const out: string[] = [];
@@ -317,6 +322,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
+            ranking: defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -342,6 +348,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
+            ranking: defaultSort === "top" ? "production" : defaultSort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -350,6 +357,7 @@ export default function FeedView({
 
       const pageItems = Array.isArray(r?.items) ? r.items : [];
       const nc = r?.next_cursor ? String(r.next_cursor) : null;
+      setRankingInfo(r?.ranking && typeof r.ranking === "object" ? r.ranking : null);
 
       if (append) {
         setItems((prev) => uniqById([...prev, ...pageItems]));
@@ -363,6 +371,7 @@ export default function FeedView({
       setErr(prettyMsg(e));
       if (!opts?.append) setItems([]);
       setNextCursor(null);
+      setRankingInfo(null);
     } finally {
       setLoading(false);
     }
@@ -529,9 +538,9 @@ export default function FeedView({
               <span className="surfaceSummaryHint">{summarizeFeedScope(scope, items.length)}</span>
             </div>
             <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Ordering</span>
-              <strong className="surfaceSummaryValue">Newest first</strong>
-              <span className="surfaceSummaryHint">Newest visible posts appear first. No personalized recommendation ranking is claimed.</span>
+              <span className="surfaceSummaryLabel">Backend ranking mode</span>
+              <strong className="surfaceSummaryValue">{rankingModeLabel}</strong>
+              <span className="surfaceSummaryHint">{rankingTruth} No personalized recommendation ranking is claimed unless the backend explicitly reports it.</span>
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Viewer state</span>

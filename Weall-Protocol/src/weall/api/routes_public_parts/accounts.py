@@ -18,6 +18,7 @@ from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
+from weall.runtime.reviewer_responsibilities import REVIEWER_LANES, reviewer_lane_active, reviewer_lane_record
 
 router = APIRouter()
 
@@ -170,6 +171,72 @@ def v1_account_registered(account: str, request: Request):
     return {"ok": True, "account": account, "registered": registered}
 
 
+
+
+
+
+@router.get("/accounts/{account}/reviewer-status")
+def v1_account_reviewer_status(account: str, request: Request):
+    """Return backend-derived reviewer lane responsibility status.
+
+    This route is the frontend source of truth for optional human-review
+    responsibilities.  It reads the canonical roles.jurors namespace through
+    runtime reviewer-responsibility helpers instead of asking clients to infer
+    responsibility state from the public account record.
+    """
+
+    st = _snapshot(request)
+    ledger = LedgerView.from_ledger(st)
+    acct = ledger.accounts.get(account) if isinstance(ledger.accounts, dict) else None
+    tier = int(acct.get("poh_tier", 0) or 0) if isinstance(acct, dict) else 0
+    banned = bool(acct.get("banned", False)) if isinstance(acct, dict) else False
+    locked = bool(acct.get("locked", False)) if isinstance(acct, dict) else False
+    eligibility_blockers: list[str] = []
+    if not isinstance(acct, dict):
+        eligibility_blockers.append("account_not_found")
+    if tier < 2:
+        eligibility_blockers.append("trusted_verified_person_required")
+    if banned:
+        eligibility_blockers.append("account_banned")
+    if locked:
+        eligibility_blockers.append("account_locked")
+
+    lanes: dict[str, Any] = {}
+    active_lanes: list[str] = []
+    opted_in_lanes: list[str] = []
+    for lane in REVIEWER_LANES:
+        rec = reviewer_lane_record(st, account, lane)
+        active = reviewer_lane_active(st, account, lane)
+        opted_in = bool(rec.get("opted_in", False)) if isinstance(rec, dict) else False
+        if opted_in:
+            opted_in_lanes.append(lane)
+        if active:
+            active_lanes.append(lane)
+        lanes[lane] = {
+            "lane": lane,
+            "opted_in": opted_in,
+            "active": active,
+            "status": "active" if active else ("opted_in_inactive" if opted_in else "not_opted_in"),
+            "details": rec if isinstance(rec, dict) else {},
+        }
+
+    return {
+        "ok": True,
+        "account": account,
+        "reviewer": {
+            "backend_source_of_truth": True,
+            "policy": "exact_lane_opt_in_required",
+            "account_exists": isinstance(acct, dict),
+            "poh_tier": tier,
+            "eligible": not eligibility_blockers,
+            "eligibility_blockers": eligibility_blockers,
+            "enrolled": bool(opted_in_lanes or active_lanes),
+            "active": bool(active_lanes),
+            "opted_in_lanes": opted_in_lanes,
+            "active_lanes": active_lanes,
+            "lanes": lanes,
+        },
+    }
 
 
 @router.get("/accounts/{account}/operator-status")

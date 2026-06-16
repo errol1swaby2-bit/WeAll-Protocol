@@ -295,6 +295,8 @@ export type FeedParams = {
   cursor?: string | null;
   tags?: string[] | string;
   author?: string;
+  ranking?: string;
+  rank?: string;
 };
 
 export type FeedResponse = {
@@ -359,6 +361,7 @@ export async function fetchFeed(params?: FeedParams, base?: string): Promise<Fee
     cursor: params?.cursor,
     tags: normalizeTagsParam(params?.tags),
     author: params?.author,
+    ranking: params?.ranking || params?.rank,
   });
   return request<FeedResponse>(qs, { method: "GET" }, base);
 }
@@ -548,6 +551,10 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/registered`, base, headers);
   },
 
+  accountReviewerStatus(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/reviewer-status`, base, headers);
+  },
+
   accountOperatorStatus(
     account: string,
     base?: string,
@@ -621,6 +628,7 @@ export const weall = {
         cursor: params?.cursor,
         tags: normalizeTagsParam(params?.tags),
         author: params?.author,
+        ranking: params?.ranking || params?.rank,
       }),
       base,
       headers,

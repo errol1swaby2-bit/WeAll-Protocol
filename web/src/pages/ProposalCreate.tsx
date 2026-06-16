@@ -10,7 +10,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { checkGates, summarizeAccountState } from "../lib/gates";
-import { loadSettings } from "../lib/settings";
+import { canShowAdvancedMode } from "../lib/config";
 import { nav, navWithReturn } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
@@ -81,7 +81,7 @@ export default function ProposalCreate(): JSX.Element {
   const tx = useTxQueue();
   const signerSubmission = useSignerSubmissionBusy(acct);
   const { refresh: refreshAccountContext } = useAccount();
-  const showAdvancedMode = loadSettings().showAdvancedMode;
+  const showAdvancedMode = canShowAdvancedMode();
 
   const createGate = useMemo(
     () => checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 }),

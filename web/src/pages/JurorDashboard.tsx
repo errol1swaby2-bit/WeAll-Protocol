@@ -157,6 +157,7 @@ export default function JurorDashboard(): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(account);
 
   const [acctState, setAcctState] = useState<any | null>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any | null>(null);
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
@@ -197,18 +198,20 @@ export default function JurorDashboard(): JSX.Element {
 
     try {
       const headers = getAuthHeaders(account);
-      const [t2, live, sess, currentDisputesRes, fallbackDisputesRes] = await Promise.all([
+      const [t2, live, sess, currentDisputesRes, fallbackDisputesRes, reviewerStatusRes] = await Promise.all([
         weall.pohAsyncJurorCases(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
         weall.disputesCurrent(apiBase, headers).catch(() => ({ items: [] })),
         weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
+        weall.accountReviewerStatus(account, apiBase, headers).catch(() => ({ reviewer: null })),
         refreshAccount(),
       ]);
 
       setAsyncCases(Array.isArray(t2?.cases) ? t2.cases : []);
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
+      setReviewerStatus(reviewerStatusRes?.reviewer ?? null);
 
       const backendCurrentReports = Array.isArray(currentDisputesRes?.items) ? currentDisputesRes.items : [];
       const fallbackReports = Array.isArray(fallbackDisputesRes?.items) ? fallbackDisputesRes.items : [];
@@ -402,14 +405,11 @@ export default function JurorDashboard(): JSX.Element {
 
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
-  const rolesState = asRecord(acctState?.roles);
-  const jurorBucket = asRecord(rolesState.jurors);
-  const jurorById = asRecord(jurorBucket.by_id);
-  const jurorRecord = asRecord(jurorById[account]);
-  const reviewerResponsibilities = asRecord(asRecord(jurorRecord.responsibilities).reviewer);
+  const reviewerTruth = asRecord(reviewerStatus);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
   const reviewerLaneActive = (laneId: string): boolean => {
-    const rec = asRecord(reviewerResponsibilities[laneId]);
-    return rec.opted_in === true && rec.active === true;
+    const rec = asRecord(reviewerLaneTruth[laneId]);
+    return rec.active === true;
   };
   const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
   const laneCount = (laneId: ReviewLaneId): number => {
@@ -650,7 +650,7 @@ export default function JurorDashboard(): JSX.Element {
           tab === "live" && livePendingSessions.length > 0 ? (
             <div className="pageStack">
               <div className="calloutInfo">
-                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Keep the genesis block loop and downstream sync running.
+                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Open live room is only available after a live PoH reviewer assignment is active. Keep the genesis block loop and downstream sync running.
               </div>
               {livePendingSessions.map((session: any) => {
                 const caseId = String(session?.case_id || "").trim();
@@ -669,7 +669,7 @@ export default function JurorDashboard(): JSX.Element {
                       </p>
                       <div className="buttonRow">
                         <button className="btn" onClick={() => caseId && joinLiveRoom(caseId)} disabled={!caseId}>
-                          Open live room
+                          View verification status
                         </button>
                         <button className="btn" onClick={() => void refreshJurorSurface()}>
                           Refresh queue

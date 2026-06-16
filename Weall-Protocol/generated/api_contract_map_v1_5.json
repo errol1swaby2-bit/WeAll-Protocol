@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "accounts": 5,
+    "accounts": 6,
     "consensus": 3,
     "content": 4,
     "demo_seed": 2,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 143,
+  "route_count": 144,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -56,7 +56,7 @@
       "route_id": "d97016cc48d59435",
       "route_path_without_v1_prefix": "/accounts/tx/register",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 93,
+      "source_lineno": 94,
       "summary": "",
       "tags": [
         "accounts"
@@ -78,7 +78,7 @@
       "route_id": "5fa4f1cc935c6937",
       "route_path_without_v1_prefix": "/accounts/{account}",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 120,
+      "source_lineno": 121,
       "summary": "",
       "tags": [
         "accounts"
@@ -100,7 +100,7 @@
       "route_id": "137ab4909a8e8e1b",
       "route_path_without_v1_prefix": "/accounts/{account}/feed",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 192,
+      "source_lineno": 259,
       "summary": "",
       "tags": [
         "accounts"
@@ -122,7 +122,7 @@
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 176,
+      "source_lineno": 243,
       "summary": "",
       "tags": [
         "accounts"
@@ -144,7 +144,29 @@
       "route_id": "85bb5981c233da2a",
       "route_path_without_v1_prefix": "/accounts/{account}/registered",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 146,
+      "source_lineno": 147,
+      "summary": "",
+      "tags": [
+        "accounts"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_account_reviewer_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "accounts",
+      "path": "/v1/accounts/{account}/reviewer-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "12b760a4427dc453",
+      "route_path_without_v1_prefix": "/accounts/{account}/reviewer-status",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 179,
       "summary": "",
       "tags": [
         "accounts"
