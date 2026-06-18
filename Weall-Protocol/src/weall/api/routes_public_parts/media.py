@@ -913,7 +913,7 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
             ex = _executor(request)
             mp = _mempool(request)
 
-            snap = ex.snapshot()
+            snap = ex.read_state()
             ledger = LedgerView.from_ledger(snap)
 
             res = mp.submit(ledger=ledger, tx=suggested_env, context="mempool")
@@ -961,18 +961,16 @@ async def v1_media_upload(request: Request, file: UploadFile = File(...)):
 
 @router.get("/media/gateway/{cid}")
 async def v1_media_gateway(cid: str):
-    """Legacy CID gateway route.
+    """Removed legacy direct gateway redirect route.
 
-    Production posture routes legacy callers through the local observer proxy so
-    byte verification, cache policy, and provider redaction remain in force. A
-    direct external gateway redirect is available only by explicit operator opt-in.
+    Direct protocol media access uses the verifying local proxy so CID, cache,
+    and provider boundaries stay explicit.
     """
-    v = validate_ipfs_cid(cid)
-    if not v.ok:
-        raise ApiError.invalid("invalid_payload", v.reason)
-    if _mode() == "prod" and not _env_bool("WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT", False):
-        return RedirectResponse(f"/v1/media/proxy/{v.cid}")
-    return RedirectResponse(ipfs_gateway_url(v.cid))
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "direct media gateway redirect has been removed; use /v1/media/proxy/{cid}",
+        {"canonical_endpoint": "/v1/media/proxy/{cid}"},
+    )
 
 
 @router.get("/media/status/{cid}")

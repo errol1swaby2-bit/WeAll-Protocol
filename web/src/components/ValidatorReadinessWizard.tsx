@@ -89,7 +89,7 @@ export default function ValidatorReadinessWizard({
 
         <div className="buttonRow buttonRowWide">
           <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
-          <button className="btn" onClick={() => nav("/poh")}>Open proof of humanity</button>
+          <button className="btn" onClick={() => nav("/verification")}>Open proof of humanity</button>
           <button className="btn" onClick={() => nav("/transactions")}>View transaction status</button>
           <button className="btn" onClick={() => nav("/settings")}>Confirm backend target</button>
         </div>

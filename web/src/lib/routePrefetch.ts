@@ -1,34 +1,23 @@
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/login": () => import("../pages/LoginPage"),
-  "/home": () => import("../pages/Home"),
+  "/home": () => import("../pages/HomeDashboard"),
   "/feed": () => import("../pages/Feed"),
   "/messages": () => import("../pages/Messaging"),
   "/profile": () => import("../pages/Account"),
   "/create": () => import("../pages/Post"),
-  "/post": () => import("../pages/Post"),
   "/post/:id": () => import("../pages/Content"),
-  "/verification": () => import("../pages/AccountVerificationPage"),
-  "/poh": () => import("../pages/AccountVerificationPage"),
+  "/verification": () => import("../pages/PohPage"),
   "/reviews": () => import("../pages/JurorDashboard"),
   "/reviews/:id": () => import("../pages/DisputeReview"),
-  "/juror": () => import("../pages/JurorDashboard"),
   "/groups": () => import("../pages/Groups"),
   "/groups/create": () => import("../pages/GroupCreate"),
   "/groups/:id": () => import("../pages/Group"),
   "/decisions": () => import("../pages/Proposals"),
   "/decisions/create": () => import("../pages/ProposalCreate"),
   "/decisions/:id": () => import("../pages/Proposal"),
-  "/proposals": () => import("../pages/Proposals"),
-  "/proposals/create": () => import("../pages/ProposalCreate"),
-  "/proposal/:id": () => import("../pages/Proposal"),
-  "/proposals/:id": () => import("../pages/Proposal"),
   "/reports": () => import("../pages/Disputes"),
   "/reports/:id": () => import("../pages/DisputeDetail"),
-  "/disputes": () => import("../pages/Disputes"),
-  "/disputes/:id": () => import("../pages/DisputeDetail"),
-  "/disputes/:id/review": () => import("../pages/DisputeReview"),
   "/advanced": () => import("../pages/Tools"),
-  "/tools": () => import("../pages/Tools"),
   "/settings": () => import("../pages/SettingsPage"),
   "/session": () => import("../pages/SessionDevicesPage"),
   "/transactions": () => import("../pages/TransactionsPage"),
@@ -41,13 +30,31 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
 
 const warmedRoutes = new Set<string>();
 
+function stripQueryAndHash(path: string): string {
+  return path.split("?")[0]?.split("#")[0] || "";
+}
+
+function routePatternForPath(path: string): string {
+  const normalized = stripQueryAndHash(String(path || "").trim()).replace(/\/+$/, "") || "/home";
+  if (routePrefetchers[normalized]) return normalized;
+  for (const pattern of Object.keys(routePrefetchers)) {
+    if (!pattern.includes(":")) continue;
+    const patternParts = pattern.split("/").filter(Boolean);
+    const pathParts = normalized.split("/").filter(Boolean);
+    if (patternParts.length !== pathParts.length) continue;
+    const matched = patternParts.every((part, index) => part.startsWith(":") || part === pathParts[index]);
+    if (matched) return pattern;
+  }
+  return normalized;
+}
+
 export function prefetchRouteChunk(path: string): void {
-  const normalized = String(path || "").trim();
-  if (!normalized) return;
-  const prefetch = routePrefetchers[normalized];
-  if (!prefetch || warmedRoutes.has(normalized)) return;
-  warmedRoutes.add(normalized);
+  const routeKey = routePatternForPath(path);
+  if (!routeKey) return;
+  const prefetch = routePrefetchers[routeKey];
+  if (!prefetch || warmedRoutes.has(routeKey)) return;
+  warmedRoutes.add(routeKey);
   void prefetch().catch(() => {
-    warmedRoutes.delete(normalized);
+    warmedRoutes.delete(routeKey);
   });
 }

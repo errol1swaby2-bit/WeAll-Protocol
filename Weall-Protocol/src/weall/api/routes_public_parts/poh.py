@@ -411,15 +411,13 @@ def _request_account(request: Request) -> str:
 
 
 def _allow_header_scoped_private_poh_compat() -> bool:
-    """Allow legacy header-only PoH private access only outside production.
+    """Header-only PoH private access has been removed.
 
-    Production private evidence and live-room transport control must be bound to
-    an authenticated backend session, not a forgeable account header.  Local
-    rehearsal and older tests keep a deliberate opt-out compatibility path.
+    Private evidence and live-room transport control must be bound to an
+    authenticated backend session in every mode.
     """
 
-    return (not _is_prod()) and _env_bool("WEALL_DEV_ALLOW_HEADER_SCOPED_PRIVATE_POH", True)
-
+    return False
 
 def _session_principal_for_private_poh(request: Request, st: Json) -> str:
     try:
@@ -910,8 +908,15 @@ def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
     "/poh/live/juror-cases", response_model=PohLiveAssignedResponse, name="poh_live_juror_cases"
 )
 def poh_live_juror_cases(juror: str, request: Request) -> PohLiveAssignedResponse:
-    # Compatibility alias for async juror-cases and operator probes.
-    return poh_live_assigned(juror=juror, request=request)
+    """Removed legacy live juror-cases alias.
+
+    Live PoH reviewer work is exposed through /poh/live/assigned.
+    """
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
+        {"canonical_endpoint": "/v1/poh/live/assigned"},
+    )
 
 
 @router.get(
@@ -2642,6 +2647,14 @@ class PohTier2RequestSkeletonRequest(BaseModel):
     target_tier: int | None = Field(default=None, ge=2, le=3)
 
 
+class PohLiveRequestSkeletonRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    session_commitment: str | None = Field(default=None, max_length=256)
+    room_commitment: str | None = Field(default=None, max_length=256)
+    prompt_commitment: str | None = Field(default=None, max_length=256)
+    device_pairing_commitment: str | None = Field(default=None, max_length=256)
+
+
 class PohTier2JurorActionSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
 
@@ -2798,118 +2811,33 @@ def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) ->
 def poh_tier2_tx_request(
     req: PohTier2RequestSkeletonRequest, request: Request
 ) -> TxSkeletonResponseTier2:
-    """Return a tx skeleton for the legacy Tier-2 async escalation request.
+    """Removed legacy Tier-2 async escalation skeleton.
 
-    Client must sign and submit via /v1/tx/submit. target_tier=2 is legacy
-    compatibility and should move to the Live Verification request endpoint.
+    Tier-2 human verification now uses the native live verification request
+    skeleton at /poh/live/tx/request.
     """
-
-    acct = str(req.account_id or "").strip()
-    if not acct:
-        raise ApiError.bad_request("bad_request", "missing account_id", {})
-
-    vc = (req.video_commitment or "").strip()
-    cid = (req.video_cid or "").strip()
-
-    # Legacy target_tier=2 requests may not have video evidence at case open.
-    # The apply path rejects this form and points clients to POH_LIVE_REQUEST_OPEN,
-    # which is now treated as the Live Verification compatibility tx.
-    target_tier = int(req.target_tier) if req.target_tier is not None else 2
-
-    if target_tier == 2 and not vc and not cid:
-        raise ApiError.bad_request("bad_request", "missing video_commitment or video_cid", {})
-
-    payload: Json = {"account_id": acct, "target_tier": int(target_tier)}
-    if vc:
-        payload["video_commitment"] = vc
-    if cid:
-        payload["video_cid"] = cid
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_REQUEST_OPEN",
-            signer_hint=acct,
-            parent=None,
-            payload=payload,
-        ),
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "/v1/poh/tier2/tx/request has been removed; use /v1/poh/live/tx/request",
+        {"canonical_endpoint": "/v1/poh/live/tx/request"},
     )
 
 
-@router.post(
-    "/poh/tier2/tx/juror-accept",
-    response_model=TxSkeletonResponseTier2,
-    name="poh_tier2_tx_juror_accept",
-)
-def poh_tier2_tx_juror_accept(
-    req: PohTier2JurorActionSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_JUROR_ACCEPT",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid},
-        ),
-    )
 
 
-@router.post(
-    "/poh/tier2/tx/juror-decline",
-    response_model=TxSkeletonResponseTier2,
-    name="poh_tier2_tx_juror_decline",
-)
-def poh_tier2_tx_juror_decline(
-    req: PohTier2JurorActionSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_JUROR_DECLINE",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid},
-        ),
-    )
+class PohLiveJurorCaseSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
 
 
-@router.post(
-    "/poh/tier2/tx/review", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_review"
-)
-def poh_tier2_tx_review(
-    req: PohTier2ReviewSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    verdict = str(req.verdict or "").strip().lower()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-    if verdict not in ("pass", "fail"):
-        raise ApiError.bad_request(
-            "bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict}
-        )
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_REVIEW_SUBMIT",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid, "verdict": verdict, "ts_ms": 0},
-        ),
-    )
+class PohLiveAttendanceSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+    juror_id: str = Field(..., min_length=1)
+    attended: bool = True
 
 
-# PoH Live: Tx skeleton helpers (client signs + submits via /v1/tx/submit)
-# ---------------------------------------------------------------------------
+class PohLiveVerdictSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+    verdict: str = Field(..., min_length=1)
 
 
 class TxSkeleton(BaseModel):
@@ -2922,37 +2850,6 @@ class TxSkeleton(BaseModel):
 class TxSkeletonResponse(BaseModel):
     ok: bool
     tx: TxSkeleton
-
-
-class PohLiveRequestSkeletonRequest(BaseModel):
-    account_id: str = Field(..., min_length=1)
-    session_commitment: str | None = Field(default=None, max_length=128)
-    room_commitment: str | None = Field(default=None, max_length=128)
-    prompt_commitment: str | None = Field(default=None, max_length=128)
-    device_pairing_commitment: str | None = Field(default=None, max_length=128)
-
-
-class PohLiveJurorCaseSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-
-
-class PohLiveAttendanceSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1)
-    attended: bool = Field(...)
-
-
-class PohLiveVerdictSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-    verdict: str = Field(..., min_length=1)
-
-
-def _case_session_commitment(st: Json, case_id: str) -> str:
-    cases = _live_cases_from_snapshot(st)
-    raw = cases.get(case_id)
-    if not isinstance(raw, dict):
-        return ""
-    return str(raw.get("session_commitment") or "").strip()
 
 
 @router.post(

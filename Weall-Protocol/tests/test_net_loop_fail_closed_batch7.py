@@ -17,6 +17,8 @@ class _BadSnapshotExecutor:
     def __init__(self) -> None:
         self.chain_id = "failclosed-batch7"
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         raise RuntimeError("boom")
 
@@ -25,6 +27,8 @@ class _InvalidSnapshotExecutor:
     def __init__(self) -> None:
         self.chain_id = "failclosed-batch7"
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return []
 
@@ -39,6 +43,8 @@ class _BrokenMetaExecutor:
     def tx_index_hash(self):
         raise RuntimeError("tx index unavailable")
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {}
 

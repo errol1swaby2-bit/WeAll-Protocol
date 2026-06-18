@@ -62,7 +62,7 @@ function disputeActionHint(args: {
   if (!tierGateOk) return tierGateReason || "Complete live verification and keep this device signed in before reviewing reports.";
   if (jurorStatus === "unassigned") return "This report is visible, but you were not selected to review it.";
   if (jurorStatus === "declined") return "You declined this review assignment. No further actions are available from this account.";
-  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final choices stay on the dedicated review page.";
+  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment in the dedicated review workspace. Final choices stay there as well.";
   if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return "Step 2 of 3: accepted attendance must appear before the final review choice unlocks.";
   if (currentVote) return `Step 3 of 3 is complete. Your recorded review choice is ${reviewChoiceLabel(currentVote)}, and this account cannot review it again.`;
   return "Step 3 of 3: inspect the reported content and reason here, then continue into the dedicated review workspace for the final choice.";
@@ -195,9 +195,10 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       : canAccept || canDecline
         ? "Continue to assignment response"
         : selectedJurorStatus === "unassigned"
-          ? "Inspect report only"
+          ? "Read-only report detail"
           : "Refresh and inspect";
-  const detailCtaDisabled = selectedJurorStatus === "unassigned" && !reviewUnlocked && !currentVote && !(canAccept || canDecline);
+  const showDetailCta = selectedJurorStatus !== "unassigned" || reviewUnlocked || currentVote || canAccept || canDecline;
+  const detailCtaDisabled = !showDetailCta;
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
@@ -480,10 +481,14 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
                 ))}
               </div>
             </div>
-            <div className="buttonRow buttonRowWide">
-              <button className="btn btnPrimary" disabled={detailCtaDisabled} onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{detailCtaLabel}</button>
-              <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
-            </div>
+            {showDetailCta ? (
+              <div className="buttonRow buttonRowWide">
+                <button className="btn btnPrimary" disabled={detailCtaDisabled} onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{detailCtaLabel}</button>
+                <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
+              </div>
+            ) : (
+              <div className="calloutInfo">You are viewing the report in read-only mode. Review acceptance, decline, check-in, and final choices stay in the dedicated review workspace for assigned reviewers.</div>
+            )}
             <div className="cardDesc">Report detail explains what happened and which content is involved. The dedicated review workspace owns assignment acceptance, decline, and final choices so this page does not submit review transactions by accident.</div>
             {currentVote ? <div className="statusPill ok">Review choice already recorded for this account</div> : null}
           </div>

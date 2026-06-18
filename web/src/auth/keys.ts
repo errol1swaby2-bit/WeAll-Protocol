@@ -27,7 +27,6 @@ export type AccountIdValidation = {
     | "invalid_chars";
 };
 
-const KEYRING_PREFIX = "weall.keyring.";
 const KEYPAIR_PREFIX = "weall_keypair::";
 const SECRET_PREFIX = "weall_secret::";
 const SECRET_KEY_BYTES = 64;
@@ -183,7 +182,6 @@ export function saveKeypair(
   // Production safety rule: never persist raw account private keys in
   // localStorage.  localStorage keeps public metadata only; the secret is kept
   // in sessionStorage so closing the browser/session clears signing custody.
-  localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(secureMeta));
   localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
   sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
 
@@ -205,36 +203,9 @@ export function loadKeypair(account: string): KeypairB64 | null {
   const normalized = normalizeAccount(account);
   if (!normalized) return null;
 
-  const legacy = readStoredKeypair(localStorage.getItem(`${KEYRING_PREFIX}${normalized}`));
   const meta = readStoredKeypair(localStorage.getItem(keyStorageKey(normalized)));
 
-  const storedPub =
-    String(
-      legacy?.pubkeyB64 ||
-        legacy?.publicKey ||
-        meta?.pubkeyB64 ||
-        meta?.publicKey ||
-        "",
-    ).trim();
-
-  const legacySecret = String(legacy?.secretKeyB64 || legacy?.secretKey || "").trim();
-  if (legacySecret) {
-    const pubkeyB64 = storedPub || derivePublicKeyFromSecretKey(legacySecret);
-    const valid = validateKeypair(pubkeyB64, legacySecret);
-    if (!valid.ok) return null;
-
-    const secureMeta = {
-      version: 2,
-      publicKey: pubkeyB64,
-      pubkeyB64,
-      hasSecret: false,
-    } satisfies StoredKeypair;
-    sessionStorage.setItem(secretStorageKey(normalized), legacySecret);
-    localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(secureMeta));
-    localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
-
-    return { pubkeyB64, secretKeyB64: legacySecret };
-  }
+  const storedPub = String(meta?.pubkeyB64 || meta?.publicKey || "").trim();
 
   const sessionSecret = String(sessionStorage.getItem(secretStorageKey(normalized)) || "").trim();
   if (!sessionSecret) return null;
@@ -253,7 +224,6 @@ export function getKeypair(account: string): KeypairB64 | null {
 export function deleteKeypair(account: string): void {
   const normalized = normalizeAccount(account);
   if (!normalized) return;
-  localStorage.removeItem(`${KEYRING_PREFIX}${normalized}`);
   localStorage.removeItem(keyStorageKey(normalized));
   sessionStorage.removeItem(secretStorageKey(normalized));
 }

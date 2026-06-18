@@ -54,25 +54,25 @@ def _env_str(name: str, default: str = "") -> str:
     return str(v)
 
 
-def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
+def _try_executor_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
-    fn = getattr(ex, "snapshot", None)
+    fn = getattr(ex, "read_state", None)
     if not callable(fn):
         if _is_prod():
-            raise NetSelfStateError("net_self_snapshot_missing")
+            raise NetSelfStateError("net_self_state_reader_missing")
         return None
     try:
         st = fn()
     except Exception as exc:
         if _is_prod():
-            raise NetSelfStateError("net_self_snapshot_failed") from exc
+            raise NetSelfStateError("net_self_state_read_failed") from exc
         return None
     if st is None:
         return None
     if not isinstance(st, dict):
         if _is_prod():
-            raise NetSelfStateError("net_self_snapshot_not_dict")
+            raise NetSelfStateError("net_self_state_not_dict")
         return None
     return st
 
@@ -122,7 +122,7 @@ def v1_net_self(request: Request) -> dict[str, object]:
     app_state = request.app.state
 
     ex = getattr(app_state, "executor", None)
-    st = _try_executor_snapshot(ex)
+    st = _try_executor_state(ex)
 
     chain_id = None
     node_id = None
@@ -227,7 +227,7 @@ def v1_net_self(request: Request) -> dict[str, object]:
                     "account_not_found: create account before node can register node device"
                 )
         except Exception:
-            warnings.append("node_device_gate_unknown: unable to read ledger snapshot")
+            warnings.append("node_device_gate_unknown: unable to read ledger state")
 
     # Also warn if pubkey is missing while peer identity is required
     if require_peer_identity and not (cfg_pubkey or node_pubkey_env):

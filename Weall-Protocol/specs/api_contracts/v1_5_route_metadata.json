@@ -396,33 +396,12 @@
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue",
       "truth_boundary": "PoH operator routes are environment-disabled and operator-token gated. They enqueue deterministic system txs only and do not grant public validator authority, public PoH finalization authority, or decentralized reviewer consensus by themselves."
     },
-    "POST /v1/poh/tier2/tx/juror-accept": {
-      "auth": "signed_tx_skeleton_local_client_helper",
-      "cache_policy": "no_store_tx_skeleton",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
-      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
-      "truth_boundary": "PoH Tier-2 juror accept skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
-    },
-    "POST /v1/poh/tier2/tx/juror-decline": {
-      "auth": "signed_tx_skeleton_local_client_helper",
-      "cache_policy": "no_store_tx_skeleton",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
-      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
-      "truth_boundary": "PoH Tier-2 juror decline skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
-    },
     "POST /v1/poh/tier2/tx/request": {
       "auth": "signed_tx_skeleton_local_client_helper",
       "cache_policy": "no_store_tx_skeleton",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "truth_boundary": "PoH Tier-2 request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
-    },
-    "POST /v1/poh/tier2/tx/review": {
-      "auth": "signed_tx_skeleton_local_client_helper",
-      "cache_policy": "no_store_tx_skeleton",
-      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
-      "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
-      "truth_boundary": "PoH Tier-2 review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
     "POST /v1/poh/tier2/video/upload": {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",

@@ -33,6 +33,8 @@ class _SimpleExecutor:
     chain_id = "chain-A"
     tx_index = None
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self) -> dict[str, Any]:
         return {}
 

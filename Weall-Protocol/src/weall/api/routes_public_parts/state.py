@@ -343,7 +343,7 @@ def state_snapshot(request: Request) -> Json:
     """
 
     ex = _executor(request)
-    st = ex.snapshot()
+    st = ex.read_state()
     if not isinstance(st, dict):
         return {"ok": False, "error": {"code": "bad_state", "message": "snapshot not a dict"}}
 
@@ -501,5 +501,5 @@ async def state_sync_apply(request: Request) -> Json:
         "ok": True,
         "applied_count": len(metas),
         "metas": [asdict(m) for m in metas],
-        "height": int((ex.snapshot() or {}).get("height") or 0),
+        "height": int((ex.read_state() or {}).get("height") or 0),
     }

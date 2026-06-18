@@ -116,10 +116,12 @@ def test_frontend_route_registry_has_no_user_facing_tier3_gate_batch257() -> Non
     text = router.read_text(encoding="utf-8")
 
     assert "minPohTier: 3" not in text
-    assert '"/juror"' in text
-    juror_block = text.split('"/juror":', 1)[1].split('"/tools":', 1)[0]
-    assert "minPohTier: 2" in juror_block
-    assert "Active Juror role or badge" in juror_block
+    assert '"/juror"' not in text
+    assert '"/tools"' not in text
+    reviews_block = text.split('"/reviews":', 1)[1].split('"/reviews/:id":', 1)[0]
+    assert "minPohTier: 2" in reviews_block
+    assert "Exact reviewer lane responsibility" in reviews_block
+    assert "Active Juror role or badge" not in text
 
 
 def test_dockerfile_allows_dev_unlocked_builds_without_lockfiles_batch266() -> None:

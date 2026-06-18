@@ -29,24 +29,24 @@ const juror = read('src/pages/JurorDashboard.tsx');
 assert(juror.includes('function viewLiveVerificationStatus'), 'Review Center must split pending live status view from live-room join');
 assert(juror.includes('?mode=status'), 'Pending live status view must route in read-only status mode');
 assert(juror.includes('View verification status'), 'Pending live session CTA must remain status-oriented');
-assert(juror.includes('Open live room is only available after a live PoH reviewer assignment is active'), 'Legacy live-room language must be explanatory, not the pending CTA');
+assert(juror.includes('Live room transport is only available after a live PoH reviewer assignment is active'), 'Pending live status must use current transport-boundary language');
 
 const live = read('src/pages/LiveVerificationRoom.tsx');
 assert(live.includes('statusOnlyMode'), 'Live room must recognize read-only status mode');
-assert(live.includes('Open live room controls unlock only for the subject or assigned reviewers'), 'Live status mode must explain authority boundary');
+assert(live.includes('Live room transport controls unlock only for the subject or assigned reviewers'), 'Live status mode must explain authority boundary');
 
 const app = read('src/App.tsx');
 assert(app.includes('HomeDashboard') && !app.includes('const Home = lazy'), 'App must use the HomeDashboard route wrapper');
 assert(app.includes('PohPage') && !app.includes('AccountVerificationPage = lazy'), 'App must use the PohPage route wrapper');
 
 const router = read('src/lib/router.ts');
-assert(router.includes('const canonicalAlias = ROUTE_ALIASES[r]'), 'matchRoute must canonicalize through ROUTE_ALIASES');
-assert(!router.includes('r === "/reviews" || r === "/juror"'), 'matchRoute must not hard-code /juror alias outside ROUTE_ALIASES');
-assert(!router.includes('r === "/advanced" || r === "/tools"'), 'matchRoute must not hard-code /tools alias outside ROUTE_ALIASES');
+assert(!router.includes('ROUTE_ALIASES'), 'legacy route alias table must be removed');
+assert(!router.includes('\"/juror\"'), 'legacy /juror alias must be removed from route source');
+assert(!router.includes('\"/tools\"'), 'legacy /tools alias must be removed from route source');
 
 const disputeDetail = read('src/pages/DisputeDetail.tsx');
 assert(disputeDetail.includes('detailCtaLabel'), 'Dispute detail must derive assignment-state CTA labels');
-assert(disputeDetail.includes('Inspect report only'), 'Unassigned report detail must not overclaim review workspace access');
+assert(disputeDetail.includes('You are viewing the report in read-only mode'), 'Unassigned report detail must clearly render read-only mode');
 assert(disputeDetail.includes('Continue to assignment response'), 'Assigned-but-not-accepted report detail must route to assignment response wording');
 assert(!disputeDetail.includes('handle assignment posture here'), 'Report detail must not claim assignment posture is handled on the detail page');
 

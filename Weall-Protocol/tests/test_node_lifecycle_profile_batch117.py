@@ -107,7 +107,7 @@ def test_production_request_activates_validator_and_helper_when_preflight_passes
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]
-    ex._store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
 
     lifecycle = ex.node_lifecycle_status()
     assert lifecycle["requested_state"] == "production_service"

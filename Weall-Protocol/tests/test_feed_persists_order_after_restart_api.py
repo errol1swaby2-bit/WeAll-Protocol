@@ -55,7 +55,7 @@ def test_feed_persists_order_after_restart_api(tmp_path: Path) -> None:
     st["accounts"] = accounts
 
     # Persist through the executor's ledger-store alias used in this repo.
-    ex1._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex1._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     assert (
         ex1.submit_tx(

@@ -13,7 +13,7 @@ def _repo_root() -> Path:
 
 
 def _write_state(ex: WeAllExecutor, state: dict) -> None:
-    ex._store.write_state_snapshot(state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(state)  # type: ignore[attr-defined]
     ex.state = ex.read_state()
 
 

@@ -485,7 +485,7 @@ class NetMeshLoop:
 
     def _state_snapshot(self) -> Json:
         try:
-            st = self._executor.snapshot()
+            st = self._executor.read_state()
         except Exception:
             if _is_prod():
                 raise NetStateSnapshotError("state_snapshot_failed")

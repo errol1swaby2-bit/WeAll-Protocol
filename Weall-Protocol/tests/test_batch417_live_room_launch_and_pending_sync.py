@@ -42,4 +42,5 @@ def test_reviewer_queue_surfaces_pending_live_sessions_before_assignment_batch41
     assert "Live verification request/session records are visible" in dashboard
     assert "but no reviewer assignment has reached this queue yet" in dashboard
     assert "Pending live session" in dashboard
-    assert "Open live room" in dashboard
+    assert "Live room transport is only available after a live PoH reviewer assignment is active" in dashboard
+    assert "Open live room" not in dashboard

@@ -7,7 +7,7 @@
       "public_validator_enabled": false,
       "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
     },
-    "vector_count": 43
+    "vector_count": 42
   },
   "artifact_freshness_commands": [
     "python scripts/gen_api_contract_map.py --check",

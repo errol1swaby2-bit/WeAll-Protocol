@@ -504,9 +504,6 @@ class WeAllExecutor:
             os.environ.get("WEALL_HELPER_TIMEOUT_MS"), 5000
         )
 
-        # Back-compat alias used by some tests that reached into the storage layer.
-        self._store = self._ledger_store
-
         # Load or initialize state.
         if self._ledger_store.exists():
             self.state = self._ledger_store.read()
@@ -1208,11 +1205,6 @@ class WeAllExecutor:
     # ----------------------------
     # Tx + att submission
     # ----------------------------
-
-    # Back-compat: legacy route modules call `executor.snapshot()`.
-    def snapshot(self) -> Json:
-        from weall.runtime import diagnostics as _impl
-        return _impl.snapshot(self)
 
     def tx_index_hash(self) -> str:
         from weall.runtime import diagnostics as _impl

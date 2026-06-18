@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 from typing import Any
+from weall.api.errors import ApiError
 
 from fastapi import APIRouter, Request
 
@@ -231,12 +232,16 @@ def _known_peers_response(request: Request) -> Json:
 
 @router.get("/v1/nodes")
 def v1_nodes(request: Request) -> Json:
-    """Backwards-compatible endpoint.
+    """Removed legacy aggregate node directory endpoint.
 
-    Historically this path returned a gateway-managed seed registry.
-    For Route B, we keep it but make it explicitly return the seed list.
+    Direct protocol surfaces use /v1/nodes/seeds for configured bootstrap
+    seeds and /v1/nodes/known for the node-local peer view.
     """
-    return _seeds_response(request)
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
+        {"canonical_endpoints": ["/v1/nodes/seeds", "/v1/nodes/known"]},
+    )
 
 
 @router.get("/v1/nodes/seeds")

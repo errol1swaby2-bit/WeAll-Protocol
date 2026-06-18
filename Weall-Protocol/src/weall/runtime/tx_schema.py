@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from weall.util.ipfs_cid import validate_ipfs_cid
 
@@ -479,7 +479,7 @@ class ProfileUpdatePayload(_StrictModel):
 
 
 class _EdgeTargetPayload(_StrictModel):
-    target: str = Field(..., min_length=1, validation_alias=AliasChoices("target", "account_id"))
+    target: str = Field(..., min_length=1, )
     active: bool | None = None
 
 
@@ -505,8 +505,7 @@ class DirectMessageSendPayload(_StrictModel):
     to: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("to", "recipient", "to_account", "account_id"),
-    )
+        )
     # Batch 430+: direct messages are end-to-end encrypted at the client.
     # Plaintext body/cid fields are intentionally rejected so consensus state and
     # backend APIs never become the readable message store.
@@ -522,8 +521,7 @@ class DirectMessageSendPayload(_StrictModel):
     message_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("message_id", "id"),
-    )
+        )
 
     @model_validator(mode="after")
     def _require_encrypted_payload(self) -> "DirectMessageSendPayload":
@@ -540,13 +538,12 @@ class DirectMessageRedactPayload(_StrictModel):
     message_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("message_id", "id"),
-    )
+        )
     reason: str | None = None
 
 
 class _TopicPayloadBase(_StrictModel):
-    topic: str | list[str] = Field(..., validation_alias=AliasChoices("topic", "topics"))
+    topic: str | list[str] = Field(..., )
 
     @model_validator(mode="after")
     def _normalize_topic_presence(self) -> "_TopicPayloadBase":
@@ -593,19 +590,16 @@ class PeerAdvertisePayload(_StrictModel):
     endpoint: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("endpoint", "url"),
-    )
+        )
     peer_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("peer_id", "peer", "id"),
-    )
+        )
     device_id: str | None = Field(default=None, min_length=1)
     node_pubkey: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("node_pubkey", "node_public_key"),
-    )
+        )
 
 
 class PeerRendezvousTicketCreatePayload(_StrictModel):
@@ -613,34 +607,29 @@ class PeerRendezvousTicketCreatePayload(_StrictModel):
     ticket_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("ticket_id", "id"),
-    )
+        )
 
 
 class PeerRendezvousTicketRevokePayload(_StrictModel):
     ticket_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("ticket_id", "id"),
-    )
+        )
 
 
 class PeerRequestConnectPayload(_StrictModel):
     peer_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("peer_id", "to_peer_id", "target_peer_id"),
-    )
+        )
     ticket_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("ticket_id", "id"),
-    )
+        )
     endpoint: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("endpoint", "url"),
-    )
+        )
 
     @model_validator(mode="after")
     def _require_peer_ticket_or_endpoint(self) -> "PeerRequestConnectPayload":
@@ -653,8 +642,7 @@ class PeerBanSetPayload(_StrictModel):
     peer_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("peer_id", "peer", "id"),
-    )
+        )
     banned: bool | None = None
     reason: str | None = None
 
@@ -663,8 +651,7 @@ class PeerReputationSignalPayload(_StrictModel):
     peer_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("peer_id", "peer", "id"),
-    )
+        )
     score: int | None = None
     reason: str | None = None
 
@@ -673,23 +660,19 @@ class StorageOfferCreatePayload(_OptionalCidPayload):
     offer_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("offer_id", "id"),
-    )
+        )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("operator_id", "operator"),
-    )
+        )
     cid: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("cid", "content_cid", "ipfs_cid"),
-    )
+        )
     capacity_bytes: int | None = Field(
         default=None,
         ge=0,
-        validation_alias=AliasChoices("capacity_bytes", "capacity"),
-    )
+        )
     price: Json | int | str | None = None
 
     @model_validator(mode="after")
@@ -702,8 +685,7 @@ class StorageOfferWithdrawPayload(_StrictModel):
     offer_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("offer_id", "id"),
-    )
+        )
 
 
 class StorageLeaseCreatePayload(_StrictModel):
@@ -711,34 +693,29 @@ class StorageLeaseCreatePayload(_StrictModel):
     lease_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("lease_id", "id"),
-    )
+        )
     duration_blocks: int | None = Field(
         default=None,
         ge=0,
-        validation_alias=AliasChoices("duration_blocks", "blocks"),
-    )
+        )
 
 
 class StorageLeaseRenewPayload(_StrictModel):
     lease_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("lease_id", "id"),
-    )
+        )
     add_blocks: int | None = Field(
         default=None,
         ge=0,
-        validation_alias=AliasChoices("add_blocks", "duration_blocks"),
-    )
+        )
 
 
 class StorageLeaseRevokePayload(_StrictModel):
     lease_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("lease_id", "id"),
-    )
+        )
 
 
 class StorageProofSubmitPayload(_OptionalCidPayload):
@@ -746,8 +723,7 @@ class StorageProofSubmitPayload(_OptionalCidPayload):
     proof_cid: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("proof_cid", "cid"),
-    )
+        )
 
     @model_validator(mode="after")
     def _validate_proof_cid(self) -> "StorageProofSubmitPayload":
@@ -760,28 +736,25 @@ class StorageChallengeIssuePayload(_StrictModel):
     challenge_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("challenge_id", "id"),
-    )
+        )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("operator_id", "operator"),
-    )
+        )
     account_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("account_id", "lessee"),
-    )
-    proof_scope: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("proof_scope", "scope"))
-    node_pubkey: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("node_pubkey", "node_public_key"))
-    challenge_seed_commitment: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("challenge_seed_commitment", "seed_commitment"))
-    challenge_count: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("challenge_count", "samples", "sample_count"))
-    sample_size_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("sample_size_bytes", "sample_bytes"))
-    challenged_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("challenged_capacity_bytes", "capacity_bytes"))
-    expires_height: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("expires_height", "expiry_height"))
-    reserved_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("reserved_capacity_bytes", "reserve_bytes"))
+        )
+    proof_scope: str | None = Field(default=None, min_length=1, )
+    node_pubkey: str | None = Field(default=None, min_length=1, )
+    challenge_seed_commitment: str | None = Field(default=None, min_length=1, )
+    challenge_count: int | None = Field(default=None, ge=0, )
+    sample_size_bytes: int | None = Field(default=None, ge=0, )
+    challenged_capacity_bytes: int | None = Field(default=None, ge=0, )
+    expires_height: int | None = Field(default=None, ge=0, )
+    reserved_capacity_bytes: int | None = Field(default=None, ge=0, )
     probe_offsets: list[int] | None = None
-    challenge_seed: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("challenge_seed", "seed"))
+    challenge_seed: str | None = Field(default=None, min_length=1, )
 
     @model_validator(mode="after")
     def _validate_scope_fields(self) -> "StorageChallengeIssuePayload":
@@ -805,33 +778,30 @@ class StorageChallengeRespondPayload(_StrictModel):
     challenge_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("challenge_id", "id"),
-    )
-    proof_scope: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("proof_scope", "scope"))
-    response_commitment: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("response_commitment", "proof_commitment"))
-    sample_response_commitments: list[str] | None = Field(default=None, validation_alias=AliasChoices("sample_response_commitments", "sample_commitments"))
-    measured_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("measured_capacity_bytes", "capacity_bytes"))
-    verification_status: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verification_status", "verdict", "status"))
-    verified_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("verified_capacity_bytes", "proven_capacity_bytes"))
+        )
+    proof_scope: str | None = Field(default=None, min_length=1, )
+    response_commitment: str | None = Field(default=None, min_length=1, )
+    sample_response_commitments: list[str] | None = Field(default=None, )
+    measured_capacity_bytes: int | None = Field(default=None, ge=0, )
+    verification_status: str | None = Field(default=None, min_length=1, )
+    verified_capacity_bytes: int | None = Field(default=None, ge=0, )
     response_cid: str | None = Field(default=None, min_length=1)
     probe_responses: list[Json] | None = None
-    verifier_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verifier_id", "verifier"))
+    verifier_id: str | None = Field(default=None, min_length=1, )
     verification_method: str | None = None
-    verification_receipt_hash: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("verification_receipt_hash", "receipt_hash"))
-    proof_ttl_blocks: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("proof_ttl_blocks", "ttl_blocks"))
+    verification_receipt_hash: str | None = Field(default=None, min_length=1, )
+    proof_ttl_blocks: int | None = Field(default=None, ge=0, )
 
 
 class StoragePayoutExecutePayload(_StrictModel):
     payout_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("payout_id", "id"),
-    )
+        )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("operator_id", "operator"),
-    )
+        )
     amount: int | float | str | None = None
 
 
@@ -839,13 +809,11 @@ class StorageReportAnchorPayload(_OptionalCidPayload):
     report_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("report_id", "id", "key"),
-    )
+        )
     report_cid: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("report_cid", "cid"),
-    )
+        )
 
     @model_validator(mode="after")
     def _validate_report_cid(self) -> "StorageReportAnchorPayload":
@@ -857,18 +825,15 @@ class IpfsPinRequestPayload(_OptionalCidPayload):
     cid: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("cid", "ipfs_cid", "content_cid"),
-    )
+        )
     pin_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("pin_id", "id"),
-    )
+        )
     size_bytes: int | None = Field(
         default=None,
         ge=0,
-        validation_alias=AliasChoices("size_bytes", "bytes", "size"),
-    )
+        )
 
     @model_validator(mode="after")
     def _validate_required_cid(self) -> "IpfsPinRequestPayload":
@@ -880,18 +845,15 @@ class IpfsPinConfirmPayload(_OptionalCidPayload):
     pin_id: str = Field(
         ...,
         min_length=1,
-        validation_alias=AliasChoices("pin_id", "id"),
-    )
+        )
     cid: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("cid", "ipfs_cid", "content_cid"),
-    )
+        )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        validation_alias=AliasChoices("operator_id", "operator"),
-    )
+        )
     ok: bool | int | None = None
 
     @model_validator(mode="after")
@@ -906,28 +868,28 @@ class IpfsPinConfirmPayload(_OptionalCidPayload):
 
 
 class TreasuryCreatePayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, validation_alias=AliasChoices("treasury_id", "id"))
+    treasury_id: str = Field(..., min_length=1, )
 
 
 class TreasurySignersSetPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, validation_alias=AliasChoices("treasury_id", "id"))
+    treasury_id: str = Field(..., min_length=1, )
     signers: list[str] = Field(..., min_length=1)
     threshold: int | None = Field(default=None, ge=1)
 
 
 class TreasuryWalletCreatePayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, validation_alias=AliasChoices("wallet_id", "treasury_id", "id"))
+    wallet_id: str = Field(..., min_length=1, )
     meta: Json | None = None
 
 
 class TreasurySignerAddPayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, validation_alias=AliasChoices("wallet_id", "treasury_id", "id"))
-    signer: str = Field(..., min_length=1, validation_alias=AliasChoices("signer", "account", "account_id"))
+    wallet_id: str = Field(..., min_length=1, )
+    signer: str = Field(..., min_length=1, )
 
 
 class TreasurySignerRemovePayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, validation_alias=AliasChoices("wallet_id", "treasury_id", "id"))
-    signer: str = Field(..., min_length=1, validation_alias=AliasChoices("signer", "account", "account_id"))
+    wallet_id: str = Field(..., min_length=1, )
+    signer: str = Field(..., min_length=1, )
 
 
 class TreasuryPolicySetPayload(_StrictModel):
@@ -935,7 +897,7 @@ class TreasuryPolicySetPayload(_StrictModel):
 
 
 class TreasurySpendProposePayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, validation_alias=AliasChoices("treasury_id", "wallet_id", "id"))
+    treasury_id: str = Field(..., min_length=1, )
     spend_id: str = Field(..., min_length=1)
     to: str = Field(..., min_length=1)
     amount: int = Field(..., ge=0)
@@ -943,12 +905,12 @@ class TreasurySpendProposePayload(_StrictModel):
 
 
 class TreasurySpendSignPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, validation_alias=AliasChoices("treasury_id", "wallet_id", "id"))
+    treasury_id: str = Field(..., min_length=1, )
     spend_id: str = Field(..., min_length=1)
 
 
 class TreasurySpendCancelPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, validation_alias=AliasChoices("treasury_id", "wallet_id", "id"))
+    treasury_id: str = Field(..., min_length=1, )
     spend_id: str = Field(..., min_length=1)
 
 
@@ -961,18 +923,18 @@ class TreasurySpendExecutePayload(_StrictModel):
 
 
 class TreasuryProgramCreatePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, validation_alias=AliasChoices("program_id", "id"))
+    program_id: str = Field(..., min_length=1, )
     config: Json | None = None
 
 
 class TreasuryProgramUpdatePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, validation_alias=AliasChoices("program_id", "id"))
+    program_id: str = Field(..., min_length=1, )
     patch: Json | None = None
     config: Json | None = None
 
 
 class TreasuryProgramClosePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, validation_alias=AliasChoices("program_id", "id"))
+    program_id: str = Field(..., min_length=1, )
 
 
 class TreasuryAuditAnchorSetPayload(_StrictModel):
@@ -1168,7 +1130,7 @@ class GovExecutionReceiptPayload(_StrictModel):
 
 
 class ProtocolUpgradeDeclarePayload(_StrictModel):
-    upgrade_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("upgrade_id", "id", "proposal_id"))
+    upgrade_id: str | None = Field(default=None, min_length=1, )
     version: str | None = None
     target_version: str | None = None
     hash: str | None = None
@@ -1176,7 +1138,7 @@ class ProtocolUpgradeDeclarePayload(_StrictModel):
 
 
 class ProtocolUpgradeActivatePayload(_StrictModel):
-    upgrade_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("upgrade_id", "id", "proposal_id"))
+    upgrade_id: str | None = Field(default=None, min_length=1, )
     version: str | None = None
     hash: str | None = None
 
@@ -1226,7 +1188,7 @@ class DisputeStageSetPayload(_StrictModel):
 
 class DisputeJurorAssignPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1, validation_alias=AliasChoices("juror_id", "juror"))
+    juror_id: str = Field(..., min_length=1, )
 
 
 class DisputeJurorAcceptPayload(_StrictModel):
@@ -1244,7 +1206,7 @@ class DisputeJurorWithdrawPayload(_StrictModel):
 
 class DisputeJurorTimeoutPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1, validation_alias=AliasChoices("juror_id", "juror"))
+    juror_id: str = Field(..., min_length=1, )
     deadline_height: int | None = Field(default=None, ge=0)
 
 
@@ -1296,28 +1258,28 @@ class DisputeAppealPayload(_StrictModel):
 
 
 class DisputeFinalReceiptPayload(_StrictModel):
-    receipt_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("receipt_id", "id"))
+    receipt_id: str | None = Field(default=None, min_length=1, )
     dispute_id: str | None = None
     resolution: Json | None = None
     parent_ref: str | None = Field(default=None, alias="_parent_ref")
 
 
 class CaseTypeRegisterPayload(_StrictModel):
-    case_type: str = Field(..., min_length=1, validation_alias=AliasChoices("case_type", "type", "name"))
+    case_type: str = Field(..., min_length=1, )
 
 
 class CaseBindToDisputePayload(_StrictModel):
-    case_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("case_id", "id"))
+    case_id: str | None = Field(default=None, min_length=1, )
     dispute_id: str = Field(..., min_length=1)
 
 
 class CaseOutcomeReceiptPayload(_StrictModel):
-    case_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("case_id", "id"))
+    case_id: str | None = Field(default=None, min_length=1, )
     outcome: Json | str | None = None
 
 
 class ModActionReceiptPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, validation_alias=AliasChoices("target_id", "id"))
+    target_id: str = Field(..., min_length=1, )
     action: str | None = None
     visibility: str | None = None
     locked: bool | int | None = None
@@ -1337,19 +1299,19 @@ class FlagEscalationReceiptPayload(_StrictModel):
 
 
 class AccountBanPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     reason: str | None = None
 
 
 class AccountReinstatePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     reason: str | None = None
 
 
 class BalanceTransferPayload(_StrictModel):
-    to_account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("to_account_id", "to", "target", "account"))
+    to_account_id: str = Field(..., min_length=1, )
     amount: int = Field(..., ge=1)
-    from_account_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("from_account_id", "from_account", "from"))
+    from_account_id: str | None = Field(default=None, min_length=1, )
     memo: str | None = None
 
 
@@ -1357,8 +1319,8 @@ class FeePayPayload(_StrictModel):
     tx_id: str | None = Field(default=None, min_length=1)
     tx_type: str | None = Field(default=None, min_length=1)
     amount: int | None = Field(default=None, ge=0)
-    from_account_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("from_account_id", "from_account", "from"))
-    to_account_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("to_account_id", "to", "target", "account"))
+    from_account_id: str | None = Field(default=None, min_length=1, )
+    to_account_id: str | None = Field(default=None, min_length=1, )
     note: str | None = None
 
 
@@ -1380,7 +1342,7 @@ class RateLimitPolicySetPayload(_StrictModel):
 
 
 class RateLimitStrikeApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
     reason: str | None = None
 
 
@@ -1398,7 +1360,7 @@ class RewardPoolOptInSetPayload(_StrictModel):
 class BlockRewardMintPayload(_StrictModel):
     # Legacy tx name retained for compatibility; payload now represents one
     # v1.5 issuance epoch, not a per-block mint.
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    block_id: str = Field(..., min_length=1, )
     amount: int | None = Field(default=None, ge=0)
     height: int | None = Field(default=None, ge=0)
     issuance_epoch: int | None = Field(default=None, ge=0)
@@ -1411,7 +1373,7 @@ class BlockRewardMintPayload(_StrictModel):
 class BlockRewardDistributePayload(_StrictModel):
     # Legacy tx name retained for compatibility; payload now distributes one
     # v1.5 issuance epoch, not a per-block reward.
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    block_id: str = Field(..., min_length=1, )
     height: int | None = Field(default=None, ge=0)
     issuance_epoch: int | None = Field(default=None, ge=0)
     epoch_id: str | None = Field(default=None, min_length=1)
@@ -1424,57 +1386,57 @@ class BlockRewardDistributePayload(_StrictModel):
 
 
 class CreatorRewardAllocatePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
-    alloc_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("alloc_id", "id"))
+    block_id: str = Field(..., min_length=1, )
+    alloc_id: str | None = Field(default=None, min_length=1, )
     transfers: list[Json] | None = None
     debits: list[Json] | None = None
 
 
 class TreasuryRewardAllocatePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
-    alloc_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("alloc_id", "id"))
+    block_id: str = Field(..., min_length=1, )
+    alloc_id: str | None = Field(default=None, min_length=1, )
     transfers: list[Json] | None = None
     debits: list[Json] | None = None
 
 
 class ForfeitureApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     amount: int | None = Field(default=None, ge=0)
-    forfeit_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("forfeit_id", "id"))
+    forfeit_id: str | None = Field(default=None, min_length=1, )
 
 
 class SubjectPerformanceReportPayload(_StrictModel):
-    subject: str = Field(..., min_length=1, validation_alias=AliasChoices("subject", "account_id", "account", "target"))
-    report_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("report_id", "id"))
+    subject: str = Field(..., min_length=1, )
+    report_id: str | None = Field(default=None, min_length=1, )
     metrics: Json | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PerformanceReceiptPayload(_StrictModel):
-    subject: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("subject", "account_id", "account", "target"))
-    report_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("report_id", "id"))
+    subject: str | None = Field(default=None, min_length=1, )
+    report_id: str | None = Field(default=None, min_length=1, )
     metrics: Json | None = None
     score: int | float | None = None
 
 
 class ContentLabelSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, validation_alias=AliasChoices("target_id", "id"))
+    target_id: str = Field(..., min_length=1, )
     labels: list[str] = Field(..., min_length=1)
 
 
 class ContentVisibilitySetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, validation_alias=AliasChoices("target_id", "id"))
+    target_id: str = Field(..., min_length=1, )
     visibility: str = Field(..., min_length=1)
 
 
 class ContentThreadLockSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, validation_alias=AliasChoices("target_id", "post_id", "id"))
+    target_id: str = Field(..., min_length=1, )
     locked: bool = Field(...)
 
 
 class ContentMediaReplacePayload(_StrictModel):
     media_id: str = Field(..., min_length=1)
-    new_cid: str = Field(..., min_length=1, validation_alias=AliasChoices("new_cid", "cid"))
+    new_cid: str = Field(..., min_length=1, )
 
     @model_validator(mode="after")
     def _validate_cid(self) -> "ContentMediaReplacePayload":
@@ -1502,41 +1464,41 @@ class NotificationEmitReceiptPayload(_StrictModel):
 
 
 class IndexAnchorSetPayload(_StrictModel):
-    anchor_id: str = Field(..., min_length=1, validation_alias=AliasChoices("anchor_id", "id", "cid"))
+    anchor_id: str = Field(..., min_length=1, )
 
 
 class StateSnapshotDeclarePayload(_StrictModel):
-    snapshot_id: str = Field(..., min_length=1, validation_alias=AliasChoices("snapshot_id", "id", "cid"))
+    snapshot_id: str = Field(..., min_length=1, )
     hash: str | None = None
     meta: Json | None = None
 
 
 class StateSnapshotAcceptPayload(_StrictModel):
-    snapshot_id: str = Field(..., min_length=1, validation_alias=AliasChoices("snapshot_id", "id", "cid"))
+    snapshot_id: str = Field(..., min_length=1, )
 
 
 class ColdSyncRequestPayload(_StrictModel):
     snapshot_id: str = Field(..., min_length=1)
-    request_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("request_id", "id"))
+    request_id: str | None = Field(default=None, min_length=1, )
 
 
 class ColdSyncCompletePayload(_StrictModel):
-    request_id: str = Field(..., min_length=1, validation_alias=AliasChoices("request_id", "id"))
+    request_id: str = Field(..., min_length=1, )
 
 
 class IndexTopicRegisterPayload(_StrictModel):
-    topic: str = Field(..., min_length=1, validation_alias=AliasChoices("topic", "name"))
+    topic: str = Field(..., min_length=1, )
     config: Json | None = None
 
 
 class IndexTopicAnchorSetPayload(_StrictModel):
     topic: str = Field(..., min_length=1)
-    anchor_id: str = Field(..., min_length=1, validation_alias=AliasChoices("anchor_id", "id", "cid"))
+    anchor_id: str = Field(..., min_length=1, )
 
 
 class TxReceiptEmitPayload(_StrictModel):
-    receipt_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("receipt_id", "id"))
-    tx_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("tx_id", "txhash", "tx_hash"))
+    receipt_id: str | None = Field(default=None, min_length=1, )
+    tx_id: str | None = Field(default=None, min_length=1, )
     tx_type: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
@@ -1547,39 +1509,39 @@ class TxReceiptEmitPayload(_StrictModel):
 
 
 class RoleEligibilitySetPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     role: str = Field(..., min_length=1)
 
 
 class RoleEligibilityRevokePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     role: str = Field(..., min_length=1)
 
 
 class RoleEmissaryNominatePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "emissary", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
 
 
 class RoleEmissaryVotePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "emissary", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
 
 
 class RoleEmissarySeatPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "emissary", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
 
 
 class RoleEmissaryRemovePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "emissary", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
     reason: str | None = None
 
 
 class RoleGovExecutorSetPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "executor", "target", "account", "gov_executor"))
+    account_id: str = Field(..., min_length=1, )
     note: str | None = None
 
 
 class AccountScopedRolePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "juror", "operator", "node_operator", "validator", "target", "account"))
+    account_id: str = Field(..., min_length=1, )
     # Optional responsibility scaffold fields. These are currently used by
     # explicit NODE_OPERATOR_* responsibility transaction types to let an already-active baseline Node Operator
     # opt into validator/storage responsibility with clear production semantics.
@@ -1593,25 +1555,25 @@ class AccountScopedRolePayload(_StrictModel):
     chain_id: str | None = None
     schema_version: str | None = None
     protocol_version: str | None = None
-    bft_pubkey: str | None = Field(default=None, validation_alias=AliasChoices("bft_pubkey", "validator_pubkey", "consensus_pubkey"))
+    bft_pubkey: str | None = Field(default=None, )
     readiness_checks: Json | None = None
     readiness_expires_height: int | None = Field(default=None, ge=0)
     verification_status: str | None = None
     reputation_required_milli: int | None = Field(default=None, ge=0)
     storage_opt_in: bool | None = None
-    declared_capacity_bytes: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("declared_capacity_bytes", "storage_capacity_bytes", "capacity_bytes"))
+    declared_capacity_bytes: int | None = Field(default=None, ge=0, )
     storage_endpoint_commitment: str | None = None
-    node_pubkey: str | None = Field(default=None, validation_alias=AliasChoices("node_pubkey", "node_public_key"))
+    node_pubkey: str | None = Field(default=None, )
     responsibilities: Json | None = None
-    lane: str | None = Field(default=None, validation_alias=AliasChoices("lane", "reviewer_lane", "responsibility_lane"))
+    lane: str | None = Field(default=None, )
     reviewer_lanes: list[str] | None = None
 
 
 class ReputationDeltaApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
+    account_id: str = Field(..., min_length=1, )
     delta: int | float | None = None
     delta_milli: int | None = None
-    delta_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("delta_id", "id"))
+    delta_id: str | None = Field(default=None, min_length=1, )
     reason: str | None = None
 
     @model_validator(mode="after")
@@ -1622,10 +1584,10 @@ class ReputationDeltaApplyPayload(_StrictModel):
 
 
 class ReputationThresholdCrossPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, validation_alias=AliasChoices("account_id", "target", "account", "user"))
-    threshold: str = Field(..., min_length=1, validation_alias=AliasChoices("threshold", "threshold_id"))
+    account_id: str = Field(..., min_length=1, )
+    threshold: str = Field(..., min_length=1, )
     direction: str | None = None
-    cross_id: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("cross_id", "id"))
+    cross_id: str | None = Field(default=None, min_length=1, )
 
 
 class ValidatorRegisterPayload(_StrictModel):
@@ -1690,12 +1652,12 @@ class ValidatorPerformanceReportPayload(_StrictModel):
 
 
 class BlockProposePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    block_id: str = Field(..., min_length=1, )
     height: int = Field(..., ge=1)
 
 
 class BlockAttestPayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    block_id: str = Field(..., min_length=1, )
     validator: str | None = None
     attestation: str | None = None
     vote: str | None = None
@@ -1704,7 +1666,7 @@ class BlockAttestPayload(_StrictModel):
 
 
 class BlockFinalizePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, validation_alias=AliasChoices("block_id", "id"))
+    block_id: str = Field(..., min_length=1, )
     height: int = Field(..., ge=1)
 
 
@@ -1713,8 +1675,8 @@ class EpochTransitionPayload(_StrictModel):
 
 
 class SlashProposePayload(_StrictModel):
-    slash_id: str = Field(..., min_length=1, validation_alias=AliasChoices("slash_id", "id"))
-    subject: str | None = Field(default=None, min_length=1, validation_alias=AliasChoices("subject", "account_id", "account", "target"))
+    slash_id: str = Field(..., min_length=1, )
+    subject: str | None = Field(default=None, min_length=1, )
     reason: str | None = None
     evidence: Json | None = None
 

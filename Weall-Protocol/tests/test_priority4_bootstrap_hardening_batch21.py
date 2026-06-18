@@ -35,6 +35,8 @@ class _FakeExecutor:
         self._schema_version_cached = "1"
         self._bft_enabled = True
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self) -> dict[str, object]:
         return {
             "chain_id": "weall-prod",

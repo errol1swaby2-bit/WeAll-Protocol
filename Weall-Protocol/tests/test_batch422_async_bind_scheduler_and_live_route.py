@@ -44,10 +44,11 @@ def test_live_request_routes_to_expected_room_when_tx_status_lags_batch422() -> 
     assert 'nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)' in body
 
 
-def test_live_juror_cases_alias_exists_for_operator_probes_batch422() -> None:
+def test_live_juror_cases_alias_removed_for_direct_protocol_batch626() -> None:
     route = _read(ROOT / "src/weall/api/routes_public_parts/poh.py")
     api = _read(WEB / "api/weall.ts")
 
     assert '"/poh/live/juror-cases"' in route
-    assert "poh_live_juror_cases" in route
-    assert "pohLiveJurorCases" in api
+    assert "legacy_endpoint_removed" in route
+    assert "pohLiveJurorCases" not in api
+    assert "'/v1/poh/live/assigned'" in api

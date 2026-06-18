@@ -668,7 +668,7 @@
         "route_id": "1f380f1cb2f458e2",
         "route_path_without_v1_prefix": "/poh/operator/live/finalize",
         "source": "src/weall/api/routes_public_parts/poh.py",
-        "source_lineno": 2592,
+        "source_lineno": 2597,
         "summary": "",
         "tags": [
           "poh"
@@ -690,7 +690,7 @@
         "route_id": "161379008d997528",
         "route_path_without_v1_prefix": "/poh/operator/live/init",
         "source": "src/weall/api/routes_public_parts/poh.py",
-        "source_lineno": 2536,
+        "source_lineno": 2541,
         "summary": "",
         "tags": [
           "poh"
@@ -712,7 +712,7 @@
         "route_id": "c2a705c5bbf3ead6",
         "route_path_without_v1_prefix": "/poh/operator/tier2/finalize",
         "source": "src/weall/api/routes_public_parts/poh.py",
-        "source_lineno": 2488,
+        "source_lineno": 2493,
         "summary": "",
         "tags": [
           "poh"

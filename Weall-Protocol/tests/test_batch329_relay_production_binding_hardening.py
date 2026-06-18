@@ -24,6 +24,8 @@ class _SimpleExecutor:
     chain_id = "chain-A"
     tx_index = None
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self) -> dict[str, Any]:
         return {}
 
@@ -142,8 +144,8 @@ def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled_batch
     client = _prod_client(tmp_path, monkeypatch)
 
     response = client.get("/v1/net/relay/fetch", params={"recipient_peer_id": "node-b", "limit": 10})
-    assert response.status_code == 400, response.text
-    assert response.json()["error"]["code"] == "relay_fetch_requires_signed_request"
+    assert response.status_code == 410, response.text
+    assert response.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
 def test_strict_authorized_fetch_and_ack_ignore_legacy_unbound_mailbox_rows_batch329(tmp_path: Path) -> None:

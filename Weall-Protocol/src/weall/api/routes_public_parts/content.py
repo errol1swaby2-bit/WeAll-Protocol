@@ -40,22 +40,13 @@ def _safe_int(x: Any, default: int = 0) -> int:
 
 def _snapshot(request: Request) -> Json:
     ex = getattr(request.app.state, "executor", None)
-    if ex is None:
+    if ex is None or not hasattr(ex, "read_state"):
         return {}
-
-    if hasattr(ex, "read_state"):
-        try:
-            st = ex.read_state()
-            return st if isinstance(st, dict) else {}
-        except Exception:
-            return {}
-
     try:
-        st = ex.snapshot()
+        st = ex.read_state()
         return st if isinstance(st, dict) else {}
     except Exception:
         return {}
-
 
 def _content_root(st: Json) -> Json:
     return _as_dict(st.get("content"))

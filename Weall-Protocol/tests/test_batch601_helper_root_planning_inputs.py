@@ -25,8 +25,8 @@ def _new_executor(tmp_path: Path, name: str, *, chain_id: str) -> WeAllExecutor:
 
 
 def _write_state(ex: WeAllExecutor, state: dict[str, Any]) -> None:
-    ex._store.write_state_snapshot(state)  # type: ignore[attr-defined]
-    ex.state = ex._store.read()  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(state)  # type: ignore[attr-defined]
+    ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
 def _bootstrap_helper_state(ex: WeAllExecutor, *, account_id: str = "@alice") -> None:

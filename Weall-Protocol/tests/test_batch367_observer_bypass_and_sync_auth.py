@@ -120,7 +120,7 @@ def test_observer_upstream_state_sync_requests_send_operator_token_batch367(monk
     assert captured["headers"]["X-weall-operator-token"] == "sync-secret"
 
 
-def test_media_gateway_routes_to_verified_proxy_in_prod_batch367(monkeypatch) -> None:
+def test_media_gateway_legacy_redirect_is_removed_batch626(monkeypatch) -> None:
     cid = _cidv1_raw_sha256(b"legacy gateway cid")
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT", raising=False)
@@ -128,8 +128,8 @@ def test_media_gateway_routes_to_verified_proxy_in_prod_batch367(monkeypatch) ->
     with _client() as client:
         res = client.get(f"/v1/media/gateway/{cid}", follow_redirects=False)
 
-    assert res.status_code in {307, 308}, res.text
-    assert res.headers["location"] == f"/v1/media/proxy/{cid}"
+    assert res.status_code == 410, res.text
+    assert res.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
 def test_media_provider_urls_need_token_even_on_loopback_in_prod_batch367(monkeypatch) -> None:

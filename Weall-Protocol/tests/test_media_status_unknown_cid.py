@@ -19,8 +19,6 @@ class _FakeExecutor:
             "storage": {"pins": {}, "pin_confirms": []},
         }
 
-    def snapshot(self):
-        return self.read_state()
 
     def tx_index_hash(self):
         return "test"

@@ -37,8 +37,8 @@ assertIncludes(lanes, 'DISPUTE_REVIEW_REQUIRED_FOR_ACCEPT_OR_VOTE', 'content rev
 assertIncludes(lanes, 'does not grant dispute juror accept/vote authority', 'content_review authority boundary');
 assertIncludes(lanes, 'Dispute juror review', 'dispute review lane remains explicit');
 
-assertIncludes(router, 'ROUTE_ALIASES', 'route aliases documented separately');
-assertIncludes(router, '"/juror": "/reviews"', 'legacy juror alias documented');
+assertNotIncludes(router, 'ROUTE_ALIASES', 'legacy route aliases must be removed');
+assertNotIncludes(router, '"/juror"', 'legacy juror route alias must be removed');
 assertIncludes(router, '{ href: "/reports", label: "Reports"', 'Reports normal nav item present');
 assertIncludes(app, 'case "/reports":', 'Reports route rendered by App');
 
@@ -54,6 +54,6 @@ assertIncludes(feedView, 'No personalized recommendation ranking is claimed unle
 assertIncludes(api, 'ranking: params?.ranking || params?.rank', 'API client passes explicit ranking when requested');
 
 assertIncludes(liveRoom, 'View verification status', 'unassigned live sessions do not invite room entry');
-assertNotIncludes(liveRoom, 'Open live room</button>', 'pending unassigned live sessions must not say Open live room');
+assertNotIncludes(liveRoom, 'Open live room', 'legacy live-room wording must be removed');
 
 console.log('OK: Batch 623 frontend/API truth-source coherence checks passed');

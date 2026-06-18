@@ -14,7 +14,7 @@ def test_frontend_live_room_route_and_page_exist() -> None:
     assert "./pages/LiveVerificationRoom" in app
     assert 'case "/verification/live/:caseId"' in app
     assert '"/verification/live/:caseId"' in router
-    assert 'r.startsWith("/live/")' in router
+    assert 'r.startsWith("/live/")' not in router
     assert "iframe" in page
     assert "POH_LIVE_ATTENDANCE_MARK" not in page  # uses backend skeleton helpers, not hand-built tx strings
     assert "pohLiveTxAttendance" in page

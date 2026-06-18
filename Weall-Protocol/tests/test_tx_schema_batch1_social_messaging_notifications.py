@@ -59,20 +59,14 @@ def test_batch1_schema_models_registered() -> None:
     [
         ("PROFILE_UPDATE", {"display_name": "Alice", "bio": "Hello", "tags": ["one"]}),
         ("FOLLOW_SET", {"target": "bob", "active": True}),
-        ("FOLLOW_SET", {"account_id": "bob"}),
         ("BLOCK_SET", {"target": "bob"}),
-        ("MUTE_SET", {"account_id": "bob", "active": False}),
         ("CONTENT_SHARE_CREATE", {"target_id": "post:1", "share_id": "share:1"}),
         ("DIRECT_MESSAGE_SEND", _encrypted_dm_payload("bob")),
         ("DIRECT_MESSAGE_SEND", {**_encrypted_dm_payload("bob"), "message_id": "dm:1"}),
         ("DIRECT_MESSAGE_SEND", {**_encrypted_dm_payload("bob"), "thread_id": "dm:alice:bob"}),
-        ("DIRECT_MESSAGE_SEND", {**_encrypted_dm_payload("bob"), "id": "dm:1"}),
         ("DIRECT_MESSAGE_REDACT", {"message_id": "dm:1", "reason": "oops"}),
-        ("DIRECT_MESSAGE_REDACT", {"id": "dm:1"}),
         ("NOTIFICATION_SUBSCRIBE", {"topic": "mentions"}),
-        ("NOTIFICATION_SUBSCRIBE", {"topics": ["mentions", "replies"]}),
         ("NOTIFICATION_UNSUBSCRIBE", {"topic": "mentions"}),
-        ("NOTIFICATION_UNSUBSCRIBE", {"topics": ["mentions"]}),
     ],
 )
 def test_batch1_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:

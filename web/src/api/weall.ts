@@ -848,10 +848,6 @@ export const weall = {
     return apiGet(withSearch('/v1/poh/live/assigned', { juror: account }), base, headers);
   },
 
-  pohLiveJurorCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(withSearch('/v1/poh/live/juror-cases', { juror: account }), base, headers);
-  },
-
   pohLiveMyCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(withSearch('/v1/poh/live/my-cases', { account }), base, headers);
   },
@@ -893,10 +889,6 @@ export const weall = {
     return apiPost("/v1/poh/operator/live/finalize", payload, base, headers);
   },
 
-  pohTier2TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/request", payload, base, headers);
-  },
-
   pohLiveTxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/request", payload, base, headers);
   },
@@ -912,18 +904,6 @@ export const weall = {
 
   pohAsyncTxReview(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/async/tx/review", payload, base, headers);
-  },
-
-  pohTier2TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/juror-accept", payload, base, headers);
-  },
-
-  pohTier2TxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/juror-decline", payload, base, headers);
-  },
-
-  pohTier2TxReview(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/review", payload, base, headers);
   },
 
   pohLiveTxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {

@@ -24,6 +24,10 @@ class ApiError(Exception):
         return ApiError(404, code, message, details or {})
 
     @staticmethod
+    def gone(code: str, message: str, details: dict[str, Any] | None = None) -> ApiError:
+        return ApiError(410, code, message, details or {})
+
+    @staticmethod
     def too_many(code: str, message: str, details: dict[str, Any] | None = None) -> ApiError:
         return ApiError(429, code, message, details or {})
 

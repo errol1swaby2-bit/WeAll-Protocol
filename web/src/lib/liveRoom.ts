@@ -1,4 +1,4 @@
-// centralized URL transport is a compatibility escape hatch; decentralized p2p-webrtc remains the default.
+// Optional hosted URL transport is explicit and access-controlled; decentralized p2p-webrtc remains the default.
 export type WeAllP2PLiveRoomDescriptor = {
   version: "weall-live-room-v1";
   transport: "p2p-webrtc";
@@ -13,12 +13,12 @@ export type WeAllP2PLiveRoomDescriptor = {
 };
 
 const DEFAULT_TRANSPORT_MODE = "p2p";
-const LEGACY_CENTRALIZED_ROOM_BASE_URL = "";
+const OPTIONAL_HOSTED_ROOM_BASE_URL = "";
 const TRUSTED_DEV_LOCAL_ROOM_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/;
 
 function normalizeBaseUrl(raw?: string): string {
   const value = String(raw || "").trim().replace(/\/+$/, "");
-  if (!value) return LEGACY_CENTRALIZED_ROOM_BASE_URL;
+  if (!value) return OPTIONAL_HOSTED_ROOM_BASE_URL;
   return value;
 }
 
@@ -41,9 +41,9 @@ function isSelfHostedOrAccessControlled(value: string): boolean {
     const url = new URL(value);
     const host = url.hostname.toLowerCase();
     if (host === "meet.jit.si" || host.endsWith(".jit.si")) return false;
-    // Centralized URL transport is a compatibility escape hatch only. The
-    // default WeAll live verification room is decentralized peer-to-peer;
-    // hosted rooms must be explicit, self-hosted, and access controlled.
+    // Hosted URL transport is optional only. The default WeAll live
+    // verification room is decentralized peer-to-peer; hosted rooms must be
+    // explicit, self-hosted, and access controlled.
     return url.protocol === "https:" && !host.includes("meet.jit.si");
   } catch {
     return false;

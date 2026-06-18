@@ -9,6 +9,8 @@ class _FakeExecutor:
     def __init__(self, state: dict) -> None:
         self._state = state
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self) -> dict:
         return self._state
 

@@ -3,6 +3,11 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
+from weall.runtime.session_keys import session_record_key
+
+
+def _session_keys(raw_key: str) -> dict:
+    return {session_record_key(raw_key): {"active": True, "ttl_s": 0}}
 
 
 class DummyExecutor:
@@ -17,6 +22,13 @@ def _state() -> dict:
     return {
         "chain_id": "test",
         "height": 1,
+        "time": 1,
+        "accounts": {
+            "@alice": {"nonce": 0, "poh_tier": 1, "session_keys": _session_keys("sk-alice")},
+            "@j1": {"nonce": 0, "poh_tier": 2, "session_keys": _session_keys("sk-j1")},
+            "@j2": {"nonce": 0, "poh_tier": 2, "session_keys": _session_keys("sk-j2")},
+            "@mallory": {"nonce": 0, "poh_tier": 2, "session_keys": _session_keys("sk-mallory")},
+        },
         "poh": {
             "live_cases": {
                 "case1": {
@@ -64,7 +76,7 @@ def test_live_room_presence_is_transport_only_and_ephemeral() -> None:
             "display_name": "Reviewer 1",
             "ts_ms": 123,
         },
-        headers={"x-weall-account": "@j1"},
+        headers={"x-weall-account": "@j1", "x-weall-session-key": "sk-j1"},
     )
     assert r.status_code == 200, r.text
     body = r.json()
@@ -91,7 +103,7 @@ def test_live_room_presence_requires_case_participant() -> None:
     r = c.post(
         "/v1/poh/live/session/session:case1/presence",
         json={"account_id": "@mallory", "status": "joined", "ts_ms": 123},
-        headers={"x-weall-account": "@mallory"},
+        headers={"x-weall-account": "@mallory", "x-weall-session-key": "sk-mallory"},
     )
     assert r.status_code == 403
     assert r.json()["error"]["message"] == "live_room_participant_required"

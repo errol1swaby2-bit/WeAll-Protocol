@@ -43,7 +43,7 @@ def test_production_request_with_wrong_node_key_enters_maintenance(tmp_path: Pat
     st["roles"] = {"validators": {"active_set": ["@v1", "@v2", "@v3", "@v4"]}}
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]
-    ex._store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
 
     lifecycle = ex.node_lifecycle_status()
     assert lifecycle["effective_state"] == "maintenance_restricted"
@@ -86,7 +86,7 @@ def test_production_request_requires_requested_roles_to_be_active(tmp_path: Path
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]
-    ex._store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
 
     lifecycle = ex.node_lifecycle_status()
     assert lifecycle["effective_state"] == "maintenance_restricted"

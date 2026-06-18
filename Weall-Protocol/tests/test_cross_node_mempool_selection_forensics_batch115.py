@@ -22,7 +22,7 @@ def _mk_executor(tmp_path: Path, name: str, chain_id: str) -> WeAllExecutor:
 
 
 def _write_state(ex: WeAllExecutor, state: dict) -> None:
-    ex._store.write_state_snapshot(state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(state)  # type: ignore[attr-defined]
     ex.state = ex.read_state()
 
 

@@ -9,6 +9,8 @@ class _DummyExecutor:
         self._wants = [dict(item) for item in wants]
         self.cached: list[dict] = []
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self) -> dict:
         return {}
 

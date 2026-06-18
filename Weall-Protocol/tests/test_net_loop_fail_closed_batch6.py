@@ -70,6 +70,8 @@ class _GoodTxMempool:
 class _ExecutorWithBadSnapshot:
     tx_index = None
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         raise ValueError("snapshot boom")
 
@@ -79,6 +81,8 @@ class _ExecutorSimple:
 
     chain_id = "chain-A"
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {}
 

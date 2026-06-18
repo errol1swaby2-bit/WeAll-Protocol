@@ -52,7 +52,7 @@ def test_status_consensus_forensics_surfaces_profile_compatibility(tmp_path: Pat
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]
-    ex._store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
 
     app = FastAPI()
     app.include_router(status_router, prefix="/v1")

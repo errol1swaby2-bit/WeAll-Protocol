@@ -198,7 +198,8 @@ def test_seeded_demo_direct_login_stores_hashed_session_key_batch287(monkeypatch
 
 def test_frontend_key_storage_never_writes_secret_to_localstorage_batch287() -> None:
     text = (OUTER_ROOT / "web/src/auth/keys.ts").read_text(encoding="utf-8")
-    assert "localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(legacyStored))" not in text
+    assert "KEYRING_PREFIX" not in text
+    assert "localStorage.setItem(`${KEYRING_PREFIX}${normalized}`" not in text
     assert "secretKey: secretKeyB64" not in text
     assert "secretKeyB64," not in text.split("export function saveKeypair", 1)[1].split("export function loadKeypair", 1)[0]
     assert "sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64)" in text

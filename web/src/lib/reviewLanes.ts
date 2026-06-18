@@ -74,3 +74,30 @@ export const REVIEW_LANES: ReviewLane[] = [
 export function reviewLaneById(id: string): ReviewLane | undefined {
   return REVIEW_LANES.find((lane) => lane.id === id);
 }
+
+
+export type ReviewLaneStatus = {
+  active: boolean;
+  optedIn: boolean;
+  label: "Active" | "Opted in, paused/inactive" | "Not opted in";
+  tone: "ok" | "warning" | "";
+  canOptIn: boolean;
+  canOptOut: boolean;
+};
+
+export function reviewLaneStatusFromTruth(raw: unknown): ReviewLaneStatus {
+  const rec = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, any>) : {};
+  const active = rec.active === true;
+  const optedIn = rec.opted_in === true || active || String(rec.status || "").toLowerCase().includes("opted_in");
+  if (active) {
+    return { active: true, optedIn: true, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
+  }
+  if (optedIn) {
+    return { active: false, optedIn: true, label: "Opted in, paused/inactive", tone: "warning", canOptIn: false, canOptOut: true };
+  }
+  return { active: false, optedIn: false, label: "Not opted in", tone: "", canOptIn: true, canOptOut: false };
+}
+
+export function reviewLaneStatusPillClass(status: ReviewLaneStatus): string {
+  return `statusPill ${status.tone}`.trim();
+}

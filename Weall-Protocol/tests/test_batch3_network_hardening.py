@@ -18,6 +18,8 @@ class _Exec:
             "pending_fetch_requests": ["b4", "b5", "b6"],
         }
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {"height": 0}
 

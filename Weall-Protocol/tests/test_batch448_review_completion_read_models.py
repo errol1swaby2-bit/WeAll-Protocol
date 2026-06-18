@@ -210,10 +210,14 @@ def test_batch448_completed_poh_cases_leave_active_reviewer_queues_by_default() 
     assert [case["case_id"] for case in tier2_default] == ["tier2:open"]
     assert [case["case_id"] for case in tier2_all] == ["tier2:done", "tier2:open"]
 
-    live_default = client.get("/v1/poh/live/juror-cases?juror=%40genesis").json()["cases"]
-    live_all = client.get("/v1/poh/live/juror-cases?juror=%40genesis&include_completed=1").json()["cases"]
+    live_default = client.get("/v1/poh/live/assigned?juror=%40genesis").json()["cases"]
+    live_all = client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1").json()["cases"]
     assert [case["case_id"] for case in live_default] == ["live:open"]
     assert [case["case_id"] for case in live_all] == ["live:done", "live:open"]
+
+    removed = client.get("/v1/poh/live/juror-cases?juror=%40genesis")
+    assert removed.status_code == 410
+    assert removed.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
 def test_batch448_frontend_uses_viewer_auth_and_filters_completed_review_work() -> None:

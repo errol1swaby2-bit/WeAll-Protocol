@@ -24,6 +24,8 @@ class _StubExecutor:
             "system_queue": [],
         }
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return self._state
 
@@ -48,7 +50,7 @@ def test_operator_live_init_enqueues_canonical_system_tx_type(monkeypatch) -> No
     assert response.status_code == 200, response.text
 
     executor = app.state.executor
-    state = executor.snapshot()
+    state = executor.read_state()
     queue = list(state.get("system_queue") or [])
     assert queue, "expected system tx to be enqueued"
     assert str(queue[-1].get("tx_type") or "") == "POH_LIVE_SESSION_INIT"

@@ -73,7 +73,6 @@ export type RouteMatch =
   | { path: "/verification/live/:caseId"; caseId: string }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
-  | { path: "/juror" }
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
@@ -88,7 +87,6 @@ export type RouteMatch =
   | { path: "/settings" }
   | { path: "/session" }
   | { path: "/advanced" }
-  | { path: "/tools" }
   | { path: "/transactions" }
   | { path: "/economics" }
   | { path: "/node" }
@@ -301,25 +299,6 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       primaryObject: "Assigned review",
       contextPanelData: "Review instructions, assignment state, and action feedback",
       blockingDependencies: ["Account session", "Exact reviewer lane responsibility", "Assignment state"],
-    }),
-  },
-  "/juror": {
-    section: "Review Center",
-    label: "Review Center",
-    title: "Review Center",
-    description: "Legacy reviewer route alias to the lane-separated Review Center. Exact reviewer lane opt-in is still required for actions.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 2,
-    mode: "hub",
-    fab: "none",
-    rightRail: "reviews",
-    normalNav: false,
-    dataContract: contract({
-      primaryObject: "Review Center",
-      contextPanelData: "Assigned reports, verification reviews, lane consent, and review eligibility",
-      blockingDependencies: ["Account session", "Trusted verification", "Active Juror role or badge", "Exact reviewer lane responsibility"],
     }),
   },
   "/groups": {
@@ -581,25 +560,6 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: ["Account session", "Advanced mode"],
     }),
   },
-  "/tools": {
-    section: "Advanced",
-    label: "Tools",
-    title: "Tools",
-    description: "Legacy technical tools route alias hidden from normal social navigation.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    mode: "advanced",
-    fab: "none",
-    rightRail: "advanced",
-    normalNav: false,
-    advancedOnly: true,
-    dataContract: contract({
-      primaryObject: "Advanced tools",
-      contextPanelData: "Developer and operator tools",
-      blockingDependencies: ["Advanced mode"],
-    }),
-  },
   "/transactions": {
     section: "Advanced",
     label: "Technical Action History",
@@ -731,19 +691,6 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
   },
 };
 
-export const ROUTE_ALIASES: Record<string, RouteMatch["path"]> = {
-  "/juror": "/reviews",
-  "/poh": "/verification",
-  "/live": "/verification/live/:caseId",
-  "/proposals": "/decisions",
-  "/disputes": "/reports",
-  "/operator": "/node",
-  "/tools": "/advanced",
-  "/network": "/advanced",
-  "/developer": "/advanced",
-  "/wallet": "/economics",
-};
-
 const LS_RETURN_TO = "weall_return_to_v1";
 
 const NAV_SECTIONS: NavSection[] = [
@@ -779,25 +726,16 @@ function decodeRoutePart(value: string): string {
   }
 }
 
-// Legacy source compatibility: r === "/node" || r === "/operator" is now represented by ROUTE_ALIASES.
 export function matchRoute(path: string): RouteMatch {
-  let r = path.split("?")[0];
-  const canonicalAlias = ROUTE_ALIASES[r];
-  if (canonicalAlias && !canonicalAlias.includes(":")) {
-    r = canonicalAlias;
-  }
+  const r = path.split("?")[0];
 
   if (r === "/" || r === "/login") return { path: "/login" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
-  if (r === "/create" || r === "/post") return { path: "/create" };
+  if (r === "/create") return { path: "/create" };
   if (r === "/verification") return { path: "/verification" };
   if (r.startsWith("/verification/live/")) {
     const caseId = decodeRoutePart(r.slice("/verification/live/".length));
-    if (caseId) return { path: "/verification/live/:caseId", caseId };
-  }
-  if (r.startsWith("/live/")) {
-    const caseId = decodeRoutePart(r.slice("/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
   }
   if (r === "/reviews") return { path: "/reviews" };
@@ -810,7 +748,7 @@ export function matchRoute(path: string): RouteMatch {
     if (id) return { path: "/messages/:id", id };
   }
   if (r === "/decisions") return { path: "/decisions" };
-  if (r === "/decisions/create" || r === "/proposals/create") return { path: "/decisions/create" };
+  if (r === "/decisions/create") return { path: "/decisions/create" };
   if (r === "/reports") return { path: "/reports" };
   if (r === "/settings") return { path: "/settings" };
   if (r === "/session") return { path: "/session" };
@@ -830,16 +768,6 @@ export function matchRoute(path: string): RouteMatch {
     if (id) return { path: "/reports/:id", id };
   }
 
-  if (r.startsWith("/disputes/")) {
-    const tail = r.slice("/disputes/".length);
-    if (tail.endsWith("/review")) {
-      const id = decodeRoutePart(tail.slice(0, -"/review".length));
-      if (id) return { path: "/reviews/:id", id };
-    }
-    const id = decodeRoutePart(tail);
-    if (id) return { path: "/reports/:id", id };
-  }
-
   if (r.startsWith("/groups/")) {
     const id = decodeRoutePart(r.slice("/groups/".length));
     if (id) return { path: "/groups/:id", id };
@@ -847,16 +775,6 @@ export function matchRoute(path: string): RouteMatch {
 
   if (r.startsWith("/decisions/")) {
     const id = decodeRoutePart(r.slice("/decisions/".length));
-    if (id) return { path: "/decisions/:id", id };
-  }
-
-  if (r.startsWith("/proposal/")) {
-    const id = decodeRoutePart(r.slice("/proposal/".length));
-    if (id) return { path: "/decisions/:id", id };
-  }
-
-  if (r.startsWith("/proposals/")) {
-    const id = decodeRoutePart(r.slice("/proposals/".length));
     if (id) return { path: "/decisions/:id", id };
   }
 

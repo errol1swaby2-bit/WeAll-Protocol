@@ -57,8 +57,6 @@ class _ObserverExecutor:
             },
         }
 
-    def snapshot(self) -> dict[str, object]:
-        return self.read_state()
 
     def tx_index_hash(self) -> str:
         return "txhash"

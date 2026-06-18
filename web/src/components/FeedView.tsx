@@ -262,6 +262,11 @@ export default function FeedView({
   const rankingTruth = rankingInfo
     ? `Backend ranking mode: ${rankingModeLabel}. Deterministic: ${rankingInfo.deterministic === false ? "not claimed" : "yes"}. Personalized: ${rankingPersonalized ? "yes" : "no"}.`
     : `Backend ranking mode: ${rankingModeLabel}. Waiting for response metadata from this endpoint.`;
+  const rankingOrderText = rankingModeLabel === "production"
+    ? "ordered by backend production ranking"
+    : rankingModeLabel === "balanced"
+      ? "ordered by backend balanced ranking"
+      : "ordered by backend recency ranking";
 
   function collectMediaIds(pageItems: any[]): string[] {
     const out: string[] = [];
@@ -507,7 +512,7 @@ export default function FeedView({
 
   const emptyNote =
     scope?.kind === "group"
-      ? "This group feed has not received visible posts yet. Once members publish here, they will appear newest-first."
+      ? "This group feed has not received visible posts yet. Once members publish here, they will appear according to the selected backend ranking mode."
       : scope?.kind === "account"
         ? "This account does not have visible posts in the selected view yet."
         : "This feed is empty for now. Once people start posting, new posts will appear here.";
@@ -642,7 +647,7 @@ export default function FeedView({
                     </div>
                     <div className="actionStateRow" aria-label="Feed item source">
                       <span className="actionStateLabel">Why this appears</span>
-                      <span className="actionStateText">Returned by {scopeEndpointLabel(scope)} as visible {visibility} protocol activity; ordered newest-first by backend state.</span>
+                      <span className="actionStateText">Returned by {scopeEndpointLabel(scope)} as visible {visibility} protocol activity; {rankingOrderText}.</span>
                     </div>
                   </div>
 

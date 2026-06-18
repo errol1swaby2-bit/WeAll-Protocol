@@ -107,30 +107,18 @@ def _safe_bool(v: Any, default: bool = False) -> bool:
 
 
 
-def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
-    if ex is None:
-        return None
-    snap = getattr(ex, "snapshot", None)
-    if not callable(snap):
-        return None
-    try:
-        out = snap()
-        return out if isinstance(out, dict) else None
-    except Exception:
-        return None
-
 
 def _try_read_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
     fn = getattr(ex, "read_state", None)
     if not callable(fn):
-        return _try_executor_snapshot(ex)
+        return None
     try:
         out = fn()
         return out if isinstance(out, dict) else None
     except Exception:
-        return _try_executor_snapshot(ex)
+        return None
 
 
 def _tx_index_hash(ex: Any, state: Mapping[str, Any]) -> str:
@@ -436,7 +424,7 @@ def _transition_guardrail_diagnostics(ex: Any) -> dict[str, Any]:
 
 
 def _mempool_selection_last_diagnostics(ex: Any) -> dict[str, Any]:
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     persisted = meta.get("mempool_selection_last") if isinstance(meta.get("mempool_selection_last"), dict) else None
     if isinstance(persisted, dict):
@@ -465,7 +453,7 @@ def _node_lifecycle_diagnostics(ex: Any) -> dict[str, Any]:
                 return dict(out)
         except Exception:
             pass
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     node_lifecycle = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
     if isinstance(node_lifecycle, dict):
@@ -576,7 +564,7 @@ def _genesis_bootstrap_diagnostics(state: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _startup_posture_diagnostics(ex: Any, app_state: Any = None) -> dict[str, Any]:
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     authority_contract = _authority_contract_diagnostics(ex, state, app_state)
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     warning = meta.get("clock_warning") if isinstance(meta.get("clock_warning"), dict) else None
@@ -613,7 +601,7 @@ def _helper_reputation_diagnostics(ex: Any) -> dict[str, Any]:
         state = nested.get("state") if isinstance(nested.get("state"), dict) else None
         if isinstance(state, dict):
             return dict(state)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     rep = meta.get("helper_reputation") if isinstance(meta.get("helper_reputation"), dict) else None
     if isinstance(rep, dict):
@@ -857,7 +845,7 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
 
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
 
     chain_id = _safe_str(state.get("chain_id") or os.environ.get("WEALL_CHAIN_ID"), "")
     node_id = _safe_str(
@@ -925,7 +913,7 @@ def status_launch_matrix(request: Request) -> dict[str, Any]:
     Runtime apply/admission paths remain authoritative for actual mutation.
     """
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     runtime = launch_matrix_from_state(state if isinstance(state, dict) else {})
     canonical = launch_matrix_payload()
     return {
@@ -952,7 +940,7 @@ def status_testnet_capabilities(request: Request) -> dict[str, Any]:
     protocol upgrades, or production helper execution.
     """
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     payload = build_testnet_capability_surface(state if isinstance(state, dict) else {})
     return {"ok": True, **payload, "protocol_time": protocol_time_height(state if isinstance(state, dict) else {})}
 
@@ -963,7 +951,7 @@ def status_operator(request: Request) -> dict[str, Any]:
     _env_bool("WEALL_ENABLE_PUBLIC_DEBUG", False)
 
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
     helper_exec = _helper_execution_diagnostics(ex)
@@ -1053,7 +1041,7 @@ def status_operator(request: Request) -> dict[str, Any]:
 @router.get("/status/consensus")
 def status_consensus(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
     helper_exec = _helper_execution_diagnostics(ex)
@@ -1123,7 +1111,7 @@ def status_consensus_forensics(request: Request) -> dict[str, Any]:
     helper_reputation = _helper_reputation_diagnostics(ex)
     transition_guardrails = _transition_guardrail_diagnostics(ex)
     startup_posture = _startup_posture_diagnostics(ex, request.app.state)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     return {
         "ok": True,
         "chain_id": _safe_str(getattr(ex, "chain_id", None), _safe_str(state.get("chain_id"), "")),
@@ -1190,7 +1178,7 @@ def status_attestations(request: Request) -> dict[str, Any]:
 
 def _chain_identity_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     finalized = state.get("finalized") if isinstance(state.get("finalized"), dict) else {}
 
@@ -1295,7 +1283,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
 
     ident = _chain_identity_payload(request)
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     mode = _safe_str(os.environ.get("WEALL_MODE") or ident.get("chain_manifest", {}).get("mode"), "prod")
     manifest = ident.get("chain_manifest") if isinstance(ident.get("chain_manifest"), dict) else {}
     constitution = ident.get("constitution") if isinstance(ident.get("constitution"), dict) else {}
@@ -1445,7 +1433,7 @@ def chain_manifest(request: Request) -> dict[str, Any]:
 @router.get("/chain/head")
 def chain_head(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     return {
         "ok": True,
         "chain_id": _safe_str(state.get("chain_id"), ""),

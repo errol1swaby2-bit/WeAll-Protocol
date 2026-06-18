@@ -60,10 +60,10 @@ def _helper_release_gate_report(app_state: Any):
 def _chain_id(request: Request) -> str:
     ex = getattr(request.app.state, "executor", None)
     if ex is not None:
-        snap = getattr(ex, "snapshot", None)
-        if callable(snap):
+        read_state = getattr(ex, "read_state", None)
+        if callable(read_state):
             try:
-                out = snap()
+                out = read_state()
                 if isinstance(out, dict):
                     cid = _safe_str(out.get("chain_id"), "")
                     if cid:

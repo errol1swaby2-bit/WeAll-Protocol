@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "api": 95,
+    "api": 100,
     "runtime": 7,
     "runtime_apply": 70
   },
@@ -111,7 +111,7 @@
       "http_status": 400,
       "sample_reason": "invalid relay fetch body",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 221
+      "source_lineno": 202
     },
     {
       "code": "bad_request",
@@ -120,7 +120,7 @@
       "http_status": 400,
       "sample_reason": "missing account",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 510
+      "source_lineno": 508
     },
     {
       "code": "bad_request",
@@ -183,7 +183,7 @@
       "http_status": 403,
       "sample_reason": "account is banned",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 277
+      "source_lineno": 269
     },
     {
       "code": "chain_id_mismatch",
@@ -312,6 +312,15 @@
       "source_lineno": 502
     },
     {
+      "code": "executor_read_state_required",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "executor must expose read_state",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 94
+    },
+    {
       "code": "forbidden",
       "domain": "api",
       "family": "ApiError.forbidden",
@@ -345,7 +354,7 @@
       "http_status": 403,
       "sample_reason": "live_room_participant_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1135
+      "source_lineno": 1140
     },
     {
       "code": "forbidden",
@@ -561,7 +570,7 @@
       "http_status": 403,
       "sample_reason": "PoH Tier 2 / Live Verified Human is required to create/edit/delete posts",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 330
+      "source_lineno": 322
     },
     {
       "code": "insufficient_storage",
@@ -606,7 +615,7 @@
       "http_status": 400,
       "sample_reason": "missing signer",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 260
+      "source_lineno": 252
     },
     {
       "code": "invalid_payload",
@@ -786,7 +795,7 @@
       "http_status": 400,
       "sample_reason": "signer does not match required account id format",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 263
+      "source_lineno": 255
     },
     {
       "code": "invalid_state",
@@ -978,13 +987,58 @@
       "source_lineno": 181
     },
     {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
+      "source": "src/weall/api/routes_nodes.py",
+      "source_lineno": 240
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "direct media gateway redirect has been removed; use /v1/media/proxy/{cid}",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 969
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "unsigned relay fetch has been removed; use POST /v1/net/relay/fetch with a signed access_request",
+      "source": "src/weall/api/routes_public_parts/net_relay.py",
+      "source_lineno": 185
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
+      "source": "src/weall/api/routes_public_parts/nodes.py",
+      "source_lineno": 17
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 915
+    },
+    {
       "code": "locked",
       "domain": "api",
       "family": "ApiError.forbidden",
       "http_status": 403,
       "sample_reason": "account is locked",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 279
+      "source_lineno": 271
     },
     {
       "code": "login_proof_stale",
@@ -1020,7 +1074,7 @@
       "http_status": 429,
       "sample_reason": "observer media fetch budget is busy",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1135
+      "source_lineno": 1133
     },
     {
       "code": "media_integrity_verification_unavailable",
@@ -1038,7 +1092,7 @@
       "http_status": 404,
       "sample_reason": "media is not cached on this observer",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1126
+      "source_lineno": 1124
     },
     {
       "code": "media_provider_unavailable",
@@ -1074,7 +1128,7 @@
       "http_status": 403,
       "sample_reason": "media proxy cache-disabled redirect bypasses observer integrity verification",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1099
+      "source_lineno": 1097
     },
     {
       "code": "missing_chain_id",
@@ -1110,7 +1164,7 @@
       "http_status": 400,
       "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2436
+      "source_lineno": 2441
     },
     {
       "code": "missing_live_session_commitment",
@@ -1119,7 +1173,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2989
+      "source_lineno": 2886
     },
     {
       "code": "missing_sig",
@@ -1344,7 +1398,7 @@
       "http_status": 403,
       "sample_reason": "signer account is not registered",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 273
+      "source_lineno": 265
     },
     {
       "code": "not_validator",
@@ -1353,7 +1407,7 @@
       "http_status": 403,
       "sample_reason": "signer is not in the active validator set",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 353
+      "source_lineno": 345
     },
     {
       "code": "observer_edge_mempool_submit_disabled",
@@ -1428,15 +1482,6 @@
       "source_lineno": 1394
     },
     {
-      "code": "relay_fetch_requires_signed_request",
-      "domain": "api",
-      "family": "ApiError.bad_request",
-      "http_status": 400,
-      "sample_reason": "relay fetch requires a signed recipient request",
-      "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 188
-    },
-    {
       "code": "relay_not_ready",
       "domain": "api",
       "family": "ApiError.internal",
@@ -1461,7 +1506,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 459
+      "source_lineno": 457
     },
     {
       "code": "session_not_ready",
@@ -1470,7 +1515,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3070
+      "source_lineno": 2967
     },
     {
       "code": "session_required",
@@ -1479,7 +1524,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 440
+      "source_lineno": 438
     },
     {
       "code": "sig_required",
@@ -1506,7 +1551,7 @@
       "http_status": 403,
       "sample_reason": "SYSTEM-signed txs are not accepted via public submission endpoints",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 297
+      "source_lineno": 289
     },
     {
       "code": "system_tx_forbidden",
@@ -1554,11 +1599,12 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 172,
+  "entry_count": 177,
   "scanner": {
     "families": [
       "ApiError.bad_request",
       "ApiError.forbidden",
+      "ApiError.gone",
       "ApiError.internal",
       "ApiError.invalid",
       "ApiError.not_found",
@@ -1590,6 +1636,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 66,
+  "unique_code_count": 67,
   "version": "2026-06-batch10a"
 }

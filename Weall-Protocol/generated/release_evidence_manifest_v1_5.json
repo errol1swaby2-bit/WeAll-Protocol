@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "e0676d1102abfc15fae312b0499a36f6649ae85f51f98c611bca25d6070fae30",
+  "artifact_digest": "1b1fe89080ee61a5ef5833feb6f3e753d2e698981065f6b033b781856d19dc32",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -53,28 +53,28 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "40019fdef9cb202b674f4d0f946f9c9012fc9cd0277dd82189f14c9905444b21",
+      "file_sha256": "4b7cc44b51f630bdb0fd3d6e7aca3037000987ee16373ff6882ad53d37095981",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
       "schema": "weall.api_contract_map.v1_5"
     },
     "generated/api_response_vectors_v1_5.json": {
-      "file_sha256": "699ede5f08be99632a8be484ea20c7f3ce8d6336676fbf2c6cb926eca6312964",
+      "file_sha256": "9e9abc015927362128d089a10702f29b99fd1b081b2028bce82d8449dd8d8a69",
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
-      "file_sha256": "4fb17123fef720c4504bd2ab2c6e6b3d58232b5511aa7bf0b9433ff4c013320f",
+      "file_sha256": "eef860fe73e064a4192b02a5deecee4f08f21df46da296edad4b579f57b728d3",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "625f763fe5e771c29e6f941a0a9a6ec72cca8334c0204b874508fbdaad810c17",
+      "file_sha256": "f233a303f54b05ea29e7dbff42b3f8fac801ce13a3458343ec787c553f7ff578",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -88,7 +88,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "bf565bf1c56813ef68b70135364a58bb4def6786f5a3b590065781994a7d28b7",
+      "file_sha256": "1f9f506cb03171eeea8588ea92cf187758aa7776942d4b1e2b087f41ab09f2d3",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

@@ -184,6 +184,16 @@ async function main() {
     }
 
     {
+      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/reviewer-status`);
+      if (assertOk(`GET /v1/accounts/${ACCOUNT}/reviewer-status`, r)) {
+        if (r.body && typeof r.body === "object") {
+          assertHas(r.body, "ok", "reviewer status body");
+          assertHas(r.body, "reviewer", "reviewer status body");
+        }
+      }
+    }
+
+    {
       const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=public`);
       assertOk(`GET /v1/accounts/${ACCOUNT}/feed (public)`, r);
     }
@@ -195,7 +205,7 @@ async function main() {
       pass("Skipping private account feed (set SESSION_KEY to test)");
     }
   } else {
-    pass("Skipping account checks (set ACCOUNT to test)");
+    pass("Skipping account checks and reviewer-status contract check (set ACCOUNT to test)");
   }
 
   console.log("");

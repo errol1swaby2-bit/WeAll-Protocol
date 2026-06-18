@@ -185,6 +185,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const canCheckIn = !!myJuror && myJuror.accepted === true && myJuror.attended !== true && !isFinal;
   const canVote = !!myJuror && myJuror.accepted === true && myJuror.attended === true && String(myJuror.role || "") === "interacting" && !myJuror.verdict && !isFinal;
   const canPresenceCheckIn = !!account && (isSubject || !!myJuror) && !!sessionId;
+  const readOnlyStatusView = statusOnlyMode && !isSubject && !myJuror;
   const p2pParticipantAccounts = useMemo(() => {
     const out = new Set<string>();
     const subject = normalizeAccount(liveCase?.account_id);
@@ -707,7 +708,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               <h1 className="pageTitle">{title}</h1>
               <p className="cardDesc">
                 {statusOnlyMode && !isSubject && !myJuror
-                  ? "This read-only status view is for pending live verification records before the current account receives a reviewer assignment. Open live room controls unlock only for the subject or assigned reviewers."
+                  ? "This read-only status view is for pending live verification records before the current account receives a reviewer assignment. Live room transport controls unlock only for the subject or assigned reviewers."
                   : "Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative."}
               </p>
             </div>
@@ -740,11 +741,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Video room</div>
-                <h2 className="cardTitle">Conference feed</h2>
+                <h2 className="cardTitle">{readOnlyStatusView ? "Read-only live status" : "Conference feed"}</h2>
               </div>
-              {roomUrl ? <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">Open room</a> : null}
+              {!readOnlyStatusView && roomUrl ? <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">Open room</a> : null}
             </div>
-            {roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
+            {readOnlyStatusView ? (
+              <div className="videoPlaceholder">
+                <strong>Read-only status view</strong>
+                <p>This account is not the subject or an assigned reviewer for this live verification case, so room transport, Open room links, embedded video, and P2P media controls stay hidden.</p>
+                <p>Use the status cards and technical commitments to verify that the case exists without implying live-room authority.</p>
+              </div>
+            ) : roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
               <iframe
                 className="liveRoomFrame"
                 src={roomUrl}
@@ -754,7 +761,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             ) : roomUrl ? (
               <div className="videoPlaceholder">
                 <strong>Compatibility room link ready</strong>
-                <p>Open the compatibility transport in a separate tab. This page records attendance, verdicts, and finalization on-chain.</p>
+                <p>Open the self-hosted transport in a separate tab. This page records attendance, verdicts, and finalization on-chain.</p>
               </div>
             ) : (
               <div className="p2pRoomPanel">
@@ -794,7 +801,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 </div>
               </div>
             )}
-            {p2pRoomDescriptor ? (
+            {!readOnlyStatusView && p2pRoomDescriptor ? (
               <details className="advancedDetails" open={!roomUrl}>
 
             <p className="text-sm text-slate-600">Use the decentralized P2P room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
@@ -802,26 +809,30 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 <pre className="jsonBlock">{p2pRoomDescriptor}</pre>
               </details>
             ) : null}
-            <div className="toggleRow">
-              <label><input type="checkbox" checked={cameraEnabled} onChange={(e) => setCameraEnabled(e.currentTarget.checked)} /> Camera on</label>
-              <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
-            </div>
-            <div className="buttonRow">
-              <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in + start media</button>
-              <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
-              <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
-              <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>
-              <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
-              <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
-            </div>
-            <details className="advancedDetails">
+            {!readOnlyStatusView ? (
+              <>
+                <div className="toggleRow">
+                  <label><input type="checkbox" checked={cameraEnabled} onChange={(e) => setCameraEnabled(e.currentTarget.checked)} /> Camera on</label>
+                  <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
+                </div>
+                <div className="buttonRow">
+                  <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in + start media</button>
+                  <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>
+                  <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
+                  <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
+                </div>
+              </>
+            ) : null}
+            {!readOnlyStatusView ? <details className="advancedDetails">
               <summary>TURN / relay config</summary>
               <p className="cardDesc">External networks often need TURN. These browser-local settings are transport-only and never become verification authority.</p>
               <textarea value={iceConfigText} onChange={(e) => setIceConfigText(e.target.value)} rows={4} placeholder='[{"urls":"turn:turn.example.org","username":"user","credential":"pass"}]' />
               <div className="buttonRow"><button className="btn" onClick={saveIceConfig}>Save ICE/TURN config</button></div>
               {iceDiag.relayRecommended ? <div className="calloutInfo">No TURN relay is configured. Same-LAN tests may work, but external participants will likely need TURN.</div> : null}
-            </details>
-            <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
+            </details> : null}
+            {!readOnlyStatusView ? <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
               <div className="eyebrow">In-call chain voting</div>
               <h3 className="cardTitle">Reviewer vote inside the WebRTC room</h3>
               {!myJuror ? (
@@ -846,7 +857,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   {!canVote && !isFinal ? <p className="helpText">Voting unlocks only for an assigned interacting reviewer after review acceptance and on-chain attendance.</p> : null}
                 </>
               )}
-            </div>
+            </div> : null}
           </div>
         </article>
 

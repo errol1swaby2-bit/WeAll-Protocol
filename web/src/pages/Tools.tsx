@@ -400,10 +400,10 @@ export default function Tools(): JSX.Element {
               <button className="btn" onClick={() => nav("/post")}>
                 Create Post
               </button>
-              <button className="btn" onClick={() => nav("/juror")}>
+              <button className="btn" onClick={() => nav("/reviews")}>
                 Juror
               </button>
-              <button className="btn" onClick={() => nav("/proposals")}>
+              <button className="btn" onClick={() => nav("/decisions")}>
                 Governance
               </button>
             </div>

@@ -14,7 +14,7 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { verificationLabel } from "../lib/userLanguage";
-import { REVIEW_CENTER_LABEL, REVIEW_LANES, type ReviewLaneId } from "../lib/reviewLanes";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, reviewLaneStatusFromTruth, reviewLaneStatusPillClass, type ReviewLaneId } from "../lib/reviewLanes";
 
 const REVIEWER_LANE_IDS: ReviewLaneId[] = ["content_review", "dispute_review", "poh_async_review", "poh_live_review"];
 
@@ -100,7 +100,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "validatorPause" | "nodePause" | null>(null);
+  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -190,13 +190,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const reviewerEnrolled = reviewerTruth.enrolled === true;
   const reviewerActive = reviewerTruth.active === true;
   const reviewerLaneLabels = REVIEW_LANES.filter((lane) => REVIEWER_LANE_IDS.includes(lane.id)).map((lane) => ({ lane: lane.id, label: lane.label, duty: lane.purpose }));
-  const reviewerLaneActive = (lane: string): boolean => {
-    const rec = asRecord(reviewerLaneTruth[lane]);
-    return rec.active === true;
-  };
+  const reviewerLaneStatus = (lane: string) => reviewLaneStatusFromTruth(reviewerLaneTruth[lane]);
+  const reviewerLaneActive = (lane: string): boolean => reviewerLaneStatus(lane).active;
   const reviewerEligibilityBlockers = Array.isArray(reviewerTruth.eligibility_blockers) ? reviewerTruth.eligibility_blockers.map((x: any) => String(x)) : [];
   const contentReviewActive = reviewerLaneActive("content_review");
-  const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneActive(row.lane));
+  const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).active);
+  const anyReviewerLanePaused = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).optedIn && !reviewerLaneStatus(row.lane).active);
 
   const rolesState = asRecord(state?.roles);
   const localKeypair = isSelf ? getKeypair(acct) : null;
@@ -379,6 +378,41 @@ export default function Account({ account }: { account: string }): JSX.Element {
         task: async () => submitSignedTx({
           account: acct,
           tx_type: txType,
+          payload: { account_id: acct },
+          base,
+        }),
+      });
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runReviewerResume() {
+    if (!isSelf) return;
+
+    setBusy("jurorResume");
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (tier < 2) throw new Error("trusted_verified_person_required_for_reviewer_responsibility");
+      if (!localPubkey) throw new Error("missing_account_signer");
+      const r = await tx.runTx({
+        title: "Resume reviewer responsibilities",
+        pendingMessage: "Submitting reviewer resume…",
+        successMessage: "Reviewer resume request recorded. Lane activity remains backend-authoritative.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "ROLE_JUROR_REINSTATE",
           payload: { account_id: acct },
           base,
         }),
@@ -659,7 +693,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 <div className="progressRow">
                   <span>Exact lane availability</span>
-                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : "No lane active"}</span>
+                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : anyReviewerLanePaused ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Opted in, paused/inactive" : "No lane active"}</span>
                 </div>
                 <div className="progressRow">
                   <span>Reviewer truth source</span>
@@ -675,14 +709,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
               ) : null}
               <div className="milestoneList">
                 {reviewerLaneLabels.map((row) => {
-                  const active = reviewerLaneActive(row.lane);
+                  const status = reviewerLaneStatus(row.lane);
                   return (
                     <div key={row.lane} className="feedMediaCard">
                       <div className="feedMediaTitle">{row.label}</div>
                       <div className="feedMediaMeta">{row.duty}</div>
                       <div className="buttonRow">
-                        <span className={`statusPill ${active ? "ok" : ""}`}>{active ? "Active" : "Not opted in"}</span>
-                        {!active ? (
+                        <span className={reviewLaneStatusPillClass(status)}>{status.label}</span>
+                        {status.canOptIn ? (
                           <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx(row.lane, true)}>
                             {busy === "reviewerLane" ? "Opting in…" : `Opt into ${row.label}`}
                           </button>
@@ -706,6 +740,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <button className="btn" onClick={() => nav("/reviews")}>Open {REVIEW_CENTER_LABEL}</button>
                 <button className="btn" disabled={busy !== null || !reviewerEnrolled || !localPubkey} onClick={() => void runResponsibilityPause("juror")}>
                   {busy === "jurorPause" ? "Pausing reviewer role…" : "Pause all reviewer duties"}
+                </button>
+                <button className="btn" disabled={busy !== null || !reviewerEnrolled || !localPubkey || reviewerActive} onClick={() => void runReviewerResume()}>
+                  {busy === "jurorResume" ? "Resuming reviewer role…" : "Resume reviewer duties"}
                 </button>
               </div>
             </article>

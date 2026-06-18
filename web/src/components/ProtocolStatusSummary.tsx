@@ -107,7 +107,7 @@ export default function ProtocolStatusSummary(): JSX.Element {
 
   return (
     <section className="protocolSummary" aria-label="Protocol and session status summary">
-      <button className={`protocolSummaryCard ${stateTone(summary.node.phase)}`} onClick={() => nav("/tools")}>
+      <button className={`protocolSummaryCard ${stateTone(summary.node.phase)}`} onClick={() => nav("/advanced")}>
         <div className="protocolSummaryLabel">Node connection</div>
         <strong>{summary.node.label}</strong>
         <div className="protocolSummaryDetail">{summary.node.detail || base}</div>

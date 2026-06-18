@@ -43,11 +43,11 @@ _OUTBOX_AUTODRAIN_THREAD: threading.Thread | None = None
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
     "BLOCK_ATTEST": ["/v1/consensus/attest/submit"],
     "POH_CHALLENGE_OPEN": ["/v1/poh/challenge/tx/open", "/v1/tx/submit"],
-    "POH_TIER2_REQUEST_OPEN": ["/v1/poh/tier2/tx/request", "/v1/tx/submit"],
+    "POH_TIER2_REQUEST_OPEN": ["/v1/tx/submit"],
     "POH_LIVE_REQUEST_OPEN": ["/v1/poh/live/tx/request", "/v1/tx/submit"],
-    "POH_TIER2_JUROR_ACCEPT": ["/v1/poh/tier2/tx/juror-accept", "/v1/tx/submit"],
-    "POH_TIER2_JUROR_DECLINE": ["/v1/poh/tier2/tx/juror-decline", "/v1/tx/submit"],
-    "POH_TIER2_REVIEW_SUBMIT": ["/v1/poh/tier2/tx/review", "/v1/tx/submit"],
+    "POH_TIER2_JUROR_ACCEPT": ["/v1/tx/submit"],
+    "POH_TIER2_JUROR_DECLINE": ["/v1/tx/submit"],
+    "POH_TIER2_REVIEW_SUBMIT": ["/v1/tx/submit"],
     "POH_LIVE_JUROR_ACCEPT": ["/v1/poh/live/tx/juror-accept", "/v1/tx/submit"],
     "POH_LIVE_JUROR_DECLINE": ["/v1/poh/live/tx/juror-decline", "/v1/tx/submit"],
     "POH_LIVE_ATTENDANCE_MARK": ["/v1/poh/live/tx/attendance", "/v1/tx/submit"],
@@ -885,7 +885,7 @@ def _reconcile_outbox_confirmation(tx_id: str) -> Json | None:
 def _local_height_for_request(request: Request) -> int:
     ex = _safe_executor(request)
     try:
-        st = ex.snapshot() if ex is not None and callable(getattr(ex, "snapshot", None)) else {}
+        st = ex.read_state() if ex is not None and callable(getattr(ex, "read_state", None)) else {}
         return int((st or {}).get("height") or 0)
     except Exception:
         return 0

@@ -15,7 +15,7 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
-import { REVIEW_CENTER_LABEL, REVIEW_LANES, type ReviewLaneId } from "../lib/reviewLanes";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, reviewLaneStatusFromTruth, reviewLaneStatusPillClass, type ReviewLaneId } from "../lib/reviewLanes";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -412,10 +412,8 @@ export default function JurorDashboard(): JSX.Element {
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const reviewerTruth = asRecord(reviewerStatus);
   const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
-  const reviewerLaneActive = (laneId: string): boolean => {
-    const rec = asRecord(reviewerLaneTruth[laneId]);
-    return rec.active === true;
-  };
+  const reviewerLaneStatus = (laneId: string) => reviewLaneStatusFromTruth(reviewerLaneTruth[laneId]);
+  const reviewerLaneActive = (laneId: string): boolean => reviewerLaneStatus(laneId).active;
   const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
   const laneCount = (laneId: ReviewLaneId): number => {
     if (laneId === "content_review") return assignedContentReports.length;
@@ -516,11 +514,11 @@ export default function JurorDashboard(): JSX.Element {
         right={<span className={`statusPill ${REVIEW_LANES.some((lane) => reviewerLaneActive(lane.id)) ? "ok" : ""}`}>{REVIEW_LANES.filter((lane) => reviewerLaneActive(lane.id)).length} active lane(s)</span>}
       >
         <p className="cardDesc">
-          Review assigned community work from the lane-separated center. The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary.
+          The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary.
         </p>
         <div className="summaryCardGrid">
           {REVIEW_LANES.map((lane) => {
-            const active = reviewerLaneActive(lane.id);
+            const status = reviewerLaneStatus(lane.id);
             const count = laneCount(lane.id);
             return (
               <article key={lane.id} className="summaryCard">
@@ -530,7 +528,7 @@ export default function JurorDashboard(): JSX.Element {
                 <div className="progressList compact" style={{ marginTop: 10 }}>
                   <div className="progressRow">
                     <span>Opt-in boundary</span>
-                    <span className={`statusPill ${active ? "ok" : ""}`}>{active ? "Opted in" : "Not opted in"}</span>
+                    <span className={reviewLaneStatusPillClass(status)}>{status.label}</span>
                   </div>
                   <div className="progressRow">
                     <span>Backend truth source</span>
@@ -598,7 +596,7 @@ export default function JurorDashboard(): JSX.Element {
                     <div className="summaryCardGrid">
                       <article className="summaryCard"><div className="summaryCardLabel">Flagged content</div><div className="summaryCardValue mono">{targetId || "—"}</div><div className="summaryCardText">Open the content or the focused review workspace before choosing.</div></article>
                       <article className="summaryCard"><div className="summaryCardLabel">Author</div><div className="summaryCardValue mono">{author || "(unknown)"}</div><div className="summaryCardText">Reported content author</div></article>
-                      <article className="summaryCard"><div className="summaryCardLabel">Review readiness</div><div className="summaryCardValue">{vote ? "Complete" : present ? "Ready" : status === "assigned" ? "Accept first" : "Needs check-in"}</div><div className="summaryCardText">{vote ? `Your choice is ${reviewChoiceLabel(vote)}.` : present ? "Final choice is available from the review workspace." : "Open the report detail to accept and check in."}</div></article>
+                      <article className="summaryCard"><div className="summaryCardLabel">Review readiness</div><div className="summaryCardValue">{vote ? "Complete" : present ? "Ready" : status === "assigned" ? "Accept first" : "Needs check-in"}</div><div className="summaryCardText">{vote ? `Your choice is ${reviewChoiceLabel(vote)}.` : present ? "Final choice is available from the review workspace." : "Open the review workspace to accept and check in."}</div></article>
                       <article className="summaryCard"><div className="summaryCardLabel">Current review tally</div><div className="summaryCardValue">{counts.total}</div><div className="summaryCardText">{reviewTallyText(counts)}</div></article>
                     </div>
                     <div className="infoCard">
@@ -655,7 +653,7 @@ export default function JurorDashboard(): JSX.Element {
           tab === "live" && livePendingSessions.length > 0 ? (
             <div className="pageStack">
               <div className="calloutInfo">
-                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Open live room is only available after a live PoH reviewer assignment is active. Keep the genesis block loop and downstream sync running.
+                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Live room transport is only available after a live PoH reviewer assignment is active. Keep the genesis block loop and downstream sync running.
               </div>
               {livePendingSessions.map((session: any) => {
                 const caseId = String(session?.case_id || "").trim();
@@ -799,7 +797,7 @@ export default function JurorDashboard(): JSX.Element {
                                 </button>
                                 {joinUrl ? (
                                   <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
-                                    Open compatibility transport
+                                    Open self-hosted transport
                                   </a>
                                 ) : (
                                   <span className="miniMuted">Decentralized P2P room descriptor ready; no centralized room URL is required.</span>

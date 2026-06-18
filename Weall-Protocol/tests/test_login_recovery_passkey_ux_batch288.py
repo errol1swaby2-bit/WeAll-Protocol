@@ -64,5 +64,6 @@ def test_raw_recovery_secret_still_not_persisted_to_localstorage_batch288() -> N
     text = KEYS.read_text(encoding="utf-8")
     assert "never persist raw account private keys" in text
     assert "sessionStorage.setItem(secretStorageKey" in text
-    assert 'localStorage.setItem(`${KEYRING_PREFIX}${normalized}`, JSON.stringify(secureMeta))' in text
+    assert 'KEYRING_PREFIX' not in text
+    assert 'localStorage.setItem(`${KEYRING_PREFIX}${normalized}`' not in text
     assert "secretKeyB64" not in text.split("const secureMeta", 1)[1].split("sessionStorage.setItem", 1)[0]

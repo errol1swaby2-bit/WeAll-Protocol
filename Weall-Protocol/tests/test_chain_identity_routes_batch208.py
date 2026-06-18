@@ -38,7 +38,7 @@ def test_chain_identity_route_surfaces_state_root_and_sync_anchor_batch208(tmp_p
     assert body["ok"] is True
     assert body["chain_id"] == "weall-devnet-test"
     assert body["height"] == 0
-    assert body["state_root"] == compute_state_root(ex.snapshot())
+    assert body["state_root"] == compute_state_root(ex.read_state())
     assert body["snapshot_anchor"]["state_root"] == body["state_root"]
     assert body["snapshot_anchor"]["height"] == body["height"]
     assert body["tx_index_hash"] == ex.tx_index_hash()
@@ -54,7 +54,7 @@ def test_chain_state_root_and_genesis_routes_are_join_runbook_safe_batch208(tmp_
     head = client.get("/v1/chain/head").json()
 
     assert state_root["ok"] is True
-    assert state_root["state_root"] == compute_state_root(ex.snapshot())
+    assert state_root["state_root"] == compute_state_root(ex.read_state())
     assert state_root["snapshot_anchor"]["state_root"] == state_root["state_root"]
 
     assert genesis["ok"] is True

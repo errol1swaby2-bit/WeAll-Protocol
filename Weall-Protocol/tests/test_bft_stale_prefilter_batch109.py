@@ -16,6 +16,8 @@ class _Exec:
         self.timeouts: list[dict] = []
         self.events: list[dict] = []
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {"height": 0}
 

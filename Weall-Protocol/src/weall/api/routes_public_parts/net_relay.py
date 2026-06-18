@@ -177,35 +177,16 @@ async def v1_net_relay_submit(request: Request) -> Json:
 
 
 @router.get("/net/relay/fetch")
-def v1_net_relay_fetch_legacy(request: Request, recipient_peer_id: str, limit: int = 100) -> Json:
-    """Legacy unsigned fetch retained only for non-production compatibility.
+def v1_net_relay_fetch_legacy(request: Request, recipient_peer_id: str = "", limit: int = 100) -> Json:
+    """Removed unsigned relay fetch endpoint.
 
-    Production fetch is POST-only and recipient-signed so a third party cannot
-    read another node's mailbox by guessing its peer id.
+    Direct relay access is POST-only and recipient-signed.
     """
-    _ensure_enabled()
-    if _is_prod():
-        raise ApiError.bad_request(
-            "relay_fetch_requires_signed_request",
-            "relay fetch requires a signed recipient request",
-            {},
-        )
-    try:
-        envelopes = _relay_spool(request).fetch(
-            recipient_peer_id=str(recipient_peer_id or ""),
-            cfg=_relay_cfg(request),
-            limit=int(limit or 100),
-        )
-    except RelayEnvelopeError as exc:
-        raise ApiError.bad_request(str(exc.code), "invalid relay fetch", {}) from exc
-    return {
-        "ok": True,
-        "recipient_peer_id": str(recipient_peer_id or ""),
-        "messages": list(envelopes),
-        "count": len(envelopes),
-        "authority": "transport_only",
-        "legacy_unsigned_fetch": True,
-    }
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "unsigned relay fetch has been removed; use POST /v1/net/relay/fetch with a signed access_request",
+        {"canonical_endpoint": "/v1/net/relay/fetch", "method": "POST"},
+    )
 
 
 @router.post("/net/relay/fetch")

@@ -6,6 +6,8 @@ from weall.net.net_loop import NetLoopConfig, NetMeshLoop
 class _Exec:
     chain_id = "weall-dev"
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {"height": 0}
 

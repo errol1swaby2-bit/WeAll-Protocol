@@ -89,10 +89,12 @@ export default function Home(): JSX.Element {
         disputesRaw: { items: disputeItems },
         maxItems: 100,
       });
+      const assignedReviewReports = pendingWork.items.filter((item) => item.kind === "report" && item.assigned).length;
+      const visibleReviewReports = pendingWork.items.filter((item) => item.kind === "report").length;
       setPending({
         activeProposals: pendingWork.counts.decisions,
-        assignedDisputes: pendingWork.counts.assigned,
-        availableDisputes: pendingWork.counts.reports,
+        assignedDisputes: assignedReviewReports,
+        availableDisputes: visibleReviewReports,
       });
       setGroupCount(groups.length);
     } finally {

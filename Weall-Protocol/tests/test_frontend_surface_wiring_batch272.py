@@ -32,7 +32,8 @@ def test_decisions_page_defaults_to_all_and_shows_outcomes() -> None:
 
 def test_reviews_page_prioritizes_assigned_flagged_content() -> None:
     text = read("pages/JurorDashboard.tsx")
-    assert "Review assigned community work" in text
+    assert "normalized into explicit lanes" in text
+    assert "Review assigned community work" not in text
     assert "Assigned content reviews" in text
     assert "weall.disputes" in text
     assert "weall.content" in text

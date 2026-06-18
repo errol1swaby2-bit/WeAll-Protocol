@@ -18,7 +18,7 @@
       "public_validator_enabled": false,
       "source_of_truth": "runtime route tests and apply/admission code remain authoritative"
     },
-    "vector_count": 43,
+    "vector_count": 42,
     "vectors": [
       {
         "auth_case": "anonymous_public_read",
@@ -823,62 +823,27 @@
         "route_present": true
       },
       {
-        "auth_case": "signed_account_tx_required",
+        "auth_case": "legacy_skeleton_endpoint_removed_direct_tx_submit_required",
         "contract_auth": "signed_tx_skeleton_local_client_helper",
         "contract_truth_boundary": "PoH Tier-2 request skeleton helper does not mutate consensus state; final authority is signed tx admission/apply.",
         "error_codes": [
-          "invalid_tx",
-          "signature_required",
-          "signature_invalid",
-          "session_required"
+          "legacy_endpoint_removed"
         ],
         "expected_error_envelope": {
           "error": {
-            "code": "invalid_tx"
+            "code": "legacy_endpoint_removed"
           },
           "ok": false
         },
         "expected_http_statuses": [
-          200,
-          400,
-          403,
-          422
+          410
         ],
-        "id": "poh-tier2-request-signed-account",
+        "id": "poh-tier2-request-legacy-removed",
         "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
         "method": "POST",
         "path": "/v1/poh/tier2/tx/request",
-        "privacy_boundary": "tier-2 request does not imply reviewer or validator responsibility",
+        "privacy_boundary": "legacy Tier-2 skeleton helpers are removed; direct signed tx submission remains authoritative",
         "route_key": "POST /v1/poh/tier2/tx/request",
-        "route_present": true
-      },
-      {
-        "auth_case": "signed_reviewer_lane_tx_required",
-        "contract_auth": "signed_tx_skeleton_local_client_helper",
-        "contract_truth_boundary": "PoH Tier-2 review skeleton helper does not mutate consensus state; final authority is signed tx admission/apply.",
-        "error_codes": [
-          "reviewer_responsibility_not_active",
-          "invalid_tx",
-          "signature_required"
-        ],
-        "expected_error_envelope": {
-          "error": {
-            "code": "reviewer_responsibility_not_active"
-          },
-          "ok": false
-        },
-        "expected_http_statuses": [
-          200,
-          400,
-          403,
-          422
-        ],
-        "id": "poh-tier2-review-lane-bound",
-        "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
-        "method": "POST",
-        "path": "/v1/poh/tier2/tx/review",
-        "privacy_boundary": "tier-2 review is only valid for exact active PoH reviewer/juror lanes",
-        "route_key": "POST /v1/poh/tier2/tx/review",
         "route_present": true
       },
       {

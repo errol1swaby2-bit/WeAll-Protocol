@@ -25,8 +25,8 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     consensus = st.get("consensus") if isinstance(st.get("consensus"), dict) else {}
     consensus["validator_set"] = {"epoch": 7, "active_set": ["@leader", "@helper-a", "@helper-b"]}
     st["consensus"] = consensus
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
-    ex.state = ex._store.read()  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
 def test_build_block_candidate_emits_recomputable_helper_plan_id_batch32(tmp_path: Path, monkeypatch) -> None:

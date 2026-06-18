@@ -57,10 +57,10 @@ function queueNextAction(params: {
     return { label: "Continue review", hint: "You can open the dedicated review workspace and choose once.", href: `/reviews/${id}` };
   }
   if (status === "assigned") {
-    return { label: "Open detail", hint: "Accept or decline the assignment from the report detail page.", href: `/reports/${id}` };
+    return { label: "Open review workspace", hint: "Accept or decline the assignment from the review workspace.", href: `/reviews/${id}` };
   }
   if (status === "accepted") {
-    return { label: "Open detail", hint: "Review attendance should already be present. Refresh detail if review is still locked.", href: `/reports/${id}` };
+    return { label: "Open review workspace", hint: "Review attendance and final choices continue in the review workspace.", href: `/reviews/${id}` };
   }
   return { label: "Open detail", hint: "Inspect current status, reason, and review assignment.", href: `/reports/${id}` };
 }

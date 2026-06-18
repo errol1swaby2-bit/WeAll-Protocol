@@ -21,7 +21,9 @@ assertIncludes(app, "./pages/NodeDashboard", "App lazy-loads node dashboard");
 assertIncludes(app, `case "/node":`, "App renders /node route");
 assertIncludes(router, `{ path: "/node" }`, "router match type includes /node");
 assertIncludes(router, `href: "/node"`, "normal navigation exposes /node");
-assertIncludes(router, `r === "/node" || r === "/operator"`, "operator alias resolves to normal node dashboard");
+if (router.includes("/operator")) {
+  throw new Error("legacy /operator alias must not remain in router");
+}
 assertIncludes(prefetch, "../pages/NodeDashboard", "route prefetch includes node dashboard");
 
 for (const method of [

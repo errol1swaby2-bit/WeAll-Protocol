@@ -218,6 +218,8 @@ def test_observer_state_sync_request_includes_trusted_anchor_batch366(monkeypatc
     class _SyncExecutor:
         chain_id = "batch366"
 
+        def read_state(self):
+            return self.snapshot()
         def snapshot(self) -> dict[str, Any]:
             return {"chain_id": "batch366", "height": 2}
 

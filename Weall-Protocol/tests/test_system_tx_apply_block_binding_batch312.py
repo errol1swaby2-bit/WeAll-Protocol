@@ -55,10 +55,10 @@ def _leader_block_and_follower(tmp_path: Path) -> tuple[dict, WeAllExecutor]:
     state = _live_ready_state()
     leader = _new_executor(tmp_path / "leader")
     follower = _new_executor(tmp_path / "follower")
-    leader._store.write_state_snapshot(copy.deepcopy(state))  # type: ignore[attr-defined]
-    follower._store.write_state_snapshot(copy.deepcopy(state))  # type: ignore[attr-defined]
-    leader.state = leader._store.read()  # type: ignore[attr-defined]
-    follower.state = follower._store.read()  # type: ignore[attr-defined]
+    leader._ledger_store.write_state_snapshot(copy.deepcopy(state))  # type: ignore[attr-defined]
+    follower._ledger_store.write_state_snapshot(copy.deepcopy(state))  # type: ignore[attr-defined]
+    leader.state = leader._ledger_store.read()  # type: ignore[attr-defined]
+    follower.state = follower._ledger_store.read()  # type: ignore[attr-defined]
 
     block, _new_state, applied_ids, invalid_ids, err = leader.build_block_candidate(
         max_txs=0,

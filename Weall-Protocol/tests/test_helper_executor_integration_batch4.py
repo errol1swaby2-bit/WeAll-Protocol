@@ -28,8 +28,8 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
         "active_set": ["@leader", "@helper-a", "@helper-b"],
     }
     st["consensus"] = consensus
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
-    ex.state = ex._store.read()  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
 

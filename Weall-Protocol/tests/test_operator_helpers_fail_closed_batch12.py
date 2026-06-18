@@ -23,21 +23,29 @@ class _FakeNode:
         raise RuntimeError("boom")
 
 
-class _FakeExecutorBadSnapshot:
-    def snapshot(self):
-        raise RuntimeError("snapshot failed")
+class _FakeExecutorBadState:
+    def read_state(self):
+        raise RuntimeError("state read failed")
 
 
-@pytest.mark.parametrize("path", ["/v1/nodes/seeds", "/v1/nodes"])
-def test_nodes_seeds_invalid_env_fails_closed_in_prod(monkeypatch, path):
+def test_nodes_seeds_invalid_env_fails_closed_in_prod(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SEED_NODES", "http://evil.example.com")
     app = create_app(boot_runtime=False)
     c = TestClient(app, raise_server_exceptions=True)
     with pytest.raises(Exception) as excinfo:
-        c.get(path)
+        c.get("/v1/nodes/seeds")
     assert "seed_nodes_invalid_base_url" in str(excinfo.value)
 
+
+
+def test_legacy_v1_nodes_endpoint_is_removed_batch626(monkeypatch):
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    app = create_app(boot_runtime=False)
+    c = TestClient(app, raise_server_exceptions=False)
+    r = c.get("/v1/nodes")
+    assert r.status_code == 410
+    assert r.json()["error"]["code"] == "legacy_endpoint_removed"
 
 def test_nodes_seeds_invalid_env_stays_permissive_in_dev(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -87,14 +95,14 @@ def test_net_self_invalid_bind_port_fails_closed_in_prod(monkeypatch):
     assert "invalid_integer_env:WEALL_NET_BIND_PORT" in str(excinfo.value)
 
 
-def test_net_self_snapshot_failure_fails_closed_in_prod(monkeypatch):
+def test_net_self_state_read_failure_fails_closed_in_prod(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     app = create_app(boot_runtime=False)
-    app.state.executor = _FakeExecutorBadSnapshot()
+    app.state.executor = _FakeExecutorBadState()
     c = TestClient(app, raise_server_exceptions=True)
     with pytest.raises(Exception) as excinfo:
         c.get("/v1/net/self")
-    assert "net_self_snapshot_failed" in str(excinfo.value)
+    assert "net_self_state_read_failed" in str(excinfo.value)
 
 
 def test_status_mempool_invalid_limit_fails_closed_in_prod(monkeypatch):

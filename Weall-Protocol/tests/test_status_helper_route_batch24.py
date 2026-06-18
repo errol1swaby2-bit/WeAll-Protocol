@@ -8,6 +8,8 @@ from weall.runtime.helper_release_gate import build_helper_release_gate_report
 
 
 class _FakeExecutor:
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {
             "chain_id": "weall",

@@ -10,7 +10,8 @@ def test_live_room_rejects_public_jitsi_and_defaults_to_p2p_batch404() -> None:
 
     assert "meet.jit.si" in live
     assert "return false" in live
-    assert "centralized URL transport is a compatibility escape hatch" in live
+    assert "Optional hosted URL transport is explicit and access-controlled" in live
+    assert "centralized URL transport is a compatibility escape hatch" not in live
     assert "p2p-webrtc" in live
 
     script = (BACKEND_ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(

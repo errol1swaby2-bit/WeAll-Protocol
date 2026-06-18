@@ -16,7 +16,6 @@ import { ensureMessagingEncryptionIdentity } from "../lib/messageCrypto";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
-import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
@@ -396,8 +395,6 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const [sessionBusy, setSessionBusy] = useState(false);
   const [registerBusy, setRegisterBusy] = useState(false);
-  const [compatUploadBusy, setCompatUploadBusy] = useState(false);
-  const [compatRequestBusy, setCompatRequestBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
@@ -413,12 +410,10 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncConsent, setAsyncConsent] = useState(false);
   const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
 
-  const [compatUpload, setCompatUpload] = useState<UploadState | null>(null);
-  const [compatCases, setCompatCases] = useState<any[]>([]);
+  const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
 
-  const compatibilityUploadEnabled = getTier2VideoUploadEnabled();
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
 
@@ -448,7 +443,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   async function loadVerificationData(): Promise<void> {
     if (!acct) {
-      setCompatCases([]);
+      setAsyncCases([]);
       setLiveCases([]);
       setLiveSessions([]);
       return;
@@ -456,12 +451,12 @@ export default function AccountVerificationPage(): JSX.Element {
     setCasesBusy(true);
     try {
       const headers = getAuthHeaders(acct);
-      const [compat, live, sessions] = await Promise.all([
+      const [asyncResponse, live, sessions] = await Promise.all([
         weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
-      setCompatCases(Array.isArray(compat?.cases) ? compat.cases : []);
+      setAsyncCases(Array.isArray(asyncResponse?.cases) ? asyncResponse.cases : []);
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
     } catch (e: any) {
@@ -620,84 +615,6 @@ export default function AccountVerificationPage(): JSX.Element {
         ? ["Record and submit a fresh account-verification video.", "Refresh account status after reviewers finalize the result."]
         : ["Register the basic account first.", "Return here to start or inspect verification."],
     });
-  }
-
-  async function uploadCompatibilityVideo(file: File): Promise<void> {
-    setCompatUploadBusy(true);
-    setErr(null);
-    try {
-      const r: any = await tx.runTx({
-        title: "Upload compatibility evidence",
-        pendingMessage: "Uploading evidence…",
-        successMessage: "Evidence uploaded.",
-        errorMessage: (e) => prettyErr(e).msg,
-        task: async () => weall.pohTier2VideoUpload(file, base, getAuthHeaders(acct || undefined)),
-      });
-      setCompatUpload(r);
-      setResult(r);
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setCompatUploadBusy(false);
-    }
-  }
-
-  async function submitCompatibilityRequest(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "Sign in before opening a compatibility review.", details: null });
-      return;
-    }
-    if (!compatUpload?.cid && !compatUpload?.video_commitment) {
-      setErr({ msg: "Upload evidence before opening this compatibility review.", details: null });
-      return;
-    }
-
-    setCompatRequestBusy(true);
-    setErr(null);
-    try {
-      const headers = getAuthHeaders(acct);
-      const r = await tx.runTx({
-        title: "Open compatibility review",
-        pendingMessage: "Opening compatibility review…",
-        successMessage: "Compatibility review submitted.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
-        task: async () => {
-          const skel: any = await weall.pohTier2TxRequest(
-            {
-              account_id: acct,
-              video_cid: compatUpload?.cid,
-              video_commitment: compatUpload?.video_commitment,
-              target_tier: 2,
-            },
-            base,
-            headers,
-          );
-          const skeletonTx = skel?.tx;
-          if (!skeletonTx) throw new Error("The backend did not return a valid review request.");
-          const payload = { ...(skeletonTx.payload || {}) };
-          if (typeof payload.ts_ms === "number" && payload.ts_ms === 0) payload.ts_ms = Date.now();
-          const submit = await submitSignedTx({
-            account: acct,
-            tx_type: String(skeletonTx.tx_type || ""),
-            payload,
-            parent: skeletonTx.parent ?? null,
-            base,
-          });
-          return { skeleton: skel, submit };
-        },
-      });
-
-      setResult(r);
-      await refresh();
-      await loadVerificationData();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setCompatRequestBusy(false);
-    }
   }
 
   function cleanupAsyncRecording(): void {
@@ -1333,7 +1250,7 @@ export default function AccountVerificationPage(): JSX.Element {
               {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
-                    Open compatibility room
+                    Open self-hosted room
                   </a>
                 </div>
               ) : (
@@ -1386,7 +1303,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 <div className="eyebrow">Verification History</div>
                 <h2 className="cardTitle">Requests, reviews, and live sessions</h2>
               </div>
-              <span className="statusPill">{liveCases.length + compatCases.length} item(s)</span>
+              <span className="statusPill">{liveCases.length + asyncCases.length} item(s)</span>
             </div>
             <p className="cardDesc">
               This area shows account-verification work that is visible to this device. It is written as a history of requests and reviews, not as protocol machinery.
@@ -1405,7 +1322,7 @@ export default function AccountVerificationPage(): JSX.Element {
                         </button>
                         {roomUrl ? (
                           <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Open compatibility transport
+                            Open self-hosted transport
                           </a>
                         ) : null}
                       </div>
@@ -1421,8 +1338,8 @@ export default function AccountVerificationPage(): JSX.Element {
                 })}
               </div>
             ) : null}
-            {compatCases.length ? <div className="infoGrid">{compatCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
-            {!liveCases.length && !compatCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
+            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {!liveCases.length && !asyncCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
             {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
           </div>
         </article>
@@ -1443,35 +1360,6 @@ export default function AccountVerificationPage(): JSX.Element {
         </article>
       </section>
 
-      <section className="card">
-        <div className="cardBody formStack">
-          <details className="advancedDisclosure">
-            <summary>Advanced compatibility controls</summary>
-            <p className="cardDesc">
-              This section is for migration-era compatibility only. It must not be presented as the normal account verification path.
-            </p>
-            {!compatibilityUploadEnabled ? (
-              <div className="calloutInfo">Compatibility evidence upload is not enabled on this deployment.</div>
-            ) : (
-              <div className="formStack">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadCompatibilityVideo(file);
-                  }}
-                  disabled={compatUploadBusy || accountLevel >= 2}
-                />
-                {compatUpload ? <JsonDetails title="Latest compatibility upload payload" value={compatUpload} /> : null}
-                <button className="btn btnPrimary" onClick={() => void submitCompatibilityRequest()} disabled={!acct || !compatUpload || compatRequestBusy || accountLevel >= 2 || signerSubmission.busy}>
-                  {compatRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open compatibility review"}
-                </button>
-              </div>
-            )}
-          </details>
-        </div>
-      </section>
     </div>
   );
 }

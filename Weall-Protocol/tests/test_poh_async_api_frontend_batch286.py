@@ -21,7 +21,7 @@ def test_native_async_api_routes_exist_batch286() -> None:
     assert '"/poh/async/tx/juror-decline"' in route
     assert '"/poh/async/tx/review"' in route
     assert 'tx_type="POH_ASYNC_REVIEW_SUBMIT"' in route
-    assert 'tx_type="POH_TIER2_REVIEW_SUBMIT"' in route  # legacy compatibility remains isolated
+    assert 'tx_type="POH_TIER2_REVIEW_SUBMIT"' not in route
 
 
 def test_account_verification_tracks_native_async_cases_batch286() -> None:

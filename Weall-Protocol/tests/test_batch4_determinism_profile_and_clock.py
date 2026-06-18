@@ -61,7 +61,7 @@ def test_restart_rejects_reputation_scale_mismatch(
     ex.mark_clean_shutdown()
     st = ex.read_state()
     st.setdefault("meta", {})["reputation_scale"] = REPUTATION_SCALE + 1
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     with pytest.raises(ExecutorError, match="reputation_scale mismatch"):
         _make_executor(tmp_path, node_id="@n1", chain_id="rep-scale")
@@ -77,7 +77,7 @@ def test_prod_restart_warns_but_allows_modest_tip_ahead_of_local_clock(
     import time
 
     st["tip_ts_ms"] = int(time.time() * 1000) + MAX_BLOCK_TIME_ADVANCE_MS + 60_000
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex2 = _make_executor(tmp_path, node_id="@n1", chain_id="clock-ahead")
@@ -105,7 +105,7 @@ def test_prod_restart_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_lo
     import time
 
     st["tip_ts_ms"] = int(time.time() * 1000) + STARTUP_CLOCK_HARD_FAIL_MS + 60_000
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex2 = _make_executor(tmp_path, node_id="@n1", chain_id="clock-ahead-catastrophic")

@@ -58,8 +58,6 @@ class _FakeExecutor:
             "blocks": {"b1": {"block_id": "b1", "height": 1, "prev_block_id": "gen"}},
         }
 
-    def snapshot(self) -> dict[str, object]:
-        return self.read_state()
 
     def submit_attestation(self, env: dict) -> dict:
         if not isinstance(env, dict):

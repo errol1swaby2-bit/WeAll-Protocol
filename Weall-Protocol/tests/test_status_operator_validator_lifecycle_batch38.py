@@ -32,8 +32,6 @@ class _FakeExecutor:
             "consensus": {"epochs": {"current": 0}, "validator_set": {"epoch": 0, "set_hash": "genesis-hash", "active_set": ["@genesis"], "pending": {}}},
         }
 
-    def snapshot(self) -> dict[str, object]:
-        return self.read_state()
 
     def tx_index_hash(self) -> str:
         return "txhash"

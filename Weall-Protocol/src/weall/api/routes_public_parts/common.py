@@ -88,20 +88,12 @@ def _executor(request: Request):
 
 
 def _snapshot(request: Request) -> Json:
-    """Return a dict snapshot of the current state.
-
-    Supports:
-      - SQLite executor: ex.read_state()
-      - Legacy executor: ex.snapshot()
-    """
+    """Return a dict snapshot of the current direct executor state."""
     ex = _executor(request)
-
-    if hasattr(ex, "read_state"):
-        st = ex.read_state()
-        return st if isinstance(st, dict) else dict(st)
-
-    st = ex.snapshot()
-    return st.to_dict() if hasattr(st, "to_dict") else (st if isinstance(st, dict) else dict(st))
+    if not hasattr(ex, "read_state"):
+        raise ApiError.internal("executor_read_state_required", "executor must expose read_state", {})
+    st = ex.read_state()
+    return st if isinstance(st, dict) else dict(st)
 
 
 def _mempool(request: Request):

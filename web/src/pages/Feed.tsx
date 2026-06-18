@@ -68,7 +68,7 @@ export default function Feed(): JSX.Element {
               <div className="eyebrow">Feed</div>
               <h1 className="heroTitle heroTitleSm">Latest protocol activity</h1>
               <p className="heroText">
-                Read visible public activity returned by the backend feed endpoint. This is newest-first protocol activity, not a personalized recommendation feed.
+                Read visible public activity returned by the backend feed endpoint. Default newest-first protocol activity remains available, with optional backend ranking modes; it is not a personalized recommendation feed.
               </p>
             </div>
 

@@ -13,6 +13,8 @@ class _FakeExecutor:
     block_loop_last_error = None
     block_loop_consecutive_failures = 0
 
+    def read_state(self):
+        return self.snapshot()
     def snapshot(self):
         return {
             "chain_id": "weall",

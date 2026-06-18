@@ -111,7 +111,7 @@ def test_mempool_admission_rejects_replay_nonce_after_success(base_state) -> Non
 
     tx1 = _env(
         "BALANCE_TRANSFER",
-        {"from": "@alice", "to": "@bob", "amount": 1},
+        {"from_account_id": "@alice", "to_account_id": "@bob", "amount": 1},
         signer="alice",
         nonce=1,
     )
@@ -121,7 +121,7 @@ def test_mempool_admission_rejects_replay_nonce_after_success(base_state) -> Non
     # Replay nonce=1 should be rejected by admission.
     tx_replay = _env(
         "BALANCE_TRANSFER",
-        {"from": "@alice", "to": "@bob", "amount": 1},
+        {"from_account_id": "@alice", "to_account_id": "@bob", "amount": 1},
         signer="alice",
         nonce=1,
     )
@@ -138,7 +138,7 @@ def test_mempool_admission_allows_same_nonce_retry_after_apply_reject(base_state
 
     tx_fail = _env(
         "BALANCE_TRANSFER",
-        {"from": "@bob", "to": "@alice", "amount": 10_000_000},
+        {"from_account_id": "@bob", "to_account_id": "@alice", "amount": 10_000_000},
         signer="bob",
         nonce=1,
     )
@@ -149,7 +149,7 @@ def test_mempool_admission_allows_same_nonce_retry_after_apply_reject(base_state
 
     tx_retry = _env(
         "BALANCE_TRANSFER",
-        {"from": "@bob", "to": "@alice", "amount": 1},
+        {"from_account_id": "@bob", "to_account_id": "@alice", "amount": 1},
         signer="bob",
         nonce=1,
     )
@@ -157,7 +157,7 @@ def test_mempool_admission_allows_same_nonce_retry_after_apply_reject(base_state
 
     tx_gap = _env(
         "BALANCE_TRANSFER",
-        {"from": "@bob", "to": "@alice", "amount": 1},
+        {"from_account_id": "@bob", "to_account_id": "@alice", "amount": 1},
         signer="bob",
         nonce=2,
     )

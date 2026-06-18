@@ -52,7 +52,7 @@ def test_status_surfaces_profile_compatibility_and_config_summary(tmp_path: Path
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]
-    ex._store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(ex.state)  # type: ignore[attr-defined]
 
     app = FastAPI()
     app.include_router(status_router, prefix="/v1")

@@ -90,8 +90,6 @@ class _FakeExecutor:
             "poh": {},
         }
 
-    def snapshot(self) -> dict[str, object]:
-        return self.read_state()
 
     def tx_index_hash(self) -> str:
         return "txindexhash-obs"
