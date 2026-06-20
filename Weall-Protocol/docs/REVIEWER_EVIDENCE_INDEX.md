@@ -276,3 +276,7 @@ The following artifacts were added to keep the full-scope v1.5 audit aligned wit
 | Protocol-upgrade record-only boundary | `pytest tests/test_batch496_protocol_upgrade_record_only_boundary.py` | Upgrade txs record metadata and expose no auto-apply/migration/rollback execution | Automatic protocol upgrades are not implemented. |
 | Legal/compliance draft pack | `pytest tests/test_batch497_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
 | Public validator/BFT proof plan | `cat docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Required public-validator adversarial proof matrix exists | Plan only; public multi-validator readiness is not claimed. |
+
+### Batch 626 public observer discovery note
+
+Public observer launch evidence now requires the fail-closed seed registry flow documented in `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`, recovery guidance in `PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md`, and external transcript capture from `PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md`. A public observer can be open-download only after real public seed URLs and pinned commitments are configured; validator activation remains protocol-gated.

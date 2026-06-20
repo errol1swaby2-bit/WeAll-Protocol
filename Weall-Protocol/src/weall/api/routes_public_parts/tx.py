@@ -18,6 +18,13 @@ from fastapi import APIRouter, Request
 from pydantic import ValidationError
 
 from weall.api.errors import ApiError
+from weall.api.public_seed_registry import (
+    PublicSeedRegistryError,
+    load_public_seed_registry,
+    public_seed_registry_path,
+    public_testnet_enabled,
+    verified_tx_upstreams_from_registry,
+)
 from weall.api.routes_public_parts.common import (
     _executor,
     _mempool,
@@ -127,8 +134,8 @@ def _observer_edge_mode() -> bool:
     )
 
 
-def _normalized_tx_upstream_urls() -> list[str]:
-    """Return explicitly configured tx upstream API bases.
+def _normalized_tx_upstream_urls(request: Request | None = None) -> list[str]:
+    """Return configured or verified public tx upstream API bases.
 
     A local observer edge node may accept signed user txs from its local
     frontend, then forward the identical envelope to genesis or another upstream
@@ -144,10 +151,22 @@ def _normalized_tx_upstream_urls() -> list[str]:
             or os.environ.get("WEALL_BOOTSTRAP_URL")
             or ""
         ).strip()
+    max_upstreams = _env_int_safe("WEALL_TX_UPSTREAM_MAX_TARGETS", 4, minimum=1, maximum=16)
+
+    if not raw and public_testnet_enabled():
+        cfg = getattr(request.app.state, "cfg", None) if request is not None else None
+        try:
+            registry = load_public_seed_registry(
+                public_seed_registry_path(getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None)
+            )
+            derived = verified_tx_upstreams_from_registry(registry)[:max_upstreams]
+            raw = ",".join(derived)
+        except PublicSeedRegistryError:
+            raw = ""
+
     if not raw:
         return []
 
-    max_upstreams = _env_int_safe("WEALL_TX_UPSTREAM_MAX_TARGETS", 4, minimum=1, maximum=16)
     out: list[str] = []
     seen: set[str] = set()
     for item in raw.replace("\n", ",").split(","):
@@ -253,9 +272,10 @@ def _propagate_tx_to_configured_upstreams(request: Request, body: Json, *, tx_id
     if str(request.headers.get("x-weall-observer-forwarded") or "").strip() == "1":
         return {"attempted": False, "accepted": False, "skipped": "already_forwarded", "results": []}
 
-    urls = _normalized_tx_upstream_urls()
+    urls = _normalized_tx_upstream_urls(request)
     if not urls:
-        return {"attempted": False, "accepted": False, "skipped": "no_upstreams_configured", "results": []}
+        skipped = "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured"
+        return {"attempted": False, "accepted": False, "skipped": skipped, "error": skipped, "results": []}
 
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
     results = [_forward_tx_to_upstream(url, body, tx_id=tx_id, timeout_s=timeout_s) for url in urls]
@@ -534,12 +554,12 @@ def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
     return out
 
 
-def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str) -> Json:
+def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str, request: Request | None = None) -> Json:
     with _tx_outbox_lock():
         rows = _load_tx_outbox_unlocked()
         now = _now_ms()
         rec = _outbox_record_for(rows, tx_id)
-        urls = [_redact_upstream_url(u) for u in _normalized_tx_upstream_urls()]
+        urls = [_redact_upstream_url(u) for u in _normalized_tx_upstream_urls(request)]
         if rec is None:
             rec = {
                 "tx_id": str(tx_id),
@@ -774,8 +794,8 @@ def _status_from_upstream(url: str, tx_id: str, *, timeout_s: int) -> Json:
         return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
 
 
-def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None) -> Json:
-    urls = _normalized_tx_upstream_urls()
+def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None = None, limit: int | None = None) -> Json:
+    urls = _normalized_tx_upstream_urls(request)
     with _tx_outbox_lock():
         rows = _load_tx_outbox_unlocked()
         rows = _prune_tx_outbox_rows(rows)
@@ -1422,6 +1442,29 @@ async def tx_submit(request: Request) -> Json:
     # Compute deterministic id for idempotency (chain_id-aware).
     tx_id = compute_tx_id(body, chain_id=str(getattr(ex, "chain_id", "") or "").strip() or None)
 
+    # Public observer mode must not create a local-only mempool trap. If no
+    # verified public upstream can be derived from explicit config or the seed
+    # registry, fail before local admission mutates the observer mempool.
+    if (
+        _observer_edge_mode()
+        and public_testnet_enabled()
+        and str(request.headers.get("x-weall-observer-forwarded") or "").strip() != "1"
+        and not _normalized_tx_upstream_urls(request)
+    ):
+        upstream = {
+            "attempted": False,
+            "accepted": False,
+            "queued": 0,
+            "skipped": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "error": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "results": [],
+        }
+        raise ApiError.bad_gateway(
+            "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "public observer has no verified tx upstream for required propagation",
+            {"tx_id": tx_id, "upstream_propagation": upstream},
+        )
+
     already = False
     try:
         already = bool(getattr(mp, "contains", lambda _t: False)(tx_id))
@@ -1459,18 +1502,24 @@ async def tx_submit(request: Request) -> Json:
         gossip_ok = False
 
     if _observer_edge_mode() and str(request.headers.get("x-weall-observer-forwarded") or "").strip() != "1":
-        urls = _normalized_tx_upstream_urls()
-        if _tx_upstream_required() and not urls:
-            upstream = {"attempted": False, "accepted": False, "queued": 0, "skipped": "no_upstreams_configured", "results": []}
-            raise ApiError(
-                502,
-                "tx_upstream_propagation_failed",
-                "local observer has no configured upstream for required propagation",
+        urls = _normalized_tx_upstream_urls(request)
+        if (public_testnet_enabled() or _tx_upstream_required()) and not urls:
+            upstream = {
+                "attempted": False,
+                "accepted": False,
+                "queued": 0,
+                "skipped": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "error": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "results": [],
+            }
+            raise ApiError.bad_gateway(
+                "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "tx_upstream_propagation_failed",
+                "public observer has no verified tx upstream for required propagation" if public_testnet_enabled() else "local observer has no configured upstream for required propagation",
                 {"tx_id": out_tx_id, "upstream_propagation": upstream},
             )
-        _enqueue_tx_outbox(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""))
+        _enqueue_tx_outbox(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""), request=request)
         if _env_bool("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", False):
-            upstream = _drain_tx_outbox(only_tx_id=out_tx_id, limit=1)
+            upstream = _drain_tx_outbox(request=request, only_tx_id=out_tx_id, limit=1)
         else:
             upstream = {
                 "attempted": False,
@@ -1496,7 +1545,7 @@ async def tx_submit(request: Request) -> Json:
 @router.get("/observer/edge/status")
 def observer_edge_status(request: Request) -> Json:
     _require_observer_edge_operator(request)
-    urls = _normalized_tx_upstream_urls()
+    urls = _normalized_tx_upstream_urls(request)
     outbox_rows = _read_tx_outbox()
     return {
         "ok": True,
@@ -1520,7 +1569,7 @@ def observer_edge_status(request: Request) -> Json:
 @router.post("/observer/edge/outbox/drain")
 def observer_edge_outbox_drain(request: Request) -> Json:
     _require_observer_edge_operator(request)
-    result = _drain_tx_outbox()
+    result = _drain_tx_outbox(request=request)
     rows = _read_tx_outbox()
     return {"ok": True, "result": result, "outbox": {"count": len(rows), "counts": _outbox_counts(rows)}}
 

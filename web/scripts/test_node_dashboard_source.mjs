@@ -15,6 +15,7 @@ const router = read("src/lib/router.ts");
 const prefetch = read("src/lib/routePrefetch.ts");
 const api = read("src/api/weall.ts");
 const node = read("src/pages/NodeDashboard.tsx");
+const connectionPanel = read("src/components/NodeConnectionPanel.tsx");
 const contract = read("scripts/contract_check.mjs");
 
 assertIncludes(app, "./pages/NodeDashboard", "App lazy-loads node dashboard");
@@ -51,6 +52,15 @@ for (const needle of [
   "browser cannot grant storage authority",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");
+}
+
+for (const needle of [
+  "Browser API access node",
+  "local mesh node",
+  "validator connectivity",
+  "signing authority remain controlled",
+]) {
+  assertIncludes(connectionPanel, needle, "connection manager public observer copy");
 }
 
 for (const endpoint of [

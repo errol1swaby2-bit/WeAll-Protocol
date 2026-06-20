@@ -1,10 +1,19 @@
 {
   "by_domain": {
-    "api": 100,
+    "api": 101,
     "runtime": 7,
     "runtime_apply": 70
   },
   "codes": [
+    {
+      "code": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+      "domain": "api",
+      "family": "ApiError.bad_gateway",
+      "http_status": 502,
+      "sample_reason": "public observer has no verified tx upstream for required propagation",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1462
+    },
     {
       "code": "account_not_found",
       "domain": "api",
@@ -57,7 +66,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1626
+      "source_lineno": 1628
     },
     {
       "code": "bad_request",
@@ -138,7 +147,7 @@
       "http_status": 400,
       "sample_reason": "missing tx_id",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1006
+      "source_lineno": 1026
     },
     {
       "code": "bad_sig",
@@ -174,7 +183,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1416
+      "source_lineno": 1436
     },
     {
       "code": "banned",
@@ -210,7 +219,7 @@
       "http_status": 403,
       "sample_reason": "tx chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1161
+      "source_lineno": 1181
     },
     {
       "code": "conflict",
@@ -300,7 +309,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1559
+      "source_lineno": 1561
     },
     {
       "code": "executor_missing",
@@ -363,7 +372,7 @@
       "http_status": 403,
       "sample_reason": "bad_observer_edge_operator_token",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 302
+      "source_lineno": 322
     },
     {
       "code": "forbidden",
@@ -903,7 +912,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1366
+      "source_lineno": 1386
     },
     {
       "code": "invalid_tx",
@@ -993,7 +1002,7 @@
       "http_status": null,
       "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
       "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 240
+      "source_lineno": 432
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1155,7 +1164,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1154
+      "source_lineno": 1174
     },
     {
       "code": "missing_env",
@@ -1200,7 +1209,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1408
+      "source_lineno": 1428
     },
     {
       "code": "not_found",
@@ -1425,7 +1434,7 @@
       "http_status": 403,
       "sample_reason": "observer edge operator endpoints require WEALL_OPERATOR_TOKEN or WEALL_OBSERVER_EDGE_OPERATOR_TOKEN",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 295
+      "source_lineno": 315
     },
     {
       "code": "payload_too_large",
@@ -1479,7 +1488,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1394
+      "source_lineno": 1414
     },
     {
       "code": "relay_not_ready",
@@ -1578,7 +1587,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1383
+      "source_lineno": 1403
     },
     {
       "code": "tx_unimplemented",
@@ -1599,9 +1608,10 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 177,
+  "entry_count": 178,
   "scanner": {
     "families": [
+      "ApiError.bad_gateway",
       "ApiError.bad_request",
       "ApiError.forbidden",
       "ApiError.gone",
@@ -1636,6 +1646,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 67,
+  "unique_code_count": 68,
   "version": "2026-06-batch10a"
 }

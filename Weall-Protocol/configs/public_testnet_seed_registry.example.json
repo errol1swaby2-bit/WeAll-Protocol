@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "network_id": "weall-public-observer-testnet-v1",
+  "chain_id": "weall-testnet-v1",
+  "genesis_hash": "<set-before-public-launch>",
+  "protocol_profile_hash": "<set-before-public-launch>",
+  "tx_index_hash": "<set-before-public-launch>",
+  "seed_api_urls": [
+    "https://seed-1.testnet.weall.example"
+  ],
+  "seed_p2p_urls": [
+    "tcp://seed-1.testnet.weall.example:30303"
+  ],
+  "seed_registry_signature": "<optional-signed-registry-signature>",
+  "seed_registry_signer": "<optional-seed-registry-signer>",
+  "active_validator_endpoint_policy": "verified_or_hint",
+  "resettable_testnet": true,
+  "economics_active": false,
+  "nodes": [
+    {
+      "base_url": "https://seed-1.testnet.weall.example",
+      "role": "seed",
+      "region": "us-west",
+      "weight": 100,
+      "verified": true,
+      "endpoint_source": "public_seed_registry"
+    }
+  ],
+  "validator_endpoints": [
+    {
+      "account_id": "@validator-account-id",
+      "node_pubkey": "<validator-node-public-key>",
+      "api_base_url": "https://validator-1.testnet.weall.example",
+      "p2p_url": "tcp://validator-1.testnet.weall.example:30303",
+      "verified": true,
+      "signed": true,
+      "signature": "<validator-endpoint-advert-signature>",
+      "signer": "<validator-or-seed-registry-signer>",
+      "proof_timestamp_ms": 0,
+      "endpoint_source": "public_seed_registry"
+    }
+  ]
+}

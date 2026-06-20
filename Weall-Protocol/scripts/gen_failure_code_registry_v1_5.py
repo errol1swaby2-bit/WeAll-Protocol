@@ -24,6 +24,8 @@ STATUS_BY_API_METHOD = {
     "not_found": 404,
     "too_many": 429,
     "payload_too_large": 413,
+    "bad_gateway": 502,
+    "service_unavailable": 503,
     "internal": 500,
 }
 

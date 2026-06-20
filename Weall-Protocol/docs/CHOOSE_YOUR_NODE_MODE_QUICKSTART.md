@@ -52,3 +52,7 @@ production helper execution, public storage-market readiness, or legal/complianc
 readiness until the external transcript requirements in
 `Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
 and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.
+
+### Batch 626 public observer discovery note
+
+Public observer launch evidence now requires the fail-closed seed registry flow documented in `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`, recovery guidance in `PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md`, and external transcript capture from `PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md`. A public observer can be open-download only after real public seed URLs and pinned commitments are configured; validator activation remains protocol-gated.

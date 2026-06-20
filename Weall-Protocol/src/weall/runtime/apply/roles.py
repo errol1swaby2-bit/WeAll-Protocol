@@ -1173,6 +1173,7 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_role_validator_suspend(ledger: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     roles = _ensure_roles(ledger)
     validators = roles.get("validators")
     if not isinstance(validators, dict):
@@ -1425,7 +1426,7 @@ def _apply_role_emissary_vote(ledger: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_role_emissary_seat(ledger: Json, env: TxEnvelope) -> Json:
-    # This is a system action in many designs; keep permissive unless canon forbids.
+    _require_system_env(env)
     roles = _ensure_roles(ledger)
     em = roles.get("emissaries")
     if not isinstance(em, dict):
@@ -1465,6 +1466,7 @@ def _apply_role_emissary_seat(ledger: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_role_emissary_remove(ledger: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
     roles = _ensure_roles(ledger)
     em = roles.get("emissaries")
     if not isinstance(em, dict):

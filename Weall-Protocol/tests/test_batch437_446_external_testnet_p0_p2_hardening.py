@@ -164,9 +164,13 @@ def test_batch438_node_manager_uses_manifest_or_build_baseline_before_current_no
     assert "source: \"build\"" in src
     assert "source: \"seed-manifest\"" in src
     assert "source: \"current-node\"" in src
+    assert "publicTestnetBaselineErrors" in src
+    assert "public_testnet_config_missing:pinned_commitments_required" in src
     assert "const explicitBaseline = await loadExpectedCompatibilityBaseline();" in src
-    assert "applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline)" in src
+    assert "explicitBaseline === null && !config.publicTestnet ? undefined : explicitBaseline" in src
+    assert "explicitBaseline === null ? undefined : explicitBaseline" not in src
     assert src.index("const explicitBaseline = await loadExpectedCompatibilityBaseline();") < src.index("const rawProbes = await Promise.all")
+    assert src.index("const rawProbes = await Promise.all") < src.index("applyCompatibilityBaseline(rawProbes")
 
 
 def test_batch442_status_surface_exposes_constitution_and_limited_testnet_posture() -> None:

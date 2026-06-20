@@ -1,5 +1,12 @@
 # WeAll Protocol
 
+## Public observer testnet discovery gate
+
+Batch 626 adds a fail-closed public observer discovery layer. Public observer mode is explicit (`WEALL_PUBLIC_TESTNET=1`) and requires a valid public seed registry with pinned `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, `tx_index_hash`, seed API URLs, seed P2P URLs, `resettable_testnet: true`, and `economics_active: false`.
+
+Use `Weall-Protocol/configs/public_testnet_seed_registry.example.json` and `Weall-Protocol/docs/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md` before claiming public observer launch readiness. The testnet remains resettable and non-economic; observer access can be open, but validator activation, signing authority, storage provider status, juror roles, governance authority, and reputation-sensitive roles remain protocol-gated.
+
+
 WeAll is an experimental deterministic coordination protocol and social application prototype.
 
 The current repository demonstrates a local, fresh-clone, one-command development flow that boots a full local demo environment, seeds a demo account, and shows core social coordination surfaces in the frontend.
