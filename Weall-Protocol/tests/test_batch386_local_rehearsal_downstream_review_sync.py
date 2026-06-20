@@ -49,13 +49,15 @@ def test_async_evidence_waits_for_local_sync_before_dependent_txs_batch386() -> 
     assert "acceptAccepted: true" in page
 
 
-def test_content_escalation_uses_explicit_reviewer_opt_in_batch386() -> None:
+def test_content_escalation_uses_explicit_content_review_lane_opt_in_batch386() -> None:
     src = _read(NESTED / "src" / "weall" / "runtime" / "apply" / "content.py")
 
     assert "explicit_active_juror_opt_in_required" in src
     assert "_filter_target_owner_from_jurors" in src
-    assignment_block = src.split("reviewer_responsibility_policy", 1)[0].rsplit("assigned_jurors = (", 1)[-1]
-    assert "_active_juror_accounts(state)" in assignment_block
+    assert "CONTENT_REVIEW_LANE" in src
+    assignment_block = src.split("reviewer_responsibility_policy", 1)[0].rsplit("assigned_jurors =", 1)[-1]
+    assert "eligible_reviewer_ids(state, CONTENT_REVIEW_LANE)" in assignment_block
+    assert "_active_juror_accounts(state)" not in assignment_block
     assert "_active_validator_accounts(state)" not in assignment_block
     assert "_bootstrap_reviewer_accounts(state)" not in assignment_block
     assert "fallback_signer" not in assignment_block

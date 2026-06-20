@@ -84,6 +84,10 @@ function JsonDetails({ title, value }: { title: string; value: any }): JSX.Eleme
   );
 }
 
+function asRecord(value: any): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
 function StatusCard({ eyebrow, title, status, description, children }: StatusCardProps): JSX.Element {
   const pill = status === "done" ? "Complete" : status === "available" ? "Available" : "Locked";
   return (
@@ -388,6 +392,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<ErrState>(null);
@@ -397,6 +402,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const [registerBusy, setRegisterBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
+  const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
 
@@ -425,15 +431,19 @@ export default function AccountVerificationPage(): JSX.Element {
         setAcctView(null);
         setAcctState(null);
         setRegistration(null);
+        setReviewerStatus(null);
         return;
       }
-      const [accountView, registrationView] = await Promise.all([
+      const headers = getAuthHeaders(acct);
+      const [accountView, registrationView, reviewerStatusView] = await Promise.all([
         weall.account(acct, base),
         weall.accountRegistered(acct, base).catch(() => ({ registered: false })),
+        weall.accountReviewerStatus(acct, base, headers).catch(() => ({ reviewer: null })),
       ]);
       setAcctView(accountView);
       setAcctState(accountView?.state ?? null);
       setRegistration(registrationView);
+      setReviewerStatus(reviewerStatusView);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -498,6 +508,12 @@ export default function AccountVerificationPage(): JSX.Element {
   const contentPostingEligible = snapshot.postingEligible;
   const banned = snapshot.banned;
   const locked = snapshot.locked;
+  const reviewerTruth = asRecord(reviewerStatus?.reviewer);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
+  const contentReviewLaneTruth = asRecord(reviewerLaneTruth.content_review);
+  const contentReviewOptedIn = contentReviewLaneTruth.opted_in === true || contentReviewLaneTruth.active === true;
+  const contentReviewActive = contentReviewLaneTruth.active === true;
+  const contentReviewStatusLabel = contentReviewActive ? "Active" : contentReviewOptedIn ? "Opted in, paused" : "Not opted in";
 
   const basicStatus: "done" | "available" | "locked" = acct && hasLocalKeypair ? "done" : "available";
   const verifiedStatus: "done" | "available" | "locked" = accountLevel >= 1 ? "done" : registered ? "available" : "locked";
@@ -1010,6 +1026,52 @@ export default function AccountVerificationPage(): JSX.Element {
     }
   }
 
+  async function updateContentReviewLane(active: boolean): Promise<void> {
+    if (!acct) {
+      setErr({ msg: "Sign in before changing reviewer responsibilities.", details: null });
+      return;
+    }
+    if (accountLevel < 2) {
+      setErr({ msg: blockedByVerificationMessage(2), details: null });
+      return;
+    }
+    if (!hasLocalKeypair) {
+      setErr({ msg: "This device is missing the saved account key for this account.", details: null });
+      return;
+    }
+
+    setReviewerBusy(active ? "optIn" : "optOut");
+    setErr(null);
+    setResult(null);
+    try {
+      const r = await tx.runTx({
+        title: active ? "Opt into content review" : "Opt out of content review",
+        pendingMessage: active ? "Submitting content-review opt-in…" : "Submitting content-review opt-out…",
+        successMessage: active
+          ? "Content-review responsibility submitted. Pending unassigned reports can now select this account when it is unconflicted."
+          : "Content-review opt-out submitted. Already accepted work may still require protocol-specific withdrawal.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () =>
+          submitSignedTx({
+            account: acct,
+            tx_type: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
+            payload: { account_id: acct, lane: "content_review" },
+            parent: null,
+            base,
+          }),
+      });
+      setResult(r);
+      await refresh();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setErr(prettyErr(e));
+      setResult(e?.body || e?.data || null);
+    } finally {
+      setReviewerBusy(null);
+    }
+  }
+
   const asyncSubmitCheck = canSubmitAsyncEvidence({
     recordedBlob: asyncRecordedBlob,
     durationSeconds: asyncVideoSeconds,
@@ -1280,6 +1342,37 @@ export default function AccountVerificationPage(): JSX.Element {
           <p className="cardDesc">
             Verification proves account status. Responsibilities prove specific service permission, such as reviewing reports or helping operate network services.
           </p>
+          <div className="infoCard compact">
+            <div className="infoCardHeader">
+              <strong>Content review selection</strong>
+              <span className={`statusPill ${contentReviewActive ? "ok" : contentReviewOptedIn ? "warning" : ""}`}>{contentReviewStatusLabel}</span>
+            </div>
+            <div className="infoCardText">
+              Tier 2 makes you eligible, but the protocol only selects reviewers that explicitly opt into the content_review lane and are not the author of the flagged content.
+            </div>
+            <div className="buttonRowWide">
+              {!contentReviewActive ? (
+                <button
+                  className="btn btnPrimary"
+                  onClick={() => void updateContentReviewLane(true)}
+                  disabled={!acct || accountLevel < 2 || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
+                >
+                  {reviewerBusy === "optIn" ? "Opting in…" : accountLevel < 2 ? blockedByVerificationMessage(2) : "Opt into content review"}
+                </button>
+              ) : (
+                <button
+                  className="btn"
+                  onClick={() => void updateContentReviewLane(false)}
+                  disabled={!acct || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
+                >
+                  {reviewerBusy === "optOut" ? "Opting out…" : "Opt out of content review"}
+                </button>
+              )}
+              <button className="btn btnGhost" onClick={() => nav(acct ? `/account/${encodeURIComponent(acct)}` : "/login")} disabled={!acct}>
+                Open all responsibility controls
+              </button>
+            </div>
+          </div>
           <div className="infoGrid">
             {TRUSTED_RESPONSIBILITIES.map((responsibility) => (
               <div key={responsibility.key} className="infoCard compact">

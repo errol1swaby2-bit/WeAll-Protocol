@@ -426,7 +426,7 @@
       "http_status": null,
       "sample_reason": "group_post_authority_required",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 295
+      "source_lineno": 299
     },
     {
       "code": "forbidden",
@@ -669,7 +669,7 @@
       "http_status": null,
       "sample_reason": "missing_group_id_for_group_visibility",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 262
+      "source_lineno": 266
     },
     {
       "code": "invalid_payload",
@@ -1272,7 +1272,7 @@
       "http_status": null,
       "sample_reason": "group_not_found",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 291
+      "source_lineno": 295
     },
     {
       "code": "not_found",

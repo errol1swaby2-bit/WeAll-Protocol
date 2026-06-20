@@ -35,6 +35,10 @@ from weall.runtime.reputation_accrual import (
     pending_content_accrual,
     post_reputation_delta_milli,
 )
+from weall.runtime.reviewer_responsibilities import (
+    CONTENT_REVIEW_LANE,
+    eligible_reviewer_ids,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -1204,17 +1208,20 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     # Content report review is an explicit trusted responsibility. Tier2 status
     # makes an account eligible to opt in, but content escalation must not
-    # silently assign validators, bootstrap operators, or the reporter as a
-    # reviewer. This keeps review duty auditable and prevents accidental
-    # reputation liability for users who never accepted the responsibility.
-    assigned_jurors = clean_jurors(_active_juror_accounts(state))
+    # silently assign validators, bootstrap operators, generic jurors without
+    # exact lane consent, or the reporter as a reviewer. This keeps review duty
+    # auditable and prevents accidental reputation liability for users who never
+    # accepted the specific content-review responsibility.
+    assigned_jurors = clean_jurors(eligible_reviewer_ids(state, CONTENT_REVIEW_LANE))
     if target_author:
         dispute_obj["target_owner"] = target_author
     dispute_obj["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
     if not assigned_jurors:
         dispute_obj["stage"] = "unassigned"
         dispute_obj["assignment_blocked_reason"] = "no_unconflicted_content_reviewer"
+        dispute_obj["jurors"] = _as_dict(dispute_obj.get("jurors"))
         dispute_obj["eligible_juror_ids"] = []
+        dispute_obj["assigned_jurors"] = []
         dispute_obj["eligible_validator_count"] = 0
         dispute_obj["required_votes"] = 0
 

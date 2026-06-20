@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "1b1fe89080ee61a5ef5833feb6f3e753d2e698981065f6b033b781856d19dc32",
+  "artifact_digest": "479864adecd4fa88b091b45b61c1d494265a5591a01f45047ecae5f401897e41",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -88,7 +88,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "1f9f506cb03171eeea8588ea92cf187758aa7776942d4b1e2b087f41ab09f2d3",
+      "file_sha256": "69512671b222a3b102dc6256ae178260622842765920e9ca41c91b5c5ef9a2df",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
