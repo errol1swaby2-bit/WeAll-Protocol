@@ -75,3 +75,47 @@ def test_create_app_fails_closed_when_prod_bft_requested_but_not_effective(
 
     with pytest.raises(Exception, match="api_runtime_authority_validator_not_effective"):
         api_app.create_app(boot_runtime=True)
+
+
+def test_startup_authority_gate_runs_before_block_or_net_loop_autostart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from weall.api import app as api_app
+
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
+    monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
+    monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
+    monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
+    monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "1")
+    monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
+    monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")
+    monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub")
+    monkeypatch.setenv("WEALL_NODE_PRIVKEY", "priv")
+
+    calls: list[str] = []
+
+    ex = _FakeExecutor(
+        chain_id="weall-test",
+        mempool=None,
+        attestation_pool=None,
+        node_lifecycle_status=lambda: {
+            "requested_state": "production_service",
+            "effective_state": "maintenance_restricted",
+            "service_roles_requested": ["validator"],
+            "service_roles_effective": [],
+            "helper_enabled_requested": False,
+            "helper_enabled_effective": False,
+            "bft_enabled_requested": True,
+            "bft_enabled_effective": False,
+            "startup_action": "maintenance_restricted",
+            "promotion_failure_reasons": ["ROLE_NOT_ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(api_app, "build_executor", lambda: ex)
+    monkeypatch.setattr(api_app, "_construct_block_loop", lambda executor: calls.append("block_loop") or object())
+    monkeypatch.setattr(api_app, "_construct_net_loop", lambda net, executor: calls.append("net_loop") or object())
+
+    with pytest.raises(Exception, match="api_runtime_authority_validator_not_effective"):
+        api_app.create_app(boot_runtime=True)
+    assert calls == []

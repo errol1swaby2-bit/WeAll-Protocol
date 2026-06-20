@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nacl.signing import SigningKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.executor import WeAllExecutor
@@ -13,8 +14,17 @@ CHAIN_ID = "weall-prod-observer-signed-e2e"
 
 
 def _new_key() -> tuple[str, str]:
-    sk = SigningKey.generate()
-    return sk.encode().hex(), sk.verify_key.encode().hex()
+    sk = Ed25519PrivateKey.generate()
+    priv = sk.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).hex()
+    pub = sk.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    ).hex()
+    return priv, pub
 
 
 def _set_observer_env(monkeypatch) -> None:

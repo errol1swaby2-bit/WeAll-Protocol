@@ -2,6 +2,39 @@
 
 Use this checklist before publishing the repository for external testers.
 
+
+## Public observer testnet launch gate
+
+Before publishing an open-download public observer testnet build, verify all of the following from a clean clone:
+
+- `pip install -r requirements.lock` succeeds before `pip install -e .`; this keeps PyNaCl/cryptography dependencies present for signed observer and registry tests.
+- `WEALL_PUBLIC_TESTNET=1` is set.
+- The public seed registry is found through the default bundled path or `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH`.
+- `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY` or `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS` pins the expected registry signer.
+- `/v1/nodes/seeds` reports `seed_registry_signature_status.verified: true`.
+- `/v1/nodes/validators` reports active validators from protocol state and verified endpoint counts from signed endpoint advertisements.
+- The net loop peer store contains registry seed P2P URIs and signed validator P2P URIs; unsigned hints must not be auto-dialed.
+- `/v1/observer/edge/status` is visible in the local frontend and clearly separates local outbox state from upstream acceptance and confirmation.
+- A process-level startup test proves validator/BFT loops are not constructed when raw env requests signing but the runtime authority contract does not make validator authority effective.
+- Public warnings are visible: resettable testnet, non-economic balances, open observer access, protocol-gated validator activation, no persistence guarantee across resets.
+
+Targeted gate command:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+PYTHONPATH=src python -m pytest -q \
+  tests/prod/test_public_observer_seed_discovery.py \
+  tests/prod/test_public_validator_endpoint_discovery.py \
+  tests/prod/test_public_observer_tx_upstream_from_verified_seeds.py \
+  tests/prod/test_public_observer_registry_auto_dial.py \
+  tests/prod/test_observer_cannot_enable_validator_signing.py \
+  tests/test_api_startup_authority_contract_batch128.py
+cd ../web
+node scripts/test_node_dashboard_source.mjs
+node scripts/test_node_connection_manager_source.mjs
+```
+
 ## 0. Fresh clone validation
 
 Before publishing, validate from a clean directory that does not contain founder-local state:

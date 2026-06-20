@@ -6,10 +6,11 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
+from public_seed_test_helpers import REGISTRY_PUBKEY, signed_endpoint, signed_registry
 
 
 def _registry():
-    return {
+    data = {
         "version": 1,
         "network_id": "weall-public-observer-testnet-v1",
         "chain_id": "weall-testnet-v1",
@@ -20,23 +21,26 @@ def _registry():
         "seed_p2p_urls": ["tcp://127.0.0.1:30303"],
         "resettable_testnet": True,
         "economics_active": False,
-        "validator_endpoints": [
+        "validator_endpoints": [],
+    }
+    data["validator_endpoints"] = [
+        signed_endpoint(
+            data,
             {
                 "account_id": "@validator1",
-                "node_pubkey": "node-key-1",
                 "api_base_url": "http://127.0.0.1:8001",
                 "p2p_url": "tcp://127.0.0.1:30304",
-                "verified": True,
-                "signature": "test-signature",
                 "last_seen_ms": 123,
             },
-            {
-                "account_id": "@not-active",
-                "api_base_url": "http://127.0.0.1:8002",
-                "verified": False,
-            },
-        ],
-    }
+        ),
+        {
+            "account_id": "@not-active",
+            "api_base_url": "http://127.0.0.1:8002",
+            "verified": False,
+        },
+    ]
+    return signed_registry(data)
+
 
 
 class _FakeExecutor:
@@ -46,7 +50,7 @@ class _FakeExecutor:
                 "validators": {
                     "active_set": ["@validator1", "@validator2"],
                     "by_id": {
-                        "@validator1": {"active": True, "node_pubkey": "node-key-1", "readiness_status": "verified"},
+                        "@validator1": {"active": True, "node_pubkey": "", "readiness_status": "verified"},
                         "@validator2": {"active": True, "node_pubkey": "node-key-2", "readiness_status": "ready"},
                     },
                 }
@@ -62,6 +66,7 @@ def test_public_validator_endpoint_route_distinguishes_protocol_membership_from_
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET", "1")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_ALLOW_LOCAL", "1")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH", str(path))
+    monkeypatch.setenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", REGISTRY_PUBKEY)
 
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()

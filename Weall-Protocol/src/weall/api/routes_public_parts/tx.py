@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from weall.api.errors import ApiError
 from weall.api.public_seed_registry import (
     PublicSeedRegistryError,
+    commitment_payload,
     load_public_seed_registry,
     public_seed_registry_path,
     public_testnet_enabled,
@@ -191,6 +192,40 @@ def _normalized_tx_upstream_urls(request: Request | None = None) -> list[str]:
     return out
 
 
+def _public_commitments_for_request(request: Request | None = None) -> Json:
+    if not public_testnet_enabled():
+        return {}
+    cfg = getattr(request.app.state, "cfg", None) if request is not None else None
+    try:
+        registry = load_public_seed_registry(
+            public_seed_registry_path(getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None)
+        )
+        return commitment_payload(registry)
+    except PublicSeedRegistryError:
+        return {}
+
+
+def _expected_upstream_commitments_from_env() -> Json:
+    return {
+        "chain_id": str(os.environ.get("WEALL_EXPECTED_CHAIN_ID") or os.environ.get("WEALL_CHAIN_ID") or "").strip(),
+        "genesis_hash": str(os.environ.get("WEALL_EXPECTED_GENESIS_HASH") or os.environ.get("WEALL_GENESIS_HASH") or "").strip(),
+        "tx_index_hash": str(os.environ.get("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
+        "protocol_profile_hash": str(os.environ.get("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or "").strip(),
+    }
+
+
+def _merge_expected_commitments(*values: Json) -> Json:
+    out: Json = {}
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        for key in ("chain_id", "genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+            v = str(value.get(key) or "").strip()
+            if v:
+                out[key] = v
+    return out
+
+
 def _redact_upstream_url(url: str) -> str:
     try:
         parsed = urllib.parse.urlparse(str(url or ""))
@@ -202,9 +237,14 @@ def _redact_upstream_url(url: str) -> str:
         return "<invalid>"
 
 
-def _forward_tx_to_upstream(url: str, body: Json, *, tx_id: str, timeout_s: int) -> Json:
+def _forward_tx_to_upstream(url: str, body: Json, *, tx_id: str, timeout_s: int, expected_commitments: Json | None = None) -> Json:
     expected_chain_id = str(body.get("chain_id") or "").strip() if isinstance(body, dict) else ""
-    identity = _verify_upstream_identity(url, expected_chain_id=expected_chain_id, timeout_s=timeout_s)
+    identity = _verify_upstream_identity(
+        url,
+        expected_chain_id=expected_chain_id,
+        timeout_s=timeout_s,
+        expected_commitments=expected_commitments,
+    )
     if not bool(identity.get("ok")):
         return {"ok": False, "error": str(identity.get("error") or "upstream_identity_failed"), "identity": identity, "upstream": _redact_upstream_url(url)}
 
@@ -278,7 +318,21 @@ def _propagate_tx_to_configured_upstreams(request: Request, body: Json, *, tx_id
         return {"attempted": False, "accepted": False, "skipped": skipped, "error": skipped, "results": []}
 
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
-    results = [_forward_tx_to_upstream(url, body, tx_id=tx_id, timeout_s=timeout_s) for url in urls]
+    expected_commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        _public_commitments_for_request(request),
+        {"chain_id": str(body.get("chain_id") or "").strip()} if isinstance(body, dict) else {},
+    )
+    results = [
+        _forward_tx_to_upstream(
+            url,
+            body,
+            tx_id=tx_id,
+            timeout_s=timeout_s,
+            expected_commitments=expected_commitments,
+        )
+        for url in urls
+    ]
     accepted = any(bool(r.get("ok")) for r in results if isinstance(r, dict))
     return {"attempted": True, "accepted": bool(accepted), "results": results}
 
@@ -663,48 +717,110 @@ def _upstream_post_json(url: str, path: str, payload: Json, *, timeout_s: int) -
         return parsed
 
 
-def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: int) -> Json:
+def _extract_commitment(obj: Json, key: str) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    manifest_obj = obj.get("manifest") if isinstance(obj.get("manifest"), dict) else {}
+    chain_manifest = obj.get("chain_manifest") if isinstance(obj.get("chain_manifest"), dict) else {}
+    candidates = [
+        obj.get(key),
+        manifest_obj.get(key),
+        chain_manifest.get(key),
+    ]
+    if key == "chain_id":
+        candidates.extend([obj.get("chainId"), manifest_obj.get("chainId"), obj.get("id"), manifest_obj.get("id")])
+    if key == "genesis_hash":
+        anchor = obj.get("snapshot_anchor") if isinstance(obj.get("snapshot_anchor"), dict) else {}
+        candidates.extend([anchor.get("genesis_hash"), chain_manifest.get("genesis_hash")])
+    for candidate in candidates:
+        value = str(candidate or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _verify_commitment_value(
+    *,
+    source: Json,
+    key: str,
+    expected: str,
+    error_prefix: str,
+    upstream: str,
+) -> Json | None:
+    want = str(expected or "").strip()
+    if not want:
+        return None
+    observed = _extract_commitment(source, key)
+    if not observed:
+        return {"ok": False, "error": f"{error_prefix}_{key}_missing", f"expected_{key}": want, "upstream": upstream}
+    if observed != want:
+        return {
+            "ok": False,
+            "error": f"{error_prefix}_{key}_mismatch",
+            f"expected_{key}": want,
+            key: observed,
+            "upstream": upstream,
+        }
+    return None
+
+
+def _verify_upstream_identity(
+    url: str,
+    *,
+    expected_chain_id: str,
+    timeout_s: int,
+    expected_commitments: Json | None = None,
+) -> Json:
     if not _tx_upstream_verify_identity_enabled():
         return {"ok": True, "skipped": "identity_verification_disabled", "upstream": _redact_upstream_url(url)}
-    expected = str(expected_chain_id or "").strip()
+    upstream = _redact_upstream_url(url)
+    commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        expected_commitments or {},
+        {"chain_id": expected_chain_id},
+    )
+    expected = str(commitments.get("chain_id") or expected_chain_id or "").strip()
     if not expected:
-        return {"ok": False, "error": "missing_expected_chain_id", "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": "missing_expected_chain_id", "upstream": upstream}
     try:
         identity = _upstream_get_json(url, "/v1/chain/identity", timeout_s=timeout_s)
     except Exception as exc:
-        return {"ok": False, "error": "upstream_identity_unreachable", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
-    observed_chain = str(identity.get("chain_id") or "").strip()
+        return {"ok": False, "error": "upstream_identity_unreachable", "detail": str(exc)[:256], "upstream": upstream}
+    observed_chain = _extract_commitment(identity, "chain_id")
     if observed_chain != expected:
         return {
             "ok": False,
             "error": "upstream_chain_id_mismatch",
             "expected_chain_id": expected,
             "chain_id": observed_chain,
-            "upstream": _redact_upstream_url(url),
+            "upstream": upstream,
         }
+    if public_testnet_enabled():
+        for key in ("genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+            err = _verify_commitment_value(
+                source=identity,
+                key=key,
+                expected=str(commitments.get(key) or ""),
+                error_prefix="upstream_identity",
+                upstream=upstream,
+            )
+            if err is not None:
+                return err
 
     manifest_result: Json = {"checked": False}
     if _tx_upstream_require_manifest():
         try:
             manifest = _upstream_get_json(url, "/v1/chain/manifest", timeout_s=timeout_s)
         except Exception as exc:
-            return {"ok": False, "error": "upstream_manifest_unreachable", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+            return {"ok": False, "error": "upstream_manifest_unreachable", "detail": str(exc)[:256], "upstream": upstream}
         manifest_obj = manifest.get("manifest") if isinstance(manifest.get("manifest"), dict) else {}
-        manifest_chain = str(
-            manifest.get("chain_id")
-            or manifest_obj.get("chain_id")
-            or manifest.get("chainId")
-            or manifest_obj.get("chainId")
-            or manifest.get("id")
-            or manifest_obj.get("id")
-            or ""
-        ).strip()
+        manifest_chain = _extract_commitment(manifest, "chain_id")
         if not manifest_chain:
             return {
                 "ok": False,
                 "error": "upstream_manifest_chain_id_missing",
                 "expected_chain_id": expected,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         if manifest_chain != expected:
             return {
@@ -712,8 +828,19 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "error": "upstream_manifest_chain_id_mismatch",
                 "expected_chain_id": expected,
                 "chain_id": manifest_chain,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
+        if public_testnet_enabled():
+            for key in ("genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+                err = _verify_commitment_value(
+                    source=manifest,
+                    key=key,
+                    expected=str(commitments.get(key) or ""),
+                    error_prefix="upstream_manifest",
+                    upstream=upstream,
+                )
+                if err is not None:
+                    return err
         expected_hash = str(os.environ.get("WEALL_EXPECTED_UPSTREAM_MANIFEST_HASH") or os.environ.get("WEALL_CHAIN_MANIFEST_HASH") or "").strip()
         manifest_hash = str(
             manifest.get("manifest_hash")
@@ -727,7 +854,7 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "ok": False,
                 "error": "upstream_manifest_hash_missing",
                 "expected_manifest_hash": expected_hash,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         if expected_hash and manifest_hash != expected_hash:
             return {
@@ -735,10 +862,20 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "error": "upstream_manifest_hash_mismatch",
                 "expected_manifest_hash": expected_hash,
                 "manifest_hash": manifest_hash,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         manifest_result = {"checked": True, "manifest_hash": manifest_hash, "chain_id": manifest_chain}
-    return {"ok": True, "upstream": _redact_upstream_url(url), "identity": {"chain_id": observed_chain}, "manifest": manifest_result}
+    return {
+        "ok": True,
+        "upstream": upstream,
+        "identity": {
+            "chain_id": observed_chain,
+            "genesis_hash": _extract_commitment(identity, "genesis_hash"),
+            "tx_index_hash": _extract_commitment(identity, "tx_index_hash"),
+            "protocol_profile_hash": _extract_commitment(identity, "protocol_profile_hash"),
+        },
+        "manifest": manifest_result,
+    }
 
 
 def _trusted_anchor_from_upstream(url: str, *, expected_chain_id: str, timeout_s: int) -> Json:
@@ -830,10 +967,27 @@ def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None =
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
     results: list[Json] = []
     accepted_any = False
+    expected_commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        _public_commitments_for_request(request),
+    )
     for item in selected:
         tx_id = str(item.get("tx_id") or "")
         body = item.get("body") if isinstance(item.get("body"), dict) else {}
-        per_tx_results = [_forward_tx_to_upstream(url, body, tx_id=tx_id, timeout_s=timeout_s) for url in urls]
+        per_tx_commitments = _merge_expected_commitments(
+            expected_commitments,
+            {"chain_id": str(item.get("chain_id") or body.get("chain_id") or "").strip()},
+        )
+        per_tx_results = [
+            _forward_tx_to_upstream(
+                url,
+                body,
+                tx_id=tx_id,
+                timeout_s=timeout_s,
+                expected_commitments=per_tx_commitments,
+            )
+            for url in urls
+        ]
         accepted = any(bool(r.get("ok")) for r in per_tx_results if isinstance(r, dict))
         if accepted:
             accepted_any = True

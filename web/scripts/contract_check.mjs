@@ -138,6 +138,9 @@ async function main() {
       ["GET /v1/consensus/block-production/readiness", "/v1/consensus/block-production/readiness"],
       ["GET /v1/status/helper/readiness", "/v1/status/helper/readiness"],
       ["GET /v1/net/self", "/v1/net/self"],
+      ["GET /v1/nodes/seeds", "/v1/nodes/seeds"],
+      ["GET /v1/nodes/validators", "/v1/nodes/validators"],
+      ["GET /v1/observer/edge/status", "/v1/observer/edge/status"],
     ];
     for (const [label, path] of endpoints) {
       const r = await fetchJson(path);

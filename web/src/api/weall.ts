@@ -539,6 +539,18 @@ export const weall = {
     return apiGet("/v1/net/self", base, headers);
   },
 
+  publicSeeds(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/nodes/seeds", base, headers);
+  },
+
+  publicValidators(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/nodes/validators", base, headers);
+  },
+
+  observerEdgeStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/observer/edge/status", base, headers);
+  },
+
   account(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers);
   },

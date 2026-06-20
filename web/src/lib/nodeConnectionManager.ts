@@ -180,8 +180,18 @@ async function loadSeedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promis
   }
 }
 
+
+async function loadBackendSeedCompatibilityBaseline(base = getApiBaseUrl()): Promise<NodeCompatibilityBaseline | null> {
+  try {
+    const payload = await fetchJsonWithTimeout(endpoint(base, "/v1/nodes/seeds"), 2500);
+    return baselineFromPayload({ ...(payload || {}), source: "/v1/nodes/seeds" });
+  } catch {
+    return null;
+  }
+}
+
 export async function loadExpectedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promise<NodeCompatibilityBaseline | null> {
-  return buildConfiguredCompatibilityBaseline() || (await loadSeedCompatibilityBaseline(seedsUrl));
+  return buildConfiguredCompatibilityBaseline() || (await loadBackendSeedCompatibilityBaseline()) || (await loadSeedCompatibilityBaseline(seedsUrl));
 }
 
 function dedupeSeeds(seeds: SeedNode[]): SeedNode[] {
@@ -207,14 +217,25 @@ export async function loadSeedNodes(seedsUrl = config.seedsUrl): Promise<SeedNod
   }
 }
 
+
+export async function loadBackendSeedNodes(base = getApiBaseUrl()): Promise<SeedNode[]> {
+  try {
+    const payload = await fetchJsonWithTimeout(endpoint(base, "/v1/nodes/seeds"), 2500);
+    return dedupeSeeds(seedsFromPayload(payload));
+  } catch {
+    return [];
+  }
+}
+
 export async function discoverCandidateNodes(): Promise<SeedNode[]> {
   const current = displayBase(getApiBaseUrl());
   const defaults = [
     seedFromUnknown({ url: current, label: "Current node", description: "The backend this browser is using now." }),
     seedFromUnknown({ url: config.defaultApiBase, label: "Build default", description: "The backend configured for this frontend build." }),
   ].filter((x): x is SeedNode => !!x);
-  const seeds = await loadSeedNodes();
-  return dedupeSeeds([...defaults, ...seeds]);
+  const backendSeeds = await loadBackendSeedNodes(current);
+  const manifestSeeds = await loadSeedNodes();
+  return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
 }
 
 function safeStr(value: unknown): string | undefined {

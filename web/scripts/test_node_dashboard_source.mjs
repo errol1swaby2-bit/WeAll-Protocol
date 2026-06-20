@@ -38,6 +38,9 @@ for (const method of [
   "blockProductionReadiness",
   "helperReadiness",
   "netSelf",
+  "publicSeeds",
+  "publicValidators",
+  "observerEdgeStatus",
 ]) {
   assertIncludes(api, `${method}(base?: string`, `API exposes ${method}`);
 }
@@ -50,6 +53,11 @@ for (const needle of [
   "Resume storage contribution",
   "capacity proof",
   "browser cannot grant storage authority",
+  "Seed, validator, and tx propagation visibility",
+  "local tx acceptance is shown separately from upstream validator acceptance",
+  "Active validators",
+  "Verified validator endpoints",
+  "Observer tx propagation",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");
 }
@@ -69,6 +77,9 @@ for (const endpoint of [
   "/v1/storage/ipfs/ops",
   "/v1/chain/head",
   "/v1/status/helper/readiness",
+  "/v1/nodes/seeds",
+  "/v1/nodes/validators",
+  "/v1/observer/edge/status",
 ]) {
   assertIncludes(contract, endpoint, "contract check covers node dashboard endpoint");
 }

@@ -89,7 +89,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
         {probes.length === 0 && !busy ? (
           <div className="emptyPanel">
             <strong>No node list loaded.</strong>
-            <span>The manager uses the current browser API node, the build default, and any public seed manifest nodes listed in /seeds.json.</span>
+            <span>The manager uses the current browser API node, the build default, the backend /v1/nodes/seeds route, and /seeds.json only as a frontend fallback.</span>
           </div>
         ) : null}
 

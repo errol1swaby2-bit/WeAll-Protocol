@@ -58,6 +58,13 @@ from weall.net.node import NetConfig, NetNode
 from weall.net.peer_list_store import PeerListStore
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import PeerAddr
+from weall.api.public_seed_registry import (
+    PublicSeedRegistryError,
+    load_public_seed_registry,
+    public_seed_registry_path,
+    public_testnet_enabled,
+    verified_peer_uris_from_registry,
+)
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
@@ -172,6 +179,19 @@ def _split_csv(raw: str) -> list[str]:
 def _is_peer_uri(uri: str) -> bool:
     s = str(uri or "").strip()
     return s.startswith("tcp://") or s.startswith("tls://")
+
+
+def _public_registry_peer_uris() -> list[str]:
+    if not public_testnet_enabled():
+        return []
+    try:
+        registry = load_public_seed_registry(public_seed_registry_path())
+    except PublicSeedRegistryError as exc:
+        if _is_prod():
+            raise NetStartupError(str(exc) or "public_seed_registry_error") from exc
+        return []
+    peers = verified_peer_uris_from_registry(registry, include_seeds=True, include_validators=True)
+    return [uri for uri in peers if _is_peer_uri(uri)]
 
 
 def _seed_net_self_url(seed: str) -> str:
@@ -382,6 +402,9 @@ class NetMeshLoop:
         env_peers_raw = (os.environ.get("WEALL_PEERS") or "").strip()
         env_seed_peers_raw = (os.environ.get("WEALL_SEED_PEERS") or "").strip()
         env_peer_uris = _split_csv(env_peers_raw + "," + env_seed_peers_raw)
+        public_registry_peers = _public_registry_peer_uris()
+        if public_registry_peers:
+            env_peer_uris.extend(public_registry_peers)
         if env_peer_uris:
             try:
                 self._peers_store.merge(env_peer_uris, force=True)
@@ -392,6 +415,13 @@ class NetMeshLoop:
         self._seed_nodes = _split_csv(
             os.environ.get("WEALL_SEED_NODES", "") or os.environ.get("WEALL_SEED_URLS", "")
         )
+        if public_testnet_enabled():
+            try:
+                registry = load_public_seed_registry(public_seed_registry_path())
+                self._seed_nodes.extend(str(url) for url in registry.get("seed_api_urls", []) if str(url).strip())
+            except PublicSeedRegistryError as exc:
+                if _is_prod():
+                    raise NetStartupError(str(exc) or "public_seed_registry_error") from exc
         try:
             self._seed_discover_timeout_s = float(
                 os.environ.get("WEALL_SEED_TIMEOUT_S", "2.0") or "2.0"

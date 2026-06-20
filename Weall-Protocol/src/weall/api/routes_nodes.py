@@ -160,6 +160,7 @@ def _seeds_response(request: Request) -> Json:
             "seed_p2p_urls": registry.get("seed_p2p_urls", []),
             "seed_registry_signature": registry.get("seed_registry_signature", ""),
             "seed_registry_signer": registry.get("seed_registry_signer", ""),
+            "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
             "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
             "resettable_testnet": True,
             "economics_active": False,
@@ -401,6 +402,7 @@ def _validator_endpoints_response(request: Request) -> Json:
             {
                 "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
                 "seed_registry_signature_present": bool(str(registry.get("seed_registry_signature") or "").strip()),
+                "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
             }
         )
 

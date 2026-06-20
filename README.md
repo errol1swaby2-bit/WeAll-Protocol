@@ -2,7 +2,9 @@
 
 ## Public observer testnet discovery gate
 
-Batch 626 adds a fail-closed public observer discovery layer. Public observer mode is explicit (`WEALL_PUBLIC_TESTNET=1`) and requires a valid public seed registry with pinned `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, `tx_index_hash`, seed API URLs, seed P2P URLs, `resettable_testnet: true`, and `economics_active: false`.
+Batch 627 hardens the public observer discovery layer. Public observer mode is explicit (`WEALL_PUBLIC_TESTNET=1`) and uses the backend public seed registry as the source of truth for seed discovery, validator endpoint discovery, and public-testnet commitments. Production public observer mode requires a signed registry, a pinned registry signer (`WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY` or `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS`), matching `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, `tx_index_hash`, seed API URLs, seed P2P URLs, `resettable_testnet: true`, and `economics_active: false`.
+
+Validator endpoint advertisements must be signed against the same public-testnet commitments before they are treated as verified connection targets. Endpoint advertisements never grant validator status; active validator status still comes only from committed protocol state. The frontend Node Dashboard now surfaces `/v1/nodes/seeds`, `/v1/nodes/validators`, and observer-edge propagation state so local acceptance is not confused with upstream validator acceptance or block confirmation.
 
 Use `Weall-Protocol/configs/public_testnet_seed_registry.example.json` and `Weall-Protocol/docs/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md` before claiming public observer launch readiness. The testnet remains resettable and non-economic; observer access can be open, but validator activation, signing authority, storage provider status, juror roles, governance authority, and reputation-sensitive roles remain protocol-gated.
 

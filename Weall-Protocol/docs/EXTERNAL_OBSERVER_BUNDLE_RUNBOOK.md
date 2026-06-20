@@ -1,5 +1,7 @@
 # External Observer Bundle Runbook
 
+> Legacy controlled-observer runbook. For the updated open-download public observer testnet path, use `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`. This legacy bundle path remains useful for controlled reviewer rehearsals, but it must not be described as invite-only public testnet discovery.
+
 This runbook describes the external observer posture that Batch 615 expects release reviewers to preserve. An observer bundle must let a new participant read the chain and submit user transactions through an authorized upstream without receiving validator authority, validator secrets, or production signing permission.
 
 ## Required observer properties

@@ -158,6 +158,9 @@ export default function NodeDashboard(): JSX.Element {
       blockProduction: weall.blockProductionReadiness(base),
       helperReadiness: weall.helperReadiness(base),
       netSelf: weall.netSelf(base),
+      publicSeeds: weall.publicSeeds(base),
+      publicValidators: weall.publicValidators(base),
+      observerEdge: weall.observerEdgeStatus(base, headers),
     };
     if (account) {
       calls.accountOperator = weall.accountOperatorStatus(account, base, headers);
@@ -208,6 +211,9 @@ export default function NodeDashboard(): JSX.Element {
   const testnetCapabilities = asRecord(data.testnetCapabilities);
   const helperReadiness = asRecord(data.helperReadiness);
   const netSelf = asRecord(data.netSelf);
+  const publicSeeds = asRecord(data.publicSeeds);
+  const publicValidators = asRecord(data.publicValidators);
+  const observerEdge = asRecord(data.observerEdge);
   const accountOperator = asRecord(asRecord(data.accountOperator).node_operator);
   const accountStorage = asRecord(accountOperator.storage);
   const accountValidator = asRecord(accountOperator.validator);
@@ -236,6 +242,18 @@ export default function NodeDashboard(): JSX.Element {
   const validatorOptedIn = accountValidator.active === true || str(accountValidator.status).length > 0 && str(accountValidator.status) !== "not_opted_in";
   const helperOptedIn = accountHelper.active === true || (str(accountHelper.status).length > 0 && str(accountHelper.status) !== "not_opted_in");
   const incidentTimeline = asArray(operatorInner.incident_timeline);
+  const validatorRows = asArray(publicValidators.validators);
+  const activeValidatorCount = num(publicValidators.active_validator_count, validatorRows.length);
+  const verifiedEndpointCount = num(publicValidators.verified_endpoint_count, 0);
+  const seedNodes = asArray(publicSeeds.nodes);
+  const seedP2pUrls = asArray(publicSeeds.seed_p2p_urls);
+  const seedRegistrySig = asRecord(publicSeeds.seed_registry_signature_status || asRecord(publicValidators.registry).seed_registry_signature_status);
+  const observerOutbox = asRecord(observerEdge.outbox);
+  const observerOutboxCounts = asRecord(observerOutbox.counts);
+  const observerQueued = num(observerOutbox.count, 0);
+  const observerAccepted = num(observerOutboxCounts.accepted, 0);
+  const observerConfirmed = num(observerOutboxCounts.confirmed, 0);
+  const upstreamCount = num(observerEdge.upstream_count, 0);
   const readinessSteps: Array<{ label: string; ok: boolean; warn?: boolean; value: string }> = [
     { label: "1. Genesis or observer node booted", ok: status.ok === true, value: status.ok === true ? "Node API responding" : "Node API unavailable" },
     { label: "2. Chain identity pinned", ok: !!chainId && chainId !== "—", value: chainId },
@@ -308,6 +326,8 @@ export default function NodeDashboard(): JSX.Element {
         <StatCard label="Node health" value={readyz.ready === false ? "Degraded" : status.ok === true ? "Online" : "Unknown"} note="Backend status and readiness are read from the connected node." ok={status.ok === true && readyz.ready !== false} warn={readyz.ready === false || loadState === "error"} />
         <StatCard label="Sync height" value={String(height || "0")} note={`Tip ${compact(status.tip || chainHead.tip || chainIdentity.tip_hash)}`} ok={height >= 0 && status.ok === true} />
         <StatCard label="Mempool" value={`${mempoolSize} tx`} note="Pending transaction pressure exposed by the node status surface." ok={mempoolSize === 0} warn={mempoolSize > 0} />
+        <StatCard label="Active validators" value={String(activeValidatorCount)} note={`${verifiedEndpointCount} verified endpoint(s) advertised by /v1/nodes/validators.`} ok={activeValidatorCount > 0 && verifiedEndpointCount > 0} warn={activeValidatorCount > 0 && verifiedEndpointCount === 0} />
+        <StatCard label="Tx propagation" value={observerQueued ? `${observerQueued} local` : "No local queue"} note={`${upstreamCount} verified upstream(s); ${observerAccepted} accepted, ${observerConfirmed} confirmed in observer outbox.`} ok={observerQueued === 0 || observerConfirmed > 0 || observerAccepted > 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
         <StatCard label="Launch boundary" value={statusLabel(launchPhase)} note={publicBetaClaimed ? "Unexpected public beta claim detected." : "This surface does not claim public beta or production readiness."} ok={!publicBetaClaimed} warn={publicBetaClaimed} />
         <StatCard label="Public beta blockers" value={`${publicBetaRemaining || blockedCapabilities.length} open`} note={publicBetaBlockerReport.present === false ? "Blocker report artifact not loaded from this node." : "Remaining public-beta blockers are shown as evidence gates, not readiness claims."} ok={!publicBetaClaimed && publicBetaRemaining > 0} warn={publicBetaClaimed || publicBetaRemaining === 0} />
       </section>
@@ -364,6 +384,63 @@ export default function NodeDashboard(): JSX.Element {
         chainId={chainId}
         baseUrl={base}
       />
+
+      <section className="card" aria-labelledby="public-observer-discovery-heading">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Public observer testnet</div>
+              <h2 id="public-observer-discovery-heading" className="cardTitle">Seed, validator, and tx propagation visibility</h2>
+              <p className="cardDesc">
+                These values come from backend protocol/discovery routes. A browser selection cannot grant validator authority, and local tx acceptance is shown separately from upstream validator acceptance.
+              </p>
+            </div>
+            <span className={statusClass(publicSeeds.ok === true && publicValidators.ok === true, publicSeeds.ok !== true || publicValidators.ok !== true)}>Discovery routes</span>
+          </div>
+
+          <div className="grid2">
+            <div className="infoCard compact">
+              <div className="feedMediaTitle">Seed registry and commitments</div>
+              <div className="progressList">
+                <DetailRow label="Public testnet" value={publicSeeds.public_testnet === true ? "Enabled" : "Not enabled"} ok={publicSeeds.public_testnet === true} warn={publicSeeds.public_testnet !== true && publicSeeds.ok === true} />
+                <DetailRow label="Registry signature" value={seedRegistrySig.verified === true ? `Verified (${str(seedRegistrySig.trust, "signed")})` : "Unsigned / not loaded"} ok={seedRegistrySig.verified === true} warn={publicSeeds.public_testnet === true && seedRegistrySig.verified !== true} />
+                <DetailRow label="Seed API nodes" value={String(seedNodes.length)} ok={seedNodes.length > 0} warn={publicSeeds.public_testnet === true && seedNodes.length === 0} />
+                <DetailRow label="Seed P2P URIs" value={String(seedP2pUrls.length)} ok={seedP2pUrls.length > 0} warn={publicSeeds.public_testnet === true && seedP2pUrls.length === 0} />
+                <DetailRow label="Genesis hash" value={<span className="mono">{compact(publicSeeds.genesis_hash || chainIdentity.genesis_hash)}</span>} ok={!!(publicSeeds.genesis_hash || chainIdentity.genesis_hash)} />
+              </div>
+            </div>
+
+            <div className="infoCard compact">
+              <div className="feedMediaTitle">Observer tx propagation</div>
+              <div className="progressList">
+                <DetailRow label="Observer edge mode" value={observerEdge.observer_edge_mode === true ? "Enabled" : "Not enabled"} ok={observerEdge.observer_edge_mode === true} warn={observerMode && observerEdge.observer_edge_mode !== true} />
+                <DetailRow label="Verified upstreams" value={String(upstreamCount)} ok={upstreamCount > 0} warn={observerEdge.observer_edge_mode === true && upstreamCount === 0} />
+                <DetailRow label="Local outbox" value={`${observerQueued} queued/known`} ok={observerQueued === 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
+                <DetailRow label="Upstream accepted" value={String(observerAccepted)} ok={observerAccepted > 0 || observerQueued === 0} warn={observerQueued > 0 && observerAccepted === 0} />
+                <DetailRow label="Upstream confirmed" value={String(observerConfirmed)} ok={observerConfirmed > 0 || observerQueued === 0} />
+              </div>
+            </div>
+          </div>
+
+          <div className="progressList" aria-label="Current validators from protocol state">
+            <DetailRow label="Active validators" value={String(activeValidatorCount)} ok={activeValidatorCount > 0} warn={activeValidatorCount === 0 && publicValidators.ok === true} />
+            <DetailRow label="Verified validator endpoints" value={String(verifiedEndpointCount)} ok={verifiedEndpointCount > 0 || activeValidatorCount === 0} warn={activeValidatorCount > 0 && verifiedEndpointCount === 0} />
+            {validatorRows.slice(0, 8).map((row: any, idx: number) => (
+              <DetailRow
+                key={`${String(row.account_id || row.node_pubkey || "validator")}-${idx}`}
+                label={String(row.account_id || "validator")}
+                value={`${String(row.readiness_status || "active")} · ${num(row.verified_endpoint_count, 0)} verified endpoint(s)`}
+                ok={row.active_in_protocol_state === true && num(row.verified_endpoint_count, 0) > 0}
+                warn={row.active_in_protocol_state === true && num(row.verified_endpoint_count, 0) === 0}
+              />
+            ))}
+          </div>
+
+          <div className="calloutInfo">
+            Public observer tx states are intentionally split: <strong>local accepted</strong> only means your node accepted the envelope; <strong>upstream accepted</strong> means a verified seed/validator API accepted it; <strong>confirmed</strong> means the tx was observed in a block/status response.
+          </div>
+        </div>
+      </section>
 
       <section className="card" aria-labelledby="storage-control-heading">
         <div className="cardBody formStack">

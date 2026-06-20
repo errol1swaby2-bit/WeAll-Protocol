@@ -12,7 +12,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1462
+      "source_lineno": 1616
     },
     {
       "code": "account_not_found",
@@ -147,7 +147,7 @@
       "http_status": 400,
       "sample_reason": "missing tx_id",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1026
+      "source_lineno": 1180
     },
     {
       "code": "bad_sig",
@@ -183,7 +183,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1436
+      "source_lineno": 1590
     },
     {
       "code": "banned",
@@ -219,7 +219,7 @@
       "http_status": 403,
       "sample_reason": "tx chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1181
+      "source_lineno": 1335
     },
     {
       "code": "conflict",
@@ -372,7 +372,7 @@
       "http_status": 403,
       "sample_reason": "bad_observer_edge_operator_token",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 322
+      "source_lineno": 376
     },
     {
       "code": "forbidden",
@@ -912,7 +912,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1386
+      "source_lineno": 1540
     },
     {
       "code": "invalid_tx",
@@ -1002,7 +1002,7 @@
       "http_status": null,
       "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
       "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 432
+      "source_lineno": 434
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1164,7 +1164,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1174
+      "source_lineno": 1328
     },
     {
       "code": "missing_env",
@@ -1209,7 +1209,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1428
+      "source_lineno": 1582
     },
     {
       "code": "not_found",
@@ -1434,7 +1434,7 @@
       "http_status": 403,
       "sample_reason": "observer edge operator endpoints require WEALL_OPERATOR_TOKEN or WEALL_OBSERVER_EDGE_OPERATOR_TOKEN",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 315
+      "source_lineno": 369
     },
     {
       "code": "payload_too_large",
@@ -1488,7 +1488,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1414
+      "source_lineno": 1568
     },
     {
       "code": "relay_not_ready",
@@ -1587,7 +1587,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1403
+      "source_lineno": 1557
     },
     {
       "code": "tx_unimplemented",

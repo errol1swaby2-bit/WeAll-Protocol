@@ -1,6 +1,6 @@
 # Public Observer Testnet Quickstart
 
-Batch 626 adds the fail-closed discovery layer required for a public, open-download observer testnet. This document is intentionally conservative: it does not claim public beta or production readiness by itself.
+Batch 627 makes the public observer path fail-closed around signed discovery. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
 
 ## Safety boundary
 
@@ -12,14 +12,25 @@ Batch 626 adds the fail-closed discovery layer required for a public, open-downl
 - Tokens and economic balances have no real-world value.
 - Bugs or upgrades may reset state; users must not rely on persistence across resets.
 
-## Required public configuration
+## Public discovery trust model
 
-A public observer node must be started with an explicit seed registry:
+Public observer mode uses the backend public seed registry as the source of truth. The frontend may still read `/seeds.json` as a compatibility fallback, but the node dashboard and connection manager now prefer backend `/v1/nodes/seeds` and `/v1/nodes/validators`.
+
+A production public observer registry must include a valid Ed25519 registry signature and a pinned registry signer:
 
 ```bash
 export WEALL_PUBLIC_TESTNET=1
-export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH=/path/to/public_testnet_seed_registry.json
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
 ```
+
+The registry is loaded from the first available source:
+
+1. `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH`
+2. `WEALL_PUBLIC_SEED_REGISTRY_PATH`
+3. `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`
+4. `./public_testnet_seed_registry.json`
+5. `./config/public_testnet_seed_registry.json`
+6. `./Weall-Protocol/config/public_testnet_seed_registry.json`
 
 The registry must include:
 
@@ -30,10 +41,16 @@ The registry must include:
 - `tx_index_hash`
 - `seed_api_urls`
 - `seed_p2p_urls`
+- `seed_registry_signer`
+- `seed_registry_signature`
 - `resettable_testnet: true`
 - `economics_active: false`
 
-Use `configs/public_testnet_seed_registry.example.json` as the schema example. Do not publish a public observer build with fake seed URLs or placeholder hashes.
+Only `tcp://` and `tls://` P2P URIs are accepted because those are the transports the net loop can dial. Placeholder schemes such as `p2p://`, `weall://`, or `libp2p://` must not be published until the runtime actually supports them.
+
+Validator endpoint advertisements are separate from validator authority. A validator endpoint is treated as verified only when its endpoint signature validates against the registry commitments. Endpoint hints never grant validator status; protocol state remains the authority.
+
+Use `configs/public_testnet_seed_registry.example.json` as the schema example. Do not publish a public observer build with fake seed URLs, placeholder hashes, unsigned production registries, or unverified validator endpoints.
 
 ## Clean-clone observer boot
 
@@ -42,6 +59,7 @@ git clone <repo-url> WeAll-Protocol
 cd WeAll-Protocol/Weall-Protocol
 python -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.lock
 pip install -e .
 
 export WEALL_MODE=prod
@@ -49,23 +67,27 @@ export WEALL_API_MODE=node
 export WEALL_OBSERVER_MODE=1
 export WEALL_OBSERVER_EDGE_MODE=1
 export WEALL_PUBLIC_TESTNET=1
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+# Optional if the release does not bundle ./public_testnet_seed_registry.json:
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH=/absolute/path/to/public_testnet_seed_registry.json
 
 python -m weall.api
 ```
 
-Verify the local observer sees the public seed commitments:
+Verify the local observer sees signed public commitments:
 
 ```bash
 curl -s http://127.0.0.1:8000/v1/nodes/seeds | python -m json.tool
 curl -s http://127.0.0.1:8000/v1/nodes/validators | python -m json.tool
+curl -s http://127.0.0.1:8000/v1/observer/edge/status | python -m json.tool
 curl -s http://127.0.0.1:8000/v1/chain/identity | python -m json.tool
 ```
 
 Expected results:
 
-- `/v1/nodes/seeds` returns `public_testnet: true` and the pinned chain/genesis/profile commitments.
+- `/v1/nodes/seeds` returns `public_testnet: true`, signed registry status, and the pinned chain/genesis/profile commitments.
 - `/v1/nodes/validators` returns active validator accounts from protocol state and separates verified endpoints from unverified hints.
+- `/v1/observer/edge/status` separates local outbox state from upstream validator acceptance/confirmation.
 - `/v1/chain/identity` matches the seed registry commitments.
 
 ## Frontend public observer build
@@ -83,14 +105,29 @@ VITE_WEALL_EXPECTED_PROTOCOL_PROFILE_HASH=<public-profile-hash>
 
 In public testnet mode the frontend must not use the first reachable node as the compatibility baseline. Missing commitments should render a configuration error instead of marking a node healthy.
 
+The Node Dashboard must show:
+
+- seed registry signature status
+- seed API and P2P counts
+- active validators from `/v1/nodes/validators`
+- verified validator endpoint counts
+- observer-edge upstream count
+- local outbox count
+- upstream accepted and confirmed counts
+
 ## Public observer launch gate
 
 Before claiming public observer launch readiness, capture an external transcript showing:
 
 1. Clean clone.
-2. Public seed registry configured.
-3. Observer boot.
-4. `/v1/nodes/seeds` public commitments match pinned values.
-5. `/v1/nodes/validators` active validators and verified endpoints render correctly.
-6. Frontend shows browser API access node separately from local mesh status.
-7. Observer tx forwarding either relays to a verified upstream or fails with `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM` without creating false propagation success.
+2. Dependency install from `requirements.lock`.
+3. Public seed registry loaded from the default path or explicit path.
+4. Registry signature verified against the pinned public key.
+5. Observer boot.
+6. Registry seed P2P URIs merged into the local peer store.
+7. Verified validator P2P URIs merged into the local peer store.
+8. `/v1/nodes/seeds` public commitments match pinned values.
+9. `/v1/nodes/validators` active validators and verified endpoints render correctly.
+10. Frontend shows browser API access node separately from local mesh status.
+11. Observer tx forwarding either relays to a verified upstream or fails with `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM` without creating false propagation success.
+12. Observer mode cannot activate validator signing or BFT authority before committed protocol state makes the validator effective.

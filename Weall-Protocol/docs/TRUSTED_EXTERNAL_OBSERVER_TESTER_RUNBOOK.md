@@ -1,5 +1,7 @@
 # Trusted External Observer Tester Runbook
 
+> Legacy controlled-observer runbook. For the updated open-download public observer testnet path, use `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`. This legacy trusted-tester path is not the public launch path and must not be used to imply the testnet is invite-only.
+
 This runbook is for the first controlled external observer-node tester. It is intentionally observer-first: the tester can read/sync state, verify chain identity, submit onboarding transactions, and serve a local onboarding UI, but cannot propose blocks, vote in BFT, sign validator messages, act as a helper authority, or earn service rewards.
 
 ## Safety posture
