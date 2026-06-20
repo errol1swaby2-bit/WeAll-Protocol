@@ -183,7 +183,7 @@ Browser onboarding and PoH verification are Cloudflare-free, email-free, and rou
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: `3405 passed, 2 warnings` for the latest audited snapshot; rerun locally before release
+- full backend suite: `3636 passed, 3 warnings` for the latest audited Batch 627 snapshot; rerun locally before release
 - tx canon artifacts: `236 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed
@@ -250,11 +250,11 @@ and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied
 
 Before any public observer testnet announcement:
 
-- [ ] `WEALL_PUBLIC_TESTNET=1` has a real `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH`.
-- [ ] Public seed registry contains pinned chain/genesis/profile commitments.
+- [ ] `WEALL_PUBLIC_TESTNET=1` finds a real signed registry through a default path such as `Weall-Protocol/configs/public_testnet_seed_registry.json`, or through `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH`.
+- [ ] Public seed registry contains pinned chain/genesis/profile commitments, has no placeholder values, and passes `scripts/sign_public_seed_registry_v1_5.py --check`.
 - [ ] Public frontend build sets `VITE_WEALL_PUBLIC_TESTNET=true` and all expected commitment env values.
 - [ ] `/v1/nodes/seeds` returns public commitments and verified seeds.
 - [ ] `/v1/nodes/validators` separates protocol-active validators from endpoint hints.
 - [ ] Observer tx forwarding uses explicit or verified seed-derived upstreams, otherwise fails with `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM`.
 - [ ] Public warning copy states resettable, non-economic, no real-world value, and no persistence reliance.
-- [ ] External clean-clone observer evidence is captured using `Weall-Protocol/docs/PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md`.
+- [ ] External clean-clone observer evidence is captured using `Weall-Protocol/docs/PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md` and the tracked gates in `generated/public_observer_launch_evidence_requirements_v1_5.json`.

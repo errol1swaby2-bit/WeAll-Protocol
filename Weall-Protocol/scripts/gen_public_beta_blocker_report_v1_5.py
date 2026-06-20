@@ -136,6 +136,7 @@ def build() -> Json:
     clean_clone = _clean_clone_gate_summary()
     legal = _legal_summary()
     external_requirements = build_external_transcript_requirements()
+    public_observer_launch = _artifact_summary("generated/public_observer_launch_evidence_requirements_v1_5.json")
     release_evidence = build_release_evidence_manifest()
 
     high_risk_disabled = all(
@@ -243,6 +244,17 @@ def build() -> Json:
             True,
         ),
         _blocker(
+            "AUD-628-P1-001",
+            "P1",
+            ["public_observer_launch"],
+            "Public observer discovery code is present, but an external open-download transcript is still required before claiming public observer launch readiness.",
+            "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
+            "public_observer_launch_evidence_requirements",
+            "gate_present_external_transcript_required" if public_observer_launch.get("ok") else "gate_failed",
+            False,
+            ["external clean-clone observer transcript", "state-sync proof", "rendered frontend operator journey"],
+        ),
+        _blocker(
             "AUD-618-P2-001",
             "P2",
             ["new_user_ux"],
@@ -344,6 +356,7 @@ def build() -> Json:
             "testnet_capability_surface": capabilities,
             "state_root_cross_machine_export": state_roots,
             "clean_clone_gate": clean_clone,
+            "public_observer_launch_evidence_requirements": public_observer_launch,
             "release_evidence_manifest": {
                 "ok": bool(release_evidence.get("ok")),
                 "schema": release_evidence.get("schema"),
@@ -369,6 +382,7 @@ def build() -> Json:
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+            "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
             "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",

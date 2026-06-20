@@ -69,7 +69,9 @@ def public_seed_registry_default_path() -> str | None:
         os.environ.get("WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH"),
         str(Path.cwd() / "public_testnet_seed_registry.json"),
         str(Path.cwd() / "config" / "public_testnet_seed_registry.json"),
+        str(Path.cwd() / "configs" / "public_testnet_seed_registry.json"),
         str(Path.cwd() / "Weall-Protocol" / "config" / "public_testnet_seed_registry.json"),
+        str(Path.cwd() / "Weall-Protocol" / "configs" / "public_testnet_seed_registry.json"),
     ]
     for raw in candidates:
         value = _safe_str(raw)
@@ -92,6 +94,67 @@ def expected_public_commitments_from_env() -> Json:
         "tx_index_hash": str(os.environ.get("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
     }
 
+
+
+_PLACEHOLDER_MARKERS = (
+    "<",
+    "set-before-public-launch",
+    "required-prod",
+    "required-ed25519",
+    "testnet.weall.example",
+    "@validator-account-id",
+    "validator-node-public-key",
+)
+
+
+def _placeholderish(value: Any) -> bool:
+    text = _safe_str(value).lower()
+    if not text:
+        return False
+    return any(marker in text for marker in _PLACEHOLDER_MARKERS)
+
+
+def _reject_placeholder_value(path: str, value: Any) -> None:
+    if _placeholderish(value):
+        raise PublicSeedRegistryError(f"public_seed_registry_placeholder_{path}")
+
+
+def _reject_public_launch_placeholders(data: Json) -> None:
+    """Reject template/demo values before a public observer can trust them.
+
+    This is intentionally stricter than generic schema validation.  The file
+    under configs/*.example.json is documentation, not a launch registry.  A
+    production public observer must not accidentally boot from placeholder
+    commitments, .example hostnames, or unsigned token strings.
+    """
+
+    for key in (
+        "network_id",
+        "chain_id",
+        "genesis_hash",
+        "protocol_profile_hash",
+        "tx_index_hash",
+        "seed_registry_signer",
+        "seed_registry_signature",
+    ):
+        _reject_placeholder_value(key, data.get(key))
+    for idx, url in enumerate(_list_of_strings(data, "seed_api_urls")):
+        _reject_placeholder_value(f"seed_api_urls_{idx}", url)
+    for idx, url in enumerate(_list_of_strings(data, "seed_p2p_urls")):
+        _reject_placeholder_value(f"seed_p2p_urls_{idx}", url)
+    nodes = data.get("nodes") or []
+    if isinstance(nodes, list):
+        for idx, node in enumerate(nodes):
+            if isinstance(node, dict):
+                _reject_placeholder_value(f"nodes_{idx}_base_url", node.get("base_url") or node.get("api_base_url") or node.get("url"))
+    endpoints = data.get("validator_endpoints") or []
+    if isinstance(endpoints, list):
+        for idx, endpoint in enumerate(endpoints):
+            if not isinstance(endpoint, dict):
+                continue
+            for key in ("account_id", "node_pubkey", "node_public_key", "api_base_url", "base_url", "p2p_url", "signature", "signer"):
+                if key in endpoint:
+                    _reject_placeholder_value(f"validator_endpoints_{idx}_{key}", endpoint.get(key))
 
 def _env_list(name: str) -> list[str]:
     raw = str(os.environ.get(name) or "").strip()
@@ -354,6 +417,8 @@ def _normalize_nodes(raw_nodes: Any, *, allow_local: bool) -> list[Json]:
 def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
     if not isinstance(data, dict):
         raise PublicSeedRegistryError("public_seed_registry_not_object")
+    if public_testnet_enabled() and _signature_required():
+        _reject_public_launch_placeholders(data)
 
     network_id = _require_str(data, "network_id")
     chain_id = _require_str(data, "chain_id")

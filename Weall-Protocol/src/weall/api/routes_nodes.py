@@ -351,10 +351,46 @@ def _registry_validator_endpoints(request: Request) -> list[Json]:
     return [dict(e) for e in endpoints if isinstance(e, dict)]
 
 
+
+
+def _validator_endpoint_max_age_ms() -> int:
+    raw = str(os.environ.get("WEALL_PUBLIC_VALIDATOR_ENDPOINT_MAX_AGE_MS") or "3600000").strip()
+    try:
+        value = int(raw)
+    except Exception:
+        value = 3_600_000
+    return max(60_000, value)
+
+
+def _endpoint_freshness(ep: Json, *, now_ms: int, max_age_ms: int) -> Json:
+    ts = 0
+    for key in ("proof_timestamp_ms", "last_seen_ms"):
+        try:
+            ts = int(ep.get(key) or 0)
+        except Exception:
+            ts = 0
+        if ts > 0:
+            break
+    age_ms = now_ms - ts if ts > 0 else None
+    stale = ts <= 0 or (age_ms is not None and age_ms > max_age_ms)
+    return {
+        "proof_timestamp_ms": ts,
+        "age_ms": age_ms,
+        "max_age_ms": max_age_ms,
+        "fresh": not stale,
+        "stale": stale,
+        "reason": "missing_timestamp" if ts <= 0 else ("stale" if stale else "fresh"),
+    }
+
 def _validator_endpoints_response(request: Request) -> Json:
     state = _try_read_state(request)
     active_validators = _active_validators_from_state(state)
     endpoint_rows = _registry_validator_endpoints(request)
+    now_ms = int(time.time() * 1000)
+    max_age_ms = _validator_endpoint_max_age_ms()
+    for ep in endpoint_rows:
+        if isinstance(ep, dict):
+            ep["freshness"] = _endpoint_freshness(ep, now_ms=now_ms, max_age_ms=max_age_ms)
     endpoints_by_account: dict[str, list[Json]] = {}
     endpoints_by_key: dict[str, list[Json]] = {}
     for ep in endpoint_rows:
@@ -374,6 +410,12 @@ def _validator_endpoints_response(request: Request) -> Json:
             for ep in endpoints_by_key.get(node_pubkey, []):
                 if ep not in eps:
                     eps.append(ep)
+        verified_count = sum(1 for ep in eps if ep.get("verified") is True)
+        verified_fresh_count = sum(
+            1
+            for ep in eps
+            if ep.get("verified") is True and isinstance(ep.get("freshness"), dict) and ep["freshness"].get("fresh") is True
+        )
         validators.append(
             {
                 "account_id": account_id,
@@ -381,8 +423,11 @@ def _validator_endpoints_response(request: Request) -> Json:
                 "active_in_protocol_state": True,
                 "readiness_status": str(rec.get("readiness_status") or "").strip(),
                 "endpoint_records": eps,
-                "verified_endpoint_count": sum(1 for ep in eps if ep.get("verified") is True),
+                "verified_endpoint_count": verified_count,
+                "verified_fresh_endpoint_count": verified_fresh_count,
+                "stale_verified_endpoint_count": max(0, verified_count - verified_fresh_count),
                 "unverified_endpoint_count": sum(1 for ep in eps if ep.get("verified") is not True),
+                "has_verified_fresh_endpoint": verified_fresh_count > 0,
             }
         )
 
@@ -413,6 +458,11 @@ def _validator_endpoints_response(request: Request) -> Json:
         "commitments": commitments,
         "active_validator_count": len(validators),
         "verified_endpoint_count": sum(int(v.get("verified_endpoint_count") or 0) for v in validators),
+        "verified_fresh_endpoint_count": sum(int(v.get("verified_fresh_endpoint_count") or 0) for v in validators),
+        "stale_verified_endpoint_count": sum(int(v.get("stale_verified_endpoint_count") or 0) for v in validators),
+        "active_validators_missing_verified_fresh_endpoint_count": sum(1 for v in validators if not bool(v.get("has_verified_fresh_endpoint"))),
+        "all_active_validators_have_verified_fresh_endpoint": all(bool(v.get("has_verified_fresh_endpoint")) for v in validators) if validators else True,
+        "endpoint_freshness_policy": {"max_age_ms": max_age_ms},
         "validators": validators,
         "unverified_endpoint_hints": hint_only,
         "endpoint_authority_boundary": {

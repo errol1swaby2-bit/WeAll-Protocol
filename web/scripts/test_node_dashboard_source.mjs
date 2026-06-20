@@ -15,6 +15,8 @@ const router = read("src/lib/router.ts");
 const prefetch = read("src/lib/routePrefetch.ts");
 const api = read("src/api/weall.ts");
 const node = read("src/pages/NodeDashboard.tsx");
+const txPage = read("src/pages/TransactionsPage.tsx");
+const txTimeline = read("src/components/TxPropagationTimeline.tsx");
 const connectionPanel = read("src/components/NodeConnectionPanel.tsx");
 const contract = read("scripts/contract_check.mjs");
 
@@ -58,6 +60,10 @@ for (const needle of [
   "Active validators",
   "Verified validator endpoints",
   "Observer tx propagation",
+  "Reachable validators",
+  "Fresh validator endpoints",
+  "Peer / NAT recovery",
+  "Validator promotion path",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");
 }
@@ -69,6 +75,24 @@ for (const needle of [
   "signing authority remain controlled",
 ]) {
   assertIncludes(connectionPanel, needle, "connection manager public observer copy");
+}
+
+for (const needle of [
+  "TxPropagationTimeline",
+  "Accepted locally",
+  "Gossiped / pending",
+  "Included in block",
+  "Removed from mempool",
+]) {
+  assertIncludes(txPage, needle, "transactions page propagation timeline");
+}
+
+for (const needle of [
+  "Propagation lifecycle",
+  "Pending evidence",
+  "Observed",
+]) {
+  assertIncludes(txTimeline, needle, "tx propagation timeline component");
 }
 
 for (const endpoint of [

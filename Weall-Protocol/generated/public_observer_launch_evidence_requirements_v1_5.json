@@ -1,0 +1,105 @@
+{
+  "artifact_digest": "52be43a91b0322e5e288929a554f23eb771ec4ce1aa9f185056b6a663fa0f5b8",
+  "claim_boundaries": {
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_multi_validator_bft": false,
+    "public_observer_launch_ready": false,
+    "public_validator_enabled": false
+  },
+  "gates": [
+    {
+      "evidence_type": "signed_registry_json_plus_signer_pin",
+      "id": "public_registry_signed_and_pinned",
+      "required_before_public_observer_launch": true,
+      "required_fields": [
+        "network_id",
+        "chain_id",
+        "genesis_hash",
+        "protocol_profile_hash",
+        "tx_index_hash",
+        "seed_api_urls",
+        "seed_p2p_urls",
+        "seed_registry_signer",
+        "seed_registry_signature",
+        "resettable_testnet",
+        "economics_active"
+      ],
+      "validation_command": "PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<pubkey> python scripts/sign_public_seed_registry_v1_5.py --input <unsigned.json> --output configs/public_testnet_seed_registry.json --check"
+    },
+    {
+      "evidence_type": "external_transcript",
+      "id": "clean_clone_public_observer_boot",
+      "required_before_public_observer_launch": true,
+      "required_steps": [
+        "fresh git clone",
+        "pip install -r requirements.lock",
+        "pip install -e .",
+        "scripts/boot_public_observer_testnet.sh starts with signed registry",
+        "/v1/nodes/seeds verifies registry signature",
+        "/v1/nodes/validators reports active validators and verified endpoint counts",
+        "/v1/observer/edge/status separates local outbox from upstream acceptance"
+      ]
+    },
+    {
+      "evidence_type": "state_sync_transcript",
+      "id": "public_observer_state_sync",
+      "required_before_public_observer_launch": true,
+      "required_observations": [
+        "chain identity matches registry commitments",
+        "observer catches up from genesis/current trusted head",
+        "state root matches seed/validator reported root",
+        "restart preserves synced posture"
+      ]
+    },
+    {
+      "evidence_type": "validator_set_churn_transcript",
+      "id": "validator_endpoint_churn_visibility",
+      "required_before_public_observer_launch": true,
+      "required_observations": [
+        "new validator appears in /v1/nodes/validators from protocol state",
+        "missing/stale endpoint is surfaced as not fully reachable",
+        "signed fresh endpoint advertisement clears the warning",
+        "unsigned endpoint hint is not auto-dialed"
+      ]
+    },
+    {
+      "evidence_type": "rendered_frontend_e2e",
+      "id": "rendered_public_observer_frontend",
+      "required_before_public_observer_launch": true,
+      "required_surfaces": [
+        "seed registry signature status",
+        "seed API and P2P counts",
+        "active validators",
+        "verified and fresh endpoint counts",
+        "observer edge outbox/upstream/confirmed counts",
+        "peer connectivity and NAT/relay recovery guidance"
+      ],
+      "validation_command": "cd web && npm run test:rendered-operator-journey"
+    }
+  ],
+  "mainnet_ready": false,
+  "ok": true,
+  "public_beta_ready": false,
+  "public_observer_launch_ready": false,
+  "purpose": "tracked launch-evidence contract for open-download public observer readiness",
+  "recommended_artifacts_before_launch": [
+    "generated/public_seed_registry_signature_verification_v1_5.json",
+    "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+    "generated/public_observer_auto_discovery_proof_v1_5.json",
+    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+    "generated/public_validator_endpoint_churn_proof_v1_5.json",
+    "generated/public_frontend_operator_journey_v1_5.json"
+  ],
+  "required_gate_count": 5,
+  "schema": "weall.v1_5.public_observer_launch_evidence_requirements",
+  "verification_commands": [
+    "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+    "PYTHONPATH=src python -m pytest -q tests/prod/test_public_observer_default_registry_and_placeholder_gate.py tests/prod/test_public_observer_registry_auto_dial.py tests/prod/test_public_validator_endpoint_discovery.py",
+    "bash scripts/boot_public_observer_testnet.sh"
+  ],
+  "version": "2026-06-b628-public-observer-launch-evidence"
+}

@@ -1,6 +1,8 @@
-# Trusted External Observer Tester Runbook
+# Legacy Controlled External Observer Tester Runbook
 
 > Legacy controlled-observer runbook. For the updated open-download public observer testnet path, use `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`. This legacy trusted-tester path is not the public launch path and must not be used to imply the testnet is invite-only.
+
+Legacy contract alias: **Trusted External Observer**. The first trusted observer is a no-go unless every command above passes; the updated public-observer launch path keeps that no-go gate as a controlled rehearsal baseline while making observer access open through the signed public seed registry.
 
 This runbook is for the first controlled external observer-node tester. It is intentionally observer-first: the tester can read/sync state, verify chain identity, submit onboarding transactions, and serve a local onboarding UI, but cannot propose blocks, vote in BFT, sign validator messages, act as a helper authority, or earn service rewards.
 
@@ -202,7 +204,7 @@ API_BASE="$WEALL_GENESIS_API_BASE" npm run contract-check
 npm run production-safety-check
 ```
 
-The first trusted observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.
+The first controlled external observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.
 
 ## Batch 464: Production-oriented Genesis API check
 

@@ -1,6 +1,6 @@
 # Public Observer Testnet Quickstart
 
-Batch 627 makes the public observer path fail-closed around signed discovery. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
+Batch 628 makes the public observer path fail-closed around signed discovery and adds launch-evidence gates. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
 
 ## Safety boundary
 
@@ -30,7 +30,9 @@ The registry is loaded from the first available source:
 3. `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`
 4. `./public_testnet_seed_registry.json`
 5. `./config/public_testnet_seed_registry.json`
-6. `./Weall-Protocol/config/public_testnet_seed_registry.json`
+6. `./configs/public_testnet_seed_registry.json`
+7. `./Weall-Protocol/config/public_testnet_seed_registry.json`
+8. `./Weall-Protocol/configs/public_testnet_seed_registry.json`
 
 The registry must include:
 
@@ -52,6 +54,25 @@ Validator endpoint advertisements are separate from validator authority. A valid
 
 Use `configs/public_testnet_seed_registry.example.json` as the schema example. Do not publish a public observer build with fake seed URLs, placeholder hashes, unsigned production registries, or unverified validator endpoints.
 
+## Signing and publishing the registry
+
+The checked-in `configs/public_testnet_seed_registry.example.json` is a schema example only. It contains placeholder values and must not be renamed into a launch registry. Build the real unsigned registry from the live testnet commitments, then sign it with the registry signing key:
+
+```bash
+cd Weall-Protocol
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY=<registry-private-key-kept-out-of-git>
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+PYTHONPATH=src python scripts/sign_public_seed_registry_v1_5.py \
+  --input /secure/path/public_testnet_seed_registry.unsigned.json \
+  --output configs/public_testnet_seed_registry.json
+PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 python scripts/sign_public_seed_registry_v1_5.py \
+  --input /secure/path/public_testnet_seed_registry.unsigned.json \
+  --output configs/public_testnet_seed_registry.json \
+  --check
+```
+
+The signer pin published to observers must match `seed_registry_signer`. Rotate or revoke this signer through release notes before changing it; a registry signed by an unpinned key must fail closed.
+
 ## Clean-clone observer boot
 
 ```bash
@@ -71,8 +92,10 @@ export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
 # Optional if the release does not bundle ./public_testnet_seed_registry.json:
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH=/absolute/path/to/public_testnet_seed_registry.json
 
-python -m weall.api
+bash scripts/boot_public_observer_testnet.sh
 ```
+
+The boot script verifies the signed registry, exports observer-safe defaults, prints the seed/validator/observer status URLs, and then starts `python -m weall.api`. Manual `python -m weall.api` boot remains supported after the same environment variables are set.
 
 Verify the local observer sees signed public commitments:
 
@@ -131,3 +154,5 @@ Before claiming public observer launch readiness, capture an external transcript
 10. Frontend shows browser API access node separately from local mesh status.
 11. Observer tx forwarding either relays to a verified upstream or fails with `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM` without creating false propagation success.
 12. Observer mode cannot activate validator signing or BFT authority before committed protocol state makes the validator effective.
+13. Validator endpoint churn is visible: stale or missing verified endpoint advertisements must appear as warnings before claiming connection to all current validators.
+14. NAT/firewall/relay recovery steps are captured if peer counts remain low despite fresh endpoint advertisements.

@@ -31,6 +31,7 @@ _TRACKED_ARTIFACTS = [
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "generated/external_operator_transcript_requirements_v1_5.json",
+    "generated/public_observer_launch_evidence_requirements_v1_5.json",
 ]
 
 
@@ -103,6 +104,12 @@ def build() -> Json:
                 "runtime_report_required": True,
                 "tracked_manifest_only": True,
             },
+            "public_observer_open_download_transcript": {
+                "required_before_public_observer_launch": True,
+                "requirements_artifact": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+                "runtime_report_required": True,
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+            },
             "external_validator_operator_transcript": {
                 "required_before_public_beta": True,
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>",
@@ -120,6 +127,7 @@ def build() -> Json:
             },
             "rendered_operator_journey": {
                 "required_before_public_beta": True,
+                "required_before_public_observer_launch": True,
                 "command": "cd web && npm run test:rendered-operator-journey",
                 "clean_gate_default": "reported_not_run_unless_--run-rendered-frontend_or_WEALL_RUN_RENDERED_FRONTEND=1",
             },

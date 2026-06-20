@@ -24,6 +24,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
     Path("generated/public_beta_blocker_report_v1_5.json"),
     Path("generated/external_operator_transcript_requirements_v1_5.json"),
+    Path("generated/public_observer_launch_evidence_requirements_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -243,6 +244,26 @@ def _check_external_operator_transcript_requirements() -> list[str]:
 
 
 
+
+
+def _check_public_observer_launch_evidence_requirements() -> list[str]:
+    errors = _run_check("gen_public_observer_launch_evidence_requirements_v1_5.py")
+    payload = _load_json(Path("generated/public_observer_launch_evidence_requirements_v1_5.json"))
+    if payload.get("schema") != "weall.v1_5.public_observer_launch_evidence_requirements":
+        errors.append("public observer launch evidence requirements schema mismatch")
+    if payload.get("public_observer_launch_ready") is not False:
+        errors.append("public observer launch requirements must not claim launch readiness")
+    if payload.get("public_beta_ready") is not False:
+        errors.append("public observer launch requirements must keep public_beta_ready=false")
+    gates = payload.get("gates") if isinstance(payload.get("gates"), list) else []
+    if len(gates) < 5:
+        errors.append("public observer launch requirements missing expected gates")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("public_validator_enabled", "production_helper_execution", "live_economics", "legal_compliance_ready"):
+        if boundaries.get(key) is not False:
+            errors.append(f"public observer launch requirements must keep {key}=false")
+    return errors
+
 def _check_release_evidence_manifest() -> list[str]:
     errors = _run_check("gen_release_evidence_manifest_v1_5.py")
     payload = _load_json(Path("generated/release_evidence_manifest_v1_5.json"))
@@ -317,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_b587_b594_mechanisms())
         errors.extend(_check_public_beta_blocker_report())
         errors.extend(_check_external_operator_transcript_requirements())
+        errors.extend(_check_public_observer_launch_evidence_requirements())
         errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
         for script in (

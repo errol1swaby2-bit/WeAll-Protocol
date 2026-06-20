@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "55115188e6c9d62fc2b9496418974660102c710dbdc78403787b6e06aa5103b2",
+  "artifact_digest": "256d125b991e84d90fea60dbd69e4c2c6aafc91a37bae9fa70d48790b08dde00",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -38,10 +38,17 @@
       "required_before_public_beta": true,
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
+    "public_observer_open_download_transcript": {
+      "required_before_public_observer_launch": true,
+      "requirements_artifact": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "runtime_report_required": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check"
+    },
     "rendered_operator_journey": {
       "clean_gate_default": "reported_not_run_unless_--run-rendered-frontend_or_WEALL_RUN_RENDERED_FRONTEND=1",
       "command": "cd web && npm run test:rendered-operator-journey",
-      "required_before_public_beta": true
+      "required_before_public_beta": true,
+      "required_before_public_observer_launch": true
     },
     "storage_ipfs_operator_transcript": {
       "required_before_public_beta": true,
@@ -74,7 +81,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "f233a303f54b05ea29e7dbff42b3f8fac801ce13a3458343ec787c553f7ff578",
+      "file_sha256": "808c58e8f6e4721cd89dafcd0c20bb050a683517f3020c1152a38bbcedc7e2e6",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -88,11 +95,18 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "0d307c983d98f18523b58f3bf10e9765935a264c17ca2d5a03f3864f20e066bd",
+      "file_sha256": "ef23039622d33eec2a75a36f5617f9828405ada9303395c0666cca48ef834d07",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/public_observer_launch_evidence_requirements_v1_5.json": {
+      "file_sha256": "25ed99763fb229249b033834451181011b11615bcb7bf148b12416fae0baf699",
+      "ok": true,
+      "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
       "file_sha256": "2269bf3b14f5a9d2c53bb5971b79589e86936f8f44f9c739163361bc769941af",

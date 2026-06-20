@@ -1135,13 +1135,13 @@
     "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
     "phase": "public_beta_candidate",
     "public_beta_blocker_report": {
-      "blocker_count": 13,
+      "blocker_count": 14,
       "mainnet_ready": false,
       "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
       "ok": true,
       "present": true,
       "public_beta_ready": false,
-      "remaining_blocker_count": 8
+      "remaining_blocker_count": 9
     },
     "public_beta_ready_claimed": false,
     "required_artifacts": {

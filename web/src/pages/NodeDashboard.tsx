@@ -245,6 +245,10 @@ export default function NodeDashboard(): JSX.Element {
   const validatorRows = asArray(publicValidators.validators);
   const activeValidatorCount = num(publicValidators.active_validator_count, validatorRows.length);
   const verifiedEndpointCount = num(publicValidators.verified_endpoint_count, 0);
+  const verifiedFreshEndpointCount = num(publicValidators.verified_fresh_endpoint_count, 0);
+  const staleVerifiedEndpointCount = num(publicValidators.stale_verified_endpoint_count, 0);
+  const missingFreshEndpointCount = num(publicValidators.active_validators_missing_verified_fresh_endpoint_count, 0);
+  const allValidatorsFresh = publicValidators.all_active_validators_have_verified_fresh_endpoint === true;
   const seedNodes = asArray(publicSeeds.nodes);
   const seedP2pUrls = asArray(publicSeeds.seed_p2p_urls);
   const seedRegistrySig = asRecord(publicSeeds.seed_registry_signature_status || asRecord(publicValidators.registry).seed_registry_signature_status);
@@ -258,6 +262,7 @@ export default function NodeDashboard(): JSX.Element {
     { label: "1. Genesis or observer node booted", ok: status.ok === true, value: status.ok === true ? "Node API responding" : "Node API unavailable" },
     { label: "2. Chain identity pinned", ok: !!chainId && chainId !== "—", value: chainId },
     { label: "3. Peers visible", ok: peerCount > 0 || observerMode, warn: peerCount === 0 && !observerMode, value: observerMode ? "Observer-safe posture" : `${peerCount} peer(s)` },
+    { label: "3a. Public validator reachability", ok: allValidatorsFresh, warn: activeValidatorCount > 0 && !allValidatorsFresh, value: allValidatorsFresh ? "Fresh verified endpoints" : `${missingFreshEndpointCount} active validator(s) missing fresh endpoint` },
     { label: "4. Baseline node operator", ok: accountOperator.baseline?.active === true, warn: str(asRecord(accountOperator.baseline).status) !== "not_opted_in", value: str(asRecord(accountOperator.baseline).status || "not opted in") },
     { label: "5. Validator responsibility", ok: validatorEffective, warn: validatorOptedIn && !validatorEffective, value: validatorEffective ? "Effective" : validatorOptedIn ? "Opted in, waiting on readiness" : "Not opted in" },
     { label: "6. Helper responsibility", ok: helperEffective, warn: helperOptedIn && !helperEffective, value: helperEffective ? "Effective" : helperOptedIn ? "Opted in, release gate or authority pending" : "Not opted in" },
@@ -327,6 +332,7 @@ export default function NodeDashboard(): JSX.Element {
         <StatCard label="Sync height" value={String(height || "0")} note={`Tip ${compact(status.tip || chainHead.tip || chainIdentity.tip_hash)}`} ok={height >= 0 && status.ok === true} />
         <StatCard label="Mempool" value={`${mempoolSize} tx`} note="Pending transaction pressure exposed by the node status surface." ok={mempoolSize === 0} warn={mempoolSize > 0} />
         <StatCard label="Active validators" value={String(activeValidatorCount)} note={`${verifiedEndpointCount} verified endpoint(s) advertised by /v1/nodes/validators.`} ok={activeValidatorCount > 0 && verifiedEndpointCount > 0} warn={activeValidatorCount > 0 && verifiedEndpointCount === 0} />
+        <StatCard label="Reachable validators" value={`${verifiedFreshEndpointCount}/${activeValidatorCount}`} note="Fresh signed endpoint advertisements required before claiming all validators are reachable." ok={allValidatorsFresh} warn={activeValidatorCount > 0 && !allValidatorsFresh} />
         <StatCard label="Tx propagation" value={observerQueued ? `${observerQueued} local` : "No local queue"} note={`${upstreamCount} verified upstream(s); ${observerAccepted} accepted, ${observerConfirmed} confirmed in observer outbox.`} ok={observerQueued === 0 || observerConfirmed > 0 || observerAccepted > 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
         <StatCard label="Launch boundary" value={statusLabel(launchPhase)} note={publicBetaClaimed ? "Unexpected public beta claim detected." : "This surface does not claim public beta or production readiness."} ok={!publicBetaClaimed} warn={publicBetaClaimed} />
         <StatCard label="Public beta blockers" value={`${publicBetaRemaining || blockedCapabilities.length} open`} note={publicBetaBlockerReport.present === false ? "Blocker report artifact not loaded from this node." : "Remaining public-beta blockers are shown as evidence gates, not readiness claims."} ok={!publicBetaClaimed && publicBetaRemaining > 0} warn={publicBetaClaimed || publicBetaRemaining === 0} />
@@ -384,6 +390,9 @@ export default function NodeDashboard(): JSX.Element {
         chainId={chainId}
         baseUrl={base}
       />
+      <div className="calloutInfo">
+        <strong>Validator promotion path:</strong> a fresh observer must sync, reach Tier 2 through protocol PoH, activate node-operator responsibility, explicitly opt into validation, pass validator readiness verification, and only then reboot with production validator service flags. This dashboard displays backend-derived blockers and never flips signing authority locally.
+      </div>
 
       <section className="card" aria-labelledby="public-observer-discovery-heading">
         <div className="cardBody formStack">
@@ -425,19 +434,24 @@ export default function NodeDashboard(): JSX.Element {
           <div className="progressList" aria-label="Current validators from protocol state">
             <DetailRow label="Active validators" value={String(activeValidatorCount)} ok={activeValidatorCount > 0} warn={activeValidatorCount === 0 && publicValidators.ok === true} />
             <DetailRow label="Verified validator endpoints" value={String(verifiedEndpointCount)} ok={verifiedEndpointCount > 0 || activeValidatorCount === 0} warn={activeValidatorCount > 0 && verifiedEndpointCount === 0} />
+            <DetailRow label="Fresh validator endpoints" value={`${verifiedFreshEndpointCount} fresh / ${staleVerifiedEndpointCount} stale`} ok={allValidatorsFresh} warn={activeValidatorCount > 0 && !allValidatorsFresh} />
+            <DetailRow label="Missing fresh endpoint warnings" value={String(missingFreshEndpointCount)} ok={missingFreshEndpointCount === 0} warn={missingFreshEndpointCount > 0} />
             {validatorRows.slice(0, 8).map((row: any, idx: number) => (
               <DetailRow
                 key={`${String(row.account_id || row.node_pubkey || "validator")}-${idx}`}
                 label={String(row.account_id || "validator")}
-                value={`${String(row.readiness_status || "active")} · ${num(row.verified_endpoint_count, 0)} verified endpoint(s)`}
-                ok={row.active_in_protocol_state === true && num(row.verified_endpoint_count, 0) > 0}
-                warn={row.active_in_protocol_state === true && num(row.verified_endpoint_count, 0) === 0}
+                value={`${String(row.readiness_status || "active")} · ${num(row.verified_endpoint_count, 0)} verified · ${num(row.verified_fresh_endpoint_count, 0)} fresh`}
+                ok={row.active_in_protocol_state === true && row.has_verified_fresh_endpoint === true}
+                warn={row.active_in_protocol_state === true && row.has_verified_fresh_endpoint !== true}
               />
             ))}
           </div>
 
           <div className="calloutInfo">
             Public observer tx states are intentionally split: <strong>local accepted</strong> only means your node accepted the envelope; <strong>upstream accepted</strong> means a verified seed/validator API accepted it; <strong>confirmed</strong> means the tx was observed in a block/status response.
+          </div>
+          <div className="calloutWarn">
+            <strong>Peer / NAT recovery:</strong> if validator endpoint freshness is good but peer count stays low, check outbound firewall rules, published TCP/TLS ports, relay configuration, and the public NAT/firewall recovery runbook before claiming full public observer connectivity.
           </div>
         </div>
       </section>

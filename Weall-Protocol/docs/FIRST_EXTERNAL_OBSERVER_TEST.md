@@ -1,6 +1,8 @@
-# First Trusted External Observer Test
+# First Controlled External Observer Test
 
-This runbook is the production-style gate before inviting even one trusted external observer-node tester.
+Legacy contract alias: **Trusted External Observer**. This runbook keeps the historical trusted-observer gate name for release-test compatibility while treating the current public testnet path as open observer access through signed registry discovery.
+
+This runbook is the production-style gate before inviting even one controlled external observer-node tester.
 It proves that an observer on a different machine/network can use only a public onboarding bundle and a remote genesis API to submit signed onboarding transactions while remaining non-authoritative.
 
 ## Hard rule
@@ -77,6 +79,7 @@ The script intentionally rejects local/self API bases such as `http://127.0.0.1`
 A passing run ends with:
 
 ```text
+OK: controlled external observer live gate passed
 OK: trusted external observer live gate passed
 ```
 
@@ -99,13 +102,13 @@ These files are local tester artifacts and must not be committed, uploaded, or s
 
 ## Go / no-go
 
-A single trusted external observer-node tester is a **CONDITIONAL GO** only after this live gate passes and the resulting transaction statuses are archived privately by the operator.
+A single controlled external observer-node tester is a **CONDITIONAL GO** only after this live gate passes and the resulting transaction statuses are archived privately by the operator.
 Multiple observer testers remain a **NO-GO** until one tester completes this gate and relay/rate-limit capacity checks are repeated under load.
 
 
 ## Batch 437-446 external tester gates
 
-Before inviting the first trusted external observer tester, run the explicit authority-lock gate from the observer machine or observer runtime environment:
+Before inviting the first controlled external observer tester, run the explicit authority-lock gate from the observer machine or observer runtime environment:
 
 ```bash
 WEALL_CHAIN_MANIFEST_PATH=./configs/chains/weall-genesis.json \
@@ -159,4 +162,4 @@ WEALL_GENESIS_API_BASE="https://<your-public-genesis-api>" \
 bash scripts/first_external_observer_reproducibility_gate.sh /path/to/weall-external-observer-bundle.json
 ```
 
-A first trusted external observer remains a no-go until the remote Genesis observer readiness contract, the two-machine preflight, and the signed onboarding gate all pass against the same non-local Genesis API.
+A first controlled external observer remains a no-go until the remote Genesis observer readiness contract, the two-machine preflight, and the signed onboarding gate all pass against the same non-local Genesis API.

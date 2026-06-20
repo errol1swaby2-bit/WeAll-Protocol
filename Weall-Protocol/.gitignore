@@ -125,6 +125,7 @@ configs/local/
 !generated/public_beta_blocker_report_v1_5.json
 
 !generated/external_operator_transcript_requirements_v1_5.json
+!generated/public_observer_launch_evidence_requirements_v1_5.json
 
 !generated/reputation_event_registry_v1_5.json
 

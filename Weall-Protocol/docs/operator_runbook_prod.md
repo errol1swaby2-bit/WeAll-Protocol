@@ -44,7 +44,7 @@ Expected current checkpoint:
 
 ```text
 tx canon: 233 tx types, version 1.25.0
-latest full backend suite: 3405 passed, 2 warnings
+latest full backend suite: 3636 passed, 3 warnings
 backend locks: requirements.lock, requirements-dev.lock
 frontend lock: ../web/package-lock.json
 ```
