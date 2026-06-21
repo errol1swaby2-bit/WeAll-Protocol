@@ -1,0 +1,42 @@
+{
+  "artifact_digest": "eb9ad6074433a36d64a34e89aaf6190bff7e417d38e4ce522ce12f76344718fe",
+  "claim_boundary": "Endpoint advertisements never grant validator authority; active validator status must come from protocol state.",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "purpose": "tracked proof scaffold for validator endpoint churn and freshness visibility",
+  "required_scenarios": [
+    {
+      "expected_behavior": "validator is visible from protocol state but all_active_validators_have_verified_fresh_endpoint=false",
+      "id": "active_validator_without_endpoint_warns",
+      "required_before_public_observer_launch": true
+    },
+    {
+      "expected_behavior": "verified endpoint remains a hint but freshness.reason=stale and dashboard warns",
+      "id": "stale_signed_endpoint_warns",
+      "required_before_public_observer_launch": true
+    },
+    {
+      "expected_behavior": "verified_fresh_endpoint_count increments and active validator becomes reachable",
+      "id": "fresh_signed_endpoint_clears_warning",
+      "required_before_public_observer_launch": true
+    },
+    {
+      "expected_behavior": "endpoint hint may be displayed as unverified but is not a trusted P2P target",
+      "id": "unsigned_endpoint_never_auto_dials",
+      "required_before_public_observer_launch": true
+    }
+  ],
+  "runtime_churn_transcript_attached": false,
+  "runtime_command": "PYTHONPATH=src:scripts python scripts/run_public_observer_launch_rehearsal_v1_5.sh --api-base <seed-api> --registry configs/public_testnet_seed_registry.json --out generated/public_validator_endpoint_churn_runtime_transcript_v1_5.json",
+  "schema": "weall.v1_5.public_validator_endpoint_churn_proof",
+  "source_checks": {
+    "auto_dial_uses_verified_registry_peer_uris": true,
+    "endpoint_freshness_dashboard_surface_present": true,
+    "unsigned_endpoint_regression_test_present": true,
+    "validators_route_exposes_fresh_endpoint_counts": true,
+    "validators_route_exposes_stale_endpoint_counts": true,
+    "validators_route_preserves_protocol_state_authority_boundary": true
+  },
+  "version": "2026-06-b629-validator-endpoint-churn-proof"
+}

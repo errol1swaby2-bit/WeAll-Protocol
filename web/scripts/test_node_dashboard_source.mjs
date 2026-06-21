@@ -80,8 +80,11 @@ for (const needle of [
 for (const needle of [
   "TxPropagationTimeline",
   "Accepted locally",
+  "Forwarded to verified upstream",
+  "Upstream validator accepted",
   "Gossiped / pending",
   "Included in block",
+  "Local observer synced confirmed block",
   "Removed from mempool",
 ]) {
   assertIncludes(txPage, needle, "transactions page propagation timeline");

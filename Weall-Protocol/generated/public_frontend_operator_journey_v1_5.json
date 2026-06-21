@@ -1,0 +1,34 @@
+{
+  "artifact_digest": "b74bdc876c16da673ccd9cc874828c30c9a7064a6ba0dcc288490dc140a11952",
+  "claim_boundary": "This artifact proves source/rendered-test coverage is present; a launch claim still requires running the rendered test in the release environment.",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "rendered_e2e_available": true,
+  "rendered_e2e_executed_by_this_artifact": false,
+  "required_surfaces": [
+    "seed registry signature status",
+    "seed API and P2P counts",
+    "active validators",
+    "verified and fresh endpoint counts",
+    "observer edge outbox/upstream/confirmed counts",
+    "peer connectivity and NAT/relay recovery guidance",
+    "backend-derived validator promotion checklist",
+    "transaction propagation timeline including local, upstream, confirmed, and local-sync states"
+  ],
+  "schema": "weall.v1_5.public_frontend_operator_journey",
+  "source_checks": {
+    "node_dashboard_nat_recovery_surface": true,
+    "node_dashboard_promotion_path_surface": true,
+    "node_dashboard_public_seed_surface": true,
+    "node_dashboard_validator_freshness_surface": true,
+    "package_script_public_observer_rendered_present": true,
+    "rendered_public_observer_spec_present": true,
+    "tx_lifecycle_component_present": true,
+    "tx_lifecycle_upstream_acceptance_label": true,
+    "tx_page_uses_lifecycle_component": true,
+    "validator_wizard_backend_derived": true
+  },
+  "validation_command": "cd web && npm run test:public-observer-rendered",
+  "version": "2026-06-b629-public-frontend-operator-journey"
+}

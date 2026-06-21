@@ -23,16 +23,38 @@ Targeted gate command:
 ```bash
 cd Weall-Protocol
 source .venv/bin/activate
-PYTHONPATH=src python -m pytest -q \
+PYTHONPATH=src:scripts python -m pytest -q \
+  tests/prod/test_public_observer_default_registry_and_placeholder_gate.py \
   tests/prod/test_public_observer_seed_discovery.py \
   tests/prod/test_public_validator_endpoint_discovery.py \
   tests/prod/test_public_observer_tx_upstream_from_verified_seeds.py \
   tests/prod/test_public_observer_registry_auto_dial.py \
+  tests/prod/test_public_observer_boot_and_evidence_scripts.py \
+  tests/prod/test_public_observer_launch_transcript_artifacts.py \
   tests/prod/test_observer_cannot_enable_validator_signing.py \
   tests/test_api_startup_authority_contract_batch128.py
+PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_public_frontend_operator_journey_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check
 cd ../web
+npm run typecheck
 node scripts/test_node_dashboard_source.mjs
 node scripts/test_node_connection_manager_source.mjs
+```
+
+Runtime launch transcript command, after publishing the real signed registry and seed API:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+export WEALL_PUBLIC_TESTNET=1
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+bash scripts/run_public_observer_launch_rehearsal_v1_5.sh \
+  --api-base https://<public-seed-api> \
+  --registry configs/public_testnet_seed_registry.json \
+  --out generated/public_observer_launch_runtime_transcript_v1_5.json
 ```
 
 ## 0. Fresh clone validation

@@ -117,3 +117,5 @@ def test_public_observer_launch_evidence_requirements_generator_check():
     gate_ids = {gate["id"] for gate in payload["gates"]}
     assert "clean_clone_public_observer_boot" in gate_ids
     assert "validator_endpoint_churn_visibility" in gate_ids
+    assert "tracked_launch_transcript_artifacts" in gate_ids
+    assert "registry_signer_rotation_and_revocation" in gate_ids

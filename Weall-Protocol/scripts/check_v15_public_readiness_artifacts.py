@@ -5,6 +5,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -25,6 +26,13 @@ RELEASE_ARTIFACTS = [
     Path("generated/public_beta_blocker_report_v1_5.json"),
     Path("generated/external_operator_transcript_requirements_v1_5.json"),
     Path("generated/public_observer_launch_evidence_requirements_v1_5.json"),
+    Path("generated/public_seed_registry_signature_verification_v1_5.json"),
+    Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"),
+    Path("generated/public_observer_auto_discovery_proof_v1_5.json"),
+    Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"),
+    Path("generated/public_validator_endpoint_churn_proof_v1_5.json"),
+    Path("generated/public_frontend_operator_journey_v1_5.json"),
+    Path("generated/public_registry_signer_operations_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -57,17 +65,11 @@ def _check_gitignore() -> list[str]:
 
 def _check_api_contract() -> list[str]:
     errors: list[str] = []
-    result = subprocess.run(
-        [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if result.returncode != 0:
-        errors.append((result.stdout + result.stderr).strip() or "api contract map check failed")
+    from gen_api_contract_map import build_payload as build_api_contract_map
+
     payload = _load_json(Path("generated/api_contract_map_v1_5.json"))
+    if payload != build_api_contract_map():
+        errors.append("api_contract_map_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.api_contract_map.v1_5":
         errors.append("api contract map schema mismatch")
     routes = payload.get("routes")
@@ -87,17 +89,32 @@ def _check_launch_matrix() -> list[str]:
     return errors
 
 
+def _read_tail(path: Path, limit: int = 4000) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")[-limit:]
+    except Exception:
+        return ""
+
+
 def _run_check(script: str) -> list[str]:
-    result = subprocess.run(
-        [sys.executable, f"scripts/{script}", "--check"],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if result.returncode != 0:
-        return [(result.stdout + result.stderr).strip() or f"{script} check failed"]
+    # Use files instead of PIPE so short-lived generator grandchildren cannot
+    # inherit a pipe and keep communicate() waiting for EOF after the direct
+    # child exits. This mirrors the controlled go-gate subprocess policy.
+    with tempfile.TemporaryDirectory(prefix="weall_v15_check_") as tmp:
+        stdout_path = Path(tmp) / "stdout.txt"
+        stderr_path = Path(tmp) / "stderr.txt"
+        with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
+            result = subprocess.run(
+                [sys.executable, f"scripts/{script}", "--check"],
+                cwd=ROOT,
+                text=True,
+                stdout=stdout,
+                stderr=stderr,
+                check=False,
+                timeout=180,
+            )
+        if result.returncode != 0:
+            return [(_read_tail(stdout_path) + _read_tail(stderr_path)).strip() or f"{script} check failed"]
     return []
 
 
@@ -115,8 +132,12 @@ def _check_gap_register() -> list[str]:
 
 
 def _check_state_root_vectors() -> list[str]:
-    errors = _run_check("gen_state_root_vectors_v1_5.py")
+    errors: list[str] = []
+    from gen_state_root_vectors_v1_5 import build_payload as build_state_root_vectors
+
     payload = _load_json(Path("generated/state_root_vectors_v1_5.json"))
+    if payload != build_state_root_vectors():
+        errors.append("state_root_vectors_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.state_root_vectors":
         errors.append("state root vectors schema mismatch")
     vectors = payload.get("vectors")
@@ -126,8 +147,12 @@ def _check_state_root_vectors() -> list[str]:
 
 
 def _check_tokenomics_simulation() -> list[str]:
-    errors = _run_check("gen_tokenomics_simulation_v1_5.py")
+    errors: list[str] = []
+    from gen_tokenomics_simulation_v1_5 import build_payload as build_tokenomics_simulation
+
     payload = _load_json(Path("generated/tokenomics_simulation_v1_5.json"))
+    if payload != build_tokenomics_simulation():
+        errors.append("tokenomics_simulation_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.tokenomics_simulation":
         errors.append("tokenomics simulation schema mismatch")
     boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
@@ -139,8 +164,12 @@ def _check_tokenomics_simulation() -> list[str]:
 
 
 def _check_failure_code_registry() -> list[str]:
-    errors = _run_check("gen_failure_code_registry_v1_5.py")
+    errors: list[str] = []
+    from gen_failure_code_registry_v1_5 import build_payload as build_failure_code_registry
+
     payload = _load_json(Path("generated/failure_code_registry_v1_5.json"))
+    if payload != build_failure_code_registry():
+        errors.append("failure_code_registry_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.failure_code_registry":
         errors.append("failure-code registry schema mismatch")
     if int(payload.get("unique_code_count") or 0) < 20:
@@ -150,8 +179,12 @@ def _check_failure_code_registry() -> list[str]:
 
 
 def _check_api_response_vectors() -> list[str]:
-    errors = _run_check("gen_api_response_vectors_v1_5.py")
+    errors: list[str] = []
+    from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
+
     payload = _load_json(Path("generated/api_response_vectors_v1_5.json"))
+    if payload != build_api_response_vectors():
+        errors.append("api_response_vectors_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.api_response_vectors":
         errors.append("api response vector schema mismatch")
     if int(payload.get("vector_count") or 0) < 8:
@@ -163,8 +196,12 @@ def _check_api_response_vectors() -> list[str]:
 
 
 def _check_b587_b594_mechanisms() -> list[str]:
-    errors = _run_check("gen_b587_b594_testnet_mechanism_completion_v1_5.py")
+    errors: list[str] = []
+    from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587_b594_mechanisms
+
     payload = _load_json(Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"))
+    if payload != build_b587_b594_mechanisms():
+        errors.append("b587_b594_testnet_mechanism_completion_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.batch587_594.testnet_mechanism_completion":
         errors.append("B587-B594 mechanism artifact schema mismatch")
     if payload.get("controlled_testnet_mechanisms_complete") is not True:
@@ -224,8 +261,13 @@ def _check_public_beta_blocker_report() -> list[str]:
 
 
 def _check_external_operator_transcript_requirements() -> list[str]:
-    errors = _run_check("gen_external_operator_transcript_requirements_v1_5.py")
+    errors: list[str] = []
+    from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
+
     payload = _load_json(Path("generated/external_operator_transcript_requirements_v1_5.json"))
+    expected = build_external_operator_transcript_requirements()
+    if payload != expected:
+        errors.append("external_operator_transcript_requirements_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.external_operator_transcript_requirements":
         errors.append("external operator transcript requirements schema mismatch")
     if payload.get("public_beta_ready") is not False:
@@ -247,8 +289,13 @@ def _check_external_operator_transcript_requirements() -> list[str]:
 
 
 def _check_public_observer_launch_evidence_requirements() -> list[str]:
-    errors = _run_check("gen_public_observer_launch_evidence_requirements_v1_5.py")
+    errors: list[str] = []
+    from gen_public_observer_launch_evidence_requirements_v1_5 import build as build_public_observer_launch_evidence_requirements
+
     payload = _load_json(Path("generated/public_observer_launch_evidence_requirements_v1_5.json"))
+    expected = build_public_observer_launch_evidence_requirements()
+    if payload != expected:
+        errors.append("public_observer_launch_evidence_requirements_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.public_observer_launch_evidence_requirements":
         errors.append("public observer launch evidence requirements schema mismatch")
     if payload.get("public_observer_launch_ready") is not False:
@@ -264,9 +311,95 @@ def _check_public_observer_launch_evidence_requirements() -> list[str]:
             errors.append(f"public observer launch requirements must keep {key}=false")
     return errors
 
+
+
+def _check_public_observer_launch_transcripts() -> list[str]:
+    errors: list[str] = []
+    from gen_public_observer_launch_transcript_v1_5 import _default_contracts as build_public_observer_launch_transcript_contracts
+
+    contracts = build_public_observer_launch_transcript_contracts()
+    expected_text = {
+        Path("generated/public_seed_registry_signature_verification_v1_5.json"): contracts["registry"],
+        Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"): contracts["clean_clone"],
+        Path("generated/public_observer_auto_discovery_proof_v1_5.json"): contracts["auto_discovery"],
+        Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"): contracts["state_sync"],
+    }
+    for rel, expected_payload in expected_text.items():
+        if _load_json(rel) != expected_payload:
+            errors.append(f"{rel.as_posix()} is stale; rerun generator")
+    expected = {
+        Path("generated/public_seed_registry_signature_verification_v1_5.json"): "weall.v1_5.public_seed_registry_signature_verification",
+        Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"): "weall.v1_5.public_observer_clean_clone_bootstrap_transcript",
+        Path("generated/public_observer_auto_discovery_proof_v1_5.json"): "weall.v1_5.public_observer_auto_discovery_proof",
+        Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"): "weall.v1_5.public_observer_state_sync_trusted_anchor_proof",
+    }
+    for rel, schema in expected.items():
+        payload = _load_json(rel)
+        if payload.get("schema") != schema:
+            errors.append(f"{rel.as_posix()} schema mismatch")
+        if payload.get("public_observer_launch_ready") is not False:
+            errors.append(f"{rel.as_posix()} must keep public_observer_launch_ready=false until runtime transcript is attached")
+    return errors
+
+
+def _check_public_validator_endpoint_churn_proof() -> list[str]:
+    errors: list[str] = []
+    from gen_public_validator_endpoint_churn_proof_v1_5 import build as build_public_validator_endpoint_churn_proof
+
+    payload = _load_json(Path("generated/public_validator_endpoint_churn_proof_v1_5.json"))
+    expected = build_public_validator_endpoint_churn_proof()
+    if payload != expected:
+        errors.append("public_validator_endpoint_churn_proof_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.public_validator_endpoint_churn_proof":
+        errors.append("public validator endpoint churn proof schema mismatch")
+    if payload.get("public_observer_launch_ready") is not False:
+        errors.append("public validator endpoint churn proof must keep launch readiness false until runtime transcript")
+    checks = payload.get("source_checks") if isinstance(payload.get("source_checks"), dict) else {}
+    if not checks or not all(bool(v) for v in checks.values()):
+        errors.append("public validator endpoint churn proof source checks are not all satisfied")
+    return errors
+
+
+def _check_public_frontend_operator_journey() -> list[str]:
+    errors: list[str] = []
+    from gen_public_frontend_operator_journey_v1_5 import build as build_public_frontend_operator_journey
+
+    payload = _load_json(Path("generated/public_frontend_operator_journey_v1_5.json"))
+    expected = build_public_frontend_operator_journey()
+    if payload != expected:
+        errors.append("public_frontend_operator_journey_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.public_frontend_operator_journey":
+        errors.append("public frontend operator journey schema mismatch")
+    if payload.get("public_observer_launch_ready") is not False:
+        errors.append("public frontend operator journey must keep launch readiness false until rendered run")
+    if payload.get("rendered_e2e_available") is not True:
+        errors.append("public frontend operator journey must include a rendered e2e spec")
+    return errors
+
+
+def _check_public_registry_signer_operations() -> list[str]:
+    errors: list[str] = []
+    from gen_public_registry_signer_operations_v1_5 import build as build_public_registry_signer_operations
+
+    payload = _load_json(Path("generated/public_registry_signer_operations_v1_5.json"))
+    expected = build_public_registry_signer_operations()
+    if payload != expected:
+        errors.append("public_registry_signer_operations_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.public_registry_signer_operations":
+        errors.append("public registry signer operations schema mismatch")
+    checks = payload.get("source_checks") if isinstance(payload.get("source_checks"), dict) else {}
+    if not checks or not all(bool(v) for v in checks.values()):
+        errors.append("public registry signer operations source checks are not all satisfied")
+    return errors
+
 def _check_release_evidence_manifest() -> list[str]:
-    errors = _run_check("gen_release_evidence_manifest_v1_5.py")
+    errors: list[str] = []
+    from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
+
     payload = _load_json(Path("generated/release_evidence_manifest_v1_5.json"))
+    expected = build_release_evidence_manifest()
+    if payload != expected:
+        errors.append("release_evidence_manifest_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.release_evidence_manifest":
         errors.append("release evidence manifest schema mismatch")
     if payload.get("public_beta_ready") is not False:
@@ -286,8 +419,12 @@ def _check_release_evidence_manifest() -> list[str]:
     return errors
 
 def _check_public_validator_preflight() -> list[str]:
-    errors = _run_check("gen_public_validator_bft_preflight_matrix_v1_5.py")
+    errors: list[str] = []
+    from gen_public_validator_bft_preflight_matrix_v1_5 import build_payload as build_public_validator_preflight
+
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
+    if payload != build_public_validator_preflight():
+        errors.append("public_validator_bft_preflight_matrix_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.public_validator_bft_preflight_matrix":
         errors.append("public validator preflight matrix schema mismatch")
     boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
@@ -297,6 +434,32 @@ def _check_public_validator_preflight() -> list[str]:
         errors.append("public validator preflight must remain plan-not-proof")
     return errors
 
+
+
+
+def _check_reputation_artifacts() -> list[str]:
+    errors: list[str] = []
+    from weall.runtime.reputation_events import (
+        api_contract_payload,
+        flow_coverage_payload,
+        invariant_report_payload,
+        matrix_contract_payload,
+        registry_payload,
+    )
+
+    expected = {
+        Path("generated/reputation_event_registry_v1_5.json"): registry_payload(),
+        Path("generated/reputation_matrix_contract_v1_5.json"): matrix_contract_payload(),
+        Path("generated/reputation_flow_coverage_map_v1_5.json"): flow_coverage_payload(),
+        Path("generated/reputation_invariant_report_v1_5.json"): invariant_report_payload(),
+        Path("generated/reputation_api_contract_map_v1_5.json"): api_contract_payload(),
+    }
+    for rel, payload in expected.items():
+        expected_text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+        path = ROOT / rel
+        if not path.is_file() or path.read_text(encoding="utf-8") != expected_text:
+            errors.append(f"{rel.as_posix()} is stale; rerun generator")
+    return errors
 
 def _check_git_tracked() -> list[str]:
     errors: list[str] = []
@@ -339,16 +502,13 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_beta_blocker_report())
         errors.extend(_check_external_operator_transcript_requirements())
         errors.extend(_check_public_observer_launch_evidence_requirements())
+        errors.extend(_check_public_observer_launch_transcripts())
+        errors.extend(_check_public_validator_endpoint_churn_proof())
+        errors.extend(_check_public_frontend_operator_journey())
+        errors.extend(_check_public_registry_signer_operations())
         errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
-        for script in (
-            "gen_reputation_event_registry_v1_5.py",
-            "gen_reputation_matrix_contract_v1_5.py",
-            "gen_reputation_flow_coverage_map_v1_5.py",
-            "gen_reputation_invariant_report_v1_5.py",
-            "gen_reputation_api_contract_map_v1_5.py",
-        ):
-            errors.extend(_run_check(script))
+        errors.extend(_check_reputation_artifacts())
     if args.require_git_tracked:
         errors.extend(_check_git_tracked())
     if errors:

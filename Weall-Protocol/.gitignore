@@ -126,6 +126,13 @@ configs/local/
 
 !generated/external_operator_transcript_requirements_v1_5.json
 !generated/public_observer_launch_evidence_requirements_v1_5.json
+!generated/public_seed_registry_signature_verification_v1_5.json
+!generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json
+!generated/public_observer_auto_discovery_proof_v1_5.json
+!generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json
+!generated/public_validator_endpoint_churn_proof_v1_5.json
+!generated/public_frontend_operator_journey_v1_5.json
+!generated/public_registry_signer_operations_v1_5.json
 
 !generated/reputation_event_registry_v1_5.json
 

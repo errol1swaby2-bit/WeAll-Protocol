@@ -32,6 +32,13 @@ _TRACKED_ARTIFACTS = [
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "generated/external_operator_transcript_requirements_v1_5.json",
     "generated/public_observer_launch_evidence_requirements_v1_5.json",
+    "generated/public_seed_registry_signature_verification_v1_5.json",
+    "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+    "generated/public_observer_auto_discovery_proof_v1_5.json",
+    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+    "generated/public_validator_endpoint_churn_proof_v1_5.json",
+    "generated/public_frontend_operator_journey_v1_5.json",
+    "generated/public_registry_signer_operations_v1_5.json",
 ]
 
 
@@ -108,7 +115,28 @@ def build() -> Json:
                 "required_before_public_observer_launch": True,
                 "requirements_artifact": "generated/public_observer_launch_evidence_requirements_v1_5.json",
                 "runtime_report_required": True,
-                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check",
+                "tracked_static_artifacts": [
+                    "generated/public_seed_registry_signature_verification_v1_5.json",
+                    "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+                    "generated/public_observer_auto_discovery_proof_v1_5.json",
+                    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+                ],
+            },
+            "public_validator_endpoint_churn_proof": {
+                "required_before_public_observer_launch": True,
+                "runtime_report_required": True,
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check",
+            },
+            "public_frontend_operator_journey": {
+                "required_before_public_observer_launch": True,
+                "runtime_report_required": True,
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_frontend_operator_journey_v1_5.py --check && cd web && npm run test:public-observer-rendered",
+            },
+            "public_registry_signer_operations": {
+                "required_before_public_observer_launch": True,
+                "runtime_report_required": False,
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check",
             },
             "external_validator_operator_transcript": {
                 "required_before_public_beta": True,

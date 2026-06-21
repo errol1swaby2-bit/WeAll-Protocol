@@ -81,9 +81,12 @@ function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boole
   const hasTxId = !!item.txId;
   return [
     { label: "Accepted locally", done: ["recorded", "refreshing", "confirmed", "failed"].includes(status), detail: hasTxId ? "tx id captured" : "waiting for tx id" },
+    { label: "Forwarded to verified upstream", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "public observers forward only to commitment-checked upstreams" },
+    { label: "Upstream validator accepted", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "upstream acceptance is distinct from local browser history" },
     { label: "Gossiped / pending", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "peer propagation observed through backend status refresh" },
     { label: "Pending in mempool", done: ["recorded", "refreshing"].includes(status), detail: status === "confirmed" ? "cleared after commit" : "awaiting block inclusion" },
     { label: "Included in block", done: status === "confirmed", detail: "backend status reports confirmation" },
+    { label: "Local observer synced confirmed block", done: status === "confirmed", detail: "local observer has caught up to the confirmed chain state" },
     { label: "Finalized", done: status === "confirmed", detail: "canonical chain accepted the tx" },
     { label: "Removed from mempool", done: status === "confirmed", detail: "should be absent after commit/restart" },
   ];

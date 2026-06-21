@@ -1,6 +1,6 @@
 # Public Observer Testnet Quickstart
 
-Batch 628 makes the public observer path fail-closed around signed discovery and adds launch-evidence gates. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
+Batch 629 keeps the public observer path fail-closed around signed discovery and adds launch transcript, validator endpoint churn, rendered frontend, and registry signer operation evidence gates. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
 
 ## Safety boundary
 
@@ -156,3 +156,22 @@ Before claiming public observer launch readiness, capture an external transcript
 12. Observer mode cannot activate validator signing or BFT authority before committed protocol state makes the validator effective.
 13. Validator endpoint churn is visible: stale or missing verified endpoint advertisements must appear as warnings before claiming connection to all current validators.
 14. NAT/firewall/relay recovery steps are captured if peer counts remain low despite fresh endpoint advertisements.
+
+
+## Runtime launch transcript
+
+After publishing a real signed `configs/public_testnet_seed_registry.json`, capture the runtime transcript before making a public observer launch claim:
+
+```bash
+cd Weall-Protocol
+source .venv/bin/activate
+export WEALL_PUBLIC_TESTNET=1
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+
+bash scripts/run_public_observer_launch_rehearsal_v1_5.sh \
+  --api-base https://<public-seed-api> \
+  --registry configs/public_testnet_seed_registry.json \
+  --out generated/public_observer_launch_runtime_transcript_v1_5.json
+```
+
+Static launch-evidence contracts are tracked in `generated/public_*_v1_5.json`; they remain conservative and keep `public_observer_launch_ready=false` until the runtime transcript is attached. See `docs/PUBLIC_OBSERVER_LAUNCH_TRANSCRIPTS.md` and `docs/PUBLIC_REGISTRY_SIGNER_OPERATIONS.md`.

@@ -19,7 +19,8 @@
     "test:accessibility-source": "node scripts/test_accessibility_source.mjs",
     "test:responsibility-control-surface": "node scripts/test_batch616_responsibility_control_surface_source.mjs",
     "test:operator-journey-source": "node scripts/test_batch620_operator_journey_and_accent_source.mjs",
-    "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts"
+    "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts",
+    "test:public-observer-rendered": "playwright test tests/e2e/public_observer_dashboard.spec.ts"
   },
   "dependencies": {
     "react": "18.3.1",

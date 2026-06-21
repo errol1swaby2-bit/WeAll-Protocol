@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "256d125b991e84d90fea60dbd69e4c2c6aafc91a37bae9fa70d48790b08dde00",
+  "artifact_digest": "2f1ab77b5fe6b2e590d2dd587daf14239751074ae8bec19d73f401de769c9dd8",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -38,11 +38,32 @@
       "required_before_public_beta": true,
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
+    "public_frontend_operator_journey": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_frontend_operator_journey_v1_5.py --check && cd web && npm run test:public-observer-rendered"
+    },
     "public_observer_open_download_transcript": {
       "required_before_public_observer_launch": true,
       "requirements_artifact": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "runtime_report_required": true,
-      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check"
+      "tracked_static_artifacts": [
+        "generated/public_seed_registry_signature_verification_v1_5.json",
+        "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+        "generated/public_observer_auto_discovery_proof_v1_5.json",
+        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+      ],
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check"
+    },
+    "public_registry_signer_operations": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": false,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check"
+    },
+    "public_validator_endpoint_churn_proof": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check"
     },
     "rendered_operator_journey": {
       "clean_gate_default": "reported_not_run_unless_--run-rendered-frontend_or_WEALL_RUN_RENDERED_FRONTEND=1",
@@ -101,12 +122,54 @@
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
     },
+    "generated/public_frontend_operator_journey_v1_5.json": {
+      "file_sha256": "a2038962ddadea89fb4be3bb875653b0a981c9339dc6ea7aab9604d78896c856",
+      "ok": true,
+      "path": "generated/public_frontend_operator_journey_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_frontend_operator_journey"
+    },
+    "generated/public_observer_auto_discovery_proof_v1_5.json": {
+      "file_sha256": "8224d51fcac10e635c09424c548fc69306e8c768250d1081cac8475231a3360f",
+      "ok": true,
+      "path": "generated/public_observer_auto_discovery_proof_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_auto_discovery_proof"
+    },
+    "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json": {
+      "file_sha256": "2f1ab4ece53d6ee9d46472b16959f71b28fc2bb6f3a5abf2dc94e13ea993cef6",
+      "ok": true,
+      "path": "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
+    },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "25ed99763fb229249b033834451181011b11615bcb7bf148b12416fae0baf699",
+      "file_sha256": "9e3dffb8e11fc01b24430bfc5f69718b836dfb2cf8e01c100315d09b6fee974b",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
+    },
+    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json": {
+      "file_sha256": "ddf618f5cba1ac06688fc3d151ecacd752cda03eb659093b8406c20886190f09",
+      "ok": true,
+      "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
+    },
+    "generated/public_registry_signer_operations_v1_5.json": {
+      "file_sha256": "25cf66e3a09f0e3b11529d73904315e4b4aeaa678b61f04f736312a38ac2a695",
+      "ok": true,
+      "path": "generated/public_registry_signer_operations_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_registry_signer_operations"
+    },
+    "generated/public_seed_registry_signature_verification_v1_5.json": {
+      "file_sha256": "d420e03681a9d8ad131306b67dab1dbb400f2f73996ba3a6224b4240475bd381",
+      "ok": true,
+      "path": "generated/public_seed_registry_signature_verification_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_seed_registry_signature_verification"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
       "file_sha256": "2269bf3b14f5a9d2c53bb5971b79589e86936f8f44f9c739163361bc769941af",
@@ -114,6 +177,13 @@
       "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+    },
+    "generated/public_validator_endpoint_churn_proof_v1_5.json": {
+      "file_sha256": "d5db026733092cb9bb4a00a98958481d6d85312955e961261a40a6c69c12b6a1",
+      "ok": true,
+      "path": "generated/public_validator_endpoint_churn_proof_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/state_root_vectors_v1_5.json": {
       "file_sha256": "cc18b4494a96b8680c4f9b648042b6f672ca0fc8be642b9c4775dd9dae27b6df",
