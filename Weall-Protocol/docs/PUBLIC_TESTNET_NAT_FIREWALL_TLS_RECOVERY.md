@@ -45,3 +45,78 @@ If chain commitments match but height does not advance, inspect local logs, peer
 ## CORS/TLS browser failures
 
 The frontend connection manager probes API nodes from the browser. Public API nodes need HTTPS and browser-compatible CORS policy for the hosted frontend origin. Browser API access-node switching does not change the local node's P2P mesh peers or signing authority.
+
+## NAT traversal posture
+
+WeAll does not treat NAT traversal, relay delivery, peer address gossip, or frontend node selection as consensus authority. NAT mechanics are transport-only.
+
+A public testnet node should fall into one of these profiles:
+
+1. **Public inbound seed/validator** — the node accepts inbound P2P and publishes a dialable `tcp://` or `tls://` URI.
+2. **Outbound-only observer** — the node is behind NAT/CGNAT/firewall and uses verified seeds plus the signed relay mailbox path.
+3. **Local/LAN-only development node** — useful for rehearsal, not enough for public observer launch evidence.
+
+Check your local posture with:
+
+```bash
+curl -sS http://127.0.0.1:8000/v1/net/self | python -m json.tool
+```
+
+The response includes `nat.recommended_profile`, `nat.advertise`, `nat.relay`, `nat.warnings`, and `nat.recovery_actions`. This endpoint never returns private keys and reports `authority: network_transport_only`.
+
+## Inbound-capable seed or validator
+
+Seeds and active validators must not publish loopback, private, or unspecified addresses as public P2P endpoints.
+
+```bash
+export WEALL_NET_BIND_HOST=0.0.0.0
+export WEALL_NET_BIND_PORT=30303
+export WEALL_NET_ADVERTISE_URI=tls://<public-dns-name>:30303
+export WEALL_NET_INBOUND_REQUIRED=1
+```
+
+Then verify:
+
+```bash
+curl -sS http://127.0.0.1:8000/v1/net/self | python -m json.tool
+```
+
+Expected posture:
+
+- `nat.inbound_reachable_claim=true`
+- `nat.recommended_profile=public_inbound`
+- no `inbound_required_without_public_advertise_uri` warning
+
+A DNS advertise URI is an operator claim, not a proof. Launch evidence still requires real peer/session counts and external connectivity transcripts.
+
+## Outbound-only observer behind NAT/CGNAT
+
+Observers behind residential routers, mobile hotspots, or shelter/shared networks should not claim public inbound reachability. Use relay-only posture instead:
+
+```bash
+export WEALL_NET_NAT_MODE=relay_only
+export WEALL_NET_RELAY_CLIENT_ENABLED=1
+export WEALL_NET_RELAY_URLS=https://<bootstrap-or-relay-host>
+export WEALL_NET_RELAY_RECIPIENTS=<genesis-peer-id-or-validator-peer-id>
+export WEALL_NET_RELAY_RECIPIENT_PUBKEYS='{"genesis":"<64_HEX_GENESIS_NODE_PUBLIC_KEY>"}'
+export WEALL_NODE_PUBKEY=<observer-node-public-key>
+export WEALL_NODE_PRIVKEY=<observer-node-private-key>
+```
+
+Expected posture:
+
+- `nat.recommended_profile=relay_only` or `outbound_relay_only`
+- `nat.relay.client_ready=true`
+- `nat.relay.authority=transport_only`
+
+Relay delivery can improve liveness for firewalled observers, but relayed messages still go through normal tx/BFT admission and do not grant validator, role, PoH, storage, juror, or governance authority.
+
+## Discovery refresh and stale peer recovery
+
+Public observers refresh seed discovery periodically by default. Configure the interval with:
+
+```bash
+export WEALL_SEED_DISCOVERY_REFRESH_MS=60000
+```
+
+Set it to `0` to preserve one-shot discovery in controlled local rehearsals. The local `/v1/net/self` response exposes `net.seed_discovery` with the configured interval, last refresh time, last learned peer count, and last error. This is operator telemetry only and does not affect deterministic state.

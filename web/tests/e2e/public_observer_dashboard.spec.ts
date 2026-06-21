@@ -12,11 +12,11 @@ async function mockPublicObserverApi(page: import("@playwright/test").Page) {
   await page.route("**/v1/storage/ipfs/ops", async (route) => route.fulfill({ json: { ok: true, durability: {}, pin_status_counts: {}, enabled_operators: [] } }));
   await page.route("**/v1/chain/head", async (route) => route.fulfill({ json: { ok: true, height: 42, state_root: "state-root-demo" } }));
   await page.route("**/v1/chain/identity", async (route) => route.fulfill({ json: { ok: true, chain_id: "weall-testnet-v1", genesis_hash: "genesis-demo", protocol_profile_hash: "profile-demo", tx_index_hash: "tx-index-demo", height: 42 } }));
-  await page.route("**/v1/launch/matrix", async (route) => route.fulfill({ json: { ok: true, public_beta_ready: false, live_economics: false } }));
-  await page.route("**/v1/testnet/capabilities", async (route) => route.fulfill({ json: { ok: true, capabilities: {} } }));
-  await page.route("**/v1/status/block-production-readiness", async (route) => route.fulfill({ json: { ok: true } }));
+  await page.route("**/v1/status/launch-matrix", async (route) => route.fulfill({ json: { ok: true, public_beta_ready: false, live_economics: false } }));
+  await page.route("**/v1/status/testnet-capabilities", async (route) => route.fulfill({ json: { ok: true, capabilities: {} } }));
+  await page.route("**/v1/consensus/block-production/readiness", async (route) => route.fulfill({ json: { ok: true } }));
   await page.route("**/v1/status/helper/readiness", async (route) => route.fulfill({ json: { ok: true, summary: {} } }));
-  await page.route("**/v1/net/self", async (route) => route.fulfill({ json: { ok: true, peers: [{ peer_id: "seed" }, { peer_id: "validator" }] } }));
+  await page.route("**/v1/net/self", async (route) => route.fulfill({ json: { ok: true, peers: [{ peer_id: "seed" }, { peer_id: "validator" }], net: { advertise_uri: "tls://observer.example:30303", seed_discovery: { refresh_ms: 60000, last_ok: true, last_error: "" } }, nat: { recommended_profile: "public_inbound", inbound_reachable_claim: true, advertise: { configured: true, status: "public_or_dns", host_kind: "dns" }, relay: { client_enabled: false, client_ready: false, authority: "transport_only" }, warnings: [], recovery_actions: [], authority: "network_transport_only" } } }));
   await page.route("**/v1/status", async (route) => route.fulfill({ json: { ok: true, chain_id: "weall-testnet-v1", height: 42 } }));
   await page.route("**/v1/readyz", async (route) => route.fulfill({ json: { ok: true } }));
   await page.route("**/v1/accounts/**", async (route) => route.fulfill({ json: { ok: true, state: { account: observerAccount, nonce: 0, poh_tier: 2, banned: false, locked: false, reputation: 10 } } }));
@@ -49,6 +49,8 @@ test("public observer dashboard renders discovery, validator freshness, and reco
 
   await expect(page.getByText(/Seed, validator, and tx propagation visibility/i)).toBeVisible();
   await expect(page.getByText(/Fresh validator endpoints/i)).toBeVisible();
+  await expect(page.getByText(/NAT \/ firewall posture/i)).toBeVisible();
+  await expect(page.getByText(/Recommended network profile/i)).toBeVisible();
   await expect(page.getByText(/Peer \/ NAT recovery/i)).toBeVisible();
   await expect(page.getByText(/Validator promotion path/i)).toBeVisible();
   await expect(page.getByText(/local tx acceptance is shown separately from upstream validator acceptance/i)).toBeVisible();

@@ -59,6 +59,7 @@ Recommended reverse-proxy controls:
 On an observer/onboarding node behind NAT:
 
 ```bash
+export WEALL_NET_NAT_MODE=relay_only
 export WEALL_NET_RELAY_CLIENT_ENABLED=1
 export WEALL_NET_RELAY_URLS=https://<bootstrap-or-relay-host>
 export WEALL_NET_RELAY_RECIPIENTS=<genesis-peer-id-or-validator-peer-id>
@@ -67,6 +68,19 @@ export WEALL_NET_RELAY_POLL_MS=1000
 export WEALL_NODE_PUBKEY=<observer-node-public-key>
 export WEALL_NODE_PRIVKEY=<observer-node-private-key>
 ```
+
+After boot, verify the observer reports relay-only posture:
+
+```bash
+curl -sS http://127.0.0.1:8000/v1/net/self | python -m json.tool
+```
+
+Expected values:
+
+- `nat.recommended_profile` is `relay_only` or `outbound_relay_only`
+- `nat.relay.client_ready=true`
+- `nat.relay.authority=transport_only`
+- no `inbound_required_without_public_advertise_uri` warning unless this node is trying to operate as a seed/validator
 
 Observer safety flags remain mandatory:
 

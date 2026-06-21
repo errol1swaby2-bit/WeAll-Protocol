@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 import os
+from urllib.parse import urlparse
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -52,6 +54,161 @@ def _env_str(name: str, default: str = "") -> str:
     if v is None:
         return str(default)
     return str(v)
+
+
+def _split_csv(raw: str) -> list[str]:
+    return [p.strip() for p in str(raw or "").split(",") if p.strip()]
+
+
+def _host_kind(host: str) -> str:
+    h = str(host or "").strip().lower().strip("[]")
+    if not h:
+        return "missing"
+    if h in {"0.0.0.0", "::", "*"}:
+        return "unspecified"
+    if h in {"localhost", "localhost.localdomain"}:
+        return "loopback"
+    try:
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        # A DNS name may be public or private depending on operator DNS. Treat it
+        # as an operator claim that must be proven by runtime peer/session counts.
+        return "dns"
+    if ip.is_loopback:
+        return "loopback"
+    if ip.is_private or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+        return "private"
+    return "public_ip"
+
+
+def _advertise_uri_status(uri: str | None) -> dict[str, object]:
+    raw = str(uri or "").strip()
+    if not raw:
+        return {
+            "configured": False,
+            "status": "missing",
+            "host_kind": "missing",
+            "dialable_public_claim": False,
+        }
+    parsed = urlparse(raw)
+    scheme = str(parsed.scheme or "").lower()
+    if scheme not in {"tcp", "tls"}:
+        return {
+            "configured": True,
+            "status": "unsupported_scheme",
+            "scheme": scheme or None,
+            "host": parsed.hostname or None,
+            "host_kind": _host_kind(parsed.hostname or ""),
+            "dialable_public_claim": False,
+        }
+    kind = _host_kind(parsed.hostname or "")
+    public_claim = kind in {"public_ip", "dns"}
+    status = "public_or_dns" if public_claim else kind
+    return {
+        "configured": True,
+        "status": status,
+        "scheme": scheme,
+        "host": parsed.hostname or None,
+        "port": int(parsed.port) if parsed.port is not None else None,
+        "host_kind": kind,
+        "dialable_public_claim": bool(public_claim),
+    }
+
+
+def _nat_traversal_report(
+    *,
+    bind_host: str,
+    bind_port: int,
+    advertise_uri: str | None,
+    connected_peers: int | None,
+    established_sessions: int | None,
+) -> dict[str, object]:
+    mode = (_env_str("WEALL_NET_NAT_MODE", "auto") or "auto").strip().lower()
+    if mode not in {"auto", "public_inbound", "behind_nat", "relay_only", "local_only"}:
+        mode = "auto"
+
+    public_testnet = _env_bool("WEALL_PUBLIC_TESTNET", False)
+    validator_intent = (
+        _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False)
+        or _env_bool("WEALL_BFT_ENABLED", False)
+        or (_env_str("WEALL_NODE_LIFECYCLE_STATE", "").strip().lower() in {"validator", "production_validator", "validator_candidate"})
+    )
+    seed_intent = _env_bool("WEALL_PUBLIC_TESTNET_SEED_NODE", False) or _env_bool("WEALL_SEED_NODE", False)
+    inbound_required = _env_bool("WEALL_NET_INBOUND_REQUIRED", bool(seed_intent or validator_intent))
+
+    adv = _advertise_uri_status(advertise_uri)
+    relay_urls = _split_csv(_env_str("WEALL_NET_RELAY_URLS", ""))
+    relay_recipients = _split_csv(_env_str("WEALL_NET_RELAY_RECIPIENTS", ""))
+    relay_pubkeys_raw = _env_str("WEALL_NET_RELAY_RECIPIENT_PUBKEYS", "").strip()
+    relay_client_enabled = _env_bool("WEALL_NET_RELAY_CLIENT_ENABLED", False)
+    relay_server_enabled = _env_bool("WEALL_NET_RELAY_ENABLED", False)
+    relay_ready = bool(relay_client_enabled and relay_urls and (relay_recipients or not public_testnet) and relay_pubkeys_raw)
+
+    bind_kind = _host_kind(bind_host)
+    inbound_public_claim = bool(adv.get("dialable_public_claim"))
+    if mode == "auto":
+        if inbound_public_claim:
+            recommended = "public_inbound"
+        elif relay_client_enabled:
+            recommended = "outbound_relay_only"
+        elif bind_kind in {"loopback", "private"}:
+            recommended = "local_or_lan_only"
+        else:
+            recommended = "needs_advertise_or_relay"
+    else:
+        recommended = mode
+
+    warnings: list[str] = []
+    actions: list[str] = []
+    if inbound_required and not inbound_public_claim:
+        warnings.append("inbound_required_without_public_advertise_uri")
+        actions.append("Set WEALL_NET_ADVERTISE_URI=tcp://<public-host-or-dns>:<p2p-port> or run this node as relay-only observer instead of seed/validator.")
+    if public_testnet and not inbound_public_claim and not relay_client_enabled and not relay_server_enabled:
+        warnings.append("public_testnet_no_public_advertise_or_relay")
+        actions.append("For a firewalled observer, enable WEALL_NET_RELAY_CLIENT_ENABLED=1 with WEALL_NET_RELAY_URLS and recipient pubkey binding.")
+    if relay_client_enabled and not relay_urls:
+        warnings.append("relay_client_enabled_without_urls")
+        actions.append("Set WEALL_NET_RELAY_URLS to one or more HTTPS relay/base API URLs.")
+    if relay_client_enabled and not relay_pubkeys_raw and _is_prod():
+        warnings.append("relay_client_missing_recipient_pubkey_binding")
+        actions.append("Set WEALL_NET_RELAY_RECIPIENT_PUBKEYS so relay fetches are recipient-key bound.")
+    if adv.get("configured") and not inbound_public_claim:
+        warnings.append(f"advertise_uri_not_public:{adv.get('status')}")
+        actions.append("Do not publish loopback, private, or unspecified advertise URIs in public seed/validator records.")
+    if connected_peers == 0 and established_sessions == 0 and (public_testnet or relay_client_enabled or inbound_public_claim):
+        warnings.append("no_established_mesh_peers")
+        actions.append("Check seed reachability, outbound firewall, P2P port forwarding, TLS certificate/reverse proxy, and relay status.")
+
+    return {
+        "mode": mode,
+        "recommended_profile": recommended,
+        "public_testnet": bool(public_testnet),
+        "inbound_required": bool(inbound_required),
+        "bind": {
+            "host": bind_host,
+            "port": int(bind_port),
+            "host_kind": bind_kind,
+            "is_unspecified": bind_kind == "unspecified",
+        },
+        "advertise": adv,
+        "inbound_reachable_claim": bool(inbound_public_claim),
+        "relay": {
+            "server_enabled": bool(relay_server_enabled),
+            "client_enabled": bool(relay_client_enabled),
+            "urls_configured": len(relay_urls),
+            "recipients_configured": len(relay_recipients),
+            "recipient_pubkeys_configured": bool(relay_pubkeys_raw),
+            "client_ready": bool(relay_ready),
+            "authority": "transport_only",
+        },
+        "mesh_counts": {
+            "connected_peers": connected_peers,
+            "established_sessions": established_sessions,
+        },
+        "warnings": warnings,
+        "recovery_actions": actions,
+        "authority": "network_transport_only",
+    }
 
 
 def _try_executor_state(ex: Any) -> dict[str, Any] | None:
@@ -183,6 +340,7 @@ def v1_net_self(request: Request) -> dict[str, object]:
     # Peer counts (best-effort)
     connected_peers = None
     established_sessions = None
+    seed_discovery: dict[str, Any] | None = None
     try:
         t = getattr(net, "transport", None)
         if t is not None and hasattr(t, "connections"):
@@ -202,6 +360,18 @@ def v1_net_self(request: Request) -> dict[str, object]:
         if _is_prod() and net is not None:
             raise NetSelfStateError("net_self_sessions_failed") from exc
         established_sessions = None
+
+    try:
+        loop = getattr(app_state, "net_loop", None)
+        seed_fn = getattr(loop, "seed_discovery_debug", None)
+        if callable(seed_fn):
+            maybe_seed = seed_fn()
+            if isinstance(maybe_seed, dict):
+                seed_discovery = maybe_seed
+    except Exception as exc:
+        if _is_prod():
+            raise NetSelfStateError("net_self_seed_discovery_failed") from exc
+        seed_discovery = None
 
     # Startup warnings: node-device gate state (best-effort)
     warnings: list[str] = []
@@ -235,6 +405,17 @@ def v1_net_self(request: Request) -> dict[str, object]:
             "missing_identity_pubkey: set WEALL_NODE_PUBKEY to participate in identity-gated mesh"
         )
 
+    nat = _nat_traversal_report(
+        bind_host=bind_host,
+        bind_port=int(bind_port),
+        advertise_uri=advertise_uri,
+        connected_peers=connected_peers if isinstance(connected_peers, int) else None,
+        established_sessions=established_sessions if isinstance(established_sessions, int) else None,
+    )
+    for warning in nat.get("warnings", []):
+        if isinstance(warning, str) and warning not in warnings:
+            warnings.append(warning)
+
     return {
         "ok": True,
         "enabled": bool(net is not None) and bool(net_enabled),
@@ -261,7 +442,10 @@ def v1_net_self(request: Request) -> dict[str, object]:
                 "active_node_device_count": node_device_count,
                 "ok": node_device_gate_ok,
             },
+            "seed_discovery": seed_discovery,
+            "nat": nat,
         },
+        "nat": nat,
         "warnings": warnings,
         "notes": [
             "No private keys are returned by this endpoint.",

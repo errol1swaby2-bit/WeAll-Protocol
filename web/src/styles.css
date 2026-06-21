@@ -3203,3 +3203,10 @@ summary:focus-visible {
 .nodeDashboardPage .heroInfoList {
   align-items: flex-start;
 }
+
+.compactList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}

@@ -429,6 +429,17 @@ class NetMeshLoop:
         except Exception:
             self._seed_discover_timeout_s = 2.0
         self._seed_discover_done = False
+        # Public observers need discovery to self-heal after seed/validator endpoint
+        # churn. A zero value preserves the old one-shot behavior outside public
+        # testnet unless explicitly configured.
+        self._seed_discovery_refresh_ms = max(0, _env_int(
+            "WEALL_SEED_DISCOVERY_REFRESH_MS",
+            60_000 if public_testnet_enabled() else 0,
+        ))
+        self._last_seed_discover_ms = 0
+        self._seed_discovery_last_ok = False
+        self._seed_discovery_last_learned = 0
+        self._seed_discovery_last_error = ""
 
         self.node: NetNode | None = None
 
@@ -610,12 +621,17 @@ class NetMeshLoop:
         )
         return node
 
-    def _seed_discover_once(self) -> None:
-        if self._seed_discover_done:
+    def _seed_discover_once(self, *, force: bool = False) -> None:
+        if self._seed_discover_done and not force:
             return
         self._seed_discover_done = True
+        self._last_seed_discover_ms = _now_ms()
+        self._seed_discovery_last_ok = False
+        self._seed_discovery_last_learned = 0
+        self._seed_discovery_last_error = ""
 
         if not self._seed_nodes:
+            self._seed_discovery_last_error = "no_seed_nodes_configured"
             return
 
         learned: list[str] = []
@@ -632,12 +648,36 @@ class NetMeshLoop:
         if learned:
             try:
                 self._peers_store.merge(learned, force=True)
+                self._seed_discovery_last_ok = True
+                self._seed_discovery_last_learned = len(learned)
                 try:
-                    log_event(_LOG, "net_seed_discovery", learned=learned, count=len(learned))
+                    log_event(_LOG, "net_seed_discovery", learned=learned, count=len(learned), refresh=bool(force))
                 except Exception:
                     pass
             except Exception:
-                pass
+                self._seed_discovery_last_error = "peer_store_merge_failed"
+                if _is_prod():
+                    raise NetPeerConfigError("peer_store_merge_failed")
+        else:
+            self._seed_discovery_last_error = "no_advertise_uri_learned"
+
+    def _seed_discovery_tick(self) -> None:
+        if int(self._seed_discovery_refresh_ms or 0) <= 0:
+            return
+        now = _now_ms()
+        if (now - int(self._last_seed_discover_ms or 0)) < int(self._seed_discovery_refresh_ms):
+            return
+        self._seed_discover_once(force=True)
+
+    def seed_discovery_debug(self) -> Json:
+        return {
+            "seed_nodes_configured": len(list(self._seed_nodes or [])),
+            "refresh_ms": int(self._seed_discovery_refresh_ms or 0),
+            "last_refresh_ms": int(self._last_seed_discover_ms or 0),
+            "last_ok": bool(self._seed_discovery_last_ok),
+            "last_learned": int(self._seed_discovery_last_learned or 0),
+            "last_error": str(self._seed_discovery_last_error or ""),
+        }
 
     def start(self) -> bool:
         if not self._cfg.enabled:
@@ -708,6 +748,11 @@ class NetMeshLoop:
             except Exception:
                 if _is_prod():
                     raise NetLoopRuntimeError("node_poll_failed")
+
+            try:
+                self._seed_discovery_tick()
+            except Exception:
+                pass
 
             try:
                 self._dial_peers_tick()

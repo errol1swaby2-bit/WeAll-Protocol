@@ -211,6 +211,12 @@ export default function NodeDashboard(): JSX.Element {
   const testnetCapabilities = asRecord(data.testnetCapabilities);
   const helperReadiness = asRecord(data.helperReadiness);
   const netSelf = asRecord(data.netSelf);
+  const nat = asRecord(netSelf.nat || asRecord(netSelf.net).nat);
+  const natAdvertise = asRecord(nat.advertise);
+  const natRelay = asRecord(nat.relay);
+  const natWarnings = asArray(nat.warnings);
+  const natActions = asArray(nat.recovery_actions);
+  const seedDiscovery = asRecord(asRecord(netSelf.net).seed_discovery);
   const publicSeeds = asRecord(data.publicSeeds);
   const publicValidators = asRecord(data.publicValidators);
   const observerEdge = asRecord(data.observerEdge);
@@ -445,6 +451,31 @@ export default function NodeDashboard(): JSX.Element {
                 warn={row.active_in_protocol_state === true && row.has_verified_fresh_endpoint !== true}
               />
             ))}
+          </div>
+
+          <div className="grid2">
+            <div className="infoCard compact">
+              <div className="feedMediaTitle">NAT / firewall posture</div>
+              <div className="progressList">
+                <DetailRow label="Recommended network profile" value={statusLabel(nat.recommended_profile || "Unknown")} ok={nat.recommended_profile === "public_inbound" || nat.recommended_profile === "outbound_relay_only" || nat.recommended_profile === "relay_only"} warn={nat.recommended_profile === "needs_advertise_or_relay" || natWarnings.length > 0} />
+                <DetailRow label="Advertised P2P URI" value={str(asRecord(netSelf.net).advertise_uri || natAdvertise.status, "Not published")} ok={nat.inbound_reachable_claim === true} warn={natAdvertise.configured === true && nat.inbound_reachable_claim !== true} />
+                <DetailRow label="Relay client" value={natRelay.client_enabled === true ? (natRelay.client_ready === true ? "Configured" : "Needs recipient binding") : "Disabled"} ok={natRelay.client_ready === true} warn={natRelay.client_enabled === true && natRelay.client_ready !== true} />
+                <DetailRow label="Seed discovery refresh" value={seedDiscovery.refresh_ms ? `${seedDiscovery.last_ok === true ? "OK" : statusLabel(seedDiscovery.last_error || "Waiting")} · ${seedDiscovery.refresh_ms} ms` : "One-shot / disabled"} ok={seedDiscovery.last_ok === true} warn={!!seedDiscovery.last_error && seedDiscovery.last_ok !== true} />
+              </div>
+            </div>
+            <div className="infoCard compact">
+              <div className="feedMediaTitle">Recovery guidance</div>
+              {natWarnings.length ? (
+                <ul className="compactList">
+                  {natWarnings.slice(0, 4).map((warning, idx) => <li key={`${String(warning)}-${idx}`}>{statusLabel(warning)}</li>)}
+                </ul>
+              ) : (
+                <p className="cardDesc">No NAT/firewall warnings reported by the local backend.</p>
+              )}
+              {natActions.length ? (
+                <p className="cardDesc">{String(natActions[0])}</p>
+              ) : null}
+            </div>
           </div>
 
           <div className="calloutInfo">
