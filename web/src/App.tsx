@@ -93,7 +93,7 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
     case "/economics":
       return readyForApp ? <Economics /> : <LoginPage />;
     case "/node":
-      return readyForApp ? <NodeDashboard /> : <LoginPage />;
+      return <NodeDashboard />;
     case "/account/:account":
       return <Account account={route.account} />;
     case "/post/:id":

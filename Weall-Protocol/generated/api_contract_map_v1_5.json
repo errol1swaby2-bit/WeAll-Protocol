@@ -1398,7 +1398,7 @@
       "route_id": "d60356d9fdddfe58",
       "route_path_without_v1_prefix": "/net/self",
       "source": "src/weall/api/routes_public_parts/net_self.py",
-      "source_lineno": 112,
+      "source_lineno": 269,
       "summary": "",
       "tags": [
         "net_self"

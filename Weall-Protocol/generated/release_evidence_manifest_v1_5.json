@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "2f1ab77b5fe6b2e590d2dd587daf14239751074ae8bec19d73f401de769c9dd8",
+  "artifact_digest": "a6c729976fd41824632443512f46322df29990f5c66de2cdaeec1d9150b7badb",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -81,7 +81,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "d28f871544df9b2cf786f120e41744e57382cbd94a52c5af0483171c1ff32770",
+      "file_sha256": "016b1ebdabd1e33490a306365f9f9939f316438d19199461015601e992a0b5b9",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,

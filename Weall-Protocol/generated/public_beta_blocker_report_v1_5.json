@@ -348,7 +348,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "2f1ab77b5fe6b2e590d2dd587daf14239751074ae8bec19d73f401de769c9dd8",
+      "artifact_digest": "a6c729976fd41824632443512f46322df29990f5c66de2cdaeec1d9150b7badb",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",

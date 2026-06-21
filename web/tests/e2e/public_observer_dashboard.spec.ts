@@ -55,3 +55,15 @@ test("public observer dashboard renders discovery, validator freshness, and reco
   await expect(page.getByText(/Validator promotion path/i)).toBeVisible();
   await expect(page.getByText(/local tx acceptance is shown separately from upstream validator acceptance/i)).toBeVisible();
 });
+
+
+test("public observer node dashboard is readable before account setup", async ({ page }) => {
+  await mockPublicObserverApi(page);
+  await page.goto("/#/node");
+
+  await expect(page).toHaveURL(/#\/node$/);
+  await expect(page.getByText(/Seed, validator, and tx propagation visibility/i)).toBeVisible();
+  await expect(page.getByText(/NAT \/ firewall posture/i)).toBeVisible();
+  await expect(page.getByText(/Validator promotion path/i)).toBeVisible();
+  await expect(page.getByText(/Sign in to unlock account actions/i)).toBeVisible();
+});

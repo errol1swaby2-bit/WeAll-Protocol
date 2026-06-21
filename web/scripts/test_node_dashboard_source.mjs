@@ -24,6 +24,11 @@ assertIncludes(app, "./pages/NodeDashboard", "App lazy-loads node dashboard");
 assertIncludes(app, `case "/node":`, "App renders /node route");
 assertIncludes(router, `{ path: "/node" }`, "router match type includes /node");
 assertIncludes(router, `href: "/node"`, "normal navigation exposes /node");
+assertIncludes(router, `"/node": {`, "route registry includes node route");
+assertIncludes(router, `public: true,
+    authRequired: false,
+    requiresReady: false,`, "node dashboard is available before account setup");
+assertIncludes(router, `href: "/node", label: "Personal Node", description: "Local node health, readiness, and storage controls.", icon: "⬡", public: true`, "normal navigation exposes public node route");
 if (router.includes("/operator")) {
   throw new Error("legacy /operator alias must not remain in router");
 }
@@ -63,6 +68,9 @@ for (const needle of [
   "Reachable validators",
   "Fresh validator endpoints",
   "Peer / NAT recovery",
+  "Read-only observer view",
+  "Set up account operator path",
+  "Set up account before operator actions",
   "Validator promotion path",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");

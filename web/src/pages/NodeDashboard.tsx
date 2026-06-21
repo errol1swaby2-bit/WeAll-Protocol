@@ -132,6 +132,7 @@ export default function NodeDashboard(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
   const account = session ? normalizeAccount(session.account) : "";
+  const hasAccountSession = !!account;
   const headers = account ? getAuthHeaders(account) : undefined;
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -326,12 +327,22 @@ export default function NodeDashboard(): JSX.Element {
               {loadState === "loading" ? "Refreshing…" : "Refresh node status"}
             </button>
             <button className="btn" onClick={() => nav("/settings")}>Change backend URL</button>
-            <button className="btn" onClick={() => nav("/profile")}>Manage account operator setup</button>
+            {hasAccountSession ? (
+              <button className="btn" onClick={() => nav("/profile")}>Manage account operator setup</button>
+            ) : (
+              <button className="btn" onClick={() => nav("/login")}>Set up account operator path</button>
+            )}
           </div>
         </div>
       </section>
 
       <ErrorBanner message={error?.msg} details={error?.details} onRetry={() => void load()} onDismiss={() => setError(null)} />
+
+      {!hasAccountSession ? (
+        <div className="calloutInfo" role="status">
+          <strong>Read-only observer view:</strong> node health, seed discovery, validator freshness, NAT posture, mempool status, and launch boundaries are available before account setup. Signed account, Tier 2, storage, helper, and validator actions unlock only after local session setup and protocol eligibility checks.
+        </div>
+      ) : null}
 
       <section className="summaryCardGrid" aria-label="Node status summary">
         <StatCard label="Node health" value={readyz.ready === false ? "Degraded" : status.ok === true ? "Online" : "Unknown"} note="Backend status and readiness are read from the connected node." ok={status.ok === true && readyz.ready !== false} warn={readyz.ready === false || loadState === "error"} />
@@ -561,7 +572,11 @@ export default function NodeDashboard(): JSX.Element {
                 <strong>Safety boundary:</strong> Pause/resume and quota here are local controls for your webfront. To change committed protocol responsibility, use account operator setup and submit signed storage transactions after reviewing capacity proof requirements.
               </div>
               <div className="buttonRow">
-                <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
+                {hasAccountSession ? (
+                  <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
+                ) : (
+                  <button className="btn" onClick={() => nav("/login")}>Set up account before operator actions</button>
+                )}
                 <button className="btn" onClick={() => nav("/settings")}>Review API endpoint</button>
               </div>
             </div>
