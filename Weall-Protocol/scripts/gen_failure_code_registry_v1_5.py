@@ -29,6 +29,31 @@ STATUS_BY_API_METHOD = {
     "internal": 500,
 }
 
+STATIC_LAUNCH_CODES = [
+    "GENESIS_TESTNET_ENDPOINT_PLACEHOLDER",
+    "GENESIS_TESTNET_API_UNREACHABLE",
+    "GENESIS_TESTNET_P2P_UNREACHABLE",
+    "GENESIS_TESTNET_WRONG_CHAIN_ID",
+    "GENESIS_TESTNET_WRONG_NETWORK_ID",
+    "GENESIS_TESTNET_WRONG_GENESIS_HASH",
+    "GENESIS_TESTNET_WRONG_PROFILE_HASH",
+    "GENESIS_TESTNET_WRONG_TX_INDEX_HASH",
+    "GENESIS_TESTNET_REGISTRY_SIGNATURE_INVALID",
+    "GENESIS_TESTNET_REGISTRY_SIGNER_UNPINNED",
+    "GENESIS_TESTNET_DIRECT_P2P_REQUIRED",
+    "GENESIS_TESTNET_RELAY_ONLY_NOT_READY",
+    "OBSERVER_BOOT_NO_VALID_REGISTRY_SOURCE",
+    "OBSERVER_BOOT_NO_DIRECT_P2P_SEED",
+    "OBSERVER_BOOT_CHAIN_ID_MISMATCH",
+    "OBSERVER_BOOT_GENESIS_HASH_MISMATCH",
+    "VALIDATOR_PROMOTION_POH_REQUIRED",
+    "VALIDATOR_PROMOTION_TIER2_REQUIRED",
+    "VALIDATOR_PROMOTION_OPERATOR_OPT_IN_REQUIRED",
+    "VALIDATOR_PROMOTION_VALIDATION_OPT_IN_REQUIRED",
+    "VALIDATOR_PROMOTION_THRESHOLD_NOT_MET",
+    "VALIDATOR_PROMOTION_PROTOCOL_STATE_BLOCKED",
+]
+
 
 def _literal(node: ast.AST) -> Any:
     try:
@@ -120,6 +145,20 @@ def build_payload() -> dict[str, Any]:
                 key = (rec["code"], rec["family"], rec["source"])
                 if key not in seen or rec["source_lineno"] < seen[key]["source_lineno"]:
                     seen[key] = rec
+    for code in STATIC_LAUNCH_CODES:
+        key = (code, "LaunchReadiness", "scripts/gen_failure_code_registry_v1_5.py")
+        seen.setdefault(
+            key,
+            {
+                "code": code,
+                "family": "LaunchReadiness",
+                "http_status": None,
+                "source": "scripts/gen_failure_code_registry_v1_5.py",
+                "source_lineno": 0,
+                "domain": "launch_readiness",
+                "sample_reason": "stable public genesis launch readiness failure code",
+            },
+        )
     entries = sorted(seen.values(), key=lambda r: (r["code"], r["family"], r["source"], r["source_lineno"]))
     by_code: dict[str, int] = {}
     by_domain: dict[str, int] = {}

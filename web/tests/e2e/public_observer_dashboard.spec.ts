@@ -21,7 +21,7 @@ async function mockPublicObserverApi(page: import("@playwright/test").Page) {
   await page.route("**/v1/readyz", async (route) => route.fulfill({ json: { ok: true } }));
   await page.route("**/v1/accounts/**", async (route) => route.fulfill({ json: { ok: true, state: { account: observerAccount, nonce: 0, poh_tier: 2, banned: false, locked: false, reputation: 10 } } }));
   await page.route("**/v1/account/*/operator/status", async (route) => route.fulfill({ json: { ok: true, node_operator: { status: "observer", storage: {}, validator: { status: "not_opted_in" }, helper: {} } } }));
-  await page.route("**/v1/nodes/seeds", async (route) => route.fulfill({ json: { ok: true, public_testnet: true, network_id: "weall-public-observer-testnet-v1", chain_id: "weall-testnet-v1", genesis_hash: "genesis-demo", seed_p2p_urls: ["tcp://seed.example:30303"], seed_registry_signature_status: { verified: true, trust: "pinned" }, nodes: [{ base_url: "https://seed.example", role: "seed" }] } }));
+  await page.route("**/v1/nodes/seeds", async (route) => route.fulfill({ json: { ok: true, public_testnet: true, network_id: "weall-public-observer-testnet-v1", chain_id: "weall-testnet-v1", genesis_hash: "genesis-demo", seed_p2p_urls: ["tcp://seed.example:30303"], seed_registry_signature_status: { verified: true, trust: "pinned" }, registry_source_kind: "file", nodes: [{ base_url: "https://seed.example", role: "seed" }] } }));
   await page.route("**/v1/nodes/validators", async (route) => route.fulfill({ json: { ok: true, public_testnet: true, active_validator_count: 1, verified_endpoint_count: 1, verified_fresh_endpoint_count: 1, stale_verified_endpoint_count: 0, active_validators_missing_verified_fresh_endpoint_count: 0, all_active_validators_have_verified_fresh_endpoint: true, endpoint_freshness_policy: { max_age_ms: 3600000 }, validators: [{ account_id: "@validator", node_pubkey: "pub", active_in_protocol_state: true, verified_endpoint_count: 1, verified_fresh_endpoint_count: 1, stale_verified_endpoint_count: 0, has_verified_fresh_endpoint: true, endpoint_records: [{ account_id: "@validator", api_base_url: "https://validator.example", p2p_url: "tcp://validator.example:30303", verified: true, freshness: { fresh: true, proof_timestamp_ms: now } }] }], registry: { seed_registry_signature_status: { verified: true } } } }));
   await page.route("**/v1/observer/edge/status", async (route) => route.fulfill({ json: { ok: true, observer_edge_mode: true, verified_upstream_count: 1, local_outbox_count: 1, upstream_accepted_count: 1, upstream_confirmed_count: 0 } }));
 }
@@ -51,6 +51,8 @@ test("public observer dashboard renders discovery, validator freshness, and reco
   await expect(page.getByText(/Fresh validator endpoints/i)).toBeVisible();
   await expect(page.getByText(/NAT \/ firewall posture/i)).toBeVisible();
   await expect(page.getByText(/Recommended network profile/i)).toBeVisible();
+  await expect(page.getByText(/Registry source/i)).toBeVisible();
+  await expect(page.getByText(/Direct P2P priority/i)).toBeVisible();
   await expect(page.getByText(/Peer \/ NAT recovery/i)).toBeVisible();
   await expect(page.getByText(/Validator promotion path/i)).toBeVisible();
   await expect(page.getByText(/local tx acceptance is shown separately from upstream validator acceptance/i)).toBeVisible();

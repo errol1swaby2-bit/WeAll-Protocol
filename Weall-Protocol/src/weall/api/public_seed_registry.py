@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import time
@@ -536,6 +537,43 @@ def _list_of_strings(data: Json, key: str) -> list[str]:
     return out
 
 
+def _endpoint_host_kind(host: str) -> str:
+    value = _safe_str(host).strip("[]").lower()
+    if not value:
+        return "missing"
+    if value in {"localhost", "localhost.localdomain"}:
+        return "loopback"
+    if value in {"0.0.0.0", "::", "*"}:
+        return "unspecified"
+    try:
+        ip = ipaddress.ip_address(value)
+    except ValueError:
+        return "dns"
+    if ip.is_loopback:
+        return "loopback"
+    if ip.is_unspecified:
+        return "unspecified"
+    if ip.is_private:
+        return "private"
+    if ip.is_link_local:
+        return "link_local"
+    if ip.is_reserved:
+        return "reserved"
+    if ip.is_multicast:
+        return "multicast"
+    return "public_ip"
+
+
+def _require_public_endpoint_host(value: str, *, error_code: str, allow_local: bool) -> None:
+    if allow_local:
+        return
+    parsed = urlparse(_safe_str(value))
+    kind = _endpoint_host_kind(parsed.hostname or "")
+    if kind in {"dns", "public_ip"}:
+        return
+    raise PublicSeedRegistryError(error_code)
+
+
 def _normalize_p2p_url(url: str) -> str:
     value = _safe_str(url)
     if not value:
@@ -604,6 +642,19 @@ def _normalize_validator_endpoint(raw: Any, *, allow_local: bool, commitments: J
     p2p_url = ""
     if p2p_raw:
         p2p_url = _normalize_p2p_url(p2p_raw)
+    if public_testnet_enabled() and _signature_required():
+        if api_base_url:
+            _require_public_endpoint_host(
+                api_base_url,
+                error_code="public_validator_endpoint_api_base_url_not_public",
+                allow_local=allow_local,
+            )
+        if p2p_url:
+            _require_public_endpoint_host(
+                p2p_url,
+                error_code="public_validator_endpoint_p2p_url_not_public",
+                allow_local=allow_local,
+            )
     if not api_base_url and not p2p_url:
         raise PublicSeedRegistryError("public_validator_endpoint_missing_url")
     verification = _verify_validator_endpoint_signature(raw, commitments=commitments)
@@ -683,6 +734,12 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
             norm = normalize_base_url(raw, allow_insecure_localhost_urls=allow_local)
         except Exception as exc:
             raise PublicSeedRegistryError("public_seed_registry_invalid_seed_api_url") from exc
+        if public_testnet_enabled() and _signature_required():
+            _require_public_endpoint_host(
+                norm,
+                error_code="public_seed_registry_seed_api_url_not_public",
+                allow_local=allow_local,
+            )
         if norm not in seen_api:
             seen_api.add(norm)
             seed_api_urls.append(norm)
@@ -691,6 +748,12 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
     seen_p2p: set[str] = set()
     for raw in _list_of_strings(data, "seed_p2p_urls"):
         norm = _normalize_p2p_url(raw)
+        if public_testnet_enabled() and _signature_required():
+            _require_public_endpoint_host(
+                norm,
+                error_code="public_seed_registry_seed_p2p_url_not_public",
+                allow_local=allow_local,
+            )
         if norm not in seen_p2p:
             seen_p2p.add(norm)
             seed_p2p_urls.append(norm)
@@ -706,6 +769,8 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
         nodes = _registry_nodes_from_seed_urls(seed_api_urls)
     if not seed_api_urls:
         raise PublicSeedRegistryError("public_seed_registry_no_seed_api_urls")
+    if public_testnet_enabled() and _signature_required() and not seed_p2p_urls:
+        raise PublicSeedRegistryError("public_seed_registry_no_seed_p2p_urls")
 
     endpoints_raw = data.get("validator_endpoints") or []
     if not isinstance(endpoints_raw, list):

@@ -97,7 +97,13 @@ def test_public_observer_boot_script_is_fail_closed_and_documents_recovery():
     assert "/v1/nodes/seeds" in text
     assert "/v1/nodes/validators" in text
     assert "/v1/observer/edge/status" in text
-    assert "exec python3 -m weall.api" in text
+    assert "/v1/net/self" in text
+    assert "WEALL_NET_ENABLED" in text
+    assert "WEALL_NET_LOOP_AUTOSTART" in text
+    assert "WEALL_VALIDATOR_SIGNING_ENABLED" in text
+    assert "init_prod_node_identity.sh --emit-shell-env" in text
+    assert "exec bash scripts/run_node.sh" in text
+    assert "exec python3 -m weall.api" not in text
 
 
 def test_public_observer_launch_evidence_requirements_generator_check():

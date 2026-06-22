@@ -57,11 +57,40 @@ EOF
   fi
 fi
 
+env_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|y|Y|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+csv_has_validator_role() {
+  local roles=",${1:-},"
+  [[ "$roles" == *",validator,"* || "$roles" == *",active_validator,"* ]]
+}
+
 export WEALL_MODE="${WEALL_MODE:-prod}"
 export WEALL_API_MODE="${WEALL_API_MODE:-node}"
 export WEALL_OBSERVER_MODE="${WEALL_OBSERVER_MODE:-1}"
 export WEALL_OBSERVER_EDGE_MODE="${WEALL_OBSERVER_EDGE_MODE:-1}"
 export WEALL_PUBLIC_TESTNET="${WEALL_PUBLIC_TESTNET:-1}"
+export WEALL_NODE_MODE="${WEALL_NODE_MODE:-observer}"
+export WEALL_NODE_LIFECYCLE_STATE="${WEALL_NODE_LIFECYCLE_STATE:-observer_onboarding}"
+export WEALL_VALIDATOR_SIGNING_ENABLED="${WEALL_VALIDATOR_SIGNING_ENABLED:-0}"
+export WEALL_BFT_ENABLED="${WEALL_BFT_ENABLED:-0}"
+export WEALL_SERVICE_ROLES="${WEALL_SERVICE_ROLES:-}"
+export WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-1}"
+export WEALL_NET_LOOP_AUTOSTART="${WEALL_NET_LOOP_AUTOSTART:-1}"
+export WEALL_CORS_ORIGINS="${WEALL_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}"
+export GUNICORN_BIND="${GUNICORN_BIND:-127.0.0.1:${WEALL_API_PORT:-8000}}"
+
+if env_truthy "$WEALL_VALIDATOR_SIGNING_ENABLED" || env_truthy "$WEALL_BFT_ENABLED" || csv_has_validator_role "$WEALL_SERVICE_ROLES"; then
+  cat >&2 <<'EOF'
+ERROR: public observer boot refuses validator signing, BFT, or validator service roles.
+Use the protocol-gated node/operator and validator-candidate path after onboarding, PoH, Tier 2, and responsibility opt-ins.
+EOF
+  exit 2
+fi
 
 TESTNET_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-$ROOT/configs/chains/weall-testnet-v1.json}"
 if [[ -f "$TESTNET_MANIFEST_PATH" ]]; then
@@ -86,6 +115,10 @@ for key, value in mapping.items():
     print(f"export {key}={shlex.quote(str(value or ''))}")
 PY
 )"
+fi
+TESTNET_GENESIS_LEDGER_PATH="${WEALL_GENESIS_LEDGER_PATH:-$ROOT/configs/genesis.ledger.testnet-v1.json}"
+if [[ -f "$TESTNET_GENESIS_LEDGER_PATH" ]]; then
+  export WEALL_GENESIS_LEDGER_PATH="$TESTNET_GENESIS_LEDGER_PATH"
 fi
 if [[ -n "$REGISTRY_PATH" ]]; then
   export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH="$REGISTRY_PATH"
@@ -117,13 +150,21 @@ print(f"seed_p2p_urls={len(registry.get('seed_p2p_urls') or [])}")
 print(f"validator_endpoint_hints={len(registry.get('validator_endpoints') or [])}")
 PY
 
+if [[ -z "${WEALL_NODE_PRIVKEY:-}" && -z "${WEALL_NODE_PUBKEY:-}" && -z "${WEALL_NODE_PRIVKEY_FILE:-}" && -z "${WEALL_NODE_PUBKEY_FILE:-}" ]]; then
+  eval "$(bash scripts/init_prod_node_identity.sh --emit-shell-env)"
+fi
+
 cat <<EOF
 Starting WeAll public observer node...
 Backend: http://127.0.0.1:${WEALL_API_PORT:-8000}
+Direct P2P: enabled from the checked-in signed registry (WEALL_NET_ENABLED=$WEALL_NET_ENABLED, WEALL_NET_LOOP_AUTOSTART=$WEALL_NET_LOOP_AUTOSTART).
+Relay: fallback only when explicitly configured; direct P2P seed URIs remain primary.
+Validator signing: disabled for observer boot.
 After boot, check:
   curl -s http://127.0.0.1:${WEALL_API_PORT:-8000}/v1/nodes/seeds | python -m json.tool
   curl -s http://127.0.0.1:${WEALL_API_PORT:-8000}/v1/nodes/validators | python -m json.tool
+  curl -s http://127.0.0.1:${WEALL_API_PORT:-8000}/v1/net/self | python -m json.tool
   curl -s http://127.0.0.1:${WEALL_API_PORT:-8000}/v1/observer/edge/status | python -m json.tool
 EOF
 
-exec python3 -m weall.api
+exec bash scripts/run_node.sh

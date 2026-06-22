@@ -1,10 +1,155 @@
 {
   "by_domain": {
     "api": 101,
+    "launch_readiness": 22,
     "runtime": 7,
     "runtime_apply": 70
   },
   "codes": [
+    {
+      "code": "GENESIS_TESTNET_API_UNREACHABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_DIRECT_P2P_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_ENDPOINT_PLACEHOLDER",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_P2P_UNREACHABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_REGISTRY_SIGNATURE_INVALID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_REGISTRY_SIGNER_UNPINNED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_RELAY_ONLY_NOT_READY",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_CHAIN_ID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_GENESIS_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_NETWORK_ID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_PROFILE_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_TX_INDEX_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_CHAIN_ID_MISMATCH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_GENESIS_HASH_MISMATCH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_NO_DIRECT_P2P_SEED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_NO_VALID_REGISTRY_SOURCE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
     {
       "code": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
       "domain": "api",
@@ -13,6 +158,60 @@
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
       "source_lineno": 1616
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_OPERATOR_OPT_IN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_POH_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_PROTOCOL_STATE_BLOCKED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_THRESHOLD_NOT_MET",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_TIER2_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_VALIDATION_OPT_IN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
     },
     {
       "code": "account_not_found",
@@ -1608,7 +1807,7 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 178,
+  "entry_count": 200,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -1628,6 +1827,7 @@
       "EconomicsApplyError",
       "GroupsApplyError",
       "IndexingApplyError",
+      "LaunchReadiness",
       "MessagingApplyError",
       "NetworkingApplyError",
       "NotificationApplyError",
@@ -1646,6 +1846,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 68,
+  "unique_code_count": 90,
   "version": "2026-06-batch10a"
 }

@@ -1,0 +1,131 @@
+{
+  "algorithm": "hotstuff_bft",
+  "bft_min_validators": 4,
+  "bootstrap_rules": {
+    "bft_becomes_active": "when active validator count is at least 4",
+    "maintainer_manual_activation_authority": false,
+    "one_additional_validator": "multi-validator bootstrap phase; still below BFT_MIN_VALIDATORS",
+    "only_genesis_seed_online": "observer/onboarding/status/bootstrap flows may proceed; production HotStuff BFT claims remain blocked",
+    "trust_roots_mutated_by_validators": false,
+    "two_additional_validators": "multi-validator bootstrap phase; still below BFT_MIN_VALIDATORS when total active validators is 3"
+  },
+  "counts": [
+    {
+      "active_validator_count": 0,
+      "blocked_before_bft_threshold": [
+        "production_hotstuff_finality_claims",
+        "public_validator_bft_claims",
+        "mainnet_or_production_economics_claims"
+      ],
+      "can_finalize_hotstuff_bft_blocks": false,
+      "can_process_adaptive_poh_bootstrap_before_bft": true,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": false,
+      "quorum_threshold": 0
+    },
+    {
+      "active_validator_count": 1,
+      "blocked_before_bft_threshold": [
+        "production_hotstuff_finality_claims",
+        "public_validator_bft_claims",
+        "mainnet_or_production_economics_claims"
+      ],
+      "can_finalize_hotstuff_bft_blocks": false,
+      "can_process_adaptive_poh_bootstrap_before_bft": true,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": false,
+      "quorum_threshold": 1
+    },
+    {
+      "active_validator_count": 2,
+      "blocked_before_bft_threshold": [
+        "production_hotstuff_finality_claims",
+        "public_validator_bft_claims",
+        "mainnet_or_production_economics_claims"
+      ],
+      "can_finalize_hotstuff_bft_blocks": false,
+      "can_process_adaptive_poh_bootstrap_before_bft": true,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": false,
+      "quorum_threshold": 2
+    },
+    {
+      "active_validator_count": 3,
+      "blocked_before_bft_threshold": [
+        "production_hotstuff_finality_claims",
+        "public_validator_bft_claims",
+        "mainnet_or_production_economics_claims"
+      ],
+      "can_finalize_hotstuff_bft_blocks": false,
+      "can_process_adaptive_poh_bootstrap_before_bft": true,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": false,
+      "quorum_threshold": 2
+    },
+    {
+      "active_validator_count": 4,
+      "blocked_before_bft_threshold": [],
+      "can_finalize_hotstuff_bft_blocks": true,
+      "can_process_adaptive_poh_bootstrap_before_bft": false,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": true,
+      "quorum_threshold": 3
+    },
+    {
+      "active_validator_count": 5,
+      "blocked_before_bft_threshold": [],
+      "can_finalize_hotstuff_bft_blocks": true,
+      "can_process_adaptive_poh_bootstrap_before_bft": false,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": true,
+      "quorum_threshold": 4
+    },
+    {
+      "active_validator_count": 6,
+      "blocked_before_bft_threshold": [],
+      "can_finalize_hotstuff_bft_blocks": true,
+      "can_process_adaptive_poh_bootstrap_before_bft": false,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": true,
+      "quorum_threshold": 4
+    },
+    {
+      "active_validator_count": 7,
+      "blocked_before_bft_threshold": [],
+      "can_finalize_hotstuff_bft_blocks": true,
+      "can_process_adaptive_poh_bootstrap_before_bft": false,
+      "can_process_observer_only_flows": true,
+      "consensus_phase": "solo_bootstrap",
+      "hotstuff_bft_active": true,
+      "quorum_threshold": 5
+    }
+  ],
+  "finality_rule": "hotstuff_three_chain",
+  "leader_selection_rule": "deterministic_round_robin_sorted_validator_set",
+  "quorum_examples": {
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 2,
+    "4": 3,
+    "5": 4,
+    "6": 4,
+    "7": 5
+  },
+  "quorum_rule": "ceil_2n_over_3",
+  "schema": "weall.v1_5.consensus_bootstrap_thresholds",
+  "source_files": [
+    "src/weall/runtime/bft_hotstuff.py",
+    "src/weall/runtime/bft_runtime_adapter.py",
+    "src/weall/runtime/poh/bootstrap_quorum.py",
+    "tests/test_validator_set_activation_boundary_batch9.py"
+  ],
+  "version": "2026-06-public-genesis-launch"
+}

@@ -1,0 +1,47 @@
+{
+  "checked_in_registry": {
+    "chain_id": "weall-testnet-v1",
+    "errors": [],
+    "network_id": "weall-public-observer-testnet-v1",
+    "seed_api_urls": [
+      "https://api.genesis.weallprotocol.xyz"
+    ],
+    "seed_p2p_urls": [
+      "tls://p2p.genesis.weallprotocol.xyz:30303"
+    ],
+    "signature_status": {
+      "required": true,
+      "signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
+      "trust": "pinned",
+      "verified": true
+    },
+    "source_kind": "file",
+    "validator_endpoint_count": 0
+  },
+  "failure_codes": [
+    "GENESIS_TESTNET_ENDPOINT_PLACEHOLDER",
+    "GENESIS_TESTNET_API_UNREACHABLE",
+    "GENESIS_TESTNET_P2P_UNREACHABLE",
+    "GENESIS_TESTNET_RELAY_ONLY_NOT_READY",
+    "OBSERVER_BOOT_NO_DIRECT_P2P_SEED"
+  ],
+  "live_reachability_probe_required": true,
+  "live_reachability_probe_status": "not_evaluated_by_generator",
+  "requirements": [
+    "checked-in signed registry must verify against pinned signer",
+    "seed API URL must be HTTPS and public-hosted in production public mode",
+    "seed P2P URL must be tcp/tls and public-hosted in production public mode",
+    "placeholder, localhost, loopback, private, link-local, and unspecified endpoint values are blocked",
+    "direct P2P URI must not be confused with HTTPS API URL",
+    "relay-only launch is not genesis-launch-ready"
+  ],
+  "schema": "weall.v1_5.public_genesis_seed_endpoint_requirements",
+  "source_files": [
+    "configs/public_testnet_seed_registry.json",
+    "configs/public_testnet_trust_roots.json",
+    "src/weall/api/public_seed_registry.py",
+    "scripts/boot_public_observer_testnet.sh"
+  ],
+  "static_launch_gate_passes": true,
+  "version": "2026-06-public-genesis-launch"
+}
