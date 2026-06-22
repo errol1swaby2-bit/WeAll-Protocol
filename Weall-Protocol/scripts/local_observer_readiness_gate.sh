@@ -83,7 +83,7 @@ forbidden_values = [
     "WEALL_AUTHORITY_PRIVKEY",
     "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY",
     "WEALL_ORACLE_AUTHORITY_PRIVKEY",
-    "WEALL_CLOUDFLARE_API_TOKEN",
+    "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN",
 ]
 # These names are allowed inside the public secret_boundary documentation but
 # no actual private key material, seed, token, password, or local file path may

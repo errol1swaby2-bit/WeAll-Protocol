@@ -1,6 +1,6 @@
 # One-command tester node boot
 
-This runbook defines the safe one-command path for a first external tester to build, install, and run a WeAll observer/onboarding node without needing validator, BFT, helper, treasury, authority, oracle, Cloudflare, or external identity-provider secrets.
+This runbook defines the safe one-command path for a first external tester to build, install, and run a WeAll observer/onboarding node without needing validator, BFT, helper, treasury, authority, oracle, named hosting-provider, or external identity-provider secrets.
 
 ## Normal external tester command
 

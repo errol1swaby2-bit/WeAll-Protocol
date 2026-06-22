@@ -38,7 +38,7 @@ Observer-to-validator scripts and runbooks are readiness gates. They must not be
 
 ## Frontend boundary
 
-The frontend is not authority. Disabled buttons and capability messages are advisory. Direct API calls must still be rejected by backend gates. Production UI must avoid stale email, Cloudflare, CAPTCHA, OAuth, KYC, oracle, or inbox-control assumptions for primary verification.
+The frontend is not authority. Disabled buttons and capability messages are advisory. Direct API calls must still be rejected by backend gates. Production UI must avoid stale email, CAPTCHA, OAuth, KYC, oracle, named hosting-provider, or inbox-control assumptions for primary verification.
 
 
 ## Batch 437-446 remaining limits

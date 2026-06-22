@@ -43,7 +43,7 @@ change them through local environment drift.
 ## Production safety deltas reflected in this snapshot
 
 - Native two-tier PoH is the required identity path: Tier 1 async, Tier 2 live.
-- Email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, app-store identity,
+- Email, SMTP, DNS, named hosting providers, CAPTCHA, phone, OAuth, KYC, app-store identity,
   and third-party AI scoring are not required PoH authorities.
 - Public validator service/signing posture requires BFT enabled.
 - Validator signing and observer mode cannot be mixed.
@@ -71,7 +71,7 @@ Before enabling signing, validators should verify:
 - Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, SMTP, DNS, or named hosting provider is part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.

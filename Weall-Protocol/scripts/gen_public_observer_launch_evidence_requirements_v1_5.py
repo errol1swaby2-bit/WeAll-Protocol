@@ -76,11 +76,11 @@ def build() -> Json:
         {
             "id": "hybrid_direct_peer_discovery",
             "required_before_public_observer_launch": True,
-            "evidence_type": "remote_registry_or_checked_in_fallback_plus_direct_p2p",
+            "evidence_type": "checked_in_registry_or_generic_mirror_plus_direct_p2p",
             "required_observations": [
-                "repo trust roots can provide registry signer pins and signed registry URL candidates",
-                "remote signed registry is preferred for freshness when configured",
-                "checked-in signed registry remains a last-known-good fallback when remote fetch is unavailable",
+                "repo trust roots can provide registry signer pins and optional generic HTTPS mirror candidates",
+                "checked-in signed registry is the baseline bootstrap source when listed endpoints are reachable",
+                "remote mirrors are optional byte publishers and never trust authorities",
                 "seed_p2p_urls are merged into WEALL_PEERS_FILE for direct tcp/tls dialing",
                 "verified validator endpoint p2p_url entries are merged into WEALL_PEERS_FILE",
                 "unsigned validator endpoint hints are not auto-dialed",
@@ -160,7 +160,8 @@ def build() -> Json:
             "evidence_type": "static_transcript_contracts_plus_runtime_attachment",
             "validation_command": "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
             "required_artifacts": [
-                "generated/public_seed_registry_signature_verification_v1_5.json",
+                "generated/public_discovery_provider_independence_v1_5.json",
+            "generated/public_seed_registry_signature_verification_v1_5.json",
                 "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
                 "generated/public_observer_auto_discovery_proof_v1_5.json",
                 "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
@@ -188,6 +189,7 @@ def build() -> Json:
             "legal_compliance_ready": False,
         },
         "recommended_artifacts_before_launch": [
+            "generated/public_discovery_provider_independence_v1_5.json",
             "generated/public_seed_registry_signature_verification_v1_5.json",
             "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
             "generated/public_observer_auto_discovery_proof_v1_5.json",
@@ -199,6 +201,7 @@ def build() -> Json:
         ],
         "verification_commands": [
             "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_discovery_provider_independence_v1_5.py --check",
             "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
             "PYTHONPATH=src:scripts python3 scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check",
             "PYTHONPATH=src:scripts python3 scripts/gen_public_frontend_operator_journey_v1_5.py --check",

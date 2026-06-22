@@ -15,7 +15,7 @@ fail() {
 
 # Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
 # WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
-# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
 # It also rejects *_FILE variants and other external identity-provider secrets.
 # shellcheck disable=SC1091
 . "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"
@@ -257,7 +257,7 @@ OK: external observer onboarding preflight passed
 - observer mode is forced on
 - validator signing, BFT, helper authority, and block loop are forced off
 - relay recipient pubkey binding is required when relay URLs are configured
-- no external identity-provider, Cloudflare, oracle, or authority-signer secret is required
+- no external identity-provider, oracle, named hosting-provider, or authority-signer secret is required
 MSG
 
 if [ "${BOOT_AFTER_PREFLIGHT}" = "1" ]; then

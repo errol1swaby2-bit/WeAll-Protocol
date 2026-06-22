@@ -3,19 +3,18 @@
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
   "network_id": "weall-public-observer-testnet-v1",
   "notes": [
-    "Cloudflare hosts the signed registry JSON but is not the authority.",
-    "The registry signer public key and these chain commitments are the repo trust roots.",
-    "A fetched registry is rejected unless its signature verifies and it matches network_id, chain_id, genesis_hash, protocol_profile_hash, and tx_index_hash.",
+    "The checked-in signed registry is sufficient for bootstrap if listed endpoints are reachable.",
+    "Optional HTTPS mirrors may publish the same signed registry.",
+    "Mirror hosts are not trust authorities.",
     "Discovery-level verification does not grant validator authority.",
     "This public observer testnet is resettable and non-economic."
   ],
   "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "seed_registry_mirrors": [],
   "seed_registry_pubkeys": [
     "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865"
   ],
-  "seed_registry_urls": [
-    "https://registry.weallprotocol.xyz/public_testnet_seed_registry.json"
-  ],
+  "seed_registry_urls": [],
   "tx_index_hash": "b138d73c7d1f8dfd81c34c144d0e703734cddcfd8cbfb6385847667ebf70f4a8",
   "version": 1
 }

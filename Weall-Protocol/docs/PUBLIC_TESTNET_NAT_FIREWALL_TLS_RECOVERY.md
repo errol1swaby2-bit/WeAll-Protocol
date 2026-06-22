@@ -56,15 +56,15 @@ Relay is a fallback, not the normal discovery path. A clean-clone public observe
 
 ```text
 repo trust roots or env pin
-  -> remote signed registry URL if configured
-  -> checked-in signed registry fallback if remote is unavailable
+  -> checked-in signed registry baseline
+  -> optional generic HTTPS registry mirrors if configured
   -> seed_p2p_urls and verified validator p2p_url entries
   -> direct tcp:// or tls:// peer dial
   -> PEER_GETADDR / PEER_ADDR exchange after handshake
   -> learned peer URIs persisted in WEALL_PEERS_FILE
 ```
 
-The `/v1/nodes/seeds` response exposes `registry_source_kind` and `registry_source` so operators can see whether the node used a remote signed registry or a checked-in fallback. Public-mode learned `PEER_ADDR` records must be signed before they are persisted as fallback discovery hints; they still do not grant active-validator status.
+The `/v1/nodes/seeds` response exposes `registry_source_kind`, `registry_source`, `registry_source_provider`, and `provider_authority=false` so operators can see whether the node used a generic mirror or a checked-in signed registry. Public-mode learned `PEER_ADDR` records must be signed before they are persisted as fallback discovery hints; they still do not grant active-validator status.
 
 
 A public testnet node should fall into one of these profiles:

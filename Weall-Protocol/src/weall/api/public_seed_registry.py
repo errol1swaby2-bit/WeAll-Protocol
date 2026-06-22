@@ -133,12 +133,49 @@ def _trust_root_list(*keys: str) -> list[str]:
     return out
 
 
+def _trust_root_registry_mirror_urls() -> list[str]:
+    """Return provider-neutral signed-registry mirror URL candidates.
+
+    Trust-root mirrors are publication locations only. A host/provider name is
+    never authority; every candidate must still pass registry signature, signer
+    pin, and pinned chain-commitment checks before it is accepted.
+    """
+
+    try:
+        roots = load_public_seed_trust_roots()
+    except PublicSeedRegistryError:
+        raise
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_trust_roots_read_failed") from exc
+
+    out: list[str] = []
+    mirrors = roots.get("seed_registry_mirrors")
+    if isinstance(mirrors, list):
+        for item in mirrors:
+            if isinstance(item, dict):
+                value = _safe_str(item.get("url") or item.get("href"))
+            else:
+                value = _safe_str(item)
+            if value:
+                out.append(value)
+    elif mirrors is not None:
+        value = _safe_str(mirrors)
+        if value:
+            out.append(value)
+
+    # Backward-compatible legacy keys. They remain generic URL candidates, not
+    # named-provider dependencies.
+    out.extend(_trust_root_list("seed_registry_urls", "seed_registry_url", "registry_urls", "registry_url"))
+    return out
+
+
 def public_seed_registry_urls(default_url: str | None = None) -> list[str]:
     """Return configured signed public seed-registry URL candidates.
 
-    Hybrid discovery supports a last-known-good checked-in registry plus a
-    pinned remote signed registry.  Remote sources are only trust roots after
-    the same registry signature and signer pin checks as local files.
+    Discovery is provider-neutral: remote URLs are optional mirrors that publish
+    bytes. The checked-in signed registry remains the baseline fallback, and all
+    remote bytes are accepted only after the same signature, signer-pin, and
+    chain-commitment checks as local files.
     """
 
     raw_values = [
@@ -146,7 +183,7 @@ def public_seed_registry_urls(default_url: str | None = None) -> list[str]:
         os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL"),
         os.environ.get("WEALL_PUBLIC_SEED_REGISTRY_URLS"),
         os.environ.get("WEALL_PUBLIC_SEED_REGISTRY_URL"),
-        *_trust_root_list("seed_registry_urls", "seed_registry_url", "registry_urls", "registry_url"),
+        *_trust_root_registry_mirror_urls(),
         default_url,
     ]
     out: list[str] = []
@@ -722,6 +759,17 @@ def _load_public_seed_registry_file(resolved: str, *, allow_local: bool) -> Json
     out = normalize_public_seed_registry(data, allow_local=allow_local)
     out["registry_source_kind"] = "file"
     out["registry_source"] = str(p)
+    out["registry_source_provider"] = "local_file"
+    out["provider_authority"] = False
+    out["registry_mirror_attempts"] = [
+        {
+            "source_kind": "file",
+            "provider": "local_file",
+            "url": str(p),
+            "accepted": True,
+            "failure_code": "",
+        }
+    ]
     return out
 
 
@@ -731,6 +779,17 @@ def _load_public_seed_registry_remote(url: str, *, allow_local: bool) -> Json:
     out = normalize_public_seed_registry(data, allow_local=allow_local)
     out["registry_source_kind"] = "remote_url"
     out["registry_source"] = normalized
+    out["registry_source_provider"] = "generic_https" if urlparse(normalized).scheme == "https" else "local_http_rehearsal"
+    out["provider_authority"] = False
+    out["registry_mirror_attempts"] = [
+        {
+            "source_kind": "remote_url",
+            "provider": out["registry_source_provider"],
+            "url": normalized,
+            "accepted": True,
+            "failure_code": "",
+        }
+    ]
     return out
 
 
@@ -740,15 +799,16 @@ def load_public_seed_registry(
     allow_local: bool | None = None,
     url: str | None = None,
 ) -> Json:
-    """Load the signed public seed registry from hybrid discovery sources.
+    """Load the signed public seed registry from provider-neutral sources.
 
     Source order is intentionally fail-closed for explicit operator choices:
 
     * An explicit path (argument or env) is authoritative and must load.
-    * Otherwise, configured remote signed-registry URLs are tried first for
-      freshness.  They are accepted only after signature + signer-pin checks.
-    * If all remotes are unreachable and a checked-in default registry exists,
-      the default file is used as a last-known-good fallback.
+    * Otherwise, optional generic remote signed-registry mirrors are tried.
+      Hosts publish bytes only; signature + signer-pin + chain commitment checks
+      create trust.
+    * If all remotes are unusable and a checked-in default registry exists, the
+      default file is used as the baseline fallback.
     * With no usable source, public observer mode fails before dialing peers.
     """
 
@@ -766,23 +826,88 @@ def load_public_seed_registry(
     urls = public_seed_registry_urls(url)
     errors: list[str] = []
 
+    attempts: list[Json] = []
     for candidate_url in urls:
         try:
-            return _load_public_seed_registry_remote(candidate_url, allow_local=allow)
+            registry = _load_public_seed_registry_remote(candidate_url, allow_local=allow)
+            attempts.append(
+                {
+                    "source_kind": "remote_url",
+                    "provider": registry.get("registry_source_provider", "generic_https"),
+                    "url": registry.get("registry_source", candidate_url),
+                    "accepted": True,
+                    "failure_code": "",
+                }
+            )
+            registry["registry_mirror_attempts"] = attempts
+            registry["provider_authority"] = False
+            return registry
         except PublicSeedRegistryError as exc:
-            errors.append(str(exc) or "public_seed_registry_remote_error")
+            code = str(exc) or "public_seed_registry_remote_error"
+            attempts.append(
+                {
+                    "source_kind": "remote_url",
+                    "provider": "generic_https",
+                    "url": _safe_str(candidate_url),
+                    "accepted": False,
+                    "failure_code": code,
+                }
+            )
+            errors.append(code)
             continue
         except Exception as exc:
-            errors.append(str(exc) or "public_seed_registry_remote_error")
+            code = str(exc) or "public_seed_registry_remote_error"
+            attempts.append(
+                {
+                    "source_kind": "remote_url",
+                    "provider": "generic_https",
+                    "url": _safe_str(candidate_url),
+                    "accepted": False,
+                    "failure_code": code,
+                }
+            )
+            errors.append(code)
             continue
 
     if default_path:
         try:
-            return _load_public_seed_registry_file(default_path, allow_local=allow)
+            registry = _load_public_seed_registry_file(default_path, allow_local=allow)
+            attempts.append(
+                {
+                    "source_kind": "file",
+                    "provider": "local_file",
+                    "url": str(Path(default_path).expanduser()),
+                    "accepted": True,
+                    "failure_code": "",
+                }
+            )
+            registry["registry_mirror_attempts"] = attempts
+            registry["provider_authority"] = False
+            return registry
         except PublicSeedRegistryError as exc:
-            errors.append(str(exc) or "public_seed_registry_error")
+            code = str(exc) or "public_seed_registry_error"
+            attempts.append(
+                {
+                    "source_kind": "file",
+                    "provider": "local_file",
+                    "url": str(Path(default_path).expanduser()),
+                    "accepted": False,
+                    "failure_code": code,
+                }
+            )
+            errors.append(code)
         except Exception as exc:
-            errors.append(str(exc) or "public_seed_registry_error")
+            code = str(exc) or "public_seed_registry_error"
+            attempts.append(
+                {
+                    "source_kind": "file",
+                    "provider": "local_file",
+                    "url": str(Path(default_path).expanduser()),
+                    "accepted": False,
+                    "failure_code": code,
+                }
+            )
+            errors.append(code)
 
     if errors:
         # Keep the externally visible failure code stable and actionable.

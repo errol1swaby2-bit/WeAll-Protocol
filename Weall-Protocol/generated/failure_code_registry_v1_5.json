@@ -1002,7 +1002,7 @@
       "http_status": null,
       "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
       "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 486
+      "source_lineno": 492
     },
     {
       "code": "legacy_endpoint_removed",

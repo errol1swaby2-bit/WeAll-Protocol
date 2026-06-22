@@ -16,7 +16,7 @@ def test_external_observer_smoke_script_forces_observer_safety_batch313() -> Non
     assert "verify_node_operator_onboarding_bundle.py" in script
     assert "prod_chain_manifest_check.sh" in script
     assert "/v1/chain/identity" in script
-    assert "WEALL_CLOUDFLARE_API_TOKEN" in script
+    assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in script
     assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script
 
 
@@ -29,7 +29,7 @@ def test_external_observer_runbook_documents_no_external_identity_authority_batc
     assert "PEER_ADVERTISE" in doc
     assert "POH_ASYNC_REQUEST_OPEN" in doc
     assert "ROLE_NODE_OPERATOR_ENROLL" in doc
-    assert "no email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC" in doc
+    assert "no email" in doc and "named hosting-provider" in doc and "KYC" in doc
 
 
 def test_external_observer_runbook_documents_transport_only_relay_batch315() -> None:

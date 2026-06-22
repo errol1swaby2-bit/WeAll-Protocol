@@ -129,7 +129,7 @@ docker logs weall_producer --tail=200
 Current production-candidate hardening includes:
 
 - two-tier native PoH: async Tier 1 and live Tier 2
-- no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider for PoH authority
+- no required email, SMTP, DNS, named hosting provider, CAPTCHA, OAuth, KYC provider, or government ID provider for PoH authority
 - adaptive Live PoH quorum: up to 10 jurors, up to 3 active reviewers, up to 7 watchers
 - follower-side SYSTEM tx replay binding to deterministic scheduler output before apply
 - helper execution metadata committed through `helper_execution_root` when present

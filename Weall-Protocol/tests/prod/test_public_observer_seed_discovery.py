@@ -36,7 +36,8 @@ def _public_env(monkeypatch, path=None):
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", REGISTRY_PUBKEY)
 
 
-def test_public_mode_missing_seed_registry_fails_closed(monkeypatch):
+def test_public_mode_missing_seed_registry_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     _public_env(monkeypatch)
     app = create_app(boot_runtime=False)
     r = TestClient(app).get("/v1/nodes/seeds")

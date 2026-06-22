@@ -89,7 +89,7 @@ def test_external_observer_bundle_builder_outputs_public_observer_bundle_batch31
     dumped = json.dumps(data, sort_keys=True)
     assert "WEALL_NODE_PRIVKEY" in dumped  # listed only as a prohibited variable
     assert "WEALL_AUTHORITY_SIGNER_PRIVKEY" in dumped  # listed only as a prohibited variable
-    assert "WEALL_CLOUDFLARE_API_TOKEN" in dumped  # listed only as a prohibited variable
+    assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in dumped  # listed only as a prohibited variable
 
 
 def test_external_observer_bundle_verifies_and_exports_safe_observer_env_batch319(tmp_path: Path) -> None:
@@ -168,7 +168,7 @@ def test_external_observer_rehearsal_runbook_documents_two_machine_gate_batch319
     assert "cannot propose blocks" in doc
     assert "cannot sign validator messages" in doc
     assert "transport_only" in doc
-    assert "No email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC" in doc
+    assert "No email, SMTP, DNS, OAuth, CAPTCHA, KYC, or named hosting-provider dependency" in doc
 
 
 def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_reviewer() -> None:

@@ -184,7 +184,7 @@ Confirm the repository has active GitHub Actions coverage for:
 
 - backend lint, dependency audit, lockfile verification, canon lint, generated-artifact check, tx coverage report, and pytest
 - web `npm ci`, typecheck, contract check, and production build using committed `web/package-lock.json`
-- Native async/live PoH checks, including no required email, SMTP, DNS, Cloudflare, inbox, or external identity provider path
+- Native async/live PoH checks, including no required email, SMTP, DNS, named hosting-provider, inbox, or external identity provider path
 
 ## 8. Known release policy
 
@@ -199,7 +199,7 @@ For protocol reviewers, the expected non-seeded readiness proof is:
 - `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh` for the same-machine dual-node controlled-devnet proof
 - `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh` for the fuller onboarding path
 
-Browser onboarding and PoH verification are Cloudflare-free, email-free, and routed through the active WeAll API plus native async/live PoH surfaces. The controlled-devnet proof is the preferred same-machine reviewer rehearsal because it runs a controlled genesis node and a joining node without using the seeded demo shortcut. The default general tester flow may still use deterministic demo bootstrap for speed.
+Browser onboarding and PoH verification are named-provider-free, email-free, and routed through the active WeAll API plus native async/live PoH surfaces. The controlled-devnet proof is the preferred same-machine reviewer rehearsal because it runs a controlled genesis node and a joining node without using the seeded demo shortcut. The default general tester flow may still use deterministic demo bootstrap for speed.
 
 ## 9. Current validated checkpoint
 
@@ -213,7 +213,7 @@ The current release checkpoint for this snapshot is:
 - `scripts/verify_release_dependencies.sh`: passed
 - backend locks: `requirements.lock` and `requirements-dev.lock` are present, pinned, and hashed
 - frontend lock: `web/package-lock.json` is present and `npm ci`/typecheck/contract/build were verified
-- Native PoH cleanup: primary path validated without email, SMTP, DNS, Cloudflare, relay-token completion, or external identity-provider env aliases
+- Native PoH cleanup: primary path validated without email, SMTP, DNS, named hosting-provider, relay-token completion, or external identity-provider env aliases
 - Public-validator posture: validator service/signing requires BFT enabled; observer mode and signing cannot be mixed
 - Public API posture: snapshots and unauthenticated account reads redact private/session/device/evidence internals
 - SYSTEM tx posture: follower-side block replay rejects mutating SYSTEM txs that do not match deterministic scheduler output
@@ -238,7 +238,7 @@ bash scripts/verify_release_dependencies.sh
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, SMTP, DNS, or named hosting provider is part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.

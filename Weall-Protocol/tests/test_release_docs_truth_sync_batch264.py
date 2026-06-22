@@ -61,7 +61,7 @@ def test_release_docs_state_two_tier_native_poh_without_external_identity_author
     assert "tier 1 = native async" in text or "tier 1: native async" in text
     assert "tier 2 = native live" in text or "tier 2: native live" in text
     assert "no required email" in text
-    assert "no required cloudflare" in text
+    assert "named hosting provider" in text
     assert "no required smtp" in text or "smtp" in text and "not required" in text
     assert "no required dns" in text or "dns" in text and "not required" in text
 

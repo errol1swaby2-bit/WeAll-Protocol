@@ -8,7 +8,7 @@ It proves that an observer on a different machine/network can use only a public 
 ## Hard rule
 
 This is a **NO-GO** unless every command in this document passes against a non-local genesis API.
-Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addresses, metadata-service addresses, genesis private keys, validator keys, Cloudflare credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority. Private LAN genesis API addresses are allowed only for a controlled home/LAN two-machine test with `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; public-trust testing should use a real non-local public URL.
+Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addresses, metadata-service addresses, genesis private keys, validator keys, named hosting-provider credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority. Private LAN genesis API addresses are allowed only for a controlled home/LAN two-machine test with `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; public-trust testing should use a real non-local public URL.
 
 ## What this proves
 

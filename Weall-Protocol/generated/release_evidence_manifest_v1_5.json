@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "97b3e31810e3a0dfd42aa142227046a71899c736f41998f37dbbf24f66e34b08",
+  "artifact_digest": "64647b1ec8116236e69b0c33786cad725e2332d7c4f1801420725cffcbe316fb",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -53,7 +53,7 @@
         "generated/public_observer_auto_discovery_proof_v1_5.json",
         "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
       ],
-      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check"
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_discovery_provider_independence_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check"
     },
     "public_registry_signer_operations": {
       "required_before_public_observer_launch": true,
@@ -116,11 +116,18 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "2c596776fd9dc98fd45d45c440bc2a403d82e9512bff855e530c0a3f65ff9540",
+      "file_sha256": "d0a19a34cc6856a9c43dbb43bed3abb9f017aa81044f9a2ff060d275831e4eb3",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/public_discovery_provider_independence_v1_5.json": {
+      "file_sha256": "c674e6bc498247d76bb42c1774d56c30b061e6785150ac9ed8eee4279f58dca4",
+      "ok": true,
+      "path": "generated/public_discovery_provider_independence_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_discovery_provider_independence"
     },
     "generated/public_frontend_operator_journey_v1_5.json": {
       "file_sha256": "a2038962ddadea89fb4be3bb875653b0a981c9339dc6ea7aab9604d78896c856",
@@ -144,7 +151,7 @@
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "d2076df38cb972a3b7aebf1c8079bb5b40d18f85f51fdbe34df74d6c2f4292d9",
+      "file_sha256": "04a8b61253a4746561edd266052d57bc15180d1cf32ee557a5668d5af079990a",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,

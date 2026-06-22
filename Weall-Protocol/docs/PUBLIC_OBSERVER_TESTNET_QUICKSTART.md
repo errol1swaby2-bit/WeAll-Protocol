@@ -32,7 +32,7 @@ Refresh/check the pinned identity with:
 PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check
 ```
 
-`configs/public_testnet_trust_roots.json` must pin the registry signer and the exact `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, and `tx_index_hash`. A Cloudflare-hosted registry is only a freshness source; nodes reject it when its signature or pinned commitments do not match the repo trust roots.
+`configs/public_testnet_trust_roots.json` must pin the registry signer and the exact `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, and `tx_index_hash`. The checked-in signed registry is the baseline discovery source; optional HTTPS mirrors are accepted only when their signatures and pinned commitments match the repo trust roots.
 
 ## Public discovery trust model
 
@@ -46,13 +46,13 @@ export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
 # Or commit configs/public_testnet_trust_roots.json with seed_registry_pubkeys.
 ```
 
-Hybrid discovery loads the registry from these sources:
+Provider-neutral discovery loads the registry from these sources:
 
 1. Explicit local registry path: `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH` or `WEALL_PUBLIC_SEED_REGISTRY_PATH`. If explicitly set, this source is authoritative and must load.
-2. Pinned remote signed-registry URL candidates: `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL`, `WEALL_PUBLIC_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_SEED_REGISTRY_URL`, or `configs/public_testnet_trust_roots.json`.
-3. Checked-in last-known-good registry fallback: `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`, `./public_testnet_seed_registry.json`, `./config/public_testnet_seed_registry.json`, `./configs/public_testnet_seed_registry.json`, `./Weall-Protocol/config/public_testnet_seed_registry.json`, or `./Weall-Protocol/configs/public_testnet_seed_registry.json`.
+2. Optional generic HTTPS mirror candidates from `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL`, `WEALL_PUBLIC_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_SEED_REGISTRY_URL`, or `configs/public_testnet_trust_roots.json` `seed_registry_mirrors` / legacy `seed_registry_urls`.
+3. Checked-in baseline registry fallback: `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`, `./public_testnet_seed_registry.json`, `./config/public_testnet_seed_registry.json`, `./configs/public_testnet_seed_registry.json`, `./Weall-Protocol/config/public_testnet_seed_registry.json`, or `./Weall-Protocol/configs/public_testnet_seed_registry.json`.
 
-Remote registries are freshness sources, not new trust roots. They are accepted only after the same signature, pinned signer, chain ID, genesis hash, protocol profile hash, tx index hash, resettable-testnet, and non-economic checks as a local file.
+Remote mirrors are optional byte publishers, not new trust roots. They are accepted only after the same signature, pinned signer, chain ID, genesis hash, protocol profile hash, tx index hash, resettable-testnet, and non-economic checks as a local file. A clean clone can bootstrap from the checked-in signed registry when listed endpoints are reachable.
 
 The signed registry must include:
 
@@ -113,8 +113,8 @@ export WEALL_CHAIN_ID=weall-testnet-v1
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
 # Optional if the release does not bundle ./configs/public_testnet_seed_registry.json:
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH=/absolute/path/to/public_testnet_seed_registry.json
-# Hybrid remote source option, accepted only after pinned-signature verification:
-export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL=https://<registry-host>/public_testnet_seed_registry.json
+# Optional generic HTTPS mirror, accepted only after pinned-signature verification:
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL=https://<registry-mirror-host>/public_testnet_seed_registry.json
 
 bash scripts/boot_public_observer_testnet.sh
 ```

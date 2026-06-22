@@ -140,7 +140,7 @@ This repository snapshot is synchronized at:
 
 - **Transaction canon:** 236 tx types, version 1.25.0
 - **Latest full backend test checkpoint:** `3636 passed, 3 warnings`
-- **PoH posture:** two-tier native async/live human verification; no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider
+- **PoH posture:** two-tier native async/live human verification; no required email, SMTP, DNS, named hosting provider, CAPTCHA, OAuth, KYC provider, or government ID provider
 - **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers
 - **Consensus authority hardening:** follower-side SYSTEM tx replay binding is enforced against deterministic scheduler output before apply
 - **Helper hardening:** helper execution metadata is block-header committed through `helper_execution_root`

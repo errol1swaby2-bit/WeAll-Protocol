@@ -258,7 +258,7 @@ Violations of this production posture MUST result in:
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - SYSTEM txs received in blocks must be scheduler-bound before apply.
 - Helper execution metadata is committed by `helper_execution_root` when present.

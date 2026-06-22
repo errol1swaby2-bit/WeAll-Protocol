@@ -163,6 +163,9 @@ def _seeds_response(request: Request) -> Json:
             "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
             "registry_source_kind": registry.get("registry_source_kind", ""),
             "registry_source": registry.get("registry_source", ""),
+            "registry_source_provider": registry.get("registry_source_provider", ""),
+            "registry_mirror_attempts": registry.get("registry_mirror_attempts", []),
+            "provider_authority": False,
             "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
             "resettable_testnet": True,
             "economics_active": False,
@@ -450,6 +453,9 @@ def _validator_endpoints_response(request: Request) -> Json:
                 "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
                 "seed_registry_signature_present": bool(str(registry.get("seed_registry_signature") or "").strip()),
                 "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
+                "registry_source_kind": registry.get("registry_source_kind", ""),
+                "registry_source_provider": registry.get("registry_source_provider", ""),
+                "provider_authority": False,
             }
         )
 

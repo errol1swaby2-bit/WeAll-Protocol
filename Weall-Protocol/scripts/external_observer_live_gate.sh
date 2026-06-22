@@ -18,7 +18,7 @@ fail() {
 
 # Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
 # WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
-# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
 # It also rejects *_FILE variants and other external identity-provider secrets.
 # shellcheck disable=SC1091
 . "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"

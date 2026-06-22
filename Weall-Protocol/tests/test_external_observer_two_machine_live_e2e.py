@@ -28,7 +28,7 @@ def test_external_observer_live_gate_script_contract_batch341() -> None:
     assert "WEALL_AUTHORITY_PRIVKEY" in script
     assert "WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY" in script
     assert "WEALL_ORACLE_AUTHORITY_PRIVKEY" in script
-    assert "WEALL_CLOUDFLARE_API_TOKEN" in script
+    assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in script
     assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script
 
     assert "SigningKey.generate()" in script
@@ -64,7 +64,7 @@ def test_first_external_observer_runbook_contract_batch341() -> None:
     assert "POH_ASYNC_EVIDENCE_BIND" in doc
     assert "observer-only" in doc.lower() or "observer only" in doc.lower()
     assert "genesis private keys" in doc or "genesis authority key material" in doc
-    assert "Cloudflare" in doc
+    assert "named hosting-provider" in doc
     assert "SMTP" in doc
     assert "DNS" in doc
     assert "OK: trusted external observer live gate passed" in doc

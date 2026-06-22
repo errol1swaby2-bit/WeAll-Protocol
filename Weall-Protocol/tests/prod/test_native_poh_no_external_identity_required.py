@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_native_poh_onboarding_canon_has_no_email_or_external_identity_txs() -> None:
     tx_index = (ROOT / "generated" / "tx_index.json").read_text(encoding="utf-8")
     lowered = tx_index.lower()
-    for forbidden in ("email", "smtp", "cloudflare", "captcha", "oauth", "kyc"):
+    for forbidden in ("email", "smtp", "named-host-provider", "captcha", "oauth", "kyc"):
         assert forbidden not in lowered
     assert "POH_ASYNC_REQUEST_OPEN" in tx_index
     assert "POH_ASYNC_EVIDENCE_DECLARE" in tx_index
@@ -45,7 +45,7 @@ def test_production_preflight_does_not_require_external_identity_env() -> None:
 
 def test_production_preflight_rejects_external_identity_provider_secrets() -> None:
     cases = {
-        "WEALL_CLOUDFLARE_API_TOKEN": "Cloudflare token",
+        "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN": "named hosting-provider token",
         "WEALL_DNS_API_TOKEN": "DNS provider token",
         "WEALL_OAUTH_CLIENT_SECRET": "OAuth secret",
         "WEALL_KYC_PROVIDER_SECRET": "KYC provider secret",

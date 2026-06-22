@@ -54,7 +54,7 @@ This proves the local prerequisites for a future observer test:
 - production chain manifest is pinned
 - public observer bundle can be generated and verified
 - observer-mode preflight forces validator signing, BFT, helper authority, and block loop off
-- no authority, validator, Cloudflare, SMTP, or oracle private secret is required
+- no authority, validator, named hosting-provider, SMTP, or oracle private secret is required
 
 This is not a substitute for:
 

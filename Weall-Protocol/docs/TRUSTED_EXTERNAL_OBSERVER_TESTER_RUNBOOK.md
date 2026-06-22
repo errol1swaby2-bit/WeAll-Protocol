@@ -13,7 +13,7 @@ The observer tester must not receive or configure:
 - genesis private keys
 - validator private keys
 - authority signer private keys
-- Cloudflare credentials
+- named hosting-provider credentials
 - SMTP credentials
 - email oracle credentials
 - OAuth, CAPTCHA, KYC, DNS, or inbox-provider credentials
@@ -40,7 +40,7 @@ If you cannot perform the real two-machine rehearsal yet, run the local readines
 bash scripts/local_observer_readiness_gate.sh
 ```
 
-This does not replace the two-machine rehearsal. It proves the local prerequisites: the manifest is pinned, the public observer bundle can be generated and verified, observer-only posture is enforced, and no genesis/validator/authority/Cloudflare/SMTP/oracle secret is required by the observer path.
+This does not replace the two-machine rehearsal. It proves the local prerequisites: the manifest is pinned, the public observer bundle can be generated and verified, observer-only posture is enforced, and no genesis/validator/authority/named hosting-provider/SMTP/oracle secret is required by the observer path.
 
 ## Founder / genesis operator export
 
@@ -162,7 +162,7 @@ The test is successful only if:
 - the observer submits signed onboarding txs to the genesis node
 - the genesis node includes the txs through normal mempool/block flow
 - receipts and committed state become visible to the observer
-- no email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC, or inbox-provider authority is required
+- no email, SMTP, DNS, OAuth, CAPTCHA, KYC, named hosting-provider, or inbox-provider authority is required
 
 ## Hard stop conditions
 
@@ -176,7 +176,7 @@ Stop the external test if any of these occur:
 - observer boot enables validator signing
 - observer boot enables BFT
 - observer receives or asks for genesis/private authority secrets
-- onboarding requires email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, or KYC
+- onboarding requires email, SMTP, DNS, OAuth, CAPTCHA, named hosting-provider, or KYC
 - the frontend/API shows success before a committed receipt or visible state reconciliation
 
 ## Batch 337 live-gate command sequence
