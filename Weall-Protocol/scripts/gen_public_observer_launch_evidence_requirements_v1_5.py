@@ -31,6 +31,25 @@ def _pretty(obj: Any) -> str:
 def build() -> Json:
     gates: list[Json] = [
         {
+            "id": "public_testnet_v1_chain_identity_pinned",
+            "required_before_public_observer_launch": True,
+            "evidence_type": "deterministic_chain_identity_manifest",
+            "required_files": [
+                "configs/chains/weall-testnet-v1.json",
+                "configs/genesis.ledger.testnet-v1.json",
+                "configs/public_testnet_chain_commitments.json",
+                "configs/public_testnet_trust_roots.json",
+            ],
+            "required_observations": [
+                "public observer testnet uses chain_id weall-testnet-v1, not weall-prod",
+                "genesis_hash and genesis_state_root are computed from the checked-in testnet genesis ledger",
+                "trust roots pin network_id, chain_id, genesis_hash, protocol_profile_hash, and tx_index_hash",
+                "signed seed registries are rejected when they mismatch pinned repo commitments",
+                "testnet identity is resettable and non-economic",
+            ],
+            "validation_command": "PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check",
+        },
+        {
             "id": "public_registry_signed_and_pinned",
             "required_before_public_observer_launch": True,
             "evidence_type": "signed_registry_json_plus_signer_pin",
@@ -47,7 +66,28 @@ def build() -> Json:
                 "resettable_testnet",
                 "economics_active",
             ],
+            "allowed_signer_pin_sources": [
+                "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY",
+                "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS",
+                "configs/public_testnet_trust_roots.json",
+            ],
             "validation_command": "PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<pubkey> python scripts/sign_public_seed_registry_v1_5.py --input <unsigned.json> --output configs/public_testnet_seed_registry.json --check",
+        },
+        {
+            "id": "hybrid_direct_peer_discovery",
+            "required_before_public_observer_launch": True,
+            "evidence_type": "remote_registry_or_checked_in_fallback_plus_direct_p2p",
+            "required_observations": [
+                "repo trust roots can provide registry signer pins and signed registry URL candidates",
+                "remote signed registry is preferred for freshness when configured",
+                "checked-in signed registry remains a last-known-good fallback when remote fetch is unavailable",
+                "seed_p2p_urls are merged into WEALL_PEERS_FILE for direct tcp/tls dialing",
+                "verified validator endpoint p2p_url entries are merged into WEALL_PEERS_FILE",
+                "unsigned validator endpoint hints are not auto-dialed",
+                "public-mode PEER_ADDR learned records require signatures before persistence",
+                "learned peers are transport hints only and do not grant validator authority",
+            ],
+            "validation_command": "PYTHONPATH=src:tests/prod python3 -m pytest -q tests/prod/test_public_observer_hybrid_discovery.py",
         },
         {
             "id": "clean_clone_public_observer_boot",
@@ -57,7 +97,7 @@ def build() -> Json:
                 "fresh git clone",
                 "pip install -r requirements.lock",
                 "pip install -e .",
-                "scripts/boot_public_observer_testnet.sh starts with signed registry",
+                "scripts/boot_public_observer_testnet.sh starts with signed registry from path, remote URL, trust roots, or checked-in fallback",
                 "/v1/nodes/seeds verifies registry signature",
                 "/v1/nodes/validators reports active validators and verified endpoint counts",
                 "/v1/observer/edge/status separates local outbox from upstream acceptance",
@@ -105,7 +145,7 @@ def build() -> Json:
             "id": "registry_signer_rotation_and_revocation",
             "required_before_public_observer_launch": True,
             "evidence_type": "signer_operations_runbook",
-            "validation_command": "PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check",
+            "validation_command": "PYTHONPATH=src:scripts python3 scripts/gen_public_registry_signer_operations_v1_5.py --check",
             "required_operations": [
                 "offline registry signing key custody",
                 "pinned signer publication",
@@ -118,7 +158,7 @@ def build() -> Json:
             "id": "tracked_launch_transcript_artifacts",
             "required_before_public_observer_launch": True,
             "evidence_type": "static_transcript_contracts_plus_runtime_attachment",
-            "validation_command": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check",
+            "validation_command": "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
             "required_artifacts": [
                 "generated/public_seed_registry_signature_verification_v1_5.json",
                 "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
@@ -158,12 +198,12 @@ def build() -> Json:
             "generated/public_observer_launch_runtime_transcript_v1_5.json",
         ],
         "verification_commands": [
-            "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
-            "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check",
-            "PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check",
-            "PYTHONPATH=src:scripts python scripts/gen_public_frontend_operator_journey_v1_5.py --check",
-            "PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check",
-            "PYTHONPATH=src python -m pytest -q tests/prod/test_public_observer_default_registry_and_placeholder_gate.py tests/prod/test_public_observer_registry_auto_dial.py tests/prod/test_public_validator_endpoint_discovery.py",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_frontend_operator_journey_v1_5.py --check",
+            "PYTHONPATH=src:scripts python3 scripts/gen_public_registry_signer_operations_v1_5.py --check",
+            "PYTHONPATH=src:tests/prod python3 -m pytest -q tests/prod/test_public_observer_hybrid_discovery.py tests/prod/test_public_observer_default_registry_and_placeholder_gate.py tests/prod/test_public_observer_registry_auto_dial.py tests/prod/test_public_validator_endpoint_discovery.py",
             "bash scripts/boot_public_observer_testnet.sh",
         ],
     }

@@ -50,10 +50,27 @@ The frontend connection manager probes API nodes from the browser. Public API no
 
 WeAll does not treat NAT traversal, relay delivery, peer address gossip, or frontend node selection as consensus authority. NAT mechanics are transport-only.
 
+## Direct hybrid discovery path
+
+Relay is a fallback, not the normal discovery path. A clean-clone public observer should first use direct node discovery:
+
+```text
+repo trust roots or env pin
+  -> remote signed registry URL if configured
+  -> checked-in signed registry fallback if remote is unavailable
+  -> seed_p2p_urls and verified validator p2p_url entries
+  -> direct tcp:// or tls:// peer dial
+  -> PEER_GETADDR / PEER_ADDR exchange after handshake
+  -> learned peer URIs persisted in WEALL_PEERS_FILE
+```
+
+The `/v1/nodes/seeds` response exposes `registry_source_kind` and `registry_source` so operators can see whether the node used a remote signed registry or a checked-in fallback. Public-mode learned `PEER_ADDR` records must be signed before they are persisted as fallback discovery hints; they still do not grant active-validator status.
+
+
 A public testnet node should fall into one of these profiles:
 
 1. **Public inbound seed/validator** — the node accepts inbound P2P and publishes a dialable `tcp://` or `tls://` URI.
-2. **Outbound-only observer** — the node is behind NAT/CGNAT/firewall and uses verified seeds plus the signed relay mailbox path.
+2. **Outbound-only observer** — the node is behind NAT/CGNAT/firewall and dials verified seeds/peers directly when possible; relay is only a fallback mailbox path.
 3. **Local/LAN-only development node** — useful for rehearsal, not enough for public observer launch evidence.
 
 Check your local posture with:

@@ -1,0 +1,20 @@
+{
+  "chain_id": "weall-testnet-v1",
+  "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "network_id": "weall-public-observer-testnet-v1",
+  "notes": [
+    "This file is a template. Commit configs/public_testnet_trust_roots.json before public launch with real registry signer pubkeys and signed registry URL candidates.",
+    "Trust roots are not validator authority. They only authenticate public seed-registry discovery metadata.",
+    "A signed registry must match these chain commitments before fresh observers accept discovery metadata.",
+    "The public observer testnet is resettable and non-economic."
+  ],
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "seed_registry_pubkeys": [
+    "<required-prod-pinned-seed-registry-public-key>"
+  ],
+  "seed_registry_urls": [
+    "https://registry.weallprotocol.xyz/public_testnet_seed_registry.json"
+  ],
+  "tx_index_hash": "b138d73c7d1f8dfd81c34c144d0e703734cddcfd8cbfb6385847667ebf70f4a8",
+  "version": 1
+}

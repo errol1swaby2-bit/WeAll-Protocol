@@ -45,6 +45,7 @@ from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
+from weall.api.public_seed_registry import public_testnet_enabled
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.protocol_profile import (
     active_consensus_profile,
@@ -808,7 +809,12 @@ class NetNode:
             schema_version=str(self.cfg.schema_version),
             tx_index_hash=str(self.cfg.tx_index_hash),
             max_addrs_per_message=max(1, int(self.peer_policy.max_addr_records_per_message)),
-            allow_unsigned=True,
+            # Public-testnet peer discovery should prefer direct P2P but must
+            # not persist arbitrary unsigned addr spam as a safe fallback graph.
+            # Signed registry peers still enter the peer list through the signed
+            # seed registry; learned PEER_ADDR records require address signatures
+            # in public mode and still do not grant validator authority.
+            allow_unsigned=not public_testnet_enabled(),
         )
 
     def _advertise_uri(self) -> str:

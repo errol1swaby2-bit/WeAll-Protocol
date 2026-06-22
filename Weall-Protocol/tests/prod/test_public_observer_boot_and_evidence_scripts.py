@@ -38,6 +38,7 @@ def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_val
     env = os.environ.copy()
     env["WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY"] = privkey
     env["WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY"] = REGISTRY_PUBKEY
+    env["WEALL_MODE"] = "test"
     proc = subprocess.run(
         [
             sys.executable,
@@ -96,7 +97,7 @@ def test_public_observer_boot_script_is_fail_closed_and_documents_recovery():
     assert "/v1/nodes/seeds" in text
     assert "/v1/nodes/validators" in text
     assert "/v1/observer/edge/status" in text
-    assert "exec python -m weall.api" in text
+    assert "exec python3 -m weall.api" in text
 
 
 def test_public_observer_launch_evidence_requirements_generator_check():

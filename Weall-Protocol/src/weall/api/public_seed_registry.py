@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlunparse
@@ -57,6 +59,161 @@ def public_seed_registry_path(default_path: str | None = None) -> str | None:
     return path or None
 
 
+def public_seed_trust_roots_path(default_path: str | None = None) -> str | None:
+    raw = (
+        os.environ.get("WEALL_PUBLIC_TESTNET_TRUST_ROOTS_PATH")
+        or os.environ.get("WEALL_PUBLIC_TRUST_ROOTS_PATH")
+        or default_path
+        or ""
+    )
+    path = str(raw or "").strip()
+    return path or None
+
+
+def public_seed_trust_roots_default_path() -> str | None:
+    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
+    if mode != "prod" and not env_truthy("WEALL_PUBLIC_TESTNET_USE_DEFAULT_TRUST_ROOTS", False):
+        return None
+    candidates = [
+        os.environ.get("WEALL_PUBLIC_TESTNET_DEFAULT_TRUST_ROOTS_PATH"),
+        str(Path.cwd() / "public_testnet_trust_roots.json"),
+        str(Path.cwd() / "config" / "public_testnet_trust_roots.json"),
+        str(Path.cwd() / "configs" / "public_testnet_trust_roots.json"),
+        str(Path.cwd() / "Weall-Protocol" / "config" / "public_testnet_trust_roots.json"),
+        str(Path.cwd() / "Weall-Protocol" / "configs" / "public_testnet_trust_roots.json"),
+    ]
+    for raw in candidates:
+        value = _safe_str(raw)
+        if not value:
+            continue
+        try:
+            if Path(value).expanduser().is_file():
+                return value
+        except Exception:
+            continue
+    return None
+
+
+def load_public_seed_trust_roots(path: str | None = None) -> Json:
+    resolved = public_seed_trust_roots_path(path) or public_seed_trust_roots_default_path()
+    if not resolved:
+        return {}
+    p = Path(resolved).expanduser()
+    if not p.exists():
+        if public_seed_trust_roots_path(path):
+            raise PublicSeedRegistryError("public_seed_trust_roots_missing")
+        return {}
+    if not p.is_file():
+        raise PublicSeedRegistryError("public_seed_trust_roots_not_file")
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise PublicSeedRegistryError("public_seed_trust_roots_bad_json") from exc
+    if not isinstance(data, dict):
+        raise PublicSeedRegistryError("public_seed_trust_roots_not_object")
+    return dict(data)
+
+
+def _trust_root_list(*keys: str) -> list[str]:
+    try:
+        roots = load_public_seed_trust_roots()
+    except PublicSeedRegistryError:
+        raise
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_trust_roots_read_failed") from exc
+    out: list[str] = []
+    for key in keys:
+        raw = roots.get(key)
+        if isinstance(raw, list):
+            out.extend(_safe_str(item) for item in raw if _safe_str(item))
+        else:
+            value = _safe_str(raw)
+            if value:
+                out.append(value)
+    return out
+
+
+def public_seed_registry_urls(default_url: str | None = None) -> list[str]:
+    """Return configured signed public seed-registry URL candidates.
+
+    Hybrid discovery supports a last-known-good checked-in registry plus a
+    pinned remote signed registry.  Remote sources are only trust roots after
+    the same registry signature and signer pin checks as local files.
+    """
+
+    raw_values = [
+        os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URLS"),
+        os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL"),
+        os.environ.get("WEALL_PUBLIC_SEED_REGISTRY_URLS"),
+        os.environ.get("WEALL_PUBLIC_SEED_REGISTRY_URL"),
+        *_trust_root_list("seed_registry_urls", "seed_registry_url", "registry_urls", "registry_url"),
+        default_url,
+    ]
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_values:
+        for part in str(raw or "").replace("\n", ",").split(","):
+            url = _safe_str(part)
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            out.append(url)
+    return out
+
+
+def _normalize_registry_url(url: str, *, allow_local: bool) -> str:
+    value = _safe_str(url)
+    if not value:
+        raise PublicSeedRegistryError("public_seed_registry_remote_url_empty")
+    parsed = urlparse(value)
+    if parsed.query or parsed.fragment:
+        raise PublicSeedRegistryError("public_seed_registry_remote_url_query_or_fragment")
+    scheme = (parsed.scheme or "").lower()
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise PublicSeedRegistryError("public_seed_registry_remote_url_missing_host")
+    if scheme == "https":
+        pass
+    elif scheme == "http" and allow_local and host in {"localhost", "127.0.0.1"}:
+        pass
+    else:
+        raise PublicSeedRegistryError("public_seed_registry_remote_url_must_be_https")
+    path = parsed.path or "/"
+    return urlunparse((scheme, parsed.netloc, path, "", "", ""))
+
+
+def _remote_registry_timeout_s() -> float:
+    raw = os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_TIMEOUT_S") or "3.0"
+    try:
+        return max(0.25, float(str(raw).strip() or "3.0"))
+    except Exception:
+        return 3.0
+
+
+def _http_get_registry_json(url: str, *, timeout_s: float) -> Json:
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "weall-public-seed-registry/1.0",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=float(timeout_s)) as resp:
+            raw = resp.read()
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        raise PublicSeedRegistryError("public_seed_registry_remote_fetch_failed") from exc
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_registry_remote_fetch_failed") from exc
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_registry_remote_bad_json") from exc
+    if not isinstance(data, dict):
+        raise PublicSeedRegistryError("public_seed_registry_remote_not_object")
+    return data
+
+
 def public_seed_registry_default_path() -> str | None:
     """Return the bundled public testnet registry path when present.
 
@@ -105,6 +262,44 @@ _PLACEHOLDER_MARKERS = (
     "@validator-account-id",
     "validator-node-public-key",
 )
+
+
+
+
+def public_seed_trust_root_commitments() -> Json:
+    try:
+        roots = load_public_seed_trust_roots()
+    except PublicSeedRegistryError:
+        raise
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_trust_roots_read_failed") from exc
+    out: Json = {}
+    for key in ("network_id", "chain_id", "genesis_hash", "protocol_profile_hash", "tx_index_hash"):
+        value = _safe_str(roots.get(key) or roots.get(f"expected_{key}"))
+        if value:
+            out[key] = value
+    return out
+
+
+def expected_public_commitments() -> Json:
+    out = public_seed_trust_root_commitments()
+    env = expected_public_commitments_from_env()
+    for key, value in env.items():
+        text = _safe_str(value)
+        if text:
+            out[key] = text
+    return out
+
+
+def _enforce_expected_public_commitments(commitments: Json) -> None:
+    expected = expected_public_commitments()
+    for key in ("network_id", "chain_id", "genesis_hash", "protocol_profile_hash", "tx_index_hash"):
+        wanted = _safe_str(expected.get(key))
+        if not wanted:
+            continue
+        actual = _safe_str(commitments.get(key))
+        if actual != wanted:
+            raise PublicSeedRegistryError(f"public_seed_registry_{key}_mismatch")
 
 
 def _placeholderish(value: Any) -> bool:
@@ -182,6 +377,14 @@ def _signature_required() -> bool:
 def _registry_signer_pins() -> set[str]:
     pins = set(_env_list("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS"))
     pins.update(_env_list("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY"))
+    pins.update(
+        _trust_root_list(
+            "seed_registry_pubkeys",
+            "seed_registry_pubkey",
+            "registry_signer_pubkeys",
+            "registry_signer_pubkey",
+        )
+    )
     return {_safe_str(pin) for pin in pins if _safe_str(pin)}
 
 
@@ -483,6 +686,8 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
     if policy not in {"verified_only", "verified_or_hint", "hints_only"}:
         raise PublicSeedRegistryError("public_seed_registry_bad_active_validator_endpoint_policy")
 
+    _enforce_expected_public_commitments(commitments)
+
     return {
         "version": int(data.get("version") or 1),
         "network_id": network_id,
@@ -504,10 +709,7 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
     }
 
 
-def load_public_seed_registry(path: str | None = None, *, allow_local: bool | None = None) -> Json:
-    resolved = public_seed_registry_path(path) or public_seed_registry_default_path()
-    if not resolved:
-        raise PublicSeedRegistryError("public_seed_registry_path_missing")
+def _load_public_seed_registry_file(resolved: str, *, allow_local: bool) -> Json:
     p = Path(resolved).expanduser()
     if not p.exists():
         raise PublicSeedRegistryError("public_seed_registry_missing")
@@ -517,12 +719,75 @@ def load_public_seed_registry(path: str | None = None, *, allow_local: bool | No
         data = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise PublicSeedRegistryError("public_seed_registry_bad_json") from exc
-    try:
-        return normalize_public_seed_registry(data, allow_local=public_testnet_allow_local() if allow_local is None else bool(allow_local))
-    except PublicSeedRegistryError:
-        raise
-    except Exception as exc:
-        raise PublicSeedRegistryError(str(exc) or "public_seed_registry_invalid") from exc
+    out = normalize_public_seed_registry(data, allow_local=allow_local)
+    out["registry_source_kind"] = "file"
+    out["registry_source"] = str(p)
+    return out
+
+
+def _load_public_seed_registry_remote(url: str, *, allow_local: bool) -> Json:
+    normalized = _normalize_registry_url(url, allow_local=allow_local)
+    data = _http_get_registry_json(normalized, timeout_s=_remote_registry_timeout_s())
+    out = normalize_public_seed_registry(data, allow_local=allow_local)
+    out["registry_source_kind"] = "remote_url"
+    out["registry_source"] = normalized
+    return out
+
+
+def load_public_seed_registry(
+    path: str | None = None,
+    *,
+    allow_local: bool | None = None,
+    url: str | None = None,
+) -> Json:
+    """Load the signed public seed registry from hybrid discovery sources.
+
+    Source order is intentionally fail-closed for explicit operator choices:
+
+    * An explicit path (argument or env) is authoritative and must load.
+    * Otherwise, configured remote signed-registry URLs are tried first for
+      freshness.  They are accepted only after signature + signer-pin checks.
+    * If all remotes are unreachable and a checked-in default registry exists,
+      the default file is used as a last-known-good fallback.
+    * With no usable source, public observer mode fails before dialing peers.
+    """
+
+    allow = public_testnet_allow_local() if allow_local is None else bool(allow_local)
+    explicit_path = public_seed_registry_path(path)
+    if explicit_path:
+        try:
+            return _load_public_seed_registry_file(explicit_path, allow_local=allow)
+        except PublicSeedRegistryError:
+            raise
+        except Exception as exc:
+            raise PublicSeedRegistryError(str(exc) or "public_seed_registry_invalid") from exc
+
+    default_path = public_seed_registry_default_path()
+    urls = public_seed_registry_urls(url)
+    errors: list[str] = []
+
+    for candidate_url in urls:
+        try:
+            return _load_public_seed_registry_remote(candidate_url, allow_local=allow)
+        except PublicSeedRegistryError as exc:
+            errors.append(str(exc) or "public_seed_registry_remote_error")
+            continue
+        except Exception as exc:
+            errors.append(str(exc) or "public_seed_registry_remote_error")
+            continue
+
+    if default_path:
+        try:
+            return _load_public_seed_registry_file(default_path, allow_local=allow)
+        except PublicSeedRegistryError as exc:
+            errors.append(str(exc) or "public_seed_registry_error")
+        except Exception as exc:
+            errors.append(str(exc) or "public_seed_registry_error")
+
+    if errors:
+        # Keep the externally visible failure code stable and actionable.
+        raise PublicSeedRegistryError(errors[-1])
+    raise PublicSeedRegistryError("public_seed_registry_path_missing")
 
 
 def commitment_payload(registry: Json) -> Json:

@@ -161,6 +161,8 @@ def _seeds_response(request: Request) -> Json:
             "seed_registry_signature": registry.get("seed_registry_signature", ""),
             "seed_registry_signer": registry.get("seed_registry_signer", ""),
             "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
+            "registry_source_kind": registry.get("registry_source_kind", ""),
+            "registry_source": registry.get("registry_source", ""),
             "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
             "resettable_testnet": True,
             "economics_active": False,

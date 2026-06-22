@@ -1,0 +1,35 @@
+{
+  "active_validator_endpoint_policy": "verified_or_hint",
+  "chain_id": "weall-testnet-v1",
+  "economics_active": false,
+  "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "genesis_state_root": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "network_id": "weall-public-observer-testnet-v1",
+  "nodes": [
+    {
+      "base_url": "https://genesis.weallprotocol.xyz",
+      "endpoint_source": "public_seed_registry",
+      "region": "us-west",
+      "role": "seed",
+      "verified": true,
+      "weight": 100
+    }
+  ],
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "registry_urls": [
+    "https://registry.weallprotocol.xyz/public_testnet_seed_registry.json"
+  ],
+  "resettable_testnet": true,
+  "seed_api_urls": [
+    "https://genesis.weallprotocol.xyz"
+  ],
+  "seed_p2p_urls": [
+    "tls://genesis.weallprotocol.xyz:30303"
+  ],
+  "seed_registry_signature": "dc4922408c94527effa74063e55e49cebb7680f81868073d3fbd12ac8a64cd8321c3a640caa3702d9b0af4dbbe7d06b09ab0e41c6b8e47ff8e1829508fad8106",
+  "seed_registry_signature_alg": "ed25519/weall.public_seed_registry.v1",
+  "seed_registry_signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
+  "tx_index_hash": "b138d73c7d1f8dfd81c34c144d0e703734cddcfd8cbfb6385847667ebf70f4a8",
+  "validator_endpoints": [],
+  "version": 1
+}

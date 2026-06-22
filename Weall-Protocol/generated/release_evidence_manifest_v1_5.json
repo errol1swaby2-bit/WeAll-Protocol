@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "a6c729976fd41824632443512f46322df29990f5c66de2cdaeec1d9150b7badb",
+  "artifact_digest": "97b3e31810e3a0dfd42aa142227046a71899c736f41998f37dbbf24f66e34b08",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "ef23039622d33eec2a75a36f5617f9828405ada9303395c0666cca48ef834d07",
+      "file_sha256": "2c596776fd9dc98fd45d45c440bc2a403d82e9512bff855e530c0a3f65ff9540",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -144,7 +144,7 @@
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "9e3dffb8e11fc01b24430bfc5f69718b836dfb2cf8e01c100315d09b6fee974b",
+      "file_sha256": "d2076df38cb972a3b7aebf1c8079bb5b40d18f85f51fdbe34df74d6c2f4292d9",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,

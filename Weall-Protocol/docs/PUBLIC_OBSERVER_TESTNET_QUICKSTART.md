@@ -12,29 +12,49 @@ Batch 629 keeps the public observer path fail-closed around signed discovery and
 - Tokens and economic balances have no real-world value.
 - Bugs or upgrades may reset state; users must not rely on persistence across resets.
 
+
+## Public testnet-v1 chain identity
+
+The open-download public observer testnet uses a separate resettable chain identity instead of the production `weall-prod` identity:
+
+```text
+network_id: weall-public-observer-testnet-v1
+chain_id: weall-testnet-v1
+chain_manifest: configs/chains/weall-testnet-v1.json
+genesis_ledger: configs/genesis.ledger.testnet-v1.json
+commitments: configs/public_testnet_chain_commitments.json
+trust_roots: configs/public_testnet_trust_roots.json
+```
+
+Refresh/check the pinned identity with:
+
+```bash
+PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check
+```
+
+`configs/public_testnet_trust_roots.json` must pin the registry signer and the exact `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, and `tx_index_hash`. A Cloudflare-hosted registry is only a freshness source; nodes reject it when its signature or pinned commitments do not match the repo trust roots.
+
 ## Public discovery trust model
 
 Public observer mode uses the backend public seed registry as the source of truth. The frontend may still read `/seeds.json` as a compatibility fallback, but the node dashboard and connection manager now prefer backend `/v1/nodes/seeds` and `/v1/nodes/validators`.
 
-A production public observer registry must include a valid Ed25519 registry signature and a pinned registry signer:
+A production public observer registry must include a valid Ed25519 registry signature and a pinned registry signer. The pin can come from environment or from a repo-shipped trust-root file committed before launch:
 
 ```bash
 export WEALL_PUBLIC_TESTNET=1
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+# Or commit configs/public_testnet_trust_roots.json with seed_registry_pubkeys.
 ```
 
-The registry is loaded from the first available source:
+Hybrid discovery loads the registry from these sources:
 
-1. `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH`
-2. `WEALL_PUBLIC_SEED_REGISTRY_PATH`
-3. `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`
-4. `./public_testnet_seed_registry.json`
-5. `./config/public_testnet_seed_registry.json`
-6. `./configs/public_testnet_seed_registry.json`
-7. `./Weall-Protocol/config/public_testnet_seed_registry.json`
-8. `./Weall-Protocol/configs/public_testnet_seed_registry.json`
+1. Explicit local registry path: `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH` or `WEALL_PUBLIC_SEED_REGISTRY_PATH`. If explicitly set, this source is authoritative and must load.
+2. Pinned remote signed-registry URL candidates: `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL`, `WEALL_PUBLIC_SEED_REGISTRY_URLS`, `WEALL_PUBLIC_SEED_REGISTRY_URL`, or `configs/public_testnet_trust_roots.json`.
+3. Checked-in last-known-good registry fallback: `WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH`, `./public_testnet_seed_registry.json`, `./config/public_testnet_seed_registry.json`, `./configs/public_testnet_seed_registry.json`, `./Weall-Protocol/config/public_testnet_seed_registry.json`, or `./Weall-Protocol/configs/public_testnet_seed_registry.json`.
 
-The registry must include:
+Remote registries are freshness sources, not new trust roots. They are accepted only after the same signature, pinned signer, chain ID, genesis hash, protocol profile hash, tx index hash, resettable-testnet, and non-economic checks as a local file.
+
+The signed registry must include:
 
 - `network_id`
 - `chain_id`
@@ -52,7 +72,7 @@ Only `tcp://` and `tls://` P2P URIs are accepted because those are the transport
 
 Validator endpoint advertisements are separate from validator authority. A validator endpoint is treated as verified only when its endpoint signature validates against the registry commitments. Endpoint hints never grant validator status; protocol state remains the authority.
 
-Use `configs/public_testnet_seed_registry.example.json` as the schema example. Do not publish a public observer build with fake seed URLs, placeholder hashes, unsigned production registries, or unverified validator endpoints.
+Use `configs/public_testnet_seed_registry.example.json` as the signed registry schema example and `configs/public_testnet_trust_roots.example.json` as the repo-shipped trust-root schema example. Do not publish a public observer build with fake seed URLs, placeholder hashes, unsigned production registries, unpinned registry signers, or unverified validator endpoints.
 
 ## Signing and publishing the registry
 
@@ -62,10 +82,10 @@ The checked-in `configs/public_testnet_seed_registry.example.json` is a schema e
 cd Weall-Protocol
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY=<registry-private-key-kept-out-of-git>
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
-PYTHONPATH=src python scripts/sign_public_seed_registry_v1_5.py \
+PYTHONPATH=src python3 scripts/sign_public_seed_registry_v1_5.py \
   --input /secure/path/public_testnet_seed_registry.unsigned.json \
   --output configs/public_testnet_seed_registry.json
-PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 python scripts/sign_public_seed_registry_v1_5.py \
+PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 python3 scripts/sign_public_seed_registry_v1_5.py \
   --input /secure/path/public_testnet_seed_registry.unsigned.json \
   --output configs/public_testnet_seed_registry.json \
   --check
@@ -78,7 +98,7 @@ The signer pin published to observers must match `seed_registry_signer`. Rotate 
 ```bash
 git clone <repo-url> WeAll-Protocol
 cd WeAll-Protocol/Weall-Protocol
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.lock
 pip install -e .
@@ -88,27 +108,31 @@ export WEALL_API_MODE=node
 export WEALL_OBSERVER_MODE=1
 export WEALL_OBSERVER_EDGE_MODE=1
 export WEALL_PUBLIC_TESTNET=1
+export WEALL_CHAIN_MANIFEST_PATH=./configs/chains/weall-testnet-v1.json
+export WEALL_CHAIN_ID=weall-testnet-v1
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
-# Optional if the release does not bundle ./public_testnet_seed_registry.json:
+# Optional if the release does not bundle ./configs/public_testnet_seed_registry.json:
 export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH=/absolute/path/to/public_testnet_seed_registry.json
+# Hybrid remote source option, accepted only after pinned-signature verification:
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_URL=https://<registry-host>/public_testnet_seed_registry.json
 
 bash scripts/boot_public_observer_testnet.sh
 ```
 
-The boot script verifies the signed registry, exports observer-safe defaults, prints the seed/validator/observer status URLs, and then starts `python -m weall.api`. Manual `python -m weall.api` boot remains supported after the same environment variables are set.
+The boot script verifies the signed registry, exports observer-safe defaults, prints the seed/validator/observer status URLs, and then starts `python3 -m weall.api`. Manual `python3 -m weall.api` boot remains supported after the same environment variables are set.
 
 Verify the local observer sees signed public commitments:
 
 ```bash
-curl -s http://127.0.0.1:8000/v1/nodes/seeds | python -m json.tool
-curl -s http://127.0.0.1:8000/v1/nodes/validators | python -m json.tool
-curl -s http://127.0.0.1:8000/v1/observer/edge/status | python -m json.tool
-curl -s http://127.0.0.1:8000/v1/chain/identity | python -m json.tool
+curl -s http://127.0.0.1:8000/v1/nodes/seeds | python3 -m json.tool
+curl -s http://127.0.0.1:8000/v1/nodes/validators | python3 -m json.tool
+curl -s http://127.0.0.1:8000/v1/observer/edge/status | python3 -m json.tool
+curl -s http://127.0.0.1:8000/v1/chain/identity | python3 -m json.tool
 ```
 
 Expected results:
 
-- `/v1/nodes/seeds` returns `public_testnet: true`, signed registry status, and the pinned chain/genesis/profile commitments.
+- `/v1/nodes/seeds` returns `public_testnet: true`, `registry_source_kind`, signed registry status, and the pinned chain/genesis/profile commitments.
 - `/v1/nodes/validators` returns active validator accounts from protocol state and separates verified endpoints from unverified hints.
 - `/v1/observer/edge/status` separates local outbox state from upstream validator acceptance/confirmation.
 - `/v1/chain/identity` matches the seed registry commitments.
@@ -144,8 +168,8 @@ Before claiming public observer launch readiness, capture an external transcript
 
 1. Clean clone.
 2. Dependency install from `requirements.lock`.
-3. Public seed registry loaded from the default path or explicit path.
-4. Registry signature verified against the pinned public key.
+3. Public seed registry loaded from an explicit path, remote pinned signed URL, or checked-in fallback file.
+4. Registry signature verified against the pinned public key from env or `configs/public_testnet_trust_roots.json`.
 5. Observer boot.
 6. Registry seed P2P URIs merged into the local peer store.
 7. Verified validator P2P URIs merged into the local peer store.

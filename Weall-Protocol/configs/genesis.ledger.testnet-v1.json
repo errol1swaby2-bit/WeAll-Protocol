@@ -1,0 +1,187 @@
+{
+  "accounts": {
+    "@errol-genesis": {
+      "balance": 0,
+      "banned": false,
+      "devices": {
+        "by_id": {
+          "node:founding": {
+            "active": true,
+            "device_type": "node",
+            "label": "node_bootstrap",
+            "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+            "revoked": false
+          }
+        }
+      },
+      "keys": {
+        "by_id": {
+          "k:8f88bf0e54b81a7b": {
+            "key_type": "main",
+            "label": "bootstrap",
+            "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+            "revoked": false,
+            "revoked_at": null
+          }
+        }
+      },
+      "locked": false,
+      "nonce": 0,
+      "poh_bootstrap_grant_id": "poh_bootstrap_grant:45b9e08f883c54a20e34982d",
+      "poh_bootstrap_receipt_id": "poh_bootstrap_receipt:19b3f4dd63470eb1b7465e3c",
+      "poh_bootstrap_review_condition": "native_poh_juror_quorum_or_governance_review",
+      "poh_tier": 2,
+      "recovery": {
+        "config": null,
+        "proposals": {}
+      },
+      "reputation": "5.000",
+      "reputation_milli": 5000,
+      "session_keys": {}
+    },
+    "SYSTEM": {
+      "balance": 0,
+      "banned": false,
+      "keys": [],
+      "locked": false,
+      "nonce": 0,
+      "poh_tier": 0,
+      "reputation": 0.0
+    }
+  },
+  "blocks": {},
+  "chain_id": "weall-testnet-v1",
+  "consensus": {
+    "validators": {
+      "registry": {
+        "@errol-genesis": {
+          "account_id": "@errol-genesis",
+          "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+          "source": "public_testnet_v1_genesis_manifest",
+          "status": "active"
+        }
+      }
+    }
+  },
+  "economics": {},
+  "finalized": false,
+  "height": 0,
+  "last_block_ts_ms": 0,
+  "params": {
+    "bft_signing_public_beta_gate_enabled": true,
+    "bootstrap_allowlist": {
+      "@errol-genesis": {
+        "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+        "source": "testnet_v1_genesis_bootstrap"
+      }
+    },
+    "bootstrap_expires_height": 1008,
+    "bootstrap_founder_account": "@errol-genesis",
+    "economic_unlock_time": 7776000,
+    "economics_enabled": false,
+    "genesis_time": 0,
+    "poh": {
+      "live_min_panel_after_bootstrap": 10,
+      "live_partial_panels_enabled": true,
+      "live_partial_until_height": 1008
+    },
+    "poh_bootstrap_auto_lock_rule": "active_validators>=BFT_MIN_VALIDATORS",
+    "poh_bootstrap_max_height": 0,
+    "poh_bootstrap_mode": "allowlist",
+    "poh_live_partial_panels_enabled": true,
+    "poh_live_partial_until_height": 1008,
+    "public_mainnet_enabled": false,
+    "public_testnet_v1": true,
+    "resettable_testnet": true,
+    "validator_candidate_lifecycle_gate_enabled": true,
+    "validator_candidate_node_id_must_match_node_pubkey": true
+  },
+  "poh": {
+    "bootstrap_grants": {
+      "by_account": {
+        "@errol-genesis": [
+          "poh_bootstrap_grant:45b9e08f883c54a20e34982d"
+        ]
+      },
+      "by_id": {
+        "poh_bootstrap_grant:45b9e08f883c54a20e34982d": {
+          "account_id": "@errol-genesis",
+          "auditable": true,
+          "authority_path": "public_testnet_v1_genesis_manifest",
+          "expires_height": 1008,
+          "grant_height": 0,
+          "grant_id": "poh_bootstrap_grant:45b9e08f883c54a20e34982d",
+          "grant_type": "poh_tier2_live_verified",
+          "mode": "public_testnet_v1_genesis",
+          "nonce": 0,
+          "pubkey_sha256": "8f88bf0e54b81a7bb13e863a0671cc2991d0ee881aeb4fff87e7ad61d5e6f4bd",
+          "reason_code": "testnet_v1_founder_live_bootstrap",
+          "receipt_id": "poh_bootstrap_receipt:19b3f4dd63470eb1b7465e3c",
+          "review_condition": "native_poh_juror_quorum_or_governance_review",
+          "signer": "@errol-genesis",
+          "source": "genesis_state",
+          "status": "active",
+          "transitional": true,
+          "tx_type": "TESTNET_V1_GENESIS_BOOTSTRAP_TIER2_GRANT"
+        }
+      }
+    }
+  },
+  "roles": {
+    "node_operators": {
+      "active_set": [
+        "@errol-genesis"
+      ],
+      "by_id": {
+        "@errol-genesis": {
+          "activated_at_nonce": 0,
+          "active": true,
+          "enrolled": true,
+          "enrolled_at_nonce": 0,
+          "responsibilities": {
+            "validator": {
+              "active": true,
+              "bft_pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+              "chain_id": "weall-testnet-v1",
+              "manifest_hash": "public_testnet_v1_genesis_manifest",
+              "opted_in": true,
+              "protocol_version": "2026.03-prod.6",
+              "readiness_expires_height": 0,
+              "readiness_receipt_hash": "testnet_v1_genesis_bootstrap_validator_ready",
+              "readiness_status": "ready",
+              "reputation_required_milli": 5000,
+              "runtime_profile_hash": "public_testnet_v1_genesis_manifest",
+              "schema_version": "1",
+              "tx_index_hash": "public_testnet_v1_genesis_manifest"
+            }
+          },
+          "source": "public_testnet_v1_genesis_manifest"
+        }
+      }
+    },
+    "validators": {
+      "active_set": [
+        "@errol-genesis"
+      ],
+      "by_id": {
+        "@errol-genesis": {
+          "active": true,
+          "enrolled": true,
+          "source": "public_testnet_v1_genesis_manifest"
+        }
+      }
+    }
+  },
+  "time": 0,
+  "tip": "",
+  "validators": {
+    "registry": {
+      "@errol-genesis": {
+        "account_id": "@errol-genesis",
+        "pubkey": "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be",
+        "source": "public_testnet_v1_genesis_manifest",
+        "status": "active"
+      }
+    }
+  }
+}

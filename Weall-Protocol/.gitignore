@@ -148,3 +148,4 @@ configs/local/
 .weall-media-cache/
 
 !generated/release_evidence_manifest_v1_5.json
+secrets/

@@ -5,6 +5,9 @@
   "genesis_hash": "<set-before-public-launch>",
   "protocol_profile_hash": "<set-before-public-launch>",
   "tx_index_hash": "<set-before-public-launch>",
+  "registry_urls": [
+    "https://registry.testnet.weall.example/public_testnet_seed_registry.json"
+  ],
   "seed_api_urls": [
     "https://seed-1.testnet.weall.example"
   ],
