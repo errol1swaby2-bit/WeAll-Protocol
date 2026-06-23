@@ -82,7 +82,7 @@ def test_group_member_can_create_group_scoped_post() -> None:
 
     assert meta["applied"] == "CONTENT_POST_CREATE"
     assert st["content"]["posts"]["p2"]["group_id"] == "g1"
-    assert st["content"]["posts"]["p2"]["visibility"] == "group"
+    assert st["content"]["posts"]["p2"]["visibility"] == "public"
     assert st["content"]["posts"]["p2"]["tags"] == ["group:g1", "welcome"]
 
 
@@ -108,25 +108,25 @@ def test_group_tag_spoofing_is_rejected_without_group_authority() -> None:
     assert "p3" not in st["content"]["posts"]
 
 
-def test_group_id_requires_group_visibility() -> None:
+def test_group_id_public_post_is_public_group_content() -> None:
     st = _state()
 
-    with pytest.raises(ApplyError) as ei:
-        apply_tx(
-            st,
-            _env(
-                "CONTENT_POST_CREATE",
-                {
-                    "post_id": "p4",
-                    "body": "bad payload",
-                    "visibility": "public",
-                    "group_id": "g1",
-                },
-                signer="member",
-            ),
-        )
+    meta = apply_tx(
+        st,
+        _env(
+            "CONTENT_POST_CREATE",
+            {
+                "post_id": "p4",
+                "body": "public group payload",
+                "visibility": "public",
+                "group_id": "g1",
+            },
+            signer="member",
+        ),
+    )
 
-    assert ei.value.reason == "group_id_requires_group_visibility"
+    assert meta["applied"] == "CONTENT_POST_CREATE"
+    assert st["content"]["posts"]["p4"]["visibility"] == "public"
 
 
 def test_post_edit_cannot_move_post_into_group_without_authority() -> None:

@@ -531,7 +531,6 @@ _register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_TIME
 
 _register_many(["CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"], TxFamily.CASES, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["MOD_ACTION_RECEIPT", "FLAG_ESCALATION_RECEIPT"], TxFamily.MODERATION, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"], TxFamily.MESSAGING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PEER_ADVERTISE", "PEER_REQUEST_CONNECT", "PEER_RENDEZVOUS_TICKET_CREATE", "PEER_RENDEZVOUS_TICKET_REVOKE"], TxFamily.NETWORKING, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["PEER_BAN_SET"], TxFamily.NETWORKING, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PEER_REPUTATION_SIGNAL"], TxFamily.NETWORKING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
@@ -557,6 +556,7 @@ _register_many(["ROLE_ELIGIBILITY_SET", "ROLE_ELIGIBILITY_REVOKE", "ACCOUNT_BAN"
 _register_many(["REWARD_POOL_OPT_IN_SET", "BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE", "CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE", "FORFEITURE_APPLY"], TxFamily.REWARDS, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["VALIDATOR_PERFORMANCE_REPORT", "NODE_OPERATOR_PERFORMANCE_REPORT", "CREATOR_PERFORMANCE_REPORT"], TxFamily.PERFORMANCE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["PERFORMANCE_EVALUATE", "PERFORMANCE_SCORE_APPLY"], TxFamily.PERFORMANCE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"], TxFamily.MESSAGING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PROFILE_UPDATE", "CONTENT_SHARE_CREATE"], TxFamily.SOCIAL, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["FOLLOW_SET", "BLOCK_SET", "MUTE_SET"], TxFamily.SOCIAL, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["IPFS_PIN_REQUEST", "STORAGE_OFFER_CREATE", "STORAGE_OFFER_WITHDRAW", "STORAGE_LEASE_CREATE", "STORAGE_LEASE_RENEW", "STORAGE_LEASE_REVOKE", "STORAGE_PROOF_SUBMIT", "STORAGE_CHALLENGE_RESPOND"], TxFamily.STORAGE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)

@@ -24,6 +24,7 @@ Json = dict[str, Any]
 _TRACKED_ARTIFACTS = [
     "generated/api_contract_map_v1_5.json",
     "generated/failure_code_registry_v1_5.json",
+    "generated/public_only_protocol_audit_v1_5.json",
     "generated/api_response_vectors_v1_5.json",
     "generated/state_root_vectors_v1_5.json",
     "generated/tokenomics_simulation_v1_5.json",

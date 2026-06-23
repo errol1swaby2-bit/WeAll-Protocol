@@ -172,29 +172,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         };
       }
 
-      const joinWillAutoAccept = kind === "join" && !detailIsPrivate;
-
       await tx.runTx({
         title: kind === "join" ? "Join group" : "Leave group",
         pendingKey: txPendingKey(["group-membership", kind, selected, acct]),
-        pendingMessage: kind === "join" ? (joinWillAutoAccept ? "Joining group…" : "Submitting membership request…") : "Leaving group…",
-        successMessage: kind === "join" ? (joinWillAutoAccept ? "Joined group." : "Membership request submitted.") : "Left group.",
+        pendingMessage: kind === "join" ? "Joining group…" : "Leaving group…",
+        successMessage: kind === "join" ? "Joined group." : "Left group.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
           mutation: { entityType: "group", entityId: selected, account: acct || undefined, routeHint: `/groups/${encodeURIComponent(selected)}`, txType: String(skeletonTx.tx_type) },
-          reconcile: async () => {
-            if (kind === "join" && detailIsPrivate) {
-              return reconcileMembershipPending({ groupId: selected, account: acct, base });
-            }
-            return reconcileMembershipState({
-              groupId: selected,
-              account: acct,
-              expectMember: kind === "join",
-              base,
-            });
-          },
+          reconcile: async () => reconcileMembershipState({
+            groupId: selected,
+            account: acct,
+            expectMember: kind === "join",
+            base,
+          }),
         },
         task: async () =>
           submitSignedTx({
@@ -293,14 +286,6 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const detailDescription = String(
     detail?.charter?.description || detail?.meta?.description || detail?.description || detailCharterParts.slice(1).join("\n\n") || "",
   );
-  const detailVisibility = String(
-    detail?.visibility ||
-      detail?.privacy ||
-      detail?.meta?.visibility ||
-      detail?.meta?.privacy ||
-      "public",
-  ).toLowerCase();
-  const detailIsPrivate = ["private", "closed", "members"].includes(detailVisibility);
   const membershipPhase = String(membershipStatus?.phase || "").trim().toLowerCase();
   const isPendingMembership = membershipPhase === "pending";
   const isMember =
@@ -324,7 +309,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="heroInfoTitle">Group status</div>
               <div className="heroInfoList">
                 <span className="statusPill mono">{selected || "No group id"}</span>
-                <span className="statusPill">{detailIsPrivate ? "Private" : "Public"}</span>
+                <span className="statusPill">Public reads</span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
                   {membershipGate.ok ? "Can join" : "Complete verification to join"}
                 </span>
@@ -344,7 +329,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
             </div>
             <div className="statCard">
               <span className="statLabel">Visibility</span>
-              <span className="statValue">{detailIsPrivate ? "Private" : "Public"}</span>
+              <span className="statValue">Public</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Recent posts</span>
@@ -368,7 +353,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </div>
         <div className="surfaceBoundaryList">
           <span className="surfaceBoundaryTag">Selected group</span>
-          <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : detailIsPrivate ? "Request membership" : "Join group"}</span>
+          <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : "Join group"}</span>
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
       </section>
@@ -384,21 +369,19 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 ? "Your membership request is already pending."
                 : isMember
                   ? "You are a member of this group."
-                  : detailIsPrivate
-                    ? "This private group requires a membership request."
-                    : "You can join this public group from here."}
+                  : "You can join this public group from here."}
           </div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Visibility</div>
-          <div className="detailFocusValue">{detailIsPrivate ? "Private" : "Public"}</div>
+          <div className="detailFocusValue">Public</div>
           <div className="detailFocusText">
-            Private groups require approval before members-only activity is visible. Public groups are easier to join.
+            Group content and moderation activity are public. Membership can gate posting, commenting, voting, moderation, and administration only.
           </div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Next step</div>
-          <div className="detailFocusValue">{selected && acct && (isMember || !detailIsPrivate) ? "Create a group post" : !acct || !canSign ? "Sign in" : isPendingMembership ? "Wait for approval" : "Join or request access"}</div>
+          <div className="detailFocusValue">{selected && acct && isMember ? "Create a group post" : !acct || !canSign ? "Sign in" : isPendingMembership ? "Wait for approval" : "Join group"}</div>
           <div className="detailFocusText">
             Use the main button below for the next membership step.
           </div>
@@ -470,9 +453,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                       ? "Leave group"
                       : isPendingMembership
                         ? "Membership pending"
-                        : detailIsPrivate
-                          ? "Request membership"
-                          : "Join group"}
+                        : "Join group"}
               </button>
             ) : null}
           </div>

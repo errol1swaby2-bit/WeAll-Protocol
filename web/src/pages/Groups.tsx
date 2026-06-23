@@ -21,7 +21,7 @@ type GroupListItem = {
   id: string;
   name: string;
   description: string;
-  isPrivate: boolean;
+  readVisibility: string;
   memberCountHint: number | null;
   raw: any;
 };
@@ -36,15 +36,11 @@ function mapGroup(obj: any): GroupListItem {
   const charterLines = charterText ? charterText.split(/\n{2,}|\r\n\r\n/).map((part: string) => part.trim()).filter(Boolean) : [];
   const name = String(charter?.name || meta?.name || obj?.name || charterLines[0] || id);
   const description = String(charter?.description || meta?.description || obj?.description || charterLines.slice(1).join("\n\n") || "");
-  const visibility = String(
-    obj?.visibility || obj?.privacy || meta?.visibility || meta?.privacy || "public",
-  ).toLowerCase();
-
   return {
     id,
     name: name || id,
     description: description || "",
-    isPrivate: ["private", "closed", "members"].includes(visibility),
+    readVisibility: "public",
     memberCountHint: members && typeof members === "object" ? Object.keys(members).length : null,
     raw: obj,
   };
@@ -225,7 +221,7 @@ export default function Groups(): JSX.Element {
                   <span>
                     <strong>{g.name}</strong>
                     <small>
-                      {g.id} · {g.isPrivate ? "private" : "public"}
+                      {g.id} · public reads
                       {g.memberCountHint != null ? ` · ${g.memberCountHint} member(s)` : ""}
                     </small>
                     {g.description ? <small>{g.description.slice(0, 180)}</small> : null}

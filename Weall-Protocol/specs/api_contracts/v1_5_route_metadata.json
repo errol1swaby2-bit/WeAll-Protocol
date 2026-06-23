@@ -8,6 +8,13 @@
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
       "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
     },
+    "GET /v1/activity/inbox": {
+      "auth": "public_event_derived_account_optional_filter",
+      "cache_policy": "no_store_public_event_derived_read",
+      "error_model": "standard_api_error_envelope_or_public_activity_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Activity inbox is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
+    },
     "GET /v1/dev/bootstrap-secret": {
       "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
       "cache_policy": "no_store_dev_bootstrap_secret",
@@ -23,18 +30,18 @@
       "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
     },
     "GET /v1/messages/threads": {
-      "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
-      "idempotency": "safe_authenticated_read_no_state_mutation",
-      "truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots."
+      "auth": "public_only_compatibility_stub_no_private_session_surface",
+      "cache_policy": "no_store_hard_failure",
+      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
+      "idempotency": "safe_read_no_state_mutation_always_fails",
+      "truth_boundary": "Compatibility stub only. WeAll does not provide protocol-native direct/private messaging; use /v1/activity/inbox for public-event-derived notices."
     },
     "GET /v1/messages/threads/{thread_id:path}": {
-      "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
-      "idempotency": "safe_authenticated_read_no_state_mutation",
-      "truth_boundary": "Thread detail reads are viewer-scoped and require membership plus a valid account session."
+      "auth": "public_only_compatibility_stub_no_private_session_surface",
+      "cache_policy": "no_store_hard_failure",
+      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
+      "idempotency": "safe_read_no_state_mutation_always_fails",
+      "truth_boundary": "Compatibility stub only. Direct/private message thread reads are unsupported because protocol-native activity must be publicly inspectable."
     },
     "GET /v1/metrics": {
       "auth": "metrics_env_gated_public_when_enabled",

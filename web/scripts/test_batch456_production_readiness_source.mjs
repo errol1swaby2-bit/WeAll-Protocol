@@ -12,13 +12,13 @@ function assertIncludes(haystack, needle, label) {
 const status = read("Weall-Protocol/src/weall/api/routes_public_parts/status.py");
 assertIncludes(status, '"block_production"', "status readiness payload");
 assertIncludes(status, '"tokenomics"', "status readiness payload");
-assertIncludes(status, '"p2p_encrypted_messaging"', "status readiness payload");
-assertIncludes(status, "metadata remains visible", "messaging status truth");
+assertIncludes(status, '"protocol_native_private_messaging"', "status readiness payload");
+assertIncludes(status, "PRIVATE_MESSAGING_UNSUPPORTED", "messaging status truth");
 
 const messagingDoc = read("Weall-Protocol/docs/P2P_ENCRYPTED_MESSAGING_PRODUCTION_GATE.md");
-assertIncludes(messagingDoc, "not Signal-grade production private messaging", "P2P messaging production gate doc");
-assertIncludes(messagingDoc, "Forward secrecy", "P2P messaging production gate doc");
-assertIncludes(messagingDoc, "Metadata truth", "P2P messaging production gate doc");
+assertIncludes(messagingDoc, "PRIVATE_MESSAGING_UNSUPPORTED", "public-only messaging gate doc");
+assertIncludes(messagingDoc, "WeAll is not a private messaging protocol", "public-only messaging gate doc");
+assertIncludes(messagingDoc, "notifications derive from public protocol events", "public-only messaging gate doc");
 
 const econDoc = read("Weall-Protocol/docs/ECONOMICS_LOCKED_TOKENOMICS_MODEL.md");
 assertIncludes(econDoc, "locked Genesis model", "locked tokenomics doc");

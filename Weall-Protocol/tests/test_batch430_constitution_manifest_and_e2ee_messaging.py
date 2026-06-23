@@ -61,17 +61,13 @@ def test_direct_messages_reject_plaintext_body_batch430() -> None:
     st = {"messaging": {}}
     with pytest.raises(MessagingApplyError) as ei:
         apply_messaging(st, _env({"to": "bob", "body": "hello"}))
-    assert ei.value.reason in {"plaintext_body_forbidden", "e2ee_required"}
+    assert ei.value.code == "PRIVATE_MESSAGING_UNSUPPORTED"
+    assert ei.value.reason == "protocol_native_direct_messages_are_unsupported"
 
 
-def test_direct_messages_store_only_e2ee_ciphertext_envelope_batch430() -> None:
+def test_direct_messages_reject_e2ee_ciphertext_envelope_batch430() -> None:
     st: dict = {"messaging": {}}
-    out = apply_messaging(st, _env(_encrypted_payload()))
-    assert out is not None
-    msg = st["messaging"]["messages_by_id"][out["message_id"]]
-    assert msg["body"] == ""
-    assert msg["cid"] == ""
-    assert msg["encrypted"] is True
-    assert msg["encryption"]["scheme"] == "WEALL_E2EE_V1"
-    assert msg["encryption"]["ciphertext_b64"] == "Y2lwaGVydGV4dA=="
-    assert "hello" not in json.dumps(msg, sort_keys=True)
+    with pytest.raises(MessagingApplyError) as ei:
+        apply_messaging(st, _env(_encrypted_payload()))
+    assert ei.value.code == "PRIVATE_MESSAGING_UNSUPPORTED"
+    assert "messages_by_id" not in st.get("messaging", {})

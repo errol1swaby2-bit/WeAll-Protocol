@@ -143,10 +143,10 @@ function deriveContextSummary(args: {
         body: "Post creation should show saving, done, needs attention, or failed states. Do not show final success until the result is visible or confirmed.",
         actions: [{ label: "Back to feed", href: "/feed" }],
       };
-    case "messaging":
+    case "activity":
       return {
-        title: "Messaging context",
-        body: "Messages belong on a dedicated communication surface. Keep conversation state separate from posts, decisions, and reports.",
+        title: "Activity context",
+        body: "This surface is derived only from public protocol events: mentions, replies, group invitations, moderation notices, assigned reviews, decisions, and node/operator alerts.",
         actions: [{ label: "Open profile", href: "/profile" }],
       };
     case "group_create":

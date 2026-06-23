@@ -164,21 +164,21 @@ def test_public_group_content_and_feed_default_to_public_posts_batch366() -> Non
         assert [item["post_id"] for item in feed.json()["items"]] == ["post:pub"]
 
         anon_private = client.get("/v1/groups/gpub/content?visibility=private")
-        assert anon_private.status_code == 200, anon_private.text
-        assert anon_private.json()["items"] == []
+        assert anon_private.status_code == 400, anon_private.text
+        assert anon_private.json()["error"]["code"] == "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
 
         member_private = client.get(
             "/v1/groups/gpub/content?visibility=private", headers=_headers()
         )
-        assert member_private.status_code == 200, member_private.text
-        assert [item["post_id"] for item in member_private.json()["items"]] == ["post:priv"]
+        assert member_private.status_code == 400, member_private.text
+        assert member_private.json()["error"]["code"] == "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
 
         outsider_private = client.get(
             "/v1/groups/gpub/content?visibility=private",
             headers=_headers("@outsider", "outsider-session"),
         )
-        assert outsider_private.status_code == 200, outsider_private.text
-        assert outsider_private.json()["items"] == []
+        assert outsider_private.status_code == 400, outsider_private.text
+        assert outsider_private.json()["error"]["code"] == "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
 
 
 def test_public_thread_filters_private_comments_batch366() -> None:

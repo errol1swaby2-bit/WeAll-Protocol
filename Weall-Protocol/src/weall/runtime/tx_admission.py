@@ -40,6 +40,7 @@ from weall.runtime.protocol_profile import (
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
+from weall.runtime.public_protocol_policy import public_protocol_policy_violation
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -779,6 +780,15 @@ def admit_tx(
             )
 
     tx_type_norm = str(env.tx_type or "").strip().upper()
+
+    public_only_violation = public_protocol_policy_violation(env)
+    if public_only_violation is not None:
+        return _rej(
+            public_only_violation.code,
+            public_only_violation.reason,
+            **public_only_violation.details,
+        )
+
     if canon is None:
         spec = {}
     else:

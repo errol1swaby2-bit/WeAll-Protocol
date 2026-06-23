@@ -2,7 +2,7 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/login": () => import("../pages/LoginPage"),
   "/home": () => import("../pages/HomeDashboard"),
   "/feed": () => import("../pages/Feed"),
-  "/messages": () => import("../pages/Messaging"),
+  "/activity": () => import("../pages/Activity"),
   "/profile": () => import("../pages/Account"),
   "/create": () => import("../pages/Post"),
   "/post/:id": () => import("../pages/Content"),

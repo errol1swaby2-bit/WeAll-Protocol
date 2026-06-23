@@ -1584,10 +1584,10 @@
     {
       "authority_keys": [],
       "barrier_class": "SUBJECT_BARRIER",
-      "context": "mempool",
-      "degraded_to_serial": true,
+      "context": "rejected",
+      "degraded_to_serial": false,
       "derived_only": false,
-      "domain": "Messaging",
+      "domain": "Unsupported",
       "effective_lane_id": "SERIAL",
       "execution_lane_id": "SERIAL",
       "fail_closed_serial": false,
@@ -1597,17 +1597,19 @@
       "origin": "USER",
       "placeholder_key_count": 3,
       "planner_lane_hint": "SOCIAL",
-      "proof_status": "DEGRADED_INSTANCE_REQUIRED",
+      "proof_status": "UNSUPPORTED_REJECTED",
       "proven_helper_eligible": false,
       "read_keys": [],
-      "reason": "execution_lane_serial",
+      "reason": "unsupported_tx_rejected_before_helper_planning",
       "receipt_only": false,
-      "requires_concrete_instance": true,
+      "requires_concrete_instance": false,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
         "messaging:thread:anon:DIRECT_MESSAGE_REDACT"
       ],
       "tx_type": "DIRECT_MESSAGE_REDACT",
+      "unsupported": true,
+      "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED",
       "uses_placeholder_keys": true,
       "write_keys": [
         "messaging:message:anon:DIRECT_MESSAGE_REDACT",
@@ -1617,10 +1619,10 @@
     {
       "authority_keys": [],
       "barrier_class": "SUBJECT_BARRIER",
-      "context": "mempool",
-      "degraded_to_serial": true,
+      "context": "rejected",
+      "degraded_to_serial": false,
       "derived_only": false,
-      "domain": "Messaging",
+      "domain": "Unsupported",
       "effective_lane_id": "SERIAL",
       "execution_lane_id": "SERIAL",
       "fail_closed_serial": false,
@@ -1630,17 +1632,19 @@
       "origin": "USER",
       "placeholder_key_count": 3,
       "planner_lane_hint": "SOCIAL",
-      "proof_status": "DEGRADED_INSTANCE_REQUIRED",
+      "proof_status": "UNSUPPORTED_REJECTED",
       "proven_helper_eligible": false,
       "read_keys": [],
-      "reason": "execution_lane_serial",
+      "reason": "unsupported_tx_rejected_before_helper_planning",
       "receipt_only": false,
-      "requires_concrete_instance": true,
+      "requires_concrete_instance": false,
       "serial_only_on_missing_fields": true,
       "subject_keys": [
         "messaging:thread:anon:DIRECT_MESSAGE_SEND"
       ],
       "tx_type": "DIRECT_MESSAGE_SEND",
+      "unsupported": true,
+      "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED",
       "uses_placeholder_keys": true,
       "write_keys": [
         "messaging:message:anon:DIRECT_MESSAGE_SEND",
@@ -7698,8 +7702,6 @@
     "COLD_SYNC_COMPLETE",
     "COLD_SYNC_REQUEST",
     "CREATOR_PERFORMANCE_REPORT",
-    "DIRECT_MESSAGE_REDACT",
-    "DIRECT_MESSAGE_SEND",
     "INDEX_ANCHOR_SET",
     "INDEX_TOPIC_ANCHOR_SET",
     "INDEX_TOPIC_REGISTER",
@@ -8195,7 +8197,7 @@
     "sample_count": 13
   },
   "summary": {
-    "degraded_to_serial_count": 28,
+    "degraded_to_serial_count": 26,
     "duplicate_name_count": 0,
     "effective_lane_counts": {
       "PARALLEL_CONTENT": 26,
@@ -8229,15 +8231,16 @@
     },
     "global_authority_parallel_count": 0,
     "helper_eligible_count": 80,
-    "instance_required_count": 98,
+    "instance_required_count": 96,
     "placeholder_parallel_count": 73,
     "proven_helper_eligible_count": 7,
     "reason_counts": {
-      "execution_lane_serial": 28,
+      "execution_lane_serial": 26,
       "global_authority_placeholder": 28,
       "global_barrier": 18,
       "helper_parallel_allowed": 80,
-      "planner_serial": 82
+      "planner_serial": 82,
+      "unsupported_tx_rejected_before_helper_planning": 2
     },
     "tx_count": 236,
     "unknown_family_count": 0

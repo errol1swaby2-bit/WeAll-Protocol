@@ -73,7 +73,7 @@ def test_batch530_api_driven_lifecycle_exercises_real_routes_and_locked_boundari
     assert out["ok"] is True
     assert "GET /v1/feed" in out["api_routes_exercised"]
     assert out["feed_ranking"]["mode"] == "production"
-    assert out["message_applied"] is True
+    assert out["private_messaging_rejected"] is True
     assert out["storage_retrieval_confirmed"] is True
     assert out["economics_locked_rejection"] is True
     assert out["protocol_upgrade_record_only"] is True

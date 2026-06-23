@@ -17,6 +17,7 @@ notes:
 - 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be updated via CONTENT_POST_EDIT (no separate tagging TxTypes).'
 - 'V2.1 PoH migration: user-facing Proof-of-Humanity is two-tier only; legacy Tier2+ gates are remapped to Tier2+ while legacy POH_LIVE_* tx names remain compatibility/live-flow names.'
 - 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested Tier 1 without required external identity infrastructure.'
+- 'PUBLIC-ONLY REDESIGN: DIRECT_MESSAGE_* tx names are retained only as rejected legacy names; protocol-native private/direct messaging and encrypted social payloads are unsupported.'
 txs:
 - id: 1
   name: ACCOUNT_REGISTER
@@ -1248,18 +1249,20 @@ txs:
   system_only: true
 - id: 1500
   name: DIRECT_MESSAGE_SEND
-  domain: Messaging
+  domain: Unsupported
   origin: USER
-  gate: Tier1+
-  context: mempool
+  gate: Unsupported
+  context: rejected
   receipt_only: false
+  unsupported: PRIVATE_MESSAGING_UNSUPPORTED
 - id: 1501
   name: DIRECT_MESSAGE_REDACT
-  domain: Messaging
+  domain: Unsupported
   origin: USER
-  gate: Tier1+
-  context: mempool
+  gate: Unsupported
+  context: rejected
   receipt_only: false
+  unsupported: PRIVATE_MESSAGING_UNSUPPORTED
 - id: 1600
   name: GOV_VOTE_REVOKE
   domain: Governance

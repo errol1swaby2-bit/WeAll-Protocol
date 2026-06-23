@@ -28,7 +28,7 @@ When the Constitution states a right or principle not yet enforced in code, recu
 | Equal civic standing | PoH tiers, anti-spam gates, reputation gates, role eligibility, group membership, governance electorate definitions |
 | Right to voice | posting gates, group posting authority, moderation/dispute flows, banned/locked account behavior, appeal paths |
 | Due process | dispute open/review/finalize flows, juror assignment, moderation sanctions, role removal, emergency actions, appeal records |
-| Privacy and limited disclosure | PoH evidence commitments, reviewer-private evidence, media uploads, direct messages, dispute evidence, storage routes |
+| Privacy and limited disclosure | PoH evidence commitments, reviewer-private evidence, media uploads, dispute evidence, storage routes; protocol-native social/group/governance content remains public-only |
 | Portability | healthy node access, node switching, account/session portability, chain identity, state verification, tx receipts |
 | Appeal and correction | reputation mutation, dispute appeals, sanction reversal, verification reapply/recovery, group moderation appeals |
 | Article III — Anti-Domination | governance proposal rules, group charter rules, moderation rules, dispute outcomes, constitutional review, forbidden amendment floor |

@@ -21,7 +21,7 @@ The current repository can provide evidence for the following bounded claims whe
 - The targeted reviewer readiness suite passes.
 - Frontend typecheck passes after clean dependency installation.
 - Account custody and recovery-file frontend flows exist.
-- Native Proof-of-Humanity verification, posting, group activity, reporting/review, governance, and encrypted direct-message body flows exist as implemented/testnet surfaces.
+- Native Proof-of-Humanity verification, posting, public group activity, reporting/review, governance, and public activity-notification flows exist as implemented/testnet surfaces.
 - Local observer readiness and observer authority-lock gates exist.
 - Local block-production proof can commit root-bearing local block evidence.
 - Tokenomics, wallet, tips, transfers, treasury allocation, and reward accounting exist as visible/locked mechanics and tested invariants.
@@ -34,7 +34,7 @@ This milestone does not claim:
 - public multi-validator BFT readiness;
 - public validator authority readiness;
 - live economics;
-- production-grade public encrypted messaging;
+- public-only activity notifications derived from public protocol events;
 - fully complete constitutional governance;
 - signed remote external observer onboarding unless the full remote/signed first-external-observer gate has been run and captured.
 

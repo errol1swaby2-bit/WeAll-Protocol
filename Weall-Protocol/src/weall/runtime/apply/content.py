@@ -262,13 +262,20 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
     tags = payload.get("tags", (existing_post or {}).get("tags", []))
     tag_targets = _group_tag_targets(tags)
 
+    if visibility in {"private", "members", "members_only", "member_only", "scoped"}:
+        raise ContentApplyError(
+            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "protocol_content_read_visibility_must_be_public",
+            {"visibility": visibility},
+        )
+
     if visibility == "group" and not group_id:
         raise ContentApplyError("invalid_payload", "missing_group_id_for_group_visibility", {"visibility": visibility})
 
-    if group_id and visibility != "group":
+    if group_id and visibility not in {"group", "public"}:
         raise ContentApplyError(
             "invalid_payload",
-            "group_id_requires_group_visibility",
+            "group_id_requires_public_or_group_visibility",
             {"group_id": group_id, "visibility": visibility},
         )
 
@@ -303,6 +310,45 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
             )
 
     return group_id, tag_targets
+
+
+def _group_permissions(group: Json) -> Json:
+    perms = group.get("permissions")
+    return perms if isinstance(perms, dict) else {}
+
+
+def _group_comment_authorized_accounts(group: Json) -> set[str]:
+    out: set[str] = set()
+    out.update(_group_members(group).keys())
+    out.update(_group_signers(group))
+    moderators = group.get("moderators")
+    if isinstance(moderators, list):
+        out.update(_as_str(x).strip() for x in moderators if _as_str(x).strip())
+    for role in ("moderator", "moderators", "admin", "admins", "emissary", "emissaries"):
+        out.update(_group_role_accounts(group, role))
+    return {_as_str(x).strip() for x in out if _as_str(x).strip()}
+
+
+def _require_group_comment_authority(state: Json, *, signer: str, post: Json) -> None:
+    group_id = _as_str(post.get("group_id") or "").strip()
+    if not group_id:
+        return
+    group = _group_record(state, group_id)
+    if not isinstance(group, dict):
+        raise ContentApplyError("not_found", "group_not_found", {"group_id": group_id})
+
+    policy = _as_str(_group_permissions(group).get("comment") or "members").strip().lower() or "members"
+    if policy in {"public", "anyone", "all", "open"}:
+        return
+
+    signer_id = _as_str(signer).strip()
+    allowed = _group_comment_authorized_accounts(group)
+    if signer_id not in allowed:
+        raise ContentApplyError(
+            "forbidden",
+            "group_comment_authority_required",
+            {"group_id": group_id, "signer": signer_id, "comment_permission": policy},
+        )
 
 
 def _active_role_accounts(state: Json, role_name: str, active_statuses: set[str]) -> list[str]:
@@ -602,7 +648,7 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
         # media may contain media_ids or app-specific attachment refs
         "media": _as_list(payload.get("media")),
         "created_nonce": int(env.nonce),
-        "visibility": _as_str(payload.get("visibility", "public")).strip().lower() or "public",
+        "visibility": "public" if group_id else (_as_str(payload.get("visibility", "public")).strip().lower() or "public"),
         "locked": False,
         # Feed indexing helpers
         "tags": _canonical_tags(payload.get("tags", [])),
@@ -657,7 +703,7 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
 
     # Only mutate if explicitly provided
     if "visibility" in payload:
-        post["visibility"] = candidate["visibility"]
+        post["visibility"] = "public" if group_id else candidate["visibility"]
     if "tags" in payload:
         post["tags"] = candidate["tags"]
     if "group_id" in payload:
@@ -725,6 +771,9 @@ def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
     # Thread lock enforcement: locked posts reject new comments except SYSTEM.
     if bool(p.get("locked")) and not env.system:
         raise ContentApplyError("forbidden", "thread_locked", {"post_id": parent_post})
+
+    if not env.system:
+        _require_group_comment_authority(state, signer=env.signer, post=p)
 
     comments[comment_id] = {
         "comment_id": comment_id,

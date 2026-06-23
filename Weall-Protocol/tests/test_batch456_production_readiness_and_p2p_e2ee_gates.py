@@ -14,9 +14,9 @@ def test_status_exposes_production_readiness_blockers_batch456() -> None:
     status = _read("Weall-Protocol/src/weall/api/routes_public_parts/status.py")
     assert '"block_production"' in status
     assert '"tokenomics"' in status
-    assert '"p2p_encrypted_messaging"' in status
+    assert '"protocol_native_private_messaging"' in status
     assert "public multi-validator BFT is not claimed" in status
-    assert "metadata remains visible" in status
+    assert "publicly inspectable protocol events" in status
 
 
 def test_reviewer_gate_and_ci_are_tracked_batch456() -> None:
@@ -40,6 +40,6 @@ def test_docs_do_not_overclaim_tokenomics_or_e2ee_batch456() -> None:
     assert "block production proof truth boundary" in gap
     assert "locked Genesis model" in econ
     assert "Permanently fee-free" in econ
-    assert "not final production P2P private messaging" in msg
-    assert "ratchet/forward-secrecy" in msg
+    assert "not a private messaging protocol" in msg
+    assert "Status: closed as unsupported" in msg
     assert "not as a finished public mainnet" in milestone

@@ -31,7 +31,7 @@ export const PROTOCOL_NATIVE_VERIFICATION_ALIASES = {
 
 export const VERIFICATION_SUMMARIES: Record<VerificationLevel, string> = {
   basic: "You can browse, set up your profile, and start account verification.",
-  verified: "You completed a basic human review. You can join groups, message people, and take part in basic community activity.",
+  verified: "You completed a basic human review. You can join groups, reply in public threads where permitted, and take part in basic community activity.",
   trusted: "You completed a live community review. You can create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities.",
 };
 

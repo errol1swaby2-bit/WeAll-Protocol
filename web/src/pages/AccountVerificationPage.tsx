@@ -12,7 +12,6 @@ import {
   submitSignedTxInSequence,
 } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
-import { ensureMessagingEncryptionIdentity } from "../lib/messageCrypto";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -549,20 +548,15 @@ export default function AccountVerificationPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
-        task: async () => {
-          const msgIdentity = await ensureMessagingEncryptionIdentity(acct);
-          return submitSignedTx({
-            account: acct,
-            tx_type: "ACCOUNT_REGISTER",
-            payload: {
-              pubkey: kp.pubkeyB64,
-              messaging_encryption_public_jwk: msgIdentity.publicJwk,
-              messaging_encryption_key_id: msgIdentity.keyId,
-            },
-            parent: null,
-            base,
-          });
-        },
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "ACCOUNT_REGISTER",
+          payload: {
+            pubkey: kp.pubkeyB64,
+          },
+          parent: null,
+          base,
+        }),
       });
       setResult(r);
       await refresh();

@@ -6,6 +6,8 @@ from weall.runtime.apply.identity import apply_identity
 from weall.runtime.apply.messaging import MessagingApplyError, apply_messaging
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import TxEnvelope
+from pydantic import ValidationError
+
 from weall.runtime.tx_schema import validate_tx_envelope
 
 
@@ -48,65 +50,44 @@ def _state_with_messaging_keys() -> dict:
     return st
 
 
-def test_direct_message_envelope_must_match_published_account_keys_batch450() -> None:
-    st = _state_with_messaging_keys()
-    out = apply_messaging(st, _dm_env("alice", 2, _dm_payload()))
-    assert out and out["applied"] == "DIRECT_MESSAGE_SEND"
-
-    bad_recipient_key = _dm_payload(recipient_encryption_public_jwk=_jwk("mallory-x", "mallory-y"))
+def test_direct_message_envelope_is_rejected_before_key_matching_batch450() -> None:
+    st: dict = {"accounts": {"alice": {}, "bob": {}}, "messaging": {}}
     with pytest.raises(MessagingApplyError) as ei:
-        apply_messaging(st, _dm_env("alice", 3, bad_recipient_key))
-    assert ei.value.reason == "recipient_messaging_encryption_public_key_mismatch"
-
-    bad_sender_key_id = _dm_payload(sender_encryption_key_id="msgenc:wrong")
-    with pytest.raises(MessagingApplyError) as ei2:
-        apply_messaging(st, _dm_env("alice", 4, bad_sender_key_id))
-    assert ei2.value.reason == "sender_messaging_encryption_key_mismatch"
+        apply_messaging(st, _dm_env("alice", 2, _dm_payload()))
+    assert ei.value.code == "PRIVATE_MESSAGING_UNSUPPORTED"
+    assert ei.value.reason == "protocol_native_direct_messages_are_unsupported"
 
 
-def test_messaging_key_rotation_requires_explicit_current_previous_key_batch450() -> None:
-    st = _state_with_messaging_keys()
+def test_messaging_key_registration_and_rotation_are_unsupported_batch450() -> None:
+    st: dict = {"accounts": {}}
 
     with pytest.raises(ApplyError) as ei:
-        apply_identity(st, _policy_env("alice", 2, {"messaging_encryption_public_jwk": _jwk("alice-x2", "alice-y2"), "messaging_encryption_key_id": "msgenc:alice-v2"}))
-    assert ei.value.reason == "messaging_encryption_key_rotation_requires_current_previous_key"
+        apply_identity(st, _acct_env("alice", 1, {"messaging_encryption_public_jwk": _jwk("alice-x", "alice-y"), "messaging_encryption_key_id": "msgenc:alice-v1"}))
+    assert ei.value.code == "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED"
 
+    st = {"accounts": {"alice": {"nonce": 1, "security_policy": {}}}}
     with pytest.raises(ApplyError) as ei2:
         apply_identity(st, _policy_env("alice", 2, {
             "messaging_encryption_public_jwk": _jwk("alice-x2", "alice-y2"),
             "messaging_encryption_key_id": "msgenc:alice-v2",
             "messaging_encryption_previous_key_id": "msgenc:alice-v1",
-            "messaging_encryption_rotation_reason": "short",
-        }))
-    assert ei2.value.reason == "messaging_encryption_key_rotation_reason_required"
-
-    apply_identity(st, _policy_env("alice", 2, {
-        "messaging_encryption_public_jwk": _jwk("alice-x2", "alice-y2"),
-        "messaging_encryption_key_id": "msgenc:alice-v2",
-        "messaging_encryption_previous_key_id": "msgenc:alice-v1",
-        "messaging_encryption_rotation_reason": "explicit user requested key rotation",
-    }))
-    policy = st["accounts"]["alice"]["security_policy"]
-    assert policy["messaging_encryption_key_id"] == "msgenc:alice-v2"
-    assert policy["messaging_encryption_previous_key_id"] == "msgenc:alice-v1"
-    assert policy["messaging_encryption_key_change_count"] == 1
-    assert len(policy["messaging_encryption_key_history"]) == 2
-    assert policy["messaging_encryption_forward_secrecy"] is False
-    assert policy["messaging_encryption_metadata_visible"] is True
-
-
-def test_account_security_policy_schema_accepts_explicit_rotation_fields_batch450() -> None:
-    env, parsed = validate_tx_envelope({
-        "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
-        "signer": "alice",
-        "nonce": 2,
-        "sig": "sig",
-        "payload": {
-            "messaging_encryption_public_jwk": _jwk("alice-x2", "alice-y2"),
-            "messaging_encryption_key_id": "msgenc:alice-v2",
-            "messaging_encryption_previous_key_id": "msgenc:alice-v1",
             "messaging_encryption_rotation_reason": "explicit user requested key rotation",
-        },
-    })
-    assert env.tx_type == "ACCOUNT_SECURITY_POLICY_SET"
-    assert parsed is not None
+        }))
+    assert ei2.value.code == "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED"
+
+
+def test_account_security_policy_schema_rejects_messaging_encryption_fields_batch450() -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        validate_tx_envelope({
+            "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+            "signer": "alice",
+            "nonce": 2,
+            "sig": "sig",
+            "payload": {
+                "messaging_encryption_public_jwk": _jwk("alice-x2", "alice-y2"),
+                "messaging_encryption_key_id": "msgenc:alice-v2",
+                "messaging_encryption_previous_key_id": "msgenc:alice-v1",
+                "messaging_encryption_rotation_reason": "explicit user requested key rotation",
+            },
+        })
+    assert "messaging_encryption_public_jwk" in str(excinfo.value)

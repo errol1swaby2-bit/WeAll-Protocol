@@ -664,38 +664,6 @@ export const weall = {
     );
   },
 
-  messageThreads(
-    a?: { limit?: number; cursor?: string | null } | string,
-    b?: string | HeadersInit,
-    c?: HeadersInit,
-  ): Promise<any> {
-    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
-    return apiGet(
-      withSearch("/v1/messages/threads", {
-        limit: params?.limit as number | undefined,
-        cursor: params?.cursor as string | null | undefined,
-      }),
-      base,
-      headers,
-    );
-  },
-
-  messageThread(
-    id: string,
-    a?: { limit?: number; cursor?: string | null } | string,
-    b?: string | HeadersInit,
-    c?: HeadersInit,
-  ): Promise<any> {
-    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
-    return apiGet(
-      withSearch(`/v1/messages/threads/${encodeURIComponent(id)}`, {
-        limit: params?.limit as number | undefined,
-        cursor: params?.cursor as string | null | undefined,
-      }),
-      base,
-      headers,
-    );
-  },
 
   proposals(
     a?: { limit?: number; stage?: string; activeOnly?: boolean; includeSummary?: boolean } | string,
@@ -725,6 +693,10 @@ export const weall = {
 
   stateSnapshot(base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet("/v1/state/snapshot", base, headers);
+  },
+
+  activityInbox(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/activity/inbox", base, headers);
   },
 
   disputes(

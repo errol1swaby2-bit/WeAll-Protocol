@@ -34,7 +34,7 @@ def test_public_group_membership_request_auto_accepts_for_demo_safe_join_surface
     assert group.get("membership_requests", {}) == {}
 
 
-def test_private_group_membership_request_remains_pending() -> None:
+def test_legacy_private_group_membership_request_autojoins_public_group() -> None:
     state = {
         "roles": {
             "groups_by_id": {
@@ -57,7 +57,9 @@ def test_private_group_membership_request_remains_pending() -> None:
     result = apply_groups(state, env)
 
     assert result is not None
-    assert result["membership"] == "pending"
+    assert result["membership"] == "accepted"
     group = state["roles"]["groups_by_id"]["g:private"]
-    assert "members" not in group or "@alice" not in group.get("members", {})
-    assert group["membership_requests"]["@alice"]["requested_at_nonce"] == 8
+    assert group.get("visibility") in {None, "public"}
+    assert group.get("read_visibility") in {None, "public"}
+    assert group.get("meta", {}).get("visibility") == "public"
+    assert group["members"]["@alice"]["role"] == "member"

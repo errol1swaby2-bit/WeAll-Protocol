@@ -10,26 +10,22 @@ WEB = ROOT / "web"
 sys.path.insert(0, str(BACKEND / "src"))
 
 
-def test_messaging_uses_messenger_style_routes_and_surfaces() -> None:
+def test_messaging_routes_are_removed_for_public_only_activity_surface() -> None:
     router = (WEB / "src/lib/router.ts").read_text(encoding="utf-8")
     app = (WEB / "src/App.tsx").read_text(encoding="utf-8")
     messaging = (WEB / "src/pages/Messaging.tsx").read_text(encoding="utf-8")
 
-    assert '| { path: "/messages/compose" }' in router
-    assert '| { path: "/messages/:id"; id: string }' in router
-    assert 'return { path: "/messages/compose" }' in router
-    assert 'return { path: "/messages/:id", id }' in router
+    assert '| { path: "/messages/compose" }' not in router
+    assert '| { path: "/messages/:id"; id: string }' not in router
+    assert 'path: "/activity"' in router
 
-    assert '<Messaging mode="hub" />' in app
-    assert '<Messaging mode="compose" />' in app
-    assert '<Messaging mode="thread" threadId={route.id} />' in app
+    assert '<Messaging mode="hub" />' not in app
+    assert '<Messaging mode="compose" />' not in app
+    assert '<Messaging mode="thread" threadId={route.id} />' not in app
 
-    assert 'nav("/messages/compose")' in messaging
-    assert 'nav(`/messages/${encodeURIComponent(thread.thread_id)}`)' in messaging
-    assert 'Compose message' in messaging
-    assert 'Send reply' in messaging
-    assert 'messengerChatButton' in messaging
-    assert 'messageBubbleRow' in messaging
+    assert 'nav("/messages/compose")' not in messaging
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging
+    assert "Open activity" in messaging
 
 
 def test_report_detail_does_not_submit_review_assignment_tx() -> None:

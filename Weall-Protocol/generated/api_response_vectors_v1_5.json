@@ -92,8 +92,8 @@
     },
     {
       "auth_case": "account_session_required",
-      "contract_auth": "account_session_required",
-      "contract_truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots.",
+      "contract_auth": "public_only_compatibility_stub_no_private_session_surface",
+      "contract_truth_boundary": "Compatibility stub only. WeAll does not provide protocol-native direct/private messaging; use /v1/activity/inbox for public-event-derived notices.",
       "error_codes": [
         "session_required",
         "session_invalid",

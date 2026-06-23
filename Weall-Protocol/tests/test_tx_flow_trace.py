@@ -28,6 +28,7 @@ _ALLOWED_CODES = {
     "parent_required_by_canon",
     "non_canonical_account_id",
     "invalid_account_id",
+    "PRIVATE_MESSAGING_UNSUPPORTED",
 }
 
 

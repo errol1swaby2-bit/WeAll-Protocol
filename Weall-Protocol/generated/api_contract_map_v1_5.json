@@ -12,7 +12,7 @@
     "helper_readiness": 1,
     "media": 6,
     "mempool": 1,
-    "messages": 2,
+    "messages": 3,
     "metrics": 1,
     "net_debug": 1,
     "net_relay": 5,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 142,
+  "route_count": 143,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -174,6 +174,28 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
+      "auth": "public_event_derived_account_optional_filter",
+      "cache_policy": "no_store_public_event_derived_read",
+      "error_model": "standard_api_error_envelope_or_public_activity_payload",
+      "function": "activity_inbox",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "messages",
+      "path": "/v1/activity/inbox",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "7e3956f9e1107ff7",
+      "route_path_without_v1_prefix": "/activity/inbox",
+      "source": "src/weall/api/routes_public_parts/messages.py",
+      "source_lineno": 40,
+      "summary": "",
+      "tags": [
+        "messages"
+      ],
+      "truth_boundary": "Activity inbox is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
+    },
+    {
       "auth": "public_read_redacted_snapshot",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
@@ -188,7 +210,7 @@
       "route_id": "0d0c21fba15f0d7d",
       "route_path_without_v1_prefix": "/chain/genesis",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1402,
+      "source_lineno": 1399,
       "summary": "",
       "tags": [
         "status"
@@ -210,7 +232,7 @@
       "route_id": "d90596655609b2d1",
       "route_path_without_v1_prefix": "/chain/head",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1434,
+      "source_lineno": 1431,
       "summary": "",
       "tags": [
         "status"
@@ -232,7 +254,7 @@
       "route_id": "4ecc6d509148c5f2",
       "route_path_without_v1_prefix": "/chain/identity",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1263,
+      "source_lineno": 1260,
       "summary": "",
       "tags": [
         "status"
@@ -254,7 +276,7 @@
       "route_id": "e2da20eef560658e",
       "route_path_without_v1_prefix": "/chain/manifest",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1426,
+      "source_lineno": 1423,
       "summary": "",
       "tags": [
         "status"
@@ -276,7 +298,7 @@
       "route_id": "86cd04c4c5a90d93",
       "route_path_without_v1_prefix": "/chain/state-root",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1388,
+      "source_lineno": 1385,
       "summary": "",
       "tags": [
         "status"
@@ -716,7 +738,7 @@
       "route_id": "216390ead2051b33",
       "route_path_without_v1_prefix": "/genesis/api/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1381,
+      "source_lineno": 1378,
       "summary": "",
       "tags": [
         "status"
@@ -738,7 +760,7 @@
       "route_id": "661f19e1d30f08fb",
       "route_path_without_v1_prefix": "/genesis/observer/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1376,
+      "source_lineno": 1373,
       "summary": "",
       "tags": [
         "status"
@@ -826,7 +848,7 @@
       "route_id": "29efd6a28c8692ed",
       "route_path_without_v1_prefix": "/groups",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 324,
+      "source_lineno": 274,
       "summary": "",
       "tags": [
         "groups"
@@ -848,7 +870,7 @@
       "route_id": "cdb02f51a1bac5b7",
       "route_path_without_v1_prefix": "/groups/join",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 442,
+      "source_lineno": 392,
       "summary": "",
       "tags": [
         "groups"
@@ -870,7 +892,7 @@
       "route_id": "88c87869abd7ebbd",
       "route_path_without_v1_prefix": "/groups/leave",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 472,
+      "source_lineno": 422,
       "summary": "",
       "tags": [
         "groups"
@@ -892,7 +914,7 @@
       "route_id": "d2252da524964f65",
       "route_path_without_v1_prefix": "/groups/{group_id}",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 362,
+      "source_lineno": 312,
       "summary": "",
       "tags": [
         "groups"
@@ -914,7 +936,7 @@
       "route_id": "e91c601cbde31684",
       "route_path_without_v1_prefix": "/groups/{group_id}/content",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 499,
+      "source_lineno": 449,
       "summary": "",
       "tags": [
         "groups"
@@ -936,7 +958,7 @@
       "route_id": "082e36186a8bca97",
       "route_path_without_v1_prefix": "/groups/{group_id}/feed",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 553,
+      "source_lineno": 509,
       "summary": "",
       "tags": [
         "groups"
@@ -958,7 +980,7 @@
       "route_id": "3b69ac9b201cc37e",
       "route_path_without_v1_prefix": "/groups/{group_id}/members",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 389,
+      "source_lineno": 339,
       "summary": "",
       "tags": [
         "groups"
@@ -980,7 +1002,7 @@
       "route_id": "476f099dcce4f6d4",
       "route_path_without_v1_prefix": "/groups/{group_id}/membership",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 378,
+      "source_lineno": 328,
       "summary": "",
       "tags": [
         "groups"
@@ -1186,11 +1208,11 @@
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
     {
-      "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
+      "auth": "public_only_compatibility_stub_no_private_session_surface",
+      "cache_policy": "no_store_hard_failure",
+      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
       "function": "message_threads",
-      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "idempotency": "safe_read_no_state_mutation_always_fails",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
@@ -1200,19 +1222,19 @@
       "route_id": "27b5531b67d10d08",
       "route_path_without_v1_prefix": "/messages/threads",
       "source": "src/weall/api/routes_public_parts/messages.py",
-      "source_lineno": 126,
+      "source_lineno": 26,
       "summary": "",
       "tags": [
         "messages"
       ],
-      "truth_boundary": "Thread summaries are viewer-scoped and require a valid account session. They are not generic public read snapshots."
+      "truth_boundary": "Compatibility stub only. WeAll does not provide protocol-native direct/private messaging; use /v1/activity/inbox for public-event-derived notices."
     },
     {
-      "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
-      "error_model": "standard_api_error_envelope; 403 session_missing/session_invalid; 404 not_found for inaccessible resources",
+      "auth": "public_only_compatibility_stub_no_private_session_surface",
+      "cache_policy": "no_store_hard_failure",
+      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
       "function": "message_thread",
-      "idempotency": "safe_authenticated_read_no_state_mutation",
+      "idempotency": "safe_read_no_state_mutation_always_fails",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
@@ -1222,12 +1244,12 @@
       "route_id": "46cfca94bc3a8d91",
       "route_path_without_v1_prefix": "/messages/threads/{thread_id:path}",
       "source": "src/weall/api/routes_public_parts/messages.py",
-      "source_lineno": 186,
+      "source_lineno": 33,
       "summary": "",
       "tags": [
         "messages"
       ],
-      "truth_boundary": "Thread detail reads are viewer-scoped and require membership plus a valid account session."
+      "truth_boundary": "Compatibility stub only. Direct/private message thread reads are unsupported because protocol-native activity must be publicly inspectable."
     },
     {
       "auth": "metrics_env_gated_public_when_enabled",
@@ -2784,7 +2806,7 @@
       "route_id": "be5d9602f9599ef5",
       "route_path_without_v1_prefix": "/status",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 885,
+      "source_lineno": 882,
       "summary": "",
       "tags": [
         "status"
@@ -2806,7 +2828,7 @@
       "route_id": "db51cc46f9730dc6",
       "route_path_without_v1_prefix": "/status/attestations",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1168,
+      "source_lineno": 1165,
       "summary": "",
       "tags": [
         "status"
@@ -2828,7 +2850,7 @@
       "route_id": "74a5409421093209",
       "route_path_without_v1_prefix": "/status/consensus",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1042,
+      "source_lineno": 1039,
       "summary": "",
       "tags": [
         "status"
@@ -2850,7 +2872,7 @@
       "route_id": "fa72cedc5632f049",
       "route_path_without_v1_prefix": "/status/consensus/forensics",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1102,
+      "source_lineno": 1099,
       "summary": "",
       "tags": [
         "status"
@@ -2894,7 +2916,7 @@
       "route_id": "1534569b4cda4bd2",
       "route_path_without_v1_prefix": "/status/launch-matrix",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 907,
+      "source_lineno": 904,
       "summary": "",
       "tags": [
         "status"
@@ -2916,7 +2938,7 @@
       "route_id": "208a266861a653b0",
       "route_path_without_v1_prefix": "/status/mempool",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1135,
+      "source_lineno": 1132,
       "summary": "",
       "tags": [
         "status"
@@ -2938,7 +2960,7 @@
       "route_id": "a210b04d984754f9",
       "route_path_without_v1_prefix": "/status/operator",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 949,
+      "source_lineno": 946,
       "summary": "",
       "tags": [
         "status"
@@ -2960,7 +2982,7 @@
       "route_id": "928b6cc7afdccd75",
       "route_path_without_v1_prefix": "/status/testnet-capabilities",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 934,
+      "source_lineno": 931,
       "summary": "",
       "tags": [
         "status"

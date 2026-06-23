@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -24,8 +24,6 @@ class _StrictModel(BaseModel):
 
 class AccountRegisterPayload(_StrictModel):
     pubkey: str = Field(..., min_length=1)
-    messaging_encryption_public_jwk: Json | None = None
-    messaging_encryption_key_id: str | None = Field(default=None, min_length=1)
 
 
 class AccountKeyAddPayload(_StrictModel):
@@ -75,10 +73,6 @@ class AccountSecurityPolicySetPayload(_StrictModel):
     lock_on_recovery_request: bool | None = None
     session_ttl_s: int | None = Field(default=None, ge=0)
     require_guardian_threshold_for_unlock: bool | None = None
-    messaging_encryption_public_jwk: Json | None = None
-    messaging_encryption_key_id: str | None = Field(default=None, min_length=1)
-    messaging_encryption_previous_key_id: str | None = Field(default=None, min_length=1)
-    messaging_encryption_rotation_reason: str | None = Field(default=None, min_length=1)
 
 
 class AccountLockPayload(_StrictModel):
@@ -502,43 +496,31 @@ class ContentShareCreatePayload(_StrictModel):
 
 
 class DirectMessageSendPayload(_StrictModel):
-    to: str = Field(
-        ...,
-        min_length=1,
-        )
-    # Batch 430+: direct messages are end-to-end encrypted at the client.
-    # Plaintext body/cid fields are intentionally rejected so consensus state and
-    # backend APIs never become the readable message store.
-    encryption: str = Field(..., min_length=1)
+    """Legacy rejected schema for stable DIRECT_MESSAGE_SEND errors.
+
+    The public-only protocol policy rejects this tx type before admission or
+    replay. The schema is retained only so canonical tx tooling can classify
+    legacy fixtures deterministically instead of treating the tx name as
+    unknown.
+    """
+
+    to: str = Field(..., min_length=1)
+    encryption: Literal["WEALL_E2EE_V1"]
     ciphertext_b64: str = Field(..., min_length=1)
     iv_b64: str = Field(..., min_length=1)
     aad_b64: str | None = Field(default=None, min_length=1)
-    sender_encryption_public_jwk: Json
-    recipient_encryption_public_jwk: Json
-    sender_encryption_key_id: str = Field(..., min_length=1)
-    recipient_encryption_key_id: str = Field(..., min_length=1)
+    message_id: str | None = Field(default=None, min_length=1)
     thread_id: str | None = Field(default=None, min_length=1)
-    message_id: str | None = Field(
-        default=None,
-        min_length=1,
-        )
-
-    @model_validator(mode="after")
-    def _require_encrypted_payload(self) -> "DirectMessageSendPayload":
-        if str(self.encryption or "").strip() != "WEALL_E2EE_V1":
-            raise ValueError("DIRECT_MESSAGE_SEND requires WEALL_E2EE_V1 encryption")
-        if not isinstance(self.sender_encryption_public_jwk, dict) or not self.sender_encryption_public_jwk:
-            raise ValueError("sender encryption public key is required")
-        if not isinstance(self.recipient_encryption_public_jwk, dict) or not self.recipient_encryption_public_jwk:
-            raise ValueError("recipient encryption public key is required")
-        return self
+    sender_encryption_key_id: str | None = Field(default=None, min_length=1)
+    recipient_encryption_key_id: str | None = Field(default=None, min_length=1)
+    sender_encryption_public_jwk: dict[str, Any] | None = None
+    recipient_encryption_public_jwk: dict[str, Any] | None = None
 
 
 class DirectMessageRedactPayload(_StrictModel):
-    message_id: str = Field(
-        ...,
-        min_length=1,
-        )
+    """Legacy rejected schema for stable DIRECT_MESSAGE_REDACT errors."""
+
+    message_id: str = Field(..., min_length=1)
     reason: str | None = None
 
 
@@ -941,12 +923,27 @@ class TreasuryAuditAnchorSetPayload(_StrictModel):
     anchor: Json = Field(...)
 
 
-class GroupCreatePayload(_StrictModel):
+class _PublicGroupPermissionsPayload(_StrictModel):
+    posting_permission: str | None = None
+    commenting_permission: str | None = None
+    voting_permission: str | None = None
+    moderation_permission: str | None = None
+    administration_permission: str | None = None
+    read_visibility: str | None = "public"
+
+    @model_validator(mode="after")
+    def _read_visibility_must_be_public(self):
+        if str(self.read_visibility or "public").strip().lower() != "public":
+            raise ValueError("GROUP_READ_VISIBILITY_MUST_BE_PUBLIC")
+        return self
+
+
+class GroupCreatePayload(_PublicGroupPermissionsPayload):
     group_id: str = Field(..., min_length=1)
     charter: str | None = None
 
 
-class GroupUpdatePayload(_StrictModel):
+class GroupUpdatePayload(_PublicGroupPermissionsPayload):
     group_id: str = Field(..., min_length=1)
     charter: str | None = None
 
@@ -1779,8 +1776,6 @@ TxPayloadModel = (
     BlockSetPayload,
     MuteSetPayload,
     ContentShareCreatePayload,
-    DirectMessageSendPayload,
-    DirectMessageRedactPayload,
     NotificationSubscribePayload,
     NotificationUnsubscribePayload,
     # Networking / Storage
@@ -1970,7 +1965,7 @@ TX_PAYLOADS: dict[str, Any] = {
     "BLOCK_SET": BlockSetPayload,
     "MUTE_SET": MuteSetPayload,
     "CONTENT_SHARE_CREATE": ContentShareCreatePayload,
-    # Messaging
+    # Legacy direct-message schema names are retained only for stable unsupported errors.
     "DIRECT_MESSAGE_SEND": DirectMessageSendPayload,
     "DIRECT_MESSAGE_REDACT": DirectMessageRedactPayload,
     # Notifications

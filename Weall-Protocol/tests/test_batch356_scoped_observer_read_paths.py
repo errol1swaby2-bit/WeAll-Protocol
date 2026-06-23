@@ -106,35 +106,23 @@ def test_public_snapshot_redacts_messaging_tree_batch356() -> None:
     assert "messages_by_id" not in state["messaging"]
 
 
-def test_messages_threads_are_session_scoped_and_bounded_batch356() -> None:
+def test_messages_threads_are_hard_disabled_by_public_only_rule_batch356() -> None:
     client = _client(_state())
 
-    missing = client.get("/v1/messages/threads")
-    assert missing.status_code == 403
-
-    alice = client.get("/v1/messages/threads?limit=10", headers=_auth("@alice"))
-    assert alice.status_code == 200, alice.text
-    body = alice.json()
-    assert body["ok"] is True
-    assert [t["thread_id"] for t in body["threads"]] == ["dm:@alice:@bob"]
-    assert body["threads"][0]["last_message"]["body"] == "hello alice"
-    assert "private carol" not in alice.text
-
-    bob = client.get("/v1/messages/threads?limit=1", headers=_auth("@bob"))
-    assert bob.status_code == 200, bob.text
-    assert len(bob.json()["threads"]) == 1
-    assert bob.json()["next_cursor"]
+    for path in ["/v1/messages/threads", "/v1/messages/threads?limit=10"]:
+        res = client.get(path, headers=_auth("@alice"))
+        assert res.status_code == 410, res.text
+        assert res.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"
+        assert "private carol" not in res.text
 
 
-def test_message_thread_detail_requires_membership_batch356() -> None:
+def test_message_thread_detail_is_hard_disabled_batch356() -> None:
     client = _client(_state())
 
-    alice = client.get("/v1/messages/threads/dm:@alice:@bob", headers=_auth("@alice"))
-    assert alice.status_code == 200, alice.text
-    assert [m["body"] for m in alice.json()["messages"]] == ["hello bob", "hello alice"]
-
-    carol = client.get("/v1/messages/threads/dm:@alice:@bob", headers=_auth("@carol"))
-    assert carol.status_code == 404
+    for account in ["@alice", "@carol"]:
+        res = client.get("/v1/messages/threads/dm:@alice:@bob", headers=_auth(account))
+        assert res.status_code == 410, res.text
+        assert res.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"
 
 
 def test_content_and_thread_return_media_summaries_with_paginated_comments_batch356() -> None:
@@ -163,9 +151,10 @@ def test_frontend_uses_scoped_read_paths_not_state_snapshot_batch356() -> None:
     api = (web / "api" / "weall.ts").read_text(encoding="utf-8")
 
     assert "weall.stateSnapshot(apiBase)" not in messaging
-    assert "weall.messageThreads" in messaging
-    assert "weall.messageThread" in messaging
-    assert "getAuthHeaders" in messaging
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging
+    assert "weall.messageThreads" not in messaging
+    assert "weall.messageThread" not in messaging
     assert "weall.stateSnapshot(apiBase).catch" not in review
     assert "contentMedia = asArray(contentObj?.media)" in review
-    assert "/v1/messages/threads" in api
+    assert "/v1/activity/inbox" in api
+    assert "/v1/messages/threads" not in api

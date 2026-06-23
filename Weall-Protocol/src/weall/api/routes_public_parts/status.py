@@ -830,14 +830,11 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "public_multi_validator_bft_ready": False,
             "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
         },
-        "p2p_encrypted_messaging": {
-            "scheme": "WEALL_E2EE_V1",
-            "body_plaintext_rejected": True,
-            "metadata_visible": True,
-            "forward_secrecy": False,
-            "signal_grade": False,
-            "production_ready": False,
-            "claim": "direct-message bodies are client-side encrypted and plaintext is rejected; metadata remains visible and production P2P private messaging requires ratcheting, device lifecycle, key verification, and external crypto review",
+        "protocol_native_private_messaging": {
+            "supported": False,
+            "error_code": "PRIVATE_MESSAGING_UNSUPPORTED",
+            "encrypted_payloads_supported": False,
+            "claim": "WeAll is a public civic protocol. Protocol-native direct/private messaging and encrypted social payloads are unsupported; notifications derive from publicly inspectable protocol events.",
         },
         "poh": poh_policy,
         "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),
@@ -1299,7 +1296,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
     return {
         "ok": bool(chain_id and tx_index_hash and protocol_profile_hash and not manifest_issues),
         "stage": "first_trusted_external_observer_rehearsal",
-        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, mainnet readiness, or production-grade private messaging.",
+        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, mainnet readiness, or protocol-native private messaging.",
         "compatibility": {
             "chain_id": chain_id,
             "height": _safe_int(ident.get("height"), 0),
@@ -1365,7 +1362,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
             "validator promotion",
             "public multi-validator BFT",
             "live economics or treasury spending",
-            "production-grade private messaging",
+            "protocol-native private messaging",
             "mainnet readiness",
         ],
         "mode": mode,

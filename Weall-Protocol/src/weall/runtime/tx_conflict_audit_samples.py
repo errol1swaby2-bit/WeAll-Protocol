@@ -94,11 +94,10 @@ def build_conflict_probe_payload(tx_type: str, *, seed: str = "1") -> Json:
     if tx_type_norm in {"FOLLOW_SET", "BLOCK_SET", "MUTE_SET"}:
         payload["actor_id"] = _seeded(seed, "acct-actor")
         payload["target_user_id"] = _seeded(seed, "acct-target")
-    elif tx_type_norm == "DIRECT_MESSAGE_SEND":
-        payload["recipient_id"] = _seeded(seed, "acct-bob")
-        payload["body"] = f"hello-{seed}"
-    elif tx_type_norm == "DIRECT_MESSAGE_REDACT":
-        payload["message_id"] = _seeded(seed, "message")
+    elif tx_type_norm in {"DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"}:
+        # Retained only as rejected legacy transaction names.  Do not generate
+        # message content samples that imply support.
+        payload["unsupported_code"] = "PRIVATE_MESSAGING_UNSUPPORTED"
     elif tx_type_norm in {"NOTIFICATION_SUBSCRIBE", "NOTIFICATION_UNSUBSCRIBE", "NOTIFICATION_EMIT_RECEIPT"}:
         payload["topic"] = _seeded(seed, "notifications")
     elif tx_type_norm == "BALANCE_TRANSFER":

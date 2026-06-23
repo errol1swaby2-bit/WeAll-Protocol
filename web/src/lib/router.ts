@@ -15,7 +15,7 @@ export type RightRailContext =
   | "review_item"
   | "reviews"
   | "post_create"
-  | "messaging"
+  | "activity"
   | "verification"
   | "live_room"
   | "account"
@@ -76,9 +76,7 @@ export type RouteMatch =
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
-  | { path: "/messages" }
-  | { path: "/messages/compose" }
-  | { path: "/messages/:id"; id: string }
+  | { path: "/activity" }
   | { path: "/decisions" }
   | { path: "/decisions/create" }
   | { path: "/decisions/:id"; id: string }
@@ -356,63 +354,22 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: [],
     }),
   },
-  "/messages": {
-    section: "Messages",
-    label: "Messages",
-    title: "Messages",
-    description: "Send and read direct messages when your account status allows it.",
+  "/activity": {
+    section: "Activity",
+    label: "Activity",
+    title: "Activity",
+    description: "Review public-event-derived mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts.",
     public: false,
     authRequired: true,
     requiresReady: true,
-    minPohTier: 1,
     mode: "hub",
     fab: "none",
-    rightRail: "messaging",
+    rightRail: "activity",
     normalNav: true,
     dataContract: contract({
-      primaryObject: "Messages",
-      contextPanelData: "Conversation list and messaging eligibility",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
-    }),
-  },
-  "/messages/compose": {
-    section: "Messages",
-    label: "New Message",
-    title: "New Message",
-    description: "Compose one focused direct message.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 1,
-    mode: "action",
-    fab: "none",
-    rightRail: "messaging",
-    normalNav: false,
-    breadcrumbs: [{ label: "Messages", href: "/messages" }],
-    dataContract: contract({
-      primaryObject: "Message composer",
-      contextPanelData: "Messaging eligibility and active session",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
-    }),
-  },
-  "/messages/:id": {
-    section: "Messages",
-    label: "Conversation",
-    title: "Conversation",
-    description: "Read and respond to one direct conversation.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 1,
-    mode: "detail",
-    fab: "none",
-    rightRail: "messaging",
-    normalNav: false,
-    breadcrumbs: [{ label: "Messages", href: "/messages" }],
-    dataContract: contract({
-      primaryObject: "Conversation",
-      contextPanelData: "Conversation thread and reply eligibility",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
+      primaryObject: "Public activity notifications",
+      contextPanelData: "Public protocol events relevant to this account",
+      blockingDependencies: ["Account session", "Public protocol event index"],
     }),
   },
   "/decisions": {
@@ -703,7 +660,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/home", label: "Home", description: "Your starting point and pending actions.", icon: "⌂", public: false, requiresReady: true },
       { href: "/feed", label: "Feed", description: "Read and create posts.", icon: "≋", public: false, requiresReady: true },
       { href: "/groups", label: "Groups", description: "Communities and membership.", icon: "◌", public: true },
-      { href: "/messages", label: "Messages", description: "Direct conversations.", icon: "✉", public: false, requiresReady: true, minPohTier: 1 },
+      { href: "/activity", label: "Activity", description: "Public notices and assignments.", icon: "✉", public: false, requiresReady: true },
       { href: "/decisions", label: "Decisions", description: "Community votes and results.", icon: "▣", public: true },
       { href: "/reports", label: "Reports", description: "Reported content and case status.", icon: "!", public: true },
       { href: "/reviews", label: "Review Center", description: "Lane-separated review duties.", icon: "✓", public: false, requiresReady: true, minPohTier: 2 },
@@ -742,12 +699,7 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/reviews") return { path: "/reviews" };
   if (r === "/groups") return { path: "/groups" };
   if (r === "/groups/create") return { path: "/groups/create" };
-  if (r === "/messages") return { path: "/messages" };
-  if (r === "/messages/compose") return { path: "/messages/compose" };
-  if (r.startsWith("/messages/")) {
-    const id = decodeRoutePart(r.slice("/messages/".length));
-    if (id) return { path: "/messages/:id", id };
-  }
+  if (r === "/activity") return { path: "/activity" };
   if (r === "/decisions") return { path: "/decisions" };
   if (r === "/decisions/create") return { path: "/decisions/create" };
   if (r === "/reports") return { path: "/reports" };
@@ -837,7 +789,7 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   const target = matchRoute(href).path;
   if (target === "/home") return current === "/home";
   if (target === "/feed") return current === "/feed" || current === "/content/:id" || current === "/thread/:id" || current === "/post/:id";
-  if (target === "/messages") return current === "/messages" || current === "/messages/compose" || current === "/messages/:id";
+  if (target === "/activity") return current === "/activity";
   if (target === "/decisions") return current === "/decisions" || current === "/decisions/:id" || current === "/decisions/create";
   if (target === "/reports") return current === "/reports" || current === "/reports/:id";
   if (target === "/reviews") return current === "/reviews" || current === "/reviews/:id";

@@ -67,9 +67,9 @@ Current intended behavior:
 
 This does not complete public moderation or constitutional due-process for mainnet. It closes the local rehearsal contradiction where successful actions remained visible as stale active work.
 
-## Messaging E2EE v1 limitations
+## Protocol-native private messaging unsupported
 
-Direct-message plaintext is rejected and ciphertext envelopes are bound to the
+WeAll is public-only. Protocol-native private/direct messaging, encrypted social payloads, private groups, and member-only-readable group content are rejected by backend validation and replay.
 currently published account messaging keys. This is safer for trusted testnet
 use, but it is not final production-safe private messaging. Metadata remains
 visible, browser-local key storage is still a controlled-testnet compromise, and
@@ -84,20 +84,20 @@ This improves the local rehearsal, but it does not make media transport authorit
 
 ## Batch 456 production-readiness gates
 
-The repository now contains explicit production-oriented readiness gates for the remaining pre-external-tester blockers: local block-production proof with an explicit non-BFT boundary, locked tokenomics/economics, full local production-oriented rehearsal completion, reviewer/CI evidence, and production P2P encrypted messaging requirements.
+The repository now contains explicit production-oriented readiness gates for the remaining pre-external-tester blockers: local block-production proof with an explicit non-BFT boundary, locked tokenomics/economics, full local production-oriented rehearsal completion, reviewer/CI evidence, and public-only protocol enforcement.
 
 These gates do not mean the blockers are complete. They make the blockers reviewable and prevent overclaiming:
 
 - block production remains local/rehearsal-oriented until a separate production validator/BFT proof and adversarial BFT evidence pass;
 - tokenomics remain locked by default and live economics are not claimed;
-- direct-message bodies are encrypted, but metadata remains visible and Signal-grade/private P2P messaging is not claimed;
+- protocol-native direct messages and private P2P messaging are unsupported;
 - the reviewer readiness workflow is a targeted reproducibility gate, not a substitute for full pytest or a public testnet.
 
 ## Batch 458-461 implementation limits
 
 This batch begins implementation of the remaining production-oriented surfaces:
 local block-production proof with an explicit non-BFT boundary, economics activation/transfer/treasury read models,
-P2P E2EE device-key backup/recovery controls, and TURN/ICE live-room diagnostics.
+public activity-notification controls and TURN/ICE live-room diagnostics.
 
 These are still not public-testnet or mainnet claims. The repository now exposes
 stronger proof and user-facing controls, but public multi-validator BFT, live

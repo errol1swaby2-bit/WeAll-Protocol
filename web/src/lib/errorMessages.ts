@@ -98,6 +98,16 @@ export function translateBackendError(error: unknown, fallback = "This action co
   const needle = `${code} ${rawMessage}`.toLowerCase();
   const technicalMessage = rawMessage && rawMessage !== fallback ? rawMessage : undefined;
 
+
+  if (includesAny(needle, ["private_messaging_unsupported", "private_groups_unsupported", "encrypted_protocol_payload_unsupported", "group_read_visibility_must_be_public"])) {
+    return {
+      code: "action_unavailable",
+      title: "Public-only protocol rule",
+      message: "WeAll protocol content is publicly inspectable. Private messaging, private groups, and encrypted protocol payloads are not supported.",
+      technicalMessage,
+    };
+  }
+
   if (includesAny(needle, ["duplicate_submission_blocked", "already submitting", "signer_submission_busy", "signed action", "busy"])) {
     return {
       code: "already_recorded",

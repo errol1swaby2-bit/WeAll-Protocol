@@ -66,8 +66,6 @@ ACTION_REQUIRED_POH_TIER: dict[str, int] = {
 
     # Tier 1: basic verified-human participation after native async review.
     "BALANCE_TRANSFER": 1,
-    "DIRECT_MESSAGE_SEND": 1,
-    "DIRECT_MESSAGE_REDACT": 1,
     "FOLLOW_SET": 1,
     "BLOCK_SET": 1,
     "MUTE_SET": 1,

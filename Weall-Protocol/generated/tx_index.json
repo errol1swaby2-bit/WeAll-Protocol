@@ -480,7 +480,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "eb5a9ac13e6e922bf0256abc77a6ad9bd6dfa26556a2ddbfb76d526ce2927a6f",
+  "source_sha256": "c86ca2df6678b7e1464e75e20708176e4072fde9d3738388ebeeb0268a67af7f",
   "tx_types": [
     {
       "context": "mempool",
@@ -2263,28 +2263,28 @@
       "receipt_only": true
     },
     {
-      "context": "mempool",
-      "domain": "Messaging",
+      "context": "rejected",
+      "domain": "Unsupported",
       "gates": {
-        "subject_gate": "Tier1+"
+        "subject_gate": "Unsupported"
       },
       "id": "bbb657b08a67cb1a",
       "name": "DIRECT_MESSAGE_SEND",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier1+"
+      "subject_gate": "Unsupported"
     },
     {
-      "context": "mempool",
-      "domain": "Messaging",
+      "context": "rejected",
+      "domain": "Unsupported",
       "gates": {
-        "subject_gate": "Tier1+"
+        "subject_gate": "Unsupported"
       },
       "id": "f55d415866d64f0f",
       "name": "DIRECT_MESSAGE_REDACT",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier1+"
+      "subject_gate": "Unsupported"
     },
     {
       "context": "mempool",

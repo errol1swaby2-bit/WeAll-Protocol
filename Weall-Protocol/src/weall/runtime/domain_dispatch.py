@@ -30,6 +30,7 @@ from weall.runtime.apply.storage import apply_storage
 from weall.runtime.apply.treasury import apply_treasury
 from weall.runtime.errors import ApplyError
 from weall.runtime.metrics import inc_counter
+from weall.runtime.public_protocol_policy import public_protocol_policy_violation
 from weall.runtime.state_invariants import ensure_state
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_contracts import handler_name_for_tx_type, resolve_applier_for_tx_type
@@ -202,6 +203,15 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
             pass
 
     t = _tx_type(env)
+
+    public_only_violation = public_protocol_policy_violation(env)
+    if public_only_violation is not None:
+        raise ApplyError(
+            public_only_violation.code,
+            public_only_violation.reason,
+            public_only_violation.details,
+        )
+
     txdef = _get_txdef(t)
     if not isinstance(txdef, dict):
         raise ApplyError("invalid_tx", "noncanonical_tx_type", {"tx_type": t})

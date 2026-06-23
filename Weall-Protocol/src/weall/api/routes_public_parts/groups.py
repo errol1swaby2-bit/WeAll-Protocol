@@ -42,18 +42,7 @@ class GroupJoinLeaveRequest(BaseModel):
 
 
 def _group_is_private(g: dict[str, Any]) -> bool:
-    if bool(g.get("is_private", False)):
-        return True
-    vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
-    if vis in {"private", "closed", "members"}:
-        return True
-    meta = g.get("meta")
-    if isinstance(meta, dict):
-        if bool(meta.get("is_private", False)):
-            return True
-        vis2 = str(meta.get("visibility") or meta.get("privacy") or "").strip().lower()
-        if vis2 in {"private", "closed", "members"}:
-            return True
+    # Public-only redesign: group state may restrict participation, never reads.
     return False
 
 
@@ -154,16 +143,10 @@ def _redacted_members_map(value: Any) -> dict[str, Any]:
 
 
 def _redact_group_membership_maps(group: dict[str, Any]) -> dict[str, Any]:
-    out = dict(group)
-    if "members" in out:
-        out["members"] = _redacted_members_map(out.get("members"))
-    roles = out.get("roles")
-    if isinstance(roles, dict):
-        roles_out = dict(roles)
-        if "members" in roles_out:
-            roles_out["members"] = _redacted_members_map(roles_out.get("members"))
-        out["roles"] = roles_out
-    return out
+    # Historical name retained for callers.  In the public-only model, protocol
+    # group membership and role activity is inspectable; local mute/block/filter
+    # controls do not create private protocol state.
+    return dict(group)
 
 def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None) -> dict[str, Any]:
     group = _group_record(st, group_id)
@@ -192,9 +175,9 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
         elif is_pending:
             phase = "pending"
         else:
-            phase = "eligible" if not _group_is_private(group) else "not_member"
+            phase = "eligible"
 
-    visibility = "private" if _group_is_private(group) else "public"
+    visibility = "public"
     return {
         "ok": True,
         "group_id": group_id,
@@ -210,35 +193,9 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
 def _require_group_access(
     request: Request, st: dict[str, Any], *, group_id: str, group_meta: dict[str, Any]
 ) -> str:
-    if not _group_is_private(group_meta):
-        return ""
-
-    try:
-        acct = require_account_session(request, st)
-    except PermissionError:
-        raise ApiError.forbidden("forbidden", "Private group requires login")
-
-    # Canonical membership lives in groups_by_id[*].members. Older builds stored
-    # membership under group_roles_by_id[*].members; support both.
-    by_state = _groups_by_id(st)
-    g = by_state.get(group_id)
-    if isinstance(g, dict):
-        members = g.get("members")
-        if isinstance(members, dict) and acct in members:
-            return acct
-
-    roles = _group_roles_by_id(st)
-    g_roles = roles.get(group_id)
-    if isinstance(g_roles, dict):
-        members2 = g_roles.get("members")
-        if isinstance(members2, dict) and acct in members2:
-            return acct
-
-    raise ApiError.forbidden(
-        "forbidden", "Not a group member", {"group_id": group_id, "account": acct}
-    )
-
-    return acct
+    # Read access is always public.  Membership/role checks belong only on write
+    # skeletons and runtime apply paths.
+    return ""
 
 
 def _is_group_member(st: dict[str, Any], *, group_id: str, account: str | None) -> bool:
@@ -288,10 +245,9 @@ def _group_content_can_show(
 ) -> bool:
     """Visibility guard for group content/feed read paths.
 
-    Public group endpoints must not leak private/unlisted group posts by
-    default.  Non-public posts are visible only to an authenticated group member
-    through an explicit private/all visibility request. Private groups already
-    require membership via ``_require_group_access`` before this helper runs.
+    Public-only protocol rules require group content to be readable through the
+    group surface regardless of membership.  Membership may gate participation,
+    but it must never gate read visibility.
     """
 
     vis = _post_visibility(post)
@@ -308,16 +264,10 @@ def _group_content_can_show(
     if requested_visibility == "public":
         return False
 
-    # For public groups, private/all scoped group reads require membership. For
-    # private groups the caller is already a member because _require_group_access
-    # has run, but checking again keeps the helper self-contained.
-    if requested_visibility not in {"private", "all", "members", "scoped"}:
-        return False
-
-    viewer = _group_content_viewer(request, st)
-    if not viewer:
-        return False
-    return _is_group_member(st, group_id=group_id, account=viewer)
+    # Non-public visibility values are rejected at transaction admission/apply
+    # time and at route query validation.  Legacy persisted non-public posts are
+    # not surfaced as private archives.
+    return False
 
 
 @router.get("/groups")
@@ -391,7 +341,7 @@ def v1_group_members(group_id: str, request: Request):
     g = _group_record(st, group_id)
     if not isinstance(g, dict):
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
-    _require_group_access(request, st, group_id=group_id, group_meta=g)
+    # Membership lists are public protocol activity in the public-only model.
 
     # Prefer canonical membership storage in groups_by_id.
     by_state = _groups_by_id(st)
@@ -509,13 +459,19 @@ def v1_group_content(group_id: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
+    if visibility in {"private", "members", "scoped", "members_only", "member_only"}:
+        raise ApiError.bad_request(
+            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "Group read visibility must be public.",
+            {"group_id": group_id, "visibility": visibility},
+        )
+    if visibility not in {"public", "group", "all"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
     filtered: list[dict[str, Any]] = []
     for obj in posts:
-        if visibility in {"public", "private", "group"} and _post_visibility(obj) != visibility:
+        if visibility in {"public", "group"} and _post_visibility(obj) != visibility:
             continue
         if not _group_content_can_show(
             request,
@@ -567,7 +523,13 @@ def v1_group_feed(group_id: str, request: Request):
     author = _str_param(qp.get("author")).strip()
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
+    if visibility in {"private", "members", "scoped", "members_only", "member_only"}:
+        raise ApiError.bad_request(
+            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "Group read visibility must be public.",
+            {"group_id": group_id, "visibility": visibility},
+        )
+    if visibility not in {"public", "group", "all"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
@@ -580,7 +542,7 @@ def v1_group_feed(group_id: str, request: Request):
         if author and _str_param(obj.get("author")).strip() != author:
             continue
 
-        if visibility in {"public", "private", "group"}:
+        if visibility in {"public", "group"}:
             if _post_visibility(obj) != visibility:
                 continue
         if not _group_content_can_show(

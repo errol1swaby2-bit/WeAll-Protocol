@@ -37,17 +37,13 @@ def test_create_post_has_group_destination_selector_and_group_payload_batch426()
     assert "Choose a group above to route it into a group feed." in page
 
 
-def test_messaging_thread_auto_refreshes_and_polls_after_send_batch426() -> None:
+def test_messaging_surface_is_public_only_redirect_batch426() -> None:
     page = _read("pages/Messaging.tsx")
 
-    assert "loadMessages(opts?: { silent?: boolean })" in page
-    assert "loadingMessagesRef" in page
-    assert "window.setInterval" in page
-    assert "mode === \"thread\" ? 2500 : 5000" in page
-    assert "entityTypes: [\"account\", \"message\"]" in page
-    assert "await sleep(650)" in page
-    assert "await loadMessages({ silent: true })" in page
-    assert "Auto-refresh" in page
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in page
+    assert "Open activity" in page
+    assert "loadMessages(opts?: { silent?: boolean })" not in page
+    assert "window.setInterval" not in page
 
 
 def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
@@ -59,13 +55,13 @@ def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> Non
     assert "waiting {missingRemoteAccounts.length}" in page
 
 
-def test_batch447_messaging_auto_publishes_encryption_key_before_send() -> None:
+def test_batch447_messaging_key_autopublish_removed_by_public_only_rule() -> None:
     page = _read("pages/Messaging.tsx")
 
-    assert "autoPublishAttemptedRef" in page
-    assert "publishMessagingEncryptionKey({ silent: true })" in page
-    assert "Encrypted messaging is being prepared" in page
-    assert "Retry key setup" in page
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in page
+    assert "autoPublishAttemptedRef" not in page
+    assert "publishMessagingEncryptionKey({ silent: true })" not in page
+    assert "Retry key setup" not in page
 
 
 def test_batch447_appeal_controls_are_creator_only_in_dispute_detail() -> None:

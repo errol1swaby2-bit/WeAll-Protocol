@@ -1,24 +1,9 @@
-# Messaging End-to-End Encryption
+# Protocol-Native Messaging Status
 
-Status: Batch 430 testnet-readiness hardening.
+Status: removed / unsupported by the public-only protocol redesign.
 
-Direct messages are now designed as client-side encrypted payloads. The frontend encrypts message plaintext before submitting `DIRECT_MESSAGE_SEND`. Consensus state and backend APIs store only an encrypted envelope:
+WeAll does not provide protocol-native encrypted direct messages, encrypted P2P chat, message threads, private threads, or end-to-end encrypted social payloads. Historical E2EE messaging work is retained only as legacy context; current runtime admission and replay reject `DIRECT_MESSAGE_SEND`, `DIRECT_MESSAGE_REDACT`, encrypted protocol payload fields, and member-only-readable group content.
 
-- `encryption = WEALL_E2EE_V1`
-- `ciphertext_b64`
-- `iv_b64`
-- sender/recipient messaging encryption public keys
-- sender/recipient messaging encryption key IDs
+The supported replacement is a public activity inbox derived from public protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts.
 
-Plaintext `body` and plaintext message `cid` fields are rejected by the messaging apply path. The backend remains authoritative for membership, session access, nonce/signature checks, transaction commitment, and message indexing, but it is not the plaintext message reader.
-
-## Current limitations
-
-- This is browser/device E2EE for the current frontend key store. A user must keep the same messaging encryption private key on the device to read old messages.
-- The messaging public key is published through account security policy state.
-- The private messaging key is local device material and must not be sent to the backend.
-- This does not yet include multi-device encrypted key backup, encrypted attachment bundles, key rotation UX, or safety-number verification.
-
-## Audit rule
-
-A future audit must fail if `DIRECT_MESSAGE_SEND` accepts plaintext `body` or plaintext `cid` into consensus state.
+External private communication is outside protocol scope.

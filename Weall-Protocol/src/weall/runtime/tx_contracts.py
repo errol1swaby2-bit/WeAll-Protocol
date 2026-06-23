@@ -23,6 +23,7 @@ from weall.runtime.apply.roles import ROLES_TX_TYPES, apply_roles
 from weall.runtime.apply.social import SOCIAL_TX_TYPES, apply_social
 from weall.runtime.apply.storage import apply_storage
 from weall.runtime.apply.treasury import TREASURY_TX_TYPES, apply_treasury
+from weall.runtime.public_protocol_policy import PRIVATE_MESSAGE_TX_TYPES, PRIVATE_MESSAGING_UNSUPPORTED
 from weall.runtime.tx_schema import model_for_tx_type
 from weall.tx.canon import TxIndex
 
@@ -248,6 +249,7 @@ def build_tx_contract_map(canon: TxIndex | Json | None = None) -> list[Json]:
         txdef = idx.get(tx_type, {})
         txdef = txdef if isinstance(txdef, dict) else {}
         claims = handler_claims_for_tx_type(tx_type)
+        unsupported = tx_type in PRIVATE_MESSAGE_TX_TYPES
         rows.append(
             {
                 "tx_type": tx_type,
@@ -255,11 +257,13 @@ def build_tx_contract_map(canon: TxIndex | Json | None = None) -> list[Json]:
                 "origin": str(txdef.get("origin") or ""),
                 "context": str(txdef.get("context") or ""),
                 "receipt_only": bool(txdef.get("receipt_only", False)),
-                "handler": claims[0] if len(claims) == 1 else None,
-                "claim_count": len(claims),
-                "claim_handlers": claims,
+                "handler": "unsupported" if unsupported else (claims[0] if len(claims) == 1 else None),
+                "claim_count": 1 if unsupported else len(claims),
+                "claim_handlers": ["unsupported"] if unsupported else claims,
                 "schema_covered": model_for_tx_type(tx_type) is not None,
                 "subject_gate": str(txdef.get("subject_gate") or ""),
+                "unsupported": bool(unsupported),
+                "unsupported_code": PRIVATE_MESSAGING_UNSUPPORTED if unsupported else "",
             }
         )
     rows.sort(key=lambda row: str(row["tx_type"]))

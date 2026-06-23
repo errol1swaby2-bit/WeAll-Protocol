@@ -262,14 +262,11 @@ def test_group_members_and_vote_maps_are_paginated_batch360() -> None:
         assert dispute_votes.json()["next_cursor"]
 
 
-def test_message_thread_list_omits_full_message_ids_batch360() -> None:
+def test_legacy_message_thread_routes_are_public_only_stubs_batch360() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         listing = client.get("/v1/messages/threads", headers=_auth("@alice"))
-        assert listing.status_code == 200, listing.text
-        thread = listing.json()["threads"][0]
-        assert thread["message_count"] == 2
-        assert "message_ids" not in thread
+        assert listing.status_code == 410, listing.text
+        assert listing.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"
         detail = client.get("/v1/messages/threads/dm:1?limit=1", headers=_auth("@alice"))
-        assert detail.status_code == 200, detail.text
-        assert len(detail.json()["messages"]) == 1
-        assert detail.json()["next_cursor"]
+        assert detail.status_code == 410, detail.text
+        assert detail.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"

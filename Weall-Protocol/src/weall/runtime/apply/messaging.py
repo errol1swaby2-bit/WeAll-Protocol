@@ -452,14 +452,16 @@ MESSAGING_TX_TYPES: set[str] = {
 
 
 def apply_messaging(state: Json, env: TxEnvelope) -> Json | None:
-    """Apply Messaging txs. Returns meta dict if handled; otherwise None."""
-    t = str(env.tx_type or "").strip()
+    """Reject legacy messaging txs deterministically.
+
+    This direct module guard protects test harnesses, migrations, and any future
+    dispatcher changes that might bypass the shared public_protocol_policy check.
+    """
+    t = str(env.tx_type or "").strip().upper()
     if t not in MESSAGING_TX_TYPES:
         return None
-
-    if t == "DIRECT_MESSAGE_SEND":
-        return _apply_direct_message_send(state, env)
-    if t == "DIRECT_MESSAGE_REDACT":
-        return _apply_direct_message_redact(state, env)
-
-    return None
+    raise MessagingApplyError(
+        "PRIVATE_MESSAGING_UNSUPPORTED",
+        "protocol_native_direct_messages_are_unsupported",
+        {"tx_type": t},
+    )

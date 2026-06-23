@@ -107,8 +107,11 @@ def _apply_messaging_encryption_policy(policy: Json, p: Json, env: TxEnvelope) -
     encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
     if not isinstance(encryption_pub, dict) and not encryption_key_id:
         return policy
-    if not isinstance(encryption_pub, dict) or not encryption_key_id:
-        raise ApplyError("invalid_tx", "messaging_encryption_key_and_public_jwk_required", {})
+    raise ApplyError(
+        "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
+        "protocol_native_messaging_encryption_keys_are_unsupported",
+        {"tx_type": _as_str(getattr(env, "tx_type", "")), "field": "messaging_encryption"},
+    )
 
     public_jwk = _canonical_messaging_public_jwk(encryption_pub)
     current_key_id = _as_str(policy.get("messaging_encryption_key_id") or "").strip()

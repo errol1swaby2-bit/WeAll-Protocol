@@ -43,15 +43,13 @@ def test_block_production_readiness_endpoint_and_script_batch457() -> None:
     assert "observer_reported_as_producer" in script
 
 
-def test_messaging_peer_trust_on_first_use_and_key_change_warning_batch457() -> None:
+def test_messaging_peer_trust_removed_by_public_only_rule_batch457() -> None:
     crypto = _read("web/src/lib/messageCrypto.ts")
     messaging = _read("web/src/pages/Messaging.tsx")
 
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in crypto
     assert "readTrustedMessagingPeer" in crypto
-    assert "trustMessagingPeerKey" in crypto
-    assert "messagingPeerTrustState" in crypto
-    assert "status: \"changed\"" in crypto
-    assert "Recipient keys are trusted on first use" in messaging
-    assert "The messaging key for" in messaging
-    assert "explicit confirmation" in messaging
-    assert "trustMessagingPeerKey" in messaging
+    assert "status: \"changed\"" not in crypto
+    assert "Recipient keys are trusted on first use" not in messaging
+    assert "trustMessagingPeerKey" not in messaging
+    assert "Open activity" in messaging

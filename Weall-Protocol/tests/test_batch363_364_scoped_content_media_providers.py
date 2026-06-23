@@ -134,22 +134,17 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_private_group_content_requires_membership_and_uses_media_summaries_batch363() -> None:
+def test_legacy_private_group_content_is_publicly_readable_batch363() -> None:
     with _client(_state()) as client:
-        anon = client.get("/v1/groups/g-private/content")
-        assert anon.status_code == 403
-
-        non_member = client.get("/v1/groups/g-private/content", headers=_auth("@eve"))
-        assert non_member.status_code == 403
-
-        member = client.get("/v1/groups/g-private/content", headers=_auth("@alice"))
-        assert member.status_code == 200, member.text
-        body = member.json()
-        assert body["ok"] is True
-        assert body["items"][0]["post_id"] == "post:g-private"
-        media = body["items"][0]["media"][0]
-        assert media["fetch_path"] == f"/v1/media/proxy/{CID}"
-        assert media["load_policy"] == "viewport"
+        for headers in [None, _auth("@eve"), _auth("@alice")]:
+            res = client.get("/v1/groups/g-private/content", headers=headers or {})
+            assert res.status_code == 200, res.text
+            body = res.json()
+            assert body["ok"] is True
+            assert body["items"][0]["post_id"] == "post:g-private"
+            media = body["items"][0]["media"][0]
+            assert media["fetch_path"] == f"/v1/media/proxy/{CID}"
+            assert media["load_policy"] == "viewport"
 
 
 def test_scoped_content_route_allows_author_and_group_member_without_public_leak_batch363() -> None:
@@ -176,13 +171,12 @@ def test_scoped_content_route_allows_author_and_group_member_without_public_leak
         assert comment_member.json()["content"]["body"] == "private group reply"
 
 
-def test_private_group_member_list_is_also_scoped_batch363() -> None:
+def test_group_member_list_is_public_activity_batch363() -> None:
     with _client(_state()) as client:
-        assert client.get("/v1/groups/g-private/members").status_code == 403
-        assert client.get("/v1/groups/g-private/members", headers=_auth("@eve")).status_code == 403
-        ok = client.get("/v1/groups/g-private/members", headers=_auth("@alice"))
-        assert ok.status_code == 200, ok.text
-        assert ok.json()["counts"]["total"] == 1
+        for headers in [{}, _auth("@eve"), _auth("@alice")]:
+            ok = client.get("/v1/groups/g-private/members", headers=headers)
+            assert ok.status_code == 200, ok.text
+            assert ok.json()["counts"]["total"] == 1
 
 
 def test_media_provider_graph_is_metadata_only_and_ordered_batch364(monkeypatch) -> None:
