@@ -41,6 +41,7 @@ from weall.runtime.reviewer_responsibilities import (
 )
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
+from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
 
@@ -72,6 +73,14 @@ def _as_int(x: Any, default: int = 0) -> int:
         return int(x)
     except Exception:
         return default
+
+
+def _require_public_cid(value: str, *, field: str, tx_type: str) -> str:
+    cid = _as_str(value).strip()
+    check = validate_ipfs_cid(cid)
+    if not check.ok:
+        raise ContentApplyError("invalid_payload", "invalid_public_cid", {"field": field, "cid": cid, "reason": check.reason, "tx_type": tx_type})
+    return cid
 
 
 def _canonical_account_list(values: Any) -> list[str]:
@@ -924,6 +933,7 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     ).strip()
     if not cid:
         raise ContentApplyError("invalid_payload", "missing_cid", {"tx_type": env.tx_type})
+    cid = _require_public_cid(cid, field="cid", tx_type=str(env.tx_type or ""))
 
     if media_id in media:
         return {"applied": "CONTENT_MEDIA_DECLARE", "media_id": media_id, "deduped": True}
@@ -1068,6 +1078,7 @@ def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
     new_cid = _as_str(payload.get("new_cid") or payload.get("cid")).strip()
     if not media_id or not new_cid:
         raise ContentApplyError("invalid_payload", "missing_media_id_or_new_cid", {})
+    new_cid = _require_public_cid(new_cid, field="new_cid", tx_type=str(env.tx_type or ""))
 
     if media_id not in media:
         raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})

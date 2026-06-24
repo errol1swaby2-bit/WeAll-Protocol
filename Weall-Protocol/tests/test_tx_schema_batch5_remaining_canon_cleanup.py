@@ -118,7 +118,7 @@ def test_batch5_models_registered() -> None:
         ("PERFORMANCE_SCORE_APPLY", {"subject": "@alice", "score": 91}),
         ("CONTENT_LABEL_SET", {"target_id": "post-1", "labels": ["spam"]}),
         ("CONTENT_THREAD_LOCK_SET", {"target_id": "post-1", "locked": True}),
-        ("CONTENT_MEDIA_REPLACE", {"media_id": "m1", "new_cid": "bafkreigh2akiscaildc4examplecidstring1111111111111111111111111"}),
+        ("CONTENT_MEDIA_REPLACE", {"media_id": "m1", "new_cid": "bafkreigh2akiscaildc4qyq5shxktex3utzx3wb5f2pfquce7yhlzzkvx4a"}),
         ("CONTENT_MEDIA_UNBIND", {"binding_id": "bind-1"}),
         ("CONTENT_ESCALATE_TO_DISPUTE", {"target_type": "content", "target_id": "post-1", "reason": "spam"}),
         ("NOTIFICATION_EMIT_RECEIPT", {"topic": "mentions"}),

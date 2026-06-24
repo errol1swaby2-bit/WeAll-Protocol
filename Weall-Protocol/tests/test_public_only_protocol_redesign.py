@@ -265,6 +265,41 @@ def test_state_replay_rejects_encrypted_protocol_payload_deterministically() -> 
     assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
 
 
+
+
+def test_media_and_dispute_evidence_cids_must_be_public_content_addresses() -> None:
+    invalid_media = _tx("CONTENT_MEDIA_DECLARE", payload={"media_id": "m-bad", "upload_ref": "https://example.invalid/private.bin"})
+    verdict = admit_tx(invalid_media, _ledger(), canon=None, context="mempool")
+    assert verdict.ok is False
+    assert verdict.code == "invalid_payload"
+
+    state = _state()
+    with pytest.raises(ApplyError) as media_exc:
+        apply_tx(state, invalid_media)
+    assert media_exc.value.code == "invalid_payload"
+    assert media_exc.value.reason == "invalid_public_cid"
+    assert media_exc.value.details["reason"] == "invalid_cid_format"
+
+    valid_cid = "baaaaaaaaaaaaaaaaaaaaa"
+    apply_tx(state, _tx("CONTENT_MEDIA_DECLARE", nonce=2, payload={"media_id": "m-public", "cid": valid_cid}))
+    assert state["content"]["media"]["m-public"]["cid"] == valid_cid
+
+    apply_tx(
+        state,
+        _tx("DISPUTE_OPEN", nonce=3, payload={"dispute_id": "d-public", "target_type": "content", "target_id": "post:missing", "reason": "audit"}),
+    )
+    bad_evidence = _tx("DISPUTE_EVIDENCE_DECLARE", nonce=4, payload={"dispute_id": "d-public", "evidence_id": "e-bad", "cid": "opaque-private-ref"})
+    with pytest.raises(ApplyError) as evidence_exc:
+        apply_tx(state, bad_evidence)
+    assert evidence_exc.value.code == "invalid_payload"
+    assert evidence_exc.value.reason == "invalid_public_cid"
+    assert evidence_exc.value.details["reason"] == "invalid_cid_format"
+
+    apply_tx(state, _tx("DISPUTE_EVIDENCE_DECLARE", nonce=5, payload={"dispute_id": "d-public", "evidence_id": "e-public", "cid": valid_cid}))
+    evidence = state["disputes_by_id"]["d-public"]["evidence"]
+    assert any(item.get("id") == "e-public" and item.get("cid") == valid_cid for item in evidence)
+
+
 def test_legacy_private_account_feed_and_scoped_content_archives_are_not_readable() -> None:
     app = create_app(boot_runtime=False)
     app.state.executor = _DummyExecutor(_public_only_route_state())

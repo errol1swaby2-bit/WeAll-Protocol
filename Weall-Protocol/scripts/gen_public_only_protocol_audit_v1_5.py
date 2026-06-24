@@ -134,6 +134,8 @@ def build_payload() -> dict[str, object]:
             "src/weall/runtime/domain_dispatch.py",
             "src/weall/runtime/apply/groups.py",
             "src/weall/runtime/apply/content.py",
+            "src/weall/runtime/apply/dispute.py",
+            "src/weall/runtime/tx_schema.py",
             "src/weall/api/routes_public_parts/messages.py",
             "src/weall/api/routes_public_parts/groups.py",
             "src/weall/api/routes_public_parts/accounts.py",
@@ -149,6 +151,7 @@ def build_payload() -> dict[str, object]:
             "frontend route removal is backed by backend replay enforcement",
             "legacy DIRECT_MESSAGE_* fixtures reject before schema/domain apply",
             "legacy private account-feed and scoped-content archives are not readable through owner-authenticated routes",
+            "media and dispute evidence CID fields must be valid public content-addressed references, never opaque URLs or local-private handles",
         ],
     }
 

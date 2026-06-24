@@ -21,6 +21,7 @@ from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reviewer_responsibilities import DISPUTE_REVIEW_LANE, eligible_reviewer_ids, reviewer_lane_active
 from weall.runtime.reputation_events import append_reputation_event
+from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
 
@@ -110,6 +111,16 @@ def _validate_dispute_enforcement_actions(state: Json, *, actions: list[Json], d
 
 def _as_str(x: Any) -> str:
     return x if isinstance(x, str) else ""
+
+
+def _require_public_cid(value: Any, *, field: str, tx_type: str) -> str:
+    cid = _as_str(value).strip()
+    if not cid:
+        return ""
+    check = validate_ipfs_cid(cid)
+    if not check.ok:
+        raise DisputeApplyError("invalid_payload", "invalid_public_cid", {"field": field, "cid": cid, "reason": check.reason, "tx_type": tx_type})
+    return cid
 
 
 def _normalized_str_list(items: Any) -> list[str]:
@@ -1024,12 +1035,13 @@ def _apply_dispute_evidence_declare(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     eid = _mk_id("evidence", env, payload.get("evidence_id"))
+    cid = _require_public_cid(payload.get("cid"), field="cid", tx_type=str(env.tx_type or ""))
     entry = {
         "id": eid,
         "declared_by": env.signer,
         "declared_at_nonce": int(env.nonce),
         "kind": _as_str(payload.get("kind")).strip(),
-        "cid": _as_str(payload.get("cid")).strip(),
+        "cid": cid,
         "meta": payload.get("meta") if isinstance(payload.get("meta"), dict) else {},
         "bound": False,
     }

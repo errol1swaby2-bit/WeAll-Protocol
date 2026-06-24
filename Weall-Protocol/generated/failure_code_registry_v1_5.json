@@ -157,7 +157,7 @@
       "http_status": null,
       "sample_reason": "protocol_content_read_visibility_must_be_public",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 266
+      "source_lineno": 275
     },
     {
       "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
@@ -580,7 +580,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 966
+      "source_lineno": 977
     },
     {
       "code": "duplicate",
@@ -697,7 +697,7 @@
       "http_status": null,
       "sample_reason": "group_post_authority_required",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 306
+      "source_lineno": 315
     },
     {
       "code": "forbidden",
@@ -706,7 +706,7 @@
       "http_status": null,
       "sample_reason": "unsupported_dispute_target_type",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 77
+      "source_lineno": 78
     },
     {
       "code": "forbidden",
@@ -938,18 +938,18 @@
       "domain": "runtime_apply",
       "family": "ContentApplyError",
       "http_status": null,
-      "sample_reason": "missing_group_id_for_group_visibility",
+      "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 273
+      "source_lineno": 82
     },
     {
       "code": "invalid_payload",
       "domain": "runtime_apply",
       "family": "DisputeApplyError",
       "http_status": null,
-      "sample_reason": "missing_target",
+      "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 961
+      "source_lineno": 122
     },
     {
       "code": "invalid_payload",
@@ -1543,7 +1543,7 @@
       "http_status": null,
       "sample_reason": "group_not_found",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 302
+      "source_lineno": 311
     },
     {
       "code": "not_found",
@@ -1552,7 +1552,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 948
+      "source_lineno": 959
     },
     {
       "code": "not_found",
@@ -1858,7 +1858,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1902
+      "source_lineno": 1914
     },
     {
       "code": "validator_mismatch",

@@ -10,6 +10,27 @@ from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
 
+def _validate_public_cid_value(value: str | None, field_name: str) -> str | None:
+    if value is None:
+        return None
+    v = validate_ipfs_cid(value)
+    if not v.ok:
+        raise ValueError(f"{field_name}: {v.reason}")
+    return value
+
+
+def _normalized_public_cid_values(*pairs: tuple[str, str | None]) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for field_name, value in pairs:
+        if value is None:
+            continue
+        s = str(value or "").strip()
+        if not s:
+            continue
+        _validate_public_cid_value(s, field_name)
+        out.append((field_name, s))
+    return out
+
 
 class _StrictModel(BaseModel):
     # IMPORTANT:
@@ -450,6 +471,20 @@ class ContentMediaDeclarePayload(_StrictModel):
     bytes_sha256: str | None = None
     digest_sha256: str | None = None
 
+    @model_validator(mode="after")
+    def _validate_public_cid_aliases(self) -> "ContentMediaDeclarePayload":
+        values = _normalized_public_cid_values(
+            ("cid", self.cid),
+            ("ipfs_cid", self.ipfs_cid),
+            ("content_cid", self.content_cid),
+            ("upload_ref", self.upload_ref),
+            ("ref", self.ref),
+        )
+        distinct = {cid for _, cid in values}
+        if len(distinct) > 1:
+            raise ValueError("content media CID aliases must refer to the same public content-addressed object")
+        return self
+
 
 class ContentMediaBindPayload(_StrictModel):
     binding_id: str | None = Field(default=None, min_length=1)
@@ -560,12 +595,7 @@ class NotificationUnsubscribePayload(_TopicPayloadBase):
 class _OptionalCidPayload(_StrictModel):
     @staticmethod
     def _validate_cid_value(value: str | None, field_name: str) -> str | None:
-        if value is None:
-            return None
-        v = validate_ipfs_cid(value)
-        if not v.ok:
-            raise ValueError(f"{field_name}: {v.reason}")
-        return value
+        return _validate_public_cid_value(value, field_name)
 
 
 class PeerAdvertisePayload(_StrictModel):
@@ -1219,6 +1249,11 @@ class DisputeEvidenceDeclarePayload(_StrictModel):
     cid: str | None = None
     meta: Json | None = None
 
+    @model_validator(mode="after")
+    def _validate_public_evidence_cid(self) -> "DisputeEvidenceDeclarePayload":
+        _validate_public_cid_value(self.cid, "cid")
+        return self
+
 
 class DisputeEvidenceBindPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
@@ -1437,7 +1472,7 @@ class ContentMediaReplacePayload(_StrictModel):
 
     @model_validator(mode="after")
     def _validate_cid(self) -> "ContentMediaReplacePayload":
-        validate_ipfs_cid(self.new_cid)
+        _validate_public_cid_value(self.new_cid, "new_cid")
         return self
 
 
