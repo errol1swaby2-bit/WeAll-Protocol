@@ -18,7 +18,7 @@ WeAll should **not** currently be described as:
 - public multi-validator BFT ready;
 - public adversarial validator ready;
 - live-economics ready;
-- protocol-native private/encrypted messaging removed; public activity notifications only;
+- protocol-native private communication surfaces removed; public activity notifications only;
 - a public user launch;
 - a finalized constitutional governance deployment;
 - a complete self-bootstrapped public Proof-of-Humanity network.

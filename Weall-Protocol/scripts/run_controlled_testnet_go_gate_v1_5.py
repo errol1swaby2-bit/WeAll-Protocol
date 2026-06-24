@@ -67,7 +67,7 @@ _FORBIDDEN_CLAIMS = {
     "public_multi_validator_bft": False,
     "public_storage_provider_market": False,
     "public_validator_readiness": False,
-    "signal_grade_messaging": False,
+    "protocol_private_activity": False,
 }
 
 

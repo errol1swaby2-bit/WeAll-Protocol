@@ -134,7 +134,7 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_legacy_private_group_content_is_publicly_readable_batch363() -> None:
+def test_legacy_restricted_group_content_is_publicly_readable_batch363() -> None:
     with _client(_state()) as client:
         for headers in [None, _auth("@eve"), _auth("@alice")]:
             res = client.get("/v1/groups/g-private/content", headers=headers or {})

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "987d81ecb17080eba6f691dd46bcbfc4cc502592eb3d4ecf127190217f15116f",
+  "artifact_digest": "2be5447af0f957f20ad8c820e9b4b1f2d05fb3bd32371b44c31cc98e11e820f8",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -102,7 +102,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "523d94bb9a9b1b180906f63bd5f7b9422ba38da5b110d924455a67e5f696f979",
+      "file_sha256": "f8e405d73e056ec0abaed61457a9a0bfc697176ec5bab1f231c2cf6b85783545",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "577221255777415b19a3ede25d3f1e6b392ad8f4719fe682d084b249d84ae600",
+      "file_sha256": "6b8600f61609cd621659d576e50e64031e34062cecc9b8ffe96a34d90cb54616",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

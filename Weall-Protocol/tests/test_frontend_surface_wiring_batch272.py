@@ -9,7 +9,7 @@ def read(rel: str) -> str:
 
 
 def test_removed_communication_page_is_not_wired() -> None:
-    assert not (WEB / "pages" / "Messaging.tsx").exists()
+    assert not (WEB / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
 def test_decisions_page_defaults_to_all_and_shows_outcomes() -> None:

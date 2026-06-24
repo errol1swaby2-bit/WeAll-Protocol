@@ -42,7 +42,7 @@ def build() -> Json:
         "public_multi_validator_bft": False,
         "public_storage_provider_market": False,
         "public_validator_readiness": False,
-        "signal_grade_messaging": False,
+        "protocol_private_activity": False,
     }
     return {
         "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion",

@@ -1295,7 +1295,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
     return {
         "ok": bool(chain_id and tx_index_hash and protocol_profile_hash and not manifest_issues),
         "stage": "first_trusted_external_observer_rehearsal",
-        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, mainnet readiness, or protocol-native private messaging.",
+        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, or mainnet readiness.",
         "compatibility": {
             "chain_id": chain_id,
             "height": _safe_int(ident.get("height"), 0),
@@ -1361,7 +1361,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
             "validator promotion",
             "public multi-validator BFT",
             "live economics or treasury spending",
-            "protocol-native private messaging",
+            "protocol-native private communication",
             "mainnet readiness",
         ],
         "mode": mode,

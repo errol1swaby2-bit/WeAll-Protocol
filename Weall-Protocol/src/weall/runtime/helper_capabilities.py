@@ -27,7 +27,7 @@ def lane_class_for_plan(*, lane_id: str, tx_types: Sequence[str] | None = None) 
             return "content"
         if tx_type.startswith(("IDENTITY_", "POH_")):
             return "identity"
-        if tx_type.startswith(("SOCIAL_", "REPUTATION_", "NOTIFICATION_", "MESSAGING_")):
+        if tx_type.startswith(("SOCIAL_", "REPUTATION_", "NOTIFICATION_")):
             return "social"
         if tx_type.startswith(("ECONOMICS_", "TREASURY_", "REWARDS_")):
             return "economics"

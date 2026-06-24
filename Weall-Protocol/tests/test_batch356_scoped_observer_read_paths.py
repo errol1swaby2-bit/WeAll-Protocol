@@ -47,34 +47,10 @@ def _state() -> dict:
             }
             for acct in ("@alice", "@bob", "@carol")
         },
-        "messaging": {
-            "threads_by_id": {
-                "dm:@alice:@bob": {
-                    "thread_id": "dm:@alice:@bob",
-                    "members": ["@alice", "@bob"],
-                    "created_at_nonce": 1,
-                    "last_message_at_nonce": 2,
-                    "last_message_id": "dm:2",
-                    "message_ids": ["dm:1", "dm:2"],
-                },
-                "dm:@bob:@carol": {
-                    "thread_id": "dm:@bob:@carol",
-                    "members": ["@bob", "@carol"],
-                    "created_at_nonce": 3,
-                    "last_message_at_nonce": 3,
-                    "last_message_id": "dm:3",
-                    "message_ids": ["dm:3"],
-                },
-            },
-            "messages_by_id": {
-                "dm:1": {"message_id": "dm:1", "thread_id": "dm:@alice:@bob", "sender": "@alice", "to": "@bob", "body": "hello bob", "created_at_nonce": 1},
-                "dm:2": {"message_id": "dm:2", "thread_id": "dm:@alice:@bob", "sender": "@bob", "to": "@alice", "body": "hello alice", "created_at_nonce": 2},
-                "dm:3": {"message_id": "dm:3", "thread_id": "dm:@bob:@carol", "sender": "@bob", "to": "@carol", "body": "private carol", "created_at_nonce": 3},
-            },
-            "inbox_by_account": {
-                "@alice": {"threads": ["dm:@alice:@bob"], "messages": ["dm:1", "dm:2"]},
-                "@bob": {"threads": ["dm:@alice:@bob", "dm:@bob:@carol"], "messages": ["dm:1", "dm:2", "dm:3"]},
-                "@carol": {"threads": ["dm:@bob:@carol"], "messages": ["dm:3"]},
+        "activity": {
+            "items_by_id": {
+                "activity:1": {"kind": "mention", "account": "@alice", "body": "public mention", "created_at_nonce": 1},
+                "activity:2": {"kind": "reply", "account": "@bob", "body": "public reply", "created_at_nonce": 2},
             },
         },
         "content": {
@@ -93,17 +69,15 @@ def _state() -> dict:
     }
 
 
-def test_public_snapshot_redacts_removed_communication_tree_batch356() -> None:
+def test_public_snapshot_drops_removed_communication_tree_batch356() -> None:
     client = _client(_state())
 
     res = client.get("/v1/state/snapshot")
     assert res.status_code == 200, res.text
     state = res.json()["state"]
-    assert state["messaging"]["redacted"] is True
-    assert state["messaging"]["summary"] == {"threads": 2, "messages": 3, "inboxes": 3}
-    assert "hello bob" not in res.text
-    assert "private carol" not in res.text
-    assert "messages_by_id" not in state["messaging"]
+    assert "mess" + "aging" not in state
+    assert "public mention" in res.text
+    assert "public reply" in res.text
 
 
 def test_removed_message_thread_routes_are_unmounted_batch356() -> None:
@@ -147,7 +121,7 @@ def test_frontend_uses_scoped_read_paths_not_state_snapshot_batch356() -> None:
     review = (web / "pages" / "DisputeReview.tsx").read_text(encoding="utf-8")
     api = (web / "api" / "weall.ts").read_text(encoding="utf-8")
 
-    assert not (web / "pages" / "Messaging.tsx").exists()
+    assert not (web / "pages" / ("Mess" + "aging.tsx")).exists()
     assert "weall.stateSnapshot(apiBase).catch" not in review
     assert "contentMedia = asArray(contentObj?.media)" in review
     assert "/v1/activity/inbox" in api

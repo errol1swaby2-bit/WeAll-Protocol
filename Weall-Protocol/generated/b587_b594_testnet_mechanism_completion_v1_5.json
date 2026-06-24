@@ -978,12 +978,12 @@
     "live_economics": false,
     "mainnet_readiness": false,
     "production_helper_execution": false,
+    "protocol_private_activity": false,
     "public_beta_readiness": false,
     "public_decentralized_media_durability": false,
     "public_multi_validator_bft": false,
     "public_storage_provider_market": false,
-    "public_validator_readiness": false,
-    "signal_grade_messaging": false
+    "public_validator_readiness": false
   },
   "controlled_testnet_mechanisms_complete": true,
   "controlled_testnet_ready_candidate": true,

@@ -49,7 +49,7 @@ def test_batch499_public_bft_multi_process_harness_runs() -> None:
     assert out["validator_count"] == 4
     assert out["quorum_threshold"] == 3
     assert len({row["validator_set_hash"] for row in out["rows"]}) == 1
-    assert len({row["vote_message_sha256"] for row in out["rows"]}) == 4
+    assert len({row["vote_payload_sha256"] for row in out["rows"]}) == 4
 
 
 def test_batch500_fresh_node_state_sync_harness_runs() -> None:

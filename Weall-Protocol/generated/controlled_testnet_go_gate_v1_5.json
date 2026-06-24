@@ -118,12 +118,12 @@
     "live_economics": false,
     "mainnet_readiness": false,
     "production_helper_execution": false,
+    "protocol_private_activity": false,
     "public_beta_readiness": false,
     "public_decentralized_media_durability": false,
     "public_multi_validator_bft": false,
     "public_storage_provider_market": false,
-    "public_validator_readiness": false,
-    "signal_grade_messaging": false
+    "public_validator_readiness": false
   },
   "claims_still_forbidden_after_this_gate": [
     "automatic_protocol_upgrades",
@@ -137,7 +137,7 @@
     "public_multi_validator_bft",
     "public_storage_provider_market",
     "public_validator_readiness",
-    "signal_grade_messaging"
+    "protocol_private_activity"
   ],
   "controlled_private_testnet_candidate": true,
   "controlled_testnet_go_gate_ready_to_run": true,

@@ -38,7 +38,7 @@ def test_batch595_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> 
         "public_multi_validator_bft",
         "public_storage_provider_market",
         "public_validator_readiness",
-        "signal_grade_messaging",
+        "protocol_private_activity",
     ):
         assert boundaries[key] is False
 

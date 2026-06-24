@@ -31,7 +31,7 @@ The current development milestone proves that a fresh clone can:
 - create a pre-seeded demo account
 - upload media
 - create a post
-- seed demo social, decision, review, and messaging state
+- seed demo social, decision, review, and public activity state
 - start the frontend
 - show core demo flows in the browser
 
@@ -110,7 +110,7 @@ The current local demo can show:
 - review assignment flow
 - review outcome flow
 - community decisions
-- messaging surfaces
+- public activity surfaces
 - frontend/backend session handoff
 - deterministic demo bootstrap output
 

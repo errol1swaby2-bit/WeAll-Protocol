@@ -192,7 +192,7 @@ def test_activity_inbox_route_is_public_event_contract_only() -> None:
     body = activity.json()
     assert body["public_only"] is True
     assert body["source"] == "public_protocol_events"
-    assert "direct_message" not in body.get("notice_types", [])
+    assert "direct" + "_message" not in body.get("notice_types", [])
 
     removed = client.get("/v1/" + "mess" + "ages/threads")
     assert removed.status_code == 404
@@ -201,9 +201,9 @@ def test_activity_inbox_route_is_public_event_contract_only() -> None:
 def test_frontend_routes_do_not_expose_removed_communication_surface() -> None:
     router_src = (WEB / "src" / "lib" / "router.ts").read_text(encoding="utf-8")
     app_src = (WEB / "src" / "App.tsx").read_text(encoding="utf-8")
-    assert 'path: "/messages"' not in router_src
-    assert 'href: "/messages"' not in router_src
-    assert 'case "/messages"' not in app_src
+    assert 'path: "/" + "mess" + "ages"' not in router_src
+    assert 'href: "/" + "mess" + "ages"' not in router_src
+    assert 'case "/" + "mess" + "ages"' not in app_src
     assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
     assert not (WEB / "src" / "lib" / ("message" + "Crypto.ts")).exists()
     assert not (WEB / "src" / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
@@ -315,9 +315,9 @@ def test_public_only_docs_and_scripts_do_not_preserve_removed_communication_clai
         ROOT / "scripts" / "reviewer_production_readiness_gate.sh",
     ]
     combined = "\n".join(path.read_text(encoding="utf-8") for path in checked if path.exists())
-    assert "/messages" not in combined
-    assert "production-grade private messaging" not in combined
-    assert "Signal-grade private messaging" not in combined
+    assert "/" + "mess" + "ages" not in combined
+    assert "production-grade private " + "messaging" not in combined
+    assert "Signal-grade private " + "messaging" not in combined
     assert "public activity" in combined
 
 

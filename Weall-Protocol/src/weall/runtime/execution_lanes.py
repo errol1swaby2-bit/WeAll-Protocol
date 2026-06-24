@@ -60,8 +60,8 @@ LANE_RULES: dict[str, LaneRule] = {
     ),
     LANE_PARALLEL_SOCIAL: LaneRule(
         lane_id=LANE_PARALLEL_SOCIAL,
-        allowed_tx_prefixes=("SOCIAL_", "REPUTATION_", "NOTIFICATION_", "MESSAGING_"),
-        allowed_state_prefixes=("social:", "reputation:", "notifications:", "messaging:"),
+        allowed_tx_prefixes=("SOCIAL_", "REPUTATION_", "NOTIFICATION_"),
+        allowed_state_prefixes=("social:", "reputation:", "notifications:"),
         helper_allowed=True,
     ),
     LANE_PARALLEL_CONTENT: LaneRule(
@@ -137,7 +137,6 @@ INFERRED_NAMESPACE_BY_TX_PREFIX: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("SOCIAL_", ("social:",)),
     ("REPUTATION_", ("reputation:",)),
     ("NOTIFICATION_", ("notifications:",)),
-    ("MESSAGING_", ("messaging:",)),
     ("CONTENT_", ("content:",)),
     ("STORAGE_", ("storage:",)),
     ("INDEXING_", ("indexing:",)),

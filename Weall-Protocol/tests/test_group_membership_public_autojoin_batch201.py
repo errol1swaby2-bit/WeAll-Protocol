@@ -34,7 +34,7 @@ def test_public_group_membership_request_auto_accepts_for_demo_safe_join_surface
     assert group.get("membership_requests", {}) == {}
 
 
-def test_legacy_private_group_membership_request_autojoins_public_group() -> None:
+def test_legacy_restricted_group_membership_request_autojoins_public_group() -> None:
     state = {
         "roles": {
             "groups_by_id": {

@@ -12,7 +12,7 @@ WeAll has a working controlled local two-node/two-frontend rehearsal with native
 
 - Production/public multi-validator BFT readiness.
 - Public mainnet readiness.
-- Protocol-native private/P2P encrypted messaging is unsupported by design.
+- Protocol-native private communication surfaces are unsupported by design.
 - Live tokenomics/economics.
 - A reproducible external tester path where every surface can be used as intended without founder intervention.
 

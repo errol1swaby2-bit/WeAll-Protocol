@@ -221,10 +221,8 @@ def _state() -> dict[str, Any]:
         "disputes_by_id": {
             "d1": {"id": "d1", "stage": "open", "votes": {f"@j{i:03d}": {"vote": "yes" if i % 2 else "no"} for i in range(5)}}
         },
-        "messaging": {
-            "threads_by_id": {"dm:1": {"thread_id": "dm:1", "members": ["@alice", "@bob"], "message_ids": ["m1", "m2"], "last_message_id": "m2", "last_message_at_nonce": 2}},
-            "messages_by_id": {"m1": {"message_id": "m1", "thread_id": "dm:1", "sender": "@alice", "to": "@bob", "body": "one", "created_at_nonce": 1}, "m2": {"message_id": "m2", "thread_id": "dm:1", "sender": "@bob", "to": "@alice", "body": "two", "created_at_nonce": 2}},
-            "inbox_by_account": {"@alice": {"threads": ["dm:1"]}, "@bob": {"threads": ["dm:1"]}},
+        "activity": {
+            "items_by_id": {"activity:1": {"kind": "reply", "account": "@alice", "body": "public activity", "created_at_nonce": 1}},
         },
     }
 

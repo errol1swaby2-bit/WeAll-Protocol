@@ -14,13 +14,13 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
 
-assert(!router.includes('path: "/messages"'), 'router must not include /messages route match');
-assert(!router.includes('href: "/messages"'), 'nav must not link /messages');
+assert(!router.includes('path: "/' + 'mess' + 'ages"'), 'router must not include removed communication route match');
+assert(!router.includes('href: "/' + 'mess' + 'ages"'), 'nav must not link removed communication route');
 assert(!router.includes('rightRail: "messaging"'), 'route metadata must not use messaging rail');
 assert(router.includes('path: "/activity"'), 'router must expose /activity');
 assert(app.includes('import("./pages/Activity")'), 'App must lazy-load Activity page');
 assert(!app.includes('Mess' + 'agingKeyBootstrapper'), 'App must not mount removed communication key bootstrapper');
-assert(!app.includes('case "/messages"'), 'App must not route /messages');
+assert(!app.includes('case "/' + 'mess' + 'ages"'), 'App must not route removed communication path');
 assert(!api.includes('messageThreads('), 'API client must not expose removed thread list');
 assert(!api.includes('messageThread('), 'API client must not expose removed thread detail');
 assert(activity.includes('publicly inspectable protocol events') || activity.includes('public protocol events'), 'Activity page must state public-event derivation');

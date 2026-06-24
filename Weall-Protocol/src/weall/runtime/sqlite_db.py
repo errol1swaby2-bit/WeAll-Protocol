@@ -457,7 +457,6 @@ class SqliteDB:
                 "state_dispute",
                 "state_cases",
                 "state_moderation",
-                "state_messaging",
                 "state_networking",
                 "state_notifications",
                 "state_indexing",

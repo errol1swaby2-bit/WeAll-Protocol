@@ -46,7 +46,7 @@ def run_harness() -> dict[str, Any]:
         _tx("t04", "POH_ASYNC_REQUEST_OPEN", "identity:poh:@a"),
         _tx("t05", "STORAGE_OFFER_CREATE", "storage:offer:op-a"),
         _tx("t06", "GROUP_JOIN", "group:membership:g1:@a"),
-        _tx("t07", "MESSAGING_THREAD_CREATE", "message:thread:1"),
+        _tx("t07", "NOTIFICATION_CREATE", "notifications:activity:1"),
         _tx("t08", "REPUTATION_DELTA", "reputation:@a"),
         _tx("t09", "CONTENT_COMMENT_CREATE", "content:comment:1"),
         _tx("t10", "SOCIAL_PROFILE_UPDATE", "social:profile:@a"),

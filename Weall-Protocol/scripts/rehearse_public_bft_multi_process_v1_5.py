@@ -41,7 +41,7 @@ def _worker(validator: str) -> Json:
         "validator_set_hash": validator_set_hash(list(VALIDATORS)),
         "threshold": quorum_threshold(len(VALIDATORS)),
         "leader": select_proposer(active_set=list(VALIDATORS), chain_id=CHAIN_ID, height=VIEW),
-        "vote_message_sha256": hashlib.sha256(msg).hexdigest(),
+        "vote_payload_sha256": hashlib.sha256(msg).hexdigest(),
         "block_id": BLOCK_ID,
         "parent_id": PARENT_ID,
         "view": int(VIEW),
@@ -70,7 +70,7 @@ def run_harness() -> Json:
         and len(set_hashes) == 1
         and thresholds == [3]
         and len(leaders) == 1
-        and len({str(r["vote_message_sha256"]) for r in rows}) == 4
+        and len({str(r["vote_payload_sha256"]) for r in rows}) == 4
     )
     return {
         "artifact": "public_bft_multi_process_proof_v1_5",

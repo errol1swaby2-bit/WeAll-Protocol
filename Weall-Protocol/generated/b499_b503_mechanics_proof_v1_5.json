@@ -58,7 +58,7 @@
           "threshold": 3,
           "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
           "view": 7,
-          "vote_message_sha256": "1a533d1c40002018a6f729a3827d383cdff65ee8e866bc4ee8edc34bd0a243b4"
+          "vote_payload_sha256": "1a533d1c40002018a6f729a3827d383cdff65ee8e866bc4ee8edc34bd0a243b4"
         },
         {
           "block_id": "block-candidate-0007",
@@ -68,7 +68,7 @@
           "threshold": 3,
           "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
           "view": 7,
-          "vote_message_sha256": "936c065ecf5895d02600e6612d168604459017f6a7de0f63a7abea0956d133db"
+          "vote_payload_sha256": "936c065ecf5895d02600e6612d168604459017f6a7de0f63a7abea0956d133db"
         },
         {
           "block_id": "block-candidate-0007",
@@ -78,7 +78,7 @@
           "threshold": 3,
           "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
           "view": 7,
-          "vote_message_sha256": "821125771b200fddb3e2ee1d56cc9a5208027ec78b8c03c3ff0e2824f13e9b34"
+          "vote_payload_sha256": "821125771b200fddb3e2ee1d56cc9a5208027ec78b8c03c3ff0e2824f13e9b34"
         },
         {
           "block_id": "block-candidate-0007",
@@ -88,7 +88,7 @@
           "threshold": 3,
           "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
           "view": 7,
-          "vote_message_sha256": "25f61bac4f8f6ee2bc3f874e07393a123f936831986d0d7cac7c789b0e64aaa6"
+          "vote_payload_sha256": "25f61bac4f8f6ee2bc3f874e07393a123f936831986d0d7cac7c789b0e64aaa6"
         }
       ],
       "validator_count": 4,

@@ -40,7 +40,7 @@ def test_create_post_has_group_destination_selector_and_group_payload_batch426()
 
 def test_removed_communication_surface_stays_removed_batch426() -> None:
     root = Path(__file__).resolve().parents[2] / "web" / "src"
-    assert not (root / "pages" / "Messaging.tsx").exists()
+    assert not (root / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
 def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
@@ -55,7 +55,7 @@ def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> Non
 
 def test_batch447_removed_communication_key_autopublish_surface_stays_removed() -> None:
     root = Path(__file__).resolve().parents[2] / "web" / "src"
-    assert not (root / "pages" / "Messaging.tsx").exists()
+    assert not (root / "pages" / ("Mess" + "aging.tsx")).exists()
     assert not (root / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
 
 

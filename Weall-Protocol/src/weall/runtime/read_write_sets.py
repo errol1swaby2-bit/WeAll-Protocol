@@ -41,7 +41,7 @@ def _infer_lane_from_keys(keys: Iterable[str]) -> str:
             prefixes.add(IDENTITY_LANE)
         elif key.startswith(("content:", "index:")):
             prefixes.add(CONTENT_LANE)
-        elif key.startswith(("social:", "reputation:", "notifications:", "messaging:", "performance:")):
+        elif key.startswith(("social:", "reputation:", "notifications:", "performance:")):
             prefixes.add(SOCIAL_LANE)
         elif key.startswith(("gov:", "governance:", "roles:", "groups:", "dispute:", "cases:", "moderation:")):
             prefixes.add(GOVERNANCE_LANE)

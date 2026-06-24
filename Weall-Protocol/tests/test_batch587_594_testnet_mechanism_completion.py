@@ -174,7 +174,7 @@ def test_batch587_594_mechanism_completion_artifact_freshness_and_boundaries() -
         "public_multi_validator_bft": False,
         "public_storage_provider_market": False,
         "public_validator_readiness": False,
-        "signal_grade_messaging": False,
+        "protocol_private_activity": False,
     }
     proc = subprocess.run(
         [sys.executable, "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
