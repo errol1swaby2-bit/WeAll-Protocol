@@ -274,7 +274,7 @@ def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
         return False
     # Public-only default: public posts are visible; legacy group-scoped posts
     # remain publicly readable through detail/group routes instead of becoming a
-    # member-only archive.  Truly private/direct/member-only legacy records stay
+    # restricted-read archive.  Non-public legacy records stay
     # hidden and cannot be revived by owner-scoped reads.
     vis = str(post.get("visibility", "public") or "public").strip().lower()
     gid = str(post.get("group_id") or post.get("group") or "").strip()
@@ -928,7 +928,7 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     Compatibility route for older clients that used an authenticated scoped
     content read.  It now applies the same public-only visibility rule as the
     public detail route; authentication may identify the requester for logs/UI,
-    but it must not unlock private protocol content or member-only archives.
+    but it must not unlock non-public protocol content or restricted-read archives.
     """
 
     st = _snapshot(request)

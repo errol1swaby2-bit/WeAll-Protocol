@@ -269,7 +269,7 @@ def v1_account_feed(account: str, request: Request):
 
     Public-only protocol model:
       - all protocol-native account content returned here is public-readable;
-      - private/member-only visibility filters are rejected instead of exposing
+      - non-public/restricted-read visibility filters are rejected instead of exposing
         owner-only archives.
     """
 

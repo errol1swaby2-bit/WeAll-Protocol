@@ -92,7 +92,7 @@ export WEALL_HELPER_MODE_ENABLED=0
 export WEALL_BLOCK_LOOP_AUTOSTART=0
 ```
 
-## Message flow
+## Relay envelope flow
 
 ### Observer submits tx through relay
 
@@ -100,9 +100,9 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 2. Observer wraps the corresponding `TX_ENVELOPE` in a signed relay envelope.
 3. Observer posts it to `/v1/net/relay/submit`.
 4. Genesis/bootstrap node polls `POST /v1/net/relay/fetch` with a signed recipient access request.
-5. The relay returns only messages bound to the genesis recipient public key.
+5. The relay returns only signed tx envelopes bound to the genesis relay identity.
 6. Genesis verifies the relay envelope.
-7. Genesis decodes the wire message.
+7. Genesis decodes the wire envelope.
 8. Genesis runs normal tx admission.
 9. If valid, tx enters mempool and can be included in a block.
 10. Genesis acks the relay envelope with a signed recipient access request.

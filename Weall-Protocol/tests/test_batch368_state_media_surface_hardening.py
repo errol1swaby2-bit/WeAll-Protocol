@@ -97,7 +97,7 @@ def _state() -> dict[str, Any]:
                     "post_id": "post:group",
                     "author": "@live",
                     "group_id": "group:private",
-                    "body": "private group snapshot body must not leak",
+                    "body": "nonpublic group snapshot body must not leak",
                     "visibility": "group",
                     "created_nonce": 3,
                 },
@@ -136,7 +136,7 @@ def test_public_state_snapshot_prunes_content_and_group_maps_batch368() -> None:
     assert body["state"]["content"]["redacted"] is True
     assert body["state"]["groups"]["redacted"] is True
     assert "private snapshot body" not in res.text
-    assert "private group snapshot body" not in res.text
+    assert "nonpublic group snapshot body" not in res.text
     assert "private comment snapshot body" not in res.text
     assert "bafyprivate" not in res.text
 

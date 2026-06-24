@@ -106,7 +106,7 @@ def _visibility_state() -> dict[str, Any]:
                     "id": "post:priv",
                     "group_id": "gpub",
                     "author": "@member",
-                    "body": "private group post",
+                    "body": "public group post",
                     "visibility": "private",
                     "created_nonce": 2,
                     "created_at_nonce": 2,

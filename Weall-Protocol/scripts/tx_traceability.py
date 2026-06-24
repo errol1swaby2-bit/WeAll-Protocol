@@ -75,7 +75,7 @@ def _dummy_state() -> Json:
         "storage": {"pins": {}, "replicas": {}},
         "consensus": {},
         "indexing": {},
-        "messaging": {},
+        "activity": {},
         "notifications": {},
         "social": {},
         "networking": {},

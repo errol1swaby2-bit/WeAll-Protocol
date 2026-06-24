@@ -14,8 +14,8 @@ const checks = [
   [economics.includes('/economics/transfer/preview'), 'missing transfer preview route'],
   [economics.includes('/treasury/status'), 'missing treasury status route'],
   [consensus.includes('/consensus/block-production/proof'), 'missing block proof route'],
-  [!exists('web/src/lib/' + 'message' + 'Crypto.ts'), 'removed cryptographic messaging module returned'],
-  [!exists('web/src/pages/' + 'Mess' + 'aging.tsx'), 'removed messaging page returned'],
+  [!exists('web/src/lib/' + 'message' + 'Crypto.ts'), 'removed private communication crypto module returned'],
+  [!exists('web/src/pages/' + 'Mess' + 'aging.tsx'), 'removed private communication page returned'],
   [live.includes('TURN / relay config'), 'missing TURN config UI'],
   [live.includes('iceServerDiagnostics'), 'missing ICE diagnostics'],
 ];

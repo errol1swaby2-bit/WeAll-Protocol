@@ -7,7 +7,7 @@
   "authority_snapshot_version": 1,
   "chain_id": "weall-testnet-v1",
   "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
-  "constitution_hash": "ba271fc6a70aad1c16e7d0f55b58bb14db7050f3898cdfc277762ce94cf16d1e",
+  "constitution_hash": "44a28d6b89f390d260f2c774ca28dd1661fd35bda7b63c0058dd4fb22fe7d3c2",
   "constitution_traceability_hash": "a2b9920333744a1b49d5a8788f08d07e0c300faa28f17f24db1f906a108205e1",
   "constitution_version": "draft-2",
   "constitutional_clock": {

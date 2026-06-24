@@ -18,7 +18,7 @@ def run_harness() -> Json:
         "poh",
         "storage",
         "groups",
-        "messaging",
+        "public_activity",
         "reputation",
     ]
     ok = bool(

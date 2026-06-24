@@ -6,7 +6,7 @@ This batch moves the latest v1.5 rehearsal layer closer to the paths an outside 
 
 - **534** — Full node-process private validator rehearsal using FastAPI/Uvicorn subprocesses, real localhost ports, readyz probes, vote/commit/sync rehearsal endpoints, restart, rejoin, observer rejection, and matching roots.
 - **535** — Real DB/block-commit replay sync using durable SQLite tables (`blocks`, `block_hash_index`, `ledger_state`), receipt-root checks, block-hash checks, interrupted resume, and corrupt-block rejection.
-- **536** — API-driven lifecycle rehearsal that uses actual public API reads around direct deterministic state transitions: session, feed, group, group feed, messages, dispute, PoH challenge/reverification, storage, economics-locked rejection, and protocol upgrade record-only proof.
+- **536** — API-driven lifecycle rehearsal that uses actual public API reads around direct deterministic state transitions: session, feed, group, group feed, public activity, dispute, PoH challenge/reverification, storage, economics-locked rejection, and protocol upgrade record-only proof.
 - **537** — Remedy/reinstatement mechanics for dispute final receipts, including `ACCOUNT_REINSTATE`, `ROLE_ELIGIBILITY_SET`, and `ROLE_JUROR_REINSTATE` as deterministic appeal-remedy enforcement actions.
 - **538** — Storage operator durability rehearsal: pin assignment, failed operator confirmation, deterministic reassignment, replacement confirmation, and retrieval proof.
 

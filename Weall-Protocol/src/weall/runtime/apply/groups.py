@@ -278,7 +278,7 @@ def _group_member_snapshot(g: Json) -> list[str]:
 def _group_is_private(g: Json) -> bool:
     # Public-only redesign: no group state may gate read visibility.  Legacy
     # fields such as is_private/privacy/visibility are ignored for read access;
-    # admission/apply-time public_protocol_policy rejects new private group txs.
+    # admission/apply-time public_protocol_policy rejects new non-public group txs.
     return False
 
 

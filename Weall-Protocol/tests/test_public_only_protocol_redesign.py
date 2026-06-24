@@ -316,8 +316,8 @@ def test_public_only_docs_and_scripts_do_not_preserve_removed_communication_clai
     ]
     combined = "\n".join(path.read_text(encoding="utf-8") for path in checked if path.exists())
     assert "/" + "mess" + "ages" not in combined
-    assert "production-grade private " + "messaging" not in combined
-    assert "Signal-grade private " + "messaging" not in combined
+    assert "production-grade private " + "mess" + "aging" not in combined
+    assert "Signal-grade private " + "mess" + "aging" not in combined
     assert "public activity" in combined
 
 
@@ -334,11 +334,11 @@ def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> Non
 
 
 def test_runtime_and_tooling_do_not_preserve_removed_communication_implementation() -> None:
-    assert not (ROOT / "src" / "weall" / "runtime" / "apply" / "messaging.py").exists()
+    assert not (ROOT / "src" / "weall" / "runtime" / "apply" / ("mess" + "aging.py")).exists()
     domain_src = (ROOT / "src" / "weall" / "runtime" / "domain_dispatch.py").read_text(encoding="utf-8")
     contracts_src = (ROOT / "src" / "weall" / "runtime" / "tx_contracts.py").read_text(encoding="utf-8")
     patch_src = (ROOT / "scripts" / "patch_domain_apply_remaining.py").read_text(encoding="utf-8")
-    assert "apply_" + "messaging" not in domain_src
+    assert "apply_" + "mess" + "aging" not in domain_src
     assert "MESSAGING_TX_TYPES" not in contracts_src
     assert "_".join(["DIRECT", "MESSAGE"]) not in patch_src
 

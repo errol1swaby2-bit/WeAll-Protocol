@@ -50,7 +50,7 @@ The product goal is to support:
 - social posting
 - media upload
 - groups
-- messaging
+- public activity notifications
 - community decisions
 - reports and reviews
 - account verification
@@ -82,7 +82,7 @@ The intent is to avoid required dependency on centralized identity infrastructur
 The target model does **not** require:
 
 - email verification
-- inbox control
+- email-provider account control
 - DNS verification
 - SMTP infrastructure
 - CAPTCHA

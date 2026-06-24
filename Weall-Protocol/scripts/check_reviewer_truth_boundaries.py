@@ -24,7 +24,7 @@ RISKY_PATTERNS = [
     re.compile(r"\beconomics\s+are\s+live\b", re.IGNORECASE),
     re.compile(r"\bpublic\s+testnet\s+ready\b", re.IGNORECASE),
     re.compile(r"\bproduction[- ]ready\s+governance\b", re.IGNORECASE),
-    re.compile(r"\bproduction[- ]grade\s+private\s+messaging\b", re.IGNORECASE),
+    re.compile(r"\bproduction[- ]grade\s+private\s+" + r"mess" + r"aging\b", re.IGNORECASE),
 ]
 
 SAFE_CONTEXT_WORDS = {

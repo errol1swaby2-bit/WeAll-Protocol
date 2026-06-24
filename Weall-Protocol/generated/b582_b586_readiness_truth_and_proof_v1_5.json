@@ -614,7 +614,7 @@
       "poh",
       "storage",
       "groups",
-      "messaging",
+      "public_activity",
       "reputation"
     ],
     "helper_lane_count": 8,
