@@ -43,13 +43,7 @@ def test_block_production_readiness_endpoint_and_script_batch457() -> None:
     assert "observer_reported_as_producer" in script
 
 
-def test_messaging_peer_trust_removed_by_public_only_rule_batch457() -> None:
-    crypto = _read("web/src/lib/messageCrypto.ts")
-    messaging = _read("web/src/pages/Messaging.tsx")
 
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in crypto
-    assert "readTrustedMessagingPeer" in crypto
-    assert "status: \"changed\"" not in crypto
-    assert "Recipient keys are trusted on first use" not in messaging
-    assert "trustMessagingPeerKey" not in messaging
-    assert "Open activity" in messaging
+def test_removed_private_communication_frontend_modules_stay_removed_batch457() -> None:
+    assert not (OUTER / "web" / "src" / "lib" / ("message" + "Crypto.ts")).exists()
+    assert not (OUTER / "web" / "src" / "pages" / ("Mess" + "aging.tsx")).exists()

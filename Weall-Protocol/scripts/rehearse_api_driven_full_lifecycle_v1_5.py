@@ -112,7 +112,7 @@ def run_harness() -> dict[str, Any]:
     post = apply_content(state, _env("CONTENT_POST_CREATE", "@bob", 3, {"post_id": "post:lifecycle:api", "body": "v1.5 api lifecycle", "visibility": "public", "tags": ["v15"]}))
     apply_content(state, _env("CONTENT_REACTION_SET", "@bob", 3, {"target_id": "post:lifecycle:api", "reaction": "helpful"}))
     # Public-only redesign: this lifecycle rehearsal does not construct or submit
-    # protocol-native direct/private messages. Public notices are exercised below
+    # user-to-user communication tooling. Public notices are exercised below
     # through /v1/activity/inbox, which is derived from inspectable protocol state.
     public_activity_checked = True
     dispute = apply_dispute(state, _env("DISPUTE_OPEN", "@bob", 4, {"dispute_id": "d-api-life", "target_type": "content", "target_id": "post:lifecycle:api", "reason": "appealable lifecycle"}))

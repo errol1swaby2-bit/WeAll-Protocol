@@ -31,7 +31,7 @@ This rehearsal does not prove:
 - live economics.
 - validator promotion.
 - full public Proof-of-Humanity bootstrap.
-- external private communication tooling; protocol-native private messaging is unsupported.
+- user-to-user communication tooling, which is outside protocol scope.
 - production-grade public moderation or governance.
 
 ## Machine A: Genesis

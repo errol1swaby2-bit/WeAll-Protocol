@@ -803,38 +803,6 @@
     {
       "claim_count": 1,
       "claim_handlers": [
-        "unsupported"
-      ],
-      "context": "rejected",
-      "domain": "Unsupported",
-      "handler": "unsupported",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Unsupported",
-      "tx_type": "DIRECT_MESSAGE_REDACT",
-      "unsupported": true,
-      "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "unsupported"
-      ],
-      "context": "rejected",
-      "domain": "Unsupported",
-      "handler": "unsupported",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Unsupported",
-      "tx_type": "DIRECT_MESSAGE_SEND",
-      "unsupported": true,
-      "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
         "dispute"
       ],
       "context": "mempool",
@@ -4583,38 +4551,6 @@
       {
         "claim_count": 1,
         "claim_handlers": [
-          "unsupported"
-        ],
-        "context": "rejected",
-        "domain": "Unsupported",
-        "handler": "unsupported",
-        "origin": "USER",
-        "receipt_only": false,
-        "schema_covered": true,
-        "subject_gate": "Unsupported",
-        "tx_type": "DIRECT_MESSAGE_REDACT",
-        "unsupported": true,
-        "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED"
-      },
-      {
-        "claim_count": 1,
-        "claim_handlers": [
-          "unsupported"
-        ],
-        "context": "rejected",
-        "domain": "Unsupported",
-        "handler": "unsupported",
-        "origin": "USER",
-        "receipt_only": false,
-        "schema_covered": true,
-        "subject_gate": "Unsupported",
-        "tx_type": "DIRECT_MESSAGE_SEND",
-        "unsupported": true,
-        "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED"
-      },
-      {
-        "claim_count": 1,
-        "claim_handlers": [
           "dispute"
         ],
         "context": "mempool",
@@ -7557,9 +7493,9 @@
         "unsupported_code": ""
       }
     ],
-    "schema_covered_count": 236,
-    "single_claim_count": 236,
-    "tx_count": 236,
+    "schema_covered_count": 234,
+    "single_claim_count": 234,
+    "tx_count": 234,
     "unclaimed_count": 0
   }
 }

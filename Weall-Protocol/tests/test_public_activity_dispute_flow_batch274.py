@@ -10,10 +10,9 @@ WEB = ROOT / "web"
 sys.path.insert(0, str(BACKEND / "src"))
 
 
-def test_messaging_routes_are_removed_for_public_only_activity_surface() -> None:
+def test_removed_communication_routes_stay_removed_for_public_activity_surface() -> None:
     router = (WEB / "src/lib/router.ts").read_text(encoding="utf-8")
     app = (WEB / "src/App.tsx").read_text(encoding="utf-8")
-    messaging = (WEB / "src/pages/Messaging.tsx").read_text(encoding="utf-8")
 
     assert '| { path: "/messages/compose" }' not in router
     assert '| { path: "/messages/:id"; id: string }' not in router
@@ -22,10 +21,7 @@ def test_messaging_routes_are_removed_for_public_only_activity_surface() -> None
     assert '<Messaging mode="hub" />' not in app
     assert '<Messaging mode="compose" />' not in app
     assert '<Messaging mode="thread" threadId={route.id} />' not in app
-
-    assert 'nav("/messages/compose")' not in messaging
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging
-    assert "Open activity" in messaging
+    assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
 def test_report_detail_does_not_submit_review_assignment_tx() -> None:

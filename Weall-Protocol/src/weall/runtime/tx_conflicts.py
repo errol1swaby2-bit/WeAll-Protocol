@@ -21,7 +21,6 @@ class TxFamily(str, Enum):
     DISPUTE = "DISPUTE"
     CASES = "CASES"
     MODERATION = "MODERATION"
-    MESSAGING = "MESSAGING"
     NETWORKING = "NETWORKING"
     NOTIFICATIONS = "NOTIFICATIONS"
     INDEXING = "INDEXING"
@@ -70,7 +69,6 @@ LANE_BY_FAMILY: dict[TxFamily, str] = {
     TxFamily.POH: "IDENTITY",
     TxFamily.CONTENT: "CONTENT",
     TxFamily.SOCIAL: "SOCIAL",
-    TxFamily.MESSAGING: "SOCIAL",
     TxFamily.NOTIFICATIONS: "SOCIAL",
     TxFamily.REPUTATION: "SOCIAL",
     TxFamily.GOVERNANCE: "GOVERNANCE",
@@ -193,9 +191,6 @@ def _comment_id(tx: Mapping[str, Any]) -> str:
 def _media_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "media_id", "cid") or _stable_tx_id(tx)
 
-
-def _thread_id(tx: Mapping[str, Any]) -> str:
-    return _field(tx, "thread_id", "conversation_id") or _stable_tx_id(tx)
 
 
 def _peer_id(tx: Mapping[str, Any]) -> str:
@@ -556,7 +551,6 @@ _register_many(["ROLE_ELIGIBILITY_SET", "ROLE_ELIGIBILITY_REVOKE", "ACCOUNT_BAN"
 _register_many(["REWARD_POOL_OPT_IN_SET", "BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE", "CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE", "FORFEITURE_APPLY"], TxFamily.REWARDS, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["VALIDATOR_PERFORMANCE_REPORT", "NODE_OPERATOR_PERFORMANCE_REPORT", "CREATOR_PERFORMANCE_REPORT"], TxFamily.PERFORMANCE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["PERFORMANCE_EVALUATE", "PERFORMANCE_SCORE_APPLY"], TxFamily.PERFORMANCE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"], TxFamily.MESSAGING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PROFILE_UPDATE", "CONTENT_SHARE_CREATE"], TxFamily.SOCIAL, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["FOLLOW_SET", "BLOCK_SET", "MUTE_SET"], TxFamily.SOCIAL, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["IPFS_PIN_REQUEST", "STORAGE_OFFER_CREATE", "STORAGE_OFFER_WITHDRAW", "STORAGE_LEASE_CREATE", "STORAGE_LEASE_RENEW", "STORAGE_LEASE_REVOKE", "STORAGE_PROOF_SUBMIT", "STORAGE_CHALLENGE_RESPOND"], TxFamily.STORAGE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
@@ -752,12 +746,6 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         subject.append(_key("moderation:action", action_id))
         writes.append(_key("moderation:action", action_id))
         authority.append("authority:moderation")
-
-    elif rule.family == TxFamily.MESSAGING:
-        thread_id = _thread_id(tx)
-        message_id = _field(tx, "message_id") or tx_id
-        subject.append(_key("messaging:thread", thread_id))
-        writes.extend([_key("messaging:thread", thread_id), _key("messaging:message", message_id)])
 
     elif rule.family == TxFamily.NETWORKING:
         peer_id = _peer_id(tx)

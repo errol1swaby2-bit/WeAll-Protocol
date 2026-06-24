@@ -9,7 +9,7 @@
       "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
     },
     "GET /v1/activity/inbox": {
-      "auth": "public_event_derived_account_optional_filter",
+      "auth": "public_read_public_activity_notices",
       "cache_policy": "no_store_public_event_derived_read",
       "error_model": "standard_api_error_envelope_or_public_activity_payload",
       "idempotency": "safe_read_no_state_mutation",
@@ -28,20 +28,6 @@
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_ranked_public_read_no_state_mutation",
       "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
-    },
-    "GET /v1/messages/threads": {
-      "auth": "public_only_compatibility_stub_no_private_session_surface",
-      "cache_policy": "no_store_hard_failure",
-      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
-      "idempotency": "safe_read_no_state_mutation_always_fails",
-      "truth_boundary": "Compatibility stub only. WeAll does not provide protocol-native direct/private messaging; use /v1/activity/inbox for public-event-derived notices."
-    },
-    "GET /v1/messages/threads/{thread_id:path}": {
-      "auth": "public_only_compatibility_stub_no_private_session_surface",
-      "cache_policy": "no_store_hard_failure",
-      "error_model": "410 PRIVATE_MESSAGING_UNSUPPORTED",
-      "idempotency": "safe_read_no_state_mutation_always_fails",
-      "truth_boundary": "Compatibility stub only. Direct/private message thread reads are unsupported because protocol-native activity must be publicly inspectable."
     },
     "GET /v1/metrics": {
       "auth": "metrics_env_gated_public_when_enabled",

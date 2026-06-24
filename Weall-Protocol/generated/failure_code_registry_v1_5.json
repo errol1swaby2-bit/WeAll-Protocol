@@ -1,20 +1,11 @@
 {
   "by_domain": {
     "api": 101,
-    "launch_readiness": 26,
+    "launch_readiness": 25,
     "runtime": 7,
-    "runtime_apply": 69
+    "runtime_apply": 68
   },
   "codes": [
-    {
-      "code": "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
-      "domain": "runtime_apply",
-      "family": "ApplyError",
-      "http_status": null,
-      "sample_reason": "protocol_native_messaging_encryption_keys_are_unsupported",
-      "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 86
-    },
     {
       "code": "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
       "domain": "launch_readiness",
@@ -206,15 +197,6 @@
     },
     {
       "code": "PRIVATE_GROUPS_UNSUPPORTED",
-      "domain": "launch_readiness",
-      "family": "LaunchReadiness",
-      "http_status": null,
-      "sample_reason": "stable public genesis launch readiness failure code",
-      "source": "scripts/gen_failure_code_registry_v1_5.py",
-      "source_lineno": 0
-    },
-    {
-      "code": "PRIVATE_MESSAGING_UNSUPPORTED",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
       "http_status": null,
@@ -562,7 +544,7 @@
       "http_status": null,
       "sample_reason": "exception",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 329
+      "source_lineno": 327
     },
     {
       "code": "duplicate",
@@ -643,7 +625,7 @@
       "http_status": null,
       "sample_reason": "account_banned",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 62
+      "source_lineno": 63
     },
     {
       "code": "forbidden",
@@ -661,7 +643,7 @@
       "http_status": null,
       "sample_reason": "receipt_only_requires_parent",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 227
+      "source_lineno": 226
     },
     {
       "code": "forbidden",
@@ -814,7 +796,7 @@
       "http_status": null,
       "sample_reason": "bootstrap_founder_expired",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 183
+      "source_lineno": 182
     },
     {
       "code": "insufficient_poh_tier",
@@ -1066,7 +1048,7 @@
       "http_status": null,
       "sample_reason": "accounts_not_dict",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 57
+      "source_lineno": 58
     },
     {
       "code": "invalid_state",
@@ -1156,7 +1138,7 @@
       "http_status": null,
       "sample_reason": "bad_nonce",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 50
+      "source_lineno": 51
     },
     {
       "code": "invalid_tx",
@@ -1183,7 +1165,7 @@
       "http_status": null,
       "sample_reason": "noncanonical_tx_type",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 217
+      "source_lineno": 216
     },
     {
       "code": "invalid_tx",
@@ -1834,7 +1816,7 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 203,
+  "entry_count": 201,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -1872,6 +1854,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 94,
+  "unique_code_count": 93,
   "version": "2026-06-batch10a"
 }

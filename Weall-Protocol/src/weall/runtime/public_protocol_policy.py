@@ -5,9 +5,7 @@ from __future__ import annotations
 
 WeAll is a public civic protocol.  This module is intentionally dependency-light
 so it can run in both admission and deterministic block replay before any domain
-applier mutates state.  The policy rejects protocol-native private messaging,
-private groups, member-only-readable content, and encrypted/opaque payload fields
-that would give consensus meaning to content validators cannot inspect.
+applier mutates state.  The policy rejects non-public groups, member-only-readable content, and encrypted/opaque payload fields that would give consensus meaning to content validators cannot inspect.
 """
 
 from dataclasses import dataclass
@@ -15,15 +13,9 @@ from typing import Any
 
 Json = dict[str, Any]
 
-PRIVATE_MESSAGING_UNSUPPORTED = "PRIVATE_MESSAGING_UNSUPPORTED"
 PRIVATE_GROUPS_UNSUPPORTED = "PRIVATE_GROUPS_UNSUPPORTED"
 ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED = "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED"
 GROUP_READ_VISIBILITY_MUST_BE_PUBLIC = "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
-
-PRIVATE_MESSAGE_TX_TYPES: set[str] = {
-    "DIRECT_MESSAGE_SEND",
-    "DIRECT_MESSAGE_REDACT",
-}
 
 # These keys are forbidden anywhere inside protocol tx payloads.  Network TLS,
 # validator signatures, and local private keys are outside tx payloads and are
@@ -32,7 +24,6 @@ ENCRYPTED_PROTOCOL_KEYS: set[str] = {
     "encrypted_message",
     "encrypted_payload",
     "ciphertext",
-    "ciphertext_b64",
     "sealed_payload",
     "recipient_public_key",
     "recipient_encryption_public_jwk",
@@ -43,11 +34,6 @@ ENCRYPTED_PROTOCOL_KEYS: set[str] = {
     "e2ee",
     "encryption",
     "encryption_scheme",
-    "messaging_encryption_public_jwk",
-    "messaging_encryption_key_id",
-    "messaging_encryption_previous_key_id",
-    "messaging_encryption_rotation_reason",
-    "messaging_encryption_scheme",
     "whisper",
 }
 
@@ -152,18 +138,12 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
     t = _tx_type(env)
     p = _payload(env)
 
-    if t in PRIVATE_MESSAGE_TX_TYPES:
-        return PublicProtocolPolicyViolation(
-            PRIVATE_MESSAGING_UNSUPPORTED,
-            "protocol_native_direct_messages_are_unsupported",
-            {"tx_type": t},
-        )
 
     for path, key, value in _walk(p):
         nk = _norm_key(key)
         nv = _norm_value(value) if isinstance(value, (str, bool, int, float)) else ""
 
-        if nk in ENCRYPTED_PROTOCOL_KEYS:
+        if nk in ENCRYPTED_PROTOCOL_KEYS or "ciphertext" in nk or "encryption" in nk:
             return PublicProtocolPolicyViolation(
                 ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
                 "encrypted_or_opaque_protocol_payloads_are_unsupported",
@@ -211,7 +191,6 @@ def assert_public_protocol_tx(env: Any) -> None:
 
 
 __all__ = [
-    "PRIVATE_MESSAGING_UNSUPPORTED",
     "PRIVATE_GROUPS_UNSUPPORTED",
     "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
     "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",

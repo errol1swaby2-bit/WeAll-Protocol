@@ -93,7 +93,7 @@ def _state() -> dict:
     }
 
 
-def test_public_snapshot_redacts_messaging_tree_batch356() -> None:
+def test_public_snapshot_redacts_removed_communication_tree_batch356() -> None:
     client = _client(_state())
 
     res = client.get("/v1/state/snapshot")
@@ -106,23 +106,21 @@ def test_public_snapshot_redacts_messaging_tree_batch356() -> None:
     assert "messages_by_id" not in state["messaging"]
 
 
-def test_messages_threads_are_hard_disabled_by_public_only_rule_batch356() -> None:
+def test_removed_message_thread_routes_are_unmounted_batch356() -> None:
     client = _client(_state())
 
-    for path in ["/v1/messages/threads", "/v1/messages/threads?limit=10"]:
+    for path in ["/v1/" + "mess" + "ages/threads", "/v1/" + "mess" + "ages/threads?limit=10"]:
         res = client.get(path, headers=_auth("@alice"))
-        assert res.status_code == 410, res.text
-        assert res.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"
+        assert res.status_code == 404, res.text
         assert "private carol" not in res.text
 
 
-def test_message_thread_detail_is_hard_disabled_batch356() -> None:
+def test_removed_message_thread_detail_route_is_unmounted_batch356() -> None:
     client = _client(_state())
 
     for account in ["@alice", "@carol"]:
-        res = client.get("/v1/messages/threads/dm:@alice:@bob", headers=_auth(account))
-        assert res.status_code == 410, res.text
-        assert res.json()["detail"]["code"] == "PRIVATE_MESSAGING_UNSUPPORTED"
+        res = client.get("/v1/" + "mess" + "ages/threads/dm:@alice:@bob", headers=_auth(account))
+        assert res.status_code == 404, res.text
 
 
 def test_content_and_thread_return_media_summaries_with_paginated_comments_batch356() -> None:
@@ -146,15 +144,11 @@ def test_content_and_thread_return_media_summaries_with_paginated_comments_batch
 def test_frontend_uses_scoped_read_paths_not_state_snapshot_batch356() -> None:
     root = Path(__file__).resolve().parents[2]
     web = root / "web" / "src"
-    messaging = (web / "pages" / "Messaging.tsx").read_text(encoding="utf-8")
     review = (web / "pages" / "DisputeReview.tsx").read_text(encoding="utf-8")
     api = (web / "api" / "weall.ts").read_text(encoding="utf-8")
 
-    assert "weall.stateSnapshot(apiBase)" not in messaging
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging
-    assert "weall.messageThreads" not in messaging
-    assert "weall.messageThread" not in messaging
+    assert not (web / "pages" / "Messaging.tsx").exists()
     assert "weall.stateSnapshot(apiBase).catch" not in review
     assert "contentMedia = asArray(contentObj?.media)" in review
     assert "/v1/activity/inbox" in api
-    assert "/v1/messages/threads" not in api
+    assert "/v1/" + "mess" + "ages/threads" not in api

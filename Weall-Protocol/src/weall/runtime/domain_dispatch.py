@@ -17,7 +17,6 @@ from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.groups import apply_groups
 from weall.runtime.apply.identity import apply_identity
 from weall.runtime.apply.indexing import apply_indexing
-from weall.runtime.apply.messaging import apply_messaging
 from weall.runtime.apply.networking import apply_networking
 from weall.runtime.apply.notifications import apply_notifications
 from weall.runtime.apply.poh import apply_poh
@@ -274,7 +273,6 @@ _APPLIERS: tuple[ApplyFn, ...] = (
     apply_content,
     apply_social,
     apply_groups,
-    apply_messaging,
     apply_notifications,
     apply_storage,
     apply_networking,

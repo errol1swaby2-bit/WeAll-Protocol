@@ -88,24 +88,22 @@ def scan() -> list[dict[str, object]]:
 
 def build_payload() -> dict[str, object]:
     inventory = scan()
-    private_communication_surfaces_removed = [
-        "DIRECT_MESSAGE_SEND and DIRECT_MESSAGE_REDACT are rejected at mempool admission and apply/replay with PRIVATE_MESSAGING_UNSUPPORTED.",
-        "/v1/messages/threads and /v1/messages/threads/{thread_id} are compatibility stubs returning PRIVATE_MESSAGING_UNSUPPORTED.",
-        "Frontend /messages routes and navigation entries are removed and replaced by /activity.",
-        "Client-side messaging key bootstrap and account-registration messaging-encryption key publication are disabled.",
-        "Group read visibility is forced public; private, members-only, scoped, closed, and member-only read settings are rejected.",
-        "Account feed and scoped content compatibility reads no longer expose owner-only or member-only private archives.",
+    removed_surfaces = [
+        "Legacy person-to-person protocol communication tx names are no longer canonical.",
+        "Legacy thread read routes are unmounted; public notices use /v1/activity/inbox.",
+        "Frontend communication pages, cryptographic communication helpers, and key bootstrappers are removed.",
+        "Group read visibility is forced public; non-public and member-only read settings are rejected.",
+        "Account feed and scoped content compatibility reads do not expose owner-only or member-only archives.",
     ]
     return {
         "schema": "weall.public_only_protocol_audit.v1_5",
         "public_only_rule": "All protocol-native social, civic, governance, moderation, dispute, group, reputation, and validator/operator activity must be publicly inspectable. Membership may gate participation but never read visibility.",
         "stable_failure_codes": [
-            "PRIVATE_MESSAGING_UNSUPPORTED",
             "PRIVATE_GROUPS_UNSUPPORTED",
             "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
             "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
         ],
-        "unsupported_legacy_tx_types": ["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"],
+        "removed_legacy_tx_names": ["person_to_person_send", "person_to_person_redact"],
         "public_activity_contract": {
             "route": "/v1/activity/inbox",
             "source": "public_protocol_events",
@@ -118,7 +116,7 @@ def build_payload() -> dict[str, object]:
                 "governance_notice",
                 "validator_operator_alert",
             ],
-            "forbidden_notice_types": ["direct_message", "private_thread", "encrypted_conversation"],
+            "forbidden_notice_types": ["non_public_user_to_user_notice", "sealed_thread", "opaque_conversation"],
         },
         "group_model": {
             "read_visibility": "public",
@@ -136,11 +134,11 @@ def build_payload() -> dict[str, object]:
             "src/weall/runtime/apply/content.py",
             "src/weall/runtime/apply/dispute.py",
             "src/weall/runtime/tx_schema.py",
-            "src/weall/api/routes_public_parts/messages.py",
+            "src/weall/api/routes_public_parts/activity.py",
             "src/weall/api/routes_public_parts/groups.py",
             "src/weall/api/routes_public_parts/accounts.py",
         ],
-        "private_communication_surfaces_removed": private_communication_surfaces_removed,
+        "private_communication_surfaces_removed": removed_surfaces,
         "inventory_hit_count": len(inventory),
         "inventory": inventory,
         "adversarial_bypass_checks": [
@@ -149,11 +147,11 @@ def build_payload() -> dict[str, object]:
             "metadata-embedded sealed/ciphertext payloads reject recursively",
             "attachment references that include ciphertext/sealed payload fields reject recursively",
             "frontend route removal is backed by backend replay enforcement",
-            "legacy DIRECT_MESSAGE_* fixtures reject before schema/domain apply",
+            "removed legacy communication tx names are absent from canon and reject as unknown",
             "legacy private account-feed and scoped-content archives are not readable through owner-authenticated routes",
             "media and dispute evidence CID fields must be valid public content-addressed references, never opaque URLs or local-private handles",
-            "permission probes use public-content share gates instead of constructing direct-message encrypted payloads",
-            "unsupported DIRECT_MESSAGE_* helper contracts expose no read/write/subject/authority keys",
+            "permission probes use public-content share gates instead of removed communication payloads",
+            "helper contract artifacts expose no removed communication state subjects",
         ],
     }
 

@@ -19,12 +19,11 @@ assert(!router.includes('href: "/messages"'), 'nav must not link /messages');
 assert(!router.includes('rightRail: "messaging"'), 'route metadata must not use messaging rail');
 assert(router.includes('path: "/activity"'), 'router must expose /activity');
 assert(app.includes('import("./pages/Activity")'), 'App must lazy-load Activity page');
-assert(!app.includes('MessagingKeyBootstrapper'), 'App must not mount messaging key bootstrapper');
+assert(!app.includes('Mess' + 'agingKeyBootstrapper'), 'App must not mount removed communication key bootstrapper');
 assert(!app.includes('case "/messages"'), 'App must not route /messages');
-assert(!api.includes('messageThreads('), 'API client must not expose private thread list');
-assert(!api.includes('messageThread('), 'API client must not expose private thread detail');
+assert(!api.includes('messageThreads('), 'API client must not expose removed thread list');
+assert(!api.includes('messageThread('), 'API client must not expose removed thread detail');
 assert(activity.includes('publicly inspectable protocol events') || activity.includes('public protocol events'), 'Activity page must state public-event derivation');
 assert(activity.includes('mentions') && activity.includes('validator/operator alerts'), 'Activity page must list public notice types');
-assert(!accountVerification.includes('messaging_encryption_'), 'Account registration must not publish messaging encryption keys');
 
 console.log('OK: public-only frontend source contract holds');

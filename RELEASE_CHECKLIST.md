@@ -280,3 +280,5 @@ Before any public observer testnet announcement:
 - [ ] Observer tx forwarding uses explicit or verified seed-derived upstreams, otherwise fails with `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM`.
 - [ ] Public warning copy states resettable, non-economic, no real-world value, and no persistence reliance.
 - [ ] External clean-clone observer evidence is captured using `Weall-Protocol/docs/PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md` and the tracked gates in `generated/public_observer_launch_evidence_requirements_v1_5.json`.
+
+Current tx canon checkpoint: 234 tx types, version 1.25.0.

@@ -61,7 +61,7 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_top_level_keys": ["ok", "public_only", "source", "notice_types"],
         "auth_case": "public_event_derived_notification_index",
         "error_codes": [],
-        "privacy_boundary": "public activity inbox is derived from public protocol events and contains no private user-to-user messages or encrypted conversations",
+        "privacy_boundary": "public activity inbox is derived from public protocol events and contains no sealed user-to-user thread semantics",
     },
     {
         "id": "poh-async-my-cases-requires-session",

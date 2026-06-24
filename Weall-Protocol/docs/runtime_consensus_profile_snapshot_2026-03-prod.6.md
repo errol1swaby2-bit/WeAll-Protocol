@@ -78,3 +78,4 @@ Before enabling signing, validators should verify:
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 234 tx types, version 1.25.0.

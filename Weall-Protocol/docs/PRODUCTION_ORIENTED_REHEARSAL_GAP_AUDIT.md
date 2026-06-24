@@ -79,7 +79,7 @@ Local full pytest results are valuable, but reviewers need a reproducible comman
 
 ## Blocker 5 — public-only communication posture
 
-Protocol-native private/direct messaging is removed from scope. Backend admission and replay reject private messages, encrypted protocol payloads, private groups, and member-only-readable group content.
+User-to-user communication tooling is outside protocol scope. Backend admission and replay reject non-public group read visibility and encrypted or opaque protocol payloads.
 
 Public-only communication readiness requires:
 
@@ -105,4 +105,4 @@ and API implementation:
 - live-room transport now supports browser-local TURN/ICE configuration and automatic polling.
 
 These changes improve production orientation but do not yet close public testnet,
-public economics, public BFT, or external private communication readiness.
+public economics, public BFT, or external communications readiness.

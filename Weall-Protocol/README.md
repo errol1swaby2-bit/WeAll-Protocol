@@ -178,3 +178,4 @@ To scrub local runtime artifacts before packaging or pushing:
 - Release/export safety now fails closed on raw `secrets/` material; external testers must receive only public manifests and public observer bundles, never local node keys.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 234 tx types, version 1.25.0.

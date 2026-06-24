@@ -830,11 +830,10 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "public_multi_validator_bft_ready": False,
             "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
         },
-        "protocol_native_private_messaging": {
-            "supported": False,
-            "error_code": "PRIVATE_MESSAGING_UNSUPPORTED",
+        "public_only_protocol_surface": {
+            "public_inspectability_required": True,
             "encrypted_payloads_supported": False,
-            "claim": "WeAll is a public civic protocol. Protocol-native direct/private messaging and encrypted social payloads are unsupported; notifications derive from publicly inspectable protocol events.",
+            "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
         },
         "poh": poh_policy,
         "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),

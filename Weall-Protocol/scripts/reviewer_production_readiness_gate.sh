@@ -28,12 +28,12 @@ fi
 echo "[reviewer-gate] targeted backend tests"
 PYTHONPATH=src pytest -q \
   tests/test_batch437_446_external_testnet_p0_p2_hardening.py \
-  tests/test_batch450_messaging_e2ee_key_lifecycle.py \
-  tests/test_batch451_messaging_rehearsal_convergence.py \
+  tests/test_batch450_public_payload_key_policy.py \
+  tests/test_batch451_public_activity_contract.py \
   tests/test_batch452_rehearsal_content_review_followup.py \
   tests/test_batch453_live_room_remote_media_recovery.py \
   tests/test_batch454_rehearsal_review_visibility_and_viewer_vote.py \
-  tests/test_batch456_production_readiness_and_p2p_e2ee_gates.py \
+  tests/test_batch456_public_readiness_gates.py \
   tests/test_batch457_economics_block_p2p_implementation.py \
   tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
   tests/test_batch464_genesis_api_external_observer_readiness.py \
@@ -77,14 +77,14 @@ PYTHONPATH=src pytest -q \
 
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
-  node scripts/test_batch450_messaging_e2ee_source.mjs
-  node scripts/test_batch451_messaging_rehearsal_source.mjs
+  node scripts/test_batch450_public_payload_source.mjs
+  node scripts/test_batch451_public_activity_source.mjs
   node scripts/test_batch452_group_review_source.mjs
   node scripts/test_batch453_live_room_media_source.mjs
   node scripts/test_batch454_review_visibility_source.mjs
-  node scripts/test_batch456_production_readiness_source.mjs
-  node scripts/test_batch457_economics_block_p2p_source.mjs
-  node scripts/test_batch458_461_implementation_source.mjs
+  node scripts/test_batch456_public_readiness_source.mjs
+  node scripts/test_batch457_economics_block_public_source.mjs
+  node scripts/test_batch458_461_public_implementation_source.mjs
   node scripts/test_batch469_account_custody_source.mjs
   node scripts/guard_production_ux_safety.mjs
 fi
@@ -102,4 +102,4 @@ fi
 
 echo "[reviewer-gate] OK: targeted production-oriented rehearsal evidence passed"
 echo "[reviewer-gate] NOTE: local observer gates are preconditions only unless the remote signed observer gate is run."
-echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, production validator/BFT readiness, or any external private communication tooling."
+echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, production validator/BFT readiness, or external communications tooling."

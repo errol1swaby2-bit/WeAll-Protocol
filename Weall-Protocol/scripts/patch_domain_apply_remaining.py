@@ -133,13 +133,6 @@ def _apply_mute_set(state: Json, env: TxEnvelope) -> Json:
 
 
 # -----------------------------
-# Public-only direct/private messaging guard
-# -----------------------------
-# DIRECT_MESSAGE_* txs are intentionally not implemented by this legacy patch
-# script.  They are retained only as stable rejected tx names and must remain
-# governed by public_protocol_policy before any state mutation path.
-
-# -----------------------------
 # Disputes (MVP state machine)
 # -----------------------------
 
@@ -1117,8 +1110,6 @@ def main() -> None:
         "PROFILE_UPDATE": "_apply_profile_update",
         "FOLLOW_SET": "_apply_follow_set",
         "MUTE_SET": "_apply_mute_set",
-        # Public-only rule: DIRECT_MESSAGE_* names remain rejected legacy txs and
-        # must not be rewired to state-mutating domain_apply handlers.
         # Existing implementations that were incorrectly wired to canon_missing:
         "INDEX_ANCHOR_SET": "_apply_index_anchor_set",
         "INDEX_TOPIC_REGISTER": "_apply_index_topic_register",

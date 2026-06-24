@@ -267,3 +267,4 @@ Violations of this production posture MUST result in:
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 234 tx types, version 1.25.0.

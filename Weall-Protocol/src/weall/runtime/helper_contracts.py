@@ -237,8 +237,6 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
             continue
         seen.add(tx_type)
         unsupported_code = str(row.get("unsupported") or "").strip()
-        if not unsupported_code and tx_type.startswith("DIRECT_MESSAGE_"):
-            unsupported_code = "PRIVATE_MESSAGING_UNSUPPORTED"
         if not unsupported_code and str(row.get("domain") or "").strip().lower() == "unsupported" and str(row.get("context") or "").strip().lower() == "rejected":
             unsupported_code = "UNSUPPORTED_TX_TYPE"
         base_tx = {"tx_type": tx_type, "type": tx_type}
@@ -246,12 +244,9 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
         contract_dict = contract.to_dict()
         if unsupported_code:
             # Canon-retained unsupported tx names must not be advertised as
-            # helper-executable work or as state-mutating helper subjects.  They
-            # fail before planning/admission, so generated contract artifacts
-            # must not imply that rejected private-message tx names can touch
-            # messaging state roots.
+            # helper-executable work or as state-mutating helper subjects.
             contract_dict.update({
-                "family": TxFamily.MESSAGING.value if tx_type.startswith("DIRECT_MESSAGE_") else contract_dict.get("family"),
+                "family": contract_dict.get("family"),
                 "helper_eligible": False,
                 "degraded_to_serial": False,
                 "effective_lane_id": LANE_SERIAL,

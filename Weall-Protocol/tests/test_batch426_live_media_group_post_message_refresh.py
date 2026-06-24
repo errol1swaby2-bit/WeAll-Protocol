@@ -37,13 +37,10 @@ def test_create_post_has_group_destination_selector_and_group_payload_batch426()
     assert "Choose a group above to route it into a group feed." in page
 
 
-def test_messaging_surface_is_public_only_redirect_batch426() -> None:
-    page = _read("pages/Messaging.tsx")
 
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in page
-    assert "Open activity" in page
-    assert "loadMessages(opts?: { silent?: boolean })" not in page
-    assert "window.setInterval" not in page
+def test_removed_communication_surface_stays_removed_batch426() -> None:
+    root = Path(__file__).resolve().parents[2] / "web" / "src"
+    assert not (root / "pages" / "Messaging.tsx").exists()
 
 
 def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
@@ -55,13 +52,11 @@ def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> Non
     assert "waiting {missingRemoteAccounts.length}" in page
 
 
-def test_batch447_messaging_key_autopublish_removed_by_public_only_rule() -> None:
-    page = _read("pages/Messaging.tsx")
 
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in page
-    assert "autoPublishAttemptedRef" not in page
-    assert "publishMessagingEncryptionKey({ silent: true })" not in page
-    assert "Retry key setup" not in page
+def test_batch447_removed_communication_key_autopublish_surface_stays_removed() -> None:
+    root = Path(__file__).resolve().parents[2] / "web" / "src"
+    assert not (root / "pages" / "Messaging.tsx").exists()
+    assert not (root / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
 
 
 def test_batch447_appeal_controls_are_creator_only_in_dispute_detail() -> None:

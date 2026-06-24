@@ -6,6 +6,7 @@ from typing import Any
 from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
 from ..session_keys import revoke_session_record, store_session_record
+from ..public_protocol_policy import public_protocol_policy_violation
 
 Json = dict[str, Any]
 
@@ -76,18 +77,11 @@ def _mk_device_id_hash(device_id: str) -> str:
     return f"d:{h[:16]}"
 
 
-def _apply_messaging_encryption_policy(policy: Json, p: Json, env: TxEnvelope) -> Json:
-    encryption_pub = p.get("messaging_encryption_public_jwk")
-    encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
-    previous_key_id = _as_str(p.get("messaging_encryption_previous_key_id") or "").strip()
-    rotation_reason = _as_str(p.get("messaging_encryption_rotation_reason") or "").strip()
-    if not isinstance(encryption_pub, dict) and not encryption_key_id and not previous_key_id and not rotation_reason:
-        return policy
-    raise ApplyError(
-        "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
-        "protocol_native_messaging_encryption_keys_are_unsupported",
-        {"tx_type": _as_str(getattr(env, "tx_type", "")), "field": "messaging_encryption"},
-    )
+def _reject_non_public_protocol_payload(env: TxEnvelope) -> None:
+    violation = public_protocol_policy_violation(env)
+    if violation is not None:
+        raise ApplyError(violation.code, violation.reason, violation.details)
+
 
 def _extract_active_pubkeys(acct: Json) -> list[str]:
     out: list[str] = []
@@ -208,8 +202,6 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         # API security expects accounts[acct]["session_keys"][session_key] dicts.
         "session_keys": {},
     }
-    if isinstance(p.get("messaging_encryption_public_jwk"), dict) or _as_str(p.get("messaging_encryption_key_id") or "").strip():
-        accounts[signer]["security_policy"] = _apply_messaging_encryption_policy({}, p, env)
     _sync_account_key_views(accounts[signer])
     return state
 
@@ -617,7 +609,7 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
             policy[key] = bool(p.get(key))
     if p.get("session_ttl_s") is not None:
         policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
-    policy = _apply_messaging_encryption_policy(policy, p, env)
+    _reject_non_public_protocol_payload(env)
 
     a["security_policy"] = policy
     a["nonce"] = exp
@@ -1014,6 +1006,7 @@ def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
 
 
 def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
+    _reject_non_public_protocol_payload(env)
     tx = _as_str(getattr(env, "tx_type", "")).strip().upper()
 
     if tx == "ACCOUNT_REGISTER":

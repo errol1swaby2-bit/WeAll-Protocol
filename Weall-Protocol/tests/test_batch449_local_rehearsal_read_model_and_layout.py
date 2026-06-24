@@ -61,12 +61,10 @@ def test_batch449_group_post_detail_uses_scoped_content_read_when_signed_in() ->
     assert "weall.content(routeContentId, base)" in text
 
 
-def test_batch449_messaging_key_autopublish_removed_for_public_only_protocol() -> None:
-    text = (WEB / "src/pages/Messaging.tsx").read_text(encoding="utf-8")
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in text
-    assert "encryptionSetupPending" not in text
-    assert "auto-publish-messaging-key" not in text
-    assert "Waiting for sync" not in text
+
+def test_batch449_removed_communication_key_autopublish_surface_stays_removed() -> None:
+    assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
+    assert not (WEB / "src" / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
 
 
 def test_batch449_center_flow_cannot_overflow_into_protocol_side_panel() -> None:

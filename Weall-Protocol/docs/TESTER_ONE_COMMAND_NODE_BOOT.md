@@ -63,4 +63,4 @@ This helper is not for normal testers. It verifies that the supplied producer pu
 
 ## Truth boundary
 
-Passing the one-command tester boot means a node is locally prepared for observer onboarding. It does not prove public multi-validator BFT, mainnet readiness, live economics, external private communication, or validator promotion. Signed external observer onboarding is proven only when `scripts/first_external_observer_reproducibility_gate.sh` is run with both remote preflight and signed onboarding enabled and the live gate confirms the transaction sequence.
+Passing the one-command tester boot means a node is locally prepared for observer onboarding. It does not prove public multi-validator BFT, mainnet readiness, live economics, external communications, or validator promotion. Signed external observer onboarding is proven only when `scripts/first_external_observer_reproducibility_gate.sh` is run with both remote preflight and signed onboarding enabled and the live gate confirms the transaction sequence.

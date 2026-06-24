@@ -135,7 +135,6 @@ def main() -> None:
     from weall.runtime.apply.groups import apply_groups  # type: ignore
     from weall.runtime.apply.identity import apply_identity  # type: ignore
     from weall.runtime.apply.indexing import apply_indexing  # type: ignore
-    from weall.runtime.apply.messaging import apply_messaging  # type: ignore
     from weall.runtime.apply.networking import apply_networking  # type: ignore
     from weall.runtime.apply.notifications import apply_notifications  # type: ignore
     from weall.runtime.apply.poh import apply_poh  # type: ignore
@@ -165,7 +164,6 @@ def main() -> None:
         ("networking", apply_networking),
         ("reputation", apply_reputation),
         ("rewards", apply_rewards),
-        ("messaging", apply_messaging),
         ("notifications", apply_notifications),
         ("social", apply_social),
         ("economics", apply_economics),

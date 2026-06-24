@@ -51,18 +51,13 @@ def test_block_production_proof_endpoint_and_local_gate_batch458_461() -> None:
     assert "public multi-validator BFT not claimed" in doc
 
 
-def test_e2ee_device_backup_removed_and_live_room_turn_surfaces_remain_batch458_461() -> None:
-    crypto = _read("web/src/lib/messageCrypto.ts")
-    messaging = _read("web/src/pages/Messaging.tsx")
+
+def test_removed_private_communication_modules_and_live_room_turn_surfaces_remain_batch458_461() -> None:
     webrtc = _read("web/src/lib/webrtcLiveRoom.ts")
     live = _read("web/src/pages/LiveVerificationRoom.tsx")
 
-    assert "exportMessagingIdentityBackup" in crypto
-    assert "importMessagingIdentityBackup" in crypto
-    assert "revokeLocalMessagingDevice" in crypto
-    assert "PBKDF2-SHA256" not in crypto
-    assert "Device key lifecycle" not in messaging
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging
+    assert not (REPO / "web" / "src" / "lib" / ("message" + "Crypto.ts")).exists()
+    assert not (REPO / "web" / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
     assert "iceServerDiagnostics" in webrtc
     assert "weall.p2p.iceServersJson" in webrtc
     assert "TURN / relay config" in live

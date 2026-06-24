@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "d4927546874eea27d602a1faaeb5c462a4040220b6e22e3295cb281346bf0b45",
+  "artifact_digest": "987d81ecb17080eba6f691dd46bcbfc4cc502592eb3d4ecf127190217f15116f",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -81,14 +81,14 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "ca0ca83f0eeaf9a003fe52067cc923c6fcd0bff510e55f45e2e342961d2607c0",
+      "file_sha256": "955e4973f9ee388010af9ece28232fe1a4ce98574a0053c51ddacabb57abd881",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
       "schema": "weall.api_contract_map.v1_5"
     },
     "generated/api_response_vectors_v1_5.json": {
-      "file_sha256": "eff97ef718da81cec9eeb65ab6b7cf4a8b4c9aac7a9564e2c9afcea8e2448eb0",
+      "file_sha256": "4effee5c474b2763be507c582d425f13a5b5dff2d2e8acce3013306e7f661149",
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
@@ -102,7 +102,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "4b85db83161c072cfedd8a8ee1c9f87574c966f2f440f25eee2017826ed15c20",
+      "file_sha256": "523d94bb9a9b1b180906f63bd5f7b9422ba38da5b110d924455a67e5f696f979",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "81385c6dddc700522118fa9a299c9a4aff995c299477c9bb814c3b3ff7d93fce",
+      "file_sha256": "3176c897e8b90de24650c791e6199e06460c5552699ccd0e585b074bb59f53cb",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "93e87d4e15cca4f71cc0a8550acdde873aaf63edbc97d8bcf2d157b8b77a68c1",
+      "file_sha256": "577221255777415b19a3ede25d3f1e6b392ad8f4719fe682d084b249d84ae600",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

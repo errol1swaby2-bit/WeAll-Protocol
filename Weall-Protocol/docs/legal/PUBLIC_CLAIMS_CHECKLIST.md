@@ -10,7 +10,7 @@ Before any public post, grant update, website copy, or tester invite, check that
 - automatic protocol upgrades;
 - legal approval;
 - complete moderation/trust-and-safety operations;
-- protocol-native Signal-grade messaging or any private/direct messaging claim;
+- user-to-user communication tooling as a protocol feature;
 - production helper execution.
 
 Preferred framing: external-observer rehearsal implementation, public-testnet milestone work, locked tokenomics, public-only activity, and evidence-based readiness gates.

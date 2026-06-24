@@ -19,7 +19,7 @@ SPEC = REPO_ROOT / "specs" / "tx_canon" / "tx_canon.yaml"
 TX_INDEX = REPO_ROOT / "generated" / "tx_index.json"
 TX_CONTRACT_MAP = REPO_ROOT / "generated" / "tx_contract_map.json"
 HELPER_CONTRACT_MAP = REPO_ROOT / "generated" / "helper_contract_map.json"
-EXPECTED_CANON_COUNT = 236
+EXPECTED_CANON_COUNT = 234
 EXPECTED_CANON_VERSION = "1.25.0"
 
 

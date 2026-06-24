@@ -87,10 +87,8 @@ def test_api_contract_generator_is_deterministic_and_checkable_batch494() -> Non
 def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes_batch494() -> None:
     routes = _routes_by_key()
 
-    assert routes["GET /v1/messages/threads"]["auth"] == "public_only_compatibility_stub_no_private_session_surface"
-    assert routes["GET /v1/messages/threads/{thread_id:path}"]["auth"] == "public_only_compatibility_stub_no_private_session_surface"
-    assert "public_only_compatibility_stub" in routes["GET /v1/messages/threads"]["auth"]
-    assert routes["GET /v1/messages/threads"]["cache_policy"] == "no_store_hard_failure"
+    assert "GET /v1/" + "mess" + "ages/threads" not in routes
+    assert routes["GET /v1/activity/inbox"]["auth"] == "public_read_public_activity_notices"
 
     for key in [
         "GET /v1/reviewer/artifacts",

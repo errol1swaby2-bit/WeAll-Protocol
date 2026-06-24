@@ -67,9 +67,9 @@ Current intended behavior:
 
 This does not complete public moderation or constitutional due-process for mainnet. It closes the local rehearsal contradiction where successful actions remained visible as stale active work.
 
-## Protocol-native private messaging unsupported
+## Public protocol surface
 
-WeAll is public-only. Protocol-native private/direct messaging, encrypted social payloads, private groups, and member-only-readable group content are rejected by backend validation and replay. Historical E2EE messaging documents are retained only as legacy context and compatibility-stub evidence; they are not roadmap claims for protocol-native private communication. See `docs/MESSAGING_E2EE_SECURITY_MODEL.md`.
+WeAll records public civic state only. Backend validation and replay reject non-public group read visibility and encrypted or opaque protocol payloads. Local mute, block, filter, and draft controls do not change protocol read visibility.
 
 ## Batch 453 live-room media transport limits
 
@@ -85,7 +85,7 @@ These gates do not mean the blockers are complete. They make the blockers review
 
 - block production remains local/rehearsal-oriented until a separate production validator/BFT proof and adversarial BFT evidence pass;
 - tokenomics remain locked by default and live economics are not claimed;
-- protocol-native direct messages and private P2P messaging are unsupported;
+- user-to-user communication tooling is outside protocol scope;
 - the reviewer readiness workflow is a targeted reproducibility gate, not a substitute for full pytest or a public testnet.
 
 ## Batch 458-461 implementation limits

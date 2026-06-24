@@ -493,7 +493,7 @@ class ContentMediaBindPayload(_StrictModel):
 
 
 # ============================================================
-# Social / Messaging / Notifications batch 1
+# Social / Notifications batch 1
 # ============================================================
 
 
@@ -528,35 +528,6 @@ class ContentShareCreatePayload(_StrictModel):
     target_id: str = Field(..., min_length=1)
     share_id: str | None = Field(default=None, min_length=1)
     comment: str | None = None
-
-
-class DirectMessageSendPayload(_StrictModel):
-    """Legacy rejected schema for stable DIRECT_MESSAGE_SEND errors.
-
-    The public-only protocol policy rejects this tx type before admission or
-    replay. The schema is retained only so canonical tx tooling can classify
-    legacy fixtures deterministically instead of treating the tx name as
-    unknown.
-    """
-
-    to: str = Field(..., min_length=1)
-    encryption: Literal["WEALL_E2EE_V1"]
-    ciphertext_b64: str = Field(..., min_length=1)
-    iv_b64: str = Field(..., min_length=1)
-    aad_b64: str | None = Field(default=None, min_length=1)
-    message_id: str | None = Field(default=None, min_length=1)
-    thread_id: str | None = Field(default=None, min_length=1)
-    sender_encryption_key_id: str | None = Field(default=None, min_length=1)
-    recipient_encryption_key_id: str | None = Field(default=None, min_length=1)
-    sender_encryption_public_jwk: dict[str, Any] | None = None
-    recipient_encryption_public_jwk: dict[str, Any] | None = None
-
-
-class DirectMessageRedactPayload(_StrictModel):
-    """Legacy rejected schema for stable DIRECT_MESSAGE_REDACT errors."""
-
-    message_id: str = Field(..., min_length=1)
-    reason: str | None = None
 
 
 class _TopicPayloadBase(_StrictModel):
@@ -1805,7 +1776,7 @@ TxPayloadModel = (
     ContentFlagPayload,
     ContentMediaDeclarePayload,
     ContentMediaBindPayload,
-    # Social / Messaging / Notifications
+    # Social / Notifications
     ProfileUpdatePayload,
     FollowSetPayload,
     BlockSetPayload,
@@ -2000,9 +1971,6 @@ TX_PAYLOADS: dict[str, Any] = {
     "BLOCK_SET": BlockSetPayload,
     "MUTE_SET": MuteSetPayload,
     "CONTENT_SHARE_CREATE": ContentShareCreatePayload,
-    # Legacy direct-message schema names are retained only for stable unsupported errors.
-    "DIRECT_MESSAGE_SEND": DirectMessageSendPayload,
-    "DIRECT_MESSAGE_REDACT": DirectMessageRedactPayload,
     # Notifications
     "NOTIFICATION_SUBSCRIBE": NotificationSubscribePayload,
     "NOTIFICATION_UNSUBSCRIBE": NotificationUnsubscribePayload,

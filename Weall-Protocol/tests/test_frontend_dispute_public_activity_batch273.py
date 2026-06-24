@@ -10,12 +10,8 @@ WEB = ROOT / "web"
 sys.path.insert(0, str(BACKEND / "src"))
 
 
-def test_messages_page_is_public_only_redirect() -> None:
-    text = (WEB / "src/pages/Messaging.tsx").read_text(encoding="utf-8")
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in text
-    assert "Open activity" in text
-    assert "Send a direct message" not in text
-    assert "Conversations" not in text
+def test_removed_communication_page_stays_removed() -> None:
+    assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
 def test_dispute_review_choice_semantics_match_backend_resolution() -> None:

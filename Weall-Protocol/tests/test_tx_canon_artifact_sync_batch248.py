@@ -16,4 +16,4 @@ def test_batch248_generated_tx_canon_artifacts_are_synchronized() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "236 tx types" in result.stdout
+    assert "234 tx types" in result.stdout

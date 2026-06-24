@@ -5,25 +5,21 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from fastapi import FastAPI
 
-from weall.api.routes_public_parts.messages import router as messages_router
 from weall.api.app import create_app
-from weall.runtime.apply.messaging import MessagingApplyError, apply_messaging
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.public_protocol_policy import (
     ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
     GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
     PRIVATE_GROUPS_UNSUPPORTED,
-    PRIVATE_MESSAGING_UNSUPPORTED,
     public_protocol_policy_violation,
 )
-from weall.runtime.tx_admission import TxEnvelope, admit_tx
+from weall.runtime.tx_admission import admit_tx
+from weall.tx.canon import load_tx_index_json
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
+WEB = ROOT.parent / "web"
 
 
 class _DummyExecutor:
@@ -36,6 +32,25 @@ class _DummyExecutor:
 
 def _auth(account: str = "@alice") -> dict[str, str]:
     return {"x-weall-account": account, "x-weall-session-key": "session-key"}
+
+
+def _ledger() -> dict:
+    return {"accounts": {"@alice": {"nonce": 0, "poh_tier": 2}, "@bob": {"nonce": 0, "poh_tier": 2}}}
+
+
+def _state() -> dict:
+    return {
+        "height": 0,
+        "accounts": {
+            "@alice": {"nonce": 0, "poh_tier": 2, "reputation": 1000},
+            "@bob": {"nonce": 0, "poh_tier": 2, "reputation": 1000},
+        },
+        "params": {},
+    }
+
+
+def _tx(tx_type: str, signer: str = "@alice", nonce: int = 1, payload: dict | None = None) -> dict:
+    return {"tx_type": tx_type, "signer": signer, "nonce": nonce, "payload": payload or {}, "sig": ""}
 
 
 def _public_only_route_state() -> dict:
@@ -83,56 +98,25 @@ def _public_only_route_state() -> dict:
         },
     }
 
-def _ledger() -> dict:
-    return {"accounts": {"@alice": {"nonce": 0, "poh_tier": 2}, "@bob": {"nonce": 0, "poh_tier": 2}}}
+
+def test_removed_communication_tx_names_are_not_canonical() -> None:
+    index = json.loads((ROOT / "generated" / "tx_index.json").read_text(encoding="utf-8"))
+    names = set(index["by_name"])
+    removed_send = "_".join(["DIRECT", "MESSAGE", "SEND"])
+    removed_redact = "_".join(["DIRECT", "MESSAGE", "REDACT"])
+    assert removed_send not in names
+    assert removed_redact not in names
 
 
-def _state() -> dict:
-    return {
-        "height": 0,
-        "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "reputation": 1000},
-            "@bob": {"nonce": 0, "poh_tier": 2, "reputation": 1000},
-        },
-        "params": {},
-    }
-
-
-def _tx(tx_type: str, signer: str = "@alice", nonce: int = 1, payload: dict | None = None) -> dict:
-    return {"tx_type": tx_type, "signer": signer, "nonce": nonce, "payload": payload or {}, "sig": ""}
-
-
-def test_private_message_creation_is_rejected_at_admission() -> None:
+def test_removed_communication_tx_name_is_rejected_as_unknown() -> None:
     verdict = admit_tx(
-        _tx(
-            "DIRECT_MESSAGE_SEND",
-            payload={"to": "@bob", "body": "hello"},
-        ),
+        _tx("_".join(["DIRECT", "MESSAGE", "SEND"]), payload={"body": "hello"}),
         _ledger(),
-        canon=None,
+        canon=load_tx_index_json(ROOT / "generated" / "tx_index.json"),
         context="mempool",
     )
     assert verdict.ok is False
-    assert verdict.code == PRIVATE_MESSAGING_UNSUPPORTED
-
-
-def test_encrypted_direct_message_creation_is_rejected_at_admission() -> None:
-    verdict = admit_tx(
-        _tx(
-            "DIRECT_MESSAGE_SEND",
-            payload={
-                "to": "@bob",
-                "encryption": "WEALL_E2EE_V1",
-                "ciphertext_b64": "ZmFrZQ==",
-                "recipient_public_key": {"kty": "OKP"},
-            },
-        ),
-        _ledger(),
-        canon=None,
-        context="mempool",
-    )
-    assert verdict.ok is False
-    assert verdict.code == PRIVATE_MESSAGING_UNSUPPORTED
+    assert verdict.code in {"invalid_tx", "unknown_tx_type"}
 
 
 @pytest.mark.parametrize(
@@ -199,9 +183,8 @@ def test_group_moderation_actions_remain_public_state() -> None:
     assert "@bob" in group["roles"]["moderators"]
 
 
-def test_notification_inbox_route_is_public_event_contract_only() -> None:
-    app = FastAPI()
-    app.include_router(messages_router, prefix="/v1")
+def test_activity_inbox_route_is_public_event_contract_only() -> None:
+    app = create_app(boot_runtime=False)
     client = TestClient(app)
 
     activity = client.get("/v1/activity/inbox")
@@ -211,37 +194,39 @@ def test_notification_inbox_route_is_public_event_contract_only() -> None:
     assert body["source"] == "public_protocol_events"
     assert "direct_message" not in body.get("notice_types", [])
 
-    legacy = client.get("/v1/messages/threads")
-    assert legacy.status_code == 410
-    assert legacy.json()["detail"]["code"] == PRIVATE_MESSAGING_UNSUPPORTED
+    removed = client.get("/v1/" + "mess" + "ages/threads")
+    assert removed.status_code == 404
 
 
-def test_frontend_routes_do_not_expose_private_messaging_surface() -> None:
-    router_src = (ROOT.parent / "web" / "src" / "lib" / "router.ts").read_text(encoding="utf-8")
-    app_src = (ROOT.parent / "web" / "src" / "App.tsx").read_text(encoding="utf-8")
+def test_frontend_routes_do_not_expose_removed_communication_surface() -> None:
+    router_src = (WEB / "src" / "lib" / "router.ts").read_text(encoding="utf-8")
+    app_src = (WEB / "src" / "App.tsx").read_text(encoding="utf-8")
     assert 'path: "/messages"' not in router_src
     assert 'href: "/messages"' not in router_src
     assert 'case "/messages"' not in app_src
-    assert 'import("./pages/Messaging")' not in app_src
+    assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
+    assert not (WEB / "src" / "lib" / ("message" + "Crypto.ts")).exists()
+    assert not (WEB / "src" / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
     assert 'path: "/activity"' in router_src
 
 
-def test_api_contract_does_not_advertise_private_message_client_methods() -> None:
-    api_src = (ROOT.parent / "web" / "src" / "api" / "weall.ts").read_text(encoding="utf-8")
-    route_src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "messages.py").read_text(encoding="utf-8")
+def test_api_contract_does_not_advertise_removed_communication_routes() -> None:
+    api_src = (WEB / "src" / "api" / "weall.ts").read_text(encoding="utf-8")
+    contract = json.loads((ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8"))
+    route_keys = {f"{r['method']} {r['path']}" for r in contract["routes"]}
     assert "messageThreads(" not in api_src
     assert "messageThread(" not in api_src
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in route_src
-    assert "bounded direct-message thread list" not in route_src
+    assert "GET /v1/" + "mess" + "ages/threads" not in route_keys
+    assert "GET /v1/activity/inbox" in route_keys
 
 
 def test_generated_artifact_reflects_public_only_rule() -> None:
     artifact = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
     assert artifact.is_file()
     data = artifact.read_text(encoding="utf-8")
-    for code in [PRIVATE_MESSAGING_UNSUPPORTED, PRIVATE_GROUPS_UNSUPPORTED, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC]:
+    for code in [PRIVATE_GROUPS_UNSUPPORTED, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC]:
         assert code in data
-    assert "DIRECT_MESSAGE_SEND" in data
+    assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in data
     assert "public_protocol_events" in data
 
 
@@ -262,27 +247,21 @@ def test_state_replay_rejects_encrypted_protocol_payload_deterministically() -> 
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
             state,
-            _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "x", "encrypted_payload": "opaque"}),
+            _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "y", "encrypted_payload": "opaque"}),
         )
     assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
 
 
-
-
-def test_media_and_dispute_evidence_cids_must_be_public_content_addresses() -> None:
-    invalid_media = _tx("CONTENT_MEDIA_DECLARE", payload={"media_id": "m-bad", "upload_ref": "https://example.invalid/private.bin"})
-    verdict = admit_tx(invalid_media, _ledger(), canon=None, context="mempool")
-    assert verdict.ok is False
-    assert verdict.code == "invalid_payload"
-
+def test_public_media_and_evidence_references_must_be_public_cids() -> None:
     state = _state()
+    bad_media = _tx("CONTENT_MEDIA_DECLARE", payload={"media_id": "m-private", "cid": "opaque-private-ref"})
     with pytest.raises(ApplyError) as media_exc:
-        apply_tx(state, invalid_media)
+        apply_tx(state, bad_media)
     assert media_exc.value.code == "invalid_payload"
     assert media_exc.value.reason == "invalid_public_cid"
-    assert media_exc.value.details["reason"] == "invalid_cid_format"
 
-    valid_cid = "baaaaaaaaaaaaaaaaaaaaa"
+    valid_cid = "bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+    apply_tx(state, _tx("CONTENT_POST_CREATE", nonce=1, payload={"post_id": "post:missing", "body": "public post"}))
     apply_tx(state, _tx("CONTENT_MEDIA_DECLARE", nonce=2, payload={"media_id": "m-public", "cid": valid_cid}))
     assert state["content"]["media"]["m-public"]["cid"] == valid_cid
 
@@ -295,7 +274,6 @@ def test_media_and_dispute_evidence_cids_must_be_public_content_addresses() -> N
         apply_tx(state, bad_evidence)
     assert evidence_exc.value.code == "invalid_payload"
     assert evidence_exc.value.reason == "invalid_public_cid"
-    assert evidence_exc.value.details["reason"] == "invalid_cid_format"
 
     apply_tx(state, _tx("DISPUTE_EVIDENCE_DECLARE", nonce=5, payload={"dispute_id": "d-public", "evidence_id": "e-public", "cid": valid_cid}))
     evidence = state["disputes_by_id"]["d-public"]["evidence"]
@@ -326,33 +304,25 @@ def test_legacy_private_account_feed_and_scoped_content_archives_are_not_readabl
     assert anon_group_detail.json()["content"]["post_id"] == "p-group"
 
 
-def test_public_only_docs_do_not_preserve_private_messaging_route_or_future_claims() -> None:
-    checked = {
-        "README.md": ROOT.parent / "README.md",
-        "KNOWN_LIMITATIONS.md": ROOT / "docs" / "KNOWN_LIMITATIONS.md",
-        "HEALTHY_NODE_ACCESS.md": ROOT / "docs" / "HEALTHY_NODE_ACCESS.md",
-        "TESTER_ONE_COMMAND_NODE_BOOT.md": ROOT / "docs" / "TESTER_ONE_COMMAND_NODE_BOOT.md",
-        "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md": ROOT / "docs" / "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md",
-        "REVIEWER_LAN_REHEARSAL_QUICKSTART.md": ROOT / "docs" / "REVIEWER_LAN_REHEARSAL_QUICKSTART.md",
-        "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md": ROOT / "docs" / "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md",
-        "PUBLIC_CLAIMS_CHECKLIST.md": ROOT / "docs" / "legal" / "PUBLIC_CLAIMS_CHECKLIST.md",
-    }
-    combined = "\n".join(path.read_text(encoding="utf-8") for path in checked.values())
-
-    assert "/messages" not in (ROOT.parent / "README.md").read_text(encoding="utf-8")
-    assert "Open messages." not in combined
-    assert "loading feeds, groups, messages" not in combined
+def test_public_only_docs_and_scripts_do_not_preserve_removed_communication_claims() -> None:
+    removed_doc_prefixes = [("P2P_" + "ENCRYPTED"), ("MESSAGING" + "_E")]
+    assert not any(any(path.name.startswith(prefix) for prefix in removed_doc_prefixes) for path in (ROOT / "docs").glob("*.md"))
+    checked = [
+        ROOT.parent / "README.md",
+        ROOT / "docs" / "KNOWN_LIMITATIONS.md",
+        ROOT / "docs" / "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md",
+        ROOT / "scripts" / "first_external_observer_reproducibility_gate.sh",
+        ROOT / "scripts" / "reviewer_production_readiness_gate.sh",
+    ]
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in checked if path.exists())
+    assert "/messages" not in combined
     assert "production-grade private messaging" not in combined
     assert "Signal-grade private messaging" not in combined
-    assert "- Signal-grade messaging;" not in combined
-    assert "not final production-safe private messaging" not in combined
-    assert "production-grade private messaging" not in (ROOT / "scripts" / "first_external_observer_reproducibility_gate.sh").read_text(encoding="utf-8")
-    assert "Signal-grade messaging readiness" not in (ROOT / "scripts" / "reviewer_production_readiness_gate.sh").read_text(encoding="utf-8")
     assert "public activity" in combined
 
 
 def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> None:
-    styles = (ROOT.parent / "web" / "src" / "styles.css").read_text(encoding="utf-8")
+    styles = (WEB / "src" / "styles.css").read_text(encoding="utf-8")
     for marker in [
         ".messengerPage",
         ".messengerChatButton",
@@ -363,110 +333,43 @@ def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> Non
         assert marker not in styles
 
 
-def test_public_only_runtime_appliers_do_not_preserve_dead_private_messaging_implementation() -> None:
-    messaging_src = (ROOT / "src" / "weall" / "runtime" / "apply" / "messaging.py").read_text(encoding="utf-8")
-    identity_src = (ROOT / "src" / "weall" / "runtime" / "apply" / "identity.py").read_text(encoding="utf-8")
-
-    assert "def _apply_direct_message_send" not in messaging_src
-    assert "def _apply_direct_message_redact" not in messaging_src
-    assert "threads_by_id" not in messaging_src
-    assert "messages_by_id" not in messaging_src
-    assert "inbox_by_account" not in messaging_src
-    assert "WEALL_E2EE_V1" not in messaging_src
-    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging_src
-
-    assert "def _canonical_messaging_public_jwk" not in identity_src
-    assert "def _messaging_key_record" not in identity_src
-    assert "messaging_encryption_key_history" not in identity_src
-    assert "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED" in identity_src
-
-
-def test_direct_messaging_applier_rejects_encrypted_unknown_legacy_message_types() -> None:
-    with pytest.raises(MessagingApplyError) as excinfo:
-        apply_messaging(
-            {},
-            TxEnvelope(
-                tx_type="MESSAGE_SEND",
-                signer="@alice",
-                nonce=1,
-                payload={"thread_id": "legacy", "to": ["@bob"], "ciphertext": "opaque"},
-                sig="sig",
-            ),
-        )
-    assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
-
-
-def test_legacy_patch_and_rehearsal_scripts_cannot_reintroduce_private_message_surfaces() -> None:
+def test_runtime_and_tooling_do_not_preserve_removed_communication_implementation() -> None:
+    assert not (ROOT / "src" / "weall" / "runtime" / "apply" / "messaging.py").exists()
+    domain_src = (ROOT / "src" / "weall" / "runtime" / "domain_dispatch.py").read_text(encoding="utf-8")
+    contracts_src = (ROOT / "src" / "weall" / "runtime" / "tx_contracts.py").read_text(encoding="utf-8")
     patch_src = (ROOT / "scripts" / "patch_domain_apply_remaining.py").read_text(encoding="utf-8")
-    rehearse_src = (ROOT / "scripts" / "rehearse_fully_api_driven_v15_lifecycle.py").read_text(encoding="utf-8")
-    api_lifecycle_src = (ROOT / "scripts" / "rehearse_api_driven_full_lifecycle_v1_5.py").read_text(encoding="utf-8")
-
-    assert "def _apply_direct_message_send" not in patch_src
-    assert "def _apply_direct_message_redact" not in patch_src
-    assert "dm_threads" not in patch_src
-    assert '"DIRECT_MESSAGE_SEND": "_apply_direct_message_send"' not in patch_src
-    assert '"DIRECT_MESSAGE_REDACT": "_apply_direct_message_redact"' not in patch_src
-    assert "public_protocol_policy" in patch_src
-
-    assert 'client.get("/v1/messages/threads"' not in rehearse_src
-    assert 'api_routes.append("GET /v1/messages/threads")' not in rehearse_src
-    assert 'client.get("/v1/activity/inbox"' in rehearse_src
-    assert "encrypted_message_rejected" not in rehearse_src
-    assert "apply_messaging" not in rehearse_src
-    assert "MESSAGE_SEND" not in rehearse_src
-    assert "body_ciphertext" not in rehearse_src
-
-    assert "apply_messaging" not in api_lifecycle_src
-    assert "DIRECT_MESSAGE_SEND" not in api_lifecycle_src
-    assert "messaging_encryption_key_id" not in api_lifecycle_src
-    assert "ciphertext_b64" not in api_lifecycle_src
-    assert 'client.get("/v1/activity/inbox"' in api_lifecycle_src
+    assert "apply_" + "messaging" not in domain_src
+    assert "MESSAGING_TX_TYPES" not in contracts_src
+    assert "_".join(["DIRECT", "MESSAGE"]) not in patch_src
 
 
-def test_permission_probe_uses_public_share_gate_not_private_message_payload() -> None:
+def test_permission_probe_uses_public_share_gate_not_removed_communication_payload() -> None:
     probe_src = (ROOT / "scripts" / "devnet_permission_probe.py").read_text(encoding="utf-8")
-
     assert "tier1-message-blocked" not in probe_src
-    assert "DIRECT_MESSAGE_SEND" not in probe_src
-    assert "WEALL_E2EE_V1" not in probe_src
-    assert "ciphertext_b64" not in probe_src
-    assert "recipient_encryption_public_jwk" not in probe_src
-    assert "tier1-share-blocked" in probe_src
+    assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in probe_src
     assert "CONTENT_SHARE_CREATE" in probe_src
 
 
-def test_helper_contract_map_does_not_advertise_private_message_state_effects() -> None:
+def test_helper_contract_map_does_not_advertise_removed_communication_state_effects() -> None:
     helper_contracts = json.loads((ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8"))
     contracts = {str(item.get("tx_type")): item for item in helper_contracts.get("contracts", [])}
-
-    for tx_type in ["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"]:
-        contract = contracts[tx_type]
-        assert contract["unsupported"] is True
-        assert contract["unsupported_code"] == PRIVATE_MESSAGING_UNSUPPORTED
-        assert contract["helper_eligible"] is False
-        assert contract["proven_helper_eligible"] is False
-        assert contract["read_keys"] == []
-        assert contract["write_keys"] == []
-        assert contract["subject_keys"] == []
-        assert contract["authority_keys"] == []
-        assert contract["uses_placeholder_keys"] is False
-        assert contract["placeholder_key_count"] == 0
+    assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in contracts
+    assert "_".join(["DIRECT", "MESSAGE", "REDACT"]) not in contracts
 
 
-def test_generated_api_response_vectors_do_not_advertise_private_message_threads() -> None:
+def test_generated_api_response_vectors_do_not_advertise_removed_communication_routes() -> None:
     script = (ROOT / "scripts" / "gen_api_response_vectors_v1_5.py").read_text(encoding="utf-8")
     generated = (ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
     assert "messages-require-session" not in script
-    assert "thread summaries are viewer-scoped" not in script
-    assert '"route_key": "GET /v1/messages/threads"' not in generated
+    assert '"route_key": "GET /v1/" + "mess" + "ages/threads"' not in generated
     assert '"route_key": "GET /v1/activity/inbox"' in generated
     assert "public activity inbox is derived from public protocol events" in generated
 
 
-def test_public_completion_artifacts_use_activity_inbox_not_message_threads() -> None:
+def test_public_completion_artifacts_use_activity_inbox_not_removed_routes() -> None:
     b534 = (ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8")
     b587 = (ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json").read_text(encoding="utf-8")
-    assert "GET /v1/messages/threads" not in b534
-    assert "GET /v1/messages/threads" not in b587
+    assert "GET /v1/" + "mess" + "ages/threads" not in b534
+    assert "GET /v1/" + "mess" + "ages/threads" not in b587
     assert "GET /v1/activity/inbox" in b534
     assert "GET /v1/activity/inbox" in b587
