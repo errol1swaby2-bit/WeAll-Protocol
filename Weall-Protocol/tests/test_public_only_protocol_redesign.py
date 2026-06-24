@@ -345,6 +345,8 @@ def test_public_only_docs_do_not_preserve_private_messaging_route_or_future_clai
     assert "Signal-grade private messaging" not in combined
     assert "- Signal-grade messaging;" not in combined
     assert "not final production-safe private messaging" not in combined
+    assert "production-grade private messaging" not in (ROOT / "scripts" / "first_external_observer_reproducibility_gate.sh").read_text(encoding="utf-8")
+    assert "Signal-grade messaging readiness" not in (ROOT / "scripts" / "reviewer_production_readiness_gate.sh").read_text(encoding="utf-8")
     assert "public activity" in combined
 
 
@@ -393,9 +395,10 @@ def test_direct_messaging_applier_rejects_encrypted_unknown_legacy_message_types
     assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
 
 
-def test_legacy_patch_script_cannot_reintroduce_private_message_state_handlers() -> None:
+def test_legacy_patch_and_rehearsal_scripts_cannot_reintroduce_private_message_surfaces() -> None:
     patch_src = (ROOT / "scripts" / "patch_domain_apply_remaining.py").read_text(encoding="utf-8")
     rehearse_src = (ROOT / "scripts" / "rehearse_fully_api_driven_v15_lifecycle.py").read_text(encoding="utf-8")
+    api_lifecycle_src = (ROOT / "scripts" / "rehearse_api_driven_full_lifecycle_v1_5.py").read_text(encoding="utf-8")
 
     assert "def _apply_direct_message_send" not in patch_src
     assert "def _apply_direct_message_redact" not in patch_src
@@ -407,4 +410,13 @@ def test_legacy_patch_script_cannot_reintroduce_private_message_state_handlers()
     assert 'client.get("/v1/messages/threads"' not in rehearse_src
     assert 'api_routes.append("GET /v1/messages/threads")' not in rehearse_src
     assert 'client.get("/v1/activity/inbox"' in rehearse_src
-    assert "encrypted_message_rejected" in rehearse_src
+    assert "encrypted_message_rejected" not in rehearse_src
+    assert "apply_messaging" not in rehearse_src
+    assert "MESSAGE_SEND" not in rehearse_src
+    assert "body_ciphertext" not in rehearse_src
+
+    assert "apply_messaging" not in api_lifecycle_src
+    assert "DIRECT_MESSAGE_SEND" not in api_lifecycle_src
+    assert "messaging_encryption_key_id" not in api_lifecycle_src
+    assert "ciphertext_b64" not in api_lifecycle_src
+    assert 'client.get("/v1/activity/inbox"' in api_lifecycle_src

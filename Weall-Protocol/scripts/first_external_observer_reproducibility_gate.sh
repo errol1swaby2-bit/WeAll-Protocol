@@ -76,5 +76,5 @@ Truth boundary:
 - Local preconditions passing means the observer bundle and environment are safe to prepare.
 - Remote preflight passing means the observer can verify remote genesis compatibility.
 - Signed onboarding passing is required before claiming first trusted external observer readiness.
-- None of these gates prove public multi-validator BFT, live economics, mainnet readiness, or production-grade private messaging.
+- None of these gates prove public multi-validator BFT, live economics, mainnet readiness, or any external private communication tooling.
 MSG

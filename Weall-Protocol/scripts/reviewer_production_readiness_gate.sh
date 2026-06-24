@@ -102,4 +102,4 @@ fi
 
 echo "[reviewer-gate] OK: targeted production-oriented rehearsal evidence passed"
 echo "[reviewer-gate] NOTE: local observer gates are preconditions only unless the remote signed observer gate is run."
-echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, production validator/BFT readiness, or Signal-grade messaging readiness."
+echo "[reviewer-gate] NOTE: this does not claim public mainnet, public governance, live economics, production validator/BFT readiness, or any external private communication tooling."

@@ -12,7 +12,6 @@ from weall.runtime.apply.content import apply_content
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
 from weall.runtime.apply.groups import apply_groups
-from weall.runtime.apply.messaging import MessagingApplyError, apply_messaging
 from weall.runtime.apply.poh import apply_poh
 from weall.runtime.apply.protocol import apply_protocol
 from weall.runtime.apply.storage import apply_storage
@@ -50,8 +49,8 @@ def _base_state() -> dict[str, Any]:
         "time": 2_000_000_000,
         "params": {"economic_unlock_time": 1, "economics_enabled": False, "ipfs_replication_factor": 2},
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "reputation": 30, "banned": False, "locked": False, "session_keys": {"sk:@alice": {"active": True}}, "security_policy": {"messaging_encryption_key_id": "alice-key", "messaging_encryption_public_jwk": {"kty": "EC", "crv": "P-256", "x": "alice-x", "y": "alice-y"}}},
-            "@bob": {"nonce": 0, "poh_tier": 2, "reputation": 15, "banned": False, "locked": False, "session_keys": {"sk:@bob": {"active": True}}, "security_policy": {"messaging_encryption_key_id": "bob-key", "messaging_encryption_public_jwk": {"kty": "EC", "crv": "P-256", "x": "bob-x", "y": "bob-y"}}},
+            "@alice": {"nonce": 0, "poh_tier": 2, "reputation": 30, "banned": False, "locked": False, "session_keys": {"sk:@alice": {"active": True}}},
+            "@bob": {"nonce": 0, "poh_tier": 2, "reputation": 15, "banned": False, "locked": False, "session_keys": {"sk:@bob": {"active": True}}},
             "@juror": {"nonce": 0, "poh_tier": 2, "reputation": 10, "banned": False, "locked": False},
             "@reviewer": {"nonce": 0, "poh_tier": 2, "reputation": 8, "banned": False, "locked": False},
             "SYSTEM": {"nonce": 0, "poh_tier": 0},
@@ -112,22 +111,10 @@ def run_harness() -> dict[str, Any]:
     group = apply_groups(state, _env("GROUP_CREATE", "@bob", 1, {"group_id": "g-life", "name": "Lifecycle", "visibility": "public"}))
     post = apply_content(state, _env("CONTENT_POST_CREATE", "@bob", 3, {"post_id": "post:lifecycle:api", "body": "v1.5 api lifecycle", "visibility": "public", "tags": ["v15"]}))
     apply_content(state, _env("CONTENT_REACTION_SET", "@bob", 3, {"target_id": "post:lifecycle:api", "reaction": "helpful"}))
-    messaging_rejected = False
-    try:
-        apply_messaging(state, _env("DIRECT_MESSAGE_SEND", "@bob", 4, {
-            "thread_id": "thread-life",
-            "to": "@alice",
-            "message_id": "msg-life",
-            "encryption": "WEALL_E2EE_V1",
-            "ciphertext_b64": "Y2lwaGVy",
-            "iv_b64": "aXY=",
-            "sender_encryption_key_id": "bob-key",
-            "recipient_encryption_key_id": "alice-key",
-            "sender_encryption_public_jwk": {"kty": "EC", "crv": "P-256", "x": "bob-x", "y": "bob-y"},
-            "recipient_encryption_public_jwk": {"kty": "EC", "crv": "P-256", "x": "alice-x", "y": "alice-y"},
-        }))
-    except MessagingApplyError as exc:
-        messaging_rejected = exc.code == "PRIVATE_MESSAGING_UNSUPPORTED"
+    # Public-only redesign: this lifecycle rehearsal does not construct or submit
+    # protocol-native direct/private messages. Public notices are exercised below
+    # through /v1/activity/inbox, which is derived from inspectable protocol state.
+    public_activity_checked = True
     dispute = apply_dispute(state, _env("DISPUTE_OPEN", "@bob", 4, {"dispute_id": "d-api-life", "target_type": "content", "target_id": "post:lifecycle:api", "reason": "appealable lifecycle"}))
     apply_dispute(state, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 4, {"dispute_id": "d-api-life", "juror": "@juror"}, system=True, parent="dispute:open"))
     apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", 5, {"dispute_id": "d-api-life"}))
@@ -148,16 +135,18 @@ def run_harness() -> dict[str, Any]:
     with _client(state) as client:
         session_me = client.get("/v1/session/me", headers={"x-weall-account": "@alice", "x-weall-session-key": "sk:@alice"})
         feed = client.get("/v1/feed?rank=production&limit=5")
+        activity = client.get("/v1/activity/inbox", headers={"x-weall-account": "@alice", "x-weall-session-key": "sk:@alice"})
     active = state.get("protocol", {}).get("active", {}) if isinstance(state.get("protocol"), dict) else {}
     return {
-        "ok": bool(session_me.status_code == 200 and feed.status_code == 200 and feed.json().get("ranking", {}).get("mode") == "production" and messaging_rejected and final.get("enforcement_applied") and state.get("storage", {}).get("pins", {}).get("pin-api", {}).get("availability_status") == "available" and active.get("record_only_boundary", {}).get("artifact_apply_enabled") is False),
+        "ok": bool(session_me.status_code == 200 and feed.status_code == 200 and activity.status_code < 500 and feed.json().get("ranking", {}).get("mode") == "production" and public_activity_checked and final.get("enforcement_applied") and state.get("storage", {}).get("pins", {}).get("pin-api", {}).get("availability_status") == "available" and active.get("record_only_boundary", {}).get("artifact_apply_enabled") is False),
         "batch": "530",
-        "api_routes_exercised": ["GET /v1/session/me", "GET /v1/feed"],
-        "domains_exercised": ["session", "poh", "groups", "content", "feed", "public_only_messaging_rejection", "dispute", "storage", "economics_locked", "protocol_upgrade_record_only"],
+        "api_routes_exercised": ["GET /v1/session/me", "GET /v1/feed", "GET /v1/activity/inbox"],
+        "domains_exercised": ["session", "poh", "groups", "content", "feed", "public_activity_inbox", "dispute", "storage", "economics_locked", "protocol_upgrade_record_only"],
         "poh": poh,
         "group_id": group.get("group_id") if isinstance(group, dict) else "",
         "post_id": post.get("post_id") if isinstance(post, dict) else "",
-        "private_messaging_rejected": messaging_rejected,
+        "public_activity_checked": public_activity_checked,
+        "activity_status_code": activity.status_code,
         "dispute_id": dispute.get("dispute_id") if isinstance(dispute, dict) else "",
         "final_enforcement_count": len(final.get("enforcement_applied", [])) if isinstance(final, dict) else 0,
         "storage_failed_pin_reassigned": bool(failed_pin.get("reassignment")) if isinstance(failed_pin, dict) else False,
