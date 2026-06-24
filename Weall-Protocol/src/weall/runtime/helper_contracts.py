@@ -246,7 +246,10 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
         contract_dict = contract.to_dict()
         if unsupported_code:
             # Canon-retained unsupported tx names must not be advertised as
-            # helper-executable work.  They fail before planning/admission.
+            # helper-executable work or as state-mutating helper subjects.  They
+            # fail before planning/admission, so generated contract artifacts
+            # must not imply that rejected private-message tx names can touch
+            # messaging state roots.
             contract_dict.update({
                 "family": TxFamily.MESSAGING.value if tx_type.startswith("DIRECT_MESSAGE_") else contract_dict.get("family"),
                 "helper_eligible": False,
@@ -258,6 +261,12 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
                 "requires_concrete_instance": False,
                 "unsupported": True,
                 "unsupported_code": unsupported_code,
+                "read_keys": [],
+                "write_keys": [],
+                "subject_keys": [],
+                "authority_keys": [],
+                "uses_placeholder_keys": False,
+                "placeholder_key_count": 0,
             })
         family_counts[str(contract_dict["family"])] = int(family_counts.get(str(contract_dict["family"]), 0)) + 1
         effective_lane_counts[str(contract_dict["effective_lane_id"])] = int(effective_lane_counts.get(str(contract_dict["effective_lane_id"]), 0)) + 1

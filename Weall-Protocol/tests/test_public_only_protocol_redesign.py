@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -420,3 +421,33 @@ def test_legacy_patch_and_rehearsal_scripts_cannot_reintroduce_private_message_s
     assert "messaging_encryption_key_id" not in api_lifecycle_src
     assert "ciphertext_b64" not in api_lifecycle_src
     assert 'client.get("/v1/activity/inbox"' in api_lifecycle_src
+
+
+def test_permission_probe_uses_public_share_gate_not_private_message_payload() -> None:
+    probe_src = (ROOT / "scripts" / "devnet_permission_probe.py").read_text(encoding="utf-8")
+
+    assert "tier1-message-blocked" not in probe_src
+    assert "DIRECT_MESSAGE_SEND" not in probe_src
+    assert "WEALL_E2EE_V1" not in probe_src
+    assert "ciphertext_b64" not in probe_src
+    assert "recipient_encryption_public_jwk" not in probe_src
+    assert "tier1-share-blocked" in probe_src
+    assert "CONTENT_SHARE_CREATE" in probe_src
+
+
+def test_helper_contract_map_does_not_advertise_private_message_state_effects() -> None:
+    helper_contracts = json.loads((ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8"))
+    contracts = {str(item.get("tx_type")): item for item in helper_contracts.get("contracts", [])}
+
+    for tx_type in ["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"]:
+        contract = contracts[tx_type]
+        assert contract["unsupported"] is True
+        assert contract["unsupported_code"] == PRIVATE_MESSAGING_UNSUPPORTED
+        assert contract["helper_eligible"] is False
+        assert contract["proven_helper_eligible"] is False
+        assert contract["read_keys"] == []
+        assert contract["write_keys"] == []
+        assert contract["subject_keys"] == []
+        assert contract["authority_keys"] == []
+        assert contract["uses_placeholder_keys"] is False
+        assert contract["placeholder_key_count"] == 0

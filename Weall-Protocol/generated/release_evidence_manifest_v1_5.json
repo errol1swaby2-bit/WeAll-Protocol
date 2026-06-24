@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "90438e57d991d02115cafda9a64ff9c93abfbf6432ce9c002c698e5069596de9",
+  "artifact_digest": "1f0716df90a48907612bde2c18544836cc6f7dca1fcb7de68ef1b5dbca48bfcc",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "1e4802ad63bb47ca5af4d57874f0b89abacd31cb93de368b1c20f48a8d22ce3c",
+      "file_sha256": "5d1b5590d6e3998cb615e98160630c7abed5f58c06cd472af90684cc3b3e5958",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

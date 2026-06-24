@@ -52,11 +52,11 @@ PROBES: tuple[PermissionProbe, ...] = (
         description="Tier-0 account cannot submit Tier-1 balance transfer directly.",
     ),
     PermissionProbe(
-        name="tier1-message-blocked",
-        tx_type="DIRECT_MESSAGE_SEND",
+        name="tier1-share-blocked",
+        tx_type="CONTENT_SHARE_CREATE",
         gate="Tier1+",
         expected="reject",
-        description="Tier-0 account cannot submit Tier-1 direct message directly.",
+        description="Tier-0 account cannot share public content by bypassing the frontend.",
     ),
     PermissionProbe(
         name="tier2-group-create-blocked",
@@ -155,19 +155,11 @@ def probe_payload(tx_type: str, *, account: str, suffix: str) -> Json:
         }
     if tx == "BALANCE_TRANSFER":
         return {"to_account_id": "@permission_probe_sink", "amount": 1, "memo": f"probe:{s}"}
-    if tx == "DIRECT_MESSAGE_SEND":
-        jwk_a = {"kty": "EC", "crv": "P-256", "x": "probe_sender_x", "y": "probe_sender_y", "ext": True}
-        jwk_b = {"kty": "EC", "crv": "P-256", "x": "probe_recipient_x", "y": "probe_recipient_y", "ext": True}
+    if tx == "CONTENT_SHARE_CREATE":
         return {
-            "to": "@permission_probe_sink",
-            "encryption": "WEALL_E2EE_V1",
-            "ciphertext_b64": "cGVybWlzc2lvbi1wcm9iZS1jaXBoZXJ0ZXh0",
-            "iv_b64": "MTIzNDU2Nzg5MDEy",
-            "aad_b64": "cGVybWlzc2lvbi1wcm9iZS1hYWQ=",
-            "sender_encryption_public_jwk": jwk_a,
-            "recipient_encryption_public_jwk": jwk_b,
-            "sender_encryption_key_id": "msgenc:permission-probe-sender",
-            "recipient_encryption_key_id": "msgenc:permission-probe-recipient",
+            "target_id": f"post-permission-probe-target-{s}",
+            "share_id": f"share-permission-probe-{s}",
+            "comment": "Permission probe public share.",
         }
     if tx == "GROUP_CREATE":
         return {"group_id": f"grp-permission-probe-{s}", "charter": "Permission probe group."}

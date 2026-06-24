@@ -1595,7 +1595,7 @@
       "has_global_barrier_authority": false,
       "helper_eligible": false,
       "origin": "USER",
-      "placeholder_key_count": 3,
+      "placeholder_key_count": 0,
       "planner_lane_hint": "SOCIAL",
       "proof_status": "UNSUPPORTED_REJECTED",
       "proven_helper_eligible": false,
@@ -1604,17 +1604,12 @@
       "receipt_only": false,
       "requires_concrete_instance": false,
       "serial_only_on_missing_fields": true,
-      "subject_keys": [
-        "messaging:thread:anon:DIRECT_MESSAGE_REDACT"
-      ],
+      "subject_keys": [],
       "tx_type": "DIRECT_MESSAGE_REDACT",
       "unsupported": true,
       "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED",
-      "uses_placeholder_keys": true,
-      "write_keys": [
-        "messaging:message:anon:DIRECT_MESSAGE_REDACT",
-        "messaging:thread:anon:DIRECT_MESSAGE_REDACT"
-      ]
+      "uses_placeholder_keys": false,
+      "write_keys": []
     },
     {
       "authority_keys": [],
@@ -1630,7 +1625,7 @@
       "has_global_barrier_authority": false,
       "helper_eligible": false,
       "origin": "USER",
-      "placeholder_key_count": 3,
+      "placeholder_key_count": 0,
       "planner_lane_hint": "SOCIAL",
       "proof_status": "UNSUPPORTED_REJECTED",
       "proven_helper_eligible": false,
@@ -1639,17 +1634,12 @@
       "receipt_only": false,
       "requires_concrete_instance": false,
       "serial_only_on_missing_fields": true,
-      "subject_keys": [
-        "messaging:thread:anon:DIRECT_MESSAGE_SEND"
-      ],
+      "subject_keys": [],
       "tx_type": "DIRECT_MESSAGE_SEND",
       "unsupported": true,
       "unsupported_code": "PRIVATE_MESSAGING_UNSUPPORTED",
-      "uses_placeholder_keys": true,
-      "write_keys": [
-        "messaging:message:anon:DIRECT_MESSAGE_SEND",
-        "messaging:thread:anon:DIRECT_MESSAGE_SEND"
-      ]
+      "uses_placeholder_keys": false,
+      "write_keys": []
     },
     {
       "authority_keys": [],

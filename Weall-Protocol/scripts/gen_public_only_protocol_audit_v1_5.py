@@ -152,6 +152,8 @@ def build_payload() -> dict[str, object]:
             "legacy DIRECT_MESSAGE_* fixtures reject before schema/domain apply",
             "legacy private account-feed and scoped-content archives are not readable through owner-authenticated routes",
             "media and dispute evidence CID fields must be valid public content-addressed references, never opaque URLs or local-private handles",
+            "permission probes use public-content share gates instead of constructing direct-message encrypted payloads",
+            "unsupported DIRECT_MESSAGE_* helper contracts expose no read/write/subject/authority keys",
         ],
     }
 

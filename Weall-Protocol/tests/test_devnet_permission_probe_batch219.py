@@ -68,7 +68,7 @@ def test_permission_probe_covers_core_tier_and_role_gates_batch219() -> None:
     expected = {
         "tier0-profile-update-allowed": ("PROFILE_UPDATE", "Tier0+", "allow"),
         "tier1-transfer-blocked": ("BALANCE_TRANSFER", "Tier1+", "reject"),
-        "tier1-message-blocked": ("DIRECT_MESSAGE_SEND", "Tier1+", "reject"),
+        "tier1-share-blocked": ("CONTENT_SHARE_CREATE", "Tier1+", "reject"),
         "tier2-group-create-blocked": ("GROUP_CREATE", "Tier2+", "reject"),
         "tier2-reaction-blocked": ("CONTENT_REACTION_SET", "Tier2+", "reject"),
         "live-post-create-blocked": ("CONTENT_POST_CREATE", "Tier2+", "reject"),
@@ -110,6 +110,7 @@ def test_permission_probe_dry_run_builds_valid_payload_plan_batch219() -> None:
     assert {p["tx_type"] for p in out["probes"]} >= {
         "PROFILE_UPDATE",
         "BALANCE_TRANSFER",
+        "CONTENT_SHARE_CREATE",
         "GROUP_CREATE",
         "CONTENT_POST_CREATE",
         "GOV_PROPOSAL_CREATE",
