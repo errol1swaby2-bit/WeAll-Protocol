@@ -76,90 +76,18 @@ def _mk_device_id_hash(device_id: str) -> str:
     return f"d:{h[:16]}"
 
 
-def _canonical_messaging_public_jwk(value: Any) -> Json:
-    jwk = value if isinstance(value, dict) else {}
-    kty = _as_str(jwk.get("kty") or "").strip()
-    crv = _as_str(jwk.get("crv") or "").strip()
-    x = _as_str(jwk.get("x") or "").strip()
-    y = _as_str(jwk.get("y") or "").strip()
-    if kty != "EC" or crv != "P-256" or not x or not y:
-        raise ApplyError("invalid_tx", "invalid_messaging_encryption_public_jwk", {"kty": kty, "crv": crv})
-    if _as_str(jwk.get("d") or "").strip():
-        raise ApplyError("invalid_tx", "messaging_encryption_private_key_forbidden", {})
-    return {"kty": "EC", "crv": "P-256", "x": x, "y": y, "ext": True}
-
-
-def _messaging_key_record(*, env: TxEnvelope, public_jwk: Json, key_id: str, previous_key_id: str, reason: str) -> Json:
-    return {
-        "key_id": key_id,
-        "public_jwk": dict(public_jwk),
-        "published_at_nonce": _as_int(getattr(env, "nonce", 0), 0),
-        "previous_key_id": previous_key_id,
-        "rotation_reason": reason,
-        "scheme": "WEALL_E2EE_V1",
-        "trust_model": "account-published-public-key",
-        "metadata_visible": True,
-    }
-
-
 def _apply_messaging_encryption_policy(policy: Json, p: Json, env: TxEnvelope) -> Json:
     encryption_pub = p.get("messaging_encryption_public_jwk")
     encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
-    if not isinstance(encryption_pub, dict) and not encryption_key_id:
+    previous_key_id = _as_str(p.get("messaging_encryption_previous_key_id") or "").strip()
+    rotation_reason = _as_str(p.get("messaging_encryption_rotation_reason") or "").strip()
+    if not isinstance(encryption_pub, dict) and not encryption_key_id and not previous_key_id and not rotation_reason:
         return policy
     raise ApplyError(
         "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
         "protocol_native_messaging_encryption_keys_are_unsupported",
         {"tx_type": _as_str(getattr(env, "tx_type", "")), "field": "messaging_encryption"},
     )
-
-    public_jwk = _canonical_messaging_public_jwk(encryption_pub)
-    current_key_id = _as_str(policy.get("messaging_encryption_key_id") or "").strip()
-    previous_key_id = _as_str(p.get("messaging_encryption_previous_key_id") or "").strip()
-    rotation_reason = _as_str(p.get("messaging_encryption_rotation_reason") or "").strip()
-
-    history = policy.get("messaging_encryption_key_history")
-    if not isinstance(history, list):
-        history = []
-
-    replacing = bool(current_key_id and current_key_id != encryption_key_id)
-    if replacing:
-        if previous_key_id != current_key_id:
-            raise ApplyError(
-                "invalid_tx",
-                "messaging_encryption_key_rotation_requires_current_previous_key",
-                {"current_key_id": current_key_id, "previous_key_id": previous_key_id},
-            )
-        if len(rotation_reason) < 8:
-            raise ApplyError(
-                "invalid_tx",
-                "messaging_encryption_key_rotation_reason_required",
-                {"min_chars": 8},
-            )
-    elif previous_key_id and previous_key_id != current_key_id:
-        raise ApplyError(
-            "invalid_tx",
-            "messaging_encryption_previous_key_mismatch",
-            {"current_key_id": current_key_id, "previous_key_id": previous_key_id},
-        )
-
-    policy["messaging_encryption_public_jwk"] = dict(public_jwk)
-    policy["messaging_encryption_key_id"] = encryption_key_id
-    policy["messaging_encryption_scheme"] = "WEALL_E2EE_V1"
-    policy["messaging_encryption_trust_model"] = "account-published-public-key"
-    policy["messaging_encryption_metadata_visible"] = True
-    policy["messaging_encryption_forward_secrecy"] = False
-    policy["messaging_encryption_status"] = "static_key_v1_metadata_visible"
-    if replacing:
-        policy["messaging_encryption_previous_key_id"] = previous_key_id
-        policy["messaging_encryption_rotation_reason"] = rotation_reason
-        policy["messaging_encryption_key_changed_at_nonce"] = _as_int(getattr(env, "nonce", 0), 0)
-    if not history or replacing or all(_as_str(item.get("key_id") if isinstance(item, dict) else "") != encryption_key_id for item in history):
-        history.append(_messaging_key_record(env=env, public_jwk=public_jwk, key_id=encryption_key_id, previous_key_id=previous_key_id, reason=rotation_reason))
-    policy["messaging_encryption_key_history"] = history[-10:]
-    policy["messaging_encryption_key_change_count"] = max(0, len(policy["messaging_encryption_key_history"]) - 1)
-    return policy
-
 
 def _extract_active_pubkeys(acct: Json) -> list[str]:
     out: list[str] = []

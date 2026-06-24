@@ -3,7 +3,7 @@
     "api": 101,
     "launch_readiness": 26,
     "runtime": 7,
-    "runtime_apply": 73
+    "runtime_apply": 69
   },
   "codes": [
     {
@@ -13,7 +13,7 @@
       "http_status": null,
       "sample_reason": "protocol_native_messaging_encryption_keys_are_unsupported",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 110
+      "source_lineno": 86
     },
     {
       "code": "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
@@ -221,15 +221,6 @@
       "sample_reason": "stable public genesis launch readiness failure code",
       "source": "scripts/gen_failure_code_registry_v1_5.py",
       "source_lineno": 0
-    },
-    {
-      "code": "PRIVATE_MESSAGING_UNSUPPORTED",
-      "domain": "runtime_apply",
-      "family": "MessagingApplyError",
-      "http_status": null,
-      "sample_reason": "protocol_native_direct_messages_are_unsupported",
-      "source": "src/weall/runtime/apply/messaging.py",
-      "source_lineno": 463
     },
     {
       "code": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
@@ -738,15 +729,6 @@
     {
       "code": "forbidden",
       "domain": "runtime_apply",
-      "family": "MessagingApplyError",
-      "http_status": null,
-      "sample_reason": "only_sender_can_redact",
-      "source": "src/weall/runtime/apply/messaging.py",
-      "source_lineno": 419
-    },
-    {
-      "code": "forbidden",
-      "domain": "runtime_apply",
       "family": "NetworkingApplyError",
       "http_status": null,
       "sample_reason": "system_only",
@@ -977,15 +959,6 @@
       "sample_reason": "missing_anchor_id",
       "source": "src/weall/runtime/apply/indexing.py",
       "source_lineno": 176
-    },
-    {
-      "code": "invalid_payload",
-      "domain": "runtime_apply",
-      "family": "MessagingApplyError",
-      "http_status": null,
-      "sample_reason": "",
-      "source": "src/weall/runtime/apply/messaging.py",
-      "source_lineno": 170
     },
     {
       "code": "invalid_payload",
@@ -1584,15 +1557,6 @@
     {
       "code": "not_found",
       "domain": "runtime_apply",
-      "family": "MessagingApplyError",
-      "http_status": null,
-      "sample_reason": "message_not_found",
-      "source": "src/weall/runtime/apply/messaging.py",
-      "source_lineno": 416
-    },
-    {
-      "code": "not_found",
-      "domain": "runtime_apply",
       "family": "NetworkingApplyError",
       "http_status": null,
       "sample_reason": "ticket_not_found",
@@ -1870,7 +1834,7 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 207,
+  "entry_count": 203,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -1891,7 +1855,6 @@
       "GroupsApplyError",
       "IndexingApplyError",
       "LaunchReadiness",
-      "MessagingApplyError",
       "NetworkingApplyError",
       "NotificationApplyError",
       "ProtocolApplyError",

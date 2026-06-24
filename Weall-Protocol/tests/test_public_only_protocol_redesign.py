@@ -333,6 +333,7 @@ def test_public_only_docs_do_not_preserve_private_messaging_route_or_future_clai
         "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md": ROOT / "docs" / "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md",
         "REVIEWER_LAN_REHEARSAL_QUICKSTART.md": ROOT / "docs" / "REVIEWER_LAN_REHEARSAL_QUICKSTART.md",
         "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md": ROOT / "docs" / "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md",
+        "PUBLIC_CLAIMS_CHECKLIST.md": ROOT / "docs" / "legal" / "PUBLIC_CLAIMS_CHECKLIST.md",
     }
     combined = "\n".join(path.read_text(encoding="utf-8") for path in checked.values())
 
@@ -341,6 +342,7 @@ def test_public_only_docs_do_not_preserve_private_messaging_route_or_future_clai
     assert "loading feeds, groups, messages" not in combined
     assert "production-grade private messaging" not in combined
     assert "Signal-grade private messaging" not in combined
+    assert "- Signal-grade messaging;" not in combined
     assert "not final production-safe private messaging" not in combined
     assert "public activity" in combined
 
@@ -355,3 +357,21 @@ def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> Non
         ".messengerReplyBox",
     ]:
         assert marker not in styles
+
+
+def test_public_only_runtime_appliers_do_not_preserve_dead_private_messaging_implementation() -> None:
+    messaging_src = (ROOT / "src" / "weall" / "runtime" / "apply" / "messaging.py").read_text(encoding="utf-8")
+    identity_src = (ROOT / "src" / "weall" / "runtime" / "apply" / "identity.py").read_text(encoding="utf-8")
+
+    assert "def _apply_direct_message_send" not in messaging_src
+    assert "def _apply_direct_message_redact" not in messaging_src
+    assert "threads_by_id" not in messaging_src
+    assert "messages_by_id" not in messaging_src
+    assert "inbox_by_account" not in messaging_src
+    assert "WEALL_E2EE_V1" not in messaging_src
+    assert "PRIVATE_MESSAGING_UNSUPPORTED" in messaging_src
+
+    assert "def _canonical_messaging_public_jwk" not in identity_src
+    assert "def _messaging_key_record" not in identity_src
+    assert "messaging_encryption_key_history" not in identity_src
+    assert "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED" in identity_src
