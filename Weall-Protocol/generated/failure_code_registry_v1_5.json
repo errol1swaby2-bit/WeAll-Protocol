@@ -137,6 +137,15 @@
       "domain": "api",
       "family": "ApiError.bad_request",
       "http_status": 400,
+      "sample_reason": "Protocol-native account content is public-only; private read visibility is unsupported.",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 285
+    },
+    {
+      "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
       "sample_reason": "Group read visibility must be public.",
       "source": "src/weall/api/routes_public_parts/groups.py",
       "source_lineno": 463
@@ -599,15 +608,6 @@
       "sample_reason": "executor must expose read_state",
       "source": "src/weall/api/routes_public_parts/common.py",
       "source_lineno": 94
-    },
-    {
-      "code": "forbidden",
-      "domain": "api",
-      "family": "ApiError.forbidden",
-      "http_status": 403,
-      "sample_reason": "Private account feed requires login as that account",
-      "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 294
     },
     {
       "code": "forbidden",

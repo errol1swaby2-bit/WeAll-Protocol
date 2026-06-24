@@ -272,9 +272,13 @@ def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
         return False
     if _content_target_hidden_by_review(st, pid, post):
         return False
-    # Conservative default: only return public posts on the public feed.
+    # Public-only default: public posts are visible; legacy group-scoped posts
+    # remain publicly readable through detail/group routes instead of becoming a
+    # member-only archive.  Truly private/direct/member-only legacy records stay
+    # hidden and cannot be revived by owner-scoped reads.
     vis = str(post.get("visibility", "public") or "public").strip().lower()
-    return vis in {"public", ""}
+    gid = str(post.get("group_id") or post.get("group") or "").strip()
+    return vis in {"public", ""} or (bool(gid) and vis == "group")
 
 
 def _comment_visible(st: Json, comment: Json) -> bool:
@@ -434,6 +438,17 @@ def _group_id_of_content(obj: Json) -> str:
 
 
 def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
+    """Return whether the content is readable under the public-only protocol.
+
+    Historical builds had an authenticated scoped route that let owners or group
+    members read non-public protocol content.  The public-only redesign removes
+    that private archive semantics: if a protocol object is not public-readable,
+    it is not readable through a different account-scoped route either.  Group
+    posts with legacy visibility=group remain publicly readable through group and
+    content detail surfaces because group membership may gate participation but
+    never read visibility.
+    """
+
     if not isinstance(post, dict) or bool(post.get("deleted", False)):
         return False
     pid = str(post.get("post_id") or post.get("id") or "").strip()
@@ -441,31 +456,12 @@ def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
         return False
 
     vis = _visibility_of_content(post)
-    owner = _owner_of_content(post)
     gid = _group_id_of_content(post)
 
-    if vis in {"public", ""} and not gid:
+    if vis in {"public", ""}:
         return True
-
-    if owner and owner == viewer:
+    if gid and vis == "group":
         return True
-
-    if gid:
-        g = _group_record_for_content(st, gid)
-        if not g:
-            return False
-        if _group_is_private_record(g):
-            return _is_group_member(st, group_id=gid, account=viewer)
-        # Public group content remains readable to everyone unless the post has
-        # an explicitly private/non-public visibility. The scoped route is more
-        # permissive for authenticated users, not a replacement for public feed.
-        if vis in {"public", ""}:
-            return True
-        return _is_group_member(st, group_id=gid, account=viewer)
-
-    if vis in {"private", "direct", "owner", "members", "hidden", "unlisted"}:
-        return bool(owner and owner == viewer)
-
     return False
 
 
@@ -929,9 +925,10 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
 def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     """Get a content object through an authenticated, scoped read path.
 
-    Public /v1/content/{id} remains fail-closed for non-public content. This
-    route lets authorized viewers read private/group content without reopening
-    broad state snapshots or leaking content by id to anonymous callers.
+    Compatibility route for older clients that used an authenticated scoped
+    content read.  It now applies the same public-only visibility rule as the
+    public detail route; authentication may identify the requester for logs/UI,
+    but it must not unlock private protocol content or member-only archives.
     """
 
     st = _snapshot(request)

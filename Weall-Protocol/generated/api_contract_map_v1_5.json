@@ -386,7 +386,7 @@
       "route_id": "1fb9dfa2e3a3bc38",
       "route_path_without_v1_prefix": "/content/{content_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 875,
+      "source_lineno": 871,
       "summary": "",
       "tags": [
         "content"
@@ -408,7 +408,7 @@
       "route_id": "b0081d6b1b60e647",
       "route_path_without_v1_prefix": "/content/{content_id}/scoped",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 929,
+      "source_lineno": 925,
       "summary": "",
       "tags": [
         "content"
@@ -716,7 +716,7 @@
       "route_id": "f11984242f1bc865",
       "route_path_without_v1_prefix": "/feed",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 761,
+      "source_lineno": 757,
       "summary": "",
       "tags": [
         "content"
@@ -3070,7 +3070,7 @@
       "route_id": "72282a3231bedf33",
       "route_path_without_v1_prefix": "/thread/{thread_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 981,
+      "source_lineno": 978,
       "summary": "",
       "tags": [
         "content"

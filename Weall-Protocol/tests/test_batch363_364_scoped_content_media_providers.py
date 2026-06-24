@@ -147,14 +147,19 @@ def test_legacy_private_group_content_is_publicly_readable_batch363() -> None:
             assert media["load_policy"] == "viewport"
 
 
-def test_scoped_content_route_allows_author_and_group_member_without_public_leak_batch363() -> None:
+def test_scoped_content_route_no_longer_exposes_private_archives_batch363() -> None:
     with _client(_state()) as client:
         assert client.get("/v1/content/post:private").status_code == 404
-        assert client.get("/v1/content/post:g-private").status_code == 404
+
+        # Legacy group-scoped content is now public-readable.  The historical
+        # group visibility/private-group flag cannot create a member-only read
+        # archive after the public-only redesign.
+        group_public = client.get("/v1/content/post:g-private")
+        assert group_public.status_code == 200, group_public.text
+        assert group_public.json()["content"]["body"] == "private group note"
 
         private_author = client.get("/v1/content/post:private/scoped", headers=_auth("@alice"))
-        assert private_author.status_code == 200, private_author.text
-        assert private_author.json()["content"]["body"] == "private note"
+        assert private_author.status_code == 404
 
         private_non_owner = client.get("/v1/content/post:private/scoped", headers=_auth("@bob"))
         assert private_non_owner.status_code == 404
@@ -164,11 +169,12 @@ def test_scoped_content_route_allows_author_and_group_member_without_public_leak
         assert group_member.json()["content"]["body"] == "private group note"
 
         group_non_member = client.get("/v1/content/post:g-private/scoped", headers=_auth("@eve"))
-        assert group_non_member.status_code == 404
+        assert group_non_member.status_code == 200, group_non_member.text
+        assert group_non_member.json()["content"]["body"] == "private group note"
 
-        comment_member = client.get("/v1/content/comment:g-private/scoped", headers=_auth("@alice"))
-        assert comment_member.status_code == 200, comment_member.text
-        assert comment_member.json()["content"]["body"] == "private group reply"
+        comment_public = client.get("/v1/content/comment:g-private")
+        assert comment_public.status_code == 200, comment_public.text
+        assert comment_public.json()["content"]["body"] == "private group reply"
 
 
 def test_group_member_list_is_public_activity_batch363() -> None:

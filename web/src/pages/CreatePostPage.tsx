@@ -217,9 +217,7 @@ export default function CreatePostPage(): JSX.Element {
 
   const [text, setText] = useState<string>("");
   const [tags, setTags] = useState<string>("");
-  const [visibility, setVisibility] = useState<"public" | "followers" | "group" | "private">(
-    "public",
-  );
+  const [visibility, setVisibility] = useState<"public" | "group">("public");
   const [file, setFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string>("");
   const [composerGroupId, setComposerGroupId] = useState<string>(() => readComposerGroupIdFromHash());
@@ -983,8 +981,8 @@ export default function CreatePostPage(): JSX.Element {
               <strong>Current publishing truth</strong>
               <div style={{ marginTop: 6 }}>
                 {composerGroupId
-                  ? `This post will be submitted to ${groupDisplayName(selectedGroup, composerGroupId)} with visibility=group and group_id=${composerGroupId}.`
-                  : "This post will be submitted to the public feed. Choose a group above to route it into a group feed."}
+                  ? `This post will be submitted to ${groupDisplayName(selectedGroup, composerGroupId)} as public-readable group content with group_id=${composerGroupId}.`
+                  : "This post will be submitted as public-readable protocol content. Choose a group above to route it into a group feed."}
               </div>
               {groupOptionsError ? <div style={{ marginTop: 6 }}>{groupOptionsError}</div> : null}
             </div>

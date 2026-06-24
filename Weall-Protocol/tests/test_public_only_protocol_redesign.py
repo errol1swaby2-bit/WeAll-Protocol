@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
 from weall.api.routes_public_parts.messages import router as messages_router
+from weall.api.app import create_app
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.public_protocol_policy import (
@@ -20,6 +21,65 @@ from weall.runtime.tx_admission import admit_tx
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+
+
+class _DummyExecutor:
+    def __init__(self, state: dict):
+        self._state = state
+
+    def read_state(self) -> dict:
+        return self._state
+
+
+def _auth(account: str = "@alice") -> dict[str, str]:
+    return {"x-weall-account": account, "x-weall-session-key": "session-key"}
+
+
+def _public_only_route_state() -> dict:
+    return {
+        "accounts": {
+            "@alice": {"nonce": 0, "poh_tier": 2, "session_keys": {"session-key": {"active": True}}},
+            "@bob": {"nonce": 0, "poh_tier": 2, "session_keys": {"session-key": {"active": True}}},
+        },
+        "content": {
+            "posts": {
+                "p-public": {
+                    "post_id": "p-public",
+                    "author": "@alice",
+                    "body": "public",
+                    "visibility": "public",
+                    "created_nonce": 1,
+                    "created_at_nonce": 1,
+                    "deleted": False,
+                },
+                "p-private": {
+                    "post_id": "p-private",
+                    "author": "@alice",
+                    "body": "legacy private archive",
+                    "visibility": "private",
+                    "created_nonce": 2,
+                    "created_at_nonce": 2,
+                    "deleted": False,
+                },
+                "p-group": {
+                    "post_id": "p-group",
+                    "author": "@alice",
+                    "body": "legacy group visible",
+                    "visibility": "group",
+                    "group_id": "g-public",
+                    "created_nonce": 3,
+                    "created_at_nonce": 3,
+                    "deleted": False,
+                },
+            },
+            "comments": {},
+            "moderation": {"targets": {}},
+        },
+        "groups_by_id": {
+            "g-public": {"id": "g-public", "visibility": "public", "read_visibility": "public", "members": {"@alice": {}}}
+        },
+    }
 
 def _ledger() -> dict:
     return {"accounts": {"@alice": {"nonce": 0, "poh_tier": 2}, "@bob": {"nonce": 0, "poh_tier": 2}}}
@@ -203,3 +263,27 @@ def test_state_replay_rejects_encrypted_protocol_payload_deterministically() -> 
             _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "x", "encrypted_payload": "opaque"}),
         )
     assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
+
+
+def test_legacy_private_account_feed_and_scoped_content_archives_are_not_readable() -> None:
+    app = create_app(boot_runtime=False)
+    app.state.executor = _DummyExecutor(_public_only_route_state())
+    client = TestClient(app)
+
+    private_filter = client.get("/v1/accounts/@alice/feed?visibility=private", headers=_auth("@alice"))
+    assert private_filter.status_code == 400
+    assert private_filter.json()["error"]["code"] == GROUP_READ_VISIBILITY_MUST_BE_PUBLIC
+
+    owner_all = client.get("/v1/accounts/@alice/feed?visibility=all", headers=_auth("@alice"))
+    assert owner_all.status_code == 200, owner_all.text
+    returned_ids = {str(item.get("post_id") or item.get("id")) for item in owner_all.json()["items"]}
+    assert "p-public" in returned_ids
+    assert "p-group" in returned_ids
+    assert "p-private" not in returned_ids
+
+    owner_scoped_private = client.get("/v1/content/p-private/scoped", headers=_auth("@alice"))
+    assert owner_scoped_private.status_code == 404
+
+    anon_group_detail = client.get("/v1/content/p-group")
+    assert anon_group_detail.status_code == 200, anon_group_detail.text
+    assert anon_group_detail.json()["content"]["post_id"] == "p-group"

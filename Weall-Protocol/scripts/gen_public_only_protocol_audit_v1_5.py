@@ -94,6 +94,7 @@ def build_payload() -> dict[str, object]:
         "Frontend /messages routes and navigation entries are removed and replaced by /activity.",
         "Client-side messaging key bootstrap and account-registration messaging-encryption key publication are disabled.",
         "Group read visibility is forced public; private, members-only, scoped, closed, and member-only read settings are rejected.",
+        "Account feed and scoped content compatibility reads no longer expose owner-only or member-only private archives.",
     ]
     return {
         "schema": "weall.public_only_protocol_audit.v1_5",
@@ -135,6 +136,7 @@ def build_payload() -> dict[str, object]:
             "src/weall/runtime/apply/content.py",
             "src/weall/api/routes_public_parts/messages.py",
             "src/weall/api/routes_public_parts/groups.py",
+            "src/weall/api/routes_public_parts/accounts.py",
         ],
         "private_communication_surfaces_removed": private_communication_surfaces_removed,
         "inventory_hit_count": len(inventory),
@@ -146,6 +148,7 @@ def build_payload() -> dict[str, object]:
             "attachment references that include ciphertext/sealed payload fields reject recursively",
             "frontend route removal is backed by backend replay enforcement",
             "legacy DIRECT_MESSAGE_* fixtures reject before schema/domain apply",
+            "legacy private account-feed and scoped-content archives are not readable through owner-authenticated routes",
         ],
     }
 

@@ -265,12 +265,12 @@ def v1_account_feed(account: str, request: Request):
     Query params:
       - limit (default 25, max 100)
       - cursor (pagination)
-      - visibility: public|private|all (default public)
+      - visibility: public|all (default public)
 
-    Privacy model (MVP, conservative):
-      - public: anyone can view
-      - private: only the author may view (requires session matching `account`)
-      - all: treated as public unless author session matches; then returns public+private
+    Public-only protocol model:
+      - all protocol-native account content returned here is public-readable;
+      - private/member-only visibility filters are rejected instead of exposing
+        owner-only archives.
     """
 
     st = _snapshot(request)
@@ -281,17 +281,12 @@ def v1_account_feed(account: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     visibility = _str_param(qp.get("visibility"), "public").strip().lower()
 
-    # Determine whether caller is the account owner.
-    viewer = ""
-    try:
-        viewer = require_account_session(request, st)
-    except PermissionError:
-        viewer = ""
-
-    is_owner = bool(viewer) and viewer == account
-
-    if visibility == "private" and not is_owner:
-        raise ApiError.forbidden("forbidden", "Private account feed requires login as that account")
+    if visibility in {"private", "direct", "owner", "members", "members_only", "member_only", "scoped"}:
+        raise ApiError.bad_request(
+            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "Protocol-native account content is public-only; private read visibility is unsupported.",
+            {"account": account, "visibility": visibility},
+        )
 
     posts = _iter_posts_by_author(st, author=account)
 
@@ -302,19 +297,13 @@ def v1_account_feed(account: str, request: Request):
 
         vis = _str_param(obj.get("visibility"), "public").strip().lower() or "public"
 
-        if visibility == "public":
-            if vis != "public":
-                continue
-        elif visibility == "private":
-            if vis != "private":
-                continue
-        elif visibility == "all":
-            # If not owner, behave like public.
-            if not is_owner and vis != "public":
+        publicly_readable = vis in {"public", ""} or (bool(_str_param(obj.get("group_id") or "").strip()) and vis == "group")
+        if visibility in {"public", "all"}:
+            if not publicly_readable:
                 continue
         else:
-            # Unknown -> fail closed to public.
-            if vis != "public":
+            # Unknown -> fail closed to public-readable records.
+            if not publicly_readable:
                 continue
 
         if cursor_n is not None and cursor_id is not None:

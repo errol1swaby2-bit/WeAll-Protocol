@@ -17,7 +17,7 @@ export type FeedScope =
 
 export type FeedSort = "new" | "top" | "hot";
 
-export type FeedVisibility = "public" | "private" | "all";
+export type FeedVisibility = "public" | "group" | "all";
 
 export type FeedFilters = {
   visibility?: FeedVisibility;
@@ -55,7 +55,7 @@ export function buildFeedRequest(args: {
   if (cursor) q.cursor = cursor;
 
   const vis = (filters.visibility ?? "all").toLowerCase();
-  if (vis === "public" || vis === "private") q.visibility = vis;
+  if (vis === "public" || vis === "group") q.visibility = vis;
 
   if (filters.tags && filters.tags.trim()) q.tags = filters.tags.trim();
   if (filters.author && filters.author.trim()) q.author = filters.author.trim();
@@ -67,11 +67,11 @@ export function buildFeedRequest(args: {
 
   if (args.scope.kind === "account") {
     const acct = encodeURIComponent(args.scope.account);
-    // Account feed endpoint only supports visibility/cursor/limit.
+    // Account feed endpoint only supports public-only visibility/cursor/limit.
     // Drop tags/author for account feed (author is implied).
     const q2: Record<string, string> = { limit: String(limit) };
     if (cursor) q2.cursor = cursor;
-    if (vis === "public" || vis === "private") q2.visibility = vis;
+    if (vis === "public") q2.visibility = vis;
     return { path: `/v1/accounts/${acct}/feed`, query: q2 };
   }
 
@@ -92,6 +92,6 @@ export function toQueryString(query: Record<string, string>): string {
   return qs ? `?${qs}` : "";
 }
 
-export const FEED_ALGORITHM_SUMMARY = "Current feed behavior is deterministic protocol activity from backend visibility-filtered feed endpoints. The response reports the ranking mode used. It is not a personalized recommendation algorithm.";
+export const FEED_ALGORITHM_SUMMARY = "Current feed behavior is deterministic protocol activity from backend public-only visibility-filtered feed endpoints. The response reports the ranking mode used. It is not a personalized recommendation algorithm.";
 
 export const FEED_PUBLIC_BETA_BLOCKER = "Personalized or reputation-weighted recommendation ranking remains a future/public-beta blocker until implemented by backend truth sources and tests.";

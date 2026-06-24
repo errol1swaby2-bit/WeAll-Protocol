@@ -22,7 +22,7 @@ type FeedScope =
   | { kind: "unknown" };
 
 type FeedFilters = {
-  visibility?: "all" | "public" | "private";
+  visibility?: "all" | "public" | "group";
   tags?: string;
   author?: string;
 };
