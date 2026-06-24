@@ -133,73 +133,11 @@ def _apply_mute_set(state: Json, env: TxEnvelope) -> Json:
 
 
 # -----------------------------
-# Direct Messages (MVP log)
+# Public-only direct/private messaging guard
 # -----------------------------
-
-def _apply_direct_message_send(state: Json, env: TxEnvelope) -> Json:
-    payload = _as_dict(env.payload)
-    thread_id = _mk_id("dm", env, payload.get("thread_id"))
-    msg_id = _mk_id("dmmsg", env, payload.get("message_id"))
-
-    to = _as_str(payload.get("to")).strip()
-    body = _as_str(payload.get("body")).strip()
-    if not to or not body:
-        raise ApplyError("invalid_payload", "missing_to_or_body", {"tx_type": env.tx_type})
-
-    threads = _ensure_root_dict(state, "dm_threads")
-    th = threads.get(thread_id)
-    if not isinstance(th, dict):
-        th = {"id": thread_id, "participants": sorted({env.signer, to}), "messages": []}
-
-    msgs = th.get("messages")
-    if not isinstance(msgs, list):
-        msgs = []
-    msgs.append(
-        {
-            "id": msg_id,
-            "from": env.signer,
-            "to": to,
-            "body": body,
-            "created_at_nonce": int(env.nonce),
-            "redacted": False,
-        }
-    )
-    th["messages"] = msgs
-    threads[thread_id] = th
-    return {"applied": "DIRECT_MESSAGE_SEND", "thread_id": thread_id, "message_id": msg_id}
-
-
-def _apply_direct_message_redact(state: Json, env: TxEnvelope) -> Json:
-    payload = _as_dict(env.payload)
-    thread_id = _as_str(payload.get("thread_id")).strip()
-    msg_id = _as_str(payload.get("message_id")).strip()
-    if not thread_id or not msg_id:
-        raise ApplyError("invalid_payload", "missing_thread_or_message_id", {"tx_type": env.tx_type})
-
-    threads = _ensure_root_dict(state, "dm_threads")
-    th = threads.get(thread_id)
-    if not isinstance(th, dict):
-        raise ApplyError("not_found", "thread_not_found", {"thread_id": thread_id})
-    msgs = th.get("messages")
-    if not isinstance(msgs, list):
-        msgs = []
-
-    for m in msgs:
-        if isinstance(m, dict) and m.get("id") == msg_id:
-            # only allow sender to redact in MVP
-            if m.get("from") != env.signer:
-                raise ApplyError("forbidden", "only_sender_can_redact", {"message_id": msg_id})
-            m["redacted"] = True
-            m["redacted_at_nonce"] = int(env.nonce)
-            m["body"] = ""
-            break
-    else:
-        raise ApplyError("not_found", "message_not_found", {"message_id": msg_id})
-
-    th["messages"] = msgs
-    threads[thread_id] = th
-    return {"applied": "DIRECT_MESSAGE_REDACT", "thread_id": thread_id, "message_id": msg_id}
-
+# DIRECT_MESSAGE_* txs are intentionally not implemented by this legacy patch
+# script.  They are retained only as stable rejected tx names and must remain
+# governed by public_protocol_policy before any state mutation path.
 
 # -----------------------------
 # Disputes (MVP state machine)
@@ -1179,9 +1117,8 @@ def main() -> None:
         "PROFILE_UPDATE": "_apply_profile_update",
         "FOLLOW_SET": "_apply_follow_set",
         "MUTE_SET": "_apply_mute_set",
-        # Direct messages
-        "DIRECT_MESSAGE_SEND": "_apply_direct_message_send",
-        "DIRECT_MESSAGE_REDACT": "_apply_direct_message_redact",
+        # Public-only rule: DIRECT_MESSAGE_* names remain rejected legacy txs and
+        # must not be rewired to state-mutating domain_apply handlers.
         # Existing implementations that were incorrectly wired to canon_missing:
         "INDEX_ANCHOR_SET": "_apply_index_anchor_set",
         "INDEX_TOPIC_REGISTER": "_apply_index_topic_register",

@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from weall.api.routes_public_parts.messages import router as messages_router
 from weall.api.app import create_app
+from weall.runtime.apply.messaging import MessagingApplyError, apply_messaging
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.public_protocol_policy import (
@@ -17,7 +18,7 @@ from weall.runtime.public_protocol_policy import (
     PRIVATE_MESSAGING_UNSUPPORTED,
     public_protocol_policy_violation,
 )
-from weall.runtime.tx_admission import admit_tx
+from weall.runtime.tx_admission import TxEnvelope, admit_tx
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -375,3 +376,35 @@ def test_public_only_runtime_appliers_do_not_preserve_dead_private_messaging_imp
     assert "def _messaging_key_record" not in identity_src
     assert "messaging_encryption_key_history" not in identity_src
     assert "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED" in identity_src
+
+
+def test_direct_messaging_applier_rejects_encrypted_unknown_legacy_message_types() -> None:
+    with pytest.raises(MessagingApplyError) as excinfo:
+        apply_messaging(
+            {},
+            TxEnvelope(
+                tx_type="MESSAGE_SEND",
+                signer="@alice",
+                nonce=1,
+                payload={"thread_id": "legacy", "to": ["@bob"], "ciphertext": "opaque"},
+                sig="sig",
+            ),
+        )
+    assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
+
+
+def test_legacy_patch_script_cannot_reintroduce_private_message_state_handlers() -> None:
+    patch_src = (ROOT / "scripts" / "patch_domain_apply_remaining.py").read_text(encoding="utf-8")
+    rehearse_src = (ROOT / "scripts" / "rehearse_fully_api_driven_v15_lifecycle.py").read_text(encoding="utf-8")
+
+    assert "def _apply_direct_message_send" not in patch_src
+    assert "def _apply_direct_message_redact" not in patch_src
+    assert "dm_threads" not in patch_src
+    assert '"DIRECT_MESSAGE_SEND": "_apply_direct_message_send"' not in patch_src
+    assert '"DIRECT_MESSAGE_REDACT": "_apply_direct_message_redact"' not in patch_src
+    assert "public_protocol_policy" in patch_src
+
+    assert 'client.get("/v1/messages/threads"' not in rehearse_src
+    assert 'api_routes.append("GET /v1/messages/threads")' not in rehearse_src
+    assert 'client.get("/v1/activity/inbox"' in rehearse_src
+    assert "encrypted_message_rejected" in rehearse_src

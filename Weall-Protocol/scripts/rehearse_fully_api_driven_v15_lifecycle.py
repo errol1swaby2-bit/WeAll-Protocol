@@ -13,7 +13,7 @@ from weall.runtime.apply.content import apply_content
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.economics import apply_economics, EconomicsApplyError
 from weall.runtime.apply.groups import apply_groups
-from weall.runtime.apply.messaging import apply_messaging
+from weall.runtime.apply.messaging import MessagingApplyError, apply_messaging
 from weall.runtime.apply.poh import apply_poh
 from weall.runtime.apply.protocol import apply_protocol
 from weall.runtime.apply.storage import apply_storage
@@ -128,21 +128,27 @@ def run_harness() -> dict[str, Any]:
     # content path sees the live tier in older state-shape variants too.
     state["accounts"]["@alice"]["poh_tier"] = max(2, int(state["accounts"]["@alice"].get("poh_tier") or 0))
 
-    # Group/content/message state transitions, then real API reads.
+    # Group/content/public-activity state transitions, then real API reads.
     apply_groups(state, _env("GROUP_CREATE", "@alice", 50, {"group_id": "g1", "name": "Group One", "visibility": "public"}))
     apply_groups(state, _env("GROUP_JOIN", "@bob", 51, {"group_id": "g1"}))
     apply_content(state, _env("CONTENT_POST_CREATE", "@alice", 52, {"post_id": "post:1", "body": "hello", "visibility": "group", "group_id": "g1", "tags": ["weall"]}))
     apply_content(state, _env("CONTENT_REACTION_SET", "@bob", 53, {"target_id": "post:1", "reaction": "like"}))
-    apply_content(state, _env("CONTENT_COMMENT_CREATE", "@bob", 54, {"comment_id": "comment:1", "post_id": "post:1", "body": "reply"}))
-    msg = apply_messaging(state, _env("MESSAGE_SEND", "@alice", 55, {"thread_id": "thread:1", "to": ["@bob"], "ciphertext": "abc", "body_ciphertext": "abc"}))
+    apply_content(state, _env("CONTENT_COMMENT_CREATE", "@alice", 54, {"comment_id": "comment:1", "post_id": "post:1", "body": "public author follow-up"}))
+    encrypted_message_rejected = False
+    try:
+        apply_messaging(state, _env("MESSAGE_SEND", "@alice", 55, {"thread_id": "thread:1", "to": ["@bob"], "ciphertext": "abc", "body_ciphertext": "abc"}))
+    except MessagingApplyError as exc:
+        encrypted_message_rejected = exc.code == "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED"
+    if not encrypted_message_rejected:
+        raise AssertionError("encrypted MESSAGE_SEND rehearsal payload was not rejected")
     feed = client.get("/v1/feed?rank=production&limit=10")
     api_routes.append("GET /v1/feed?rank=production")
     group = client.get("/v1/groups/g1")
     api_routes.append("GET /v1/groups/{group_id}")
     group_feed = client.get("/v1/groups/g1/feed")
     api_routes.append("GET /v1/groups/{group_id}/feed")
-    messages = client.get("/v1/messages/threads", headers={"x-weall-account": "@alice", "x-weall-session-key": "missing"})
-    api_routes.append("GET /v1/messages/threads")
+    activity = client.get("/v1/activity/inbox", headers={"x-weall-account": "@alice", "x-weall-session-key": "missing"})
+    api_routes.append("GET /v1/activity/inbox")
 
     # Dispute remedy path through final receipt.
     apply_dispute(state, _env("DISPUTE_OPEN", "@bob", 60, {"dispute_id": "d1", "target_type": "account", "target_id": "@alice", "reason": "test"}))
@@ -173,15 +179,15 @@ def run_harness() -> dict[str, Any]:
     apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", "SYSTEM", 91, {"upgrade_id": "u1"}, system=True, parent="gov"))
 
     return {
-        "ok": all(r.status_code < 500 for r in [session, feed, group, group_feed, messages, dispute_read]) and econ_locked and bool(proto.get("record_only_boundary")) and bool(receipt.get("enforcement_applied")),
+        "ok": all(r.status_code < 500 for r in [session, feed, group, group_feed, activity, dispute_read]) and econ_locked and bool(proto.get("record_only_boundary")) and bool(receipt.get("enforcement_applied")),
         "batch": "536",
         "api_routes_exercised": api_routes,
         "api_route_count": len(api_routes),
         "feed_status_code": feed.status_code,
         "feed_ranking": (feed.json().get("ranking") if feed.status_code == 200 else {}),
         "group_status_code": group.status_code,
-        "messages_status_code": messages.status_code,
-        "message_applied": bool(msg),
+        "activity_status_code": activity.status_code,
+        "encrypted_message_rejected": encrypted_message_rejected,
         "poh_reverification_status": state["poh"]["reverification"]["by_account"]["@alice"]["status"],
         "dispute_remedy_applied": any(a.get("tx_type") == "ACCOUNT_REINSTATE" for a in receipt.get("enforcement_applied", [])),
         "storage_retrieval_confirmed": state["storage"]["pins"]["pin-1"].get("durability_status") == "retrieval_confirmed",
