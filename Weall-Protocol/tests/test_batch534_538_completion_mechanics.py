@@ -61,7 +61,8 @@ def test_batch536_fully_api_driven_lifecycle_exercises_core_api_surfaces_and_bou
     assert "GET /v1/session/me" in out["api_routes_exercised"]
     assert "GET /v1/feed?rank=production" in out["api_routes_exercised"]
     assert "GET /v1/groups/{group_id}" in out["api_routes_exercised"]
-    assert "GET /v1/messages/threads" in out["api_routes_exercised"]
+    assert "GET /v1/activity/inbox" in out["api_routes_exercised"]
+    assert out["public_activity_checked"] is True
     assert out["feed_ranking"]["mode"] == "production"
     assert out["poh_reverification_status"] == "completed"
     assert out["dispute_remedy_applied"] is True

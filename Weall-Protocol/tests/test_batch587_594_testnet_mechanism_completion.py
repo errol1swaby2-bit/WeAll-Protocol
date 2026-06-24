@@ -21,7 +21,8 @@ def test_batch587_api_response_vectors_cover_sensitive_routes_without_public_bet
     assert proof["vector_count"] >= 10
     route_keys = {v["route_key"] for v in proof["vectors"]}
     assert "GET /v1/session/me" in route_keys
-    assert "GET /v1/messages/threads" in route_keys
+    assert "GET /v1/activity/inbox" in route_keys
+    assert "GET /v1/messages/threads" not in route_keys
     assert "GET /v1/poh/async/case/{case_id}" in route_keys
     assert "POST /v1/poh/operator/live/init" in route_keys
     assert "POST /v1/tx/submit" in route_keys

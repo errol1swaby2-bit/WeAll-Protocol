@@ -1,12 +1,13 @@
 {
   "api_lifecycle": {
+    "activity_status_code": 200,
     "api_route_count": 6,
     "api_routes_exercised": [
       "GET /v1/session/me",
       "GET /v1/feed?rank=production",
       "GET /v1/groups/{group_id}",
       "GET /v1/groups/{group_id}/feed",
-      "GET /v1/messages/threads",
+      "GET /v1/activity/inbox",
       "GET /v1/disputes/{dispute_id}"
     ],
     "batch": "536",
@@ -24,13 +25,12 @@
       "uses_reputation_weighting": true
     },
     "feed_status_code": 200,
-    "final_state_root": "31ca843b8e57c633da394bc383edf840e1bd0dc7f1dd851638ad6c99a841daca",
+    "final_state_root": "09e3dc518cad638ec645b44b7d79c5ca461ba45a7df7af929cf7a5fd5ca0a8ff",
     "group_status_code": 200,
-    "message_applied": false,
-    "messages_status_code": 403,
     "ok": true,
     "poh_reverification_status": "completed",
     "protocol_upgrade_record_only": true,
+    "public_activity_checked": true,
     "storage_retrieval_confirmed": true
   },
   "artifact": "b534_b538_completion_proof_v1_5",

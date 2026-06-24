@@ -183,7 +183,7 @@ function summarizeInteractionState(args: {
   }
   return {
     tone: "ok",
-    title: "Conversation actions available",
+    title: "Public reply actions available",
     text: `You can react and report. Some actions may take a moment to appear everywhere.`,
   };
 }

@@ -79,7 +79,7 @@ function deriveContextSummary(args: {
     case "feed":
       return {
         title: "Feed context",
-        body: `${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} are available in their own sections. This page stays focused on posts and conversations.`,
+        body: `${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} are available in their own sections. This page stays focused on posts and public replies.`,
         actions: [{ label: "Create post", href: "/create" }],
       };
     case "groups":
@@ -195,7 +195,7 @@ function deriveContextSummary(args: {
     case "content_detail":
       return {
         title: "Post context",
-        body: "Post detail should foreground the conversation and review status while keeping technical records collapsed by default.",
+        body: "Post detail should foreground public replies and review status while keeping technical records collapsed by default.",
       };
     case "thread":
       return {

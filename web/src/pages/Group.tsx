@@ -492,7 +492,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <h3 className="cardTitle">Recent group activity</h3>
             </div>
           </div>
-          <div className="cardDesc">Open a post to read the full conversation. Use Create Post when you want to share something with this group.</div>
+          <div className="cardDesc">Open a post to read the public replies. Use Create Post when you want to share something with this group.</div>
           {groupPosts.length ? (
             <div className="pageStack">
               {groupPosts.map((post: any) => {

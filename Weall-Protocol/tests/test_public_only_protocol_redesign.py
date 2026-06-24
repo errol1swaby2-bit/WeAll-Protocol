@@ -451,3 +451,22 @@ def test_helper_contract_map_does_not_advertise_private_message_state_effects() 
         assert contract["authority_keys"] == []
         assert contract["uses_placeholder_keys"] is False
         assert contract["placeholder_key_count"] == 0
+
+
+def test_generated_api_response_vectors_do_not_advertise_private_message_threads() -> None:
+    script = (ROOT / "scripts" / "gen_api_response_vectors_v1_5.py").read_text(encoding="utf-8")
+    generated = (ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
+    assert "messages-require-session" not in script
+    assert "thread summaries are viewer-scoped" not in script
+    assert '"route_key": "GET /v1/messages/threads"' not in generated
+    assert '"route_key": "GET /v1/activity/inbox"' in generated
+    assert "public activity inbox is derived from public protocol events" in generated
+
+
+def test_public_completion_artifacts_use_activity_inbox_not_message_threads() -> None:
+    b534 = (ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8")
+    b587 = (ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json").read_text(encoding="utf-8")
+    assert "GET /v1/messages/threads" not in b534
+    assert "GET /v1/messages/threads" not in b587
+    assert "GET /v1/activity/inbox" in b534
+    assert "GET /v1/activity/inbox" in b587

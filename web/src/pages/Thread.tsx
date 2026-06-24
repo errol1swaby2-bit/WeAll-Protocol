@@ -268,7 +268,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Thread view</div>
-              <h1 className="heroTitle heroTitleSm">Conversation and replies</h1>
+              <h1 className="heroTitle heroTitleSm">Public replies and review status</h1>
               <p className="heroText">
                 Read the post, react when your account status allows it, and add replies without losing the calmer visual
                 posture of the rest of the app.

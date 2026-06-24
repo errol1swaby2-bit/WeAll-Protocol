@@ -95,7 +95,49 @@ def run_harness() -> dict[str, Any]:
             "@r2": {"nonce": 0, "poh_tier": 2, "reputation": 6},
             "SYSTEM": {"nonce": 0, "poh_tier": 0},
         },
-        "roles": {"validators": {"active_set": ["@reviewer", "@juror", "@r2"]}, "poh_reviewers": {"active": {"@reviewer": True}}},
+        "roles": {
+            "validators": {"active_set": ["@reviewer", "@juror", "@r2"]},
+            "jurors": {
+                "active_set": ["@reviewer", "@juror", "@r2"],
+                "by_id": {
+                    "@reviewer": {
+                        "account_id": "@reviewer",
+                        "active": True,
+                        "status": "active",
+                        "enrolled": True,
+                        "responsibilities": {
+                            "reviewer": {
+                                "poh_async_review": {"opted_in": True, "active": True}
+                            }
+                        },
+                    },
+                    "@juror": {
+                        "account_id": "@juror",
+                        "active": True,
+                        "status": "active",
+                        "enrolled": True,
+                        "responsibilities": {
+                            "reviewer": {
+                                "poh_async_review": {"opted_in": True, "active": True},
+                                "dispute_review": {"opted_in": True, "active": True},
+                            }
+                        },
+                    },
+                    "@r2": {
+                        "account_id": "@r2",
+                        "active": True,
+                        "status": "active",
+                        "enrolled": True,
+                        "responsibilities": {
+                            "reviewer": {
+                                "poh_async_review": {"opted_in": True, "active": True}
+                            }
+                        },
+                    },
+                },
+            },
+            "poh_reviewers": {"active": {"@reviewer": True}},
+        },
         "params": {"economics_enabled": False, "tokenomics_simulation_complete": True, "reward_policy_complete": True},
         "system_queue": [],
     }

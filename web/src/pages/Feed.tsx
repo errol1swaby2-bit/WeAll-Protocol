@@ -50,7 +50,7 @@ export default function Feed(): JSX.Element {
   const scope = tab === "mine" && acct ? ({ kind: "account", account: acct } as const) : ({ kind: "public" } as const);
 
   const stageText = !snapshot.hasSession
-    ? "You can read public posts now. Sign in when you want to create posts or join conversations."
+    ? "You can read public posts now. Sign in when you want to create posts or join public replies."
     : !snapshot.hasLocalSigner
       ? "This device needs your saved account key before it can save actions."
       : !snapshot.registered

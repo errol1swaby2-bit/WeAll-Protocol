@@ -91,29 +91,25 @@
       "route_present": true
     },
     {
-      "auth_case": "account_session_required",
-      "contract_auth": "public_only_compatibility_stub_no_private_session_surface",
-      "contract_truth_boundary": "Compatibility stub only. WeAll does not provide protocol-native direct/private messaging; use /v1/activity/inbox for public-event-derived notices.",
-      "error_codes": [
-        "session_required",
-        "session_invalid",
-        "not_found"
-      ],
-      "expected_error_envelope": {
-        "error": {
-          "code": "session_required"
-        },
-        "ok": false
-      },
+      "auth_case": "public_event_derived_notification_index",
+      "contract_auth": "public_event_derived_account_optional_filter",
+      "contract_truth_boundary": "Activity inbox is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts.",
+      "error_codes": [],
       "expected_http_statuses": [
-        403
+        200
       ],
-      "id": "messages-require-session",
+      "expected_top_level_keys": [
+        "ok",
+        "public_only",
+        "source",
+        "notice_types"
+      ],
+      "id": "activity-inbox-public-only",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
-      "path": "/v1/messages/threads",
-      "privacy_boundary": "thread summaries are viewer-scoped and never public feed data",
-      "route_key": "GET /v1/messages/threads",
+      "path": "/v1/activity/inbox",
+      "privacy_boundary": "public activity inbox is derived from public protocol events and contains no private user-to-user messages or encrypted conversations",
+      "route_key": "GET /v1/activity/inbox",
       "route_present": true
     },
     {
@@ -391,7 +387,7 @@
       "metadata_source": "static_generator_heuristic",
       "method": "GET",
       "path": "/v1/status/mempool",
-      "privacy_boundary": "mempool size/diagnostics are visible but pending private payloads stay bounded/redacted",
+      "privacy_boundary": "mempool size and diagnostics are visible, while pending transaction detail stays bounded by public-route redaction rules",
       "route_key": "GET /v1/status/mempool",
       "route_present": true
     },
