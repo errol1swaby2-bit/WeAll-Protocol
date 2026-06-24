@@ -69,12 +69,7 @@ This does not complete public moderation or constitutional due-process for mainn
 
 ## Protocol-native private messaging unsupported
 
-WeAll is public-only. Protocol-native private/direct messaging, encrypted social payloads, private groups, and member-only-readable group content are rejected by backend validation and replay.
-currently published account messaging keys. This is safer for trusted testnet
-use, but it is not final production-safe private messaging. Metadata remains
-visible, browser-local key storage is still a controlled-testnet compromise, and
-there is no Signal-style ratchet/forward secrecy yet. See
-`docs/MESSAGING_E2EE_SECURITY_MODEL.md`.
+WeAll is public-only. Protocol-native private/direct messaging, encrypted social payloads, private groups, and member-only-readable group content are rejected by backend validation and replay. Historical E2EE messaging documents are retained only as legacy context and compatibility-stub evidence; they are not roadmap claims for protocol-native private communication. See `docs/MESSAGING_E2EE_SECURITY_MODEL.md`.
 
 ## Batch 453 live-room media transport limits
 
@@ -101,7 +96,7 @@ public activity-notification controls and TURN/ICE live-room diagnostics.
 
 These are still not public-testnet or mainnet claims. The repository now exposes
 stronger proof and user-facing controls, but public multi-validator BFT, live
-tokenomics, Signal-grade private messaging, and external-network media reliability
+tokenomics, public activity-notification polish, and external-network media reliability
 remain follow-up milestones.
 
 ## Batch 464 Production-oriented Genesis API boundary

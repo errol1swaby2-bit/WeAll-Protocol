@@ -24,7 +24,7 @@ It does not prove:
 - public mainnet readiness
 - public multi-validator BFT readiness
 - live economics readiness
-- production-grade private messaging
+- external private communication tooling; protocol-native private messaging is unsupported
 - public HTTPS external observer readiness
 
 Public external tester readiness still requires a reachable HTTPS Genesis API and a public observer bundle that does not rely on `WEALL_ALLOW_PRIVATE_GENESIS_API=1`.

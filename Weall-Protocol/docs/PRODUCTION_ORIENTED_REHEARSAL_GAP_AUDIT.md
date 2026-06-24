@@ -105,4 +105,4 @@ and API implementation:
 - live-room transport now supports browser-local TURN/ICE configuration and automatic polling.
 
 These changes improve production orientation but do not yet close public testnet,
-public economics, public BFT, or Signal-grade private messaging readiness.
+public economics, public BFT, or external private communication readiness.

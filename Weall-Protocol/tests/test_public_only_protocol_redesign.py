@@ -322,3 +322,36 @@ def test_legacy_private_account_feed_and_scoped_content_archives_are_not_readabl
     anon_group_detail = client.get("/v1/content/p-group")
     assert anon_group_detail.status_code == 200, anon_group_detail.text
     assert anon_group_detail.json()["content"]["post_id"] == "p-group"
+
+
+def test_public_only_docs_do_not_preserve_private_messaging_route_or_future_claims() -> None:
+    checked = {
+        "README.md": ROOT.parent / "README.md",
+        "KNOWN_LIMITATIONS.md": ROOT / "docs" / "KNOWN_LIMITATIONS.md",
+        "HEALTHY_NODE_ACCESS.md": ROOT / "docs" / "HEALTHY_NODE_ACCESS.md",
+        "TESTER_ONE_COMMAND_NODE_BOOT.md": ROOT / "docs" / "TESTER_ONE_COMMAND_NODE_BOOT.md",
+        "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md": ROOT / "docs" / "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md",
+        "REVIEWER_LAN_REHEARSAL_QUICKSTART.md": ROOT / "docs" / "REVIEWER_LAN_REHEARSAL_QUICKSTART.md",
+        "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md": ROOT / "docs" / "PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md",
+    }
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in checked.values())
+
+    assert "/messages" not in (ROOT.parent / "README.md").read_text(encoding="utf-8")
+    assert "Open messages." not in combined
+    assert "loading feeds, groups, messages" not in combined
+    assert "production-grade private messaging" not in combined
+    assert "Signal-grade private messaging" not in combined
+    assert "not final production-safe private messaging" not in combined
+    assert "public activity" in combined
+
+
+def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> None:
+    styles = (ROOT.parent / "web" / "src" / "styles.css").read_text(encoding="utf-8")
+    for marker in [
+        ".messengerPage",
+        ".messengerChatButton",
+        ".messengerThreadCard",
+        ".messageBubbleRow",
+        ".messengerReplyBox",
+    ]:
+        assert marker not in styles
