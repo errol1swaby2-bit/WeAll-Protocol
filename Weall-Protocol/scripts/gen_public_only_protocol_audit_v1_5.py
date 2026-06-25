@@ -60,8 +60,22 @@ def classify_path(rp: str) -> str:
     return "other"
 
 
+def _term_pattern(term: str) -> re.Pattern[str]:
+    # The public-only inventory is an evidence artifact, not a fuzzy search
+    # report.  Short tokens such as ``dm`` and ``chat`` must not match
+    # unrelated identifiers like ``admin`` or ``messengerChatButton``; doing so
+    # makes the audit look noisier than the actual protocol surface.
+    #
+    # Use alphanumeric boundaries instead of ``\b`` so snake_case API paths such
+    # as ``activity/inbox`` and ``observer_outbox`` still count, while ordinary
+    # words containing the token do not.
+    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
+
+
+TERM_PATTERNS: dict[str, re.Pattern[str]] = {term: _term_pattern(term) for term in TERMS}
+
+
 def scan() -> list[dict[str, object]]:
-    pattern = re.compile("|".join(re.escape(t) for t in TERMS), re.IGNORECASE)
     roots = [ROOT, ROOT.parent / "web"]
     rows: list[dict[str, object]] = []
     for base in roots:
@@ -78,7 +92,7 @@ def scan() -> list[dict[str, object]]:
                 text = path.read_text(encoding="utf-8")
             except Exception:
                 continue
-            hits = sorted({m.group(0).lower() for m in pattern.finditer(text)})
+            hits = sorted(term for term, pattern in TERM_PATTERNS.items() if pattern.search(text))
             if hits:
                 root_relative = rel(path) if path.is_relative_to(ROOT) else "../" + str(path.relative_to(ROOT.parent)).replace("\\", "/")
                 rows.append({"path": root_relative, "category": classify_path(root_relative), "terms": hits})
