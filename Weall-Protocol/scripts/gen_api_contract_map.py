@@ -98,7 +98,7 @@ def _idempotency(method: str, path: str, auth: str = "") -> str:
 def _cache_policy(method: str, auth: str = "") -> str:
     if method.upper() == "GET":
         if "account_session_required" in auth:
-            return "no_store_private_account_read"
+            return "no_store_session_scoped_account_read"
         if "env_gated" in auth:
             return "no_store_env_gated_dynamic_read"
         return "no_store_dynamic_public_read_model_unless_route_overrides"

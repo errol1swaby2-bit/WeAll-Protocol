@@ -139,8 +139,36 @@ def build_payload() -> dict[str, object]:
             "src/weall/api/routes_public_parts/accounts.py",
         ],
         "private_communication_surfaces_removed": removed_surfaces,
+        "remaining_non_social_boundaries": [
+            {
+                "surface": "PoH restricted identity evidence",
+                "classification": "not_protocol_native_social_or_group_content",
+                "reason": "Raw identity-verification evidence is session scoped while public consensus surfaces expose commitments, receipts, status, and review outcomes. It must not create private groups, private messages, or hidden social/governance/reputation meaning.",
+            },
+            {
+                "surface": "observer tx outbox",
+                "classification": "transaction_propagation_queue_not_user_message_outbox",
+                "reason": "Observer outbox rows are durable tx forwarding records and are not user-to-user communication threads.",
+            },
+            {
+                "surface": "helper shared-secret compatibility",
+                "classification": "helper_receipt_signature_compatibility_not_social_payload_encryption",
+                "reason": "Legacy helper shared-secret verification signs helper receipts and does not decrypt or hide protocol-native social content.",
+            },
+        ],
+        "actionable_private_communication_findings": [],
         "inventory_hit_count": len(inventory),
         "inventory": inventory,
+        "inventory_classification": {
+            "expected_enforcement_literals": [
+                "public_protocol_policy denylist terms",
+                "tests that assert encrypted/private payload rejection",
+                "frontend guards that fail if removed communication modules return",
+            ],
+            "public_activity_terms": ["/v1/activity/inbox is public-event-derived"],
+            "non_social_transport_terms": ["net/messages.py packet messages", "helper shared_secret receipt signatures"],
+            "non_social_identity_evidence_terms": ["reviewer_private_evidence remains a restricted identity evidence compatibility field, not a protocol-native social/private-group surface"],
+        },
         "adversarial_bypass_checks": [
             "encrypted payloads through generic transaction routes reject with ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
             "private group state through legacy fields rejects with PRIVATE_GROUPS_UNSUPPORTED or GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",

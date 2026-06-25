@@ -283,7 +283,7 @@ def economics_locked_long_run_stress_summary(
 
     The simulation records rejected farming patterns and treasury reporting
     expectations while preserving economics_enabled=false.  It is used by
-    private-testnet candidate evidence only; it is not an activation switch.
+    controlled-testnet candidate evidence only; it is not an activation switch.
     """
 
     econ = _ensure_econ_root(state)

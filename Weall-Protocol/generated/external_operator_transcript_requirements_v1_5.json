@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "bf8ef7a2f97ec557b4a4c93b307fe4863d2eeada6ab92607c98d82b8403ce05d",
+  "artifact_digest": "c77cd6929b8f02b05992ea3781d37477c1a36151c14b60138e99307e03933c70",
   "external_attestation_required_before_public_beta": true,
   "mainnet_ready": false,
   "ok": true,
@@ -101,7 +101,7 @@
       "forbidden_claims": [
         "public_storage_market_enabled_without_release_gate",
         "public_decentralized_media_durability_without_real_daemon_topology",
-        "private_evidence_publicly_visible"
+        "restricted_identity_evidence_publicly_visible"
       ],
       "minimum_counts": {
         "ipfs_peer_ids": 3,

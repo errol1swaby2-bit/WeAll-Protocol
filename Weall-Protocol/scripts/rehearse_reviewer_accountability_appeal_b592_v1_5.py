@@ -34,9 +34,9 @@ def run_harness() -> Json:
     penalty = {"subject": "@a2", "action": "restricted_pending_appeal", "automatic_deletion": False}
     appeal = {"filed_by": "@a2", "new_evidence_hash": _h({"live_review": True}), "decision": "partial_remedy"}
     recovery = {"account": "@a2", "restriction_removed": True, "reputation_restored": True, "case_reopened_for_monitoring": True}
-    deletion = {"private_evidence_deleted": True, "retained_audit_hash": _h(suspicion), "raw_evidence_retained": False}
+    deletion = {"restricted_identity_evidence_deleted": True, "retained_audit_hash": _h(suspicion), "raw_evidence_retained": False}
     return {
-        "ok": bool(panel and reviewers["@r4"]["conflicted"] and deletion["private_evidence_deleted"] and recovery["restriction_removed"]),
+        "ok": bool(panel and reviewers["@r4"]["conflicted"] and deletion["restricted_identity_evidence_deleted"] and recovery["restriction_removed"]),
         "batch": "592",
         "mechanism": "reviewer_accountability_appeal_and_false_positive_recovery",
         "suspicion_record": suspicion,

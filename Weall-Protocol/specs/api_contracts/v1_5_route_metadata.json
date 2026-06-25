@@ -65,29 +65,29 @@
       "truth_boundary": "Observer edge status is diagnostic posture/status for the observer edge path and grants no validator or mutation authority."
     },
     "GET /v1/poh/async/case/{case_id}": {
-      "auth": "session_aware_poh_case_read_redacts_private_evidence",
+      "auth": "session_aware_poh_case_read_redacts_restricted_identity_evidence",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_read_no_state_mutation",
-      "truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions."
+      "truth_boundary": "Async PoH case reads are public commitment read models with restricted identity evidence included only for authorized applicant or assigned reviewer sessions."
     },
     "GET /v1/poh/async/juror-cases": {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Async PoH juror-cases is reviewer-scoped and requires a valid account session."
     },
     "GET /v1/poh/async/my-cases": {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Async PoH my-cases is viewer-scoped and requires a valid account session."
     },
     "GET /v1/poh/live/assigned": {
       "auth": "account_session_required_live_reviewer_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Live assigned cases are reviewer-scoped queue reads, not generic public snapshots."
@@ -97,18 +97,18 @@
       "cache_policy": "no_store_live_poh_case_read",
       "error_model": "standard_api_error_envelope; 404 live_case_not_found",
       "idempotency": "safe_read_no_state_mutation",
-      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or private evidence."
+      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or restricted identity evidence."
     },
     "GET /v1/poh/live/juror-cases": {
       "auth": "account_session_required_live_reviewer_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Live juror-cases is a reviewer-scoped alias and requires authenticated viewer alignment."
     },
     "GET /v1/poh/live/my-cases": {
       "auth": "account_session_required_live_account_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing account; 403 session_required/session_mismatch",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Live my-cases is account-scoped and requires authenticated viewer alignment."
@@ -171,14 +171,14 @@
     },
     "GET /v1/poh/tier2/juror-cases": {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Tier-2 juror-cases is reviewer-scoped and requires a valid account session."
     },
     "GET /v1/poh/tier2/my-cases": {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_authenticated_read_no_state_mutation",
       "truth_boundary": "Tier-2 my-cases is viewer-scoped and requires a valid account session."
@@ -269,7 +269,7 @@
     },
     "POST /v1/poh/async/evidence/video/upload": {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
-      "cache_policy": "no_store_private_evidence_upload_response",
+      "cache_policy": "no_store_restricted_identity_evidence_upload_response",
       "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
       "truth_boundary": "Async PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
@@ -398,7 +398,7 @@
     },
     "POST /v1/poh/tier2/video/upload": {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
-      "cache_policy": "no_store_private_evidence_upload_response",
+      "cache_policy": "no_store_restricted_identity_evidence_upload_response",
       "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
       "truth_boundary": "Tier-2 PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."

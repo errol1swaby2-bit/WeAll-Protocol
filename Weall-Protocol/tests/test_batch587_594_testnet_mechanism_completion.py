@@ -123,7 +123,7 @@ def test_batch592_reviewer_accountability_appeal_and_evidence_deletion_mechanism
     assert out["penalty_record"]["automatic_deletion"] is False
     assert out["appeal"]["decision"] == "partial_remedy"
     assert out["false_positive_recovery"]["restriction_removed"] is True
-    assert out["evidence_deletion"]["private_evidence_deleted"] is True
+    assert out["evidence_deletion"]["restricted_identity_evidence_deleted"] is True
     assert out["no_automatic_duplicate_human_deletion"] is True
     assert out["complete_anti_sybil_resistance_claimed"] is False
 

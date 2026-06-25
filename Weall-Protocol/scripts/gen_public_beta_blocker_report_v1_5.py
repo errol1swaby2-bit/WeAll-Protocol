@@ -304,7 +304,7 @@ def build() -> Json:
         },
         "storage_ipfs_operator_transcript": {
             "required_fields": ["schema", "operator_ids", "machine_ids", "ipfs_peer_ids", "cid", "replication_factor", "origin_failure", "wrong_cid_rejected", "corrupt_content_rejected", "fresh_node_retrieval", "transcript_digest"],
-            "must_not_claim": ["public_storage_market_enabled", "private_evidence_publicly_visible"],
+            "must_not_claim": ["public_storage_market_enabled", "restricted_identity_evidence_publicly_visible"],
         },
         "legal_attestation": {
             "required_fields": ["schema", "review_date", "reviewer_or_counsel_reference", "scope", "approved_public_claims", "restricted_claims", "signature_or_controlled_reference"],
@@ -378,7 +378,7 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
+        "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",

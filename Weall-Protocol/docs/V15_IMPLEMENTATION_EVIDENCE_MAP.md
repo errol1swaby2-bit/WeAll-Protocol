@@ -29,7 +29,7 @@ The machine-readable register is `generated/v15_implementation_gap_register.json
 
 Priority remaining gates:
 
-1. Run `scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked` and attach the runtime report to the controlled private-testnet evidence bundle.
+1. Run `scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked` and attach the runtime report to the controlled testnet evidence bundle.
 2. Compare the API response vector pack against broader live TestClient/OpenAPI schemas and external route transcripts before public beta.
 3. Capture frontend/API release evidence showing launch-matrix capability flags block every high-risk public claim surface.
 4. Extend signed protocol-upgrade staging into deterministic migration/rollback vectors and multi-node staged-rollout rehearsal before enabling any upgrade execution.

@@ -4,7 +4,7 @@ from __future__ import annotations
 """Generate deterministic v1.5 API response/failure vectors.
 
 This artifact is an auditable contract-vector pack, not an OpenAPI substitute.
-It binds high-risk public/private route classes to expected auth posture,
+It binds high-risk public/session-scoped route classes to expected auth posture,
 standard error-envelope semantics, and launch-bound claim boundaries so review
 surfaces cannot silently drift while the actual route tests remain authoritative.
 """
@@ -72,7 +72,7 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_error_envelope": {"ok": False, "error": {"code": "session_required"}},
         "auth_case": "account_session_required",
         "error_codes": ["session_required", "session_mismatch"],
-        "privacy_boundary": "viewer-scoped PoH case queue; private evidence is not public",
+        "privacy_boundary": "viewer-scoped PoH case queue; restricted identity evidence is not public",
     },
     {
         "id": "poh-async-case-redacts-private-evidence",
@@ -83,7 +83,7 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_top_level_keys": ["ok", "case"],
         "auth_case": "session_aware_optional_public_read",
         "error_codes": ["not_found", "session_required", "session_mismatch"],
-        "privacy_boundary": "public case reads redact private evidence unless applicant/reviewer session is authorized",
+        "privacy_boundary": "public case reads redact restricted identity evidence unless applicant/reviewer session is authorized",
     },
     {
         "id": "poh-live-signals-require-session-and-participation",
@@ -260,7 +260,7 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_top_level_keys": ["ok"],
         "auth_case": "public_read_redacted_snapshot",
         "error_codes": [],
-        "privacy_boundary": "storage/IPFS ops status does not assign storage work or reveal private evidence",
+        "privacy_boundary": "storage/IPFS ops status does not assign storage work or reveal restricted identity evidence",
     },
     {
         "id": "helper-readiness-disabled-boundary",
@@ -293,7 +293,7 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_top_level_keys": ["ok"],
         "auth_case": "public_read_redacted_snapshot",
         "error_codes": ["not_found"],
-        "privacy_boundary": "tx lifecycle is status-only and must not expose private evidence payloads",
+        "privacy_boundary": "tx lifecycle is status-only and must not expose restricted identity evidence payloads",
     },
     {
         "id": "dispute-current-redacted",

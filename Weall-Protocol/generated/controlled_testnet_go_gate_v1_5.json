@@ -172,12 +172,12 @@
       "public_validator_enabled": false
     }
   },
-  "next_allowed_claim_if_runtime_go_gate_passes": "controlled private testnet candidate evidence captured",
+  "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
   "ok": true,
   "public_beta_blocker_report_summary": {
     "blocker_count": 14,
     "mainnet_ready": false,
-    "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
+    "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
     "ok": true,
     "public_beta_ready": false,
     "remaining_blocker_count": 9

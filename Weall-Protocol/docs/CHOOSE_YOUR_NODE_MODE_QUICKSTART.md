@@ -1,6 +1,6 @@
 # Choose your WeAll node mode
 
-This quickstart is a claim-control guide for controlled/private testnet rehearsals. It does not claim public beta, mainnet, public validator onboarding, live economics, production helper execution, or legal/compliance readiness.
+This quickstart is a claim-control guide for controlled testnet rehearsals. It does not claim public beta, mainnet, public validator onboarding, live economics, production helper execution, or legal/compliance readiness.
 
 ## 1. Genesis node
 
@@ -41,12 +41,12 @@ Users can opt out of each lane independently.
 
 ## Current release boundary
 
-The current repository posture is controlled private testnet candidate evidence. Public beta still requires independent validator transcripts, real storage/IPFS operator transcripts, legal/compliance review, expanded public capability evidence, and future signed protocol-upgrade execution gates.
+The current repository posture is controlled testnet candidate evidence. Public beta still requires independent validator transcripts, real storage/IPFS operator transcripts, legal/compliance review, expanded public capability evidence, and future signed protocol-upgrade execution gates.
 
 
 ## Batch 620 public-beta evidence boundary
 
-Current release posture remains: controlled multi-node private testnet candidate.
+Current release posture remains: controlled multi-node testnet candidate.
 Do not claim public beta, mainnet, public validator enablement, live economics,
 production helper execution, public storage-market readiness, or legal/compliance
 readiness until the external transcript requirements in

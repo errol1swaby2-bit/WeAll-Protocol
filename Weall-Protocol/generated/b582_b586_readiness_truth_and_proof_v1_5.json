@@ -765,7 +765,6 @@
     "failed_process_exitcode": -15,
     "ok": true,
     "operator_failure_exercised": true,
-    "private_evidence_boundary_preserved": true,
     "public_decentralized_media_claimed": false,
     "reassignment_recorded": true,
     "replacement_cat_result": {
@@ -782,6 +781,7 @@
       "op": "replicate",
       "operator": "op-c"
     },
+    "restricted_identity_evidence_boundary_preserved": true,
     "retrieval_confirmed": true,
     "retrieval_from_non_origin_operator_confirmed": true,
     "source_operator": "op-a",

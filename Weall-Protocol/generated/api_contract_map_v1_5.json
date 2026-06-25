@@ -1538,7 +1538,7 @@
       "truth_boundary": "Observer edge status is diagnostic posture/status for the observer edge path and grants no validator or mutation authority."
     },
     {
-      "auth": "session_aware_poh_case_read_redacts_private_evidence",
+      "auth": "session_aware_poh_case_read_redacts_restricted_identity_evidence",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_case",
@@ -1557,11 +1557,11 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions."
+      "truth_boundary": "Async PoH case reads are public commitment read models with restricted identity evidence included only for authorized applicant or assigned reviewer sessions."
     },
     {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
-      "cache_policy": "no_store_private_evidence_upload_response",
+      "cache_policy": "no_store_restricted_identity_evidence_upload_response",
       "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "function": "poh_async_video_upload",
       "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
@@ -1583,7 +1583,7 @@
     },
     {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_juror_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -1605,7 +1605,7 @@
     },
     {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_async_my_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -1715,7 +1715,7 @@
     },
     {
       "auth": "account_session_required_live_reviewer_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "function": "poh_live_assigned",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -1755,11 +1755,11 @@
       "tags": [
         "poh"
       ],
-      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or private evidence."
+      "truth_boundary": "Live PoH case reads expose commitment/status metadata only and must not expose raw room URLs, raw media, or restricted identity evidence."
     },
     {
       "auth": "account_session_required_live_reviewer_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing juror; 403 session_required/session_mismatch",
       "function": "poh_live_juror_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -1781,7 +1781,7 @@
     },
     {
       "auth": "account_session_required_live_account_queue",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope; 400 missing account; 403 session_required/session_mismatch",
       "function": "poh_live_my_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -2243,7 +2243,7 @@
     },
     {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_juror_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -2265,7 +2265,7 @@
     },
     {
       "auth": "account_session_required",
-      "cache_policy": "no_store_private_account_read",
+      "cache_policy": "no_store_session_scoped_account_read",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "poh_tier2_my_cases",
       "idempotency": "safe_authenticated_read_no_state_mutation",
@@ -2309,7 +2309,7 @@
     },
     {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",
-      "cache_policy": "no_store_private_evidence_upload_response",
+      "cache_policy": "no_store_restricted_identity_evidence_upload_response",
       "error_model": "404 endpoint_disabled; 400 invalid_payload/ipfs_error; 413 payload_too_large",
       "function": "poh_tier2_video_upload",
       "idempotency": "node_local_upload_helper_no_consensus_state_mutation",

@@ -133,14 +133,14 @@
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "path": "/v1/poh/async/my-cases",
-      "privacy_boundary": "viewer-scoped PoH case queue; private evidence is not public",
+      "privacy_boundary": "viewer-scoped PoH case queue; restricted identity evidence is not public",
       "route_key": "GET /v1/poh/async/my-cases",
       "route_present": true
     },
     {
       "auth_case": "session_aware_optional_public_read",
-      "contract_auth": "session_aware_poh_case_read_redacts_private_evidence",
-      "contract_truth_boundary": "Async PoH case reads are public/private hybrid read models; private evidence is included only for authorized applicant or assigned reviewer sessions.",
+      "contract_auth": "session_aware_poh_case_read_redacts_restricted_identity_evidence",
+      "contract_truth_boundary": "Async PoH case reads are public commitment read models with restricted identity evidence included only for authorized applicant or assigned reviewer sessions.",
       "error_codes": [
         "not_found",
         "session_required",
@@ -158,7 +158,7 @@
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "path": "/v1/poh/async/case/{case_id}",
-      "privacy_boundary": "public case reads redact private evidence unless applicant/reviewer session is authorized",
+      "privacy_boundary": "public case reads redact restricted identity evidence unless applicant/reviewer session is authorized",
       "route_key": "GET /v1/poh/async/case/{case_id}",
       "route_present": true
     },
@@ -512,7 +512,7 @@
       "metadata_source": "static_generator_heuristic",
       "method": "GET",
       "path": "/v1/storage/ipfs/ops",
-      "privacy_boundary": "storage/IPFS ops status does not assign storage work or reveal private evidence",
+      "privacy_boundary": "storage/IPFS ops status does not assign storage work or reveal restricted identity evidence",
       "route_key": "GET /v1/storage/ipfs/ops",
       "route_present": true
     },
@@ -572,7 +572,7 @@
       "metadata_source": "static_generator_heuristic",
       "method": "GET",
       "path": "/v1/tx/status/{tx_id}",
-      "privacy_boundary": "tx lifecycle is status-only and must not expose private evidence payloads",
+      "privacy_boundary": "tx lifecycle is status-only and must not expose restricted identity evidence payloads",
       "route_key": "GET /v1/tx/status/{tx_id}",
       "route_present": true
     },

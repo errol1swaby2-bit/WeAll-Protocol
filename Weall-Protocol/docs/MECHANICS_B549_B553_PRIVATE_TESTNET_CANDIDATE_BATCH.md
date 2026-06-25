@@ -1,6 +1,6 @@
 # Batch 549-553 — Private Testnet Candidate Hardening
 
-This batch closes the last explicit public-client lifecycle gap from the prior audit and strengthens private-testnet rehearsal evidence while preserving conservative launch boundaries.
+This batch closes the last explicit public-client lifecycle gap from the prior audit and strengthens controlled-testnet rehearsal evidence while preserving conservative launch boundaries.
 
 ## Implemented mechanics
 
@@ -27,4 +27,4 @@ This batch closes the last explicit public-client lifecycle gap from the prior a
 
 ## Truth boundary
 
-This batch supports a **private testnet rehearsal candidate** claim. It does not activate or claim public validator readiness, public beta readiness, live economics, production helper execution, automatic upgrades, complete anti-Sybil/collusion detection, personalized ranking, or mainnet readiness.
+This batch supports a **controlled testnet rehearsal candidate** claim. It does not activate or claim public validator readiness, public beta readiness, live economics, production helper execution, automatic upgrades, complete anti-Sybil/collusion detection, personalized ranking, or mainnet readiness.

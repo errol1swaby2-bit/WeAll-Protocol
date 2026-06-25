@@ -634,7 +634,7 @@ export default function NodeDashboard(): JSX.Element {
               />
               <DetailRow
                 label="Next allowed claim"
-                value={str(publicBetaBlockerReport.next_allowed_claim, "controlled private testnet candidate only")}
+                value={str(publicBetaBlockerReport.next_allowed_claim, "controlled testnet candidate only")}
                 ok={!publicBetaClaimed}
               />
             </div>

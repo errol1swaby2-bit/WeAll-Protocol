@@ -235,7 +235,7 @@ def build() -> Json:
         ],
         "artifact_freshness_commands": [" ".join(cmd) for cmd in _CHECK_COMMANDS],
         "claim_boundaries": dict(_FORBIDDEN_CLAIMS),
-        "next_allowed_claim_if_runtime_go_gate_passes": "controlled private testnet candidate evidence captured",
+        "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
         "claims_still_forbidden_after_this_gate": [key for key, enabled in _FORBIDDEN_CLAIMS.items() if enabled is False],
     }
 

@@ -407,7 +407,7 @@ def _record_challenge_evidence_retention_policy(
     """Record deterministic retention/remedy policy for PoH challenge evidence.
 
     This is protocol state, not a storage delete command.  It makes the evidence
-    lifecycle explicit for private-testnet review: upheld challenges retain
+    lifecycle explicit for controlled-testnet review: upheld challenges retain
     evidence until appeal/reverification/remedy is complete; dismissed
     challenges retain only minimal audit metadata unless another policy keeps
     the evidence alive.
@@ -1520,7 +1520,7 @@ def select_poh_adjudication_panel_conflict_aware(
 ) -> Json:
     """Select an adjudication panel while deterministically excluding conflicts.
 
-    This is a private-testnet mechanics primitive.  It separates suspicion from
+    This is a controlled-testnet mechanics primitive.  It separates suspicion from
     adjudication by preventing reviewers with known conflicts from joining the
     panel, then records the exclusion set for auditability.
     """

@@ -129,7 +129,7 @@ def run_harness() -> Json:
                 "retrieval_from_non_origin_operator_confirmed": retrieval_ok,
                 "retrieval_confirmed": retrieval_ok,
                 "availability_status": "available" if retrieval_ok else "unavailable",
-                "private_evidence_boundary_preserved": True,
+                "restricted_identity_evidence_boundary_preserved": True,
                 "public_decentralized_media_claimed": False,
                 "storage_provider_market_claimed": False,
                 "automatic_evidence_deletion_claimed": False,

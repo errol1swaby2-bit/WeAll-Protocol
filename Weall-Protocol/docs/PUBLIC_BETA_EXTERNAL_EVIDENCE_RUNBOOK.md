@@ -6,7 +6,7 @@ protocol upgrades, or production helper execution readiness.
 
 The current repository may claim only:
 
-> controlled multi-node private testnet candidate, with public-beta blocker
+> controlled multi-node testnet candidate, with public-beta blocker
 > evidence gates present.
 
 ## Required transcripts before any public-beta claim

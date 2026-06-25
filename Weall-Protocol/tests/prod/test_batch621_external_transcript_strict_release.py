@@ -116,7 +116,7 @@ def test_batch621_strict_release_accepts_attested_storage_and_legal_transcripts(
         "review_date": "2026-06-14",
         "reviewer_or_counsel_reference": "controlled-counsel-reference-2026-06-b621",
         "scope": ["public beta claims", "token/economics disabled claims", "governance language"],
-        "approved_public_claims": ["controlled private testnet candidate"],
+        "approved_public_claims": ["controlled testnet candidate"],
         "restricted_claims": ["public beta ready", "mainnet ready", "live economics enabled"],
         "launch_matrix_checked": True,
         "signature_or_controlled_reference": "controlled-attestation-reference-b621-release-review",

@@ -1,6 +1,6 @@
 # Public Beta Blockers
 
-The repository is currently a controlled multi-node private testnet candidate.
+The repository is currently a controlled multi-node testnet candidate.
 Public beta and mainnet readiness remain blocked by evidence and release gates.
 
 The source of truth is:

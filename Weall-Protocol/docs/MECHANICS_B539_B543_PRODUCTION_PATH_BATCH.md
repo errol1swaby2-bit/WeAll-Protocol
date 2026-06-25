@@ -18,4 +18,4 @@ Still intentionally not claimed:
 - production helper execution
 - mainnet/production readiness
 
-This batch is a private-testnet rehearsal improvement, not an activation batch.
+This batch is a controlled-testnet rehearsal improvement, not an activation batch.

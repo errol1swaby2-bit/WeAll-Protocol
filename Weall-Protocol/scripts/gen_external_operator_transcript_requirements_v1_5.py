@@ -124,7 +124,7 @@ def build() -> Json:
             [
                 "public_storage_market_enabled_without_release_gate",
                 "public_decentralized_media_durability_without_real_daemon_topology",
-                "private_evidence_publicly_visible",
+                "restricted_identity_evidence_publicly_visible",
             ],
             {"operator_ids": 3, "machine_ids": 3, "ipfs_peer_ids": 3, "replication_factor": 3, "operator_signatures": 3},
         ),

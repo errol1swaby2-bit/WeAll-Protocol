@@ -67,7 +67,7 @@ def test_batch584_storage_ipfs_durability_rejects_wrong_and_corrupt_content_with
     assert out["corrupt_content_rejected_by_expected_hash"] is True
     assert out["retrieval_from_non_origin_operator_confirmed"] is True
     assert out["availability_status"] == "available"
-    assert out["private_evidence_boundary_preserved"] is True
+    assert out["restricted_identity_evidence_boundary_preserved"] is True
     assert out["public_decentralized_media_claimed"] is False
     assert out["storage_provider_market_claimed"] is False
     assert out["automatic_evidence_deletion_claimed"] is False

@@ -1,6 +1,6 @@
 # WeAll v1.5 Mechanics Batch 544-548 — Live Network Finalization Proof
 
-This batch tightens the remaining v1.5 implementation gap from proof harnesses toward local private-testnet rehearsal.
+This batch tightens the remaining v1.5 implementation gap from proof harnesses toward local controlled-testnet rehearsal.
 
 ## Included mechanics
 
@@ -23,7 +23,7 @@ This batch tightens the remaining v1.5 implementation gap from proof harnesses t
   - Confirms dismissed challenge has no penalty consequence.
   - Exercises dispute missed-juror accountability plus appeal remedy/reinstatement.
 
-- **548 — Final private-testnet evidence reconciliation**
+- **548 — Final controlled-testnet evidence reconciliation**
   - Generates `generated/b544_b548_live_network_final_proof_v1_5.json`.
   - Preserves public validator, live economics, automatic upgrade, production helper, and mainnet non-claims.
 

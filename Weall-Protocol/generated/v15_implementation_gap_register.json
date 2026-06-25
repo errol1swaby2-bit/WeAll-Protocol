@@ -135,7 +135,7 @@
       ],
       "id": "V15-B595-CONTROLLED-TESTNET-GO-GATE",
       "status": "controlled_testnet_go_gate_manifest_added",
-      "summary": "A deterministic controlled-testnet go-gate manifest and runner now collect the final internal evidence surface for controlled private-testnet candidacy, including artifact freshness, B587-B594 mechanism completion, API response vectors, launch-matrix capability blockers, validator harness snapshot, and storage durability snapshot.",
+      "summary": "A deterministic controlled-testnet go-gate manifest and runner now collect the final internal evidence surface for controlled testnet candidacy, including artifact freshness, B587-B594 mechanism completion, API response vectors, launch-matrix capability blockers, validator harness snapshot, and storage durability snapshot.",
       "truth_boundary": "This is a go-gate evidence manifest and runner. It does not claim public beta, public validator readiness, live economics, automatic upgrades, production helper execution, public decentralized media durability, legal/compliance readiness, or mainnet readiness."
     }
   ],

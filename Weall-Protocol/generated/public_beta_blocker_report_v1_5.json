@@ -348,7 +348,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "b000a17c29ac943d5225a52d16e6ffb887d47d8c3fa95eaace78f6f87974456a",
+      "artifact_digest": "c8c5acedd214b25c6d041a8079c11e642a9beba351817ea2dcb4f9993020786a",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -372,8 +372,6 @@
       "ok": true,
       "origin_failure_exercised": true,
       "origin_machine": "machine-0",
-      "private_evidence_deletion_policy_checked": true,
-      "private_evidence_retention_policy_checked": true,
       "public_decentralized_media_durability_claimed": false,
       "public_storage_provider_market_claimed": false,
       "reassigned_to": [
@@ -382,6 +380,8 @@
       ],
       "replication_factor_after_reassignment": 5,
       "requires_real_operator_rehearsal": true,
+      "restricted_identity_evidence_deletion_policy_checked": true,
+      "restricted_identity_evidence_retention_policy_checked": true,
       "retrieval_from_non_origin_machine": true,
       "retrieval_sources": [
         "machine-1",
@@ -475,7 +475,7 @@
       "public_beta_blocker_report": {
         "blocker_count": 14,
         "mainnet_ready": false,
-        "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
+        "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
         "ok": true,
         "present": true,
         "public_beta_ready": false,
@@ -562,13 +562,13 @@
     }
   },
   "external_operator_transcript_requirements": {
-    "artifact_digest": "bf8ef7a2f97ec557b4a4c93b307fe4863d2eeada6ab92607c98d82b8403ce05d",
+    "artifact_digest": "c77cd6929b8f02b05992ea3781d37477c1a36151c14b60138e99307e03933c70",
     "external_attestation_required_before_public_beta": true,
     "ok": true,
     "schema_count": 3
   },
   "mainnet_ready": false,
-  "next_allowed_claim": "controlled private testnet candidate with public-beta blocker evidence gates present",
+  "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
   "ok": true,
   "public_beta_blockers_remaining": true,
   "public_beta_ready": false,
@@ -626,7 +626,7 @@
     "storage_ipfs_operator_transcript": {
       "must_not_claim": [
         "public_storage_market_enabled",
-        "private_evidence_publicly_visible"
+        "restricted_identity_evidence_publicly_visible"
       ],
       "required_fields": [
         "schema",

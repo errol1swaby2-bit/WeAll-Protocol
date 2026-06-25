@@ -196,7 +196,7 @@ MECHANICS: list[Json] = [
         "missing_mechanics": [
             "multi-node pin durability proof",
             "pin target failure detection and reassignment",
-            "private evidence retention/deletion lifecycle",
+            "restricted identity evidence retention/deletion lifecycle",
             "operator accountability for failed storage duty",
         ],
         "acceptance_tests": ["future: scripts/rehearse_storage_replication.sh"],
