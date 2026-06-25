@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "f44308b04b46e5f293e28e9c20748d8969fc1661a9554a2a8049bc5e35515b82",
+  "artifact_digest": "b000a17c29ac943d5225a52d16e6ffb887d47d8c3fa95eaace78f6f87974456a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -81,7 +81,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "955e4973f9ee388010af9ece28232fe1a4ce98574a0053c51ddacabb57abd881",
+      "file_sha256": "5508e1a9a6c7919c2b41caab135c572c013d48bf4711363878f760a7e3c46c22",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "6b8600f61609cd621659d576e50e64031e34062cecc9b8ffe96a34d90cb54616",
+      "file_sha256": "c4111b5a72391e549b7b0c879a892ca64a7ecb4d0d4c57ae829e69d1dae17d50",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

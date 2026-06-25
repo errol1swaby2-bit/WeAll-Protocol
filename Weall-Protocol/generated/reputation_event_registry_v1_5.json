@@ -331,7 +331,7 @@
       "severity": 5,
       "severity_label": "critical_disqualification",
       "source_flow": "governance",
-      "visibility": "permissioned"
+      "visibility": "public"
     },
     {
       "appealable": true,
@@ -691,7 +691,7 @@
       "severity": 5,
       "severity_label": "critical_disqualification",
       "source_flow": "poh",
-      "visibility": "permissioned"
+      "visibility": "public"
     },
     {
       "appealable": true,
@@ -736,7 +736,7 @@
       "severity": 5,
       "severity_label": "critical_disqualification",
       "source_flow": "poh",
-      "visibility": "permissioned"
+      "visibility": "public"
     },
     {
       "appealable": false,
@@ -991,7 +991,7 @@
       "severity": 5,
       "severity_label": "critical_disqualification",
       "source_flow": "validator",
-      "visibility": "permissioned"
+      "visibility": "public"
     },
     {
       "appealable": true,
@@ -1081,7 +1081,7 @@
       "severity": 5,
       "severity_label": "critical_disqualification",
       "source_flow": "validator",
-      "visibility": "permissioned"
+      "visibility": "public"
     },
     {
       "appealable": true,

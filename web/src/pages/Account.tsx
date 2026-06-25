@@ -176,7 +176,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const tone = reputationTone(reputation);
   const matrixDimensions = asRecord(reputationMatrix?.dimensions);
   const matrixPublicDimensionRows = Object.values(matrixDimensions).filter(
-    (row: any) => row && typeof row === "object" && row.visibility !== "private",
+    (row: any) => row && typeof row === "object" && row.visibility === "public",
   );
   const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;

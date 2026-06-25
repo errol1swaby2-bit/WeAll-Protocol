@@ -117,7 +117,7 @@ def test_reputation_registry_has_required_contract_fields() -> None:
         assert spec.decay_policy
         assert spec.eligibility_impact
         assert spec.explanation
-        assert spec.visibility in {"public", "private", "permissioned"}
+        assert spec.visibility == "public"
 
 
 def test_append_only_reputation_events_are_deduped_and_replayable() -> None:
@@ -231,6 +231,8 @@ def test_dispute_vote_before_deadline_completes_assignment_without_majority_pena
     assert state["disputes_by_id"]["disp-1"]["jurors"]["@juror"]["status"] == "completed"
     assert "DISPUTE_JUROR_VOTED_ON_TIME" in _canonical_codes(state)
     matrix = derive_reputation_matrix(state, "@juror", reveal_private=True, include_events=True)
+    assert matrix["visibility"]["private_dimensions"] == []
+    assert matrix["visibility"]["private_revealed"] is False
     assert matrix["canonical_dimensions"]["juror_reputation"]["score_milli"] == 250
     assert not any("majority" in str(ev.get("reason_code", "")).lower() for ev in state["reputation"]["events"])
 

@@ -136,7 +136,7 @@ def _state() -> dict:
     }
 
 
-def test_reputation_matrix_derives_all_public_dimensions_and_private_boundary() -> None:
+def test_reputation_matrix_derives_all_public_dimensions_and_no_private_boundary() -> None:
     matrix = derive_reputation_matrix(_state(), "@alice", reveal_private=False, include_events=True)
 
     assert matrix["ok"] is True
@@ -144,7 +144,9 @@ def test_reputation_matrix_derives_all_public_dimensions_and_private_boundary() 
     assert matrix["deterministic"] is True
     assert matrix["formula"]["integer_milli_units"] is True
     assert matrix["formula"]["wall_clock_time"] is False
-    assert "abuse_risk" not in matrix["dimensions"]
+    assert "abuse_risk" in matrix["dimensions"]
+    assert matrix["dimensions"]["abuse_risk"]["visibility"] == "public"
+    assert matrix["visibility"]["private_dimensions"] == []
     assert matrix["visibility"]["private_revealed"] is False
 
     dims = matrix["dimensions"]
@@ -172,12 +174,14 @@ def test_reputation_matrix_derives_all_public_dimensions_and_private_boundary() 
     assert "CONTENT_POST_PRESENT" in event_types
 
 
-def test_reputation_matrix_owner_mode_includes_private_abuse_risk() -> None:
+def test_reputation_matrix_owner_mode_does_not_create_private_reputation_surface() -> None:
     matrix = derive_reputation_matrix(_state(), "@alice", reveal_private=True, include_events=True)
 
     assert "abuse_risk" in matrix["dimensions"]
-    assert matrix["visibility"]["private_revealed"] is True
-    assert any(event["dimension"] == "abuse_risk" for event in matrix["events"])
+    assert matrix["dimensions"]["abuse_risk"]["visibility"] == "public"
+    assert matrix["visibility"]["private_dimensions"] == []
+    assert matrix["visibility"]["private_revealed"] is False
+    assert any(event["dimension"] == "abuse_risk" and event["visibility"] == "public" for event in matrix["events"])
 
 
 def test_reputation_matrix_api_summary_and_events_are_public_redacted() -> None:
@@ -188,7 +192,8 @@ def test_reputation_matrix_api_summary_and_events_are_public_redacted() -> None:
     body = summary.json()
     assert body["ok"] is True
     assert body["account_id"] == "@alice"
-    assert "abuse_risk" not in body["dimensions"]
+    assert "abuse_risk" in body["dimensions"]
+    assert body["dimensions"]["abuse_risk"]["visibility"] == "public"
     assert body["event_count"] >= 0
 
     events = client.get("/v1/reputation/%40alice/events")

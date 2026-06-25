@@ -2366,7 +2366,7 @@
       "route_id": "9cb966b03f226b43",
       "route_path_without_v1_prefix": "/reputation/event-codes",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 42,
+      "source_lineno": 46,
       "summary": "",
       "tags": [
         "reputation"
@@ -2388,7 +2388,7 @@
       "route_id": "89c2fc41773a0991",
       "route_path_without_v1_prefix": "/reputation/me",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 32,
+      "source_lineno": 35,
       "summary": "",
       "tags": [
         "reputation"
@@ -2410,7 +2410,7 @@
       "route_id": "7c857dd088932baa",
       "route_path_without_v1_prefix": "/reputation/{account}",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 58,
+      "source_lineno": 62,
       "summary": "",
       "tags": [
         "reputation"
@@ -2432,7 +2432,7 @@
       "route_id": "a0481e9fcccdcda8",
       "route_path_without_v1_prefix": "/reputation/{account}/eligibility",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 82,
+      "source_lineno": 86,
       "summary": "",
       "tags": [
         "reputation"
@@ -2454,7 +2454,7 @@
       "route_id": "07458def0b2ed72f",
       "route_path_without_v1_prefix": "/reputation/{account}/events",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 96,
+      "source_lineno": 100,
       "summary": "",
       "tags": [
         "reputation"
@@ -2476,7 +2476,7 @@
       "route_id": "adef3e6feb1e97da",
       "route_path_without_v1_prefix": "/reputation/{account}/matrix",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 73,
+      "source_lineno": 77,
       "summary": "",
       "tags": [
         "reputation"
@@ -2498,7 +2498,7 @@
       "route_id": "6d8522c10c4fd74f",
       "route_path_without_v1_prefix": "/reputation/{account}/summary",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 64,
+      "source_lineno": 68,
       "summary": "",
       "tags": [
         "reputation"

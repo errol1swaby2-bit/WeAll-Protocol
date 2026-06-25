@@ -140,9 +140,9 @@ _EVENT_SPECS: tuple[ReputationEventSpec, ...] = (
     _spec("POH_TIER3_APPROVED", "poh", "poh_reputation", 1500, 1, True, "none", "supports_live_review_eligibility", "Tier 3 live humanity verification approved."),
     _spec("POH_REVERIFICATION_COMPLETED", "poh", "poh_reputation", 500, 1, True, "none", "restores_or_preserves_poh_eligibility", "Humanity reverification completed."),
     _spec("POH_DUPLICATE_ATTEMPT", "poh", "poh_reputation", -2500, 4, True, "none", "blocks_or_suspends_poh_eligibility", "Duplicate humanity attempt detected.", can_trigger_ineligibility=True),
-    _spec("POH_FRAUDULENT_EVIDENCE", "poh", "poh_reputation", -10000, 5, True, "none", "disqualifies_poh_review_and_may_revoke_humanity", "Fraudulent humanity evidence confirmed.", visibility="permissioned", can_trigger_ineligibility=True),
+    _spec("POH_FRAUDULENT_EVIDENCE", "poh", "poh_reputation", -10000, 5, True, "none", "disqualifies_poh_review_and_may_revoke_humanity", "Fraudulent humanity evidence confirmed.", can_trigger_ineligibility=True),
     _spec("POH_LIVENESS_FAILURE_AFTER_ACCEPTED_REVIEW", "poh", "poh_reputation", -750, 2, True, "recoverable_after_reverification", "temporarily_limits_poh_review_eligibility", "Accepted reviewer missed required PoH liveness obligation.", can_trigger_ineligibility=True),
-    _spec("POH_REVOKED_BY_FINAL_DISPUTE", "poh", "poh_reputation", -100000, 5, True, "none", "revokes_poh_eligibility", "Final dispute revoked PoH status.", visibility="permissioned", can_trigger_ineligibility=True),
+    _spec("POH_REVOKED_BY_FINAL_DISPUTE", "poh", "poh_reputation", -100000, 5, True, "none", "revokes_poh_eligibility", "Final dispute revoked PoH status.", can_trigger_ineligibility=True),
     # Juror/dispute
     _spec("DISPUTE_JUROR_ACCEPTED", "dispute", "juror_reputation", 0, 0, False, "none", "creates_review_obligation", "Juror accepted a dispute assignment."),
     _spec("DISPUTE_JUROR_WITHDREW_EARLY", "dispute", "juror_reputation", 0, 0, False, "none", "slot_released_no_penalty", "Juror withdrew within the no-penalty window."),
@@ -166,7 +166,7 @@ _EVENT_SPECS: tuple[ReputationEventSpec, ...] = (
     _spec("GOVERNANCE_SPAM_PROPOSAL", "governance", "governance_reputation", -1000, 2, True, "recoverable_by_valid_participation", "limits_proposal_creation", "Governance spam proposal confirmed.", can_trigger_ineligibility=True),
     _spec("GOVERNANCE_MALFORMED_UPGRADE_PATCH", "governance", "governance_reputation", -2500, 3, True, "none", "blocks_upgrade_submission", "Malformed or unsafe upgrade patch submitted.", can_trigger_ineligibility=True),
     _spec("GOVERNANCE_DUPLICATE_OR_ABUSIVE_PROPOSAL", "governance", "governance_reputation", -1500, 2, True, "recoverable_by_valid_participation", "limits_proposal_creation", "Duplicate or abusive governance proposal confirmed.", can_trigger_ineligibility=True),
-    _spec("GOVERNANCE_CONFIRMED_BRIBERY_OR_COLLUSION", "governance", "governance_reputation", -10000, 5, True, "none", "disqualifies_governance_roles", "Governance bribery or collusion confirmed.", visibility="permissioned", can_trigger_ineligibility=True),
+    _spec("GOVERNANCE_CONFIRMED_BRIBERY_OR_COLLUSION", "governance", "governance_reputation", -10000, 5, True, "none", "disqualifies_governance_roles", "Governance bribery or collusion confirmed.", can_trigger_ineligibility=True),
     # Creator/social/content
     _spec("CREATOR_POST_UPHELD_AFTER_REPORT", "content", "creator_reputation", 250, 1, True, "positive_cap_per_epoch", "supports_creator_trust", "Creator post was upheld after report review."),
     _spec("CREATOR_HELPFUL_CONTRIBUTION", "content", "creator_reputation", 100, 1, True, "positive_cap_per_epoch", "supports_feed_trust", "Helpful creator contribution recorded.", farming_policy="cap_positive_creator_events_per_epoch"),
@@ -189,9 +189,9 @@ _EVENT_SPECS: tuple[ReputationEventSpec, ...] = (
     _spec("VALIDATOR_PASSED_REHEARSAL", "validator", "validator_reputation", 250, 1, False, "none", "supports_validator_readiness", "Validator passed rehearsal."),
     _spec("VALIDATOR_COMPLETED_VERSION_UPGRADE", "validator", "validator_reputation", 150, 1, False, "none", "supports_validator_readiness", "Validator completed version upgrade."),
     _spec("VALIDATOR_DOWNTIME", "validator", "validator_reputation", -1000, 2, True, "recoverable_by_uptime", "limits_validator_readiness", "Validator downtime confirmed.", can_trigger_ineligibility=True),
-    _spec("VALIDATOR_DOUBLE_SIGN", "validator", "validator_reputation", -100000, 5, True, "none", "disqualifies_validator", "Validator double-signing confirmed.", visibility="permissioned", can_trigger_ineligibility=True),
+    _spec("VALIDATOR_DOUBLE_SIGN", "validator", "validator_reputation", -100000, 5, True, "none", "disqualifies_validator", "Validator double-signing confirmed.", can_trigger_ineligibility=True),
     _spec("VALIDATOR_INVALID_BLOCK", "validator", "validator_reputation", -10000, 5, True, "none", "disqualifies_or_suspends_validator", "Validator invalid block confirmed.", can_trigger_ineligibility=True),
-    _spec("VALIDATOR_STATE_DIVERGENCE", "validator", "validator_reputation", -25000, 5, True, "none", "disqualifies_validator_until_review", "Validator state divergence confirmed.", visibility="permissioned", can_trigger_ineligibility=True),
+    _spec("VALIDATOR_STATE_DIVERGENCE", "validator", "validator_reputation", -25000, 5, True, "none", "disqualifies_validator_until_review", "Validator state divergence confirmed.", can_trigger_ineligibility=True),
     _spec("VALIDATOR_UNSAFE_VERSION", "validator", "validator_reputation", -2500, 3, True, "recoverable_by_upgrade", "blocks_validator_until_upgrade", "Validator unsafe version detected.", can_trigger_ineligibility=True),
     # Storage/IPFS
     _spec("STORAGE_PIN_CONFIRMED", "storage", "storage_reputation", 100, 1, False, "positive_cap_per_epoch", "supports_storage_assignment", "Storage pin confirmed."),

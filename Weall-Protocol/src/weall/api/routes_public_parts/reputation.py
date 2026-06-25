@@ -25,16 +25,20 @@ def _viewer_for_request(request: Request, state: Json) -> str:
 
 
 def _reveal_private(viewer: str, account: str) -> bool:
-    return bool(viewer and (viewer == account or viewer.lstrip("@") == str(account or "").lstrip("@")))
+    # Public-only reputation rule: owner authentication does not reveal extra
+    # protocol-meaning reputation dimensions. The parameter is retained only for
+    # compatibility with existing helper call sites.
+    return False
 
 
 @router.get("/reputation/me")
 def v1_reputation_me(request: Request) -> Json:
-    """Return the authenticated account's full Reputation Matrix owner view."""
+    """Return the authenticated account's public Reputation Matrix view."""
     st = _snapshot(request)
     viewer = str(require_account_session(request, st) or "").strip()
-    matrix = derive_reputation_matrix(st, viewer, reveal_private=True, include_events=True)
+    matrix = derive_reputation_matrix(st, viewer, reveal_private=False, include_events=True)
     matrix["owner_view"] = True
+    matrix["public_only"] = True
     return matrix
 
 
@@ -96,8 +100,8 @@ def v1_reputation_eligibility(account: str, request: Request) -> Json:
 def v1_reputation_events(account: str, request: Request) -> Json:
     """Return deterministic Reputation Matrix event details for an account.
 
-    Public callers receive public events only. The account owner receives private
-    internal dimensions as well when a valid account session is present.
+    All callers receive the same public-inspectable reputation events. Account
+    owner authentication does not reveal private protocol-meaning dimensions.
     """
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)

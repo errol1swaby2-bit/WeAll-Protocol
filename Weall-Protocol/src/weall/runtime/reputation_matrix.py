@@ -44,11 +44,15 @@ LEGACY_PUBLIC_DIMENSIONS: tuple[str, ...] = (
     "governance",
     "identity_poh",
     "social_trust",
+    "abuse_risk",
 )
 
 PUBLIC_DIMENSIONS: tuple[str, ...] = REPUTATION_DIMENSIONS + LEGACY_PUBLIC_DIMENSIONS
-PRIVATE_DIMENSIONS: tuple[str, ...] = ("abuse_risk",)
-ALL_DIMENSIONS: tuple[str, ...] = PUBLIC_DIMENSIONS + PRIVATE_DIMENSIONS
+# Public-only protocol rule: reputation-affecting activity must be publicly
+# inspectable.  No owner-only/private Reputation Matrix dimensions are exposed
+# or used for protocol meaning.
+PRIVATE_DIMENSIONS: tuple[str, ...] = ()
+ALL_DIMENSIONS: tuple[str, ...] = PUBLIC_DIMENSIONS
 
 # Conservative default weights. These are read-model weights, not economic value.
 BASELINE_DIMENSION_WEIGHTS: dict[str, int] = {
@@ -71,7 +75,7 @@ BASELINE_DIMENSION_WEIGHTS: dict[str, int] = {
     "governance": 100,
     "identity_poh": 100,
     "social_trust": 100,
-    "abuse_risk": 0,  # internal signal, never raises the public aggregate
+    "abuse_risk": 0,  # public safety signal, never raises the aggregate
 }
 
 REASON_DIMENSION_MAP: dict[str, tuple[str, ...]] = {
@@ -185,7 +189,9 @@ def _event(
     visibility: str | None = None,
     details: Json | None = None,
 ) -> MatrixEvent:
-    vis = visibility or ("private" if dimension in PRIVATE_DIMENSIONS else "public")
+    vis = "public" if not visibility else str(visibility).strip().lower()
+    if vis in {"private", "permissioned", "owner", "members_only", "member_only"}:
+        vis = "public"
     return MatrixEvent(
         event_id=_stable_event_id(
             account_id=account_id,
@@ -237,7 +243,7 @@ def _dimensions_from_events(events: list[MatrixEvent]) -> Json:
             "score_milli": int(score),
             "score": units_to_reputation(score),
             "level": _score_level(score),
-            "visibility": "private" if dimension in PRIVATE_DIMENSIONS else "public",
+            "visibility": "public",
             "weight_bps": int(BASELINE_DIMENSION_WEIGHTS.get(dimension, 0)),
             "event_count": len(dims_events),
             "positive_event_count": sum(1 for event in dims_events if event.polarity == "positive"),
@@ -279,9 +285,9 @@ def _canonical_ledger_events(state: Json, account_id: str) -> list[MatrixEvent]:
             "explanation": _as_str(rec.get("explanation")),
             "eligibility_impact": _as_str(rec.get("eligibility_impact")),
         }
-        visibility = _as_str(rec.get("visibility") or "public")
-        if visibility == "permissioned":
-            visibility = "private"
+        visibility = _as_str(rec.get("visibility") or "public").lower()
+        if visibility in {"private", "permissioned", "owner", "members_only", "member_only"}:
+            visibility = "public"
         if dimension in ALL_DIMENSIONS:
             events.append(
                 _event(
@@ -859,8 +865,8 @@ def derive_reputation_matrix(
     scalar_units = account_reputation_units(_as_dict(_as_dict(state.get("accounts")).get(acct_id)), default=0)
     aggregate = _aggregate_public_score(dimensions)
     public_dims = {name: dimensions[name] for name in PUBLIC_DIMENSIONS}
-    exposed_dimensions = dict(dimensions) if reveal_private else public_dims
-    exposed_events = [event.as_dict() for event in events if reveal_private or event.visibility == "public"]
+    exposed_dimensions = public_dims
+    exposed_events = [event.as_dict() for event in events if event.visibility == "public"]
     canonical_events = canonical_reputation_events_for_actor(state, acct_id)
     canonical_reduction = reduce_reputation_events(canonical_events)
     canonical_actor = _as_dict(_as_dict(canonical_reduction.get("actors")).get(acct_id))
@@ -894,8 +900,8 @@ def derive_reputation_matrix(
         "event_history_root": canonical_reduction.get("event_history_root"),
         "visibility": {
             "public_dimensions": list(PUBLIC_DIMENSIONS),
-            "private_dimensions": list(PRIVATE_DIMENSIONS),
-            "private_revealed": bool(reveal_private),
+            "private_dimensions": [],
+            "private_revealed": False,
         },
         "event_count": len(exposed_events),
     }

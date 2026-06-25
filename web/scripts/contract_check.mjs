@@ -201,11 +201,9 @@ async function main() {
       assertOk(`GET /v1/accounts/${ACCOUNT}/feed (public)`, r);
     }
 
-    if (SESSION_KEY) {
-      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=private`);
-      assertOk(`GET /v1/accounts/${ACCOUNT}/feed (private)`, r);
-    } else {
-      pass("Skipping private account feed (set SESSION_KEY to test)");
+    {
+      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=all`);
+      assertOk(`GET /v1/accounts/${ACCOUNT}/feed (public all)`, r);
     }
   } else {
     pass("Skipping account checks and reviewer-status contract check (set ACCOUNT to test)");
