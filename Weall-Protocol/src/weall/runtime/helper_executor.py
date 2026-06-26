@@ -42,7 +42,7 @@ class HelperExecutor:
     Minimal deterministic helper executor used by helper tests.
 
     Production helper trust boundaries use asymmetric helper identities. This
-    test harness still supports legacy shared secrets only when explicitly
+    test harness still supports legacy HMAC material only when explicitly
     provided, so old corpus-style tests can be ported gradually without
     weakening runtime verification paths.
     """

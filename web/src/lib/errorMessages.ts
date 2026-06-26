@@ -99,11 +99,11 @@ export function translateBackendError(error: unknown, fallback = "This action co
   const technicalMessage = rawMessage && rawMessage !== fallback ? rawMessage : undefined;
 
 
-  if (includesAny(needle, ["private_groups_unsupported", "encrypted_protocol_payload_unsupported", "group_read_visibility_must_be_public"])) {
+  if (includesAny(needle, ["non_public_group_unsupported", "opaque_protocol_payload_unsupported", "protocol_read_visibility_must_be_public", "public_read_visibility_required"])) {
     return {
       code: "action_unavailable",
       title: "Public-only protocol rule",
-      message: "WeAll protocol content is publicly inspectable. Non-public groups and encrypted protocol payloads are not supported.",
+      message: "WeAll protocol content is publicly inspectable. Restricted-read groups and non-inspectable protocol payloads are not supported.",
       technicalMessage,
     };
   }

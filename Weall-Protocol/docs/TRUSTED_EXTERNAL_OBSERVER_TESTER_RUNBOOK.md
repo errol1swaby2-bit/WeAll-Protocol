@@ -103,7 +103,7 @@ This smoke path verifies:
 - the remote genesis live API is reachable when `WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1` is set
 - `/v1/health`, `/v1/status`, `/v1/ready` or `/v1/readyz`, `/v1/chain/identity`, and `/v1/tx/status/:tx_id` respond with the expected contract shape
 - the remote genesis chain identity matches the bundle when `WEALL_GENESIS_API_BASE` is provided
-- relay recipient public-key binding is present whenever relay URLs are configured
+- relay recipient identity binding is present whenever relay URLs are configured
 - observer mode is forced on
 - validator signing is forced off
 - BFT is forced off

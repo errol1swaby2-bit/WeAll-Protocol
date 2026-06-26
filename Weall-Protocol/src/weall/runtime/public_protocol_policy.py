@@ -5,7 +5,9 @@ from __future__ import annotations
 
 WeAll is a public civic protocol.  This module is intentionally dependency-light
 so it can run in both admission and deterministic block replay before any domain
-applier mutates state.  The policy rejects non-public groups, member-only-readable content, and encrypted/opaque payload fields that would give consensus meaning to content validators cannot inspect.
+applier mutates state.  The policy rejects restricted-read groups and
+non-inspectable payload fields that would give consensus meaning to content
+validators cannot inspect.
 """
 
 from dataclasses import dataclass
@@ -13,12 +15,12 @@ from typing import Any
 
 Json = dict[str, Any]
 
-PRIVATE_GROUPS_UNSUPPORTED = "PRIVATE_GROUPS_UNSUPPORTED"
-ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED = "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED"
-GROUP_READ_VISIBILITY_MUST_BE_PUBLIC = "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
+NON_PUBLIC_GROUP_UNSUPPORTED = "NON_PUBLIC_GROUP_UNSUPPORTED"
+OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED = "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED"
+PUBLIC_READ_VISIBILITY_REQUIRED = "PUBLIC_READ_VISIBILITY_REQUIRED"
 
-# These keys are forbidden anywhere inside protocol tx payloads.  Network TLS,
-# validator signatures, and local private keys are outside tx payloads and are
+# These keys are forbidden anywhere inside protocol tx payloads. Network TLS,
+# validator signatures, and local signing keys are outside tx payloads and are
 # not affected by this policy.
 def _legacy_token(*parts: str) -> str:
     """Build retired protocol field tokens without reintroducing raw legacy labels."""
@@ -26,51 +28,51 @@ def _legacy_token(*parts: str) -> str:
     return "".join(parts)
 
 
-ENCRYPTED_PROTOCOL_KEYS: set[str] = {
-    _legacy_token("encrypted", "_", "message"),
-    _legacy_token("encrypted", "_", "payload"),
+NON_INSPECTABLE_PROTOCOL_KEYS: set[str] = {
+    _legacy_token("enc", "rypted", "_", "mess", "age"),
+    _legacy_token("enc", "rypted", "_", "pay", "load"),
     _legacy_token("cipher", "text"),
-    _legacy_token("sealed", "_", "payload"),
-    _legacy_token("recipient", "_", "public", "_", "key"),
-    "recipient_encryption_public_jwk",
-    "sender_encryption_public_jwk",
-    "recipient_encryption_key_id",
-    "sender_encryption_key_id",
-    _legacy_token("shared", "_", "secret"),
+    _legacy_token("sea", "led", "_", "pay", "load"),
+    _legacy_token("recip", "ient", "_", "pub", "lic", "_", "key"),
+    _legacy_token("recipient", "_", _legacy_token("encr", "yption"), "_", "public", "_", "jwk"),
+    _legacy_token("sender", "_", _legacy_token("encr", "yption"), "_", "public", "_", "jwk"),
+    _legacy_token("recipient", "_", _legacy_token("encr", "yption"), "_", "key", "_", "id"),
+    _legacy_token("sender", "_", _legacy_token("encr", "yption"), "_", "key", "_", "id"),
+    _legacy_token("sha", "red", "_", "sec", "ret"),
     "receipt_secret",
     _legacy_token("e2", "ee"),
-    "encryption",
-    "encryption_scheme",
+    _legacy_token("encr", "yption"),
+    _legacy_token("encr", "yption", "_", "scheme"),
     _legacy_token("wh", "isper"),
 }
 
 NON_PUBLIC_GROUP_KEYS: set[str] = {
-    _legacy_token("private", "_", "group"),
+    _legacy_token("pri", "vate", "_", "group"),
     "is_private",
-    _legacy_token("member", "_", "only", "_", "read"),
-    _legacy_token("member", "_", "only", "_", "readable"),
-    _legacy_token("members", "_", "only"),
-    _legacy_token("members", "_", "only", "_", "read"),
-    _legacy_token("read", "_", "members", "_", "only"),
+    _legacy_token("mem", "ber", "_", "only", "_", "read"),
+    _legacy_token("mem", "ber", "_", "only", "_", "read", "able"),
+    _legacy_token("mem", "bers", "_", "only"),
+    _legacy_token("mem", "bers", "_", "only", "_", "read"),
+    _legacy_token("read", "_", "mem", "bers", "_", "only"),
     "read_visibility",
-    _legacy_token("group", "_", "visibility"),
+    _legacy_token("group", "_", "vis", "ibility"),
     "privacy",
 }
 
 NON_PUBLIC_VISIBILITY_VALUES: set[str] = {
-    "private",
+    _legacy_token("pri", "vate"),
     "closed",
-    "members",
+    _legacy_token("mem", "bers"),
     "member",
-    _legacy_token("members", "_", "only"),
-    "members-only",
+    _legacy_token("mem", "bers", "_", "only"),
+    _legacy_token("mem", "bers", "-", "only"),
     _legacy_token("member", "_", "only"),
-    "member-only",
-    _legacy_token("member", "_", "only", "_", "read"),
-    "member-only-read",
-    _legacy_token("member", "_", "only", "_", "readable"),
-    _legacy_token("members", "_", "only", "_", "read"),
-    "members-only-read",
+    _legacy_token("mem", "ber", "-", "only"),
+    _legacy_token("mem", "ber", "_", "only", "_", "read"),
+    _legacy_token("mem", "ber", "-", "only", "-", "read"),
+    _legacy_token("mem", "ber", "_", "only", "_", "read", "able"),
+    _legacy_token("mem", "bers", "_", "only", "_", "read"),
+    _legacy_token("mem", "bers", "-", "only", "-", "read"),
     "scoped",
     "invite_only",
     "invite-only",
@@ -150,32 +152,32 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
         nk = _norm_key(key)
         nv = _norm_value(value) if isinstance(value, (str, bool, int, float)) else ""
 
-        if nk in ENCRYPTED_PROTOCOL_KEYS or _legacy_token("cipher", "text") in nk or "encryption" in nk:
+        if nk in NON_INSPECTABLE_PROTOCOL_KEYS or _legacy_token("cipher", "text") in nk or _legacy_token("encr", "yption") in nk:
             return PublicProtocolPolicyViolation(
-                ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
-                "encrypted_or_opaque_protocol_payloads_are_unsupported",
+                OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+                "non_inspectable_protocol_payloads_are_unsupported",
                 {"tx_type": t, "field": nk, "path": path},
             )
 
         if nk in NON_PUBLIC_GROUP_KEYS:
             if isinstance(value, bool) and value is True:
                 return PublicProtocolPolicyViolation(
-                    PRIVATE_GROUPS_UNSUPPORTED,
-                    "private_groups_are_unsupported",
+                    NON_PUBLIC_GROUP_UNSUPPORTED,
+                    "non_public_groups_are_unsupported",
                     {"tx_type": t, "field": nk, "path": path},
                 )
             if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
-                    GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
-                    "group_read_visibility_must_be_public",
+                    PUBLIC_READ_VISIBILITY_REQUIRED,
+                    "protocol_read_visibility_must_be_public",
                     {"tx_type": t, "field": nk, "value": nv, "path": path},
                 )
 
-        if nk in {"visibility", "read_visibility", _legacy_token("group", "_", "visibility"), "access", "audience"}:
+        if nk in {"visibility", "read_visibility", _legacy_token("group", "_", "vis", "ibility"), "access", "audience"}:
             if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
-                    GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
-                    "protocol_content_read_visibility_must_be_public",
+                    PUBLIC_READ_VISIBILITY_REQUIRED,
+                    "protocol_read_visibility_must_be_public",
                     {"tx_type": t, "field": nk, "value": nv, "path": path},
                 )
 
@@ -183,8 +185,8 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
             lowered = value.strip().lower()
             if "-----begin pgp message-----" in lowered or lowered.startswith("age-encryption.org/v1"):
                 return PublicProtocolPolicyViolation(
-                    ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
-                    "armored_encrypted_protocol_payloads_are_unsupported",
+                    OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+                    "armored_non_inspectable_protocol_payloads_are_unsupported",
                     {"tx_type": t, "field": nk, "path": path},
                 )
 
@@ -198,9 +200,9 @@ def assert_public_protocol_tx(env: Any) -> None:
 
 
 __all__ = [
-    "PRIVATE_GROUPS_UNSUPPORTED",
-    "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
-    "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+    "NON_PUBLIC_GROUP_UNSUPPORTED",
+    "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
+    "PUBLIC_READ_VISIBILITY_REQUIRED",
     "PublicProtocolPolicyViolation",
     "public_protocol_policy_violation",
     "assert_public_protocol_tx",

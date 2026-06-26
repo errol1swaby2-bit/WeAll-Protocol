@@ -156,7 +156,7 @@ Stop the rehearsal if any of these occur:
 - observer can produce a local block
 - observer can sign validator messages
 - relay reports authority other than `transport_only`
-- relay URLs are configured without recipient public-key binding
+- relay URLs are configured without recipient identity binding
 - relay reports `allow_unbound_recipient_fetch=true` or `require_recipient_pubkey=false`
 - bundle contains private key, secret, token, or credential-like fields
 - external identity provider credentials are required

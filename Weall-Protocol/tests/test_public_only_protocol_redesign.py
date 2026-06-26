@@ -10,9 +10,9 @@ from weall.api.app import create_app
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.public_protocol_policy import (
-    ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
-    GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
-    PRIVATE_GROUPS_UNSUPPORTED,
+    OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+    PUBLIC_READ_VISIBILITY_REQUIRED,
+    NON_PUBLIC_GROUP_UNSUPPORTED,
     public_protocol_policy_violation,
 )
 from weall.runtime.tx_admission import admit_tx
@@ -122,9 +122,9 @@ def test_removed_communication_tx_name_is_rejected_as_unknown() -> None:
 @pytest.mark.parametrize(
     "payload,code",
     [
-        ({"group_id": "g-private", "charter": "x", "is_private": True}, PRIVATE_GROUPS_UNSUPPORTED),
-        ({"group_id": "g-private", "charter": "x", "visibility": "private"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
-        ({"group_id": "g-private", "charter": "x", "read_visibility": "member" + "s_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
+        ({"group_id": "g-private", "charter": "x", "is_private": True}, NON_PUBLIC_GROUP_UNSUPPORTED),
+        ({"group_id": "g-private", "charter": "x", "visibility": "private"}, PUBLIC_READ_VISIBILITY_REQUIRED),
+        ({"group_id": "g-private", "charter": "x", "read_visibility": "member" + "s_only"}, PUBLIC_READ_VISIBILITY_REQUIRED),
     ],
 )
 def test_non_public_group_and_restricted_read_fields_are_rejected(payload: dict, code: str) -> None:
@@ -224,7 +224,7 @@ def test_generated_artifact_reflects_public_only_rule() -> None:
     artifact = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
     assert artifact.is_file()
     data = artifact.read_text(encoding="utf-8")
-    for code in [PRIVATE_GROUPS_UNSUPPORTED, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC]:
+    for code in [NON_PUBLIC_GROUP_UNSUPPORTED, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED, PUBLIC_READ_VISIBILITY_REQUIRED]:
         assert code in data
     assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in data
     assert "public_protocol_events" in data
@@ -232,24 +232,24 @@ def test_generated_artifact_reflects_public_only_rule() -> None:
 
 def test_legacy_fixtures_cannot_reintroduce_non_public_or_encoded_payloads() -> None:
     for payload, code in [
-        ({"encrypted" + "_payload": {"cipher" + "text": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"metadata": {"sealed" + "_payload": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"attachments": [{"cid": "bafy", "cipher" + "text": "hidden"}]}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"group" + "_visibility": "member" + "s_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
+        ({"encrypted" + "_payload": {"cipher" + "text": "abc"}}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"metadata": {"sealed" + "_payload": "abc"}}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"attachments": [{"cid": "bafy", "cipher" + "text": "hidden"}]}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"group" + "_visibility": "member" + "s_only"}, PUBLIC_READ_VISIBILITY_REQUIRED),
     ]:
         violation = public_protocol_policy_violation(_tx("GOV_PROPOSAL_CREATE", payload=payload))
         assert violation is not None
         assert violation.code == code
 
 
-def test_state_replay_rejects_encrypted_protocol_payload_deterministically() -> None:
+def test_state_replay_rejects_non_inspectable_protocol_payload_deterministically() -> None:
     state = _state()
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
             state,
             _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "y", "encrypted" + "_payload": "opaque"}),
         )
-    assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
+    assert excinfo.value.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
 
 
 def test_public_media_and_evidence_references_must_be_public_cids() -> None:
@@ -280,14 +280,14 @@ def test_public_media_and_evidence_references_must_be_public_cids() -> None:
     assert any(item.get("id") == "e-public" and item.get("cid") == valid_cid for item in evidence)
 
 
-def test_legacy_private_account_feed_and_scoped_content_archives_are_not_readable() -> None:
+def test_legacy_restricted_account_feed_and_scoped_content_archives_are_not_readable() -> None:
     app = create_app(boot_runtime=False)
     app.state.executor = _DummyExecutor(_public_only_route_state())
     client = TestClient(app)
 
     private_filter = client.get("/v1/accounts/@alice/feed?visibility=private", headers=_auth("@alice"))
     assert private_filter.status_code == 400
-    assert private_filter.json()["error"]["code"] == GROUP_READ_VISIBILITY_MUST_BE_PUBLIC
+    assert private_filter.json()["error"]["code"] == PUBLIC_READ_VISIBILITY_REQUIRED
 
     owner_all = client.get("/v1/accounts/@alice/feed?visibility=all", headers=_auth("@alice"))
     assert owner_all.status_code == 200, owner_all.text

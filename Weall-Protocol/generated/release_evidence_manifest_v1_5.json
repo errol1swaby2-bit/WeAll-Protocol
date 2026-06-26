@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "6674bb69f0b378280feea2fa7217731cd728fb56114a065314912217812ad8c8",
+  "artifact_digest": "d799af5f80ce2be310aa025c7e5c9a4658d469684d18abe998d043877a790152",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "a074c5d5b2bb57da7e048447656ca4f25de6c62c647aab85ee31f58fe69314b3",
+      "file_sha256": "9daa168de8535e660a9c56d8743d1a88c93a6b82cc0a717a2ee88e7d7db4570e",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "5ab332b40d8b51066059137d63b84c64b04e18ed9b2dc1ff7e3e888f7b8ae04c",
+      "file_sha256": "27e33a04b733c0e37addcd5f95688c023abf78cc469eca9a684032706eb31ab5",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

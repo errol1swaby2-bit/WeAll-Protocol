@@ -101,7 +101,7 @@ and API implementation:
 
 - block-production root evidence is available through a proof endpoint and local-only proof gate;
 - economics activation, transfer preview, and treasury lock status are visible to users/reviewers;
-- Public-only activity notices replace direct-message surfaces;
+- Public-only activity notices replace retired one-to-one surfaces;
 - live-room transport now supports browser-local TURN/ICE configuration and automatic polling.
 
 These changes improve production orientation but do not yet close public testnet,

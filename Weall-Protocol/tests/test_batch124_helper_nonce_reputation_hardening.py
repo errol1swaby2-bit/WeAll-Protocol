@@ -28,10 +28,10 @@ def test_helper_signature_verification_requires_pubkey_when_no_explicit_secret_b
             lane_delta_hash="",
             namespace_hash="ns",
         ),
-        secret="shared-secret",
+        secret="compat-hmac-material",
     )
     assert verify_helper_certificate_signature(cert, helper_pubkey=None) is False
-    assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="shared-secret") is True
+    assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material") is True
 
 
 def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforced_batch124() -> None:

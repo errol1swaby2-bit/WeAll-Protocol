@@ -283,7 +283,7 @@ def v1_account_feed(account: str, request: Request):
 
     if visibility in {"private", "direct", "owner", "members", "member" + "s_only", "member_only", "scoped"}:
         raise ApiError.bad_request(
-            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Protocol-native account content is public-only; private read visibility is unsupported.",
             {"account": account, "visibility": visibility},
         )

@@ -7,15 +7,6 @@
   },
   "codes": [
     {
-      "code": "ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
-      "domain": "launch_readiness",
-      "family": "LaunchReadiness",
-      "http_status": null,
-      "sample_reason": "stable public genesis launch readiness failure code",
-      "source": "scripts/gen_failure_code_registry_v1_5.py",
-      "source_lineno": 0
-    },
-    {
       "code": "GENESIS_TESTNET_API_UNREACHABLE",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
@@ -124,34 +115,7 @@
       "source_lineno": 0
     },
     {
-      "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
-      "domain": "api",
-      "family": "ApiError.bad_request",
-      "http_status": 400,
-      "sample_reason": "Protocol-native account content is public-only; private read visibility is unsupported.",
-      "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 285
-    },
-    {
-      "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
-      "domain": "api",
-      "family": "ApiError.bad_request",
-      "http_status": 400,
-      "sample_reason": "Group read visibility must be public.",
-      "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 463
-    },
-    {
-      "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
-      "domain": "runtime_apply",
-      "family": "ContentApplyError",
-      "http_status": null,
-      "sample_reason": "protocol_content_read_visibility_must_be_public",
-      "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 275
-    },
-    {
-      "code": "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+      "code": "NON_PUBLIC_GROUP_UNSUPPORTED",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
       "http_status": null,
@@ -196,7 +160,43 @@
       "source_lineno": 0
     },
     {
-      "code": "PRIVATE_GROUPS_UNSUPPORTED",
+      "code": "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Protocol-native account content is public-only; private read visibility is unsupported.",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 285
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Group read visibility must be public.",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 463
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "protocol_read_visibility_must_be_public",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 275
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
       "http_status": null,

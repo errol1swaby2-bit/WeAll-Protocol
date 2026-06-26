@@ -152,7 +152,7 @@ def test_scoped_content_route_no_longer_exposes_private_archives_batch363() -> N
         assert client.get("/v1/content/post:private").status_code == 404
 
         # Legacy group-scoped content is now public-readable.  The historical
-        # group visibility legacy flag cannot create a member-only read
+        # legacy group flag cannot create restricted reads
         # archive after the public-only redesign.
         group_public = client.get("/v1/content/post:g-private")
         assert group_public.status_code == 200, group_public.text

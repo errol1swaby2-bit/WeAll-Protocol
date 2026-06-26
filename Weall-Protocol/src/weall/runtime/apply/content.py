@@ -273,8 +273,8 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
 
     if visibility in {"private", "members", "member" + "s_only", "member_only", "scoped"}:
         raise ContentApplyError(
-            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
-            "protocol_content_read_visibility_must_be_public",
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
+            "protocol_read_visibility_must_be_public",
             {"visibility": visibility},
         )
 

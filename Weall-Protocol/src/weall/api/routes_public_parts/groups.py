@@ -461,7 +461,7 @@ def v1_group_content(group_id: str, request: Request):
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
     if visibility in {"private", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
-            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Group read visibility must be public.",
             {"group_id": group_id, "visibility": visibility},
         )
@@ -525,7 +525,7 @@ def v1_group_feed(group_id: str, request: Request):
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
     if visibility in {"private", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
-            "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Group read visibility must be public.",
             {"group_id": group_id, "visibility": visibility},
         )

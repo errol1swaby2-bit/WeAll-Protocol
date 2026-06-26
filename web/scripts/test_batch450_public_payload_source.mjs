@@ -9,8 +9,8 @@ const identity = read('Weall-Protocol/src/weall/runtime/apply/identity.py');
 const policy = read('Weall-Protocol/src/weall/runtime/public_protocol_policy.py');
 const schema = read('Weall-Protocol/src/weall/runtime/tx_schema.py');
 
-if (!policy.includes('ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED')) throw new Error('missing public payload policy code');
-if (!policy.includes('GROUP_READ_VISIBILITY_MUST_BE_PUBLIC')) throw new Error('missing public group visibility policy code');
+if (!policy.includes('OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED')) throw new Error('missing public payload policy code');
+if (!policy.includes('PUBLIC_READ_VISIBILITY_REQUIRED')) throw new Error('missing public read policy code');
 if (!identity.includes('public_protocol_policy_violation')) throw new Error('identity applier must enforce public payload policy directly');
 if (schema.includes(['DIRECT','MESSAGE'].join('_'))) throw new Error('tx schema must not retain removed communication tx models');
 if (exists('web/src/lib/' + 'message' + 'Crypto.ts')) throw new Error('removed private communication crypto module returned');

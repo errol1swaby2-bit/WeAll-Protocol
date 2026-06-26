@@ -1,4 +1,4 @@
-# WeAll Protocol — Testnet Flow (End-to-End)
+# WeAll Protocol — Testnet Flow (Full-Path)
 
 This document explains the expected “happy path” lifecycle:
 

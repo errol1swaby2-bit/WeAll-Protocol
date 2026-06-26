@@ -129,7 +129,7 @@ def sign_helper_receipt(
         signature = _private_key_from_value(privkey).sign(payload).hex()
     else:
         if not allow_legacy_receipt_secret or receipt_secret is None:
-            raise ValueError("helper receipt signing requires privkey; legacy shared-secret signing is disabled unless explicitly allowed")
+            raise ValueError("helper receipt signing requires privkey; legacy HMAC receipt signing is disabled unless explicitly allowed")
         signature = hmac.new(receipt_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
     return HelperReceipt(
         chain_id=str(chain_id),

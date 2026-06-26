@@ -935,7 +935,7 @@ class _PublicGroupPermissionsPayload(_StrictModel):
     @model_validator(mode="after")
     def _read_visibility_must_be_public(self):
         if str(self.read_visibility or "public").strip().lower() != "public":
-            raise ValueError("GROUP_READ_VISIBILITY_MUST_BE_PUBLIC")
+            raise ValueError("PUBLIC_READ_VISIBILITY_REQUIRED")
         return self
 
 

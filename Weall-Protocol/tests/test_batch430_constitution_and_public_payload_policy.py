@@ -6,7 +6,7 @@ from pathlib import Path
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
 from weall.runtime.constitution import active_constitution_commitment, constitution_document_hash
 from weall.runtime.public_protocol_policy import (
-    ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
+    OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
     public_protocol_policy_violation,
 )
 from weall.runtime.tx_admission import TxEnvelope
@@ -33,7 +33,7 @@ def test_chain_manifest_status_reports_constitution_commitments_batch430() -> No
     assert "chain_manifest_constitution_hash_unpinned" not in report["issues"]
 
 
-def test_public_policy_rejects_encrypted_protocol_payload_batch430() -> None:
+def test_public_policy_rejects_non_inspectable_protocol_payload_batch430() -> None:
     env = TxEnvelope(
         tx_type="CONTENT_POST_CREATE",
         signer="alice",
@@ -43,5 +43,5 @@ def test_public_policy_rejects_encrypted_protocol_payload_batch430() -> None:
     )
     violation = public_protocol_policy_violation(env)
     assert violation is not None
-    assert violation.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
+    assert violation.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
     assert violation.details["field"] == "encrypted" + "_payload"

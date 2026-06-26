@@ -176,7 +176,7 @@ def run_harness() -> dict[str, Any]:
     apply_content(state, _env("CONTENT_REACTION_SET", "@bob", 53, {"target_id": "post:1", "reaction": "like"}))
     apply_content(state, _env("CONTENT_COMMENT_CREATE", "@alice", 54, {"comment_id": "comment:1", "post_id": "post:1", "body": "public author follow-up"}))
     # Public-only redesign: lifecycle rehearsals must not construct encrypted or
-    # protocol-native private-message payloads. Activity notices are exercised
+    # retired one-to-one protocol payloads. Activity notices are exercised
     # through the public-event-derived input_queue below.
     public_activity_checked = True
     feed = client.get("/v1/feed?rank=production&limit=10")

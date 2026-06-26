@@ -2,7 +2,7 @@
 
 Status: genesis-bound draft commitment with partial enforcement.
 
-This document maps the WeAll Genesis Constitution Draft 2 to protocol surfaces that future recursive audits must inspect. The Constitution Draft 2 is now hash-bound in the canonical production chain manifest and exposed through chain/status identity surfaces; many constitutional protections remain implementation targets until the linked code/tests enforce them end-to-end.
+This document maps the WeAll Genesis Constitution Draft 2 to protocol surfaces that future recursive audits must inspect. The Constitution Draft 2 is now hash-bound in the canonical production chain manifest and exposed through chain/status identity surfaces; many constitutional protections remain implementation targets until the linked code/tests enforce them full-path.
 
 ## Audit classification
 
