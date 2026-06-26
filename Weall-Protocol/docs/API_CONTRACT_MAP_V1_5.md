@@ -25,5 +25,5 @@ python3 scripts/gen_api_contract_map.py
 Then verify with:
 
 ```bash
-pytest tests/test_batch494_api_contract_map_v15.py
+pytest tests/test_api_contract_map_v15.py
 ```

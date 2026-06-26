@@ -35,8 +35,8 @@ run bash scripts/verify_release_tree.sh
 # useful before release, but this keeps outside-reviewer smoke time bounded.
 if command -v pytest >/dev/null 2>&1; then
   run pytest \
-    tests/test_batch326_production_p0_p1_hardening.py \
-    tests/test_batch327_vrf_manifest_fixture_compat.py \
+    tests/test_production_p0_p1_safety.py \
+    tests/test_vrf_manifest_fixture_compat.py \
     tests/test_reviewer_public_tx_ingress_security.py
 else
   echo

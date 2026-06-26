@@ -29,7 +29,7 @@ def _file_contains(path: Path, *needles: str) -> dict[str, Any]:
 
 
 def run_harness() -> dict[str, Any]:
-    batch615 = _load_script("rehearse_genesis_observer_promoted_validator_mempool_v1_5.py").run_harness()
+    promoted_validator_mempool = _load_script("rehearse_genesis_observer_promoted_validator_mempool_v1_5.py").run_harness()
     process_net = _load_script("rehearse_independent_process_validator_network_v1_5.py").run_harness()
 
     external_observer = {
@@ -63,7 +63,7 @@ def run_harness() -> dict[str, Any]:
     }
 
     return {
-        "ok": bool(batch615.get("ok")) and bool(process_net.get("ok")) and bool(external_observer.get("ok")),
+        "ok": bool(promoted_validator_mempool.get("ok")) and bool(process_net.get("ok")) and bool(external_observer.get("ok")),
         "batch": "616",
         "claims": {
             "controlled_multi_node_testnet_candidate": True,
@@ -72,7 +72,7 @@ def run_harness() -> dict[str, Any]:
             "mainnet_ready": False,
             "production_helper_execution_ready": False,
         },
-        "local_genesis_observer_promoted_validator_mempool": batch615,
+        "local_genesis_observer_promoted_validator_mempool": promoted_validator_mempool,
         "independent_process_validator_finality_restart": process_net,
         "external_observer_bundle_signed_onboarding_surface": external_observer,
         "docs": docs,

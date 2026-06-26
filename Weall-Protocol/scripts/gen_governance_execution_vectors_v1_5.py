@@ -370,7 +370,7 @@ def _write_if_changed(path: Path, text: str) -> bool:
     return True
 
 
-def _with_batch509_stdout_aliases(payload: Json) -> Json:
+def _with_legacy_stdout_aliases(payload: Json) -> Json:
     """Preserve the older --json stdout contract while the generated artifact uses the richer v1.5 schema."""
     out = dict(payload)
     by_type = {row.get("action_type"): row for row in payload.get("allowed_action_vectors", []) if isinstance(row, dict)}
@@ -422,7 +422,7 @@ def main() -> int:
             raise SystemExit(f"stale generated governance execution vectors: {out}")
         return 0
     if args.json:
-        stdout_payload = _with_batch509_stdout_aliases(payload)
+        stdout_payload = _with_legacy_stdout_aliases(payload)
         sys.stdout.write(json.dumps(stdout_payload, separators=(",", ":"), sort_keys=True, ensure_ascii=False) + "\n")
         return 0 if payload.get("ok") is True else 1
     _write_if_changed(out, text)

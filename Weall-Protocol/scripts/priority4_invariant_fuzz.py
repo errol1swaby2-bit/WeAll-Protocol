@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TESTS = ROOT / "tests" / "test_priority4_invariant_fuzz_batch28.py"
+TESTS = ROOT / "tests" / "test_priority4_invariant_fuzz.py"
 
 
 def main() -> int:

@@ -37,7 +37,7 @@
       "route_or_tx": "PoH bootstrap and Tier 2 eligibility transactions/routes",
       "state_transition": "account becomes Tier 2 eligible when protocol state allows",
       "tests": [
-        "tests/test_observer_to_validator_authority_path_batch348.py"
+        "tests/test_observer_to_validator_authority_path.py"
       ]
     },
     {
@@ -63,8 +63,8 @@
       "route_or_tx": "validator-set update / epoch-open boundary",
       "state_transition": "active validator set updates deterministically when allowed",
       "tests": [
-        "tests/test_validator_set_activation_boundary_batch9.py",
-        "tests/test_validator_lifecycle_multinode_batch39.py",
+        "tests/test_validator_set_activation_boundary.py",
+        "tests/test_validator_lifecycle_multinode.py",
         "tests/prod/test_promoted_validator_live_rehearsal.py"
       ]
     }
@@ -78,7 +78,7 @@
     "src/weall/runtime/apply/roles.py",
     "src/weall/runtime/bft_hotstuff.py",
     "src/weall/api/routes_nodes.py",
-    "tests/test_validator_set_activation_boundary_batch9.py"
+    "tests/test_validator_set_activation_boundary.py"
   ],
   "version": "2026-06-public-genesis-launch"
 }

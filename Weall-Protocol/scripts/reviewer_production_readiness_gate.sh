@@ -27,65 +27,65 @@ fi
 
 echo "[reviewer-gate] targeted backend tests"
 PYTHONPATH=src pytest -q \
-  tests/test_batch437_446_external_testnet_p0_p2_hardening.py \
-  tests/test_batch450_public_payload_key_policy.py \
-  tests/test_batch451_public_activity_contract.py \
-  tests/test_batch452_rehearsal_content_review_followup.py \
-  tests/test_batch453_live_room_remote_media_recovery.py \
-  tests/test_batch454_rehearsal_review_visibility_and_viewer_vote.py \
-  tests/test_batch456_public_readiness_gates.py \
-  tests/test_batch457_economics_block_p2p_implementation.py \
-  tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py \
-  tests/test_batch464_genesis_api_external_observer_readiness.py \
-  tests/test_batch465_runtime_config_env_precedence.py \
-  tests/test_batch467_external_observer_account_id_format.py \
-  tests/test_batch469_frontend_account_custody_docs.py \
-  tests/test_batch468_one_command_tester_boot.py \
-  tests/test_batch466_tx_status_tx_queue_runtime_path.py \
-  tests/test_batch458_461_production_implementation.py
+  tests/test_external_testnet_p0_p2_safety.py \
+  tests/test_public_payload_key_policy.py \
+  tests/test_public_activity_contract.py \
+  tests/test_rehearsal_content_review_followup.py \
+  tests/test_live_room_remote_media_recovery.py \
+  tests/test_rehearsal_review_visibility_and_viewer_vote.py \
+  tests/test_public_readiness_gates.py \
+  tests/test_economics_block_p2p_implementation.py \
+  tests/test_reviewer_truth_and_observer_reproducibility.py \
+  tests/test_genesis_api_external_observer_readiness.py \
+  tests/test_runtime_config_env_precedence.py \
+  tests/test_external_observer_account_id_format.py \
+  tests/test_frontend_account_custody_docs.py \
+  tests/test_one_command_tester_boot.py \
+  tests/test_tx_status_tx_queue_runtime_path.py \
+  tests/test_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then
-  PYTHONPATH=src pytest -q tests/test_batch471_tester_boot_authority_profile_sanitized.py
+  PYTHONPATH=src pytest -q tests/test_tester_boot_authority_profile_sanitized.py
 
-PYTHONPATH=src pytest -q tests/test_batch472_tester_boot_invokes_boot_script_with_bash.py
+PYTHONPATH=src pytest -q tests/test_tester_boot_invokes_boot_script_with_bash.py
 
-PYTHONPATH=src pytest -q tests/test_batch474_clean_clone_tester_boot_docs.py
+PYTHONPATH=src pytest -q tests/test_clean_clone_tester_boot_docs.py
 
-PYTHONPATH=src pytest -q tests/test_batch476_tester_boot_sets_local_cors.py
+PYTHONPATH=src pytest -q tests/test_tester_boot_sets_local_cors.py
 
-PYTHONPATH=src pytest -q tests/test_batch477_tester_boot_exports_runtime_port.py
+PYTHONPATH=src pytest -q tests/test_tester_boot_exports_runtime_port.py
 
-PYTHONPATH=src pytest -q tests/test_batch479_tester_boot_exports_gunicorn_bind.py
+PYTHONPATH=src pytest -q tests/test_tester_boot_exports_gunicorn_bind.py
 
-PYTHONPATH=src pytest -q tests/test_batch480_tester_boot_uses_repo_venv.py
+PYTHONPATH=src pytest -q tests/test_tester_boot_uses_repo_venv.py
 
-PYTHONPATH=src pytest -q tests/test_batch481_real_tokenomics_policy.py
+PYTHONPATH=src pytest -q tests/test_real_tokenomics_policy.py
 
-PYTHONPATH=src pytest -q tests/test_batch483_484_transfer_tip_contract.py
+PYTHONPATH=src pytest -q tests/test_transfer_tip_contract.py
 
-PYTHONPATH=src pytest -q tests/test_batch485_reward_issuance_invariants.py
+PYTHONPATH=src pytest -q tests/test_reward_issuance_invariants.py
 
-PYTHONPATH=src pytest -q tests/test_batch491_v15_epoch_issuance_scheduler.py
+PYTHONPATH=src pytest -q tests/test_v15_epoch_issuance_scheduler.py
 
-PYTHONPATH=src pytest -q tests/test_batch493_v15_runtime_config_alignment.py
+PYTHONPATH=src pytest -q tests/test_v15_runtime_config_alignment.py
 
 PYTHONPATH=src pytest -q \
-  tests/test_batch494_api_contract_map_v15.py \
-  tests/test_batch495_launch_disabled_matrix_v15.py \
-  tests/test_batch496_protocol_upgrade_record_only_boundary.py \
-  tests/test_batch497_public_readiness_artifacts_v15.py
+  tests/test_api_contract_map_v15.py \
+  tests/test_launch_disabled_matrix_v15.py \
+  tests/test_protocol_upgrade_record_only_boundary.py \
+  tests/test_public_readiness_artifacts_v15.py
 
 echo "[reviewer-gate] frontend source checks"
   cd "${WEB_ROOT}"
-  node scripts/test_batch450_public_payload_source.mjs
-  node scripts/test_batch451_public_activity_source.mjs
-  node scripts/test_batch452_group_review_source.mjs
-  node scripts/test_batch453_live_room_media_source.mjs
-  node scripts/test_batch454_review_visibility_source.mjs
-  node scripts/test_batch456_public_readiness_source.mjs
-  node scripts/test_batch457_economics_block_public_source.mjs
-  node scripts/test_batch458_461_public_implementation_source.mjs
-  node scripts/test_batch469_account_custody_source.mjs
+  node scripts/test_public_payload_source.mjs
+  node scripts/test_public_activity_source.mjs
+  node scripts/test_group_review_source.mjs
+  node scripts/test_live_room_media_source.mjs
+  node scripts/test_review_visibility_source.mjs
+  node scripts/test_public_readiness_source.mjs
+  node scripts/test_economics_block_public_source.mjs
+  node scripts/test_public_implementation_source.mjs
+  node scripts/test_account_custody_source.mjs
   node scripts/guard_production_ux_safety.mjs
 fi
 

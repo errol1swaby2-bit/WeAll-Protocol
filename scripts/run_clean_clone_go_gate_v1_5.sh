@@ -105,7 +105,7 @@ if [ ! -d "${BACKEND_DIR}/src/weall" ]; then
 fi
 
 if [ -z "${OUT_DIR}" ]; then
-  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/weall_batch615_gate_XXXXXX")"
+  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/weall_release_gate_XXXXXX")"
 fi
 mkdir -p "${OUT_DIR}"
 
@@ -207,11 +207,11 @@ fi
 echo "== Running Batch 615 Genesis -> observer -> promoted-validator -> mempool rehearsal =="
 run_backend "${PYTHON_BIN}" scripts/rehearse_genesis_observer_promoted_validator_mempool_v1_5.py \
   --json \
-  --write-report "${OUT_DIR}/batch615_genesis_observer_promoted_validator_mempool_v1_5.json"
+  --write-report "${OUT_DIR}/genesis_observer_promoted_validator_mempool_v1_5.json"
 
 echo "== Running Batch 616 release blocker closure rehearsal =="
-if run_backend test -f scripts/rehearse_batch616_release_blocker_closure_v1_5.py; then
-  run_backend "${PYTHON_BIN}" scripts/rehearse_batch616_release_blocker_closure_v1_5.py \
+if run_backend test -f scripts/rehearse_release_blocker_closure_v1_5.py; then
+  run_backend "${PYTHON_BIN}" scripts/rehearse_release_blocker_closure_v1_5.py \
     --json \
     --write-report "${OUT_DIR}/batch616_release_blocker_closure_v1_5.json"
 fi
@@ -220,8 +220,8 @@ echo "== Running Batch 615 targeted tests =="
 run_backend "${PYTHON_BIN}" -m pytest -q \
   tests/prod/test_multinode_mempool_propagation_convergence.py \
   tests/prod/test_promoted_validator_live_rehearsal.py \
-  tests/prod/test_batch616_release_blocker_closure.py \
-  tests/test_batch616_exact_responsibility_lane_consent.py
+  tests/prod/test_release_blocker_closure.py \
+  tests/test_exact_responsibility_lane_consent.py
 
 if [ "${RUN_FULL_PYTEST}" = "1" ]; then
   echo "== Running full pytest suite =="
@@ -246,32 +246,32 @@ if [ "${RUN_FRONTEND}" = "1" ]; then
   run_frontend node scripts/guard_production_ux_safety.mjs
   run_frontend node scripts/test_node_dashboard_source.mjs
   run_frontend node scripts/test_accessibility_source.mjs
-  if [ -f "${WEB_DIR}/scripts/test_batch596_dispute_current_queue_source.mjs" ]; then
-    run_frontend node scripts/test_batch596_dispute_current_queue_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_dispute_current_queue_source.mjs" ]; then
+    run_frontend node scripts/test_dispute_current_queue_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch616_responsibility_control_surface_source.mjs" ]; then
-    run_frontend node scripts/test_batch616_responsibility_control_surface_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_responsibility_control_surface_source.mjs" ]; then
+    run_frontend node scripts/test_responsibility_control_surface_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch618_public_beta_blocker_surface_source.mjs" ]; then
-    run_frontend node scripts/test_batch618_public_beta_blocker_surface_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_public_beta_blocker_surface_source.mjs" ]; then
+    run_frontend node scripts/test_public_beta_blocker_surface_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch620_operator_journey_and_accent_source.mjs" ]; then
-    run_frontend node scripts/test_batch620_operator_journey_and_accent_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_operator_journey_and_accent_source.mjs" ]; then
+    run_frontend node scripts/test_operator_journey_and_accent_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch622_frontend_coherence_source.mjs" ]; then
-    run_frontend node scripts/test_batch622_frontend_coherence_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_frontend_coherence_source.mjs" ]; then
+    run_frontend node scripts/test_frontend_coherence_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch623_frontend_api_truth_source.mjs" ]; then
-    run_frontend node scripts/test_batch623_frontend_api_truth_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_frontend_api_truth_source.mjs" ]; then
+    run_frontend node scripts/test_frontend_api_truth_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch624_responsibility_exit_and_route_truth_source.mjs" ]; then
-    run_frontend node scripts/test_batch624_responsibility_exit_and_route_truth_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_responsibility_exit_and_route_truth_source.mjs" ]; then
+    run_frontend node scripts/test_responsibility_exit_and_route_truth_source.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch625_frontend_coherence_source.mjs" ]; then
-    run_frontend node scripts/test_batch625_frontend_coherence_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_frontend_coherence_source_variant_2.mjs" ]; then
+    run_frontend node scripts/test_frontend_coherence_source_variant_2.mjs
   fi
-  if [ -f "${WEB_DIR}/scripts/test_batch626_632_direct_protocol_no_legacy_shims_source.mjs" ]; then
-    run_frontend node scripts/test_batch626_632_direct_protocol_no_legacy_shims_source.mjs
+  if [ -f "${WEB_DIR}/scripts/test_direct_protocol_no_legacy_shims_source.mjs" ]; then
+    run_frontend node scripts/test_direct_protocol_no_legacy_shims_source.mjs
   fi
   if [ "${RUN_RENDERED_FRONTEND}" = "1" ]; then
     if run_frontend npm run | grep -q "test:rendered-operator-journey"; then

@@ -4,7 +4,7 @@
     {
       "acceptance_tests": [
         "scripts/rehearse_mechanics_m1_m10.sh --bft-local",
-        "pytest -q tests/test_batch498_mechanics_m1_m10.py"
+        "pytest -q tests/test_behavior_m1_m10.py"
       ],
       "current_files": [
         "src/weall/runtime/bft_hotstuff.py",
@@ -58,7 +58,7 @@
     },
     {
       "acceptance_tests": [
-        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"
+        "pytest -q tests/test_behavior_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"
       ],
       "current_files": [
         "src/weall/runtime/apply/consensus.py"
@@ -107,7 +107,7 @@
     },
     {
       "acceptance_tests": [
-        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"
+        "pytest -q tests/test_behavior_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"
       ],
       "current_files": [
         "src/weall/runtime/apply/poh.py",
@@ -155,7 +155,7 @@
     {
       "acceptance_tests": [
         "python3 scripts/gen_governance_execution_vectors_v1_5.py --check",
-        "pytest -q tests/test_governance_execution_vectors_v1_5_batch597.py"
+        "pytest -q tests/test_governance_execution_vectors_v1.py"
       ],
       "current_files": [
         "src/weall/runtime/apply/governance.py",
@@ -184,7 +184,7 @@
     {
       "acceptance_tests": [
         "python3 scripts/gen_tokenomics_simulation_v1_5.py --check",
-        "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m08_tokenomics_simulation_artifact_keeps_economics_locked_boundary"
+        "pytest -q tests/test_behavior_m1_m10.py::test_m08_tokenomics_simulation_artifact_keeps_economics_locked_boundary"
       ],
       "current_files": [
         "src/weall/runtime/econ_phase.py",

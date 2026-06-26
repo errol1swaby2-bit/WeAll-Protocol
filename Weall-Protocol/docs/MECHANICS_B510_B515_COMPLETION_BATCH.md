@@ -78,7 +78,7 @@ Adds:
 - `scripts/rehearse_v15_completion_batch_510_515.py`
 - `scripts/rehearse_b510_b515.sh`
 - `generated/b510_b515_completion_proof_v1_5.json`
-- `tests/test_batch510_515_completion_mechanics.py`
+- `tests/test_coverage_behavior.py`
 
 The generated artifact is derived from executable mechanics, not static claims.
 

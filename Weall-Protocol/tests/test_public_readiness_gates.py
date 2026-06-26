@@ -25,7 +25,7 @@ def test_reviewer_gate_and_ci_are_tracked_batch456() -> None:
     assert "scripts/check_tx_canon_artifacts.py" in gate
     assert "scripts/secret_guard.sh" in gate
     assert "scripts/verify_release_tree.sh" in gate
-    assert "tests/test_batch456_public_readiness_gates.py" in gate
+    assert "tests/test_public_readiness_gates.py" in gate
     assert "Run reviewer readiness gate" in workflow
     assert "reviewer_production_readiness_gate.sh" in workflow
 

@@ -31,7 +31,7 @@ To write a report:
 cd Weall-Protocol
 PYTHONPATH=src python scripts/rehearse_genesis_observer_promoted_validator_mempool_v1_5.py \
   --json \
-  --write-report /tmp/weall-batch615-rehearsal.json
+  --write-report /tmp/weall-genesis-observer-promoted-validator-rehearsal.json
 ```
 
 Expected high-level report values:

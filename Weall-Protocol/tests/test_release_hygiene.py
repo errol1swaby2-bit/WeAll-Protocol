@@ -99,7 +99,7 @@ def test_release_hygiene_rejects_tracked_ignored_runtime_cache_batch257(tmp_path
         root_scripts / "run_frontend_contract_check_with_backend.sh",
         backend_scripts / "run_clean_clone_go_gate_v1_5.sh",
         backend_scripts / "run_frontend_contract_check_with_backend.sh",
-        backend_scripts / "rehearse_batch616_release_blocker_closure_v1_5.py",
+        backend_scripts / "rehearse_release_blocker_closure_v1_5.py",
     ]
     for item in required:
         item.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")

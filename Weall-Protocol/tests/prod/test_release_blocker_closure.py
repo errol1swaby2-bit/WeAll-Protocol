@@ -4,7 +4,7 @@ import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts" / "rehearse_batch616_release_blocker_closure_v1_5.py"
+SCRIPT = ROOT / "scripts" / "rehearse_release_blocker_closure_v1_5.py"
 
 
 def _load_harness_module():

@@ -52,7 +52,7 @@ def build() -> dict[str, Any]:
             "state_transition": "account becomes Tier 2 eligible when protocol state allows",
             "frontend_surface": "PoH page and readiness/review surfaces",
             "failure_code": "VALIDATOR_PROMOTION_POH_REQUIRED or VALIDATOR_PROMOTION_TIER2_REQUIRED",
-            "tests": ["tests/test_observer_to_validator_authority_path_batch348.py"],
+            "tests": ["tests/test_observer_to_validator_authority_path.py"],
         },
         {
             "actor": "validator_candidate",
@@ -75,8 +75,8 @@ def build() -> dict[str, Any]:
             "frontend_surface": "validators page and readiness review",
             "failure_code": "VALIDATOR_PROMOTION_THRESHOLD_NOT_MET or VALIDATOR_PROMOTION_PROTOCOL_STATE_BLOCKED",
             "tests": [
-                "tests/test_validator_set_activation_boundary_batch9.py",
-                "tests/test_validator_lifecycle_multinode_batch39.py",
+                "tests/test_validator_set_activation_boundary.py",
+                "tests/test_validator_lifecycle_multinode.py",
                 "tests/prod/test_promoted_validator_live_rehearsal.py",
             ],
         },
@@ -93,7 +93,7 @@ def build() -> dict[str, Any]:
             "src/weall/runtime/apply/roles.py",
             "src/weall/runtime/bft_hotstuff.py",
             "src/weall/api/routes_nodes.py",
-            "tests/test_validator_set_activation_boundary_batch9.py",
+            "tests/test_validator_set_activation_boundary.py",
         ],
     }
 

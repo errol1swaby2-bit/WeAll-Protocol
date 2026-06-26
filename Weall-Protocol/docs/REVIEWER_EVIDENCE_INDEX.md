@@ -34,8 +34,8 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 | Targeted backend tests | reviewer gate or targeted `pytest` list | Pass | Bounded suite; full pytest should be run from a clean dependency environment. |
 | Frontend install | `cd ../web && npm ci` | Pass, 0 vulnerabilities reported at install time | Creates `node_modules`; remove before release-tree check. |
 | Frontend typecheck | `cd ../web && npm run typecheck` | Pass | Type safety only; not browser E2E proof. |
-| Account custody source check | `node web/scripts/test_batch469_account_custody_source.mjs` from outer root | Pass | Source-level guard; browser restore E2E is still recommended. |
-| Wallet/tipping source check | `node web/scripts/test_batch482_wallet_tipping_source.mjs` from outer root | Pass | Source-level guard; economics remain locked by default. |
+| Account custody source check | `node web/scripts/test_account_custody_source.mjs` from outer root | Pass | Source-level guard; browser restore E2E is still recommended. |
+| Wallet/tipping source check | `node web/scripts/test_wallet_tipping_source.mjs` from outer root | Pass | Source-level guard; economics remain locked by default. |
 | Constitutional procedure UI source check | `node web/scripts/test_constitutional_procedure_ui_source.mjs` from outer root | Pass | Source-level guard; public governance testnet still requires integrated E2E proof. |
 | Local observer readiness | `bash scripts/local_observer_readiness_gate.sh` | Pass | Local precondition only; does not prove remote signed observer onboarding. |
 | Observer authority lock | `bash scripts/external_observer_authority_lock_gate.sh` | Pass | Proves local observer authority lock posture; does not promote observer to validator. |
@@ -271,10 +271,10 @@ The following artifacts were added to keep the full-scope v1.5 audit aligned wit
 |---|---|---|---|
 | v1.5 implementation evidence map | `cat docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md` | Current resolved/gap map is present | Planning/evidence artifact only. |
 | v1.5 gap register | `cat generated/v15_implementation_gap_register.json` | Recent tokenomics/runtime config drift marked resolved; remaining P0/P1 gaps listed | Does not prove the gaps are closed unless status says resolved. |
-| API contract map | `python3 scripts/gen_api_contract_map.py && pytest tests/test_batch494_api_contract_map_v15.py` | Generated route inventory is deterministic and complete for current public route decorators | Static map only; response schema vector pack remains future work. |
-| Launch-disabled matrix | `pytest tests/test_batch495_launch_disabled_matrix_v15.py` | High-risk features remain disabled across current phases | Matrix is a guardrail; apply/admission code remains authoritative. |
-| Protocol-upgrade record-only boundary | `pytest tests/test_batch496_protocol_upgrade_record_only_boundary.py` | Upgrade txs record metadata and expose no auto-apply/migration/rollback execution | Automatic protocol upgrades are not implemented. |
-| Legal/compliance draft pack | `pytest tests/test_batch497_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
+| API contract map | `python3 scripts/gen_api_contract_map.py && pytest tests/test_api_contract_map_v15.py` | Generated route inventory is deterministic and complete for current public route decorators | Static map only; response schema vector pack remains future work. |
+| Launch-disabled matrix | `pytest tests/test_launch_disabled_matrix_v15.py` | High-risk features remain disabled across current phases | Matrix is a guardrail; apply/admission code remains authoritative. |
+| Protocol-upgrade record-only boundary | `pytest tests/test_protocol_upgrade_record_only_boundary.py` | Upgrade txs record metadata and expose no auto-apply/migration/rollback execution | Automatic protocol upgrades are not implemented. |
+| Legal/compliance draft pack | `pytest tests/test_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
 | Public validator/BFT proof plan | `cat docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Required public-validator adversarial proof matrix exists | Plan only; public multi-validator readiness is not claimed. |
 
 ### Batch 626 public observer discovery note

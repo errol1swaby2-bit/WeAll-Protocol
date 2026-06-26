@@ -56,13 +56,13 @@ Recommended targeted regression:
 
 ```bash
 PYTHONPATH=src pytest -q \
-  tests/test_batch517_521_completion_mechanics.py \
-  tests/test_batch510_515_completion_mechanics.py \
-  tests/test_batch505_509_mechanics.py \
-  tests/test_batch341_344_four_gate_hardening.py \
+  tests/test_validator_replay_poh_dispute_economics_feed_storage_coverage.py \
+  tests/test_coverage_behavior.py \
+  tests/test_adversarial_bft_state_sync_poh_appeal_governance_vectors.py \
+  tests/test_four_gate_safety.py \
   tests/test_ipfs_replication_assignment.py \
-  tests/test_storage_revalidation_and_accounting_batch304.py \
+  tests/test_storage_revalidation_and_accounting.py \
   tests/test_feed_persists_order_after_restart_api.py \
-  tests/test_batch355_media_viewport_observer_proxy.py \
-  tests/test_batch447_local_rehearsal_qol_regressions.py
+  tests/test_media_viewport_observer_proxy.py \
+  tests/test_local_rehearsal_qol_regressions.py
 ```

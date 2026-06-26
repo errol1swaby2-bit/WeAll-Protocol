@@ -77,7 +77,7 @@ def test_public_tx_submit_remains_fail_closed_for_genesis_api_batch464() -> None
 
 def test_reviewer_gate_runs_batch464_genesis_api_readiness_tests() -> None:
     gate = _read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh")
-    assert "tests/test_batch464_genesis_api_external_observer_readiness.py" in gate
+    assert "tests/test_genesis_api_external_observer_readiness.py" in gate
 
 
 def test_docs_define_production_oriented_genesis_api_boundary_batch464() -> None:

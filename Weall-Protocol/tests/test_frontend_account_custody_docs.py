@@ -21,9 +21,9 @@ def test_account_custody_doc_exists_and_requires_recovery_verification_batch469(
 
 
 def test_frontend_account_custody_source_gate_is_tracked_batch469() -> None:
-    script = _read(WEB / "scripts" / "test_batch469_account_custody_source.mjs")
+    script = _read(WEB / "scripts" / "test_account_custody_source.mjs")
     reviewer = _read(ROOT / "scripts" / "reviewer_production_readiness_gate.sh")
 
     assert "recoveryVerified" in script
     assert "verifyRecoveryKeyFileForAccount" in script
-    assert "test_batch469_account_custody_source.mjs" in reviewer
+    assert "test_account_custody_source.mjs" in reviewer

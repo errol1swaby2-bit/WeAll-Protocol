@@ -4,10 +4,10 @@
       "evidence": [
         "generated/api_contract_map_v1_5.json",
         "scripts/gen_api_contract_map.py",
-        "tests/test_batch494_api_contract_map_v15.py",
+        "tests/test_api_contract_map_v15.py",
         "generated/api_response_vectors_v1_5.json",
         "scripts/gen_api_response_vectors_v1_5.py",
-        "tests/test_batch587_594_testnet_mechanism_completion.py"
+        "tests/test_testnet_mechanism_coverage.py"
       ],
       "id": "P0-API-CONTRACT-MAP",
       "next_gate": "Expand API response vectors and attach external route transcripts through the controlled-testnet go-gate evidence bundle.",
@@ -32,7 +32,7 @@
       "evidence": [
         "src/weall/runtime/apply/protocol.py",
         "docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md",
-        "tests/test_batch496_protocol_upgrade_record_only_boundary.py"
+        "tests/test_protocol_upgrade_record_only_boundary.py"
       ],
       "id": "P0-PROTOCOL-UPGRADE-DELIVERY",
       "next_gate": "Signed artifact manifest, staged compatibility window, deterministic migration vectors, rollback semantics, and multi-node upgrade rehearsal.",
@@ -64,7 +64,7 @@
         "scripts/gen_state_root_vectors_v1_5.py",
         "generated/state_root_vectors_v1_5.json",
         "tests/test_state_root_ephemeral_contract.py",
-        "tests/test_batch10a_15_readiness_hardening.py"
+        "tests/test_readiness_safety.py"
       ],
       "id": "P1-STATE-ROOT-VECTORS",
       "next_gate": "Run cross-machine/cross-implementation vector verification and include public reviewer fixture exports before public beta.",
@@ -78,8 +78,8 @@
         "src/weall/ledger/tokenomics.py",
         "scripts/gen_tokenomics_simulation_v1_5.py",
         "generated/tokenomics_simulation_v1_5.json",
-        "tests/test_batch10a_15_readiness_hardening.py",
-        "tests/test_batch498_mechanics_m1_m10.py"
+        "tests/test_readiness_safety.py",
+        "tests/test_behavior_m1_m10.py"
       ],
       "id": "P1-ECONOMIC-SIMULATION-PACK",
       "next_gate": "Expand locked simulation into adversarial reward-concentration, treasury-capture, Sybil-farming, wallet-read-model, and governance activation go/no-go evidence before any activation.",
@@ -94,9 +94,9 @@
         "src/weall/ledger/tokenomics.py",
         "src/weall/runtime/apply/rewards.py",
         "src/weall/runtime/system_tx_engine.py",
-        "tests/test_batch481_real_tokenomics_policy.py",
-        "tests/test_batch485_reward_issuance_invariants.py",
-        "tests/test_batch491_v15_epoch_issuance_scheduler.py"
+        "tests/test_real_tokenomics_policy.py",
+        "tests/test_reward_issuance_invariants.py",
+        "tests/test_v15_epoch_issuance_scheduler.py"
       ],
       "id": "V15-TOKENOMICS-EPOCH-ISSUANCE",
       "status": "resolved_locked_implementation",
@@ -108,7 +108,7 @@
         "configs/prod.chain.json",
         "configs/testnet.chain.json",
         "src/weall/runtime/chain_config.py",
-        "tests/test_batch493_v15_runtime_config_alignment.py"
+        "tests/test_v15_runtime_config_alignment.py"
       ],
       "id": "V15-RUNTIME-BLOCK-TIMING-CONFIG",
       "status": "resolved_config_alignment",
@@ -120,7 +120,7 @@
         "generated/v15_implementation_gap_register.json",
         "specs/api_contracts/v1_5_route_metadata.json",
         "generated/api_contract_map_v1_5.json",
-        "tests/test_batch582_586_readiness_truth_and_proof.py"
+        "tests/test_readiness_truth_and_proof.py"
       ],
       "id": "V15-B582-B583-READINESS-TRUTH-AND-OPERATOR-METADATA",
       "status": "resolved_audit_truth_alignment",
@@ -131,7 +131,7 @@
       "evidence": [
         "generated/controlled_testnet_go_gate_v1_5.json",
         "scripts/run_controlled_testnet_go_gate_v1_5.py",
-        "tests/test_batch595_controlled_testnet_go_gate.py"
+        "tests/test_controlled_testnet_go_gate.py"
       ],
       "id": "V15-B595-CONTROLLED-TESTNET-GO-GATE",
       "status": "controlled_testnet_go_gate_manifest_added",

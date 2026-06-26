@@ -43,7 +43,7 @@ These fields are validated by the scheduler-binding layer. For Pydantic payload 
 
 ## Acceptance coverage
 
-`tests/test_system_tx_apply_block_binding_batch312.py` verifies:
+`tests/test_system_tx_apply_block_binding.py` verifies:
 
 ```text
 exact scheduler-emitted SYSTEM tx is accepted

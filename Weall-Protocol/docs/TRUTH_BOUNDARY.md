@@ -35,7 +35,7 @@ The following claims are acceptable when backed by fresh command output from the
 | Dependency locks | Backend and frontend lockfiles are present, pinned, and hashed. | `bash scripts/verify_release_dependencies.sh` |
 | Reviewer gate | The targeted production-readiness reviewer gate exercises the bounded reviewer suite. | `bash scripts/reviewer_production_readiness_gate.sh` |
 | Frontend type safety | The web frontend typechecks after clean dependency installation. | `cd ../web && npm ci && npm run typecheck` |
-| Account custody | The frontend has local key generation, recovery-file creation, recovery verification, restore handling, and signed transaction session wiring. | `web/src/auth/*`, `web/src/pages/LoginPage.tsx`, `web/scripts/test_batch469_account_custody_source.mjs` |
+| Account custody | The frontend has local key generation, recovery-file creation, recovery verification, restore handling, and signed transaction session wiring. | `web/src/auth/*`, `web/src/pages/LoginPage.tsx`, `web/scripts/test_account_custody_source.mjs` |
 | Proof of Humanity | Async/live PoH txs, APIs, frontend surfaces, review/finalization flows, and tier-gated follow-up flows exist and are test-covered in bounded suites. | PoH tests, reviewer tests, API/frontend source checks |
 | Content and groups | Posting, media surfaces, feed visibility, group creation, and group membership are implemented for rehearsal/testnet flows. | content/group tests, frontend source checks, local rehearsal evidence |
 | Dispute/review/governance | Dispute, review, appeal/procedure, proposal, comment, vote, finalization, and constitutional-clock surfaces exist for testnet review. | dispute/governance/procedure tests and docs |

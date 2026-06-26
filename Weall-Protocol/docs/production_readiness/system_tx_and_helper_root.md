@@ -46,22 +46,22 @@ Helpers still do not become consensus authorities. This commitment only guarante
 
 Added tests:
 
-- `tests/test_system_tx_scheduler_binding_batch310.py`
-- `tests/test_helper_execution_root_commitment_batch311.py`
+- `tests/test_system_tx_scheduler_binding.py`
+- `tests/test_helper_execution_root_commitment.py`
 
 Targeted verification run:
 
 ```bash
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src pytest -q \
-  tests/test_system_tx_scheduler_binding_batch310.py \
-  tests/test_helper_execution_root_commitment_batch311.py \
+  tests/test_system_tx_scheduler_binding.py \
+  tests/test_helper_execution_root_commitment.py \
   tests/test_block_commitments_required.py \
-  tests/test_helper_executor_metadata_plan_batch32.py \
-  tests/test_helper_release_gate_batch16.py \
-  tests/test_helper_multinode_divergence_guards_batch9.py \
-  tests/test_helper_fallback_equivalence_batch107.py \
-  tests/test_poh_live_adaptive_quorum_batch309.py \
-  tests/test_poh_scheduler_determinism_batch12.py \
+  tests/test_helper_executor_metadata_plan.py \
+  tests/test_helper_release_gate.py \
+  tests/test_helper_multinode_divergence_guards.py \
+  tests/test_helper_fallback_equivalence.py \
+  tests/test_poh_live_adaptive_quorum.py \
+  tests/test_poh_scheduler_determinism.py \
   tests/test_apply_poh_tier2_flows_mvp.py
 ```
 

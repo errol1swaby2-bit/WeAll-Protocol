@@ -41,7 +41,7 @@ MECHANICS: list[Json] = [
         ],
         "acceptance_tests": [
             "scripts/rehearse_mechanics_m1_m10.sh --bft-local",
-            "pytest -q tests/test_batch498_mechanics_m1_m10.py",
+            "pytest -q tests/test_behavior_m1_m10.py",
         ],
         "do_not_cross": ["do not enable public validators", "do not claim public BFT readiness"],
     },
@@ -78,7 +78,7 @@ MECHANICS: list[Json] = [
             "epoch-bound suspension/removal policy after slash quorum",
             "stake or bond penalty mechanics after economics activation",
         ],
-        "acceptance_tests": ["pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"],
+        "acceptance_tests": ["pytest -q tests/test_behavior_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"],
         "do_not_cross": ["do not add stake slashing while economics is locked"],
     },
     {
@@ -118,7 +118,7 @@ MECHANICS: list[Json] = [
             "reviewer/juror accountability for bad approvals",
             "duplicate-human detection beyond reused proof commitments",
         ],
-        "acceptance_tests": ["pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"],
+        "acceptance_tests": ["pytest -q tests/test_behavior_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"],
         "do_not_cross": ["do not claim full one-human-one-account Sybil resistance"],
     },
     {
@@ -159,7 +159,7 @@ MECHANICS: list[Json] = [
         ],
         "acceptance_tests": [
             "python3 scripts/gen_governance_execution_vectors_v1_5.py --check",
-            "pytest -q tests/test_governance_execution_vectors_v1_5_batch597.py",
+            "pytest -q tests/test_governance_execution_vectors_v1.py",
         ],
         "do_not_cross": ["do not allow governance to bypass locked economics"],
     },
@@ -183,7 +183,7 @@ MECHANICS: list[Json] = [
         ],
         "acceptance_tests": [
             "python3 scripts/gen_tokenomics_simulation_v1_5.py --check",
-            "pytest -q tests/test_batch498_mechanics_m1_m10.py::test_m08_tokenomics_simulation_artifact_keeps_economics_locked_boundary",
+            "pytest -q tests/test_behavior_m1_m10.py::test_m08_tokenomics_simulation_artifact_keeps_economics_locked_boundary",
         ],
         "do_not_cross": ["do not enable transfers, tips, rewards, or treasury spend"],
     },

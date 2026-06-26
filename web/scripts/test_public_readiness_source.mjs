@@ -17,6 +17,6 @@ assertIncludes(econDoc, "Permanently fee-free", "locked tokenomics doc");
 
 const reviewerScript = read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh");
 assertIncludes(reviewerScript, "check_tx_canon_artifacts", "reviewer gate script");
-assertIncludes(reviewerScript, "test_batch456_public_readiness_gates.py", "reviewer gate script");
+assertIncludes(reviewerScript, "test_public_readiness_gates.py", "reviewer gate script");
 
 console.log("batch456 public readiness source checks passed");

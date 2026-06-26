@@ -14,7 +14,7 @@ This batch adds two production-oriented hardening steps:
 
 - `src/weall/runtime/block_admission.py`
 - `src/weall/runtime/executor.py`
-- `tests/test_bft_catchup_and_epoch_batch3.py`
+- `tests/test_bft_catchup_and_epoch.py`
 
 ## Remaining work after this batch
 

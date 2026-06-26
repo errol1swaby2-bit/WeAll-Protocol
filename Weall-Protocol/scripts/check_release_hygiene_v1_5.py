@@ -15,7 +15,7 @@ REQUIRED_EXECUTABLES = (
     ROOT / "scripts" / "run_frontend_contract_check_with_backend.sh",
     BACKEND / "scripts" / "run_clean_clone_go_gate_v1_5.sh",
     BACKEND / "scripts" / "run_frontend_contract_check_with_backend.sh",
-    BACKEND / "scripts" / "rehearse_batch616_release_blocker_closure_v1_5.py",
+    BACKEND / "scripts" / "rehearse_release_blocker_closure_v1_5.py",
 )
 
 IGNORED_RUNTIME_PATHS = (

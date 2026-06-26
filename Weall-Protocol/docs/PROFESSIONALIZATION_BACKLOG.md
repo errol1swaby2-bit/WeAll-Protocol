@@ -4,15 +4,11 @@ This backlog records presentation and maintainability issues that remain after t
 
 ## P0 — reviewer-facing cleanup before broad external review
 
-1. **Batch-era test/script names**
-   - Current signal: hundreds of tracked paths still include `batch`, `Batch`, or `b###` naming.
-   - Risk of fixing all at once: high. Renaming test files, source-test scripts, generated proofs, and docs would require broad manifest/doc/test updates.
-   - Preferred approach: rename only active P0/P1 files by domain, one cluster at a time, with targeted tests and manifest updates.
-   - Initial rename candidates:
-     - `tests/test_public_only_protocol_redesign.py` -> `tests/test_public_only_protocol_policy.py`
-     - `web/scripts/test_batch616_responsibility_control_surface_source.mjs` -> `web/scripts/test_responsibility_control_surface_source.mjs`
-     - `web/scripts/test_batch620_operator_journey_and_accent_source.mjs` -> `web/scripts/test_operator_journey_and_accent_source.mjs`
-     - `web/scripts/test_batch623_frontend_api_truth_source.mjs` -> `web/scripts/test_frontend_api_truth_source.mjs`
+1. **Function-level batch names**
+   - Current signal: active pytest filenames and reviewer-facing test references have been professionalized, but many internal test function names still include batch-era identifiers.
+   - Measured debt after the filename pass: 1,514 batch-era test function names across 434 pytest files.
+   - Risk of fixing all at once: medium to high. Function renames affect failure-history searchability, external notes, and reviewer transcripts.
+   - Preferred approach: rename function names by domain cluster after file-level review lands; keep assertion bodies untouched and run targeted tests for each cluster.
 
 2. **Command-surface consolidation**
    - Current signal: root, backend, and frontend script directories are mostly coherent, but duplicated basenames remain.

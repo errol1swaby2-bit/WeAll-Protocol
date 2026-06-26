@@ -69,7 +69,7 @@ def test_reviewer_gate_includes_local_observer_preconditions_batch463() -> None:
     assert "local_observer_readiness_gate.sh" in gate
     assert "first_external_observer_reproducibility_gate.sh" in gate
     assert "production_block_production_rehearsal_gate.py" in gate
-    assert "test_batch462_463_reviewer_truth_and_observer_reproducibility.py" in gate
+    assert "test_reviewer_truth_and_observer_reproducibility.py" in gate
     assert "production validator/BFT readiness" in gate
 
 

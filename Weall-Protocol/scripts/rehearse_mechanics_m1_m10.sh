@@ -58,7 +58,7 @@ python3 scripts/gen_mechanics_gap_register_v1_5.py --check
 python3 scripts/gen_state_root_vectors_v1_5.py --check
 python3 scripts/gen_tokenomics_simulation_v1_5.py --check
 
-pytest -q tests/test_batch498_mechanics_m1_m10.py
+pytest -q tests/test_behavior_m1_m10.py
 
 if [[ "${RUN_BFT_LOCAL}" == "1" ]]; then
   echo "[mechanics] running local BFT adversarial matrices; public validators remain disabled"

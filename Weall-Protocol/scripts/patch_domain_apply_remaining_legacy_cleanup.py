@@ -6,7 +6,7 @@ Finish the remaining canon txs in domain_apply.py (the 57 still routing to _appl
 - Rewires apply_tx dispatch branches that return _apply_canon_missing(...) to call real handlers
 
 Run:
-  python3 scripts/patch_domain_apply_remaining_batch2.py
+  python3 scripts/patch_domain_apply_remaining_legacy_cleanup.py
   pytest -q
 """
 

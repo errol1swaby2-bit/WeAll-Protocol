@@ -72,7 +72,7 @@ def build() -> Json:
             "src/weall/runtime/bft_hotstuff.py",
             "src/weall/runtime/bft_runtime_adapter.py",
             "src/weall/runtime/poh/bootstrap_quorum.py",
-            "tests/test_validator_set_activation_boundary_batch9.py",
+            "tests/test_validator_set_activation_boundary.py",
         ],
     }
 

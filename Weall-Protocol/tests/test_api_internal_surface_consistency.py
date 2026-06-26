@@ -1,4 +1,4 @@
-# tests/test_api_internal_surface_consistency_batch42.py
+# tests/test_api_internal_surface_consistency.py
 from __future__ import annotations
 
 from collections import defaultdict

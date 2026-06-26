@@ -21,7 +21,7 @@ def main() -> int:
         "-m",
         "pytest",
         "-q",
-        str(_repo_root() / "tests" / "test_priority3_crash_boundaries_batch27.py"),
+        str(_repo_root() / "tests" / "test_priority3_crash_boundaries.py"),
     ]
     if args.pytest_args.strip():
         cmd.extend(args.pytest_args.strip().split())

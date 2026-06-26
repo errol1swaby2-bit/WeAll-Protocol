@@ -79,5 +79,5 @@ python3 -S scripts/check_tx_canon_artifacts.py
 bash scripts/secret_guard.sh
 bash scripts/verify_release_tree.sh
 bash scripts/verify_release_dependencies.sh
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src pytest -q tests/test_release_hygiene_batch257.py
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src pytest -q tests/test_release_hygiene.py
 ```

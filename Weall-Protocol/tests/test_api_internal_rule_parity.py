@@ -1,4 +1,4 @@
-# tests/test_api_internal_rule_parity_batch42.py
+# tests/test_api_internal_rule_parity.py
 from __future__ import annotations
 
 from fastapi import FastAPI

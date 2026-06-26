@@ -14,7 +14,7 @@ def test_batch624_reviewer_lane_payload_schema_accepts_lane_for_opt_in_and_out()
 
 
 def test_batch624_frontend_source_guards_are_wired_into_clean_gate() -> None:
-    script = ROOT / "web/scripts/test_batch624_responsibility_exit_and_route_truth_source.mjs"
+    script = ROOT / "web/scripts/test_responsibility_exit_and_route_truth_source.mjs"
     gate = ROOT / "scripts/run_clean_clone_go_gate_v1_5.sh"
     assert script.exists()
-    assert "test_batch624_responsibility_exit_and_route_truth_source.mjs" in gate.read_text(encoding="utf-8")
+    assert "test_responsibility_exit_and_route_truth_source.mjs" in gate.read_text(encoding="utf-8")

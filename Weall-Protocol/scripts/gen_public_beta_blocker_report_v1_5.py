@@ -387,7 +387,7 @@ def build() -> Json:
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
             "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",
             "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",
-            "PYTHONPATH=src:scripts python -m pytest -q tests/prod/test_batch618_public_beta_evidence_gates.py",
+            "PYTHONPATH=src:scripts python -m pytest -q tests/prod/test_public_beta_evidence_gates.py",
         ],
     }
 

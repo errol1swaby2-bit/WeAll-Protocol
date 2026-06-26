@@ -42,8 +42,8 @@ SKIP_PARTS = {
 }
 
 SKIP_FILES = {
-    Path("tests/test_no_email_poh_code_remaining_batch254.py"),
-    Path("tests/test_tx_canon_no_email_oracle_txs_batch254.py"),
+    Path("tests/test_no_email_poh_code_remaining.py"),
+    Path("tests/test_tx_canon_no_email_oracle_txs.py"),
 }
 
 

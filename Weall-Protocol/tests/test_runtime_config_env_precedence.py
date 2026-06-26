@@ -139,4 +139,4 @@ def test_docker_genesis_boot_gate_is_tracked_batch465() -> None:
     assert 'docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" config' in gate
     assert "/v1/genesis/observer/readiness" in gate
     assert "WEALL_DOCKER_GENESIS_BOOT_GATE=1" in reviewer
-    assert "tests/test_batch465_runtime_config_env_precedence.py" in reviewer
+    assert "tests/test_runtime_config_env_precedence.py" in reviewer

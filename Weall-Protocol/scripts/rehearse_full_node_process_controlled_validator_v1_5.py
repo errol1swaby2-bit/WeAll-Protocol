@@ -78,7 +78,7 @@ def _proposal(height: int, view: int, parent_id: str, tx_ids: list[str]) -> dict
 def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
     # This child process runs the real FastAPI app and mounts proof-only local
     # rehearsal endpoints.  Public production routes are still available, so the
-    # parent probes /v1/readyz; the added endpoints are isolated under /__batch534.
+    # parent probes /v1/readyz; the added endpoints are isolated under /__controlled_validator.
     import uvicorn
     from fastapi import Body
     from weall.api.app import create_app
@@ -86,12 +86,12 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
     app = create_app(boot_runtime=False)
     _save_state(state_file, _load_state(state_file, node_id=node_id, role=role))
 
-    @app.get("/__batch534/state")
+    @app.get("/__controlled_validator/state")
     def state() -> dict[str, Any]:
         st = _load_state(state_file, node_id=node_id, role=role)
         return {"ok": True, "node_id": node_id, "role": role, "height": int(st.get("height") or 0), "root": _state_root(st), "state": st}
 
-    @app.post("/__batch534/vote")
+    @app.post("/__controlled_validator/vote")
     def vote(body: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
         if role != "validator" or node_id not in VALIDATORS:
             return {"ok": False, "node_id": node_id, "error": "not_validator"}
@@ -99,7 +99,7 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
         payload = {"node_id": node_id, "height": proposal.get("height"), "view": proposal.get("view"), "block_hash": proposal.get("block_hash")}
         return {"ok": True, "node_id": node_id, "vote": {**payload, "vote_hash": _hash(payload)}}
 
-    @app.post("/__batch534/commit")
+    @app.post("/__controlled_validator/commit")
     def commit(body: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
         if role != "validator":
             return {"ok": False, "node_id": node_id, "error": "not_validator"}
@@ -117,7 +117,7 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
         _save_state(state_file, st)
         return {"ok": True, "node_id": node_id, "height": st["height"], "root": _state_root(st)}
 
-    @app.post("/__batch534/sync")
+    @app.post("/__controlled_validator/sync")
     def sync(body: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
         blocks = body.get("blocks") if isinstance(body.get("blocks"), list) else []
         parent = "genesis"
@@ -179,11 +179,11 @@ def _commit_round(ports: dict[str, int], *, height: int, view: int, participants
     prop = _proposal(height, view, parent_id, tx_ids or [])
     votes = []
     for vid in participants:
-        reply = _http_json("POST", ports[vid], "/__batch534/vote", {"proposal": prop})
+        reply = _http_json("POST", ports[vid], "/__controlled_validator/vote", {"proposal": prop})
         if reply.get("ok"):
             votes.append(reply["vote"])
     block = {"height": height, "block_id": prop["block_id"], "parent_block_id": parent_id, "block_hash": prop["block_hash"], "votes_hash": _hash(votes), "tx_ids": list(tx_ids or [])}
-    commit_replies = [_http_json("POST", ports[vid], "/__batch534/commit", {"block": block, "votes": votes}) for vid in VALIDATORS]
+    commit_replies = [_http_json("POST", ports[vid], "/__controlled_validator/commit", {"block": block, "votes": votes}) for vid in VALIDATORS]
     return {"committed": all(r.get("ok") for r in commit_replies), "height": height, "votes": len(votes), "threshold": quorum_threshold(len(VALIDATORS)), "block": block, "commit_replies": commit_replies}
 
 
@@ -196,28 +196,28 @@ def run_harness() -> dict[str, Any]:
             readyz = {vid: _wait_ready(port) for vid, port in ports.items()}
             r1 = _commit_round(ports, height=1, view=0, tx_ids=["tx:account"])
             r2 = _commit_round(ports, height=2, view=1, parent_id=r1["block"]["block_id"], tx_ids=["tx:poh"])
-            roots_before = {vid: _http_json("GET", port, "/__batch534/state")["root"] for vid, port in ports.items()}
+            roots_before = {vid: _http_json("GET", port, "/__controlled_validator/state")["root"] for vid, port in ports.items()}
             procs["validator-d"].terminate(); procs["validator-d"].wait(timeout=5)
             procs["validator-d"] = _start_node(root, "validator-d", ports["validator-d"])
             _wait_ready(ports["validator-d"])
-            restart_root = _http_json("GET", ports["validator-d"], "/__batch534/state")["root"]
+            restart_root = _http_json("GET", ports["validator-d"], "/__controlled_validator/state")["root"]
             minority = _commit_round(ports, height=3, view=2, parent_id=r2["block"]["block_id"], participants=["validator-a", "validator-b"], tx_ids=["tx:minority"])
             r3 = _commit_round(ports, height=3, view=3, parent_id=r2["block"]["block_id"], tx_ids=["tx:dispute"])
             lag_port = _free_port()
             lag_proc = _start_node(root, "validator-lag", lag_port)
             try:
                 _wait_ready(lag_port)
-                sync = _http_json("POST", lag_port, "/__batch534/sync", {"blocks": [r1["block"], r2["block"], r3["block"]]})
+                sync = _http_json("POST", lag_port, "/__controlled_validator/sync", {"blocks": [r1["block"], r2["block"], r3["block"]]})
             finally:
                 lag_proc.terminate(); lag_proc.wait(timeout=5)
             obs_port = _free_port()
             obs_proc = _start_node(root, "observer-1", obs_port, role="observer")
             try:
                 _wait_ready(obs_port)
-                observer_vote = _http_json("POST", obs_port, "/__batch534/vote", {"proposal": _proposal(9, 0, "genesis", [])})
+                observer_vote = _http_json("POST", obs_port, "/__controlled_validator/vote", {"proposal": _proposal(9, 0, "genesis", [])})
             finally:
                 obs_proc.terminate(); obs_proc.wait(timeout=5)
-            roots_after = {vid: _http_json("GET", port, "/__batch534/state")["root"] for vid, port in ports.items()}
+            roots_after = {vid: _http_json("GET", port, "/__controlled_validator/state")["root"] for vid, port in ports.items()}
         finally:
             for proc in procs.values():
                 if proc.poll() is None:
