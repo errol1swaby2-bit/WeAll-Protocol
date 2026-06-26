@@ -93,6 +93,35 @@ PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 python3 scripts/sign_public_seed_registry_
 
 The signer pin published to observers must match `seed_registry_signer`. Rotate or revoke this signer through release notes before changing it; a registry signed by an unpinned key must fail closed.
 
+
+## Genesis operator preflight
+
+A genesis operator should prepare the first public seed from a clean checkout, not from a working tree that contains local runtime state. Before publishing the seed registry or inviting observers, run:
+
+```bash
+cd WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.lock
+pip install -e .
+
+PYTHONPATH=src python -m compileall -q src/weall
+bash scripts/secret_guard.sh
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+PYTHONPATH=src python scripts/gen_public_testnet_v1_chain_identity.py --check
+
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY="$(cat /secure/operator-only/public_testnet_registry_privkey)"
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<published-registry-public-key>
+PYTHONPATH=src python scripts/sign_public_seed_registry_v1_5.py \
+  --input configs/public_testnet_seed_registry.json \
+  --output configs/public_testnet_seed_registry.json \
+  --registry-public-key "$WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY" \
+  --check
+```
+
+Keep the registry private key only in an operator-local secret store or environment variable. Never commit `secrets/`, `.env`, private node keys, runtime databases, media cache, `.venv`, `node_modules`, or pytest caches. The checked-in public registry, trust roots, and chain commitments must all match `configs/chains/weall-testnet-v1.json` before an observer boot claim is valid.
+
 ## Clean-clone observer boot
 
 ```bash
@@ -161,6 +190,19 @@ The Node Dashboard must show:
 - observer-edge upstream count
 - local tx queue count
 - upstream accepted and confirmed counts
+
+
+## First and second observer runbook
+
+The first and second external observers use the same open-download path. The second observer must not need a founder-only admin action once at least one verified seed or verified validator endpoint is reachable.
+
+1. Clone, install, and boot with `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh`.
+2. Confirm `/v1/nodes/seeds`, `/v1/nodes/validators`, and `/v1/chain/identity` match the pinned public-testnet commitments.
+3. Submit only allowed observer/account onboarding transactions through the local observer edge. The observer edge must forward to an explicit upstream or a verified seed/validator upstream; if none is available, it must return `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM` instead of claiming propagation success.
+4. Complete PoH, Tier 2, node/operator, and validator-candidate readiness through protocol transactions and review flows. Local env flags, seed registry hints, frontend node selection, NAT relay delivery, or operator scripts cannot grant validator authority.
+5. Reboot as a validator only after protocol state already makes the account/node an effective validator candidate and the promoted-validator preflight passes. Persisted local state may preserve a valid role after reboot, but it must not create the role.
+
+This makes the first observer a normal protocol participant, not a privileged founder-controlled account. The second observer should discover the existing verified seed or verified validator endpoints through the same signed registry and endpoint-advertisement path, then follow the same protocol-gated promotion path.
 
 ## Public observer launch gate
 

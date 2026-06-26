@@ -24,10 +24,10 @@
   "seed_p2p_urls": [
     "tls://p2p.genesis.weallprotocol.xyz:30303"
   ],
-  "seed_registry_signature": "a1e587e66d9a93b9ead35c3e990038c089f4f8604ce183b9b22dcea734140b6e2cc0f6e8b070ecb9f303623c875a4bf960b21a17f27a7ee6fb7fee6ab9fa8408",
+  "seed_registry_signature": "e7fc7d26de11976871a303ab66f9035565e1b7d0b087d83ada6654380bf9bb89c5e15d32f21d6372a48387adb279907c1b918e546ee0fd5ff6eb65bcf81bf50b",
   "seed_registry_signature_alg": "ed25519/weall.public_seed_registry.v1",
   "seed_registry_signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
-  "tx_index_hash": "b138d73c7d1f8dfd81c34c144d0e703734cddcfd8cbfb6385847667ebf70f4a8",
+  "tx_index_hash": "b032689eafa152e45e3d71f6d5b661e6784d711543ab98b7d326bfc9fac2a29b",
   "validator_endpoints": [],
   "version": 1
 }

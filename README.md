@@ -53,9 +53,16 @@ npm run -s test:public-only-protocol-source
 Operator-facing public observer startup remains:
 
 ```bash
-cd Weall-Protocol
+git clone <repo-url> WeAll-Protocol
+cd WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.lock
+pip install -e .
 WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
 ```
+
+The boot path is documented in `Weall-Protocol/docs/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`. The checked-in `configs/public_testnet_seed_registry.json`, `configs/public_testnet_trust_roots.json`, and `configs/public_testnet_chain_commitments.json` must all match `configs/chains/weall-testnet-v1.json`; otherwise observer boot fails closed.
 
 For launch transcript rehearsals, use `Weall-Protocol/scripts/run_public_observer_launch_rehearsal_v1_5.sh` only after the real signed registry and seed API are published.
 

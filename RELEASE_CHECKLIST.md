@@ -54,6 +54,7 @@ PYTHONPATH=src:scripts python -m pytest -q \
   tests/prod/test_public_validator_endpoint_discovery.py \
   tests/prod/test_public_observer_tx_upstream_from_verified_seeds.py \
   tests/prod/test_public_observer_registry_auto_dial.py \
+  tests/prod/test_public_testnet_v1_chain_identity.py \
   tests/prod/test_public_observer_boot_and_evidence_scripts.py \
   tests/prod/test_public_observer_launch_transcript_artifacts.py \
   tests/prod/test_observer_cannot_enable_validator_signing.py \
@@ -84,21 +85,19 @@ bash scripts/run_public_observer_launch_rehearsal_v1_5.sh \
 
 ## 0. Fresh clone validation
 
-Before publishing, validate from a clean directory that does not contain founder-local state:
+Before publishing, validate from a clean directory that does not contain founder-local state. For public observer testnet readiness, the clean-clone path is:
 
 ```bash
 git clone <repo-url> weall-fresh-test
-cd weall-fresh-test
-./scripts/quickstart_tester.sh
-cd web
-cp .env.example .env.local
-npm ci
-npm run dev -- --host 127.0.0.1 --port 5173
-cd ../Weall-Protocol
-./scripts/demo_bootstrap_tester.sh
+cd weall-fresh-test/Weall-Protocol
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.lock
+pip install -e .
+WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
 ```
 
-Do not treat an in-place founder checkout as sufficient validation.
+For the local demo/reviewer path, `./scripts/quickstart_tester.sh`, frontend `npm ci`, and `./scripts/demo_bootstrap_tester.sh` remain useful, but they are not substitutes for the public observer boot script and signed registry checks. Do not treat an in-place founder checkout as sufficient validation.
 
 ## 1. Clean founder-local artifacts
 
