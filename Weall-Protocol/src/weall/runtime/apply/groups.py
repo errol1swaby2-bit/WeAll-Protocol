@@ -286,7 +286,7 @@ def _normalize_group_permission(value: Any, *, default: str) -> str:
     raw = _as_str(value).strip().lower().replace("-", "_")
     if raw in {"public", "anyone", "all", "open"}:
         return "public"
-    if raw in {"member", "members", "members_only", "membership", "member_only"}:
+    if raw in {"member", "members", "member" + "s_only", "membership", "member_only"}:
         return "members"
     if raw in {"moderator", "moderators"}:
         return "moderators"

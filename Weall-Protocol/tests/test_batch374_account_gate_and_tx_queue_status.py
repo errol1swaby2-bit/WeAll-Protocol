@@ -31,8 +31,8 @@ def test_onboarding_basic_account_detection_accepts_pubkeys_array_batch374() -> 
     assert "state.pubkeys.length > 0" in onboarding
 
 
-def test_outbox_result_compaction_removes_recursive_propagation_batch374() -> None:
-    from weall.api.routes_public_parts.tx import _compact_tx_outbox_result
+def test_tx_queue_result_compaction_removes_recursive_propagation_batch374() -> None:
+    from weall.api.routes_public_parts.tx import _compact_tx_queue_result
 
     nested = {
         "status_reconciliation": [
@@ -61,7 +61,7 @@ def test_outbox_result_compaction_removes_recursive_propagation_batch374() -> No
         ]
     }
 
-    compact = _compact_tx_outbox_result(nested)
+    compact = _compact_tx_queue_result(nested)
     encoded = json.dumps(compact, sort_keys=True)
 
     assert compact["status_reconciliation_count"] == 1

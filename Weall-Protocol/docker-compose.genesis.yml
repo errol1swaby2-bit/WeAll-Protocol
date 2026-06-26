@@ -30,7 +30,7 @@ services:
 
       - WEALL_DB_PATH=/var/lib/weall/genesis.db
       - WEALL_RUNTIME_DIR=/var/lib/weall
-      - WEALL_TX_OUTBOX_PATH=/var/lib/weall/observer_tx_outbox.json
+      - WEALL_TX_QUEUE_PATH=/var/lib/weall/observer_tx_queue.json
 
       - WEALL_CHAIN_ID=weall-prod
       - WEALL_NODE_ID=genesis-api
@@ -95,7 +95,7 @@ services:
 
       - WEALL_DB_PATH=/var/lib/weall/genesis.db
       - WEALL_RUNTIME_DIR=/var/lib/weall
-      - WEALL_TX_OUTBOX_PATH=/var/lib/weall/observer_tx_outbox.json
+      - WEALL_TX_QUEUE_PATH=/var/lib/weall/observer_tx_queue.json
 
       - WEALL_CHAIN_ID=weall-prod
       - WEALL_NODE_ID=genesis-producer

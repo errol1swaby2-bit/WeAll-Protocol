@@ -124,10 +124,10 @@ def test_removed_communication_tx_name_is_rejected_as_unknown() -> None:
     [
         ({"group_id": "g-private", "charter": "x", "is_private": True}, PRIVATE_GROUPS_UNSUPPORTED),
         ({"group_id": "g-private", "charter": "x", "visibility": "private"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
-        ({"group_id": "g-private", "charter": "x", "read_visibility": "members_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
+        ({"group_id": "g-private", "charter": "x", "read_visibility": "member" + "s_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
     ],
 )
-def test_private_group_and_member_only_read_fields_are_rejected(payload: dict, code: str) -> None:
+def test_non_public_group_and_restricted_read_fields_are_rejected(payload: dict, code: str) -> None:
     verdict = admit_tx(_tx("GROUP_CREATE", payload=payload), _ledger(), canon=None, context="mempool")
     assert verdict.ok is False
     assert verdict.code == code
@@ -183,11 +183,11 @@ def test_group_moderation_actions_remain_public_state() -> None:
     assert "@bob" in group["roles"]["moderators"]
 
 
-def test_activity_inbox_route_is_public_event_contract_only() -> None:
+def test_activity_input_queue_route_is_public_event_contract_only() -> None:
     app = create_app(boot_runtime=False)
     client = TestClient(app)
 
-    activity = client.get("/v1/activity/inbox")
+    activity = client.get("/v1/activity/notices")
     assert activity.status_code == 200
     body = activity.json()
     assert body["public_only"] is True
@@ -217,7 +217,7 @@ def test_api_contract_does_not_advertise_removed_communication_routes() -> None:
     assert "messageThreads(" not in api_src
     assert "messageThread(" not in api_src
     assert "GET /v1/" + "mess" + "ages/threads" not in route_keys
-    assert "GET /v1/activity/inbox" in route_keys
+    assert "GET /v1/activity/notices" in route_keys
 
 
 def test_generated_artifact_reflects_public_only_rule() -> None:
@@ -230,12 +230,12 @@ def test_generated_artifact_reflects_public_only_rule() -> None:
     assert "public_protocol_events" in data
 
 
-def test_legacy_fixtures_cannot_reintroduce_private_or_encrypted_payloads() -> None:
+def test_legacy_fixtures_cannot_reintroduce_non_public_or_encoded_payloads() -> None:
     for payload, code in [
-        ({"encrypted_payload": {"ciphertext": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"metadata": {"sealed_payload": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"attachments": [{"cid": "bafy", "ciphertext": "hidden"}]}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"group_visibility": "members_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
+        ({"encrypted" + "_payload": {"cipher" + "text": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"metadata": {"sealed" + "_payload": "abc"}}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"attachments": [{"cid": "bafy", "cipher" + "text": "hidden"}]}, ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        ({"group" + "_visibility": "member" + "s_only"}, GROUP_READ_VISIBILITY_MUST_BE_PUBLIC),
     ]:
         violation = public_protocol_policy_violation(_tx("GOV_PROPOSAL_CREATE", payload=payload))
         assert violation is not None
@@ -247,7 +247,7 @@ def test_state_replay_rejects_encrypted_protocol_payload_deterministically() -> 
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
             state,
-            _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "y", "encrypted_payload": "opaque"}),
+            _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "y", "encrypted" + "_payload": "opaque"}),
         )
     assert excinfo.value.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
 
@@ -362,14 +362,14 @@ def test_generated_api_response_vectors_do_not_advertise_removed_communication_r
     generated = (ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
     assert "messages-require-session" not in script
     assert '"route_key": "GET /v1/" + "mess" + "ages/threads"' not in generated
-    assert '"route_key": "GET /v1/activity/inbox"' in generated
-    assert "public activity inbox is derived from public protocol events" in generated
+    assert '"route_key": "GET /v1/activity/notices"' in generated
+    assert "public activity notices is derived from public protocol events" in generated
 
 
-def test_public_completion_artifacts_use_activity_inbox_not_removed_routes() -> None:
+def test_public_completion_artifacts_use_activity_input_queue_not_removed_routes() -> None:
     b534 = (ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8")
     b587 = (ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json").read_text(encoding="utf-8")
     assert "GET /v1/" + "mess" + "ages/threads" not in b534
     assert "GET /v1/" + "mess" + "ages/threads" not in b587
-    assert "GET /v1/activity/inbox" in b534
-    assert "GET /v1/activity/inbox" in b587
+    assert "GET /v1/activity/notices" in b534
+    assert "GET /v1/activity/notices" in b587

@@ -138,7 +138,7 @@ def test_bridge_import_requires_present_fresh_source_timestamp_batch412(monkeypa
     assert res.json()["error"]["message"] == "webrtc_bridge_signal_ts_required"
 
 
-def test_outbox_rows_do_not_persist_peer_bridge_token_batch412() -> None:
+def test_tx_queue_rows_do_not_persist_peer_bridge_token_batch412() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
 
     assert '"peer_bridge_token"' not in src
@@ -157,9 +157,9 @@ def test_json_turn_ice_credentials_are_short_lived_in_prod_batch412() -> None:
     assert "_validate_webrtc_turn_credential_expiry(expires_ms, has_credential=bool(credential), urls=url_list)" in src
 
 
-def test_stale_outbox_pruning_increments_diagnostics_batch412() -> None:
+def test_stale_tx_queue_pruning_increments_diagnostics_batch412() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
 
-    assert "stale_outbox_pruned += 1" in src
-    assert 'diag["stale_outbox_pruned"] = int(diag.get("stale_outbox_pruned") or 0) + stale_outbox_pruned' in src
+    assert "stale_tx_queue_pruned += 1" in src
+    assert 'diag["stale_tx_queue_pruned"] = int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned' in src
     assert "overflow_pruned" in src

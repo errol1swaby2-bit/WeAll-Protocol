@@ -7,7 +7,7 @@
       "GET /v1/feed?rank=production",
       "GET /v1/groups/{group_id}",
       "GET /v1/groups/{group_id}/feed",
-      "GET /v1/activity/inbox",
+      "GET /v1/activity/notices",
       "GET /v1/disputes/{dispute_id}"
     ],
     "batch": "536",

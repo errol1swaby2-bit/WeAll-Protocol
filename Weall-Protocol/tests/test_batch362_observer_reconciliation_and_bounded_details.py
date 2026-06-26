@@ -80,7 +80,7 @@ def _signed_account_register(account: str, *, chain_id: str = "weall-observer-36
     return sign_tx_envelope_dict(tx=tx, privkey=seed.hex())
 
 
-def _read_outbox(path: Path) -> dict[str, Any]:
+def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -123,12 +123,12 @@ def _state() -> dict[str, Any]:
 
 
 def test_upstream_manifest_top_level_chain_and_hash_are_enforced_batch362(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
     monkeypatch.setenv("WEALL_EXPECTED_UPSTREAM_MANIFEST_HASH", "expected-manifest")
 
@@ -148,7 +148,7 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced_batch362(tmp_pa
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", fake_urlopen)
     with _real_client(tmp_path) as client:
         assert client.post("/v1/tx/submit", json=tx).status_code == 200
-        drained = client.post("/v1/observer/edge/outbox/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
 
     assert drained.status_code == 200, drained.text
     result = drained.json()["result"]["results"][0]["results"][0]
@@ -157,20 +157,20 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced_batch362(tmp_pa
         "https://genesis.example.test/v1/chain/identity",
         "https://genesis.example.test/v1/chain/manifest",
     ]
-    assert _read_outbox(outbox)["records"][0]["tx_id"] == tx_id
+    assert _read_tx_queue(tx_queue)["records"][0]["tx_id"] == tx_id
 
 
-def test_observer_outbox_autodrain_worker_retries_without_manual_route_batch362(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+def test_observer_tx_queue_autodrain_worker_retries_without_manual_route_batch362(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
-    monkeypatch.setenv("WEALL_TX_OUTBOX_AUTODRAIN", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_DRAIN_INTERVAL_S", "0.25")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_DRAIN_BATCH", "10")
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
+    monkeypatch.setenv("WEALL_TX_QUEUE_AUTODRAIN", "1")
+    monkeypatch.setenv("WEALL_TX_QUEUE_DRAIN_INTERVAL_S", "0.25")
+    monkeypatch.setenv("WEALL_TX_QUEUE_DRAIN_BATCH", "10")
 
     tx = _signed_account_register("@observer_362_autodrain")
     tx_id = compute_tx_id(tx, chain_id="weall-observer-362")
@@ -187,12 +187,12 @@ def test_observer_outbox_autodrain_worker_retries_without_manual_route_batch362(
         assert submit.status_code == 200, submit.text
         deadline = time.time() + 3.0
         while time.time() < deadline:
-            rows = _read_outbox(outbox)["records"]
+            rows = _read_tx_queue(tx_queue)["records"]
             if rows and rows[0].get("upstream_status") == "accepted":
                 break
             time.sleep(0.05)
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert stored["records"][0]["upstream_status"] == "accepted"
     assert calls == ["https://genesis.example.test/v1/tx/submit"]
 

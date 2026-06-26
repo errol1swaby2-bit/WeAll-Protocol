@@ -94,7 +94,7 @@ def test_batch10a_sensitive_routes_have_explicit_non_generic_metadata() -> None:
     for route in sensitive:
         key = f"{route['method']} {route['path']}"
         assert route["metadata_source"] == "specs/api_contracts/v1_5_route_metadata.json", key
-        if any(marker in route["path"] for marker in ("/my-cases", "/juror-cases", "/assigned", "/presence", "/webrtc/signals/diagnostics", "/outbox/drain")):
+        if any(marker in route["path"] for marker in ("/my-cases", "/juror-cases", "/assigned", "/presence", "/webrtc/signals/diagnostics", "/tx_queue/drain")):
             assert route["auth"] != "public_read_redacted_snapshot", key
             assert "no_store" in route["cache_policy"], key
 

@@ -52,15 +52,15 @@ class HelperExecutor:
         helper_signing_material: Mapping[str, str],
         *,
         helper_pubkeys: Mapping[str, str] | None = None,
-        legacy_hmac_secret_mode: bool = False,
+        legacy_receipt_secret_mode: bool = False,
     ):
         self.helper_signing_material = {str(k): v for k, v in dict(helper_signing_material).items()}
         self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
-        self.legacy_hmac_secret_mode = bool(legacy_hmac_secret_mode)
+        self.legacy_receipt_secret_mode = bool(legacy_receipt_secret_mode)
         self._helper_legacy_mode_by_id: dict[str, bool] = {}
         derived: dict[str, str] = {}
         for helper_id, material in self.helper_signing_material.items():
-            if self.legacy_hmac_secret_mode:
+            if self.legacy_receipt_secret_mode:
                 self._helper_legacy_mode_by_id[helper_id] = True
                 continue
             if isinstance(material, Ed25519PrivateKey):
@@ -160,11 +160,11 @@ class HelperExecutor:
             "helper_id": helper_id,
             "plan_id": str(plan_id or ""),
         }
-        if self._helper_legacy_mode_by_id.get(helper_id, self.legacy_hmac_secret_mode):
+        if self._helper_legacy_mode_by_id.get(helper_id, self.legacy_receipt_secret_mode):
             receipt = sign_helper_receipt(
                 **receipt_kwargs,
-                hmac_secret=str(self.helper_signing_material[helper_id]),
-                allow_legacy_hmac_secret=True,
+                receipt_secret=str(self.helper_signing_material[helper_id]),
+                allow_legacy_receipt_secret=True,
             )
         else:
             receipt = sign_helper_receipt(
@@ -193,14 +193,14 @@ class HelperExecutor:
         parent_block_id: str,
         expected_plan_id: str = "",
     ) -> bool:
-        if self._helper_legacy_mode_by_id.get(lane_result.helper_id, self.legacy_hmac_secret_mode):
+        if self._helper_legacy_mode_by_id.get(lane_result.helper_id, self.legacy_receipt_secret_mode):
             secret = self.helper_signing_material.get(lane_result.helper_id)
             if not secret:
                 return False
             return verify_helper_receipt(
                 lane_result.receipt,
-                hmac_secret=str(secret),
-                allow_legacy_hmac_secret=True,
+                receipt_secret=str(secret),
+                allow_legacy_receipt_secret=True,
                 expected_chain_id=chain_id,
                 expected_height=height,
                 expected_validator_epoch=validator_epoch,

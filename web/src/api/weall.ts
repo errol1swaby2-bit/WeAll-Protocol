@@ -695,8 +695,8 @@ export const weall = {
     return apiGet("/v1/state/snapshot", base, headers);
   },
 
-  activityInbox(base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet("/v1/activity/inbox", base, headers);
+  activityNotices(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/activity/notices", base, headers);
   },
 
   disputes(

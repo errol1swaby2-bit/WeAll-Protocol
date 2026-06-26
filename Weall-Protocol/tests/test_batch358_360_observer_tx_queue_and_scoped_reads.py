@@ -54,7 +54,7 @@ def _client_with_executor(ex: Any) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def _signed_account_register(account: str, *, chain_id: str = "weall-observer-outbox") -> dict[str, Any]:
+def _signed_account_register(account: str, *, chain_id: str = "weall-observer-tx-queue") -> dict[str, Any]:
     seed = bytes.fromhex("58" * 32)
     sk = Ed25519PrivateKey.from_private_bytes(seed)
     pubkey = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
@@ -72,27 +72,27 @@ def _real_executor(tmp_path: Path) -> WeAllExecutor:
     return WeAllExecutor(
         db_path=str(tmp_path / "observer-edge.db"),
         node_id="observer-edge",
-        chain_id="weall-observer-outbox",
+        chain_id="weall-observer-tx-queue",
         tx_index_path=str(ROOT / "generated" / "tx_index.json"),
     )
 
 
-def _read_outbox(path: Path) -> dict[str, Any]:
+def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_observer_tx_outbox_survives_upstream_outage_and_retries_batch358(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "observer-outbox.json"
+def test_observer_tx_queue_survives_upstream_outage_and_retries_batch358(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
 
-    tx = _signed_account_register("@observer_outbox_user")
-    tx_id = compute_tx_id(tx, chain_id="weall-observer-outbox")
+    tx = _signed_account_register("@observer_tx_queue_user")
+    tx_id = compute_tx_id(tx, chain_id="weall-observer-tx-queue")
 
     def upstream_down(_req, timeout=0):  # noqa: ANN001
         raise OSError("simulated upstream outage")
@@ -109,7 +109,7 @@ def test_observer_tx_outbox_survives_upstream_outage_and_retries_batch358(tmp_pa
         assert status["status"] == "pending"
         assert status["outbound_propagation"]["upstream_status"] == "pending"
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert len(stored["records"]) == 1
     assert stored["records"][0]["tx_id"] == tx_id
 
@@ -122,25 +122,25 @@ def test_observer_tx_outbox_survives_upstream_outage_and_retries_batch358(tmp_pa
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-token")
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", upstream_accept)
     with _client_with_executor(_real_executor(tmp_path)) as client:
-        drained = client.post("/v1/observer/edge/outbox/drain", headers={"X-WeAll-Operator-Token": "edge-token"})
+        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-token"})
         assert drained.status_code == 200, drained.text
         assert drained.json()["result"]["accepted"] is True
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert stored["records"][0]["upstream_status"] == "accepted"
     assert stored["records"][0]["attempts"] >= 1
     assert calls == ["https://genesis.example.test/v1/tx/submit"]
 
 
 def test_observer_upstream_tx_id_mismatch_remains_pending_batch358(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "observer-outbox.json"
+    tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
 
     tx = _signed_account_register("@observer_mismatch_user")
 
@@ -156,22 +156,22 @@ def test_observer_upstream_tx_id_mismatch_remains_pending_batch358(tmp_path: Pat
         result = body["upstream_propagation"]["results"][0]["results"][0]
         assert result["error"] == "upstream_tx_id_mismatch"
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert stored["records"][0]["upstream_status"] == "pending"
 
 
 def test_local_observer_status_reconciles_upstream_confirmation_batch359(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "observer-outbox.json"
+    tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
 
     tx = _signed_account_register("@observer_confirm_user")
-    tx_id = compute_tx_id(tx, chain_id="weall-observer-outbox")
+    tx_id = compute_tx_id(tx, chain_id="weall-observer-tx-queue")
 
     def fake_urlopen(req, timeout=0):  # noqa: ANN001
         if req.full_url.endswith("/v1/tx/submit"):
@@ -264,5 +264,5 @@ def test_removed_message_thread_routes_are_unmounted_batch360() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         listing = client.get("/v1/" + "mess" + "ages/threads", headers=_auth("@alice"))
         assert listing.status_code == 404, listing.text
-        detail = client.get("/v1/" + "mess" + "ages/threads/dm:1?limit=1", headers=_auth("@alice"))
+        detail = client.get("/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":1?limit=1", headers=_auth("@alice"))
         assert detail.status_code == 404, detail.text

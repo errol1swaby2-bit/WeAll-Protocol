@@ -21,7 +21,7 @@ def test_same_block_different_ingress_order_produces_same_lane_plan_batch9() -> 
     txs = [
         _tx("t3", "SOCIAL_FOLLOW", ["social:follow:@alice:@bob"]),
         _tx("t1", "CONTENT_CREATE", ["content:post:1"]),
-        _tx("t4", "NOTIFICATION_SUBSCRIBE", ["notify:@alice:dm"]),
+        _tx("t4", "NOTIFICATION_SUBSCRIBE", ["notify:@alice:alert"]),
         _tx("t2", "IDENTITY_UPDATE", ["identity:user:alice"]),
     ]
     left = plan_parallel_execution(

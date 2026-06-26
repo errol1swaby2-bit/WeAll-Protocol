@@ -31,7 +31,7 @@ The transcript must show:
 - `/v1/nodes/seeds` returns the same signed discovery root
 - `/v1/nodes/validators` reports current active validators
 - active validators have verified fresh endpoint records, or any missing endpoints are explicit warnings
-- `/v1/observer/edge/status` separates local outbox, upstream acceptance, and confirmed state
+- `/v1/observer/edge/status` separates local tx queue, upstream acceptance, and confirmed state
 - observer can sync to the trusted anchor/current head and preserve posture across restart
 - the frontend rendered public observer journey is run in the same release environment
 

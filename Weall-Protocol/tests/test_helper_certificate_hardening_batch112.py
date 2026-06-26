@@ -23,7 +23,7 @@ def test_new_style_helper_certificate_defaults_issued_ms_to_zero_batch112() -> N
         lane_tx_ids=("tx1",),
         descriptor_hash="desc",
         plan_id="plan-1",
-        hmac_secret="secret",
+        receipt_secret="secret",
     )
     assert cert["issued_ms"] == 0
 

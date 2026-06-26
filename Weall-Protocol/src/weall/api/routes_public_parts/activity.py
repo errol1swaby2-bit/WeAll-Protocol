@@ -9,8 +9,8 @@ router = APIRouter()
 Json = dict[str, Any]
 
 
-@router.get("/activity/inbox")
-def activity_inbox() -> Json:
+@router.get("/activity/notices")
+def activity_notices() -> Json:
     """Return public-event-derived activity notices.
 
     This route is a public read model for visible protocol activity such as

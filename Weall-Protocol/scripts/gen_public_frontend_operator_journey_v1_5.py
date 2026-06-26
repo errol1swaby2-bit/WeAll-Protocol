@@ -48,7 +48,7 @@ def build() -> Json:
         "seed API and P2P counts",
         "active validators",
         "verified and fresh endpoint counts",
-        "observer edge outbox/upstream/confirmed counts",
+        "observer edge tx_queue/upstream/confirmed counts",
         "peer connectivity and NAT/relay recovery guidance",
         "backend-derived validator promotion checklist",
         "transaction propagation timeline including local, upstream, confirmed, and local-sync states",

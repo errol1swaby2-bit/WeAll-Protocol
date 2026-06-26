@@ -11,12 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT.parent / "web"
 
 
-def test_public_activity_inbox_contract_batch451() -> None:
+def test_public_activity_input_queue_contract_batch451() -> None:
     app = FastAPI()
     app.include_router(activity_routes.router, prefix="/v1")
     client = TestClient(app)
 
-    res = client.get("/v1/activity/inbox")
+    res = client.get("/v1/activity/notices")
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["public_only"] is True

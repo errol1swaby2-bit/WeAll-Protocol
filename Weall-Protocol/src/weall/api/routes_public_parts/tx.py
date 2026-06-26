@@ -43,9 +43,9 @@ router = APIRouter()
 
 Json = dict[str, Any]
 
-_OUTBOX_AUTODRAIN_LOCK = threading.Lock()
-_OUTBOX_AUTODRAIN_STOP: threading.Event | None = None
-_OUTBOX_AUTODRAIN_THREAD: threading.Thread | None = None
+_TX_QUEUE_AUTODRAIN_LOCK = threading.Lock()
+_TX_QUEUE_AUTODRAIN_STOP: threading.Event | None = None
+_TX_QUEUE_AUTODRAIN_THREAD: threading.Thread | None = None
 
 
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
@@ -380,25 +380,25 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def _tx_outbox_path() -> Path:
-    raw = str(os.environ.get("WEALL_TX_OUTBOX_PATH") or "").strip()
+def _tx_queue_path() -> Path:
+    raw = str(os.environ.get("WEALL_TX_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw).expanduser()
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "observer_tx_outbox.json"
+    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "observer_tx_queue.json"
 
 
 @contextlib.contextmanager
-def _tx_outbox_lock():
-    """Serialize observer outbox read/modify/write cycles.
+def _tx_queue_lock():
+    """Serialize observer tx queue read/modify/write cycles.
 
-    The observer outbox is intentionally a small local durability queue, not
+    The observer tx queue is intentionally a small local durability queue, not
     consensus state.  A file lock is sufficient for the single-machine observer
     edge posture and prevents concurrent frontend submissions from racing the
     JSON file.  The lock file itself is not secret and may live beside the
-    outbox.
+    tx_queue.
     """
 
-    path = _tx_outbox_path()
+    path = _tx_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
     with lock_path.open("a+", encoding="utf-8") as fh:
@@ -409,7 +409,7 @@ def _tx_outbox_lock():
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
-def _quarantine_corrupt_outbox(path: Path, reason: str) -> None:
+def _quarantine_corrupt_tx_queue(path: Path, reason: str) -> None:
     try:
         if not path.exists():
             return
@@ -423,8 +423,8 @@ def _quarantine_corrupt_outbox(path: Path, reason: str) -> None:
         return
 
 
-def _load_tx_outbox_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
-    path = _tx_outbox_path()
+def _load_tx_queue_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
+    path = _tx_queue_path()
     try:
         raw_text = path.read_text(encoding="utf-8")
         raw = json.loads(raw_text)
@@ -432,29 +432,29 @@ def _load_tx_outbox_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
         return []
     except Exception:
         if quarantine_corrupt:
-            _quarantine_corrupt_outbox(path, "json_parse_failed")
+            _quarantine_corrupt_tx_queue(path, "json_parse_failed")
         return []
     rows = raw.get("records") if isinstance(raw, dict) else raw
     if not isinstance(rows, list):
         if quarantine_corrupt:
-            _quarantine_corrupt_outbox(path, "bad_shape")
+            _quarantine_corrupt_tx_queue(path, "bad_shape")
         return []
     return [r for r in rows if isinstance(r, dict)]
 
 
-def _outbox_created_ms(rec: Json) -> int:
+def _tx_queue_created_ms(rec: Json) -> int:
     try:
         return int(rec.get("created_ms") or rec.get("updated_ms") or 0)
     except Exception:
         return 0
 
 
-def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
+def _prune_tx_queue_rows(rows: list[Json]) -> list[Json]:
     now = _now_ms()
-    ttl_ms = _env_int_safe("WEALL_TX_OUTBOX_TTL_MS", 7 * 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
-    confirmed_ttl_ms = _env_int_safe("WEALL_TX_OUTBOX_CONFIRMED_TTL_MS", 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
-    max_records = _env_int_safe("WEALL_TX_OUTBOX_MAX_RECORDS", 5000, minimum=1, maximum=50000)
-    max_bytes = _env_int_safe("WEALL_TX_OUTBOX_MAX_BYTES", 10 * 1024 * 1024, minimum=64 * 1024, maximum=1024 * 1024 * 1024)
+    ttl_ms = _env_int_safe("WEALL_TX_QUEUE_TTL_MS", 7 * 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
+    confirmed_ttl_ms = _env_int_safe("WEALL_TX_QUEUE_CONFIRMED_TTL_MS", 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
+    max_records = _env_int_safe("WEALL_TX_QUEUE_MAX_RECORDS", 5000, minimum=1, maximum=50000)
+    max_bytes = _env_int_safe("WEALL_TX_QUEUE_MAX_BYTES", 10 * 1024 * 1024, minimum=64 * 1024, maximum=1024 * 1024 * 1024)
 
     kept: list[Json] = []
     for rec in rows:
@@ -464,7 +464,7 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
         if not tx_id:
             continue
         status = str(rec.get("upstream_status") or "pending").strip() or "pending"
-        created_ms = _outbox_created_ms(rec)
+        created_ms = _tx_queue_created_ms(rec)
         updated_ms = int(rec.get("updated_ms") or created_ms or now)
         envelope = rec.get("envelope") if isinstance(rec.get("envelope"), dict) else {}
         expires_ms = 0
@@ -480,7 +480,7 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
             continue
         kept.append(rec)
 
-    kept.sort(key=_outbox_created_ms, reverse=True)
+    kept.sort(key=_tx_queue_created_ms, reverse=True)
     kept = kept[:max_records]
 
     # Enforce a coarse disk budget. Prefer dropping oldest confirmed records,
@@ -492,52 +492,52 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
             return max_bytes + 1
 
     if _size(kept) > max_bytes:
-        kept.sort(key=lambda r: (0 if str(r.get("upstream_status") or "") == "confirmed" else 1, _outbox_created_ms(r)))
+        kept.sort(key=lambda r: (0 if str(r.get("upstream_status") or "") == "confirmed" else 1, _tx_queue_created_ms(r)))
         while kept and _size(kept) > max_bytes:
             kept.pop(0)
-    kept.sort(key=_outbox_created_ms)
+    kept.sort(key=_tx_queue_created_ms)
     return kept
 
 
-def _write_tx_outbox_unlocked(rows: list[Json]) -> None:
-    path = _tx_outbox_path()
+def _write_tx_queue_unlocked(rows: list[Json]) -> None:
+    path = _tx_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    rows = _prune_tx_outbox_rows(rows)
+    rows = _prune_tx_queue_rows(rows)
     payload = {"version": 2, "records": rows}
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, sort_keys=True, indent=2), encoding="utf-8")
     os.replace(tmp, path)
 
 
-def _read_tx_outbox() -> list[Json]:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        pruned = _prune_tx_outbox_rows(rows)
+def _read_tx_queue() -> list[Json]:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        pruned = _prune_tx_queue_rows(rows)
         if len(pruned) != len(rows):
-            _write_tx_outbox_unlocked(pruned)
+            _write_tx_queue_unlocked(pruned)
         return [dict(r) for r in pruned]
 
 
-def _read_tx_outbox_best_effort() -> list[Json]:
-    """Read observer outbox for public status paths without crashing.
+def _read_tx_queue_best_effort() -> list[Json]:
+    """Read observer tx queue for public status paths without crashing.
 
-    The observer tx outbox is local diagnostic/propagation state, not consensus
+    The observer tx queue is local diagnostic/propagation state, not consensus
     state. Public tx-status must remain read-only-safe even when a deployment
-    runs with a read-only application tree or the outbox path is unavailable.
-    In that case, fail closed by reporting no local outbox record.
+    runs with a read-only application tree or the tx queue path is unavailable.
+    In that case, fail closed by reporting no local tx queue record.
     """
     try:
-        return _read_tx_outbox()
+        return _read_tx_queue()
     except OSError:
         return []
 
 
-def _write_tx_outbox(rows: list[Json]) -> None:
-    with _tx_outbox_lock():
-        _write_tx_outbox_unlocked(rows)
+def _write_tx_queue(rows: list[Json]) -> None:
+    with _tx_queue_lock():
+        _write_tx_queue_unlocked(rows)
 
 
-def _outbox_record_for(rows: list[Json], tx_id: str) -> Json | None:
+def _tx_queue_record_for(rows: list[Json], tx_id: str) -> Json | None:
     want = str(tx_id or "").strip()
     for rec in rows:
         if str(rec.get("tx_id") or "").strip() == want:
@@ -545,7 +545,7 @@ def _outbox_record_for(rows: list[Json], tx_id: str) -> Json | None:
     return None
 
 
-def _outbox_counts(rows: list[Json]) -> Json:
+def _tx_queue_counts(rows: list[Json]) -> Json:
     counts: dict[str, int] = {}
     for rec in rows:
         status = str(rec.get("upstream_status") or rec.get("status") or "pending").strip() or "pending"
@@ -553,12 +553,12 @@ def _outbox_counts(rows: list[Json]) -> Json:
     return counts
 
 
-def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
-    """Return a bounded, non-recursive observer outbox diagnostic result.
+def _compact_tx_queue_result(value: Any, *, _depth: int = 0) -> Json:
+    """Return a bounded, non-recursive observer tx queue diagnostic result.
 
-    Outbox records are operator diagnostics, not consensus state.  They should
+    Tx queue records are operator diagnostics, not consensus state.  They should
     help explain whether an upstream accepted/confirmed a tx without embedding
-    previous outbox summaries recursively inside later status probes.
+    previous tx queue summaries recursively inside later status probes.
     """
 
     if _depth > 2:
@@ -608,11 +608,11 @@ def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
     return out
 
 
-def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str, request: Request | None = None) -> Json:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
+def _enqueue_tx_queue(body: Json, *, tx_id: str, chain_id: str, request: Request | None = None) -> Json:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
         now = _now_ms()
-        rec = _outbox_record_for(rows, tx_id)
+        rec = _tx_queue_record_for(rows, tx_id)
         urls = [_redact_upstream_url(u) for u in _normalized_tx_upstream_urls(request)]
         if rec is None:
             rec = {
@@ -631,28 +631,28 @@ def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str, request: Reques
             rec.setdefault("envelope", body)
             rec["updated_ms"] = now
             rec["upstreams"] = urls
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
         return dict(rec)
 
 
-def _update_tx_outbox_record(tx_id: str, updates: Json) -> Json:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        rec = _outbox_record_for(rows, tx_id)
+def _update_tx_queue_record(tx_id: str, updates: Json) -> Json:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        rec = _tx_queue_record_for(rows, tx_id)
         if rec is None:
             rec = {"tx_id": str(tx_id), "created_ms": _now_ms()}
             rows.append(rec)
         safe_updates = dict(updates)
         if "last_result" in safe_updates:
-            safe_updates["last_result"] = _compact_tx_outbox_result(safe_updates.get("last_result"))
+            safe_updates["last_result"] = _compact_tx_queue_result(safe_updates.get("last_result"))
         if "last_status_probe" in safe_updates and isinstance(safe_updates.get("last_status_probe"), list):
             safe_updates["last_status_probe"] = [
-                _compact_tx_outbox_result(item) if isinstance(item, dict) else {}
+                _compact_tx_queue_result(item) if isinstance(item, dict) else {}
                 for item in safe_updates.get("last_status_probe", [])[:10]
             ]
         rec.update(safe_updates)
         rec["updated_ms"] = _now_ms()
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
         return dict(rec)
 
 
@@ -931,18 +931,18 @@ def _status_from_upstream(url: str, tx_id: str, *, timeout_s: int) -> Json:
         return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
 
 
-def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None = None, limit: int | None = None) -> Json:
+def _drain_tx_queue(*, request: Request | None = None, only_tx_id: str | None = None, limit: int | None = None) -> Json:
     urls = _normalized_tx_upstream_urls(request)
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        rows = _prune_tx_outbox_rows(rows)
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        rows = _prune_tx_queue_rows(rows)
         if not rows:
-            _write_tx_outbox_unlocked(rows)
+            _write_tx_queue_unlocked(rows)
             return {"attempted": False, "accepted": False, "queued": 0, "results": []}
         if not urls:
-            _write_tx_outbox_unlocked(rows)
+            _write_tx_queue_unlocked(rows)
             return {"attempted": False, "accepted": False, "queued": len(rows), "skipped": "no_upstreams_configured", "results": []}
-        max_items = int(limit if limit is not None else _env_int_safe("WEALL_TX_OUTBOX_DRAIN_LIMIT", 25, minimum=1, maximum=500))
+        max_items = int(limit if limit is not None else _env_int_safe("WEALL_TX_QUEUE_DRAIN_LIMIT", 25, minimum=1, maximum=500))
         selected: list[Json] = []
         for rec in rows:
             tx_id = str(rec.get("tx_id") or "").strip()
@@ -959,10 +959,10 @@ def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None =
             rec["attempts"] = int(rec.get("attempts") or 0) + 1
             rec["last_attempt_ms"] = _now_ms()
             selected.append({"tx_id": tx_id, "body": dict(body), "chain_id": str(rec.get("chain_id") or body.get("chain_id") or "")})
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
 
     if not selected:
-        return {"attempted": False, "accepted": False, "queued": len(_read_tx_outbox()), "results": []}
+        return {"attempted": False, "accepted": False, "queued": len(_read_tx_queue()), "results": []}
 
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
     results: list[Json] = []
@@ -991,9 +991,9 @@ def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None =
         accepted = any(bool(r.get("ok")) for r in per_tx_results if isinstance(r, dict))
         if accepted:
             accepted_any = True
-        with _tx_outbox_lock():
-            rows = _load_tx_outbox_unlocked()
-            rec = _outbox_record_for(rows, tx_id)
+        with _tx_queue_lock():
+            rows = _load_tx_queue_unlocked()
+            rec = _tx_queue_record_for(rows, tx_id)
             if rec is not None:
                 if accepted:
                     rec["upstream_status"] = "accepted"
@@ -1002,15 +1002,15 @@ def _drain_tx_outbox(*, request: Request | None = None, only_tx_id: str | None =
                 else:
                     rec["upstream_status"] = "pending"
                     rec["last_error"] = ";".join(str(r.get("error") or "upstream_rejected") for r in per_tx_results if isinstance(r, dict))[:512]
-                rec["last_result"] = _compact_tx_outbox_result({"attempted": True, "accepted": bool(accepted), "results": per_tx_results})
+                rec["last_result"] = _compact_tx_queue_result({"attempted": True, "accepted": bool(accepted), "results": per_tx_results})
                 rec["updated_ms"] = _now_ms()
-                _write_tx_outbox_unlocked(rows)
+                _write_tx_queue_unlocked(rows)
         results.append({"tx_id": tx_id, "accepted": bool(accepted), "results": per_tx_results})
-    return {"attempted": True, "accepted": bool(accepted_any), "queued": len(_read_tx_outbox()), "results": results}
+    return {"attempted": True, "accepted": bool(accepted_any), "queued": len(_read_tx_queue()), "results": results}
 
 
-def _outbox_summary_for_tx(tx_id: str) -> Json | None:
-    rec = _outbox_record_for(_read_tx_outbox_best_effort(), tx_id)
+def _tx_queue_summary_for_tx(tx_id: str) -> Json | None:
+    rec = _tx_queue_record_for(_read_tx_queue_best_effort(), tx_id)
     if not isinstance(rec, dict):
         return None
     return {
@@ -1024,22 +1024,22 @@ def _outbox_summary_for_tx(tx_id: str) -> Json | None:
         "confirmed_height": int(rec.get("confirmed_height") or 0),
         "confirmed_block_id": str(rec.get("confirmed_block_id") or ""),
         "local_state_synced": bool(rec.get("local_state_synced", False)),
-        "last_result": _compact_tx_outbox_result(rec.get("last_result")),
+        "last_result": _compact_tx_queue_result(rec.get("last_result")),
     }
 
 
-def _reconcile_outbox_confirmation(tx_id: str) -> Json | None:
-    rec = _outbox_record_for(_read_tx_outbox(), tx_id)
+def _reconcile_tx_queue_confirmation(tx_id: str) -> Json | None:
+    rec = _tx_queue_record_for(_read_tx_queue(), tx_id)
     if not isinstance(rec, dict):
         return None
     urls = _normalized_tx_upstream_urls()
     if not urls:
-        return _outbox_summary_for_tx(tx_id)
+        return _tx_queue_summary_for_tx(tx_id)
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_STATUS_TIMEOUT_S", 3, minimum=1, maximum=30)
     results = [_status_from_upstream(url, tx_id, timeout_s=timeout_s) for url in urls]
     confirmed = next((r for r in results if isinstance(r, dict) and r.get("ok") and str(r.get("status") or "") == "confirmed"), None)
     if isinstance(confirmed, dict):
-        _update_tx_outbox_record(
+        _update_tx_queue_record(
             tx_id,
             {
                 "upstream_status": "confirmed",
@@ -1051,9 +1051,9 @@ def _reconcile_outbox_confirmation(tx_id: str) -> Json | None:
                 "last_error": "",
             },
         )
-        return _outbox_summary_for_tx(tx_id)
-    _update_tx_outbox_record(tx_id, {"last_status_probe_ms": _now_ms(), "last_status_probe": results})
-    return _outbox_summary_for_tx(tx_id)
+        return _tx_queue_summary_for_tx(tx_id)
+    _update_tx_queue_record(tx_id, {"last_status_probe_ms": _now_ms(), "last_status_probe": results})
+    return _tx_queue_summary_for_tx(tx_id)
 
 
 def _local_height_for_request(request: Request) -> int:
@@ -1147,7 +1147,7 @@ def _request_and_apply_state_sync_from_upstream(
 
     local = _locally_confirmed_tx(request, tx_id)
     if isinstance(local, dict):
-        _update_tx_outbox_record(
+        _update_tx_queue_record(
             tx_id,
             {
                 "upstream_status": "confirmed",
@@ -1179,19 +1179,19 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound_existing = _outbox_summary_for_tx(t)
+    outbound_existing = _tx_queue_summary_for_tx(t)
     local = _locally_confirmed_tx(request, t)
 
     if not isinstance(outbound_existing, dict):
         if isinstance(local, dict):
             return {"ok": True, "tx_id": t, "local_state_synced": True, "source": "local", "local_confirmation": local}
-        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_outbox"}
+        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_tx_queue"}
 
     # observer_local_confirmed_not_upstream_synced: an observer may optimistically
     # apply an outbound tx locally before genesis confirms it. Never convert a
     # local tx-index hit into upstream confirmation; first prove upstream
     # confirmation, then apply/verify trusted state sync.
-    outbound = _reconcile_outbox_confirmation(t)
+    outbound = _reconcile_tx_queue_confirmation(t)
     if not isinstance(outbound, dict):
         outbound = outbound_existing
     if str(outbound.get("upstream_status") or "") != "confirmed":
@@ -1227,7 +1227,7 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
         )
         results.append(result)
         if bool(result.get("ok")) and bool(result.get("local_state_synced")):
-            synced = _outbox_summary_for_tx(t) or {}
+            synced = _tx_queue_summary_for_tx(t) or {}
             return {
                 "ok": True,
                 "tx_id": t,
@@ -1237,24 +1237,24 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
                 "outbound_propagation": synced,
             }
 
-    _update_tx_outbox_record(t, {"last_local_sync_ms": _now_ms(), "last_local_sync_results": results})
+    _update_tx_queue_record(t, {"last_local_sync_ms": _now_ms(), "last_local_sync_results": results})
     return {
         "ok": False,
         "tx_id": t,
         "error": "local_state_sync_failed",
         "local_state_synced": False,
         "results": results,
-        "outbound_propagation": _outbox_summary_for_tx(t) or outbound,
+        "outbound_propagation": _tx_queue_summary_for_tx(t) or outbound,
     }
 
 
 
-def _tx_outbox_autodrain_enabled() -> bool:
-    return bool(_observer_edge_mode() and _env_bool("WEALL_TX_OUTBOX_AUTODRAIN", False))
+def _tx_queue_autodrain_enabled() -> bool:
+    return bool(_observer_edge_mode() and _env_bool("WEALL_TX_QUEUE_AUTODRAIN", False))
 
 
-def _tx_outbox_autodrain_interval_s() -> float:
-    raw = os.environ.get("WEALL_TX_OUTBOX_DRAIN_INTERVAL_S")
+def _tx_queue_autodrain_interval_s() -> float:
+    raw = os.environ.get("WEALL_TX_QUEUE_DRAIN_INTERVAL_S")
     try:
         value = float(str(raw).strip()) if raw is not None and str(raw).strip() else 2.0
     except Exception:
@@ -1262,61 +1262,61 @@ def _tx_outbox_autodrain_interval_s() -> float:
     return max(0.25, min(60.0, value))
 
 
-def _tx_outbox_autodrain_batch() -> int:
-    return _env_int_safe("WEALL_TX_OUTBOX_DRAIN_BATCH", 25, minimum=1, maximum=500)
+def _tx_queue_autodrain_batch() -> int:
+    return _env_int_safe("WEALL_TX_QUEUE_DRAIN_BATCH", 25, minimum=1, maximum=500)
 
 
-def start_observer_outbox_autodrain() -> threading.Thread | None:
-    """Start the observer-edge durable outbox worker when explicitly enabled.
+def start_observer_tx_queue_autodrain() -> threading.Thread | None:
+    """Start the observer-edge durable tx_queue worker when explicitly enabled.
 
     This worker is deliberately opt-in and only runs for observer-edge posture.
     It never grants authority, produces blocks, or signs validator artifacts; it
     only retries already-admitted, client-signed tx envelopes from the local
-    durable outbox to configured upstreams.
+    durable tx_queue to configured upstreams.
     """
 
-    global _OUTBOX_AUTODRAIN_STOP, _OUTBOX_AUTODRAIN_THREAD
-    if not _tx_outbox_autodrain_enabled():
+    global _TX_QUEUE_AUTODRAIN_STOP, _TX_QUEUE_AUTODRAIN_THREAD
+    if not _tx_queue_autodrain_enabled():
         return None
-    with _OUTBOX_AUTODRAIN_LOCK:
-        if _OUTBOX_AUTODRAIN_THREAD is not None and _OUTBOX_AUTODRAIN_THREAD.is_alive():
-            return _OUTBOX_AUTODRAIN_THREAD
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        if _TX_QUEUE_AUTODRAIN_THREAD is not None and _TX_QUEUE_AUTODRAIN_THREAD.is_alive():
+            return _TX_QUEUE_AUTODRAIN_THREAD
         stop = threading.Event()
-        _OUTBOX_AUTODRAIN_STOP = stop
+        _TX_QUEUE_AUTODRAIN_STOP = stop
 
         def _worker() -> None:
             # Make one best-effort pass immediately so short-lived operator
             # sessions/tests do not wait for the first interval.
             while not stop.is_set():
                 try:
-                    _drain_tx_outbox(limit=_tx_outbox_autodrain_batch())
+                    _drain_tx_queue(limit=_tx_queue_autodrain_batch())
                 except Exception:
                     pass
-                stop.wait(_tx_outbox_autodrain_interval_s())
+                stop.wait(_tx_queue_autodrain_interval_s())
 
         thread = threading.Thread(
             target=_worker,
-            name="weall-observer-tx-outbox-drain",
+            name="weall-observer-tx-tx_queue-drain",
             daemon=True,
         )
-        _OUTBOX_AUTODRAIN_THREAD = thread
+        _TX_QUEUE_AUTODRAIN_THREAD = thread
         thread.start()
         return thread
 
 
-def stop_observer_outbox_autodrain(_thread: threading.Thread | None = None) -> None:
-    global _OUTBOX_AUTODRAIN_STOP, _OUTBOX_AUTODRAIN_THREAD
-    with _OUTBOX_AUTODRAIN_LOCK:
-        stop = _OUTBOX_AUTODRAIN_STOP
-        thread = _OUTBOX_AUTODRAIN_THREAD
+def stop_observer_tx_queue_autodrain(_thread: threading.Thread | None = None) -> None:
+    global _TX_QUEUE_AUTODRAIN_STOP, _TX_QUEUE_AUTODRAIN_THREAD
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        stop = _TX_QUEUE_AUTODRAIN_STOP
+        thread = _TX_QUEUE_AUTODRAIN_THREAD
         if stop is not None:
             stop.set()
     if thread is not None and thread.is_alive():
         thread.join(timeout=2.0)
-    with _OUTBOX_AUTODRAIN_LOCK:
-        if _OUTBOX_AUTODRAIN_THREAD is thread:
-            _OUTBOX_AUTODRAIN_THREAD = None
-            _OUTBOX_AUTODRAIN_STOP = None
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        if _TX_QUEUE_AUTODRAIN_THREAD is thread:
+            _TX_QUEUE_AUTODRAIN_THREAD = None
+            _TX_QUEUE_AUTODRAIN_STOP = None
 
 
 def _validate_public_tx_chain_id(*, body: Json, expected_chain_id: str) -> None:
@@ -1671,16 +1671,16 @@ async def tx_submit(request: Request) -> Json:
                 "public observer has no verified tx upstream for required propagation" if public_testnet_enabled() else "local observer has no configured upstream for required propagation",
                 {"tx_id": out_tx_id, "upstream_propagation": upstream},
             )
-        _enqueue_tx_outbox(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""), request=request)
+        _enqueue_tx_queue(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""), request=request)
         if _env_bool("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", False):
-            upstream = _drain_tx_outbox(request=request, only_tx_id=out_tx_id, limit=1)
+            upstream = _drain_tx_queue(request=request, only_tx_id=out_tx_id, limit=1)
         else:
             upstream = {
                 "attempted": False,
                 "accepted": False,
-                "queued": len(_read_tx_outbox()),
+                "queued": len(_read_tx_queue()),
                 "status": "queued",
-                "mode": "durable_outbox",
+                "mode": "durable_tx_queue",
                 "results": [],
             }
     else:
@@ -1700,7 +1700,7 @@ async def tx_submit(request: Request) -> Json:
 def observer_edge_status(request: Request) -> Json:
     _require_observer_edge_operator(request)
     urls = _normalized_tx_upstream_urls(request)
-    outbox_rows = _read_tx_outbox()
+    tx_queue_rows = _read_tx_queue()
     return {
         "ok": True,
         "observer_edge_mode": bool(_observer_edge_mode()),
@@ -1708,24 +1708,24 @@ def observer_edge_status(request: Request) -> Json:
         "upstream_count": len(urls),
         "upstreams": [_redact_upstream_url(u) for u in urls],
         "autodrain": {
-            "enabled": _tx_outbox_autodrain_enabled(),
-            "interval_s": _tx_outbox_autodrain_interval_s(),
-            "batch": _tx_outbox_autodrain_batch(),
+            "enabled": _tx_queue_autodrain_enabled(),
+            "interval_s": _tx_queue_autodrain_interval_s(),
+            "batch": _tx_queue_autodrain_batch(),
         },
-        "outbox": {
-            "count": len(outbox_rows),
-            "counts": _outbox_counts(outbox_rows),
-            "max_records": _env_int_safe("WEALL_TX_OUTBOX_MAX_RECORDS", 5000, minimum=1, maximum=50000),
+        "tx_queue": {
+            "count": len(tx_queue_rows),
+            "counts": _tx_queue_counts(tx_queue_rows),
+            "max_records": _env_int_safe("WEALL_TX_QUEUE_MAX_RECORDS", 5000, minimum=1, maximum=50000),
         },
     }
 
 
-@router.post("/observer/edge/outbox/drain")
-def observer_edge_outbox_drain(request: Request) -> Json:
+@router.post("/observer/edge/tx-queue/drain")
+def observer_edge_tx_queue_drain(request: Request) -> Json:
     _require_observer_edge_operator(request)
-    result = _drain_tx_outbox(request=request)
-    rows = _read_tx_outbox()
-    return {"ok": True, "result": result, "outbox": {"count": len(rows), "counts": _outbox_counts(rows)}}
+    result = _drain_tx_queue(request=request)
+    rows = _read_tx_queue()
+    return {"ok": True, "result": result, "tx_queue": {"count": len(rows), "counts": _tx_queue_counts(rows)}}
 
 
 @router.post("/observer/edge/reconcile/{tx_id}")
@@ -1757,12 +1757,12 @@ def tx_status(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound = _outbox_summary_for_tx(t)
+    outbound = _tx_queue_summary_for_tx(t)
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):
         if outbound:
-            reconciled = _reconcile_outbox_confirmation(t)
+            reconciled = _reconcile_tx_queue_confirmation(t)
             if isinstance(reconciled, dict):
                 outbound = reconciled
             local_synced = bool(isinstance(outbound, dict) and outbound.get("local_state_synced") is True)
@@ -1818,7 +1818,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
     mp = _safe_mempool(request)
     try:
         if bool(getattr(mp, "contains", lambda _t: False)(t)):
-            reconciled = _reconcile_outbox_confirmation(t) if outbound else None
+            reconciled = _reconcile_tx_queue_confirmation(t) if outbound else None
             if isinstance(reconciled, dict) and str(reconciled.get("upstream_status") or "") == "confirmed":
                 return {
                     "ok": True,
@@ -1834,7 +1834,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
     except Exception:
         pass
 
-    reconciled = _reconcile_outbox_confirmation(t) if outbound else None
+    reconciled = _reconcile_tx_queue_confirmation(t) if outbound else None
     if isinstance(reconciled, dict) and str(reconciled.get("upstream_status") or "") == "confirmed":
         return {
             "ok": True,

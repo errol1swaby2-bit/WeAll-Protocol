@@ -1631,7 +1631,7 @@
       "domain": "api",
       "family": "ApiError.forbidden",
       "http_status": 403,
-      "sample_reason": "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream outbox",
+      "sample_reason": "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream tx queue",
       "source": "src/weall/api/routes_public_parts/mempool.py",
       "source_lineno": 85
     },

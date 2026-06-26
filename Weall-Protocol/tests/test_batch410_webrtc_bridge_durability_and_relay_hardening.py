@@ -19,15 +19,15 @@ def test_webrtc_signals_are_pruned_by_ttl_batch410() -> None:
     assert "WEALL_P2P_SIGNAL_MAX_RECORDS_PER_SESSION" in src
 
 
-def test_webrtc_bridge_uses_durable_outbox_batch410() -> None:
+def test_webrtc_bridge_uses_durable_tx_queue_batch410() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
     app = _read(ROOT / "src" / "weall" / "api" / "app.py")
 
-    assert "WEALL_WEBRTC_SIGNAL_OUTBOX_PATH" in src
-    assert "webrtc_signal_bridge_outbox.json" in src
+    assert "WEALL_WEBRTC_SIGNAL_QUEUE_PATH" in src
+    assert "webrtc_signal_bridge_tx_queue.json" in src
     assert "def _enqueue_webrtc_signal_bridge" in src
-    assert "def _drain_webrtc_signal_outbox" in src
-    assert "/poh/live/webrtc/signals/outbox/drain" in src
+    assert "def _drain_webrtc_signal_queue" in src
+    assert "/poh/live/webrtc/signals/queue/drain" in src
     assert "WEALL_WEBRTC_SIGNAL_BRIDGE_AUTODRAIN" in src
     assert "start_webrtc_signal_bridge_autodrain" in src
     assert "stop_webrtc_signal_bridge_autodrain" in src

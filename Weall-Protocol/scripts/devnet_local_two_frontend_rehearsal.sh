@@ -4,7 +4,7 @@ set -euo pipefail
 # One-command local controlled-devnet rehearsal:
 #   - boots genesis backend on 8001
 #   - boots observer-edge backend on 8002
-#   - starts an operator reconcile worker for observer outbox -> genesis -> observer sync
+#   - starts an operator reconcile worker for observer tx queue -> genesis -> observer sync
 #   - creates/prepares the observer test account through the observer path
 #   - writes dev-bootstrap manifests for two separate browser origins
 #   - starts observer frontend on 5173 and genesis frontend on 5174
@@ -668,7 +668,7 @@ if _bool_true "${RESET}"; then
   echo "==> Resetting local controlled-devnet state"
   _stop_local_ipfs_daemon
   WEALL_DEVNET_DIR="${DEVNET_DIR}" bash scripts/devnet_reset_state.sh
-  rm -f "${REPO_ROOT}/data/observer_tx_outbox.json"
+  rm -f "${REPO_ROOT}/data/observer_tx_queue.json"
   mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public"
 fi
 
@@ -771,9 +771,9 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_TX_UPSTREAM_VERIFY_IDENTITY=1
     export WEALL_TX_UPSTREAM_REQUIRE_MANIFEST=0
     export WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT=0
-    export WEALL_TX_OUTBOX_AUTODRAIN=1
-    export WEALL_TX_OUTBOX_DRAIN_INTERVAL_S=1
-    export WEALL_TX_OUTBOX_DRAIN_BATCH=25
+    export WEALL_TX_QUEUE_AUTODRAIN=1
+    export WEALL_TX_QUEUE_DRAIN_INTERVAL_S=1
+    export WEALL_TX_QUEUE_DRAIN_BATCH=25
     export WEALL_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
@@ -827,7 +827,7 @@ if [[ -z "${RECONCILE_PID}" ]]; then
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
     export WEALL_RECONCILE_POLL_S=1
-    exec bash scripts/devnet_observer_outbox_reconcile_loop.sh
+    exec bash scripts/devnet_observer_tx_queue_reconcile_loop.sh
   ) >"${RECONCILE_LOG}" 2>&1 &
   RECONCILE_PID="$!"
 fi

@@ -198,8 +198,8 @@ def test_account_feed_returns_metadata_first_media_summaries_batch365() -> None:
 
 def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_apply_batch365(tmp_path: Path, monkeypatch) -> None:
     tx_id = "tx:batch365"
-    outbox = tmp_path / "outbox.json"
-    outbox.write_text(
+    tx_queue = tmp_path / "tx_queue.json"
+    tx_queue.write_text(
         json.dumps(
             {
                 "version": 2,
@@ -220,7 +220,7 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
     )
 
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
@@ -230,7 +230,7 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
     def fake_sync(request, url: str, *, tx_id: str, target_height: int, timeout_s: int) -> dict[str, Any]:  # noqa: ANN001
         from weall.api.routes_public_parts import tx as tx_routes
 
-        tx_routes._update_tx_outbox_record(
+        tx_routes._update_tx_queue_record(
             tx_id,
             {
                 "upstream_status": "confirmed",
@@ -256,13 +256,13 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
 
 def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails_batch365(tmp_path: Path, monkeypatch) -> None:
     tx_id = "tx:batch365-nosync"
-    outbox = tmp_path / "outbox.json"
-    outbox.write_text(
+    tx_queue = tmp_path / "tx_queue.json"
+    tx_queue.write_text(
         json.dumps({"version": 2, "records": [{"tx_id": tx_id, "chain_id": "batch365", "created_ms": 1, "updated_ms": 1, "upstream_status": "accepted", "envelope": {"chain_id": "batch365"}}]}),
         encoding="utf-8",
     )
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
     monkeypatch.setattr(

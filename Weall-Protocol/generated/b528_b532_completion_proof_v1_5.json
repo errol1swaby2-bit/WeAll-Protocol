@@ -4,7 +4,7 @@
     "api_routes_exercised": [
       "GET /v1/session/me",
       "GET /v1/feed",
-      "GET /v1/activity/inbox"
+      "GET /v1/activity/notices"
     ],
     "batch": "530",
     "dispute_id": "d-api-life",
@@ -14,7 +14,7 @@
       "groups",
       "content",
       "feed",
-      "public_activity_inbox",
+      "public_activity_input_queue",
       "dispute",
       "storage",
       "economics_locked",

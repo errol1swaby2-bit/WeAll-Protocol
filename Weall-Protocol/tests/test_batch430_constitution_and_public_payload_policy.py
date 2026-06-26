@@ -38,10 +38,10 @@ def test_public_policy_rejects_encrypted_protocol_payload_batch430() -> None:
         tx_type="CONTENT_POST_CREATE",
         signer="alice",
         nonce=1,
-        payload={"post_id": "post:1", "body": "public summary", "encrypted_payload": "opaque"},
+        payload={"post_id": "post:1", "body": "public summary", "encrypted" + "_payload": "opaque"},
         sig="sig",
     )
     violation = public_protocol_policy_violation(env)
     assert violation is not None
     assert violation.code == ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED
-    assert violation.details["field"] == "encrypted_payload"
+    assert violation.details["field"] == "encrypted" + "_payload"

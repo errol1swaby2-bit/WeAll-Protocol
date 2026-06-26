@@ -156,7 +156,7 @@ export default function Activity(): JSX.Element {
       <div className="pageHeader">
         <div>
           <div className="eyebrow">Public activity</div>
-          <h1>Activity inbox</h1>
+          <h1>Activity notices</h1>
           <p>
             Notices here are derived from publicly inspectable protocol events: mentions, replies, group invitations,
             moderation notices, dispute assignments, governance notices, and validator/operator alerts.

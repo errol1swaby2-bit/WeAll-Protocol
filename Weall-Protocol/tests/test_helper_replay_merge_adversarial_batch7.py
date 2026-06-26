@@ -19,7 +19,7 @@ def test_helper_replay_batch_ingest_is_canonical_with_mixed_lane_order_batch7() 
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
-        {"tx_id": "n1", "tx_type": "NOTIFICATION_SUBSCRIBE", "state_prefixes": ["notify:@alice:dm"]},
+        {"tx_id": "n1", "tx_type": "NOTIFICATION_SUBSCRIBE", "state_prefixes": ["notify:@alice:alert"]},
     ]
     lane_plans, plan_id = lane_setup(txs=txs)
     helper_lanes = tuple(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -124,7 +124,7 @@ def test_plan_misbehavior_proof_uses_explicit_issued_ms_batch7() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d1",
         plan_id="plan-1",
-        hmac_secret="secret",
+        receipt_secret="secret",
         issued_ms=1000,
     )
     cert_b = sign_helper_certificate(
@@ -138,7 +138,7 @@ def test_plan_misbehavior_proof_uses_explicit_issued_ms_batch7() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d2",
         plan_id="plan-1",
-        hmac_secret="secret",
+        receipt_secret="secret",
         issued_ms=1001,
     )
     proof = build_plan_misbehavior_proof(certificate_a=cert_a, certificate_b=cert_b)

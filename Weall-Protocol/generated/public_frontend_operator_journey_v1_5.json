@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "b74bdc876c16da673ccd9cc874828c30c9a7064a6ba0dcc288490dc140a11952",
+  "artifact_digest": "4af86223d0ae555beefc498abd4cfdd89c4eacd066b24e090fcf3709bfde0571",
   "claim_boundary": "This artifact proves source/rendered-test coverage is present; a launch claim still requires running the rendered test in the release environment.",
   "external_evidence_required_before_launch": true,
   "ok": true,
@@ -11,7 +11,7 @@
     "seed API and P2P counts",
     "active validators",
     "verified and fresh endpoint counts",
-    "observer edge outbox/upstream/confirmed counts",
+    "observer edge tx_queue/upstream/confirmed counts",
     "peer connectivity and NAT/relay recovery guidance",
     "backend-derived validator promotion checklist",
     "transaction propagation timeline including local, upstream, confirmed, and local-sync states"

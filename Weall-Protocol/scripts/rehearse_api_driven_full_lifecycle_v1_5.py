@@ -113,7 +113,7 @@ def run_harness() -> dict[str, Any]:
     apply_content(state, _env("CONTENT_REACTION_SET", "@bob", 3, {"target_id": "post:lifecycle:api", "reaction": "helpful"}))
     # Public-only redesign: this lifecycle rehearsal does not construct or submit
     # user-to-user communication tooling. Public notices are exercised below
-    # through /v1/activity/inbox, which is derived from inspectable protocol state.
+    # through /v1/activity/notices, which is derived from inspectable protocol state.
     public_activity_checked = True
     dispute = apply_dispute(state, _env("DISPUTE_OPEN", "@bob", 4, {"dispute_id": "d-api-life", "target_type": "content", "target_id": "post:lifecycle:api", "reason": "appealable lifecycle"}))
     apply_dispute(state, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 4, {"dispute_id": "d-api-life", "juror": "@juror"}, system=True, parent="dispute:open"))
@@ -135,13 +135,13 @@ def run_harness() -> dict[str, Any]:
     with _client(state) as client:
         session_me = client.get("/v1/session/me", headers={"x-weall-account": "@alice", "x-weall-session-key": "sk:@alice"})
         feed = client.get("/v1/feed?rank=production&limit=5")
-        activity = client.get("/v1/activity/inbox", headers={"x-weall-account": "@alice", "x-weall-session-key": "sk:@alice"})
+        activity = client.get("/v1/activity/notices", headers={"x-weall-account": "@alice", "x-weall-session-key": "sk:@alice"})
     active = state.get("protocol", {}).get("active", {}) if isinstance(state.get("protocol"), dict) else {}
     return {
         "ok": bool(session_me.status_code == 200 and feed.status_code == 200 and activity.status_code < 500 and feed.json().get("ranking", {}).get("mode") == "production" and public_activity_checked and final.get("enforcement_applied") and state.get("storage", {}).get("pins", {}).get("pin-api", {}).get("availability_status") == "available" and active.get("record_only_boundary", {}).get("artifact_apply_enabled") is False),
         "batch": "530",
-        "api_routes_exercised": ["GET /v1/session/me", "GET /v1/feed", "GET /v1/activity/inbox"],
-        "domains_exercised": ["session", "poh", "groups", "content", "feed", "public_activity_inbox", "dispute", "storage", "economics_locked", "protocol_upgrade_record_only"],
+        "api_routes_exercised": ["GET /v1/session/me", "GET /v1/feed", "GET /v1/activity/notices"],
+        "domains_exercised": ["session", "poh", "groups", "content", "feed", "public_activity_input_queue", "dispute", "storage", "economics_locked", "protocol_upgrade_record_only"],
         "poh": poh,
         "group_id": group.get("group_id") if isinstance(group, dict) else "",
         "post_id": post.get("post_id") if isinstance(post, dict) else "",

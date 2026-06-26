@@ -20,7 +20,7 @@ All protocol-native social, civic, governance, moderation, dispute, group, reput
 
 ## Notifications and activity
 
-The client may provide an activity inbox for mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts. The inbox is derived from public protocol events and carries no user-to-user sealed thread semantics.
+The client may provide an activity notices for mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts. The input_queue is derived from public protocol events and carries no user-to-user sealed thread semantics.
 
 ## Local-only controls
 

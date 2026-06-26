@@ -21,7 +21,7 @@ def _h(obj: Any) -> str:
 @dataclass
 class GossipNode:
     node_id: str
-    inbox: "queue.Queue[dict[str, Any]]" = field(default_factory=queue.Queue)
+    input_queue: "queue.Queue[dict[str, Any]]" = field(default_factory=queue.Queue)
     mempool: dict[str, dict[str, Any]] = field(default_factory=dict)
     votes_seen: dict[str, set[str]] = field(default_factory=dict)
     committed_blocks: dict[int, dict[str, Any]] = field(default_factory=dict)
@@ -38,14 +38,14 @@ class GossipNode:
 
     def stop(self) -> None:
         self.running = False
-        self.inbox.put({"type": "stop"})
+        self.input_queue.put({"type": "stop"})
         if self.thread:
             self.thread.join(timeout=1.0)
 
     def _run(self, network: "Network") -> None:
         while self.running:
             try:
-                msg = self.inbox.get(timeout=0.05)
+                msg = self.input_queue.get(timeout=0.05)
             except queue.Empty:
                 continue
             t = msg.get("type")
@@ -127,7 +127,7 @@ class Network:
             # Deterministic short delay/reordering: deliver votes before proposals sometimes by relying on different delays.
             delay = self.delay_ms.get(str(msg.get("type")), 1) / 1000.0
             def deliver(target=node, payload=dict(msg), rec=record) -> None:
-                target.inbox.put(payload)
+                target.input_queue.put(payload)
                 self.deliveries.append(rec)
             timer = threading.Timer(delay, deliver)
             timer.daemon = True
@@ -156,7 +156,7 @@ def run_harness() -> dict[str, Any]:
         txs = [{"signer": "@alice", "nonce": 1}, {"signer": "@bob", "nonce": 1}, {"signer": "@carol", "nonce": 1}]
         for tx in txs:
             payload = {**tx, "tx_id": _h(tx)}
-            net.nodes["v-a"].inbox.put({"type": "tx", "tx": payload})
+            net.nodes["v-a"].input_queue.put({"type": "tx", "tx": payload})
             net.gossip("v-a", {"type": "tx", "tx": payload})
         time.sleep(0.15)
         mempool_counts = {n: len(node.mempool) for n, node in net.nodes.items()}
@@ -186,7 +186,7 @@ def run_harness() -> dict[str, Any]:
         net.nodes["v-d"].partition = "majority"
         net.nodes["v-d"].start(net)
         committed = [net.nodes["v-a"].committed_blocks[h] for h in sorted(net.nodes["v-a"].committed_blocks)]
-        net.nodes["v-d"].inbox.put({"type": "catchup", "blocks": committed})
+        net.nodes["v-d"].input_queue.put({"type": "catchup", "blocks": committed})
         time.sleep(0.15)
         roots_final = {n: node.root for n, node in net.nodes.items()}
         heights_final = {n: node.height for n, node in net.nodes.items()}

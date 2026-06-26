@@ -260,11 +260,11 @@ export default function NodeDashboard(): JSX.Element {
   const seedP2pUrls = asArray(publicSeeds.seed_p2p_urls);
   const seedRegistrySig = asRecord(publicSeeds.seed_registry_signature_status || asRecord(publicValidators.registry).seed_registry_signature_status);
   const seedRegistrySourceKind = str(publicSeeds.registry_source_kind || asRecord(publicValidators.registry).registry_source_kind || "unknown", "unknown");
-  const observerOutbox = asRecord(observerEdge.outbox);
-  const observerOutboxCounts = asRecord(observerOutbox.counts);
-  const observerQueued = num(observerOutbox.count, 0);
-  const observerAccepted = num(observerOutboxCounts.accepted, 0);
-  const observerConfirmed = num(observerOutboxCounts.confirmed, 0);
+  const observerTxQueue = asRecord(observerEdge.tx_queue);
+  const observerTxQueueCounts = asRecord(observerTxQueue.counts);
+  const observerQueued = num(observerTxQueue.count, 0);
+  const observerAccepted = num(observerTxQueueCounts.accepted, 0);
+  const observerConfirmed = num(observerTxQueueCounts.confirmed, 0);
   const upstreamCount = num(observerEdge.upstream_count, 0);
   const readinessSteps: Array<{ label: string; ok: boolean; warn?: boolean; value: string }> = [
     { label: "1. Genesis or observer node booted", ok: status.ok === true, value: status.ok === true ? "Node API responding" : "Node API unavailable" },
@@ -351,7 +351,7 @@ export default function NodeDashboard(): JSX.Element {
         <StatCard label="Mempool" value={`${mempoolSize} tx`} note="Pending transaction pressure exposed by the node status surface." ok={mempoolSize === 0} warn={mempoolSize > 0} />
         <StatCard label="Active validators" value={String(activeValidatorCount)} note={`${verifiedEndpointCount} verified endpoint(s) advertised by /v1/nodes/validators.`} ok={activeValidatorCount > 0 && verifiedEndpointCount > 0} warn={activeValidatorCount > 0 && verifiedEndpointCount === 0} />
         <StatCard label="Reachable validators" value={`${verifiedFreshEndpointCount}/${activeValidatorCount}`} note="Fresh signed endpoint advertisements required before claiming all validators are reachable." ok={allValidatorsFresh} warn={activeValidatorCount > 0 && !allValidatorsFresh} />
-        <StatCard label="Tx propagation" value={observerQueued ? `${observerQueued} local` : "No local queue"} note={`${upstreamCount} verified upstream(s); ${observerAccepted} accepted, ${observerConfirmed} confirmed in observer outbox.`} ok={observerQueued === 0 || observerConfirmed > 0 || observerAccepted > 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
+        <StatCard label="Tx propagation" value={observerQueued ? `${observerQueued} local` : "No local queue"} note={`${upstreamCount} verified upstream(s); ${observerAccepted} accepted, ${observerConfirmed} confirmed in observer tx queue.`} ok={observerQueued === 0 || observerConfirmed > 0 || observerAccepted > 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
         <StatCard label="Launch boundary" value={statusLabel(launchPhase)} note={publicBetaClaimed ? "Unexpected public beta claim detected." : "This surface does not claim public beta or production readiness."} ok={!publicBetaClaimed} warn={publicBetaClaimed} />
         <StatCard label="Public beta blockers" value={`${publicBetaRemaining || blockedCapabilities.length} open`} note={publicBetaBlockerReport.present === false ? "Blocker report artifact not loaded from this node." : "Remaining public-beta blockers are shown as evidence gates, not readiness claims."} ok={!publicBetaClaimed && publicBetaRemaining > 0} warn={publicBetaClaimed || publicBetaRemaining === 0} />
       </section>
@@ -444,7 +444,7 @@ export default function NodeDashboard(): JSX.Element {
               <div className="progressList">
                 <DetailRow label="Observer edge mode" value={observerEdge.observer_edge_mode === true ? "Enabled" : "Not enabled"} ok={observerEdge.observer_edge_mode === true} warn={observerMode && observerEdge.observer_edge_mode !== true} />
                 <DetailRow label="Verified upstreams" value={String(upstreamCount)} ok={upstreamCount > 0} warn={observerEdge.observer_edge_mode === true && upstreamCount === 0} />
-                <DetailRow label="Local outbox" value={`${observerQueued} queued/known`} ok={observerQueued === 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
+                <DetailRow label="Local tx_queue" value={`${observerQueued} queued/known`} ok={observerQueued === 0} warn={observerQueued > 0 && observerAccepted === 0 && observerConfirmed === 0} />
                 <DetailRow label="Upstream accepted" value={String(observerAccepted)} ok={observerAccepted > 0 || observerQueued === 0} warn={observerQueued > 0 && observerAccepted === 0} />
                 <DetailRow label="Upstream confirmed" value={String(observerConfirmed)} ok={observerConfirmed > 0 || observerQueued === 0} />
               </div>

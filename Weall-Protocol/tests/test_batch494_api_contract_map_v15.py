@@ -88,7 +88,7 @@ def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes_batc
     routes = _routes_by_key()
 
     assert "GET /v1/" + "mess" + "ages/threads" not in routes
-    assert routes["GET /v1/activity/inbox"]["auth"] == "public_read_public_activity_notices"
+    assert routes["GET /v1/activity/notices"]["auth"] == "public_read_public_activity_notices"
 
     for key in [
         "GET /v1/reviewer/artifacts",

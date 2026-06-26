@@ -15,12 +15,12 @@ def _cid(data: bytes) -> str:
     return "bafy" + hashlib.sha256(data).hexdigest()[:59]
 
 
-def _daemon(name: str, inbox: mp.Queue, outbox: mp.Queue, root: str) -> None:
+def _daemon(name: str, input_queue: mp.Queue, tx_queue: mp.Queue, root: str) -> None:
     base = Path(root) / name
     base.mkdir(parents=True, exist_ok=True)
     pins: set[str] = set()
     while True:
-        cmd = inbox.get()
+        cmd = input_queue.get()
         op = cmd.get("op")
         if op == "stop":
             break
@@ -28,51 +28,51 @@ def _daemon(name: str, inbox: mp.Queue, outbox: mp.Queue, root: str) -> None:
             data = bytes.fromhex(cmd["data_hex"])
             cid = _cid(data)
             (base / cid).write_bytes(data)
-            outbox.put({"operator": name, "op": "add", "ok": True, "cid": cid})
+            tx_queue.put({"operator": name, "op": "add", "ok": True, "cid": cid})
         elif op == "pin":
             cid = str(cmd["cid"])
             ok = (base / cid).exists()
             if ok:
                 pins.add(cid)
-            outbox.put({"operator": name, "op": "pin", "ok": ok, "cid": cid})
+            tx_queue.put({"operator": name, "op": "pin", "ok": ok, "cid": cid})
         elif op == "cat":
             cid = str(cmd["cid"])
             p = base / cid
             ok = p.exists() and cid in pins
-            outbox.put({"operator": name, "op": "cat", "ok": ok, "cid": cid, "sha256": hashlib.sha256(p.read_bytes()).hexdigest() if ok else ""})
+            tx_queue.put({"operator": name, "op": "cat", "ok": ok, "cid": cid, "sha256": hashlib.sha256(p.read_bytes()).hexdigest() if ok else ""})
         elif op == "replicate":
             cid = str(cmd["cid"]); data = bytes.fromhex(cmd["data_hex"])
             (base / cid).write_bytes(data); pins.add(cid)
-            outbox.put({"operator": name, "op": "replicate", "ok": True, "cid": cid})
+            tx_queue.put({"operator": name, "op": "replicate", "ok": True, "cid": cid})
 
 
-def _get(outbox: mp.Queue) -> dict[str, Any]:
-    return outbox.get(timeout=2.0)
+def _get(tx_queue: mp.Queue) -> dict[str, Any]:
+    return tx_queue.get(timeout=2.0)
 
 
 def run_harness() -> dict[str, Any]:
     operators = ["op-a", "op-b", "op-c"]
     with tempfile.TemporaryDirectory(prefix="weall-ipfs-daemons-") as td:
-        outbox: mp.Queue = mp.Queue()
-        inboxes = {op: mp.Queue() for op in operators}
-        procs = {op: mp.Process(target=_daemon, args=(op, inboxes[op], outbox, td), daemon=True) for op in operators}
+        tx_queue: mp.Queue = mp.Queue()
+        input_queuees = {op: mp.Queue() for op in operators}
+        procs = {op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True) for op in operators}
         for p in procs.values():
             p.start()
         try:
             data = b"weall-v15-multidaemon-storage-proof"
             source = "op-a"
-            inboxes[source].put({"op": "add", "data_hex": data.hex()})
-            add = _get(outbox)
+            input_queuees[source].put({"op": "add", "data_hex": data.hex()})
+            add = _get(tx_queue)
             cid = add["cid"]
-            inboxes[source].put({"op": "pin", "cid": cid})
-            pin = _get(outbox)
+            input_queuees[source].put({"op": "pin", "cid": cid})
+            pin = _get(tx_queue)
             failed = "op-b"
             procs[failed].terminate(); procs[failed].join(timeout=1.0)
             replacement = "op-c"
-            inboxes[replacement].put({"op": "replicate", "cid": cid, "data_hex": data.hex()})
-            repl = _get(outbox)
-            inboxes[replacement].put({"op": "cat", "cid": cid})
-            cat = _get(outbox)
+            input_queuees[replacement].put({"op": "replicate", "cid": cid, "data_hex": data.hex()})
+            repl = _get(tx_queue)
+            input_queuees[replacement].put({"op": "cat", "cid": cid})
+            cat = _get(tx_queue)
             ok = bool(add["ok"] and pin["ok"] and repl["ok"] and cat["ok"] and cat["sha256"] == hashlib.sha256(data).hexdigest())
             return {
                 "ok": ok,
@@ -95,7 +95,7 @@ def run_harness() -> dict[str, Any]:
                 "public_decentralized_media_claimed": False,
             }
         finally:
-            for op, q in inboxes.items():
+            for op, q in input_queuees.items():
                 try: q.put({"op": "stop"})
                 except Exception: pass
             for p in procs.values():

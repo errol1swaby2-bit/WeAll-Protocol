@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTER = ROOT.parent
 WEB = OUTER / "web"
 ROUTE = ROOT / "src/weall/api/routes_public_parts/poh.py"
-RECONCILE = ROOT / "scripts/devnet_observer_outbox_reconcile_loop.sh"
+RECONCILE = ROOT / "scripts/devnet_observer_tx_queue_reconcile_loop.sh"
 
 
 def _read(path: Path) -> str:

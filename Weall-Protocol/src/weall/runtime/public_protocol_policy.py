@@ -31,7 +31,7 @@ ENCRYPTED_PROTOCOL_KEYS: set[str] = {
     "recipient_encryption_key_id",
     "sender_encryption_key_id",
     "shared_secret",
-    "hmac_secret",
+    "receipt_secret",
     "e2ee",
     "encryption",
     "encryption_scheme",

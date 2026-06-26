@@ -41,7 +41,7 @@ PYTHONPATH=src pytest -q \
   tests/test_batch467_external_observer_account_id_format.py \
   tests/test_batch469_frontend_account_custody_docs.py \
   tests/test_batch468_one_command_tester_boot.py \
-  tests/test_batch466_tx_status_outbox_runtime_path.py \
+  tests/test_batch466_tx_status_tx_queue_runtime_path.py \
   tests/test_batch458_461_production_implementation.py
 
 if [[ -d "${WEB_ROOT}" ]]; then

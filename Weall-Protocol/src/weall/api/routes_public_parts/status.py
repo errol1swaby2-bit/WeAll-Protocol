@@ -832,7 +832,7 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         },
         "public_only_protocol_surface": {
             "public_inspectability_required": True,
-            "encrypted_payloads_supported": False,
+            "opaque_protocol_payloads_supported": False,
             "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
         },
         "poh": poh_policy,

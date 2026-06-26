@@ -246,7 +246,7 @@ Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh
 Weall-Protocol/scripts/devnet_join_anchor.py
 Weall-Protocol/scripts/devnet_live_session.sh
 Weall-Protocol/scripts/devnet_local_two_frontend_rehearsal.sh
-Weall-Protocol/scripts/devnet_observer_outbox_reconcile_loop.sh
+Weall-Protocol/scripts/devnet_observer_tx_queue_reconcile_loop.sh
 Weall-Protocol/scripts/devnet_permission_probe.py
 Weall-Protocol/scripts/devnet_permission_probe.sh
 Weall-Protocol/scripts/devnet_preflight_controlled_profile.sh
@@ -844,8 +844,8 @@ Weall-Protocol/tests/test_batch355_frontend_media_lazy_loading.py
 Weall-Protocol/tests/test_batch355_media_viewport_observer_proxy.py
 Weall-Protocol/tests/test_batch356_scoped_observer_read_paths.py
 Weall-Protocol/tests/test_batch357_local_observer_tx_propagation.py
-Weall-Protocol/tests/test_batch358_360_observer_outbox_and_scoped_reads.py
-Weall-Protocol/tests/test_batch361_observer_outbox_hardening.py
+Weall-Protocol/tests/test_batch358_360_observer_tx_queue_and_scoped_reads.py
+Weall-Protocol/tests/test_batch361_observer_tx_queue_hardening.py
 Weall-Protocol/tests/test_batch362_observer_reconciliation_and_bounded_details.py
 Weall-Protocol/tests/test_batch363_364_scoped_content_media_providers.py
 Weall-Protocol/tests/test_batch365_p0_p2_observer_media_hardening.py
@@ -856,7 +856,7 @@ Weall-Protocol/tests/test_batch369_media_range_streaming.py
 Weall-Protocol/tests/test_batch370_media_cache_peer_sync_hardening.py
 Weall-Protocol/tests/test_batch372_frontend_rehearsal_cleanup.py
 Weall-Protocol/tests/test_batch373_production_genesis_bootstrap_config.py
-Weall-Protocol/tests/test_batch374_account_gate_and_outbox_status.py
+Weall-Protocol/tests/test_batch374_account_gate_and_tx_queue_status.py
 Weall-Protocol/tests/test_batch375_async_verification_submission_reviewer_feed.py
 Weall-Protocol/tests/test_batch376_local_two_frontend_rehearsal_automation.py
 Weall-Protocol/tests/test_batch377_local_rehearsal_boot_secret_gate.py
@@ -919,7 +919,7 @@ Weall-Protocol/tests/test_batch458_461_production_implementation.py
 Weall-Protocol/tests/test_batch462_463_reviewer_truth_and_observer_reproducibility.py
 Weall-Protocol/tests/test_batch464_genesis_api_external_observer_readiness.py
 Weall-Protocol/tests/test_batch465_runtime_config_env_precedence.py
-Weall-Protocol/tests/test_batch466_tx_status_outbox_runtime_path.py
+Weall-Protocol/tests/test_batch466_tx_status_tx_queue_runtime_path.py
 Weall-Protocol/tests/test_batch467_external_observer_account_id_format.py
 Weall-Protocol/tests/test_batch468_one_command_tester_boot.py
 Weall-Protocol/tests/test_batch469_frontend_account_custody_docs.py

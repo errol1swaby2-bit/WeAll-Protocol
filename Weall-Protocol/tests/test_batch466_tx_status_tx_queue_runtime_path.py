@@ -9,12 +9,12 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_public_tx_status_outbox_read_is_best_effort_batch466() -> None:
+def test_public_tx_status_tx_queue_read_is_best_effort_batch466() -> None:
     tx = _read("src/weall/api/routes_public_parts/tx.py")
 
-    assert "def _read_tx_outbox_best_effort()" in tx
+    assert "def _read_tx_queue_best_effort()" in tx
     assert "except OSError:" in tx
-    assert "_outbox_record_for(_read_tx_outbox_best_effort(), tx_id)" in tx
+    assert "_tx_queue_record_for(_read_tx_queue_best_effort(), tx_id)" in tx
 
 
 def test_docker_genesis_runtime_paths_are_writable_volume_bound_batch466() -> None:
@@ -22,9 +22,9 @@ def test_docker_genesis_runtime_paths_are_writable_volume_bound_batch466() -> No
 
     assert "WEALL_DB_PATH=/var/lib/weall/genesis.db" in compose
     assert "WEALL_RUNTIME_DIR=/var/lib/weall" in compose
-    assert "WEALL_TX_OUTBOX_PATH=/var/lib/weall/observer_tx_outbox.json" in compose
+    assert "WEALL_TX_QUEUE_PATH=/var/lib/weall/observer_tx_queue.json" in compose
     assert "weall-genesis-data:/var/lib/weall" in compose
-    assert "WEALL_TX_OUTBOX_PATH=./data" not in compose
+    assert "WEALL_TX_QUEUE_PATH=./data" not in compose
     assert "WEALL_RUNTIME_DIR=./data" not in compose
 
 

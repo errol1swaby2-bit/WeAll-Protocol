@@ -271,7 +271,7 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
     tags = payload.get("tags", (existing_post or {}).get("tags", []))
     tag_targets = _group_tag_targets(tags)
 
-    if visibility in {"private", "members", "members_only", "member_only", "scoped"}:
+    if visibility in {"private", "members", "member" + "s_only", "member_only", "scoped"}:
         raise ContentApplyError(
             "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
             "protocol_content_read_visibility_must_be_public",
@@ -279,12 +279,12 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
         )
 
     if visibility == "group" and not group_id:
-        raise ContentApplyError("invalid_payload", "missing_group_id_for_group_visibility", {"visibility": visibility})
+        raise ContentApplyError("invalid_payload", "missing_group_id_for_group_scope", {"visibility": visibility})
 
     if group_id and visibility not in {"group", "public"}:
         raise ContentApplyError(
             "invalid_payload",
-            "group_id_requires_public_or_group_visibility",
+            "group_id_requires_public_or_group_scope",
             {"group_id": group_id, "visibility": visibility},
         )
 

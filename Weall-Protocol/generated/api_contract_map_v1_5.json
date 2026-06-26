@@ -177,23 +177,23 @@
       "auth": "public_read_public_activity_notices",
       "cache_policy": "no_store_public_event_derived_read",
       "error_model": "standard_api_error_envelope_or_public_activity_payload",
-      "function": "activity_inbox",
+      "function": "activity_notices",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "module": "activity",
-      "path": "/v1/activity/inbox",
+      "path": "/v1/activity/notices",
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
-      "route_id": "f3eb3e8ce3497852",
-      "route_path_without_v1_prefix": "/activity/inbox",
+      "route_id": "474cc553c6b4e946",
+      "route_path_without_v1_prefix": "/activity/notices",
       "source": "src/weall/api/routes_public_parts/activity.py",
       "source_lineno": 13,
       "summary": "",
       "tags": [
         "activity"
       ],
-      "truth_boundary": "Activity inbox is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
+      "truth_boundary": "Activity notices is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1473,28 +1473,6 @@
     },
     {
       "auth": "observer_edge_operator_required",
-      "cache_policy": "no_store_observer_edge_transport_queue",
-      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
-      "function": "observer_edge_outbox_drain",
-      "idempotency": "operator_transport_queue_drain_no_validator_authority",
-      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
-      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
-      "method": "POST",
-      "module": "tx",
-      "path": "/v1/observer/edge/outbox/drain",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
-      "route_id": "9641f450c5bc09d9",
-      "route_path_without_v1_prefix": "/observer/edge/outbox/drain",
-      "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1724,
-      "summary": "",
-      "tags": [
-        "tx"
-      ],
-      "truth_boundary": "Observer outbox drain is operator/observer transport handling and grants no block production or validation authority."
-    },
-    {
-      "auth": "observer_edge_operator_required",
       "cache_policy": "no_store_observer_edge_reconcile",
       "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
       "function": "observer_edge_reconcile_tx",
@@ -1536,6 +1514,28 @@
         "tx"
       ],
       "truth_boundary": "Observer edge status is diagnostic posture/status for the observer edge path and grants no validator or mutation authority."
+    },
+    {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_transport_queue",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
+      "function": "observer_edge_tx_queue_drain",
+      "idempotency": "operator_transport_queue_drain_no_validator_authority",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "module": "tx",
+      "path": "/v1/observer/edge/tx-queue/drain",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "b2fe3cc719b867ce",
+      "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1724,
+      "summary": "",
+      "tags": [
+        "tx"
+      ],
+      "truth_boundary": "Observer tx queue drain is operator/observer transport handling and grants no block production or validation authority."
     },
     {
       "auth": "session_aware_poh_case_read_redacts_restricted_identity_evidence",
@@ -2135,23 +2135,23 @@
       "auth": "webrtc_bridge_operator_required",
       "cache_policy": "no_store_operator_transport_queue",
       "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
-      "function": "poh_live_webrtc_signal_outbox_drain",
+      "function": "poh_live_webrtc_signal_queue_drain",
       "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
       "module": "poh",
-      "path": "/v1/poh/live/webrtc/signals/outbox/drain",
+      "path": "/v1/poh/live/webrtc/signals/queue/drain",
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
-      "route_id": "e2e513dae474bdc9",
-      "route_path_without_v1_prefix": "/poh/live/webrtc/signals/outbox/drain",
+      "route_id": "8df3a2a6fcd3390b",
+      "route_path_without_v1_prefix": "/poh/live/webrtc/signals/queue/drain",
       "source": "src/weall/api/routes_public_parts/poh.py",
       "source_lineno": 2239,
       "summary": "",
       "tags": [
         "poh"
       ],
-      "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
+      "truth_boundary": "WebRTC tx queue drain is operator-gated transport queue handling, not public state and not consensus mutation."
     },
     {
       "auth": "poh_operator_token_required_env_gated",

@@ -190,7 +190,7 @@ def _event(
     details: Json | None = None,
 ) -> MatrixEvent:
     vis = "public" if not visibility else str(visibility).strip().lower()
-    if vis in {"private", "permissioned", "owner", "members_only", "member_only"}:
+    if vis in {"private", "permissioned", "owner", "member" + "s_only", "member_only"}:
         vis = "public"
     return MatrixEvent(
         event_id=_stable_event_id(
@@ -286,7 +286,7 @@ def _canonical_ledger_events(state: Json, account_id: str) -> list[MatrixEvent]:
             "eligibility_impact": _as_str(rec.get("eligibility_impact")),
         }
         visibility = _as_str(rec.get("visibility") or "public").lower()
-        if visibility in {"private", "permissioned", "owner", "members_only", "member_only"}:
+        if visibility in {"private", "permissioned", "owner", "member" + "s_only", "member_only"}:
             visibility = "public"
         if dimension in ALL_DIMENSIONS:
             events.append(

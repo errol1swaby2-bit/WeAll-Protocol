@@ -100,7 +100,7 @@ def build() -> Json:
                 "scripts/boot_public_observer_testnet.sh starts with signed registry from path, remote URL, trust roots, or checked-in fallback",
                 "/v1/nodes/seeds verifies registry signature",
                 "/v1/nodes/validators reports active validators and verified endpoint counts",
-                "/v1/observer/edge/status separates local outbox from upstream acceptance",
+                "/v1/observer/edge/status separates local tx queue from upstream acceptance",
             ],
         },
         {
@@ -135,7 +135,7 @@ def build() -> Json:
                 "seed API and P2P counts",
                 "active validators",
                 "verified and fresh endpoint counts",
-                "observer edge outbox/upstream/confirmed counts",
+                "observer edge tx_queue/upstream/confirmed counts",
                 "peer connectivity and NAT/relay recovery guidance",
                 "backend-derived validator promotion checklist",
                 "transaction propagation timeline",

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "e954ab4c32c1bc30d5c157fdada70188cfc1c9055d022a735907a3ee8cc36372",
+  "artifact_digest": "10727eeafd0a68c3c576f362091eae4671cae655708e222767c38c9c7048ed26",
   "claim_boundaries": {
     "legal_compliance_ready": false,
     "live_economics": false,
@@ -81,7 +81,7 @@
         "scripts/boot_public_observer_testnet.sh starts with signed registry from path, remote URL, trust roots, or checked-in fallback",
         "/v1/nodes/seeds verifies registry signature",
         "/v1/nodes/validators reports active validators and verified endpoint counts",
-        "/v1/observer/edge/status separates local outbox from upstream acceptance"
+        "/v1/observer/edge/status separates local tx queue from upstream acceptance"
       ]
     },
     {
@@ -115,7 +115,7 @@
         "seed API and P2P counts",
         "active validators",
         "verified and fresh endpoint counts",
-        "observer edge outbox/upstream/confirmed counts",
+        "observer edge tx_queue/upstream/confirmed counts",
         "peer connectivity and NAT/relay recovery guidance",
         "backend-derived validator promotion checklist",
         "transaction propagation timeline"

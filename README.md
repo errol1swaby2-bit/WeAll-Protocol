@@ -287,7 +287,7 @@ Suggested manual smoke test:
 2. Load the demo tester session.
 3. Open the feed.
 4. Confirm the seeded demo post is visible.
-5. Open the public activity inbox.
+5. Open the public activity notices.
 6. Open decisions.
 7. Open reviews.
 8. Report content from the feed.

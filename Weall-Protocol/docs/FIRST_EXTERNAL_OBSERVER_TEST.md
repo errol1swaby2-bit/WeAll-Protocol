@@ -132,7 +132,7 @@ A successful observer gate proves only this limited claim: the node is in observ
 Transaction results must be read as a lifecycle, not a single success word:
 
 1. local validation accepted,
-2. observer outbox queued,
+2. observer tx queue queued,
 3. upstream submitted,
 4. canonical node confirmed,
 5. visible from another healthy compatible node.

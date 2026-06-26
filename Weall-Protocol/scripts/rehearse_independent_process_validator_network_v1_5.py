@@ -20,11 +20,11 @@ def _h(obj: Any) -> str:
     return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def _node_loop(node_id: str, inbox: mp.Queue, outbox: mp.Queue, state_file: str) -> None:
+def _node_loop(node_id: str, input_queue: mp.Queue, tx_queue: mp.Queue, state_file: str) -> None:
     state: dict[str, Any] = {"node_id": node_id, "height": 0, "root": "genesis", "mempool": {}, "votes": {}, "committed": {}, "running_pid": os.getpid()}
     Path(state_file).write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
     while True:
-        msg = inbox.get()
+        msg = input_queue.get()
         t = msg.get("type")
         if t == "stop":
             Path(state_file).write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
@@ -34,10 +34,10 @@ def _node_loop(node_id: str, inbox: mp.Queue, outbox: mp.Queue, state_file: str)
             txid = tx.get("tx_id") or _h(tx)
             tx["tx_id"] = txid
             state["mempool"][txid] = tx
-            outbox.put({"from": node_id, "type": "tx_seen", "tx_id": txid})
+            tx_queue.put({"from": node_id, "type": "tx_seen", "tx_id": txid})
         elif t == "proposal":
             block = dict(msg["block"])
-            outbox.put({"from": node_id, "type": "vote", "block_id": block["block_id"], "height": block["height"]})
+            tx_queue.put({"from": node_id, "type": "vote", "block_id": block["block_id"], "height": block["height"]})
         elif t == "commit":
             block = dict(msg["block"])
             hgt = int(block["height"])
@@ -47,7 +47,7 @@ def _node_loop(node_id: str, inbox: mp.Queue, outbox: mp.Queue, state_file: str)
                 state["root"] = root
                 state["committed"][str(hgt)] = {**block, "state_root": root}
                 Path(state_file).write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
-                outbox.put({"from": node_id, "type": "commit_ack", "height": hgt, "root": root})
+                tx_queue.put({"from": node_id, "type": "commit_ack", "height": hgt, "root": root})
         elif t == "catchup":
             for block in msg.get("blocks") or []:
                 hgt = int(block["height"])
@@ -57,15 +57,15 @@ def _node_loop(node_id: str, inbox: mp.Queue, outbox: mp.Queue, state_file: str)
                     state["root"] = root
                     state["committed"][str(hgt)] = {**block, "state_root": root}
             Path(state_file).write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
-            outbox.put({"from": node_id, "type": "catchup_ack", "height": state["height"], "root": state["root"]})
+            tx_queue.put({"from": node_id, "type": "catchup_ack", "height": state["height"], "root": state["root"]})
 
 
-def _drain(outbox: mp.Queue, *, timeout: float = 0.2) -> list[dict[str, Any]]:
+def _drain(tx_queue: mp.Queue, *, timeout: float = 0.2) -> list[dict[str, Any]]:
     end = time.time() + timeout
     out: list[dict[str, Any]] = []
     while time.time() < end:
         try:
-            out.append(outbox.get(timeout=0.02))
+            out.append(tx_queue.get(timeout=0.02))
         except queue.Empty:
             pass
     return out
@@ -73,10 +73,10 @@ def _drain(outbox: mp.Queue, *, timeout: float = 0.2) -> list[dict[str, Any]]:
 
 def run_harness() -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="weall-b572-") as td:
-        outbox: mp.Queue = mp.Queue()
-        inboxes: dict[str, mp.Queue] = {v: mp.Queue() for v in VALIDATORS}
+        tx_queue: mp.Queue = mp.Queue()
+        input_queuees: dict[str, mp.Queue] = {v: mp.Queue() for v in VALIDATORS}
         files = {v: str(Path(td) / f"{v}.json") for v in VALIDATORS}
-        procs = {v: mp.Process(target=_node_loop, args=(v, inboxes[v], outbox, files[v]), daemon=True) for v in VALIDATORS}
+        procs = {v: mp.Process(target=_node_loop, args=(v, input_queuees[v], tx_queue, files[v]), daemon=True) for v in VALIDATORS}
         for p in procs.values():
             p.start()
         time.sleep(0.1)
@@ -84,9 +84,9 @@ def run_harness() -> dict[str, Any]:
             txs = [{"signer": "alice", "nonce": 1}, {"signer": "bob", "nonce": 1}, {"signer": "carol", "nonce": 1}]
             for tx in txs:
                 payload = {**tx, "tx_id": _h(tx)}
-                for q in inboxes.values():
+                for q in input_queuees.values():
                     q.put({"type": "tx", "tx": payload})
-            events = _drain(outbox, timeout=0.5)
+            events = _drain(tx_queue, timeout=0.5)
             tx_seen = [e for e in events if e.get("type") == "tx_seen"]
             committed_blocks: list[dict[str, Any]] = []
             roots_by_height: dict[str, list[str]] = {}
@@ -95,26 +95,26 @@ def run_harness() -> dict[str, Any]:
                 block = {"height": height, "proposer": leader, "tx_ids": sorted(_h(t) for t in txs) if height == 1 else [], "view": height}
                 block["block_id"] = _h(block)
                 # proposal gossip
-                for v, q in inboxes.items():
+                for v, q in input_queuees.items():
                     q.put({"type": "proposal", "block": block})
-                votes = [e for e in _drain(outbox, timeout=0.4) if e.get("type") == "vote" and e.get("block_id") == block["block_id"]]
+                votes = [e for e in _drain(tx_queue, timeout=0.4) if e.get("type") == "vote" and e.get("block_id") == block["block_id"]]
                 if len({v["from"] for v in votes}) >= QUORUM:
-                    for q in inboxes.values():
+                    for q in input_queuees.values():
                         q.put({"type": "commit", "block": block})
-                acks = [e for e in _drain(outbox, timeout=0.4) if e.get("type") == "commit_ack" and e.get("height") == height]
+                acks = [e for e in _drain(tx_queue, timeout=0.4) if e.get("type") == "commit_ack" and e.get("height") == height]
                 roots_by_height[str(height)] = sorted(e["root"] for e in acks)
                 committed_blocks.append(block)
                 if height == 3:
                     # restart one process from scratch, then catch it up from committed log.
-                    inboxes["v-d"].put({"type": "stop"})
+                    input_queuees["v-d"].put({"type": "stop"})
                     procs["v-d"].join(timeout=1.0)
-                    inboxes["v-d"] = mp.Queue()
-                    procs["v-d"] = mp.Process(target=_node_loop, args=("v-d", inboxes["v-d"], outbox, files["v-d"]), daemon=True)
+                    input_queuees["v-d"] = mp.Queue()
+                    procs["v-d"] = mp.Process(target=_node_loop, args=("v-d", input_queuees["v-d"], tx_queue, files["v-d"]), daemon=True)
                     procs["v-d"].start()
                     time.sleep(0.1)
-                    inboxes["v-d"].put({"type": "catchup", "blocks": committed_blocks})
-                    _drain(outbox, timeout=0.3)
-            for q in inboxes.values():
+                    input_queuees["v-d"].put({"type": "catchup", "blocks": committed_blocks})
+                    _drain(tx_queue, timeout=0.3)
+            for q in input_queuees.values():
                 q.put({"type": "stop"})
             for p in procs.values():
                 p.join(timeout=1.0)
@@ -139,7 +139,7 @@ def run_harness() -> dict[str, Any]:
                 "public_validator_readiness_claimed": False,
             }
         finally:
-            for q in inboxes.values():
+            for q in input_queuees.values():
                 try:
                     q.put({"type": "stop"})
                 except Exception:

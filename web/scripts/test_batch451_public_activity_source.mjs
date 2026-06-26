@@ -14,7 +14,7 @@ if (exists('src/components/' + 'Mess' + 'agingKeyBootstrapper.tsx')) throw new E
 if (exists('src/pages/' + 'Mess' + 'aging.tsx')) throw new Error('removed private communication page returned');
 if (!router.includes('path: "/activity"')) throw new Error('router must expose activity page');
 if (!app.includes('import("./pages/Activity")')) throw new Error('App must lazy-load Activity page');
-if (!activityApi.includes('/activity/inbox')) throw new Error('backend activity inbox route missing');
+if (!activityApi.includes('/activity/notices')) throw new Error('backend activity notices route missing');
 if (!txQueue.includes('TX_RECORDED_AUTO_DISMISS_MS')) throw new Error('tx activity queue timing missing');
 
 console.log('batch451 public activity source checks passed');

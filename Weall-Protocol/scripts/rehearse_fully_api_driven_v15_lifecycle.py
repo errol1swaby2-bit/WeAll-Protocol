@@ -177,7 +177,7 @@ def run_harness() -> dict[str, Any]:
     apply_content(state, _env("CONTENT_COMMENT_CREATE", "@alice", 54, {"comment_id": "comment:1", "post_id": "post:1", "body": "public author follow-up"}))
     # Public-only redesign: lifecycle rehearsals must not construct encrypted or
     # protocol-native private-message payloads. Activity notices are exercised
-    # through the public-event-derived inbox below.
+    # through the public-event-derived input_queue below.
     public_activity_checked = True
     feed = client.get("/v1/feed?rank=production&limit=10")
     api_routes.append("GET /v1/feed?rank=production")
@@ -185,8 +185,8 @@ def run_harness() -> dict[str, Any]:
     api_routes.append("GET /v1/groups/{group_id}")
     group_feed = client.get("/v1/groups/g1/feed")
     api_routes.append("GET /v1/groups/{group_id}/feed")
-    activity = client.get("/v1/activity/inbox", headers={"x-weall-account": "@alice", "x-weall-session-key": "missing"})
-    api_routes.append("GET /v1/activity/inbox")
+    activity = client.get("/v1/activity/notices", headers={"x-weall-account": "@alice", "x-weall-session-key": "missing"})
+    api_routes.append("GET /v1/activity/notices")
 
     # Dispute remedy path through final receipt.
     apply_dispute(state, _env("DISPUTE_OPEN", "@bob", 60, {"dispute_id": "d1", "target_type": "account", "target_id": "@alice", "reason": "test"}))

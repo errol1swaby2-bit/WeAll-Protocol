@@ -8,12 +8,12 @@
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
       "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
     },
-    "GET /v1/activity/inbox": {
+    "GET /v1/activity/notices": {
       "auth": "public_read_public_activity_notices",
       "cache_policy": "no_store_public_event_derived_read",
       "error_model": "standard_api_error_envelope_or_public_activity_payload",
       "idempotency": "safe_read_no_state_mutation",
-      "truth_boundary": "Activity inbox is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
+      "truth_boundary": "Activity notices is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
     },
     "GET /v1/dev/bootstrap-secret": {
       "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
@@ -253,12 +253,12 @@
       "idempotency": "transport_queue_write_no_consensus_state_mutation",
       "truth_boundary": "Relay submit stores transport envelopes only. It does not submit chain transactions or grant consensus authority."
     },
-    "POST /v1/observer/edge/outbox/drain": {
+    "POST /v1/observer/edge/tx-queue/drain": {
       "auth": "observer_edge_operator_required",
       "cache_policy": "no_store_observer_edge_transport_queue",
       "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
       "idempotency": "operator_transport_queue_drain_no_validator_authority",
-      "truth_boundary": "Observer outbox drain is operator/observer transport handling and grants no block production or validation authority."
+      "truth_boundary": "Observer tx queue drain is operator/observer transport handling and grants no block production or validation authority."
     },
     "POST /v1/observer/edge/reconcile/{tx_id}": {
       "auth": "observer_edge_operator_required",
@@ -358,12 +358,12 @@
       "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
       "truth_boundary": "PoH Live verdict skeleton helper does not mutate consensus state; final authority is signed tx admission/apply."
     },
-    "POST /v1/poh/live/webrtc/signals/outbox/drain": {
+    "POST /v1/poh/live/webrtc/signals/queue/drain": {
       "auth": "webrtc_bridge_operator_required",
       "cache_policy": "no_store_operator_transport_queue",
       "error_model": "standard_api_error_envelope; 403 operator_token_required/operator_token_invalid",
       "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
-      "truth_boundary": "WebRTC outbox drain is operator-gated transport queue handling, not public state and not consensus mutation."
+      "truth_boundary": "WebRTC tx queue drain is operator-gated transport queue handling, not public state and not consensus mutation."
     },
     "POST /v1/poh/operator/live/finalize": {
       "auth": "poh_operator_token_required_env_gated",

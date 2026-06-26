@@ -19,12 +19,12 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, syst
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, chain_id="batch569-ipfs-multiprocess", payload=payload, sig="sig", system=system, parent=parent)
 
 
-def _worker(operator_id: str, root: str, inbox: mp.Queue, outbox: mp.Queue) -> None:
+def _worker(operator_id: str, root: str, input_queue: mp.Queue, tx_queue: mp.Queue) -> None:
     base = Path(root) / operator_id
     base.mkdir(parents=True, exist_ok=True)
     running = True
     while running:
-        cmd = inbox.get()
+        cmd = input_queue.get()
         op = cmd.get("op")
         cid = str(cmd.get("cid") or "")
         if op == "stop":
@@ -32,14 +32,14 @@ def _worker(operator_id: str, root: str, inbox: mp.Queue, outbox: mp.Queue) -> N
         elif op == "add_pin":
             data = bytes.fromhex(str(cmd.get("data_hex") or ""))
             (base / cid).write_bytes(data)
-            outbox.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "sha256": hashlib.sha256(data).hexdigest()})
+            tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "sha256": hashlib.sha256(data).hexdigest()})
         elif op == "cat":
             p = base / cid
             if p.exists():
                 data = p.read_bytes()
-                outbox.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "data_hex": data.hex(), "sha256": hashlib.sha256(data).hexdigest()})
+                tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "data_hex": data.hex(), "sha256": hashlib.sha256(data).hexdigest()})
             else:
-                outbox.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": False, "reason": "missing"})
+                tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": False, "reason": "missing"})
 
 
 def _seed_state(state: dict[str, Any], operators: list[str]) -> None:
@@ -68,11 +68,11 @@ def run_harness() -> dict[str, Any]:
     operators = ["op-a", "op-b", "op-c", "op-d"]
     with tempfile.TemporaryDirectory(prefix="weall-b569-ipfs-mp-") as td:
         root = Path(td)
-        inboxes: dict[str, mp.Queue] = {op: mp.Queue() for op in operators}
-        outbox: mp.Queue = mp.Queue()
+        input_queuees: dict[str, mp.Queue] = {op: mp.Queue() for op in operators}
+        tx_queue: mp.Queue = mp.Queue()
         procs: dict[str, mp.Process] = {}
         for op in operators:
-            p = mp.Process(target=_worker, args=(op, str(root), inboxes[op], outbox), daemon=True)
+            p = mp.Process(target=_worker, args=(op, str(root), input_queuees[op], tx_queue), daemon=True)
             p.start(); procs[op] = p
         try:
             state: dict[str, Any] = {"height": 88, "params": {"ipfs_replication_factor": 2}, "accounts": {"SYSTEM": {"poh_tier": 0}}, "roles": {}, "storage": {}}
@@ -86,10 +86,10 @@ def run_harness() -> dict[str, Any]:
             fail_receipt = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 2, {"pin_id": pin_id, "cid": cid, "operator_id": failed, "ok": False, "reason": "operator_process_failed"}, system=True, parent="storage"))
             reassigned = list(state["storage"]["pins"][pin_id].get("targets") or [])
             replacement = next(op for op in reassigned if op not in targets)
-            inboxes[replacement].put({"op": "add_pin", "cid": cid, "data_hex": data.hex()})
-            add_res = _recv(outbox)
-            inboxes[replacement].put({"op": "cat", "cid": cid})
-            cat_res = _recv(outbox)
+            input_queuees[replacement].put({"op": "add_pin", "cid": cid, "data_hex": data.hex()})
+            add_res = _recv(tx_queue)
+            input_queuees[replacement].put({"op": "cat", "cid": cid})
+            cat_res = _recv(tx_queue)
             confirm = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 3, {"pin_id": pin_id, "cid": cid, "operator_id": replacement, "ok": True, "retrieval_ok": cat_res.get("data_hex") == data.hex(), "proof_hash": cat_res.get("sha256")}, system=True, parent="storage"))
             final_pin = state["storage"]["pins"][pin_id]
             return {
@@ -111,7 +111,7 @@ def run_harness() -> dict[str, Any]:
                 "public_decentralized_media_claimed": False,
             }
         finally:
-            for op, q in inboxes.items():
+            for op, q in input_queuees.items():
                 if procs[op].is_alive():
                     q.put({"op": "stop"})
             time.sleep(0.05)

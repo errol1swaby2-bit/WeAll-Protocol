@@ -63,7 +63,7 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_group_feed_surfaces_group_visibility_posts_and_hides_removed_content() -> None:
+def test_group_feed_surfaces_group_scoped_posts_and_hides_removed_content() -> None:
     with _client(_state()) as client:
         res = client.get("/v1/groups/g1/feed", headers=_auth("@member"))
         assert res.status_code == 200, res.text

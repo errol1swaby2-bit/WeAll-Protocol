@@ -79,8 +79,8 @@ def test_helper_receipt_requires_asymmetric_identity_by_default_batch125() -> No
         input_state_hash="in",
         output_state_hash="out",
         helper_id="h1",
-        hmac_secret="secret",
-        allow_legacy_hmac_secret=True,
+        receipt_secret="secret",
+        allow_legacy_receipt_secret=True,
         plan_id="plan-1",
     )
     assert verify_helper_receipt(

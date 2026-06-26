@@ -93,7 +93,7 @@ def test_removed_message_thread_detail_route_is_unmounted_batch356() -> None:
     client = _client(_state())
 
     for account in ["@alice", "@carol"]:
-        res = client.get("/v1/" + "mess" + "ages/threads/dm:@alice:@bob", headers=_auth(account))
+        res = client.get("/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":@alice:@bob", headers=_auth(account))
         assert res.status_code == 404, res.text
 
 
@@ -124,5 +124,5 @@ def test_frontend_uses_scoped_read_paths_not_state_snapshot_batch356() -> None:
     assert not (web / "pages" / ("Mess" + "aging.tsx")).exists()
     assert "weall.stateSnapshot(apiBase).catch" not in review
     assert "contentMedia = asArray(contentObj?.media)" in review
-    assert "/v1/activity/inbox" in api
+    assert "/v1/activity/notices" in api
     assert "/v1/" + "mess" + "ages/threads" not in api

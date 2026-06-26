@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Local controlled-devnet observer helper.
-# Watches the observer durable tx outbox, drains pending txs upstream, then
+# Watches the observer durable tx tx_queue, drains pending txs upstream, then
 # reconciles upstream-confirmed txs back into the local observer state. This is
 # intentionally an operator-side rehearsal helper, not consensus authority.
 
@@ -10,14 +10,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OBSERVER_API="${OBSERVER_API:-${NODE2_API:-http://127.0.0.1:8002}}"
 OBSERVER_OPERATOR_TOKEN="${WEALL_OBSERVER_EDGE_OPERATOR_TOKEN:-${WEALL_OPERATOR_TOKEN:-local-observer-operator-token}}"
 STATE_SYNC_TOKEN="${WEALL_STATE_SYNC_OPERATOR_TOKEN:-local-rehearsal-sync-token}"
-OUTBOX_PATH="${WEALL_TX_OUTBOX_PATH:-${WEALL_RUNTIME_DIR:-${REPO_ROOT}/data}/observer_tx_outbox.json}"
+TX_QUEUE_PATH="${WEALL_TX_QUEUE_PATH:-${WEALL_RUNTIME_DIR:-${REPO_ROOT}/data}/observer_tx_queue.json}"
 POLL_S="${WEALL_RECONCILE_POLL_S:-1.0}"
 MAX_IDLE="${WEALL_RECONCILE_MAX_IDLE:-0}"
 ONCE="${WEALL_RECONCILE_ONCE:-0}"
 
 cd "${REPO_ROOT}"
 
-python3 - <<'PY' "${OBSERVER_API}" "${OBSERVER_OPERATOR_TOKEN}" "${STATE_SYNC_TOKEN}" "${OUTBOX_PATH}" "${POLL_S}" "${MAX_IDLE}" "${ONCE}"
+python3 - <<'PY' "${OBSERVER_API}" "${OBSERVER_OPERATOR_TOKEN}" "${STATE_SYNC_TOKEN}" "${TX_QUEUE_PATH}" "${POLL_S}" "${MAX_IDLE}" "${ONCE}"
 from __future__ import annotations
 
 import json
@@ -28,9 +28,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-api, observer_token, sync_token, outbox_path, poll_s, max_idle, once = sys.argv[1:]
+api, observer_token, sync_token, tx_queue_path, poll_s, max_idle, once = sys.argv[1:]
 api = api.rstrip('/')
-outbox = Path(outbox_path)
+tx_queue = Path(tx_queue_path)
 poll = max(0.2, float(poll_s or '1.0'))
 max_idle_n = max(0, int(float(max_idle or '0')))
 run_once = str(once).strip().lower() in {'1', 'true', 'yes', 'on'}
@@ -61,11 +61,11 @@ def request(method: str, path: str, *, body: dict | None = None) -> tuple[int, d
 
 def read_rows() -> list[dict]:
     try:
-        data = json.loads(outbox.read_text(encoding='utf-8'))
+        data = json.loads(tx_queue.read_text(encoding='utf-8'))
     except FileNotFoundError:
         return []
     except Exception as exc:
-        print(f'WARN: cannot read observer outbox {outbox}: {exc}', flush=True)
+        print(f'WARN: cannot read observer tx queue {tx_queue}: {exc}', flush=True)
         return []
     rows = data.get('records') if isinstance(data, dict) else data
     return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
@@ -73,15 +73,15 @@ def read_rows() -> list[dict]:
 idle = 0
 next_reconcile_at: dict[str, float] = {}
 reconcile_attempts: dict[str, int] = {}
-print(f'==> observer reconcile loop api={api} outbox={outbox}', flush=True)
+print(f'==> observer reconcile loop api={api} tx_queue={tx_queue}', flush=True)
 while True:
     changed = False
     rows = read_rows()
     pending = [r for r in rows if str(r.get('upstream_status') or 'pending') not in {'confirmed'}]
     if pending:
-        status, body = request('POST', '/v1/observer/edge/outbox/drain')
+        status, body = request('POST', '/v1/observer/edge/tx-queue/drain')
         changed = changed or bool(body.get('ok'))
-        print(f'==> drain status={status} counts={body.get("outbox", {}).get("counts")}', flush=True)
+        print(f'==> drain status={status} counts={body.get("tx_queue", {}).get("counts")}', flush=True)
 
     for rec in read_rows():
         tx_id = str(rec.get('tx_id') or '').strip()
@@ -109,7 +109,7 @@ while True:
                 reconcile_attempts.pop(tx_id, None)
             else:
                 # Avoid hammering accepted-but-not-yet-confirmed rows into the
-                # API rate limiter.  The outbox still remains durable; this only
+                # API rate limiter.  The tx queue still remains durable; this only
                 # spaces local operator probes while genesis catches up.
                 attempts = int(reconcile_attempts.get(tx_id, 0)) + 1
                 reconcile_attempts[tx_id] = attempts

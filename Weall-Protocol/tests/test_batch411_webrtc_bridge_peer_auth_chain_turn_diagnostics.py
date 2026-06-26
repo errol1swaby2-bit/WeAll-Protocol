@@ -48,6 +48,6 @@ def test_webrtc_bridge_operator_diagnostics_batch411() -> None:
     assert "last_drain_result" in src
     assert "rejected_peers" in src
     assert "stale_signal_pruned" in src
-    assert "stale_outbox_pruned" in src
+    assert "stale_tx_queue_pruned" in src
     assert "max_record_pruned" in src
     assert "transport_only_operator_diagnostics" in src

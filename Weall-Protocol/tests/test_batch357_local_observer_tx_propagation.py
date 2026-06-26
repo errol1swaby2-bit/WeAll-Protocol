@@ -67,7 +67,7 @@ def test_local_observer_tx_submit_forwards_signed_envelope_to_upstream_batch357(
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(tmp_path / "outbox.json"))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tmp_path / "tx_queue.json"))
 
     _attach_executor(tmp_path)
     tx = _signed_account_register("@observer_edge_user")
@@ -109,7 +109,7 @@ def test_forwarded_observer_tx_does_not_loop_back_to_upstream_batch357(
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "0")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(tmp_path / "outbox.json"))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tmp_path / "tx_queue.json"))
 
     _attach_executor(tmp_path)
     tx = _signed_account_register("@observer_forwarded_user")
@@ -136,7 +136,7 @@ def test_required_upstream_failure_is_visible_to_local_frontend_batch357(
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(tmp_path / "outbox.json"))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tmp_path / "tx_queue.json"))
 
     _attach_executor(tmp_path)
     tx = _signed_account_register("@observer_edge_upstream_down")
@@ -172,8 +172,8 @@ def test_observer_edge_status_surfaces_upstream_posture_batch357(monkeypatch) ->
     assert body["upstream_required"] is True
     assert body["upstream_count"] == 2
     assert "https://genesis.example.test" in body["upstreams"]
-    assert "outbox" in body
-    assert "path" not in body["outbox"]
+    assert "tx_queue" in body
+    assert "path" not in body["tx_queue"]
 
 
 def test_onboarding_boot_wrapper_enables_local_observer_edge_mode_batch357() -> None:

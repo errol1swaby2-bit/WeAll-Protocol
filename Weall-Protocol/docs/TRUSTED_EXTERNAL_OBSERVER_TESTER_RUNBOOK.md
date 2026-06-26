@@ -16,7 +16,7 @@ The observer tester must not receive or configure:
 - named hosting-provider credentials
 - SMTP credentials
 - email oracle credentials
-- OAuth, CAPTCHA, KYC, DNS, or inbox-provider credentials
+- OAuth, CAPTCHA, KYC, DNS, or input_queue-provider credentials
 
 The only required trust material is the public chain manifest and public onboarding bundle.
 
@@ -162,7 +162,7 @@ The test is successful only if:
 - the observer submits signed onboarding txs to the genesis node
 - the genesis node includes the txs through normal mempool/block flow
 - receipts and committed state become visible to the observer
-- no email, SMTP, DNS, OAuth, CAPTCHA, KYC, named hosting-provider, or inbox-provider authority is required
+- no email, SMTP, DNS, OAuth, CAPTCHA, KYC, named hosting-provider, or input_queue-provider authority is required
 
 ## Hard stop conditions
 

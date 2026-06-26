@@ -158,12 +158,12 @@ class SeenCache:
 class GossipState:
     cfg: GossipConfig
     seen: SeenCache
-    outbox: set[tuple[str, str]]
+    tx_queue: set[tuple[str, str]]
 
     def __init__(self, cfg: GossipConfig) -> None:
         self.cfg = cfg
         self.seen = SeenCache(max_seen=cfg.max_seen, ttl_ms=cfg.ttl_ms)
-        self.outbox = set()
+        self.tx_queue = set()
 
 
 # ---------------------------------------------------------------------

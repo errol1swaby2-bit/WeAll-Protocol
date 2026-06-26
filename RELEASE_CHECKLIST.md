@@ -14,7 +14,7 @@ Before publishing an open-download public observer testnet build, verify all of 
 - `/v1/nodes/seeds` reports `seed_registry_signature_status.verified: true`.
 - `/v1/nodes/validators` reports active validators from protocol state and verified endpoint counts from signed endpoint advertisements.
 - The net loop peer store contains registry seed P2P URIs and signed validator P2P URIs; unsigned hints must not be auto-dialed.
-- `/v1/observer/edge/status` is visible in the local frontend and clearly separates local outbox state from upstream acceptance and confirmation.
+- `/v1/observer/edge/status` is visible in the local frontend and clearly separates local tx queue state from upstream acceptance and confirmation.
 - A process-level startup test proves validator/BFT loops are not constructed when raw env requests signing but the runtime authority contract does not make validator authority effective.
 - Public warnings are visible: resettable testnet, non-economic balances, open observer access, protocol-gated validator activation, no persistence guarantee across resets.
 
@@ -184,7 +184,7 @@ Confirm the repository has active GitHub Actions coverage for:
 
 - backend lint, dependency audit, lockfile verification, canon lint, generated-artifact check, tx coverage report, and pytest
 - web `npm ci`, typecheck, contract check, and production build using committed `web/package-lock.json`
-- Native async/live PoH checks, including no required email, SMTP, DNS, named hosting-provider, inbox, or external identity provider path
+- Native async/live PoH checks, including no required email, SMTP, DNS, named hosting-provider, input_queue, or external identity provider path
 
 ## 8. Known release policy
 

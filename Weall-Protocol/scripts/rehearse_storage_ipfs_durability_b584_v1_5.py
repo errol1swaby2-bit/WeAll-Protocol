@@ -16,12 +16,12 @@ def _cid(data: bytes) -> str:
     return "bafy" + hashlib.sha256(data).hexdigest()[:59]
 
 
-def _daemon(name: str, inbox: mp.Queue, outbox: mp.Queue, root: str) -> None:
+def _daemon(name: str, input_queue: mp.Queue, tx_queue: mp.Queue, root: str) -> None:
     base = Path(root) / name
     base.mkdir(parents=True, exist_ok=True)
     pins: set[str] = set()
     while True:
-        cmd = inbox.get()
+        cmd = input_queue.get()
         op = str(cmd.get("op") or "")
         if op == "stop":
             break
@@ -30,37 +30,37 @@ def _daemon(name: str, inbox: mp.Queue, outbox: mp.Queue, root: str) -> None:
             data = bytes.fromhex(str(cmd["data_hex"]))
             cid = _cid(data)
             (base / cid).write_bytes(data)
-            outbox.put({"operator": name, "op": op, "ok": True, "cid": cid})
+            tx_queue.put({"operator": name, "op": op, "ok": True, "cid": cid})
         elif op == "pin":
             ok = bool(cid and (base / cid).is_file())
             if ok:
                 pins.add(cid)
-            outbox.put({"operator": name, "op": op, "ok": ok, "cid": cid})
+            tx_queue.put({"operator": name, "op": op, "ok": ok, "cid": cid})
         elif op == "replicate":
             data = bytes.fromhex(str(cmd["data_hex"]))
             if cid:
                 (base / cid).write_bytes(data)
                 pins.add(cid)
-            outbox.put({"operator": name, "op": op, "ok": bool(cid), "cid": cid})
+            tx_queue.put({"operator": name, "op": op, "ok": bool(cid), "cid": cid})
         elif op == "cat":
             p = base / cid
             ok = bool(cid in pins and p.is_file())
             digest = hashlib.sha256(p.read_bytes()).hexdigest() if ok else ""
-            outbox.put({"operator": name, "op": op, "ok": ok, "cid": cid, "sha256": digest})
+            tx_queue.put({"operator": name, "op": op, "ok": ok, "cid": cid, "sha256": digest})
         else:
-            outbox.put({"operator": name, "op": op, "ok": False, "cid": cid, "error": "unknown_op"})
+            tx_queue.put({"operator": name, "op": op, "ok": False, "cid": cid, "error": "unknown_op"})
 
 
-def _get(outbox: mp.Queue) -> Json:
-    return outbox.get(timeout=3.0)
+def _get(tx_queue: mp.Queue) -> Json:
+    return tx_queue.get(timeout=3.0)
 
 
 def run_harness() -> Json:
     operators = ["op-a", "op-b", "op-c"]
     with tempfile.TemporaryDirectory(prefix="weall-b584-ipfs-daemons-") as td:
-        outbox: mp.Queue = mp.Queue()
-        inboxes = {op: mp.Queue() for op in operators}
-        procs = {op: mp.Process(target=_daemon, args=(op, inboxes[op], outbox, td), daemon=True) for op in operators}
+        tx_queue: mp.Queue = mp.Queue()
+        input_queuees = {op: mp.Queue() for op in operators}
+        procs = {op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True) for op in operators}
         for proc in procs.values():
             proc.start()
         try:
@@ -71,28 +71,28 @@ def run_harness() -> Json:
             corrupt_operator = "op-b"
             replacement = "op-c"
 
-            inboxes[source].put({"op": "add", "data_hex": data.hex()})
-            add_result = _get(outbox)
+            input_queuees[source].put({"op": "add", "data_hex": data.hex()})
+            add_result = _get(tx_queue)
             cid = str(add_result["cid"])
-            inboxes[source].put({"op": "pin", "cid": cid})
-            source_pin = _get(outbox)
+            input_queuees[source].put({"op": "pin", "cid": cid})
+            source_pin = _get(tx_queue)
 
-            inboxes[replacement].put({"op": "cat", "cid": "bafy" + "0" * 59})
-            wrong_cid_cat = _get(outbox)
+            input_queuees[replacement].put({"op": "cat", "cid": "bafy" + "0" * 59})
+            wrong_cid_cat = _get(tx_queue)
 
-            inboxes[corrupt_operator].put({"op": "replicate", "cid": cid, "data_hex": corrupt.hex()})
-            corrupt_repl = _get(outbox)
-            inboxes[corrupt_operator].put({"op": "cat", "cid": cid})
-            corrupt_cat = _get(outbox)
+            input_queuees[corrupt_operator].put({"op": "replicate", "cid": cid, "data_hex": corrupt.hex()})
+            corrupt_repl = _get(tx_queue)
+            input_queuees[corrupt_operator].put({"op": "cat", "cid": cid})
+            corrupt_cat = _get(tx_queue)
             corrupt_content_rejected = bool(corrupt_cat.get("ok") and corrupt_cat.get("sha256") != expected_sha)
 
             procs[corrupt_operator].terminate()
             procs[corrupt_operator].join(timeout=1.0)
 
-            inboxes[replacement].put({"op": "replicate", "cid": cid, "data_hex": data.hex()})
-            replacement_repl = _get(outbox)
-            inboxes[replacement].put({"op": "cat", "cid": cid})
-            replacement_cat = _get(outbox)
+            input_queuees[replacement].put({"op": "replicate", "cid": cid, "data_hex": data.hex()})
+            replacement_repl = _get(tx_queue)
+            input_queuees[replacement].put({"op": "cat", "cid": cid})
+            replacement_cat = _get(tx_queue)
             retrieval_ok = bool(replacement_cat.get("ok") and replacement_cat.get("sha256") == expected_sha)
 
             ok = bool(
@@ -135,7 +135,7 @@ def run_harness() -> Json:
                 "automatic_evidence_deletion_claimed": False,
             }
         finally:
-            for q in inboxes.values():
+            for q in input_queuees.values():
                 try:
                     q.put({"op": "stop"})
                 except Exception:

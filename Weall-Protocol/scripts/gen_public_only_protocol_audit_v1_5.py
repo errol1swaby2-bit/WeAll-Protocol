@@ -27,7 +27,7 @@ TERMS = [
     "members_only",
     "member_only_read",
     "recipient_public_key",
-    "hmac_secret",
+    "shared_secret",
     "e2ee",
     "end_to_end",
     "whisper",
@@ -66,9 +66,8 @@ def _term_pattern(term: str) -> re.Pattern[str]:
     # unrelated identifiers like ``admin`` or ``messengerChatButton``; doing so
     # makes the audit look noisier than the actual protocol surface.
     #
-    # Use alphanumeric boundaries instead of ``\b`` so snake_case API paths such
-    # as ``activity/inbox`` and ``observer_outbox`` still count, while ordinary
-    # words containing the token do not.
+    # Use alphanumeric boundaries instead of ``\b`` so path and snake_case
+    # occurrences still count, while ordinary words containing the token do not.
     return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
 
 
@@ -104,7 +103,7 @@ def build_payload() -> dict[str, object]:
     inventory = scan()
     removed_surfaces = [
         "Legacy person-to-person protocol communication tx names are no longer canonical.",
-        "Legacy thread read routes are unmounted; public notices use /v1/activity/inbox.",
+        "Legacy thread read routes are unmounted; public notices use /v1/activity/notices.",
         "Frontend communication pages, cryptographic communication helpers, and key bootstrappers are removed.",
         "Group read visibility is forced public; non-public and member-only read settings are rejected.",
         "Account feed and scoped content compatibility reads do not expose owner-only or member-only archives.",
@@ -119,7 +118,7 @@ def build_payload() -> dict[str, object]:
         ],
         "removed_legacy_tx_names": ["person_to_person_send", "person_to_person_redact"],
         "public_activity_contract": {
-            "route": "/v1/activity/inbox",
+            "route": "/v1/activity/notices",
             "source": "public_protocol_events",
             "allowed_notice_types": [
                 "mention",
@@ -160,9 +159,9 @@ def build_payload() -> dict[str, object]:
                 "reason": "Raw identity-verification evidence is session scoped while public consensus surfaces expose commitments, receipts, status, and review outcomes. It must not create private groups, private messages, or hidden social/governance/reputation meaning.",
             },
             {
-                "surface": "observer tx outbox",
-                "classification": "transaction_propagation_queue_not_user_message_outbox",
-                "reason": "Observer outbox rows are durable tx forwarding records and are not user-to-user communication threads.",
+                "surface": "observer tx queue",
+                "classification": "transaction_propagation_queue_not_user_message_tx_queue",
+                "reason": "Observer tx queue rows are durable tx forwarding records and are not user-to-user communication threads.",
             },
             {
                 "surface": "helper HMAC-secret compatibility",
@@ -179,8 +178,8 @@ def build_payload() -> dict[str, object]:
                 "tests that assert encrypted/private payload rejection",
                 "frontend guards that fail if removed communication modules return",
             ],
-            "public_activity_terms": ["/v1/activity/inbox is public-event-derived"],
-            "non_social_transport_terms": ["net/messages.py packet messages", "helper hmac_secret receipt signatures"],
+            "public_activity_terms": ["/v1/activity/notices is public-event-derived"],
+            "non_social_transport_terms": ["net/messages.py packet messages", "helper receipt_secret receipt signatures"],
             "non_social_identity_evidence_terms": ["reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social/private-group surface"],
         },
         "adversarial_bypass_checks": [

@@ -134,7 +134,7 @@ Expected results:
 
 - `/v1/nodes/seeds` returns `public_testnet: true`, `registry_source_kind`, signed registry status, and the pinned chain/genesis/profile commitments.
 - `/v1/nodes/validators` returns active validator accounts from protocol state and separates verified endpoints from unverified hints.
-- `/v1/observer/edge/status` separates local outbox state from upstream validator acceptance/confirmation.
+- `/v1/observer/edge/status` separates local tx queue state from upstream validator acceptance/confirmation.
 - `/v1/chain/identity` matches the seed registry commitments.
 
 ## Frontend public observer build
@@ -159,7 +159,7 @@ The Node Dashboard must show:
 - active validators from `/v1/nodes/validators`
 - verified validator endpoint counts
 - observer-edge upstream count
-- local outbox count
+- local tx queue count
 - upstream accepted and confirmed counts
 
 ## Public observer launch gate

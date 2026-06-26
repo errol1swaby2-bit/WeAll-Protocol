@@ -270,7 +270,7 @@ async function waitForSubmittedTxVisible(
         return true;
       }
     } catch {
-      // The observer may not know the tx immediately while the durable outbox
+      // The observer may not know the tx immediately while the durable tx_queue
       // forwards it upstream. Keep polling until the bounded wait expires.
     }
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
@@ -796,7 +796,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // signer sequence.  This prevents the observer-edge UI from reusing
           // stale local nonce reservations between request-open, evidence
           // declaration, and evidence binding while still keeping each step as a
-          // normal signed protocol tx forwarded through the observer outbox.
+          // normal signed protocol tx forwarded through the observer tx queue.
           const sequence = await beginNonceSequence(acct, base);
           const openedAtMs = Date.now();
 

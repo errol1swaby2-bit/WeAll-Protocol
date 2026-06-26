@@ -143,7 +143,7 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 export WEALL_OBSERVER_EDGE_MODE=1
 export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
 export WEALL_DB_PATH="${RUNTIME_DIR}/observer.db"
-export WEALL_TX_OUTBOX_PATH="${RUNTIME_DIR}/observer_tx_outbox.json"
+export WEALL_TX_QUEUE_PATH="${RUNTIME_DIR}/observer_tx_queue.json"
 export WEALL_API_HOST="${API_HOST}"
 export WEALL_API_PORT="${API_PORT}"
 # Batch 477: bridge tester-selected API port into the runtime bind variable.

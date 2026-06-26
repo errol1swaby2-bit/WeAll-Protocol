@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "0c8fc1da588356e49b2f7776b4c2197cd6d28acb7d59ae74b5565628bb22b62b",
+  "artifact_digest": "2216043c09c9626257d80847d4ed9a7ecc914f3e0b55c0f3cb215e3240a6f01e",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -81,14 +81,14 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "d22bae2a7760144c0800198526104aecfc9015ef8556d64481c13069949e801f",
+      "file_sha256": "0273e5953f6e3ee7d17da15d8b89f7cdd40b59f272222e0ae8470fdf383c473a",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
       "schema": "weall.api_contract_map.v1_5"
     },
     "generated/api_response_vectors_v1_5.json": {
-      "file_sha256": "581ed2eccd3d70ccad038e0003875bbb96d9fd024d950a3ac52fb8293438b816",
+      "file_sha256": "2e5c7faca0b071941e0e2acb5ee482eaa25b6e5d2eebd6b6b6cda8fb829270f4",
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
@@ -102,7 +102,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "b85e309933ddfba980520e059183c37f774b39c03641eb4baca5c7a436858d81",
+      "file_sha256": "7544ef9a94edce374131c72de9e9a8dec2acb115bc90b4e4b6ebc55b5ce03fc8",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "3176c897e8b90de24650c791e6199e06460c5552699ccd0e585b074bb59f53cb",
+      "file_sha256": "a074c5d5b2bb57da7e048447656ca4f25de6c62c647aab85ee31f58fe69314b3",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -130,7 +130,7 @@
       "schema": "weall.v1_5.public_discovery_provider_independence"
     },
     "generated/public_frontend_operator_journey_v1_5.json": {
-      "file_sha256": "a2038962ddadea89fb4be3bb875653b0a981c9339dc6ea7aab9604d78896c856",
+      "file_sha256": "3618ce7f69a459c968dfca84b49afa43171f926d35a54661dd4dd4a609cfd4e8",
       "ok": true,
       "path": "generated/public_frontend_operator_journey_v1_5.json",
       "present": true,
@@ -151,7 +151,7 @@
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "04a8b61253a4746561edd266052d57bc15180d1cf32ee557a5668d5af079990a",
+      "file_sha256": "ed5824f3959c891562504541c809f9f51eb4dc4533c0d30d6ba6b4bde97c9b05",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "7dac9639dcf7d31ad1bc4791557a438c89e269496b426783567b2c1fb9c50ae8",
+      "file_sha256": "740a1ae0018bce384291bd83cf25b7eedfa6f681485804ac6c4cf3970538fe79",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

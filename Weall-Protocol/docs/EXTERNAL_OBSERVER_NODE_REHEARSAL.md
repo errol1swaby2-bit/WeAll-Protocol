@@ -18,7 +18,7 @@ The observer is useful but non-authoritative:
 - it cannot receive genesis, validator, or authority private keys
 - relay/rendezvous is transport only and is not consensus authority
 
-No email, SMTP, DNS, OAuth, CAPTCHA, KYC, or named hosting-provider dependency, inbox provider, or external
+No email, SMTP, DNS, OAuth, CAPTCHA, KYC, or named hosting-provider dependency, input_queue provider, or external
 identity provider is required for observer onboarding.
 
 ## Machine A — Genesis/bootstrap node

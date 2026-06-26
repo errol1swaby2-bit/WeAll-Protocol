@@ -56,17 +56,17 @@ def _client(tmp_path: Path) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def _read_outbox(path: Path) -> dict[str, Any]:
+def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_observer_submit_is_nonblocking_and_queues_outbox_batch361(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+def test_observer_submit_is_nonblocking_and_queues_tx_queue_batch361(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
 
     def should_not_call(_req, timeout=0):  # noqa: ANN001
         raise AssertionError("submit should not synchronously contact upstream by default")
@@ -81,20 +81,20 @@ def test_observer_submit_is_nonblocking_and_queues_outbox_batch361(tmp_path: Pat
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["tx_id"] == tx_id
-    assert body["upstream_propagation"]["mode"] == "durable_outbox"
+    assert body["upstream_propagation"]["mode"] == "durable_tx_queue"
     assert body["upstream_propagation"]["attempted"] is False
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert len(stored["records"]) == 1
     assert stored["records"][0]["tx_id"] == tx_id
     assert stored["records"][0]["attempts"] == 0
 
 
-def test_observer_operator_routes_require_token_and_redact_outbox_path_batch361(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+def test_observer_operator_routes_require_token_and_redact_tx_queue_path_batch361(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
     with _client(tmp_path) as client:
@@ -102,18 +102,18 @@ def test_observer_operator_routes_require_token_and_redact_outbox_path_batch361(
         assert denied.status_code == 403
         allowed = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"})
         assert allowed.status_code == 200, allowed.text
-        outbox_status = allowed.json()["outbox"]
-        assert "path" not in outbox_status
-        assert "count" in outbox_status
+        tx_queue_status = allowed.json()["tx_queue"]
+        assert "path" not in tx_queue_status
+        assert "count" in tx_queue_status
 
 
 def test_observer_drain_verifies_upstream_identity_before_forwarding_batch361(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
     tx = _signed_account_register("@observer_361_identity")
@@ -132,46 +132,46 @@ def test_observer_drain_verifies_upstream_identity_before_forwarding_batch361(tm
 
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", fake_urlopen)
     with _client(tmp_path) as client:
-        drained = client.post("/v1/observer/edge/outbox/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
 
     assert drained.status_code == 200, drained.text
     result = drained.json()["result"]["results"][0]["results"][0]
     assert result["error"] == "upstream_chain_id_mismatch"
     assert calls == ["https://genesis.example.test/v1/chain/identity"]
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert stored["records"][0]["tx_id"] == tx_id
     assert stored["records"][0]["upstream_status"] == "pending"
 
 
-def test_observer_outbox_quarantines_corrupt_json_batch361(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
-    outbox.write_text("{not-json", encoding="utf-8")
+def test_observer_tx_queue_quarantines_corrupt_json_batch361(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "tx_queue.json"
+    tx_queue.write_text("{not-json", encoding="utf-8")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
     with _client(tmp_path) as client:
         res = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"})
 
     assert res.status_code == 200, res.text
-    assert res.json()["outbox"]["count"] == 0
-    quarantined = list(tmp_path.glob("outbox.json.corrupt.*"))
-    assert quarantined, "corrupt outbox should be quarantined instead of silently reused"
+    assert res.json()["tx_queue"]["count"] == 0
+    quarantined = list(tmp_path.glob("tx_queue.json.corrupt.*"))
+    assert quarantined, "corrupt tx_queue should be quarantined instead of silently reused"
 
 
-def test_observer_outbox_prunes_to_configured_record_limit_batch361(tmp_path: Path, monkeypatch) -> None:
-    outbox = tmp_path / "outbox.json"
+def test_observer_tx_queue_prunes_to_configured_record_limit_batch361(tmp_path: Path, monkeypatch) -> None:
+    tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "0")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_MAX_RECORDS", "2")
-    monkeypatch.setenv("WEALL_TX_OUTBOX_PATH", str(outbox))
+    monkeypatch.setenv("WEALL_TX_QUEUE_MAX_RECORDS", "2")
+    monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
 
     with _client(tmp_path) as client:
         for idx in range(3):
             res = client.post("/v1/tx/submit", json=_signed_account_register(f"@observer_361_prune_{idx}"))
             assert res.status_code == 200, res.text
 
-    stored = _read_outbox(outbox)
+    stored = _read_tx_queue(tx_queue)
     assert len(stored["records"]) == 2
     assert {r["tx_id"] for r in stored["records"]}

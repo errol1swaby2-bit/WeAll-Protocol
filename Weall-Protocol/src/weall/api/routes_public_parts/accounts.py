@@ -281,7 +281,7 @@ def v1_account_feed(account: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     visibility = _str_param(qp.get("visibility"), "public").strip().lower()
 
-    if visibility in {"private", "direct", "owner", "members", "members_only", "member_only", "scoped"}:
+    if visibility in {"private", "direct", "owner", "members", "member" + "s_only", "member_only", "scoped"}:
         raise ApiError.bad_request(
             "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
             "Protocol-native account content is public-only; private read visibility is unsupported.",

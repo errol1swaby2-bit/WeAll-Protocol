@@ -1555,7 +1555,7 @@ def _webrtc_bridge_diag() -> Json:
     diag.setdefault("last_drain_result", {})
     diag.setdefault("rejected_peers", {})
     diag.setdefault("stale_signal_pruned", 0)
-    diag.setdefault("stale_outbox_pruned", 0)
+    diag.setdefault("stale_tx_queue_pruned", 0)
     diag.setdefault("max_record_pruned", 0)
     return diag
 
@@ -1835,16 +1835,16 @@ def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
     return payload
 
 
-def _webrtc_signal_outbox_path() -> Path:
-    raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_OUTBOX_PATH") or "").strip()
+def _webrtc_signal_queue_path() -> Path:
+    raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw)
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_outbox.json"
+    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
 
 
-def _webrtc_signal_outbox_lock():
-    path = _webrtc_signal_outbox_path()
-    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_OUTBOX_LOCKS", {})
+def _webrtc_signal_queue_lock():
+    path = _webrtc_signal_queue_path()
+    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_QUEUE_LOCKS", {})
     lock = locks.get(str(path))
     if lock is None:
         lock = threading.Lock()
@@ -1852,8 +1852,8 @@ def _webrtc_signal_outbox_lock():
     return lock
 
 
-def _load_webrtc_signal_outbox_unlocked() -> list[Json]:
-    path = _webrtc_signal_outbox_path()
+def _load_webrtc_signal_queue_unlocked() -> list[Json]:
+    path = _webrtc_signal_queue_path()
     if not path.exists():
         return []
     try:
@@ -1868,30 +1868,30 @@ def _load_webrtc_signal_outbox_unlocked() -> list[Json]:
     return data if isinstance(data, list) else []
 
 
-def _write_webrtc_signal_outbox_unlocked(rows: list[Json]) -> None:
-    path = _webrtc_signal_outbox_path()
+def _write_webrtc_signal_queue_unlocked(rows: list[Json]) -> None:
+    path = _webrtc_signal_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    max_rows = max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024))
-    ttl_ms = max(10_000, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_TTL_MS", _webrtc_signal_ttl_ms()))
+    max_rows = max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024))
+    ttl_ms = max(10_000, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_TTL_MS", _webrtc_signal_ttl_ms()))
     now = _now_ms()
     clean: list[Json] = []
     seen: set[str] = set()
-    stale_outbox_pruned = 0
+    stale_tx_queue_pruned = 0
     for row in rows:
         if not isinstance(row, dict):
             continue
         created = int(row.get("created_ms") or 0)
         if created and now - created > ttl_ms:
-            stale_outbox_pruned += 1
+            stale_tx_queue_pruned += 1
             continue
-        key = str(row.get("outbox_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
+        key = str(row.get("tx_queue_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
         if key in seen:
             continue
         seen.add(key)
         clean.append(row)
-    if stale_outbox_pruned:
+    if stale_tx_queue_pruned:
         diag = _webrtc_bridge_diag()
-        diag["stale_outbox_pruned"] = int(diag.get("stale_outbox_pruned") or 0) + stale_outbox_pruned
+        diag["stale_tx_queue_pruned"] = int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned
     overflow_pruned = max(0, len(clean) - max_rows)
     if overflow_pruned:
         diag = _webrtc_bridge_diag()
@@ -1902,20 +1902,20 @@ def _write_webrtc_signal_outbox_unlocked(rows: list[Json]) -> None:
     tmp.replace(path)
 
 
-def _read_webrtc_signal_outbox() -> list[Json]:
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
-        _write_webrtc_signal_outbox_unlocked(rows)
-        return _load_webrtc_signal_outbox_unlocked()
+def _read_webrtc_signal_queue() -> list[Json]:
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
+        _write_webrtc_signal_queue_unlocked(rows)
+        return _load_webrtc_signal_queue_unlocked()
 
 
 def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
     specs = _webrtc_signal_peer_specs()
     if not specs:
-        return {"attempted": False, "queued": 0, "mode": "durable_outbox", "results": []}
+        return {"attempted": False, "queued": 0, "mode": "durable_tx_queue", "results": []}
     created = _now_ms()
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
         queued = 0
         for spec in specs:
             url = str(spec.get("url") or "").strip()
@@ -1923,11 +1923,11 @@ def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
             if not url or not node_id:
                 continue
             payload = _bridge_payload_for_signal(rec, spec)
-            outbox_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
-            if any(isinstance(r, dict) and r.get("outbox_id") == outbox_id for r in rows):
+            tx_queue_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
+            if any(isinstance(r, dict) and r.get("tx_queue_id") == tx_queue_id for r in rows):
                 continue
             rows.append({
-                "outbox_id": outbox_id,
+                "tx_queue_id": tx_queue_id,
                 "peer_url": url,
                 "peer_node_id": node_id,
                 "peer_chain_id": str(spec.get("chain_id") or _webrtc_chain_id()),
@@ -1938,11 +1938,11 @@ def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
                 "last_error": "",
             })
             queued += 1
-        _write_webrtc_signal_outbox_unlocked(rows)
-    return {"attempted": bool(specs), "queued": queued, "mode": "durable_outbox", "results": []}
+        _write_webrtc_signal_queue_unlocked(rows)
+    return {"attempted": bool(specs), "queued": queued, "mode": "durable_tx_queue", "results": []}
 
 
-def _post_webrtc_signal_outbox_row(row: Json, *, timeout_s: int) -> Json:
+def _post_webrtc_signal_queue_row(row: Json, *, timeout_s: int) -> Json:
     url = str(row.get("peer_url") or "").strip()
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     signal = payload.get("signal") if isinstance(payload.get("signal"), dict) else {}
@@ -1978,13 +1978,13 @@ def _post_webrtc_signal_outbox_row(row: Json, *, timeout_s: int) -> Json:
         return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:160], "peer": _redact_webrtc_peer_url(url)}
 
 
-def _drain_webrtc_signal_outbox(*, limit: int | None = None) -> Json:
-    limit_n = max(1, int(limit or _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_DRAIN_BATCH", 32)))
+def _drain_webrtc_signal_queue(*, limit: int | None = None) -> Json:
+    limit_n = max(1, int(limit or _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_DRAIN_BATCH", 32)))
     timeout_s = max(1, _env_int("WEALL_WEBRTC_SIGNAL_PEER_TIMEOUT_S", 3))
     results: list[Json] = []
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
-        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024)):]
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
+        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024)):]
         keep: list[Json] = []
         selected = 0
         for row in rows:
@@ -1992,15 +1992,15 @@ def _drain_webrtc_signal_outbox(*, limit: int | None = None) -> Json:
                 keep.append(row)
                 continue
             selected += 1
-            result = _post_webrtc_signal_outbox_row(row, timeout_s=timeout_s)
+            result = _post_webrtc_signal_queue_row(row, timeout_s=timeout_s)
             results.append(result)
             if not bool(result.get("ok")):
                 row["attempts"] = int(row.get("attempts") or 0) + 1
                 row["last_error"] = str(result.get("error") or "peer_rejected")
-                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ATTEMPTS", 5)):
+                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ATTEMPTS", 5)):
                     keep.append(row)
-        _write_webrtc_signal_outbox_unlocked(keep)
-    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_outbox()), "results": results}
+        _write_webrtc_signal_queue_unlocked(keep)
+    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_queue()), "results": results}
     diag = _webrtc_bridge_diag()
     diag["last_drain_result"] = summary
     diag["last_drain_ms"] = _now_ms()
@@ -2032,7 +2032,7 @@ def start_webrtc_signal_bridge_autodrain() -> threading.Thread | None:
     def _loop() -> None:
         while not stop.is_set():
             try:
-                _drain_webrtc_signal_outbox()
+                _drain_webrtc_signal_queue()
             except Exception:
                 pass
             stop.wait(_webrtc_signal_bridge_interval_s())
@@ -2223,7 +2223,7 @@ def poh_live_webrtc_relay_config() -> PohLiveWebRTCRelayConfigResponse:
 def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
     _require_webrtc_bridge_operator(request)
     diag = dict(_webrtc_bridge_diag())
-    rows = _read_webrtc_signal_outbox()
+    rows = _read_webrtc_signal_queue()
     diag.update({
         "ok": True,
         "authority": "transport_only_operator_diagnostics",
@@ -2235,10 +2235,10 @@ def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
     return diag
 
 
-@router.post("/poh/live/webrtc/signals/outbox/drain")
-def poh_live_webrtc_signal_outbox_drain(request: Request, limit: int | None = None) -> Json:
+@router.post("/poh/live/webrtc/signals/queue/drain")
+def poh_live_webrtc_signal_queue_drain(request: Request, limit: int | None = None) -> Json:
     _require_webrtc_bridge_operator(request)
-    return _drain_webrtc_signal_outbox(limit=limit)
+    return _drain_webrtc_signal_queue(limit=limit)
 
 @router.get(
     "/poh/live/session/{session_id}/webrtc/signals",
