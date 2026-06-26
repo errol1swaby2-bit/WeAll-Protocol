@@ -68,7 +68,7 @@ Before enabling signing, validators should verify:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **234 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, SMTP, DNS, or named hosting provider is part of PoH authority.

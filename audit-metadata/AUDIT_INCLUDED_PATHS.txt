@@ -10,12 +10,6 @@ README.md
 RELEASE_CHECKLIST.md
 SECURITY.md
 Weall-Protocol/.gitignore
-Weall-Protocol/.weall-media-cache/57/57ad21f1131a1ce0bbc8068f1c4e2397a7782a2a8281681105b5c83af77b7127.bin
-Weall-Protocol/.weall-media-cache/57/57ad21f1131a1ce0bbc8068f1c4e2397a7782a2a8281681105b5c83af77b7127.bin.meta.json
-Weall-Protocol/.weall-media-cache/73/734dbdb477d3538cd0ac7802be0bc20bd7b38d7d96056cb47bf7516b87d68cbc.bin
-Weall-Protocol/.weall-media-cache/73/734dbdb477d3538cd0ac7802be0bc20bd7b38d7d96056cb47bf7516b87d68cbc.bin.meta.json
-Weall-Protocol/.weall-media-cache/f2/f2c60e8f9cef8f46b0e61ffa1f8fa8db2d1f043288bbfa027b9ee0f1baebd896.bin
-Weall-Protocol/.weall-media-cache/f2/f2c60e8f9cef8f46b0e61ffa1f8fa8db2d1f043288bbfa027b9ee0f1baebd896.bin.meta.json
 Weall-Protocol/Dockerfile
 Weall-Protocol/FRESH_MACHINE_BOOTSTRAP_REHEARSAL.md
 Weall-Protocol/README.md
@@ -42,6 +36,12 @@ Weall-Protocol/docker-compose.yml
 Weall-Protocol/docs/ACCOUNT_CUSTODY_AND_RECOVERY.md
 Weall-Protocol/docs/ADVERSARIAL_TEST_PLAN.md
 Weall-Protocol/docs/API_CONTRACT_MAP_V1_5.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0001-public-only-protocol-surface.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0002-remove-protocol-native-private-messaging.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0003-public-group-visibility-member-gated-participation.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0004-observer-to-validator-promotion-model.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0005-public-testnet-bootstrap-seed-discovery.md
+Weall-Protocol/docs/ARCHITECTURE_DECISIONS/0006-local-only-secrets-export-hygiene.md
 Weall-Protocol/docs/BATCH3_CATCHUP_AND_EPOCH_NOTES.md
 Weall-Protocol/docs/BLOCK_PRODUCTION_PROOF_GATE.md
 Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md
@@ -56,6 +56,7 @@ Weall-Protocol/docs/EXTERNAL_OBSERVER_BUNDLE_RUNBOOK.md
 Weall-Protocol/docs/EXTERNAL_OBSERVER_NODE_REHEARSAL.md
 Weall-Protocol/docs/FIRST_EXTERNAL_OBSERVER_TEST.md
 Weall-Protocol/docs/FIRST_PROMOTED_VALIDATOR_TWO_MACHINE_TEST.md
+Weall-Protocol/docs/GENERATED_ARTIFACTS.md
 Weall-Protocol/docs/HEALTHY_NODE_ACCESS.md
 Weall-Protocol/docs/KNOWN_LIMITATIONS.md
 Weall-Protocol/docs/LAUNCH_DISABLED_FEATURE_MATRIX.md
@@ -68,7 +69,7 @@ Weall-Protocol/docs/MECHANICS_B528_B532_COMPLETION_BATCH.md
 Weall-Protocol/docs/MECHANICS_B534_B538_COMPLETION_BATCH.md
 Weall-Protocol/docs/MECHANICS_B539_B543_PRODUCTION_PATH_BATCH.md
 Weall-Protocol/docs/MECHANICS_B544_B548_LIVE_NETWORK_FINALIZATION_BATCH.md
-Weall-Protocol/docs/MECHANICS_B549_B553_PRIVATE_TESTNET_CANDIDATE_BATCH.md
+Weall-Protocol/docs/MECHANICS_B549_B553_CONTROLLED_TESTNET_CANDIDATE_BATCH.md
 Weall-Protocol/docs/MECHANICS_B562_B566_HARDENING_BATCH.md
 Weall-Protocol/docs/MECHANICS_M1_M10_IMPLEMENTATION_BATCH.md
 Weall-Protocol/docs/NATIVE_POH_BOOTSTRAP_LIMITS.md
@@ -78,6 +79,7 @@ Weall-Protocol/docs/PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md
 Weall-Protocol/docs/PRODUCTION_POSTURE.md
 Weall-Protocol/docs/PRODUCTION_RELAY_NETWORK_RUNBOOK.md
 Weall-Protocol/docs/PRODUCTION_RUNBOOK_VALIDATORS.md
+Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md
 Weall-Protocol/docs/PROMOTED_OBSERVER_TO_VALIDATOR_RUNBOOK.md
 Weall-Protocol/docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md
 Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md
@@ -150,7 +152,7 @@ Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
 Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
 Weall-Protocol/generated/b539_b543_production_path_proof_v1_5.json
 Weall-Protocol/generated/b544_b548_live_network_final_proof_v1_5.json
-Weall-Protocol/generated/b549_b553_private_testnet_candidate_proof_v1_5.json
+Weall-Protocol/generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json
 Weall-Protocol/generated/b556_b561_final_missing_mechanics_proof_v1_5.json
 Weall-Protocol/generated/b562_b566_mechanics_hardening_proof_v1_5.json
 Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
@@ -294,7 +296,7 @@ Weall-Protocol/scripts/gen_b528_b532_completion_proof_v1_5.py
 Weall-Protocol/scripts/gen_b534_b538_completion_proof_v1_5.py
 Weall-Protocol/scripts/gen_b539_b543_production_path_proof_v1_5.py
 Weall-Protocol/scripts/gen_b544_b548_live_network_final_proof_v1_5.py
-Weall-Protocol/scripts/gen_b549_b553_private_testnet_candidate_proof_v1_5.py
+Weall-Protocol/scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py
 Weall-Protocol/scripts/gen_b556_b561_final_missing_mechanics_proof_v1_5.py
 Weall-Protocol/scripts/gen_b562_b566_mechanics_hardening_proof_v1_5.py
 Weall-Protocol/scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
@@ -390,6 +392,7 @@ Weall-Protocol/scripts/rehearse_b577_b581.sh
 Weall-Protocol/scripts/rehearse_batch616_release_blocker_closure_v1_5.py
 Weall-Protocol/scripts/rehearse_bft_adversarial_v1_5.py
 Weall-Protocol/scripts/rehearse_containerized_validator_network_v1_5.py
+Weall-Protocol/scripts/rehearse_controlled_validator_network_completion_v1_5.py
 Weall-Protocol/scripts/rehearse_db_backed_fresh_node_replay_sync_v1_5.py
 Weall-Protocol/scripts/rehearse_economics_activation_locked_completion_v1_5.py
 Weall-Protocol/scripts/rehearse_economics_farming_simulation_locked_v1_5.py
@@ -404,7 +407,7 @@ Weall-Protocol/scripts/rehearse_fresh_node_catchup_autonomous_network_v1_5.py
 Weall-Protocol/scripts/rehearse_fresh_node_replay_sync_v1_5.py
 Weall-Protocol/scripts/rehearse_fresh_node_state_sync_v1_5.py
 Weall-Protocol/scripts/rehearse_fresh_node_sync_completion_v1_5.py
-Weall-Protocol/scripts/rehearse_full_node_process_private_validator_v1_5.py
+Weall-Protocol/scripts/rehearse_full_node_process_controlled_validator_v1_5.py
 Weall-Protocol/scripts/rehearse_fully_api_driven_v15_lifecycle.py
 Weall-Protocol/scripts/rehearse_genesis_observer_promoted_validator_mempool_v1_5.py
 Weall-Protocol/scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py
@@ -428,7 +431,6 @@ Weall-Protocol/scripts/rehearse_multimachine_storage_ipfs_durability_b591_v1_5.p
 Weall-Protocol/scripts/rehearse_multiprocess_ipfs_operator_durability_v1_5.py
 Weall-Protocol/scripts/rehearse_poh_challenge_public_write_v1_5.py
 Weall-Protocol/scripts/rehearse_poh_dispute_adversarial_accountability_v1_5.py
-Weall-Protocol/scripts/rehearse_private_validator_network_completion_v1_5.py
 Weall-Protocol/scripts/rehearse_production_bft_path_v1_5.py
 Weall-Protocol/scripts/rehearse_production_block_commit_replay_v1_5.py
 Weall-Protocol/scripts/rehearse_protocol_upgrade_signed_staging_b589_v1_5.py
@@ -797,7 +799,7 @@ Weall-Protocol/tests/test_api_lifecycle.py
 Weall-Protocol/tests/test_api_nodes_routes.py
 Weall-Protocol/tests/test_api_request_limits.py
 Weall-Protocol/tests/test_api_schemas_no_email_poh_batch255.py
-Weall-Protocol/tests/test_api_startup_authority_contract_batch128.py
+Weall-Protocol/tests/test_api_startup_authority_contract.py
 Weall-Protocol/tests/test_api_tx_status_routes.py
 Weall-Protocol/tests/test_api_tx_status_unknown_shape.py
 Weall-Protocol/tests/test_apply_fail_closed.py
@@ -887,7 +889,7 @@ Weall-Protocol/tests/test_batch403_wsl_frontend_bind_host.py
 Weall-Protocol/tests/test_batch404_live_room_access_controlled_default.py
 Weall-Protocol/tests/test_batch404_poh_privacy_system_only_and_live_transport.py
 Weall-Protocol/tests/test_batch406_decentralized_p2p_live_rooms.py
-Weall-Protocol/tests/test_batch407_private_poh_session_and_webrtc_transport.py
+Weall-Protocol/tests/test_batch407_restricted_poh_session_and_webrtc_transport.py
 Weall-Protocol/tests/test_batch408_async_poh_reviewability_truth.py
 Weall-Protocol/tests/test_batch408_webrtc_page_surfaces_live_voting.py
 Weall-Protocol/tests/test_batch409_cross_node_webrtc_bridge_and_accept_join.py
@@ -1131,7 +1133,7 @@ Weall-Protocol/tests/test_gate_expr_and_precedence.py
 Weall-Protocol/tests/test_gates_scoped_and_reputation.py
 Weall-Protocol/tests/test_genesis_econ_lock_smoke.py
 Weall-Protocol/tests/test_genesis_mode_bootstrap_operator_bundle.py
-Weall-Protocol/tests/test_golden_path_session_private_lookup_batch269.py
+Weall-Protocol/tests/test_golden_path_session_scoped_lookup_batch269.py
 Weall-Protocol/tests/test_gov_engine_rules_source_strict.py
 Weall-Protocol/tests/test_gov_rejects_econ_actions_during_lock.py
 Weall-Protocol/tests/test_gov_route_surface_batch205.py

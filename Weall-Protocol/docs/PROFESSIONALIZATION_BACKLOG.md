@@ -10,7 +10,6 @@ This backlog records presentation and maintainability issues that remain after t
    - Preferred approach: rename only active P0/P1 files by domain, one cluster at a time, with targeted tests and manifest updates.
    - Initial rename candidates:
      - `tests/test_public_only_protocol_redesign.py` -> `tests/test_public_only_protocol_policy.py`
-     - `tests/test_api_startup_authority_contract_batch128.py` -> `tests/test_api_startup_authority_contract.py`
      - `web/scripts/test_batch616_responsibility_control_surface_source.mjs` -> `web/scripts/test_responsibility_control_surface_source.mjs`
      - `web/scripts/test_batch620_operator_journey_and_accent_source.mjs` -> `web/scripts/test_operator_journey_and_accent_source.mjs`
      - `web/scripts/test_batch623_frontend_api_truth_source.mjs` -> `web/scripts/test_frontend_api_truth_source.mjs`

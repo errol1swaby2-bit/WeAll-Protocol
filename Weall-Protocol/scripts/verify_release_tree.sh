@@ -158,6 +158,7 @@ check_path_absent '.env' '.env files'
 check_path_absent '.env.local' '.env.local files'
 check_secret_tree_safe
 check_dir_absent '.weall-devnet' 'local devnet runtime directories'
+check_dir_absent '.weall-media-cache' 'local media cache directories'
 check_dir_absent '.weall' 'local WeAll runtime directories'
 check_dir_absent 'data' 'runtime data directories'
 check_path_absent '*.db' 'SQLite database files'

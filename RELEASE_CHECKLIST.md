@@ -57,7 +57,7 @@ PYTHONPATH=src:scripts python -m pytest -q \
   tests/prod/test_public_observer_boot_and_evidence_scripts.py \
   tests/prod/test_public_observer_launch_transcript_artifacts.py \
   tests/prod/test_observer_cannot_enable_validator_signing.py \
-  tests/test_api_startup_authority_contract_batch128.py
+  tests/test_api_startup_authority_contract.py
 PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check
 PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check
 PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check
@@ -231,7 +231,7 @@ Browser onboarding and PoH verification are named-provider-free, email-free, and
 The current release checkpoint for this snapshot is:
 
 - recorded full backend suite checkpoint: `3636 passed, 3 warnings`; rerun locally before release and update evidence before making a fresh claim
-- tx canon artifacts: `236 tx types, version 1.25.0`
+- tx canon artifacts: `234 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed
 - `scripts/verify_release_tree.sh`: passed
@@ -259,7 +259,7 @@ bash scripts/verify_release_dependencies.sh
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **234 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
@@ -284,7 +284,7 @@ bash scripts/build_clean_release_export.sh
 This is the preferred external-tester packaging gate because it includes the backend, frontend, and top-level scripts while excluding runtime/cache/build artifacts from a staged copy.
 
 
-## Batch 620 public-beta evidence boundary
+## Public beta evidence boundary
 
 Current release posture remains: controlled multi-node testnet candidate.
 Do not claim public beta, mainnet, public validator enablement, live economics,
@@ -293,7 +293,7 @@ readiness until the external transcript requirements in
 `Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
 and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.
 
-## Batch 626 public observer discovery gate
+## Public observer discovery gate
 
 Before any public observer testnet announcement:
 

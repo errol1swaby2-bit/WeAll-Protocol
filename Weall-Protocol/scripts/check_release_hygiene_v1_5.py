@@ -42,6 +42,19 @@ def _ignored(path: str) -> bool:
     return proc.returncode == 0
 
 
+def _tracked_paths() -> list[str]:
+    proc = _git(["ls-files"])
+    if proc.returncode != 0:
+        return []
+    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _tracked_under(path: str, tracked: list[str]) -> list[str]:
+    prefix = path.rstrip("/") + "/"
+    exact = path.rstrip("/")
+    return [item for item in tracked if item == exact or item.startswith(prefix)]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Check WeAll v1.5 release hygiene invariants.")
     ap.add_argument("--allow-dirty", action="store_true", help="Report but do not fail on a dirty worktree.")
@@ -54,10 +67,15 @@ def main() -> int:
         elif not _is_executable(path):
             errors.append(f"not_executable:{path.relative_to(ROOT)}")
 
+    tracked = _tracked_paths()
     for rel in IGNORED_RUNTIME_PATHS:
         probe = rel.rstrip("/") + "/.release-hygiene-probe" if rel.endswith("/") else rel
         if not _ignored(probe):
             errors.append(f"runtime_artifact_not_gitignored:{rel}")
+        tracked_matches = _tracked_under(rel, tracked)
+        if tracked_matches:
+            sample = tracked_matches[0]
+            errors.append(f"tracked_runtime_artifact:{sample}")
 
     status = _git(["status", "--short", "--untracked-files=all"])
     dirty = status.stdout.strip()

@@ -428,7 +428,7 @@ The next major work is a final public-validator beta readiness rehearsal: fresh-
 
 
 
-## Batch 620 public-beta evidence boundary
+## Public beta evidence boundary
 
 Current release posture remains: controlled multi-node testnet candidate.
 Do not claim public beta, mainnet, public validator enablement, live economics,

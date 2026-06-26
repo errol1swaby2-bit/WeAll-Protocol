@@ -59,11 +59,14 @@ def test_release_tree_rejects_local_runtime_artifacts_batch257(tmp_path: Path) -
     )
     (tree / "data").mkdir()
     (tree / "data/weall.db-wal").write_text("runtime wal\n", encoding="utf-8")
+    (tree / ".weall-media-cache").mkdir()
+    (tree / ".weall-media-cache/cached.bin").write_text("local media cache\n", encoding="utf-8")
 
     result = _run(tree / "scripts/verify_release_tree.sh")
 
     assert result.returncode != 0
     assert "local devnet runtime directories" in result.stdout
+    assert "local media cache directories" in result.stdout
     assert "runtime data directories" in result.stdout or "SQLite WAL files" in result.stdout
 
 
@@ -80,6 +83,51 @@ def test_release_tree_rejects_outer_web_typescript_build_artifact_batch316(tmp_p
     assert result.returncode != 0
     assert "outer web TypeScript build info files" in result.stdout
 
+
+
+def test_release_hygiene_rejects_tracked_ignored_runtime_cache_batch257(tmp_path: Path) -> None:
+    outer = tmp_path / "outer"
+    backend = outer / "Weall-Protocol"
+    backend_scripts = backend / "scripts"
+    root_scripts = outer / "scripts"
+    backend_scripts.mkdir(parents=True)
+    root_scripts.mkdir(parents=True)
+
+    shutil.copy2(ROOT / "scripts/check_release_hygiene_v1_5.py", backend_scripts / "check_release_hygiene_v1_5.py")
+    required = [
+        root_scripts / "run_clean_clone_go_gate_v1_5.sh",
+        root_scripts / "run_frontend_contract_check_with_backend.sh",
+        backend_scripts / "run_clean_clone_go_gate_v1_5.sh",
+        backend_scripts / "run_frontend_contract_check_with_backend.sh",
+        backend_scripts / "rehearse_batch616_release_blocker_closure_v1_5.py",
+    ]
+    for item in required:
+        item.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+        item.chmod(0o755)
+
+    (outer / ".gitignore").write_text("Weall-Protocol/.weall-media-cache/\n", encoding="utf-8")
+    cache_file = backend / ".weall-media-cache/aa/cached.bin"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_text("runtime cache must not be tracked\n", encoding="utf-8")
+
+    subprocess.run(["git", "init"], cwd=outer, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=outer, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=outer, check=True)
+    subprocess.run(["git", "add", ".gitignore", "scripts", "Weall-Protocol/scripts"], cwd=outer, check=True)
+    subprocess.run(["git", "add", "-f", "Weall-Protocol/.weall-media-cache/aa/cached.bin"], cwd=outer, check=True)
+    subprocess.run(["git", "commit", "-m", "fixture"], cwd=outer, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
+
+    result = subprocess.run(
+        ["python", "scripts/check_release_hygiene_v1_5.py"],
+        cwd=backend,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "tracked_runtime_artifact:Weall-Protocol/.weall-media-cache/aa/cached.bin" in result.stdout
 
 def test_secret_guard_scans_export_tree_when_git_metadata_absent_batch257(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)

@@ -76,6 +76,7 @@ def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source_ba
     (web / "dist").mkdir()
     (backend / ".weall-devnet").mkdir()
     _write(backend / ".weall-devnet/local.json", "{}\n")
+    _write(backend / ".weall-media-cache/aa/cached.bin", "local cache\n")
     (backend / "data").mkdir()
     _write(backend / "data/weall.db", "db\n")
     _write(backend / ".pytest-b333.db.bft_journal.jsonl", "{}\n")
@@ -99,6 +100,7 @@ def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source_ba
     # Source artifacts remain; the release gate must not silently alter the
     # operator working tree.
     assert (backend / "data/weall.db").exists()
+    assert (backend / ".weall-media-cache/aa/cached.bin").exists()
     assert (web / "tsconfig.tsbuildinfo").exists()
     assert (backend / "secrets/weall_node_privkey").exists()
 
@@ -106,6 +108,7 @@ def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source_ba
     assert (staged / "Weall-Protocol/generated/tx_index.json").exists()
     assert (staged / "web/package-lock.json").exists()
     assert not (staged / "Weall-Protocol/data").exists()
+    assert not (staged / "Weall-Protocol/.weall-media-cache").exists()
     assert not (staged / "web/dist").exists()
     assert not (staged / "web/tsconfig.tsbuildinfo").exists()
     assert not (staged / "Weall-Protocol/secrets/weall_node_privkey").exists()
