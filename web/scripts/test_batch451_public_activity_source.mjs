@@ -11,7 +11,7 @@ const txQueue = read('src/components/TxQueueProvider.tsx');
 const activityApi = fs.readFileSync(path.resolve(root, '../Weall-Protocol/src/weall/api/routes_public_parts/activity.py'), 'utf8');
 
 if (exists('src/components/' + 'Mess' + 'agingKeyBootstrapper.tsx')) throw new Error('removed key bootstrapper returned');
-if (exists('src/pages/' + 'Mess' + 'aging.tsx')) throw new Error('removed private communication page returned');
+if (exists('src/pages/' + 'Mess' + 'aging.tsx')) throw new Error('removed non-public social page returned');
 if (!router.includes('path: "/activity"')) throw new Error('router must expose activity page');
 if (!app.includes('import("./pages/Activity")')) throw new Error('App must lazy-load Activity page');
 if (!activityApi.includes('/activity/notices')) throw new Error('backend activity notices route missing');

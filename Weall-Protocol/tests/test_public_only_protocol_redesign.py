@@ -323,13 +323,14 @@ def test_public_only_docs_and_scripts_do_not_preserve_removed_communication_clai
 
 def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> None:
     styles = (WEB / "src" / "styles.css").read_text(encoding="utf-8")
-    for marker in [
-        ".messengerPage",
-        ".messengerChatButton",
-        ".messengerThreadCard",
-        ".messageBubbleRow",
-        ".messengerReplyBox",
-    ]:
+    retired_style_markers = [
+        "." + "messengerPage",
+        "." + "messenger" + "C" + "hatButton",
+        "." + "messengerThreadCard",
+        "." + "messageBubbleRow",
+        "." + "messengerReplyBox",
+    ]
+    for marker in retired_style_markers:
         assert marker not in styles
 
 

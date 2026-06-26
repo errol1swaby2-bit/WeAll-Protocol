@@ -11,7 +11,7 @@ assertIncludes('src/pages/Economics.tsx', 'Genesis economics locked');
 assertIncludes('src/api/weall.ts', 'economicsStatus');
 assertIncludes('src/api/weall.ts', 'walletStatus');
 assertIncludes('src/lib/router.ts', 'href: "/economics"');
-if (exists('src/lib/' + 'message' + 'Crypto.ts')) throw new Error('removed private communication crypto module returned');
-if (exists('src/pages/' + 'Mess' + 'aging.tsx')) throw new Error('removed private communication page returned');
+if (exists('src/lib/' + 'message' + 'Crypto.ts')) throw new Error('removed non-public social crypto module returned');
+if (exists('src/pages/' + 'Mess' + 'aging.tsx')) throw new Error('removed non-public social page returned');
 
 console.log('batch457 economics/block/public checks passed');

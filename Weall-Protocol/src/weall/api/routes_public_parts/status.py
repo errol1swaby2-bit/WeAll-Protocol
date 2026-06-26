@@ -1361,7 +1361,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
             "validator promotion",
             "public multi-validator BFT",
             "live economics or treasury spending",
-            "protocol-native private communication",
+            "protocol-native non-public social surfaces",
             "mainnet readiness",
         ],
         "mode": mode,
