@@ -3,6 +3,31 @@
 Use this checklist before publishing the repository for external testers.
 
 
+## Reviewer-surface hygiene gate
+
+Before sending the repository to reviewers or operators, run the lightweight presentation and release-hygiene gate from a clean checkout:
+
+```bash
+cd Weall-Protocol
+PYTHONPATH=src python -m compileall -q src/weall
+bash scripts/secret_guard.sh
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+PYTHONPATH=src python -m pytest -q tests/test_public_only_protocol_redesign.py
+cd ../web
+npm run -s test:public-only-protocol-source
+```
+
+A passing hygiene gate means the checked-in release evidence is fresh, public-only frontend/backend source contracts still hold, and release-relevant tracked files do not include obvious secrets. It does not prove public mainnet readiness, economic activation readiness, or external security-audit completion.
+
+Reviewer entrypoints:
+
+- `README.md` for the current posture and safe first commands;
+- `Weall-Protocol/docs/GENERATED_ARTIFACTS.md` for generated evidence governance;
+- `Weall-Protocol/docs/ARCHITECTURE_DECISIONS/` for public-only and operator-safety decisions;
+- `Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md` for known batch-era and oversized-module cleanup that should not be hidden.
+
+
 ## Public observer testnet launch gate
 
 Before publishing an open-download public observer testnet build, verify all of the following from a clean clone:
@@ -205,7 +230,7 @@ Browser onboarding and PoH verification are named-provider-free, email-free, and
 
 The current release checkpoint for this snapshot is:
 
-- full backend suite: `3636 passed, 3 warnings` for the latest audited Batch 627 snapshot; rerun locally before release
+- recorded full backend suite checkpoint: `3636 passed, 3 warnings`; rerun locally before release and update evidence before making a fresh claim
 - tx canon artifacts: `236 tx types, version 1.25.0`
 - production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
 - `scripts/secret_guard.sh`: passed

@@ -43,9 +43,19 @@ def test_live_room_pages_surface_p2p_descriptor_without_central_url_batch406() -
 
     for src in (room, account, juror):
         assert "liveRoomDescriptorText" in src
-        assert "P2P room descriptor" in src or "peer-to-peer room descriptor" in src
+        assert (
+            "P2P room descriptor" in src
+            or "peer-to-peer room descriptor" in src
+            or "Live media room descriptor" in src
+            or "live media room descriptor" in src
+        )
 
-    assert "Use the decentralized P2P room descriptor below" in room
+    assert (
+        "Use the decentralized P2P room descriptor below" in room
+        or "Use the live media room descriptor below" in room
+        or "Use the case-scoped live media room descriptor below" in room
+        or "Live media room descriptor" in room
+    )
     assert "No centralized room URL is required" in account
     assert "no centralized room URL is required" in juror
 

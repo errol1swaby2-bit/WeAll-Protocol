@@ -1,45 +1,90 @@
 # WeAll Protocol
 
-## Public observer testnet discovery gate
+WeAll is an experimental public civic protocol and social coordination application. The repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and test surfaces needed to review the current public-testnet implementation.
 
-Batch 629 extends the public observer discovery gate with launch transcript scaffolds, validator endpoint churn proofing, rendered frontend evidence hooks, and registry signer operations. Public observer mode is explicit (`WEALL_PUBLIC_TESTNET=1`) and uses the backend public seed registry as the source of truth for seed discovery, validator endpoint discovery, and public-testnet commitments. Production public observer mode requires a signed registry, a pinned registry signer (`WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY` or `WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS`), matching `network_id`, `chain_id`, `genesis_hash`, `protocol_profile_hash`, `tx_index_hash`, seed API URLs, seed P2P URLs, `resettable_testnet: true`, and `economics_active: false`.
+The public repository should be read as a maintained protocol implementation under active hardening, not as a public mainnet claim. The current safety posture is explicit:
 
-Validator endpoint advertisements must be signed against the same public-testnet commitments before they are treated as verified connection targets. Endpoint advertisements never grant validator status; active validator status still comes only from committed protocol state. The frontend Node Dashboard now surfaces `/v1/nodes/seeds`, `/v1/nodes/validators`, and observer-edge propagation state so local acceptance is not confused with upstream validator acceptance or block confirmation.
+- protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and protocol-state activity is publicly inspectable;
+- protocol-native encrypted direct messages, private social groups, member-only-readable group posts, and opaque consensus-affecting social payloads are unsupported;
+- group membership may gate posting, commenting, voting, moderation, invitation, or administration, but not read visibility of protocol-native group content;
+- observer mode and validator mode are separate operational postures; validator authority remains protocol-gated and cannot be granted by a local environment variable alone;
+- production economics are locked unless an explicitly governed activation path and release evidence say otherwise;
+- public-testnet discovery uses signed/pinned seed-registry and endpoint evidence, not hosting-provider trust.
 
-Use `Weall-Protocol/configs/public_testnet_seed_registry.example.json`, `Weall-Protocol/scripts/sign_public_seed_registry_v1_5.py`, `Weall-Protocol/scripts/boot_public_observer_testnet.sh`, `Weall-Protocol/scripts/run_public_observer_launch_rehearsal_v1_5.sh`, `Weall-Protocol/docs/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`, `Weall-Protocol/docs/PUBLIC_OBSERVER_LAUNCH_TRANSCRIPTS.md`, and `Weall-Protocol/docs/PUBLIC_REGISTRY_SIGNER_OPERATIONS.md` before claiming public observer launch readiness. The testnet remains resettable and non-economic; observer access can be open, but validator activation, signing authority, storage provider status, juror roles, governance authority, and reputation-sensitive roles remain protocol-gated.
+## Current Repository Status
 
+The repository currently supports three reviewer/operator paths:
 
-WeAll is an experimental deterministic coordination protocol and social application prototype.
+1. **Local development demo** — boots a local backend/frontend demo with deterministic seeded state for fast UI inspection.
+2. **Controlled local protocol rehearsal** — exercises the genesis-to-observer-to-promoted-validator path on one machine without treating demo seed state as protocol proof.
+3. **Public observer testnet preparation** — checks signed seed discovery, validator endpoint evidence, public-only frontend/backend coherence, secret/export safety, and release-hygiene gates.
 
-The current repository demonstrates a local, fresh-clone, one-command development flow that boots a full local demo environment, seeds a demo account, and shows core social coordination surfaces in the frontend.
+This is not a claim of public mainnet readiness, security-audited deployment, irreversible governance readiness, or economic activation. Before any external network claim, rerun the release gates in `RELEASE_CHECKLIST.md` from a clean clone and keep the resulting evidence.
 
-WeAll is **production-candidate protocol software under active hardening**, with a working local demo and green release checks. It should still not be treated as a public mainnet, public user launch, or irreversible production governance system without a final public-validator beta rehearsal and external security review.
+## Reviewer Starting Point
 
----
+Start here before diving into batch-era or generated files:
 
-## Current Status
+1. `Weall-Protocol/docs/TRUTH_BOUNDARY.md` — current claim boundaries and non-claims.
+2. `Weall-Protocol/docs/PUBLIC_ONLY_PROTOCOL.md` — public-only protocol rule and enforcement posture.
+3. `Weall-Protocol/docs/GENERATED_ARTIFACTS.md` — generated evidence index and regeneration commands.
+4. `Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md` — known presentation/debt backlog that was intentionally not folded into this patch.
+5. `Weall-Protocol/docs/ARCHITECTURE_DECISIONS/` — concise ADRs for public-only policy, messaging removal, group visibility, observer promotion, seed discovery, and secret/export hygiene.
+6. `RELEASE_CHECKLIST.md` — clean-clone and release-hygiene gates.
 
-The current development milestone proves that a fresh clone can:
+## Public Observer Testnet Gate
 
-- create the local backend environment
-- install required dependencies
-- build the Docker backend stack
-- start the local node services
-- start IPFS/Kubo
-- generate the transaction index
-- run the golden-path bootstrap
-- create a pre-seeded demo account
-- upload media
-- create a post
-- seed demo social, decision, review, and public activity state
-- start the frontend
-- show core demo flows in the browser
+Public observer mode is explicit (`WEALL_PUBLIC_TESTNET=1`). A public observer should accept seed and validator endpoint discovery only through the configured public-testnet chain commitments, a signed seed registry, pinned registry signer material, and signed validator endpoint advertisements. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
 
-This is a reproducibility milestone for local development and demonstration.
+Use these files and commands before making a public observer readiness claim:
 
-It is **not** a claim of production validator readiness, public network readiness, security-audited deployment, or adversarial multi-node safety.
+```bash
+cd Weall-Protocol
+PYTHONPATH=src python -m compileall -q src/weall
+bash scripts/secret_guard.sh
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+PYTHONPATH=src python -m pytest -q tests/test_public_only_protocol_redesign.py
 
----
+cd ../web
+npm run -s test:public-only-protocol-source
+```
+
+Operator-facing public observer startup remains:
+
+```bash
+cd Weall-Protocol
+WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
+```
+
+For launch transcript rehearsals, use `Weall-Protocol/scripts/run_public_observer_launch_rehearsal_v1_5.sh` only after the real signed registry and seed API are published.
+
+## What Works in the Local Demo
+
+The local demo can show:
+
+- a pre-seeded demo account;
+- account verification state;
+- a social feed and media-backed posts;
+- post detail pages and public comments;
+- public group content with member-gated participation;
+- reporting, review assignment, review outcome, and public activity surfaces;
+- community decisions and responsibility/role surfaces;
+- frontend/backend session handoff;
+- deterministic demo bootstrap output.
+
+The demo is intended to make the current architecture inspectable and easier to test. It is not a substitute for controlled-devnet or public-testnet evidence.
+
+## What Is Intentionally Unsupported
+
+This repository intentionally does not support:
+
+- protocol-native encrypted DMs or private message threads;
+- private groups or member-only-readable protocol-native group content;
+- opaque encrypted protocol payloads that affect social, civic, governance, moderation, dispute, group, reputation, validator/operator, or protocol-state outcomes;
+- production economics activation by default;
+- validator authority based only on local configuration;
+- public-mainnet readiness claims without release evidence and external review.
 
 ## Project Direction
 
@@ -97,73 +142,6 @@ This area is implemented as the current protocol-native direction and remains un
 
 ---
 
-## What Works in the Local Demo
-
-The current local demo can show:
-
-- a pre-seeded demo account
-- account verification state
-- a social feed
-- media-backed posts
-- post detail pages
-- reporting content
-- review assignment flow
-- review outcome flow
-- community decisions
-- public activity surfaces
-- frontend/backend session handoff
-- deterministic demo bootstrap output
-
-The demo is intended to make the current architecture inspectable and easier to test.
-
----
-
-## What Is Not Claimed Yet
-
-This repository does **not** currently claim:
-
-- public mainnet readiness
-- public user/social launch readiness
-- full external security audit completion
-- economic activation readiness
-- stable public API guarantees
-- final protocol semantics
-- complete frontend product maturity
-
-Those require additional testing, review, hardening, documentation, and operational validation.
-
----
-
-## Current Verification Checkpoint
-
-This repository snapshot is synchronized at:
-
-- **Transaction canon:** 236 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** `3636 passed, 3 warnings`
-- **PoH posture:** two-tier native async/live human verification; no required email, SMTP, DNS, named hosting provider, CAPTCHA, OAuth, KYC provider, or government ID provider
-- **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers
-- **Consensus authority hardening:** follower-side SYSTEM tx replay binding is enforced against deterministic scheduler output before apply
-- **Helper hardening:** helper execution metadata is block-header committed through `helper_execution_root`
-- **Dependency posture:** backend lockfiles and frontend `package-lock.json` are present and release-verified
-- **Release checks:** tx canon synchronization, secret guard, release-tree hygiene, and dependency-lock verification should pass before publishing changes
-
-This checkpoint is included so reviewers can compare the public README against generated artifacts without treating the repository as public-mainnet-ready.
-
----
-
-## Reviewer Starting Point
-
-For architecture and readiness review, start with these documents:
-
-1. `Weall-Protocol/docs/TRUTH_BOUNDARY.md` — current claim boundaries and what is not yet claimed.
-2. `Weall-Protocol/docs/REVIEWER_MILESTONE_GUIDE.md` — milestone-oriented review guide and remaining proof path.
-3. `Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md` — command evidence checklist and transcript expectations.
-4. `RELEASE_CHECKLIST.md` — release and external tester packaging checks.
-5. `Weall-Protocol/docs/EXECUTOR_REFACTOR_MODULE_BOUNDARIES.md` — runtime/executor refactor boundary map.
-
-The expected reviewer path for protocol-native verification is the controlled-devnet same-machine rehearsal below. The seeded demo path remains useful for fast UI review, but it is not the primary protocol proof path.
-
----
 
 ## Requirements
 

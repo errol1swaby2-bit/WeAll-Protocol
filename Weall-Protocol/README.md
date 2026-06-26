@@ -46,12 +46,12 @@ cd ..
 
 That root-level flow wraps backend startup, demo bootstrap, frontend startup, and local session bootstrap into one path.
 
-## Current verification snapshot
+## Recorded verification snapshot
 
-This backend snapshot is synchronized at:
+This backend snapshot includes the following recorded checkpoint. Rerun the release gates before making a fresh readiness claim:
 
 - **Transaction canon:** 236 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** 3,636 passed, 3 warnings
+- **Recorded full backend test checkpoint:** 3,636 passed, 3 warnings
 
 
 ## Expected reviewer path: controlled-devnet same-machine readiness proof

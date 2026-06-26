@@ -1,4 +1,4 @@
-// Optional hosted URL transport is explicit and access-controlled; decentralized p2p-webrtc remains the default.
+// Optional hosted URL transport is explicit and access-controlled; browser WebRTC remains transport-only and never grants protocol authority.
 export type WeAllP2PLiveRoomDescriptor = {
   version: "weall-live-room-v1";
   transport: "p2p-webrtc";
@@ -42,7 +42,7 @@ function isSelfHostedOrAccessControlled(value: string): boolean {
     const host = url.hostname.toLowerCase();
     if (host === "meet.jit.si" || host.endsWith(".jit.si")) return false;
     // Hosted URL transport is optional only. The default WeAll live
-    // verification room is decentralized peer-to-peer; hosted rooms must be
+    // verification room uses case-scoped browser media; hosted rooms must be
     // explicit, self-hosted, and access controlled.
     return url.protocol === "https:" && !host.includes("meet.jit.si");
   } catch {
@@ -96,7 +96,7 @@ export function liveRoomDescriptorFromCommitment(
     storage_policy: "no-raw-recording-by-default",
     identity_protection: "subject-and-assigned-reviewers-only",
     notes: [
-      "The live room is a peer-to-peer transport descriptor, not an authority source.",
+      "The live room is a case-scoped media transport descriptor, not an authority source.",
       "Discovery/signaling must be case-scoped to the subject and assigned reviewers.",
       "Relay/TURN nodes are fallback transport only and cannot grant verification.",
       "Tier 2 is granted only by chain-recorded attendance, verdicts, and finalization.",
@@ -110,5 +110,5 @@ export function liveRoomDescriptorText(roomCommitment?: string | null): string {
 }
 
 export function liveRoomTransportNotice(): string {
-  return "This live room is decentralized peer-to-peer transport only. Discovery, relay, and media transport are non-authoritative; verification is granted only by chain-recorded attendance, reviewer verdicts, and finalization.";
+  return "This live room is case-scoped browser media transport only. Discovery, relay, and media transport are non-authoritative; verification is granted only by chain-recorded attendance, reviewer verdicts, and finalization.";
 }

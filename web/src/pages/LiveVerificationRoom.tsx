@@ -552,12 +552,12 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function ensureP2PRoomStarted(): Promise<void> {
-    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the P2P room.");
+    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the live media room.");
     setP2pError("");
     await ensureLocalP2PMedia();
     await updatePresence("joined");
     setP2pRunning(true);
-    setP2pStatus("p2p signaling active");
+    setP2pStatus("live media signaling active");
     await sendWebRTCSignal({ type: "hello" });
     for (const peer of p2pRemoteAccounts) {
       await sendWebRTCSignal({ type: "hello", to_account: peer });
@@ -579,7 +579,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [p2pRunning, sessionId, account, p2pRemoteAccounts.join("|")]);
 
   async function startP2PRoom(): Promise<void> {
-    await runAction("Starting decentralized P2P room…", async () => {
+    await runAction("Starting live media room…", async () => {
       await ensureP2PRoomStarted();
     }).catch((e) => {
       setP2pError(prettyError(e));
@@ -588,7 +588,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function stopP2PRoom(): Promise<void> {
-    await runAction("Stopping P2P room…", async () => {
+    await runAction("Stopping live media room…", async () => {
       await sendWebRTCSignal({ type: "leave" });
       peerConnectionsRef.current.forEach((pc) => pc.close());
       peerConnectionsRef.current.clear();
@@ -665,10 +665,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       if (!roomUrl) {
         try {
           await ensureP2PRoomStarted();
-          setNotice("Live room attendance recorded and P2P media started. Keep this page open while the other participant joins.");
+          setNotice("Live room attendance recorded and live media started. Keep this page open while the other participant joins.");
         } catch (mediaError) {
           setP2pError(prettyError(mediaError));
-          setNotice("Live room attendance was recorded. Start P2P media when camera/microphone access is ready.");
+          setNotice("Live room attendance was recorded. Start live media when camera/microphone access is ready.");
         }
       }
       if (shouldEmbed) {
@@ -748,7 +748,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             {readOnlyStatusView ? (
               <div className="videoPlaceholder">
                 <strong>Read-only status view</strong>
-                <p>This account is not the subject or an assigned reviewer for this live verification case, so room transport, Open room links, embedded video, and P2P media controls stay hidden.</p>
+                <p>This account is not the subject or an assigned reviewer for this live verification case, so room transport, Open room links, embedded video, and live media controls stay hidden.</p>
                 <p>Use the status cards and technical commitments to verify that the case exists without implying live-room authority.</p>
               </div>
             ) : roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
@@ -766,10 +766,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             ) : (
               <div className="p2pRoomPanel">
                 <div className="videoPlaceholder">
-                  <strong>Decentralized P2P WebRTC room</strong>
-                  <p>Browser media runs peer-to-peer using case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
+                  <strong>Case-scoped live media room</strong>
+                  <p>Browser media uses case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
                   <small>Status: {p2pStatus}</small>
-                  <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
+                  <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct browser media first"}</small>
                   <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
                   <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived} · ICE {iceDiag.count} server(s) {iceDiag.hasTurn ? "with TURN" : "no TURN"}</small>
                   {Object.keys(peerStates).length ? <small>Peer states: {Object.entries(peerStates).map(([peer, state]) => `${peer}=${state}`).join(" · ")}</small> : null}
@@ -794,7 +794,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   ))}
                   {missingRemoteAccounts.map((peer) => (
                     <div className="p2pVideoTile" key={`waiting:${peer}`}>
-                      <div className="videoPlaceholder">Waiting for media from {peer}. Keep both tabs open and use Poll P2P if the remote camera is not visible yet.{peerStates[peer] ? ` State: ${peerStates[peer]}` : ""}</div>
+                      <div className="videoPlaceholder">Waiting for media from {peer}. Keep both tabs open and use Poll live media if the remote camera is not visible yet.{peerStates[peer] ? ` State: ${peerStates[peer]}` : ""}</div>
                       <span>{peer}</span>
                     </div>
                   ))}
@@ -804,8 +804,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             {!readOnlyStatusView && p2pRoomDescriptor ? (
               <details className="advancedDetails" open={!roomUrl}>
 
-            <p className="text-sm text-slate-600">Use the decentralized P2P room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
-                <summary>Decentralized P2P room descriptor</summary>
+            <p className="text-sm text-slate-600">Use the live media room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
+                <summary>Live media room descriptor</summary>
                 <pre className="jsonBlock">{p2pRoomDescriptor}</pre>
               </details>
             ) : null}
@@ -817,9 +817,9 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 </div>
                 <div className="buttonRow">
                   <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in + start media</button>
-                  <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
-                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
-                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>
+                  <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start live media</button>
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop live media</button>
                   <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
                   <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
                 </div>
