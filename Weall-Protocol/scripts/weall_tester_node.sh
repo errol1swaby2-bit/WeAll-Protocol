@@ -36,8 +36,8 @@ Options:
   --genesis-api-base <url>        Remote Genesis API base advertised by the bundle.
   --manifest <path>               Chain manifest; default configs/chains/weall-genesis.json.
   --mode observer                 Normal tester path; the only default mode.
-  --mode private-rehearsal        Allows private Genesis API only with --allow-private-genesis-api.
-  --allow-private-genesis-api     Explicitly allow private/LAN Genesis API for rehearsal.
+  --mode private-rehearsal        Allows private Genesis API only with --allow-lan-genesis-api.
+  --allow-lan-genesis-api     Explicitly allow private/LAN Genesis API for rehearsal.
   --runtime-dir <dir>             Runtime directory outside the repo.
   --api-host <host>               Local node bind host; default 127.0.0.1.
   --api-port <port>               Local node API port; default 8000.
@@ -61,7 +61,7 @@ while [[ $# -gt 0 ]]; do
     --genesis-api-base) GENESIS_API_BASE="${2:-}"; shift 2 ;;
     --manifest) MANIFEST_PATH="${2:-}"; shift 2 ;;
     --mode) MODE="${2:-}"; shift 2 ;;
-    --allow-private-genesis-api) ALLOW_PRIVATE="1"; shift ;;
+    --allow-lan-genesis-api) ALLOW_PRIVATE="1"; shift ;;
     --runtime-dir) RUNTIME_DIR="${2:-}"; shift 2 ;;
     --api-host) API_HOST="${2:-}"; shift 2 ;;
     --api-port) API_PORT="${2:-}"; shift 2 ;;
@@ -99,7 +99,7 @@ if [[ -n "${GENESIS_API_BASE}" ]]; then
   export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE}"
 fi
 if [[ "${ALLOW_PRIVATE}" == "1" ]]; then
-  export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+  export WEALL_ALLOW_LAN_GENESIS_API=1
 fi
 
 export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
@@ -124,7 +124,7 @@ source "${ENV_FILE}"
 
 # Batch 471: tester node boot intentionally clears bundle authority profile.
 # Private rehearsal bundles may carry authority.profile="rehearsal" so the bundle
-# verifier can allow private HTTP/non-public URLs, but a normal observer node
+# verifier can allow LAN HTTP/non-public URLs, but a normal observer node
 # must still boot under production/unset authority profile. Authority is granted
 # only by committed chain state, never by the onboarding bundle.
 unset WEALL_AUTHORITY_PROFILE

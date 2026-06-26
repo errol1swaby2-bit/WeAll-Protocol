@@ -96,7 +96,7 @@ def test_batch581_economics_sybil_farming_stress_remains_locked() -> None:
 def test_batch577_581_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    assert proof["private_testnet_candidate_strengthened"] is True
+    assert proof["controlled_testnet_candidate_strengthened"] is True
     assert proof["public_beta_ready"] is False
     assert proof["claim_boundaries"] == {
         "automatic_protocol_upgrades": False,

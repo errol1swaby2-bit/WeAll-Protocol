@@ -8,7 +8,7 @@ It proves that an observer on a different machine/network can use only a public 
 ## Hard rule
 
 This is a **NO-GO** unless every command in this document passes against a non-local genesis API.
-Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addresses, metadata-service addresses, genesis private keys, validator keys, named hosting-provider credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority. Private LAN genesis API addresses are allowed only for a controlled home/LAN two-machine test with `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; public-trust testing should use a real non-local public URL.
+Do not use `localhost`, `127.0.0.1`, IPv6 loopback, unspecified/link-local addresses, metadata-service addresses, genesis private keys, validator keys, named hosting-provider credentials, SMTP credentials, DNS credentials, OAuth, CAPTCHA, KYC, or any external identity-provider authority. LAN genesis API addresses are allowed only for a controlled home/LAN two-machine test with `WEALL_ALLOW_LAN_GENESIS_API=1`; public-trust testing should use a real non-local public URL.
 
 ## What this proves
 
@@ -72,7 +72,7 @@ export WEALL_CHAIN_MANIFEST_PATH="configs/chains/weall-genesis.json"
 bash scripts/external_observer_live_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-The script intentionally rejects local/self API bases such as `http://127.0.0.1`, `http://localhost`, IPv6 loopback, unspecified/link-local addresses, and metadata-service addresses. For a same-LAN two-machine rehearsal only, set `WEALL_ALLOW_PRIVATE_GENESIS_API=1`; do not use that override for a public external observer proof.
+The script intentionally rejects local/self API bases such as `http://127.0.0.1`, `http://localhost`, IPv6 loopback, unspecified/link-local addresses, and metadata-service addresses. For a same-LAN two-machine rehearsal only, set `WEALL_ALLOW_LAN_GENESIS_API=1`; do not use that override for a public external observer proof.
 
 ## Expected result
 
@@ -83,7 +83,7 @@ OK: controlled external observer live gate passed
 OK: trusted external observer live gate passed
 ```
 
-By default, the script deletes the temporary work directory after a passing run because it contains private key material. To retain the artifacts for debugging or private operator archival, set `WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR=1` before running the gate. If retained, the work directory contains:
+By default, the script deletes the temporary work directory after a passing run because it contains private key material. To retain the artifacts for debugging or operator archival, set `WEALL_EXTERNAL_OBSERVER_KEEP_WORK_DIR=1` before running the gate. If retained, the work directory contains:
 
 - `observer-account.json` — local observer account private key;
 - `observer-node-key.json` — separate local node identity private key;

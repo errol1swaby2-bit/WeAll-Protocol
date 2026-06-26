@@ -41,7 +41,7 @@ def build() -> dict[str, Any]:
         "multiprocess_ipfs_operator_durability": storage,
         "anti_sybil_adjudication_deletion": anti_sybil,
         "economics_locked_read_models": economics,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
         "remaining_gaps": [

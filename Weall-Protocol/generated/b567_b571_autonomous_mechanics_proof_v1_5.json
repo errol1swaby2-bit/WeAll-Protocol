@@ -227,6 +227,7 @@
     "public_multi_validator_bft": false,
     "public_validator_readiness": false
   },
+  "controlled_testnet_candidate_strengthened": true,
   "economics_locked_read_models": {
     "batch": "571",
     "economics_enabled": false,
@@ -377,7 +378,6 @@
     "worker_model": "multiprocess_ipfs_compatible_operator_workers"
   },
   "ok": true,
-  "private_testnet_candidate_strengthened": true,
   "public_beta_ready": false,
   "remaining_gaps": [
     "autonomous validator gossip is modeled in local threaded processes; public validator readiness still requires multi-machine independent operators and full production transport under adversarial timing",

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "25e456391d12af1d8d3c84669583182f5ece9f243c3415aa14aa314b10d83dfa",
+  "artifact_digest": "0c8fc1da588356e49b2f7776b4c2197cd6d28acb7d59ae74b5565628bb22b62b",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -12,7 +12,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "controlled_private_testnet_candidate": true,
+  "controlled_testnet_candidate": true,
   "mainnet_ready": false,
   "ok": true,
   "public_beta_ready": false,
@@ -95,7 +95,7 @@
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
-      "file_sha256": "e395af2b1b2882b3e11f481f2ccd424f3dd8e7555e68c7cb8c127e47a4981682",
+      "file_sha256": "07d7224bed0507cb4b9b88c0f4f932908dfdf421639a7614b5b48b7fafd73964",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
@@ -109,7 +109,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
-      "file_sha256": "2b38ce36881b43c18366134620635ad9ea52ded2d8e19419d91c5ad3bba48e11",
+      "file_sha256": "b80103100f248aeadd57f246a8ebb5fc81fa5e9a02362e5ed2ac798365b17fa3",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "fb8d68cc5adfdae7979ea163fa9b8749d196762b004e904ae32f6cc4eb21ddd7",
+      "file_sha256": "7dac9639dcf7d31ad1bc4791557a438c89e269496b426783567b2c1fb9c50ae8",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,
@@ -200,7 +200,7 @@
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/state_root_vectors_v1_5.json": {
-      "file_sha256": "cc18b4494a96b8680c4f9b648042b6f672ca0fc8be642b9c4775dd9dae27b6df",
+      "file_sha256": "b1d86f5a659f564dff371f707009c01e4d66fbefdb449a871122ac69e7d1fabd",
       "ok": true,
       "path": "generated/state_root_vectors_v1_5.json",
       "present": true,

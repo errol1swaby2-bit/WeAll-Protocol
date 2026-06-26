@@ -1933,8 +1933,8 @@ def _async_case_has_declared_evidence(case: Json) -> bool:
     commitments = case.get("evidence_commitments")
     if isinstance(commitments, dict) and any(_as_str(k).strip() for k in commitments.keys()):
         return True
-    reviewer_private = case.get("reviewer_private_evidence")
-    if isinstance(reviewer_private, dict) and any(_as_str(k).strip() for k in reviewer_private.keys()):
+    reviewer_restricted = case.get("reviewer_restricted_evidence")
+    if isinstance(reviewer_restricted, dict) and any(_as_str(k).strip() for k in reviewer_restricted.keys()):
         return True
     binds = case.get("evidence_binds")
     if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
@@ -2149,7 +2149,7 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
         "response_commitment": response_commitment,
         "kind": rec["kind"],
         "declared_height": rec["declared_height"],
-        "visibility": "reviewer_private",
+        "visibility": "reviewer_restricted",
     }
     for key in ("evidence_cid", "mime", "name", "filename", "size"):
         value = p.get(key)
@@ -2171,12 +2171,12 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     if video_commitment:
         private_rec["video_commitment"] = video_commitment
 
-    reviewer_private = case.get("reviewer_private_evidence")
-    if not isinstance(reviewer_private, dict):
-        reviewer_private = {}
-        case["reviewer_private_evidence"] = reviewer_private
+    reviewer_restricted = case.get("reviewer_restricted_evidence")
+    if not isinstance(reviewer_restricted, dict):
+        reviewer_restricted = {}
+        case["reviewer_restricted_evidence"] = reviewer_restricted
     if any(k in private_rec for k in ("evidence_cid", "uri", "video_commitment")):
-        reviewer_private[evidence_id] = private_rec
+        reviewer_restricted[evidence_id] = private_rec
 
     # Preserve the old fields as explicitly empty public surfaces so stale
     # clients/tests do not mistake absence for unredacted public evidence.

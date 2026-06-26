@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PROOF = ROOT / "generated" / "b549_b553_private_testnet_candidate_proof_v1_5.json"
+PROOF = ROOT / "generated" / "b549_b553_controlled_testnet_candidate_proof_v1_5.json"
 
 
 def _proof() -> dict:
@@ -60,11 +60,11 @@ def test_batch552_anti_sybil_evidence_retention_and_recovery_policy() -> None:
     assert out["collusion_detection_claimed"] is False
 
 
-def test_batch553_private_testnet_candidate_bundle_preserves_claim_boundaries() -> None:
+def test_batch553_controlled_testnet_candidate_bundle_preserves_claim_boundaries() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    candidate = proof["private_testnet_candidate_evidence"]
-    assert candidate["private_testnet_rehearsal_candidate"] is True
+    candidate = proof["controlled_testnet_candidate_evidence"]
+    assert candidate["controlled_testnet_rehearsal_candidate"] is True
     assert candidate["public_beta_ready"] is False
     assert candidate["poh_challenge_public_client_gap_closed"] is True
     assert candidate["validator_rehearsal_node_count"] == 4
@@ -84,7 +84,7 @@ def test_batch553_private_testnet_candidate_bundle_preserves_claim_boundaries() 
 
 def test_batch549_553_generated_artifact_is_fresh() -> None:
     proc = subprocess.run(
-        [sys.executable, "scripts/gen_b549_b553_private_testnet_candidate_proof_v1_5.py", "--check"],
+        [sys.executable, "scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
         stdout=subprocess.PIPE,

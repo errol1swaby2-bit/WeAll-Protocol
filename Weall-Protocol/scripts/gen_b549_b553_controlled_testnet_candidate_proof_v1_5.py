@@ -12,7 +12,7 @@ from rehearse_multi_operator_storage_durability_v1_5 import run_harness as run_s
 from rehearse_poh_challenge_public_write_v1_5 import run_harness as run_poh_challenge_api
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "generated" / "b549_b553_private_testnet_candidate_proof_v1_5.json"
+OUT = ROOT / "generated" / "b549_b553_controlled_testnet_candidate_proof_v1_5.json"
 
 
 def build() -> dict[str, Any]:
@@ -38,19 +38,19 @@ def build() -> dict[str, Any]:
         "production helper execution remains disabled pending full serial-equivalence and adversarial multi-node proof",
     ]
     return {
-        "schema": "weall.v1_5.batch549_553.private_testnet_candidate_proof",
+        "schema": "weall.v1_5.batch549_553.controlled_testnet_candidate_proof",
         "ok": all(bool(x.get("ok")) for x in (poh_api, validator, storage, retention)),
         "batch_range": "549-553",
         "poh_challenge_public_write": poh_api,
         "long_lived_validator_network_skeleton": validator,
         "multi_operator_storage_durability": storage,
         "anti_sybil_evidence_retention_recovery": retention,
-        "private_testnet_candidate_evidence": {
+        "controlled_testnet_candidate_evidence": {
             "poh_challenge_public_client_gap_closed": bool(poh_api.get("public_client_write_gap_closed")),
             "validator_rehearsal_node_count": int(validator.get("node_count") or 0),
             "storage_operator_count": int(storage.get("multi_operator_count") or 0),
             "evidence_retention_policy_present": bool(retention.get("retention_after_reverification")),
-            "private_testnet_rehearsal_candidate": True,
+            "controlled_testnet_rehearsal_candidate": True,
             "public_beta_ready": False,
         },
         "claim_boundaries": claim_boundaries,
@@ -70,7 +70,7 @@ def main() -> int:
     text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b549_b553_private_testnet_candidate_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit("b549_b553_controlled_testnet_candidate_proof_v1_5.json is stale; rerun generator")
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -54,7 +54,7 @@ def _open_async(st: dict) -> str:
     return str(result["case_id"])
 
 
-def test_async_private_evidence_option_b_public_state_redacts_uri_batch404() -> None:
+def test_async_restricted_evidence_option_b_public_state_redacts_uri_batch404() -> None:
     st = _state()
     case_id = _open_async(st)
 
@@ -80,7 +80,7 @@ def test_async_private_evidence_option_b_public_state_redacts_uri_batch404() -> 
     assert case["reviewable_evidence"] == {}
     assert case["evidence_commitments"]["ev1"]["evidence_commitment"] == "c" * 64
     assert "uri" not in case["evidence_commitments"]["ev1"]
-    assert case["reviewer_private_evidence"]["ev1"]["uri"] == "ipfs://bafybeigdyrzt"
+    assert case["reviewer_restricted_evidence"]["ev1"]["uri"] == "ipfs://bafybeigdyrzt"
 
 
 @pytest.mark.parametrize(

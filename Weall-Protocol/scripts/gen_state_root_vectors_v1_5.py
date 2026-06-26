@@ -59,7 +59,7 @@ def fixture_states() -> list[Json]:
                 "account_id": "alice",
                 "status": "approved",
                 "evidence_commitments": {"video": "c" * 64},
-                "reviewer_private_evidence": {"cid": "private-redacted-in-api-not-root"},
+                "reviewer_restricted_evidence": {"cid": "restricted-redacted-in-api-not-root"},
                 "reviews": {"juror-a": {"verdict": "approve"}},
             }
         },

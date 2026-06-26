@@ -21,7 +21,7 @@ def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal_batch
     assert manifest["mode"] == "controlled_devnet"
     assert manifest["profile"] == "controlled_devnet_service"
     assert manifest["authority"]["expected_profile"] == "controlled_devnet_rehearsal"
-    assert manifest["authority"]["private_lan_http_allowed_for_rehearsal"] is True
+    assert manifest["authority"]["lan_http_allowed_for_rehearsal"] is True
     assert manifest["authority"]["authority_snapshot_required"] is False
     assert manifest["authority"]["signed_snapshot_required"] is False
     assert manifest["tx_index_hash"]
@@ -59,10 +59,10 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
     assert data["chain"]["manifest_path_hint"].endswith("weall-controlled-devnet.json")
     assert data["authority"]["profile"] == "controlled_devnet_rehearsal"
     assert data["authority"]["authority_url"] == "http://10.131.107.82:8000"
-    assert data["recommended_commands"]["verify_bundle"].startswith("WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+    assert data["recommended_commands"]["verify_bundle"].startswith("WEALL_ALLOW_LAN_GENESIS_API=1")
 
     env = os.environ.copy()
-    env.pop("WEALL_ALLOW_PRIVATE_GENESIS_API", None)
+    env.pop("WEALL_ALLOW_LAN_GENESIS_API", None)
     denied = subprocess.run(
         [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(CONTROLLED_MANIFEST), "--json"],
         cwd=str(ROOT),
@@ -74,9 +74,9 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
     )
     assert denied.returncode != 0
     denied_report = json.loads(denied.stdout)
-    assert "rehearsal_private_authority_url_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1" in denied_report["issues"]
+    assert "rehearsal_lan_authority_url_requires_WEALL_ALLOW_LAN_GENESIS_API=1" in denied_report["issues"]
 
-    env["WEALL_ALLOW_PRIVATE_GENESIS_API"] = "1"
+    env["WEALL_ALLOW_LAN_GENESIS_API"] = "1"
     allowed = subprocess.run(
         [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(CONTROLLED_MANIFEST), "--json"],
         cwd=str(ROOT),

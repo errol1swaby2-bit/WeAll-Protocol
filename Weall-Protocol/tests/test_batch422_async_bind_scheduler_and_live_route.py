@@ -28,7 +28,7 @@ def test_async_case_diagnostics_do_not_stick_finalized_cases_on_missing_bind_bat
 
     assert "final_or_reviewed" in route
     assert 'reviewer_queue_reason = "finalized"' in route
-    assert "reviewer_private_raw" in route
+    assert "reviewer_restricted_raw" in route
     assert "finalOrReviewed" in page
     assert "This verification case has been finalized on-chain." in page
 

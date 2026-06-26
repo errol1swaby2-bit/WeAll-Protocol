@@ -107,7 +107,7 @@ def test_batch586_helper_equivalence_corpus_expands_without_production_activatio
 def test_batch582_586_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    assert proof["private_testnet_candidate_strengthened"] is True
+    assert proof["controlled_testnet_candidate_strengthened"] is True
     assert proof["trusted_observer_candidate_strengthened"] is True
     assert proof["public_beta_ready"] is False
     assert proof["claim_boundaries"] == {

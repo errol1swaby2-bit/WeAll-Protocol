@@ -129,16 +129,16 @@ def v1_account_get(account: str, request: Request):
     ledger = LedgerView.from_ledger(st)
     a = ledger.accounts.get(account)
 
-    reveal_private = False
+    reveal_restricted = False
     if a:
         try:
-            reveal_private = require_account_session(request, st) == account
+            reveal_restricted = require_account_session(request, st) == account
         except PermissionError:
-            reveal_private = False
+            reveal_restricted = False
 
     safe_state = redact_account_state(
         a or {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
-        reveal_private=reveal_private,
+        reveal_restricted=reveal_restricted,
     )
     return {"ok": True, "account": account, "state": safe_state}
 

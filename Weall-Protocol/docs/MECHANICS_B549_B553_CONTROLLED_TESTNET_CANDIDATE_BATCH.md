@@ -22,7 +22,7 @@ This batch closes the last explicit public-client lifecycle gap from the prior a
   - Marks upheld challenge evidence as retained until appeal/reverification, then moves it to minimal-retention status after remedy/reverification completes.
 
 - **553 — Private-testnet candidate evidence bundle**
-  - Produces `generated/b549_b553_private_testnet_candidate_proof_v1_5.json`.
+  - Produces `generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json`.
   - Maintains explicit non-claims for public validators, live economics, automatic upgrades, production helpers, complete anti-Sybil detection, personalized ranking, and mainnet readiness.
 
 ## Truth boundary

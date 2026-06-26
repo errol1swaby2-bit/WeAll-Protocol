@@ -2,7 +2,7 @@
   "artifact": "b510_b515_completion_proof_v1_5",
   "batches": {
     "510": {
-      "artifact": "b510_private_validator_network_completion_v1_5",
+      "artifact": "b510_controlled_validator_network_completion_v1_5",
       "candidate_join": {
         "active_after_join": [
           "validator-a",

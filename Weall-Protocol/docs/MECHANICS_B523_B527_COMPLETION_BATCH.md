@@ -20,4 +20,4 @@ This batch converts several remaining v1.5 proof gaps into stronger executable m
 
 ## Reviewer boundary
 
-The validator harness now uses separate local processes, but it is still a local private rehearsal, not a public multi-machine validator network.
+The validator harness now uses separate local processes, but it is still a local LAN rehearsal, not a public multi-machine validator network.

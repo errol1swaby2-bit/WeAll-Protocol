@@ -96,7 +96,7 @@ def build() -> Json:
         "ok": all_artifacts_ok,
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_private_testnet_candidate": True,
+        "controlled_testnet_candidate": True,
         "tracked_manifest_is_commit_agnostic": True,
         "runtime_commit_binding_required": True,
         "why_commit_head_is_not_tracked_here": "A generated file cannot stably contain the commit hash of the commit that contains it; concrete HEAD binding is emitted by --runtime-json and clean-clone gate reports.",

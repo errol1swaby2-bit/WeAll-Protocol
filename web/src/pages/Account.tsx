@@ -810,7 +810,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Private boundary</div>
-              <div className="summaryCardValue">{reputationMatrix?.visibility?.private_revealed ? "Owner view" : "Public view"}</div>
+              <div className="summaryCardValue">{reputationMatrix?.visibility?.restricted_revealed ? "Owner view" : "Public view"}</div>
               <div className="summaryCardText">
                 Internal abuse-risk signals stay hidden unless the account owner is authenticated.
               </div>

@@ -15,7 +15,7 @@ for p in (SRC, SCRIPTS):
         sys.path.insert(0, str(p))
 
 from rehearse_fresh_node_sync_completion_v1_5 import run_harness as run_fresh_sync
-from rehearse_private_validator_network_completion_v1_5 import run_harness as run_validator_network
+from rehearse_controlled_validator_network_completion_v1_5 import run_harness as run_validator_network
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.poh import apply_poh

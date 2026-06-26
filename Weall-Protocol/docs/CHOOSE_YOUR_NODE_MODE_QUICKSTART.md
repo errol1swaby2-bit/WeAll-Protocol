@@ -6,7 +6,7 @@ This quickstart is a claim-control guide for controlled testnet rehearsals. It d
 
 Choose this only for the first local rehearsal authority. A Genesis node initializes the chain identity, genesis state, API surface, block loop, persistence store, and local frontend surface.
 
-Use the Genesis path when you are creating a private rehearsal from a clean clone and can protect the authority profile. Do not distribute Genesis validator secrets in observer bundles.
+Use the Genesis path when you are creating a LAN rehearsal from a clean clone and can protect the authority profile. Do not distribute Genesis validator secrets in observer bundles.
 
 ## 2. Observer node
 

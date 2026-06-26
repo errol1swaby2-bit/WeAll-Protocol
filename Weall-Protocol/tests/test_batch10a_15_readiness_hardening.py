@@ -60,7 +60,7 @@ def _session_state() -> dict[str, Any]:
                     "account_id": "@alice",
                     "status": "reviewable",
                     "assigned_jurors": ["@juror"],
-                    "reviewer_private_evidence": {"video_cid": "private-cid-do-not-leak"},
+                    "reviewer_restricted_evidence": {"video_cid": "restricted-cid-do-not-leak"},
                     "reviewable_evidence": {"commitment": "c" * 64},
                 }
             },
@@ -137,8 +137,8 @@ def test_batch11_poh_private_case_read_requires_session_and_redacts_unrelated_vi
 
     anonymous = client.get("/v1/poh/async/case/case-1")
     assert anonymous.status_code == 200, anonymous.text
-    assert anonymous.json()["case"]["reviewer_private_evidence"] == {}
-    assert "private-cid-do-not-leak" not in str(anonymous.json())
+    assert anonymous.json()["case"]["reviewer_restricted_evidence"] == {}
+    assert "restricted-cid-do-not-leak" not in str(anonymous.json())
 
     mallory = client.get(
         "/v1/poh/async/case/case-1",
@@ -146,15 +146,15 @@ def test_batch11_poh_private_case_read_requires_session_and_redacts_unrelated_vi
     )
     assert mallory.status_code == 200, mallory.text
     body = mallory.json()
-    assert body["case"]["reviewer_private_evidence"] == {}
-    assert "private-cid-do-not-leak" not in str(body)
+    assert body["case"]["reviewer_restricted_evidence"] == {}
+    assert "restricted-cid-do-not-leak" not in str(body)
 
     juror = client.get(
         "/v1/poh/async/case/case-1",
         headers={"x-weall-account": "@juror", "x-weall-session-key": "juror-session"},
     )
     assert juror.status_code == 200, juror.text
-    assert juror.json()["case"]["reviewer_private_evidence"]["video_cid"] == "private-cid-do-not-leak"
+    assert juror.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
 
 
 def test_batch11_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:

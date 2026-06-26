@@ -52,7 +52,7 @@ def build() -> dict[str, Any]:
         "anti_sybil_collusion_accountability": anti_sybil,
         "economics_activation_locked_completion": economics,
         "helper_serial_equivalence_expansion": helpers,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": claim_boundaries,
         "remaining_public_testnet_gaps": remaining,

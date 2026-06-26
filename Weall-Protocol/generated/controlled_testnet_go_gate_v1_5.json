@@ -139,7 +139,7 @@
     "public_validator_readiness",
     "protocol_private_activity"
   ],
-  "controlled_private_testnet_candidate": true,
+  "controlled_testnet_candidate": true,
   "controlled_testnet_go_gate_ready_to_run": true,
   "controlled_testnet_ready_claimed_by_repo": false,
   "deterministic_tracked_manifest": true,

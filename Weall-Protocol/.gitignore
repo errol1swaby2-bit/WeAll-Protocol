@@ -103,7 +103,7 @@ configs/local/
 !generated/b539_b543_production_path_proof_v1_5.json
 !generated/b544_b548_live_network_final_proof_v1_5.json
 
-!generated/b549_b553_private_testnet_candidate_proof_v1_5.json
+!generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json
 !generated/b556_b561_final_missing_mechanics_proof_v1_5.json
 
 !generated/b562_b566_mechanics_hardening_proof_v1_5.json

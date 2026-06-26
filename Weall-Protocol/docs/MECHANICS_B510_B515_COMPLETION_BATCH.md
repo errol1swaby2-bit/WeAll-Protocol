@@ -9,9 +9,9 @@ This batch intentionally prioritizes executable mechanics over additional review
 - Automatic protocol upgrade apply/migration/rollback remains disabled.
 - Production helper execution remains disabled.
 
-## Batch 510 — Private validator network completion rehearsal
+## Batch 510 — Controlled validator network completion rehearsal
 
-Adds `scripts/rehearse_private_validator_network_completion_v1_5.py`.
+Adds `scripts/rehearse_controlled_validator_network_completion_v1_5.py`.
 
 The rehearsal exercises:
 
@@ -23,7 +23,7 @@ The rehearsal exercises:
 - Explicit validator suspension and epoch-bound active-set removal.
 - Restart-stable state-root equality.
 
-This does not enable public validator promotion. It proves private validator mechanics and activation boundaries.
+This does not enable public validator promotion. It proves controlled validator mechanics and activation boundaries.
 
 ## Batch 511 — PoH and dispute enforcement completion
 

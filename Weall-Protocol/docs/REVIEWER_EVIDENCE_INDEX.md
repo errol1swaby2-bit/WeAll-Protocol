@@ -177,7 +177,7 @@ Observer machine:
     bash scripts/reviewer_observer_rehearsal.sh \
       --genesis-api-base http://<GENESIS_LAN_IP>:8000 \
       --pull-reviewer-artifacts \
-      --allow-private-genesis-api
+      --allow-lan-genesis-api
 
 Truth boundary: controlled LAN/reviewer rehearsal only. It does not prove public
 mainnet readiness, public multi-validator BFT readiness, live economics, or a
@@ -198,7 +198,7 @@ Run the following against a real genesis API and public observer bundle:
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.json
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=http://GENESIS_HOST:8000
-export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+export WEALL_ALLOW_LAN_GENESIS_API=1
 export WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1
 export WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"

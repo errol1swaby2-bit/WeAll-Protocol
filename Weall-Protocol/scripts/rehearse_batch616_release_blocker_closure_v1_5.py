@@ -66,7 +66,7 @@ def run_harness() -> dict[str, Any]:
         "ok": bool(batch615.get("ok")) and bool(process_net.get("ok")) and bool(external_observer.get("ok")),
         "batch": "616",
         "claims": {
-            "controlled_multi_node_private_testnet_candidate": True,
+            "controlled_multi_node_testnet_candidate": True,
             "public_validator_ready": False,
             "public_beta_ready": False,
             "mainnet_ready": False,

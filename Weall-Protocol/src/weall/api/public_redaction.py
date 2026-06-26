@@ -147,10 +147,10 @@ def _groups_summary(groups: Any) -> Json:
     return {"redacted": True, "summary": {"total": total, "public": public, "private": private}}
 
 
-def redact_account_state(account_state: Any, *, reveal_private: bool = False) -> Any:
+def redact_account_state(account_state: Any, *, reveal_restricted: bool = False) -> Any:
     """Return account state safe for public API presentation.
 
-    Owner-authenticated routes may pass reveal_private=True to preserve the exact
+    Owner-authenticated routes may pass reveal_restricted=True to preserve the exact
     account record. Public callers get a copy with bearer session keys and device
     identifiers removed while retaining enough summary state for UX/capability
     display.
@@ -159,7 +159,7 @@ def redact_account_state(account_state: Any, *, reveal_private: bool = False) ->
     if not isinstance(account_state, Mapping):
         return account_state
     copied = copy.deepcopy(dict(account_state))
-    if reveal_private:
+    if reveal_restricted:
         return copied
 
     copied.pop("session_keys", None)
@@ -177,7 +177,7 @@ def redact_public_state(state: Any) -> Any:
     accounts = copied.get("accounts")
     if isinstance(accounts, Mapping):
         copied["accounts"] = {
-            str(account): redact_account_state(rec, reveal_private=False)
+            str(account): redact_account_state(rec, reveal_restricted=False)
             for account, rec in accounts.items()
         }
     if "content" in copied:

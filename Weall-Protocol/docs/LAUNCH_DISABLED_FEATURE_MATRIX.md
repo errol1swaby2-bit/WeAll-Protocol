@@ -16,7 +16,7 @@ src/weall/runtime/launch_matrix.py
 
 ## Current truth boundary
 
-The following high-risk features remain disabled for current rehearsal, external-observer, private-validator, public-beta-candidate, and production-candidate phases unless a later batch implements and proves a narrower activation path:
+The following high-risk features remain disabled for current rehearsal, external-observer, controlled-validator, public-beta-candidate, and production-candidate phases unless a later batch implements and proves a narrower activation path:
 
 - live economics;
 - balance transfers;

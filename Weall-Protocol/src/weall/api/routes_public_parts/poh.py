@@ -318,7 +318,7 @@ class PohAsyncCaseModel(BaseModel):
     evidence_binds: dict[str, object] = Field(default_factory=dict)
     public_evidence_ids: list[object] = Field(default_factory=list)
     reviewable_evidence: dict[str, object] = Field(default_factory=dict)
-    reviewer_private_evidence: dict[str, object] = Field(default_factory=dict)
+    reviewer_restricted_evidence: dict[str, object] = Field(default_factory=dict)
     receipt: dict[str, object] = Field(default_factory=dict)
     evidence_declared: bool = False
     evidence_bound: bool = False
@@ -328,7 +328,7 @@ class PohAsyncCaseModel(BaseModel):
     reviewer_queue_reason: str | None = None
 
 
-def _as_async_case(case_id: str, r: dict[str, object], *, include_private_evidence: bool = False) -> PohAsyncCaseModel:
+def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evidence: bool = False) -> PohAsyncCaseModel:
     def _list(v: Any) -> list[object]:
         return list(v) if isinstance(v, list) else []
 
@@ -339,7 +339,7 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
     evidence_binds = _dict(r.get("evidence_binds"))
     public_evidence_ids = _list(r.get("public_evidence_ids"))
     reviewable_evidence_raw = _dict(r.get("reviewable_evidence"))
-    reviewer_private_raw = _dict(r.get("reviewer_private_evidence"))
+    reviewer_restricted_raw = _dict(r.get("reviewer_restricted_evidence"))
     assigned_jurors = _list(r.get("assigned_jurors"))
     jurors = _dict(r.get("jurors"))
     status = str(r.get("status") or "unknown").strip() or "unknown"
@@ -350,13 +350,13 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
         or _dict(r.get("receipt"))
         or _opt_int_value(r.get("finalized_height")) is not None
     )
-    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
     # Batch 422: older rehearsal runs could enqueue POH_ASYNC_JUROR_ASSIGN after
     # evidence declare and before evidence bind, making the bind tx fail while
-    # reviewer-private evidence still became visible and the case finalized.
+    # reviewer-restricted evidence still became visible and the case finalized.
     # Surface that case as effectively complete instead of leaving the observer
     # UI stuck on missing evidence_bind.  New scheduler logic prevents the race.
-    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
     assigned = bool([j for j in assigned_jurors if str(j or "").strip()] or jurors)
     reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound))
     missing_steps: list[str] = []
@@ -394,8 +394,8 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
         evidence_commitments=evidence_commitments,
         evidence_binds=evidence_binds,
         public_evidence_ids=public_evidence_ids,
-        reviewable_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else r.get("reviewable_evidence")),
-        reviewer_private_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else {}),
+        reviewable_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else r.get("reviewable_evidence")),
+        reviewer_restricted_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else {}),
         receipt=_dict(r.get("receipt")),
         evidence_declared=evidence_declared,
         evidence_bound=evidence_bound,
@@ -410,20 +410,20 @@ def _request_account(request: Request) -> str:
     return str(request.headers.get("x-weall-account") or "").strip()
 
 
-def _allow_header_scoped_private_poh_compat() -> bool:
+def _allow_header_scoped_restricted_poh_compat() -> bool:
     """Header-only PoH private access has been removed.
 
-    Private evidence and live-room transport control must be bound to an
+    Restricted evidence and live-room transport control must be bound to an
     authenticated backend session in every mode.
     """
 
     return False
 
-def _session_principal_for_private_poh(request: Request, st: Json) -> str:
+def _session_principal_for_restricted_poh(request: Request, st: Json) -> str:
     try:
         return str(require_account_session(request, st) or "").strip()
     except PermissionError:
-        if _allow_header_scoped_private_poh_compat():
+        if _allow_header_scoped_restricted_poh_compat():
             return _request_account(request)
         return ""
 
@@ -432,7 +432,7 @@ def _require_session_principal_for_poh_private(request: Request, st: Json, *, pu
     try:
         acct = str(require_account_session(request, st) or "").strip()
     except PermissionError as exc:
-        if _allow_header_scoped_private_poh_compat():
+        if _allow_header_scoped_restricted_poh_compat():
             acct = _request_account(request)
         else:
             raise ApiError.forbidden(
@@ -461,7 +461,7 @@ def _require_poh_session_matches(request: Request, st: Json, *, expected: str, p
         )
     return principal
 
-def _async_case_allows_private_evidence(raw: dict[str, object], *, account: str) -> bool:
+def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
         return False
     if str(raw.get("account_id") or "").strip() == account:
@@ -494,9 +494,9 @@ def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
     raw = cases.get(cid)
     if not isinstance(raw, dict):
         raise ApiError.not_found("not_found", "async_case_not_found")
-    principal = _session_principal_for_private_poh(request, st)
-    include_private = _async_case_allows_private_evidence(raw, account=principal)
-    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_private_evidence=include_private))
+    principal = _session_principal_for_restricted_poh(request, st)
+    include_private = _async_case_allows_restricted_evidence(raw, account=principal)
+    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_restricted_evidence=include_private))
 
 
 @router.get(
@@ -513,9 +513,9 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
         if not isinstance(raw, dict):
             continue
         if str(raw.get("account_id") or "").strip() == acct:
-            principal = _session_principal_for_private_poh(request, st)
+            principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == acct
-            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
+            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(
         ok=True,
@@ -548,15 +548,15 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
         if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
             if _async_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
                 continue
-            principal = _session_principal_for_private_poh(request, st)
+            principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == j
-            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
+            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     roles = st.get("roles") if isinstance(st.get("roles"), dict) else {}
     juror_roles = roles.get("jurors") if isinstance(roles.get("jurors"), dict) else {}
     active_set = juror_roles.get("active_set") if isinstance(juror_roles.get("active_set"), list) else []
     active_juror = j in [str(x) for x in active_set]
-    modeled_cases = [_as_async_case(str(cid), raw, include_private_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
+    modeled_cases = [_as_async_case(str(cid), raw, include_restricted_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
     return PohAsyncCaseListResponse(
         ok=True,
         cases=out,

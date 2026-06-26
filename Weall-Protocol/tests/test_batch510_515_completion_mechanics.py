@@ -32,8 +32,8 @@ def _run_json(script: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def test_batch510_private_validator_network_completion_harness() -> None:
-    out = _run_json("rehearse_private_validator_network_completion_v1_5.py")
+def test_batch510_controlled_validator_network_completion_harness() -> None:
+    out = _run_json("rehearse_controlled_validator_network_completion_v1_5.py")
     assert out["ok"] is True
     assert out["public_validator_enabled"] is False
     assert out["quorum_finalize_result"] == "finalized"

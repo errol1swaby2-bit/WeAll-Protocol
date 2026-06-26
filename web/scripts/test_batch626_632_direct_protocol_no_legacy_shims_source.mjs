@@ -73,10 +73,10 @@ const apiErrors = read('Weall-Protocol/src/weall/api/errors.py');
 includes(apiErrors, 'def gone', 'API must support explicit 410 Gone for removed legacy endpoints');
 
 const pohRoutes = read('Weall-Protocol/src/weall/api/routes_public_parts/poh.py');
-includes(pohRoutes, 'return False', 'header-scoped private PoH compatibility must be disabled');
+includes(pohRoutes, 'return False', 'header-scoped restricted PoH compatibility must be disabled');
 includes(pohRoutes, '/v1/poh/live/juror-cases has been removed', 'legacy live juror-cases endpoint must return 410');
 includes(pohRoutes, '/v1/poh/tier2/tx/request has been removed', 'legacy Tier-2 skeleton endpoint must return 410');
-notIncludes(pohRoutes, 'WEALL_DEV_ALLOW_HEADER_SCOPED_PRIVATE_POH', 'header-scoped private PoH env shim must be removed');
+notIncludes(pohRoutes, 'WEALL_DEV_ALLOW_HEADER_SCOPED_PRIVATE_POH', 'header-scoped restricted PoH env shim must be removed');
 
 const executor = read('Weall-Protocol/src/weall/runtime/executor.py');
 notIncludes(executor, 'self._store = self._ledger_store', 'executor storage alias must be removed');

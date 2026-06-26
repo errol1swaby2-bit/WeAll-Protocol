@@ -17,7 +17,7 @@ def test_batch618_public_beta_blocker_report_is_conservative_and_complete() -> N
     assert report["ok"] is True
     assert report["public_beta_ready"] is False
     assert report["mainnet_ready"] is False
-    assert report["controlled_private_testnet_candidate"] is True
+    assert report["controlled_testnet_candidate"] is True
     assert report["blocker_count"] >= 13
     ids = {row["id"] for row in report["blockers"]}
     assert {

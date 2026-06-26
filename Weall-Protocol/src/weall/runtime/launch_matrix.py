@@ -21,7 +21,7 @@ Json = dict[str, Any]
 
 PHASE_LOCAL_REHEARSAL = "local_rehearsal"
 PHASE_EXTERNAL_OBSERVER = "external_observer"
-PHASE_PRIVATE_VALIDATOR = "private_validator_rehearsal"
+PHASE_PRIVATE_VALIDATOR = "controlled_validator_rehearsal"
 PHASE_PUBLIC_BETA = "public_beta_candidate"
 PHASE_PRODUCTION_CANDIDATE = "production_candidate"
 
@@ -110,7 +110,7 @@ def normalize_launch_phase(phase: str | None) -> str:
         "local": PHASE_LOCAL_REHEARSAL,
         "observer": PHASE_EXTERNAL_OBSERVER,
         "external": PHASE_EXTERNAL_OBSERVER,
-        "private_validator": PHASE_PRIVATE_VALIDATOR,
+        "controlled_validator": PHASE_PRIVATE_VALIDATOR,
         "controlled_devnet": PHASE_PRIVATE_VALIDATOR,
         "testnet": PHASE_PUBLIC_BETA,
         "public_beta": PHASE_PUBLIC_BETA,

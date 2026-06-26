@@ -37,7 +37,7 @@ def _state() -> dict:
                     "assigned_jurors": ["@j1"],
                     "jurors": {"@j1": {"accepted": True}},
                     "evidence_commitments": {"ev1": {"evidence_commitment": "a" * 64}},
-                    "reviewer_private_evidence": {"ev1": {"uri": "ipfs://bafyprivate", "mime": "video/webm"}},
+                    "reviewer_restricted_evidence": {"ev1": {"uri": "ipfs://bafyprivate", "mime": "video/webm"}},
                     "reviewable_evidence": {},
                     "public_evidence_ids": [],
                 }
@@ -81,14 +81,14 @@ def test_private_async_evidence_requires_authenticated_session_in_prod_batch407(
         headers={"x-weall-account": "@j1"},
     )
     assert forged.status_code == 200, forged.text
-    assert forged.json()["case"]["reviewer_private_evidence"] == {}
+    assert forged.json()["case"]["reviewer_restricted_evidence"] == {}
 
     authenticated = c.get(
         "/v1/poh/async/case/async:alice:1",
         headers={"x-weall-account": "@j1", "x-weall-session-key": "sk-j1"},
     )
     assert authenticated.status_code == 200, authenticated.text
-    assert authenticated.json()["case"]["reviewer_private_evidence"]["ev1"]["uri"] == "ipfs://bafyprivate"
+    assert authenticated.json()["case"]["reviewer_restricted_evidence"]["ev1"]["uri"] == "ipfs://bafyprivate"
 
 
 def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral_batch407(monkeypatch) -> None:

@@ -46,7 +46,7 @@ def build() -> dict[str, Any]:
         "poh_dispute_adversarial_accountability": accountability,
         "claim_boundaries": claim_boundaries,
         "remaining_public_testnet_gaps": remaining,
-        "private_testnet_rehearsal_candidate": True,
+        "controlled_testnet_rehearsal_candidate": True,
         "public_beta_ready": False,
     }
 

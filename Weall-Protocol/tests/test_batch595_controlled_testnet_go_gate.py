@@ -20,7 +20,7 @@ def test_batch595_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> 
     assert proof["schema"] == "weall.v1_5.controlled_testnet_go_gate"
     assert proof["ok"] is True
     assert proof["controlled_testnet_go_gate_ready_to_run"] is True
-    assert proof["controlled_private_testnet_candidate"] is True
+    assert proof["controlled_testnet_candidate"] is True
     assert proof["controlled_testnet_ready_claimed_by_repo"] is False
     assert proof["public_beta_ready"] is False
     assert proof["public_readiness_claim_requires_external_evidence"] is True

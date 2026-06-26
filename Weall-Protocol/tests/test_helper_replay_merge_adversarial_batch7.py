@@ -124,7 +124,7 @@ def test_plan_misbehavior_proof_uses_explicit_issued_ms_batch7() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d1",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1000,
     )
     cert_b = sign_helper_certificate(
@@ -138,7 +138,7 @@ def test_plan_misbehavior_proof_uses_explicit_issued_ms_batch7() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d2",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1001,
     )
     proof = build_plan_misbehavior_proof(certificate_a=cert_a, certificate_b=cert_b)

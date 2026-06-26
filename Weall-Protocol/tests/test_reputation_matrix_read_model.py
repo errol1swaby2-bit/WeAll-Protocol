@@ -137,7 +137,7 @@ def _state() -> dict:
 
 
 def test_reputation_matrix_derives_all_public_dimensions_and_no_private_boundary() -> None:
-    matrix = derive_reputation_matrix(_state(), "@alice", reveal_private=False, include_events=True)
+    matrix = derive_reputation_matrix(_state(), "@alice", reveal_restricted=False, include_events=True)
 
     assert matrix["ok"] is True
     assert matrix["version"] == 1
@@ -146,8 +146,8 @@ def test_reputation_matrix_derives_all_public_dimensions_and_no_private_boundary
     assert matrix["formula"]["wall_clock_time"] is False
     assert "abuse_risk" in matrix["dimensions"]
     assert matrix["dimensions"]["abuse_risk"]["visibility"] == "public"
-    assert matrix["visibility"]["private_dimensions"] == []
-    assert matrix["visibility"]["private_revealed"] is False
+    assert matrix["visibility"]["restricted_dimensions"] == []
+    assert matrix["visibility"]["restricted_revealed"] is False
 
     dims = matrix["dimensions"]
     for name in (
@@ -175,12 +175,12 @@ def test_reputation_matrix_derives_all_public_dimensions_and_no_private_boundary
 
 
 def test_reputation_matrix_owner_mode_does_not_create_private_reputation_surface() -> None:
-    matrix = derive_reputation_matrix(_state(), "@alice", reveal_private=True, include_events=True)
+    matrix = derive_reputation_matrix(_state(), "@alice", reveal_restricted=True, include_events=True)
 
     assert "abuse_risk" in matrix["dimensions"]
     assert matrix["dimensions"]["abuse_risk"]["visibility"] == "public"
-    assert matrix["visibility"]["private_dimensions"] == []
-    assert matrix["visibility"]["private_revealed"] is False
+    assert matrix["visibility"]["restricted_dimensions"] == []
+    assert matrix["visibility"]["restricted_revealed"] is False
     assert any(event["dimension"] == "abuse_risk" and event["visibility"] == "public" for event in matrix["events"])
 
 

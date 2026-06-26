@@ -33,7 +33,7 @@ def test_reviewer_lan_genesis_builds_verified_bundle_and_prints_observer_command
     assert "--authority-url" in text
     assert "https://weall-rehearsal-authority.invalid" in text
     assert "verify_node_operator_onboarding_bundle.py" in text
-    assert "WEALL_ALLOW_PRIVATE_GENESIS_API=1" in text
+    assert "WEALL_ALLOW_LAN_GENESIS_API=1" in text
     assert "boot_weall_node.sh" in text
     assert "reviewer_observer_rehearsal.sh" in text
 

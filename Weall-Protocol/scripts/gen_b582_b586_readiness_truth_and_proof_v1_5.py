@@ -100,7 +100,7 @@ def build() -> Json:
         "storage_ipfs_durability_rehearsal": storage,
         "anti_sybil_suspicion_review_lifecycle": anti_sybil,
         "helper_equivalence_corpus_expansion": helper,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "trusted_observer_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,

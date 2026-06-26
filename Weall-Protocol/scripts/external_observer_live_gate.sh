@@ -71,8 +71,8 @@ GENESIS_API_BASE="${GENESIS_API_BASE%/}"
 # Reject obvious local/self/metadata endpoints.  Historical cases covered here
 # include http://127.0.0.1*, http://localhost*, https://127.0.0.1*, and
 # https://localhost*.  IPv6 loopback, unspecified addresses, link-local hosts,
-# and private LAN IPs require WEALL_ALLOW_PRIVATE_GENESIS_API=1.
-python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
+# and LAN IPs require WEALL_ALLOW_LAN_GENESIS_API=1.
+python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_LAN_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
 from __future__ import annotations
 
 import ipaddress
@@ -98,7 +98,7 @@ if ip is not None:
     if str(ip) == "169.254.169.254":
         raise SystemExit("external_observer_genesis_api_metadata_service_forbidden")
     if ip.is_private and allow_private not in {"1", "true", "TRUE", "yes", "YES", "on", "ON"}:
-        raise SystemExit("external_observer_private_genesis_api_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+        raise SystemExit("external_observer_lan_genesis_api_requires_WEALL_ALLOW_LAN_GENESIS_API=1")
 print("OK: genesis API base is non-local for external observer live gate")
 PY_NONLOCAL_API
 

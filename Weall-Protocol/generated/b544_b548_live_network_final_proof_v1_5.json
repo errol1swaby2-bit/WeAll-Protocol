@@ -67,6 +67,7 @@
     "public_multi_validator_bft": false,
     "public_validator_readiness": false
   },
+  "controlled_testnet_rehearsal_candidate": true,
   "live_ipfs_worker_durability": {
     "availability_status": "available",
     "batch": "546",
@@ -295,7 +296,6 @@
       "upheld_resolution": "upheld"
     }
   },
-  "private_testnet_rehearsal_candidate": true,
   "public_beta_ready": false,
   "remaining_public_testnet_gaps": [
     "full long-lived multi-node P2P validator network with real BFT gossip remains required before public validator readiness",

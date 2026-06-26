@@ -217,7 +217,7 @@
     "AUD-618-P1-006",
     "AUD-618-P3-001"
   ],
-  "controlled_private_testnet_candidate": true,
+  "controlled_testnet_candidate": true,
   "evidence_gate_summaries": {
     "api_response_vectors": {
       "ok": true,
@@ -348,14 +348,14 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "25e456391d12af1d8d3c84669583182f5ece9f243c3415aa14aa314b10d83dfa",
+      "artifact_digest": "0c8fc1da588356e49b2f7776b4c2197cd6d28acb7d59ae74b5565628bb22b62b",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
       "tracked_manifest_is_commit_agnostic": true
     },
     "state_root_cross_machine_export": {
-      "artifact_digest": "ca83747e7bab9866b43b8c2729b216a35c61657e1c1800e68ceac08664544831",
+      "artifact_digest": "793991d9fb418c23a4bc48478634bc4266df5455c7152e2ac4bd1584bdf08ec1",
       "cross_machine_replay_exported": true,
       "external_cross_machine_attestation_required": true,
       "ok": true,

@@ -116,7 +116,7 @@
     },
     {
       "name": "poh_async_and_live_commitments",
-      "state_root": "6956b72d8634f84a2ff549a11f7749d2f9084b1761058aaf864b1c78a014c19f",
+      "state_root": "9a627509289b222778dfb991641e0614ea6eb284abe143de1dc4a0ed0dc28da0",
       "state_summary": [
         "accounts",
         "content",

@@ -230,9 +230,9 @@ def test_dispute_vote_before_deadline_completes_assignment_without_majority_pena
     assert out["applied"] == "DISPUTE_VOTE_SUBMIT"
     assert state["disputes_by_id"]["disp-1"]["jurors"]["@juror"]["status"] == "completed"
     assert "DISPUTE_JUROR_VOTED_ON_TIME" in _canonical_codes(state)
-    matrix = derive_reputation_matrix(state, "@juror", reveal_private=True, include_events=True)
-    assert matrix["visibility"]["private_dimensions"] == []
-    assert matrix["visibility"]["private_revealed"] is False
+    matrix = derive_reputation_matrix(state, "@juror", reveal_restricted=True, include_events=True)
+    assert matrix["visibility"]["restricted_dimensions"] == []
+    assert matrix["visibility"]["restricted_revealed"] is False
     assert matrix["canonical_dimensions"]["juror_reputation"]["score_milli"] == 250
     assert not any("majority" in str(ev.get("reason_code", "")).lower() for ev in state["reputation"]["events"])
 

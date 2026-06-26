@@ -337,7 +337,7 @@ def sign_helper_certificate(
         lane_tx_ids = tuple(str(x) for x in kwargs.get("lane_tx_ids", ()))
         descriptor_hash = str(kwargs["descriptor_hash"])
         plan_id = str(kwargs["plan_id"])
-        shared_secret = str(kwargs["shared_secret"])
+        hmac_secret = str(kwargs["hmac_secret"])
         issued_ms = int(kwargs.get("issued_ms", 0))
         payload = {
             "domain": CERTIFICATE_DOMAIN,
@@ -357,7 +357,7 @@ def sign_helper_certificate(
             json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
         ).hexdigest()
         payload["signature"] = hmac.new(
-            shared_secret.encode("utf-8"),
+            hmac_secret.encode("utf-8"),
             json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()

@@ -70,7 +70,7 @@ def test_batch547_poh_dispute_adversarial_accountability_and_remedy() -> None:
 def test_batch548_claim_boundaries_remain_conservative() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    assert proof["private_testnet_rehearsal_candidate"] is True
+    assert proof["controlled_testnet_rehearsal_candidate"] is True
     assert proof["public_beta_ready"] is False
     assert proof["claim_boundaries"] == {
         "automatic_protocol_upgrades": False,

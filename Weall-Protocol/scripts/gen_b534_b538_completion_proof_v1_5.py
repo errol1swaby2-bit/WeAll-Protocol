@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
-from rehearse_full_node_process_private_validator_v1_5 import run_harness as run_validator
+from rehearse_full_node_process_controlled_validator_v1_5 import run_harness as run_validator
 from rehearse_real_db_block_commit_replay_sync_v1_5 import run_harness as run_replay
 from rehearse_fully_api_driven_v15_lifecycle import run_harness as run_lifecycle
 from rehearse_storage_operator_durability_v1_5 import run_harness as run_storage
@@ -29,7 +29,7 @@ def build() -> dict[str, Any]:
         "batches": ["534", "535", "536", "537", "538"],
         "ok": all(bool(x.get("ok")) for x in [validator, replay, lifecycle, storage]),
         "scope": [
-            "full_node_process_private_validator_rehearsal",
+            "full_node_process_controlled_validator_rehearsal",
             "real_db_block_commit_replay_sync",
             "api_driven_v15_lifecycle",
             "poh_dispute_remedy_reinstatement",

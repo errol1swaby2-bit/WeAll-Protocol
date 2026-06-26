@@ -67,7 +67,7 @@ Run the observer proof with the Genesis API base printed by Machine A:
     bash scripts/reviewer_observer_rehearsal.sh \
       --genesis-api-base http://GENESIS_LAN_IP:8000 \
       --pull-reviewer-artifacts \
-      --allow-private-genesis-api
+      --allow-lan-genesis-api
 
 The observer script downloads these public files automatically:
 
@@ -123,11 +123,11 @@ Then check:
 
     curl -fsS http://GENESIS_LAN_IP:8000/v1/reviewer/artifacts
 
-### Private LAN API rejected
+### LAN API rejected
 
 Use:
 
-    --allow-private-genesis-api
+    --allow-lan-genesis-api
 
 This is valid only for controlled LAN rehearsal.
 

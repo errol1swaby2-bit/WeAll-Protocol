@@ -176,7 +176,7 @@ def build() -> Json:
         "strict_release_validation_commands": strict_release_validation_commands,
         "strict_release_rejects_scaffold_samples": True,
         "release_claim_boundaries": {
-            "controlled_private_testnet_candidate": True,
+            "controlled_testnet_candidate": True,
             "public_beta_ready": False,
             "mainnet_ready": False,
             "public_validator_enabled": False,

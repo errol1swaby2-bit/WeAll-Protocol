@@ -4,7 +4,7 @@ This batch continues the v1.5 implementation path by prioritizing executable mec
 
 ## Scope
 
-- **517 — Real validator network rehearsal:** adds a deterministic private validator rehearsal covering quorum finality, restart stability, partition rejection, rejoin catch-up, and observer non-authority.
+- **517 — Real validator network rehearsal:** adds a deterministic controlled validator rehearsal covering quorum finality, restart stability, partition rejection, rejoin catch-up, and observer non-authority.
 - **518 — Fresh-node replay sync:** adds a replay-oriented fresh-node sync rehearsal that verifies contiguous block/delta replay and state-root equality without relying on snapshot copy alone.
 - **519 — Identity/dispute safety completion:** adds PoH reviewer accountability when an upheld challenge invalidates a previously approved account, and adds a deterministic dispute target/action registry with unsupported enforcement rejection records.
 - **520 — Economics/storage activation-complete but locked:** adds opt-in economics activation precondition enforcement and storage retrieval availability proof on successful pin confirmation.

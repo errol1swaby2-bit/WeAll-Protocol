@@ -854,7 +854,7 @@ def derive_reputation_matrix(
     state: Json,
     account_id: str,
     *,
-    reveal_private: bool = False,
+    reveal_restricted: bool = False,
     include_events: bool = False,
 ) -> Json:
     """Derive the Reputation Matrix for ``account_id`` from canonical state."""
@@ -900,8 +900,8 @@ def derive_reputation_matrix(
         "event_history_root": canonical_reduction.get("event_history_root"),
         "visibility": {
             "public_dimensions": list(PUBLIC_DIMENSIONS),
-            "private_dimensions": [],
-            "private_revealed": False,
+            "restricted_dimensions": [],
+            "restricted_revealed": False,
         },
         "event_count": len(exposed_events),
     }

@@ -70,6 +70,14 @@
     "public_multi_validator_bft": false,
     "public_validator_readiness": false
   },
+  "controlled_testnet_candidate_evidence": {
+    "controlled_testnet_rehearsal_candidate": true,
+    "evidence_retention_policy_present": true,
+    "poh_challenge_public_client_gap_closed": true,
+    "public_beta_ready": false,
+    "storage_operator_count": 3,
+    "validator_rehearsal_node_count": 4
+  },
   "long_lived_validator_network_skeleton": {
     "all_nodes_replayed_committed_blocks": true,
     "batch": "550",
@@ -203,14 +211,6 @@
     "submit_route": "POST /v1/tx/submit POH_CHALLENGE_OPEN",
     "system_or_receipt_submission_required": false
   },
-  "private_testnet_candidate_evidence": {
-    "evidence_retention_policy_present": true,
-    "poh_challenge_public_client_gap_closed": true,
-    "private_testnet_rehearsal_candidate": true,
-    "public_beta_ready": false,
-    "storage_operator_count": 3,
-    "validator_rehearsal_node_count": 4
-  },
   "remaining_public_testnet_gaps": [
     "public validator readiness still requires long-running full production BFT gossip/QC/mempool multi-node proof",
     "storage durability proof is local IPFS-compatible worker/operator rehearsal, not a public multi-machine IPFS network",
@@ -218,5 +218,5 @@
     "live economics remains locked pending reward-farming, wallet, treasury, legal, and long-run simulation review",
     "production helper execution remains disabled pending full serial-equivalence and adversarial multi-node proof"
   ],
-  "schema": "weall.v1_5.batch549_553.private_testnet_candidate_proof"
+  "schema": "weall.v1_5.batch549_553.controlled_testnet_candidate_proof"
 }

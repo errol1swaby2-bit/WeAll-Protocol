@@ -334,7 +334,7 @@ def build() -> Json:
         "ok": ok,
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_private_testnet_candidate": True,
+        "controlled_testnet_candidate": True,
         "public_beta_blockers_remaining": True,
         "blocker_count": len(blockers),
         "remaining_blocker_count": len(remaining),

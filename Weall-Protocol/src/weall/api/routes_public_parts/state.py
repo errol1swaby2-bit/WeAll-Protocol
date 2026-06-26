@@ -348,7 +348,7 @@ def state_snapshot(request: Request) -> Json:
         return {"ok": False, "error": {"code": "bad_state", "message": "snapshot not a dict"}}
 
     # Keep response shape stable while ensuring public snapshots never expose
-    # bearer session keys, raw device identifiers, or private PoH/evidence fields.
+    # bearer session keys, raw device identifiers, or restricted PoH/evidence fields.
     return {"ok": True, "state": redact_public_state(st)}
 
 

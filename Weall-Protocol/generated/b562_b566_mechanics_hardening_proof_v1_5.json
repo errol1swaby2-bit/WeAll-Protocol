@@ -72,6 +72,7 @@
     "public_multi_validator_bft": false,
     "public_validator_readiness": false
   },
+  "controlled_testnet_candidate_strengthened": true,
   "economics_farming_simulation_locked": {
     "activation_preconditions_ready": true,
     "batch": "566",
@@ -116,7 +117,6 @@
     "trusted_anchor_height": 3
   },
   "ok": true,
-  "private_testnet_candidate_strengthened": true,
   "public_beta_ready": false,
   "remaining_gaps": [
     "public validator readiness still requires independent long-running validators with full production BFT gossip under adversarial timing",

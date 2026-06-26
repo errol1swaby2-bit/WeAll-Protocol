@@ -25,5 +25,5 @@ def test_clean_clone_tester_boot_doc_preserves_truth_boundary_batch474() -> None
     assert "does not prove" in doc
     assert "public multi-validator BFT readiness" in doc
     assert "public HTTPS external observer readiness" in doc
-    assert "WEALL_ALLOW_PRIVATE_GENESIS_API=1" in doc
+    assert "WEALL_ALLOW_LAN_GENESIS_API=1" in doc
     assert "private key must never be printed" in doc.lower()

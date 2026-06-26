@@ -77,7 +77,7 @@ def _client(state: dict) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_public_state_snapshot_redacts_session_device_and_private_poh_fields() -> None:
+def test_public_state_snapshot_redacts_session_device_and_restricted_poh_fields() -> None:
     client = _client(_state())
 
     res = client.get("/v1/state/snapshot")
@@ -107,7 +107,7 @@ def test_public_state_snapshot_redacts_session_device_and_private_poh_fields() -
     assert "do-not-expose" not in str(body)
 
 
-def test_public_account_lookup_redacts_session_keys_but_owner_lookup_can_reveal_private_state() -> None:
+def test_public_account_lookup_redacts_session_keys_but_owner_lookup_can_reveal_restricted_state() -> None:
     state = _state()
     client = _client(state)
 

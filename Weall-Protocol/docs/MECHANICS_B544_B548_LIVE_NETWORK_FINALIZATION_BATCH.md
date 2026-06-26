@@ -29,7 +29,7 @@ This batch tightens the remaining v1.5 implementation gap from proof harnesses t
 
 ## Truth boundary
 
-This batch supports a stronger local/private rehearsal claim. It still does not enable or claim:
+This batch supports a stronger local/LAN rehearsal claim. It still does not enable or claim:
 
 - public validator readiness
 - public multi-validator BFT readiness

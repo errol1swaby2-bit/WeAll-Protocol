@@ -15,7 +15,7 @@ def test_helper_conflicting_certificate_proof_batch33() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="descriptor-a",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1000,
     )
     cert_b = sign_helper_certificate(
@@ -29,7 +29,7 @@ def test_helper_conflicting_certificate_proof_batch33() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="descriptor-b",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1001,
     )
     proof = build_plan_misbehavior_proof(certificate_a=cert_a, certificate_b=cert_b)

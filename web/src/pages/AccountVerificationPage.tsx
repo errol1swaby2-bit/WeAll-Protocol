@@ -292,7 +292,7 @@ function asyncCaseReviewability(item: any): AsyncCaseReviewability {
   const evidenceCommitments = item?.evidence_commitments && typeof item.evidence_commitments === "object" ? item.evidence_commitments : {};
   const evidenceBinds = item?.evidence_binds && typeof item.evidence_binds === "object" ? item.evidence_binds : {};
   const reviewableEvidence = item?.reviewable_evidence && typeof item.reviewable_evidence === "object" ? item.reviewable_evidence : {};
-  const reviewerPrivateEvidence = item?.reviewer_private_evidence && typeof item.reviewer_private_evidence === "object" ? item.reviewer_private_evidence : {};
+  const reviewerPrivateEvidence = item?.reviewer_restricted_evidence && typeof item.reviewer_restricted_evidence === "object" ? item.reviewer_restricted_evidence : {};
   const publicEvidenceIds = Array.isArray(item?.public_evidence_ids) ? item.public_evidence_ids : [];
   const assignedJurors = Array.isArray(item?.assigned_jurors) ? item.assigned_jurors : [];
   const status = String(item?.status || "").trim();

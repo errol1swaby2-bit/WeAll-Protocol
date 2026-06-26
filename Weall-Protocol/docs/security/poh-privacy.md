@@ -4,9 +4,9 @@ WeAll uses chain-verified eligibility, not surveillance identity.
 
 ## Hard requirements
 
-- No raw private PoH evidence on-chain.
-- No raw private PoH evidence in receipts.
-- No raw private PoH evidence in public snapshots.
+- No raw restricted PoH evidence on-chain.
+- No raw restricted PoH evidence in receipts.
+- No raw restricted PoH evidence in public snapshots.
 - No plaintext native PoH review in chain state.
 - No authority signer private key in logs.
 - No mailbox data in protocol state.

@@ -24,7 +24,7 @@ def _viewer_for_request(request: Request, state: Json) -> str:
         return ""
 
 
-def _reveal_private(viewer: str, account: str) -> bool:
+def _reveal_restricted(viewer: str, account: str) -> bool:
     # Public-only reputation rule: owner authentication does not reveal extra
     # protocol-meaning reputation dimensions. The parameter is retained only for
     # compatibility with existing helper call sites.
@@ -36,7 +36,7 @@ def v1_reputation_me(request: Request) -> Json:
     """Return the authenticated account's public Reputation Matrix view."""
     st = _snapshot(request)
     viewer = str(require_account_session(request, st) or "").strip()
-    matrix = derive_reputation_matrix(st, viewer, reveal_private=False, include_events=True)
+    matrix = derive_reputation_matrix(st, viewer, reveal_restricted=False, include_events=True)
     matrix["owner_view"] = True
     matrix["public_only"] = True
     return matrix
@@ -69,8 +69,8 @@ def v1_reputation_summary(account: str, request: Request) -> Json:
     """Return the deterministic public Reputation Matrix summary for an account."""
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
-    reveal_private = _reveal_private(viewer, account)
-    return derive_reputation_matrix(st, account, reveal_private=reveal_private, include_events=False)
+    reveal_restricted = _reveal_restricted(viewer, account)
+    return derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=False)
 
 
 @router.get("/reputation/{account}/matrix")
@@ -78,15 +78,15 @@ def v1_reputation_matrix(account: str, request: Request) -> Json:
     """Return matrix dimensions, eligibility, and recent events for an account."""
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
-    reveal_private = _reveal_private(viewer, account)
-    return derive_reputation_matrix(st, account, reveal_private=reveal_private, include_events=True)
+    reveal_restricted = _reveal_restricted(viewer, account)
+    return derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=True)
 
 
 @router.get("/reputation/{account}/eligibility")
 def v1_reputation_eligibility(account: str, request: Request) -> Json:
     """Return role eligibility booleans with backend-derived reasons."""
     st = _snapshot(request)
-    matrix = derive_reputation_matrix(st, account, reveal_private=False, include_events=False)
+    matrix = derive_reputation_matrix(st, account, reveal_restricted=False, include_events=False)
     return {
         "ok": True,
         "account_id": account,
@@ -105,8 +105,8 @@ def v1_reputation_events(account: str, request: Request) -> Json:
     """
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
-    reveal_private = _reveal_private(viewer, account)
-    matrix = derive_reputation_matrix(st, account, reveal_private=reveal_private, include_events=True)
+    reveal_restricted = _reveal_restricted(viewer, account)
+    matrix = derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=True)
     return {
         "ok": True,
         "version": matrix.get("version"),

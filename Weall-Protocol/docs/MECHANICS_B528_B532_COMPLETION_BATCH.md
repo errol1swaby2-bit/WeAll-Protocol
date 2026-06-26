@@ -15,4 +15,4 @@ This batch addresses the remaining implementation gaps identified after the 523-
 
 This is still a local/private completion rehearsal. It does not enable public validators, live economics, automatic software upgrades, or production helper execution.
 
-The production feed ranking is a deterministic public ranking system, not a personalized recommendation engine. It avoids wall-clock randomness, floating-point scoring, private profile surveillance, and nondeterministic client state.
+The production feed ranking is a deterministic public ranking system, not a personalized recommendation engine. It avoids wall-clock randomness, floating-point scoring, controlled profile surveillance, and nondeterministic client state.

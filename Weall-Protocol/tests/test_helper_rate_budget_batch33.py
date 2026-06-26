@@ -23,7 +23,7 @@ def test_helper_plan_window_rate_budget_batch33() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d1",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1001,
     )
     cert2 = sign_helper_certificate(
@@ -37,7 +37,7 @@ def test_helper_plan_window_rate_budget_batch33() -> None:
         lane_tx_ids=("t2",),
         descriptor_hash="d2",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1002,
     )
     cert3 = sign_helper_certificate(
@@ -51,7 +51,7 @@ def test_helper_plan_window_rate_budget_batch33() -> None:
         lane_tx_ids=("t3",),
         descriptor_hash="d3",
         plan_id="plan-1",
-        shared_secret="secret",
+        hmac_secret="secret",
         issued_ms=1003,
     )
 

@@ -106,8 +106,8 @@ def sign_helper_receipt(
     helper_id: str,
     plan_id: str = "",
     privkey: str | Ed25519PrivateKey | None = None,
-    shared_secret: str | None = None,
-    allow_legacy_shared_secret: bool = False,
+    hmac_secret: str | None = None,
+    allow_legacy_hmac_secret: bool = False,
 ) -> HelperReceipt:
     normalized_tx_ids = _normalize_tx_ids(ordered_tx_ids)
     unsigned = {
@@ -128,9 +128,9 @@ def sign_helper_receipt(
     if privkey is not None:
         signature = _private_key_from_value(privkey).sign(payload).hex()
     else:
-        if not allow_legacy_shared_secret or shared_secret is None:
+        if not allow_legacy_hmac_secret or hmac_secret is None:
             raise ValueError("helper receipt signing requires privkey; legacy shared-secret signing is disabled unless explicitly allowed")
-        signature = hmac.new(shared_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
+        signature = hmac.new(hmac_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
     return HelperReceipt(
         chain_id=str(chain_id),
         height=int(height),
@@ -160,8 +160,8 @@ def verify_helper_receipt(
     expected_plan_id: str = "",
     expected_ordered_tx_ids: Sequence[str] | None = None,
     helper_pubkey: str | Ed25519PublicKey | None = None,
-    shared_secret: str | None = None,
-    allow_legacy_shared_secret: bool = False,
+    hmac_secret: str | None = None,
+    allow_legacy_hmac_secret: bool = False,
 ) -> bool:
     if receipt.chain_id != str(expected_chain_id):
         return False
@@ -189,9 +189,9 @@ def verify_helper_receipt(
             return True
         except Exception:
             return False
-    if not allow_legacy_shared_secret or shared_secret is None:
+    if not allow_legacy_hmac_secret or hmac_secret is None:
         return False
-    expected_sig = hmac.new(shared_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
+    expected_sig = hmac.new(hmac_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()
     return hmac.compare_digest(expected_sig, receipt.signature)
 
 

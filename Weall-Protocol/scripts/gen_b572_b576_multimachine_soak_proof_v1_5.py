@@ -41,7 +41,7 @@ def build() -> dict[str, Any]:
         "multidaemon_ipfs_durability": storage,
         "anti_sybil_panel_signal_aggregation": anti_sybil,
         "long_run_locked_economics_stress": economics,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
         "remaining_gaps": [

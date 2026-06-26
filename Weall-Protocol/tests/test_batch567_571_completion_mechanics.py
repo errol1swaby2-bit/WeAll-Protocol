@@ -99,7 +99,7 @@ def test_batch571_economics_locked_read_models_surface_pending_failed_reward_tre
 def test_batch567_571_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    assert proof["private_testnet_candidate_strengthened"] is True
+    assert proof["controlled_testnet_candidate_strengthened"] is True
     assert proof["public_beta_ready"] is False
     assert proof["claim_boundaries"] == {
         "automatic_protocol_upgrades": False,

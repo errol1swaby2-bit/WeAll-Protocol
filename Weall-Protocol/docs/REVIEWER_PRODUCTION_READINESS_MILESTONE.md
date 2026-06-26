@@ -95,7 +95,7 @@ That claim requires:
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.json
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=http://GENESIS_HOST:8000
-export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+export WEALL_ALLOW_LAN_GENESIS_API=1
 export WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1
 export WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"

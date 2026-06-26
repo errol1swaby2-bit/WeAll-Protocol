@@ -27,7 +27,7 @@ TERMS = [
     "members_only",
     "member_only_read",
     "recipient_public_key",
-    "shared_secret",
+    "hmac_secret",
     "e2ee",
     "end_to_end",
     "whisper",
@@ -165,7 +165,7 @@ def build_payload() -> dict[str, object]:
                 "reason": "Observer outbox rows are durable tx forwarding records and are not user-to-user communication threads.",
             },
             {
-                "surface": "helper shared-secret compatibility",
+                "surface": "helper HMAC-secret compatibility",
                 "classification": "helper_receipt_signature_compatibility_not_social_payload_encryption",
                 "reason": "Legacy helper shared-secret verification signs helper receipts and does not decrypt or hide protocol-native social content.",
             },
@@ -180,8 +180,8 @@ def build_payload() -> dict[str, object]:
                 "frontend guards that fail if removed communication modules return",
             ],
             "public_activity_terms": ["/v1/activity/inbox is public-event-derived"],
-            "non_social_transport_terms": ["net/messages.py packet messages", "helper shared_secret receipt signatures"],
-            "non_social_identity_evidence_terms": ["reviewer_private_evidence remains a restricted identity evidence compatibility field, not a protocol-native social/private-group surface"],
+            "non_social_transport_terms": ["net/messages.py packet messages", "helper hmac_secret receipt signatures"],
+            "non_social_identity_evidence_terms": ["reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social/private-group surface"],
         },
         "adversarial_bypass_checks": [
             "encrypted payloads through generic transaction routes reject with ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",

@@ -96,7 +96,7 @@ def run_harness() -> Json:
         and len(set(restart_roots)) == 1
     )
     return {
-        "artifact": "b510_private_validator_network_completion_v1_5",
+        "artifact": "b510_controlled_validator_network_completion_v1_5",
         "public_validator_enabled": False,
         "initial_active_set": active_start,
         "initial_threshold": threshold_start,

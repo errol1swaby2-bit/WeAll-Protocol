@@ -6,7 +6,7 @@
   "public_beta_ready": false,
   "release_claim_boundaries": {
     "automatic_protocol_upgrades": false,
-    "controlled_private_testnet_candidate": true,
+    "controlled_testnet_candidate": true,
     "legal_compliance_ready": false,
     "live_economics": false,
     "mainnet_ready": false,

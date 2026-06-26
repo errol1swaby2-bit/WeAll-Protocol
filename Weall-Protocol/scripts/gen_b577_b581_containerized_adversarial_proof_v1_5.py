@@ -43,7 +43,7 @@ def build() -> Json:
         "real_ipfs_daemon_durability": storage,
         "anti_sybil_conflict_appeal_recovery": anti_sybil,
         "economics_sybil_farming_adversarial_stress": economics,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
         "remaining_gaps": [

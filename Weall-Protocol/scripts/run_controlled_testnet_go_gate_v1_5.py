@@ -148,7 +148,7 @@ def build() -> Json:
         "batch": "595",
         "ok": deterministic_go_gate_ready,
         "controlled_testnet_go_gate_ready_to_run": deterministic_go_gate_ready,
-        "controlled_private_testnet_candidate": deterministic_go_gate_ready,
+        "controlled_testnet_candidate": deterministic_go_gate_ready,
         "controlled_testnet_ready_claimed_by_repo": False,
         "public_beta_ready": False,
         "public_readiness_claim_requires_external_evidence": True,

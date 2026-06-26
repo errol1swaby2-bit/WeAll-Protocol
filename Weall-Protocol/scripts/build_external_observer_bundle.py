@@ -144,7 +144,7 @@ def _bundle_profile(manifest: Json, authority: Json) -> str:
 
 def _verify_command_for_manifest(manifest_path: Path, bundle_profile: str) -> str:
     profile = str(bundle_profile or "").strip().lower()
-    allow = " WEALL_ALLOW_PRIVATE_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
+    allow = " WEALL_ALLOW_LAN_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
     return (
         f"{allow} python3 scripts/verify_node_operator_onboarding_bundle.py "
         f"--bundle <observer-bundle.json> --manifest {manifest_path.as_posix()} --json"

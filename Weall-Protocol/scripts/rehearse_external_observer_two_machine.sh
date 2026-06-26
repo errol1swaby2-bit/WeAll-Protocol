@@ -64,8 +64,8 @@ WEALL_MANIFEST_MODE_PY
 
 # Reject obvious local/self/metadata endpoints. Historical cases covered here
 # include http://127.0.0.1*, http://localhost*, https://127.0.0.1*, and
-# https://localhost*. Private LAN IPs require WEALL_ALLOW_PRIVATE_GENESIS_API=1.
-python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
+# https://localhost*. LAN IPs require WEALL_ALLOW_LAN_GENESIS_API=1.
+python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_LAN_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
 from __future__ import annotations
 import ipaddress
 import sys
@@ -89,7 +89,7 @@ if ip is not None:
     if str(ip) == "169.254.169.254":
         raise SystemExit("two_machine_rehearsal_metadata_service_forbidden")
     if ip.is_private and allow_private not in {"1", "true", "TRUE", "yes", "YES", "on", "ON"}:
-        raise SystemExit("two_machine_rehearsal_private_genesis_api_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+        raise SystemExit("two_machine_rehearsal_lan_genesis_api_requires_WEALL_ALLOW_LAN_GENESIS_API=1")
 print("OK: genesis API base is non-local for two-machine rehearsal")
 PY_NONLOCAL_API
 

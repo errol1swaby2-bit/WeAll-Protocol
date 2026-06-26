@@ -53,7 +53,7 @@ def test_launch_matrix_generated_artifact_matches_runtime_batch495() -> None:
 def test_launch_matrix_aliases_and_state_read_model_batch495() -> None:
     assert normalize_launch_phase("prod") == "production_candidate"
     assert normalize_launch_phase("testnet") == "public_beta_candidate"
-    assert normalize_launch_phase("controlled_devnet") == "private_validator_rehearsal"
+    assert normalize_launch_phase("controlled_devnet") == "controlled_validator_rehearsal"
 
     status = launch_matrix_from_state({"params": {"launch_phase": "public_beta"}})
     assert status["phase"] == "public_beta_candidate"

@@ -70,6 +70,7 @@
     "public_multi_validator_bft": false,
     "public_validator_readiness": false
   },
+  "controlled_testnet_candidate_strengthened": true,
   "economics_activation_locked_completion": {
     "activation_precondition_report": {
       "advisory_missing": [],
@@ -187,7 +188,6 @@
     "worker_model": "multi_operator_local_file_pin_workers"
   },
   "ok": true,
-  "private_testnet_candidate_strengthened": true,
   "public_beta_ready": false,
   "public_style_validator_network": {
     "batch": "556",

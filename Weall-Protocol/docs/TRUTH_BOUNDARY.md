@@ -88,7 +88,7 @@ export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.jso
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-For a private LAN rehearsal, `WEALL_ALLOW_PRIVATE_GENESIS_API=1` may be used only when the documentation clearly says this is not a public HTTPS deployment.
+For a LAN rehearsal, `WEALL_ALLOW_LAN_GENESIS_API=1` may be used only when the documentation clearly says this is not a public HTTPS deployment.
 
 ## Block production and BFT truth boundary
 

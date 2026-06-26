@@ -41,7 +41,7 @@ def build() -> dict[str, Any]:
         "storage_worker_failure_retry_loop": storage_retry,
         "anti_sybil_escalation_recovery_windows": anti_sybil,
         "economics_farming_simulation_locked": economics,
-        "private_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
         "remaining_gaps": [

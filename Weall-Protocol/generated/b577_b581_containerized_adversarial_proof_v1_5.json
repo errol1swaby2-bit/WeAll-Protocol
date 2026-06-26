@@ -146,6 +146,7 @@
     "rounds": 8,
     "state_roots_match": true
   },
+  "controlled_testnet_candidate_strengthened": true,
   "economics_sybil_farming_adversarial_stress": {
     "legal_compliance_review_boundary": "required_before_activation",
     "live_economics_claimed": false,
@@ -234,7 +235,6 @@
     "validator_count": 4
   },
   "ok": true,
-  "private_testnet_candidate_strengthened": true,
   "public_beta_ready": false,
   "real_ipfs_daemon_durability": {
     "availability_status": "available",
