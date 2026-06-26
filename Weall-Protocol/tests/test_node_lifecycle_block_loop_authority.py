@@ -16,7 +16,7 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_lifecycle_not_validator_disables_block_loop_bft_authority_batch126(
+def test_prod_lifecycle_not_validator_disables_block_loop_bft_authority(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -49,7 +49,7 @@ def test_prod_lifecycle_not_validator_disables_block_loop_bft_authority_batch126
 
 
 
-def test_bootstrap_dev_keeps_block_loop_bft_request_batch126(tmp_path: Path, monkeypatch) -> None:
+def test_bootstrap_dev_keeps_block_loop_bft_request(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")

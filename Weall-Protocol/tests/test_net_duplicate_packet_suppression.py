@@ -40,7 +40,7 @@ def _mark_established(node: NetNode, peer_id: str) -> None:
     rec.router.handshake.session_id = "session-test"
 
 
-def test_exact_duplicate_packet_is_suppressed_after_session_established_batch107() -> None:
+def test_exact_duplicate_packet_is_suppressed_after_session_established() -> None:
     peer_id = "tcp://9.9.9.9:7777"
     handled: list[int] = []
     node = NetNode(
@@ -67,7 +67,7 @@ def test_exact_duplicate_packet_is_suppressed_after_session_established_batch107
     assert int(peer["strikes"]) == 0
 
 
-def test_duplicate_cache_respects_ttl_and_capacity_batch107() -> None:
+def test_duplicate_cache_respects_ttl_and_capacity() -> None:
     peer_id = "tcp://8.8.8.8:8888"
     handled: list[int] = []
     node = NetNode(

@@ -55,7 +55,7 @@ def _header(t: MsgType) -> WireHeader:
     return WireHeader(type=t, chain_id="chain-A", schema_version="1", tx_index_hash="hash-A")
 
 
-def test_peer_addr_codec_round_trips_batch313() -> None:
+def test_peer_addr_codec_round_trips() -> None:
     rec = make_peer_addr_record(
         uri="tcp://node-b.example:30303",
         peer_id="node-b",
@@ -73,7 +73,7 @@ def test_peer_addr_codec_round_trips_batch313() -> None:
     assert decoded.addrs[0]["uri"] == "tcp://node-b.example:30303"
 
 
-def test_signed_peer_addr_record_verifies_and_tampering_fails_batch313() -> None:
+def test_signed_peer_addr_record_verifies_and_tampering_fails() -> None:
     pub, priv = _priv_hex("node-b")
     cfg = PeerAddrGossipConfig(
         chain_id="chain-A", schema_version="1", tx_index_hash="hash-A", allow_unsigned=False
@@ -105,7 +105,7 @@ def test_signed_peer_addr_record_verifies_and_tampering_fails_batch313() -> None
     assert verify_peer_addr_record(expired, cfg=cfg, now_ms=2000) is False
 
 
-def test_filter_peer_addr_records_dedupes_bounds_and_rejects_incompatible_batch313() -> None:
+def test_filter_peer_addr_records_dedupes_bounds_and_rejects_incompatible() -> None:
     cfg = PeerAddrGossipConfig(
         chain_id="chain-A", schema_version="1", tx_index_hash="hash-A", max_addrs_per_message=2
     )
@@ -150,7 +150,7 @@ def test_filter_peer_addr_records_dedupes_bounds_and_rejects_incompatible_batch3
     ]
 
 
-def test_netnode_getaddr_returns_bounded_compatible_records_batch313() -> None:
+def test_netnode_getaddr_returns_bounded_compatible_records() -> None:
     provider_records = [
         "tcp://node-b.example:30303",
         "http://not-supported.example",
@@ -181,7 +181,7 @@ def test_netnode_getaddr_returns_bounded_compatible_records_batch313() -> None:
     ]
 
 
-def test_netnode_accepts_peer_addr_records_via_callback_batch313() -> None:
+def test_netnode_accepts_peer_addr_records_via_callback() -> None:
     accepted: list[tuple[str, tuple[dict[str, Any], ...]]] = []
     good = make_peer_addr_record(
         uri="tcp://node-b.example:30303",
@@ -208,7 +208,7 @@ def test_netnode_accepts_peer_addr_records_via_callback_batch313() -> None:
     assert peer["addr_records_rejected"] == 1
 
 
-def test_net_loop_merges_learned_addr_records_into_peer_store_batch313(
+def test_net_loop_merges_learned_addr_records_into_peer_store(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")

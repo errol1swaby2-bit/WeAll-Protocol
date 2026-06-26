@@ -17,7 +17,7 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_new_node_operator_quickstart_documents_full_safe_path_batch293() -> None:
+def test_new_node_operator_quickstart_documents_full_safe_path() -> None:
     doc = read(DOC)
 
     assert "./scripts/boot_onboarding_node.sh" in doc
@@ -34,7 +34,7 @@ def test_new_node_operator_quickstart_documents_full_safe_path_batch293() -> Non
     assert "Do not use your account recovery key as a node key" in doc
 
 
-def test_new_node_operator_quickstart_does_not_reintroduce_unsafe_node_key_copy_batch293() -> None:
+def test_new_node_operator_quickstart_does_not_reintroduce_unsafe_node_key_copy() -> None:
     doc = read(DOC)
     account_page = read(ACCOUNT_PAGE)
 
@@ -54,7 +54,7 @@ def test_new_node_operator_quickstart_does_not_reintroduce_unsafe_node_key_copy_
     assert "not from your account recovery key" in account_page
 
 
-def test_operator_onboarding_smoke_script_checks_boot_split_and_ui_contract_batch293() -> None:
+def test_operator_onboarding_smoke_script_checks_boot_split_and_ui_contract() -> None:
     smoke = read(SMOKE)
 
     assert "boot_onboarding_node.sh" in smoke
@@ -68,11 +68,11 @@ def test_operator_onboarding_smoke_script_checks_boot_split_and_ui_contract_batc
     assert "reject_text" in smoke
 
 
-def test_operator_onboarding_smoke_script_passes_batch293() -> None:
+def test_operator_onboarding_smoke_script_passes() -> None:
     subprocess.run(["sh", str(SMOKE)], cwd=str(ROOT), check=True, timeout=15, capture_output=True, text=True)
 
 
-def test_boot_scripts_match_quickstart_contract_batch293() -> None:
+def test_boot_scripts_match_quickstart_contract() -> None:
     doc = read(DOC)
     onboarding = read(ONBOARDING)
     service = read(SERVICE)

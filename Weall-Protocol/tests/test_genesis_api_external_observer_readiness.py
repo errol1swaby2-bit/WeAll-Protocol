@@ -12,7 +12,7 @@ def _read(path: str) -> str:
     return (OUTER / path).read_text(encoding="utf-8")
 
 
-def test_genesis_observer_readiness_endpoint_is_mounted_and_truthful_batch464() -> None:
+def test_genesis_observer_readiness_endpoint_is_mounted_and_truthful() -> None:
     status = _read("Weall-Protocol/src/weall/api/routes_public_parts/status.py")
     routes = _read("Weall-Protocol/src/weall/api/routes_public.py")
 
@@ -33,7 +33,7 @@ def test_genesis_observer_readiness_endpoint_is_mounted_and_truthful_batch464() 
     assert "status_router" in routes and "include_router(status_router" in routes
 
 
-def test_external_observer_remote_gates_require_genesis_readiness_contract_batch464() -> None:
+def test_external_observer_remote_gates_require_genesis_readiness_contract() -> None:
     two_machine = _read("Weall-Protocol/scripts/rehearse_external_observer_two_machine.sh")
     live_gate = _read("Weall-Protocol/scripts/external_observer_live_gate.sh")
     first_gate = _read("Weall-Protocol/scripts/first_external_observer_reproducibility_gate.sh")
@@ -54,7 +54,7 @@ def test_external_observer_remote_gates_require_genesis_readiness_contract_batch
     assert "Signed onboarding passing is required before claiming first trusted external observer readiness" in first_gate
 
 
-def test_public_tx_submit_remains_fail_closed_for_genesis_api_batch464() -> None:
+def test_public_tx_submit_remains_fail_closed_for_genesis_api() -> None:
     tx_route = _read("Weall-Protocol/src/weall/api/routes_public_parts/tx.py")
     tx_admission = _read("Weall-Protocol/src/weall/runtime/tx_admission.py")
     domain_dispatch = _read("Weall-Protocol/src/weall/runtime/domain_dispatch.py")
@@ -75,12 +75,12 @@ def test_public_tx_submit_remains_fail_closed_for_genesis_api_batch464() -> None
     assert "system_signer_required" in domain_dispatch
 
 
-def test_reviewer_gate_runs_batch464_genesis_api_readiness_tests() -> None:
+def test_reviewer_gate_runs_genesis_api_readiness_tests() -> None:
     gate = _read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh")
     assert "tests/test_genesis_api_external_observer_readiness.py" in gate
 
 
-def test_docs_define_production_oriented_genesis_api_boundary_batch464() -> None:
+def test_docs_define_production_oriented_genesis_api_boundary() -> None:
     first = _read("Weall-Protocol/docs/FIRST_EXTERNAL_OBSERVER_TEST.md")
     trusted = _read("Weall-Protocol/docs/TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md")
     rehearsal = _read("Weall-Protocol/docs/EXTERNAL_OBSERVER_NODE_REHEARSAL.md")
@@ -96,7 +96,7 @@ def test_docs_define_production_oriented_genesis_api_boundary_batch464() -> None
     assert "not a public mainnet Genesis API" in known
 
 
-def test_first_external_observer_gate_still_passes_local_scope_batch464() -> None:
+def test_first_external_observer_gate_still_passes_local_scope() -> None:
     proc = subprocess.run(
         ["bash", "scripts/first_external_observer_reproducibility_gate.sh"],
         cwd=ROOT,

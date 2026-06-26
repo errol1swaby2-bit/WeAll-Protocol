@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_local_rehearsal_provides_live_room_transport_config_batch391() -> None:
+def test_local_rehearsal_provides_live_room_transport_config() -> None:
     src = _read(NESTED / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
     assert 'LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"' in src
     assert 'LIVE_ROOM_BASE_URL="${VITE_WEALL_LIVE_ROOM_BASE_URL:-}"' in src
@@ -20,7 +20,7 @@ def test_local_rehearsal_provides_live_room_transport_config_batch391() -> None:
     assert 'live_room_base_url=${LIVE_ROOM_BASE_URL}' in src
 
 
-def test_vite_dev_csp_allows_local_p2p_room_frames_batch391() -> None:
+def test_vite_dev_csp_allows_local_p2p_room_frames() -> None:
     src = _read(WEB / "vite.config.ts")
     assert "frame-src 'self'" in src
     assert "http://127.0.0.1:*" in src
@@ -28,7 +28,7 @@ def test_vite_dev_csp_allows_local_p2p_room_frames_batch391() -> None:
     assert "https://meet.jit.si" not in src
 
 
-def test_dispute_viewer_assignment_falls_back_to_eligible_juror_ids_batch391() -> None:
+def test_dispute_viewer_assignment_falls_back_to_eligible_juror_ids() -> None:
     api = _read(NESTED / "src" / "weall" / "api" / "routes_public_parts" / "disputes.py")
     surface = _read(WEB / "src" / "lib" / "disputeSurface.ts")
     apply = _read(NESTED / "src" / "weall" / "runtime" / "apply" / "dispute.py")

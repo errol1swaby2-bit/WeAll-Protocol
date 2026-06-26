@@ -16,7 +16,7 @@ def _tx_index_path() -> str:
     return str(_repo_root() / "generated" / "tx_index.json")
 
 
-def test_restart_rejects_genesis_bootstrap_profile_drift_batch126(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_restart_rejects_genesis_bootstrap_profile_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     acct = "@bootstrap-pinned"
     pub, _sk = deterministic_ed25519_keypair(label=acct)
     db_path = str(tmp_path / "genesis_profile.db")
@@ -38,7 +38,7 @@ def test_restart_rejects_genesis_bootstrap_profile_drift_batch126(tmp_path: Path
         WeAllExecutor(db_path=db_path, node_id=acct, chain_id="batch126-genesis", tx_index_path=_tx_index_path())
 
 
-def test_restart_rejects_late_genesis_bootstrap_enablement_batch126(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_restart_rejects_late_genesis_bootstrap_enablement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     acct = "@plain-genesis"
     db_path = str(tmp_path / "plain_genesis.db")
 
@@ -60,7 +60,7 @@ def test_restart_rejects_late_genesis_bootstrap_enablement_batch126(tmp_path: Pa
         WeAllExecutor(db_path=db_path, node_id=acct, chain_id="batch126-plain", tx_index_path=_tx_index_path())
 
 
-def test_genesis_mode_profile_is_pinned_to_validator_identity_batch126(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_genesis_mode_profile_is_pinned_to_validator_identity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     acct = "@genesis-mode-pinned"
     pub, _sk = deterministic_ed25519_keypair(label=acct)
     db_path = str(tmp_path / "genesis_mode_profile.db")

@@ -9,7 +9,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_canonical_mempool_selection_last_candidate_survives_restart_batch111(
+def test_canonical_mempool_selection_last_candidate_survives_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")
@@ -66,7 +66,7 @@ def test_canonical_mempool_selection_last_candidate_survives_restart_batch111(
     assert state_meta["mempool_selection_last"]["policy"] == "canonical"
 
 
-def test_default_canonical_selection_persistence_survives_restart_without_overwriting_policy_batch111(
+def test_default_canonical_selection_persistence_survives_restart_without_overwriting_policy(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.delenv("WEALL_MEMPOOL_SELECTION_POLICY", raising=False)

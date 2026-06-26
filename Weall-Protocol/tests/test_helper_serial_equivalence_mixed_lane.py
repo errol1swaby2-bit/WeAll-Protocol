@@ -118,7 +118,7 @@ def _mk_cert(plan: LanePlan, *, block_height: int, view: int, validator_epoch: i
 
 
 @pytest.mark.parametrize(("_name", "txs"), CORPUS)
-def test_helper_serial_equivalence_corpus_under_mixed_lane_pressure_batch12(_name: str, txs: list[Json]) -> None:
+def test_helper_serial_equivalence_corpus_under_mixed_lane_pressure(_name: str, txs: list[Json]) -> None:
     lane_plans = plan_parallel_execution(
         txs=list(txs),
         validators=["v1", "v2", "v3", "v4"],

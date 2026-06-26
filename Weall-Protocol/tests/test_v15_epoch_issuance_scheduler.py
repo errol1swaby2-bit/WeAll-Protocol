@@ -16,7 +16,7 @@ def _state(issued: int = 0) -> dict:
     }
 
 
-def test_scheduler_does_not_emit_issuance_before_30_block_epoch_boundary_batch491() -> None:
+def test_scheduler_does_not_emit_issuance_before_30_block_epoch_boundary() -> None:
     st = _state()
 
     schedule_block_rewards_system_txs(st, next_height=ISSUANCE_EPOCH_BLOCKS - 1, proposer="@validator", phase="post")
@@ -24,7 +24,7 @@ def test_scheduler_does_not_emit_issuance_before_30_block_epoch_boundary_batch49
     assert st["system_queue"] == []
 
 
-def test_scheduler_emits_one_epoch_issuance_at_30_block_boundary_batch491() -> None:
+def test_scheduler_emits_one_epoch_issuance_at_30_block_boundary() -> None:
     st = _state()
 
     schedule_block_rewards_system_txs(st, next_height=ISSUANCE_EPOCH_BLOCKS, proposer="@validator", phase="post")
@@ -43,7 +43,7 @@ def test_scheduler_emits_one_epoch_issuance_at_30_block_boundary_batch491() -> N
     assert distribute_payload["issuance_epoch"] == 0
 
 
-def test_scheduler_caps_final_epoch_and_stops_after_max_supply_batch491() -> None:
+def test_scheduler_caps_final_epoch_and_stops_after_max_supply() -> None:
     almost_cap = _state(issued=MAX_SUPPLY - 7)
     schedule_block_rewards_system_txs(almost_cap, next_height=ISSUANCE_EPOCH_BLOCKS, proposer="@validator", phase="post")
     mint_payload = [tx for tx in almost_cap["system_queue"] if tx["tx_type"] == "BLOCK_REWARD_MINT"][0]["payload"]
@@ -54,7 +54,7 @@ def test_scheduler_caps_final_epoch_and_stops_after_max_supply_batch491() -> Non
     assert capped["system_queue"] == []
 
 
-def test_scheduler_remains_locked_until_activation_batch491() -> None:
+def test_scheduler_remains_locked_until_activation() -> None:
     st = _state()
     st["time"] = 0
     st["params"]["economic_unlock_time"] = 999

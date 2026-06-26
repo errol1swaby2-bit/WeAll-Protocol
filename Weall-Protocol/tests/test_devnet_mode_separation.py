@@ -25,13 +25,13 @@ def _controlled_env() -> dict[str, str]:
     }
 
 
-def test_controlled_devnet_forbids_operator_poh_batch247() -> None:
+def test_controlled_devnet_forbids_operator_poh() -> None:
     env = _controlled_env()
     env["WEALL_ENABLE_OPERATOR_POH"] = "1"
     assert demo_mode_isolation_issue(env) == "operator_poh_forbidden_in_controlled_devnet_or_prod"
 
 
-def test_controlled_devnet_forbids_direct_session_mutation_env_batch247() -> None:
+def test_controlled_devnet_forbids_direct_session_mutation_env() -> None:
     env = _controlled_env()
     env["WEALL_ENABLE_DEV_SESSION_CREATE_ROUTE"] = "1"
     assert (
@@ -47,7 +47,7 @@ def test_controlled_devnet_forbids_direct_session_mutation_env_batch247() -> Non
     )
 
 
-def test_controlled_devnet_session_mutation_route_fails_closed_batch247(monkeypatch) -> None:
+def test_controlled_devnet_session_mutation_route_fails_closed(monkeypatch) -> None:
     for k, v in _controlled_env().items():
         monkeypatch.setenv(k, v)
 
@@ -65,7 +65,7 @@ def test_controlled_devnet_session_mutation_route_fails_closed_batch247(monkeypa
     assert r.json()["error"]["code"] == "direct_session_mutation_forbidden_in_controlled_devnet"
 
 
-def test_controlled_devnet_guard_scripts_exist_batch247() -> None:
+def test_controlled_devnet_guard_scripts_exist() -> None:
     required = [
         "scripts/devnet_assert_no_demo_artifacts.sh",
         "scripts/devnet_assert_no_operator_poh.sh",
@@ -85,7 +85,7 @@ def test_controlled_devnet_guard_scripts_exist_batch247() -> None:
     assert "devnet_assert_no_demo_artifacts.sh" in preflight
 
 
-def test_controlled_boot_scripts_disable_operator_and_session_helpers_batch247() -> None:
+def test_controlled_boot_scripts_disable_operator_and_session_helpers() -> None:
     for rel in ("scripts/devnet_boot_genesis_node.sh", "scripts/devnet_boot_joining_node.sh"):
         text = (REPO_ROOT / rel).read_text(encoding="utf-8")
         assert 'export WEALL_ENABLE_OPERATOR_POH="${WEALL_ENABLE_OPERATOR_POH:-0}"' in text

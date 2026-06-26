@@ -28,20 +28,20 @@ def _cfg(*, mode: str = "prod", block_interval_ms: int | None = None, block_rewa
     )
 
 
-def test_canonical_prod_chain_config_uses_v15_block_interval_and_no_block_reward_batch493() -> None:
+def test_canonical_prod_chain_config_uses_v15_block_interval_and_no_block_reward() -> None:
     payload = json.loads((ROOT / "configs/prod.chain.json").read_text(encoding="utf-8"))
 
     assert payload["block_interval_ms"] == TARGET_BLOCK_INTERVAL_SECONDS * 1000 == 20_000
     assert payload["block_reward"] == 0
 
 
-def test_v15_prod_and_testnet_configs_reject_legacy_block_reward_batch493() -> None:
+def test_v15_prod_and_testnet_configs_reject_legacy_block_reward() -> None:
     for mode in ("prod", "testnet", "controlled_devnet"):
         with pytest.raises(ValueError, match="block_reward must be 0 in v1.5"):
             validate_chain_config(_cfg(mode=mode, block_reward=1))
 
 
-def test_v15_dev_config_default_block_interval_is_20_seconds_batch493(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_v15_dev_config_default_block_interval_is_20_seconds(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_CHAIN_CONFIG_PATH", raising=False)
     monkeypatch.delenv("WEALL_CHAIN_MANIFEST_PATH", raising=False)

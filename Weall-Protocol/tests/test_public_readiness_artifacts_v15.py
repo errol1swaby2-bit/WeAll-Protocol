@@ -17,7 +17,7 @@ LEGAL_DOCS = [
 ]
 
 
-def test_v15_gap_register_marks_recent_batches_resolved_and_remaining_gaps_batch497() -> None:
+def test_v15_gap_register_marks_recent_batches_resolved_and_remaining_gaps() -> None:
     payload = json.loads((ROOT / "generated/v15_implementation_gap_register.json").read_text(encoding="utf-8"))
     resolved = {item["id"]: item for item in payload["resolved_since_prior_evidence_map"]}
     remaining = {item["id"]: item for item in payload["remaining_p0_p1_gaps"]}
@@ -29,14 +29,14 @@ def test_v15_gap_register_marks_recent_batches_resolved_and_remaining_gaps_batch
     assert remaining["P0-PUBLIC-VALIDATOR-BFT-PROOF"]["status"] == "proof_plan_defined_not_passed"
 
 
-def test_legal_compliance_pack_exists_and_is_counsel_pending_batch497() -> None:
+def test_legal_compliance_pack_exists_and_is_counsel_pending() -> None:
     for name in LEGAL_DOCS:
         text = (ROOT / "docs/legal" / name).read_text(encoding="utf-8")
         assert "pending counsel review" in text.lower()
         assert "non-lawyer" in text.lower()
 
 
-def test_public_validator_bft_plan_preserves_truth_boundary_batch497() -> None:
+def test_public_validator_bft_plan_preserves_truth_boundary() -> None:
     text = (ROOT / "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md").read_text(encoding="utf-8")
     required = [
         "equivocation",
@@ -50,7 +50,7 @@ def test_public_validator_bft_plan_preserves_truth_boundary_batch497() -> None:
         assert phrase.lower() in text.lower()
 
 
-def test_evidence_map_references_new_public_readiness_artifacts_batch497() -> None:
+def test_evidence_map_references_new_public_readiness_artifacts() -> None:
     text = (ROOT / "docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md").read_text(encoding="utf-8")
     for rel in [
         "generated/api_contract_map_v1_5.json",

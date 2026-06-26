@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_higher_view_qc_wins_fork_choice_batch84() -> None:
+def test_higher_view_qc_wins_fork_choice() -> None:
     hs = HotStuffBFT(chain_id="batch84")
 
     blocks = {
@@ -34,7 +34,7 @@ def test_higher_view_qc_wins_fork_choice_batch84() -> None:
     assert int(hs.high_qc.view) == 4
 
 
-def test_same_view_conflict_does_not_flip_high_qc_batch84() -> None:
+def test_same_view_conflict_does_not_flip_high_qc() -> None:
     hs = HotStuffBFT(chain_id="batch84")
 
     blocks = {
@@ -61,7 +61,7 @@ def test_same_view_conflict_does_not_flip_high_qc_batch84() -> None:
     assert first.block_id == second.block_id
 
 
-def test_descendant_qc_extends_chain_not_replace_with_sibling_batch84() -> None:
+def test_descendant_qc_extends_chain_not_replace_with_sibling() -> None:
     hs = HotStuffBFT(chain_id="batch84")
 
     blocks = {
@@ -82,7 +82,7 @@ def test_descendant_qc_extends_chain_not_replace_with_sibling_batch84() -> None:
     assert hs.high_qc.block_id == "D"
 
 
-def test_fork_choice_stable_under_reordering_batch84() -> None:
+def test_fork_choice_stable_under_reordering() -> None:
     blocks = {
         "A": {"prev_block_id": ""},
         "B1": {"prev_block_id": "A"},

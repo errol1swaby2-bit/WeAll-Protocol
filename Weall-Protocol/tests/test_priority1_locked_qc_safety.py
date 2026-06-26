@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_locked_qc_prevents_conflicting_vote_batch61() -> None:
+def test_locked_qc_prevents_conflicting_vote() -> None:
     hs = HotStuffBFT(chain_id="batch61")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -31,7 +31,7 @@ def test_locked_qc_prevents_conflicting_vote_batch61() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="C", justify_qc=None) is True
 
 
-def test_locked_qc_persists_across_reload_batch61() -> None:
+def test_locked_qc_persists_across_reload() -> None:
     hs = HotStuffBFT(chain_id="batch61")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -55,7 +55,7 @@ def test_locked_qc_persists_across_reload_batch61() -> None:
     assert hs2.can_vote_for(blocks=blocks, block_id="C", justify_qc=None) is True
 
 
-def test_locked_qc_updates_only_forward_batch61() -> None:
+def test_locked_qc_updates_only_forward() -> None:
     hs = HotStuffBFT(chain_id="batch61")
 
     hs.locked_qc = _qc("batch61", 4, "A", "")

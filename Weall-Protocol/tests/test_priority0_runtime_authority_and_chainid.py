@@ -46,7 +46,7 @@ class _FakeExecutor:
         }
 
 
-def test_helper_startup_blocks_when_authority_not_effective_batch137() -> None:
+def test_helper_startup_blocks_when_authority_not_effective() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True, helper_authority_ok=False),
         helper_release_gate=_all_green_report(),
@@ -56,7 +56,7 @@ def test_helper_startup_blocks_when_authority_not_effective_batch137() -> None:
     assert status.code == "helper_authority_not_ready"
 
 
-def test_helper_readiness_surfaces_authority_block_batch137(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_helper_readiness_surfaces_authority_block(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     app = FastAPI()
@@ -85,7 +85,7 @@ def test_helper_readiness_surfaces_authority_block_batch137(monkeypatch: pytest.
     assert body["startup"]["startup_allowed"] is False
 
 
-def test_health_helper_surface_surfaces_authority_block_batch137(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_helper_surface_surfaces_authority_block(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     app = FastAPI()
@@ -114,14 +114,14 @@ def test_health_helper_surface_surfaces_authority_block_batch137(monkeypatch: py
     assert body["helper_startup"]["code"] == "helper_authority_not_ready"
 
 
-def test_executor_boot_requires_explicit_chain_id_in_prod_batch137(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_executor_boot_requires_explicit_chain_id_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_CHAIN_ID", raising=False)
     with pytest.raises(RuntimeError, match="Missing required env for production: WEALL_CHAIN_ID"):
         boot_config_from_env()
 
 
-def test_persistent_mempool_requires_explicit_chain_id_in_prod_batch137(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_persistent_mempool_requires_explicit_chain_id_in_prod(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     with pytest.raises(ValueError, match="PersistentMempool requires an explicit chain_id in production"):

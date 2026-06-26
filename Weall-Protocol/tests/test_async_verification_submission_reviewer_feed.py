@@ -14,7 +14,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_async_evidence_declare_schema_accepts_reviewable_video_metadata_batch375() -> None:
+def test_async_evidence_declare_schema_accepts_reviewable_video_metadata() -> None:
     env = {
         "chain_id": "weall-controlled-devnet",
         "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
@@ -50,7 +50,7 @@ def test_async_evidence_declare_schema_accepts_reviewable_video_metadata_batch37
     assert getattr(payload, "video_commitment") == "commit:video"
 
 
-def test_account_verification_submits_native_async_tx_sequence_batch375() -> None:
+def test_account_verification_submits_native_async_tx_sequence() -> None:
     page = _read(WEB / "pages" / "AccountVerificationPage.tsx")
 
     assert "beginNonceSequence" in page
@@ -64,7 +64,7 @@ def test_account_verification_submits_native_async_tx_sequence_batch375() -> Non
     assert "reconcileVerificationLevel(account, 1, base)" in page
 
 
-def test_reviewer_feed_surfaces_native_async_reviewable_evidence_batch375() -> None:
+def test_reviewer_feed_surfaces_native_async_reviewable_evidence() -> None:
     page = _read(WEB / "pages" / "JurorDashboard.tsx")
     api = _read(WEB / "api" / "weall.ts")
     route = _read(BACKEND / "weall" / "api" / "routes_public_parts" / "poh.py")

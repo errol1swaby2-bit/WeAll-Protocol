@@ -74,7 +74,7 @@ def _context():
     )
 
 
-def test_helper_restart_snapshot_matches_after_helper_acceptance_batch10(tmp_path) -> None:
+def test_helper_restart_snapshot_matches_after_helper_acceptance(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     receipts = [{"tx_id": "t1", "status": "ok"}]
@@ -134,7 +134,7 @@ def test_helper_restart_snapshot_matches_after_helper_acceptance_batch10(tmp_pat
     assert before.assembly_accepted is True
 
 
-def test_helper_restart_snapshot_matches_after_fallback_batch10(tmp_path) -> None:
+def test_helper_restart_snapshot_matches_after_fallback(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     orch = HelperProposalOrchestrator(
@@ -181,7 +181,7 @@ def test_helper_restart_snapshot_matches_after_fallback_batch10(tmp_path) -> Non
     assert before.assembly_accepted is True
 
 
-def test_helper_restart_snapshot_surfaces_serial_fallback_equivalence_batch10(tmp_path) -> None:
+def test_helper_restart_snapshot_surfaces_serial_fallback_equivalence(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     orch = HelperProposalOrchestrator(

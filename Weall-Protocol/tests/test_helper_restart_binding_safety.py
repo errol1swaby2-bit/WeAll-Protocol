@@ -9,7 +9,7 @@ from weall.runtime.helper_restart_replay import build_helper_restart_snapshot
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 
 
-def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history_batch37(tmp_path) -> None:
+def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -42,7 +42,7 @@ def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history_batch3
     assert snapshot.assembly_code == "journal_history_plan_id_mismatch"
 
 
-def test_helper_replay_guard_ignores_unknown_recovered_lanes_batch37(tmp_path) -> None:
+def test_helper_replay_guard_ignores_unknown_recovered_lanes(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -66,7 +66,7 @@ def test_helper_replay_guard_ignores_unknown_recovered_lanes_batch37(tmp_path) -
     assert orchestrator.finalized_resolutions() == ()
 
 
-def test_helper_restart_recovery_ignores_helper_id_mismatch_batch37(tmp_path) -> None:
+def test_helper_restart_recovery_ignores_helper_id_mismatch(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))

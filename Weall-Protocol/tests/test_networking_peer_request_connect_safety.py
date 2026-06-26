@@ -48,7 +48,7 @@ def _state() -> dict:
     }
 
 
-def test_peer_request_connect_requires_registered_node_device_batch347() -> None:
+def test_peer_request_connect_requires_registered_node_device() -> None:
     st = _state()
 
     with pytest.raises(ApplyError) as exc:
@@ -58,7 +58,7 @@ def test_peer_request_connect_requires_registered_node_device_batch347() -> None
     assert exc.value.reason == "peer_request_connect_requires_registered_node_device"
 
 
-def test_peer_request_connect_accepts_endpoint_bootstrap_with_node_binding_batch347() -> None:
+def test_peer_request_connect_accepts_endpoint_bootstrap_with_node_binding() -> None:
     st = _state()
 
     out = apply_tx(st, _env("PEER_REQUEST_CONNECT", "@alice", 1, {"peer_id": "genesis-node", "endpoint": "https://genesis.example.test"}))
@@ -70,7 +70,7 @@ def test_peer_request_connect_accepts_endpoint_bootstrap_with_node_binding_batch
     assert rec["to_peer_id"] == "genesis-node"
 
 
-def test_peer_request_connect_rejects_unadvertised_peer_without_endpoint_or_ticket_batch347() -> None:
+def test_peer_request_connect_rejects_unadvertised_peer_without_endpoint_or_ticket() -> None:
     st = _state()
 
     with pytest.raises(ApplyError) as exc:
@@ -80,7 +80,7 @@ def test_peer_request_connect_rejects_unadvertised_peer_without_endpoint_or_tick
     assert exc.value.reason == "peer_request_connect_target_not_advertised"
 
 
-def test_peer_request_connect_rejects_invalid_endpoint_batch347() -> None:
+def test_peer_request_connect_rejects_invalid_endpoint() -> None:
     st = _state()
 
     with pytest.raises(ApplyError) as exc:

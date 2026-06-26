@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_tier1_async_frontend_requires_fresh_recorded_video_batch285() -> None:
+def test_tier1_async_frontend_requires_fresh_recorded_video() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
     helpers = _read(WEB / "src/lib/verificationEvidence.ts")
 
@@ -26,7 +26,7 @@ def test_tier1_async_frontend_requires_fresh_recorded_video_batch285() -> None:
     assert "The verification video must be no more than 2 minutes long." in helpers
 
 
-def test_tier1_async_frontend_uses_challenge_phrase_and_required_speech_batch285() -> None:
+def test_tier1_async_frontend_uses_challenge_phrase_and_required_speech() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
     helpers = _read(WEB / "src/lib/verificationEvidence.ts")
 
@@ -39,7 +39,7 @@ def test_tier1_async_frontend_uses_challenge_phrase_and_required_speech_batch285
     assert "Start a fresh verification challenge before recording." in helpers
 
 
-def test_tier1_async_frontend_submits_native_poh_async_tx_sequence_batch285() -> None:
+def test_tier1_async_frontend_submits_native_poh_async_tx_sequence() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
 
     assert 'tx_type: "POH_ASYNC_REQUEST_OPEN"' in page
@@ -51,7 +51,7 @@ def test_tier1_async_frontend_submits_native_poh_async_tx_sequence_batch285() ->
     assert "fresh_recorded_video_v1" in page
 
 
-def test_tier1_async_video_upload_is_dedicated_and_fail_closed_batch285() -> None:
+def test_tier1_async_video_upload_is_dedicated_and_fail_closed() -> None:
     api = _read(WEB / "src/api/weall.ts")
     route = _read(BACKEND / "src/weall/api/routes_public_parts/poh.py")
 
@@ -64,7 +64,7 @@ def test_tier1_async_video_upload_is_dedicated_and_fail_closed_batch285() -> Non
     assert "endpoint_disabled" in route
 
 
-def test_tier1_async_chain_state_avoids_raw_video_submission_batch285() -> None:
+def test_tier1_async_chain_state_avoids_raw_video_submission() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
 
     open_payload_block = page.split('tx_type: "POH_ASYNC_REQUEST_OPEN"', 1)[1].split("parent:", 1)[0]

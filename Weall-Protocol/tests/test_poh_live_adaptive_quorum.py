@@ -271,7 +271,7 @@ def test_live_scheduler_bootstraps_with_partial_eligible_pool() -> None:
 
 
 
-def test_live_scheduler_enqueues_init_and_assignment_for_requested_case_batch424() -> None:
+def test_live_scheduler_enqueues_init_and_assignment_for_requested_case() -> None:
     st = _state(juror_count=1)
     st.setdefault("params", {})["poh"] = {
         "live_partial_panels_enabled": True,
@@ -304,7 +304,7 @@ def test_live_scheduler_enqueues_init_and_assignment_for_requested_case_batch424
     assert queued[1]["payload"]["live_quorum"]["active_reviewers"] == 1
 
 
-def test_live_scheduler_does_not_assign_requested_case_without_commitments_batch424() -> None:
+def test_live_scheduler_does_not_assign_requested_case_without_commitments() -> None:
     st = _state(juror_count=1)
     st.setdefault("params", {})["poh"] = {
         "live_partial_panels_enabled": True,
@@ -329,7 +329,7 @@ def test_live_scheduler_does_not_assign_requested_case_without_commitments_batch
     assert [item["tx_type"] for item in queued] == ["POH_LIVE_SESSION_INIT"]
 
 
-def test_live_scheduler_keeps_legacy_open_case_assignment_without_commitments_batch425() -> None:
+def test_live_scheduler_keeps_legacy_open_case_assignment_without_commitments() -> None:
     st = _state(juror_count=1)
     st.setdefault("params", {})["poh"] = {
         "live_partial_panels_enabled": True,

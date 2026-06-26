@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch539_production_bft_path_uses_executor_methods_and_no_proof_endpoint() -> None:
+def test_production_bft_path_uses_executor_methods_and_no_proof_endpoint() -> None:
     out = _proof()["production_bft_path"]
     assert out["ok"] is True
     assert out["proof_endpoint_used"] is False
@@ -28,7 +28,7 @@ def test_batch539_production_bft_path_uses_executor_methods_and_no_proof_endpoin
     assert "WeAllExecutor.apply_block" in methods
 
 
-def test_batch540_production_block_commit_replay_uses_sqlite_tables_and_rejects_corruption() -> None:
+def test_production_block_commit_replay_uses_sqlite_tables_and_rejects_corruption() -> None:
     out = _proof()["production_block_replay"]
     assert out["ok"] is True
     assert out["production_commit_path"] is True
@@ -41,7 +41,7 @@ def test_batch540_production_block_commit_replay_uses_sqlite_tables_and_rejects_
     assert out["source_table_counts"]["blocks"] == out["replay_table_counts"]["blocks"]
 
 
-def test_batch541_public_api_write_lifecycle_reports_real_writes_and_remaining_direct_apply_domains() -> None:
+def test_public_api_write_lifecycle_reports_real_writes_and_remaining_direct_apply_domains() -> None:
     out = _proof()["public_api_write_lifecycle"]
     assert out["ok"] is True
     assert "POST /v1/tx/submit ACCOUNT_REGISTER" in out["api_write_routes_exercised"]
@@ -56,7 +56,7 @@ def test_batch541_public_api_write_lifecycle_reports_real_writes_and_remaining_d
     assert "poh_challenge" in out["direct_apply_write_domains_remaining"]
 
 
-def test_batch542_live_storage_worker_durability_records_reassignment_and_retrieval() -> None:
+def test_live_storage_worker_durability_records_reassignment_and_retrieval() -> None:
     out = _proof()["live_storage_worker_durability"]
     assert out["ok"] is True
     assert out["worker_model"] == "local_operator_file_pin_worker"
@@ -68,7 +68,7 @@ def test_batch542_live_storage_worker_durability_records_reassignment_and_retrie
     assert len(out["operator_file_sha256"]) == 64
 
 
-def test_batch543_production_path_claim_boundaries_remain_locked() -> None:
+def test_production_path_claim_boundaries_remain_locked() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["claim_boundaries"] == {
@@ -82,7 +82,7 @@ def test_batch543_production_path_claim_boundaries_remain_locked() -> None:
     assert proof["remaining_public_testnet_gaps"]
 
 
-def test_batch539_543_generated_artifact_is_fresh() -> None:
+def test_generated_artifact_is_fresh() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_b539_b543_production_path_proof_v1_5.py", "--check"],
         cwd=str(ROOT),

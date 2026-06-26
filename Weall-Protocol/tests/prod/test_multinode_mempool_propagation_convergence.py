@@ -30,7 +30,7 @@ def _tx(signer: str, nonce: int, chain_id: str = "chain-b615") -> dict:
     }
 
 
-def test_batch615_multinode_mempool_converges_before_commit_and_clears_after_restart(tmp_path: Path) -> None:
+def test_multinode_mempool_converges_before_commit_and_clears_after_restart(tmp_path: Path) -> None:
     mod = _load_harness_module()
     report = mod.run_harness(work_dir=tmp_path / "rehearsal")
 
@@ -55,7 +55,7 @@ def test_batch615_multinode_mempool_converges_before_commit_and_clears_after_res
     assert len(set(block["roots_after_restart"].values())) == 1
 
 
-def test_batch615_canonical_mempool_selection_is_arrival_order_independent(tmp_path: Path) -> None:
+def test_canonical_mempool_selection_is_arrival_order_independent(tmp_path: Path) -> None:
     txs = [_tx("@carol", 1), _tx("@alice", 1), _tx("@bob", 1)]
     pool_a = PersistentMempool(db=SqliteDB(path=str(tmp_path / "a.sqlite")), chain_id="chain-b615")
     pool_b = PersistentMempool(db=SqliteDB(path=str(tmp_path / "b.sqlite")), chain_id="chain-b615")
@@ -75,7 +75,7 @@ def test_batch615_canonical_mempool_selection_is_arrival_order_independent(tmp_p
     ]
 
 
-def test_batch615_outbound_tx_gossip_seen_cache_uses_chain_bound_tx_id(monkeypatch) -> None:
+def test_outbound_tx_gossip_seen_cache_uses_chain_bound_tx_id(monkeypatch) -> None:
     tx = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": "@alice",

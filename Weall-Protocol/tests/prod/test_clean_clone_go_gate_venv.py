@@ -12,7 +12,7 @@ def _script() -> str:
     return SCRIPT.read_text(encoding="utf-8")
 
 
-def test_batch619_clean_clone_gate_uses_backend_virtualenv_before_install() -> None:
+def test_clean_clone_gate_uses_backend_virtualenv_before_install() -> None:
     text = _script()
 
     assert 'BACKEND_VENV_DIR="${BACKEND_VENV_DIR:-${BACKEND_DIR}/.venv}"' in text
@@ -25,7 +25,7 @@ def test_batch619_clean_clone_gate_uses_backend_virtualenv_before_install() -> N
     assert 'run_backend "${PYTHON_BIN}" -m pip install -r requirements-dev.lock' in text
 
 
-def test_batch619_clean_clone_gate_documents_no_manual_activation_needed() -> None:
+def test_clean_clone_gate_documents_no_manual_activation_needed() -> None:
     text = _script()
 
     assert "creates/uses the backend .venv" in text

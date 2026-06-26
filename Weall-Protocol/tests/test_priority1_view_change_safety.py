@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_view_monotonicity_under_qc_observation_batch77() -> None:
+def test_view_monotonicity_under_qc_observation() -> None:
     hs = HotStuffBFT(chain_id="batch77")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -28,7 +28,7 @@ def test_view_monotonicity_under_qc_observation_batch77() -> None:
     assert int(hs.view) >= 5
 
 
-def test_view_progression_after_roundtrip_batch77() -> None:
+def test_view_progression_after_roundtrip() -> None:
     hs = HotStuffBFT(chain_id="batch77")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -46,7 +46,7 @@ def test_view_progression_after_roundtrip_batch77() -> None:
     assert int(hs2.view) >= 6
 
 
-def test_stale_qc_does_not_regress_view_after_reload_batch77() -> None:
+def test_stale_qc_does_not_regress_view_after_reload() -> None:
     hs = HotStuffBFT(chain_id="batch77")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -63,7 +63,7 @@ def test_stale_qc_does_not_regress_view_after_reload_batch77() -> None:
     assert int(hs2.view) >= 7
 
 
-def test_view_state_roundtrip_consistency_batch77() -> None:
+def test_view_state_roundtrip_consistency() -> None:
     hs = HotStuffBFT(chain_id="batch77")
     blocks = {
         "A": {"prev_block_id": ""},

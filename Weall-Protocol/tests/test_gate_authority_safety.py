@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.gate_expr import eval_gate
 
 
-def test_validator_registry_membership_alone_does_not_satisfy_validator_gate_batch258() -> None:
+def test_validator_registry_membership_alone_does_not_satisfy_validator_gate() -> None:
     ledger = {
         "accounts": {"@stale-validator": {"poh_tier": 2}},
         "roles": {"validators": {"active_set": [], "by_id": {}}},
@@ -17,7 +17,7 @@ def test_validator_registry_membership_alone_does_not_satisfy_validator_gate_bat
     assert meta["expr"] == "Validator"
 
 
-def test_active_validator_set_satisfies_validator_gate_batch258() -> None:
+def test_active_validator_set_satisfies_validator_gate() -> None:
     ledger = {
         "accounts": {"@validator": {"poh_tier": 2}},
         "roles": {"validators": {"active_set": ["@validator"], "by_id": {}}},
@@ -28,7 +28,7 @@ def test_active_validator_set_satisfies_validator_gate_batch258() -> None:
     assert ok is True
 
 
-def test_suspended_validator_record_overrides_active_set_batch258() -> None:
+def test_suspended_validator_record_overrides_active_set() -> None:
     ledger = {
         "accounts": {"@validator": {"poh_tier": 2}},
         "roles": {
@@ -44,7 +44,7 @@ def test_suspended_validator_record_overrides_active_set_batch258() -> None:
     assert ok is False
 
 
-def test_validator_does_not_inherit_juror_authority_batch258() -> None:
+def test_validator_does_not_inherit_juror_authority() -> None:
     ledger = {
         "accounts": {"@validator": {"poh_tier": 2}},
         "roles": {"validators": {"active_set": ["@validator"], "by_id": {}}},
@@ -55,7 +55,7 @@ def test_validator_does_not_inherit_juror_authority_batch258() -> None:
     assert ok is False
 
 
-def test_case_assignment_without_juror_role_denied_by_default_batch258() -> None:
+def test_case_assignment_without_juror_role_denied_by_default() -> None:
     ledger = {
         "accounts": {"@assigned": {"poh_tier": 2}},
         "roles": {"jurors": {"active_set": [], "by_id": {}}},
@@ -79,7 +79,7 @@ def test_case_assignment_without_juror_role_denied_by_default_batch258() -> None
     assert ok is False
 
 
-def test_active_tier2_juror_must_still_be_assigned_for_case_scope_batch258() -> None:
+def test_active_tier2_juror_must_still_be_assigned_for_case_scope() -> None:
     ledger = {
         "accounts": {"@juror": {"poh_tier": 2}},
         "roles": {"jurors": {"active_set": ["@juror"], "by_id": {}}},
@@ -103,7 +103,7 @@ def test_active_tier2_juror_must_still_be_assigned_for_case_scope_batch258() -> 
     assert ok is False
 
 
-def test_active_tier2_assigned_juror_satisfies_case_scope_batch258() -> None:
+def test_active_tier2_assigned_juror_satisfies_case_scope() -> None:
     ledger = {
         "accounts": {"@juror": {"poh_tier": 2}},
         "roles": {"jurors": {"active_set": ["@juror"], "by_id": {}}},
@@ -127,7 +127,7 @@ def test_active_tier2_assigned_juror_satisfies_case_scope_batch258() -> None:
     assert ok is True
 
 
-def test_bootstrap_case_scoped_juror_without_role_requires_chain_param_batch258() -> None:
+def test_bootstrap_case_scoped_juror_without_role_requires_chain_param() -> None:
     ledger = {
         "accounts": {"@assigned": {"poh_tier": 2}},
         "params": {"allow_case_scoped_juror_without_role": True},

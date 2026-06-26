@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"
 
 
-def test_every_canon_tx_has_helper_proof_status_batch4() -> None:
+def test_every_canon_tx_has_helper_proof_status() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     summary = contract_map["summary"]
     assert summary["tx_count"] == len(contract_map["contracts"])
@@ -18,7 +18,7 @@ def test_every_canon_tx_has_helper_proof_status_batch4() -> None:
         assert item["proof_status"]
 
 
-def test_proven_parallel_subset_is_strict_batch4() -> None:
+def test_proven_parallel_subset_is_strict() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     proven = [item for item in contract_map["contracts"] if item["proven_helper_eligible"]]
     assert proven, "expected at least one proven helper-eligible tx in current snapshot"
@@ -29,7 +29,7 @@ def test_proven_parallel_subset_is_strict_batch4() -> None:
         assert item["proof_status"] == "PROVEN_PARALLEL_SAFE"
 
 
-def test_placeholder_parallel_contracts_require_concrete_instances_batch4() -> None:
+def test_placeholder_parallel_contracts_require_concrete_instances() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     placeholder_parallel = [
         item
@@ -44,7 +44,7 @@ def test_placeholder_parallel_contracts_require_concrete_instances_batch4() -> N
         assert item["placeholder_key_count"] > 0
 
 
-def test_helper_eligible_contracts_have_no_global_barrier_authority_batch4() -> None:
+def test_helper_eligible_contracts_have_no_global_barrier_authority() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     summary = contract_map["summary"]
     risky = [
@@ -60,7 +60,7 @@ def test_helper_eligible_contracts_have_no_global_barrier_authority_batch4() -> 
 
 
 
-def test_global_authority_placeholders_fail_closed_to_serial_batch4() -> None:
+def test_global_authority_placeholders_fail_closed_to_serial() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     placeholders = [
         item
@@ -76,7 +76,7 @@ def test_global_authority_placeholders_fail_closed_to_serial_batch4() -> None:
         assert item["proof_status"] in {"SERIAL_ONLY", "DEGRADED_TO_SERIAL", "DEGRADED_INSTANCE_REQUIRED"}
 
 
-def test_helper_proof_contract_for_concrete_tx_is_deterministic_batch4() -> None:
+def test_helper_proof_contract_for_concrete_tx_is_deterministic() -> None:
     tx = {
         "tx_type": "NOTIFICATION_SUBSCRIBE",
         "payload": {"channel": "announcements", "account_id": "@alice"},

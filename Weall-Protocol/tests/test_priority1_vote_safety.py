@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.bft_hotstuff import HotStuffBFT
 
 
-def test_vote_idempotency_same_block_same_view_batch59() -> None:
+def test_vote_idempotency_same_block_same_view() -> None:
     hs = HotStuffBFT(chain_id="batch59")
 
     ok1 = hs.record_local_vote(view=3, block_id="B")
@@ -18,7 +18,7 @@ def test_vote_idempotency_same_block_same_view_batch59() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B"
 
 
-def test_vote_conflict_same_view_different_block_batch59() -> None:
+def test_vote_conflict_same_view_different_block() -> None:
     hs = HotStuffBFT(chain_id="batch59")
 
     ok1 = hs.record_local_vote(view=3, block_id="B1")
@@ -32,7 +32,7 @@ def test_vote_conflict_same_view_different_block_batch59() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B1"
 
 
-def test_vote_monotonic_view_progression_batch59() -> None:
+def test_vote_monotonic_view_progression() -> None:
     hs = HotStuffBFT(chain_id="batch59")
 
     assert hs.record_local_vote(view=2, block_id="B2") is True
@@ -46,7 +46,7 @@ def test_vote_monotonic_view_progression_batch59() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B3"
 
 
-def test_vote_persists_across_reload_batch59() -> None:
+def test_vote_persists_across_reload() -> None:
     hs = HotStuffBFT(chain_id="batch59")
 
     assert hs.record_local_vote(view=4, block_id="B4") is True

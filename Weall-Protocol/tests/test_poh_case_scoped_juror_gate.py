@@ -45,7 +45,7 @@ def _ledger() -> dict:
     }
 
 
-def test_live_case_assignment_satisfies_juror_gate_batch233() -> None:
+def test_live_case_assignment_satisfies_juror_gate() -> None:
     ok, meta = eval_gate(
         "Juror",
         signer="@live-juror-1",
@@ -58,7 +58,7 @@ def test_live_case_assignment_satisfies_juror_gate_batch233() -> None:
     assert meta["expr"] == "Juror"
 
 
-def test_tier2_case_assignment_satisfies_juror_gate_batch233() -> None:
+def test_tier2_case_assignment_satisfies_juror_gate() -> None:
     ok, _meta = eval_gate(
         "Juror",
         signer="@tier2-juror-1",
@@ -70,7 +70,7 @@ def test_tier2_case_assignment_satisfies_juror_gate_batch233() -> None:
     assert ok is True
 
 
-def test_unassigned_poh_account_does_not_satisfy_juror_gate_batch233() -> None:
+def test_unassigned_poh_account_does_not_satisfy_juror_gate() -> None:
     ok, meta = eval_gate(
         "Juror",
         signer="@unassigned",
@@ -83,7 +83,7 @@ def test_unassigned_poh_account_does_not_satisfy_juror_gate_batch233() -> None:
     assert meta["expr"] == "Juror"
 
 
-def test_replaced_poh_juror_does_not_satisfy_gate_batch233() -> None:
+def test_replaced_poh_juror_does_not_satisfy_gate() -> None:
     ledger = _ledger()
     ledger["poh"]["live_cases"]["poh3:@alice:5"]["jurors"]["@live-juror-1"]["replaced"] = True
 

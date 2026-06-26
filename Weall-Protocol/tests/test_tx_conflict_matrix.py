@@ -20,7 +20,7 @@ def _tx_index_rows() -> list[dict[str, object]]:
     return list(payload["tx_types"])
 
 
-def test_every_tx_type_in_canon_has_conflict_rule_and_non_unknown_family_batch6() -> None:
+def test_every_tx_type_in_canon_has_conflict_rule_and_non_unknown_family() -> None:
     rows = _tx_index_rows()
     missing: list[str] = []
     unknown: list[str] = []
@@ -35,7 +35,7 @@ def test_every_tx_type_in_canon_has_conflict_rule_and_non_unknown_family_batch6(
     assert unknown == []
 
 
-def test_every_probe_descriptor_has_materialized_conflict_keys_batch6() -> None:
+def test_every_probe_descriptor_has_materialized_conflict_keys() -> None:
     empty: list[str] = []
     duplicate_noise: list[str] = []
     for row in _tx_index_rows():
@@ -50,7 +50,7 @@ def test_every_probe_descriptor_has_materialized_conflict_keys_batch6() -> None:
     assert duplicate_noise == []
 
 
-def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
+def test_lane_hint_matches_family_contract_for_all_probe_txs() -> None:
     allowed_serial_overrides = {
             "NODE_OPERATOR_STORAGE_OPT_IN",
             "NODE_OPERATOR_VALIDATOR_OPT_IN",
@@ -96,7 +96,7 @@ def test_lane_hint_matches_family_contract_for_all_probe_txs_batch6() -> None:
     assert mismatches == []
 
 
-def test_global_barrier_probe_txs_are_always_serial_batch6() -> None:
+def test_global_barrier_probe_txs_are_always_serial() -> None:
     bad: list[str] = []
     for row in _tx_index_rows():
         tx_type = str(row["name"])
@@ -108,7 +108,7 @@ def test_global_barrier_probe_txs_are_always_serial_batch6() -> None:
     assert bad == []
 
 
-def test_authority_barriers_materialize_authority_keys_batch6() -> None:
+def test_authority_barriers_materialize_authority_keys() -> None:
     missing: list[str] = []
     for row in _tx_index_rows():
         tx_type = str(row["name"])

@@ -93,7 +93,7 @@ def _journal_factory(tmp_path: Path):
     return factory
 
 
-def test_helper_proposal_loop_mixed_cycles_batch14(tmp_path) -> None:
+def test_helper_proposal_loop_mixed_cycles(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
 
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
@@ -178,7 +178,7 @@ def test_helper_proposal_loop_mixed_cycles_batch14(tmp_path) -> None:
     assert summary.results[2].finalized_modes == ((lane_plan.lane_id, "helper"),)
 
 
-def test_helper_proposal_loop_degrades_to_serial_when_allowed_batch14(tmp_path) -> None:
+def test_helper_proposal_loop_degrades_to_serial_when_allowed(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
 
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
@@ -227,7 +227,7 @@ def test_helper_proposal_loop_degrades_to_serial_when_allowed_batch14(tmp_path) 
     assert result.finalized_modes == ((lane_plan.lane_id, "helper"),)
 
 
-def test_helper_proposal_loop_fail_closed_on_helper_error_batch14(tmp_path) -> None:
+def test_helper_proposal_loop_fail_closed_on_helper_error(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
 
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
@@ -272,7 +272,7 @@ def test_helper_proposal_loop_fail_closed_on_helper_error_batch14(tmp_path) -> N
     assert result.assembly_code == "receipts_root_mismatch"
 
 
-def test_helper_proposal_loop_restart_reuse_across_cycles_batch14(tmp_path) -> None:
+def test_helper_proposal_loop_restart_reuse_across_cycles(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
 
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]

@@ -5,7 +5,7 @@ from weall.runtime.helper_replay_guard import HelperRateBudget
 from weall.runtime.helper_certificates import sign_helper_certificate
 
 
-def test_helper_plan_window_rate_budget_batch33() -> None:
+def test_helper_plan_window_rate_budget() -> None:
     store = HelperCertificateStore(
         budget=HelperRateBudget(per_helper_per_window=2, per_plan_total=10, window_ms=1000),
         plan_timeout_ms=5000,

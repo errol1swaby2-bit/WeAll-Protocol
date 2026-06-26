@@ -45,7 +45,7 @@ def _seed_validator_set(
     ex._ledger_store.write(ex.state)
 
 
-def test_epoch_transition_persists_current_epoch_and_set_hash_batch47(tmp_path: Path) -> None:
+def test_epoch_transition_persists_current_epoch_and_set_hash(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -85,7 +85,7 @@ def test_epoch_transition_persists_current_epoch_and_set_hash_batch47(tmp_path: 
     assert str(st3["consensus"]["validator_set"]["set_hash"]) == hash2
 
 
-def test_epoch_transition_with_membership_change_persists_new_hash_batch47(tmp_path: Path) -> None:
+def test_epoch_transition_with_membership_change_persists_new_hash(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -133,7 +133,7 @@ def test_epoch_transition_with_membership_change_persists_new_hash_batch47(tmp_p
     assert str(st_reload["consensus"]["validator_set"]["set_hash"]) == hash_after
 
 
-def test_epoch_metadata_does_not_regress_across_multiple_reloads_batch47(tmp_path: Path) -> None:
+def test_epoch_metadata_does_not_regress_across_multiple_reloads(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -165,7 +165,7 @@ def test_epoch_metadata_does_not_regress_across_multiple_reloads_batch47(tmp_pat
         assert st["consensus"]["validator_set"]["active_set"] == validators
 
 
-def test_epoch_and_validator_set_metadata_remain_aligned_batch47(tmp_path: Path) -> None:
+def test_epoch_and_validator_set_metadata_remain_aligned(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

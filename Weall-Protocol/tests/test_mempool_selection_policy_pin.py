@@ -27,7 +27,7 @@ def _register_account(ex: WeAllExecutor, signer: str) -> None:
     assert res["ok"] is True
 
 
-def test_restart_rejects_mempool_selection_policy_mismatch_batch109(
+def test_restart_rejects_mempool_selection_policy_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -54,7 +54,7 @@ def test_restart_rejects_mempool_selection_policy_mismatch_batch109(
         )
 
 
-def test_apply_block_rejects_remote_mempool_selection_policy_mismatch_batch109(
+def test_apply_block_rejects_remote_mempool_selection_policy_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -87,7 +87,7 @@ def test_apply_block_rejects_remote_mempool_selection_policy_mismatch_batch109(
     assert meta.error == "bad_block:mempool_selection_policy_mismatch"
 
 
-def test_build_block_candidate_uses_pinned_policy_when_runtime_policy_drifts_batch109(
+def test_build_block_candidate_uses_pinned_policy_when_runtime_policy_drifts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")

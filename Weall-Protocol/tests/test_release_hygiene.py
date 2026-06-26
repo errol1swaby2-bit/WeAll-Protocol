@@ -37,7 +37,7 @@ def _run(script: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_release_tree_rejects_demo_bootstrap_secret_batch257(tmp_path: Path) -> None:
+def test_release_tree_rejects_demo_bootstrap_secret(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "generated/demo_bootstrap_secret.json").write_text(
         '{"secret_key_b64":"not-for-release"}\n',
@@ -50,7 +50,7 @@ def test_release_tree_rejects_demo_bootstrap_secret_batch257(tmp_path: Path) -> 
     assert "JSON secret artifacts" in result.stdout or "demo_bootstrap_secret" in result.stdout
 
 
-def test_release_tree_rejects_local_runtime_artifacts_batch257(tmp_path: Path) -> None:
+def test_release_tree_rejects_local_runtime_artifacts(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / ".weall-devnet").mkdir()
     (tree / ".weall-devnet/genesis-operator.json").write_text(
@@ -71,7 +71,7 @@ def test_release_tree_rejects_local_runtime_artifacts_batch257(tmp_path: Path) -
 
 
 
-def test_release_tree_rejects_outer_web_typescript_build_artifact_batch316(tmp_path: Path) -> None:
+def test_release_tree_rejects_outer_web_typescript_build_artifact(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     outer = tree.parent
     web = outer / "web"
@@ -85,7 +85,7 @@ def test_release_tree_rejects_outer_web_typescript_build_artifact_batch316(tmp_p
 
 
 
-def test_release_hygiene_rejects_tracked_ignored_runtime_cache_batch257(tmp_path: Path) -> None:
+def test_release_hygiene_rejects_tracked_ignored_runtime_cache(tmp_path: Path) -> None:
     outer = tmp_path / "outer"
     backend = outer / "Weall-Protocol"
     backend_scripts = backend / "scripts"
@@ -129,7 +129,7 @@ def test_release_hygiene_rejects_tracked_ignored_runtime_cache_batch257(tmp_path
     assert result.returncode != 0
     assert "tracked_runtime_artifact:Weall-Protocol/.weall-media-cache/aa/cached.bin" in result.stdout
 
-def test_secret_guard_scans_export_tree_when_git_metadata_absent_batch257(tmp_path: Path) -> None:
+def test_secret_guard_scans_export_tree_when_git_metadata_absent(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "generated/demo_bootstrap_result.json").write_text(
         '{"session_key":"sess-not-for-release"}\n',
@@ -143,7 +143,7 @@ def test_secret_guard_scans_export_tree_when_git_metadata_absent_batch257(tmp_pa
     assert "demo_bootstrap_result.json" in result.stdout
 
 
-def test_release_package_excludes_known_local_secret_artifacts_batch257() -> None:
+def test_release_package_excludes_known_local_secret_artifacts() -> None:
     text = (ROOT / "scripts/release_package.sh").read_text(encoding="utf-8")
     required_exclusions = [
         "'.weall-devnet/*'",
@@ -159,7 +159,7 @@ def test_release_package_excludes_known_local_secret_artifacts_batch257() -> Non
     assert not missing, f"release_package.sh missing exclusions: {missing}"
 
 
-def test_frontend_route_registry_has_no_user_facing_tier3_gate_batch257() -> None:
+def test_frontend_route_registry_has_no_user_facing_tier3_gate() -> None:
     router = OUTER / "web/src/lib/router.ts"
     text = router.read_text(encoding="utf-8")
 
@@ -172,7 +172,7 @@ def test_frontend_route_registry_has_no_user_facing_tier3_gate_batch257() -> Non
     assert "Active Juror role or badge" not in text
 
 
-def test_dockerfile_allows_dev_unlocked_builds_without_lockfiles_batch266() -> None:
+def test_dockerfile_allows_dev_unlocked_builds_without_lockfiles() -> None:
     text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     assert "ARG ALLOW_UNLOCKED=0" in text

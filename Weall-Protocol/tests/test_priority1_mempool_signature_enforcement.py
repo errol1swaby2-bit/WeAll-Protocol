@@ -23,7 +23,7 @@ def _executor(tmp_path: Path, name: str, *, chain_id: str) -> WeAllExecutor:
     )
 
 
-def test_prod_http_admission_rejects_bad_signature_batch105(
+def test_prod_http_admission_rejects_bad_signature(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -44,7 +44,7 @@ def test_prod_http_admission_rejects_bad_signature_batch105(
     assert verdict.reason == "signature_verification_failed"
 
 
-def test_prod_http_admission_accepts_valid_signature_batch105(
+def test_prod_http_admission_accepts_valid_signature(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")

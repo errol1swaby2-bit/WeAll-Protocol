@@ -66,7 +66,7 @@ def _signed_cert(*, lane_plan, plan_id: str, seed: str, view: int = 7, block_hei
     )
 
 
-def test_mixed_stale_then_valid_then_duplicate_recovers_canonically_batch11() -> None:
+def test_mixed_stale_then_valid_then_duplicate_recovers_canonically() -> None:
     lane_plan, plan_id, seed, store = _make_store_and_plan()
     store.start_request(lane_id=lane_plan.lane_id, started_ms=1000)
 
@@ -85,7 +85,7 @@ def test_mixed_stale_then_valid_then_duplicate_recovers_canonically_batch11() ->
     assert duplicate_status.code == "duplicate_certificate"
 
 
-def test_mixed_plan_mismatch_then_valid_helper_certificate_still_accepts_batch11() -> None:
+def test_mixed_plan_mismatch_then_valid_helper_certificate_still_accepts() -> None:
     lane_plan, plan_id, seed, store = _make_store_and_plan()
     store.start_request(lane_id=lane_plan.lane_id, started_ms=1000)
 
@@ -100,7 +100,7 @@ def test_mixed_plan_mismatch_then_valid_helper_certificate_still_accepts_batch11
     assert valid_status.code == "accepted"
 
 
-def test_expired_window_then_later_valid_message_stays_fail_closed_batch11() -> None:
+def test_expired_window_then_later_valid_message_stays_fail_closed() -> None:
     lane_plan, plan_id, seed, store = _make_store_and_plan()
     store.start_request(lane_id=lane_plan.lane_id, started_ms=1000)
 

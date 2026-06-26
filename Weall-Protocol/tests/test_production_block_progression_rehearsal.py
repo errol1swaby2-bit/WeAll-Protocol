@@ -10,7 +10,7 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_batch604_controlled_devnet_boot_uses_manifest_clock_and_empty_blocks() -> None:
+def test_controlled_devnet_boot_uses_manifest_clock_and_empty_blocks() -> None:
     boot = _read("scripts/devnet_boot_genesis_node.sh")
     join = _read("scripts/devnet_boot_joining_node.sh")
     for src in (boot, join):
@@ -29,7 +29,7 @@ def test_batch604_controlled_devnet_boot_uses_manifest_clock_and_empty_blocks() 
     assert manifest["tx_index_hash"] == "123439e0b1aad73701697ab0fc20add446928c8ec5e510909af5666ab7f18a0c"
 
 
-def test_batch604_rehearsal_waits_for_automatic_block_progression_not_manual_ticks() -> None:
+def test_rehearsal_waits_for_automatic_block_progression_not_manual_ticks() -> None:
     full = _read("scripts/devnet_full_onboarding_e2e.sh")
     assert "devnet_tx.py --api \"${api}\" tick" not in full
     assert "advancing system queue tick" not in full
@@ -37,7 +37,7 @@ def test_batch604_rehearsal_waits_for_automatic_block_progression_not_manual_tic
     assert 'WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5' in full
 
 
-def test_batch604_native_async_uses_genesis_single_reviewer_policy() -> None:
+def test_native_async_uses_genesis_single_reviewer_policy() -> None:
     native = _read("scripts/demo_native_async_tier1_e2e.sh")
     assert 'ASYNC_JUROR_COUNT="${WEALL_ASYNC_JUROR_COUNT:-${WEALL_POH_ASYNC_N_JURORS:-1}}"' in native
     assert 'WAIT_TIMEOUT="${WEALL_NATIVE_ASYNC_WAIT_TIMEOUT:-300}"' in native
@@ -48,7 +48,7 @@ def test_batch604_native_async_uses_genesis_single_reviewer_policy() -> None:
     assert 'verdict="approve"' in native
 
 
-def test_batch604_full_onboarding_runs_node2_before_tier2_and_live() -> None:
+def test_full_onboarding_runs_node2_before_tier2_and_live() -> None:
     full = _read("scripts/devnet_full_onboarding_e2e.sh")
     node2_pos = full.index("NODE2_AVAILABLE=0")
     tier2_pos = full.index('if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]')

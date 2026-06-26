@@ -29,7 +29,7 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
-def test_build_block_candidate_emits_recomputable_helper_plan_id_batch32(tmp_path: Path, monkeypatch) -> None:
+def test_build_block_candidate_emits_recomputable_helper_plan_id(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")

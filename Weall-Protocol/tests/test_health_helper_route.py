@@ -81,7 +81,7 @@ def _client(helper_requested: bool, report=None):
     return client
 
 
-def test_health_route_includes_helper_surface_serial_only_batch23(monkeypatch):
+def test_health_route_includes_helper_surface_serial_only(monkeypatch):
     monkeypatch.delenv("WEALL_HELPER_MODE_ENABLED", raising=False)
     client = _client(helper_requested=False, report=None)
     resp = client.get("/health")
@@ -91,7 +91,7 @@ def test_health_route_includes_helper_surface_serial_only_batch23(monkeypatch):
     assert data["helper"]["helper_severity"] == "warning"
 
 
-def test_health_route_includes_helper_surface_enabled_batch23(monkeypatch):
+def test_health_route_includes_helper_surface_enabled(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(helper_requested=True, report=_green_report())
     resp = client.get("/health")
@@ -102,7 +102,7 @@ def test_health_route_includes_helper_surface_enabled_batch23(monkeypatch):
     assert data["helper"]["helper_startup"]["helper_mode_active"] is True
 
 
-def test_readyz_route_reflects_helper_blocked_batch23(monkeypatch):
+def test_readyz_route_reflects_helper_blocked(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(helper_requested=True, report=_red_report())
     resp = client.get("/readyz")
@@ -113,7 +113,7 @@ def test_readyz_route_reflects_helper_blocked_batch23(monkeypatch):
     assert data["helper_severity"] == "error"
 
 
-def test_readyz_route_stays_ready_with_helper_enabled_batch23(monkeypatch):
+def test_readyz_route_stays_ready_with_helper_enabled(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(helper_requested=True, report=_green_report())
     resp = client.get("/readyz")

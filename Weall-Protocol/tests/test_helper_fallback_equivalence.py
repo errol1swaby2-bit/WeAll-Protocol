@@ -66,7 +66,7 @@ def _cert(plan: LanePlan, *, plan_id: str, manifest_hash: str, tx_order_hash: st
     )
 
 
-def test_mixed_helper_strict_binding_fallbacks_preserve_serial_equivalence_batch107() -> None:
+def test_mixed_helper_strict_binding_fallbacks_preserve_serial_equivalence() -> None:
     lane_a = _lane("t1", "CONTENT_POST_CREATE", "L1", "h1", "content:post:t1")
     lane_b = _lane("t2", "IDENTITY_UPDATE", "L2", "h2", "identity:user:alice")
     lane_c = _lane("t3", "SOCIAL_FOLLOW", "L3", "h3", "social:follow:@alice:@bob")

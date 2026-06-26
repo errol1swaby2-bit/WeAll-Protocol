@@ -3,7 +3,7 @@ from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflict_audit_samples import build_conflict_probe_tx
 
 
-def test_group_signers_set_promotes_to_serial_when_it_mutates_group_and_treasury_batch5() -> None:
+def test_group_signers_set_promotes_to_serial_when_it_mutates_group_and_treasury() -> None:
     tx = build_conflict_probe_tx(
         "GROUP_SIGNERS_SET",
         seed="1",
@@ -14,7 +14,7 @@ def test_group_signers_set_promotes_to_serial_when_it_mutates_group_and_treasury
     assert access.lane_hint == "SERIAL"
 
 
-def test_group_emissary_finalize_promotes_to_serial_when_it_syncs_treasury_signers_batch5() -> None:
+def test_group_emissary_finalize_promotes_to_serial_when_it_syncs_treasury_signers() -> None:
     tx = build_conflict_probe_tx(
         "GROUP_EMISSARY_ELECTION_FINALIZE",
         seed="1",
@@ -25,7 +25,7 @@ def test_group_emissary_finalize_promotes_to_serial_when_it_syncs_treasury_signe
     assert access.lane_hint == "SERIAL"
 
 
-def test_role_emissary_seat_promotes_to_serial_when_protocol_treasury_is_resynced_batch5() -> None:
+def test_role_emissary_seat_promotes_to_serial_when_protocol_treasury_is_resynced() -> None:
     tx = build_conflict_probe_tx(
         "ROLE_EMISSARY_SEAT",
         seed="1",
@@ -36,7 +36,7 @@ def test_role_emissary_seat_promotes_to_serial_when_protocol_treasury_is_resynce
     assert access.lane_hint == "SERIAL"
 
 
-def test_cross_domain_group_and_treasury_updates_are_not_parallelized_batch5() -> None:
+def test_cross_domain_group_and_treasury_updates_are_not_parallelized() -> None:
     plan = plan_conflict_lanes(
         [
             build_conflict_probe_tx(

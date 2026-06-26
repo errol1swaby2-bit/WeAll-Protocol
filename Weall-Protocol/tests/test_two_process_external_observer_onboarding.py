@@ -37,7 +37,7 @@ def _submit_ok(ex: WeAllExecutor, tx: dict) -> str:
     return str(result["tx_id"])
 
 
-def test_two_process_external_observer_onboarding_to_genesis_batch319(tmp_path: Path, monkeypatch) -> None:
+def test_two_process_external_observer_onboarding_to_genesis(tmp_path: Path, monkeypatch) -> None:
     """Simulate the controlled external observer journey with two local executors.
 
     The observer executor represents Machine B and must remain non-authoritative.

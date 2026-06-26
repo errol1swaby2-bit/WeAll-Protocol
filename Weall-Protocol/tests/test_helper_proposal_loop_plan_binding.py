@@ -6,7 +6,7 @@ from weall.runtime.helper_proposal_loop import HelperProposalCycleInput, run_hel
 from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
 
 
-def test_helper_proposal_loop_surfaces_plan_id_batch30() -> None:
+def test_helper_proposal_loop_surfaces_plan_id() -> None:
     lane_plans = (
         LanePlan(lane_id="L1", helper_id="h1", txs=tuple(), tx_ids=("t1",)),
     )

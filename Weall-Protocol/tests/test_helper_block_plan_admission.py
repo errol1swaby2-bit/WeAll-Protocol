@@ -37,7 +37,7 @@ def _block(helper_execution: dict) -> dict:
     }
 
 
-def test_admit_bft_block_rejects_helper_execution_plan_id_mismatch_batch32(monkeypatch) -> None:
+def test_admit_bft_block_rejects_helper_execution_plan_id_mismatch(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setattr("weall.runtime.block_admission._validate_bft_proposal_leader_view", lambda block, state: (True, None))
     monkeypatch.setattr("weall.runtime.bft_hotstuff.qc_from_json", lambda qc: type("QC", (), {"chain_id": "c1", "block_id": "p1", "view": 0})())

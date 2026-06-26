@@ -6,7 +6,7 @@ from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
 from weall.runtime.parallel_execution import LanePlan
 
 
-def test_helper_merge_rejects_certificate_plan_id_mismatch_batch31() -> None:
+def test_helper_merge_rejects_certificate_plan_id_mismatch() -> None:
     lane_plan = LanePlan(lane_id="L1", helper_id="h1", txs=(), tx_ids=("t1",))
     cert = HelperExecutionCertificate(
         chain_id="c1",

@@ -122,7 +122,7 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_upstream_manifest_top_level_chain_and_hash_are_enforced_batch362(tmp_path: Path, monkeypatch) -> None:
+def test_upstream_manifest_top_level_chain_and_hash_are_enforced(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -160,7 +160,7 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced_batch362(tmp_pa
     assert _read_tx_queue(tx_queue)["records"][0]["tx_id"] == tx_id
 
 
-def test_observer_tx_queue_autodrain_worker_retries_without_manual_route_batch362(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_autodrain_worker_retries_without_manual_route(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -197,7 +197,7 @@ def test_observer_tx_queue_autodrain_worker_retries_without_manual_route_batch36
     assert calls == ["https://genesis.example.test/v1/tx/submit"]
 
 
-def test_detail_endpoints_cannot_bypass_bounded_vote_and_member_routes_batch362() -> None:
+def test_detail_endpoints_cannot_bypass_bounded_vote_and_member_routes() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         groups = client.get("/v1/groups")
         assert groups.status_code == 200, groups.text

@@ -27,7 +27,7 @@ def _load_app() -> FastAPI:
     raise AssertionError("Could not locate FastAPI app in weall.api.app")
 
 
-def test_no_duplicate_public_route_method_path_pairs_batch42():
+def test_no_duplicate_public_route_method_path_pairs():
     app = _load_app()
     seen: dict[tuple[str, str], int] = defaultdict(int)
 
@@ -44,7 +44,7 @@ def test_no_duplicate_public_route_method_path_pairs_batch42():
     assert not duplicates, duplicates
 
 
-def test_v1_routes_use_absolute_versioned_prefix_batch42():
+def test_v1_routes_use_absolute_versioned_prefix():
     app = _load_app()
     bad = []
 
@@ -56,7 +56,7 @@ def test_v1_routes_use_absolute_versioned_prefix_batch42():
     assert not bad, bad
 
 
-def test_tx_routes_do_not_mix_submit_and_status_on_same_method_path_batch42():
+def test_tx_routes_do_not_mix_submit_and_status_on_same_method_path():
     app = _load_app()
 
     overlapping = []

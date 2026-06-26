@@ -61,7 +61,7 @@ def _materialized_result(*, lane_plan, path: str, value: str, seed_byte: int, pl
     )
 
 
-def test_materialized_merge_is_canonical_under_restart_order_changes_batch8() -> None:
+def test_materialized_merge_is_canonical_under_restart_order_changes() -> None:
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
@@ -83,7 +83,7 @@ def test_materialized_merge_is_canonical_under_restart_order_changes_batch8() ->
     }
 
 
-def test_materialized_merge_serializes_all_lanes_on_overlap_after_restart_batch8() -> None:
+def test_materialized_merge_serializes_all_lanes_on_overlap_after_restart() -> None:
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},

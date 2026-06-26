@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT.parent / "web"
 
 
-def test_public_activity_input_queue_contract_batch451() -> None:
+def test_public_activity_input_queue_contract() -> None:
     app = FastAPI()
     app.include_router(activity_routes.router, prefix="/v1")
     client = TestClient(app)
@@ -25,7 +25,7 @@ def test_public_activity_input_queue_contract_batch451() -> None:
     assert "validator_operator_alert" in body["notice_types"]
 
 
-def test_removed_private_communication_frontend_files_are_absent_batch451() -> None:
+def test_removed_private_communication_frontend_files_are_absent() -> None:
     app = (WEB_ROOT / "src/App.tsx").read_text(encoding="utf-8")
     router = (WEB_ROOT / "src/lib/router.ts").read_text(encoding="utf-8")
     tx_queue = (WEB_ROOT / "src/components/TxQueueProvider.tsx").read_text(encoding="utf-8")

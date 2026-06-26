@@ -41,7 +41,7 @@ def _mk_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], epoch: in
     return cert
 
 
-def test_helper_store_rejects_wrong_peer_batch3() -> None:
+def test_helper_store_rejects_wrong_peer() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     validators = ["v1", "v2", "v3"]
     lane_plans = plan_parallel_execution(
@@ -69,7 +69,7 @@ def test_helper_store_rejects_wrong_peer_batch3() -> None:
     assert status.code == "wrong_peer"
 
 
-def test_helper_store_rejects_stale_epoch_batch3() -> None:
+def test_helper_store_rejects_stale_epoch() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(
         txs=txs,
@@ -96,7 +96,7 @@ def test_helper_store_rejects_stale_epoch_batch3() -> None:
     assert status.code == "epoch_mismatch"
 
 
-def test_helper_store_rejects_duplicate_batch3() -> None:
+def test_helper_store_rejects_duplicate() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(
         txs=txs,
@@ -131,7 +131,7 @@ def test_helper_store_rejects_duplicate_batch3() -> None:
     assert second.code == "duplicate_certificate"
 
 
-def test_helper_store_times_out_missing_lane_batch3() -> None:
+def test_helper_store_times_out_missing_lane() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(
         txs=txs,
@@ -158,7 +158,7 @@ def test_helper_store_times_out_missing_lane_batch3() -> None:
     assert store.timed_out_lanes(now_ms=1050) == (lane_plan.lane_id,)
 
 
-def test_helper_store_rejects_malicious_tx_subset_batch3() -> None:
+def test_helper_store_rejects_malicious_tx_subset() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(
         txs=txs,

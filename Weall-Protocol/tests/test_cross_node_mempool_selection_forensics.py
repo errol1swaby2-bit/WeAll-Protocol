@@ -72,7 +72,7 @@ def _commit_next_block(ex: WeAllExecutor, *, max_txs: int = 10):
     return block
 
 
-def test_cross_node_mempool_selection_marker_converges_after_remote_apply_and_restart_batch115(
+def test_cross_node_mempool_selection_marker_converges_after_remote_apply_and_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")

@@ -9,7 +9,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_two_partitioned_followers_rejoin_to_single_tip_batch56(tmp_path: Path) -> None:
+def test_two_partitioned_followers_rejoin_to_single_tip(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "rejoin"),
         rounds=12,
@@ -29,7 +29,7 @@ def test_two_partitioned_followers_rejoin_to_single_tip_batch56(tmp_path: Path) 
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_competing_delay_patterns_do_not_create_persistent_fork_batch56(tmp_path: Path) -> None:
+def test_competing_delay_patterns_do_not_create_persistent_fork(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "delay"),
         rounds=14,
@@ -48,7 +48,7 @@ def test_competing_delay_patterns_do_not_create_persistent_fork_batch56(tmp_path
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_epoch_bump_under_partition_heals_without_divergence_batch56(tmp_path: Path) -> None:
+def test_epoch_bump_under_partition_heals_without_divergence(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "epoch"),
         rounds=16,
@@ -72,7 +72,7 @@ def test_epoch_bump_under_partition_heals_without_divergence_batch56(tmp_path: P
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_five_validator_partial_quorum_recovers_to_single_chain_batch56(tmp_path: Path) -> None:
+def test_five_validator_partial_quorum_recovers_to_single_chain(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "five"),
         rounds=18,

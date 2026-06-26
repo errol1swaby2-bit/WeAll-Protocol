@@ -32,7 +32,7 @@ def _cfg(**kwargs):
     return HandshakeConfig(**base)
 
 
-def test_handshake_rejects_genesis_bootstrap_profile_hash_mismatch_batch134() -> None:
+def test_handshake_rejects_genesis_bootstrap_profile_hash_mismatch() -> None:
     state = HandshakeState(config=_cfg())
     hello = build_hello(_cfg(peer_id="node-b", genesis_bootstrap_profile_hash="gbp-2"))
     ack = process_inbound_hello(state, hello)
@@ -40,7 +40,7 @@ def test_handshake_rejects_genesis_bootstrap_profile_hash_mismatch_batch134() ->
     assert ack.reason == "genesis_bootstrap_profile_hash_mismatch"
 
 
-def test_handshake_rejects_genesis_bootstrap_enabled_mismatch_batch134() -> None:
+def test_handshake_rejects_genesis_bootstrap_enabled_mismatch() -> None:
     state = HandshakeState(config=_cfg())
     hello = build_hello(
         _cfg(
@@ -148,7 +148,7 @@ def _prod_env(cfg_path: Path) -> dict[str, str]:
     }
 
 
-def test_public_validator_preflight_surfaces_genesis_bootstrap_contract_batch134(tmp_path: Path) -> None:
+def test_public_validator_preflight_surfaces_genesis_bootstrap_contract(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     db_path = tmp_path / "data" / "weall.db"
     tx_index_path = tmp_path / "tx_index.json"

@@ -69,7 +69,7 @@ def _context():
     )
 
 
-def test_replay_guard_rejects_duplicate_replay_after_accept_batch11(tmp_path) -> None:
+def test_replay_guard_rejects_duplicate_replay_after_accept(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert, pub = _mk_signed_cert(
@@ -97,7 +97,7 @@ def test_replay_guard_rejects_duplicate_replay_after_accept_batch11(tmp_path) ->
     assert second.code == "duplicate_replay"
 
 
-def test_replay_guard_rejects_conflicting_replay_after_accept_batch11(tmp_path) -> None:
+def test_replay_guard_rejects_conflicting_replay_after_accept(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert1, pub1 = _mk_signed_cert(
@@ -132,7 +132,7 @@ def test_replay_guard_rejects_conflicting_replay_after_accept_batch11(tmp_path) 
     assert second.code == "conflicting_replay"
 
 
-def test_replay_guard_rejects_helper_after_fallback_resolution_batch11(tmp_path) -> None:
+def test_replay_guard_rejects_helper_after_fallback_resolution(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert, pub = _mk_signed_cert(
@@ -160,7 +160,7 @@ def test_replay_guard_rejects_helper_after_fallback_resolution_batch11(tmp_path)
     assert late.code == "lane_already_resolved_fallback"
 
 
-def test_replay_guard_recovery_preserves_duplicate_replay_decision_batch11(tmp_path) -> None:
+def test_replay_guard_recovery_preserves_duplicate_replay_decision(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert, pub = _mk_signed_cert(
@@ -196,7 +196,7 @@ def test_replay_guard_recovery_preserves_duplicate_replay_decision_batch11(tmp_p
     assert second.code == "duplicate_replay"
 
 
-def test_replay_guard_timeout_idempotent_under_repeat_calls_batch11(tmp_path) -> None:
+def test_replay_guard_timeout_idempotent_under_repeat_calls(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     orchestrator = HelperProposalOrchestrator(

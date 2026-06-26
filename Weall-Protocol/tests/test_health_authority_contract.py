@@ -39,7 +39,7 @@ class _FakeExecutor:
         }
 
 
-def test_health_prefers_app_startup_authority_contract_batch130(monkeypatch):
+def test_health_prefers_app_startup_authority_contract(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     app = FastAPI()

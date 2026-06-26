@@ -32,7 +32,7 @@ def _run_json(script: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def test_batch510_controlled_validator_network_completion_harness() -> None:
+def test_controlled_validator_network_completion_harness() -> None:
     out = _run_json("rehearse_controlled_validator_network_completion_v1_5.py")
     assert out["ok"] is True
     assert out["public_validator_enabled"] is False
@@ -43,7 +43,7 @@ def test_batch510_controlled_validator_network_completion_harness() -> None:
     assert len(set(out["restart_roots"])) == 1
 
 
-def test_batch510_fresh_node_sync_completion_harness() -> None:
+def test_fresh_node_sync_completion_harness() -> None:
     out = _run_json("rehearse_fresh_node_sync_completion_v1_5.py")
     assert out["ok"] is True
     assert out["verified"] is True
@@ -51,7 +51,7 @@ def test_batch510_fresh_node_sync_completion_harness() -> None:
     assert out["source_state_root"] == out["fresh_state_root"]
 
 
-def test_batch511_poh_reverification_marks_challenge_reverified() -> None:
+def test_poh_reverification_marks_challenge_reverified() -> None:
     state = {"height": 10, "accounts": {"alice": {"poh_tier": 2}, "juror-a": {}, "juror-b": {}, "juror-c": {}}, "roles": {"validators": {"active_set": ["juror-a", "juror-b", "juror-c"]}}}
     for acct in ("alice", "juror-a", "juror-b", "juror-c"):
         set_account_poh_status(state, account_id=acct, poh_tier=2, status=POH_STATUS_ACTIVE, verified_at_height=1)
@@ -77,7 +77,7 @@ def test_batch511_poh_reverification_marks_challenge_reverified() -> None:
     assert canonical_account_poh_status(state, "alice")["status"] == "active"
 
 
-def test_batch511_dispute_final_receipt_applies_account_restriction() -> None:
+def test_dispute_final_receipt_applies_account_restriction() -> None:
     state = {
         "height": 8,
         "accounts": {"mallory": {}},
@@ -102,7 +102,7 @@ def test_batch511_dispute_final_receipt_applies_account_restriction() -> None:
     assert state["accounts"]["mallory"]["latest_restriction"] == "posting_limited"
 
 
-def test_batch512_governance_execution_records_deterministic_audit_hash() -> None:
+def test_governance_execution_records_deterministic_audit_hash() -> None:
     state = {
         "height": 20,
         "gov_proposals_by_id": {
@@ -123,7 +123,7 @@ def test_batch512_governance_execution_records_deterministic_audit_hash() -> Non
     assert execution["execution_hash"] == audit["execution_hash"]
 
 
-def test_batch513_storage_pin_failure_reassigns_to_spare_target() -> None:
+def test_storage_pin_failure_reassigns_to_spare_target() -> None:
     state = {
         "height": 5,
         "params": {"ipfs_replication_factor": 2},
@@ -141,7 +141,7 @@ def test_batch513_storage_pin_failure_reassigns_to_spare_target() -> None:
     assert rec["durability_status"] == "reassignment_pending_confirmation"
 
 
-def test_batch515_completion_artifact_runs_and_preserves_locked_boundaries() -> None:
+def test_completion_artifact_runs_and_preserves_locked_boundaries() -> None:
     out = _run_json("gen_b510_b515_completion_proof_v1_5.py")
     assert out["ok"] is True
     assert out["truth_boundaries"]["public_validators_enabled"] is False

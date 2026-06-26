@@ -15,7 +15,7 @@ def _load_harness_module():
     return module
 
 
-def test_batch615_promoted_observer_has_chain_backed_validator_production_preflight(tmp_path: Path) -> None:
+def test_promoted_observer_has_chain_backed_validator_production_preflight(tmp_path: Path) -> None:
     mod = _load_harness_module()
     report = mod.run_harness(work_dir=tmp_path / "validator-rehearsal")
 

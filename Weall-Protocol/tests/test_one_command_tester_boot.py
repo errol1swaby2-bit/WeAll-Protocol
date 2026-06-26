@@ -9,7 +9,7 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_one_command_tester_node_script_exists_and_forces_observer_safety_batch468() -> None:
+def test_one_command_tester_node_script_exists_and_forces_observer_safety() -> None:
     script = _read("scripts/weall_tester_node.sh")
 
     assert "Usage: scripts/weall_tester_node.sh --bundle" in script
@@ -24,7 +24,7 @@ def test_one_command_tester_node_script_exists_and_forces_observer_safety_batch4
     assert "frontend" in script.lower()
 
 
-def test_one_command_tester_node_installs_bundle_and_runtime_outside_repo_batch468() -> None:
+def test_one_command_tester_node_installs_bundle_and_runtime_outside_repo() -> None:
     script = _read("scripts/weall_tester_node.sh")
 
     assert "install_node_operator_onboarding_bundle.py" in script
@@ -35,7 +35,7 @@ def test_one_command_tester_node_installs_bundle_and_runtime_outside_repo_batch4
     assert "WEALL_TX_UPSTREAM_URLS" in script
 
 
-def test_genesis_rehearsal_script_requires_matching_canonical_validator_key_batch468() -> None:
+def test_genesis_rehearsal_script_requires_matching_canonical_validator_key() -> None:
     script = _read("scripts/weall_genesis_rehearsal.sh")
 
     assert "--producer-pubkey-file" in script
@@ -46,7 +46,7 @@ def test_genesis_rehearsal_script_requires_matching_canonical_validator_key_batc
     assert "normal observers must still run without producer secrets" in script
 
 
-def test_tester_one_command_docs_exist_batch468() -> None:
+def test_tester_one_command_docs_exist() -> None:
     doc = _read("docs/TESTER_ONE_COMMAND_NODE_BOOT.md")
 
     assert "One-command tester node boot" in doc

@@ -8,7 +8,7 @@ def _read(rel: str) -> str:
     return (WEB / rel).read_text(encoding="utf-8")
 
 
-def test_live_room_check_in_starts_p2p_media_and_surfaces_remote_diagnostics_batch426() -> None:
+def test_live_room_check_in_starts_p2p_media_and_surfaces_remote_diagnostics() -> None:
     page = _read("pages/LiveVerificationRoom.tsx")
 
     assert "async function ensureP2PRoomStarted" in page
@@ -22,7 +22,7 @@ def test_live_room_check_in_starts_p2p_media_and_surfaces_remote_diagnostics_bat
     assert "presence.forEach" in page
 
 
-def test_create_post_has_group_destination_selector_and_group_payload_batch426() -> None:
+def test_create_post_has_group_destination_selector_and_group_payload() -> None:
     page = _read("pages/CreatePostPage.tsx")
 
     assert "type ComposerGroupOption" in page
@@ -38,12 +38,12 @@ def test_create_post_has_group_destination_selector_and_group_payload_batch426()
 
 
 
-def test_removed_communication_surface_stays_removed_batch426() -> None:
+def test_removed_communication_surface_stays_removed() -> None:
     root = Path(__file__).resolve().parents[2] / "web" / "src"
     assert not (root / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
-def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
+def test_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
     page = _read("pages/LiveVerificationRoom.tsx")
 
     assert "missingRemoteAccounts" in page
@@ -53,13 +53,13 @@ def test_batch447_live_room_renders_waiting_remote_tiles_and_fast_polls() -> Non
 
 
 
-def test_batch447_removed_communication_key_autopublish_surface_stays_removed() -> None:
+def test_removed_communication_key_autopublish_surface_stays_removed() -> None:
     root = Path(__file__).resolve().parents[2] / "web" / "src"
     assert not (root / "pages" / ("Mess" + "aging.tsx")).exists()
     assert not (root / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
 
 
-def test_batch447_appeal_controls_are_creator_only_in_dispute_detail() -> None:
+def test_appeal_controls_are_creator_only_in_dispute_detail() -> None:
     page = _read("pages/DisputeDetail.tsx")
 
     assert "appealActorEligible" in page

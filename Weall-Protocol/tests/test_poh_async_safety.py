@@ -139,7 +139,7 @@ def _approve_finalize(st: dict, case_id: str) -> None:
     assert finalized and finalized["outcome"] == "approved"
 
 
-def test_async_evidence_locks_after_assignment_batch286() -> None:
+def test_async_evidence_locks_after_assignment() -> None:
     st = _state()
     case_id = _open_with_evidence(st)
     apply_tx(
@@ -168,7 +168,7 @@ def test_async_evidence_locks_after_assignment_batch286() -> None:
     assert st["poh"]["async_cases"][case_id]["response_commitment"] == "commit:response:1"
 
 
-def test_async_needs_followup_blocks_finalization_batch286() -> None:
+def test_async_needs_followup_blocks_finalization() -> None:
     st = _state()
     case_id = _open_with_evidence(st)
     _assign_accept(st, case_id)
@@ -189,7 +189,7 @@ def test_async_needs_followup_blocks_finalization_batch286() -> None:
     assert st["poh"]["async_cases"][case_id]["status"] == "needs_followup"
 
 
-def test_async_receipt_must_match_finalized_case_state_batch286() -> None:
+def test_async_receipt_must_match_finalized_case_state() -> None:
     st = _state()
     case_id = _open_with_evidence(st)
     _assign_accept(st, case_id)
@@ -233,7 +233,7 @@ def test_async_receipt_must_match_finalized_case_state_batch286() -> None:
     assert stored["tier_awarded"] == 1
 
 
-def test_async_scheduler_queues_assign_finalize_and_receipt_batch286() -> None:
+def test_async_scheduler_queues_assign_finalize_and_receipt() -> None:
     st = _state()
     case_id = _open_with_evidence(st)
     enqueued = schedule_poh_async_system_txs(st, next_height=11)
@@ -263,7 +263,7 @@ def test_async_scheduler_queues_assign_finalize_and_receipt_batch286() -> None:
     assert "POH_ASYNC_RECEIPT" in queued_types
 
 
-def test_async_assignment_requires_declared_evidence_batch286() -> None:
+def test_async_assignment_requires_declared_evidence() -> None:
     st = _state()
     opened = apply_tx(
         st,

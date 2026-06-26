@@ -40,7 +40,7 @@ def _run(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_clean_release_artifacts_removes_verify_release_tree_blockers_batch314(tmp_path: Path) -> None:
+def test_clean_release_artifacts_removes_verify_release_tree_blockers(tmp_path: Path) -> None:
     tree = _make_release_tree(tmp_path)
     outer_web = tree.parent / "web"
     outer_web.mkdir()
@@ -74,7 +74,7 @@ def test_clean_release_artifacts_removes_verify_release_tree_blockers_batch314(t
         assert (tree / "generated" / rel).read_text(encoding="utf-8") == '{"canon":"preserve"}\n'
 
 
-def test_clean_release_artifacts_dry_run_does_not_remove_batch314(tmp_path: Path) -> None:
+def test_clean_release_artifacts_dry_run_does_not_remove(tmp_path: Path) -> None:
     tree = _make_release_tree(tmp_path)
     (tree / "data").mkdir()
     (tree / "data/weall.db").write_text("db\n", encoding="utf-8")
@@ -86,7 +86,7 @@ def test_clean_release_artifacts_dry_run_does_not_remove_batch314(tmp_path: Path
     assert (tree / "data/weall.db").exists()
 
 
-def test_release_package_uses_release_artifact_cleanup_batch314() -> None:
+def test_release_package_uses_release_artifact_cleanup() -> None:
     text = (ROOT / "scripts/release_package.sh").read_text(encoding="utf-8")
 
     assert '"$ROOT/scripts/clean_release_artifacts.sh"' in text

@@ -8,7 +8,7 @@ def _env(tx_type: str, nonce: int, payload: dict) -> TxEnvelope:
     return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True)
 
 
-def test_protocol_upgrade_declare_records_but_does_not_auto_apply_batch496() -> None:
+def test_protocol_upgrade_declare_records_but_does_not_auto_apply() -> None:
     state = {"height": 7}
     out = apply_protocol(
         state,
@@ -36,7 +36,7 @@ def test_protocol_upgrade_declare_records_but_does_not_auto_apply_batch496() -> 
     assert rec["record_only_boundary"] == boundary
 
 
-def test_protocol_upgrade_activate_records_active_boundary_without_execution_batch496() -> None:
+def test_protocol_upgrade_activate_records_active_boundary_without_execution() -> None:
     state = {"height": 12}
     apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "upgrade-2", "version": "v2"}))
     out = apply_protocol(

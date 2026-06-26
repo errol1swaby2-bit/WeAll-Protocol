@@ -128,7 +128,7 @@ def _commit_next_block(ex: WeAllExecutor, *, max_txs: int = 10):
     return block
 
 
-def test_cross_node_forensics_converge_after_remote_apply_and_restart_batch114(tmp_path: Path, monkeypatch) -> None:
+def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")

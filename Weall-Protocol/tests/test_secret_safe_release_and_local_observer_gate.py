@@ -34,7 +34,7 @@ def _run(cmd: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_verify_release_tree_rejects_raw_secrets_directory_material_batch325(tmp_path: Path) -> None:
+def test_verify_release_tree_rejects_raw_secrets_directory_material(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "secrets").mkdir()
     (tree / "secrets/README.md").write_text("local secret placeholder docs\n", encoding="utf-8")
@@ -50,7 +50,7 @@ def test_verify_release_tree_rejects_raw_secrets_directory_material_batch325(tmp
     assert "secrets/weall_node_pubkey" in result.stdout
 
 
-def test_verify_release_tree_allows_only_secret_placeholders_batch325(tmp_path: Path) -> None:
+def test_verify_release_tree_allows_only_secret_placeholders(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "secrets").mkdir()
     (tree / "secrets/README.md").write_text("Store local keys outside release artifacts.\n", encoding="utf-8")
@@ -62,7 +62,7 @@ def test_verify_release_tree_allows_only_secret_placeholders_batch325(tmp_path: 
     assert "no raw secrets directory material" in result.stdout
 
 
-def test_secret_guard_rejects_raw_secret_paths_in_export_tree_batch325(tmp_path: Path) -> None:
+def test_secret_guard_rejects_raw_secret_paths_in_export_tree(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     (tree / "secrets").mkdir()
     (tree / "secrets/weall_node_privkey").write_text("not-for-release\n", encoding="utf-8")
@@ -75,7 +75,7 @@ def test_secret_guard_rejects_raw_secret_paths_in_export_tree_batch325(tmp_path:
     assert "secrets/weall_node_privkey" in result.stdout
 
 
-def test_release_package_excludes_secrets_even_after_verify_gate_batch325() -> None:
+def test_release_package_excludes_secrets_even_after_verify_gate() -> None:
     text = (ROOT / "scripts/release_package.sh").read_text(encoding="utf-8")
 
     assert "'secrets/*'" in text
@@ -83,7 +83,7 @@ def test_release_package_excludes_secrets_even_after_verify_gate_batch325() -> N
     assert '"$ROOT/scripts/verify_release_tree.sh"' in text
 
 
-def test_clean_release_artifacts_refuses_to_silently_delete_secret_material_batch325() -> None:
+def test_clean_release_artifacts_refuses_to_silently_delete_secret_material() -> None:
     text = (ROOT / "scripts/clean_release_artifacts.sh").read_text(encoding="utf-8")
 
     assert "Raw node/operator keys are intentionally not deleted automatically" in text
@@ -92,7 +92,7 @@ def test_clean_release_artifacts_refuses_to_silently_delete_secret_material_batc
     assert "rm -rf -- \"secrets\"" not in text
 
 
-def test_local_observer_readiness_gate_passes_without_second_machine_batch325() -> None:
+def test_local_observer_readiness_gate_passes_without_second_machine() -> None:
     result = _run(["bash", "scripts/local_observer_readiness_gate.sh"], cwd=ROOT)
 
     assert result.returncode == 0, result.stdout

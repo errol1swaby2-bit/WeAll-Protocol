@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.bft_hotstuff import HotStuffBFT
 
 
-def test_timeout_backoff_grows_monotonically_batch78() -> None:
+def test_timeout_backoff_grows_monotonically() -> None:
     hs = HotStuffBFT(chain_id="batch78")
     hs.timeout_base_ms = 1000
 
@@ -18,7 +18,7 @@ def test_timeout_backoff_grows_monotonically_batch78() -> None:
     assert t2 >= t1
 
 
-def test_progress_resets_timeout_backoff_batch78() -> None:
+def test_progress_resets_timeout_backoff() -> None:
     hs = HotStuffBFT(chain_id="batch78")
     hs.timeout_base_ms = 1000
 
@@ -32,7 +32,7 @@ def test_progress_resets_timeout_backoff_batch78() -> None:
     assert reset == 1000
 
 
-def test_timeout_backoff_survives_roundtrip_without_regression_batch78() -> None:
+def test_timeout_backoff_survives_roundtrip_without_regression() -> None:
     hs = HotStuffBFT(chain_id="batch78")
     hs.timeout_base_ms = 1000
 
@@ -51,7 +51,7 @@ def test_timeout_backoff_survives_roundtrip_without_regression_batch78() -> None
     assert int(state2.get("last_timeout_view") or 0) == 4
 
 
-def test_progress_after_roundtrip_keeps_liveness_reset_batch78() -> None:
+def test_progress_after_roundtrip_keeps_liveness_reset() -> None:
     hs = HotStuffBFT(chain_id="batch78")
     hs.timeout_base_ms = 1000
 

@@ -19,7 +19,7 @@ ROLE_IDENTITY_SERIAL_TYPES = {
 }
 
 
-def test_role_identity_bridge_txs_fail_closed_to_serial_batch141() -> None:
+def test_role_identity_bridge_txs_fail_closed_to_serial() -> None:
     for tx_type in sorted(ROLE_IDENTITY_SERIAL_TYPES):
         access = build_tx_access_set(build_conflict_probe_tx(tx_type, seed="1"))
         assert access.lane_hint == "SERIAL", tx_type
@@ -28,7 +28,7 @@ def test_role_identity_bridge_txs_fail_closed_to_serial_batch141() -> None:
 
 
 
-def test_role_validator_activation_promotes_to_serial_when_consensus_membership_changes_batch141() -> None:
+def test_role_validator_activation_promotes_to_serial_when_consensus_membership_changes() -> None:
     access = build_tx_access_set(
         build_conflict_probe_tx(
             "ROLE_VALIDATOR_ACTIVATE",
@@ -43,7 +43,7 @@ def test_role_validator_activation_promotes_to_serial_when_consensus_membership_
 
 
 
-def test_role_enrollment_is_not_parallelized_with_identity_mutation_for_same_account_batch141() -> None:
+def test_role_enrollment_is_not_parallelized_with_identity_mutation_for_same_account() -> None:
     account_id = "acct-shared"
     plan = plan_conflict_lanes(
         [

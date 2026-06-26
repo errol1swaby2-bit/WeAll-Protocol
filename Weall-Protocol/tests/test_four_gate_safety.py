@@ -62,7 +62,7 @@ def _sum_treasury_balances(state: dict) -> int:
     return sum(int(w.get("balance", 0)) for w in state.get("treasury_wallets", {}).values() if isinstance(w, dict))
 
 
-def test_high_impact_system_txs_are_queue_bound_and_mutation_rejected_batch342() -> None:
+def test_high_impact_system_txs_are_queue_bound_and_mutation_rejected() -> None:
     canon = _tx_index()
     high_impact_payloads = {
         "ECONOMICS_ACTIVATION": {"enable": True},
@@ -124,7 +124,7 @@ def test_high_impact_system_txs_are_queue_bound_and_mutation_rejected_batch342()
         assert (ok, why) == (False, "system_queue_payload_mismatch"), tx_type
 
 
-def test_proposal_voted_governance_execution_enqueues_queue_bound_economics_and_treasury_actions_batch342() -> None:
+def test_proposal_voted_governance_execution_enqueues_queue_bound_economics_and_treasury_actions() -> None:
     state = {
         "height": 20,
         "chain_id": "weall-prod",
@@ -174,7 +174,7 @@ def test_proposal_voted_governance_execution_enqueues_queue_bound_economics_and_
         assert (ok, why) == (True, ""), tx_type
 
 
-def test_wecoin_wallet_treasury_reward_and_fee_conservation_batch343() -> None:
+def test_wecoin_wallet_treasury_reward_and_fee_conservation() -> None:
     locked = {
         "height": 1,
         "time": 1,
@@ -253,7 +253,7 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_validator_bft_signing_fails_closed_until_four_active_authorized_validators_batch344(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_bft_signing_fails_closed_until_four_active_authorized_validators(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
@@ -279,7 +279,7 @@ def test_validator_bft_signing_fails_closed_until_four_active_authorized_validat
     assert ex.validator_signing_enabled() is True
 
 
-def test_stale_profile_tx_index_and_validator_set_handshakes_fail_closed_batch344() -> None:
+def test_stale_profile_tx_index_and_validator_set_handshakes_fail_closed() -> None:
     local = HandshakeConfig(
         chain_id="weall-prod",
         schema_version="1",
@@ -349,7 +349,7 @@ def test_stale_profile_tx_index_and_validator_set_handshakes_fail_closed_batch34
     assert ack.reason == "validator_set_hash_mismatch"
 
 
-def test_helper_contract_map_keeps_global_authority_serial_and_bounded_batch344() -> None:
+def test_helper_contract_map_keeps_global_authority_serial_and_bounded() -> None:
     helper_map = json.loads((ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8"))
     summary = helper_map["summary"]
     assert summary["tx_count"] == 234

@@ -74,7 +74,7 @@ class _ObserverExecutor:
         return "genesis-hash"
 
 
-def test_build_and_assert_production_genesis_artifacts_batch323(tmp_path: Path) -> None:
+def test_build_and_assert_production_genesis_artifacts(tmp_path: Path) -> None:
     genesis = tmp_path / "genesis.ledger.prod.json"
     manifest = tmp_path / "weall-genesis.json"
     founding_pubkey = "a" * 64
@@ -131,7 +131,7 @@ def test_build_and_assert_production_genesis_artifacts_batch323(tmp_path: Path) 
     assert report["genesis_chain_id"] == "weall-prod-batch323"
 
 
-def test_assert_production_genesis_rejects_template_placeholders_batch323(tmp_path: Path) -> None:
+def test_assert_production_genesis_rejects_template_placeholders(tmp_path: Path) -> None:
     genesis = tmp_path / "genesis.ledger.prod.json"
     manifest = tmp_path / "weall-genesis.json"
     genesis.write_text(
@@ -197,7 +197,7 @@ def test_assert_production_genesis_rejects_template_placeholders_batch323(tmp_pa
     assert "genesis_bootstrap_founder_account_unpinned" in codes
 
 
-def test_operator_status_reports_observer_mode_and_no_local_signing_batch323(monkeypatch) -> None:
+def test_operator_status_reports_observer_mode_and_no_local_signing(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "observer_onboarding")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
@@ -215,13 +215,13 @@ def test_operator_status_reports_observer_mode_and_no_local_signing_batch323(mon
     assert body["operator"]["signing_block_reason"] == "observer_mode"
 
 
-def test_dockerfile_default_uses_production_runner_batch323() -> None:
+def test_dockerfile_default_uses_production_runner() -> None:
     text = DOCKERFILE.read_text(encoding="utf-8")
     assert 'CMD ["sh", "-c", "/app/scripts/run_node.sh"]' in text
     assert "--workers ${GUNICORN_WORKERS:-2}" not in text
 
 
-def test_frontend_backend_congruity_script_supports_exported_layout_batch323() -> None:
+def test_frontend_backend_congruity_script_supports_exported_layout() -> None:
     result = subprocess.run(
         [sys.executable, str(CONGRUITY)],
         cwd=str(ROOT),

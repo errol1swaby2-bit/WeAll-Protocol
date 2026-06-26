@@ -18,7 +18,7 @@ def _submit_async_body() -> str:
     return src.split("async function submitAsyncEvidence()", 1)[1].split("async function submitLiveRequest()", 1)[0]
 
 
-def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx_batch408() -> None:
+def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx() -> None:
     body = _submit_async_body()
 
     assert "Batch 408: node admission is still sequential-nonce based" in body
@@ -29,7 +29,7 @@ def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx_batch408()
     assert "Evidence binding was not submitted" in body
 
 
-def test_async_success_requires_evidence_bound_reviewable_case_batch408() -> None:
+def test_async_success_requires_evidence_bound_reviewable_case() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
     body = _submit_async_body()
 
@@ -46,7 +46,7 @@ def test_async_success_requires_evidence_bound_reviewable_case_batch408() -> Non
     assert "case is not reviewable yet" in body
 
 
-def test_async_case_api_exposes_reviewability_diagnostics_batch408() -> None:
+def test_async_case_api_exposes_reviewability_diagnostics() -> None:
     route = _read(ROUTE)
 
     assert "evidence_declared: bool = False" in route
@@ -59,7 +59,7 @@ def test_async_case_api_exposes_reviewability_diagnostics_batch408() -> None:
     assert '"empty_queue_reason"' in route
 
 
-def test_observer_reconcile_loop_backs_off_unconfirmed_rows_batch408() -> None:
+def test_observer_reconcile_loop_backs_off_unconfirmed_rows() -> None:
     script = _read(RECONCILE)
 
     assert "next_reconcile_at" in script

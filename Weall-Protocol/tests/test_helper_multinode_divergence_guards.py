@@ -17,7 +17,7 @@ def _canonical_ingress(txs: list[dict]) -> list[dict]:
     return sorted((dict(tx) for tx in txs), key=lambda item: str(item["tx_id"]))
 
 
-def test_same_block_different_ingress_order_produces_same_lane_plan_batch9() -> None:
+def test_same_block_different_ingress_order_produces_same_lane_plan() -> None:
     txs = [
         _tx("t3", "SOCIAL_FOLLOW", ["social:follow:@alice:@bob"]),
         _tx("t1", "CONTENT_CREATE", ["content:post:1"]),
@@ -48,7 +48,7 @@ def test_same_block_different_ingress_order_produces_same_lane_plan_batch9() -> 
 
 
 
-def test_validator_set_order_does_not_destabilize_multinode_plan_shape_batch9() -> None:
+def test_validator_set_order_does_not_destabilize_multinode_plan_shape() -> None:
     txs = [
         _tx("t1", "CONTENT_CREATE", ["content:post:1"]),
         _tx("t2", "CONTENT_CREATE", ["content:post:2"]),
@@ -75,7 +75,7 @@ def test_validator_set_order_does_not_destabilize_multinode_plan_shape_batch9() 
 
 
 
-def test_restart_snapshot_is_stable_across_different_recovery_points_batch9(tmp_path: Path) -> None:
+def test_restart_snapshot_is_stable_across_different_recovery_points(tmp_path: Path) -> None:
     txs = [
         _tx("c1", "CONTENT_CREATE", ["content:post:1"]),
         _tx("i1", "IDENTITY_UPDATE", ["identity:user:alice"]),

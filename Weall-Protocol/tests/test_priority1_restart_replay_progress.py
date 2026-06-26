@@ -24,7 +24,7 @@ def _account_exists(state: dict, signer: str) -> bool:
     return signer in state.get("accounts", {})
 
 
-def test_mempool_restart_then_commit_preserves_single_effect_batch50(tmp_path: Path) -> None:
+def test_mempool_restart_then_commit_preserves_single_effect(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "mempool_restart.db")
@@ -64,7 +64,7 @@ def test_mempool_restart_then_commit_preserves_single_effect_batch50(tmp_path: P
     assert len(ex3.read_mempool()) == 0
 
 
-def test_invalid_then_valid_sequence_does_not_poison_following_progress_batch50(
+def test_invalid_then_valid_sequence_does_not_poison_following_progress(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -107,7 +107,7 @@ def test_invalid_then_valid_sequence_does_not_poison_following_progress_batch50(
     assert _account_exists(st2, "@carol")
 
 
-def test_duplicate_submission_after_restart_does_not_create_duplicate_effect_batch50(
+def test_duplicate_submission_after_restart_does_not_create_duplicate_effect(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -155,7 +155,7 @@ def test_duplicate_submission_after_restart_does_not_create_duplicate_effect_bat
     assert len(keys) == 1
 
 
-def test_sequential_partial_commits_and_restarts_converge_batch50(tmp_path: Path) -> None:
+def test_sequential_partial_commits_and_restarts_converge(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "partial_restart.db")

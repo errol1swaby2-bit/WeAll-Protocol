@@ -7,7 +7,7 @@ from weall.api.mode_isolation import demo_mode_isolation_issue
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_controlled_devnet_requires_signature_and_strict_domain_batch233() -> None:
+def test_controlled_devnet_requires_signature_and_strict_domain() -> None:
     env = {
         "WEALL_MODE": "devnet",
         "WEALL_RUNTIME_PROFILE": "controlled_devnet",
@@ -28,7 +28,7 @@ def test_controlled_devnet_requires_signature_and_strict_domain_batch233() -> No
     assert demo_mode_isolation_issue(env_no_domain) == "strict_tx_sig_domain_required_in_controlled_devnet"
 
 
-def test_controlled_devnet_forbids_demo_and_open_poh_bootstrap_batch233() -> None:
+def test_controlled_devnet_forbids_demo_and_open_poh_bootstrap() -> None:
     base = {
         "WEALL_MODE": "devnet",
         "WEALL_RUNTIME_PROFILE": "controlled_devnet",
@@ -52,7 +52,7 @@ def test_controlled_devnet_forbids_demo_and_open_poh_bootstrap_batch233() -> Non
     assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
 
 
-def test_devnet_boot_scripts_default_to_controlled_profile_batch233() -> None:
+def test_devnet_boot_scripts_default_to_controlled_profile() -> None:
     genesis = (REPO_ROOT / "scripts/devnet_boot_genesis_node.sh").read_text(encoding="utf-8")
     joining = (REPO_ROOT / "scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
 
@@ -66,7 +66,7 @@ def test_devnet_boot_scripts_default_to_controlled_profile_batch233() -> None:
         assert 'export WEALL_STRICT_TX_SIG_DOMAIN="${WEALL_STRICT_TX_SIG_DOMAIN:-1}"' in text
 
 
-def test_controlled_devnet_preflight_script_exists_batch233() -> None:
+def test_controlled_devnet_preflight_script_exists() -> None:
     script = REPO_ROOT / "scripts/devnet_preflight_controlled_profile.sh"
     text = script.read_text(encoding="utf-8")
     assert "controlled-devnet env preflight" in text

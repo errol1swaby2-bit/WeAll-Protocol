@@ -34,7 +34,7 @@ def _canon(account: str, session_key: str, ttl_s: int, issued_at_ms: int, device
     ).encode("utf-8")
 
 
-def test_prod_and_normal_dev_forbid_direct_session_mutation_batch287() -> None:
+def test_prod_and_normal_dev_forbid_direct_session_mutation() -> None:
     assert (
         direct_session_mutation_issue({"WEALL_MODE": "prod"})
         == "direct_session_mutation_forbidden_in_production"
@@ -65,7 +65,7 @@ def test_prod_and_normal_dev_forbid_direct_session_mutation_batch287() -> None:
 
 
 @pytest.mark.parametrize("path", ["/v1/session/create", "/v1/session/login"])
-def test_prod_session_mutation_routes_forbidden_batch287(monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+def test_prod_session_mutation_routes_forbidden(monkeypatch: pytest.MonkeyPatch, path: str) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_RUNTIME_PROFILE", raising=False)
     app = create_app(boot_runtime=False)
@@ -75,7 +75,7 @@ def test_prod_session_mutation_routes_forbidden_batch287(monkeypatch: pytest.Mon
     assert r.json()["error"]["code"] == "direct_session_mutation_forbidden_in_production"
 
 
-def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key_batch287() -> None:
+def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key() -> None:
     state = {
         "height": 7,
         "time": 1000,
@@ -120,7 +120,7 @@ def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key_batch2
     assert session_record_for(state["accounts"]["@alice"]["session_keys"], raw_key)["active"] is False
 
 
-def test_seeded_demo_direct_login_stores_hashed_session_key_batch287(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
     monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
@@ -196,7 +196,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key_batch287(monkeypatch
     assert sessions[session_record_key(session_key)]["active"] is True
 
 
-def test_frontend_key_storage_never_writes_secret_to_localstorage_batch287() -> None:
+def test_frontend_key_storage_never_writes_secret_to_localstorage() -> None:
     text = (OUTER_ROOT / "web/src/auth/keys.ts").read_text(encoding="utf-8")
     assert "KEYRING_PREFIX" not in text
     assert "localStorage.setItem(`${KEYRING_PREFIX}${normalized}`" not in text
@@ -205,7 +205,7 @@ def test_frontend_key_storage_never_writes_secret_to_localstorage_batch287() -> 
     assert "sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64)" in text
 
 
-def test_frontend_logout_revokes_and_clears_local_state_batch287() -> None:
+def test_frontend_logout_revokes_and_clears_local_state() -> None:
     text = (OUTER_ROOT / "web/src/auth/session.ts").read_text(encoding="utf-8")
     assert "export async function logoutCurrentDevice" in text
     logout_block = text.split("export async function logoutCurrentDevice", 1)[1].split("export async function issueFreshSessionKey", 1)[0]

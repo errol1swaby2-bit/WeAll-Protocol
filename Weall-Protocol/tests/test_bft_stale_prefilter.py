@@ -160,7 +160,7 @@ def _timeout_msg(*, view: int, validator_epoch: int) -> BftTimeoutMsg:
     )
 
 
-def test_stale_proposal_view_is_prefiltered_before_executor_batch109() -> None:
+def test_stale_proposal_view_is_prefiltered_before_executor() -> None:
     _reset_metrics()
     loop = _loop()
 
@@ -174,7 +174,7 @@ def test_stale_proposal_view_is_prefiltered_before_executor_batch109() -> None:
     assert int(snap["counters"].get("net_bft_proposal_reject_stale_view", 0)) >= 1
 
 
-def test_stale_vote_epoch_is_prefiltered_before_executor_batch109() -> None:
+def test_stale_vote_epoch_is_prefiltered_before_executor() -> None:
     _reset_metrics()
     loop = _loop()
 
@@ -188,7 +188,7 @@ def test_stale_vote_epoch_is_prefiltered_before_executor_batch109() -> None:
     assert int(snap["counters"].get("net_bft_vote_reject_stale_epoch", 0)) >= 1
 
 
-def test_stale_timeout_view_is_prefiltered_before_executor_batch109() -> None:
+def test_stale_timeout_view_is_prefiltered_before_executor() -> None:
     _reset_metrics()
     loop = _loop()
 

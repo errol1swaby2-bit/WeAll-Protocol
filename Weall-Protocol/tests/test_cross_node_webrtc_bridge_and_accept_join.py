@@ -70,7 +70,7 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def test_webrtc_signal_bridge_import_is_operator_bound_and_visible_to_target_batch409(monkeypatch) -> None:
+def test_webrtc_signal_bridge_import_is_operator_bound_and_visible_to_target(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN", "bridge-secret")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_ALLOWED_SOURCE_NODE_IDS", "observer")
@@ -126,7 +126,7 @@ def test_webrtc_signal_bridge_import_is_operator_bound_and_visible_to_target_bat
     assert listed.json()["signals"][0]["to_account"] == "@j1"
 
 
-def test_webrtc_signal_bridge_rejects_nonparticipant_and_untargeted_media_batch409(monkeypatch) -> None:
+def test_webrtc_signal_bridge_rejects_nonparticipant_and_untargeted_media(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN", "bridge-secret")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_ALLOWED_SOURCE_NODE_IDS", "observer")
@@ -151,7 +151,7 @@ def test_webrtc_signal_bridge_rejects_nonparticipant_and_untargeted_media_batch4
     assert nonparticipant.json()["error"]["message"] == "webrtc_source_must_be_case_participant"
 
 
-def test_local_rehearsal_configures_two_way_webrtc_signal_bridge_batch409() -> None:
+def test_local_rehearsal_configures_two_way_webrtc_signal_bridge() -> None:
     src = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
 
     assert 'WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN="${SYNC_TOKEN}"' in src
@@ -160,7 +160,7 @@ def test_local_rehearsal_configures_two_way_webrtc_signal_bridge_batch409() -> N
     assert "webrtc_signal_bridge=enabled" in src
 
 
-def test_reviewer_accepts_live_call_from_feed_then_transports_to_room_batch409() -> None:
+def test_reviewer_accepts_live_call_from_feed_then_transports_to_room() -> None:
     src = (WEB / "src" / "pages" / "JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "Accept live verification call" in src

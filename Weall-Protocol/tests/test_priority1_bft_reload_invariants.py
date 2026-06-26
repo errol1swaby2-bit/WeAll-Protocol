@@ -14,7 +14,7 @@ def _qc(*, chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCer
     )
 
 
-def test_timeout_backoff_and_last_timeout_view_survive_multiple_reloads_batch45() -> None:
+def test_timeout_backoff_and_last_timeout_view_survive_multiple_reloads() -> None:
     hs = HotStuffBFT(chain_id="batch45")
     hs.timeout_base_ms = 1000
 
@@ -39,7 +39,7 @@ def test_timeout_backoff_and_last_timeout_view_survive_multiple_reloads_batch45(
     assert hs3.pacemaker_timeout_ms() == 4000
 
 
-def test_progress_resets_backoff_and_reset_survives_reload_batch45() -> None:
+def test_progress_resets_backoff_and_reset_survives_reload() -> None:
     hs = HotStuffBFT(chain_id="batch45")
     hs.timeout_base_ms = 1000
 
@@ -57,7 +57,7 @@ def test_progress_resets_backoff_and_reset_survives_reload_batch45() -> None:
     assert int(hs2.export_state().get("timeout_backoff_exp", 99)) == 0
 
 
-def test_high_qc_roundtrip_preserves_fresher_state_batch45() -> None:
+def test_high_qc_roundtrip_preserves_fresher_state() -> None:
     hs = HotStuffBFT(chain_id="batch45")
 
     high = _qc(chain_id="batch45", view=8, block_id="B8", parent_id="B7")
@@ -91,7 +91,7 @@ def test_high_qc_roundtrip_preserves_fresher_state_batch45() -> None:
     assert hs4.high_qc.block_id == "B8"
 
 
-def test_local_vote_state_remains_monotonic_across_multiple_reloads_batch45() -> None:
+def test_local_vote_state_remains_monotonic_across_multiple_reloads() -> None:
     hs = HotStuffBFT(chain_id="batch45")
 
     assert hs.record_local_vote(view=6, block_id="B6") is True

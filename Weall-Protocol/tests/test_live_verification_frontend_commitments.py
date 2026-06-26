@@ -7,7 +7,7 @@ DEVNET_REQUEST_LIVE = ROOT / "Weall-Protocol" / "scripts" / "devnet_request_live
 DEVNET_ONBOARDING = ROOT / "Weall-Protocol" / "scripts" / "devnet_full_onboarding_e2e.sh"
 
 
-def test_live_verification_commitment_helper_exists_batch289() -> None:
+def test_live_verification_commitment_helper_exists() -> None:
     text = LIVE_HELPER.read_text(encoding="utf-8")
     assert "LiveVerificationCommitments" in text
     assert "createLiveVerificationCommitments" in text
@@ -19,7 +19,7 @@ def test_live_verification_commitment_helper_exists_batch289() -> None:
     assert "sha256HexText" in text
 
 
-def test_account_verification_submits_live_commitments_batch289() -> None:
+def test_account_verification_submits_live_commitments() -> None:
     text = ACCOUNT_VERIFICATION.read_text(encoding="utf-8")
     assert "createLiveVerificationCommitments" in text
     assert "hasRequiredLiveVerificationCommitments" in text
@@ -29,7 +29,7 @@ def test_account_verification_submits_live_commitments_batch289() -> None:
     assert "session, room, and prompt commitments" in text
 
 
-def test_devnet_live_request_generates_default_commitments_batch289() -> None:
+def test_devnet_live_request_generates_default_commitments() -> None:
     text = DEVNET_REQUEST_LIVE.read_text(encoding="utf-8")
     assert "_default_live_commitment" in text
     assert "WEALL_POH_LIVE_SESSION_COMMITMENT" in text
@@ -39,7 +39,7 @@ def test_devnet_live_request_generates_default_commitments_batch289() -> None:
     assert "weall-controlled-devnet-live|v1" in text
 
 
-def test_full_onboarding_can_run_optional_live_flow_batch289() -> None:
+def test_full_onboarding_can_run_optional_live_flow() -> None:
     text = DEVNET_ONBOARDING.read_text(encoding="utf-8")
     assert "WEALL_DEVNET_RUN_LIVE" in text
     assert "_run_live_devnet_flow \"${ACCOUNT}\"" in text

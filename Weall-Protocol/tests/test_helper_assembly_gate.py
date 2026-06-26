@@ -36,7 +36,7 @@ def _resolution(
     )
 
 
-def test_helper_assembly_gate_uses_serial_when_disabled_batch9() -> None:
+def test_helper_assembly_gate_uses_serial_when_disabled() -> None:
     decision = decide_helper_block_assembly(
         profile=HelperAssemblyProfile(helper_mode_enabled=False),
         resolutions=(),
@@ -47,7 +47,7 @@ def test_helper_assembly_gate_uses_serial_when_disabled_batch9() -> None:
     assert decision.code == "helper_mode_disabled"
 
 
-def test_helper_assembly_gate_accepts_helper_path_when_merge_admission_passes_batch9() -> None:
+def test_helper_assembly_gate_accepts_helper_path_when_merge_admission_passes() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = decide_helper_block_assembly(
@@ -74,7 +74,7 @@ def test_helper_assembly_gate_accepts_helper_path_when_merge_admission_passes_ba
     assert decision.merge_decision.accepted is True
 
 
-def test_helper_assembly_gate_fail_closed_when_enabled_and_merge_fails_batch9() -> None:
+def test_helper_assembly_gate_fail_closed_when_enabled_and_merge_fails() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = decide_helper_block_assembly(
@@ -103,7 +103,7 @@ def test_helper_assembly_gate_fail_closed_when_enabled_and_merge_fails_batch9() 
     assert decision.code == "serial_equivalence_failed"
 
 
-def test_helper_assembly_gate_can_degrade_to_serial_when_allowed_batch9() -> None:
+def test_helper_assembly_gate_can_degrade_to_serial_when_allowed() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = decide_helper_block_assembly(
@@ -132,7 +132,7 @@ def test_helper_assembly_gate_can_degrade_to_serial_when_allowed_batch9() -> Non
     assert decision.code == "serial_fallback:serial_equivalence_failed"
 
 
-def test_helper_assembly_gate_rejects_merge_conflict_batch9() -> None:
+def test_helper_assembly_gate_rejects_merge_conflict() -> None:
     res_a = _resolution(lane_id="lane-a")
     res_b = _resolution(lane_id="lane-b", mode="fallback")
     decision = decide_helper_block_assembly(

@@ -10,7 +10,7 @@ def _serial_executor(txs, leader_context=None):
     return out
 
 
-def test_missing_helper_certificate_falls_back_deterministically_batch34() -> None:
+def test_missing_helper_certificate_falls_back_deterministically() -> None:
     txs = [
         {"tx_id": "a1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:1"]},
         {"tx_id": "a2", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:2"]},

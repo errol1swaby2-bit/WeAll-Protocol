@@ -14,7 +14,7 @@ def _db(tmp_path: Path, name: str = "mempool.db") -> SqliteDB:
     return SqliteDB(path=str(tmp_path / name))
 
 
-def test_startup_migrates_legacy_mempool_nonce_column_and_backfills_batch110(tmp_path: Path) -> None:
+def test_startup_migrates_legacy_mempool_nonce_column_and_backfills(tmp_path: Path) -> None:
     db_path = tmp_path / "legacy_mempool.db"
     con = sqlite3.connect(str(db_path))
     try:
@@ -78,7 +78,7 @@ def test_startup_migrates_legacy_mempool_nonce_column_and_backfills_batch110(tmp
         assert int(row["nonce"]) == 7
 
 
-def test_startup_fails_closed_on_legacy_nonce_conflict_corruption_batch110(tmp_path: Path) -> None:
+def test_startup_fails_closed_on_legacy_nonce_conflict_corruption(tmp_path: Path) -> None:
     db_path = tmp_path / "legacy_conflict.db"
     con = sqlite3.connect(str(db_path))
     try:
@@ -130,7 +130,7 @@ def test_startup_fails_closed_on_legacy_nonce_conflict_corruption_batch110(tmp_p
         PersistentMempool(db=SqliteDB(path=str(db_path)), chain_id="weall-test")
 
 
-def test_new_mempool_rows_persist_nonce_and_db_unique_index_rejects_duplicate_batch110(
+def test_new_mempool_rows_persist_nonce_and_db_unique_index_rejects_duplicate(
     tmp_path: Path,
 ) -> None:
     pool = PersistentMempool(db=_db(tmp_path, "fresh.db"), chain_id="weall-test")

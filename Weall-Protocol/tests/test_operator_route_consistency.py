@@ -50,7 +50,7 @@ def _blocked_report():
     )
 
 
-def test_operator_status_and_helper_readiness_agree_when_blocked_batch45(monkeypatch) -> None:
+def test_operator_status_and_helper_readiness_agree_when_blocked(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
 
     app = FastAPI()

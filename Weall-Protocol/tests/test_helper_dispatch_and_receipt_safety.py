@@ -38,7 +38,7 @@ def _context():
     )
 
 
-def test_helper_store_rejects_missing_helper_pubkey_batch125() -> None:
+def test_helper_store_rejects_missing_helper_pubkey() -> None:
     lane_plans, lane_plan = _lane_setup()
     seed = (bytes([21]) * 32).hex()
     cert = sign_helper_certificate(
@@ -67,7 +67,7 @@ def test_helper_store_rejects_missing_helper_pubkey_batch125() -> None:
     assert status.code == "helper_pubkey_missing"
 
 
-def test_helper_receipt_requires_asymmetric_identity_by_default_batch125() -> None:
+def test_helper_receipt_requires_asymmetric_identity_by_default() -> None:
     receipt = sign_helper_receipt(
         chain_id="c1",
         height=10,
@@ -97,7 +97,7 @@ def test_helper_receipt_requires_asymmetric_identity_by_default_batch125() -> No
     ) is False
 
 
-def test_helper_receipt_accepts_pubkey_signature_batch125() -> None:
+def test_helper_receipt_accepts_pubkey_signature() -> None:
     pub, priv = deterministic_ed25519_keypair(label="helper-receipt-b125")
     receipt = sign_helper_receipt(
         chain_id="c1",

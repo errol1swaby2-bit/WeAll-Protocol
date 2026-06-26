@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_external_observer_smoke_script_forces_observer_safety_batch313() -> None:
+def test_external_observer_smoke_script_forces_observer_safety() -> None:
     script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
     assert 'WEALL_NODE_LIFECYCLE_STATE="observer_onboarding"' in script
     assert 'WEALL_OBSERVER_MODE="1"' in script
@@ -20,7 +20,7 @@ def test_external_observer_smoke_script_forces_observer_safety_batch313() -> Non
     assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script
 
 
-def test_external_observer_runbook_documents_no_external_identity_authority_batch313() -> None:
+def test_external_observer_runbook_documents_no_external_identity_authority() -> None:
     doc = (ROOT / "docs" / "TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md").read_text(encoding="utf-8")
     assert "observer-first" in doc
     assert "cannot propose blocks" in doc
@@ -32,7 +32,7 @@ def test_external_observer_runbook_documents_no_external_identity_authority_batc
     assert "no email" in doc and "named hosting-provider" in doc and "KYC" in doc
 
 
-def test_external_observer_runbook_documents_transport_only_relay_batch315() -> None:
+def test_external_observer_runbook_documents_transport_only_relay() -> None:
     script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
     doc = (ROOT / "docs" / "PRODUCTION_RELAY_NETWORK_RUNBOOK.md").read_text(encoding="utf-8")
     assert "WEALL_NET_RELAY_URLS" in script

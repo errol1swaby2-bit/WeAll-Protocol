@@ -81,7 +81,7 @@ def _make_executor(*, chain_id: str = "batch106") -> WeAllExecutor:
     return ex
 
 
-def test_invalid_proposal_fast_fails_before_admission_batch106(monkeypatch) -> None:
+def test_invalid_proposal_fast_fails_before_admission(monkeypatch) -> None:
     ex = _make_executor()
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_AUTOVOTE", "0")
@@ -108,7 +108,7 @@ def test_invalid_proposal_fast_fails_before_admission_batch106(monkeypatch) -> N
     assert calls == {"admit": 0}
 
 
-def test_invalid_qc_fast_fails_before_verify_batch106() -> None:
+def test_invalid_qc_fast_fails_before_verify() -> None:
     ex = _make_executor()
     calls = {"verify": 0}
 
@@ -132,7 +132,7 @@ def test_invalid_qc_fast_fails_before_verify_batch106() -> None:
     assert calls == {"verify": 0}
 
 
-def test_invalid_vote_fast_fails_before_accept_vote_batch106() -> None:
+def test_invalid_vote_fast_fails_before_accept_vote() -> None:
     ex = _make_executor()
     calls = {"accept_vote": 0}
 
@@ -160,7 +160,7 @@ def test_invalid_vote_fast_fails_before_accept_vote_batch106() -> None:
     assert calls == {"accept_vote": 0}
 
 
-def test_invalid_timeout_fast_fails_before_accept_timeout_batch106() -> None:
+def test_invalid_timeout_fast_fails_before_accept_timeout() -> None:
     ex = _make_executor()
     calls = {"accept_timeout": 0}
 

@@ -28,7 +28,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_replay_same_committed_history_on_fresh_node_batch65(tmp_path: Path) -> None:
+def test_replay_same_committed_history_on_fresh_node(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -63,7 +63,7 @@ def test_replay_same_committed_history_on_fresh_node_batch65(tmp_path: Path) -> 
     assert bool(tip1) == bool(tip2)
 
 
-def test_restart_mid_schedule_and_resume_keeps_same_final_accounts_batch65(tmp_path: Path) -> None:
+def test_restart_mid_schedule_and_resume_keeps_same_final_accounts(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -91,7 +91,7 @@ def test_restart_mid_schedule_and_resume_keeps_same_final_accounts_batch65(tmp_p
     assert int(state.get("height", 0)) >= partial_height
 
 
-def test_same_transactions_with_restart_vs_no_restart_same_result_batch65(tmp_path: Path) -> None:
+def test_same_transactions_with_restart_vs_no_restart_same_result(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     signers = ["@h", "@i", "@j"]
@@ -117,7 +117,7 @@ def test_same_transactions_with_restart_vs_no_restart_same_result_batch65(tmp_pa
     assert state_a.get("accounts") == state_b.get("accounts")
 
 
-def test_empty_restart_cycles_do_not_change_committed_state_batch65(tmp_path: Path) -> None:
+def test_empty_restart_cycles_do_not_change_committed_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

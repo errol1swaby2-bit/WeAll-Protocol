@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_duplicate_qc_delivery_is_idempotent_batch86() -> None:
+def test_duplicate_qc_delivery_is_idempotent() -> None:
     hs = HotStuffBFT(chain_id="batch86")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -36,7 +36,7 @@ def test_duplicate_qc_delivery_is_idempotent_batch86() -> None:
     assert int(hs.high_qc.view) == 4
 
 
-def test_qc_replay_after_roundtrip_is_idempotent_batch86() -> None:
+def test_qc_replay_after_roundtrip_is_idempotent() -> None:
     hs = HotStuffBFT(chain_id="batch86")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -59,7 +59,7 @@ def test_qc_replay_after_roundtrip_is_idempotent_batch86() -> None:
     assert int(hs2.high_qc.view) == 4
 
 
-def test_duplicate_stale_qc_delivery_cannot_regress_state_batch86() -> None:
+def test_duplicate_stale_qc_delivery_cannot_regress_state() -> None:
     hs = HotStuffBFT(chain_id="batch86")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -82,7 +82,7 @@ def test_duplicate_stale_qc_delivery_cannot_regress_state_batch86() -> None:
     assert int(hs.high_qc.view) == 5
 
 
-def test_duplicate_conflicting_same_view_qcs_do_not_flip_choice_batch86() -> None:
+def test_duplicate_conflicting_same_view_qcs_do_not_flip_choice() -> None:
     hs = HotStuffBFT(chain_id="batch86")
     blocks = {
         "A": {"prev_block_id": ""},

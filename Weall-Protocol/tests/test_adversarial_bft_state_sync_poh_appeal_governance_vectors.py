@@ -29,7 +29,7 @@ def _run_json(script: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def test_batch505_bft_adversarial_harness_catches_equivocation_and_partition_limits() -> None:
+def test_bft_adversarial_harness_catches_equivocation_and_partition_limits() -> None:
     out = _run_json("rehearse_bft_adversarial_v1_5.py")
     assert out["ok"] is True
     assert out["public_validator_enabled"] is False
@@ -41,7 +41,7 @@ def test_batch505_bft_adversarial_harness_catches_equivocation_and_partition_lim
     assert len({row["leader"] for row in out["restart_rows"]}) == 1
 
 
-def test_batch506_state_sync_adversarial_harness_rejects_bad_anchor_and_corruption() -> None:
+def test_state_sync_adversarial_harness_rejects_bad_anchor_and_corruption() -> None:
     out = _run_json("rehearse_state_sync_adversarial_v1_5.py")
     assert out["ok"] is True
     assert out["good_snapshot_verified"] is True
@@ -51,7 +51,7 @@ def test_batch506_state_sync_adversarial_harness_rejects_bad_anchor_and_corrupti
     assert out["stale_anchor_rejected"] is True
 
 
-def test_batch507_reverification_completion_requires_fresh_successful_poh_finalize() -> None:
+def test_reverification_completion_requires_fresh_successful_poh_finalize() -> None:
     state = {
         "height": 50,
         "accounts": {"alice": {"poh_tier": 2, "poh_status": "active"}},
@@ -83,7 +83,7 @@ def test_batch507_reverification_completion_requires_fresh_successful_poh_finali
     assert canonical_account_poh_status(state, "alice")["status"] == "active"
 
 
-def test_batch508_appeal_panel_votes_derive_final_enforcement_decision() -> None:
+def test_appeal_panel_votes_derive_final_enforcement_decision() -> None:
     state = {
         "height": 70,
         "content": {"posts": {"post:alice:appeal": {"id": "post:alice:appeal", "author": "alice", "visibility": "public", "deleted": False, "labels": [], "locked": False}}, "comments": {}},
@@ -117,7 +117,7 @@ def test_batch508_appeal_panel_votes_derive_final_enforcement_decision() -> None
     assert state["disputes_by_id"]["d-appeal-panel"]["final_resolution"]["actions"] == []
 
 
-def test_batch509_governance_execution_vector_pack_runs() -> None:
+def test_governance_execution_vector_pack_runs() -> None:
     out = _run_json("gen_governance_execution_vectors_v1_5.py")
     assert out["ok"] is True
     assert out["final_stage"] == "finalized"
@@ -128,7 +128,7 @@ def test_batch509_governance_execution_vector_pack_runs() -> None:
     assert out["proposal_receipt_count"] >= 1
 
 
-def test_batch505_509_generated_artifact_is_fresh_and_truth_bounded() -> None:
+def test_generated_artifact_is_fresh_and_truth_bounded() -> None:
     path = ROOT / "generated" / "b505_b509_mechanics_proof_v1_5.json"
     assert path.exists()
     data = json.loads(path.read_text())

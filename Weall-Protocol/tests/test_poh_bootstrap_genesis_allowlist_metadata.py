@@ -73,7 +73,7 @@ def _canon() -> TxIndex:
     )
 
 
-def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_apply_batch232() -> None:
+def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_apply() -> None:
     state = _state()
 
     apply_tx(state, _bootstrap_tx())
@@ -84,7 +84,7 @@ def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_ap
     assert acct["poh_bootstrap_granted"] is True
 
 
-def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_admission_batch232() -> None:
+def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_admission() -> None:
     state = _state()
 
     verdict = admit_tx(
@@ -97,7 +97,7 @@ def test_genesis_bootstrap_allowlist_metadata_does_not_disable_open_bootstrap_ad
     assert verdict.ok is True
 
 
-def test_non_genesis_allowlist_still_conflicts_with_explicit_open_mode_batch232() -> None:
+def test_non_genesis_allowlist_still_conflicts_with_explicit_open_mode() -> None:
     state = _state()
     state["params"]["bootstrap_allowlist"] = {"@alice": {}}
 

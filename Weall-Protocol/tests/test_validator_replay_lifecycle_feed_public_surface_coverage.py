@@ -36,7 +36,7 @@ def _run_json(script: str) -> dict[str, Any]:
     return json.loads(proc.stdout)
 
 
-def test_batch523_validator_rehearsal_uses_process_model_and_preserves_boundaries() -> None:
+def test_validator_rehearsal_uses_process_model_and_preserves_boundaries() -> None:
     out = _run_json("rehearse_real_validator_network_v1_5.py")
     assert out["ok"] is True
     assert out["process_model"] == "multiprocessing_queue_local_processes"
@@ -46,7 +46,7 @@ def test_batch523_validator_rehearsal_uses_process_model_and_preserves_boundarie
     assert len(set(out["roots_after_restart"])) == 1
 
 
-def test_batch524_fresh_node_replay_uses_durable_blocks_and_rejects_corruption() -> None:
+def test_fresh_node_replay_uses_durable_blocks_and_rejects_corruption() -> None:
     out = _run_json("rehearse_fresh_node_replay_sync_v1_5.py")
     assert out["ok"] is True
     assert out["durable_block_store_used"] is True
@@ -55,7 +55,7 @@ def test_batch524_fresh_node_replay_uses_durable_blocks_and_rejects_corruption()
     assert out["source_state_root"] == out["fresh_state_root"] == out["interrupted_resume_root"]
 
 
-def test_batch525_full_lifecycle_exercises_real_runtime_domains() -> None:
+def test_full_lifecycle_exercises_real_runtime_domains() -> None:
     out = _run_json("rehearse_v15_full_lifecycle.py")
     assert out["ok"] is True
     journey = out["journey"]
@@ -68,7 +68,7 @@ def test_batch525_full_lifecycle_exercises_real_runtime_domains() -> None:
     assert out["locked_boundaries"] == {"public_validators": False, "live_economics": False, "automatic_upgrades": False, "production_helpers": False}
 
 
-def test_batch526_ranked_feed_cursor_uses_score_nonce_id_and_does_not_skip_new_quiet_posts() -> None:
+def test_ranked_feed_cursor_uses_score_nonce_id_and_does_not_skip_new_quiet_posts() -> None:
     state = {
         "content": {
             "posts": {
@@ -93,7 +93,7 @@ def test_batch526_ranked_feed_cursor_uses_score_nonce_id_and_does_not_skip_new_q
         assert ids == ["middle", "new-quiet"]
 
 
-def test_batch526_recency_cursor_remains_legacy_compatible() -> None:
+def test_recency_cursor_remains_legacy_compatible() -> None:
     item = {"post_id": "post-1", "id": "post-1", "created_at_nonce": 42, "feed_rank_score": 42}
     cursor = _feed_cursor_pack(mode="recency", obj=item)
     assert "|" not in cursor
@@ -104,7 +104,7 @@ def test_batch526_recency_cursor_remains_legacy_compatible() -> None:
         assert res.json()["ranking"]["cursor_model"] == "legacy_nonce_id"
 
 
-def test_batch526_sort_key_matches_cursor_model_for_ranked_modes() -> None:
+def test_sort_key_matches_cursor_model_for_ranked_modes() -> None:
     items = [
         {"post_id": "old-popular", "created_at_nonce": 10, "reaction_total": 5, "comment_total": 2},
         {"post_id": "new-quiet", "created_at_nonce": 20, "reaction_total": 0, "comment_total": 0},
@@ -117,7 +117,7 @@ def test_batch526_sort_key_matches_cursor_model_for_ranked_modes() -> None:
     assert [x["post_id"] for x in _sort_feed_items(ranked, mode="engagement")] == ["old-popular", "new-quiet"]
 
 
-def test_batch527_sensitive_route_metadata_is_explicit_and_generated_artifact_is_fresh() -> None:
+def test_sensitive_route_metadata_is_explicit_and_generated_artifact_is_fresh() -> None:
     metadata = json.loads((ROOT / "specs" / "api_contracts" / "v1_5_route_metadata.json").read_text())
     routes = metadata["routes"]
     for route in [
@@ -137,7 +137,7 @@ def test_batch527_sensitive_route_metadata_is_explicit_and_generated_artifact_is
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_batch523_527_proof_artifact_is_fresh() -> None:
+def test_proof_artifact_is_fresh() -> None:
     proc = subprocess.run([sys.executable, "scripts/gen_b523_b527_completion_proof_v1_5.py", "--check"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     artifact = json.loads((ROOT / "generated" / "b523_b527_completion_proof_v1_5.json").read_text())

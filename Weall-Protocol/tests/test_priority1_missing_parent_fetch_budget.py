@@ -32,7 +32,7 @@ def _pending_block(*, block_id: str, parent_id: str, height: int) -> dict:
     }
 
 
-def test_missing_parent_fetch_requests_are_bounded_and_rotating_batch107(
+def test_missing_parent_fetch_requests_are_bounded_and_rotating(
     tmp_path: Path, monkeypatch
 ) -> None:
     ex = _make_executor(tmp_path, monkeypatch)
@@ -95,7 +95,7 @@ def test_missing_parent_fetch_requests_are_bounded_and_rotating_batch107(
     ]
 
 
-def test_fetch_budget_resets_when_missing_parent_backlog_clears_batch107(
+def test_fetch_budget_resets_when_missing_parent_backlog_clears(
     tmp_path: Path, monkeypatch
 ) -> None:
     ex = _make_executor(tmp_path, monkeypatch)

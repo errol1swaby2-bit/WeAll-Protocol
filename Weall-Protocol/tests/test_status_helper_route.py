@@ -53,7 +53,7 @@ def _client(report=None):
     return TestClient(app)
 
 
-def test_status_route_includes_helper_serial_only_batch24(monkeypatch):
+def test_status_route_includes_helper_serial_only(monkeypatch):
     monkeypatch.delenv("WEALL_HELPER_MODE_ENABLED", raising=False)
     client = _client(None)
     resp = client.get("/status")
@@ -65,7 +65,7 @@ def test_status_route_includes_helper_serial_only_batch24(monkeypatch):
     assert data["helper"]["helper_severity"] == "warning"
 
 
-def test_status_route_includes_helper_enabled_batch24(monkeypatch):
+def test_status_route_includes_helper_enabled(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(_green_report())
     resp = client.get("/status")
@@ -76,7 +76,7 @@ def test_status_route_includes_helper_enabled_batch24(monkeypatch):
     assert data["helper"]["helper_startup"]["helper_mode_active"] is True
 
 
-def test_status_operator_route_surfaces_blocked_helper_batch24(monkeypatch):
+def test_status_operator_route_surfaces_blocked_helper(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(_red_report())
     resp = client.get("/status/operator")
@@ -88,7 +88,7 @@ def test_status_operator_route_surfaces_blocked_helper_batch24(monkeypatch):
     assert data["operator"]["helper_summary"] == "startup blocked: helper_release_gate_failed"
 
 
-def test_status_operator_route_surfaces_enabled_helper_batch24(monkeypatch):
+def test_status_operator_route_surfaces_enabled_helper(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(_green_report())
     resp = client.get("/status/operator")

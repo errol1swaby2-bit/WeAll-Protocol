@@ -9,6 +9,7 @@ validated before staging.
 from __future__ import annotations
 
 import argparse
+import ast
 import os
 import re
 import subprocess
@@ -24,6 +25,7 @@ REVIEWER_REFERENCE_RE = re.compile(
 
 APPROVED_REFERENCE_PATHS = {
     "Weall-Protocol/docs/TEST_RENAME_MAP.md",
+    "Weall-Protocol/docs/TEST_FUNCTION_RENAME_MAP.md",
     "Weall-Protocol/docs/TEST_REDUNDANCY_REVIEW.md",
     "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md",
 }
@@ -92,6 +94,30 @@ def batch_named_test_files(root: Path | None = None) -> list[str]:
     return sorted(matches)
 
 
+def batch_named_test_functions(root: Path | None = None) -> list[str]:
+    root = root or repo_root()
+    findings: list[str] = []
+
+    for path in working_tree_files(root):
+        if not path.startswith("Weall-Protocol/tests/") or not path.endswith(".py"):
+            continue
+        full_path = root / path
+        if not full_path.is_file():
+            continue
+        try:
+            tree = ast.parse(full_path.read_text(encoding="utf-8"))
+        except SyntaxError as exc:
+            findings.append(f"{path}:0:syntax-error:{exc}")
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name.startswith("test") and BATCH_NAME_RE.search(node.name):
+                    findings.append(f"{path}:{node.lineno}:{node.name}")
+
+    return sorted(findings)
+
+
 def reviewer_facing_batch_references(root: Path | None = None) -> list[str]:
     root = root or repo_root()
     findings: list[str] = []
@@ -123,11 +149,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="fail if active batch-named pytest files or reviewer-facing references remain",
+        help="fail if active batch-named pytest files, functions, or reviewer-facing references remain",
     )
     args = parser.parse_args(argv)
 
     batch_files = batch_named_test_files()
+    batch_functions = batch_named_test_functions()
     references = reviewer_facing_batch_references()
 
     if batch_files:
@@ -137,6 +164,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print("OK: no active batch-named pytest files remain")
 
+    if batch_functions:
+        print("Batch-named pytest functions remain:")
+        for finding in batch_functions:
+            print(f"  {finding}")
+    else:
+        print("OK: no active batch-named pytest functions remain")
+
     if references:
         print("Reviewer-facing batch test references remain:")
         for finding in references:
@@ -144,7 +178,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print("OK: no reviewer-facing batch test references remain")
 
-    if args.check and (batch_files or references):
+    if args.check and (batch_files or batch_functions or references):
         return 1
     return 0
 

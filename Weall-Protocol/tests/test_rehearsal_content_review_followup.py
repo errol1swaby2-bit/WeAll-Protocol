@@ -36,7 +36,7 @@ def _state_with_group_post_and_upheld_vote() -> dict:
     }
 
 
-def test_upheld_review_hides_content_before_final_receipt_batch452() -> None:
+def test_upheld_review_hides_content_before_final_receipt() -> None:
     st = _state_with_group_post_and_upheld_vote()
     post = st["content"]["posts"]["post:@errol:16"]
 
@@ -46,7 +46,7 @@ def test_upheld_review_hides_content_before_final_receipt_batch452() -> None:
     assert _iter_group_posts(st, group_id="g:test") == []
 
 
-def test_non_upheld_review_keeps_content_visible_batch452() -> None:
+def test_non_upheld_review_keeps_content_visible() -> None:
     st = _state_with_group_post_and_upheld_vote()
     dispute = st["disputes_by_id"]["dispute:SYSTEM:0"]
     dispute["votes"] = {"@devnet-genesis": {"vote": "no", "at_nonce": 20}}

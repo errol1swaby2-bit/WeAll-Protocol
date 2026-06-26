@@ -15,7 +15,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch595_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> None:
+def test_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> None:
     proof = _proof()
     assert proof["schema"] == "weall.v1_5.controlled_testnet_go_gate"
     assert proof["ok"] is True
@@ -53,7 +53,7 @@ def test_batch595_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> 
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_batch595_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
+def test_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
     proof = _proof()
     artifacts = proof["artifact_inputs"]
     for rel in (
@@ -74,7 +74,7 @@ def test_batch595_go_gate_captures_required_artifact_and_runtime_evidence() -> N
     assert proof["storage_go_gate_snapshot"]["requires_real_operator_rehearsal"] is True
 
 
-def test_batch595_launch_capability_surface_includes_mechanism_completion_artifact() -> None:
+def test_launch_capability_surface_includes_mechanism_completion_artifact() -> None:
     surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     artifacts = surface["required_artifacts"]
     assert artifacts["b587_b594_mechanism_completion"]["present"] is True
@@ -95,7 +95,7 @@ def test_batch595_launch_capability_surface_includes_mechanism_completion_artifa
         assert surface["capabilities"][cap]["blocked_by_launch_matrix"] is True
 
 
-def test_batch595_readiness_artifact_gate_includes_go_gate_manifest() -> None:
+def test_readiness_artifact_gate_includes_go_gate_manifest() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=str(ROOT),

@@ -41,7 +41,7 @@ def _registered_node_state() -> dict:
     }
 
 
-def test_peer_advertise_requires_registered_node_device_batch346() -> None:
+def test_peer_advertise_requires_registered_node_device() -> None:
     st = {"accounts": {"@alice": {"nonce": 0, "poh_tier": 0, "devices": {"by_id": {}}}}}
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
@@ -56,7 +56,7 @@ def test_peer_advertise_requires_registered_node_device_batch346() -> None:
     assert excinfo.value.reason == "node_device_required_for_peer_advertise"
 
 
-def test_peer_advertise_rejects_spoofed_peer_id_batch346() -> None:
+def test_peer_advertise_rejects_spoofed_peer_id() -> None:
     st = _registered_node_state()
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
@@ -76,7 +76,7 @@ def test_peer_advertise_rejects_spoofed_peer_id_batch346() -> None:
     assert excinfo.value.reason == "peer_id_not_bound_to_node_key"
 
 
-def test_peer_advertise_accepts_account_bound_node_peer_id_batch346() -> None:
+def test_peer_advertise_accepts_account_bound_node_peer_id() -> None:
     st = _registered_node_state()
     meta = apply_tx(
         st,
@@ -98,7 +98,7 @@ def test_peer_advertise_accepts_account_bound_node_peer_id_batch346() -> None:
     assert st["peers"]["ads"]["@alice"]["peer_id"] == "node:@alice:node-pub-1"
 
 
-def test_peer_advertise_rejects_unregistered_node_pubkey_batch346() -> None:
+def test_peer_advertise_rejects_unregistered_node_pubkey() -> None:
     st = _registered_node_state()
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
@@ -118,7 +118,7 @@ def test_peer_advertise_rejects_unregistered_node_pubkey_batch346() -> None:
     assert excinfo.value.reason == "node_key_not_registered_for_peer_advertise"
 
 
-def test_peer_advertise_rejects_implausible_endpoint_batch348() -> None:
+def test_peer_advertise_rejects_implausible_endpoint() -> None:
     st = _registered_node_state()
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(

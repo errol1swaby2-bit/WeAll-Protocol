@@ -192,7 +192,7 @@ def _live_tier2(st: dict) -> None:
     assert int(st["accounts"]["@observer"]["poh_tier"]) == 2
 
 
-def test_observer_account_progresses_to_validator_eligible_but_not_consensus_active_until_validator_set_update_batch348() -> None:
+def test_observer_account_progresses_to_validator_eligible_but_not_consensus_active_until_validator_set_update() -> None:
     st = _state()
     node_pubkey = "node-pub-observer"
     bft_pubkey = "bft-pub-observer"

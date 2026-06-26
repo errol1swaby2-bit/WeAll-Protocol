@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_auth_headers_normalize_session_account_before_comparing_batch392() -> None:
+def test_auth_headers_normalize_session_account_before_comparing() -> None:
     src = _read(WEB / "src" / "auth" / "session.ts")
     assert "const sessionAccount = normalizeAccount(s.account);" in src
     assert "const acct = normalizeAccount(account || sessionAccount);" in src
@@ -19,7 +19,7 @@ def test_auth_headers_normalize_session_account_before_comparing_batch392() -> N
     assert '"x-weall-account": sessionAccount' in src
 
 
-def test_live_room_opens_external_by_default_and_embed_is_opt_in_batch392() -> None:
+def test_live_room_opens_external_by_default_and_embed_is_opt_in() -> None:
     live = _read(WEB / "src" / "lib" / "liveRoom.ts")
     room = _read(WEB / "src" / "pages" / "LiveVerificationRoom.tsx")
     script = _read(NESTED / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
@@ -34,7 +34,7 @@ def test_live_room_opens_external_by_default_and_embed_is_opt_in_batch392() -> N
     assert "Live room opened in a separate tab" in room
 
 
-def test_vite_csp_names_local_or_self_hosted_frames_for_rehearsal_if_embed_opted_in_batch392() -> None:
+def test_vite_csp_names_local_or_self_hosted_frames_for_rehearsal_if_embed_opted_in() -> None:
     src = _read(WEB / "vite.config.ts")
     assert "frame-src 'self'" in src
     assert "http://127.0.0.1:*" in src

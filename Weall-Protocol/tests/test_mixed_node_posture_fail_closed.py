@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-def test_mixed_bft_posture_rejected_fail_closed_batch43(monkeypatch):
+def test_mixed_bft_posture_rejected_fail_closed(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
@@ -16,7 +16,7 @@ def test_mixed_bft_posture_rejected_fail_closed_batch43(monkeypatch):
         raise AssertionError("mixed BFT/observer posture did not fail closed")
 
 
-def test_prod_profile_rejects_qc_less_blocks_batch43(monkeypatch):
+def test_prod_profile_rejects_qc_less_blocks(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", "1")
 
@@ -30,7 +30,7 @@ def test_prod_profile_rejects_qc_less_blocks_batch43(monkeypatch):
         raise AssertionError("prod startup did not fail closed on QC-less block allowance")
 
 
-def test_prod_profile_rejects_unsigned_timeouts_batch43(monkeypatch):
+def test_prod_profile_rejects_unsigned_timeouts(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS", "1")
 

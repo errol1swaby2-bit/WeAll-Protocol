@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT.parent / "web"
 
 
-def test_wallet_and_tipping_components_exist_batch482() -> None:
+def test_wallet_and_tipping_components_exist() -> None:
     wallet = (WEB / "src" / "components" / "WalletPanel.tsx").read_text(encoding="utf-8")
     tip = (WEB / "src" / "components" / "ContentTipButton.tsx").read_text(encoding="utf-8")
 
@@ -21,7 +21,7 @@ def test_wallet_and_tipping_components_exist_batch482() -> None:
     assert "Tips are locked until Genesis economics activation" in tip
 
 
-def test_profile_and_feed_mount_wallet_tipping_batch482() -> None:
+def test_profile_and_feed_mount_wallet_tipping() -> None:
     account = (WEB / "src" / "pages" / "Account.tsx").read_text(encoding="utf-8")
     feed = (WEB / "src" / "components" / "FeedView.tsx").read_text(encoding="utf-8")
 

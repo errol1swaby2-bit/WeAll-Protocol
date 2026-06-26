@@ -14,7 +14,7 @@ def _submit_async_body(src: str) -> str:
     return src.split("async function submitAsyncEvidence()", 1)[1].split("async function submitLiveRequest()", 1)[0]
 
 
-def test_batch400_async_evidence_submits_full_sequence_and_waits_for_reviewable_truth() -> None:
+def test_async_evidence_submits_full_sequence_and_waits_for_reviewable_truth() -> None:
     body = _submit_async_body(_page())
 
     assert "Batch 408: node admission is still sequential-nonce based" in body

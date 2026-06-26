@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT.parents[0] / "web" / "src"
 
 
-def test_observer_tx_status_does_not_mark_local_tx_queue_tx_synced_batch396() -> None:
+def test_observer_tx_status_does_not_mark_local_tx_queue_tx_synced() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(encoding="utf-8")
 
     assert "observer_local_confirmed_not_upstream_synced" in src
@@ -17,7 +17,7 @@ def test_observer_tx_status_does_not_mark_local_tx_queue_tx_synced_batch396() ->
     assert '_update_tx_queue_record(t, {"upstream_status": "confirmed", "confirmed_height": int(idx.get("height") or 0)' not in src
 
 
-def test_live_request_frontend_requires_local_state_synced_before_room_route_batch396() -> None:
+def test_live_request_frontend_requires_local_state_synced_before_room_route() -> None:
     page = (WEB / "pages" / "AccountVerificationPage.tsx").read_text(encoding="utf-8")
 
     assert "Live verification request was not confirmed on genesis and synced back to the observer yet" in page

@@ -44,13 +44,13 @@ def _find_status_path(app: FastAPI) -> str | None:
     return None
 
 
-def test_tx_submit_surface_has_matching_status_surface_batch42():
+def test_tx_submit_surface_has_matching_status_surface():
     app = _load_app()
     assert _find_submit_path(app), "No tx submit-like POST route found"
     assert _find_status_path(app), "No tx status-like GET route found"
 
 
-def test_tx_submit_invalid_payload_or_not_ready_fails_closed_batch42():
+def test_tx_submit_invalid_payload_or_not_ready_fails_closed():
     app = _load_app()
     submit_path = _find_submit_path(app)
     assert submit_path, "No tx submit-like POST route found"
@@ -77,7 +77,7 @@ def test_tx_submit_invalid_payload_or_not_ready_fails_closed_batch42():
         assert code == "not_ready", body
 
 
-def test_tx_status_unknown_shape_fails_closed_not_5xx_batch42():
+def test_tx_status_unknown_shape_fails_closed_not_5xx():
     app = _load_app()
     status_path = _find_status_path(app)
     assert status_path, "No tx status-like GET route found"

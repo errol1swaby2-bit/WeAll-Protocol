@@ -21,7 +21,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_timeout_backoff_does_not_regress_after_reload_batch54() -> None:
+def test_timeout_backoff_does_not_regress_after_reload() -> None:
     hs = HotStuffBFT(chain_id="batch54")
     hs.timeout_base_ms = 1000
 
@@ -44,7 +44,7 @@ def test_timeout_backoff_does_not_regress_after_reload_batch54() -> None:
     assert int(hs3.export_state().get("last_timeout_view") or 0) == 3
 
 
-def test_progress_then_reload_keeps_reset_backoff_batch54() -> None:
+def test_progress_then_reload_keeps_reset_backoff() -> None:
     hs = HotStuffBFT(chain_id="batch54")
     hs.timeout_base_ms = 1000
 
@@ -62,7 +62,7 @@ def test_progress_then_reload_keeps_reset_backoff_batch54() -> None:
     assert int(hs2.export_state().get("timeout_backoff_exp", 99)) == 0
 
 
-def test_bft_view_persistence_remains_monotonic_across_executor_reloads_batch54(
+def test_bft_view_persistence_remains_monotonic_across_executor_reloads(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -101,7 +101,7 @@ def test_bft_view_persistence_remains_monotonic_across_executor_reloads_batch54(
     assert int(ex3.read_state().get("bft", {}).get("view") or 0) == 5
 
 
-def test_structurally_invalid_qc_never_updates_high_qc_batch54() -> None:
+def test_structurally_invalid_qc_never_updates_high_qc() -> None:
     hs = HotStuffBFT(chain_id="batch54")
     blocks = {
         "A": {"prev_block_id": ""},

@@ -21,7 +21,7 @@ def _submit(ex: WeAllExecutor, signer: str, nonce: int) -> None:
     assert res.get("ok") is True
 
 
-def test_mempool_rehydration_matches_pre_restart_state_batch51(tmp_path: Path) -> None:
+def test_mempool_rehydration_matches_pre_restart_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -40,7 +40,7 @@ def test_mempool_rehydration_matches_pre_restart_state_batch51(tmp_path: Path) -
     assert len(after) == len(before)
 
 
-def test_block_production_is_idempotent_under_repeated_calls_batch51(tmp_path: Path) -> None:
+def test_block_production_is_idempotent_under_repeated_calls(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -63,7 +63,7 @@ def test_block_production_is_idempotent_under_repeated_calls_batch51(tmp_path: P
     assert height_after_second == height_after_first
 
 
-def test_repeated_restart_produce_cycle_does_not_duplicate_effects_batch51(tmp_path: Path) -> None:
+def test_repeated_restart_produce_cycle_does_not_duplicate_effects(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -88,7 +88,7 @@ def test_repeated_restart_produce_cycle_does_not_duplicate_effects_batch51(tmp_p
     assert len(keys) == 1
 
 
-def test_height_monotonicity_across_restart_and_empty_blocks_batch51(tmp_path: Path) -> None:
+def test_height_monotonicity_across_restart_and_empty_blocks(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

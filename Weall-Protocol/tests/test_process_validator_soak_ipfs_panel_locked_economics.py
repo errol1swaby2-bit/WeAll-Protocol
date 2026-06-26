@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch572_independent_process_validator_network_rehearses_restart_and_roots() -> None:
+def test_independent_process_validator_network_rehearses_restart_and_roots() -> None:
     out = _proof()["independent_process_validator_network"]
     assert out["ok"] is True
     assert out["process_model"] == "independent_multiprocessing_validator_nodes"
@@ -26,7 +26,7 @@ def test_batch572_independent_process_validator_network_rehearses_restart_and_ro
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch573_seeded_long_run_gossip_soak_exercises_restarts_partitions_reordering() -> None:
+def test_seeded_long_run_gossip_soak_exercises_restarts_partitions_reordering() -> None:
     out = _proof()["seeded_long_run_gossip_soak"]
     assert out["ok"] is True
     assert out["soak_model"] == "seeded_deterministic_long_run_autonomous_gossip"
@@ -40,7 +40,7 @@ def test_batch573_seeded_long_run_gossip_soak_exercises_restarts_partitions_reor
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch574_multidaemon_ipfs_durability_uses_replacement_daemon_after_failure() -> None:
+def test_multidaemon_ipfs_durability_uses_replacement_daemon_after_failure() -> None:
     out = _proof()["multidaemon_ipfs_durability"]
     assert out["ok"] is True
     assert out["worker_model"] == "multi_daemon_ipfs_compatible_operator_processes"
@@ -56,7 +56,7 @@ def test_batch574_multidaemon_ipfs_durability_uses_replacement_daemon_after_fail
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch575_anti_sybil_signal_aggregation_and_panel_selection_are_deterministic() -> None:
+def test_anti_sybil_signal_aggregation_and_panel_selection_are_deterministic() -> None:
     out = _proof()["anti_sybil_panel_signal_aggregation"]
     assert out["ok"] is True
     sig = out["signal_aggregation"]
@@ -72,7 +72,7 @@ def test_batch575_anti_sybil_signal_aggregation_and_panel_selection_are_determin
     assert out["automatic_collusion_detection_claimed"] is False
 
 
-def test_batch576_long_run_locked_economics_stress_keeps_economics_disabled() -> None:
+def test_long_run_locked_economics_stress_keeps_economics_disabled() -> None:
     out = _proof()["long_run_locked_economics_stress"]
     assert out["ok"] is True
     stress = out["stress_summary"]
@@ -88,7 +88,7 @@ def test_batch576_long_run_locked_economics_stress_keeps_economics_disabled() ->
     assert out["live_economics_claimed"] is False
 
 
-def test_batch572_576_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

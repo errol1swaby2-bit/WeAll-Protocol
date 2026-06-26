@@ -45,7 +45,7 @@ def _routes_by_key() -> dict[str, dict]:
     return {f"{route['method']} {route['path']}": route for route in payload["routes"]}
 
 
-def test_api_contract_map_is_generated_and_complete_batch494() -> None:
+def test_api_contract_map_is_generated_and_complete() -> None:
     payload = json.loads(MAP_PATH.read_text(encoding="utf-8"))
     routes = payload["routes"]
 
@@ -69,7 +69,7 @@ def test_api_contract_map_is_generated_and_complete_batch494() -> None:
     assert len(ids) == len(routes)
 
 
-def test_api_contract_generator_is_deterministic_and_checkable_batch494() -> None:
+def test_api_contract_generator_is_deterministic_and_checkable() -> None:
     before = MAP_PATH.read_text(encoding="utf-8")
     result = subprocess.run(
         [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
@@ -84,7 +84,7 @@ def test_api_contract_generator_is_deterministic_and_checkable_batch494() -> Non
     assert before == after
 
 
-def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes_batch494() -> None:
+def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes() -> None:
     routes = _routes_by_key()
 
     assert "GET /v1/" + "mess" + "ages/threads" not in routes

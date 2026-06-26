@@ -42,7 +42,7 @@ def _state(*, bootstrap_compat: bool = False) -> dict:
     }
 
 
-def test_poh_assignment_pool_requires_active_juror_role_by_default_batch321() -> None:
+def test_poh_assignment_pool_requires_active_juror_role_by_default() -> None:
     state = _state()
 
     assert eligible_live_jurors(state=state) == ["@active"]
@@ -53,7 +53,7 @@ def test_poh_assignment_pool_requires_active_juror_role_by_default_batch321() ->
         pick_async_jurors(state=state, case_id="case-1", target_account="@target", n_jurors=2)
 
 
-def test_poh_assignment_pool_matches_juror_admission_gate_batch321() -> None:
+def test_poh_assignment_pool_matches_juror_admission_gate() -> None:
     state = _state()
 
     ok, _meta = eval_gate(
@@ -77,7 +77,7 @@ def test_poh_assignment_pool_matches_juror_admission_gate_batch321() -> None:
     assert "@tier2_no_role" not in eligible_live_jurors(state=state)
 
 
-def test_poh_bootstrap_compat_flag_is_explicit_and_chain_state_bound_batch321() -> None:
+def test_poh_bootstrap_compat_flag_is_explicit_and_chain_state_bound() -> None:
     state = _state(bootstrap_compat=True)
 
     # Controlled bootstrap/devnet compatibility can still assign Tier2 accounts

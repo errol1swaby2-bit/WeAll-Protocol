@@ -8,7 +8,7 @@ def _serial_executor(txs, _leader_context):
     return ([{"tx_id": str(tx.get("tx_id") or "")} for tx in list(txs or [])], {})
 
 
-def test_merge_falls_back_when_helper_signature_invalid_batch36() -> None:
+def test_merge_falls_back_when_helper_signature_invalid() -> None:
     tx = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     lane_plan = LanePlan(
         lane_id="L1",
@@ -43,7 +43,7 @@ def test_merge_falls_back_when_helper_signature_invalid_batch36() -> None:
     assert merged.lane_decisions[0].fallback_reason == "helper_signature_invalid"
 
 
-def test_merge_can_skip_signature_enforcement_when_explicitly_disabled_batch36() -> None:
+def test_merge_can_skip_signature_enforcement_when_explicitly_disabled() -> None:
     tx = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     lane_plan = LanePlan(
         lane_id="L1",

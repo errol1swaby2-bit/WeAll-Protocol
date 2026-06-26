@@ -62,7 +62,7 @@ def _manifest(path: Path, *, chain_id: str, tx_index_hash: str) -> Path:
     return path
 
 
-def test_chain_manifest_status_accepts_pinned_tx_index_batch238(tmp_path: Path) -> None:
+def test_chain_manifest_status_accepts_pinned_tx_index(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash=tx_hash)
@@ -81,7 +81,7 @@ def test_chain_manifest_status_accepts_pinned_tx_index_batch238(tmp_path: Path) 
     assert status["chain_id"] == "weall-prod"
 
 
-def test_chain_manifest_status_rejects_wrong_tx_index_batch238(tmp_path: Path) -> None:
+def test_chain_manifest_status_rejects_wrong_tx_index(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     _write_tx_index(tx_index)
     manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash="d" * 64)
@@ -99,7 +99,7 @@ def test_chain_manifest_status_rejects_wrong_tx_index_batch238(tmp_path: Path) -
     assert "chain_manifest_tx_index_hash_mismatch" in status["issues"]
 
 
-def test_boot_config_uses_required_manifest_chain_id_batch238(
+def test_boot_config_uses_required_manifest_chain_id(
     tmp_path: Path, monkeypatch
 ) -> None:
     tx_index = tmp_path / "tx_index.json"
@@ -118,7 +118,7 @@ def test_boot_config_uses_required_manifest_chain_id_batch238(
     assert cfg.tx_index_path == str(tx_index)
 
 
-def test_load_chain_config_surfaces_manifest_metadata_batch238(
+def test_load_chain_config_surfaces_manifest_metadata(
     tmp_path: Path, monkeypatch
 ) -> None:
     tx_index = tmp_path / "tx_index.json"
@@ -153,7 +153,7 @@ def test_load_chain_config_surfaces_manifest_metadata_batch238(
     assert not any(x.startswith("chain_manifest:") for x in production_bootstrap_issues(cfg))
 
 
-def test_chain_identity_route_surfaces_manifest_batch238(tmp_path: Path, monkeypatch) -> None:
+def test_chain_identity_route_surfaces_manifest(tmp_path: Path, monkeypatch) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash=tx_hash)

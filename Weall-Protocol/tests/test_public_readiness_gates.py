@@ -10,7 +10,7 @@ def _read(path: str) -> str:
     return (REPO / path).read_text(encoding="utf-8")
 
 
-def test_status_exposes_public_only_readiness_boundary_batch456() -> None:
+def test_status_exposes_public_only_readiness_boundary() -> None:
     status = _read("Weall-Protocol/src/weall/api/routes_public_parts/status.py")
     assert '"block_production"' in status
     assert '"tokenomics"' in status
@@ -19,7 +19,7 @@ def test_status_exposes_public_only_readiness_boundary_batch456() -> None:
     assert "public protocol events" in status
 
 
-def test_reviewer_gate_and_ci_are_tracked_batch456() -> None:
+def test_reviewer_gate_and_ci_are_tracked() -> None:
     gate = _read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh")
     workflow = _read(".github/workflows/reviewer-readiness.yml")
     assert "scripts/check_tx_canon_artifacts.py" in gate
@@ -30,7 +30,7 @@ def test_reviewer_gate_and_ci_are_tracked_batch456() -> None:
     assert "reviewer_production_readiness_gate.sh" in workflow
 
 
-def test_docs_do_not_overclaim_tokenomics_or_public_network_readiness_batch456() -> None:
+def test_docs_do_not_overclaim_tokenomics_or_public_network_readiness() -> None:
     gap = _read("Weall-Protocol/docs/PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md")
     econ = _read("Weall-Protocol/docs/ECONOMICS_LOCKED_TOKENOMICS_MODEL.md")
     milestone = _read("Weall-Protocol/docs/REVIEWER_PRODUCTION_READINESS_MILESTONE.md")

@@ -69,7 +69,7 @@ def _build_test_app(executor: _FakeExecutor) -> FastAPI:
     return app
 
 
-def test_status_operator_prefers_app_startup_authority_contract_batch129(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_operator_prefers_app_startup_authority_contract(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
@@ -90,7 +90,7 @@ def test_status_operator_prefers_app_startup_authority_contract_batch129(monkeyp
     assert operator_contract["startup_action"] == "app_state_override"
 
 
-def test_status_consensus_prefers_app_startup_authority_contract_batch129(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_consensus_prefers_app_startup_authority_contract(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")

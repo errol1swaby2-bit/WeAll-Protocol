@@ -42,7 +42,7 @@ def _state_hash(ex: WeAllExecutor) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def test_restart_preserves_normalized_state_hash_batch81() -> None:
+def test_restart_preserves_normalized_state_hash() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db = str(root / ".pytest-b81-a.db")
@@ -65,7 +65,7 @@ def test_restart_preserves_normalized_state_hash_batch81() -> None:
         Path(db).unlink(missing_ok=True)
 
 
-def test_chunking_preserves_normalized_state_hash_batch81() -> None:
+def test_chunking_preserves_normalized_state_hash() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db1 = str(root / ".pytest-b81-b1.db")
@@ -92,7 +92,7 @@ def test_chunking_preserves_normalized_state_hash_batch81() -> None:
         Path(db2).unlink(missing_ok=True)
 
 
-def test_rejected_replay_does_not_change_state_hash_batch81() -> None:
+def test_rejected_replay_does_not_change_state_hash() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db = str(root / ".pytest-b81-c.db")

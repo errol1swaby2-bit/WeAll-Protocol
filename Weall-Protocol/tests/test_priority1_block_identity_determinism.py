@@ -27,7 +27,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_same_node_same_inputs_stable_block_identity_across_restart_batch80() -> None:
+def test_same_node_same_inputs_stable_block_identity_across_restart() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -53,7 +53,7 @@ def test_same_node_same_inputs_stable_block_identity_across_restart_batch80() ->
         Path(db2).unlink(missing_ok=True)
 
 
-def test_same_node_chunking_keeps_same_logical_result_batch80() -> None:
+def test_same_node_chunking_keeps_same_logical_result() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -89,7 +89,7 @@ def test_same_node_chunking_keeps_same_logical_result_batch80() -> None:
         Path(db2).unlink(missing_ok=True)
 
 
-def test_restart_before_production_does_not_change_first_block_identity_batch80() -> None:
+def test_restart_before_production_does_not_change_first_block_identity() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -117,7 +117,7 @@ def test_restart_before_production_does_not_change_first_block_identity_batch80(
         Path(db2).unlink(missing_ok=True)
 
 
-def test_different_chain_ids_may_change_block_identity_without_state_divergence_batch80() -> None:
+def test_different_chain_ids_may_change_block_identity_without_state_divergence() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

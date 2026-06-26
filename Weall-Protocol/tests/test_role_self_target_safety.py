@@ -51,7 +51,7 @@ def _state() -> dict:
     }
 
 
-def test_role_node_operator_enroll_rejects_foreign_account_target_batch349() -> None:
+def test_role_node_operator_enroll_rejects_foreign_account_target() -> None:
     st = _state()
 
     with pytest.raises(Exception) as exc:
@@ -70,7 +70,7 @@ def test_role_node_operator_enroll_rejects_foreign_account_target_batch349() -> 
     assert st["accounts"]["@attacker"]["nonce"] == 0
 
 
-def test_role_node_operator_enroll_rejects_foreign_validator_intent_batch349() -> None:
+def test_role_node_operator_enroll_rejects_foreign_validator_intent() -> None:
     st = _state()
 
     with pytest.raises(Exception) as exc:
@@ -94,7 +94,7 @@ def test_role_node_operator_enroll_rejects_foreign_validator_intent_batch349() -
     assert st["accounts"]["@attacker"]["nonce"] == 0
 
 
-def test_role_juror_enroll_rejects_foreign_account_target_batch349() -> None:
+def test_role_juror_enroll_rejects_foreign_account_target() -> None:
     st = _state()
 
     with pytest.raises(Exception) as exc:
@@ -112,7 +112,7 @@ def test_role_juror_enroll_rejects_foreign_account_target_batch349() -> None:
     assert st["accounts"]["@attacker"]["nonce"] == 0
 
 
-def test_role_enrollment_self_targets_still_apply_batch349() -> None:
+def test_role_enrollment_self_targets_still_apply() -> None:
     st = _state()
 
     op_result = apply_tx(

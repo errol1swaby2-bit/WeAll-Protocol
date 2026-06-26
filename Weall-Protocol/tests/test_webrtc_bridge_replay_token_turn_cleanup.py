@@ -71,7 +71,7 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def test_bridge_import_rejects_stale_signed_replay_window_batch412(monkeypatch) -> None:
+def test_bridge_import_rejects_stale_signed_replay_window(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-controlled-devnet")
     monkeypatch.setenv("WEALL_P2P_SIGNAL_TTL_MS", "10000")
@@ -110,7 +110,7 @@ def test_bridge_import_rejects_stale_signed_replay_window_batch412(monkeypatch) 
     assert res.json()["error"]["message"] == "webrtc_bridge_signal_replay_window_expired"
 
 
-def test_bridge_import_requires_present_fresh_source_timestamp_batch412(monkeypatch) -> None:
+def test_bridge_import_requires_present_fresh_source_timestamp(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN", "bridge-secret")
     monkeypatch.setenv("WEALL_WEBRTC_SIGNAL_ALLOWED_SOURCE_NODE_IDS", "observer")
@@ -138,7 +138,7 @@ def test_bridge_import_requires_present_fresh_source_timestamp_batch412(monkeypa
     assert res.json()["error"]["message"] == "webrtc_bridge_signal_ts_required"
 
 
-def test_tx_queue_rows_do_not_persist_peer_bridge_token_batch412() -> None:
+def test_tx_queue_rows_do_not_persist_peer_bridge_token() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
 
     assert '"peer_bridge_token"' not in src
@@ -147,7 +147,7 @@ def test_tx_queue_rows_do_not_persist_peer_bridge_token_batch412() -> None:
     assert "store only peer_node_id" not in src or "peer_bridge_token" not in src
 
 
-def test_json_turn_ice_credentials_are_short_lived_in_prod_batch412() -> None:
+def test_json_turn_ice_credentials_are_short_lived_in_prod() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
 
     assert "def _validate_webrtc_turn_credential_expiry" in src
@@ -157,7 +157,7 @@ def test_json_turn_ice_credentials_are_short_lived_in_prod_batch412() -> None:
     assert "_validate_webrtc_turn_credential_expiry(expires_ms, has_credential=bool(credential), urls=url_list)" in src
 
 
-def test_stale_tx_queue_pruning_increments_diagnostics_batch412() -> None:
+def test_stale_tx_queue_pruning_increments_diagnostics() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
 
     assert "stale_tx_queue_pruned += 1" in src

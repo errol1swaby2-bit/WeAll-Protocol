@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_restart_preserves_timeout_reset_after_progress_batch90() -> None:
+def test_restart_preserves_timeout_reset_after_progress() -> None:
     hs = HotStuffBFT(chain_id="batch90")
     hs.timeout_base_ms = 1000
 
@@ -35,7 +35,7 @@ def test_restart_preserves_timeout_reset_after_progress_batch90() -> None:
     assert int(hs2.export_state().get("timeout_backoff_exp") or 0) == 0
 
 
-def test_restart_preserves_locked_branch_safety_after_conflicting_high_qc_batch90() -> None:
+def test_restart_preserves_locked_branch_safety_after_conflicting_high_qc() -> None:
     hs = HotStuffBFT(chain_id="batch90")
 
     blocks = {
@@ -65,7 +65,7 @@ def test_restart_preserves_locked_branch_safety_after_conflicting_high_qc_batch9
     assert hs2.can_vote_for(blocks=blocks, block_id="D2", justify_qc=None) is False
 
 
-def test_restart_preserves_finalization_and_allows_forward_progress_batch90() -> None:
+def test_restart_preserves_finalization_and_allows_forward_progress() -> None:
     hs = HotStuffBFT(chain_id="batch90")
     hs.timeout_base_ms = 1000
 
@@ -96,7 +96,7 @@ def test_restart_preserves_finalization_and_allows_forward_progress_batch90() ->
     assert hs2.pacemaker_timeout_ms() == 1000
 
 
-def test_restart_then_stale_messages_cannot_regress_combined_state_batch90() -> None:
+def test_restart_then_stale_messages_cannot_regress_combined_state() -> None:
     hs = HotStuffBFT(chain_id="batch90")
     hs.timeout_base_ms = 1000
 

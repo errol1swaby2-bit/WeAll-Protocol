@@ -33,7 +33,7 @@ def _state() -> dict:
         "onboarding_fee_int",
     ],
 )
-def test_civic_social_governance_fee_fields_reject_positive_values_batch322(field: str) -> None:
+def test_civic_social_governance_fee_fields_reject_positive_values(field: str) -> None:
     st = _state()
 
     with pytest.raises(ApplyError) as ei:
@@ -43,7 +43,7 @@ def test_civic_social_governance_fee_fields_reject_positive_values_batch322(fiel
     assert ei.value.reason == "civic_social_governance_actions_must_remain_fee_free"
 
 
-def test_transfer_fee_remains_governance_controlled_after_activation_batch322() -> None:
+def test_transfer_fee_remains_governance_controlled_after_activation() -> None:
     st = _state()
 
     result = apply_economics(st, _env({"transfer_fee_int": 7}))
@@ -52,7 +52,7 @@ def test_transfer_fee_remains_governance_controlled_after_activation_batch322() 
     assert st["economics"]["fee_policy"]["transfer_fee_int"] == 7
 
 
-def test_zero_legacy_social_fee_keys_remain_allowed_for_state_compatibility_batch322() -> None:
+def test_zero_legacy_social_fee_keys_remain_allowed_for_state_compatibility() -> None:
     st = _state()
 
     result = apply_economics(st, _env({"post_fee_int": 0, "comment_fee_int": 0}))

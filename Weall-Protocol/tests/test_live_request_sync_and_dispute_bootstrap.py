@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_live_request_waits_for_confirmed_synced_case_before_routing_batch394() -> None:
+def test_live_request_waits_for_confirmed_synced_case_before_routing() -> None:
     src = _read(WEB / "src" / "pages" / "AccountVerificationPage.tsx")
 
     live_fn = src.split("async function reconcileLiveCaseVisible", 1)[1].split("async function waitForLiveCaseIdVisible", 1)[0]
@@ -23,7 +23,7 @@ def test_live_request_waits_for_confirmed_synced_case_before_routing_batch394() 
     assert 'String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible' in src
 
 
-def test_dispute_frontend_has_bootstrap_single_reviewer_fallback_batch394() -> None:
+def test_dispute_frontend_has_bootstrap_single_reviewer_fallback() -> None:
     src = _read(WEB / "src" / "lib" / "disputeSurface.ts")
 
     assert "bootstrap_single_reviewer_fallback" in src
@@ -31,7 +31,7 @@ def test_dispute_frontend_has_bootstrap_single_reviewer_fallback_batch394() -> N
     assert "backend apply layer remains authoritative" in src
 
 
-def test_dispute_accept_materializes_committed_bootstrap_eligible_record_batch394() -> None:
+def test_dispute_accept_materializes_committed_bootstrap_eligible_record() -> None:
     src = _read(ROOT / "src" / "weall" / "runtime" / "apply" / "dispute.py")
 
     assert "eligible_now = _dispute_eligible_juror_ids(state, d, env.signer)" in src

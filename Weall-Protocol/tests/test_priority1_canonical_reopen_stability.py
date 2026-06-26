@@ -27,7 +27,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_committed_tip_is_stable_across_multiple_executor_reopens_batch68(tmp_path: Path) -> None:
+def test_committed_tip_is_stable_across_multiple_executor_reopens(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "tip.db")
@@ -58,7 +58,7 @@ def test_committed_tip_is_stable_across_multiple_executor_reopens_batch68(tmp_pa
         assert len(ex.read_mempool()) == 0
 
 
-def test_partial_commit_then_restart_then_resume_preserves_canonical_result_batch68(
+def test_partial_commit_then_restart_then_resume_preserves_canonical_result(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -97,7 +97,7 @@ def test_partial_commit_then_restart_then_resume_preserves_canonical_result_batc
     assert int(st.get("height", 0)) >= partial_height
 
 
-def test_empty_production_after_commit_does_not_reopen_mempool_batch68(tmp_path: Path) -> None:
+def test_empty_production_after_commit_does_not_reopen_mempool(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "empty_after_commit.db")
@@ -131,7 +131,7 @@ def test_empty_production_after_commit_does_not_reopen_mempool_batch68(tmp_path:
     assert _latest_block_id(ex) == expected_tip
 
 
-def test_same_logical_work_with_many_restarts_matches_single_run_batch68(tmp_path: Path) -> None:
+def test_same_logical_work_with_many_restarts_matches_single_run(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     signers = ["@f", "@g", "@h", "@i"]

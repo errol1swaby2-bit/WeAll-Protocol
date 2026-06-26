@@ -65,7 +65,7 @@ def _write_db(db_path: Path) -> None:
         con.close()
 
 
-def test_production_bootstrap_report_surfaces_authority_contract_batch132(tmp_path: Path) -> None:
+def test_production_bootstrap_report_surfaces_authority_contract(tmp_path: Path) -> None:
     cfg = _cfg(tmp_path)
     _write_db(Path(cfg.db_path))
     report = production_bootstrap_report(cfg)
@@ -75,7 +75,7 @@ def test_production_bootstrap_report_surfaces_authority_contract_batch132(tmp_pa
     assert report["authority_contract"]["bft_effective"] is True
 
 
-def test_build_validator_bootstrap_bundle_json_surfaces_authority_contract_batch132(tmp_path: Path) -> None:
+def test_build_validator_bootstrap_bundle_json_surfaces_authority_contract(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     cfg = _cfg(tmp_path)
     _write_db(Path(cfg.db_path))

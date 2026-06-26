@@ -50,7 +50,7 @@ def _make_loop(executor: _DummyExecutor) -> NetMeshLoop:
     return loop
 
 
-def test_bft_fetch_source_penalty_skips_recent_mismatch_source_batch116(monkeypatch) -> None:
+def test_bft_fetch_source_penalty_skips_recent_mismatch_source(monkeypatch) -> None:
     ex = _DummyExecutor(
         [{"block_id": "wanted-parent", "block_hash": "", "reason": "missing_parent"}]
     )
@@ -97,7 +97,7 @@ def test_bft_fetch_source_penalty_skips_recent_mismatch_source_batch116(monkeypa
     assert calls == ["http://peer2/v1/state/block/wanted-parent"]
 
 
-def test_bft_fetch_source_rotation_advances_per_request_batch116(monkeypatch) -> None:
+def test_bft_fetch_source_rotation_advances_per_request(monkeypatch) -> None:
     ex = _DummyExecutor(
         [
             {"block_id": "missing-a", "block_hash": "", "reason": "missing_parent"},

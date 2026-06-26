@@ -36,7 +36,7 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool =
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
 
 
-def test_governance_autoprogress_enqueues_bound_system_txs_instead_of_direct_apply_batch313() -> None:
+def test_governance_autoprogress_enqueues_bound_system_txs_instead_of_direct_apply() -> None:
     st = _state()
     apply_tx(
         st,
@@ -78,7 +78,7 @@ def test_governance_autoprogress_enqueues_bound_system_txs_instead_of_direct_app
     assert all(str(item.get("phase")) == "post" for item in st["system_queue"])
 
 
-def test_governance_autoprogress_emitted_system_txs_are_queue_bound_batch313() -> None:
+def test_governance_autoprogress_emitted_system_txs_are_queue_bound() -> None:
     st = _state()
     canon = _tx_index()
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "@alice", 1, {"proposal_id": "p-auto", "title": "approve", "rules": {"start_stage": "voting"}}))

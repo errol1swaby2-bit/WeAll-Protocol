@@ -53,7 +53,7 @@ def _client(report=None):
     return TestClient(app)
 
 
-def test_helper_readiness_route_serial_only_batch27(monkeypatch):
+def test_helper_readiness_route_serial_only(monkeypatch):
     monkeypatch.delenv("WEALL_HELPER_MODE_ENABLED", raising=False)
     client = _client(None)
     r = client.get("/status/helper/readiness")
@@ -65,7 +65,7 @@ def test_helper_readiness_route_serial_only_batch27(monkeypatch):
     assert body["startup"]["startup_mode"] == "serial_only"
 
 
-def test_helper_readiness_route_ready_with_helpers_batch27(monkeypatch):
+def test_helper_readiness_route_ready_with_helpers(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(_green_report())
     r = client.get("/status/helper/readiness")
@@ -77,7 +77,7 @@ def test_helper_readiness_route_ready_with_helpers_batch27(monkeypatch):
     assert body["release_gate"]["readiness_score"] == 100
 
 
-def test_helper_readiness_route_blocked_batch27(monkeypatch):
+def test_helper_readiness_route_blocked(monkeypatch):
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     client = _client(_red_report())
     r = client.get("/status/helper/readiness")

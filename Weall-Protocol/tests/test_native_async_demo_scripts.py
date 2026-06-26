@@ -9,7 +9,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_native_async_demo_script_exercises_full_tier1_flow_batch286() -> None:
+def test_native_async_demo_script_exercises_full_tier1_flow() -> None:
     script = _read(ROOT / "scripts/demo_native_async_tier1_e2e.sh")
 
     assert "POH_ASYNC_REQUEST_OPEN" in script
@@ -25,7 +25,7 @@ def test_native_async_demo_script_exercises_full_tier1_flow_batch286() -> None:
     assert "seed" not in script.lower()
 
 
-def test_full_onboarding_e2e_invokes_native_async_verification_batch286() -> None:
+def test_full_onboarding_e2e_invokes_native_async_verification() -> None:
     script = _read(ROOT / "scripts/devnet_full_onboarding_e2e.sh")
 
     assert "demo_native_async_tier1_e2e.sh" in script

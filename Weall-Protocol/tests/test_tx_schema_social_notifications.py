@@ -23,7 +23,7 @@ def _env(tx_type: str, payload: dict) -> dict:
     return env
 
 
-def test_batch1_schema_models_registered() -> None:
+def test_schema_models_registered() -> None:
     expected = {
         "PROFILE_UPDATE",
         "FOLLOW_SET",
@@ -48,7 +48,7 @@ def test_batch1_schema_models_registered() -> None:
         ("NOTIFICATION_UNSUBSCRIBE", {"topic": "mentions"}),
     ],
 )
-def test_batch1_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
+def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
     env, parsed = validate_tx_envelope(_env(tx_type, payload))
     assert env.tx_type == tx_type
     assert parsed is not None
@@ -63,7 +63,7 @@ def test_batch1_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None
         ("NOTIFICATION_UNSUBSCRIBE", {"topics": []}, "topics"),
     ],
 )
-def test_batch1_missing_required_fields_are_rejected(
+def test_missing_required_fields_are_rejected(
     tx_type: str,
     payload: dict,
     expected_fragment: str,
@@ -82,7 +82,7 @@ def test_batch1_missing_required_fields_are_rejected(
         ("NOTIFICATION_SUBSCRIBE", {"topic": "mentions", "extra": "x"}),
     ],
 )
-def test_batch1_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
+def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert "Extra inputs are not permitted" in str(excinfo.value)

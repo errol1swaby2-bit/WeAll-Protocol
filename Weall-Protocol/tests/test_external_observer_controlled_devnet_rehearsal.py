@@ -15,7 +15,7 @@ REHEARSAL = ROOT / "scripts" / "rehearse_external_observer_two_machine.sh"
 CONTROLLED_MANIFEST = ROOT / "configs" / "chains" / "weall-controlled-devnet.json"
 
 
-def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal_batch351() -> None:
+def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal() -> None:
     manifest = json.loads(CONTROLLED_MANIFEST.read_text(encoding="utf-8"))
     assert manifest["chain_id"] == "weall-controlled-devnet"
     assert manifest["mode"] == "controlled_devnet"
@@ -28,7 +28,7 @@ def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal_batch
     assert manifest["protocol_profile_hash"]
 
 
-def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehearsal_flag_batch351(
+def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehearsal_flag(
     tmp_path: Path,
 ) -> None:
     bundle = tmp_path / "controlled-observer-bundle.json"
@@ -105,7 +105,7 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
     assert "export WEALL_AUTHORITY_PROFILE=controlled_devnet_rehearsal" in shell.stdout
 
 
-def test_production_bundle_still_rejects_plain_http_authority_batch351(tmp_path: Path) -> None:
+def test_production_bundle_still_rejects_plain_http_authority(tmp_path: Path) -> None:
     manifest = tmp_path / "prod-manifest.json"
     manifest.write_text(
         json.dumps(
@@ -165,7 +165,7 @@ def test_production_bundle_still_rejects_plain_http_authority_batch351(tmp_path:
     assert "production_authority_url_must_be_https" in report["issues"]
 
 
-def test_observer_scripts_resolve_manifest_from_bundle_hint_batch351() -> None:
+def test_observer_scripts_resolve_manifest_from_bundle_hint() -> None:
     for script in (SMOKE, LIVE_GATE, REHEARSAL):
         text = script.read_text(encoding="utf-8")
         assert "manifest_path_hint" in text

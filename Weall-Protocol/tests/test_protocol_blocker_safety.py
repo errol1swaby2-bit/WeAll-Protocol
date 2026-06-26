@@ -78,7 +78,7 @@ def _bootstrap_helper_account(ex: WeAllExecutor, *, account_id: str = "@alice") 
     ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
-def test_batch598_apply_block_rejects_off_slot_constitutional_timestamp(tmp_path: Path, monkeypatch) -> None:
+def test_apply_block_rejects_off_slot_constitutional_timestamp(tmp_path: Path, monkeypatch) -> None:
     chain_id = "batch598-clock"
     manifest_path = tmp_path / "clock-manifest.json"
     _write_clock_manifest(manifest_path, chain_id=chain_id)
@@ -110,7 +110,7 @@ def test_batch598_apply_block_rejects_off_slot_constitutional_timestamp(tmp_path
     assert rejected.error == "bad_block:ts_not_constitutional_slot"
 
 
-def test_batch598_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_path: Path, monkeypatch) -> None:
+def test_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_path: Path, monkeypatch) -> None:
     chain_id = "batch598-bft-clock"
     manifest_path = tmp_path / "clock-manifest.json"
     _write_clock_manifest(manifest_path, chain_id=chain_id)
@@ -136,7 +136,7 @@ def test_batch598_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_pa
     assert reject.code == "bft_block_time_not_constitutional_slot"
 
 
-def test_batch598_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, monkeypatch) -> None:
+def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -171,7 +171,7 @@ def test_batch598_helper_reputation_is_state_root_committed_and_replayed(tmp_pat
     assert follower.state.get("helper_reputation") == helper_execution["helper_reputation"]["state"]
 
 
-def test_batch598_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monkeypatch) -> None:
+def test_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -208,7 +208,7 @@ def test_batch598_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Pa
     assert res.error.startswith("bad_block:helper_execution_metadata_invalid:")
 
 
-def test_batch598_governance_execution_and_receipts_are_restart_idempotent() -> None:
+def test_governance_execution_and_receipts_are_restart_idempotent() -> None:
     state = {
         "height": 20,
         "gov_proposals_by_id": {
@@ -251,7 +251,7 @@ def test_batch598_governance_execution_and_receipts_are_restart_idempotent() -> 
     assert len(state.get("gov_execution_receipts", [])) == 1
 
 
-def test_batch598_dispute_final_receipt_is_idempotent_before_enforcement_replay() -> None:
+def test_dispute_final_receipt_is_idempotent_before_enforcement_replay() -> None:
     state = {
         "height": 10,
         "accounts": {"SYSTEM": {"nonce": 0}, "@target": {"nonce": 0, "restricted": False}},
@@ -288,7 +288,7 @@ def test_batch598_dispute_final_receipt_is_idempotent_before_enforcement_replay(
     assert state["accounts"]["@target"]["restricted"] is True
 
 
-def test_batch598_mempool_fetch_for_block_is_restart_stable_with_pinned_time(tmp_path: Path, monkeypatch) -> None:
+def test_mempool_fetch_for_block_is_restart_stable_with_pinned_time(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     db = SqliteDB(path=str(tmp_path / "mempool.db"))
     mp = PersistentMempool(db=db, chain_id="batch598-mempool")

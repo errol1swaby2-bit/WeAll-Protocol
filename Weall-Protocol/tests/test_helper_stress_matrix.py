@@ -82,7 +82,7 @@ def _journal_factory(tmp_path: Path):
     return factory
 
 
-def test_helper_stress_matrix_duplicate_delivery_equivalence_batch13(tmp_path) -> None:
+def test_helper_stress_matrix_duplicate_delivery_equivalence(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -116,7 +116,7 @@ def test_helper_stress_matrix_duplicate_delivery_equivalence_batch13(tmp_path) -
         assert result.finalized_modes == ((lane_plan.lane_id, "helper"),)
 
 
-def test_helper_stress_matrix_timeout_noop_idempotent_batch13(tmp_path) -> None:
+def test_helper_stress_matrix_timeout_noop_idempotent(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -161,7 +161,7 @@ def test_helper_stress_matrix_timeout_noop_idempotent_batch13(tmp_path) -> None:
         assert result.finalized_modes == ((lane_plan.lane_id, "fallback"),)
 
 
-def test_helper_stress_matrix_restart_equivalent_journal_reuse_batch13(tmp_path) -> None:
+def test_helper_stress_matrix_restart_equivalent_journal_reuse(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -209,7 +209,7 @@ def test_helper_stress_matrix_restart_equivalent_journal_reuse_batch13(tmp_path)
     assert result2.event_codes == ("duplicate_replay",)
 
 
-def test_helper_stress_matrix_conflicting_replay_preserves_resolution_batch13(tmp_path) -> None:
+def test_helper_stress_matrix_conflicting_replay_preserves_resolution(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert1, pub1 = _mk_signed_cert(
         helper_id=lane_plan.helper_id,

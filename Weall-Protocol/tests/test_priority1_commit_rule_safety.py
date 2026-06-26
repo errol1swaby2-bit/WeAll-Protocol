@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_observed_qc_finalizes_grandparent_when_chain_links_exist_batch73() -> None:
+def test_observed_qc_finalizes_grandparent_when_chain_links_exist() -> None:
     hs = HotStuffBFT(chain_id="batch73")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -31,7 +31,7 @@ def test_observed_qc_finalizes_grandparent_when_chain_links_exist_batch73() -> N
     assert str(hs.finalized_block_id or "") == "B"
 
 
-def test_conflicting_branch_observation_finalizes_its_own_grandparent_batch73() -> None:
+def test_conflicting_branch_observation_finalizes_its_own_grandparent() -> None:
     hs = HotStuffBFT(chain_id="batch73")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -50,7 +50,7 @@ def test_conflicting_branch_observation_finalizes_its_own_grandparent_batch73() 
     assert str(hs.finalized_block_id or "") == "B2"
 
 
-def test_three_chain_commit_rule_only_finalizes_grandparent_batch73() -> None:
+def test_three_chain_commit_rule_only_finalizes_grandparent() -> None:
     hs = HotStuffBFT(chain_id="batch73")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -67,7 +67,7 @@ def test_three_chain_commit_rule_only_finalizes_grandparent_batch73() -> None:
     assert str(hs.finalized_block_id or "") == "B"
 
 
-def test_commit_rule_roundtrip_stability_batch73() -> None:
+def test_commit_rule_roundtrip_stability() -> None:
     hs = HotStuffBFT(chain_id="batch73")
     blocks = {
         "A": {"prev_block_id": ""},

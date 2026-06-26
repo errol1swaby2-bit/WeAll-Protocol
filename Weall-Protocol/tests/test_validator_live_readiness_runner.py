@@ -52,7 +52,7 @@ def _receipt(**overrides) -> dict:
     return payload
 
 
-def test_validator_live_readiness_receipt_is_deterministic_and_bound_batch305() -> None:
+def test_validator_live_readiness_receipt_is_deterministic_and_bound() -> None:
     receipt = _receipt()
     checked = validate_validator_readiness_payload(receipt, account_id="@op", expected_node_pubkey="node-pub", current_height=5)
     assert checked["readiness_receipt_hash"] == receipt["readiness_receipt_hash"]
@@ -66,7 +66,7 @@ def test_validator_live_readiness_receipt_is_deterministic_and_bound_batch305() 
     assert "readiness_receipt_hash_mismatch" in str(exc.value)
 
 
-def test_validator_live_readiness_rejects_failed_required_checks_batch305() -> None:
+def test_validator_live_readiness_rejects_failed_required_checks() -> None:
     receipt = _receipt()
     checks = dict(receipt["readiness_checks"])
     checks["bft_signer_ready"] = False
@@ -90,7 +90,7 @@ def test_validator_live_readiness_rejects_failed_required_checks_batch305() -> N
     assert "readiness_check_failed:bft_signer_ready" in str(exc.value)
 
 
-def test_validator_readiness_verify_requires_live_receipt_batch305() -> None:
+def test_validator_readiness_verify_requires_live_receipt() -> None:
     st = _state()
     apply_tx(st, _env("NODE_OPERATOR_VALIDATOR_OPT_IN", "@op", 1, {"account_id": "@op", "node_pubkey": "node-pub"}))
 
@@ -108,7 +108,7 @@ def test_validator_readiness_verify_requires_live_receipt_batch305() -> None:
     assert readiness.details["readiness_receipt_hash"] == receipt["readiness_receipt_hash"]
 
 
-def test_validator_readiness_cli_generates_and_verifies_receipt_batch305(tmp_path: Path, capsys) -> None:
+def test_validator_readiness_cli_generates_and_verifies_receipt(tmp_path: Path, capsys) -> None:
     rc = validator_readiness_main([
         "generate",
         "--account-id",

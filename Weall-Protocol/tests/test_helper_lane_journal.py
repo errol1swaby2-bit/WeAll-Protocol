@@ -17,7 +17,7 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def test_helper_journal_recovers_accepted_certificate_batch3(tmp_path) -> None:
+def test_helper_journal_recovers_accepted_certificate(tmp_path) -> None:
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(

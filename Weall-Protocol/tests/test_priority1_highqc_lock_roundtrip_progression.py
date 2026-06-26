@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_high_qc_advances_monotonically_across_roundtrips_batch75() -> None:
+def test_high_qc_advances_monotonically_across_roundtrips() -> None:
     hs = HotStuffBFT(chain_id="batch75")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -40,7 +40,7 @@ def test_high_qc_advances_monotonically_across_roundtrips_batch75() -> None:
     assert int(state2.get("view") or 0) >= int(state1.get("view") or 0)
 
 
-def test_locked_qc_never_regresses_after_roundtrip_batch75() -> None:
+def test_locked_qc_never_regresses_after_roundtrip() -> None:
     hs = HotStuffBFT(chain_id="batch75")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -60,7 +60,7 @@ def test_locked_qc_never_regresses_after_roundtrip_batch75() -> None:
     assert int(hs2.locked_qc.view) == 4
 
 
-def test_descendant_qc_after_roundtrip_advances_lock_batch75() -> None:
+def test_descendant_qc_after_roundtrip_advances_lock() -> None:
     hs = HotStuffBFT(chain_id="batch75")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -81,7 +81,7 @@ def test_descendant_qc_after_roundtrip_advances_lock_batch75() -> None:
     assert int(hs2.locked_qc.view) == 5
 
 
-def test_high_qc_and_locked_qc_split_state_survives_roundtrip_batch75() -> None:
+def test_high_qc_and_locked_qc_split_state_survives_roundtrip() -> None:
     hs = HotStuffBFT(chain_id="batch75")
     hs.locked_qc = _qc("batch75", 4, "B1", "A")
     hs.high_qc = _qc("batch75", 6, "C2", "B2")

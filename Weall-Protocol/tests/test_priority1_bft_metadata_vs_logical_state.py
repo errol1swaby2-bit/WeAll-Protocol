@@ -38,7 +38,7 @@ def _logical_hash(hs: HotStuffBFT) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def test_roundtrip_metadata_drift_does_not_change_logical_bft_hash_batch83() -> None:
+def test_roundtrip_metadata_drift_does_not_change_logical_bft_hash() -> None:
     hs = HotStuffBFT(chain_id="batch83")
     hs.high_qc = _qc("batch83", 7, "B7", "B6")
     hs.locked_qc = _qc("batch83", 5, "B5", "B4")
@@ -56,7 +56,7 @@ def test_roundtrip_metadata_drift_does_not_change_logical_bft_hash_batch83() -> 
     assert _logical_bft_state(hs) == _logical_bft_state(hs2)
 
 
-def test_higher_qc_updates_logical_hash_monotonically_batch83() -> None:
+def test_higher_qc_updates_logical_hash_monotonically() -> None:
     hs = HotStuffBFT(chain_id="batch83")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -76,7 +76,7 @@ def test_higher_qc_updates_logical_hash_monotonically_batch83() -> None:
     assert int(hs.high_qc.view) == 4
 
 
-def test_stale_qc_does_not_change_logical_bft_hash_batch83() -> None:
+def test_stale_qc_does_not_change_logical_bft_hash() -> None:
     hs = HotStuffBFT(chain_id="batch83")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -93,7 +93,7 @@ def test_stale_qc_does_not_change_logical_bft_hash_batch83() -> None:
     assert h1 == h2
 
 
-def test_same_logical_bft_state_same_hash_across_instances_batch83() -> None:
+def test_same_logical_bft_state_same_hash_across_instances() -> None:
     hs1 = HotStuffBFT(chain_id="batch83")
     hs2 = HotStuffBFT(chain_id="batch83")
 

@@ -86,7 +86,7 @@ def _session_state() -> dict[str, Any]:
     }
 
 
-def test_batch10a_sensitive_routes_have_explicit_non_generic_metadata() -> None:
+def test_sensitive_routes_have_explicit_non_generic_metadata() -> None:
     payload = json.loads((ROOT / "generated/api_contract_map_v1_5.json").read_text(encoding="utf-8"))
     routes = payload["routes"]
     sensitive = [r for r in routes if str(r["path"]).startswith(SENSITIVE_ROUTE_PREFIXES)]
@@ -99,7 +99,7 @@ def test_batch10a_sensitive_routes_have_explicit_non_generic_metadata() -> None:
             assert "no_store" in route["cache_policy"], key
 
 
-def test_batch10a_failure_registry_and_artifact_gate_artifacts_are_present() -> None:
+def test_failure_registry_and_artifact_gate_artifacts_are_present() -> None:
     for rel in [
         "generated/api_contract_map_v1_5.json",
         "generated/state_root_vectors_v1_5.json",
@@ -125,13 +125,13 @@ def test_batch10a_failure_registry_and_artifact_gate_artifacts_are_present() -> 
         assert rel in gate_text
 
 
-def test_batch10a_require_git_tracked_fails_closed_outside_git_checkout() -> None:
+def test_require_git_tracked_fails_closed_outside_git_checkout() -> None:
     gate_text = (ROOT / "scripts/check_v15_public_readiness_artifacts.py").read_text(encoding="utf-8")
     assert "cannot verify git tracking because this checkout has no .git directory" in gate_text
     assert "--require-git-tracked" in gate_text
 
 
-def test_batch11_poh_sensitive_case_read_requires_session_and_redacts_unrelated_viewer(monkeypatch) -> None:
+def test_poh_sensitive_case_read_requires_session_and_redacts_unrelated_viewer(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     client = _client(_session_state())
 
@@ -157,7 +157,7 @@ def test_batch11_poh_sensitive_case_read_requires_session_and_redacts_unrelated_
     assert juror.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
 
 
-def test_batch11_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:
+def test_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     client = _client(_session_state())
     headers = {"x-weall-account": "@mallory", "x-weall-session-key": "mallory-session"}
@@ -168,7 +168,7 @@ def test_batch11_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:
         assert res.status_code in {403, 405}, path + " " + res.text
 
 
-def test_batch12_protocol_upgrade_activation_record_is_not_software_apply() -> None:
+def test_protocol_upgrade_activation_record_is_not_software_apply() -> None:
     state: dict[str, Any] = {"height": 12}
     apply_protocol(
         state,
@@ -202,7 +202,7 @@ def test_batch12_protocol_upgrade_activation_record_is_not_software_apply() -> N
     assert set(boundary["requested_execution_fields_ignored"]) == {"execute_migration", "rollback", "restart_node"}
 
 
-def test_batch13_14_15_generated_artifacts_preserve_truth_boundaries() -> None:
+def test_15_generated_artifacts_preserve_truth_boundaries() -> None:
     state_vectors = json.loads((ROOT / "generated/state_root_vectors_v1_5.json").read_text(encoding="utf-8"))
     assert state_vectors["schema"] == "weall.v1_5.state_root_vectors"
     names = {v["name"] for v in state_vectors["vectors"]}

@@ -67,7 +67,7 @@ def _context():
     )
 
 
-def test_helper_store_rejects_conflicting_certificate_after_accept_batch6() -> None:
+def test_helper_store_rejects_conflicting_certificate_after_accept() -> None:
     lane_plans, lane_plan = _lane_setup()
     cert1, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -99,7 +99,7 @@ def test_helper_store_rejects_conflicting_certificate_after_accept_batch6() -> N
     assert accepted[lane_plan.lane_id].receipts_root == "receipts-a"
 
 
-def test_helper_store_rejects_conflicting_certificate_after_restart_batch6(tmp_path) -> None:
+def test_helper_store_rejects_conflicting_certificate_after_restart(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert1, pub1 = _mk_signed_cert(
@@ -139,7 +139,7 @@ def test_helper_store_rejects_conflicting_certificate_after_restart_batch6(tmp_p
     assert recovered[lane_plan.lane_id].receipts_root == "receipts-a"
 
 
-def test_helper_store_timeout_recovery_survives_restart_batch6(tmp_path) -> None:
+def test_helper_store_timeout_recovery_survives_restart(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
 

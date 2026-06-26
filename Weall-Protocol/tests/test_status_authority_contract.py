@@ -14,7 +14,7 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_status_surfaces_authority_contract_in_strict_runtime_mode_batch127(tmp_path: Path, monkeypatch) -> None:
+def test_status_surfaces_authority_contract_in_strict_runtime_mode(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
@@ -48,7 +48,7 @@ def test_status_surfaces_authority_contract_in_strict_runtime_mode_batch127(tmp_
     assert nested["validator_effective"] is False
 
 
-def test_status_operator_surfaces_authority_contract_in_bootstrap_dev_batch127(tmp_path: Path, monkeypatch) -> None:
+def test_status_operator_surfaces_authority_contract_in_bootstrap_dev(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")

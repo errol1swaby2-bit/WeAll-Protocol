@@ -31,7 +31,7 @@ def _prod_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("WEALL_PREVENT_REBOOTSTRAP_ON_EXISTING_DB", "1")
 
 
-def test_production_genesis_file_is_complete_for_validator_preflight_batch373() -> None:
+def test_production_genesis_file_is_complete_for_validator_preflight() -> None:
     genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
     founder = genesis["accounts"][FOUNDER]
 
@@ -53,7 +53,7 @@ def test_production_genesis_file_is_complete_for_validator_preflight_batch373() 
     assert evaluation["validator"]["active"] is True, evaluation
 
 
-def test_prod_first_boot_loads_pinned_genesis_and_validator_is_effective_batch373(
+def test_prod_first_boot_loads_pinned_genesis_and_validator_is_effective(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _prod_env(monkeypatch, tmp_path)
@@ -73,7 +73,7 @@ def test_prod_first_boot_loads_pinned_genesis_and_validator_is_effective_batch37
     assert status["promotion_failure_reasons"] == []
 
 
-def test_prod_existing_db_without_ledger_refuses_rebootstrap_batch373(
+def test_prod_existing_db_without_ledger_refuses_rebootstrap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _prod_env(monkeypatch, tmp_path)

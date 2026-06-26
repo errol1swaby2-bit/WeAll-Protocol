@@ -21,7 +21,7 @@ def _env(tx_type: str, payload: dict) -> dict:
     return env
 
 
-def test_batch5_models_registered() -> None:
+def test_models_registered() -> None:
     expected = {
         "ACCOUNT_BAN",
         "ACCOUNT_REINSTATE",
@@ -146,7 +146,7 @@ def test_batch5_models_registered() -> None:
         ("SLASH_EXECUTE", {"slash_id": "s1", "outcome": "burn", "amount": 10}),
     ],
 )
-def test_batch5_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
+def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
     env, parsed = validate_tx_envelope(_env(tx_type, payload))
     assert env.tx_type == tx_type
     assert parsed is not None
@@ -173,7 +173,7 @@ def test_batch5_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None
         ("SLASH_VOTE", {"slash_id": "s1"}, "vote"),
     ],
 )
-def test_batch5_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
+def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
     with pytest.raises((ValidationError, ValueError)) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert expected_fragment in str(excinfo.value)
@@ -192,7 +192,7 @@ def test_batch5_missing_required_fields_are_rejected(tx_type: str, payload: dict
         ("SLASH_EXECUTE", {"slash_id": "s1", "extra": True}),
     ],
 )
-def test_batch5_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
+def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert "Extra inputs are not permitted" in str(excinfo.value)

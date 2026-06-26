@@ -96,7 +96,7 @@ def _access_request(request_type: str, *, recipient: str = "node-b", relay_ids: 
     )
 
 
-def test_relay_envelope_verifies_and_tampering_fails_batch315() -> None:
+def test_relay_envelope_verifies_and_tampering_fails() -> None:
     env = _ping_envelope(now_ms=1000)
     valid = validate_relay_envelope(env, cfg=_relay_cfg(), now_ms=2000)
     assert valid["relay_id"] == env["relay_id"]
@@ -126,7 +126,7 @@ def test_relay_envelope_verifies_and_tampering_fails_batch315() -> None:
         assert exc.code == "relay_expired"
 
 
-def test_relay_spool_fetches_and_acks_without_mutation_batch315(tmp_path: Path) -> None:
+def test_relay_spool_fetches_and_acks_without_mutation(tmp_path: Path) -> None:
     spool = RelaySpool(tmp_path / "relay.sqlite")
     env = _ping_envelope(recipient="node-b", now_ms=1000, bind_recipient=True)
     accepted = spool.submit(env, cfg=_relay_cfg(), now_ms=2000)
@@ -145,7 +145,7 @@ def test_relay_spool_fetches_and_acks_without_mutation_batch315(tmp_path: Path) 
     assert spool.fetch_authorized(access_request=_access_request("fetch", now_ms=4000), cfg=_relay_cfg(), now_ms=4000) == ()
 
 
-def test_http_relay_routes_store_fetch_and_ack_batch315(tmp_path: Path, monkeypatch) -> None:
+def test_http_relay_routes_store_fetch_and_ack(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_NET_RELAY_ENABLED", "1")
     monkeypatch.setenv("WEALL_NET_RELAY_DB", str(tmp_path / "relay.sqlite"))
@@ -177,7 +177,7 @@ def test_http_relay_routes_store_fetch_and_ack_batch315(tmp_path: Path, monkeypa
     assert status.json()["spool"]["messages_total"] == 0
 
 
-def test_http_relay_rejects_wrong_recipient_fetch_and_ack_batch315(tmp_path: Path, monkeypatch) -> None:
+def test_http_relay_rejects_wrong_recipient_fetch_and_ack(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NET_RELAY_ENABLED", "1")
     monkeypatch.setenv("WEALL_NET_RELAY_DB", str(tmp_path / "relay.sqlite"))
@@ -210,7 +210,7 @@ def test_http_relay_rejects_wrong_recipient_fetch_and_ack_batch315(tmp_path: Pat
     assert replayed.json()["error"]["code"] == "relay_access_replay"
 
 
-def test_http_relay_rejects_mutated_payload_hash_batch315(tmp_path: Path, monkeypatch) -> None:
+def test_http_relay_rejects_mutated_payload_hash(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_NET_RELAY_ENABLED", "1")
     monkeypatch.setenv("WEALL_NET_RELAY_DB", str(tmp_path / "relay.sqlite"))
@@ -226,7 +226,7 @@ def test_http_relay_rejects_mutated_payload_hash_batch315(tmp_path: Path, monkey
     assert resp.json()["error"]["code"] in {"relay_payload_hash_mismatch", "relay_bad_signature"}
 
 
-def test_net_loop_relay_poll_consumes_and_acks_batch315(monkeypatch) -> None:
+def test_net_loop_relay_poll_consumes_and_acks(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_NET_RELAY_CLIENT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NET_RELAY_URLS", "http://relay.example")
@@ -267,7 +267,7 @@ def test_net_loop_relay_poll_consumes_and_acks_batch315(monkeypatch) -> None:
     assert acks and acks[0]["obj"]["access_request"]["relay_ids"] == [env["relay_id"]]
 
 
-def test_relay_accepts_tx_envelope_but_does_not_grant_authority_batch315() -> None:
+def test_relay_accepts_tx_envelope_but_does_not_grant_authority() -> None:
     pub, priv = _priv_hex("node-a")
     tx_msg = TxEnvelopeMsg(
         header=_header(MsgType.TX_ENVELOPE),

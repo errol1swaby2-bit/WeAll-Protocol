@@ -71,7 +71,7 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any]) -> TxEn
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="")
 
 
-def test_dispute_vote_submit_cannot_implicitly_accept_assigned_juror_batch596() -> None:
+def test_dispute_vote_submit_cannot_implicitly_accept_assigned_juror() -> None:
     state = _state()
 
     try:
@@ -89,7 +89,7 @@ def test_dispute_vote_submit_cannot_implicitly_accept_assigned_juror_batch596() 
     assert state["disputes_by_id"]["disp-1"]["votes"] == {}
 
 
-def test_dispute_vote_submit_after_accept_preserves_vote_and_reputation_batch596() -> None:
+def test_dispute_vote_submit_after_accept_preserves_vote_and_reputation() -> None:
     state = _state()
     accept = apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", 2, {"dispute_id": "disp-1"})) or {}
     assert accept["applied"] == "DISPUTE_JUROR_ACCEPT"
@@ -104,7 +104,7 @@ def test_dispute_vote_submit_after_accept_preserves_vote_and_reputation_batch596
     assert "DISPUTE_JUROR_VOTED_ON_TIME" in codes
 
 
-def test_dispute_vote_template_reports_acceptance_and_attendance_required_batch596(monkeypatch) -> None:
+def test_dispute_vote_template_reports_acceptance_and_attendance_required(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_API_MODE", "dev")
     monkeypatch.setenv("WEALL_ALLOW_INSECURE_LOCALHOST", "1")
     app = create_app(boot_runtime=False)
@@ -126,7 +126,7 @@ def test_dispute_vote_template_reports_acceptance_and_attendance_required_batch5
     assert body["tx_template"]["tx_type"] == "DISPUTE_VOTE_SUBMIT"
 
 
-def test_dispute_vote_template_allows_accepted_present_juror_batch596(monkeypatch) -> None:
+def test_dispute_vote_template_allows_accepted_present_juror(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_API_MODE", "dev")
     monkeypatch.setenv("WEALL_ALLOW_INSECURE_LOCALHOST", "1")
     app = create_app(boot_runtime=False)

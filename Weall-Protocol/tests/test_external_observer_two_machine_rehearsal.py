@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_two_machine_rehearsal_script_forces_remote_observer_safety_batch321() -> None:
+def test_two_machine_rehearsal_script_forces_remote_observer_safety() -> None:
     script = (ROOT / "scripts" / "rehearse_external_observer_two_machine.sh").read_text(encoding="utf-8")
     assert "WEALL_GENESIS_API_BASE" in script
     assert "two-machine rehearsal requires a remote genesis API base" in script

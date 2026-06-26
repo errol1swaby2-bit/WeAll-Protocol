@@ -15,7 +15,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_ipfs_pin_request_payload_rejects_file_hash_commitment_batch385() -> None:
+def test_ipfs_pin_request_payload_rejects_file_hash_commitment() -> None:
     """IPFS_PIN_REQUEST must stay schema-clean; media hash commits belong elsewhere."""
 
     env = {
@@ -38,7 +38,7 @@ def test_ipfs_pin_request_payload_rejects_file_hash_commitment_batch385() -> Non
     assert getattr(payload, "size_bytes") == 1234
 
 
-def test_media_upload_suggested_pin_envelope_does_not_put_sha256_in_pin_payload_batch385() -> None:
+def test_media_upload_suggested_pin_envelope_does_not_put_sha256_in_pin_payload() -> None:
     media = _read(NESTED / "src" / "weall" / "api" / "routes_public_parts" / "media.py")
     suggested = re.search(r"suggested_env\s*=\s*\{(?P<body>.*?)\n\s*\}\n\s*pin_request\[\"envelope\"\]", media, re.S)
     assert suggested, "media upload should build a suggested pin envelope"
@@ -50,7 +50,7 @@ def test_media_upload_suggested_pin_envelope_does_not_put_sha256_in_pin_payload_
     assert "sha256" not in payload.group("payload")
 
 
-def test_create_post_sanitizes_legacy_pin_payload_before_submit_batch385() -> None:
+def test_create_post_sanitizes_legacy_pin_payload_before_submit() -> None:
     page = _read(WEB / "pages" / "CreatePostPage.tsx")
 
     assert "function schemaSafePinRequestPayload" in page
@@ -62,7 +62,7 @@ def test_create_post_sanitizes_legacy_pin_payload_before_submit_batch385() -> No
     ).group(0)
 
 
-def test_async_verification_waits_for_case_visibility_between_tx_steps_batch385() -> None:
+def test_async_verification_waits_for_case_visibility_between_tx_steps() -> None:
     page = _read(WEB / "pages" / "AccountVerificationPage.tsx")
 
     assert "async function waitForSubmittedTxVisible" in page

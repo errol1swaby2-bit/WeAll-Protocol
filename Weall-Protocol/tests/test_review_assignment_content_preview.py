@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 WEB = REPO_ROOT.parent / "web"
 
 
-def test_juror_gate_matches_account_alias_for_tier_and_role_batch276() -> None:
+def test_juror_gate_matches_account_alias_for_tier_and_role() -> None:
     state = {
         "accounts": {"@demo_tester": {"poh_tier": 2, "banned": False, "locked": False}},
         "roles": {
@@ -36,7 +36,7 @@ def test_juror_gate_matches_account_alias_for_tier_and_role_batch276() -> None:
     assert ok is True, meta
 
 
-def test_dispute_review_uses_canonical_dispute_id_and_resolves_flagged_media_batch276() -> None:
+def test_dispute_review_uses_canonical_dispute_id_and_resolves_flagged_media() -> None:
     review = (WEB / "src/pages/DisputeReview.tsx").read_text(encoding="utf-8")
 
     assert "const disputeId = String(dispute?.id || dispute?.dispute_id || id" in review

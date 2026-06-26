@@ -13,12 +13,12 @@ def _chain(depth: int) -> dict[str, dict[str, str]]:
     return blocks
 
 
-def test_block_admission_ancestry_is_unbounded_for_long_honest_chain_batch89() -> None:
+def test_block_admission_ancestry_is_unbounded_for_long_honest_chain() -> None:
     blocks = _chain(50_100)
     assert _is_descendant(blocks, candidate="B50100", ancestor="B1") is True
 
 
-def test_block_admission_ancestry_rejects_cycle_batch89() -> None:
+def test_block_admission_ancestry_rejects_cycle() -> None:
     blocks = {
         "A": {"block_id": "A", "prev_block_id": "C"},
         "B": {"block_id": "B", "prev_block_id": "A"},
@@ -27,7 +27,7 @@ def test_block_admission_ancestry_rejects_cycle_batch89() -> None:
     assert _is_descendant(blocks, candidate="A", ancestor="Z") is False
 
 
-def test_block_admission_ancestry_supports_legacy_record_shape_batch89() -> None:
+def test_block_admission_ancestry_supports_legacy_record_shape() -> None:
     blocks = {
         "A": {"prev": ""},
         "B": {"prev": "A"},

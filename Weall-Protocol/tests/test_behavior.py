@@ -41,7 +41,7 @@ def _run_json(script: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def test_batch499_public_bft_multi_process_harness_runs() -> None:
+def test_public_bft_multi_process_harness_runs() -> None:
     out = _run_json("rehearse_public_bft_multi_process_v1_5.py")
     assert out["ok"] is True
     assert out["public_validator_enabled"] is False
@@ -52,7 +52,7 @@ def test_batch499_public_bft_multi_process_harness_runs() -> None:
     assert len({row["vote_payload_sha256"] for row in out["rows"]}) == 4
 
 
-def test_batch500_fresh_node_state_sync_harness_runs() -> None:
+def test_fresh_node_state_sync_harness_runs() -> None:
     out = _run_json("rehearse_fresh_node_state_sync_v1_5.py")
     assert out["ok"] is True
     assert out["same_state_root"] is True
@@ -60,7 +60,7 @@ def test_batch500_fresh_node_state_sync_harness_runs() -> None:
     assert out["source_state_root"] == out["fresh_node_state_root"]
 
 
-def test_batch500_fresh_node_state_sync_direct_snapshot_roundtrip() -> None:
+def test_fresh_node_state_sync_direct_snapshot_roundtrip() -> None:
     source_state = {
         "height": 3,
         "tip_hash": "tip-3",
@@ -93,7 +93,7 @@ def test_batch500_fresh_node_state_sync_direct_snapshot_roundtrip() -> None:
     assert compute_state_root(resp.snapshot or {}) == compute_state_root(source_state)
 
 
-def test_batch501_slash_execute_records_accountability_and_queues_non_economic_suspend() -> None:
+def test_slash_execute_records_accountability_and_queues_non_economic_suspend() -> None:
     state = {
         "height": 10,
         "roles": {"validators": {"active_set": ["validator-a", "validator-b"]}},
@@ -135,7 +135,7 @@ def test_batch501_slash_execute_records_accountability_and_queues_non_economic_s
     assert queued[0]["payload"]["economic_penalty_applied"] is False
 
 
-def test_batch502_upheld_poh_challenge_revokes_and_requires_reverification() -> None:
+def test_upheld_poh_challenge_revokes_and_requires_reverification() -> None:
     state = {"height": 21, "accounts": {"alice": {"poh_tier": 2, "poh_status": "active"}}}
     set_account_poh_status(
         state,
@@ -167,7 +167,7 @@ def test_batch502_upheld_poh_challenge_revokes_and_requires_reverification() -> 
     assert rev["challenge_id"] == "pohc:alice:1"
 
 
-def test_batch503_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
+def test_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
     state = {
         "height": 40,
         "content": {
@@ -228,7 +228,7 @@ def test_batch503_appealed_dispute_requires_appeal_decision_before_enforcement()
     assert "policy_violation" in post["labels"]
 
 
-def test_batch503_appeal_reverse_suppresses_delayed_enforcement() -> None:
+def test_appeal_reverse_suppresses_delayed_enforcement() -> None:
     state = {
         "height": 41,
         "content": {"posts": {"post:alice:2": {"id": "post:alice:2", "author": "alice", "visibility": "public", "deleted": False, "labels": [], "locked": False}}, "comments": {}},
@@ -261,7 +261,7 @@ def test_batch503_appeal_reverse_suppresses_delayed_enforcement() -> None:
     assert state["content"]["posts"]["post:alice:2"]["visibility"] == "public"
 
 
-def test_batch499_503_generated_artifact_is_tracked_and_consistent() -> None:
+def test_generated_artifact_is_tracked_and_consistent() -> None:
     path = ROOT / "generated" / "b499_b503_mechanics_proof_v1_5.json"
     assert path.exists()
     data = json.loads(path.read_text())

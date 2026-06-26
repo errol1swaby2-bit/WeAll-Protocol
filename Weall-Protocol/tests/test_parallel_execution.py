@@ -29,7 +29,7 @@ def _make_tx(tx_id: str, tx_type: str, prefix: str) -> dict:
 
 
 
-def test_missing_helper_certificate_falls_back_to_serial_and_preserves_order_batch2() -> None:
+def test_missing_helper_certificate_falls_back_to_serial_and_preserves_order() -> None:
     txs = [
         _make_tx("t1", "CONTENT_CREATE", "content:post:1"),
         _make_tx("t2", "IDENTITY_UPDATE", "identity:user:alice"),
@@ -61,7 +61,7 @@ def test_missing_helper_certificate_falls_back_to_serial_and_preserves_order_bat
 
 
 
-def test_invalid_namespace_certificate_is_rejected_and_serialized_batch2() -> None:
+def test_invalid_namespace_certificate_is_rejected_and_serialized() -> None:
     txs = [_make_tx("t1", "CONTENT_CREATE", "content:post:1")]
     lane_plans = plan_parallel_execution(
         txs=txs,
@@ -110,7 +110,7 @@ def test_invalid_namespace_certificate_is_rejected_and_serialized_batch2() -> No
 
 
 
-def test_helper_receipts_merge_deterministically_when_valid_batch2() -> None:
+def test_helper_receipts_merge_deterministically_when_valid() -> None:
     txs = [
         _make_tx("t1", "CONTENT_CREATE", "content:post:1"),
         _make_tx("t2", "IDENTITY_UPDATE", "identity:user:alice"),

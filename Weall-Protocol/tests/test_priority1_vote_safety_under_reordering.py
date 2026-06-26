@@ -3,14 +3,14 @@ from __future__ import annotations
 from weall.runtime.bft_hotstuff import HotStuffBFT
 
 
-def test_vote_once_per_view_enforced_under_reordering_batch76() -> None:
+def test_vote_once_per_view_enforced_under_reordering() -> None:
     hs = HotStuffBFT(chain_id="batch76")
 
     assert hs.record_local_vote(view=10, block_id="A") is True
     assert hs.record_local_vote(view=10, block_id="B") is False
 
 
-def test_vote_progression_allows_new_view_after_roundtrip_batch76() -> None:
+def test_vote_progression_allows_new_view_after_roundtrip() -> None:
     hs = HotStuffBFT(chain_id="batch76")
 
     assert hs.record_local_vote(view=10, block_id="A") is True
@@ -23,14 +23,14 @@ def test_vote_progression_allows_new_view_after_roundtrip_batch76() -> None:
     assert hs2.record_local_vote(view=11, block_id="B") is True
 
 
-def test_stale_view_vote_rejected_after_higher_vote_batch76() -> None:
+def test_stale_view_vote_rejected_after_higher_vote() -> None:
     hs = HotStuffBFT(chain_id="batch76")
 
     assert hs.record_local_vote(view=11, block_id="B") is True
     assert hs.record_local_vote(view=10, block_id="A") is False
 
 
-def test_vote_state_roundtrip_consistency_batch76() -> None:
+def test_vote_state_roundtrip_consistency() -> None:
     hs = HotStuffBFT(chain_id="batch76")
 
     hs.record_local_vote(view=9, block_id="Z")

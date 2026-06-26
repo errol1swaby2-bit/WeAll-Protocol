@@ -12,7 +12,7 @@ from weall.api.app import create_app
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_account_register_tx_skeleton_route_batch209() -> None:
+def test_account_register_tx_skeleton_route() -> None:
     app = create_app(boot_runtime=False)
     client = TestClient(app)
 
@@ -29,7 +29,7 @@ def test_account_register_tx_skeleton_route_batch209() -> None:
     assert body["tx"]["payload"] == {"pubkey": "abcd1234"}
 
 
-def test_devnet_onboarding_scripts_are_syntax_valid_batch209() -> None:
+def test_devnet_onboarding_scripts_are_syntax_valid() -> None:
     scripts = [
         "scripts/devnet_create_account.sh",
         "scripts/devnet_submit_tx_node1.sh",
@@ -49,7 +49,7 @@ def test_devnet_onboarding_scripts_are_syntax_valid_batch209() -> None:
         assert proc.returncode == 0, proc.stderr
 
 
-def test_devnet_tx_helper_cli_help_batch209() -> None:
+def test_devnet_tx_helper_cli_help() -> None:
     proc = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts/devnet_tx.py"), "--help"],
         cwd=REPO_ROOT,
@@ -61,7 +61,7 @@ def test_devnet_tx_helper_cli_help_batch209() -> None:
     assert "Controlled-devnet transaction helper" in proc.stdout
 
 
-def test_devnet_scripts_do_not_call_demo_seed_batch209() -> None:
+def test_devnet_scripts_do_not_call_demo_seed() -> None:
     scripts = [
         "scripts/devnet_create_account.sh",
         "scripts/devnet_submit_tx_node1.sh",

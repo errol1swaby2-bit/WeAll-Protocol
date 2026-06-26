@@ -69,7 +69,7 @@ def _state() -> dict:
     }
 
 
-def test_public_snapshot_drops_removed_communication_tree_batch356() -> None:
+def test_public_snapshot_drops_removed_communication_tree() -> None:
     client = _client(_state())
 
     res = client.get("/v1/state/snapshot")
@@ -80,7 +80,7 @@ def test_public_snapshot_drops_removed_communication_tree_batch356() -> None:
     assert "public reply" in res.text
 
 
-def test_removed_message_thread_routes_are_unmounted_batch356() -> None:
+def test_removed_message_thread_routes_are_unmounted() -> None:
     client = _client(_state())
 
     for path in ["/v1/" + "mess" + "ages/threads", "/v1/" + "mess" + "ages/threads?limit=10"]:
@@ -89,7 +89,7 @@ def test_removed_message_thread_routes_are_unmounted_batch356() -> None:
         assert "private carol" not in res.text
 
 
-def test_removed_message_thread_detail_route_is_unmounted_batch356() -> None:
+def test_removed_message_thread_detail_route_is_unmounted() -> None:
     client = _client(_state())
 
     for account in ["@alice", "@carol"]:
@@ -97,7 +97,7 @@ def test_removed_message_thread_detail_route_is_unmounted_batch356() -> None:
         assert res.status_code == 404, res.text
 
 
-def test_content_and_thread_return_media_summaries_with_paginated_comments_batch356() -> None:
+def test_content_and_thread_return_media_summaries_with_paginated_comments() -> None:
     client = _client(_state())
 
     content = client.get("/v1/content/post:1")
@@ -115,7 +115,7 @@ def test_content_and_thread_return_media_summaries_with_paginated_comments_batch
     assert comment_with_media["media"][0]["fetch_path"] == f"/v1/media/proxy/{CID}"
 
 
-def test_frontend_uses_scoped_read_paths_not_state_snapshot_batch356() -> None:
+def test_frontend_uses_scoped_read_paths_not_state_snapshot() -> None:
     root = Path(__file__).resolve().parents[2]
     web = root / "web" / "src"
     review = (web / "pages" / "DisputeReview.tsx").read_text(encoding="utf-8")

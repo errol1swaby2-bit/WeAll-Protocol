@@ -24,7 +24,7 @@ from weall.runtime.launch_matrix import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_launch_matrix_disables_high_risk_features_for_current_phases_batch495() -> None:
+def test_launch_matrix_disables_high_risk_features_for_current_phases() -> None:
     required = {
         FEATURE_LIVE_ECONOMICS,
         FEATURE_TREASURY_SPEND,
@@ -43,14 +43,14 @@ def test_launch_matrix_disables_high_risk_features_for_current_phases_batch495()
             assert "runtime apply" in status.truth_boundary.lower()
 
 
-def test_launch_matrix_generated_artifact_matches_runtime_batch495() -> None:
+def test_launch_matrix_generated_artifact_matches_runtime() -> None:
     artifact = json.loads((ROOT / "generated/launch_disabled_matrix_v1_5.json").read_text(encoding="utf-8"))
     runtime = launch_matrix_payload()
     assert artifact == runtime
     assert len(artifact["rows"]) == len(LAUNCH_PHASES) * len(HIGH_RISK_FEATURES)
 
 
-def test_launch_matrix_aliases_and_state_read_model_batch495() -> None:
+def test_launch_matrix_aliases_and_state_read_model() -> None:
     assert normalize_launch_phase("prod") == "production_candidate"
     assert normalize_launch_phase("testnet") == "public_beta_candidate"
     assert normalize_launch_phase("controlled_devnet") == "controlled_validator_rehearsal"
@@ -61,7 +61,7 @@ def test_launch_matrix_aliases_and_state_read_model_batch495() -> None:
     assert status["feature_status"][FEATURE_AUTO_PROTOCOL_UPGRADE]["enabled"] is False
 
 
-def test_launch_matrix_status_route_is_public_read_only_truth_surface_batch495() -> None:
+def test_launch_matrix_status_route_is_public_read_only_truth_surface() -> None:
     class FakeExecutor:
         def read_state(self):
             return {"params": {"launch_phase": "public_beta"}, "height": 7}

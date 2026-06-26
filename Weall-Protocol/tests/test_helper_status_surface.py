@@ -35,7 +35,7 @@ def _not_ready_report():
     )
 
 
-def test_helper_status_surface_serial_only_batch20() -> None:
+def test_helper_status_surface_serial_only() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -51,7 +51,7 @@ def test_helper_status_surface_serial_only_batch20() -> None:
     assert payload["helper_startup"]["helper_mode_active"] is False
 
 
-def test_helper_status_surface_helper_enabled_batch20() -> None:
+def test_helper_status_surface_helper_enabled() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),
@@ -67,7 +67,7 @@ def test_helper_status_surface_helper_enabled_batch20() -> None:
     assert payload["helper_startup"]["helper_mode_active"] is True
 
 
-def test_helper_status_surface_blocked_batch20() -> None:
+def test_helper_status_surface_blocked() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_not_ready_report(),

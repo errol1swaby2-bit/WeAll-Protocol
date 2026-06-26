@@ -10,7 +10,7 @@ def _script(rel: str) -> str:
     return (REPO_ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_bootstrap_live_cli_payload_matches_strict_schema_batch230() -> None:
+def test_bootstrap_live_cli_payload_matches_strict_schema() -> None:
     """The devnet bootstrap helper must not emit fields rejected by tx_schema.
 
     POH_BOOTSTRAP_TIER2_GRANT is intentionally strict at API admission.  The
@@ -50,7 +50,7 @@ def test_bootstrap_live_cli_payload_matches_strict_schema_batch230() -> None:
     assert found_payload
 
 
-def test_live_reviewer_prepare_uses_genesis_bound_reviewer_batch230() -> None:
+def test_live_reviewer_prepare_uses_genesis_bound_reviewer() -> None:
     prepare = _script("scripts/devnet_prepare_live_jurors.sh")
     assert "GENESIS_REVIEWER_ACCOUNT" in prepare
     assert "Deterministic genesis-bound Live reviewer ready" in prepare
@@ -60,7 +60,7 @@ def test_live_reviewer_prepare_uses_genesis_bound_reviewer_batch230() -> None:
     assert "demo-seed" not in prepare
 
 
-def test_legacy_bootstrap_live_cli_still_uses_normal_signed_submit_batch230() -> None:
+def test_legacy_bootstrap_live_cli_still_uses_normal_signed_submit() -> None:
     combined = "\n".join(
         _script(rel)
         for rel in [

@@ -21,7 +21,7 @@ def _submit(ex: WeAllExecutor, signer: str, nonce: int) -> None:
     assert res.get("ok") is True
 
 
-def test_parallel_submission_order_independence_batch55(tmp_path: Path) -> None:
+def test_parallel_submission_order_independence(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "parallel.db")
@@ -43,7 +43,7 @@ def test_parallel_submission_order_independence_batch55(tmp_path: Path) -> None:
     assert "@c" in st.get("accounts", {})
 
 
-def test_large_mempool_chunking_consistency_batch55(tmp_path: Path) -> None:
+def test_large_mempool_chunking_consistency(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "chunk.db")
@@ -63,7 +63,7 @@ def test_large_mempool_chunking_consistency_batch55(tmp_path: Path) -> None:
         assert f"@user{i}" in st.get("accounts", {})
 
 
-def test_mempool_deterministic_iteration_order_batch55(tmp_path: Path) -> None:
+def test_mempool_deterministic_iteration_order(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "order.db")
@@ -82,7 +82,7 @@ def test_mempool_deterministic_iteration_order_batch55(tmp_path: Path) -> None:
     assert mp1 == mp2
 
 
-def test_repeated_block_production_does_not_skip_tx_batch55(tmp_path: Path) -> None:
+def test_repeated_block_production_does_not_skip_tx(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "skip.db")

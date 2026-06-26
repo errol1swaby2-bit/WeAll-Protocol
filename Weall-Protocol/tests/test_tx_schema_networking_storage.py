@@ -23,7 +23,7 @@ def _env(tx_type: str, payload: dict) -> dict:
     return env
 
 
-def test_batch2_schema_models_registered() -> None:
+def test_schema_models_registered() -> None:
     expected = {
         "PEER_ADVERTISE",
         "PEER_RENDEZVOUS_TICKET_CREATE",
@@ -71,7 +71,7 @@ def test_batch2_schema_models_registered() -> None:
         ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "ok": True}),
     ],
 )
-def test_batch2_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
+def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
     env, parsed = validate_tx_envelope(_env(tx_type, payload))
     assert env.tx_type == tx_type
     assert parsed is not None
@@ -100,7 +100,7 @@ def test_batch2_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None
         ("STORAGE_PROOF_SUBMIT", {"lease_id": "lease-1", "proof_cid": "not-a-cid"}, "invalid_cid_format"),
     ],
 )
-def test_batch2_missing_or_invalid_fields_are_rejected(
+def test_missing_or_invalid_fields_are_rejected(
     tx_type: str,
     payload: dict,
     expected_fragment: str,
@@ -123,7 +123,7 @@ def test_batch2_missing_or_invalid_fields_are_rejected(
         ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "ok": True, "extra": "x"}),
     ],
 )
-def test_batch2_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
+def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert "Extra inputs are not permitted" in str(excinfo.value)

@@ -5,7 +5,7 @@ from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
 from weall.runtime.parallel_execution import LanePlan
 
 
-def test_helper_merge_rejects_cross_lane_tx_id_conflict_batch5() -> None:
+def test_helper_merge_rejects_cross_lane_tx_id_conflict() -> None:
     lane_plan_a = LanePlan(lane_id="L1", helper_id="h1", txs=(), tx_ids=("t1",))
     lane_plan_b = LanePlan(lane_id="L2", helper_id="h2", txs=(), tx_ids=("t1",))
     resolutions = (
@@ -25,7 +25,7 @@ def test_helper_merge_rejects_cross_lane_tx_id_conflict_batch5() -> None:
 
 
 
-def test_helper_merge_rejects_cross_lane_receipt_tx_id_conflict_batch5() -> None:
+def test_helper_merge_rejects_cross_lane_receipt_tx_id_conflict() -> None:
     resolutions = (
         HelperLaneResolution(lane_id="L1", helper_id="h1", mode="helper", certificate=None),
         HelperLaneResolution(lane_id="L2", helper_id="h2", mode="helper", certificate=None),
@@ -42,7 +42,7 @@ def test_helper_merge_rejects_cross_lane_receipt_tx_id_conflict_batch5() -> None
 
 
 
-def test_helper_merge_rejects_duplicate_lane_receipt_tx_ids_batch5() -> None:
+def test_helper_merge_rejects_duplicate_lane_receipt_tx_ids() -> None:
     lane_plan = LanePlan(lane_id="L1", helper_id="h1", txs=(), tx_ids=("t1", "t2"))
     resolution = HelperLaneResolution(lane_id="L1", helper_id="h1", mode="helper", certificate=None)
     decision = admit_helper_merge(

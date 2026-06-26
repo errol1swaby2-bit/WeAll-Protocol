@@ -12,7 +12,7 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def test_helper_store_rejects_late_certificate_after_timeout_window_batch31() -> None:
+def test_helper_store_rejects_late_certificate_after_timeout_window() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(txs=txs, validators=["v1", "v2", "v3"], validator_set_hash="vhash", view=7, leader_id="v1")
     lane_plan = next(plan for plan in lane_plans if plan.lane_id == "PARALLEL_CONTENT")

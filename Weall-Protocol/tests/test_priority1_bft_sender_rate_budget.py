@@ -95,7 +95,7 @@ def _make_executor(*, chain_id: str = "batch105") -> WeAllExecutor:
     return ex
 
 
-def test_proposal_sender_budget_drops_third_distinct_proposal_batch105(monkeypatch) -> None:
+def test_proposal_sender_budget_drops_third_distinct_proposal(monkeypatch) -> None:
     ex = _make_executor()
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_AUTOVOTE", "0")
@@ -127,7 +127,7 @@ def test_proposal_sender_budget_drops_third_distinct_proposal_batch105(monkeypat
     assert ex._recent_bft_sender_budgets["alice"][1] == 2
 
 
-def test_qc_sender_budget_drops_third_distinct_qc_batch105() -> None:
+def test_qc_sender_budget_drops_third_distinct_qc() -> None:
     ex = _make_executor()
     calls = {"verify": 0}
 
@@ -159,7 +159,7 @@ def test_qc_sender_budget_drops_third_distinct_qc_batch105() -> None:
     assert ex._recent_bft_sender_budgets["alice"][1] == 2
 
 
-def test_vote_sender_budget_is_fair_across_senders_batch105() -> None:
+def test_vote_sender_budget_is_fair_across_senders() -> None:
     ex = _make_executor()
     ex._bft_sender_budget_per_window = 1
     calls = {"accept_vote": 0}
@@ -202,7 +202,7 @@ def test_vote_sender_budget_is_fair_across_senders_batch105() -> None:
     assert ex._recent_bft_sender_budgets["bob"][1] == 1
 
 
-def test_timeout_sender_budget_drops_third_distinct_timeout_batch105() -> None:
+def test_timeout_sender_budget_drops_third_distinct_timeout() -> None:
     ex = _make_executor()
     calls = {"accept_timeout": 0}
 

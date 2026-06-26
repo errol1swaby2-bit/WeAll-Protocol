@@ -68,7 +68,7 @@ def _context():
     )
 
 
-def test_orchestrator_accepts_helper_and_marks_lane_resolved_batch7() -> None:
+def test_orchestrator_accepts_helper_and_marks_lane_resolved() -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -92,7 +92,7 @@ def test_orchestrator_accepts_helper_and_marks_lane_resolved_batch7() -> None:
     assert resolved.certificate is not None
 
 
-def test_orchestrator_finalizes_fallback_after_timeout_batch7() -> None:
+def test_orchestrator_finalizes_fallback_after_timeout() -> None:
     lane_plans, lane_plan = _lane_setup()
     orch = HelperProposalOrchestrator(
         context=_context(),
@@ -108,7 +108,7 @@ def test_orchestrator_finalizes_fallback_after_timeout_batch7() -> None:
     assert orch.all_lanes_resolved() is True
 
 
-def test_orchestrator_rejects_late_helper_after_fallback_batch7() -> None:
+def test_orchestrator_rejects_late_helper_after_fallback() -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -129,7 +129,7 @@ def test_orchestrator_rejects_late_helper_after_fallback_batch7() -> None:
     assert late.code == "lane_already_resolved"
 
 
-def test_orchestrator_recovery_preserves_fallback_decision_batch7(tmp_path) -> None:
+def test_orchestrator_recovery_preserves_fallback_decision(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
 
@@ -154,7 +154,7 @@ def test_orchestrator_recovery_preserves_fallback_decision_batch7(tmp_path) -> N
     assert orch2.all_lanes_resolved() is True
 
 
-def test_orchestrator_recovery_preserves_helper_decision_batch7(tmp_path) -> None:
+def test_orchestrator_recovery_preserves_helper_decision(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     journal = HelperLaneJournal(str(tmp_path / "helper_lane.jsonl"))
     cert, pub = _mk_signed_cert(

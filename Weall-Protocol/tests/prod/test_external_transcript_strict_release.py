@@ -28,7 +28,7 @@ def _run_validator(kind: str, path: Path, *, strict: bool = False) -> subprocess
     return subprocess.run(cmd, cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
 
 
-def test_batch621_strict_release_rejects_validator_and_storage_scaffolds(tmp_path: Path) -> None:
+def test_strict_release_rejects_validator_and_storage_scaffolds(tmp_path: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     from rehearse_external_public_validator_operator_network_v1_5 import build_transcript as build_validator
     from rehearse_storage_ipfs_external_operator_topology_v1_5 import build_transcript as build_storage
@@ -46,7 +46,7 @@ def test_batch621_strict_release_rejects_validator_and_storage_scaffolds(tmp_pat
         assert "strict release mode rejects" in strict.stderr
 
 
-def test_batch621_strict_release_accepts_attested_validator_transcript(tmp_path: Path) -> None:
+def test_strict_release_accepts_attested_validator_transcript(tmp_path: Path) -> None:
     state_roots = {node: "f" * 64 for node in ("validator-alpha", "validator-beta", "validator-gamma", "validator-delta")}
     payload = _with_digest({
         "schema": "weall.v1_5.public_validator_operator_transcript",
@@ -81,7 +81,7 @@ def test_batch621_strict_release_accepts_attested_validator_transcript(tmp_path:
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_batch621_strict_release_accepts_attested_storage_and_legal_transcripts(tmp_path: Path) -> None:
+def test_strict_release_accepts_attested_storage_and_legal_transcripts(tmp_path: Path) -> None:
     storage = _with_digest({
         "schema": "weall.v1_5.storage_ipfs_operator_transcript",
         "operator_ids": ["storage-alpha-real", "storage-beta-real", "storage-gamma-real"],
@@ -133,7 +133,7 @@ def test_batch621_strict_release_accepts_attested_storage_and_legal_transcripts(
     assert legal_proc.returncode == 0, legal_proc.stdout + legal_proc.stderr
 
 
-def test_batch621_release_evidence_manifest_is_fresh_and_conservative() -> None:
+def test_release_evidence_manifest_is_fresh_and_conservative() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_release_evidence_manifest_v1_5.py", "--check"],
         cwd=str(ROOT),
@@ -151,7 +151,7 @@ def test_batch621_release_evidence_manifest_is_fresh_and_conservative() -> None:
     assert payload["release_evidence_gates"]["external_validator_operator_transcript"]["sample_transcripts_are_rejected_in_strict_release"] is True
 
 
-def test_batch621_clean_gate_reports_rendered_operator_journey_boundary() -> None:
+def test_clean_gate_reports_rendered_operator_journey_boundary() -> None:
     script = (OUTER / "scripts" / "run_clean_clone_go_gate_v1_5.sh").read_text(encoding="utf-8")
     assert "--run-rendered-frontend" in script
     assert "WEALL_RUN_RENDERED_FRONTEND" in script

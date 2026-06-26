@@ -44,7 +44,7 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any] | None =
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="sig", system=system, parent=parent)
 
 
-def test_batch528_validator_rehearsal_uses_tcp_subprocesses_and_preserves_boundaries() -> None:
+def test_validator_rehearsal_uses_tcp_subprocesses_and_preserves_boundaries() -> None:
     out = json.loads((ROOT / "generated" / "b528_b532_completion_proof_v1_5.json").read_text())["validator_rehearsal"]
     assert out["ok"] is True
     assert out["process_model"] == "subprocess_tcp_json_rpc"
@@ -57,7 +57,7 @@ def test_batch528_validator_rehearsal_uses_tcp_subprocesses_and_preserves_bounda
     assert out["observer_vote_rejected"] is True
 
 
-def test_batch529_db_backed_replay_sync_verifies_receipts_and_rejects_corrupt_blocks() -> None:
+def test_db_backed_replay_sync_verifies_receipts_and_rejects_corrupt_blocks() -> None:
     out = _run_json("rehearse_db_backed_fresh_node_replay_sync_v1_5.py")
     assert out["ok"] is True
     assert out["durable_db_used"] is True
@@ -67,7 +67,7 @@ def test_batch529_db_backed_replay_sync_verifies_receipts_and_rejects_corrupt_bl
     assert out["source_state_root"] == out["fresh_state_root"]
 
 
-def test_batch530_api_driven_lifecycle_exercises_real_routes_and_locked_boundaries() -> None:
+def test_api_driven_lifecycle_exercises_real_routes_and_locked_boundaries() -> None:
     from rehearse_api_driven_full_lifecycle_v1_5 import run_harness
     out = run_harness()
     assert out["ok"] is True
@@ -80,7 +80,7 @@ def test_batch530_api_driven_lifecycle_exercises_real_routes_and_locked_boundari
     assert out["protocol_upgrade_record_only"] is True
 
 
-def test_batch531_poh_reviewer_accountability_updates_reviewer_eligibility() -> None:
+def test_poh_reviewer_accountability_updates_reviewer_eligibility() -> None:
     state: dict[str, Any] = {
         "height": 7,
         "accounts": {
@@ -105,7 +105,7 @@ def test_batch531_poh_reviewer_accountability_updates_reviewer_eligibility() -> 
     assert state["poh"]["reviewer_accountability"]["by_reviewer"]["@reviewer"]["eligible_for_poh_review"] is False
 
 
-def test_batch531_dispute_juror_inactivity_updates_juror_eligibility() -> None:
+def test_dispute_juror_inactivity_updates_juror_eligibility() -> None:
     state: dict[str, Any] = {
         "height": 11,
         "accounts": {"@open": {"poh_tier": 2}, "@j1": {"poh_tier": 2}, "@j2": {"poh_tier": 2}, "SYSTEM": {"poh_tier": 0}},
@@ -123,7 +123,7 @@ def test_batch531_dispute_juror_inactivity_updates_juror_eligibility() -> None:
     assert state["dispute_juror_accountability"]["by_juror"]["@j2"]["missed_vote_count"] == 1
 
 
-def test_batch532_production_feed_ranking_uses_weighted_public_social_signals() -> None:
+def test_production_feed_ranking_uses_weighted_public_social_signals() -> None:
     state = {
         "accounts": {
             "@trusted": {"poh_tier": 2, "reputation": 50},
@@ -159,7 +159,7 @@ def test_batch532_production_feed_ranking_uses_weighted_public_social_signals() 
     assert quality["feed_rank_breakdown"]["unique_reactors"] == 1
 
 
-def test_batch528_532_generated_artifact_is_present_and_consistent() -> None:
+def test_generated_artifact_is_present_and_consistent() -> None:
     artifact = json.loads((ROOT / "generated" / "b528_b532_completion_proof_v1_5.json").read_text())
     assert artifact["ok"] is True
     assert artifact["feed_ranking"]["complete_for_deterministic_public_social_ranking"] is True

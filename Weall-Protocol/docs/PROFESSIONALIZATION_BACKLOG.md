@@ -4,11 +4,11 @@ This backlog records presentation and maintainability issues that remain after t
 
 ## P0 — reviewer-facing cleanup before broad external review
 
-1. **Function-level batch names**
-   - Current signal: active pytest filenames and reviewer-facing test references have been professionalized, but many internal test function names still include batch-era identifiers.
-   - Measured debt after the filename pass: 1,514 batch-era test function names across 434 pytest files.
-   - Risk of fixing all at once: medium to high. Function renames affect failure-history searchability, external notes, and reviewer transcripts.
-   - Preferred approach: rename function names by domain cluster after file-level review lands; keep assertion bodies untouched and run targeted tests for each cluster.
+1. **Function-level batch names — completed at identifier level**
+   - Current signal: active pytest filenames, reviewer-facing test references, and pytest test function identifiers no longer carry batch-era markers.
+   - Cleanup performed: 1,514 batch-era test function names across 434 pytest files were renamed without changing assertion bodies.
+   - Audit trail: see `TEST_FUNCTION_RENAME_MAP.md`.
+   - Remaining caution: failure-history searchability now depends on the rename map; do not delete the map until external reviewer notes and historical transcripts have aged out.
 
 2. **Command-surface consolidation**
    - Current signal: root, backend, and frontend script directories are mostly coherent, but duplicated basenames remain.
@@ -24,6 +24,31 @@ This backlog records presentation and maintainability issues that remain after t
 3. **Release docs wording audit**
    - Remove remaining checkpoint wording that reads like a batch transcript instead of a release state summary.
    - Keep exact test counts only when tied to current evidence and a rerun date.
+
+
+## P0.5 — completed cleanup in this pass
+
+1. **Function-level rename cleanup**
+   - Status: complete for active pytest function identifiers.
+   - Scope: 1,514 function names across 434 files.
+   - Safety posture: assertion bodies were not edited; only identifier names and exact textual references were updated.
+   - Gate: `scripts/audit_test_names.py --check` now fails on batch-named test files, batch-named test functions, and reviewer-facing batch test references.
+
+2. **Fixture deduplication**
+   - Status: deferred.
+   - Reason: no fixture pair was mechanically and semantically proven equivalent under the deletion/merge standard in `TEST_REDUNDANCY_REVIEW.md`.
+
+3. **Domain-based test directory grouping**
+   - Status: deferred.
+   - Reason: moving 868 pytest files into domain folders would create broad import/path churn and reviewer-history breakage. Do this only after function-level cleanup is committed and a domain taxonomy is accepted.
+
+4. **Generated artifact reference cleanup**
+   - Status: deferred.
+   - Reason: historical `b###`/batch-era generated artifact names should only be replaced through canonical generators, not by hand.
+
+5. **Coverage expansion**
+   - Status: deferred for this patch.
+   - Reason: the audit did not find a new real coverage gap that justified feature or invariant expansion in a presentation-only cleanup. Existing public-only, operator/reviewer, observer, release, and frontend source gates remain intact.
 
 ## P1 — generated evidence governance
 

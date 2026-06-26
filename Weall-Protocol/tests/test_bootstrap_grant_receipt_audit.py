@@ -30,7 +30,7 @@ def _bootstrap_state() -> dict:
     }
 
 
-def test_bootstrap_tier2_grant_writes_receipt_backed_audit_record_batch321() -> None:
+def test_bootstrap_tier2_grant_writes_receipt_backed_audit_record() -> None:
     state = _bootstrap_state()
     tx = TxEnvelope(
         tx_type="POH_BOOTSTRAP_TIER2_GRANT",
@@ -60,7 +60,7 @@ def test_bootstrap_tier2_grant_writes_receipt_backed_audit_record_batch321() -> 
     assert root["by_account"]["alice"] == [grant["grant_id"]]
 
 
-def test_genesis_bootstrap_direct_seed_writes_audit_record_batch321(tmp_path: Path, monkeypatch) -> None:
+def test_genesis_bootstrap_direct_seed_writes_audit_record(tmp_path: Path, monkeypatch) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
     monkeypatch.setenv("WEALL_MODE", "prod")

@@ -28,7 +28,7 @@ def _state_snapshot(ex: WeAllExecutor) -> dict:
     }
 
 
-def test_concurrent_like_submission_order_independence_batch66(tmp_path: Path) -> None:
+def test_concurrent_like_submission_order_independence(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -52,7 +52,7 @@ def test_concurrent_like_submission_order_independence_batch66(tmp_path: Path) -
     assert _state_snapshot(ex1) == _state_snapshot(ex2)
 
 
-def test_duplicate_submission_handling_is_deterministic_batch66(tmp_path: Path) -> None:
+def test_duplicate_submission_handling_is_deterministic(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -84,7 +84,7 @@ def test_duplicate_submission_handling_is_deterministic_batch66(tmp_path: Path) 
     assert st1.get("accounts") == st2.get("accounts")
 
 
-def test_nonce_conflict_resolution_is_consistent_batch66(tmp_path: Path) -> None:
+def test_nonce_conflict_resolution_is_consistent(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

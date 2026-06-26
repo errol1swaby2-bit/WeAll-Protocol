@@ -32,7 +32,7 @@ def _tx(signer: str, payload: dict, nonce: int = 1) -> TxEnvelope:
     return TxEnvelope(tx_type="BALANCE_TRANSFER", signer=signer, nonce=nonce, payload=payload)
 
 
-def test_balance_transfer_accepts_canonical_to_account_id_batch483() -> None:
+def test_balance_transfer_accepts_canonical_to_account_id() -> None:
     st = _active_state()
 
     res = apply_economics(
@@ -58,7 +58,7 @@ def test_balance_transfer_accepts_canonical_to_account_id_batch483() -> None:
     assert st["economics"]["transfers_by_id"][res["transfer_id"]]["purpose"] == "profile_wallet_send"
 
 
-def test_balance_transfer_keeps_legacy_to_alias_batch483() -> None:
+def test_balance_transfer_keeps_legacy_to_alias() -> None:
     st = _active_state()
 
     res = apply_economics(st, _tx("@alice", {"to": "@bob", "amount": 10}))
@@ -68,7 +68,7 @@ def test_balance_transfer_keeps_legacy_to_alias_batch483() -> None:
     assert st["accounts"]["@bob"]["balance"] == 35
 
 
-def test_balance_transfer_rejects_from_account_spoof_batch483() -> None:
+def test_balance_transfer_rejects_from_account_spoof() -> None:
     st = _active_state()
 
     with pytest.raises(EconomicsApplyError) as ei:
@@ -90,7 +90,7 @@ def test_balance_transfer_rejects_from_account_spoof_batch483() -> None:
     assert st["accounts"]["@creator"]["balance"] == 0
 
 
-def test_balance_transfer_remains_locked_before_activation_batch484() -> None:
+def test_balance_transfer_remains_locked_before_activation() -> None:
     st = _locked_state()
 
     with pytest.raises(EconomicsApplyError) as ei:
@@ -101,7 +101,7 @@ def test_balance_transfer_remains_locked_before_activation_batch484() -> None:
     assert st["accounts"]["@bob"]["balance"] == 25
 
 
-def test_content_tip_indexes_by_content_and_creator_batch484() -> None:
+def test_content_tip_indexes_by_content_and_creator() -> None:
     st = _active_state()
 
     res = apply_economics(
@@ -134,7 +134,7 @@ def test_content_tip_indexes_by_content_and_creator_batch484() -> None:
     assert res["transfer_id"] in by_creator["tips"]
 
 
-def test_transfer_id_dedupe_prevents_double_spend_on_replay_batch484() -> None:
+def test_transfer_id_dedupe_prevents_double_spend_on_replay() -> None:
     st = _active_state()
     payload = {"to_account_id": "@bob", "amount": 50, "transfer_id": "transfer:test"}
 
@@ -146,7 +146,7 @@ def test_transfer_id_dedupe_prevents_double_spend_on_replay_batch484() -> None:
     assert st["accounts"]["@alice"]["balance"] == 950
     assert st["accounts"]["@bob"]["balance"] == 75
 
-def test_legacy_plain_balance_transfer_receipt_shape_is_preserved_batch486() -> None:
+def test_legacy_plain_balance_transfer_receipt_shape_is_preserved() -> None:
     st = _active_state()
 
     res = apply_economics(st, _tx("@alice", {"to": "@bob", "amount": 5}, nonce=44))

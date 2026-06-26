@@ -119,7 +119,7 @@ def _request_pin(st: dict, *, nonce: int, cid: str = CID_A, size: int = 10_000) 
     return apply_tx(st, _env("IPFS_PIN_REQUEST", "@user", nonce, {"pin_id": f"pin-{nonce}", "cid": cid, "size_bytes": size}))
 
 
-def test_expired_storage_proof_blocks_new_allocation_but_preserves_existing_accounting_batch304() -> None:
+def test_expired_storage_proof_blocks_new_allocation_but_preserves_existing_accounting() -> None:
     st = _state(height=10, proof_expires_height=20)
     pin = _request_pin(st, nonce=1, size=10_000)
     assert pin["targets"] == ["@op"]
@@ -135,7 +135,7 @@ def test_expired_storage_proof_blocks_new_allocation_but_preserves_existing_acco
     assert _storage(st)["allocated_capacity_bytes"] == 10_000
 
 
-def test_near_expiry_storage_proof_schedules_revalidation_without_blocking_allocation_batch304() -> None:
+def test_near_expiry_storage_proof_schedules_revalidation_without_blocking_allocation() -> None:
     st = _state(height=91, proof_expires_height=100)
     plan = build_storage_revalidation_plan(st)
     assert len(plan) == 1
@@ -150,7 +150,7 @@ def test_near_expiry_storage_proof_schedules_revalidation_without_blocking_alloc
     assert pin["targets"] == ["@op"]
 
 
-def test_successful_storage_revalidation_refreshes_expiry_and_failed_revalidation_pauses_batch304() -> None:
+def test_successful_storage_revalidation_refreshes_expiry_and_failed_revalidation_pauses() -> None:
     st = _state(height=91, proof_expires_height=100)
     action = build_storage_revalidation_plan(st)[0]
     issue = apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 1, action.payload, system=True))
@@ -211,7 +211,7 @@ def test_successful_storage_revalidation_refreshes_expiry_and_failed_revalidatio
     assert evaluate_storage_responsibility(st, "@op").active is False
 
 
-def test_ipfs_pin_confirm_fail_and_release_are_idempotent_batch304() -> None:
+def test_ipfs_pin_confirm_fail_and_release_are_idempotent() -> None:
     st = _state(height=10, proof_expires_height=100)
     pin = _request_pin(st, nonce=1, size=7_000)
     assert pin["targets"] == ["@op"]
@@ -233,7 +233,7 @@ def test_ipfs_pin_confirm_fail_and_release_are_idempotent_batch304() -> None:
     assert _storage(st)["used_capacity_bytes"] == 0
 
 
-def test_failed_pin_confirmation_releases_reserved_allocation_once_batch304() -> None:
+def test_failed_pin_confirmation_releases_reserved_allocation_once() -> None:
     st = _state(height=10, proof_expires_height=100)
     pin = _request_pin(st, nonce=1, size=8_000)
     assert _storage(st)["allocated_capacity_bytes"] == 8_000
@@ -245,7 +245,7 @@ def test_failed_pin_confirmation_releases_reserved_allocation_once_batch304() ->
     assert _storage(st)["allocated_capacity_bytes"] == 0
 
 
-def test_revalidation_status_materializer_expires_and_pauses_without_losing_accounting_batch304() -> None:
+def test_revalidation_status_materializer_expires_and_pauses_without_losing_accounting() -> None:
     st = _state(height=200, proof_expires_height=100)
     _storage(st)["allocated_capacity_bytes"] = 12_000
     _storage(st)["used_capacity_bytes"] = 4_000

@@ -61,7 +61,7 @@ def _reason(exc: BaseException) -> str:
     return str(getattr(exc, "reason", ""))
 
 
-def test_legacy_target_live_path_is_closed_batch233() -> None:
+def test_legacy_target_live_path_is_closed() -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(
@@ -77,7 +77,7 @@ def test_legacy_target_live_path_is_closed_batch233() -> None:
     assert not st.get("poh", {}).get("live_cases")
 
 
-def test_live_request_requires_session_room_prompt_commitments_batch233() -> None:
+def test_live_request_requires_session_room_prompt_commitments() -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(
@@ -93,7 +93,7 @@ def test_live_request_requires_session_room_prompt_commitments_batch233() -> Non
     assert not st.get("poh", {}).get("live_cases")
 
 
-def test_live_init_requires_existing_requested_case_and_matching_session_batch233() -> None:
+def test_live_init_requires_existing_requested_case_and_matching_session() -> None:
     st = _state()
     with pytest.raises(ApplyError) as missing:
         apply_tx(
@@ -123,7 +123,7 @@ def test_live_init_requires_existing_requested_case_and_matching_session_batch23
     assert _reason(bad_session.value) == "bad_session_commitment"
 
 
-def test_live_attendance_and_verdict_must_match_session_commitment_batch233() -> None:
+def test_live_attendance_and_verdict_must_match_session_commitment() -> None:
     st = _state()
     apply_tx(st, _env("POH_LIVE_REQUEST_OPEN", _live_payload(), signer="alice", nonce=1))
     apply_tx(

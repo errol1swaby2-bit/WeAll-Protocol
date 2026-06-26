@@ -24,7 +24,7 @@ def _state_accounts(ex: WeAllExecutor) -> dict:
     return dict(ex.read_state().get("accounts", {}))
 
 
-def test_same_logical_work_replayed_in_multiple_chunks_matches_single_chunk_batch70(
+def test_same_logical_work_replayed_in_multiple_chunks_matches_single_chunk(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -60,7 +60,7 @@ def test_same_logical_work_replayed_in_multiple_chunks_matches_single_chunk_batc
     assert accounts_single == accounts_chunked
 
 
-def test_restart_between_each_commit_matches_continuous_execution_batch70(tmp_path: Path) -> None:
+def test_restart_between_each_commit_matches_continuous_execution(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     signers = ["@f", "@g", "@h", "@i"]
@@ -100,7 +100,7 @@ def test_restart_between_each_commit_matches_continuous_execution_batch70(tmp_pa
     assert accounts_cont == accounts_restart
 
 
-def test_rejected_replay_attempts_do_not_change_final_state_batch70(tmp_path: Path) -> None:
+def test_rejected_replay_attempts_do_not_change_final_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "replay.db")
@@ -128,7 +128,7 @@ def test_rejected_replay_attempts_do_not_change_final_state_batch70(tmp_path: Pa
     assert state_before == state_after
 
 
-def test_interleaved_valid_and_rejected_work_converges_consistently_batch70(tmp_path: Path) -> None:
+def test_interleaved_valid_and_rejected_work_converges_consistently(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

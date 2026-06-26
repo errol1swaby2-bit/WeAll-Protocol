@@ -111,7 +111,7 @@ def _plan_projection(helper_execution: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def test_batch601_helper_planning_ignores_state_root_excluded_meta(tmp_path: Path, monkeypatch) -> None:
+def test_helper_planning_ignores_state_root_excluded_meta(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -146,7 +146,7 @@ def test_batch601_helper_planning_ignores_state_root_excluded_meta(tmp_path: Pat
     assert any(lane["helper_id"] in {"@helper-a", "@helper-b"} for lane in clean_plan["lanes"])
 
 
-def test_batch601_root_committed_helper_reputation_controls_quarantine(tmp_path: Path, monkeypatch) -> None:
+def test_root_committed_helper_reputation_controls_quarantine(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")

@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_conflicting_same_view_qcs_do_not_regress_high_qc_batch71() -> None:
+def test_conflicting_same_view_qcs_do_not_regress_high_qc() -> None:
     hs = HotStuffBFT(chain_id="batch71")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -37,7 +37,7 @@ def test_conflicting_same_view_qcs_do_not_regress_high_qc_batch71() -> None:
     assert state1 == state2
 
 
-def test_reordered_qc_delivery_keeps_highest_valid_qc_batch71() -> None:
+def test_reordered_qc_delivery_keeps_highest_valid_qc() -> None:
     hs = HotStuffBFT(chain_id="batch71")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -58,7 +58,7 @@ def test_reordered_qc_delivery_keeps_highest_valid_qc_batch71() -> None:
     assert str(hs.finalized_block_id or "") == "B"
 
 
-def test_conflicting_same_view_votes_allow_only_first_choice_batch71() -> None:
+def test_conflicting_same_view_votes_allow_only_first_choice() -> None:
     hs = HotStuffBFT(chain_id="batch71")
 
     assert hs.record_local_vote(view=8, block_id="X1") is True
@@ -69,7 +69,7 @@ def test_conflicting_same_view_votes_allow_only_first_choice_batch71() -> None:
     assert str(st.get("last_voted_block_id") or "") == "X1"
 
 
-def test_qc_roundtrip_after_conflict_attempt_has_no_state_drift_batch71() -> None:
+def test_qc_roundtrip_after_conflict_attempt_has_no_state_drift() -> None:
     hs = HotStuffBFT(chain_id="batch71")
     blocks = {
         "A": {"prev_block_id": ""},

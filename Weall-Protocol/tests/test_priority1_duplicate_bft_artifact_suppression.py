@@ -99,7 +99,7 @@ def _make_executor(*, chain_id: str = "batch103") -> WeAllExecutor:
     return ex
 
 
-def test_duplicate_proposal_is_suppressed_before_revalidation_batch103(monkeypatch) -> None:
+def test_duplicate_proposal_is_suppressed_before_revalidation(monkeypatch) -> None:
     ex = _make_executor()
     ex._bft.locked_qc = _qc("batch103", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch103", 4, "C1", "B1")
@@ -142,7 +142,7 @@ def test_duplicate_proposal_is_suppressed_before_revalidation_batch103(monkeypat
     assert list(ex._pending_remote_blocks.keys()) == ["D2"]
 
 
-def test_duplicate_qc_is_suppressed_before_replay_batch103() -> None:
+def test_duplicate_qc_is_suppressed_before_replay() -> None:
     ex = _make_executor()
     calls = {"verify": 0, "replay": 0}
     qc = _qc("batch103", 5, "C2", "B2")

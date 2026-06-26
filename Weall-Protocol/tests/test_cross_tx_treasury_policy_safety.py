@@ -11,14 +11,14 @@ TREASURY_POLICY_SERIAL_TYPES = {
 }
 
 
-def test_treasury_policy_bridge_txs_fail_closed_to_serial_batch142() -> None:
+def test_treasury_policy_bridge_txs_fail_closed_to_serial() -> None:
     for tx_type in sorted(TREASURY_POLICY_SERIAL_TYPES):
         access = build_tx_access_set(build_conflict_probe_tx(tx_type, seed="1"))
         assert access.lane_hint == "SERIAL", tx_type
         assert any(key.startswith("authority:") for key in access.writes), tx_type
 
 
-def test_treasury_policy_set_is_not_parallelized_with_same_wallet_signer_mutation_batch142() -> None:
+def test_treasury_policy_set_is_not_parallelized_with_same_wallet_signer_mutation() -> None:
     wallet_id = "wallet-shared"
     plan = plan_conflict_lanes(
         [
@@ -46,7 +46,7 @@ def test_treasury_policy_set_is_not_parallelized_with_same_wallet_signer_mutatio
     assert len(serial_lane_ids) == 2
 
 
-def test_group_treasury_policy_set_is_not_parallelized_with_group_treasury_create_batch142() -> None:
+def test_group_treasury_policy_set_is_not_parallelized_with_group_treasury_create() -> None:
     group_id = "group-shared"
     plan = plan_conflict_lanes(
         [

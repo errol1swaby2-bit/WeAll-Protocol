@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_tester_node_boot_sets_explicit_local_cors_batch476() -> None:
+def test_tester_node_boot_sets_explicit_local_cors() -> None:
     script = (ROOT / "scripts" / "weall_tester_node.sh").read_text(encoding="utf-8")
 
     assert "WEALL_CORS_ORIGINS" in script

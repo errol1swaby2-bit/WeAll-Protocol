@@ -95,7 +95,7 @@ def _client(state: dict[str, Any]) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_media_proxy_serves_single_byte_range_from_verified_cache_batch369(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_serves_single_byte_range_from_verified_cache(tmp_path: Path, monkeypatch) -> None:
     data = b"0123456789abcdefghijklmnopqrstuvwxyz"
     cid = _cidv1_raw_sha256(data)
     cache_dir = tmp_path / "cache"
@@ -124,7 +124,7 @@ def test_media_proxy_serves_single_byte_range_from_verified_cache_batch369(tmp_p
         assert res.headers.get("content-type", "").startswith("video/mp4")
 
 
-def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss_batch369(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss(tmp_path: Path, monkeypatch) -> None:
     data = b"abcdefghijklmnopqrstuvwxyz0123456789"
     cid = _cidv1_raw_sha256(data)
     calls: list[str] = []
@@ -155,7 +155,7 @@ def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss_
         assert calls == [f"https://provider.example/ipfs/{cid}"]
 
 
-def test_media_proxy_rejects_multi_range_and_unsatisfiable_ranges_batch369(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_rejects_multi_range_and_unsatisfiable_ranges(tmp_path: Path, monkeypatch) -> None:
     data = b"0123456789"
     cid = _cidv1_raw_sha256(data)
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -180,7 +180,7 @@ def test_media_proxy_rejects_multi_range_and_unsatisfiable_ranges_batch369(tmp_p
         assert miss.json()["error"]["code"] == "media_range_not_satisfiable"
 
 
-def test_public_state_snapshot_redacts_groups_by_id_member_maps_batch369() -> None:
+def test_public_state_snapshot_redacts_groups_by_id_member_maps() -> None:
     state = {
         "chain_id": "batch369",
         "height": 1,

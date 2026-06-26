@@ -61,7 +61,7 @@ def _build_bundle(tmp_path: Path, *, genesis_api: str = "https://genesis.example
     return manifest, bundle
 
 
-def test_observer_bundle_rejects_unsafe_runtime_flags_batch345(tmp_path: Path) -> None:
+def test_observer_bundle_rejects_unsafe_runtime_flags(tmp_path: Path) -> None:
     manifest, bundle = _build_bundle(tmp_path)
     data = json.loads(bundle.read_text(encoding="utf-8"))
     data["observer"].update(
@@ -98,7 +98,7 @@ def test_observer_bundle_rejects_unsafe_runtime_flags_batch345(tmp_path: Path) -
     assert any(issue.startswith("observer_allowed_onboarding_transactions_unsafe:") for issue in issues)
 
 
-def test_observer_bundle_emit_shell_env_forces_safe_flags_batch345(tmp_path: Path) -> None:
+def test_observer_bundle_emit_shell_env_forces_safe_flags(tmp_path: Path) -> None:
     manifest, bundle = _build_bundle(tmp_path)
 
     result = subprocess.run(
@@ -120,7 +120,7 @@ def test_observer_bundle_emit_shell_env_forces_safe_flags_batch345(tmp_path: Pat
     assert "export WEALL_BLOCK_LOOP_AUTOSTART=0" in out
 
 
-def test_external_observer_live_gate_rejects_ipv6_loopback_before_network_batch345(tmp_path: Path) -> None:
+def test_external_observer_live_gate_rejects_ipv6_loopback_before_network(tmp_path: Path) -> None:
     manifest, bundle = _build_bundle(tmp_path)
     env = os.environ.copy()
     for key in list(env):
@@ -147,7 +147,7 @@ def test_external_observer_live_gate_rejects_ipv6_loopback_before_network_batch3
     assert "external observer live gate requires a remote non-local genesis API base" in result.stdout
 
 
-def test_observer_secret_boundary_is_shared_by_all_observer_scripts_batch345() -> None:
+def test_observer_secret_boundary_is_shared_by_all_observer_scripts() -> None:
     assert SECRET_LIB.exists()
     lib = SECRET_LIB.read_text(encoding="utf-8")
     for needle in (
@@ -174,7 +174,7 @@ def test_observer_secret_boundary_is_shared_by_all_observer_scripts_batch345() -
         assert "weall_check_observer_secret_boundary" in script
 
 
-def test_boot_onboarding_requires_preflight_or_public_bundle_batch345() -> None:
+def test_boot_onboarding_requires_preflight_or_public_bundle() -> None:
     script = (ROOT / "scripts" / "boot_onboarding_node.sh").read_text(encoding="utf-8")
     assert "WEALL_OBSERVER_PREFLIGHT_ALREADY_PASSED" in script
     assert "WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE" in script
@@ -182,20 +182,20 @@ def test_boot_onboarding_requires_preflight_or_public_bundle_batch345() -> None:
     assert "set WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE or run scripts/external_observer_onboarding_smoke.sh" in script
 
 
-def test_boot_node_operator_runs_prod_preflight_before_service_boot_batch345() -> None:
+def test_boot_node_operator_runs_prod_preflight_before_service_boot() -> None:
     script = (ROOT / "scripts" / "boot_node_operator.sh").read_text(encoding="utf-8")
     assert "prod_node_preflight.sh" in script
     assert script.index("prod_node_preflight.sh") < script.index("run_node_prod.sh")
 
 
-def test_two_machine_rehearsal_is_not_documented_as_live_e2e_batch345() -> None:
+def test_two_machine_rehearsal_is_not_documented_as_live_e2e() -> None:
     script = REHEARSAL.read_text(encoding="utf-8")
     assert "connectivity/preflight only" in script
     assert "does not submit signed onboarding transactions" in script
     assert "external_observer_live_gate.sh" in script
 
 
-def test_external_observer_final_authority_absence_checks_operator_status_batch345() -> None:
+def test_external_observer_final_authority_absence_checks_operator_status() -> None:
     script = LIVE_GATE.read_text(encoding="utf-8")
     assert "/v1/accounts/" in script
     assert "/operator-status?node_pubkey=" in script

@@ -31,7 +31,7 @@ def _write_empty_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_direct_config_loads_default_chain_manifest_batch326(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_direct_config_loads_default_chain_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
     monkeypatch.delenv("WEALL_REQUIRE_CHAIN_MANIFEST", raising=False)
@@ -47,7 +47,7 @@ def test_prod_direct_config_loads_default_chain_manifest_batch326(monkeypatch: p
     assert not [issue for issue in issues if "chain_manifest" in issue]
 
 
-def test_prod_rejects_explicitly_disabled_chain_manifest_batch326(
+def test_prod_rejects_explicitly_disabled_chain_manifest(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -60,14 +60,14 @@ def test_prod_rejects_explicitly_disabled_chain_manifest_batch326(
         load_chain_config()
 
 
-def test_production_vrf_is_pinned_required_batch326(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_vrf_is_pinned_required(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_REQUIRE_VRF", raising=False)
 
     assert runtime_vrf_required() is True
 
 
-def test_production_genesis_founder_tier2_has_bootstrap_audit_receipt_batch326() -> None:
+def test_production_genesis_founder_tier2_has_bootstrap_audit_receipt() -> None:
     genesis = json.loads((ROOT / "configs/genesis.ledger.prod.json").read_text(encoding="utf-8"))
     founder_id = genesis["params"]["bootstrap_founder_account"]
     founder = genesis["accounts"][founder_id]
@@ -94,7 +94,7 @@ def test_production_genesis_founder_tier2_has_bootstrap_audit_receipt_batch326()
     assert report["ok"] is True, report["issues"]
 
 
-def test_prod_disables_explicit_validator_signing_override_batch326(
+def test_prod_disables_explicit_validator_signing_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -123,7 +123,7 @@ def test_prod_disables_explicit_validator_signing_override_batch326(
     assert ex._explicit_validator_signing_override() is False
 
 
-def test_storage_payout_execute_requires_economics_activation_batch326() -> None:
+def test_storage_payout_execute_requires_economics_activation() -> None:
     state = {
         "chain_id": "weall-test",
         "height": 1,

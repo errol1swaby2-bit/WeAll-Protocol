@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_dispute_detail_exposes_only_viewer_juror_scope_batch389() -> None:
+def test_dispute_detail_exposes_only_viewer_juror_scope() -> None:
     api = _read(NESTED / "src/weall/api/routes_public_parts/disputes.py")
     surface = _read(WEB / "src/lib/disputeSurface.ts")
 
@@ -28,7 +28,7 @@ def test_dispute_detail_exposes_only_viewer_juror_scope_batch389() -> None:
     assert "selfScopedJurorRecord" in surface
 
 
-def test_local_rehearsal_sets_one_reviewer_async_quorum_batch389() -> None:
+def test_local_rehearsal_sets_one_reviewer_async_quorum() -> None:
     script = _read(NESTED / "scripts/devnet_local_two_frontend_rehearsal.sh")
     executor = _read(NESTED / "src/weall/runtime/executor.py")
 

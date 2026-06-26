@@ -22,7 +22,7 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_batch491_no_reviewert_typo_in_reviewer_facing_docs_or_scripts() -> None:
+def test_no_reviewert_typo_in_reviewer_facing_docs_or_scripts() -> None:
     hits: list[str] = []
 
     for rel in REVIEWER_FACING_PATHS:
@@ -33,7 +33,7 @@ def test_batch491_no_reviewert_typo_in_reviewer_facing_docs_or_scripts() -> None
     assert hits == []
 
 
-def test_batch491_truth_boundary_checker_uses_reviewer_language() -> None:
+def test_truth_boundary_checker_uses_reviewer_language() -> None:
     text = _read("scripts/check_reviewer_truth_boundaries.py")
 
     assert "reviewer-facing docs" in text
@@ -42,7 +42,7 @@ def test_batch491_truth_boundary_checker_uses_reviewer_language() -> None:
     assert "reviewert" not in text.lower()
 
 
-def test_batch491_bundle_verifier_help_uses_reviewer_language() -> None:
+def test_bundle_verifier_help_uses_reviewer_language() -> None:
     text = _read("scripts/verify_node_operator_onboarding_bundle.py")
 
     assert "reviewer/external-observer path" in text
@@ -50,7 +50,7 @@ def test_batch491_bundle_verifier_help_uses_reviewer_language() -> None:
     assert "reviewert" not in text.lower()
 
 
-def test_batch491_truth_boundary_checker_still_passes() -> None:
+def test_truth_boundary_checker_still_passes() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_reviewer_truth_boundaries.py"],
         cwd=ROOT,

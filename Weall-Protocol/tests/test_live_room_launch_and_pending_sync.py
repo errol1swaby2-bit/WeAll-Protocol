@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_live_request_uses_sequenced_nonce_and_opens_expected_room_batch417() -> None:
+def test_live_request_uses_sequenced_nonce_and_opens_expected_room() -> None:
     page = _read(WEB / "pages" / "AccountVerificationPage.tsx")
     body = page.split("async function submitLiveRequest()", 1)[1].split("const asyncSubmitCheck", 1)[0]
 
@@ -25,7 +25,7 @@ def test_live_request_uses_sequenced_nonce_and_opens_expected_room_batch417() ->
     assert 'nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)' in body
 
 
-def test_live_room_polls_when_navigated_before_case_sync_batch417() -> None:
+def test_live_room_polls_when_navigated_before_case_sync() -> None:
     room = _read(WEB / "pages" / "LiveVerificationRoom.tsx")
 
     assert "casePendingSync" in room
@@ -35,7 +35,7 @@ def test_live_room_polls_when_navigated_before_case_sync_batch417() -> None:
     assert "Live request accepted. Waiting for the live case and session to sync into this frontend" in room
 
 
-def test_reviewer_queue_surfaces_pending_live_sessions_before_assignment_batch417() -> None:
+def test_reviewer_queue_surfaces_pending_live_sessions_before_assignment() -> None:
     dashboard = _read(WEB / "pages" / "JurorDashboard.tsx")
 
     assert "livePendingSessions" in dashboard

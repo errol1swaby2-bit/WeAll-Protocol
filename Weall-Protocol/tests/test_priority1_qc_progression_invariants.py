@@ -14,7 +14,7 @@ def _qc(*, chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCer
     )
 
 
-def test_observe_qc_raises_high_qc_monotonically_batch46() -> None:
+def test_observe_qc_raises_high_qc_monotonically() -> None:
     hs = HotStuffBFT(chain_id="batch46")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -42,7 +42,7 @@ def test_observe_qc_raises_high_qc_monotonically_batch46() -> None:
     assert int(hs.high_qc.view) == 5
 
 
-def test_locked_qc_stays_on_descendant_path_only_batch46() -> None:
+def test_locked_qc_stays_on_descendant_path_only() -> None:
     hs = HotStuffBFT(chain_id="batch46")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -67,7 +67,7 @@ def test_locked_qc_stays_on_descendant_path_only_batch46() -> None:
     assert int(hs.locked_qc.view) == 8
 
 
-def test_high_qc_and_locked_qc_progression_survive_reload_batch46() -> None:
+def test_high_qc_and_locked_qc_progression_survive_reload() -> None:
     hs = HotStuffBFT(chain_id="batch46")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -102,7 +102,7 @@ def test_high_qc_and_locked_qc_progression_survive_reload_batch46() -> None:
     assert hs3.locked_qc.block_id == "D"
 
 
-def test_finalized_markers_remain_monotonic_across_reloads_batch46() -> None:
+def test_finalized_markers_remain_monotonic_across_reloads() -> None:
     hs = HotStuffBFT(chain_id="batch46")
     hs.finalized_view = 10
     hs.finalized_block_id = "F10"

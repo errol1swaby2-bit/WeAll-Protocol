@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_qc_with_unknown_parent_is_ignored_batch53() -> None:
+def test_qc_with_unknown_parent_is_ignored() -> None:
     hs = HotStuffBFT(chain_id="b53")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -25,7 +25,7 @@ def test_qc_with_unknown_parent_is_ignored_batch53() -> None:
     assert hs.high_qc is None
 
 
-def test_qc_chain_progression_requires_parent_link_batch53() -> None:
+def test_qc_chain_progression_requires_parent_link() -> None:
     hs = HotStuffBFT(chain_id="b53")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -43,7 +43,7 @@ def test_qc_chain_progression_requires_parent_link_batch53() -> None:
     assert int(hs.high_qc.view) == 2
 
 
-def test_can_vote_for_rejects_if_locked_branch_conflicts_batch53() -> None:
+def test_can_vote_for_rejects_if_locked_branch_conflicts() -> None:
     hs = HotStuffBFT(chain_id="b53")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -58,7 +58,7 @@ def test_can_vote_for_rejects_if_locked_branch_conflicts_batch53() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="C", justify_qc=None) is True
 
 
-def test_high_qc_updates_only_on_strictly_higher_view_batch53() -> None:
+def test_high_qc_updates_only_on_strictly_higher_view() -> None:
     hs = HotStuffBFT(chain_id="b53")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -78,7 +78,7 @@ def test_high_qc_updates_only_on_strictly_higher_view_batch53() -> None:
     assert int(hs.high_qc.view) == 4
 
 
-def test_same_view_conflicting_vote_is_rejected_batch53() -> None:
+def test_same_view_conflicting_vote_is_rejected() -> None:
     hs = HotStuffBFT(chain_id="b53")
 
     assert hs.record_local_vote(view=4, block_id="B4") is True

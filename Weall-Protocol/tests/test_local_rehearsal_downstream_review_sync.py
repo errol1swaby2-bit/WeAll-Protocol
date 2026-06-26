@@ -13,7 +13,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_devnet_sync_from_peer_sends_operator_token_when_configured_batch386() -> None:
+def test_devnet_sync_from_peer_sends_operator_token_when_configured() -> None:
     src = _read(NESTED / "scripts" / "devnet_sync_from_peer.sh")
 
     assert "local headers=(-H 'content-type: application/json')" in src
@@ -23,7 +23,7 @@ def test_devnet_sync_from_peer_sends_operator_token_when_configured_batch386() -
     assert 'curl -sS "${headers[@]}" --data-binary' in src
 
 
-def test_local_two_frontend_rehearsal_starts_downstream_sync_worker_batch386() -> None:
+def test_local_two_frontend_rehearsal_starts_downstream_sync_worker() -> None:
     src = _read(NESTED / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
 
     assert 'DOWNSTREAM_SYNC_PID=""' in src
@@ -34,7 +34,7 @@ def test_local_two_frontend_rehearsal_starts_downstream_sync_worker_batch386() -
     assert "downstream_sync_log=${DOWNSTREAM_SYNC_LOG}" in src
 
 
-def test_async_evidence_waits_for_local_sync_before_dependent_txs_batch386() -> None:
+def test_async_evidence_waits_for_local_sync_before_dependent_txs() -> None:
     page = _read(WEB / "pages" / "AccountVerificationPage.tsx")
 
     assert "requireLocalStateSynced?: boolean" in page
@@ -49,7 +49,7 @@ def test_async_evidence_waits_for_local_sync_before_dependent_txs_batch386() -> 
     assert "acceptAccepted: true" in page
 
 
-def test_content_escalation_uses_explicit_content_review_lane_opt_in_batch386() -> None:
+def test_content_escalation_uses_explicit_content_review_lane_opt_in() -> None:
     src = _read(NESTED / "src" / "weall" / "runtime" / "apply" / "content.py")
 
     assert "explicit_active_juror_opt_in_required" in src

@@ -14,7 +14,7 @@ def _write_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}, sort_keys=True), encoding="utf-8")
 
 
-def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys_batch316(tmp_path: Path) -> None:
+def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     _write_tx_index(tx_index)
     result = subprocess.run(
@@ -44,7 +44,7 @@ def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys_batch31
     assert "placeholder_value:founding_pubkey" in (result.stderr + result.stdout)
 
 
-def test_production_genesis_manifest_builder_pins_lock_and_manifest_batch316(tmp_path: Path) -> None:
+def test_production_genesis_manifest_builder_pins_lock_and_manifest(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     _write_tx_index(tx_index)
     genesis = tmp_path / "genesis.json"

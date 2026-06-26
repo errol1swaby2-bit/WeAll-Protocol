@@ -27,7 +27,7 @@ def _run_json(script: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def test_batch517_real_validator_network_rehearsal() -> None:
+def test_real_validator_network_rehearsal() -> None:
     out = _run_json("rehearse_real_validator_network_v1_5.py")
     assert out["ok"] is True
     assert out["public_validator_enabled"] is False
@@ -36,7 +36,7 @@ def test_batch517_real_validator_network_rehearsal() -> None:
     assert out["observer_attempt"]["can_vote"] is False
 
 
-def test_batch518_fresh_node_replay_sync_rehearsal() -> None:
+def test_fresh_node_replay_sync_rehearsal() -> None:
     out = _run_json("rehearse_fresh_node_replay_sync_v1_5.py")
     assert out["ok"] is True
     assert out["snapshot_used"] is False
@@ -44,7 +44,7 @@ def test_batch518_fresh_node_replay_sync_rehearsal() -> None:
     assert out["source_state_root"] == out["fresh_state_root"] == out["interrupted_resume_root"]
 
 
-def test_batch519_poh_upheld_challenge_flags_prior_approving_reviewers() -> None:
+def test_poh_upheld_challenge_flags_prior_approving_reviewers() -> None:
     state = {
         "height": 15,
         "accounts": {"alice": {"poh_tier": 1}, "juror-a": {}, "juror-b": {}},
@@ -71,7 +71,7 @@ def test_batch519_poh_upheld_challenge_flags_prior_approving_reviewers() -> None
     assert rec["challenge_upheld_review_count"] == 1
 
 
-def test_batch519_dispute_target_registry_and_unsupported_action_rejection() -> None:
+def test_dispute_target_registry_and_unsupported_action_rejection() -> None:
     state = {"height": 1, "accounts": {"alice": {}, "bob": {}}, "disputes_by_id": {}}
     with pytest.raises(DisputeApplyError) as exc:
         apply_dispute(state, _env("DISPUTE_OPEN", signer="alice", nonce=1, payload={"dispute_id": "bad", "target_type": "weather", "target_id": "x", "reason": "unsupported"}))
@@ -84,7 +84,7 @@ def test_batch519_dispute_target_registry_and_unsupported_action_rejection() -> 
     assert state["dispute_enforcement_rejections"][0]["reason"] == "unsupported_enforcement_action"
 
 
-def test_batch520_economics_activation_preconditions_are_enforceable_but_opt_in() -> None:
+def test_economics_activation_preconditions_are_enforceable_but_opt_in() -> None:
     state = {"height": 10, "time": 2_000_000_000, "params": {"economic_unlock_time": 1, "economics_enabled": False}, "accounts": {"SYSTEM": {}}}
     with pytest.raises(EconomicsApplyError) as exc:
         apply_economics(state, _env("ECONOMICS_ACTIVATION", signer="SYSTEM", system=True, nonce=1, payload={"enable": True, "enforce_preconditions": True}))
@@ -98,7 +98,7 @@ def test_batch520_economics_activation_preconditions_are_enforceable_but_opt_in(
     assert state["economics"]["activation_preconditions"]["ready"] is True
 
 
-def test_batch520_storage_pin_confirm_can_record_retrieval_availability() -> None:
+def test_storage_pin_confirm_can_record_retrieval_availability() -> None:
     state = {"height": 7, "params": {"ipfs_replication_factor": 1}, "storage": {"operators": {"opA": {"enabled": True, "capacity_bytes": 1000}}, "pins": {"pin-1": {"pin_id": "pin-1", "cid": CID_A, "targets": ["opA"], "size_bytes": 10, "replication_factor": 1}}, "pin_confirms": []}, "accounts": {"opA": {}}}
     out = apply_storage(state, _env("IPFS_PIN_CONFIRM", signer="SYSTEM", system=True, nonce=1, payload={"pin_id": "pin-1", "cid": CID_A, "operator_id": "opA", "ok": True, "retrieval_ok": True}))
     assert out["applied"] == "IPFS_PIN_CONFIRM"
@@ -108,7 +108,7 @@ def test_batch520_storage_pin_confirm_can_record_retrieval_availability() -> Non
     assert pin["retrieval_proofs"][0]["status"] == "retrievable"
 
 
-def test_batch521_full_lifecycle_and_feed_ranking_completion_artifact() -> None:
+def test_full_lifecycle_and_feed_ranking_completion_artifact() -> None:
     out = _run_json("rehearse_v15_full_lifecycle.py")
     assert out["ok"] is True
     assert out["locked_boundaries"] == {"public_validators": False, "live_economics": False, "automatic_upgrades": False, "production_helpers": False}

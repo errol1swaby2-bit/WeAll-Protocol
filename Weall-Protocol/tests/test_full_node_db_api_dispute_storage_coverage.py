@@ -27,7 +27,7 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any] | None =
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="sig", system=system, parent=parent)
 
 
-def test_batch534_full_node_process_validator_rehearsal_uses_fastapi_processes() -> None:
+def test_full_node_process_validator_rehearsal_uses_fastapi_processes() -> None:
     out = _proof()["validator_rehearsal"]
     assert out["ok"] is True
     assert out["process_model"] == "actual_fastapi_uvicorn_processes"
@@ -41,7 +41,7 @@ def test_batch534_full_node_process_validator_rehearsal_uses_fastapi_processes()
     assert out["public_validator_enabled"] is False
 
 
-def test_batch535_real_db_block_replay_sync_uses_commit_tables_and_rejects_corrupt_blocks() -> None:
+def test_real_db_block_replay_sync_uses_commit_tables_and_rejects_corrupt_blocks() -> None:
     out = _proof()["replay_sync"]
     assert out["ok"] is True
     assert out["source_db_backed"] is True
@@ -54,7 +54,7 @@ def test_batch535_real_db_block_replay_sync_uses_commit_tables_and_rejects_corru
     assert out["source_state_root"] == out["fresh_state_root"]
 
 
-def test_batch536_fully_api_driven_lifecycle_exercises_core_api_surfaces_and_boundaries() -> None:
+def test_fully_api_driven_lifecycle_exercises_core_api_surfaces_and_boundaries() -> None:
     out = _proof()["api_lifecycle"]
     assert out["ok"] is True
     assert out["api_route_count"] >= 6
@@ -71,7 +71,7 @@ def test_batch536_fully_api_driven_lifecycle_exercises_core_api_surfaces_and_bou
     assert out["protocol_upgrade_record_only"] is True
 
 
-def test_batch537_dispute_appeal_remedy_can_reinstate_account_and_role_eligibility() -> None:
+def test_dispute_appeal_remedy_can_reinstate_account_and_role_eligibility() -> None:
     state: dict[str, Any] = {
         "height": 5,
         "accounts": {
@@ -101,7 +101,7 @@ def test_batch537_dispute_appeal_remedy_can_reinstate_account_and_role_eligibili
     assert state["accounts"]["@juror"]["role_eligibility"]["dispute_juror"]["eligible"] is True
 
 
-def test_batch538_storage_operator_durability_rehearses_failure_reassignment_and_retrieval() -> None:
+def test_storage_operator_durability_rehearses_failure_reassignment_and_retrieval() -> None:
     out = _proof()["storage_durability"]
     assert out["ok"] is True
     assert out["reassignment_recorded"] is True
@@ -111,7 +111,7 @@ def test_batch538_storage_operator_durability_rehearses_failure_reassignment_and
     assert out["retrieval_proof_count"] >= 1
 
 
-def test_batch534_538_generated_proof_artifact_preserves_locks() -> None:
+def test_generated_proof_artifact_preserves_locks() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["validator_rehearsal"]["process_model"] == "actual_fastapi_uvicorn_processes"

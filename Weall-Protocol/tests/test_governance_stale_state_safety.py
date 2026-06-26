@@ -20,7 +20,7 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool =
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system)
 
 
-def test_gov_proposal_withdraw_rejects_after_close_batch109() -> None:
+def test_gov_proposal_withdraw_rejects_after_close() -> None:
     st = _mk_state()
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p-close", "title": "t"}))
     apply_tx(st, _env("GOV_STAGE_SET", "SYSTEM", 1, {"proposal_id": "p-close", "stage": "voting", "_due_height": 1}, system=True))
@@ -32,7 +32,7 @@ def test_gov_proposal_withdraw_rejects_after_close_batch109() -> None:
     assert exc.value.reason == "proposal_not_withdrawable"
 
 
-def test_gov_vote_revoke_rejects_after_finalize_batch109() -> None:
+def test_gov_vote_revoke_rejects_after_finalize() -> None:
     st = _mk_state()
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p-fin", "title": "t"}))
     apply_tx(st, _env("GOV_STAGE_SET", "SYSTEM", 1, {"proposal_id": "p-fin", "stage": "voting", "_due_height": 1}, system=True))
@@ -65,7 +65,7 @@ def test_gov_vote_revoke_rejects_after_finalize_batch109() -> None:
     assert exc.value.reason == "proposal_vote_state_frozen"
 
 
-def test_gov_finalize_rejects_withdrawn_proposal_batch109() -> None:
+def test_gov_finalize_rejects_withdrawn_proposal() -> None:
     st = _mk_state()
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p-wd", "title": "t"}))
     apply_tx(st, _env("GOV_PROPOSAL_WITHDRAW", "alice", 2, {"proposal_id": "p-wd"}))

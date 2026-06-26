@@ -14,7 +14,7 @@ def _qc(*, chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCer
     )
 
 
-def test_local_vote_persistence_survives_state_reload_batch44() -> None:
+def test_local_vote_persistence_survives_state_reload() -> None:
     hs = HotStuffBFT(chain_id="batch44")
 
     assert hs.record_local_vote(view=3, block_id="B3") is True
@@ -33,7 +33,7 @@ def test_local_vote_persistence_survives_state_reload_batch44() -> None:
     assert hs2.record_local_vote(view=4, block_id="B4") is True
 
 
-def test_high_qc_and_locked_qc_survive_state_reload_batch44() -> None:
+def test_high_qc_and_locked_qc_survive_state_reload() -> None:
     hs = HotStuffBFT(chain_id="batch44")
 
     hs.high_qc = _qc(chain_id="batch44", view=7, block_id="H7", parent_id="H6")
@@ -52,7 +52,7 @@ def test_high_qc_and_locked_qc_survive_state_reload_batch44() -> None:
     assert int(hs2.locked_qc.view) == 5
 
 
-def test_high_qc_monotonicity_rejects_lower_view_reload_batch44() -> None:
+def test_high_qc_monotonicity_rejects_lower_view_reload() -> None:
     hs = HotStuffBFT(chain_id="batch44")
     hs.high_qc = _qc(chain_id="batch44", view=9, block_id="H9", parent_id="H8")
 
@@ -79,7 +79,7 @@ def test_high_qc_monotonicity_rejects_lower_view_reload_batch44() -> None:
     assert int(hs3.high_qc.view) == 4
 
 
-def test_finalized_view_and_block_id_persist_without_regression_batch44() -> None:
+def test_finalized_view_and_block_id_persist_without_regression() -> None:
     hs = HotStuffBFT(chain_id="batch44")
     hs.finalized_view = 11
     hs.finalized_block_id = "F11"

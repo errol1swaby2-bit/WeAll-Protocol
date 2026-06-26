@@ -21,7 +21,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_batch248_live_juror_replace_is_canonical_and_claimed() -> None:
+def test_live_juror_replace_is_canonical_and_claimed() -> None:
     idx = load_default_tx_index()
     row = idx.get(TX_TYPE)
 
@@ -43,7 +43,7 @@ def test_batch248_live_juror_replace_is_canonical_and_claimed() -> None:
     assert summary["single_claim_count"] == 234
 
 
-def test_batch248_generated_index_matches_canon_source_hash() -> None:
+def test_generated_index_matches_canon_source_hash() -> None:
     root = _repo_root()
     spec_path = root / "specs" / "tx_canon" / "tx_canon.yaml"
     index_path = root / "generated" / "tx_index.json"
@@ -57,7 +57,7 @@ def test_batch248_generated_index_matches_canon_source_hash() -> None:
     assert raw["tx_types"][raw["by_name"][TX_TYPE]]["name"] == TX_TYPE
 
 
-def test_batch248_live_juror_replace_conflict_rule_is_poh_authority() -> None:
+def test_live_juror_replace_conflict_rule_is_poh_authority() -> None:
     desc = build_conflict_descriptor(
         {
             "tx_type": TX_TYPE,

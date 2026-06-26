@@ -49,7 +49,7 @@ def _make_minimal_executor(
     return ex, dropped, applied
 
 
-def test_pending_frontier_drops_terminal_apply_failure_batch99(monkeypatch) -> None:
+def test_pending_frontier_drops_terminal_apply_failure(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     block_b = {"block_id": "B", "block_hash": "hash-B", "height": 2, "prev_block_id": "A"}
     qc_b = {"block_id": "B", "block_hash": "hash-B", "view": 3}
@@ -69,7 +69,7 @@ def test_pending_frontier_drops_terminal_apply_failure_batch99(monkeypatch) -> N
     assert ex._pending_missing_qcs == {}
 
 
-def test_pending_frontier_continues_after_dropping_invalid_head_batch99(monkeypatch) -> None:
+def test_pending_frontier_continues_after_dropping_invalid_head(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     block_b = {"block_id": "B", "block_hash": "hash-B", "height": 2, "prev_block_id": "A"}
     block_c = {"block_id": "C", "block_hash": "hash-C", "height": 3, "prev_block_id": "A"}

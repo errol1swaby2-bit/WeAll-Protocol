@@ -12,7 +12,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_dispute_review_fetches_detail_with_session_headers_batch390() -> None:
+def test_dispute_review_fetches_detail_with_session_headers() -> None:
     src = _read(WEB / "src" / "pages" / "DisputeReview.tsx")
 
     assert "const headers = account ? getAuthHeaders(account) : undefined;" in src
@@ -23,7 +23,7 @@ def test_dispute_review_fetches_detail_with_session_headers_batch390() -> None:
     assert "juror_self" in _read(WEB / "src" / "lib" / "disputeSurface.ts")
 
 
-def test_account_verification_opens_visible_live_room_after_request_batch390() -> None:
+def test_account_verification_opens_visible_live_room_after_request() -> None:
     src = _read(WEB / "src" / "pages" / "AccountVerificationPage.tsx")
 
     assert "waitForLiveCaseIdVisible" in src
@@ -31,7 +31,7 @@ def test_account_verification_opens_visible_live_room_after_request_batch390() -
     assert "nav(`/verification/live/${encodeURIComponent(visibleCaseId)}`)" in src
 
 
-def test_local_rehearsal_sets_one_reviewer_live_quorum_batch390() -> None:
+def test_local_rehearsal_sets_one_reviewer_live_quorum() -> None:
     src = _read(ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
 
     assert src.count("WEALL_POH_LIVE_MIN_REP_MILLI") >= 2
@@ -41,7 +41,7 @@ def test_local_rehearsal_sets_one_reviewer_live_quorum_batch390() -> None:
     assert src.count("WEALL_POH_LIVE_PARTIAL_UNTIL_HEIGHT") >= 2
 
 
-def test_executor_maps_live_rehearsal_env_into_genesis_params_batch390() -> None:
+def test_executor_maps_live_rehearsal_env_into_genesis_params() -> None:
     src = _read(ROOT / "src" / "weall" / "runtime" / "executor.py")
 
     assert '"live_min_rep_milli": "WEALL_POH_LIVE_MIN_REP_MILLI"' in src

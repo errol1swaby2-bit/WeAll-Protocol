@@ -13,7 +13,7 @@ def _script(rel: str) -> Path:
     return REPO_ROOT / rel
 
 
-def test_devnet_live_scripts_are_syntax_valid_and_non_demo_batch217() -> None:
+def test_devnet_live_scripts_are_syntax_valid_and_non_demo() -> None:
     scripts = [
         "scripts/devnet_bootstrap_live.sh",
         "scripts/devnet_prepare_live_jurors.sh",
@@ -39,7 +39,7 @@ def test_devnet_live_scripts_are_syntax_valid_and_non_demo_batch217() -> None:
         assert "demo-seed" not in text
 
 
-def test_devnet_live_cli_commands_are_exposed_batch217() -> None:
+def test_devnet_live_cli_commands_are_exposed() -> None:
     env = dict(os.environ)
     env["PYTHONPATH"] = str(REPO_ROOT / "src")
     commands = [
@@ -64,7 +64,7 @@ def test_devnet_live_cli_commands_are_exposed_batch217() -> None:
         assert command in proc.stdout
 
 
-def test_full_onboarding_smoke_can_run_protocol_native_live_flow_batch217() -> None:
+def test_full_onboarding_smoke_can_run_protocol_native_live_flow() -> None:
     script = _script("scripts/devnet_full_onboarding_e2e.sh").read_text(encoding="utf-8")
     assert "WEALL_DEVNET_RUN_LIVE" in script
     assert "_run_live_devnet_flow" in script
@@ -78,7 +78,7 @@ def test_full_onboarding_smoke_can_run_protocol_native_live_flow_batch217() -> N
     assert "Syncing node 2 from node 1 after Live finalization" in script
 
 
-def test_full_live_wrapper_enables_tier2_and_live_batch217() -> None:
+def test_full_live_wrapper_enables_tier2_and_live() -> None:
     wrapper = _script("scripts/devnet_full_live_e2e.sh").read_text(encoding="utf-8")
     assert 'WEALL_DEVNET_RUN_TIER2="${WEALL_DEVNET_RUN_TIER2:-1}"' in wrapper
     assert 'WEALL_DEVNET_RUN_LIVE="${WEALL_DEVNET_RUN_LIVE:-1}"' in wrapper
@@ -86,7 +86,7 @@ def test_full_live_wrapper_enables_tier2_and_live_batch217() -> None:
     assert "/v1/dev/demo-seed" not in wrapper
 
 
-def test_controlled_devnet_uses_partial_live_panel_not_open_bootstrap_batch217() -> None:
+def test_controlled_devnet_uses_partial_live_panel_not_open_bootstrap() -> None:
     genesis = _script("scripts/devnet_boot_genesis_node.sh").read_text(encoding="utf-8")
     joining = _script("scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
     assert 'WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in genesis
@@ -97,7 +97,7 @@ def test_controlled_devnet_uses_partial_live_panel_not_open_bootstrap_batch217()
     assert "live_partial_panels=${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED}" in joining
 
 
-def test_live_devnet_flow_uses_normal_txs_not_operator_mutation_batch217() -> None:
+def test_live_devnet_flow_uses_normal_txs_not_operator_mutation() -> None:
     files = [
         "scripts/devnet_bootstrap_live.sh",
         "scripts/devnet_prepare_live_jurors.sh",

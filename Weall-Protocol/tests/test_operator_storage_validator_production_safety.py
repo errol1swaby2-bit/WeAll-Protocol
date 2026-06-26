@@ -44,7 +44,7 @@ def _storage_opt_in(st: dict) -> None:
     apply_tx(st, _env("NODE_OPERATOR_STORAGE_OPT_IN", "@op", 1, {"account_id": "@op", "node_pubkey": "node-pub-1", "declared_capacity_bytes": 1_000_000}))
 
 
-def test_storage_capacity_probe_must_cover_protocol_offsets_before_verification_batch302() -> None:
+def test_storage_capacity_probe_must_cover_protocol_offsets_before_verification() -> None:
     st = _state()
     _storage_opt_in(st)
 
@@ -67,7 +67,7 @@ def test_storage_capacity_probe_must_cover_protocol_offsets_before_verification_
     assert storage.details["proof_expires_height"] == 60
 
 
-def test_legacy_storage_offer_without_responsibility_is_removed_batch302() -> None:
+def test_legacy_storage_offer_without_responsibility_is_removed() -> None:
     st = {"height": 1, "accounts": {"@legacy": {"poh_tier": 2}}, "storage": {"operators": {"@legacy": {"enabled": True, "capacity_bytes": 1_000_000}}}}
     with pytest.raises(ApplyError):
         apply_tx(st, _env("STORAGE_OFFER_CREATE", "@legacy", 1, {"offer_id": "legacy", "capacity_bytes": 1_000}))
@@ -75,7 +75,7 @@ def test_legacy_storage_offer_without_responsibility_is_removed_batch302() -> No
     assert pin["targets"] == []
 
 
-def test_storage_proof_expiry_and_allocation_accounting_block_overallocation_batch302() -> None:
+def test_storage_proof_expiry_and_allocation_accounting_block_overallocation() -> None:
     st = _state()
     _storage_opt_in(st)
     issued = apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 2, {"proof_scope": "capacity_probe", "challenge_id": "probe-2", "account_id": "@op", "reserved_capacity_bytes": 100_000, "sample_count": 1, "sample_size_bytes": 512, "expires_height": 20}, system=True))
@@ -92,7 +92,7 @@ def test_storage_proof_expiry_and_allocation_accounting_block_overallocation_bat
     assert evaluate_storage_responsibility(st, "@op").active is False
 
 
-def test_validator_readiness_verification_required_before_active_validator_responsibility_batch302() -> None:
+def test_validator_readiness_verification_required_before_active_validator_responsibility() -> None:
     st = _state()
     apply_tx(st, _env("NODE_OPERATOR_VALIDATOR_OPT_IN", "@op", 1, {"account_id": "@op", "node_pubkey": "node-pub-1"}))
     pending = evaluate_validator_responsibility(st, "@op")

@@ -39,7 +39,7 @@ def _not_ready_report():
     )
 
 
-def test_helper_readiness_report_ready_with_helpers_batch25() -> None:
+def test_helper_readiness_report_ready_with_helpers() -> None:
     release = _all_green_report()
     preflight = decide_production_preflight(
         preflight=ProductionPreflightInput(
@@ -68,7 +68,7 @@ def test_helper_readiness_report_ready_with_helpers_batch25() -> None:
     assert report["release_gate"]["readiness_score"] == 100
 
 
-def test_helper_readiness_report_serial_only_batch25() -> None:
+def test_helper_readiness_report_serial_only() -> None:
     preflight = decide_production_preflight(
         preflight=ProductionPreflightInput(
             helper_mode_enabled=False,
@@ -95,7 +95,7 @@ def test_helper_readiness_report_serial_only_batch25() -> None:
     assert report["release_gate"] is None
 
 
-def test_helper_readiness_report_blocked_batch25() -> None:
+def test_helper_readiness_report_blocked() -> None:
     release = _not_ready_report()
     preflight = decide_production_preflight(
         preflight=ProductionPreflightInput(

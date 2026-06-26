@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch549_poh_challenge_public_write_path_closes_gap() -> None:
+def test_poh_challenge_public_write_path_closes_gap() -> None:
     out = _proof()["poh_challenge_public_write"]
     assert out["ok"] is True
     assert out["skeleton_route"] == "POST /v1/poh/challenge/tx/open"
@@ -24,7 +24,7 @@ def test_batch549_poh_challenge_public_write_path_closes_gap() -> None:
     assert out["system_or_receipt_submission_required"] is False
 
 
-def test_batch550_long_lived_validator_network_skeleton_uses_four_netloops() -> None:
+def test_long_lived_validator_network_skeleton_uses_four_netloops() -> None:
     out = _proof()["long_lived_validator_network_skeleton"]
     assert out["ok"] is True
     assert out["node_count"] == 4
@@ -37,7 +37,7 @@ def test_batch550_long_lived_validator_network_skeleton_uses_four_netloops() -> 
     assert out["public_beta_ready"] is False
 
 
-def test_batch551_multi_operator_storage_durability_keeps_public_media_boundary() -> None:
+def test_multi_operator_storage_durability_keeps_public_media_boundary() -> None:
     out = _proof()["multi_operator_storage_durability"]
     assert out["ok"] is True
     assert out["multi_operator_count"] >= 3
@@ -47,7 +47,7 @@ def test_batch551_multi_operator_storage_durability_keeps_public_media_boundary(
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch552_anti_sybil_evidence_retention_and_recovery_policy() -> None:
+def test_anti_sybil_evidence_retention_and_recovery_policy() -> None:
     out = _proof()["anti_sybil_evidence_retention_recovery"]
     assert out["ok"] is True
     assert out["retention_before_reverification"]["status"] == "retain_until_reverification_or_appeal"
@@ -60,7 +60,7 @@ def test_batch552_anti_sybil_evidence_retention_and_recovery_policy() -> None:
     assert out["collusion_detection_claimed"] is False
 
 
-def test_batch553_controlled_testnet_candidate_bundle_preserves_claim_boundaries() -> None:
+def test_controlled_testnet_candidate_bundle_preserves_claim_boundaries() -> None:
     proof = _proof()
     assert proof["ok"] is True
     candidate = proof["controlled_testnet_candidate_evidence"]
@@ -82,7 +82,7 @@ def test_batch553_controlled_testnet_candidate_bundle_preserves_claim_boundaries
     assert proof["remaining_public_testnet_gaps"]
 
 
-def test_batch549_553_generated_artifact_is_fresh() -> None:
+def test_generated_artifact_is_fresh() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py", "--check"],
         cwd=str(ROOT),

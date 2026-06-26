@@ -28,7 +28,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_restart_replay_same_pending_set_preserves_single_result_batch62(tmp_path: Path) -> None:
+def test_restart_replay_same_pending_set_preserves_single_result(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "pending.db")
@@ -70,7 +70,7 @@ def test_restart_replay_same_pending_set_preserves_single_result_batch62(tmp_pat
     assert len(ex3.read_mempool()) == 0
 
 
-def test_block_tip_is_stable_across_restart_without_new_work_batch62(tmp_path: Path) -> None:
+def test_block_tip_is_stable_across_restart_without_new_work(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "tip.db")
@@ -112,7 +112,7 @@ def test_block_tip_is_stable_across_restart_without_new_work_batch62(tmp_path: P
     assert tip3 == tip1
 
 
-def test_sequential_small_block_production_reaches_same_end_state_batch62(tmp_path: Path) -> None:
+def test_sequential_small_block_production_reaches_same_end_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -160,7 +160,7 @@ def test_sequential_small_block_production_reaches_same_end_state_batch62(tmp_pa
     assert tip_a or h_a >= 1
 
 
-def test_redundant_restart_cycles_do_not_reopen_committed_work_batch62(tmp_path: Path) -> None:
+def test_redundant_restart_cycles_do_not_reopen_committed_work(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "reopen.db")

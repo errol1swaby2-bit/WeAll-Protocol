@@ -132,7 +132,7 @@ def _run_activation_and_transfer(state: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
-def test_governance_activation_then_wecoin_transfer_replays_identically_batch339() -> None:
+def test_governance_activation_then_wecoin_transfer_replays_identically() -> None:
     left = _run_activation_and_transfer(copy.deepcopy(_governance_wallet_state()))
     right = _run_activation_and_transfer(copy.deepcopy(_governance_wallet_state()))
 
@@ -165,7 +165,7 @@ def _header() -> WireHeader:
     return WireHeader(type=MsgType.PING, chain_id="chain-observers", schema_version="1", tx_index_hash="h" * 64)
 
 
-def test_relay_spool_handles_five_recipient_bound_observers_without_mailbox_leakage_batch340(tmp_path: Path) -> None:
+def test_relay_spool_handles_five_recipient_bound_observers_without_mailbox_leakage(tmp_path: Path) -> None:
     cfg = _relay_cfg()
     spool = RelaySpool(tmp_path / "relay.sqlite")
     genesis_pub, genesis_priv = _priv_hex("genesis")

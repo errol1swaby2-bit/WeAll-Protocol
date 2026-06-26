@@ -83,7 +83,7 @@ def _journal_factory(tmp_path: Path):
     return factory
 
 
-def test_helper_soak_mixed_helper_and_fallback_rounds_batch15(tmp_path) -> None:
+def test_helper_soak_mixed_helper_and_fallback_rounds(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
     delta_ok = {"balances:alice": 5}
@@ -125,7 +125,7 @@ def test_helper_soak_mixed_helper_and_fallback_rounds_batch15(tmp_path) -> None:
     assert summary.failed_heights == ()
 
 
-def test_helper_soak_fail_closed_marks_bad_helper_round_failed_batch15(tmp_path) -> None:
+def test_helper_soak_fail_closed_marks_bad_helper_round_failed(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
     delta_ok = {"balances:alice": 5}
@@ -170,7 +170,7 @@ def test_helper_soak_fail_closed_marks_bad_helper_round_failed_batch15(tmp_path)
     assert (602, "receipts_root_mismatch") in summary.cycle_codes
 
 
-def test_helper_soak_can_degrade_to_serial_when_allowed_batch15(tmp_path) -> None:
+def test_helper_soak_can_degrade_to_serial_when_allowed(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
     delta_ok = {"balances:alice": 5}

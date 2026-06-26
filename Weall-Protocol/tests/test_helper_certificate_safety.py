@@ -11,7 +11,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_new_style_helper_certificate_defaults_issued_ms_to_zero_batch112() -> None:
+def test_new_style_helper_certificate_defaults_issued_ms_to_zero() -> None:
     cert = sign_helper_certificate(
         chain_id="batch112",
         height=7,
@@ -28,7 +28,7 @@ def test_new_style_helper_certificate_defaults_issued_ms_to_zero_batch112() -> N
     assert cert["issued_ms"] == 0
 
 
-def test_merge_helper_lane_results_rejects_tx_order_hash_mismatch_by_default_batch112() -> None:
+def test_merge_helper_lane_results_rejects_tx_order_hash_mismatch_by_default() -> None:
     tx = {"tx_id": "tx1", "tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1}
     lane_plan = LanePlan(
         lane_id="lane-a",

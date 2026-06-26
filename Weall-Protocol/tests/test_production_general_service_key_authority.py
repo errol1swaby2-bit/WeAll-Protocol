@@ -45,7 +45,7 @@ def _preflight(state: dict, *, roles: tuple[str, ...] = ("general_service",)):
     )
 
 
-def test_bound_account_alone_is_not_node_key_authority_batch307(monkeypatch) -> None:
+def test_bound_account_alone_is_not_node_key_authority(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -58,7 +58,7 @@ def test_bound_account_alone_is_not_node_key_authority_batch307(monkeypatch) -> 
     assert result.effective_roles == ()
 
 
-def test_general_service_cannot_bypass_node_operator_activation_batch307(monkeypatch) -> None:
+def test_general_service_cannot_bypass_node_operator_activation(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -73,7 +73,7 @@ def test_general_service_cannot_bypass_node_operator_activation_batch307(monkeyp
     assert active.effective_roles == ("general_service",)
 
 
-def test_general_service_is_only_added_after_a_requested_service_role_is_effective_batch307(monkeypatch) -> None:
+def test_general_service_is_only_added_after_a_requested_service_role_is_effective(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)

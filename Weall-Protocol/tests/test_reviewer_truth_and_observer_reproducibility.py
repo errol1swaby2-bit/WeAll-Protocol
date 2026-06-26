@@ -13,7 +13,7 @@ def _read(path: str) -> str:
     return (REPO / path).read_text(encoding="utf-8")
 
 
-def test_reviewer_workflow_is_tracked_and_runs_the_gate_batch462() -> None:
+def test_reviewer_workflow_is_tracked_and_runs_the_gate() -> None:
     workflow = _read(".github/workflows/reviewer-readiness.yml")
     assert "name: Reviewer Readiness" in workflow
     assert "Run reviewer readiness gate" in workflow
@@ -22,7 +22,7 @@ def test_reviewer_workflow_is_tracked_and_runs_the_gate_batch462() -> None:
     assert "npm ci" in workflow
 
 
-def test_block_proof_gate_no_longer_overclaims_production_validator_bft_batch462() -> None:
+def test_block_proof_gate_no_longer_overclaims_production_validator_bft() -> None:
     script = _read("Weall-Protocol/scripts/production_block_production_rehearsal_gate.py")
     docs = _read("Weall-Protocol/docs/BLOCK_PRODUCTION_PROOF_GATE.md")
     gap = _read("Weall-Protocol/docs/PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md")
@@ -38,7 +38,7 @@ def test_block_proof_gate_no_longer_overclaims_production_validator_bft_batch462
     assert "OK: local production-profile block proof" not in script
 
 
-def test_block_proof_gate_refuses_prod_mode_to_prevent_false_claims_batch462() -> None:
+def test_block_proof_gate_refuses_prod_mode_to_prevent_false_claims() -> None:
     env = os.environ.copy()
     env.update({
         "PYTHONPATH": str(ROOT / "src"),
@@ -62,7 +62,7 @@ def test_block_proof_gate_refuses_prod_mode_to_prevent_false_claims_batch462() -
     assert "production-profile validator/BFT proof" in proc.stdout
 
 
-def test_reviewer_gate_includes_local_observer_preconditions_batch463() -> None:
+def test_reviewer_gate_includes_local_observer_preconditions() -> None:
     gate = _read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh")
     assert "WEALL_REVIEWER_INCLUDE_LOCAL_OBSERVER_GATES" in gate
     assert "external_observer_authority_lock_gate.sh" in gate
@@ -73,7 +73,7 @@ def test_reviewer_gate_includes_local_observer_preconditions_batch463() -> None:
     assert "production validator/BFT readiness" in gate
 
 
-def test_first_external_observer_reproducibility_gate_has_truth_boundary_batch463() -> None:
+def test_first_external_observer_reproducibility_gate_has_truth_boundary() -> None:
     script = _read("Weall-Protocol/scripts/first_external_observer_reproducibility_gate.sh")
     assert "local_observer_readiness_gate.sh" in script
     assert "external_observer_authority_lock_gate.sh" in script
@@ -85,12 +85,12 @@ def test_first_external_observer_reproducibility_gate_has_truth_boundary_batch46
     assert "None of these gates prove public multi-validator BFT" in script
 
 
-def test_block_production_readiness_uses_env_mode_when_state_meta_lacks_mode_batch462() -> None:
+def test_block_production_readiness_uses_env_mode_when_state_meta_lacks_mode() -> None:
     consensus_routes = _read("Weall-Protocol/src/weall/api/routes_public_parts/consensus.py")
     assert 'os.environ.get("WEALL_MODE")' in consensus_routes
 
 
-def test_public_ingress_authority_boundaries_are_source_tracked_batch463() -> None:
+def test_public_ingress_authority_boundaries_are_source_tracked() -> None:
     tx_admission = _read("Weall-Protocol/src/weall/runtime/tx_admission.py")
     domain_dispatch = _read("Weall-Protocol/src/weall/runtime/domain_dispatch.py")
     consensus_routes = _read("Weall-Protocol/src/weall/api/routes_public_parts/consensus.py")

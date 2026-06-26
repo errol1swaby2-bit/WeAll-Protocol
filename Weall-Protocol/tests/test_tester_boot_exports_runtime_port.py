@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_tester_node_boot_exports_runtime_port_batch477() -> None:
+def test_tester_node_boot_exports_runtime_port() -> None:
     script = (ROOT / "scripts" / "weall_tester_node.sh").read_text(encoding="utf-8")
 
     assert 'export WEALL_API_PORT="${API_PORT}"' in script

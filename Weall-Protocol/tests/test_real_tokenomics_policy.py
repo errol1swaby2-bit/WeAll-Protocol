@@ -21,7 +21,7 @@ from weall.ledger.tokenomics import (
 )
 
 
-def test_real_tokenomics_policy_is_supply_capped_epoch_based_and_locked_batch481() -> None:
+def test_real_tokenomics_policy_is_supply_capped_epoch_based_and_locked() -> None:
     state = {
         "height": 0,
         "time": 1,
@@ -68,7 +68,7 @@ def test_real_tokenomics_policy_is_supply_capped_epoch_based_and_locked_batch481
     assert emission["duplicate_epoch_issuance_invalid"] is True
 
 
-def test_real_tokenomics_epoch_calculation_and_30_blocks_per_epoch_batch481() -> None:
+def test_real_tokenomics_epoch_calculation_and_30_blocks_per_epoch() -> None:
     assert TARGET_BLOCK_INTERVAL_SECONDS == 20
     assert ISSUANCE_EPOCH_SECONDS == 10 * 60
     assert ISSUANCE_EPOCH_BLOCKS == 30
@@ -89,7 +89,7 @@ def test_real_tokenomics_epoch_calculation_and_30_blocks_per_epoch_batch481() ->
     assert issuance_height_for_epoch(1) == 60
 
 
-def test_real_tokenomics_epoch_halving_schedule_batch481() -> None:
+def test_real_tokenomics_epoch_halving_schedule() -> None:
     assert epoch_issuance_subsidy_atomic(0) == INITIAL_ISSUANCE_PER_EPOCH
     assert epoch_issuance_subsidy_atomic(1) == INITIAL_ISSUANCE_PER_EPOCH
     assert epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS - 1) == INITIAL_ISSUANCE_PER_EPOCH
@@ -105,7 +105,7 @@ def test_real_tokenomics_epoch_halving_schedule_batch481() -> None:
     assert block_subsidy_atomic(30) == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_real_tokenomics_reward_split_is_equal_twenty_percent_batch481() -> None:
+def test_real_tokenomics_reward_split_is_equal_twenty_percent() -> None:
     assert REWARD_BUCKET_BPS == {
         "validators": 2000,
         "operators": 2000,
@@ -116,7 +116,7 @@ def test_real_tokenomics_reward_split_is_equal_twenty_percent_batch481() -> None
     assert sum(REWARD_BUCKET_BPS.values()) == 10_000
 
 
-def test_economics_status_exposes_real_epoch_tokenomics_batch481() -> None:
+def test_economics_status_exposes_real_epoch_tokenomics() -> None:
     state = {
         "height": 10,
         "time": 1,

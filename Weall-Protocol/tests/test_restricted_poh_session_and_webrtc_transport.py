@@ -72,7 +72,7 @@ def _client(state: dict | None = None) -> TestClient:
     return TestClient(app)
 
 
-def test_private_async_evidence_requires_authenticated_session_in_prod_batch407(monkeypatch) -> None:
+def test_private_async_evidence_requires_authenticated_session_in_prod(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     c = _client()
 
@@ -91,7 +91,7 @@ def test_private_async_evidence_requires_authenticated_session_in_prod_batch407(
     assert authenticated.json()["case"]["reviewer_restricted_evidence"]["ev1"]["uri"] == "ipfs://bafyprivate"
 
 
-def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral_batch407(monkeypatch) -> None:
+def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     c = _client()
     session_id = "session:live:alice:1"
@@ -132,7 +132,7 @@ def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral_batch407(mo
     assert mallory.json()["error"]["message"] == "live_room_participant_required"
 
 
-def test_webrtc_signal_rejects_nonparticipant_target_and_oversized_candidate_batch407(monkeypatch) -> None:
+def test_webrtc_signal_rejects_nonparticipant_target_and_oversized_candidate(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     c = _client()
     session_id = "session:live:alice:1"
@@ -154,7 +154,7 @@ def test_webrtc_signal_rejects_nonparticipant_target_and_oversized_candidate_bat
     assert bad_candidate.json()["error"]["message"] == "webrtc_candidate_too_large"
 
 
-def test_frontend_uses_real_webrtc_primitives_and_signaling_batch407() -> None:
+def test_frontend_uses_real_webrtc_primitives_and_signaling() -> None:
     live_room = (Path(__file__).resolve().parents[2] / "web" / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
     webrtc = (Path(__file__).resolve().parents[2] / "web" / "src" / "lib" / "webrtcLiveRoom.ts").read_text(encoding="utf-8")
     api = (Path(__file__).resolve().parents[2] / "web" / "src" / "api" / "weall.ts").read_text(encoding="utf-8")

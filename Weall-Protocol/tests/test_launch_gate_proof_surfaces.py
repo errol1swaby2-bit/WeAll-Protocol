@@ -51,7 +51,7 @@ def _econ_state() -> dict:
     }
 
 
-def test_batch601_live_economics_stays_locked_without_governance_preconditions() -> None:
+def test_live_economics_stays_locked_without_governance_preconditions() -> None:
     state = _econ_state()
 
     with pytest.raises(ApplyError) as before_unlock:
@@ -86,7 +86,7 @@ def test_batch601_live_economics_stays_locked_without_governance_preconditions()
     assert state["accounts"]["@bob"]["balance"] == 0
 
 
-def test_batch601_protocol_upgrade_activation_is_record_only_no_auto_apply() -> None:
+def test_protocol_upgrade_activation_is_record_only_no_auto_apply() -> None:
     state = {"height": 20, "chain_id": "batch601-protocol"}
     declare = apply_protocol(
         state,

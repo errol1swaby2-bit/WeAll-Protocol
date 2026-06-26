@@ -36,7 +36,7 @@ def _run_chain(tmp_path: Path, name: str) -> dict:
     return copy.deepcopy(ex.read_state())
 
 
-def test_replay_determinism_batch109(tmp_path: Path, monkeypatch) -> None:
+def test_replay_determinism(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     state1 = _run_chain(tmp_path, "node-a")
     state2 = _run_chain(tmp_path, "node-b")

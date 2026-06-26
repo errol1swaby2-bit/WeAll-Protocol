@@ -10,7 +10,7 @@ def _text(rel: str) -> str:
     return (REPO_ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_prepare_live_jurors_script_is_syntax_valid_batch231() -> None:
+def test_prepare_live_jurors_script_is_syntax_valid() -> None:
     proc = subprocess.run(
         ["bash", "-n", str(REPO_ROOT / "scripts/devnet_prepare_live_jurors.sh")],
         cwd=REPO_ROOT,
@@ -23,7 +23,7 @@ def test_prepare_live_jurors_script_is_syntax_valid_batch231() -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-def test_prepare_live_jurors_treats_placeholder_account_as_missing_batch231() -> None:
+def test_prepare_live_jurors_treats_placeholder_account_as_missing() -> None:
     script = _text("scripts/devnet_prepare_live_jurors.sh")
     assert "placeholder for unknown accounts" in script
     assert "has_key_material = False" in script
@@ -35,7 +35,7 @@ def test_prepare_live_jurors_treats_placeholder_account_as_missing_batch231() ->
     assert '"missing": True' in script
 
 
-def test_prepare_live_jurors_verifies_genesis_reviewer_without_self_grant_batch231() -> None:
+def test_prepare_live_jurors_verifies_genesis_reviewer_without_self_grant() -> None:
     script = _text("scripts/devnet_prepare_live_jurors.sh")
     assert "GENESIS_REVIEWER_ACCOUNT" in script
     assert "GENESIS_REVIEWER_KEYFILE" in script

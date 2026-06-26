@@ -6,7 +6,7 @@ from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 
 
-def test_helper_store_recovery_ignores_wrong_block_height_batch38(tmp_path) -> None:
+def test_helper_store_recovery_ignores_wrong_block_height(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -37,7 +37,7 @@ def test_helper_store_recovery_ignores_wrong_block_height_batch38(tmp_path) -> N
     assert store.accepted_certificates() == {}
 
 
-def test_helper_orchestrator_recovery_ignores_wrong_view_batch38(tmp_path) -> None:
+def test_helper_orchestrator_recovery_ignores_wrong_view(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -69,7 +69,7 @@ def test_helper_orchestrator_recovery_ignores_wrong_view_batch38(tmp_path) -> No
     assert orchestrator.finalized_resolutions() == ()
 
 
-def test_helper_orchestrator_recovery_ignores_wrong_leader_batch38(tmp_path) -> None:
+def test_helper_orchestrator_recovery_ignores_wrong_leader(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))

@@ -3,7 +3,7 @@ from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflict_audit_samples import build_conflict_probe_tx
 
 
-def test_content_escalate_to_dispute_promotes_to_serial_when_it_crosses_content_and_dispute_domains_batch140() -> None:
+def test_content_escalate_to_dispute_promotes_to_serial_when_it_crosses_content_and_dispute_domains() -> None:
     tx = build_conflict_probe_tx(
         "CONTENT_ESCALATE_TO_DISPUTE",
         seed="1",
@@ -16,7 +16,7 @@ def test_content_escalate_to_dispute_promotes_to_serial_when_it_crosses_content_
 
 
 
-def test_content_escalate_to_dispute_is_not_parallelized_alongside_content_flag_batch140() -> None:
+def test_content_escalate_to_dispute_is_not_parallelized_alongside_content_flag() -> None:
     plan = plan_conflict_lanes(
         [
             build_conflict_probe_tx(

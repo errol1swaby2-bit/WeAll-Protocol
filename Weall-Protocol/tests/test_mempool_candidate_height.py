@@ -27,7 +27,7 @@ def _register_tx(signer: str, nonce: int = 1) -> dict[str, object]:
     }
 
 
-def test_block_candidate_selection_uses_protocol_height_not_wall_clock_expiry_batch600(
+def test_block_candidate_selection_uses_protocol_height_not_wall_clock_expiry(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")
@@ -59,7 +59,7 @@ def test_block_candidate_selection_uses_protocol_height_not_wall_clock_expiry_ba
     assert [str(tx.get("signer") or "") for tx in list(blk.get("txs") or [])] == ["@alice"]
 
 
-def test_mempool_candidate_height_expiry_boundary_is_deterministic_batch600(
+def test_mempool_candidate_height_expiry_boundary_is_deterministic(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")
@@ -76,7 +76,7 @@ def test_mempool_candidate_height_expiry_boundary_is_deterministic_batch600(
     assert ex.mempool.fetch_for_block(candidate_height=2) == []
 
 
-def test_mempool_candidate_height_selection_survives_restart_batch600(
+def test_mempool_candidate_height_selection_survives_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")

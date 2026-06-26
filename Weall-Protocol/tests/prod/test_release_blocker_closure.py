@@ -15,7 +15,7 @@ def _load_harness_module():
     return module
 
 
-def test_batch616_release_blocker_closure_rehearsal_keeps_public_claims_closed() -> None:
+def test_release_blocker_closure_rehearsal_keeps_public_claims_closed() -> None:
     mod = _load_harness_module()
     report = mod.run_harness()
 

@@ -8,7 +8,7 @@ def _resolution(lane_id: str) -> HelperLaneResolution:
     return HelperLaneResolution(lane_id=lane_id, helper_id="helper-1", mode="helper", certificate=None)
 
 
-def test_helper_merge_decision_surfaces_cross_lane_receipt_conflict_batch6() -> None:
+def test_helper_merge_decision_surfaces_cross_lane_receipt_conflict() -> None:
     decision = admit_helper_merge(
         resolutions=(_resolution("lane-a"), _resolution("lane-b")),
         lane_results_by_id={
@@ -26,7 +26,7 @@ def test_helper_merge_decision_surfaces_cross_lane_receipt_conflict_batch6() -> 
     assert payload["detail"] == "receipt tx id overlap across helper lanes"
 
 
-def test_helper_merge_decision_surfaces_merge_conflict_key_batch6() -> None:
+def test_helper_merge_decision_surfaces_merge_conflict_key() -> None:
     decision = admit_helper_merge(
         resolutions=(_resolution("lane-a"), _resolution("lane-b")),
         lane_results_by_id={
@@ -42,7 +42,7 @@ def test_helper_merge_decision_surfaces_merge_conflict_key_batch6() -> None:
     assert decision.detail == "state delta key written by more than one helper lane"
 
 
-def test_helper_merge_decision_success_payload_is_stable_batch6() -> None:
+def test_helper_merge_decision_success_payload_is_stable() -> None:
     decision = admit_helper_merge(
         resolutions=(_resolution("lane-a"),),
         lane_results_by_id={

@@ -97,7 +97,7 @@ def _submit_and_commit(ex: WeAllExecutor, tx: dict) -> str:
     return tx_id
 
 
-def test_prod_node_identity_initializer_creates_once_and_emits_exports_batch352(tmp_path: Path) -> None:
+def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path: Path) -> None:
     env = os.environ.copy()
     env["WEALL_NODE_PRIVKEY_FILE"] = str(tmp_path / "custom-node.priv")
     env["WEALL_NODE_PUBKEY_FILE"] = str(tmp_path / "custom-node.pub")
@@ -156,7 +156,7 @@ def test_prod_node_identity_initializer_creates_once_and_emits_exports_batch352(
     assert reused.stdout == created.stdout
 
 
-def test_controlled_devnet_full_onboarding_proves_node2_convergence_batch352() -> None:
+def test_controlled_devnet_full_onboarding_proves_node2_convergence() -> None:
     script = DEVNET_FULL.read_text(encoding="utf-8")
     assert 'WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-0' in script
     assert 'bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"' in script
@@ -167,7 +167,7 @@ def test_controlled_devnet_full_onboarding_proves_node2_convergence_batch352() -
     assert 'unsupported WEALL_NODE2_CONVERGENCE_TX_TYPE' in script
 
 
-def test_genesis_accepts_multiple_external_observer_users_with_isolated_nonces_batch352(
+def test_genesis_accepts_multiple_external_observer_users_with_isolated_nonces(
     tmp_path: Path,
     monkeypatch,
 ) -> None:

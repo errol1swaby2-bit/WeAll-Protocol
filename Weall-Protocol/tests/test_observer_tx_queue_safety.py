@@ -60,7 +60,7 @@ def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_observer_submit_is_nonblocking_and_queues_tx_queue_batch361(tmp_path: Path, monkeypatch) -> None:
+def test_observer_submit_is_nonblocking_and_queues_tx_queue(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -90,7 +90,7 @@ def test_observer_submit_is_nonblocking_and_queues_tx_queue_batch361(tmp_path: P
     assert stored["records"][0]["attempts"] == 0
 
 
-def test_observer_operator_routes_require_token_and_redact_tx_queue_path_batch361(tmp_path: Path, monkeypatch) -> None:
+def test_observer_operator_routes_require_token_and_redact_tx_queue_path(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
@@ -107,7 +107,7 @@ def test_observer_operator_routes_require_token_and_redact_tx_queue_path_batch36
         assert "count" in tx_queue_status
 
 
-def test_observer_drain_verifies_upstream_identity_before_forwarding_batch361(tmp_path: Path, monkeypatch) -> None:
+def test_observer_drain_verifies_upstream_identity_before_forwarding(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -143,7 +143,7 @@ def test_observer_drain_verifies_upstream_identity_before_forwarding_batch361(tm
     assert stored["records"][0]["upstream_status"] == "pending"
 
 
-def test_observer_tx_queue_quarantines_corrupt_json_batch361(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_quarantines_corrupt_json(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     tx_queue.write_text("{not-json", encoding="utf-8")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -159,7 +159,7 @@ def test_observer_tx_queue_quarantines_corrupt_json_batch361(tmp_path: Path, mon
     assert quarantined, "corrupt tx_queue should be quarantined instead of silently reused"
 
 
-def test_observer_tx_queue_prunes_to_configured_record_limit_batch361(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_prunes_to_configured_record_limit(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")

@@ -47,7 +47,7 @@ def _helper_cert_and_receipts(lane, *, block_height: int, view: int, validator_e
     return cert, receipts
 
 
-def test_helper_merge_matches_serial_executor_for_disjoint_lanes_batch34() -> None:
+def test_helper_merge_matches_serial_executor_for_disjoint_lanes() -> None:
     txs = [
         _tx("t1", "CONTENT_CREATE", "content:post:1"),
         _tx("t2", "IDENTITY_UPDATE", "identity:user:alice"),
@@ -90,7 +90,7 @@ def test_helper_merge_matches_serial_executor_for_disjoint_lanes_batch34() -> No
     assert report.serial_tx_ids == ("t1", "t2", "t3")
 
 
-def test_helper_merge_reports_receipt_mismatch_batch34() -> None:
+def test_helper_merge_reports_receipt_mismatch() -> None:
     txs = [_tx("t1", "CONTENT_CREATE", "content:post:1")]
     lane_plans = plan_parallel_execution(
         txs=list(txs),

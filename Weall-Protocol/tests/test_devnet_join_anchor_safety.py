@@ -65,7 +65,7 @@ def _identity(height: int = 3) -> dict:
     }
 
 
-def test_devnet_join_anchor_scripts_are_syntax_valid_batch218() -> None:
+def test_devnet_join_anchor_scripts_are_syntax_valid() -> None:
     scripts = [
         "scripts/devnet_export_join_anchor.sh",
         "scripts/devnet_verify_join_anchor.sh",
@@ -86,7 +86,7 @@ def test_devnet_join_anchor_scripts_are_syntax_valid_batch218() -> None:
         assert proc.returncode == 0, proc.stderr
 
 
-def test_devnet_join_anchor_cli_commands_are_exposed_batch218() -> None:
+def test_devnet_join_anchor_cli_commands_are_exposed() -> None:
     for command in ["export", "verify", "tamper"]:
         proc = subprocess.run(
             [sys.executable, str(HELPER_PATH), command, "--help"],
@@ -100,7 +100,7 @@ def test_devnet_join_anchor_cli_commands_are_exposed_batch218() -> None:
         assert command in proc.stdout
 
 
-def test_join_anchor_stable_verification_allows_height_to_advance_batch218() -> None:
+def test_join_anchor_stable_verification_allows_height_to_advance() -> None:
     helper = _load_helper()
     expected = helper._expected_from(_genesis(), _identity(height=3))
     actual = helper._expected_from(_genesis(), _identity(height=5))
@@ -109,7 +109,7 @@ def test_join_anchor_stable_verification_allows_height_to_advance_batch218() -> 
     assert helper._compare_anchor(expected, actual) != []
 
 
-def test_join_anchor_rejects_wrong_chain_and_wrong_genesis_profile_batch218() -> None:
+def test_join_anchor_rejects_wrong_chain_and_wrong_genesis_profile() -> None:
     helper = _load_helper()
     expected = helper._expected_from(_genesis(), _identity())
 
@@ -128,7 +128,7 @@ def test_join_anchor_rejects_wrong_chain_and_wrong_genesis_profile_batch218() ->
     assert {m["field"] for m in profile_mismatches} == {"genesis_bootstrap.profile_hash"}
 
 
-def test_join_anchor_tamper_command_updates_expected_field_batch218(tmp_path: Path) -> None:
+def test_join_anchor_tamper_command_updates_expected_field(tmp_path: Path) -> None:
     helper = _load_helper()
     anchor = {
         "ok": True,
@@ -145,7 +145,7 @@ def test_join_anchor_tamper_command_updates_expected_field_batch218(tmp_path: Pa
     assert tampered["expected"]["genesis_bootstrap"]["profile_hash"] == "evil"
 
 
-def test_sync_and_join_scripts_can_require_pinned_anchor_batch218() -> None:
+def test_sync_and_join_scripts_can_require_pinned_anchor() -> None:
     sync = _script("scripts/devnet_sync_from_peer.sh").read_text(encoding="utf-8")
     joining = _script("scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
     for text in [sync, joining]:
@@ -155,7 +155,7 @@ def test_sync_and_join_scripts_can_require_pinned_anchor_batch218() -> None:
         assert "pinned join anchor" in text
 
 
-def test_wrong_join_rejection_scripts_are_non_mutating_batch218() -> None:
+def test_wrong_join_rejection_scripts_are_non_mutating() -> None:
     combined = "\n".join(
         _script(rel).read_text(encoding="utf-8")
         for rel in [

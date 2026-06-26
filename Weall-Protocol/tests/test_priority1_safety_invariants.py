@@ -10,7 +10,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_local_vote_is_monotonic_and_non_equivocating_batch43() -> None:
+def test_local_vote_is_monotonic_and_non_equivocating() -> None:
     bft = HotStuffBFT(chain_id="batch43")
 
     assert bft.record_local_vote(view=1, block_id="B1") is True
@@ -20,7 +20,7 @@ def test_local_vote_is_monotonic_and_non_equivocating_batch43() -> None:
     assert bft.record_local_vote(view=2, block_id="B2") is True
 
 
-def test_locked_qc_does_not_move_to_conflicting_branch_batch43() -> None:
+def test_locked_qc_does_not_move_to_conflicting_branch() -> None:
     bft = HotStuffBFT(chain_id="batch43")
 
     blocks = {

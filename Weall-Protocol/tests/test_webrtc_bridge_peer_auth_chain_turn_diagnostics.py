@@ -9,7 +9,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_webrtc_bridge_uses_per_peer_tokens_or_signed_envelopes_batch411() -> None:
+def test_webrtc_bridge_uses_per_peer_tokens_or_signed_envelopes() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "bridge_token" in src
@@ -21,7 +21,7 @@ def test_webrtc_bridge_uses_per_peer_tokens_or_signed_envelopes_batch411() -> No
     assert "bad_webrtc_bridge_signature" in src
 
 
-def test_webrtc_bridge_validates_chain_id_on_import_batch411() -> None:
+def test_webrtc_bridge_validates_chain_id_on_import() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "source_chain_id" in src
@@ -31,7 +31,7 @@ def test_webrtc_bridge_validates_chain_id_on_import_batch411() -> None:
     assert "webrtc_bridge_chain_id_mismatch" in src
 
 
-def test_turn_credentials_are_short_lived_in_prod_batch411() -> None:
+def test_turn_credentials_are_short_lived_in_prod() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "WEALL_WEBRTC_TURN_CREDENTIAL_EXPIRES_MS" in src
@@ -40,7 +40,7 @@ def test_turn_credentials_are_short_lived_in_prod_batch411() -> None:
     assert "credential_expires_ms" in src
 
 
-def test_webrtc_bridge_operator_diagnostics_batch411() -> None:
+def test_webrtc_bridge_operator_diagnostics() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "/poh/live/webrtc/signals/diagnostics" in src

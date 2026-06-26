@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_higher_view_conflicting_branch_can_raise_high_qc_without_regressing_lock_batch72() -> None:
+def test_higher_view_conflicting_branch_can_raise_high_qc_without_regressing_lock() -> None:
     hs = HotStuffBFT(chain_id="batch72")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -37,7 +37,7 @@ def test_higher_view_conflicting_branch_can_raise_high_qc_without_regressing_loc
     assert int(hs.locked_qc.view) == 4
 
 
-def test_descendant_higher_view_qc_advances_both_high_and_locked_qc_batch72() -> None:
+def test_descendant_higher_view_qc_advances_both_high_and_locked_qc() -> None:
     hs = HotStuffBFT(chain_id="batch72")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -61,7 +61,7 @@ def test_descendant_higher_view_qc_advances_both_high_and_locked_qc_batch72() ->
     assert str(hs.finalized_block_id or "") == "B"
 
 
-def test_conflicting_higher_view_qc_roundtrip_preserves_split_state_batch72() -> None:
+def test_conflicting_higher_view_qc_roundtrip_preserves_split_state() -> None:
     hs = HotStuffBFT(chain_id="batch72")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -88,7 +88,7 @@ def test_conflicting_higher_view_qc_roundtrip_preserves_split_state_batch72() ->
     assert hs2.locked_qc.block_id == "B1"
 
 
-def test_can_vote_for_uses_locked_branch_not_high_qc_branch_batch72() -> None:
+def test_can_vote_for_uses_locked_branch_not_high_qc_branch() -> None:
     hs = HotStuffBFT(chain_id="batch72")
     blocks = {
         "A": {"prev_block_id": ""},

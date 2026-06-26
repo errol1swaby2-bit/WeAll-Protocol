@@ -20,7 +20,7 @@ def _read(path: str) -> str:
     return (OUTER / path).read_text(encoding="utf-8")
 
 
-def test_runtime_env_overrides_local_paths_without_forking_chain_identity_batch465(
+def test_runtime_env_overrides_local_paths_without_forking_chain_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     chain_config = tmp_path / "prod.chain.json"
@@ -74,7 +74,7 @@ def test_runtime_env_overrides_local_paths_without_forking_chain_identity_batch4
     assert not [issue for issue in issues if "db_path parent is not writable" in issue]
 
 
-def test_runtime_env_db_path_does_not_override_chain_identity_batch465(
+def test_runtime_env_db_path_does_not_override_chain_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     chain_config = tmp_path / "prod.chain.json"
@@ -113,7 +113,7 @@ def test_runtime_env_db_path_does_not_override_chain_identity_batch465(
     assert any("chain_manifest" in issue and "chain_id" in issue for issue in issues)
 
 
-def test_docker_genesis_compose_uses_canonical_manifest_and_runtime_volume_batch465() -> None:
+def test_docker_genesis_compose_uses_canonical_manifest_and_runtime_volume() -> None:
     compose = _read("Weall-Protocol/docker-compose.genesis.yml")
     manifest = _read("Weall-Protocol/configs/chains/weall-genesis.json")
 
@@ -126,13 +126,13 @@ def test_docker_genesis_compose_uses_canonical_manifest_and_runtime_volume_batch
     assert '"db_path"' not in manifest
 
 
-def test_dockerfile_prepares_runtime_volume_mountpoint_batch465() -> None:
+def test_dockerfile_prepares_runtime_volume_mountpoint() -> None:
     dockerfile = _read("Weall-Protocol/Dockerfile")
     assert "mkdir -p /var/lib/weall" in dockerfile
     assert "chown -R appuser:appuser /var/lib/weall" in dockerfile
 
 
-def test_docker_genesis_boot_gate_is_tracked_batch465() -> None:
+def test_docker_genesis_boot_gate_is_tracked() -> None:
     gate = _read("Weall-Protocol/scripts/docker_genesis_api_boot_gate.sh")
     reviewer = _read("Weall-Protocol/scripts/reviewer_production_readiness_gate.sh")
 

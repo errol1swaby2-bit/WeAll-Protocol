@@ -14,7 +14,7 @@ from weall.runtime.tx_admission import TxEnvelope
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_constitution_hash_is_bound_into_canonical_chain_manifest_batch430() -> None:
+def test_constitution_hash_is_bound_into_canonical_chain_manifest() -> None:
     manifest = load_chain_manifest(str(ROOT / "configs" / "chains" / "weall-genesis.json"), required=True)
     assert manifest is not None
     expected_hash = hashlib.sha256((ROOT / "docs" / "constitution" / "WEALL_GENESIS_CONSTITUTION_DRAFT_2.md").read_bytes()).hexdigest()
@@ -25,7 +25,7 @@ def test_constitution_hash_is_bound_into_canonical_chain_manifest_batch430() -> 
     assert commitment["status"] == "genesis_bound"
 
 
-def test_chain_manifest_status_reports_constitution_commitments_batch430() -> None:
+def test_chain_manifest_status_reports_constitution_commitments() -> None:
     manifest = load_chain_manifest(str(ROOT / "configs" / "chains" / "weall-genesis.json"), required=True)
     report = chain_manifest_status(manifest=manifest, chain_id="weall-prod", mode="prod", strict=True)
     assert report["constitution_version"] == "draft-2"
@@ -33,7 +33,7 @@ def test_chain_manifest_status_reports_constitution_commitments_batch430() -> No
     assert "chain_manifest_constitution_hash_unpinned" not in report["issues"]
 
 
-def test_public_policy_rejects_non_inspectable_protocol_payload_batch430() -> None:
+def test_public_policy_rejects_non_inspectable_protocol_payload() -> None:
     env = TxEnvelope(
         tx_type="CONTENT_POST_CREATE",
         signer="alice",

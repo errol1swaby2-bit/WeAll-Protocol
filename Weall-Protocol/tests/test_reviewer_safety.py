@@ -19,7 +19,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_gate_expr_invalid_character_fails_closed_without_hanging_batch281() -> None:
+def test_gate_expr_invalid_character_fails_closed_without_hanging() -> None:
     ok, meta = eval_gate(
         "Tier2+ @",
         signer="alice",
@@ -32,7 +32,7 @@ def test_gate_expr_invalid_character_fails_closed_without_hanging_batch281() -> 
     assert meta["expr"] == "Tier2+ @"
 
 
-def test_unknown_user_origin_poh_eligibility_action_fails_closed_batch281() -> None:
+def test_unknown_user_origin_poh_eligibility_action_fails_closed() -> None:
     state = {"accounts": {"alice": {"poh_tier": 2}}}
     unknown = "UNREGISTERED_USER_MUTATION"
 
@@ -46,7 +46,7 @@ def test_unknown_user_origin_poh_eligibility_action_fails_closed_batch281() -> N
     assert exc.value.details["tx_type"] == unknown
 
 
-def test_tier_gated_user_origin_txs_are_explicit_in_poh_eligibility_table_batch281() -> None:
+def test_tier_gated_user_origin_txs_are_explicit_in_poh_eligibility_table() -> None:
     canon_path = _repo_root() / "specs" / "tx_canon" / "tx_canon.yaml"
     canon = yaml.safe_load(canon_path.read_text(encoding="utf-8"))
 
@@ -64,7 +64,7 @@ def test_tier_gated_user_origin_txs_are_explicit_in_poh_eligibility_table_batch2
     assert missing == []
 
 
-def test_poh_case_assignment_without_active_juror_role_fails_batch281() -> None:
+def test_poh_case_assignment_without_active_juror_role_fails() -> None:
     ledger = {
         "accounts": {"alice": {"poh_tier": 2}},
         "roles": {"jurors": {"by_id": {}, "active_set": []}},
@@ -83,7 +83,7 @@ def test_poh_case_assignment_without_active_juror_role_fails_batch281() -> None:
     assert ok is False
 
 
-def test_active_juror_without_case_assignment_fails_case_action_batch281() -> None:
+def test_active_juror_without_case_assignment_fails_case_action() -> None:
     ledger = {
         "accounts": {"alice": {"poh_tier": 2}},
         "roles": {"jurors": {"by_id": {"alice": {"active": True}}, "active_set": ["alice"]}},
@@ -95,7 +95,7 @@ def test_active_juror_without_case_assignment_fails_case_action_batch281() -> No
     assert ok is False
 
 
-def test_active_tier2_juror_with_case_assignment_passes_batch281() -> None:
+def test_active_tier2_juror_with_case_assignment_passes() -> None:
     ledger = {
         "accounts": {"alice": {"poh_tier": 2}},
         "roles": {"jurors": {"by_id": {"alice": {"active": True}}, "active_set": ["alice"]}},
@@ -114,7 +114,7 @@ def test_active_tier2_juror_with_case_assignment_passes_batch281() -> None:
     assert ok is True
 
 
-def test_root_readme_declares_mpl_2_license_batch281() -> None:
+def test_root_readme_declares_mpl_2_license() -> None:
     root = _repo_root().parent
     readme = (root / "README.md").read_text(encoding="utf-8")
     license_text = (root / "LICENSE").read_text(encoding="utf-8")

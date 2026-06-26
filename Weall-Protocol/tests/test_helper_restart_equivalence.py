@@ -55,7 +55,7 @@ def _materialize_lane_results(*, lane_plans, plan_id: str, shared_key: str | Non
     return helper_lanes, accepted_lanes, fallback_lane, lane_results_by_id, helper_pubkeys, tuple(certs)
 
 
-def test_helper_restart_snapshot_is_restart_equivalent_with_mixed_helper_and_fallback_batch8(tmp_path) -> None:
+def test_helper_restart_snapshot_is_restart_equivalent_with_mixed_helper_and_fallback(tmp_path) -> None:
     lane_plans, plan_id = lane_setup(txs=MULTILANE_TXS)
     helper_lanes, _accepted_lanes, _fallback_lane, lane_results_by_id, helper_pubkeys, certs = _materialize_lane_results(
         lane_plans=lane_plans,
@@ -121,7 +121,7 @@ def test_helper_restart_snapshot_is_restart_equivalent_with_mixed_helper_and_fal
     assert snapshot2.snapshot_hash() == snapshot1.snapshot_hash()
 
 
-def test_helper_restart_snapshot_keeps_fail_closed_vs_serial_fallback_stable_on_merge_conflict_batch8(tmp_path) -> None:
+def test_helper_restart_snapshot_keeps_fail_closed_vs_serial_fallback_stable_on_merge_conflict(tmp_path) -> None:
     lane_plans, plan_id = lane_setup(txs=MULTILANE_TXS)
     helper_lanes, _accepted_lanes, _fallback_lane, lane_results_by_id, helper_pubkeys, certs = _materialize_lane_results(
         lane_plans=lane_plans,

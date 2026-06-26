@@ -24,7 +24,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_threat_model_uses_separate_node_key_file_batch299() -> None:
+def test_threat_model_uses_separate_node_key_file() -> None:
     text = _read(ROOT / "docs" / "THREAT_MODEL_CHECKLIST.md")
     assert "WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key" in text
     assert "Do **not** use the account recovery key as the node key" in text
@@ -32,7 +32,7 @@ def test_threat_model_uses_separate_node_key_file_batch299() -> None:
     assert "WEALL_NODE_PUBKEY=<account active pubkey>" not in text
 
 
-def test_legacy_onboarding_doc_redirects_to_current_operator_quickstart_batch299() -> None:
+def test_legacy_onboarding_doc_redirects_to_current_operator_quickstart() -> None:
     text = _read(ROOT / "docs" / "NODE_OPERATOR_ONBOARDING.md")
     assert "superseded by the current first-run operator guide" in text
     assert "docs/NEW_NODE_OPERATOR_QUICKSTART.md" in text
@@ -43,7 +43,7 @@ def test_legacy_onboarding_doc_redirects_to_current_operator_quickstart_batch299
     assert "Baseline Node Operator status does not automatically grant storage allocation authority" in text
 
 
-def test_validator_runbook_describes_responsibility_not_baseline_power_batch299() -> None:
+def test_validator_runbook_describes_responsibility_not_baseline_power() -> None:
     text = _read(ROOT / "docs" / "PRODUCTION_RUNBOOK_VALIDATORS.md")
     assert "Validator Responsibility Production Runbook" in text
     assert "Baseline Node Operator status alone does not grant validator authority" in text
@@ -53,7 +53,7 @@ def test_validator_runbook_describes_responsibility_not_baseline_power_batch299(
     assert "WEALL_NODE_PRIVKEY\n" not in text
 
 
-def test_operator_docs_and_frontend_do_not_reintroduce_unsafe_positive_guidance_batch299() -> None:
+def test_operator_docs_and_frontend_do_not_reintroduce_unsafe_positive_guidance() -> None:
     forbidden = [
         "WEALL_NODE_PRIVKEY=<account_secret>",
         "WEALL_NODE_PRIVKEY=<localSecretKey>",
@@ -77,7 +77,7 @@ def test_operator_docs_and_frontend_do_not_reintroduce_unsafe_positive_guidance_
             assert phrase not in text, f"forbidden stale guidance in {path}: {phrase}"
 
 
-def test_operator_smoke_rejects_stale_lifecycle_language_batch299() -> None:
+def test_operator_smoke_rejects_stale_lifecycle_language() -> None:
     proc = subprocess.run(
         ["sh", str(ROOT / "scripts" / "operator_onboarding_smoke.sh")],
         cwd=str(ROOT),

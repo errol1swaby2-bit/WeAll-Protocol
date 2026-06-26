@@ -25,7 +25,7 @@ def _account_key_count(state: dict, signer: str) -> int:
     return len(acct.get("keys", {}).get("by_id", {}))
 
 
-def test_duplicate_submit_same_nonce_is_not_double_committed_batch49(tmp_path: Path) -> None:
+def test_duplicate_submit_same_nonce_is_not_double_committed(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "dup.db")
@@ -59,7 +59,7 @@ def test_duplicate_submit_same_nonce_is_not_double_committed_batch49(tmp_path: P
     assert int(ex2.read_state().get("height", 0)) >= 1
 
 
-def test_out_of_order_nonces_do_not_create_multiple_effects_batch49(tmp_path: Path) -> None:
+def test_out_of_order_nonces_do_not_create_multiple_effects(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "nonce_order.db")
@@ -98,7 +98,7 @@ def test_out_of_order_nonces_do_not_create_multiple_effects_batch49(tmp_path: Pa
     assert _account_key_count(st, "@bob") == 1
 
 
-def test_replay_after_restart_does_not_reintroduce_confirmed_effect_batch49(tmp_path: Path) -> None:
+def test_replay_after_restart_does_not_reintroduce_confirmed_effect(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "replay.db")
@@ -146,7 +146,7 @@ def test_replay_after_restart_does_not_reintroduce_confirmed_effect_batch49(tmp_
     assert _account_key_count(st3, "@carol") == 1
 
 
-def test_partial_sequence_restart_preserves_single_canonical_result_batch49(tmp_path: Path) -> None:
+def test_partial_sequence_restart_preserves_single_canonical_result(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "partial.db")

@@ -62,7 +62,7 @@ def _mk_state() -> dict:
     }
 
 
-def test_treasury_signers_set_rejects_while_spend_open_batch110() -> None:
+def test_treasury_signers_set_rejects_while_spend_open() -> None:
     state = _mk_state()
     with pytest.raises(RolesApplyError) as exc:
         apply_roles(
@@ -78,7 +78,7 @@ def test_treasury_signers_set_rejects_while_spend_open_batch110() -> None:
     assert exc.value.reason == "treasury_spend_open"
 
 
-def test_treasury_signers_set_allowed_after_spend_cancel_batch110() -> None:
+def test_treasury_signers_set_allowed_after_spend_cancel() -> None:
     state = _mk_state()
     state["treasury"]["spends"]["sp1"]["status"] = "canceled"
     meta = apply_roles(
@@ -93,7 +93,7 @@ def test_treasury_signers_set_allowed_after_spend_cancel_batch110() -> None:
     assert meta and meta["applied"] == "TREASURY_SIGNERS_SET"
 
 
-def test_treasury_policy_set_rejects_while_spend_open_batch110() -> None:
+def test_treasury_policy_set_rejects_while_spend_open() -> None:
     state = _mk_state()
     with pytest.raises(TreasuryApplyError) as exc:
         apply_treasury(
@@ -110,7 +110,7 @@ def test_treasury_policy_set_rejects_while_spend_open_batch110() -> None:
     assert exc.value.reason == "treasury_spend_open"
 
 
-def test_treasury_policy_set_allowed_after_spend_execute_batch110() -> None:
+def test_treasury_policy_set_allowed_after_spend_execute() -> None:
     state = _mk_state()
     state["treasury"]["spends"]["sp1"]["status"] = "executed"
     meta = apply_treasury(

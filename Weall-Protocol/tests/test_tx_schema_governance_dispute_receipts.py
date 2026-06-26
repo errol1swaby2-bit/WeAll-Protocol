@@ -21,7 +21,7 @@ def _env(tx_type: str, payload: dict) -> dict:
     return env
 
 
-def test_batch4_schema_models_registered() -> None:
+def test_schema_models_registered() -> None:
     expected = {
         "GOV_PROPOSAL_EDIT",
         "GOV_PROPOSAL_WITHDRAW",
@@ -87,7 +87,7 @@ def test_batch4_schema_models_registered() -> None:
         ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "verdict": "approve", "resolution": {"action": "remove"}}),
     ],
 )
-def test_batch4_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
+def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
     env, parsed = validate_tx_envelope(_env(tx_type, payload))
     assert env.tx_type == tx_type
     assert parsed is not None
@@ -120,7 +120,7 @@ def test_batch4_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None
         ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1"}, "either vote or verdict is required"),
     ],
 )
-def test_batch4_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
+def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
     with pytest.raises((ValidationError, ValueError)) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert expected_fragment in str(excinfo.value)
@@ -142,7 +142,7 @@ def test_batch4_missing_required_fields_are_rejected(tx_type: str, payload: dict
         ("FLAG_ESCALATION_RECEIPT", {"target_id": "post-1", "dispute_id": "d1", "extra": True}),
     ],
 )
-def test_batch4_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
+def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert "Extra inputs are not permitted" in str(excinfo.value)

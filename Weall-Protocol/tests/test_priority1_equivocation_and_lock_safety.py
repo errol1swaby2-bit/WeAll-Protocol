@@ -14,7 +14,7 @@ def _qc(*, chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCer
     )
 
 
-def test_same_view_conflicting_vote_is_rejected_batch52() -> None:
+def test_same_view_conflicting_vote_is_rejected() -> None:
     hs = HotStuffBFT(chain_id="batch52")
 
     assert hs.record_local_vote(view=4, block_id="B4") is True
@@ -26,7 +26,7 @@ def test_same_view_conflicting_vote_is_rejected_batch52() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B4"
 
 
-def test_lower_view_vote_after_higher_view_vote_is_rejected_batch52() -> None:
+def test_lower_view_vote_after_higher_view_vote_is_rejected() -> None:
     hs = HotStuffBFT(chain_id="batch52")
 
     assert hs.record_local_vote(view=6, block_id="B6") is True
@@ -37,7 +37,7 @@ def test_lower_view_vote_after_higher_view_vote_is_rejected_batch52() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B6"
 
 
-def test_locked_branch_blocks_conflicting_qc_progression_batch52() -> None:
+def test_locked_branch_blocks_conflicting_qc_progression() -> None:
     hs = HotStuffBFT(chain_id="batch52")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -60,7 +60,7 @@ def test_locked_branch_blocks_conflicting_qc_progression_batch52() -> None:
     assert int(hs.locked_qc.view) == 8
 
 
-def test_high_qc_never_regresses_under_stale_observations_batch52() -> None:
+def test_high_qc_never_regresses_under_stale_observations() -> None:
     hs = HotStuffBFT(chain_id="batch52")
     blocks = {
         "A": {"prev_block_id": ""},

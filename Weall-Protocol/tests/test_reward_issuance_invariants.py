@@ -48,7 +48,7 @@ def _mint_payload(epoch: int = 0, amount: int = INITIAL_ISSUANCE_PER_EPOCH) -> d
     }
 
 
-def test_block_reward_mint_is_locked_before_activation_batch485() -> None:
+def test_block_reward_mint_is_locked_before_activation() -> None:
     st = _locked_state()
 
     with pytest.raises(Exception):
@@ -57,7 +57,7 @@ def test_block_reward_mint_is_locked_before_activation_batch485() -> None:
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
 
 
-def test_public_transfer_and_reward_activation_remain_locked_batch485() -> None:
+def test_public_transfer_and_reward_activation_remain_locked() -> None:
     st = _locked_state()
     st["accounts"]["@alice"] = {"balance": 100, "poh_tier": 1, "banned": False, "locked": False}
     st["accounts"]["@bob"] = {"balance": 0, "poh_tier": 1, "banned": False, "locked": False}
@@ -80,7 +80,7 @@ def test_public_transfer_and_reward_activation_remain_locked_batch485() -> None:
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
 
 
-def test_epoch_issuance_mint_credits_issuance_and_mint_pool_batch485() -> None:
+def test_epoch_issuance_mint_credits_issuance_and_mint_pool() -> None:
     st = _active_state()
 
     res = apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0)))
@@ -94,7 +94,7 @@ def test_epoch_issuance_mint_credits_issuance_and_mint_pool_batch485() -> None:
     assert st["rewards"]["stats"]["minted_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_exact_block_reward_mint_replay_is_deduped_without_extra_supply_batch485() -> None:
+def test_exact_block_reward_mint_replay_is_deduped_without_extra_supply() -> None:
     st = _active_state()
     payload = _mint_payload(epoch=0)
 
@@ -108,7 +108,7 @@ def test_exact_block_reward_mint_replay_is_deduped_without_extra_supply_batch485
     assert st["rewards"]["stats"]["minted_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_duplicate_issuance_epoch_rejects_different_mint_batch485() -> None:
+def test_duplicate_issuance_epoch_rejects_different_mint() -> None:
     st = _active_state()
     apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
 
@@ -123,7 +123,7 @@ def test_duplicate_issuance_epoch_rejects_different_mint_batch485() -> None:
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_epoch_issuance_can_stop_exactly_at_cap_batch485() -> None:
+def test_epoch_issuance_can_stop_exactly_at_cap() -> None:
     st = _active_state()
     st["economics"]["monetary_policy"]["issued"] = MAX_SUPPLY - 10
 
@@ -134,7 +134,7 @@ def test_epoch_issuance_can_stop_exactly_at_cap_batch485() -> None:
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 10
 
 
-def test_epoch_issuance_rejects_cap_overflow_without_partial_mutation_batch485() -> None:
+def test_epoch_issuance_rejects_cap_overflow_without_partial_mutation() -> None:
     st = _active_state()
     st["economics"]["monetary_policy"]["issued"] = MAX_SUPPLY - 10
 
@@ -147,7 +147,7 @@ def test_epoch_issuance_rejects_cap_overflow_without_partial_mutation_batch485()
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
 
 
-def test_block_reward_distribute_conserves_minted_pool_batch485() -> None:
+def test_block_reward_distribute_conserves_minted_pool() -> None:
     st = _active_state()
     apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
 
@@ -176,7 +176,7 @@ def test_block_reward_distribute_conserves_minted_pool_batch485() -> None:
     assert st["rewards"]["stats"]["distributed_total"] == INITIAL_ISSUANCE_PER_EPOCH
 
 
-def test_block_reward_distribute_rejects_unfunded_distribution_batch485() -> None:
+def test_block_reward_distribute_rejects_unfunded_distribution() -> None:
     st = _active_state()
 
     with pytest.raises(RewardsApplyError) as ei:
@@ -196,7 +196,7 @@ def test_block_reward_distribute_rejects_unfunded_distribution_batch485() -> Non
     assert st["accounts"]["@validator"]["balance"] == 0
 
 
-def test_block_reward_distribute_replay_is_deduped_without_double_credit_batch485() -> None:
+def test_block_reward_distribute_replay_is_deduped_without_double_credit() -> None:
     st = _active_state()
     apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=1))
 

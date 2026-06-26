@@ -19,7 +19,7 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
 
 
 
-def test_helper_certificate_signature_roundtrip_batch2() -> None:
+def test_helper_certificate_signature_roundtrip() -> None:
     priv = (bytes([7]) * 32).hex()
     pub = _pub_hex_from_seed(priv)
     cert = HelperExecutionCertificate(

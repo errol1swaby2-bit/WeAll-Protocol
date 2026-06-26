@@ -10,7 +10,7 @@ def _script() -> str:
     return SCRIPT.read_text(encoding="utf-8")
 
 
-def test_local_rehearsal_prepares_ipfs_block_temp_directory_batch388() -> None:
+def test_local_rehearsal_prepares_ipfs_block_temp_directory() -> None:
     src = _script()
 
     assert "_prepare_local_ipfs_repo_dirs" in src
@@ -19,7 +19,7 @@ def test_local_rehearsal_prepares_ipfs_block_temp_directory_batch388() -> None:
     assert "failed to create batch temp directory" in src
 
 
-def test_local_rehearsal_restart_stale_compose_ipfs_before_reset_batch388() -> None:
+def test_local_rehearsal_restart_stale_compose_ipfs_before_reset() -> None:
     src = _script()
 
     reset_index = src.index('if _bool_true "${RESET}"; then')
@@ -29,7 +29,7 @@ def test_local_rehearsal_restart_stale_compose_ipfs_before_reset_batch388() -> N
     assert reset_block.index("_stop_local_ipfs_daemon") < reset_block.index("scripts/devnet_reset_state.sh")
 
 
-def test_local_rehearsal_ipfs_ready_requires_add_healthcheck_batch388() -> None:
+def test_local_rehearsal_ipfs_ready_requires_add_healthcheck() -> None:
     src = _script()
 
     assert "_ipfs_add_healthcheck" in src

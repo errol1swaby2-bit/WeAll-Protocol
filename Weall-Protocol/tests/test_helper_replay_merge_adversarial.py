@@ -15,7 +15,7 @@ from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 
 
-def test_helper_replay_batch_ingest_is_canonical_with_mixed_lane_order_batch7() -> None:
+def test_helper_replay_batch_ingest_is_canonical_with_mixed_lane_order() -> None:
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
@@ -46,7 +46,7 @@ def test_helper_replay_batch_ingest_is_canonical_with_mixed_lane_order_batch7() 
     assert all(item.accepted for item in outcomes)
 
 
-def test_helper_merge_rejects_lane_tx_ids_mismatch_batch7() -> None:
+def test_helper_merge_rejects_lane_tx_ids_mismatch() -> None:
     lane_plan = LanePlan(lane_id="L1", helper_id="h1", txs=(), tx_ids=("t1", "t2"))
     resolution = HelperLaneResolution(lane_id="L1", helper_id="h1", mode="helper", certificate=None)
     decision = admit_helper_merge(
@@ -66,7 +66,7 @@ def test_helper_merge_rejects_lane_tx_ids_mismatch_batch7() -> None:
     assert decision.code == "lane_tx_ids_mismatch"
 
 
-def test_vote_ready_helper_plan_rejects_certificate_plan_mismatch_batch7() -> None:
+def test_vote_ready_helper_plan_rejects_certificate_plan_mismatch() -> None:
     lane_plan = LanePlan(lane_id="L1", helper_id="h1", txs=(), tx_ids=("t1",))
     from weall.runtime.parallel_execution import canonical_lane_plan_fingerprint
     ok, reason = verify_vote_ready_helper_plan(
@@ -98,7 +98,7 @@ def test_vote_ready_helper_plan_rejects_certificate_plan_mismatch_batch7() -> No
     assert reason == "plan_id_mismatch" or reason.startswith("certificate_plan_id_mismatch")
 
 
-def test_block_helper_plan_metadata_rejects_nested_certificate_plan_mismatch_batch7() -> None:
+def test_block_helper_plan_metadata_rejects_nested_certificate_plan_mismatch() -> None:
     lane = {"lane_id": "L1", "helper_id": "h1", "tx_ids": ["t1"], "descriptor_hash": "d1", "plan_id": ""}
     computed = canonical_helper_execution_plan_fingerprint((lane,))
     lane["plan_id"] = computed
@@ -112,7 +112,7 @@ def test_block_helper_plan_metadata_rejects_nested_certificate_plan_mismatch_bat
     assert reason == "helper_execution_certificate_plan_id_mismatch"
 
 
-def test_plan_misbehavior_proof_uses_explicit_issued_ms_batch7() -> None:
+def test_plan_misbehavior_proof_uses_explicit_issued_ms() -> None:
     cert_a = sign_helper_certificate(
         chain_id="c1",
         height=5,

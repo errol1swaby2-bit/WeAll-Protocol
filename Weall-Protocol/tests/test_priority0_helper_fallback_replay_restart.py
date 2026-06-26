@@ -6,7 +6,7 @@ from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrato
 from weall.runtime.helper_replay_guard import HelperReplayGuard
 
 
-def test_helper_late_and_conflicting_replays_stay_rejected_after_restart_and_fallback_batch136(tmp_path) -> None:
+def test_helper_late_and_conflicting_replays_stay_rejected_after_restart_and_fallback(tmp_path) -> None:
     lane_plans, plan_id = lane_setup(
         txs=[
             {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},

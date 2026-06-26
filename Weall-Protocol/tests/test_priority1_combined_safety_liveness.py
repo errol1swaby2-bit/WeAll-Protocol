@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_stale_qc_cannot_break_liveness_progress_batch89() -> None:
+def test_stale_qc_cannot_break_liveness_progress() -> None:
     hs = HotStuffBFT(chain_id="batch89")
     hs.timeout_base_ms = 1000
 
@@ -46,7 +46,7 @@ def test_stale_qc_cannot_break_liveness_progress_batch89() -> None:
     assert hs.pacemaker_timeout_ms() == 1000
 
 
-def test_conflicting_branch_does_not_break_locked_branch_vote_safety_batch89() -> None:
+def test_conflicting_branch_does_not_break_locked_branch_vote_safety() -> None:
     hs = HotStuffBFT(chain_id="batch89")
 
     blocks = {
@@ -73,7 +73,7 @@ def test_conflicting_branch_does_not_break_locked_branch_vote_safety_batch89() -
     assert hs.can_vote_for(blocks=blocks, block_id="D2", justify_qc=None) is False
 
 
-def test_progress_then_roundtrip_preserves_safety_and_liveness_state_batch89() -> None:
+def test_progress_then_roundtrip_preserves_safety_and_liveness_state() -> None:
     hs = HotStuffBFT(chain_id="batch89")
     hs.timeout_base_ms = 1000
 
@@ -105,7 +105,7 @@ def test_progress_then_roundtrip_preserves_safety_and_liveness_state_batch89() -
     assert hs2.pacemaker_timeout_ms() == 1000
 
 
-def test_finalization_and_timeout_reset_can_coexist_without_regression_batch89() -> None:
+def test_finalization_and_timeout_reset_can_coexist_without_regression() -> None:
     hs = HotStuffBFT(chain_id="batch89")
     hs.timeout_base_ms = 1000
 

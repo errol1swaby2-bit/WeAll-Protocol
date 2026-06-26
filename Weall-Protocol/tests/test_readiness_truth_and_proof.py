@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch582_gap_register_truth_reflects_initial_artifacts_without_overclaiming() -> None:
+def test_gap_register_truth_reflects_initial_artifacts_without_overclaiming() -> None:
     proof = _proof()["gap_register_truth_refresh"]
     assert proof["ok"] is True
     assert proof["state_root_vector_gap_status"] == "initial_vector_pack_added_needs_cross_machine_release_vectors"
@@ -30,7 +30,7 @@ def test_batch582_gap_register_truth_reflects_initial_artifacts_without_overclai
     assert "before any activation" in entries["P1-ECONOMIC-SIMULATION-PACK"]["next_gate"].lower()
 
 
-def test_batch583_poh_operator_routes_have_explicit_env_token_metadata() -> None:
+def test_poh_operator_routes_have_explicit_env_token_metadata() -> None:
     proof = _proof()["poh_operator_route_metadata"]
     assert proof["ok"] is True
     assert proof["operator_routes_explicit_metadata"] is True
@@ -56,7 +56,7 @@ def test_batch583_poh_operator_routes_have_explicit_env_token_metadata() -> None
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_batch584_storage_ipfs_durability_rejects_wrong_and_corrupt_content_without_public_media_claim() -> None:
+def test_storage_ipfs_durability_rejects_wrong_and_corrupt_content_without_public_media_claim() -> None:
     out = _proof()["storage_ipfs_durability_rehearsal"]
     assert out["ok"] is True
     assert out["worker_model"] == "multi_daemon_ipfs_compatible_operator_processes_with_failure_and_corruption_checks"
@@ -73,7 +73,7 @@ def test_batch584_storage_ipfs_durability_rejects_wrong_and_corrupt_content_with
     assert out["automatic_evidence_deletion_claimed"] is False
 
 
-def test_batch585_anti_sybil_suspicion_review_lifecycle_has_recovery_but_not_complete_sybil_claim() -> None:
+def test_anti_sybil_suspicion_review_lifecycle_has_recovery_but_not_complete_sybil_claim() -> None:
     out = _proof()["anti_sybil_suspicion_review_lifecycle"]
     assert out["ok"] is True
     assert out["lifecycle_model"] == "anti_sybil_suspicion_to_review_to_appeal_recovery_without_auto_deletion"
@@ -90,7 +90,7 @@ def test_batch585_anti_sybil_suspicion_review_lifecycle_has_recovery_but_not_com
     assert out["automatic_collusion_detection_claimed"] is False
 
 
-def test_batch586_helper_equivalence_corpus_expands_without_production_activation() -> None:
+def test_helper_equivalence_corpus_expands_without_production_activation() -> None:
     out = _proof()["helper_equivalence_corpus_expansion"]
     assert out["ok"] is True
     assert out["helper_eligible_domain_count"] >= 7
@@ -104,7 +104,7 @@ def test_batch586_helper_equivalence_corpus_expands_without_production_activatio
     assert out["public_helper_execution_claimed"] is False
 
 
-def test_batch582_586_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

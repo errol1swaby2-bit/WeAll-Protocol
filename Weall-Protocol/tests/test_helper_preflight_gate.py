@@ -33,7 +33,7 @@ def _one_red_report():
     )
 
 
-def test_preflight_accepts_serial_only_without_helper_gate_batch17() -> None:
+def test_preflight_accepts_serial_only_without_helper_gate() -> None:
     decision = decide_production_preflight(
         preflight=ProductionPreflightInput(
             helper_mode_enabled=False,
@@ -46,7 +46,7 @@ def test_preflight_accepts_serial_only_without_helper_gate_batch17() -> None:
     assert decision.helper_ready is False
 
 
-def test_preflight_rejects_enabled_helper_mode_without_gate_batch17() -> None:
+def test_preflight_rejects_enabled_helper_mode_without_gate() -> None:
     decision = decide_production_preflight(
         preflight=ProductionPreflightInput(
             helper_mode_enabled=True,
@@ -58,7 +58,7 @@ def test_preflight_rejects_enabled_helper_mode_without_gate_batch17() -> None:
     assert decision.helper_required is True
 
 
-def test_preflight_accepts_enabled_helper_mode_when_release_gate_passes_batch17() -> None:
+def test_preflight_accepts_enabled_helper_mode_when_release_gate_passes() -> None:
     decision = decide_production_preflight(
         preflight=ProductionPreflightInput(
             helper_mode_enabled=True,
@@ -72,7 +72,7 @@ def test_preflight_accepts_enabled_helper_mode_when_release_gate_passes_batch17(
     assert decision.release_score == 100
 
 
-def test_preflight_rejects_enabled_helper_mode_when_release_gate_fails_batch17() -> None:
+def test_preflight_rejects_enabled_helper_mode_when_release_gate_fails() -> None:
     decision = decide_production_preflight(
         preflight=ProductionPreflightInput(
             helper_mode_enabled=True,
@@ -86,7 +86,7 @@ def test_preflight_rejects_enabled_helper_mode_when_release_gate_fails_batch17()
     assert decision.release_score == 87
 
 
-def test_preflight_rejects_core_runtime_prereq_before_helper_consideration_batch17() -> None:
+def test_preflight_rejects_core_runtime_prereq_before_helper_consideration() -> None:
     decision = decide_production_preflight(
         preflight=ProductionPreflightInput(
             chain_id_ok=True,

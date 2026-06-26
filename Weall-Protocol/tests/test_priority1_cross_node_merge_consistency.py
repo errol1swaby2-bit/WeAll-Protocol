@@ -20,7 +20,7 @@ def _submit(ex: WeAllExecutor, signer: str, nonce: int) -> dict:
     )
 
 
-def test_cross_node_restart_and_merge_consistency_batch69(tmp_path: Path) -> None:
+def test_cross_node_restart_and_merge_consistency(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -56,7 +56,7 @@ def test_cross_node_restart_and_merge_consistency_batch69(tmp_path: Path) -> Non
     assert st1.get("accounts") == st2.get("accounts")
 
 
-def test_redundant_replay_after_full_commit_is_noop_batch69(tmp_path: Path) -> None:
+def test_redundant_replay_after_full_commit_is_noop(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "noop.db")
@@ -84,7 +84,7 @@ def test_redundant_replay_after_full_commit_is_noop_batch69(tmp_path: Path) -> N
     assert state_before == state_after
 
 
-def test_interleaved_restart_and_submission_does_not_create_duplicates_batch69(
+def test_interleaved_restart_and_submission_does_not_create_duplicates(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()

@@ -82,7 +82,7 @@ def _mk_cert(plan: LanePlan, *, block_height: int, view: int, validator_epoch: i
     )
 
 
-def test_helper_serial_equivalence_survives_mixed_fallback_paths_batch12() -> None:
+def test_helper_serial_equivalence_survives_mixed_fallback_paths() -> None:
     txs = [
         _tx("t1", "CONTENT_CREATE", write_key="content:post:1"),
         _tx("t2", "IDENTITY_UPDATE", write_key="identity:user:alice"),

@@ -9,7 +9,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_webrtc_signals_are_pruned_by_ttl_batch410() -> None:
+def test_webrtc_signals_are_pruned_by_ttl() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "WEALL_P2P_SIGNAL_TTL_MS" in src
@@ -19,7 +19,7 @@ def test_webrtc_signals_are_pruned_by_ttl_batch410() -> None:
     assert "WEALL_P2P_SIGNAL_MAX_RECORDS_PER_SESSION" in src
 
 
-def test_webrtc_bridge_uses_durable_tx_queue_batch410() -> None:
+def test_webrtc_bridge_uses_durable_tx_queue() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
     app = _read(ROOT / "src" / "weall" / "api" / "app.py")
 
@@ -35,7 +35,7 @@ def test_webrtc_bridge_uses_durable_tx_queue_batch410() -> None:
     assert "stop_webrtc_signal_bridge_autodrain" in app
 
 
-def test_webrtc_bridge_peers_are_node_pinned_for_prod_batch410() -> None:
+def test_webrtc_bridge_peers_are_node_pinned_for_prod() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
 
     assert "WEALL_WEBRTC_SIGNAL_PEERS_JSON" in src
@@ -47,7 +47,7 @@ def test_webrtc_bridge_peers_are_node_pinned_for_prod_batch410() -> None:
     assert "source_node" in src
 
 
-def test_webrtc_relay_config_endpoint_and_frontend_ice_servers_batch410() -> None:
+def test_webrtc_relay_config_endpoint_and_frontend_ice_servers() -> None:
     src = _read(ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py")
     api = _read(WEB / "src" / "api" / "weall.ts")
     lib = _read(WEB / "src" / "lib" / "webrtcLiveRoom.ts")
@@ -68,7 +68,7 @@ def test_webrtc_relay_config_endpoint_and_frontend_ice_servers_batch410() -> Non
     assert "Optional STUN/TURN relay discovery" in room
 
 
-def test_local_rehearsal_configures_two_way_pinned_bridge_batch410() -> None:
+def test_local_rehearsal_configures_two_way_pinned_bridge() -> None:
     script = _read(ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
 
     assert "WEALL_WEBRTC_SIGNAL_BRIDGE_AUTODRAIN=1" in script

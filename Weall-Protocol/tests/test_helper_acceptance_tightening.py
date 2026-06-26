@@ -43,7 +43,7 @@ def _base_cert(plan: LanePlan, **overrides) -> HelperExecutionCertificate:
     return HelperExecutionCertificate(**payload)
 
 
-def test_verify_helper_certificate_rejects_missing_plan_id_when_strictly_required_batch107() -> None:
+def test_verify_helper_certificate_rejects_missing_plan_id_when_strictly_required() -> None:
     lane = _lane_plan()
     cert = _base_cert(lane, plan_id="")
     ok, reason = verify_helper_certificate(
@@ -63,7 +63,7 @@ def test_verify_helper_certificate_rejects_missing_plan_id_when_strictly_require
     assert reason == "plan_id_mismatch"
 
 
-def test_verify_helper_certificate_rejects_missing_manifest_hash_when_strictly_required_batch107() -> None:
+def test_verify_helper_certificate_rejects_missing_manifest_hash_when_strictly_required() -> None:
     lane = _lane_plan()
     cert = _base_cert(lane, manifest_hash="")
     ok, reason = verify_helper_certificate(
@@ -83,7 +83,7 @@ def test_verify_helper_certificate_rejects_missing_manifest_hash_when_strictly_r
     assert reason == "manifest_hash_mismatch"
 
 
-def test_verify_helper_certificate_can_enforce_tx_order_hash_without_full_internal_consistency_batch107() -> None:
+def test_verify_helper_certificate_can_enforce_tx_order_hash_without_full_internal_consistency() -> None:
     lane = _lane_plan()
     cert = _base_cert(lane, tx_order_hash="wrong-order")
     ok, reason = verify_helper_certificate(
@@ -102,7 +102,7 @@ def test_verify_helper_certificate_can_enforce_tx_order_hash_without_full_intern
     assert reason == "tx_order_hash_mismatch"
 
 
-def test_merge_helper_lane_results_falls_back_on_missing_plan_binding_when_required_batch107() -> None:
+def test_merge_helper_lane_results_falls_back_on_missing_plan_binding_when_required() -> None:
     lane = _lane_plan()
     cert = _base_cert(lane, plan_id="")
     merged = merge_helper_lane_results(
@@ -127,7 +127,7 @@ def test_merge_helper_lane_results_falls_back_on_missing_plan_binding_when_requi
     assert merged.lane_decisions[0].fallback_reason == "plan_id_mismatch"
 
 
-def test_merge_helper_lane_results_falls_back_on_missing_manifest_binding_when_required_batch107() -> None:
+def test_merge_helper_lane_results_falls_back_on_missing_manifest_binding_when_required() -> None:
     lane = _lane_plan()
     cert = _base_cert(lane, manifest_hash="")
     merged = merge_helper_lane_results(

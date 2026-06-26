@@ -50,7 +50,7 @@ def _load_genesis_verifier():
     return mod
 
 
-def test_production_chain_params_reject_open_bootstrap_roleless_juror_and_demo_flags_batch334() -> None:
+def test_production_chain_params_reject_open_bootstrap_roleless_juror_and_demo_flags() -> None:
     issues = production_chain_param_safety_issues(
         {
             "params": {
@@ -71,7 +71,7 @@ def test_production_chain_params_reject_open_bootstrap_roleless_juror_and_demo_f
     assert "params.seeded_demo_review_fallback=true" in joined
 
 
-def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_flags_batch334(tmp_path: Path) -> None:
+def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_flags(tmp_path: Path) -> None:
     verifier = _load_genesis_verifier()
     manifest_path = ROOT / "configs" / "chains" / "weall-genesis.json"
     tx_index_path = ROOT / "generated" / "tx_index.json"
@@ -95,7 +95,7 @@ def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_f
     assert "genesis_forbidden_production_chain_param" in codes
 
 
-def test_production_founder_bootstrap_grant_is_auditable_receipt_backed_and_transitional_batch334() -> None:
+def test_production_founder_bootstrap_grant_is_auditable_receipt_backed_and_transitional() -> None:
     genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
     params = genesis["params"]
     founder = params["bootstrap_founder_account"]
@@ -149,7 +149,7 @@ def _native_poh_state() -> dict:
     }
 
 
-def test_native_async_live_path_grows_juror_pool_from_founder_bootstrap_batch334() -> None:
+def test_native_async_live_path_grows_juror_pool_from_founder_bootstrap() -> None:
     st = _native_poh_state()
 
     apply_tx(
@@ -245,7 +245,7 @@ def _governance_state(*, unlocked: bool) -> dict:
     }
 
 
-def test_governance_treasury_spend_actions_remain_blocked_by_genesis_econ_lock_batch335() -> None:
+def test_governance_treasury_spend_actions_remain_blocked_by_genesis_econ_lock() -> None:
     st = _governance_state(unlocked=False)
 
     with pytest.raises(ApplyError) as exc:
@@ -267,7 +267,7 @@ def test_governance_treasury_spend_actions_remain_blocked_by_genesis_econ_lock_b
     assert exc.value.reason == "economic_actions_locked"
 
 
-def test_governance_allowlists_proposal_voted_treasury_spend_execute_after_unlock_batch336() -> None:
+def test_governance_allowlists_proposal_voted_treasury_spend_execute_after_unlock() -> None:
     st = _governance_state(unlocked=True)
 
     apply_governance(
@@ -300,7 +300,7 @@ def test_governance_allowlists_proposal_voted_treasury_spend_execute_after_unloc
     assert any(item.get("tx_type") == "TREASURY_SPEND_EXECUTE" and item.get("payload", {}).get("spend_id") == "spend-1" for item in queued)
 
 
-def test_rewards_remain_disabled_before_economics_activation_batch335() -> None:
+def test_rewards_remain_disabled_before_economics_activation() -> None:
     st = {
         "height": 5,
         "time": 1,
@@ -317,7 +317,7 @@ def test_rewards_remain_disabled_before_economics_activation_batch335() -> None:
     assert "economics" in str(exc.value)
 
 
-def test_global_emissary_nominate_vote_seat_remove_syncs_protocol_treasury_signers_batch336() -> None:
+def test_global_emissary_nominate_vote_seat_remove_syncs_protocol_treasury_signers() -> None:
     st = {
         "height": 10,
         "accounts": {
@@ -360,7 +360,7 @@ def test_global_emissary_nominate_vote_seat_remove_syncs_protocol_treasury_signe
     assert treasury_policy["synced_from_emissaries_reason"] == "emissary_removed:inert_until_two_emissaries"
 
 
-def test_group_emissary_election_finalize_syncs_group_and_treasury_signers_batch336() -> None:
+def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> None:
     candidates = ["@a", "@b", "@c", "@d", "@e"]
     st = {
         "height": 10,

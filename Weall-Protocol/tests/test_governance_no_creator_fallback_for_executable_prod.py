@@ -40,7 +40,7 @@ def _state_with_explicit_electorate() -> dict:
     return st
 
 
-def test_executable_governance_rejects_creator_fallback_when_no_explicit_electorate_batch322() -> None:
+def test_executable_governance_rejects_creator_fallback_when_no_explicit_electorate() -> None:
     st = _base_state()
 
     with pytest.raises(ApplyError) as ei:
@@ -65,7 +65,7 @@ def test_executable_governance_rejects_creator_fallback_when_no_explicit_elector
     assert not st.get("system_queue")
 
 
-def test_non_executable_community_decision_preserves_creator_fallback_batch322() -> None:
+def test_non_executable_community_decision_preserves_creator_fallback() -> None:
     st = _base_state()
 
     apply_tx(
@@ -84,7 +84,7 @@ def test_non_executable_community_decision_preserves_creator_fallback_batch322()
     assert proposal["actions"] == []
 
 
-def test_executable_governance_uses_explicit_electorate_and_not_creator_fallback_batch322() -> None:
+def test_executable_governance_uses_explicit_electorate_and_not_creator_fallback() -> None:
     st = _state_with_explicit_electorate()
 
     apply_tx(
@@ -108,7 +108,7 @@ def test_executable_governance_uses_explicit_electorate_and_not_creator_fallback
     assert "electorate_failure_reason" not in proposal
 
 
-def test_editing_actions_into_existing_decision_requires_explicit_electorate_batch322() -> None:
+def test_editing_actions_into_existing_decision_requires_explicit_electorate() -> None:
     st = _base_state()
     apply_tx(
         st,

@@ -54,7 +54,7 @@ def _prepare_group_with_open_spend() -> dict:
     return state
 
 
-def test_group_signers_set_rejects_while_group_spend_open_batch110() -> None:
+def test_group_signers_set_rejects_while_group_spend_open() -> None:
     state = _prepare_group_with_open_spend()
     with pytest.raises(GroupsApplyError) as exc:
         apply_groups(
@@ -70,7 +70,7 @@ def test_group_signers_set_rejects_while_group_spend_open_batch110() -> None:
     assert exc.value.reason == "group_treasury_spend_open"
 
 
-def test_group_treasury_policy_set_rejects_while_group_spend_open_batch110() -> None:
+def test_group_treasury_policy_set_rejects_while_group_spend_open() -> None:
     state = _prepare_group_with_open_spend()
     with pytest.raises(GroupsApplyError) as exc:
         apply_groups(
@@ -87,7 +87,7 @@ def test_group_treasury_policy_set_rejects_while_group_spend_open_batch110() -> 
     assert exc.value.reason == "group_treasury_spend_open"
 
 
-def test_group_signers_set_allowed_after_group_spend_cancel_batch110() -> None:
+def test_group_signers_set_allowed_after_group_spend_cancel() -> None:
     state = _prepare_group_with_open_spend()
     state["group_treasury_spends"]["gsp1"]["status"] = "canceled"
     meta = apply_groups(
@@ -102,7 +102,7 @@ def test_group_signers_set_allowed_after_group_spend_cancel_batch110() -> None:
     assert meta and meta["applied"] == "GROUP_SIGNERS_SET"
 
 
-def test_group_treasury_policy_set_allowed_after_group_spend_execute_batch110() -> None:
+def test_group_treasury_policy_set_allowed_after_group_spend_execute() -> None:
     state = _prepare_group_with_open_spend()
     state["group_treasury_spends"]["gsp1"]["status"] = "executed"
     meta = apply_groups(

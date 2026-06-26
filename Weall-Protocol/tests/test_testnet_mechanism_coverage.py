@@ -15,7 +15,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch587_api_response_vectors_cover_sensitive_routes_without_public_beta_claim() -> None:
+def test_api_response_vectors_cover_sensitive_routes_without_public_beta_claim() -> None:
     proof = _proof()["api_response_vectors"]
     assert proof["ok"] is True
     assert proof["vector_count"] >= 10
@@ -40,7 +40,7 @@ def test_batch587_api_response_vectors_cover_sensitive_routes_without_public_bet
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_batch588_launch_matrix_capability_surface_blocks_high_risk_features() -> None:
+def test_launch_matrix_capability_surface_blocks_high_risk_features() -> None:
     surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     assert surface["controlled_testnet_mechanisms_complete"] is True
     assert surface["public_beta_ready_claimed"] is False
@@ -68,7 +68,7 @@ def test_batch588_launch_matrix_capability_surface_blocks_high_risk_features() -
     }
 
 
-def test_batch589_protocol_upgrade_signed_staging_verifies_without_execution() -> None:
+def test_protocol_upgrade_signed_staging_verifies_without_execution() -> None:
     out = _proof()["protocol_upgrade_signed_staging"]
     assert out["ok"] is True
     assert out["valid_manifest_verified"] is True
@@ -86,7 +86,7 @@ def test_batch589_protocol_upgrade_signed_staging_verifies_without_execution() -
     }
 
 
-def test_batch590_external_multimachine_validator_harness_keeps_public_claims_false() -> None:
+def test_external_multimachine_validator_harness_keeps_public_claims_false() -> None:
     out = _proof()["external_multimachine_validator_harness"]
     assert out["ok"] is True
     assert out["node_count"] == 4
@@ -101,7 +101,7 @@ def test_batch590_external_multimachine_validator_harness_keeps_public_claims_fa
     assert out["requires_independent_operator_run"] is True
 
 
-def test_batch591_multimachine_storage_durability_keeps_public_media_claim_false() -> None:
+def test_multimachine_storage_durability_keeps_public_media_claim_false() -> None:
     out = _proof()["multimachine_storage_ipfs_durability"]
     assert out["ok"] is True
     assert out["machine_count"] >= 5
@@ -115,7 +115,7 @@ def test_batch591_multimachine_storage_durability_keeps_public_media_claim_false
     assert out["requires_real_operator_rehearsal"] is True
 
 
-def test_batch592_reviewer_accountability_appeal_and_evidence_deletion_mechanism() -> None:
+def test_reviewer_accountability_appeal_and_evidence_deletion_mechanism() -> None:
     out = _proof()["reviewer_accountability_and_appeal"]
     assert out["ok"] is True
     assert out["conflict_exclusion_applied"] is True
@@ -128,7 +128,7 @@ def test_batch592_reviewer_accountability_appeal_and_evidence_deletion_mechanism
     assert out["complete_anti_sybil_resistance_claimed"] is False
 
 
-def test_batch593_helper_block_path_adversarial_remains_disabled() -> None:
+def test_helper_block_path_adversarial_remains_disabled() -> None:
     out = _proof()["helper_block_path_adversarial"]
     assert out["ok"] is True
     assert out["tx_count"] >= 4
@@ -141,7 +141,7 @@ def test_batch593_helper_block_path_adversarial_remains_disabled() -> None:
     assert out["public_helper_execution_claimed"] is False
 
 
-def test_batch594_locked_economics_adversarial_expansion_keeps_balances_unchanged() -> None:
+def test_locked_economics_adversarial_expansion_keeps_balances_unchanged() -> None:
     out = _proof()["locked_economics_adversarial_expansion"]
     assert out["ok"] is True
     assert out["epochs_simulated"] >= 72
@@ -155,7 +155,7 @@ def test_batch594_locked_economics_adversarial_expansion_keeps_balances_unchange
     assert out["legal_compliance_ready_claimed"] is False
 
 
-def test_batch587_594_mechanism_completion_artifact_freshness_and_boundaries() -> None:
+def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_mechanisms_complete"] is True

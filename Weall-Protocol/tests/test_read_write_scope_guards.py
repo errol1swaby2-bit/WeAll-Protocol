@@ -1,7 +1,7 @@
 from weall.runtime.read_write_sets import build_tx_access_set
 
 
-def test_explicit_authority_scope_forces_fail_closed_serial_batch4() -> None:
+def test_explicit_authority_scope_forces_fail_closed_serial() -> None:
     tx = {
         "tx_id": "t-auth",
         "tx_type": "ROLE_JUROR_ACTIVATE",
@@ -16,7 +16,7 @@ def test_explicit_authority_scope_forces_fail_closed_serial_batch4() -> None:
 
 
 
-def test_explicit_subject_scope_missing_from_writes_fails_closed_batch4() -> None:
+def test_explicit_subject_scope_missing_from_writes_fails_closed() -> None:
     tx = {
         "tx_id": "t-subject",
         "tx_type": "FOLLOW_SET",
@@ -31,7 +31,7 @@ def test_explicit_subject_scope_missing_from_writes_fails_closed_batch4() -> Non
 
 
 
-def test_explicit_scoped_writes_remain_parallel_when_scope_is_materialized_batch4() -> None:
+def test_explicit_scoped_writes_remain_parallel_when_scope_is_materialized() -> None:
     tx = {
         "tx_id": "t-ok",
         "tx_type": "CONTENT_POST_CREATE",

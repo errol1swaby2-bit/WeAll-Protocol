@@ -28,7 +28,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_restart_schedule_variation_reaches_same_accounts_batch63(tmp_path: Path) -> None:
+def test_restart_schedule_variation_reaches_same_accounts(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -79,7 +79,7 @@ def test_restart_schedule_variation_reaches_same_accounts_batch63(tmp_path: Path
     assert len(st_a.get("accounts", {})) == len(st_b.get("accounts", {}))
 
 
-def test_tip_stability_across_many_restarts_without_new_work_batch63(tmp_path: Path) -> None:
+def test_tip_stability_across_many_restarts_without_new_work(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "tip.db")
@@ -109,7 +109,7 @@ def test_tip_stability_across_many_restarts_without_new_work_batch63(tmp_path: P
         assert len(ex.read_mempool()) == 0
 
 
-def test_redundant_empty_production_after_restart_does_not_mutate_state_batch63(
+def test_redundant_empty_production_after_restart_does_not_mutate_state(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -144,7 +144,7 @@ def test_redundant_empty_production_after_restart_does_not_mutate_state_batch63(
         assert sorted(ex.read_state().get("accounts", {}).keys()) == expected_accounts
 
 
-def test_pending_then_committed_then_restart_never_reopens_keys_batch63(tmp_path: Path) -> None:
+def test_pending_then_committed_then_restart_never_reopens_keys(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "keys.db")

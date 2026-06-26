@@ -94,7 +94,7 @@ def _journal_factory(tmp_path: Path, prefix: str):
     return factory
 
 
-def test_helper_release_gate_bundle_batch16(tmp_path) -> None:
+def test_helper_release_gate_bundle(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     receipts_ok = [{"tx_id": "t1", "status": "ok"}]
     delta_ok = {"balances:alice": 5}

@@ -4,7 +4,7 @@ from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatch
 from weall.runtime.helper_replay_guard import HelperRateBudget, HelperReplayGuard
 
 
-def test_replay_guard_budget_duplicate_and_conflict_paths_batch11() -> None:
+def test_replay_guard_budget_duplicate_and_conflict_paths() -> None:
     guard = HelperReplayGuard(budget=HelperRateBudget(per_helper_per_window=3, per_plan_total=10, window_ms=5_000))
 
     first = {
@@ -35,7 +35,7 @@ def test_replay_guard_budget_duplicate_and_conflict_paths_batch11() -> None:
     assert guard.observe_artifact(conflict, now_ms=1003).reason == "conflicting_artifact_for_same_helper_lane"
 
 
-def test_replay_guard_budget_rate_limit_then_window_recovery_batch11() -> None:
+def test_replay_guard_budget_rate_limit_then_window_recovery() -> None:
     guard = HelperReplayGuard(budget=HelperRateBudget(per_helper_per_window=2, per_plan_total=10, window_ms=100))
 
     def artifact(i: int) -> dict[str, str]:
@@ -58,7 +58,7 @@ def test_replay_guard_budget_rate_limit_then_window_recovery_batch11() -> None:
     assert recovered.reason == "accepted"
 
 
-def test_certificate_store_budget_window_and_plan_total_fail_closed_batch11() -> None:
+def test_certificate_store_budget_window_and_plan_total_fail_closed() -> None:
     store = HelperCertificateStore(
         context=HelperDispatchContext(
             chain_id="c1",

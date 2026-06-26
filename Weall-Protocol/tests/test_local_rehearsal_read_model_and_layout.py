@@ -44,7 +44,7 @@ def _state_with_removed_group_post() -> dict:
     }
 
 
-def test_batch449_removed_content_is_hidden_from_author_and_group_feeds_before_final_receipt() -> None:
+def test_removed_content_is_hidden_from_author_and_group_feeds_before_final_receipt() -> None:
     st = _state_with_removed_group_post()
     post = st["content"]["posts"]["post:@errol:12"]
 
@@ -54,7 +54,7 @@ def test_batch449_removed_content_is_hidden_from_author_and_group_feeds_before_f
     assert _iter_group_posts(st, group_id="g:test") == []
 
 
-def test_batch449_group_post_detail_uses_scoped_content_read_when_signed_in() -> None:
+def test_group_post_detail_uses_scoped_content_read_when_signed_in() -> None:
     text = (WEB / "src/pages/Content.tsx").read_text(encoding="utf-8")
     assert "getAuthHeaders" in text
     assert "weall.contentScoped(routeContentId, base, headers)" in text
@@ -62,12 +62,12 @@ def test_batch449_group_post_detail_uses_scoped_content_read_when_signed_in() ->
 
 
 
-def test_batch449_removed_communication_key_autopublish_surface_stays_removed() -> None:
+def test_removed_communication_key_autopublish_surface_stays_removed() -> None:
     assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
     assert not (WEB / "src" / "components" / ("Mess" + "agingKeyBootstrapper.tsx")).exists()
 
 
-def test_batch449_center_flow_cannot_overflow_into_protocol_side_panel() -> None:
+def test_center_flow_cannot_overflow_into_protocol_side_panel() -> None:
     css = (WEB / "src/styles.css").read_text(encoding="utf-8")
     assert "Batch 449: keep dense action/detail content inside the center column" in css
     assert ".appShellContent {\n  overflow-x: clip;" in css

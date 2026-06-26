@@ -19,7 +19,7 @@ def _executor(tmp_path: Path, *, chain_id: str) -> WeAllExecutor:
     )
 
 
-def test_mempool_rejects_conflicting_same_signer_nonce_batch34(tmp_path: Path) -> None:
+def test_mempool_rejects_conflicting_same_signer_nonce(tmp_path: Path) -> None:
     ex = _executor(tmp_path, chain_id="batch34-conflict")
 
     tx1 = {
@@ -48,7 +48,7 @@ def test_mempool_rejects_conflicting_same_signer_nonce_batch34(tmp_path: Path) -
     assert mp[0].get("payload", {}).get("pubkey") == "k:alice:1"
 
 
-def test_mempool_duplicate_same_signer_nonce_same_payload_is_idempotent_batch34(tmp_path: Path) -> None:
+def test_mempool_duplicate_same_signer_nonce_same_payload_is_idempotent(tmp_path: Path) -> None:
     ex = _executor(tmp_path, chain_id="batch34-idempotent")
 
     tx = {
@@ -68,7 +68,7 @@ def test_mempool_duplicate_same_signer_nonce_same_payload_is_idempotent_batch34(
     assert ex.mempool.size() == 1
 
 
-def test_mempool_allows_corrected_retry_after_removal_batch34(tmp_path: Path) -> None:
+def test_mempool_allows_corrected_retry_after_removal(tmp_path: Path) -> None:
     ex = _executor(tmp_path, chain_id="batch34-retry")
 
     bad = {
@@ -101,7 +101,7 @@ def test_mempool_allows_corrected_retry_after_removal_batch34(tmp_path: Path) ->
     assert mp[0].get("payload", {}).get("pubkey") == "k:carol:good"
 
 
-def test_mempool_conflict_rule_persists_across_restart_batch34(tmp_path: Path) -> None:
+def test_mempool_conflict_rule_persists_across_restart(tmp_path: Path) -> None:
     ex = _executor(tmp_path, chain_id="batch34-restart")
     accepted = ex.submit_tx(
         {

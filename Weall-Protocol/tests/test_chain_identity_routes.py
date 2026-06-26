@@ -30,7 +30,7 @@ def _client(tmp_path: Path) -> tuple[TestClient, WeAllExecutor]:
     return TestClient(app), ex
 
 
-def test_chain_identity_route_surfaces_state_root_and_sync_anchor_batch208(tmp_path: Path) -> None:
+def test_chain_identity_route_surfaces_state_root_and_sync_anchor(tmp_path: Path) -> None:
     client, ex = _client(tmp_path)
 
     body = client.get("/v1/chain/identity").json()
@@ -46,7 +46,7 @@ def test_chain_identity_route_surfaces_state_root_and_sync_anchor_batch208(tmp_p
     assert isinstance(body["genesis_bootstrap"], dict)
 
 
-def test_chain_state_root_and_genesis_routes_are_join_runbook_safe_batch208(tmp_path: Path) -> None:
+def test_chain_state_root_and_genesis_routes_are_join_runbook_safe(tmp_path: Path) -> None:
     client, ex = _client(tmp_path)
 
     state_root = client.get("/v1/chain/state-root").json()

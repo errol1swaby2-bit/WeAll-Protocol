@@ -25,7 +25,7 @@ def _load_helper():
     return module
 
 
-def test_devnet_permission_probe_scripts_are_syntax_valid_batch219() -> None:
+def test_devnet_permission_probe_scripts_are_syntax_valid() -> None:
     proc = subprocess.run(
         ["bash", "-n", str(_script("scripts/devnet_permission_probe.sh"))],
         cwd=REPO_ROOT,
@@ -47,7 +47,7 @@ def test_devnet_permission_probe_scripts_are_syntax_valid_batch219() -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-def test_devnet_permission_probe_cli_is_exposed_batch219() -> None:
+def test_devnet_permission_probe_cli_is_exposed() -> None:
     for args in [["--help"], ["--list-probes"]]:
         proc = subprocess.run(
             [sys.executable, "-S", str(HELPER_PATH), *args],
@@ -61,7 +61,7 @@ def test_devnet_permission_probe_cli_is_exposed_batch219() -> None:
         assert "probe" in proc.stdout.lower()
 
 
-def test_permission_probe_covers_core_tier_and_role_gates_batch219() -> None:
+def test_permission_probe_covers_core_tier_and_role_gates() -> None:
     helper = _load_helper()
     by_name = {probe.name: probe for probe in helper.PROBES}
 
@@ -84,7 +84,7 @@ def test_permission_probe_covers_core_tier_and_role_gates_batch219() -> None:
         assert probe.expected == expected_result
 
 
-def test_permission_probe_dry_run_builds_valid_payload_plan_batch219() -> None:
+def test_permission_probe_dry_run_builds_valid_payload_plan() -> None:
     proc = subprocess.run(
         [
             sys.executable,
@@ -119,7 +119,7 @@ def test_permission_probe_dry_run_builds_valid_payload_plan_batch219() -> None:
     }
 
 
-def test_permission_probe_uses_normal_public_tx_flow_not_demo_seed_batch219() -> None:
+def test_permission_probe_uses_normal_public_tx_flow_not_demo_seed() -> None:
     combined = "\n".join(
         _script(rel).read_text(encoding="utf-8")
         for rel in ["scripts/devnet_permission_probe.py", "scripts/devnet_permission_probe.sh"]
@@ -130,7 +130,7 @@ def test_permission_probe_uses_normal_public_tx_flow_not_demo_seed_batch219() ->
     assert "/v1/tx/submit" in _script("scripts/devnet_tx.py").read_text(encoding="utf-8")
 
 
-def test_permission_probe_result_classifier_fails_confirmed_blocked_tx_batch219() -> None:
+def test_permission_probe_result_classifier_fails_confirmed_blocked_tx() -> None:
     helper = _load_helper()
     probe = next(p for p in helper.PROBES if p.expected == "reject")
 
@@ -144,7 +144,7 @@ def test_permission_probe_result_classifier_fails_confirmed_blocked_tx_batch219(
     assert detail["failure"] == "blocked_probe_confirmed"
 
 
-def test_poh_live_request_open_has_strict_payload_schema_batch219() -> None:
+def test_poh_live_request_open_has_strict_payload_schema() -> None:
     assert "POH_LIVE_REQUEST_OPEN" in TX_PAYLOADS
     validate_tx_envelope(
         {

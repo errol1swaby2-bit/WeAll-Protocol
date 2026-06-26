@@ -9,7 +9,7 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_batch492_evidence_index_requires_current_commit_bound_transcripts() -> None:
+def test_evidence_index_requires_current_commit_bound_transcripts() -> None:
     text = _read("docs/REVIEWER_EVIDENCE_INDEX.md")
 
     assert "## Evidence freshness policy" in text
@@ -20,7 +20,7 @@ def test_batch492_evidence_index_requires_current_commit_bound_transcripts() -> 
     assert "the transcript is included" in text
 
 
-def test_batch492_evidence_index_keeps_required_truth_boundaries() -> None:
+def test_evidence_index_keeps_required_truth_boundaries() -> None:
     text = _read("docs/REVIEWER_EVIDENCE_INDEX.md")
 
     assert "public mainnet" in text
@@ -32,7 +32,7 @@ def test_batch492_evidence_index_keeps_required_truth_boundaries() -> None:
     assert "controlled LAN/reviewer rehearsal only" in text
 
 
-def test_batch492_evidence_index_lists_fresh_commands() -> None:
+def test_evidence_index_lists_fresh_commands() -> None:
     text = _read("docs/REVIEWER_EVIDENCE_INDEX.md")
 
     required_commands = [
@@ -55,7 +55,7 @@ def test_batch492_evidence_index_lists_fresh_commands() -> None:
         assert command in text
 
 
-def test_batch492_stale_audit_export_transcripts_removed() -> None:
+def test_stale_audit_export_transcripts_removed() -> None:
     text = _read("docs/REVIEWER_EVIDENCE_INDEX.md")
 
     stale_phrases = [

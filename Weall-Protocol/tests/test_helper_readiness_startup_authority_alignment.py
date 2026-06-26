@@ -27,7 +27,7 @@ class _FakeExecutor:
         return {"chain_id": "weall", "node_id": "node-1", "height": 1, "tip": "tip-1"}
 
 
-def test_helper_readiness_prefers_app_startup_authority_contract_batch130(monkeypatch):
+def test_helper_readiness_prefers_app_startup_authority_contract(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     app = FastAPI()

@@ -73,7 +73,7 @@ def _apply_first_queued_escalation(state: dict) -> str:
     raise AssertionError("CONTENT_ESCALATE_TO_DISPUTE was not queued")
 
 
-def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate_batch277() -> None:
+def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate() -> None:
     state = _state()
     seed_demo_state(state, account="@demo_tester", post_id="post:@demo_tester:5")
 
@@ -105,7 +105,7 @@ def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate_batch277() -> 
     assert ok is True, meta
 
 
-def test_dev_boot_restarts_backend_after_demo_seed_so_producer_reloads_roles_batch277() -> None:
+def test_dev_boot_restarts_backend_after_demo_seed_so_producer_reloads_roles() -> None:
     script = (MONOREPO_ROOT / "scripts/dev_boot_full_stack.sh").read_text(encoding="utf-8")
 
     assert "restart_backend_after_demo_bootstrap()" in script

@@ -42,7 +42,7 @@ def _state(*, tier: int = 2, rep: int = 0, active: bool = False, node_pub: str =
     }
 
 
-def test_eligible_node_operator_enrollment_auto_queues_and_applies_activation_batch295() -> None:
+def test_eligible_node_operator_enrollment_auto_queues_and_applies_activation() -> None:
     st = _state(tier=2, rep=0, active=False)
 
     enqueued = schedule_node_operator_system_txs(st, next_height=7)
@@ -63,7 +63,7 @@ def test_eligible_node_operator_enrollment_auto_queues_and_applies_activation_ba
     assert rec["responsibilities"]["storage"]["proven_capacity_bytes"] == 0
 
 
-def test_node_operator_auto_activation_blocks_ineligible_enrollment_batch295() -> None:
+def test_node_operator_auto_activation_blocks_ineligible_enrollment() -> None:
     tier1 = _state(tier=1, rep=9999, active=False)
     assert schedule_node_operator_system_txs(tier1, next_height=7) == 0
     rec = tier1["roles"]["node_operators"]["by_id"]["@op"]
@@ -76,7 +76,7 @@ def test_node_operator_auto_activation_blocks_ineligible_enrollment_batch295() -
     assert rec2["activation_check"] == "node_key_missing"
 
 
-def test_user_cannot_directly_apply_node_operator_activation_batch295() -> None:
+def test_user_cannot_directly_apply_node_operator_activation() -> None:
     st = _state(tier=2, rep=0, active=False)
     with pytest.raises(Exception) as exc:
         apply_tx(st, _env("ROLE_NODE_OPERATOR_ACTIVATE", {"account_id": "@op"}, signer="@op", system=False))
@@ -99,7 +99,7 @@ def _preflight(state: dict, *, roles: tuple[str, ...], bft: bool = False):
     )
 
 
-def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibilities_batch295(monkeypatch) -> None:
+def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibilities(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)

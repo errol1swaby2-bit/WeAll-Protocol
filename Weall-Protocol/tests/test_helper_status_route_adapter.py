@@ -45,7 +45,7 @@ def _surface_from_status(status):
     return build_helper_status_surface(diagnostic=diagnostic)
 
 
-def test_status_route_adapter_merges_helper_into_existing_status_payload_batch22() -> None:
+def test_status_route_adapter_merges_helper_into_existing_status_payload() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -70,7 +70,7 @@ def test_status_route_adapter_merges_helper_into_existing_status_payload_batch22
     assert merged["helper"]["helper_severity"] == "warning"
 
 
-def test_status_route_adapter_forces_ready_false_when_helper_blocked_batch22() -> None:
+def test_status_route_adapter_forces_ready_false_when_helper_blocked() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_not_ready_report(),
@@ -91,7 +91,7 @@ def test_status_route_adapter_forces_ready_false_when_helper_blocked_batch22() -
     assert merged["helper_severity"] == "error"
 
 
-def test_status_route_adapter_builds_full_status_and_readyz_shapes_batch22() -> None:
+def test_status_route_adapter_builds_full_status_and_readyz_shapes() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),

@@ -81,7 +81,7 @@ def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_observer_tx_queue_survives_upstream_outage_and_retries_batch358(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_survives_upstream_outage_and_retries(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
@@ -132,7 +132,7 @@ def test_observer_tx_queue_survives_upstream_outage_and_retries_batch358(tmp_pat
     assert calls == ["https://genesis.example.test/v1/tx/submit"]
 
 
-def test_observer_upstream_tx_id_mismatch_remains_pending_batch358(tmp_path: Path, monkeypatch) -> None:
+def test_observer_upstream_tx_id_mismatch_remains_pending(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -160,7 +160,7 @@ def test_observer_upstream_tx_id_mismatch_remains_pending_batch358(tmp_path: Pat
     assert stored["records"][0]["upstream_status"] == "pending"
 
 
-def test_local_observer_status_reconciles_upstream_confirmation_batch359(tmp_path: Path, monkeypatch) -> None:
+def test_local_observer_status_reconciles_upstream_confirmation(tmp_path: Path, monkeypatch) -> None:
     tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -231,7 +231,7 @@ def _auth(account: str) -> dict[str, str]:
     return {"x-weall-account": account, "x-weall-session-key": f"sk:{account}"}
 
 
-def test_content_detail_hides_non_public_content_batch360() -> None:
+def test_content_detail_hides_non_public_content() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         public = client.get("/v1/content/post:public")
         assert public.status_code == 200, public.text
@@ -240,7 +240,7 @@ def test_content_detail_hides_non_public_content_batch360() -> None:
         assert client.get("/v1/content/comment:private").status_code == 404
 
 
-def test_group_members_and_vote_maps_are_paginated_batch360() -> None:
+def test_group_members_and_vote_maps_are_paginated() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         members = client.get("/v1/groups/g1/members?limit=2")
         assert members.status_code == 200, members.text
@@ -260,7 +260,7 @@ def test_group_members_and_vote_maps_are_paginated_batch360() -> None:
         assert dispute_votes.json()["next_cursor"]
 
 
-def test_removed_message_thread_routes_are_unmounted_batch360() -> None:
+def test_removed_message_thread_routes_are_unmounted() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         listing = client.get("/v1/" + "mess" + "ages/threads", headers=_auth("@alice"))
         assert listing.status_code == 404, listing.text

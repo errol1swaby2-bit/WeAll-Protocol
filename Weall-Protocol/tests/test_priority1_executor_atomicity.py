@@ -9,7 +9,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_executor_state_persistence_is_atomic_across_restarts_batch48(tmp_path: Path) -> None:
+def test_executor_state_persistence_is_atomic_across_restarts(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -39,7 +39,7 @@ def test_executor_state_persistence_is_atomic_across_restarts_batch48(tmp_path: 
     assert st2["accounts"]["alice"]["balance"] == 100
 
 
-def test_executor_state_does_not_partially_persist_on_multiple_writes_batch48(
+def test_executor_state_does_not_partially_persist_on_multiple_writes(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()
@@ -72,7 +72,7 @@ def test_executor_state_does_not_partially_persist_on_multiple_writes_batch48(
         assert st2["accounts"][f"user{i}"]["balance"] == i * 10
 
 
-def test_executor_restart_does_not_reset_bft_or_consensus_state_batch48(tmp_path: Path) -> None:
+def test_executor_restart_does_not_reset_bft_or_consensus_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -97,7 +97,7 @@ def test_executor_restart_does_not_reset_bft_or_consensus_state_batch48(tmp_path
     assert int(ex2.state.get("bft", {}).get("view") or 0) == 5
 
 
-def test_executor_state_integrity_under_sequential_restarts_batch48(tmp_path: Path) -> None:
+def test_executor_state_integrity_under_sequential_restarts(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

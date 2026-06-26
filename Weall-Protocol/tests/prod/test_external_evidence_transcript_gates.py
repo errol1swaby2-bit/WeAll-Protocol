@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_batch620_external_operator_transcript_requirements_are_conservative() -> None:
+def test_external_operator_transcript_requirements_are_conservative() -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     from gen_external_operator_transcript_requirements_v1_5 import build
 
@@ -31,7 +31,7 @@ def test_batch620_external_operator_transcript_requirements_are_conservative() -
         assert boundaries[key] is False
 
 
-def test_batch620_generated_external_operator_transcript_requirements_are_fresh() -> None:
+def test_generated_external_operator_transcript_requirements_are_fresh() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"],
         cwd=str(ROOT),
@@ -45,7 +45,7 @@ def test_batch620_generated_external_operator_transcript_requirements_are_fresh(
     assert payload["schema"] == "weall.v1_5.external_operator_transcript_requirements"
 
 
-def test_batch620_validator_transcript_validator_accepts_scaffold(tmp_path: Path) -> None:
+def test_validator_transcript_validator_accepts_scaffold(tmp_path: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     from rehearse_external_public_validator_operator_network_v1_5 import build_transcript
 
@@ -72,7 +72,7 @@ def test_batch620_validator_transcript_validator_accepts_scaffold(tmp_path: Path
     assert transcript["external_attestation_required"] is True
 
 
-def test_batch620_storage_transcript_validator_accepts_scaffold(tmp_path: Path) -> None:
+def test_storage_transcript_validator_accepts_scaffold(tmp_path: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     from rehearse_storage_ipfs_external_operator_topology_v1_5 import build_transcript
 
@@ -99,7 +99,7 @@ def test_batch620_storage_transcript_validator_accepts_scaffold(tmp_path: Path) 
     assert transcript["real_daemon_topology_required"] is True
 
 
-def test_batch620_api_vectors_and_go_gate_reference_external_evidence() -> None:
+def test_api_vectors_and_go_gate_reference_external_evidence() -> None:
     for script in (
         "gen_api_response_vectors_v1_5.py",
         "gen_public_beta_blocker_report_v1_5.py",

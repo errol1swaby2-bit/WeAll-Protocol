@@ -9,7 +9,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_mempool_order_preserved_after_failed_commit_restart_batch41(tmp_path: Path, monkeypatch) -> None:
+def test_mempool_order_preserved_after_failed_commit_restart(tmp_path: Path, monkeypatch) -> None:
     """
     New coverage: after a rollback triggered during block commit, all selected txs
     must remain pending *and* preserve their FIFO order across restart.

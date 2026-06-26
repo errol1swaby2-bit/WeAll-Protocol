@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_native_async_api_routes_exist_batch286() -> None:
+def test_native_async_api_routes_exist() -> None:
     route = _read(BACKEND / "src/weall/api/routes_public_parts/poh.py")
 
     assert '"/poh/async/my-cases"' in route
@@ -24,7 +24,7 @@ def test_native_async_api_routes_exist_batch286() -> None:
     assert 'tx_type="POH_TIER2_REVIEW_SUBMIT"' not in route
 
 
-def test_account_verification_tracks_native_async_cases_batch286() -> None:
+def test_account_verification_tracks_native_async_cases() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
 
     assert "weall.pohAsyncMyCases" in page
@@ -33,7 +33,7 @@ def test_account_verification_tracks_native_async_cases_batch286() -> None:
     assert "Tier 1 evidence" not in page
 
 
-def test_reviewer_dashboard_uses_native_async_routes_batch286() -> None:
+def test_reviewer_dashboard_uses_native_async_routes() -> None:
     page = _read(WEB / "src/pages/JurorDashboard.tsx")
 
     assert "weall.pohAsyncJurorCases" in page

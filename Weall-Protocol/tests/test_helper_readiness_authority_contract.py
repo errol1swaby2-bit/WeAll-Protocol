@@ -27,7 +27,7 @@ def _client(lifecycle: dict[str, object]):
     return TestClient(app)
 
 
-def test_helper_readiness_surfaces_authority_contract_batch127(monkeypatch):
+def test_helper_readiness_surfaces_authority_contract(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")

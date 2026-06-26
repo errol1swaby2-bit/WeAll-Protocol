@@ -33,7 +33,7 @@ def _not_ready_report():
     )
 
 
-def test_helper_startup_allows_serial_only_without_helper_request_batch18() -> None:
+def test_helper_startup_allows_serial_only_without_helper_request() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -44,7 +44,7 @@ def test_helper_startup_allows_serial_only_without_helper_request_batch18() -> N
     assert status.code == "preflight_ready_serial_only"
 
 
-def test_helper_startup_blocks_requested_helper_mode_without_release_gate_batch18() -> None:
+def test_helper_startup_blocks_requested_helper_mode_without_release_gate() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=None,
@@ -55,7 +55,7 @@ def test_helper_startup_blocks_requested_helper_mode_without_release_gate_batch1
     assert status.code == "helper_release_gate_missing"
 
 
-def test_helper_startup_enables_helpers_when_release_gate_passes_batch18() -> None:
+def test_helper_startup_enables_helpers_when_release_gate_passes() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),
@@ -67,7 +67,7 @@ def test_helper_startup_enables_helpers_when_release_gate_passes_batch18() -> No
     assert status.code == "preflight_ready_with_helpers"
 
 
-def test_helper_startup_blocks_helper_mode_when_release_gate_fails_batch18() -> None:
+def test_helper_startup_blocks_helper_mode_when_release_gate_fails() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_not_ready_report(),
@@ -79,7 +79,7 @@ def test_helper_startup_blocks_helper_mode_when_release_gate_fails_batch18() -> 
     assert status.helper_release_score == 87
 
 
-def test_helper_startup_blocks_on_core_runtime_failure_even_without_helpers_batch18() -> None:
+def test_helper_startup_blocks_on_core_runtime_failure_even_without_helpers() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
             helper_mode_requested=False,

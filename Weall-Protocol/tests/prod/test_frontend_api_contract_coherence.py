@@ -24,7 +24,7 @@ def _client(state: dict[str, Any]) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_batch623_reviewer_status_is_backend_truth_source_for_frontend_lanes() -> None:
+def test_reviewer_status_is_backend_truth_source_for_frontend_lanes() -> None:
     state = {
         "accounts": {
             "@alice": {"poh_tier": 2, "reputation": 1, "banned": False, "locked": False, "nonce": 0},
@@ -64,7 +64,7 @@ def test_batch623_reviewer_status_is_backend_truth_source_for_frontend_lanes() -
     assert reviewer["active_lanes"] == ["content_review", "poh_async_review"]
 
 
-def test_batch623_reviewer_status_reports_eligibility_blockers_without_frontend_guessing() -> None:
+def test_reviewer_status_reports_eligibility_blockers_without_frontend_guessing() -> None:
     client = _client({"accounts": {"@bob": {"poh_tier": 1, "banned": False, "locked": True}}, "roles": {"jurors": {"active_set": [], "by_id": {}}}})
     res = client.get("/v1/accounts/%40bob/reviewer-status")
     assert res.status_code == 200, res.text

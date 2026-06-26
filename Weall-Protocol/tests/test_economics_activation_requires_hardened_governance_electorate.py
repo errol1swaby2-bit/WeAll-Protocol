@@ -44,7 +44,7 @@ def _state(*, explicit_electorate: bool) -> dict:
     return st
 
 
-def test_economics_activation_cannot_be_created_without_hardened_electorate_batch322() -> None:
+def test_economics_activation_cannot_be_created_without_hardened_electorate() -> None:
     st = _state(explicit_electorate=False)
 
     with pytest.raises(ApplyError) as ei:
@@ -67,7 +67,7 @@ def test_economics_activation_cannot_be_created_without_hardened_electorate_batc
     assert st["params"]["economics_enabled"] is False
 
 
-def test_economics_activation_can_execute_only_with_explicit_electorate_batch322() -> None:
+def test_economics_activation_can_execute_only_with_explicit_electorate() -> None:
     st = _state(explicit_electorate=True)
     canon = _tx_index()
 

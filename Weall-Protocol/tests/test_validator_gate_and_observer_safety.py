@@ -77,7 +77,7 @@ def _bundle(path: Path, *, profile_hash: str = "3" * 64) -> Path:
     return path
 
 
-def test_observer_bundle_verifier_rejects_protocol_profile_hash_mismatch_batch348(tmp_path: Path) -> None:
+def test_observer_bundle_verifier_rejects_protocol_profile_hash_mismatch(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path / "manifest.json", profile_hash="a" * 64)
     bundle = _bundle(tmp_path / "bundle.json", profile_hash="b" * 64)
 
@@ -95,7 +95,7 @@ def test_observer_bundle_verifier_rejects_protocol_profile_hash_mismatch_batch34
     assert "manifest_protocol_profile_hash_mismatch" in result["issues"]
 
 
-def test_verifier_exports_expected_protocol_profile_hash_batch348(tmp_path: Path) -> None:
+def test_verifier_exports_expected_protocol_profile_hash(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path / "manifest.json", profile_hash="a" * 64)
     bundle = _bundle(tmp_path / "bundle.json", profile_hash="a" * 64)
 
@@ -112,7 +112,7 @@ def test_verifier_exports_expected_protocol_profile_hash_batch348(tmp_path: Path
     assert "export WEALL_EXPECTED_PROTOCOL_PROFILE_HASH=" + "a" * 64 in proc.stdout
 
 
-def test_promoted_validator_scripts_use_bft_minimum_and_stable_validator_set_hash_batch348() -> None:
+def test_promoted_validator_scripts_use_bft_minimum_and_stable_validator_set_hash() -> None:
     preflight = (ROOT / "scripts" / "promoted_validator_preflight.sh").read_text(encoding="utf-8")
     live = (ROOT / "scripts" / "promoted_validator_live_gate.sh").read_text(encoding="utf-8")
     assert "BFT_MIN_VALIDATORS" in preflight
@@ -125,7 +125,7 @@ def test_promoted_validator_scripts_use_bft_minimum_and_stable_validator_set_has
     assert "consensus_peer_identity_verification_missing" in live
 
 
-def test_consensus_validator_set_is_authoritative_over_role_active_set_batch348() -> None:
+def test_consensus_validator_set_is_authoritative_over_role_active_set() -> None:
     state = {
         "roles": {"validators": {"active_set": ["role-only"]}},
         "consensus": {"validator_set": {"active_set": ["consensus-only"], "set_hash": "hash", "epoch": 1}},
@@ -133,7 +133,7 @@ def test_consensus_validator_set_is_authoritative_over_role_active_set_batch348(
     assert _get_active_validators_from_state(state) == ["consensus-only"]
 
 
-def test_production_tx_canon_verify_only_rejects_missing_or_stale_artifact_batch348(tmp_path: Path) -> None:
+def test_production_tx_canon_verify_only_rejects_missing_or_stale_artifact(tmp_path: Path) -> None:
     missing = tmp_path / "missing-tx-index.json"
     with pytest.raises(RuntimeError, match="production tx canon artifact missing"):
         _verify_tx_index_artifact_only(str(missing))

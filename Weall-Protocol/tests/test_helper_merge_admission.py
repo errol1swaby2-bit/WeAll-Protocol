@@ -33,7 +33,7 @@ def _resolution(
     )
 
 
-def test_helper_merge_admission_accepts_matching_certificate_hashes_batch8() -> None:
+def test_helper_merge_admission_accepts_matching_certificate_hashes() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = admit_helper_merge(
@@ -56,7 +56,7 @@ def test_helper_merge_admission_accepts_matching_certificate_hashes_batch8() -> 
     assert decision.lane_count == 1
 
 
-def test_helper_merge_admission_rejects_receipts_root_mismatch_batch8() -> None:
+def test_helper_merge_admission_rejects_receipts_root_mismatch() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = admit_helper_merge(
@@ -78,7 +78,7 @@ def test_helper_merge_admission_rejects_receipts_root_mismatch_batch8() -> None:
     assert decision.code == "receipts_root_mismatch"
 
 
-def test_helper_merge_admission_rejects_state_delta_hash_mismatch_batch8() -> None:
+def test_helper_merge_admission_rejects_state_delta_hash_mismatch() -> None:
     receipts = [{"tx_id": "t1", "status": "ok"}]
     delta = {"balances:alice": 5}
     decision = admit_helper_merge(
@@ -100,7 +100,7 @@ def test_helper_merge_admission_rejects_state_delta_hash_mismatch_batch8() -> No
     assert decision.code == "state_delta_hash_mismatch"
 
 
-def test_helper_merge_admission_rejects_merge_conflict_batch8() -> None:
+def test_helper_merge_admission_rejects_merge_conflict() -> None:
     res_a = _resolution(lane_id="lane-a", mode="helper")
     res_b = _resolution(lane_id="lane-b", mode="fallback")
     decision = admit_helper_merge(
@@ -120,7 +120,7 @@ def test_helper_merge_admission_rejects_merge_conflict_batch8() -> None:
     assert decision.code == "merge_conflict:balances:alice"
 
 
-def test_helper_merge_admission_rejects_serial_equivalence_failure_batch8() -> None:
+def test_helper_merge_admission_rejects_serial_equivalence_failure() -> None:
     res = _resolution(lane_id="lane-a")
     decision = admit_helper_merge(
         resolutions=(res,),
@@ -136,7 +136,7 @@ def test_helper_merge_admission_rejects_serial_equivalence_failure_batch8() -> N
     assert decision.code == "serial_equivalence_failed"
 
 
-def test_helper_merge_admission_orders_receipts_canonically_batch8() -> None:
+def test_helper_merge_admission_orders_receipts_canonically() -> None:
     res_a = _resolution(lane_id="lane-b")
     res_b = _resolution(lane_id="lane-a")
     decision = admit_helper_merge(
@@ -162,7 +162,7 @@ def test_helper_merge_admission_orders_receipts_canonically_batch8() -> None:
     assert decision.receipts_root == expected_root
 
 
-def test_helper_merge_admission_rejects_duplicate_lane_resolution_batch8() -> None:
+def test_helper_merge_admission_rejects_duplicate_lane_resolution() -> None:
     res1 = _resolution(lane_id="lane-a")
     res2 = _resolution(lane_id="lane-a")
     decision = admit_helper_merge(

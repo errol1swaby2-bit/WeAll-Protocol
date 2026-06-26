@@ -44,7 +44,7 @@ def _surface_from_status(status):
     return build_helper_status_surface(diagnostic=diagnostic)
 
 
-def test_node_status_envelope_serial_only_batch21() -> None:
+def test_node_status_envelope_serial_only() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -65,7 +65,7 @@ def test_node_status_envelope_serial_only_batch21() -> None:
     assert envelope["helper"]["helper_severity"] == "warning"
 
 
-def test_node_status_envelope_helper_enabled_batch21() -> None:
+def test_node_status_envelope_helper_enabled() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),
@@ -84,7 +84,7 @@ def test_node_status_envelope_helper_enabled_batch21() -> None:
     assert envelope["helper"]["helper_startup"]["helper_mode_active"] is True
 
 
-def test_readyz_envelope_passes_when_base_ready_and_helper_serial_only_batch21() -> None:
+def test_readyz_envelope_passes_when_base_ready_and_helper_serial_only() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -102,7 +102,7 @@ def test_readyz_envelope_passes_when_base_ready_and_helper_serial_only_batch21()
     assert readyz["helper_severity"] == "warning"
 
 
-def test_readyz_envelope_fails_when_helper_startup_blocked_batch21() -> None:
+def test_readyz_envelope_fails_when_helper_startup_blocked() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_not_ready_report(),
@@ -121,7 +121,7 @@ def test_readyz_envelope_fails_when_helper_startup_blocked_batch21() -> None:
     assert readyz["helper_summary"] == "startup blocked: helper_release_gate_failed"
 
 
-def test_readyz_envelope_fails_when_base_not_ready_even_if_helper_green_batch21() -> None:
+def test_readyz_envelope_fails_when_base_not_ready_even_if_helper_green() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),

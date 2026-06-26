@@ -14,7 +14,7 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def test_helper_message_disorder_batch_ingest_is_deterministic_batch35() -> None:
+def test_helper_message_disorder_batch_ingest_is_deterministic() -> None:
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},

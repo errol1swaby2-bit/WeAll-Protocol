@@ -16,7 +16,7 @@ def _econ_state() -> dict:
     }
 
 
-def test_economic_user_tx_classification_uses_origin_not_mempool_context_batch321() -> None:
+def test_economic_user_tx_classification_uses_origin_not_mempool_context() -> None:
     assert is_economic_user_tx("BALANCE_TRANSFER") is True
     assert is_economic_system_tx("BALANCE_TRANSFER") is False
     assert is_economic_user_tx("FEE_PAY") is True
@@ -25,7 +25,7 @@ def test_economic_user_tx_classification_uses_origin_not_mempool_context_batch32
     assert is_economic_system_tx("ECONOMICS_ACTIVATION") is True
 
 
-def test_fee_pay_user_origin_applies_without_system_context_batch321() -> None:
+def test_fee_pay_user_origin_applies_without_system_context() -> None:
     state = _econ_state()
     env = TxEnvelope(
         tx_type="FEE_PAY",
@@ -43,7 +43,7 @@ def test_fee_pay_user_origin_applies_without_system_context_batch321() -> None:
     assert state["economics"]["fee_payments"][0]["amount"] == 3
 
 
-def test_fee_pay_rejects_spoofed_from_account_batch321() -> None:
+def test_fee_pay_rejects_spoofed_from_account() -> None:
     state = _econ_state()
     env = TxEnvelope(
         tx_type="FEE_PAY",

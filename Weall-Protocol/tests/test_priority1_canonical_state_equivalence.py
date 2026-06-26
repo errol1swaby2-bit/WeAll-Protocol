@@ -39,7 +39,7 @@ def _canonical_hash(ex: WeAllExecutor) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def test_restart_only_metadata_drift_does_not_change_canonical_state_batch82() -> None:
+def test_restart_only_metadata_drift_does_not_change_canonical_state() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db = str(root / ".pytest-b82-a.db")
@@ -63,7 +63,7 @@ def test_restart_only_metadata_drift_does_not_change_canonical_state_batch82() -
         Path(db).unlink(missing_ok=True)
 
 
-def test_same_logical_work_different_restart_schedule_same_canonical_state_batch82() -> None:
+def test_same_logical_work_different_restart_schedule_same_canonical_state() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db1 = str(root / ".pytest-b82-b1.db")
@@ -95,7 +95,7 @@ def test_same_logical_work_different_restart_schedule_same_canonical_state_batch
         Path(db2).unlink(missing_ok=True)
 
 
-def test_rejected_duplicate_work_does_not_change_canonical_state_batch82() -> None:
+def test_rejected_duplicate_work_does_not_change_canonical_state() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db = str(root / ".pytest-b82-c.db")
@@ -122,7 +122,7 @@ def test_rejected_duplicate_work_does_not_change_canonical_state_batch82() -> No
         Path(db).unlink(missing_ok=True)
 
 
-def test_cross_db_same_logical_work_same_canonical_hash_batch82() -> None:
+def test_cross_db_same_logical_work_same_canonical_hash() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db1 = str(root / ".pytest-b82-d1.db")

@@ -15,7 +15,7 @@ def _env(tx_type: str, *, signer: str = "alice", nonce: int = 1, payload: dict |
     ).to_json()
 
 
-def test_account_register_syncs_legacy_key_views_batch96() -> None:
+def test_account_register_syncs_legacy_key_views() -> None:
     state = {"accounts": {}}
     apply_tx(
         state,
@@ -28,7 +28,7 @@ def test_account_register_syncs_legacy_key_views_batch96() -> None:
     assert "keys" in acct and "by_id" in acct["keys"]
 
 
-def test_account_key_add_and_revoke_keep_mirrors_deterministic_batch96() -> None:
+def test_account_key_add_and_revoke_keep_mirrors_deterministic() -> None:
     state = {"accounts": {}}
     apply_tx(state, _env("ACCOUNT_REGISTER", signer="alice", nonce=1, payload={"pubkey": "pk-main"}))
     apply_tx(state, _env("ACCOUNT_KEY_ADD", signer="alice", nonce=2, payload={"pubkey": "pk-zed"}))
@@ -44,7 +44,7 @@ def test_account_key_add_and_revoke_keep_mirrors_deterministic_batch96() -> None
     assert acct["pubkey"] == "pk-zed"
 
 
-def test_poh_allowlist_pubkey_match_accepts_canonical_keys_by_id_only_batch96() -> None:
+def test_poh_allowlist_pubkey_match_accepts_canonical_keys_by_id_only() -> None:
     state = {
         "chain_id": "weall-test",
         "height": 10,
@@ -80,7 +80,7 @@ def test_poh_allowlist_pubkey_match_accepts_canonical_keys_by_id_only_batch96() 
     assert acct["poh_bootstrap_mode"] == "allowlist"
 
 
-def test_ledger_active_pubkeys_normalizes_all_supported_shapes_batch96() -> None:
+def test_ledger_active_pubkeys_normalizes_all_supported_shapes() -> None:
     lv = LedgerView.from_ledger(
         {
             "accounts": {

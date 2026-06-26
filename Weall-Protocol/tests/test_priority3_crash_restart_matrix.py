@@ -33,7 +33,7 @@ def _build_one_tx_block(ex: WeAllExecutor) -> tuple[dict, dict, list[str], list[
     return blk, st2, applied_ids, invalid_ids
 
 
-def test_sqlite_before_commit_failpoint_rolls_back_atomic_block_commit_batch104(
+def test_sqlite_before_commit_failpoint_rolls_back_atomic_block_commit(
     tmp_path: Path, monkeypatch
 ) -> None:
     db_path = str(tmp_path / "before-commit.db")
@@ -70,7 +70,7 @@ def test_sqlite_before_commit_failpoint_rolls_back_atomic_block_commit_batch104(
         assert list(con.execute("SELECT tx_id FROM tx_index;")) == []
 
 
-def test_block_commit_after_ledger_state_failpoint_rolls_back_epoch_transition_batch104(
+def test_block_commit_after_ledger_state_failpoint_rolls_back_epoch_transition(
     tmp_path: Path, monkeypatch
 ) -> None:
     db_path = str(tmp_path / "epoch-rollback.db")
@@ -115,7 +115,7 @@ def test_block_commit_after_ledger_state_failpoint_rolls_back_epoch_transition_b
     assert st.get("roles", {}).get("validators", {}).get("active_set", []) == []
 
 
-def test_sqlite_after_commit_exit_preserves_committed_block_batch104(tmp_path: Path) -> None:
+def test_sqlite_after_commit_exit_preserves_committed_block(tmp_path: Path) -> None:
     root = _repo_root()
     db_path = str(tmp_path / "after-commit.db")
     marker_dir = str(tmp_path / "markers-block")
@@ -167,7 +167,7 @@ assert meta.ok is True
         assert len(list(con.execute("SELECT tx_id FROM tx_index;"))) == 1
 
 
-def test_bft_state_after_persist_exit_keeps_view_and_epoch_batch104(tmp_path: Path) -> None:
+def test_bft_state_after_persist_exit_keeps_view_and_epoch(tmp_path: Path) -> None:
     root = _repo_root()
     db_path = str(tmp_path / "bft-after-persist.db")
     marker_dir = str(tmp_path / "markers-bft")

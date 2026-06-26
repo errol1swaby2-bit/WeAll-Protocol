@@ -120,7 +120,7 @@ def _prod_client(tmp_path: Path, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
-def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled_batch329(tmp_path: Path, monkeypatch) -> None:
+def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", "1")
     client = _prod_client(tmp_path, monkeypatch)
 
@@ -139,7 +139,7 @@ def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled
     assert bound.json()["accepted"] is True
 
 
-def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled_batch329(tmp_path: Path, monkeypatch) -> None:
+def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NET_RELAY_ALLOW_LEGACY_UNSIGNED_FETCH", "1")
     client = _prod_client(tmp_path, monkeypatch)
 
@@ -148,7 +148,7 @@ def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled_batch
     assert response.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
-def test_strict_authorized_fetch_and_ack_ignore_legacy_unbound_mailbox_rows_batch329(tmp_path: Path) -> None:
+def test_strict_authorized_fetch_and_ack_ignore_legacy_unbound_mailbox_rows(tmp_path: Path) -> None:
     spool = RelaySpool(tmp_path / "relay.sqlite")
     env = _ping_envelope(bind_recipient=False, now_ms=1_000)
     # Simulate a pre-hardening/non-production spool row. Production strict fetch
@@ -196,7 +196,7 @@ def _relay_loop(monkeypatch, *, recipient_map: dict[str, str] | None = None) -> 
     return loop
 
 
-def test_prod_relay_client_refuses_to_submit_to_named_peer_without_recipient_pubkey_batch329(monkeypatch) -> None:
+def test_prod_relay_client_refuses_to_submit_to_named_peer_without_recipient_pubkey(monkeypatch) -> None:
     loop = _relay_loop(monkeypatch)
     msg = PingMsg(header=_header(MsgType.PING), ping_id="out")
 
@@ -208,7 +208,7 @@ def test_prod_relay_client_refuses_to_submit_to_named_peer_without_recipient_pub
         assert getattr(exc.__cause__, "args", [""])[0] == "net_relay_missing_recipient_pubkey"
 
 
-def test_prod_relay_client_submits_bound_envelopes_when_recipient_pubkey_map_exists_batch329(monkeypatch) -> None:
+def test_prod_relay_client_submits_bound_envelopes_when_recipient_pubkey_map_exists(monkeypatch) -> None:
     genesis_pub = _priv_hex("genesis")[0]
     loop = _relay_loop(monkeypatch, recipient_map={"genesis": genesis_pub})
     sent: list[dict[str, Any]] = []

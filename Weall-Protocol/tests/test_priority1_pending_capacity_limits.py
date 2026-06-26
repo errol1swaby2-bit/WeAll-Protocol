@@ -50,7 +50,7 @@ def _qc(block_id: str) -> dict:
     }
 
 
-def test_pending_remote_block_cap_evicts_oldest_and_cleans_aliases_batch101() -> None:
+def test_pending_remote_block_cap_evicts_oldest_and_cleans_aliases() -> None:
     ex = _make_executor()
 
     ex._put_pending_remote_block(block_id="A", block=_block("A"))
@@ -64,7 +64,7 @@ def test_pending_remote_block_cap_evicts_oldest_and_cleans_aliases_batch101() ->
     assert ("pending_remote_block", "A") in ex._deleted
 
 
-def test_pending_missing_qc_cap_evicts_oldest_and_cleans_hash_aliases_batch101() -> None:
+def test_pending_missing_qc_cap_evicts_oldest_and_cleans_hash_aliases() -> None:
     ex = _make_executor()
 
     ex._put_pending_missing_qc(_qc("A"))
@@ -78,7 +78,7 @@ def test_pending_missing_qc_cap_evicts_oldest_and_cleans_hash_aliases_batch101()
     assert ("pending_missing_qc", "A") in ex._deleted
 
 
-def test_quarantine_cap_evicts_oldest_and_preserves_newest_batch101() -> None:
+def test_quarantine_cap_evicts_oldest_and_preserves_newest() -> None:
     ex = _make_executor()
 
     ex._quarantine_remote_block(_block("A"))

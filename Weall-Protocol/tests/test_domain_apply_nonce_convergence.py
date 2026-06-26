@@ -11,7 +11,7 @@ def _base_state() -> dict:
     return {"accounts": {}, "roles": {}, "params": {"system_signer": "SYSTEM"}, "poh": {}, "last_block_ts_ms": 0}
 
 
-def test_nonce_convergence_preserves_existing_success_path_batch3() -> None:
+def test_nonce_convergence_preserves_existing_success_path() -> None:
     st = _base_state()
     st = apply_tx_atomic(
         copy.deepcopy(st),
@@ -36,7 +36,7 @@ def test_nonce_convergence_preserves_existing_success_path_batch3() -> None:
     assert st["accounts"]["@user000"]["nonce"] == 2
 
 
-def test_nonce_convergence_fails_closed_on_overshoot_batch3(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_nonce_convergence_fails_closed_on_overshoot(monkeypatch: pytest.MonkeyPatch) -> None:
     st = _base_state()
     st = apply_tx_atomic(
         copy.deepcopy(st),
@@ -73,7 +73,7 @@ def test_nonce_convergence_fails_closed_on_overshoot_batch3(monkeypatch: pytest.
         )
 
 
-def test_nonce_convergence_ignores_system_paths_without_signer_account_batch3() -> None:
+def test_nonce_convergence_ignores_system_paths_without_signer_account() -> None:
     st = _base_state()
     st["params"]["system_signer"] = "SYSTEM"
     st = apply_tx_atomic(

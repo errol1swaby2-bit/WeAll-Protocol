@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_batch618_public_beta_blocker_report_is_conservative_and_complete() -> None:
+def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     sys.path.insert(0, str(ROOT / "src"))
     from gen_public_beta_blocker_report_v1_5 import build
@@ -50,7 +50,7 @@ def test_batch618_public_beta_blocker_report_is_conservative_and_complete() -> N
     assert "legal_attestation" in report["transcript_schemas"]
 
 
-def test_batch618_generated_public_beta_blocker_report_is_fresh() -> None:
+def test_generated_public_beta_blocker_report_is_fresh() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
         cwd=str(ROOT),
@@ -65,7 +65,7 @@ def test_batch618_generated_public_beta_blocker_report_is_fresh() -> None:
     assert payload["public_beta_ready"] is False
 
 
-def test_batch618_api_response_vectors_are_expanded() -> None:
+def test_api_response_vectors_are_expanded() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_api_response_vectors_v1_5.py", "--check"],
         cwd=str(ROOT),
@@ -85,7 +85,7 @@ def test_batch618_api_response_vectors_are_expanded() -> None:
     assert "GET /v1/tx/status/{tx_id}" in route_keys
 
 
-def test_batch618_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> None:
+def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> None:
     from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
     surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
@@ -99,7 +99,7 @@ def test_batch618_testnet_capabilities_surface_includes_public_beta_blocker_summ
     assert "production_helper_execution" in surface["blocked_capabilities"]
 
 
-def test_batch618_controlled_go_gate_references_public_beta_blockers() -> None:
+def test_controlled_go_gate_references_public_beta_blockers() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/run_controlled_testnet_go_gate_v1_5.py", "--check"],
         cwd=str(ROOT),

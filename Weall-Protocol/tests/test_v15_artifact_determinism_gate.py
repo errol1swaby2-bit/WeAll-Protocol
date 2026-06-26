@@ -17,7 +17,7 @@ ARTIFACTS = [
 ]
 
 
-def test_v15_generated_artifacts_are_gitignore_exempt_and_present_batch498() -> None:
+def test_v15_generated_artifacts_are_gitignore_exempt_and_present() -> None:
     text = (ROOT / ".gitignore").read_text(encoding="utf-8")
     lines = set(text.splitlines())
     assert "generated/*" in lines
@@ -28,7 +28,7 @@ def test_v15_generated_artifacts_are_gitignore_exempt_and_present_batch498() -> 
         assert isinstance(json.loads(path.read_text(encoding="utf-8")), dict)
 
 
-def test_v15_public_readiness_artifact_checker_passes_batch498() -> None:
+def test_v15_public_readiness_artifact_checker_passes() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=ROOT,
@@ -41,7 +41,7 @@ def test_v15_public_readiness_artifact_checker_passes_batch498() -> None:
     assert "OK" in result.stdout
 
 
-def test_reviewer_gate_checks_generated_artifact_freshness_before_release_tree_batch498() -> None:
+def test_reviewer_gate_checks_generated_artifact_freshness_before_release_tree() -> None:
     text = (ROOT / "scripts/reviewer_production_readiness_gate.sh").read_text(encoding="utf-8")
     tx_idx = text.index("python3 -S scripts/check_tx_canon_artifacts.py")
     api_idx = text.index("python3 scripts/gen_api_contract_map.py --check")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.helper_executor import HelperExecutor
 
 
-def test_helper_executor_carries_plan_id_into_receipt_batch30() -> None:
+def test_helper_executor_carries_plan_id_into_receipt() -> None:
     executor = HelperExecutor({"h1": "secret"})
     result = executor.execute_lane(
         chain_id="c1",

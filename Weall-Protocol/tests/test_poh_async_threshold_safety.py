@@ -89,7 +89,7 @@ def _declare_async_evidence(st: dict, case_id: str, *, nonce: int = 2) -> None:
     )
     assert declared and declared["applied"] == "POH_ASYNC_EVIDENCE_DECLARE"
 
-def test_async_threshold_policy_is_fixed_at_case_open_batch261() -> None:
+def test_async_threshold_policy_is_fixed_at_case_open() -> None:
     st = _state()
     case_id = _open_async_case(st)
     case = st["poh"]["async_cases"][case_id]
@@ -126,7 +126,7 @@ def test_async_threshold_policy_is_fixed_at_case_open_batch261() -> None:
     assert case["assigned_jurors"] == []
 
 
-def test_async_threshold_policy_from_chain_state_must_be_coherent_batch261() -> None:
+def test_async_threshold_policy_from_chain_state_must_be_coherent() -> None:
     st = _state()
     st["params"]["poh"]["async_n_jurors"] = 3
     st["params"]["poh"]["async_min_reviews"] = 4
@@ -148,7 +148,7 @@ def test_async_threshold_policy_from_chain_state_must_be_coherent_batch261() -> 
     assert "async_cases" not in st.get("poh", {})
 
 
-def test_async_finalize_revalidates_stored_threshold_policy_batch261() -> None:
+def test_async_finalize_revalidates_stored_threshold_policy() -> None:
     st = _state()
     case_id = _open_async_case(st)
     _declare_async_evidence(st, case_id, nonce=2)

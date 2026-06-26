@@ -5,7 +5,7 @@ from weall.runtime.lane_assignment import assign_execution_lane
 
 
 
-def test_same_tx_always_maps_to_same_lane_batch1() -> None:
+def test_same_tx_always_maps_to_same_lane() -> None:
     tx = {
         "tx_type": "IDENTITY_CREATE",
         "state_prefixes": ["identity:user:alice"],
@@ -15,7 +15,7 @@ def test_same_tx_always_maps_to_same_lane_batch1() -> None:
 
 
 
-def test_ambiguous_scope_goes_serial_batch1() -> None:
+def test_ambiguous_scope_goes_serial() -> None:
     tx = {
         "tx_type": "IDENTITY_CREATE",
         "state_prefixes": ["unknown"],
@@ -24,7 +24,7 @@ def test_ambiguous_scope_goes_serial_batch1() -> None:
 
 
 
-def test_cross_domain_goes_serial_batch1() -> None:
+def test_cross_domain_goes_serial() -> None:
     tx = {
         "tx_type": "IDENTITY_CREATE",
         "state_prefixes": ["identity:user:alice", "treasury:acct:main"],
@@ -33,7 +33,7 @@ def test_cross_domain_goes_serial_batch1() -> None:
 
 
 
-def test_governance_family_forced_serial_batch1() -> None:
+def test_governance_family_forced_serial() -> None:
     tx = {
         "tx_type": "GOV_PROPOSAL_CREATE",
         "state_prefixes": ["governance:proposal:p1"],

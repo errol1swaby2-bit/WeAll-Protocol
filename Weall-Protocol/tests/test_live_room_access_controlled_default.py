@@ -5,7 +5,7 @@ OUTER_ROOT = BACKEND_ROOT.parent
 WEB_SRC = OUTER_ROOT / "web" / "src"
 
 
-def test_live_room_rejects_public_jitsi_and_defaults_to_p2p_batch404() -> None:
+def test_live_room_rejects_public_jitsi_and_defaults_to_p2p() -> None:
     live = (WEB_SRC / "lib" / "liveRoom.ts").read_text(encoding="utf-8")
 
     assert "meet.jit.si" in live

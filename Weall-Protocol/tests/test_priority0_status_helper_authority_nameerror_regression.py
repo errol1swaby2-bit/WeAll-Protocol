@@ -60,7 +60,7 @@ class _FakeExecutor:
         return False
 
 
-def test_status_operator_no_nameerror_and_helper_blocked_batch138(monkeypatch) -> None:
+def test_status_operator_no_nameerror_and_helper_blocked(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
 
     app = FastAPI()

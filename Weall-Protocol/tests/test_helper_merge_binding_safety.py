@@ -31,7 +31,7 @@ def _helper_cert(*, lane_plan: LanePlan, height: int = 7, view: int = 3) -> Help
 
 
 
-def test_merge_falls_back_when_lane_plan_contract_mismatches_canonical_batch36() -> None:
+def test_merge_falls_back_when_lane_plan_contract_mismatches_canonical() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     tx2 = {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE"}
     lane_plans = (
@@ -68,7 +68,7 @@ def test_merge_falls_back_when_lane_plan_contract_mismatches_canonical_batch36()
 
 
 
-def test_merge_falls_back_when_lane_plans_duplicate_tx_id_batch36() -> None:
+def test_merge_falls_back_when_lane_plans_duplicate_tx_id() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     lane_plans = (
         LanePlan(lane_id="L1", helper_id="h1", txs=(tx1,), tx_ids=("t1",), namespace_prefixes=("content:post:t1",)),
@@ -103,7 +103,7 @@ def test_merge_falls_back_when_lane_plans_duplicate_tx_id_batch36() -> None:
 
 
 
-def test_merge_falls_back_when_materialized_receipts_do_not_cover_canonical_order_batch36() -> None:
+def test_merge_falls_back_when_materialized_receipts_do_not_cover_canonical_order() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     tx2 = {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE"}
     lane_plans = (

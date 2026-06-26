@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.bft_hotstuff import HotStuffBFT
 
 
-def test_duplicate_same_vote_is_idempotent_batch87() -> None:
+def test_duplicate_same_vote_is_idempotent() -> None:
     hs = HotStuffBFT(chain_id="batch87")
 
     assert hs.record_local_vote(view=12, block_id="B12") is True
@@ -15,7 +15,7 @@ def test_duplicate_same_vote_is_idempotent_batch87() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B12"
 
 
-def test_conflicting_same_view_vote_is_rejected_batch87() -> None:
+def test_conflicting_same_view_vote_is_rejected() -> None:
     hs = HotStuffBFT(chain_id="batch87")
 
     assert hs.record_local_vote(view=12, block_id="B12a") is True
@@ -26,7 +26,7 @@ def test_conflicting_same_view_vote_is_rejected_batch87() -> None:
     assert str(st.get("last_voted_block_id") or "") == "B12a"
 
 
-def test_vote_replay_after_roundtrip_preserves_first_choice_batch87() -> None:
+def test_vote_replay_after_roundtrip_preserves_first_choice() -> None:
     hs = HotStuffBFT(chain_id="batch87")
 
     assert hs.record_local_vote(view=13, block_id="B13") is True
@@ -45,7 +45,7 @@ def test_vote_replay_after_roundtrip_preserves_first_choice_batch87() -> None:
     assert str(state2.get("last_voted_block_id") or "") == "B13"
 
 
-def test_higher_view_vote_advances_but_lower_view_replay_fails_batch87() -> None:
+def test_higher_view_vote_advances_but_lower_view_replay_fails() -> None:
     hs = HotStuffBFT(chain_id="batch87")
 
     assert hs.record_local_vote(view=14, block_id="B14") is True

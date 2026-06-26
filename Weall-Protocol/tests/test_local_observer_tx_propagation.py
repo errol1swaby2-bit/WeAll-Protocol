@@ -56,7 +56,7 @@ def _attach_executor(tmp_path: Path) -> WeAllExecutor:
     return ex
 
 
-def test_local_observer_tx_submit_forwards_signed_envelope_to_upstream_batch357(
+def test_local_observer_tx_submit_forwards_signed_envelope_to_upstream(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -101,7 +101,7 @@ def test_local_observer_tx_submit_forwards_signed_envelope_to_upstream_batch357(
     assert captured[0]["headers"].get("X-weall-observer-forwarded") == "1"
 
 
-def test_forwarded_observer_tx_does_not_loop_back_to_upstream_batch357(
+def test_forwarded_observer_tx_does_not_loop_back_to_upstream(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -128,7 +128,7 @@ def test_forwarded_observer_tx_does_not_loop_back_to_upstream_batch357(
     assert body["upstream_propagation"]["skipped"] == "already_forwarded"
 
 
-def test_required_upstream_failure_is_visible_to_local_frontend_batch357(
+def test_required_upstream_failure_is_visible_to_local_frontend(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -156,7 +156,7 @@ def test_required_upstream_failure_is_visible_to_local_frontend_batch357(
     assert body["upstream_propagation"]["queued"] >= 1
 
 
-def test_observer_edge_status_surfaces_upstream_posture_batch357(monkeypatch) -> None:
+def test_observer_edge_status_surfaces_upstream_posture(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test,https://peer.example.test/")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
@@ -176,7 +176,7 @@ def test_observer_edge_status_surfaces_upstream_posture_batch357(monkeypatch) ->
     assert "path" not in body["tx_queue"]
 
 
-def test_onboarding_boot_wrapper_enables_local_observer_edge_mode_batch357() -> None:
+def test_onboarding_boot_wrapper_enables_local_observer_edge_mode() -> None:
     script = (ROOT / "scripts" / "boot_onboarding_node.sh").read_text(encoding="utf-8")
     assert 'WEALL_OBSERVER_EDGE_MODE="${WEALL_OBSERVER_EDGE_MODE:-1}"' in script
     assert "WEALL_TX_UPSTREAM_URLS" in script

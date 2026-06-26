@@ -28,7 +28,7 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_finalize_is_idempotent_under_duplicate_qc_batch60() -> None:
+def test_finalize_is_idempotent_under_duplicate_qc() -> None:
     hs = HotStuffBFT(chain_id="batch60")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -51,7 +51,7 @@ def test_finalize_is_idempotent_under_duplicate_qc_batch60() -> None:
     assert str(st2.get("finalized_block_id") or "") == "A"
 
 
-def test_finalize_does_not_regress_under_stale_qc_batch60() -> None:
+def test_finalize_does_not_regress_under_stale_qc() -> None:
     hs = HotStuffBFT(chain_id="batch60")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -71,7 +71,7 @@ def test_finalize_does_not_regress_under_stale_qc_batch60() -> None:
     assert str(st2.get("finalized_block_id") or "") == "B"
 
 
-def test_executor_height_and_tip_remain_stable_on_empty_production_batch60(tmp_path: Path) -> None:
+def test_executor_height_and_tip_remain_stable_on_empty_production(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
     db_path = str(tmp_path / "empty.db")
@@ -109,7 +109,7 @@ def test_executor_height_and_tip_remain_stable_on_empty_production_batch60(tmp_p
         assert tip1 == tip0
 
 
-def test_executor_restart_after_empty_production_keeps_canonical_tip_batch60(
+def test_executor_restart_after_empty_production_keeps_canonical_tip(
     tmp_path: Path,
 ) -> None:
     root = _repo_root()

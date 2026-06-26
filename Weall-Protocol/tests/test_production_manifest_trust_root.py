@@ -51,7 +51,7 @@ def _manifest_obj(*, tx_index_hash: str, authority_key: str = "c" * 64, profile_
     }
 
 
-def test_strict_production_manifest_rejects_placeholder_authority_key_batch313(tmp_path: Path) -> None:
+def test_strict_production_manifest_rejects_placeholder_authority_key(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"
@@ -76,7 +76,7 @@ def test_strict_production_manifest_rejects_placeholder_authority_key_batch313(t
     assert "chain_manifest_trusted_authority_pubkey_unpinned" in status["issues"]
 
 
-def test_strict_production_manifest_rejects_empty_profile_hash_batch313(tmp_path: Path) -> None:
+def test_strict_production_manifest_rejects_empty_profile_hash(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"
@@ -95,7 +95,7 @@ def test_strict_production_manifest_rejects_empty_profile_hash_batch313(tmp_path
     assert "chain_manifest_protocol_profile_hash_unpinned" in status["issues"]
 
 
-def test_strict_production_manifest_rejects_invalid_authority_key_format_batch313(tmp_path: Path) -> None:
+def test_strict_production_manifest_rejects_invalid_authority_key_format(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"
@@ -114,7 +114,7 @@ def test_strict_production_manifest_rejects_invalid_authority_key_format_batch31
     assert "chain_manifest_trusted_authority_pubkey_invalid" in status["issues"]
 
 
-def test_strict_production_manifest_accepts_pinned_trust_root_batch313(tmp_path: Path) -> None:
+def test_strict_production_manifest_accepts_pinned_trust_root(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"
@@ -133,7 +133,7 @@ def test_strict_production_manifest_accepts_pinned_trust_root_batch313(tmp_path:
     assert status["tx_index_hash_matches"] is True
 
 
-def test_production_preflight_rejects_placeholder_manifest_trust_root_batch313(tmp_path: Path, monkeypatch) -> None:
+def test_production_preflight_rejects_placeholder_manifest_trust_root(tmp_path: Path, monkeypatch) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"

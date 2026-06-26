@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch577_containerized_validator_network_uses_independent_processes_ports_and_roots() -> None:
+def test_containerized_validator_network_uses_independent_processes_ports_and_roots() -> None:
     out = _proof()["containerized_validator_network"]
     assert out["ok"] is True
     assert out["process_model"] == "containerized_local_port_independent_validator_nodes"
@@ -29,7 +29,7 @@ def test_batch577_containerized_validator_network_uses_independent_processes_por
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch578_extended_soak_exercises_pressure_restarts_partitions_and_roots() -> None:
+def test_extended_soak_exercises_pressure_restarts_partitions_and_roots() -> None:
     out = _proof()["extended_seeded_network_soak"]
     assert out["ok"] is True
     assert out["soak_model"] == "extended_seeded_local_network_soak_with_resource_pressure"
@@ -45,7 +45,7 @@ def test_batch578_extended_soak_exercises_pressure_restarts_partitions_and_roots
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch579_real_ipfs_daemon_path_or_daemon_compatibility_records_retrieval_truth() -> None:
+def test_real_ipfs_daemon_path_or_daemon_compatibility_records_retrieval_truth() -> None:
     out = _proof()["real_ipfs_daemon_durability"]
     assert out["ok"] is True
     assert out["worker_model"] == "real_ipfs_daemon_or_kubo_compatible_http_daemon"
@@ -62,7 +62,7 @@ def test_batch579_real_ipfs_daemon_path_or_daemon_compatibility_records_retrieva
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch580_conflict_free_panel_appeal_and_evidence_deletion_execute() -> None:
+def test_conflict_free_panel_appeal_and_evidence_deletion_execute() -> None:
     out = _proof()["anti_sybil_conflict_appeal_recovery"]
     assert out["ok"] is True
     assert out["signal_aggregation"]["requires_adjudication_panel"] is True
@@ -77,7 +77,7 @@ def test_batch580_conflict_free_panel_appeal_and_evidence_deletion_execute() -> 
     assert out["automatic_collusion_detection_claimed"] is False
 
 
-def test_batch581_economics_sybil_farming_stress_remains_locked() -> None:
+def test_economics_sybil_farming_stress_remains_locked() -> None:
     out = _proof()["economics_sybil_farming_adversarial_stress"]
     assert out["ok"] is True
     stress = out["stress_summary"]
@@ -93,7 +93,7 @@ def test_batch581_economics_sybil_farming_stress_remains_locked() -> None:
     assert out["live_economics_claimed"] is False
 
 
-def test_batch577_581_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

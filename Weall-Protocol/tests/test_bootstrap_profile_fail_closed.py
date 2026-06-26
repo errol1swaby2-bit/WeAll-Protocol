@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 
-def test_prod_profile_requires_chain_id_batch43(monkeypatch):
+def test_prod_profile_requires_chain_id(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_CHAIN_ID", raising=False)
 
@@ -17,7 +17,7 @@ def test_prod_profile_requires_chain_id_batch43(monkeypatch):
         raise AssertionError("prod startup did not fail closed when WEALL_CHAIN_ID was missing")
 
 
-def test_prod_profile_rejects_unsafe_dev_batch43(monkeypatch):
+def test_prod_profile_rejects_unsafe_dev(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
 
@@ -31,7 +31,7 @@ def test_prod_profile_rejects_unsafe_dev_batch43(monkeypatch):
         raise AssertionError("prod startup did not fail closed when WEALL_UNSAFE_DEV=1")
 
 
-def test_prod_profile_requires_signature_verification_batch43(monkeypatch):
+def test_prod_profile_requires_signature_verification(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 

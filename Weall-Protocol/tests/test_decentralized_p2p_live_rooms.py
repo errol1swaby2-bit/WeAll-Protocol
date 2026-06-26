@@ -11,7 +11,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_live_room_default_is_decentralized_p2p_descriptor_batch406() -> None:
+def test_live_room_default_is_decentralized_p2p_descriptor() -> None:
     live = _read(WEB / "src" / "lib" / "liveRoom.ts")
 
     assert 'transport: "p2p-webrtc"' in live
@@ -25,7 +25,7 @@ def test_live_room_default_is_decentralized_p2p_descriptor_batch406() -> None:
     assert 'VITE_WEALL_ALLOW_CENTRALIZED_LIVE_ROOM_URL' in live
 
 
-def test_local_rehearsal_defaults_to_p2p_live_transport_batch406() -> None:
+def test_local_rehearsal_defaults_to_p2p_live_transport() -> None:
     script = _read(NESTED / "scripts" / "devnet_local_two_frontend_rehearsal.sh")
 
     assert 'LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"' in script
@@ -36,7 +36,7 @@ def test_local_rehearsal_defaults_to_p2p_live_transport_batch406() -> None:
     assert 'https://meet.jit.si' not in script
 
 
-def test_live_room_pages_surface_p2p_descriptor_without_central_url_batch406() -> None:
+def test_live_room_pages_surface_p2p_descriptor_without_central_url() -> None:
     room = _read(WEB / "src" / "pages" / "LiveVerificationRoom.tsx")
     account = _read(WEB / "src" / "pages" / "AccountVerificationPage.tsx")
     juror = _read(WEB / "src" / "pages" / "JurorDashboard.tsx")
@@ -60,7 +60,7 @@ def test_live_room_pages_surface_p2p_descriptor_without_central_url_batch406() -
     assert "no centralized room URL is required" in juror
 
 
-def test_csp_no_longer_allows_arbitrary_https_frames_for_live_room_batch406() -> None:
+def test_csp_no_longer_allows_arbitrary_https_frames_for_live_room() -> None:
     vite = _read(WEB / "vite.config.ts")
 
     assert "frame-src 'self' http://127.0.0.1:* http://localhost:*;" in vite

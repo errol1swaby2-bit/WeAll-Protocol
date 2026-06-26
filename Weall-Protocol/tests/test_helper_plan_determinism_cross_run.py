@@ -7,7 +7,7 @@ def _tx(tx_id: str, tx_type: str, prefixes: list[str]) -> dict:
     return {"tx_id": tx_id, "tx_type": tx_type, "state_prefixes": prefixes}
 
 
-def test_plan_parallel_execution_is_stable_across_repeated_runs_batch34() -> None:
+def test_plan_parallel_execution_is_stable_across_repeated_runs() -> None:
     txs = [
         _tx("t1", "CONTENT_CREATE", ["content:post:1"]),
         _tx("t2", "IDENTITY_UPDATE", ["identity:user:alice"]),
@@ -29,7 +29,7 @@ def test_plan_parallel_execution_is_stable_across_repeated_runs_batch34() -> Non
     assert len(lane_summaries) == 1
 
 
-def test_plan_parallel_execution_uses_validator_set_hash_without_destabilizing_shape_batch34() -> None:
+def test_plan_parallel_execution_uses_validator_set_hash_without_destabilizing_shape() -> None:
     txs = [
         _tx("t1", "CONTENT_CREATE", ["content:post:1"]),
         _tx("t2", "IDENTITY_UPDATE", ["identity:user:alice"]),

@@ -33,7 +33,7 @@ def _make_executor(*, chain_id: str = "batch104") -> WeAllExecutor:
     return ex
 
 
-def test_duplicate_vote_is_suppressed_before_accept_vote_batch104() -> None:
+def test_duplicate_vote_is_suppressed_before_accept_vote() -> None:
     ex = _make_executor()
     calls = {"accept_vote": 0}
 
@@ -66,7 +66,7 @@ def test_duplicate_vote_is_suppressed_before_accept_vote_batch104() -> None:
     assert len(ex._recent_bft_votes) == 1
 
 
-def test_duplicate_timeout_is_suppressed_before_accept_timeout_batch104() -> None:
+def test_duplicate_timeout_is_suppressed_before_accept_timeout() -> None:
     ex = _make_executor()
     calls = {"accept_timeout": 0}
 

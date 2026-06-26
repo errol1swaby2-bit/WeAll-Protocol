@@ -105,7 +105,7 @@ def _state_with_media(cid: str, *, include_sha: bool = False, data: bytes = b"")
     }
 
 
-def test_cidv1_raw_sha256_multihash_verifies_supported_bytes_batch365() -> None:
+def test_cidv1_raw_sha256_multihash_verifies_supported_bytes() -> None:
     data = b"raw cid bytes batch365"
     cid = _cidv1_raw_sha256(data)
 
@@ -120,7 +120,7 @@ def test_cidv1_raw_sha256_multihash_verifies_supported_bytes_batch365() -> None:
     assert bad.reason == "cid_multihash_mismatch"
 
 
-def test_media_proxy_accepts_cid_verified_raw_bytes_without_committed_sha_batch365(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_accepts_cid_verified_raw_bytes_without_committed_sha(tmp_path: Path, monkeypatch) -> None:
     data = b"raw cid bytes served through observer"
     cid = _cidv1_raw_sha256(data)
     calls: list[str] = []
@@ -142,7 +142,7 @@ def test_media_proxy_accepts_cid_verified_raw_bytes_without_committed_sha_batch3
         assert calls == [f"https://edge.example.test/ipfs/{cid}"]
 
 
-def test_media_proxy_rejects_supported_cid_multihash_mismatch_batch365(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_rejects_supported_cid_multihash_mismatch(tmp_path: Path, monkeypatch) -> None:
     data = b"raw cid bytes expected"
     cid = _cidv1_raw_sha256(data)
 
@@ -162,7 +162,7 @@ def test_media_proxy_rejects_supported_cid_multihash_mismatch_batch365(tmp_path:
     assert not list((tmp_path / "cache").rglob("*.bin"))
 
 
-def test_media_providers_redacts_urls_in_prod_without_operator_auth_batch365(monkeypatch) -> None:
+def test_media_providers_redacts_urls_in_prod_without_operator_auth(monkeypatch) -> None:
     data = b"raw provider data"
     cid = _cidv1_raw_sha256(data)
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -184,7 +184,7 @@ def test_media_providers_redacts_urls_in_prod_without_operator_auth_batch365(mon
         assert operator.json()["providers"][0] == f"https://lan.internal.example/ipfs/{cid}"
 
 
-def test_account_feed_returns_metadata_first_media_summaries_batch365() -> None:
+def test_account_feed_returns_metadata_first_media_summaries() -> None:
     data = b"account feed media"
     cid = _cidv1_raw_sha256(data)
     with _client(_state_with_media(cid, data=data)) as client:
@@ -196,7 +196,7 @@ def test_account_feed_returns_metadata_first_media_summaries_batch365() -> None:
         assert media["load_policy"] == "viewport"
 
 
-def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_apply_batch365(tmp_path: Path, monkeypatch) -> None:
+def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_apply(tmp_path: Path, monkeypatch) -> None:
     tx_id = "tx:batch365"
     tx_queue = tmp_path / "tx_queue.json"
     tx_queue.write_text(
@@ -254,7 +254,7 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
         assert body["source"] == "state_sync"
 
 
-def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails_batch365(tmp_path: Path, monkeypatch) -> None:
+def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails(tmp_path: Path, monkeypatch) -> None:
     tx_id = "tx:batch365-nosync"
     tx_queue = tmp_path / "tx_queue.json"
     tx_queue.write_text(

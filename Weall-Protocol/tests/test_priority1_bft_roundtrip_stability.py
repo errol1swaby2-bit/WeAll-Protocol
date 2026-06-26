@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_high_qc_persists_through_multiple_roundtrips_batch67() -> None:
+def test_high_qc_persists_through_multiple_roundtrips() -> None:
     hs = HotStuffBFT(chain_id="batch67")
     hs.high_qc = _qc("batch67", 7, "B7", "B6")
 
@@ -34,7 +34,7 @@ def test_high_qc_persists_through_multiple_roundtrips_batch67() -> None:
     assert int(hs3.high_qc.view) == 7
 
 
-def test_locked_qc_persists_through_multiple_roundtrips_batch67() -> None:
+def test_locked_qc_persists_through_multiple_roundtrips() -> None:
     hs = HotStuffBFT(chain_id="batch67")
     hs.locked_qc = _qc("batch67", 5, "L5", "L4")
 
@@ -54,7 +54,7 @@ def test_locked_qc_persists_through_multiple_roundtrips_batch67() -> None:
     assert int(hs3.locked_qc.view) == 5
 
 
-def test_finalized_markers_persist_without_drift_batch67() -> None:
+def test_finalized_markers_persist_without_drift() -> None:
     hs = HotStuffBFT(chain_id="batch67")
     hs.finalized_view = 9
     hs.finalized_block_id = "F9"
@@ -74,7 +74,7 @@ def test_finalized_markers_persist_without_drift_batch67() -> None:
     assert str(state3.get("finalized_block_id") or "") == "F9"
 
 
-def test_vote_state_persists_without_drift_batch67() -> None:
+def test_vote_state_persists_without_drift() -> None:
     hs = HotStuffBFT(chain_id="batch67")
     assert hs.record_local_vote(view=6, block_id="B6") is True
 

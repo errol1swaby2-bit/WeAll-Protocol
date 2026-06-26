@@ -55,7 +55,7 @@ def _seed_state() -> dict:
     }
 
 
-def test_gov_proposals_active_only_and_summary_batch205() -> None:
+def test_gov_proposals_active_only_and_summary() -> None:
     client = TestClient(_app_with_state(_seed_state()))
 
     res = client.get("/v1/gov/proposals", params={"active_only": 1, "include_summary": 1, "limit": 50})
@@ -74,7 +74,7 @@ def test_gov_proposals_active_only_and_summary_batch205() -> None:
     assert body["items"][1]["counts_current"] == {"yes": 1, "no": 0, "abstain": 0}
 
 
-def test_gov_proposals_stage_filter_batch205() -> None:
+def test_gov_proposals_stage_filter() -> None:
     client = TestClient(_app_with_state(_seed_state()))
 
     res = client.get("/v1/gov/proposals", params={"stage": "finalized", "limit": 50})

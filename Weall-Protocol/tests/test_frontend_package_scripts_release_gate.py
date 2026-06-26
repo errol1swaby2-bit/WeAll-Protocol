@@ -5,7 +5,7 @@ import shlex
 from pathlib import Path
 
 
-def test_frontend_package_script_targets_exist_batch436() -> None:
+def test_frontend_package_script_targets_exist() -> None:
     repo = Path(__file__).resolve().parents[2]
     web = repo / "web"
     package_json = web / "package.json"

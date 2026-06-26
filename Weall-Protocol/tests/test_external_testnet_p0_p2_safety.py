@@ -48,7 +48,7 @@ def _run_authority_gate(extra_env: dict[str, str] | None = None) -> subprocess.C
     )
 
 
-def test_batch437_authority_lock_gate_passes_minimal_observer_posture() -> None:
+def test_authority_lock_gate_passes_minimal_observer_posture() -> None:
     result = _run_authority_gate()
     assert result.returncode == 0, result.stdout
     assert "external observer authority lock gate passed" in result.stdout
@@ -66,7 +66,7 @@ def test_batch437_authority_lock_gate_passes_minimal_observer_posture() -> None:
         ("WEALL_VALIDATOR_ACCOUNT", "@observer", "refuses WEALL_VALIDATOR_ACCOUNT"),
     ],
 )
-def test_batch437_authority_lock_gate_refuses_observer_authority_leaks(key: str, value: str, expected: str) -> None:
+def test_authority_lock_gate_refuses_observer_authority_leaks(key: str, value: str, expected: str) -> None:
     result = _run_authority_gate({key: value})
     assert result.returncode != 0
     assert expected in result.stdout
@@ -79,7 +79,7 @@ def _live_state() -> dict:
     return {"chain_id": "test", "height": 1, "accounts": accounts, "params": {"poh": {"live_min_rep_milli": 0}}}
 
 
-def test_batch441_live_session_init_never_stores_raw_join_url() -> None:
+def test_live_session_init_never_stores_raw_join_url() -> None:
     st = _live_state()
     created = apply_tx(
         st,
@@ -110,7 +110,7 @@ def test_batch441_live_session_init_never_stores_raw_join_url() -> None:
     assert session["relay_commitment"] == case["relay_commitment"]
 
 
-def test_batch441_live_session_serializer_redacts_legacy_join_url() -> None:
+def test_live_session_serializer_redacts_legacy_join_url() -> None:
     model = _as_live_session(
         "session:poh_live:alice:1",
         {
@@ -124,7 +124,7 @@ def test_batch441_live_session_serializer_redacts_legacy_join_url() -> None:
     assert model.session_commitment == "sc:legacy"
 
 
-def test_batch440_poh_bootstrap_policy_summary_exposes_mode_bounds_and_auto_lock() -> None:
+def test_poh_bootstrap_policy_summary_exposes_mode_bounds_and_auto_lock() -> None:
     st = {
         "height": 4,
         "params": {"poh_bootstrap_mode": "open", "poh_bootstrap_open": True, "poh_bootstrap_max_height": 5, "poh": {"live_poh_policy_mode": "production"}},
@@ -145,7 +145,7 @@ def test_batch440_poh_bootstrap_policy_summary_exposes_mode_bounds_and_auto_lock
     assert summary["auto_locked_by_validator_quorum"] is True
 
 
-def test_batch440_open_bootstrap_without_max_height_still_fails_apply_time() -> None:
+def test_open_bootstrap_without_max_height_still_fails_apply_time() -> None:
     st = {
         "height": 1,
         "accounts": {"alice": {"nonce": 0, "poh_tier": 0, "pubkey": "pk1", "banned": False, "locked": False}},
@@ -156,7 +156,7 @@ def test_batch440_open_bootstrap_without_max_height_still_fails_apply_time() -> 
     assert exc.value.reason == "bootstrap_open_requires_max_height"
 
 
-def test_batch438_node_manager_uses_manifest_or_build_baseline_before_current_node_fallback() -> None:
+def test_node_manager_uses_manifest_or_build_baseline_before_current_node_fallback() -> None:
     src = (OUTER_ROOT / "web" / "src" / "lib" / "nodeConnectionManager.ts").read_text(encoding="utf-8")
     assert "buildConfiguredCompatibilityBaseline" in src
     assert "baselineFromPayload" in src
@@ -173,7 +173,7 @@ def test_batch438_node_manager_uses_manifest_or_build_baseline_before_current_no
     assert src.index("const rawProbes = await Promise.all") < src.index("applyCompatibilityBaseline(rawProbes")
 
 
-def test_batch442_status_surface_exposes_constitution_and_limited_testnet_posture() -> None:
+def test_status_surface_exposes_constitution_and_limited_testnet_posture() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "status.py").read_text(encoding="utf-8")
     assert "active_constitution_commitment" in src
     assert "testnet_readiness" in src
@@ -183,7 +183,7 @@ def test_batch442_status_surface_exposes_constitution_and_limited_testnet_postur
     assert "economics" in src and "locked" in src
 
 
-def test_batch443_no_prod_api_path_imports_stale_ledger_gate_resolver() -> None:
+def test_no_prod_api_path_imports_stale_ledger_gate_resolver() -> None:
     api_root = ROOT / "src" / "weall" / "api"
     runtime_root = ROOT / "src" / "weall" / "runtime"
     offenders: list[str] = []

@@ -10,7 +10,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_votecheck_static_rejects_helper_plan_id_mismatch_batch32(tmp_path: Path) -> None:
+def test_votecheck_static_rejects_helper_plan_id_mismatch(tmp_path: Path) -> None:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "votecheck.db"),
         node_id="@n1",

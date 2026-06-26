@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNNER = REPO_ROOT / "scripts" / "devnet_run_cross_node_convergence_live.sh"
 
 
-def test_devnet_cross_node_live_runner_syntax_valid_batch223() -> None:
+def test_devnet_cross_node_live_runner_syntax_valid() -> None:
     proc = subprocess.run(
         ["bash", "-n", str(RUNNER)],
         cwd=REPO_ROOT,
@@ -19,7 +19,7 @@ def test_devnet_cross_node_live_runner_syntax_valid_batch223() -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-def test_devnet_cross_node_live_runner_documents_operational_knobs_batch223() -> None:
+def test_devnet_cross_node_live_runner_documents_operational_knobs() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "WEALL_DEVNET_LIVE_RESET" in text
     assert "WEALL_DEVNET_KEEP_NODES" in text
@@ -28,7 +28,7 @@ def test_devnet_cross_node_live_runner_documents_operational_knobs_batch223() ->
     assert "NODE2_API" in text
 
 
-def test_devnet_cross_node_live_runner_starts_both_nodes_and_probe_batch223() -> None:
+def test_devnet_cross_node_live_runner_starts_both_nodes_and_probe() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "devnet_boot_genesis_node.sh" in text
     assert "devnet_boot_joining_node.sh" in text
@@ -37,7 +37,7 @@ def test_devnet_cross_node_live_runner_starts_both_nodes_and_probe_batch223() ->
     assert "wait_http_ready \"node2\"" in text
 
 
-def test_devnet_cross_node_live_runner_has_cleanup_and_logs_batch223() -> None:
+def test_devnet_cross_node_live_runner_has_cleanup_and_logs() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "trap cleanup EXIT INT TERM" in text
     assert "kill \"${NODE1_PID}\"" in text
@@ -46,7 +46,7 @@ def test_devnet_cross_node_live_runner_has_cleanup_and_logs_batch223() -> None:
     assert "tail -80 \"${NODE2_LOG}\"" in text
 
 
-def test_devnet_cross_node_live_runner_uses_normal_devnet_flow_not_demo_seed_batch223() -> None:
+def test_devnet_cross_node_live_runner_uses_normal_devnet_flow_not_demo_seed() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "/v1/dev/demo-seed" not in text
     assert "demo-seed" not in text
@@ -54,7 +54,7 @@ def test_devnet_cross_node_live_runner_uses_normal_devnet_flow_not_demo_seed_bat
     assert "devnet_cross_node_convergence.sh" in text
 
 
-def test_devnet_cross_node_live_runner_recreates_log_dir_after_reset_batch224() -> None:
+def test_devnet_cross_node_live_runner_recreates_log_dir_after_reset() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     reset_index = text.index("devnet_reset_state.sh")
     mkdir_index = text.index('mkdir -p "${LOG_DIR}"')
@@ -63,7 +63,7 @@ def test_devnet_cross_node_live_runner_recreates_log_dir_after_reset_batch224() 
     assert "devnet_reset_state.sh removes .weall-devnet" in text
 
 
-def test_devnet_cross_node_live_runner_auto_activates_repo_venv_batch226() -> None:
+def test_devnet_cross_node_live_runner_auto_activates_repo_venv() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "WEALL_DEVNET_AUTO_VENV" in text
     assert "activate_repo_venv" in text
@@ -71,7 +71,7 @@ def test_devnet_cross_node_live_runner_auto_activates_repo_venv_batch226() -> No
     assert text.index("activate_repo_venv") < text.index('NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"')
 
 
-def test_devnet_boot_scripts_auto_activate_repo_venv_batch226() -> None:
+def test_devnet_boot_scripts_auto_activate_repo_venv() -> None:
     for name in ["devnet_boot_genesis_node.sh", "devnet_boot_joining_node.sh"]:
         script = REPO_ROOT / "scripts" / name
         text = script.read_text(encoding="utf-8")

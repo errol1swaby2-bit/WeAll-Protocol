@@ -63,7 +63,7 @@ def _client(state: dict[str, Any] | None = None) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_observer_edge_disables_legacy_mempool_submit_batch367(monkeypatch) -> None:
+def test_observer_edge_disables_legacy_mempool_submit(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.delenv("WEALL_OBSERVER_EDGE_ALLOW_MEMPOOL_SUBMIT", raising=False)
 
@@ -75,7 +75,7 @@ def test_observer_edge_disables_legacy_mempool_submit_batch367(monkeypatch) -> N
     assert res.json()["error"]["details"]["replacement"] == "/v1/tx/submit"
 
 
-def test_prod_state_sync_request_requires_operator_token_batch367(monkeypatch) -> None:
+def test_prod_state_sync_request_requires_operator_token(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE", "1")
     monkeypatch.delenv("WEALL_OPERATOR_TOKEN", raising=False)
@@ -93,7 +93,7 @@ def test_prod_state_sync_request_requires_operator_token_batch367(monkeypatch) -
         assert bad.json()["detail"]["code"] == "forbidden"
 
 
-def test_observer_upstream_state_sync_requests_send_operator_token_batch367(monkeypatch) -> None:
+def test_observer_upstream_state_sync_requests_send_operator_token(monkeypatch) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     captured: dict[str, Any] = {}
@@ -120,7 +120,7 @@ def test_observer_upstream_state_sync_requests_send_operator_token_batch367(monk
     assert captured["headers"]["X-weall-operator-token"] == "sync-secret"
 
 
-def test_media_gateway_legacy_redirect_is_removed_batch626(monkeypatch) -> None:
+def test_media_gateway_legacy_redirect_is_removed(monkeypatch) -> None:
     cid = _cidv1_raw_sha256(b"legacy gateway cid")
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT", raising=False)
@@ -132,7 +132,7 @@ def test_media_gateway_legacy_redirect_is_removed_batch626(monkeypatch) -> None:
     assert res.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
-def test_media_provider_urls_need_token_even_on_loopback_in_prod_batch367(monkeypatch) -> None:
+def test_media_provider_urls_need_token_even_on_loopback_in_prod(monkeypatch) -> None:
     cid = _cidv1_raw_sha256(b"provider topology")
     state = {
         "chain_id": "batch367",
@@ -157,7 +157,7 @@ def test_media_provider_urls_need_token_even_on_loopback_in_prod_batch367(monkey
         assert "edge.internal.example" in json.dumps(operator.json())
 
 
-def test_onboarding_boot_wrapper_sets_secure_observer_defaults_batch367() -> None:
+def test_onboarding_boot_wrapper_sets_secure_observer_defaults() -> None:
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]

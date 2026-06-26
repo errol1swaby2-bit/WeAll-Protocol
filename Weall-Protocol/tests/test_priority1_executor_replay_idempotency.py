@@ -29,7 +29,7 @@ def _logical_state(ex: WeAllExecutor) -> dict:
     }
 
 
-def test_replay_same_tx_batch79() -> None:
+def test_replay_same_tx() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -64,7 +64,7 @@ def test_replay_same_tx_batch79() -> None:
         Path(db).unlink(missing_ok=True)
 
 
-def test_replay_order_independence_batch79() -> None:
+def test_replay_order_independence() -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

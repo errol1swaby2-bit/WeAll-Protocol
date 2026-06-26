@@ -10,7 +10,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_account_custody_doc_exists_and_requires_recovery_verification_batch469() -> None:
+def test_account_custody_doc_exists_and_requires_recovery_verification() -> None:
     doc = _read(ROOT / "docs" / "ACCOUNT_CUSTODY_AND_RECOVERY.md")
 
     assert "Account custody and recovery" in doc
@@ -20,7 +20,7 @@ def test_account_custody_doc_exists_and_requires_recovery_verification_batch469(
     assert "does not replace" in doc.lower()
 
 
-def test_frontend_account_custody_source_gate_is_tracked_batch469() -> None:
+def test_frontend_account_custody_source_gate_is_tracked() -> None:
     script = _read(WEB / "scripts" / "test_account_custody_source.mjs")
     reviewer = _read(ROOT / "scripts" / "reviewer_production_readiness_gate.sh")
 

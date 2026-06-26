@@ -15,6 +15,10 @@ def test_professionalization_gate_finds_no_active_batch_named_pytest_files():
     assert audit_test_names.batch_named_test_files() == []
 
 
+def test_professionalization_gate_finds_no_active_batch_named_pytest_functions():
+    assert audit_test_names.batch_named_test_functions() == []
+
+
 def test_professionalization_gate_finds_no_reviewer_facing_batch_test_references():
     assert audit_test_names.reviewer_facing_batch_references() == []
 

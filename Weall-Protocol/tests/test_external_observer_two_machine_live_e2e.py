@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_external_observer_live_gate_script_contract_batch341() -> None:
+def test_external_observer_live_gate_script_contract() -> None:
     script_path = ROOT / "scripts" / "external_observer_live_gate.sh"
     script = script_path.read_text(encoding="utf-8")
 
@@ -48,7 +48,7 @@ def test_external_observer_live_gate_script_contract_batch341() -> None:
     assert "WARNING: retained files include private observer account/node keys" in script
 
 
-def test_first_external_observer_runbook_contract_batch341() -> None:
+def test_first_external_observer_runbook_contract() -> None:
     doc = (ROOT / "docs" / "FIRST_EXTERNAL_OBSERVER_TEST.md").read_text(encoding="utf-8")
 
     assert "Trusted External Observer" in doc

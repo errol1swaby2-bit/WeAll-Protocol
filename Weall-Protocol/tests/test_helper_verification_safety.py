@@ -22,7 +22,7 @@ def _lane_plan() -> LanePlan:
     )
 
 
-def test_verify_helper_certificate_strict_rejects_tx_order_hash_mismatch_batch33() -> None:
+def test_verify_helper_certificate_strict_rejects_tx_order_hash_mismatch() -> None:
     lane = _lane_plan()
     cert = HelperExecutionCertificate(
         chain_id="c1",
@@ -57,7 +57,7 @@ def test_verify_helper_certificate_strict_rejects_tx_order_hash_mismatch_batch33
     assert reason == "helper_certificate_inconsistent"
 
 
-def test_verify_helper_certificate_strict_rejects_namespace_hash_mismatch_batch33() -> None:
+def test_verify_helper_certificate_strict_rejects_namespace_hash_mismatch() -> None:
     lane = _lane_plan()
     cert = HelperExecutionCertificate(
         chain_id="c1",
@@ -92,7 +92,7 @@ def test_verify_helper_certificate_strict_rejects_namespace_hash_mismatch_batch3
     assert reason == "namespace_hash_mismatch"
 
 
-def test_merge_helper_lane_results_strict_consistency_falls_back_on_bad_tx_order_hash_batch33() -> None:
+def test_merge_helper_lane_results_strict_consistency_falls_back_on_bad_tx_order_hash() -> None:
     lane = _lane_plan()
     cert = HelperExecutionCertificate(
         chain_id="c1",

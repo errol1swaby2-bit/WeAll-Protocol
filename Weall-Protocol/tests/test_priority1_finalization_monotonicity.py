@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_finalized_view_never_regresses_under_stale_qc_batch74() -> None:
+def test_finalized_view_never_regresses_under_stale_qc() -> None:
     hs = HotStuffBFT(chain_id="batch74")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -32,7 +32,7 @@ def test_finalized_view_never_regresses_under_stale_qc_batch74() -> None:
     assert str(hs.finalized_block_id or "") == "B"
 
 
-def test_finalized_block_id_survives_roundtrip_without_drift_batch74() -> None:
+def test_finalized_block_id_survives_roundtrip_without_drift() -> None:
     hs = HotStuffBFT(chain_id="batch74")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -53,7 +53,7 @@ def test_finalized_block_id_survives_roundtrip_without_drift_batch74() -> None:
     assert str(state2.get("finalized_block_id") or "") == "B"
 
 
-def test_higher_view_same_branch_can_advance_finalized_view_batch74() -> None:
+def test_higher_view_same_branch_can_advance_finalized_view() -> None:
     hs = HotStuffBFT(chain_id="batch74")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -72,7 +72,7 @@ def test_higher_view_same_branch_can_advance_finalized_view_batch74() -> None:
     assert str(hs.finalized_block_id or "") == "C"
 
 
-def test_conflicting_branch_cannot_regress_finalized_state_batch74() -> None:
+def test_conflicting_branch_cannot_regress_finalized_state() -> None:
     hs = HotStuffBFT(chain_id="batch74")
     blocks = {
         "A": {"prev_block_id": ""},

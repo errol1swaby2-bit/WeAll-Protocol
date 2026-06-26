@@ -10,7 +10,7 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_fresh_operator_candidate_demo_script_exists_and_is_safe_batch294():
+def test_fresh_operator_candidate_demo_script_exists_and_is_safe():
     text = read(SCRIPT)
     assert "WEALL_FRESH_OPERATOR_DEMO_EXECUTE" in text
     assert "structural_smoke" in text
@@ -30,7 +30,7 @@ def test_fresh_operator_candidate_demo_script_exists_and_is_safe_batch294():
     assert "bootstrap grant" not in text.lower()
 
 
-def test_fresh_operator_candidate_demo_links_to_current_onboarding_assets_batch294():
+def test_fresh_operator_candidate_demo_links_to_current_onboarding_assets():
     text = read(SCRIPT)
     for expected in [
         "boot_onboarding_node.sh",
@@ -42,7 +42,7 @@ def test_fresh_operator_candidate_demo_links_to_current_onboarding_assets_batch2
         assert expected in text
 
 
-def test_quickstart_mentions_candidate_demo_without_overpromising_batch294():
+def test_quickstart_mentions_candidate_demo_without_overpromising():
     text = read(QUICKSTART)
     assert "./scripts/fresh_node_operator_candidate_demo.sh" in text
     assert "WEALL_FRESH_OPERATOR_DEMO_EXECUTE=1" in text
@@ -52,7 +52,7 @@ def test_quickstart_mentions_candidate_demo_without_overpromising_batch294():
     assert "WEALL_NODE_PRIVKEY=<localSecretKey>" not in text
 
 
-def test_candidate_demo_smoke_runs_in_dry_mode_batch294():
+def test_candidate_demo_smoke_runs_in_dry_mode():
     proc = subprocess.run(
         ["bash", str(SCRIPT)],
         cwd=str(ROOT),

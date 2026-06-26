@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ACCOUNT_PAGE = ROOT / "web" / "src" / "pages" / "Account.tsx"
 
 
-def test_node_operator_ui_does_not_offer_self_activation_batch290() -> None:
+def test_node_operator_ui_does_not_offer_self_activation() -> None:
     text = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "ROLE_NODE_OPERATOR_ENROLL" in text
     assert "Submit node operator enrollment" in text
@@ -17,7 +17,7 @@ def test_node_operator_ui_does_not_offer_self_activation_batch290() -> None:
     assert "Activating…" not in text
 
 
-def test_node_operator_checklist_separates_enrollment_from_activation_batch290() -> None:
+def test_node_operator_checklist_separates_enrollment_from_activation() -> None:
     text = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "Node operator enrollment submitted" in text
     assert "Node Operator status active" in text
@@ -26,7 +26,7 @@ def test_node_operator_checklist_separates_enrollment_from_activation_batch290()
     assert "Validator and storage responsibilities are optional opt-in responsibilities" in text
 
 
-def test_node_operator_ready_requires_active_role_batch290() -> None:
+def test_node_operator_ready_requires_active_role() -> None:
     text = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "const nodeOperatorEnrolled" in text
     assert "const nodeOperatorActive" in text

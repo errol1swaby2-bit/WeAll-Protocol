@@ -40,7 +40,7 @@ def _prepare_group_with_open_election() -> dict:
     return state
 
 
-def test_group_signers_set_rejects_while_emissary_election_open_batch109() -> None:
+def test_group_signers_set_rejects_while_emissary_election_open() -> None:
     state = _prepare_group_with_open_election()
     with pytest.raises(GroupsApplyError) as exc:
         apply_groups(
@@ -56,7 +56,7 @@ def test_group_signers_set_rejects_while_emissary_election_open_batch109() -> No
     assert exc.value.reason == "group_emissary_election_open"
 
 
-def test_group_moderators_set_rejects_while_emissary_election_open_batch109() -> None:
+def test_group_moderators_set_rejects_while_emissary_election_open() -> None:
     state = _prepare_group_with_open_election()
     with pytest.raises(GroupsApplyError) as exc:
         apply_groups(
@@ -72,7 +72,7 @@ def test_group_moderators_set_rejects_while_emissary_election_open_batch109() ->
     assert exc.value.reason == "group_emissary_election_open"
 
 
-def test_group_signers_set_allowed_after_election_finalize_batch109() -> None:
+def test_group_signers_set_allowed_after_election_finalize() -> None:
     state = _prepare_group_with_open_election()
     state["height"] = 109
     meta = apply_groups(state, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 10, {"election_id": "e-open"}))

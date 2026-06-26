@@ -38,7 +38,7 @@ def _make_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, acct: str
     )
 
 
-def test_status_consensus_surfaces_pinned_genesis_bootstrap_profile_batch133(
+def test_status_consensus_surfaces_pinned_genesis_bootstrap_profile(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ex = _make_executor(tmp_path, monkeypatch)
@@ -61,7 +61,7 @@ def test_status_consensus_surfaces_pinned_genesis_bootstrap_profile_batch133(
     assert compat["genesis_bootstrap_profile_hash"] == startup["genesis_bootstrap_profile_hash"]
 
 
-def test_manifest_commits_pinned_genesis_bootstrap_profile_batch133(
+def test_manifest_commits_pinned_genesis_bootstrap_profile(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ex = _make_executor(tmp_path, monkeypatch)
@@ -85,7 +85,7 @@ def test_manifest_commits_pinned_genesis_bootstrap_profile_batch133(
     assert manifest["genesis_bootstrap_profile_hash"] == ex.state["meta"]["genesis_bootstrap_profile_hash"]
 
 
-def test_verify_local_manifest_rejects_genesis_bootstrap_profile_drift_batch133(
+def test_verify_local_manifest_rejects_genesis_bootstrap_profile_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _make_executor(tmp_path, monkeypatch, acct="@genesis-a")

@@ -10,7 +10,7 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_fresh_node_to_service_script_exists_and_models_full_path_batch306() -> None:
+def test_fresh_node_to_service_script_exists_and_models_full_path() -> None:
     text = read(SCRIPT)
     assert "WEALL_FRESH_SERVICE_E2E_EXECUTE" in text
     assert "boot_onboarding_node.sh" in text
@@ -30,11 +30,11 @@ def test_fresh_node_to_service_script_exists_and_models_full_path_batch306() -> 
     assert "bootstrap grant" not in text.lower()
 
 
-def test_fresh_node_to_service_script_is_shell_valid_batch306() -> None:
+def test_fresh_node_to_service_script_is_shell_valid() -> None:
     subprocess.run(["bash", "-n", str(SCRIPT)], cwd=str(ROOT), check=True)
 
 
-def test_fresh_node_to_service_quickstart_mentions_harness_without_overpromising_batch306() -> None:
+def test_fresh_node_to_service_quickstart_mentions_harness_without_overpromising() -> None:
     text = read(QUICKSTART)
     assert "./scripts/fresh_node_to_service_e2e.sh" in text
     assert "WEALL_FRESH_SERVICE_E2E_EXECUTE=1" in text
@@ -44,7 +44,7 @@ def test_fresh_node_to_service_quickstart_mentions_harness_without_overpromising
     assert "WEALL_NODE_PRIVKEY=<account_secret>" not in text
 
 
-def test_fresh_node_to_service_dry_run_wires_local_probe_and_readiness_tools_batch306() -> None:
+def test_fresh_node_to_service_dry_run_wires_local_probe_and_readiness_tools() -> None:
     text = read(SCRIPT)
     assert "dry-run only" in text
     assert "run_local_storage_probe" in text

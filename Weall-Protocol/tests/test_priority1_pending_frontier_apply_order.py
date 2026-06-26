@@ -21,7 +21,7 @@ def _executor(tmp_path: Path, name: str, *, chain_id: str) -> WeAllExecutor:
     )
 
 
-def test_pending_frontier_replay_attaches_cached_qc_as_justify_qc_batch98(
+def test_pending_frontier_replay_attaches_cached_qc_as_justify_qc(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
@@ -68,7 +68,7 @@ def test_pending_frontier_replay_attaches_cached_qc_as_justify_qc_batch98(
     assert "qc" not in seen[0]
 
 
-def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_justify_qc_batch98(
+def test_pending_frontier_drops_conflicting_cached_qc_when_block_already_has_justify_qc(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")

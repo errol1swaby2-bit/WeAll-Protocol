@@ -13,7 +13,7 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def test_two_honest_proposers_old_view_receipt_rejected_batch35() -> None:
+def test_two_honest_proposers_old_view_receipt_rejected() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(
         txs=txs,

@@ -70,7 +70,7 @@ def _make_executor(*, chain_id: str = "batch96") -> WeAllExecutor:
     return ex
 
 
-def test_executor_observes_verified_embedded_qc_before_vote_batch96(monkeypatch) -> None:
+def test_executor_observes_verified_embedded_qc_before_vote(monkeypatch) -> None:
     ex = _make_executor()
     ex._bft.locked_qc = _qc("batch96", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch96", 4, "C1", "B1")
@@ -107,7 +107,7 @@ def test_executor_observes_verified_embedded_qc_before_vote_batch96(monkeypatch)
     assert ex._bft.last_voted_block_id == "D2"
 
 
-def test_executor_rejects_unverified_explicit_justify_qc_batch96(monkeypatch) -> None:
+def test_executor_rejects_unverified_explicit_justify_qc(monkeypatch) -> None:
     ex = _make_executor()
     ex._bft.locked_qc = _qc("batch96", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch96", 4, "C1", "B1")
@@ -134,7 +134,7 @@ def test_executor_rejects_unverified_explicit_justify_qc_batch96(monkeypatch) ->
     assert ex._bft.last_voted_block_id == ""
 
 
-def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justify_batch96(
+def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justify(
     monkeypatch,
 ) -> None:
     ex = _make_executor()
@@ -166,7 +166,7 @@ def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justi
     assert ex._bft.last_voted_block_id == "D2"
 
 
-def test_executor_restart_rejects_conflicting_high_qc_block_itself_batch96(monkeypatch) -> None:
+def test_executor_restart_rejects_conflicting_high_qc_block_itself(monkeypatch) -> None:
     ex = _make_executor()
     hs = HotStuffBFT(chain_id="batch96")
     hs.locked_qc = _qc("batch96", 4, "C1", "B1")

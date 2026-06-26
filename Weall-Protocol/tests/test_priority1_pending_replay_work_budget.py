@@ -76,7 +76,7 @@ def _make_executor() -> WeAllExecutor:
     return ex
 
 
-def test_pending_replay_scan_budget_caps_work_per_call_batch102(monkeypatch) -> None:
+def test_pending_replay_scan_budget_caps_work_per_call(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     ex = _make_executor()
     ex._max_pending_replay_scans_per_call = 3
@@ -100,7 +100,7 @@ def test_pending_replay_scan_budget_caps_work_per_call_batch102(monkeypatch) -> 
     assert ex._pending_replay_cursor == "D"
 
 
-def test_pending_replay_cursor_rotates_after_budget_exhaustion_batch102(monkeypatch) -> None:
+def test_pending_replay_cursor_rotates_after_budget_exhaustion(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     ex = _make_executor()
     ex._max_pending_replay_scans_per_call = 2

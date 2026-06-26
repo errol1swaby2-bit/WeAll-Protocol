@@ -65,7 +65,7 @@ def _run(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> sub
     )
 
 
-def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source_batch333(tmp_path: Path) -> None:
+def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source(tmp_path: Path) -> None:
     tree = _make_minimal_outer_tree(tmp_path)
     backend = tree / "Weall-Protocol"
     web = tree / "web"
@@ -115,7 +115,7 @@ def test_clean_release_export_gate_cleans_staged_copy_without_mutating_source_ba
     assert not (staged / "Weall-Protocol/artifact.rej").exists()
 
 
-def test_clean_release_export_gate_rejects_internal_npm_registry_batch333(tmp_path: Path) -> None:
+def test_clean_release_export_gate_rejects_internal_npm_registry(tmp_path: Path) -> None:
     tree = _make_minimal_outer_tree(tmp_path)
     _write(
         tree / "web/package-lock.json",
@@ -132,7 +132,7 @@ def test_clean_release_export_gate_rejects_internal_npm_registry_batch333(tmp_pa
     assert "sandbox-internal npm registry" in result.stdout
 
 
-def test_clean_release_export_script_documents_no_source_mutation_batch333() -> None:
+def test_clean_release_export_script_documents_no_source_mutation() -> None:
     text = (OUTER_ROOT / "scripts/build_clean_release_export.sh").read_text(encoding="utf-8")
 
     assert "source working tree is never mutated" in text

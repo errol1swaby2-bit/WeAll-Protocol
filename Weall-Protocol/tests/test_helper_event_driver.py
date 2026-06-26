@@ -71,7 +71,7 @@ def _context():
     )
 
 
-def test_event_driver_duplicate_delivery_same_final_outcome_batch12(tmp_path) -> None:
+def test_event_driver_duplicate_delivery_same_final_outcome(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -96,7 +96,7 @@ def test_event_driver_duplicate_delivery_same_final_outcome_batch12(tmp_path) ->
     assert summary.event_codes == ("start", "accepted", "duplicate_replay")
 
 
-def test_event_driver_conflicting_replay_does_not_change_final_resolution_batch12(tmp_path) -> None:
+def test_event_driver_conflicting_replay_does_not_change_final_resolution(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert1, pub1 = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -129,7 +129,7 @@ def test_event_driver_conflicting_replay_does_not_change_final_resolution_batch1
     assert summary.event_codes == ("start", "accepted", "conflicting_replay")
 
 
-def test_event_driver_timeout_then_late_helper_is_stable_batch12(tmp_path) -> None:
+def test_event_driver_timeout_then_late_helper_is_stable(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,
@@ -160,7 +160,7 @@ def test_event_driver_timeout_then_late_helper_is_stable_batch12(tmp_path) -> No
     )
 
 
-def test_event_driver_restart_equivalent_when_reusing_journal_batch12(tmp_path) -> None:
+def test_event_driver_restart_equivalent_when_reusing_journal(tmp_path) -> None:
     lane_plans, lane_plan = _lane_setup()
     cert, pub = _mk_signed_cert(
         helper_id=lane_plan.helper_id,

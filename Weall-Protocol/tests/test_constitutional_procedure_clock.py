@@ -65,7 +65,7 @@ def _env(tx_type: str, signer: str = "alice", nonce: int = 1, payload: dict | No
     return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="", system=system)
 
 
-def test_batch431_manifest_pins_twenty_second_constitutional_clock() -> None:
+def test_manifest_pins_twenty_second_constitutional_clock() -> None:
     manifest_path = _repo_root() / "configs" / "chains" / "weall-genesis.json"
     manifest = load_chain_manifest(str(manifest_path), required=True)
     policy = policy_from_manifest(manifest)
@@ -88,7 +88,7 @@ def test_batch431_manifest_pins_twenty_second_constitutional_clock() -> None:
     assert status.get("constitutional_clock", {}).get("target_block_interval_ms") == 20_000
 
 
-def test_batch431_clock_policy_rejects_non_twenty_second_strict_manifest(tmp_path: Path) -> None:
+def test_clock_policy_rejects_non_twenty_second_strict_manifest(tmp_path: Path) -> None:
     source = json.loads((_repo_root() / "configs" / "chains" / "weall-genesis.json").read_text())
     source["constitutional_clock"]["target_block_interval_ms"] = 10_000
     manifest_path = tmp_path / "bad-clock.json"
@@ -106,7 +106,7 @@ def test_batch431_clock_policy_rejects_non_twenty_second_strict_manifest(tmp_pat
     assert any("constitutional_clock" in issue for issue in status["issues"])
 
 
-def test_batch433_executable_proposal_must_deliberate_and_can_collect_comments_and_versions() -> None:
+def test_executable_proposal_must_deliberate_and_can_collect_comments_and_versions() -> None:
     idx = _load_index()
     st = _state()
 
@@ -167,7 +167,7 @@ def test_batch433_executable_proposal_must_deliberate_and_can_collect_comments_a
     assert proposal["frozen_version"] == 2
 
 
-def test_batch434_dispute_verdict_opens_appeal_window_and_engine_finalizes_after_deadline() -> None:
+def test_dispute_verdict_opens_appeal_window_and_engine_finalizes_after_deadline() -> None:
     st = _state()
     st["height"] = 10
     st["finalized_height"] = 10
@@ -205,7 +205,7 @@ def test_batch434_dispute_verdict_opens_appeal_window_and_engine_finalizes_after
     assert any(item.get("tx_type") == "DISPUTE_FINAL_RECEIPT" and item.get("due_height") == 15 for item in st.get("system_queue", []))
 
 
-def test_batch434_dispute_final_receipt_moves_to_finalized() -> None:
+def test_dispute_final_receipt_moves_to_finalized() -> None:
     st = _state()
     st["disputes_by_id"] = {"d1": {"dispute_id": "d1", "stage": "appeal_window"}}
     apply_dispute(
@@ -215,13 +215,13 @@ def test_batch434_dispute_final_receipt_moves_to_finalized() -> None:
     assert st["disputes_by_id"]["d1"]["stage"] == "finalized"
 
 
-def test_batch431_procedure_height_prefers_finalized_height() -> None:
+def test_procedure_height_prefers_finalized_height() -> None:
     assert procedure_height({"height": 10, "finalized_height": 7}) == 7
     assert procedure_height({"height": 10, "finalized": {"height": 8}}) == 8
     assert procedure_height({"height": 10}) == 10
 
 
-def test_batch431_not_before_gate_uses_real_genesis_time_only() -> None:
+def test_not_before_gate_uses_real_genesis_time_only() -> None:
     legacy_policy = policy_from_manifest({"constitutional_clock": {**_clock_meta(), "genesis_time_ms": 0}})
     assert is_too_early(legacy_policy, height=1, now_ms=0) is False
 
@@ -229,7 +229,7 @@ def test_batch431_not_before_gate_uses_real_genesis_time_only() -> None:
     assert is_too_early(launch_policy, height=1, now_ms=1_010_000) is True
     assert is_too_early(launch_policy, height=1, now_ms=1_018_000) is False
 
-def test_batch437_constitutional_clock_default_draft_proposals_auto_progress_unless_disabled() -> None:
+def test_constitutional_clock_default_draft_proposals_auto_progress_unless_disabled() -> None:
     st = _state()
 
     apply_tx(

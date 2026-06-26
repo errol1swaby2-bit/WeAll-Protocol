@@ -14,7 +14,7 @@ from weall.runtime.chain_config import validate_runtime_env
         ("WEALL_BFT_ALLOW_UNSIGNED_TIMEOUTS", "1"),
     ],
 )
-def test_prod_fail_closed_error_mentions_offending_flag_batch44(monkeypatch, env_name, env_value):
+def test_prod_fail_closed_error_mentions_offending_flag(monkeypatch, env_name, env_value):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv(env_name, env_value)
 

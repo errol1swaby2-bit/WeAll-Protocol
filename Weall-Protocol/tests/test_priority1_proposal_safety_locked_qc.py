@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_proposal_must_extend_locked_qc_batch88() -> None:
+def test_proposal_must_extend_locked_qc() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {
@@ -35,7 +35,7 @@ def test_proposal_must_extend_locked_qc_batch88() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="X", justify_qc=None) is False
 
 
-def test_higher_qc_can_override_locked_qc_batch88() -> None:
+def test_higher_qc_can_override_locked_qc() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {
@@ -64,7 +64,7 @@ def test_higher_qc_can_override_locked_qc_batch88() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="D2", justify_qc=None) is False
 
 
-def test_equal_view_conflicting_qc_does_not_override_lock_batch88() -> None:
+def test_equal_view_conflicting_qc_does_not_override_lock() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {
@@ -88,7 +88,7 @@ def test_equal_view_conflicting_qc_does_not_override_lock_batch88() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="C2", justify_qc=None) is False
 
 
-def test_locked_qc_persists_across_restart_batch88() -> None:
+def test_locked_qc_persists_across_restart() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {
@@ -111,7 +111,7 @@ def test_locked_qc_persists_across_restart_batch88() -> None:
     assert hs2.can_vote_for(blocks=blocks, block_id="D", justify_qc=None) is True
 
 
-def test_local_high_qc_allows_descendant_recovery_child_batch88() -> None:
+def test_local_high_qc_allows_descendant_recovery_child() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {
@@ -136,7 +136,7 @@ def test_local_high_qc_allows_descendant_recovery_child_batch88() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="Y", justify_qc=None) is False
 
 
-def test_local_high_qc_descendant_recovery_survives_restart_batch88() -> None:
+def test_local_high_qc_descendant_recovery_survives_restart() -> None:
     hs = HotStuffBFT(chain_id="batch88")
 
     blocks = {

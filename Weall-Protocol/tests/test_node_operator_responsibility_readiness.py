@@ -81,7 +81,7 @@ def _preflight(state: dict, *, roles: tuple[str, ...], bft: bool = False):
     )
 
 
-def test_responsibility_evaluator_reports_baseline_validator_and_storage_status_batch298() -> None:
+def test_responsibility_evaluator_reports_baseline_validator_and_storage_status() -> None:
     st = _state(active=True)
     summary = evaluate_node_operator_responsibilities(st, "@op")
 
@@ -95,7 +95,7 @@ def test_responsibility_evaluator_reports_baseline_validator_and_storage_status_
     assert "capacity_proof_pending" in summary["storage"]["reasons"]
 
 
-def test_responsibility_evaluator_is_the_shared_scheduler_and_preflight_source_batch298() -> None:
+def test_responsibility_evaluator_is_the_shared_scheduler_and_preflight_source() -> None:
     scheduler = (ROOT / "src" / "weall" / "runtime" / "node_operator_scheduler.py").read_text(encoding="utf-8")
     preflight = (ROOT / "src" / "weall" / "runtime" / "node_lifecycle_preflight.py").read_text(encoding="utf-8")
     roles = (ROOT / "src" / "weall" / "runtime" / "apply" / "roles.py").read_text(encoding="utf-8")
@@ -107,7 +107,7 @@ def test_responsibility_evaluator_is_the_shared_scheduler_and_preflight_source_b
     assert "is_node_operator_active" in roles
 
 
-def test_scheduler_uses_central_baseline_reasons_batch298() -> None:
+def test_scheduler_uses_central_baseline_reasons() -> None:
     tier1 = _state(tier=1, active=False)
     assert evaluate_baseline_node_operator(tier1, "@op").reasons == ("poh_tier_insufficient",)
     assert schedule_node_operator_system_txs(tier1, next_height=10) == 0
@@ -120,7 +120,7 @@ def test_scheduler_uses_central_baseline_reasons_batch298() -> None:
     assert missing_key["roles"]["node_operators"]["by_id"]["@op"]["activation_check"] == "node_key_missing"
 
 
-def test_central_evaluator_and_preflight_keep_opt_in_separate_from_authority_batch298(monkeypatch) -> None:
+def test_central_evaluator_and_preflight_keep_opt_in_separate_from_authority(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -142,7 +142,7 @@ def test_central_evaluator_and_preflight_keep_opt_in_separate_from_authority_bat
     assert "ROLE_NOT_ACTIVE" in storage_preflight.maintenance_reasons
 
 
-def test_central_evaluator_blocks_restricted_accounts_across_responsibilities_batch298() -> None:
+def test_central_evaluator_blocks_restricted_accounts_across_responsibilities() -> None:
     banned = _state(active=True, banned=True)
     baseline = evaluate_baseline_node_operator(banned, "@op")
     validator = evaluate_validator_responsibility(banned, "@op")

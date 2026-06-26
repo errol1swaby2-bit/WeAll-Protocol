@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_observer_account_creation_reuses_prepared_browser_bootstrap_key_batch382() -> None:
+def test_observer_account_creation_reuses_prepared_browser_bootstrap_key() -> None:
     src = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
     keyfile_idx = src.index('--keyfile "${OBSERVER_KEYFILE}"')
     reuse_idx = src.index("--reuse-keyfile", keyfile_idx)
@@ -15,7 +15,7 @@ def test_observer_account_creation_reuses_prepared_browser_bootstrap_key_batch38
     assert keyfile_idx < reuse_idx < tee_idx
 
 
-def test_observer_bootstrap_manifest_rewritten_after_registration_batch382() -> None:
+def test_observer_bootstrap_manifest_rewritten_after_registration() -> None:
     src = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
     registration_marker = 'tee "${GENERATED_DIR}/observer-account-register.json"'
     rewrite_marker = '_write_secret_and_manifest "${OBSERVER_ACCOUNT}" "${OBSERVER_KEYFILE}" "${OBSERVER_SECRET}" "${OBSERVER_MANIFEST}" "local-controlled-devnet-observer" "1"'

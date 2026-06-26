@@ -8,7 +8,7 @@ from weall.runtime.parallel_execution import (
 )
 
 
-def test_verify_lane_plan_equivalence_rejects_cross_node_plan_mismatch_batch31() -> None:
+def test_verify_lane_plan_equivalence_rejects_cross_node_plan_mismatch() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     local_lane_plans = plan_parallel_execution(txs=txs, validators=["v1", "v2", "v3"], validator_set_hash="vhash-a", view=7, leader_id="v1")
     remote_lane_plans = plan_parallel_execution(txs=txs + [{"tx_id": "t2", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:2"]}], validators=["v1", "v2", "v3"], validator_set_hash="vhash-a", view=7, leader_id="v1")
@@ -17,7 +17,7 @@ def test_verify_lane_plan_equivalence_rejects_cross_node_plan_mismatch_batch31()
     assert reason == "plan_id_mismatch"
 
 
-def test_verify_vote_ready_helper_plan_accepts_matching_plan_id_batch31() -> None:
+def test_verify_vote_ready_helper_plan_accepts_matching_plan_id() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans = plan_parallel_execution(txs=txs, validators=["v1", "v2", "v3"], validator_set_hash="vhash", view=7, leader_id="v1")
     advertised_plan_id = canonical_lane_plan_fingerprint(lane_plans)

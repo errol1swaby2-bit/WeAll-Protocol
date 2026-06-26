@@ -47,7 +47,7 @@ def _make_executor() -> WeAllExecutor:
     return ex
 
 
-def test_missing_qc_fetches_are_bounded_and_rotate_batch108() -> None:
+def test_missing_qc_fetches_are_bounded_and_rotate() -> None:
     ex = _make_executor()
     ex._pending_missing_qcs = OrderedDict(
         (
@@ -98,7 +98,7 @@ def test_missing_qc_fetches_are_bounded_and_rotate_batch108() -> None:
     assert ex._missing_parent_fetch_cursor == 0
 
 
-def test_missing_qc_fetch_cursor_resets_when_backlog_clears_batch108() -> None:
+def test_missing_qc_fetch_cursor_resets_when_backlog_clears() -> None:
     ex = _make_executor()
     ex._pending_missing_qcs = OrderedDict(
         (

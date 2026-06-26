@@ -21,7 +21,7 @@ def _submit(ex: WeAllExecutor, signer: str, nonce: int) -> None:
     assert res.get("ok") is True
 
 
-def test_deterministic_state_across_independent_nodes_batch64(tmp_path: Path) -> None:
+def test_deterministic_state_across_independent_nodes(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -50,7 +50,7 @@ def test_deterministic_state_across_independent_nodes_batch64(tmp_path: Path) ->
     assert int(st1.get("height", 0)) == int(st2.get("height", 0))
 
 
-def test_different_batching_same_result_batch64(tmp_path: Path) -> None:
+def test_different_batching_same_result(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
@@ -83,7 +83,7 @@ def test_different_batching_same_result_batch64(tmp_path: Path) -> None:
     assert len(st1.get("accounts", {})) == len(st2.get("accounts", {}))
 
 
-def test_transaction_order_determinism_batch64(tmp_path: Path) -> None:
+def test_transaction_order_determinism(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

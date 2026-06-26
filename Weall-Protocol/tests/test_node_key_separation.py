@@ -10,7 +10,7 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_operator_config_uses_separate_node_key_file_batch291() -> None:
+def test_operator_config_uses_separate_node_key_file() -> None:
     account_page = read(ACCOUNT_PAGE)
 
     assert "WEALL_NODE_PRIVKEY_FILE=" in account_page
@@ -20,7 +20,7 @@ def test_operator_config_uses_separate_node_key_file_batch291() -> None:
     assert "not from your account recovery key" in account_page
 
 
-def test_operator_registration_uses_generated_node_pubkey_batch291() -> None:
+def test_operator_registration_uses_generated_node_pubkey() -> None:
     account_page = read(ACCOUNT_PAGE)
 
     assert "const nodePubkey" in account_page
@@ -32,7 +32,7 @@ def test_operator_registration_uses_generated_node_pubkey_batch291() -> None:
     assert "Node device registered with same pubkey" not in account_page
 
 
-def test_node_key_file_helper_is_explicitly_not_recovery_key_batch291() -> None:
+def test_node_key_file_helper_is_explicitly_not_recovery_key() -> None:
     helper = read(NODE_KEYS)
 
     assert 'type: "weall_node_key"' in helper

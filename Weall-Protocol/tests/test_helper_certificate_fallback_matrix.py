@@ -13,7 +13,7 @@ def _basic_lane_setup():
     return lane_plans, lane_plan, plan_id
 
 
-def test_helper_store_rejects_bad_signature_even_with_correct_peer_batch7() -> None:
+def test_helper_store_rejects_bad_signature_even_with_correct_peer() -> None:
     lane_plans, lane_plan, plan_id = _basic_lane_setup()
     cert, _ = signed_lane_certificate(lane_plan=lane_plan, seed_byte=11, plan_id=plan_id)
     _, wrong_pub = signed_lane_certificate(lane_plan=lane_plan, seed_byte=12, plan_id=plan_id)
@@ -28,7 +28,7 @@ def test_helper_store_rejects_bad_signature_even_with_correct_peer_batch7() -> N
     assert status.code == "bad_signature"
 
 
-def test_helper_store_rejects_request_not_started_batch7() -> None:
+def test_helper_store_rejects_request_not_started() -> None:
     txs = [
         {"tx_id": "c1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
@@ -50,7 +50,7 @@ def test_helper_store_rejects_request_not_started_batch7() -> None:
     assert status.code == "request_not_started"
 
 
-def test_helper_store_rejects_closed_request_window_batch7() -> None:
+def test_helper_store_rejects_closed_request_window() -> None:
     lane_plans, lane_plan, plan_id = _basic_lane_setup()
     cert, pub = signed_lane_certificate(lane_plan=lane_plan, seed_byte=14, plan_id=plan_id)
     store = HelperCertificateStore(
@@ -65,7 +65,7 @@ def test_helper_store_rejects_closed_request_window_batch7() -> None:
     assert status.code == "request_window_closed"
 
 
-def test_helper_store_rejects_manifest_hash_mismatch_batch7() -> None:
+def test_helper_store_rejects_manifest_hash_mismatch() -> None:
     lane_plans, lane_plan, plan_id = _basic_lane_setup()
     cert, pub = signed_lane_certificate(lane_plan=lane_plan, seed_byte=15, plan_id=plan_id, manifest_hash="manifest-a")
     store = HelperCertificateStore(
@@ -79,7 +79,7 @@ def test_helper_store_rejects_manifest_hash_mismatch_batch7() -> None:
     assert status.code == "manifest_hash_mismatch"
 
 
-def test_helper_replay_guard_recovers_fallback_resolution_after_restart_batch7(tmp_path) -> None:
+def test_helper_replay_guard_recovers_fallback_resolution_after_restart(tmp_path) -> None:
     from weall.runtime.helper_lane_journal import HelperLaneJournal
 
     lane_plans, lane_plan, plan_id = _basic_lane_setup()

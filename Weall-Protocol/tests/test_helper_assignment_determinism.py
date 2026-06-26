@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.helper_assignment import choose_helper_from_candidates
 
 
-def test_choose_helper_from_candidates_uses_integer_ratio_tiebreak_batch36() -> None:
+def test_choose_helper_from_candidates_uses_integer_ratio_tiebreak() -> None:
     chosen = choose_helper_from_candidates(
         ("h1", "h2"),
         assignment_counts={"h1": 0, "h2": 0},
@@ -15,7 +15,7 @@ def test_choose_helper_from_candidates_uses_integer_ratio_tiebreak_batch36() -> 
     assert chosen == "h2"
 
 
-def test_choose_helper_from_candidates_prefers_non_overloaded_helper_batch36() -> None:
+def test_choose_helper_from_candidates_prefers_non_overloaded_helper() -> None:
     chosen = choose_helper_from_candidates(
         ("h1", "h2"),
         assignment_counts={"h1": 0, "h2": 0},

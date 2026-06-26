@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch562_validator_follower_apply_is_enforced() -> None:
+def test_validator_follower_apply_is_enforced() -> None:
     out = _proof()["validator_follower_apply_hardening"]
     assert out["ok"] is True
     assert out["follower_apply_all_ok"] is True
@@ -25,7 +25,7 @@ def test_batch562_validator_follower_apply_is_enforced() -> None:
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch563_fresh_node_catches_up_from_actual_follower_state() -> None:
+def test_fresh_node_catches_up_from_actual_follower_state() -> None:
     out = _proof()["live_peer_catchup_from_follower_state"]
     assert out["ok"] is True
     assert out["source_peer"] == "follower-validator-state"
@@ -38,7 +38,7 @@ def test_batch563_fresh_node_catches_up_from_actual_follower_state() -> None:
     assert out["snapshot_used"] is False
 
 
-def test_batch564_storage_worker_retry_loop_reassigns_after_exhaustion() -> None:
+def test_storage_worker_retry_loop_reassigns_after_exhaustion() -> None:
     out = _proof()["storage_worker_failure_retry_loop"]
     assert out["ok"] is True
     assert out["worker_model"] == "multi_operator_local_file_pin_workers_with_retry_loop"
@@ -54,7 +54,7 @@ def test_batch564_storage_worker_retry_loop_reassigns_after_exhaustion() -> None
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch565_anti_sybil_escalation_and_recovery_windows() -> None:
+def test_anti_sybil_escalation_and_recovery_windows() -> None:
     out = _proof()["anti_sybil_escalation_recovery_windows"]
     assert out["ok"] is True
     assert out["escalation_level"] == "review_required"
@@ -67,7 +67,7 @@ def test_batch565_anti_sybil_escalation_and_recovery_windows() -> None:
     assert out["collusion_adjudication_claimed"] is False
 
 
-def test_batch566_economics_farming_simulation_remains_locked() -> None:
+def test_economics_farming_simulation_remains_locked() -> None:
     out = _proof()["economics_farming_simulation_locked"]
     assert out["ok"] is True
     assert out["activation_preconditions_ready"] is True
@@ -82,7 +82,7 @@ def test_batch566_economics_farming_simulation_remains_locked() -> None:
     assert out["legal_compliance_claimed"] is False
 
 
-def test_batch562_566_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

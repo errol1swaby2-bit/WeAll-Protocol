@@ -3,7 +3,7 @@ from __future__ import annotations
 from weall.runtime.helper_certificates import build_plan_misbehavior_proof, sign_helper_certificate
 
 
-def test_helper_conflicting_certificate_proof_batch33() -> None:
+def test_helper_conflicting_certificate_proof() -> None:
     cert_a = sign_helper_certificate(
         chain_id="c1",
         height=9,

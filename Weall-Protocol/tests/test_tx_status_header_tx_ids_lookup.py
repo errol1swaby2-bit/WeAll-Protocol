@@ -9,7 +9,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_tx_status_block_lookup_uses_header_tx_ids_batch398() -> None:
+def test_tx_status_block_lookup_uses_header_tx_ids() -> None:
     src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(encoding="utf-8")
     fn = src.split("def _tx_block_lookup", 1)[1].split("def _http_requires_sig_by_default", 1)[0]
 
@@ -18,7 +18,7 @@ def test_tx_status_block_lookup_uses_header_tx_ids_batch398() -> None:
     assert fn.index("header_tx_ids = header.get(\"tx_ids\")") < fn.index("Fallback path: compute deterministic tx_id from tx envelopes")
 
 
-def test_tx_block_lookup_finds_receiptless_committed_header_tx_id_batch398(tmp_path, monkeypatch) -> None:
+def test_tx_block_lookup_finds_receiptless_committed_header_tx_id(tmp_path, monkeypatch) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     db_path = tmp_path / "weall.db"

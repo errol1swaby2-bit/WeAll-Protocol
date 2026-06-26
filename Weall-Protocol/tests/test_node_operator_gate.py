@@ -30,23 +30,23 @@ def _ledger(*, tier: int = 2, active: bool = True, banned: bool = False, locked:
     }
 
 
-def test_node_operator_gate_allows_tier2_active_operator_batch313() -> None:
+def test_node_operator_gate_allows_tier2_active_operator() -> None:
     ok, meta = eval_gate("NodeOperator", signer="@op", state=_ledger(), payload={})
     assert ok is True
     assert meta["expr"] == "NodeOperator"
 
 
-def test_node_operator_gate_rejects_tier1_operator_batch313() -> None:
+def test_node_operator_gate_rejects_tier1_operator() -> None:
     ok, _meta = eval_gate("NodeOperator", signer="@op", state=_ledger(tier=1), payload={})
     assert ok is False
 
 
-def test_node_operator_gate_rejects_missing_active_role_batch313() -> None:
+def test_node_operator_gate_rejects_missing_active_role() -> None:
     ok, _meta = eval_gate("NodeOperator", signer="@op", state=_ledger(active=False), payload={})
     assert ok is False
 
 
-def test_node_operator_gate_rejects_banned_or_locked_or_suspended_operator_batch313() -> None:
+def test_node_operator_gate_rejects_banned_or_locked_or_suspended_operator() -> None:
     assert eval_gate("NodeOperator", signer="@op", state=_ledger(banned=True), payload={})[0] is False
     assert eval_gate("NodeOperator", signer="@op", state=_ledger(locked=True), payload={})[0] is False
     assert eval_gate("NodeOperator", signer="@op", state=_ledger(suspended_record=True), payload={})[0] is False

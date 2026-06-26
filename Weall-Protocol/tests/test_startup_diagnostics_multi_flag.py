@@ -5,7 +5,7 @@ import pytest
 from weall.runtime.chain_config import validate_runtime_env
 
 
-def test_prod_fail_closed_prefers_specific_reason_over_generic_batch44(monkeypatch):
+def test_prod_fail_closed_prefers_specific_reason_over_generic(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -19,7 +19,7 @@ def test_prod_fail_closed_prefers_specific_reason_over_generic_batch44(monkeypat
     assert "unsafe" in lowered or "sigverify" in lowered or "signature" in lowered, message
 
 
-def test_mixed_posture_rejection_mentions_posture_terms_batch44(monkeypatch):
+def test_mixed_posture_rejection_mentions_posture_terms(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")

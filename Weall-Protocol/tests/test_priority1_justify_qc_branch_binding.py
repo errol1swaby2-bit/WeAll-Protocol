@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_higher_view_justify_qc_must_anchor_candidate_branch_batch95() -> None:
+def test_higher_view_justify_qc_must_anchor_candidate_branch() -> None:
     hs = HotStuffBFT(chain_id="batch95")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -32,7 +32,7 @@ def test_higher_view_justify_qc_must_anchor_candidate_branch_batch95() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="Z", justify_qc=justify_qc) is False
 
 
-def test_local_high_qc_recovery_requires_strict_descendant_batch95() -> None:
+def test_local_high_qc_recovery_requires_strict_descendant() -> None:
     hs = HotStuffBFT(chain_id="batch95")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -50,7 +50,7 @@ def test_local_high_qc_recovery_requires_strict_descendant_batch95() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="D2", justify_qc=None) is True
 
 
-def test_explicit_stale_justify_cannot_bypass_lock_batch95() -> None:
+def test_explicit_stale_justify_cannot_bypass_lock() -> None:
     hs = HotStuffBFT(chain_id="batch95")
     blocks = {
         "A": {"prev_block_id": ""},
@@ -66,7 +66,7 @@ def test_explicit_stale_justify_cannot_bypass_lock_batch95() -> None:
     assert hs.can_vote_for(blocks=blocks, block_id="C2", justify_qc=justify_qc) is False
 
 
-def test_explicit_descendant_justify_on_locked_branch_still_allowed_batch95() -> None:
+def test_explicit_descendant_justify_on_locked_branch_still_allowed() -> None:
     hs = HotStuffBFT(chain_id="batch95")
     blocks = {
         "A": {"prev_block_id": ""},

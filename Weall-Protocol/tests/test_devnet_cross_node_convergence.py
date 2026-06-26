@@ -22,7 +22,7 @@ def _load_helper():
     return module
 
 
-def test_devnet_cross_node_convergence_scripts_are_syntax_valid_batch220() -> None:
+def test_devnet_cross_node_convergence_scripts_are_syntax_valid() -> None:
     proc = subprocess.run(
         ["bash", "-n", str(_script("scripts/devnet_cross_node_convergence.sh"))],
         cwd=REPO_ROOT,
@@ -44,7 +44,7 @@ def test_devnet_cross_node_convergence_scripts_are_syntax_valid_batch220() -> No
     assert proc.returncode == 0, proc.stderr
 
 
-def test_cross_node_convergence_cli_exposes_scenarios_and_dry_run_batch220() -> None:
+def test_cross_node_convergence_cli_exposes_scenarios_and_dry_run() -> None:
     for args in [["--help"], ["--list-scenarios"], ["--dry-run", "--account", "@dry_run_cross_node"]]:
         proc = subprocess.run(
             [sys.executable, "-S", str(HELPER_PATH), *args],
@@ -80,7 +80,7 @@ def test_cross_node_convergence_cli_exposes_scenarios_and_dry_run_batch220() -> 
     assert any(step.get("mode") == "node2_producer_or_edge_relay_to_node1" for step in out["steps"])
 
 
-def test_cross_node_convergence_scenarios_cover_both_directions_batch220() -> None:
+def test_cross_node_convergence_scenarios_cover_both_directions() -> None:
     helper = _load_helper()
     scenarios = {scenario["name"]: scenario for scenario in helper.SCENARIOS}
     assert "node1-account-register-visible-node2" in scenarios
@@ -92,7 +92,7 @@ def test_cross_node_convergence_scenarios_cover_both_directions_batch220() -> No
     assert scenarios["node2-profile-update-visible-node1"]["tx_type"] == "PROFILE_UPDATE"
 
 
-def test_cross_node_convergence_compare_identity_detects_mismatch_batch220() -> None:
+def test_cross_node_convergence_compare_identity_detects_mismatch() -> None:
     helper = _load_helper()
     left = {
         "chain_id": "weall-devnet",
@@ -112,7 +112,7 @@ def test_cross_node_convergence_compare_identity_detects_mismatch_batch220() -> 
     assert mismatch_fields == {"tip_hash", "state_root"}
 
 
-def test_cross_node_convergence_tx_visibility_classifier_batch220() -> None:
+def test_cross_node_convergence_tx_visibility_classifier() -> None:
     helper = _load_helper()
     ok, detail = helper.classify_tx_visibility(status={"status": "confirmed"})
     assert ok is True
@@ -123,7 +123,7 @@ def test_cross_node_convergence_tx_visibility_classifier_batch220() -> None:
     assert detail["failure"] == "tx_not_visible_with_expected_status"
 
 
-def test_cross_node_convergence_uses_normal_public_flow_not_demo_seed_batch220() -> None:
+def test_cross_node_convergence_uses_normal_public_flow_not_demo_seed() -> None:
     combined = "\n".join(
         _script(rel).read_text(encoding="utf-8")
         for rel in [
@@ -141,7 +141,7 @@ def test_cross_node_convergence_uses_normal_public_flow_not_demo_seed_batch220()
     assert "/v1/tx/submit" in _script("scripts/devnet_tx.py").read_text(encoding="utf-8")
 
 
-def test_cross_node_convergence_unreachable_node_returns_json_batch220() -> None:
+def test_cross_node_convergence_unreachable_node_returns_json() -> None:
     proc = subprocess.run(
         [
             sys.executable,
@@ -169,7 +169,7 @@ def test_cross_node_convergence_unreachable_node_returns_json_batch220() -> None
     assert "devnet_boot_genesis_node.sh" in "\n".join(out["next_steps"])
 
 
-def test_cross_node_convergence_relay_helper_reports_missing_tx_file_batch222(tmp_path: Path) -> None:
+def test_cross_node_convergence_relay_helper_reports_missing_tx_file(tmp_path: Path) -> None:
     helper = _load_helper()
     out = helper.relay_signed_tx_to_canonical_producer(
         producer_api="http://127.0.0.1:8001",
@@ -183,7 +183,7 @@ def test_cross_node_convergence_relay_helper_reports_missing_tx_file_batch222(tm
     assert out["failure"] == "signed_tx_file_missing"
 
 
-def test_cross_node_convergence_wait_tx_status_stops_on_invalid_batch222(monkeypatch) -> None:
+def test_cross_node_convergence_wait_tx_status_stops_on_invalid(monkeypatch) -> None:
     helper = _load_helper()
     calls = {"n": 0}
 

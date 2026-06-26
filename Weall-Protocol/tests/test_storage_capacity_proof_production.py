@@ -67,7 +67,7 @@ def _state() -> dict:
     }
 
 
-def test_capacity_challenge_response_does_not_prove_capacity_until_system_verifies_batch301() -> None:
+def test_capacity_challenge_response_does_not_prove_capacity_until_system_verifies() -> None:
     st = _state()
 
     issue = apply_tx(
@@ -116,7 +116,7 @@ def test_capacity_challenge_response_does_not_prove_capacity_until_system_verifi
     assert evaluate_storage_responsibility(st, "@op").status == "verification_pending"
 
 
-def test_only_system_verification_activates_storage_and_sets_proven_capacity_batch301() -> None:
+def test_only_system_verification_activates_storage_and_sets_proven_capacity() -> None:
     st = _state()
     apply_tx(
         st,
@@ -182,7 +182,7 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity_bat
     assert evaluate_storage_responsibility(st, "@op").active is True
 
 
-def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation_batch301() -> None:
+def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation() -> None:
     st = _state()
 
     # Legacy offer records alone are no longer enough to make an account eligible
@@ -219,7 +219,7 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation_batch301(
     assert pin2 and pin2["targets"] == ["@op"]
 
 
-def test_expired_capacity_challenge_cannot_be_used_batch301() -> None:
+def test_expired_capacity_challenge_cannot_be_used() -> None:
     st = _state()
     apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 1, {"proof_scope": "capacity_probe", "challenge_id": "cap-exp", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 11}, system=True))
     st["height"] = 12

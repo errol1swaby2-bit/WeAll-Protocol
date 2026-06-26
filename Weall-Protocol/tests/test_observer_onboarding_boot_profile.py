@@ -32,7 +32,7 @@ def _mk_executor(tmp_path: Path, monkeypatch, *, lifecycle_state: str = "observe
     return WeAllExecutor(db_path=str(db_path), node_id="new-node", chain_id="weall-test", tx_index_path=str(tx_index_path))
 
 
-def test_runtime_config_accepts_observer_onboarding_state_batch292(monkeypatch) -> None:
+def test_runtime_config_accepts_observer_onboarding_state(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "observer_onboarding")
     monkeypatch.delenv("WEALL_SERVICE_ROLES", raising=False)
     cfg = resolve_node_runtime_config_from_env()
@@ -41,7 +41,7 @@ def test_runtime_config_accepts_observer_onboarding_state_batch292(monkeypatch) 
     assert cfg.invalid_roles == ()
 
 
-def test_observer_onboarding_boot_has_no_service_authority_batch292(tmp_path: Path, monkeypatch) -> None:
+def test_observer_onboarding_boot_has_no_service_authority(tmp_path: Path, monkeypatch) -> None:
     ex = _mk_executor(tmp_path, monkeypatch)
     lifecycle = ex.node_lifecycle_status()
     assert lifecycle["requested_state"] == "observer_onboarding"
@@ -53,7 +53,7 @@ def test_observer_onboarding_boot_has_no_service_authority_batch292(tmp_path: Pa
     assert ex.observer_mode() is True
 
 
-def test_production_node_operator_requires_tier2_active_role_and_registered_node_device_batch292(monkeypatch) -> None:
+def test_production_node_operator_requires_tier2_active_role_and_registered_node_device(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_POH_TIER", raising=False)
@@ -107,7 +107,7 @@ def test_production_node_operator_requires_tier2_active_role_and_registered_node
     assert ready.effective_roles == ("general_service", "node_operator")
 
 
-def test_split_boot_scripts_document_safe_and_service_paths_batch292() -> None:
+def test_split_boot_scripts_document_safe_and_service_paths() -> None:
     onboarding = (ROOT / "scripts" / "boot_onboarding_node.sh").read_text(encoding="utf-8")
     service = (ROOT / "scripts" / "boot_node_operator.sh").read_text(encoding="utf-8")
     default_boot = (ROOT / "scripts" / "boot_weall_node.sh").read_text(encoding="utf-8")

@@ -8,7 +8,7 @@ PASSKEYS = ROOT / "web" / "src" / "auth" / "passkeys.ts"
 KEYS = ROOT / "web" / "src" / "auth" / "keys.ts"
 
 
-def test_login_page_uses_recovery_key_language_batch288() -> None:
+def test_login_page_uses_recovery_key_language() -> None:
     text = LOGIN.read_text(encoding="utf-8")
     assert "Create account key" in text
     assert "Download recovery file" in text
@@ -25,7 +25,7 @@ def test_login_page_uses_recovery_key_language_batch288() -> None:
     assert "Environment targeting" not in text
 
 
-def test_recovery_file_helpers_are_explicit_and_validate_keypair_batch288() -> None:
+def test_recovery_file_helpers_are_explicit_and_validate_keypair() -> None:
     text = RECOVERY.read_text(encoding="utf-8")
     assert 'type: "weall_recovery_key"' in text
     assert "downloadRecoveryKeyFile" in text
@@ -35,7 +35,7 @@ def test_recovery_file_helpers_are_explicit_and_validate_keypair_batch288() -> N
     assert "Anyone with this file can restore this WeAll account key" in text
 
 
-def test_passkey_easy_signin_is_device_convenience_not_protocol_authority_batch288() -> None:
+def test_passkey_easy_signin_is_device_convenience_not_protocol_authority() -> None:
     text = PASSKEYS.read_text(encoding="utf-8")
     assert "navigator.credentials.create" in text
     assert "navigator.credentials.get" in text
@@ -49,7 +49,7 @@ def test_passkey_easy_signin_is_device_convenience_not_protocol_authority_batch2
     assert "ACCOUNT_DEVICE_REGISTER" not in text
 
 
-def test_session_page_has_plain_logout_and_easy_signin_management_batch288() -> None:
+def test_session_page_has_plain_logout_and_easy_signin_management() -> None:
     text = SESSION_PAGE.read_text(encoding="utf-8")
     assert "Log out of this device" in text
     assert "Clear this browser only" in text
@@ -60,7 +60,7 @@ def test_session_page_has_plain_logout_and_easy_signin_management_batch288() -> 
     assert "Forget" in text
 
 
-def test_raw_recovery_secret_still_not_persisted_to_localstorage_batch288() -> None:
+def test_raw_recovery_secret_still_not_persisted_to_localstorage() -> None:
     text = KEYS.read_text(encoding="utf-8")
     assert "never persist raw account private keys" in text
     assert "sessionStorage.setItem(secretStorageKey" in text

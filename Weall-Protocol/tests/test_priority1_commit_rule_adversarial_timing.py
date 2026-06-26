@@ -14,7 +14,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_higher_conflicting_qc_does_not_retroactively_change_committed_block_batch85() -> None:
+def test_higher_conflicting_qc_does_not_retroactively_change_committed_block() -> None:
     hs = HotStuffBFT(chain_id="batch85")
 
     blocks = {
@@ -41,7 +41,7 @@ def test_higher_conflicting_qc_does_not_retroactively_change_committed_block_bat
     assert str(hs.finalized_block_id or "") == "B1"
 
 
-def test_reordered_three_chain_delivery_keeps_same_finalized_block_batch85() -> None:
+def test_reordered_three_chain_delivery_keeps_same_finalized_block() -> None:
     blocks = {
         "A": {"prev_block_id": ""},
         "B": {"prev_block_id": "A"},
@@ -63,7 +63,7 @@ def test_reordered_three_chain_delivery_keeps_same_finalized_block_batch85() -> 
     assert int(hs1.finalized_view) == int(hs2.finalized_view)
 
 
-def test_same_view_conflicting_branches_do_not_create_two_commits_batch85() -> None:
+def test_same_view_conflicting_branches_do_not_create_two_commits() -> None:
     hs = HotStuffBFT(chain_id="batch85")
 
     blocks = {
@@ -89,7 +89,7 @@ def test_same_view_conflicting_branches_do_not_create_two_commits_batch85() -> N
     assert int(hs.finalized_view) == committed_view
 
 
-def test_commit_state_roundtrip_after_adversarial_fork_timing_batch85() -> None:
+def test_commit_state_roundtrip_after_adversarial_fork_timing() -> None:
     hs = HotStuffBFT(chain_id="batch85")
 
     blocks = {

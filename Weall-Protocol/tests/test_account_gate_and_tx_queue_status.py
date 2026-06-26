@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "src"
 
 
-def test_frontend_separates_basic_account_from_posting_eligibility_batch374() -> None:
+def test_frontend_separates_basic_account_from_posting_eligibility() -> None:
     onboarding = (WEB / "lib" / "onboarding.ts").read_text(encoding="utf-8")
     page = (WEB / "pages" / "AccountVerificationPage.tsx").read_text(encoding="utf-8")
 
@@ -24,14 +24,14 @@ def test_frontend_separates_basic_account_from_posting_eligibility_batch374() ->
     assert "disabled={!acct || !basicAccountCreated || accountLevel >= 1" in page
 
 
-def test_onboarding_basic_account_detection_accepts_pubkeys_array_batch374() -> None:
+def test_onboarding_basic_account_detection_accepts_pubkeys_array() -> None:
     onboarding = (WEB / "lib" / "onboarding.ts").read_text(encoding="utf-8")
 
     assert "Array.isArray(state.pubkeys)" in onboarding
     assert "state.pubkeys.length > 0" in onboarding
 
 
-def test_tx_queue_result_compaction_removes_recursive_propagation_batch374() -> None:
+def test_tx_queue_result_compaction_removes_recursive_propagation() -> None:
     from weall.api.routes_public_parts.tx import _compact_tx_queue_result
 
     nested = {

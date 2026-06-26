@@ -10,7 +10,7 @@ def _read(path: str) -> str:
     return (OUTER / path).read_text(encoding="utf-8")
 
 
-def test_economics_read_model_route_and_router_registered_batch457() -> None:
+def test_economics_read_model_route_and_router_registered() -> None:
     route = _read("Weall-Protocol/src/weall/api/routes_public_parts/economics.py")
     routes = _read("Weall-Protocol/src/weall/api/routes_public.py")
     api = _read("web/src/api/weall.ts")
@@ -31,7 +31,7 @@ def test_economics_read_model_route_and_router_registered_batch457() -> None:
     assert 'href: "/economics"' in router
 
 
-def test_block_production_readiness_endpoint_and_script_batch457() -> None:
+def test_block_production_readiness_endpoint_and_script() -> None:
     consensus = _read("Weall-Protocol/src/weall/api/routes_public_parts/consensus.py")
     script = _read("Weall-Protocol/scripts/production_block_production_proof_gate.sh")
 
@@ -44,6 +44,6 @@ def test_block_production_readiness_endpoint_and_script_batch457() -> None:
 
 
 
-def test_removed_private_communication_frontend_modules_stay_removed_batch457() -> None:
+def test_removed_private_communication_frontend_modules_stay_removed() -> None:
     assert not (OUTER / "web" / "src" / "lib" / ("message" + "Crypto.ts")).exists()
     assert not (OUTER / "web" / "src" / "pages" / ("Mess" + "aging.tsx")).exists()

@@ -39,7 +39,7 @@ def test_nodes_seeds_invalid_env_fails_closed_in_prod(monkeypatch):
 
 
 
-def test_legacy_v1_nodes_endpoint_is_removed_batch626(monkeypatch):
+def test_legacy_v1_nodes_endpoint_is_removed(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     app = create_app(boot_runtime=False)
     c = TestClient(app, raise_server_exceptions=False)

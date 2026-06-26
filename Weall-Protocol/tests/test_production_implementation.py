@@ -16,7 +16,7 @@ def _read(path: str) -> str:
     return (REPO / path).read_text(encoding="utf-8")
 
 
-def test_economics_activation_preview_and_treasury_status_batch458_461() -> None:
+def test_economics_activation_preview_and_treasury_status_461() -> None:
     st = {
         "height": 0,
         "params": {"economics_enabled": False, "economic_unlock_height": 90},
@@ -39,7 +39,7 @@ def test_economics_activation_preview_and_treasury_status_batch458_461() -> None
     assert treasury["wallets"]["main"]["balance"] == 0
 
 
-def test_block_production_proof_endpoint_and_local_gate_batch458_461() -> None:
+def test_block_production_proof_endpoint_and_local_gate_461() -> None:
     consensus = _read("Weall-Protocol/src/weall/api/routes_public_parts/consensus.py")
     script = _read("Weall-Protocol/scripts/production_block_production_rehearsal_gate.py")
     doc = _read("Weall-Protocol/docs/BLOCK_PRODUCTION_PROOF_GATE.md")
@@ -52,7 +52,7 @@ def test_block_production_proof_endpoint_and_local_gate_batch458_461() -> None:
 
 
 
-def test_removed_private_communication_modules_and_live_room_turn_surfaces_remain_batch458_461() -> None:
+def test_removed_private_communication_modules_and_live_room_turn_surfaces_remain_461() -> None:
     webrtc = _read("web/src/lib/webrtcLiveRoom.ts")
     live = _read("web/src/pages/LiveVerificationRoom.tsx")
 

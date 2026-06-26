@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch567_autonomous_validator_gossip_loop_handles_partition_rejoin_churn() -> None:
+def test_autonomous_validator_gossip_loop_handles_partition_rejoin_churn() -> None:
     out = _proof()["autonomous_validator_gossip_loop"]
     assert out["ok"] is True
     assert out["node_count"] == 4
@@ -33,7 +33,7 @@ def test_batch567_autonomous_validator_gossip_loop_handles_partition_rejoin_chur
     assert out["public_validator_readiness_claimed"] is False
 
 
-def test_batch568_fresh_node_catches_up_from_autonomous_live_peer_log() -> None:
+def test_fresh_node_catches_up_from_autonomous_live_peer_log() -> None:
     out = _proof()["fresh_node_catchup_autonomous_network"]
     assert out["ok"] is True
     assert out["source_network_model"] == "threaded_validator_gossip_loops"
@@ -49,7 +49,7 @@ def test_batch568_fresh_node_catches_up_from_autonomous_live_peer_log() -> None:
     assert out["public_peer_network_claimed"] is False
 
 
-def test_batch569_multiprocess_ipfs_operator_durability_reassigns_after_process_failure() -> None:
+def test_multiprocess_ipfs_operator_durability_reassigns_after_process_failure() -> None:
     out = _proof()["multiprocess_ipfs_operator_durability"]
     assert out["ok"] is True
     assert out["worker_model"] == "multiprocess_ipfs_compatible_operator_workers"
@@ -65,7 +65,7 @@ def test_batch569_multiprocess_ipfs_operator_durability_reassigns_after_process_
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch570_anti_sybil_adjudication_and_evidence_deletion_execute() -> None:
+def test_anti_sybil_adjudication_and_evidence_deletion_execute() -> None:
     out = _proof()["anti_sybil_adjudication_deletion"]
     assert out["ok"] is True
     assert out["confirmed_adjudication"]["status"] == "adjudicated_confirmed"
@@ -80,7 +80,7 @@ def test_batch570_anti_sybil_adjudication_and_evidence_deletion_execute() -> Non
     assert out["automatic_collusion_detection_claimed"] is False
 
 
-def test_batch571_economics_locked_read_models_surface_pending_failed_reward_treasury() -> None:
+def test_economics_locked_read_models_surface_pending_failed_reward_treasury() -> None:
     out = _proof()["economics_locked_read_models"]
     assert out["ok"] is True
     assert out["economics_enabled"] is False
@@ -96,7 +96,7 @@ def test_batch571_economics_locked_read_models_surface_pending_failed_reward_tre
     assert out["live_economics_claimed"] is False
 
 
-def test_batch567_571_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

@@ -37,7 +37,7 @@ def _cfg_for(tmp_path: Path, chain_id: str):
     )
 
 
-def test_operator_incident_lane_summary_carries_authority_contract_batch131(tmp_path: Path, monkeypatch) -> None:
+def test_operator_incident_lane_summary_carries_authority_contract(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")

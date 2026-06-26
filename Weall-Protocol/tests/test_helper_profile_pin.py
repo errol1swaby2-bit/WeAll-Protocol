@@ -27,7 +27,7 @@ def _register_account(ex: WeAllExecutor, signer: str) -> None:
     assert res["ok"] is True
 
 
-def test_restart_rejects_helper_execution_profile_mismatch_batch111(
+def test_restart_rejects_helper_execution_profile_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -69,7 +69,7 @@ def test_restart_rejects_helper_execution_profile_mismatch_batch111(
 
 
 
-def test_startup_rejects_helper_fast_path_without_helper_mode_batch111(
+def test_startup_rejects_helper_fast_path_without_helper_mode(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -88,7 +88,7 @@ def test_startup_rejects_helper_fast_path_without_helper_mode_batch111(
 
 
 
-def test_build_block_candidate_uses_pinned_helper_profile_when_runtime_profile_drifts_batch111(
+def test_build_block_candidate_uses_pinned_helper_profile_when_runtime_profile_drifts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -136,7 +136,7 @@ def test_build_block_candidate_uses_pinned_helper_profile_when_runtime_profile_d
 
 
 
-def test_apply_block_uses_pinned_helper_profile_when_local_runtime_drifts_batch111(
+def test_apply_block_uses_pinned_helper_profile_when_local_runtime_drifts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")

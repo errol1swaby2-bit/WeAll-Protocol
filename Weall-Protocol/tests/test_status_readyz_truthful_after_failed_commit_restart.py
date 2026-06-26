@@ -18,7 +18,7 @@ def _app_with_executor(executor: WeAllExecutor):
     return TestClient(app)
 
 
-def test_status_and_readyz_remain_durable_after_failed_commit_restart_batch41(
+def test_status_and_readyz_remain_durable_after_failed_commit_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     """

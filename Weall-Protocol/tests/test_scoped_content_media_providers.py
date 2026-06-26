@@ -134,7 +134,7 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_legacy_restricted_group_content_is_publicly_readable_batch363() -> None:
+def test_legacy_restricted_group_content_is_publicly_readable() -> None:
     with _client(_state()) as client:
         for headers in [None, _auth("@eve"), _auth("@alice")]:
             res = client.get("/v1/groups/g-private/content", headers=headers or {})
@@ -147,7 +147,7 @@ def test_legacy_restricted_group_content_is_publicly_readable_batch363() -> None
             assert media["load_policy"] == "viewport"
 
 
-def test_scoped_content_route_no_longer_exposes_private_archives_batch363() -> None:
+def test_scoped_content_route_no_longer_exposes_private_archives() -> None:
     with _client(_state()) as client:
         assert client.get("/v1/content/post:private").status_code == 404
 
@@ -177,7 +177,7 @@ def test_scoped_content_route_no_longer_exposes_private_archives_batch363() -> N
         assert comment_public.json()["content"]["body"] == "public group reply"
 
 
-def test_group_member_list_is_public_activity_batch363() -> None:
+def test_group_member_list_is_public_activity() -> None:
     with _client(_state()) as client:
         for headers in [{}, _auth("@eve"), _auth("@alice")]:
             ok = client.get("/v1/groups/g-private/members", headers=headers)
@@ -185,7 +185,7 @@ def test_group_member_list_is_public_activity_batch363() -> None:
             assert ok.json()["counts"]["total"] == 1
 
 
-def test_media_provider_graph_is_metadata_only_and_ordered_batch364(monkeypatch) -> None:
+def test_media_provider_graph_is_metadata_only_and_ordered(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MEDIA_PROVIDER_URLS", "https://edge.example.test/ipfs/{cid}")
     with _client(_state()) as client:
         res = client.get(f"/v1/media/providers/{CID}")
@@ -196,7 +196,7 @@ def test_media_provider_graph_is_metadata_only_and_ordered_batch364(monkeypatch)
         assert any(url.endswith(f"/ipfs/{CID}") for url in providers)
 
 
-def test_media_proxy_verifies_declared_sha256_before_cache_batch364(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_verifies_declared_sha256_before_cache(tmp_path: Path, monkeypatch) -> None:
     data = b"verified media bytes"
     calls: list[str] = []
 
@@ -223,7 +223,7 @@ def test_media_proxy_verifies_declared_sha256_before_cache_batch364(tmp_path: Pa
         assert calls == [f"https://edge.example.test/ipfs/{CID}"]
 
 
-def test_media_proxy_rejects_and_does_not_cache_hash_mismatch_batch364(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_rejects_and_does_not_cache_hash_mismatch(tmp_path: Path, monkeypatch) -> None:
     def fake_urlopen(_req, timeout=0):  # noqa: ANN001
         return _BytesResponse(b"tampered bytes")
 

@@ -30,14 +30,14 @@ def _safe_local_rehearsal_env(tmp_path: Path) -> dict[str, str]:
     }
 
 
-def test_local_controlled_rehearsal_can_boot_with_loopback_secret_route_batch377(tmp_path: Path) -> None:
+def test_local_controlled_rehearsal_can_boot_with_loopback_secret_route(tmp_path: Path) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
 
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is True
     assert demo_mode_isolation_issue(env) is None
 
 
-def test_controlled_rehearsal_secret_route_rejects_non_loopback_bind_batch377(tmp_path: Path) -> None:
+def test_controlled_rehearsal_secret_route_rejects_non_loopback_bind(tmp_path: Path) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
     env["GUNICORN_BIND"] = "0.0.0.0:8001"
 
@@ -45,7 +45,7 @@ def test_controlled_rehearsal_secret_route_rejects_non_loopback_bind_batch377(tm
     assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
 
 
-def test_controlled_rehearsal_secret_route_rejects_secret_outside_devnet_generated_batch377(tmp_path: Path) -> None:
+def test_controlled_rehearsal_secret_route_rejects_secret_outside_devnet_generated(tmp_path: Path) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
     bad_secret = tmp_path / "outside-secret.json"
     bad_secret.write_text("{}", encoding="utf-8")
@@ -55,7 +55,7 @@ def test_controlled_rehearsal_secret_route_rejects_secret_outside_devnet_generat
     assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
 
 
-def test_controlled_rehearsal_secret_route_still_rejects_demo_seed_and_session_mutation_batch377(tmp_path: Path) -> None:
+def test_controlled_rehearsal_secret_route_still_rejects_demo_seed_and_session_mutation(tmp_path: Path) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
     env["WEALL_ENABLE_DEMO_SEED_ROUTE"] = "1"
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is False

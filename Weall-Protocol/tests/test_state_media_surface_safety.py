@@ -127,7 +127,7 @@ def _client(state: dict[str, Any] | None = None) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_public_state_snapshot_prunes_content_and_group_maps_batch368() -> None:
+def test_public_state_snapshot_prunes_content_and_group_maps() -> None:
     client = _client()
     res = client.get("/v1/state/snapshot")
     assert res.status_code == 200, res.text
@@ -141,7 +141,7 @@ def test_public_state_snapshot_prunes_content_and_group_maps_batch368() -> None:
     assert "bafyprivate" not in res.text
 
 
-def test_raw_block_fetch_is_operator_gated_in_prod_and_header_is_public_batch368(monkeypatch) -> None:
+def test_raw_block_fetch_is_operator_gated_in_prod_and_header_is_public(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_STATE_RAW_READ_TOKEN", "raw-ok")
     client = _client()
@@ -162,7 +162,7 @@ def test_raw_block_fetch_is_operator_gated_in_prod_and_header_is_public_batch368
     assert "private block body" in authed.text
 
 
-def test_sync_request_rejects_oversized_json_before_parsing_batch368(monkeypatch) -> None:
+def test_sync_request_rejects_oversized_json_before_parsing(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE", "1")
     monkeypatch.setenv("WEALL_STATE_SYNC_OPERATOR_TOKEN", "sync-ok")
@@ -178,7 +178,7 @@ def test_sync_request_rejects_oversized_json_before_parsing_batch368(monkeypatch
     assert res.json()["error"]["code"] == "payload_too_large"
 
 
-def test_media_upload_returns_file_byte_sha256_for_declare_batch368(monkeypatch) -> None:
+def test_media_upload_returns_file_byte_sha256_for_declare(monkeypatch) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     payload = b"hello world"
@@ -206,7 +206,7 @@ def test_media_upload_returns_file_byte_sha256_for_declare_batch368(monkeypatch)
     assert body["pin_request"]["envelope"]["payload"]["sha256"] == expected
 
 
-def test_frontend_commits_upload_sha256_and_dispute_uses_scoped_content_batch368() -> None:
+def test_frontend_commits_upload_sha256_and_dispute_uses_scoped_content() -> None:
     root = Path(__file__).resolve().parents[2]
     create_post = (root / "web" / "src" / "pages" / "CreatePostPage.tsx").read_text(encoding="utf-8")
     api = (root / "web" / "src" / "api" / "weall.ts").read_text(encoding="utf-8")

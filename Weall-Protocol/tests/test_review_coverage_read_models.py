@@ -105,7 +105,7 @@ def _content_state_with_removed_post() -> dict[str, Any]:
     }
 
 
-def test_batch448_removed_content_is_hidden_from_public_and_account_feeds() -> None:
+def test_removed_content_is_hidden_from_public_and_account_feeds() -> None:
     client = _client(_content_state_with_removed_post())
 
     public_feed = client.get("/v1/feed?limit=10").json()["items"]
@@ -118,7 +118,7 @@ def test_batch448_removed_content_is_hidden_from_public_and_account_feeds() -> N
     assert detail.status_code == 404
 
 
-def test_batch448_creator_appeal_eligibility_survives_hidden_content_and_reviewer_cannot_file() -> None:
+def test_creator_appeal_eligibility_survives_hidden_content_and_reviewer_cannot_file() -> None:
     client = _client(_content_state_with_removed_post())
 
     creator = client.get("/v1/disputes/dispute%3A1", headers=_auth("@alice"))
@@ -197,7 +197,7 @@ def _poh_state() -> dict[str, Any]:
     }
 
 
-def test_batch448_completed_poh_cases_leave_active_reviewer_queues_by_default() -> None:
+def test_completed_poh_cases_leave_active_reviewer_queues_by_default() -> None:
     client = _client(_poh_state())
 
     async_default = client.get("/v1/poh/async/juror-cases?juror=%40genesis").json()["cases"]
@@ -220,7 +220,7 @@ def test_batch448_completed_poh_cases_leave_active_reviewer_queues_by_default() 
     assert removed.json()["error"]["code"] == "legacy_endpoint_removed"
 
 
-def test_batch448_frontend_uses_viewer_auth_and_filters_completed_review_work() -> None:
+def test_frontend_uses_viewer_auth_and_filters_completed_review_work() -> None:
     root = Path(__file__).resolve().parents[2]
     dispute_detail = (root / "web" / "src" / "pages" / "DisputeDetail.tsx").read_text(encoding="utf-8")
     pending_work = (root / "web" / "src" / "lib" / "pendingWork.ts").read_text(encoding="utf-8")

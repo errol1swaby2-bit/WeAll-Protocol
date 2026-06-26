@@ -1,7 +1,7 @@
 from weall.runtime.read_write_sets import build_tx_access_set
 
 
-def test_explicit_authority_scope_materialized_in_writes_stays_family_lane_batch4_correction() -> None:
+def test_explicit_authority_scope_materialized_in_writes_stays_family_lane_correction() -> None:
     tx = {
         "tx_id": "t-auth-ok",
         "tx_type": "GROUP_TREASURY_POLICY_SET",
@@ -17,7 +17,7 @@ def test_explicit_authority_scope_materialized_in_writes_stays_family_lane_batch
     assert access.authority_keys == ("authority:groups:group:alpha",)
 
 
-def test_explicit_authority_scope_missing_from_writes_fails_closed_batch4_correction() -> None:
+def test_explicit_authority_scope_missing_from_writes_fails_closed_correction() -> None:
     tx = {
         "tx_id": "t-auth-missing",
         "tx_type": "ROLE_JUROR_ACTIVATE",

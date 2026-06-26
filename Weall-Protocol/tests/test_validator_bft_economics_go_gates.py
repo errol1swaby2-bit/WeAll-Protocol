@@ -107,7 +107,7 @@ def _make_readiness_payload() -> dict:
     )
 
 
-def test_validator_candidate_register_requires_active_validator_responsibility_batch324() -> None:
+def test_validator_candidate_register_requires_active_validator_responsibility() -> None:
     st = _validator_state()
     st["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["validator"]["active"] = False
 
@@ -125,7 +125,7 @@ def test_validator_candidate_register_requires_active_validator_responsibility_b
     assert exc.value.reason == "validator_candidate_requires_active_validator_responsibility"
 
 
-def test_validator_candidate_register_requires_readiness_bft_pubkey_binding_batch324() -> None:
+def test_validator_candidate_register_requires_readiness_bft_pubkey_binding() -> None:
     st = _validator_state()
 
     with pytest.raises(ApplyError) as exc:
@@ -142,7 +142,7 @@ def test_validator_candidate_register_requires_readiness_bft_pubkey_binding_batc
     assert exc.value.reason == "validator_candidate_pubkey_must_match_readiness_bft_pubkey"
 
 
-def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and_node_binding_batch324() -> None:
+def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and_node_binding() -> None:
     st = _validator_state()
     # Use a real readiness payload shape and hash to prove the record can be produced by the runner.
     readiness = _make_readiness_payload()
@@ -167,7 +167,7 @@ def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and
     assert "@op" not in st["roles"]["validators"]["active_set"]
 
 
-def test_production_genesis_pins_candidate_and_bft_public_beta_gates_batch324() -> None:
+def test_production_genesis_pins_candidate_and_bft_public_beta_gates() -> None:
     genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
     params = genesis["params"]
     assert params["validator_candidate_lifecycle_gate_enabled"] is True
@@ -197,7 +197,7 @@ def _econ_state() -> dict:
     }
 
 
-def test_wecoin_transfer_requires_unlock_and_governance_activation_batch324() -> None:
+def test_wecoin_transfer_requires_unlock_and_governance_activation() -> None:
     st = _econ_state()
     with pytest.raises(ApplyError) as before_unlock:
         apply_tx(st, _env("BALANCE_TRANSFER", "alice", 1, {"to": "bob", "amount": 5}))
@@ -219,7 +219,7 @@ def test_wecoin_transfer_requires_unlock_and_governance_activation_batch324() ->
     assert st["accounts"]["bob"]["balance"] == 5
 
 
-def test_wecoin_fee_policy_cannot_fee_gate_civic_social_governance_actions_batch324() -> None:
+def test_wecoin_fee_policy_cannot_fee_gate_civic_social_governance_actions() -> None:
     st = _econ_state()
     st["time"] = st["params"]["economic_unlock_time"]
     apply_tx(st, _env("ECONOMICS_ACTIVATION", "SYSTEM", 1, {"enable": True}, system=True, parent="gov:activation"))
@@ -235,7 +235,7 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_validators_batch324(tmp_path: Path, monkeypatch) -> None:
+def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_validators(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)

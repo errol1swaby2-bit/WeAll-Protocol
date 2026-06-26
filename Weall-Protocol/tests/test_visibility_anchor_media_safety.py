@@ -153,7 +153,7 @@ def _headers(account: str = "@member", session: str = "member-session") -> dict[
     return {"X-WeAll-Account": account, "X-WeAll-Session-Key": session}
 
 
-def test_public_group_content_and_feed_default_to_public_posts_batch366() -> None:
+def test_public_group_content_and_feed_default_to_public_posts() -> None:
     with _client(_visibility_state()) as client:
         content = client.get("/v1/groups/gpub/content")
         assert content.status_code == 200, content.text
@@ -181,7 +181,7 @@ def test_public_group_content_and_feed_default_to_public_posts_batch366() -> Non
         assert outsider_private.json()["error"]["code"] == "PUBLIC_READ_VISIBILITY_REQUIRED"
 
 
-def test_public_thread_filters_private_comments_batch366() -> None:
+def test_public_thread_filters_private_comments() -> None:
     with _client(_visibility_state()) as client:
         res = client.get("/v1/thread/post:thread")
         assert res.status_code == 200, res.text
@@ -190,7 +190,7 @@ def test_public_thread_filters_private_comments_batch366() -> None:
         assert "private comment" not in json.dumps(res.json())
 
 
-def test_observer_state_sync_request_includes_trusted_anchor_batch366(monkeypatch) -> None:
+def test_observer_state_sync_request_includes_trusted_anchor(monkeypatch) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     captured: dict[str, Any] = {}
@@ -240,7 +240,7 @@ def test_observer_state_sync_request_includes_trusted_anchor_batch366(monkeypatc
     assert captured["payload"]["selector"] == {"tx_id": "tx:abc", "trusted_anchor": anchor}
 
 
-def test_media_proxy_redacts_provider_url_from_headers_and_errors_batch366(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_redacts_provider_url_from_headers_and_errors(tmp_path: Path, monkeypatch) -> None:
     good = b"batch366 media bytes"
     cid = _cidv1_raw_sha256(good)
     internal = f"https://lan.internal.example/ipfs/{cid}"
@@ -282,7 +282,7 @@ def test_media_proxy_redacts_provider_url_from_headers_and_errors_batch366(tmp_p
         assert providers and providers[0]["redacted"] is True
 
 
-def test_media_proxy_cache_disabled_redirect_fails_closed_in_prod_batch366(monkeypatch) -> None:
+def test_media_proxy_cache_disabled_redirect_fails_closed_in_prod(monkeypatch) -> None:
     data = b"redirect would bypass verification"
     cid = _cidv1_raw_sha256(data)
     monkeypatch.setenv("WEALL_MODE", "prod")

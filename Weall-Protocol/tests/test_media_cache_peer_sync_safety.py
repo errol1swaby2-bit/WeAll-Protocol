@@ -111,7 +111,7 @@ def _client(state: dict[str, Any] | None = None) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit_batch370(tmp_path: Path, monkeypatch) -> None:
+def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit(tmp_path: Path, monkeypatch) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     data = b"0123456789" * 32
@@ -151,7 +151,7 @@ def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit_batch370(
         assert res.headers.get("x-weall-media-byte-verified") == "sha256"
 
 
-def test_verified_media_cache_strict_reverify_can_force_full_hash_batch370(tmp_path: Path, monkeypatch) -> None:
+def test_verified_media_cache_strict_reverify_can_force_full_hash(tmp_path: Path, monkeypatch) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     data = b"strict reverify bytes"
@@ -184,7 +184,7 @@ def test_verified_media_cache_strict_reverify_can_force_full_hash_batch370(tmp_p
         assert calls["verify"] == 2
 
 
-def test_peer_committed_block_fetch_sends_raw_read_token_batch370(monkeypatch, tmp_path: Path) -> None:
+def test_peer_committed_block_fetch_sends_raw_read_token(monkeypatch, tmp_path: Path) -> None:
     from weall.net import net_loop
     from weall.net.net_loop import NetLoopConfig, NetMeshLoop
 
@@ -211,7 +211,7 @@ def test_peer_committed_block_fetch_sends_raw_read_token_batch370(monkeypatch, t
     assert captured["headers"]["X-weall-state-sync-operator-token"] == "peer-raw-token"
 
 
-def test_prod_sync_apply_requires_operator_token_when_enabled_batch370(monkeypatch) -> None:
+def test_prod_sync_apply_requires_operator_token_when_enabled(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE", "1")
     monkeypatch.setenv("WEALL_STATE_SYNC_OPERATOR_TOKEN", "apply-secret")
@@ -239,7 +239,7 @@ def test_prod_sync_apply_requires_operator_token_when_enabled_batch370(monkeypat
         assert authed.json()["detail"]["code"] == "bad_sync_response"
 
 
-def test_media_upload_docstring_discloses_ipfs_adapter_buffering_batch370() -> None:
+def test_media_upload_docstring_discloses_ipfs_adapter_buffering() -> None:
     root = Path(__file__).resolve().parents[1]
     text = (root / "src" / "weall" / "api" / "routes_public_parts" / "media.py").read_text(encoding="utf-8")
     assert "sha256 calculation is streaming/bounded" in text

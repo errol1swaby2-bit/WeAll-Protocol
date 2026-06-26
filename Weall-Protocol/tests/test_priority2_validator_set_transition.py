@@ -16,7 +16,7 @@ def _qc(view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def test_validator_set_transition_safe_batch111() -> None:
+def test_validator_set_transition_safe() -> None:
     hs = HotStuffBFT(chain_id="batch111")
     blocks = {
         "A": {"prev_block_id": ""},

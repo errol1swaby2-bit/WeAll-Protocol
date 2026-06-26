@@ -24,7 +24,7 @@ def _tx_index_path() -> str:
     return str(_repo_root() / "generated" / "tx_index.json")
 
 
-def test_quorum_threshold_uses_integer_only_math_batch135() -> None:
+def test_quorum_threshold_uses_integer_only_math() -> None:
     assert quorum_threshold(0) == 0
     assert quorum_threshold(1) == 1
     assert quorum_threshold(2) == 2
@@ -35,7 +35,7 @@ def test_quorum_threshold_uses_integer_only_math_batch135() -> None:
     assert quorum_threshold(10_001) == ((2 * 10_001) + 2) // 3
 
 
-def test_load_genesis_rejects_missing_chain_id_batch135(tmp_path: Path) -> None:
+def test_load_genesis_rejects_missing_chain_id(tmp_path: Path) -> None:
     genesis_path = tmp_path / "genesis.json"
     genesis_path.write_text(json.dumps({"validators": []}), encoding="utf-8")
 
@@ -59,7 +59,7 @@ def _mempool_test_app(executor: WeAllExecutor) -> FastAPI:
     return app
 
 
-def test_public_mempool_submit_enforces_same_schema_contract_as_tx_submit_batch135(
+def test_public_mempool_submit_enforces_same_schema_contract_as_tx_submit(
     tmp_path: Path,
 ) -> None:
     executor = WeAllExecutor(
@@ -88,7 +88,7 @@ def test_public_mempool_submit_enforces_same_schema_contract_as_tx_submit_batch1
     assert body["error"] == "invalid_tx"
 
 
-def test_public_mempool_submit_rejects_known_tx_missing_required_payload_field_batch135(
+def test_public_mempool_submit_rejects_known_tx_missing_required_payload_field(
     tmp_path: Path,
 ) -> None:
     executor = WeAllExecutor(

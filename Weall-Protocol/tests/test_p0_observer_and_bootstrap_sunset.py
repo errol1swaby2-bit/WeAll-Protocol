@@ -37,7 +37,7 @@ def _mk_executor(tmp_path: Path, monkeypatch, *, observer: bool) -> WeAllExecuto
     )
 
 
-def test_prod_observer_mode_beats_explicit_validator_signing_override_batch316(tmp_path: Path, monkeypatch) -> None:
+def test_prod_observer_mode_beats_explicit_validator_signing_override(tmp_path: Path, monkeypatch) -> None:
     ex = _mk_executor(tmp_path, monkeypatch, observer=True)
     ex.state.setdefault("roles", {})["validators"] = {"active_set": ["alice"]}
     ex.state.setdefault("consensus", {})["validators"] = {
@@ -54,7 +54,7 @@ def test_prod_observer_mode_beats_explicit_validator_signing_override_batch316(t
     assert ex._validator_signing_permitted() is False
 
 
-def test_prod_observer_mode_refuses_local_block_production_batch316(tmp_path: Path, monkeypatch) -> None:
+def test_prod_observer_mode_refuses_local_block_production(tmp_path: Path, monkeypatch) -> None:
     ex = _mk_executor(tmp_path, monkeypatch, observer=True)
 
     result = ex.produce_block(allow_empty=True)
@@ -97,7 +97,7 @@ def _bootstrap_tx() -> dict:
     ).to_json()
 
 
-def test_bootstrap_tier2_grant_allowed_before_regular_validator_quorum_batch316() -> None:
+def test_bootstrap_tier2_grant_allowed_before_regular_validator_quorum() -> None:
     state = _bootstrap_state(active_validator_count=max(0, int(BFT_MIN_VALIDATORS) - 1))
 
     apply_tx(state, _bootstrap_tx())
@@ -106,7 +106,7 @@ def test_bootstrap_tier2_grant_allowed_before_regular_validator_quorum_batch316(
     assert state["accounts"]["alice"]["poh_bootstrap_granted"] is True
 
 
-def test_bootstrap_tier2_grant_auto_locks_at_regular_validator_quorum_batch316() -> None:
+def test_bootstrap_tier2_grant_auto_locks_at_regular_validator_quorum() -> None:
     state = _bootstrap_state(active_validator_count=int(BFT_MIN_VALIDATORS))
 
     with pytest.raises(ApplyError) as excinfo:

@@ -12,7 +12,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_replay_consistency_audit_direct_runner_is_green_batch93(tmp_path: Path) -> None:
+def test_replay_consistency_audit_direct_runner_is_green(tmp_path: Path) -> None:
     summary = build_sample_chain(
         work_dir=str(tmp_path / "direct"),
         chain_id_prefix="batch93-direct",
@@ -23,7 +23,7 @@ def test_replay_consistency_audit_direct_runner_is_green_batch93(tmp_path: Path)
     assert summary["source_manifest"]["height"] == 3
 
 
-def test_replay_consistency_audit_cli_is_green_batch93(tmp_path: Path) -> None:
+def test_replay_consistency_audit_cli_is_green(tmp_path: Path) -> None:
     env = {"PYTHONPATH": str(_repo_root() / "src")}
     proc = subprocess.run(
         [

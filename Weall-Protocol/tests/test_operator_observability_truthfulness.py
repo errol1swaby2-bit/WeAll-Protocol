@@ -23,7 +23,7 @@ def _blocked_release_gate():
     )
 
 
-def test_blocked_helper_forces_readyz_false_and_surfaces_same_reason_batch45() -> None:
+def test_blocked_helper_forces_readyz_false_and_surfaces_same_reason() -> None:
     startup = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_blocked_release_gate(),

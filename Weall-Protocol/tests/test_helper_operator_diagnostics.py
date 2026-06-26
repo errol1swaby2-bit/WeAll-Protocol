@@ -34,7 +34,7 @@ def _not_ready_report():
     )
 
 
-def test_helper_operator_diagnostic_for_serial_only_startup_batch19() -> None:
+def test_helper_operator_diagnostic_for_serial_only_startup() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=False),
         helper_release_gate=None,
@@ -48,7 +48,7 @@ def test_helper_operator_diagnostic_for_serial_only_startup_batch19() -> None:
     assert diagnostic.summary == "startup ready in serial-only mode; helper mode inactive"
 
 
-def test_helper_operator_diagnostic_for_helper_enabled_startup_batch19() -> None:
+def test_helper_operator_diagnostic_for_helper_enabled_startup() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_all_green_report(),
@@ -63,7 +63,7 @@ def test_helper_operator_diagnostic_for_helper_enabled_startup_batch19() -> None
     assert diagnostic.summary == "startup ready with helper mode enabled"
 
 
-def test_helper_operator_diagnostic_for_blocked_startup_batch19() -> None:
+def test_helper_operator_diagnostic_for_blocked_startup() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(helper_mode_requested=True),
         helper_release_gate=_not_ready_report(),
@@ -78,7 +78,7 @@ def test_helper_operator_diagnostic_for_blocked_startup_batch19() -> None:
     assert diagnostic.summary == "startup blocked: helper_release_gate_failed"
 
 
-def test_helper_operator_diagnostic_for_core_runtime_block_batch19() -> None:
+def test_helper_operator_diagnostic_for_core_runtime_block() -> None:
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
             helper_mode_requested=False,

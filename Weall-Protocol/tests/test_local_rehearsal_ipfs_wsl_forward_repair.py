@@ -10,7 +10,7 @@ def _script() -> str:
     return SCRIPT.read_text(encoding="utf-8")
 
 
-def test_local_rehearsal_repairs_stale_docker_wsl_ipfs_forwards_batch416() -> None:
+def test_local_rehearsal_repairs_stale_docker_wsl_ipfs_forwards() -> None:
     src = _script()
 
     assert 'IPFS_PORT_REPAIR="${WEALL_LOCAL_REHEARSAL_IPFS_PORT_REPAIR:-1}"' in src
@@ -24,7 +24,7 @@ def test_local_rehearsal_repairs_stale_docker_wsl_ipfs_forwards_batch416() -> No
     assert "wsl --shutdown" in src
 
 
-def test_local_rehearsal_exports_fallback_ipfs_ports_to_compose_batch416() -> None:
+def test_local_rehearsal_exports_fallback_ipfs_ports_to_compose() -> None:
     src = _script()
 
     assert 'export WEALL_IPFS_API_PORT="${api_port}"' in src
@@ -35,7 +35,7 @@ def test_local_rehearsal_exports_fallback_ipfs_ports_to_compose_batch416() -> No
     assert 'IPFS_GATEWAY_BASE="$(_replace_url_port "${IPFS_GATEWAY_BASE}" "${IPFS_GATEWAY_FALLBACK_PORT}")"' in src
 
 
-def test_local_rehearsal_still_preserves_existing_ipfs_contracts_batch416() -> None:
+def test_local_rehearsal_still_preserves_existing_ipfs_contracts() -> None:
     src = _script()
 
     assert 'docker compose -f "${IPFS_COMPOSE_FILE}" up -d --remove-orphans "${IPFS_SERVICE}"' in src

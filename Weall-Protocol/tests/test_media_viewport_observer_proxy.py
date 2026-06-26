@@ -61,7 +61,7 @@ def _state_with_media_posts(count: int = 4) -> dict:
     }
 
 
-def test_public_feed_is_paginated_and_returns_media_metadata_only_batch355() -> None:
+def test_public_feed_is_paginated_and_returns_media_metadata_only() -> None:
     client = _client_for_state(_state_with_media_posts(4))
 
     r = client.get("/v1/feed?limit=2")
@@ -85,7 +85,7 @@ def test_public_feed_is_paginated_and_returns_media_metadata_only_batch355() -> 
     assert "data" not in media
 
 
-def test_public_feed_cursor_and_filters_remain_bounded_batch355() -> None:
+def test_public_feed_cursor_and_filters_remain_bounded() -> None:
     client = _client_for_state(_state_with_media_posts(5))
 
     first = client.get("/v1/feed?limit=2&author=@alice&tags=media").json()
@@ -98,7 +98,7 @@ def test_public_feed_cursor_and_filters_remain_bounded_batch355() -> None:
     assert [item["post_id"] for item in first["items"]] != [item["post_id"] for item in second["items"]]
 
 
-def test_media_resolve_is_bounded_metadata_only_batch355() -> None:
+def test_media_resolve_is_bounded_metadata_only() -> None:
     client = _client_for_state(_state_with_media_posts(1))
 
     r = client.get("/v1/media/resolve?ids=media:1,missing,media:1")
@@ -115,7 +115,7 @@ def test_media_resolve_is_bounded_metadata_only_batch355() -> None:
     assert "data" not in item
 
 
-def test_media_proxy_serves_local_cache_without_provider_fetch_batch355(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_serves_local_cache_without_provider_fetch(tmp_path: Path, monkeypatch) -> None:
     cache_dir = tmp_path / "media-cache"
     monkeypatch.setenv("WEALL_MEDIA_CACHE_DIR", str(cache_dir))
     monkeypatch.setenv("WEALL_MEDIA_PROXY_FETCH_ENABLED", "0")
@@ -133,7 +133,7 @@ def test_media_proxy_serves_local_cache_without_provider_fetch_batch355(tmp_path
     assert r.content == b"cached-media"
 
 
-def test_media_proxy_does_not_fetch_when_observer_fetch_disabled_batch355(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_does_not_fetch_when_observer_fetch_disabled(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MEDIA_CACHE_DIR", str(tmp_path / "media-cache"))
     monkeypatch.setenv("WEALL_MEDIA_PROXY_FETCH_ENABLED", "0")
 

@@ -18,7 +18,7 @@ def _serial_executor(txs, _leader_context):
     return ([{"tx_id": str(tx.get("tx_id") or ""), "ok": True, "path": "serial"} for tx in list(txs or [])], {})
 
 
-def test_merge_helper_lane_results_rejects_missing_signature_when_enforced_batch117() -> None:
+def test_merge_helper_lane_results_rejects_missing_signature_when_enforced() -> None:
     tx = {"tx_id": "tx1", "tx_type": "CONTENT_POST_CREATE"}
     lane = LanePlan(
         lane_id="lane-a",
@@ -67,7 +67,7 @@ def test_merge_helper_lane_results_rejects_missing_signature_when_enforced_batch
     assert result.lane_decisions[0].fallback_reason == "helper_signature_missing"
 
 
-def test_helper_execution_profile_pins_strict_flags_batch117(tmp_path) -> None:
+def test_helper_execution_profile_pins_strict_flags(tmp_path) -> None:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "helper_profile_flags.db"),
         node_id="@node",

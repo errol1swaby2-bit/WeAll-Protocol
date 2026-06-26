@@ -51,7 +51,7 @@ def _state() -> dict:
     }
 
 
-def test_juror_gate_does_not_have_case_assignment_bypass_batch275() -> None:
+def test_juror_gate_does_not_have_case_assignment_bypass() -> None:
     gate_text = (REPO_ROOT / "src/weall/runtime/gate_expr.py").read_text(encoding="utf-8")
     demo_seed_text = (REPO_ROOT / "src/weall/api/routes_public_parts/demo_seed.py").read_text(encoding="utf-8")
 
@@ -61,7 +61,7 @@ def test_juror_gate_does_not_have_case_assignment_bypass_batch275() -> None:
     assert "allow_case_scoped_juror_without_role" not in demo_seed_text
 
 
-def test_assigned_tier2_account_still_fails_juror_gate_without_active_role_batch275() -> None:
+def test_assigned_tier2_account_still_fails_juror_gate_without_active_role() -> None:
     state = _state()
     state["disputes_by_id"] = {
         "dispute:SYSTEM:0": {
@@ -83,7 +83,7 @@ def test_assigned_tier2_account_still_fails_juror_gate_without_active_role_batch
     assert meta == {"expr": "Juror"}
 
 
-def test_seeded_demo_grants_real_juror_role_so_assigned_reviews_pass_gate_batch275() -> None:
+def test_seeded_demo_grants_real_juror_role_so_assigned_reviews_pass_gate() -> None:
     state = _state()
 
     result = seed_demo_state(state, account="@demo_tester", post_id="post:@demo_tester:5")

@@ -54,7 +54,7 @@ def _open_async(st: dict) -> str:
     return str(result["case_id"])
 
 
-def test_async_restricted_evidence_option_b_public_state_redacts_uri_batch404() -> None:
+def test_async_restricted_evidence_option_b_public_state_redacts_uri() -> None:
     st = _state()
     case_id = _open_async(st)
 
@@ -94,14 +94,14 @@ def test_async_restricted_evidence_option_b_public_state_redacts_uri_batch404() 
         ("POH_LIVE_RECEIPT", {"case_id": "case-1"}),
     ],
 )
-def test_poh_scheduler_lifecycle_txs_are_system_only_batch404(tx_type: str, payload: dict) -> None:
+def test_poh_scheduler_lifecycle_txs_are_system_only(tx_type: str, payload: dict) -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(st, _env(tx_type, "@alice", 99, payload, system=False))
     assert raised.value.reason == "system_only"
 
 
-def test_bad_commitment_format_is_rejected_batch404() -> None:
+def test_bad_commitment_format_is_rejected() -> None:
     st = _state()
     with pytest.raises(ApplyError) as raised:
         apply_tx(
@@ -116,7 +116,7 @@ def test_bad_commitment_format_is_rejected_batch404() -> None:
     assert raised.value.reason == "bad_commitment_format"
 
 
-def test_live_session_init_schema_has_case_binding_fields_batch404() -> None:
+def test_live_session_init_schema_has_case_binding_fields() -> None:
     from weall.runtime.tx_schema import PohLiveSessionInitPayload
 
     payload = PohLiveSessionInitPayload(

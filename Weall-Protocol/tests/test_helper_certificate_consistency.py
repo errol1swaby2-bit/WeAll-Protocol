@@ -23,12 +23,12 @@ def _mk_cert(*, tx_order_hash: str) -> HelperExecutionCertificate:
     )
 
 
-def test_helper_execution_certificate_internal_consistency_accepts_matching_tx_order_hash_batch1() -> None:
+def test_helper_execution_certificate_internal_consistency_accepts_matching_tx_order_hash() -> None:
     cert = _mk_cert(tx_order_hash="")
     repaired = HelperExecutionCertificate(**{**cert.to_json(), "tx_order_hash": cert.compute_tx_order_hash()})
     assert repaired.verify_internal_consistency() is True
 
 
-def test_helper_execution_certificate_internal_consistency_rejects_mismatched_tx_order_hash_batch1() -> None:
+def test_helper_execution_certificate_internal_consistency_rejects_mismatched_tx_order_hash() -> None:
     cert = _mk_cert(tx_order_hash="wrong")
     assert cert.verify_internal_consistency() is False

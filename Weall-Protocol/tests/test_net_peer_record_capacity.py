@@ -32,7 +32,7 @@ def _hello_pkt(peer_id: str, *, received_at_ms: int) -> WirePacket:
     )
 
 
-def test_peer_record_capacity_evicts_oldest_unestablished_peer_batch108() -> None:
+def test_peer_record_capacity_evicts_oldest_unestablished_peer() -> None:
     node = NetNode(
         cfg=_cfg(),
         peer_policy=PeerPolicy(max_strikes=3, ban_cooldown_ms=10_000, max_peer_records=2),
@@ -56,7 +56,7 @@ def test_peer_record_capacity_evicts_oldest_unestablished_peer_batch108() -> Non
     assert int(dbg["counts"]["peer_record_capacity"]) == 2
 
 
-def test_peer_record_capacity_preserves_established_session_batch108() -> None:
+def test_peer_record_capacity_preserves_established_session() -> None:
     node = NetNode(
         cfg=_cfg(),
         peer_policy=PeerPolicy(max_strikes=3, ban_cooldown_ms=10_000, max_peer_records=2),

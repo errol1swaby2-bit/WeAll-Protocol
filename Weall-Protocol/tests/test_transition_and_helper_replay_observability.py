@@ -80,7 +80,7 @@ def _seed_protocol_treasury_open_spend(ex: WeAllExecutor) -> None:
     _write_state(ex, state)
 
 
-def test_transition_guardrail_diagnostics_persist_across_restart_batch112(tmp_path: Path) -> None:
+def test_transition_guardrail_diagnostics_persist_across_restart(tmp_path: Path) -> None:
     repo_root = _repo_root()
     db_path = str(tmp_path / "guardrails.db")
     ex = WeAllExecutor(
@@ -121,7 +121,7 @@ def test_transition_guardrail_diagnostics_persist_across_restart_batch112(tmp_pa
     assert diag2["recent_events"][0]["tx_type"] == "TREASURY_SIGNERS_SET"
 
 
-def test_helper_execution_replay_marker_and_summary_survive_follower_restart_batch112(
+def test_helper_execution_replay_marker_and_summary_survive_follower_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")

@@ -29,7 +29,7 @@ def _base_state() -> dict:
     }
 
 
-def test_governance_vote_auto_progresses_from_active_validator_threshold_batch205() -> None:
+def test_governance_vote_auto_progresses_from_active_validator_threshold() -> None:
     st = _base_state()
 
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p1", "title": "t", "rules": {"start_stage": "voting"}}))
@@ -44,7 +44,7 @@ def test_governance_vote_auto_progresses_from_active_validator_threshold_batch20
     assert latest_tally["passed"] is True
 
 
-def test_dispute_vote_auto_resolves_from_active_validator_threshold_batch205() -> None:
+def test_dispute_vote_auto_resolves_from_active_validator_threshold() -> None:
     st = _base_state()
 
     apply_tx(st, _env("DISPUTE_OPEN", "alice", 1, {"dispute_id": "d1", "target_type": "content", "target_id": "c1", "reason": "test"}))
@@ -61,7 +61,7 @@ def test_dispute_vote_auto_resolves_from_active_validator_threshold_batch205() -
     assert dispute["resolution"]["tally"]["yes"] == 1
 
 
-def test_governance_poll_vote_auto_progresses_immediately_batch205() -> None:
+def test_governance_poll_vote_auto_progresses_immediately() -> None:
     st = _base_state()
 
     apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p2", "title": "t", "rules": {"start_stage": "poll"}}))
@@ -74,7 +74,7 @@ def test_governance_poll_vote_auto_progresses_immediately_batch205() -> None:
     assert latest_tally["required_votes"] == 1
 
 
-def test_content_flag_escalation_assigns_opted_in_jurors_immediately_batch205() -> None:
+def test_content_flag_escalation_assigns_opted_in_jurors_immediately() -> None:
     st = _base_state()
     st["roles"] = {"validators": {"active_set": ["validator"]}, "jurors": {"active_set": ["bob"], "by_id": {"bob": {"active": True, "enrolled": True}}}}
     st["content"] = {
@@ -96,7 +96,7 @@ def test_content_flag_escalation_assigns_opted_in_jurors_immediately_batch205() 
     assert dispute["jurors"]["bob"]["status"] == "assigned"
 
 
-def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch205() -> None:
+def test_governance_vote_progresses_when_validator_id_uses_account_alias() -> None:
     st = _base_state()
     st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}}
     st["roles"] = {"validators": {"active_set": ["alice"]}}
@@ -109,7 +109,7 @@ def test_governance_vote_progresses_when_validator_id_uses_account_alias_batch20
     assert "@alice" in pr["poll_votes"]
 
 
-def test_content_escalation_assigns_canonical_account_identity_batch205() -> None:
+def test_content_escalation_assigns_canonical_account_identity() -> None:
     st = _base_state()
     st["accounts"] = {
         "@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
@@ -135,7 +135,7 @@ def test_content_escalation_assigns_canonical_account_identity_batch205() -> Non
     assert dispute["jurors"]["@alice"]["status"] == "assigned"
 
 
-def test_governance_live_created_proposal_falls_back_to_creator_threshold_batch205() -> None:
+def test_governance_live_created_proposal_falls_back_to_creator_threshold() -> None:
     st = _base_state()
     st["roles"] = {"validators": {"active_set": []}}
 
@@ -148,7 +148,7 @@ def test_governance_live_created_proposal_falls_back_to_creator_threshold_batch2
     assert pr["stage"] == "finalized"
 
 
-def test_content_escalation_waits_for_reviewer_opt_in_without_implicit_reporter_fallback_batch205() -> None:
+def test_content_escalation_waits_for_reviewer_opt_in_without_implicit_reporter_fallback() -> None:
     st = _base_state()
     st["roles"] = {"validators": {"active_set": []}, "jurors": {"active_set": [], "by_id": {}}}
     st["content"] = {

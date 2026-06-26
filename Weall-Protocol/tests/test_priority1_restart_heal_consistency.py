@@ -9,7 +9,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def test_staggered_restarts_preserve_single_canonical_tip_batch57(tmp_path: Path) -> None:
+def test_staggered_restarts_preserve_single_canonical_tip(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "staggered"),
         rounds=15,
@@ -25,7 +25,7 @@ def test_staggered_restarts_preserve_single_canonical_tip_batch57(tmp_path: Path
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_partition_then_restart_then_heal_converges_batch57(tmp_path: Path) -> None:
+def test_partition_then_restart_then_heal_converges(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "partition-restart-heal"),
         rounds=14,
@@ -46,7 +46,7 @@ def test_partition_then_restart_then_heal_converges_batch57(tmp_path: Path) -> N
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_stall_plus_restart_recovers_without_divergence_batch57(tmp_path: Path) -> None:
+def test_stall_plus_restart_recovers_without_divergence(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "stall-restart"),
         rounds=13,
@@ -65,7 +65,7 @@ def test_stall_plus_restart_recovers_without_divergence_batch57(tmp_path: Path) 
     assert all(t == summary.leader_tip for t in summary.follower_tips.values())
 
 
-def test_restart_only_path_keeps_chain_single_batch57(tmp_path: Path) -> None:
+def test_restart_only_path_keeps_chain_single(tmp_path: Path) -> None:
     summary = run_bft_fault_injection_soak(
         work_dir=str(tmp_path / "restart-only"),
         rounds=12,

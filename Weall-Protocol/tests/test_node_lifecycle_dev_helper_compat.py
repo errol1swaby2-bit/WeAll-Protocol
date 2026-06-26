@@ -31,7 +31,7 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
-def test_bootstrap_dev_preserves_requested_helper_profile_batch123(tmp_path: Path, monkeypatch) -> None:
+def test_bootstrap_dev_preserves_requested_helper_profile(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
@@ -54,7 +54,7 @@ def test_bootstrap_dev_preserves_requested_helper_profile_batch123(tmp_path: Pat
     assert helper_profile.get("helper_fast_path_enabled") is True
 
 
-def test_bootstrap_dev_keeps_helper_metadata_available_batch123(tmp_path: Path, monkeypatch) -> None:
+def test_bootstrap_dev_keeps_helper_metadata_available(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")

@@ -65,7 +65,7 @@ def _build_observer_bundle(tmp_path: Path, *, relay_urls: str = "https://relay.e
     return manifest, bundle
 
 
-def test_external_observer_bundle_builder_outputs_public_observer_bundle_batch319(tmp_path: Path) -> None:
+def test_external_observer_bundle_builder_outputs_public_observer_bundle(tmp_path: Path) -> None:
     _manifest, bundle = _build_observer_bundle(
         tmp_path,
         relay_urls="https://relay-a.example.test,https://relay-b.example.test",
@@ -92,7 +92,7 @@ def test_external_observer_bundle_builder_outputs_public_observer_bundle_batch31
     assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in dumped  # listed only as a prohibited variable
 
 
-def test_external_observer_bundle_verifies_and_exports_safe_observer_env_batch319(tmp_path: Path) -> None:
+def test_external_observer_bundle_verifies_and_exports_safe_observer_env(tmp_path: Path) -> None:
     manifest, bundle = _build_observer_bundle(tmp_path)
 
     verified = subprocess.run(
@@ -147,7 +147,7 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env_batch31
     assert "export WEALL_BLOCK_LOOP_AUTOSTART=0" in out
 
 
-def test_external_observer_smoke_consumes_bundle_genesis_api_env_batch319() -> None:
+def test_external_observer_smoke_consumes_bundle_genesis_api_env() -> None:
     script = SMOKE_SCRIPT.read_text(encoding="utf-8")
     assert "GENESIS_API_BASE=\"${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}\"" in script
     assert "WEALL_NET_RELAY_URLS" in script
@@ -157,7 +157,7 @@ def test_external_observer_smoke_consumes_bundle_genesis_api_env_batch319() -> N
     assert "transport_only" in script
 
 
-def test_external_observer_rehearsal_runbook_documents_two_machine_gate_batch319() -> None:
+def test_external_observer_rehearsal_runbook_documents_two_machine_gate() -> None:
     doc = (ROOT / "docs" / "EXTERNAL_OBSERVER_NODE_REHEARSAL.md").read_text(encoding="utf-8")
     assert "Machine A" in doc
     assert "Machine B" in doc

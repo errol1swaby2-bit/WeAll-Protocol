@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_local_rehearsal_account_register_uses_state_fallback_without_weakening_live_batch399() -> None:
+def test_local_rehearsal_account_register_uses_state_fallback_without_weakening_live() -> None:
     src = (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
 
     assert "Observer account-registration tx status has not proven upstream confirmation yet." in src

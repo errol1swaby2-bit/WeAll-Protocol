@@ -9,7 +9,7 @@ from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def test_helper_signature_verification_requires_pubkey_when_no_explicit_secret_batch124() -> None:
+def test_helper_signature_verification_requires_pubkey_when_no_explicit_secret() -> None:
     cert = sign_helper_certificate(
         HelperExecutionCertificate(
             chain_id="c1",
@@ -34,7 +34,7 @@ def test_helper_signature_verification_requires_pubkey_when_no_explicit_secret_b
     assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material") is True
 
 
-def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforced_batch124() -> None:
+def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforced() -> None:
     tx = {"tx_id": "tx1", "tx_type": "CONTENT_POST_CREATE"}
     lane = LanePlan(
         lane_id="lane-a",
@@ -83,7 +83,7 @@ def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforce
     assert result.lane_decisions[0].fallback_reason == "helper_pubkey_missing"
 
 
-def test_identity_apply_rejects_nonce_gaps_batch124() -> None:
+def test_identity_apply_rejects_nonce_gaps() -> None:
     state = {
         "accounts": {
             "@alice": {
@@ -110,7 +110,7 @@ def test_identity_apply_rejects_nonce_gaps_batch124() -> None:
         apply_identity(state, env)
 
 
-def test_migration_normalizes_reputation_to_string_and_units_batch124() -> None:
+def test_migration_normalizes_reputation_to_string_and_units() -> None:
     st = migrate_state_dict({
         "accounts": {
             "@alice": {

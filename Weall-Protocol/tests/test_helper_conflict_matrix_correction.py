@@ -16,7 +16,7 @@ def _plan(*txs):
     )
 
 
-def test_group_treasury_policy_same_group_splits_with_governance_authority_key_batch6_correction() -> None:
+def test_group_treasury_policy_same_group_splits_with_governance_authority_key_correction() -> None:
     one = build_helper_conflict_probe_tx("GROUP_TREASURY_POLICY_SET", seed="1", payload_overrides={"group_id": "group-shared"})
     two = build_helper_conflict_probe_tx("GROUP_TREASURY_POLICY_SET", seed="2", payload_overrides={"group_id": "group-shared"})
     plans = _plan(one, two)

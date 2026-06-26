@@ -5,7 +5,7 @@ from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrato
 from weall.runtime.parallel_execution import verify_vote_ready_helper_plan
 
 
-def test_competing_leader_certificate_is_rejected_for_same_height_and_view_batch9() -> None:
+def test_competing_leader_certificate_is_rejected_for_same_height_and_view() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs, validators=("v1", "v2", "v3"), view=9, leader_id="v1")
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -31,7 +31,7 @@ def test_competing_leader_certificate_is_rejected_for_same_height_and_view_batch
 
 
 
-def test_competing_plan_id_certificate_is_rejected_for_same_context_batch9() -> None:
+def test_competing_plan_id_certificate_is_rejected_for_same_context() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs, validators=("v1", "v2", "v3"), view=9, leader_id="v1")
     lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
@@ -54,7 +54,7 @@ def test_competing_plan_id_certificate_is_rejected_for_same_context_batch9() -> 
 
 
 
-def test_vote_ready_guard_rejects_competing_plan_even_with_matching_lane_certificate_batch9() -> None:
+def test_vote_ready_guard_rejects_competing_plan_even_with_matching_lane_certificate() -> None:
     txs = [
         {"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},

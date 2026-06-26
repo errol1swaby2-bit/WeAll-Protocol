@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch544_live_netloop_block_producer_uses_real_netloop_and_producer_surfaces() -> None:
+def test_live_netloop_block_producer_uses_real_netloop_and_producer_surfaces() -> None:
     out = _proof()["live_netloop_block_producer"]
     assert out["ok"] is True
     assert out["net_loop_started"] is True
@@ -26,7 +26,7 @@ def test_batch544_live_netloop_block_producer_uses_real_netloop_and_producer_sur
     assert out["public_validator_enabled"] is False
 
 
-def test_batch545_api_system_lifecycle_closure_classifies_remaining_direct_apply_domains() -> None:
+def test_api_system_lifecycle_closure_classifies_remaining_direct_apply_domains() -> None:
     out = _proof()["api_system_lifecycle_closure"]
     assert out["ok"] is True
     assert out["unclassified_remaining_domains"] == []
@@ -38,7 +38,7 @@ def test_batch545_api_system_lifecycle_closure_classifies_remaining_direct_apply
     assert out["protocol_upgrade_record_only"] is True
 
 
-def test_batch546_live_ipfs_worker_durability_uses_worker_and_http_api() -> None:
+def test_live_ipfs_worker_durability_uses_worker_and_http_api() -> None:
     out = _proof()["live_ipfs_worker_durability"]
     assert out["ok"] is True
     assert out["worker_model"] == "IpfsPinWorker_with_local_http_ipfs_api"
@@ -52,7 +52,7 @@ def test_batch546_live_ipfs_worker_durability_uses_worker_and_http_api() -> None
     assert out["availability_status"] == "available"
 
 
-def test_batch547_poh_dispute_adversarial_accountability_and_remedy() -> None:
+def test_poh_dispute_adversarial_accountability_and_remedy() -> None:
     out = _proof()["poh_dispute_adversarial_accountability"]
     assert out["ok"] is True
     poh = out["poh_reviewer_accountability"]
@@ -67,7 +67,7 @@ def test_batch547_poh_dispute_adversarial_accountability_and_remedy() -> None:
     assert out["duplicate_human_detection_claimed"] is False
 
 
-def test_batch548_claim_boundaries_remain_conservative() -> None:
+def test_claim_boundaries_remain_conservative() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_rehearsal_candidate"] is True
@@ -84,7 +84,7 @@ def test_batch548_claim_boundaries_remain_conservative() -> None:
     assert proof["remaining_public_testnet_gaps"]
 
 
-def test_batch544_548_generated_artifact_is_fresh() -> None:
+def test_generated_artifact_is_fresh() -> None:
     proc = subprocess.run(
         [sys.executable, "scripts/gen_b544_b548_live_network_final_proof_v1_5.py", "--check"],
         cwd=str(ROOT),

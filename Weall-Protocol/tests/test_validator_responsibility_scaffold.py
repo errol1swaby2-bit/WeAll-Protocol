@@ -63,7 +63,7 @@ def _preflight(state: dict):
     )
 
 
-def test_active_node_operator_can_opt_into_validator_but_not_gain_consensus_batch297(monkeypatch) -> None:
+def test_active_node_operator_can_opt_into_validator_but_not_gain_consensus(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -96,7 +96,7 @@ def test_active_node_operator_can_opt_into_validator_but_not_gain_consensus_batc
     assert "validator" not in preflight.effective_roles
 
 
-def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_node_key_batch297() -> None:
+def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_node_key() -> None:
     inactive = _state(tier=2, rep=6000, active=False)
     with pytest.raises(Exception) as exc1:
         apply_tx(inactive, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
@@ -121,7 +121,7 @@ def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_nod
     assert "node_key_not_registered" in str(exc4.value)
 
 
-def test_validator_readiness_active_is_the_consensus_boundary_batch297(monkeypatch) -> None:
+def test_validator_readiness_active_is_the_consensus_boundary(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -145,7 +145,7 @@ def test_validator_readiness_active_is_the_consensus_boundary_batch297(monkeypat
     assert result.effective_roles == ("general_service", "validator")
 
 
-def test_frontend_docs_and_smoke_explain_validator_responsibility_scaffold_batch297() -> None:
+def test_frontend_docs_and_smoke_explain_validator_responsibility_scaffold() -> None:
     page = ACCOUNT_PAGE.read_text(encoding="utf-8")
     doc = QUICKSTART.read_text(encoding="utf-8")
     smoke = SMOKE.read_text(encoding="utf-8")

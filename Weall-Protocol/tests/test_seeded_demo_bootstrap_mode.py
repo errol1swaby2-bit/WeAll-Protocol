@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_quickstart_seeded_demo_uses_dev_mode_for_open_bootstrap_batch268() -> None:
+def test_quickstart_seeded_demo_uses_dev_mode_for_open_bootstrap() -> None:
     text = (ROOT / "scripts/quickstart_tester.sh").read_text(encoding="utf-8")
 
     assert 'export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}"' in text
@@ -16,7 +16,7 @@ def test_quickstart_seeded_demo_uses_dev_mode_for_open_bootstrap_batch268() -> N
     ).read_text(encoding="utf-8")
 
 
-def test_demo_bootstrap_tester_uses_same_dev_mode_default_batch268() -> None:
+def test_demo_bootstrap_tester_uses_same_dev_mode_default() -> None:
     text = (ROOT / "scripts/demo_bootstrap_tester.sh").read_text(encoding="utf-8")
 
     assert 'export WEALL_MODE="${WEALL_MODE:-dev}"' in text

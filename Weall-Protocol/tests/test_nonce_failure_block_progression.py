@@ -27,7 +27,7 @@ def _signed(ex: WeAllExecutor, *, signer: str, nonce: int, tx_type: str, payload
     return sign_tx_envelope_dict(tx=tx, privkey=priv_hex)
 
 
-def test_failed_block_apply_does_not_consume_nonce_batch37(tmp_path: Path) -> None:
+def test_failed_block_apply_does_not_consume_nonce(tmp_path: Path) -> None:
     signer = "@user000"
     pub, priv = deterministic_ed25519_keypair(label=signer)
     priv_hex = priv.private_bytes_raw().hex()

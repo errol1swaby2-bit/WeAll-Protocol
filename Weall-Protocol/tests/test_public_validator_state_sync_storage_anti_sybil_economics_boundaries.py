@@ -13,7 +13,7 @@ def _proof() -> dict:
     return json.loads(PROOF.read_text(encoding="utf-8"))
 
 
-def test_batch556_public_style_validator_network_exercises_mempool_bft_restart() -> None:
+def test_public_style_validator_network_exercises_mempool_bft_restart() -> None:
     out = _proof()["public_style_validator_network"]
     assert out["ok"] is True
     assert out["node_count"] == 4
@@ -33,7 +33,7 @@ def test_batch556_public_style_validator_network_exercises_mempool_bft_restart()
     assert out["public_validator_enabled"] is False
 
 
-def test_batch557_live_peer_state_sync_uses_trusted_anchor_delta_resume_rejections() -> None:
+def test_live_peer_state_sync_uses_trusted_anchor_delta_resume_rejections() -> None:
     out = _proof()["live_peer_state_sync"]
     assert out["ok"] is True
     assert out["mode"] == "delta"
@@ -47,7 +47,7 @@ def test_batch557_live_peer_state_sync_uses_trusted_anchor_delta_resume_rejectio
     assert out["wrong_chain_rejected"] is True
 
 
-def test_batch558_multi_operator_storage_workers_reassign_and_confirm_retrieval() -> None:
+def test_multi_operator_storage_workers_reassign_and_confirm_retrieval() -> None:
     out = _proof()["multi_operator_storage_workers"]
     assert out["ok"] is True
     assert out["worker_model"] == "multi_operator_local_file_pin_workers"
@@ -59,7 +59,7 @@ def test_batch558_multi_operator_storage_workers_reassign_and_confirm_retrieval(
     assert out["public_decentralized_media_claimed"] is False
 
 
-def test_batch559_anti_sybil_records_collusion_suspicion_without_overclaiming() -> None:
+def test_anti_sybil_records_collusion_suspicion_without_overclaiming() -> None:
     out = _proof()["anti_sybil_collusion_accountability"]
     assert out["ok"] is True
     assert out["reviewer_count_flagged"] >= 2
@@ -72,7 +72,7 @@ def test_batch559_anti_sybil_records_collusion_suspicion_without_overclaiming() 
     assert out["collusion_adjudication_claimed"] is False
 
 
-def test_batch560_economics_activation_complete_but_locked() -> None:
+def test_economics_activation_complete_but_locked() -> None:
     out = _proof()["economics_activation_locked_completion"]
     assert out["ok"] is True
     assert out["strict_preconditions_missing_error"] == "economics_activation_preconditions_not_satisfied"
@@ -86,7 +86,7 @@ def test_batch560_economics_activation_complete_but_locked() -> None:
     assert out["transfer_before_activation_rejected_reason"] == "economics_disabled"
 
 
-def test_batch561_helper_serial_equivalence_expands_without_activation() -> None:
+def test_helper_serial_equivalence_expands_without_activation() -> None:
     out = _proof()["helper_serial_equivalence_expansion"]
     assert out["ok"] is True
     assert out["tx_count"] >= 10
@@ -98,7 +98,7 @@ def test_batch561_helper_serial_equivalence_expands_without_activation() -> None
     assert out["production_helper_execution_enabled"] is False
 
 
-def test_batch556_561_claim_boundaries_and_artifact_freshness() -> None:
+def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True

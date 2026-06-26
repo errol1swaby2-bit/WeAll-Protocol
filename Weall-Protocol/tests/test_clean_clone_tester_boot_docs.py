@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_clean_clone_tester_boot_rehearsal_doc_exists_batch474() -> None:
+def test_clean_clone_tester_boot_rehearsal_doc_exists() -> None:
     doc = (ROOT / "docs" / "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md").read_text(encoding="utf-8")
 
     assert "Clean Clone Tester Boot Rehearsal" in doc
@@ -19,7 +19,7 @@ def test_clean_clone_tester_boot_rehearsal_doc_exists_batch474() -> None:
     assert "BFT/helper/block production: disabled" in doc
 
 
-def test_clean_clone_tester_boot_doc_preserves_truth_boundary_batch474() -> None:
+def test_clean_clone_tester_boot_doc_preserves_truth_boundary() -> None:
     doc = (ROOT / "docs" / "CLEAN_CLONE_TESTER_BOOT_REHEARSAL.md").read_text(encoding="utf-8")
 
     assert "does not prove" in doc
