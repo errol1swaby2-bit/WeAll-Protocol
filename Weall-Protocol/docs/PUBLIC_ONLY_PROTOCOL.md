@@ -18,6 +18,12 @@ All protocol-native social, civic, governance, moderation, dispute, group, reput
 - Group membership cannot gate read visibility.
 - Group membership cannot create non-public protocol archives.
 
+## PoH identity evidence boundary
+
+The public-only protocol rule does not require raw Proof-of-Humanhood identity evidence, live verification media, device fingerprints, government identifiers, or similar sensitive identity material to be publicly exposed. PoH may protect raw identity evidence behind authenticated applicant/reviewer access, while the consensus-affecting facts remain publicly inspectable through commitments, assignments, participation records, reviewer actions, votes, outcomes, receipts, timestamps, and state-root effects.
+
+This boundary is not a protocol-native hidden communication channel. It cannot carry user-to-user social messages, group content, governance meaning, dispute arguments, moderation actions, reputation edits, validator/operator instructions, or any other civic state hidden from public inspection.
+
 ## Notifications and activity
 
 The client may provide an activity notices for mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts. The input_queue is derived from public protocol events and carries no user-to-user sealed thread semantics.

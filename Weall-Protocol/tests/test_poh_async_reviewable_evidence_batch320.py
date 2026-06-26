@@ -78,8 +78,8 @@ def test_async_evidence_declare_stores_reviewable_video_reference_without_granti
     assert "mime" not in rec
     assert case["public_evidence_ids"] == []
     assert case["reviewable_evidence"] == {}
-    private = case["reviewer_restricted_evidence"]["evidence:video:1"]
-    assert private["evidence_cid"] == "bafyvideo"
-    assert private["mime"] == "video/webm"
-    assert private["uri"] == "ipfs://bafyvideo"
+    protected = case["reviewer_restricted_evidence"]["evidence:video:1"]
+    assert protected["evidence_cid"] == "bafyvideo"
+    assert protected["mime"] == "video/webm"
+    assert protected["uri"] == "ipfs://bafyvideo"
     assert st["accounts"]["@alice"]["poh_tier"] == 0

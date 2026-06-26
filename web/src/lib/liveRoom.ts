@@ -8,7 +8,7 @@ export type WeAllP2PLiveRoomDescriptor = {
   signaling: "case-scoped-presence";
   relay_policy: "community-relay-fallback-only";
   storage_policy: "no-raw-recording-by-default";
-  privacy: "subject-and-assigned-reviewers-only";
+  identity_protection: "subject-and-assigned-reviewers-only";
   notes: string[];
 };
 
@@ -94,7 +94,7 @@ export function liveRoomDescriptorFromCommitment(
     signaling: "case-scoped-presence",
     relay_policy: "community-relay-fallback-only",
     storage_policy: "no-raw-recording-by-default",
-    privacy: "subject-and-assigned-reviewers-only",
+    identity_protection: "subject-and-assigned-reviewers-only",
     notes: [
       "The live room is a peer-to-peer transport descriptor, not an authority source.",
       "Discovery/signaling must be case-scoped to the subject and assigned reviewers.",

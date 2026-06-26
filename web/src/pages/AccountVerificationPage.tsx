@@ -292,13 +292,13 @@ function asyncCaseReviewability(item: any): AsyncCaseReviewability {
   const evidenceCommitments = item?.evidence_commitments && typeof item.evidence_commitments === "object" ? item.evidence_commitments : {};
   const evidenceBinds = item?.evidence_binds && typeof item.evidence_binds === "object" ? item.evidence_binds : {};
   const reviewableEvidence = item?.reviewable_evidence && typeof item.reviewable_evidence === "object" ? item.reviewable_evidence : {};
-  const reviewerPrivateEvidence = item?.reviewer_restricted_evidence && typeof item.reviewer_restricted_evidence === "object" ? item.reviewer_restricted_evidence : {};
+  const reviewerRestrictedEvidence = item?.reviewer_restricted_evidence && typeof item.reviewer_restricted_evidence === "object" ? item.reviewer_restricted_evidence : {};
   const publicEvidenceIds = Array.isArray(item?.public_evidence_ids) ? item.public_evidence_ids : [];
   const assignedJurors = Array.isArray(item?.assigned_jurors) ? item.assigned_jurors : [];
   const status = String(item?.status || "").trim();
   const finalOrReviewed = ["approved", "rejected", "finalized"].includes(status.toLowerCase()) || !!item?.outcome || !!item?.receipt || item?.finalized_height != null;
-  const evidenceDeclared = Object.keys(evidenceCommitments).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
-  const evidenceBound = Object.keys(evidenceBinds).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
+  const evidenceDeclared = Object.keys(evidenceCommitments).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerRestrictedEvidence).length > 0 || finalOrReviewed;
+  const evidenceBound = Object.keys(evidenceBinds).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerRestrictedEvidence).length > 0 || finalOrReviewed;
   const assigned = assignedJurors.some((j: any) => String(j || "").trim()) || !!item?.jurors;
   const reviewable = finalOrReviewed || (evidenceDeclared && evidenceBound);
   const missingSteps: string[] = [];
@@ -1291,7 +1291,7 @@ export default function AccountVerificationPage(): JSX.Element {
           description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
         >
           <div className="calloutInfo">
-            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not private session recordings.
+            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not raw identity session recordings.
           </div>
           <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
             {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}

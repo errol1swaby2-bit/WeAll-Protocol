@@ -155,7 +155,7 @@
           "ok",
           "case"
         ],
-        "id": "poh-async-case-redacts-private-evidence",
+        "id": "poh-async-case-redacts-sensitive-identity-evidence",
         "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
         "method": "GET",
         "path": "/v1/poh/async/case/{case_id}",

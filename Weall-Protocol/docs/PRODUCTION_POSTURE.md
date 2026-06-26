@@ -239,7 +239,7 @@ Production launch requires:
 - posting/media flows verified
 - secrets validated
 - no dev fallbacks reachable
-- public snapshots and unauthenticated account reads redact private/session/device/evidence internals
+- public snapshots and unauthenticated account reads redact sensitive session/device/evidence internals
 - helper mode either disabled or fully proven
 
 ## 10. Enforcement

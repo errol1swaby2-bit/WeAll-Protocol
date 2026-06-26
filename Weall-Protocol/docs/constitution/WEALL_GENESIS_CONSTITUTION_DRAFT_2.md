@@ -235,7 +235,7 @@ Verification levels must be transparent, appealable, and governed by protocol ru
 
 Proof-of-Humanity evidence shall be handled with strict privacy discipline.
 
-The protocol should avoid publishing raw sensitive identity evidence where cryptographic commitments, reviewer-private access, hashes, or other privacy-preserving methods are sufficient.
+The protocol should avoid publishing raw sensitive identity evidence where cryptographic commitments, assigned-reviewer protected access, hashes, or other privacy-preserving methods are sufficient.
 
 ### Section 4. No Permanent Identity Caste
 

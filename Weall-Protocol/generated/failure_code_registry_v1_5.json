@@ -173,7 +173,7 @@
       "domain": "api",
       "family": "ApiError.bad_request",
       "http_status": 400,
-      "sample_reason": "Protocol-native account content is public-only; private read visibility is unsupported.",
+      "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
       "source_lineno": 285
     },

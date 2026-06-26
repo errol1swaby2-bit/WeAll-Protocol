@@ -246,5 +246,5 @@ def test_native_async_public_state_rejects_private_external_identity_fields() ->
                 nonce=1,
             ),
         )
-    assert exc.value.reason == "native_async_private_field_forbidden"
+    assert exc.value.reason == "native_async_sensitive_identity_field_forbidden"
     assert "email" in exc.value.details["fields"]

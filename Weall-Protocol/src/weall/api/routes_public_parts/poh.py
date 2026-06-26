@@ -411,7 +411,7 @@ def _request_account(request: Request) -> str:
 
 
 def _allow_header_scoped_restricted_poh_compat() -> bool:
-    """Header-only PoH private access has been removed.
+    """Header-only restricted PoH evidence access has been removed.
 
     Restricted evidence and live-room transport control must be bound to an
     authenticated backend session in every mode.
@@ -428,7 +428,7 @@ def _session_principal_for_restricted_poh(request: Request, st: Json) -> str:
         return ""
 
 
-def _require_session_principal_for_poh_private(request: Request, st: Json, *, purpose: str) -> str:
+def _require_session_principal_for_poh_identity_evidence(request: Request, st: Json, *, purpose: str) -> str:
     try:
         acct = str(require_account_session(request, st) or "").strip()
     except PermissionError as exc:
@@ -452,7 +452,7 @@ def _require_session_principal_for_poh_private(request: Request, st: Json, *, pu
 
 
 def _require_poh_session_matches(request: Request, st: Json, *, expected: str, purpose: str) -> str:
-    principal = _require_session_principal_for_poh_private(request, st, purpose=purpose)
+    principal = _require_session_principal_for_poh_identity_evidence(request, st, purpose=purpose)
     if str(principal or "").strip() != str(expected or "").strip():
         raise ApiError.forbidden(
             "session_mismatch",
@@ -1258,7 +1258,7 @@ def poh_live_session_presence_update(
         )
 
     st = _snapshot(request)
-    principal = _require_session_principal_for_poh_private(
+    principal = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="live room presence"
     )
     if principal != account_id:
@@ -2253,7 +2253,7 @@ def poh_live_webrtc_signals(
         raise ApiError.bad_request("bad_request", "missing session_id", {})
 
     st = _snapshot(request)
-    account = _require_session_principal_for_poh_private(
+    account = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="WebRTC live-room signaling"
     )
     case_id, case = _live_case_for_session(st, sid)
@@ -2386,7 +2386,7 @@ def poh_live_webrtc_signal_send(
         raise ApiError.bad_request("bad_request", "missing account_id", {})
 
     st = _snapshot(request)
-    account = _require_session_principal_for_poh_private(
+    account = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="WebRTC live-room signaling"
     )
     if account != account_id:

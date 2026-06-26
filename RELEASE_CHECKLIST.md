@@ -215,7 +215,7 @@ The current release checkpoint for this snapshot is:
 - frontend lock: `web/package-lock.json` is present and `npm ci`/typecheck/contract/build were verified
 - Native PoH cleanup: primary path validated without email, SMTP, DNS, named hosting-provider, relay-token completion, or external identity-provider env aliases
 - Public-validator posture: validator service/signing requires BFT enabled; observer mode and signing cannot be mixed
-- Public API posture: snapshots and unauthenticated account reads redact private/session/device/evidence internals
+- Public API posture: snapshots and unauthenticated account reads redact sensitive session/device/evidence internals
 - SYSTEM tx posture: follower-side block replay rejects mutating SYSTEM txs that do not match deterministic scheduler output
 - Helper posture: helper execution metadata is committed by `helper_execution_root` when present
 

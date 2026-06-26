@@ -8,7 +8,7 @@
  *   (or via npm run contract-check)
  *
  * Optional:
- *   ACCOUNT=@alice SESSION_KEY=... to test account-private endpoints
+ *   ACCOUNT=@alice SESSION_KEY=... to test account-sensitive endpoints
  */
 
 const API_BASE = (process.env.API_BASE || process.env.VITE_WEALL_API_BASE || "").replace(/\/+$/, "");

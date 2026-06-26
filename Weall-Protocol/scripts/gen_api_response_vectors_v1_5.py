@@ -75,7 +75,7 @@ _VECTOR_ROUTES: list[Json] = [
         "privacy_boundary": "viewer-scoped PoH case queue; restricted identity evidence is not public",
     },
     {
-        "id": "poh-async-case-redacts-private-evidence",
+        "id": "poh-async-case-redacts-sensitive-identity-evidence",
         "method": "GET",
         "path": "/v1/poh/async/case/{case_id}",
         "route_key": "GET /v1/poh/async/case/{case_id}",

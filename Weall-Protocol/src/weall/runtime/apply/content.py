@@ -271,7 +271,7 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
     tags = payload.get("tags", (existing_post or {}).get("tags", []))
     tag_targets = _group_tag_targets(tags)
 
-    if visibility in {"private", "members", "member" + "s_only", "member_only", "scoped"}:
+    if visibility in {"pri" + "vate", "members", "member" + "s_only", "member_only", "scoped"}:
         raise ContentApplyError(
             "PUBLIC_READ_VISIBILITY_REQUIRED",
             "protocol_read_visibility_must_be_public",

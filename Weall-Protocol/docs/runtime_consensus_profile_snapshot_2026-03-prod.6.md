@@ -48,7 +48,7 @@ change them through local environment drift.
 - Public validator service/signing posture requires BFT enabled.
 - Validator signing and observer mode cannot be mixed.
 - Production tx payload limits are profile-pinned.
-- Public snapshots and unauthenticated account reads redact private/session/device/evidence internals.
+- Public snapshots and unauthenticated account reads redact sensitive session/device/evidence internals.
 - Release-tree verification rejects local runtime DBs, devnet state, helper lanes,
   demo bootstrap secret/result artifacts, and generated JSON secret artifacts.
 

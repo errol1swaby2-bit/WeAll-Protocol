@@ -131,7 +131,7 @@ def test_batch10a_require_git_tracked_fails_closed_outside_git_checkout() -> Non
     assert "--require-git-tracked" in gate_text
 
 
-def test_batch11_poh_private_case_read_requires_session_and_redacts_unrelated_viewer(monkeypatch) -> None:
+def test_batch11_poh_sensitive_case_read_requires_session_and_redacts_unrelated_viewer(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     client = _client(_session_state())
 

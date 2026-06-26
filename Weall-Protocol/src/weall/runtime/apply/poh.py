@@ -1807,7 +1807,7 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
 
 
 
-ASYNC_PRIVATE_FIELD_DENYLIST: frozenset[str] = frozenset(
+ASYNC_SENSITIVE_IDENTITY_FIELD_DENYLIST: frozenset[str] = frozenset(
     {
         "raw_response",
         "raw_video",
@@ -1828,10 +1828,10 @@ ASYNC_PRIVATE_FIELD_DENYLIST: frozenset[str] = frozenset(
 )
 
 
-def _reject_native_async_private_fields(payload: Json) -> None:
-    leaked = sorted(k for k in ASYNC_PRIVATE_FIELD_DENYLIST if k in payload and payload.get(k) not in (None, ""))
+def _reject_native_async_sensitive_identity_fields(payload: Json) -> None:
+    leaked = sorted(k for k in ASYNC_SENSITIVE_IDENTITY_FIELD_DENYLIST if k in payload and payload.get(k) not in (None, ""))
     if leaked:
-        raise ApplyError("invalid_tx", "native_async_private_field_forbidden", {"fields": leaked})
+        raise ApplyError("invalid_tx", "native_async_sensitive_identity_field_forbidden", {"fields": leaked})
 
 
 def _validate_async_review_policy(
@@ -1993,7 +1993,7 @@ def _async_review_counts(case: Json) -> tuple[int, int, int]:
 
 def apply_poh_async_request_open(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     account_id = _as_str(p.get("account_id") or _signer(env)).strip()
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
@@ -2098,7 +2098,7 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
 
 def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     evidence_commitment = _as_str(p.get("evidence_commitment") or "").strip()
     response_commitment = _as_str(p.get("response_commitment") or "").strip()
@@ -2139,11 +2139,11 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     if response_commitment:
         case["response_commitment"] = response_commitment
 
-    # Option B privacy posture: async evidence remains reviewer-private by
-    # default.  Public case state keeps only commitments.  Content-addressed
-    # evidence references are stored in a separate reviewer-private envelope and
-    # are exposed only through scoped reviewer/subject APIs.
-    private_rec: Json = {
+    # Identity-protection posture: async PoH evidence may contain sensitive
+    # identity material. Public case state keeps commitments, assignments,
+    # votes, outcomes, and review receipts inspectable. Content-addressed
+    # evidence references remain in a protected reviewer/subject envelope.
+    protected_rec: Json = {
         "evidence_id": evidence_id,
         "evidence_commitment": evidence_commitment,
         "response_commitment": response_commitment,
@@ -2159,24 +2159,24 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
             value = value.strip()
             if not value:
                 continue
-        private_rec[key] = value
+        protected_rec[key] = value
 
     uri = _validate_ipfs_uri(p.get("uri"), field="uri", case_id=case_id)
     if uri:
-        private_rec["uri"] = uri
+        protected_rec["uri"] = uri
 
     video_commitment = _validate_commitment_format(
         p.get("video_commitment"), field="video_commitment", case_id=case_id, required=False
     )
     if video_commitment:
-        private_rec["video_commitment"] = video_commitment
+        protected_rec["video_commitment"] = video_commitment
 
     reviewer_restricted = case.get("reviewer_restricted_evidence")
     if not isinstance(reviewer_restricted, dict):
         reviewer_restricted = {}
         case["reviewer_restricted_evidence"] = reviewer_restricted
-    if any(k in private_rec for k in ("evidence_cid", "uri", "video_commitment")):
-        reviewer_restricted[evidence_id] = private_rec
+    if any(k in protected_rec for k in ("evidence_cid", "uri", "video_commitment")):
+        reviewer_restricted[evidence_id] = protected_rec
 
     # Preserve the old fields as explicitly empty public surfaces so stale
     # clients/tests do not mistake absence for unredacted public evidence.
@@ -2189,7 +2189,7 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
 
 def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     evidence_id = _as_str(p.get("evidence_id") or "").strip()
     if not case_id or not evidence_id:
@@ -2334,7 +2334,7 @@ def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
 
 def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     verdict = _as_str(p.get("verdict") or "").strip().lower()
     if not case_id:

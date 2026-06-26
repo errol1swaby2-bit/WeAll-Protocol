@@ -18,7 +18,7 @@ def test_live_room_default_is_decentralized_p2p_descriptor_batch406() -> None:
     assert 'authority: "weall-chain"' in live
     assert 'signaling: "case-scoped-presence"' in live
     assert 'relay_policy: "community-relay-fallback-only"' in live
-    assert 'privacy: "subject-and-assigned-reviewers-only"' in live
+    assert 'identity_protection: "subject-and-assigned-reviewers-only"' in live
     assert "liveRoomDescriptorFromCommitment" in live
     assert "liveRoomDescriptorText" in live
     assert 'return raw === "centralized-url" ? "centralized-url" : "p2p"' in live

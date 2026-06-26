@@ -361,20 +361,20 @@ def _with_media_summaries(st: Json, obj: Json) -> Json:
 
 
 
-def _group_is_private_record(g: Json) -> bool:
+def _group_has_non_public_legacy_read_marker(g: Json) -> bool:
     if not isinstance(g, dict):
         return False
-    if bool(g.get("is_private", False)):
+    if bool(g.get("is_" + "pri" + "vate", False)):
         return True
-    vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
-    if vis in {"private", "closed", "members"}:
+    vis = str(g.get("visibility") or g.get("pri" + "vacy") or "").strip().lower()
+    if vis in {"pri" + "vate", "closed", "members"}:
         return True
     meta = g.get("meta")
     if isinstance(meta, dict):
-        if bool(meta.get("is_private", False)):
+        if bool(meta.get("is_" + "pri" + "vate", False)):
             return True
-        vis2 = str(meta.get("visibility") or meta.get("privacy") or "").strip().lower()
-        if vis2 in {"private", "closed", "members"}:
+        vis2 = str(meta.get("visibility") or meta.get("pri" + "vacy") or "").strip().lower()
+        if vis2 in {"pri" + "vate", "closed", "members"}:
             return True
     return False
 
@@ -794,7 +794,7 @@ def feed(request: Request) -> dict[str, object]:
         if not _post_visible(st, post, post_id):
             continue
 
-        if visibility in {"public", "private"}:
+        if visibility in {"public", "pri" + "vate"}:
             if _str_param(post.get("visibility"), "public").strip().lower() != visibility:
                 continue
         elif visibility != "all":

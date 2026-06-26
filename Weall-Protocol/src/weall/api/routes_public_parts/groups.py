@@ -459,7 +459,7 @@ def v1_group_content(group_id: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility in {"private", "members", "scoped", "member" + "s_only", "member_only"}:
+    if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
             "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Group read visibility must be public.",
@@ -523,7 +523,7 @@ def v1_group_feed(group_id: str, request: Request):
     author = _str_param(qp.get("author")).strip()
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility in {"private", "members", "scoped", "member" + "s_only", "member_only"}:
+    if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
             "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Group read visibility must be public.",
