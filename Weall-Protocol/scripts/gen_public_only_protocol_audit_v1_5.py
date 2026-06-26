@@ -41,7 +41,21 @@ TERMS = [
     _legacy_term("message", " th", "read"),
 ]
 
-SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".pytest_cache"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "__pycache__",
+    "dist",
+    "build",
+    ".pytest_cache",
+    ".weall-devnet",
+    ".weall-media-cache",
+    "playwright-report",
+    "data",
+    "rehearsal-evidence",
+    "htmlcov",
+}
 
 
 def rel(path: Path) -> str:
@@ -85,7 +99,7 @@ def scan() -> list[dict[str, object]]:
         for path in base.rglob("*"):
             if not path.is_file():
                 continue
-            if any(part in SKIP_DIRS for part in path.parts):
+            if any(part in SKIP_DIRS or part.endswith(".egg-info") for part in path.parts):
                 continue
             if path == OUT:
                 continue
