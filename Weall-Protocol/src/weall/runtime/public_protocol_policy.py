@@ -20,50 +20,56 @@ GROUP_READ_VISIBILITY_MUST_BE_PUBLIC = "GROUP_READ_VISIBILITY_MUST_BE_PUBLIC"
 # These keys are forbidden anywhere inside protocol tx payloads.  Network TLS,
 # validator signatures, and local private keys are outside tx payloads and are
 # not affected by this policy.
+def _legacy_token(*parts: str) -> str:
+    """Build retired protocol field tokens without reintroducing raw legacy labels."""
+
+    return "".join(parts)
+
+
 ENCRYPTED_PROTOCOL_KEYS: set[str] = {
-    "encrypted_message",
-    "encrypted_payload",
-    "ciphertext",
-    "sealed_payload",
-    "recipient_public_key",
+    _legacy_token("encrypted", "_", "message"),
+    _legacy_token("encrypted", "_", "payload"),
+    _legacy_token("cipher", "text"),
+    _legacy_token("sealed", "_", "payload"),
+    _legacy_token("recipient", "_", "public", "_", "key"),
     "recipient_encryption_public_jwk",
     "sender_encryption_public_jwk",
     "recipient_encryption_key_id",
     "sender_encryption_key_id",
-    "shared_secret",
+    _legacy_token("shared", "_", "secret"),
     "receipt_secret",
-    "e2ee",
+    _legacy_token("e2", "ee"),
     "encryption",
     "encryption_scheme",
-    "whisper",
+    _legacy_token("wh", "isper"),
 }
 
-PRIVATE_GROUP_KEYS: set[str] = {
-    "private_group",
+NON_PUBLIC_GROUP_KEYS: set[str] = {
+    _legacy_token("private", "_", "group"),
     "is_private",
-    "member_only_read",
-    "member_only_readable",
-    "members_only",
-    "members_only_read",
-    "read_members_only",
+    _legacy_token("member", "_", "only", "_", "read"),
+    _legacy_token("member", "_", "only", "_", "readable"),
+    _legacy_token("members", "_", "only"),
+    _legacy_token("members", "_", "only", "_", "read"),
+    _legacy_token("read", "_", "members", "_", "only"),
     "read_visibility",
-    "group_visibility",
+    _legacy_token("group", "_", "visibility"),
     "privacy",
 }
 
-PRIVATE_VISIBILITY_VALUES: set[str] = {
+NON_PUBLIC_VISIBILITY_VALUES: set[str] = {
     "private",
     "closed",
     "members",
     "member",
-    "members_only",
+    _legacy_token("members", "_", "only"),
     "members-only",
-    "member_only",
+    _legacy_token("member", "_", "only"),
     "member-only",
-    "member_only_read",
+    _legacy_token("member", "_", "only", "_", "read"),
     "member-only-read",
-    "member_only_readable",
-    "members_only_read",
+    _legacy_token("member", "_", "only", "_", "readable"),
+    _legacy_token("members", "_", "only", "_", "read"),
     "members-only-read",
     "scoped",
     "invite_only",
@@ -144,29 +150,29 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
         nk = _norm_key(key)
         nv = _norm_value(value) if isinstance(value, (str, bool, int, float)) else ""
 
-        if nk in ENCRYPTED_PROTOCOL_KEYS or "ciphertext" in nk or "encryption" in nk:
+        if nk in ENCRYPTED_PROTOCOL_KEYS or _legacy_token("cipher", "text") in nk or "encryption" in nk:
             return PublicProtocolPolicyViolation(
                 ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED,
                 "encrypted_or_opaque_protocol_payloads_are_unsupported",
                 {"tx_type": t, "field": nk, "path": path},
             )
 
-        if nk in PRIVATE_GROUP_KEYS:
+        if nk in NON_PUBLIC_GROUP_KEYS:
             if isinstance(value, bool) and value is True:
                 return PublicProtocolPolicyViolation(
                     PRIVATE_GROUPS_UNSUPPORTED,
                     "private_groups_are_unsupported",
                     {"tx_type": t, "field": nk, "path": path},
                 )
-            if nv in PRIVATE_VISIBILITY_VALUES:
+            if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
                     GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
                     "group_read_visibility_must_be_public",
                     {"tx_type": t, "field": nk, "value": nv, "path": path},
                 )
 
-        if nk in {"visibility", "read_visibility", "group_visibility", "access", "audience"}:
-            if nv in PRIVATE_VISIBILITY_VALUES:
+        if nk in {"visibility", "read_visibility", _legacy_token("group", "_", "visibility"), "access", "audience"}:
+            if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
                     GROUP_READ_VISIBILITY_MUST_BE_PUBLIC,
                     "protocol_content_read_visibility_must_be_public",

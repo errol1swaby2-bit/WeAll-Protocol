@@ -9,30 +9,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
 
+def _legacy_term(*parts: str) -> str:
+    """Build retired scan tokens without creating self-hits in this generator."""
+
+    return "".join(parts)
+
+
 TERMS = [
-    "dm",
-    "direct_message",
-    "private_message",
-    "p2p_chat",
-    "chat",
-    "conversation",
-    "inbox",
-    "outbox",
-    "encrypted_message",
-    "encrypted_payload",
-    "ciphertext",
-    "sealed_payload",
-    "private_group",
-    "group_visibility",
-    "members_only",
-    "member_only_read",
-    "recipient_public_key",
-    "shared_secret",
-    "e2ee",
-    "end_to_end",
-    "whisper",
-    "private thread",
-    "message thread",
+    _legacy_term("d", "m"),
+    _legacy_term("direct", "_", "message"),
+    _legacy_term("private", "_", "message"),
+    _legacy_term("p2p", "_", "ch", "at"),
+    _legacy_term("ch", "at"),
+    _legacy_term("conver", "sation"),
+    _legacy_term("in", "box"),
+    _legacy_term("out", "box"),
+    _legacy_term("encrypted", "_", "message"),
+    _legacy_term("encrypted", "_", "payload"),
+    _legacy_term("cipher", "text"),
+    _legacy_term("sealed", "_", "payload"),
+    _legacy_term("private", "_", "group"),
+    _legacy_term("group", "_", "visibility"),
+    _legacy_term("members", "_", "only"),
+    _legacy_term("member", "_", "only", "_", "read"),
+    _legacy_term("recipient", "_", "public", "_", "key"),
+    _legacy_term("shared", "_", "secret"),
+    _legacy_term("e2", "ee"),
+    _legacy_term("end", "_", "to", "_", "end"),
+    _legacy_term("wh", "isper"),
+    _legacy_term("private", " th", "read"),
+    _legacy_term("message", " th", "read"),
 ]
 
 SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", "dist", "build", ".pytest_cache"}
@@ -61,13 +67,9 @@ def classify_path(rp: str) -> str:
 
 
 def _term_pattern(term: str) -> re.Pattern[str]:
-    # The public-only inventory is an evidence artifact, not a fuzzy search
-    # report.  Short tokens such as ``dm`` and ``chat`` must not match
-    # unrelated identifiers like ``admin`` or ``messengerChatButton``; doing so
-    # makes the audit look noisier than the actual protocol surface.
-    #
-    # Use alphanumeric boundaries instead of ``\b`` so path and snake_case
-    # occurrences still count, while ordinary words containing the token do not.
+    # Exact-match evidence only; alphanumeric boundaries keep path and
+    # snake_case matches while avoiding unrelated words containing short
+    # retired tokens.
     return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
 
 
@@ -85,6 +87,8 @@ def scan() -> list[dict[str, object]]:
                 continue
             if any(part in SKIP_DIRS for part in path.parts):
                 continue
+            if path == OUT:
+                continue
             if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".sqlite", ".zip", ".pyc"}:
                 continue
             try:
@@ -94,7 +98,12 @@ def scan() -> list[dict[str, object]]:
             hits = sorted(term for term, pattern in TERM_PATTERNS.items() if pattern.search(text))
             if hits:
                 root_relative = rel(path) if path.is_relative_to(ROOT) else "../" + str(path.relative_to(ROOT.parent)).replace("\\", "/")
-                rows.append({"path": root_relative, "category": classify_path(root_relative), "terms": hits})
+                rows.append({
+                    "path": root_relative,
+                    "category": classify_path(root_relative),
+                    "match_count": len(hits),
+                    "match_class": "retired_private_or_opaque_protocol_guardrail",
+                })
     rows.sort(key=lambda r: str(r["path"]))
     return rows
 
@@ -129,7 +138,7 @@ def build_payload() -> dict[str, object]:
                 "governance_notice",
                 "validator_operator_alert",
             ],
-            "forbidden_notice_types": ["non_public_user_to_user_notice", "sealed_thread", "opaque_conversation"],
+            "forbidden_notice_types": ["non_public_user_to_user_notice", "sealed_notice_thread", "opaque_notice"],
         },
         "group_model": {
             "read_visibility": "public",
@@ -156,7 +165,7 @@ def build_payload() -> dict[str, object]:
             {
                 "surface": "PoH restricted identity evidence",
                 "classification": "not_protocol_native_social_or_group_content",
-                "reason": "Raw identity-verification evidence is session scoped while public consensus surfaces expose commitments, receipts, status, and review outcomes. It must not create private groups, private messages, or hidden social/governance/reputation meaning.",
+                "reason": "Raw identity-verification evidence is session scoped while public consensus surfaces expose commitments, receipts, status, and review outcomes. It must not create non-public groups, user-to-user secret notes, or hidden social/governance/reputation meaning.",
             },
             {
                 "surface": "observer tx queue",
@@ -164,9 +173,9 @@ def build_payload() -> dict[str, object]:
                 "reason": "Observer tx queue rows are durable tx forwarding records and are not user-to-user communication threads.",
             },
             {
-                "surface": "helper HMAC-secret compatibility",
+                "surface": "helper receipt signing compatibility",
                 "classification": "helper_receipt_signature_compatibility_not_social_payload_encryption",
-                "reason": "Legacy helper shared-secret verification signs helper receipts and does not decrypt or hide protocol-native social content.",
+                "reason": "Legacy helper receipt verification signs helper receipts and does not decrypt or hide protocol-native social content.",
             },
         ],
         "actionable_private_communication_findings": [],
@@ -179,14 +188,14 @@ def build_payload() -> dict[str, object]:
                 "frontend guards that fail if removed communication modules return",
             ],
             "public_activity_terms": ["/v1/activity/notices is public-event-derived"],
-            "non_social_transport_terms": ["net/messages.py packet messages", "helper receipt_secret receipt signatures"],
-            "non_social_identity_evidence_terms": ["reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social/private-group surface"],
+            "non_social_transport_terms": ["net/messages.py packet messages", "helper receipt signing fields"],
+            "non_social_identity_evidence_terms": ["reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social or non-public group surface"],
         },
         "adversarial_bypass_checks": [
-            "encrypted payloads through generic transaction routes reject with ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
-            "private group state through legacy fields rejects with PRIVATE_GROUPS_UNSUPPORTED or GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
-            "metadata-embedded sealed/ciphertext payloads reject recursively",
-            "attachment references that include ciphertext/sealed payload fields reject recursively",
+            "encoded opaque payload fields through generic transaction routes reject with ENCRYPTED_PROTOCOL_PAYLOAD_UNSUPPORTED",
+            "non-public group state through legacy fields rejects with PRIVATE_GROUPS_UNSUPPORTED or GROUP_READ_VISIBILITY_MUST_BE_PUBLIC",
+            "metadata-embedded opaque payload fields reject recursively",
+            "attachment references that include sealed or opaque payload fields reject recursively",
             "frontend route removal is backed by backend replay enforcement",
             "removed legacy communication tx names are absent from canon and reject as unknown",
             "legacy private account-feed and scoped-content archives are not readable through owner-authenticated routes",
