@@ -247,6 +247,43 @@ def _require_account_min_tier(
     return acct
 
 
+def _grant_active_poh_tier(
+    state: Json,
+    *,
+    account_id: str,
+    tier: int,
+    verified_at_height: int | None = None,
+    proof_commitment: str | None = None,
+    issuer_authority_id: str | None = None,
+) -> Json:
+    """Persist a PoH award in both legacy and canonical account status views.
+
+    Central PoH eligibility reads ``poh.account_status`` when a canonical record
+    exists, while some older domain appliers still read ``accounts[*].poh_tier``.
+    Award paths must update both views atomically so a successful live/Tier-2
+    verification unlocks exactly the protocol actions gated by Tier 2 without
+    implying optional reviewer, operator, storage, or validator responsibility
+    opt-ins.
+    """
+
+    acct = _require_registered_account(state, account_id)
+    awarded_tier = require_valid_poh_tier(max(v2_poh_tier(acct.get("poh_tier")), int(tier)))
+    height = int(state.get("height") or 0) if verified_at_height is None else int(verified_at_height)
+    rec = set_account_poh_status(
+        state,
+        account_id=account_id,
+        poh_tier=awarded_tier,
+        status=POH_STATUS_ACTIVE,
+        verified_at_height=height,
+        proof_commitment=_as_str(proof_commitment or "").strip() or None,
+        issuer_authority_id=_as_str(issuer_authority_id or "").strip() or None,
+        last_updated_height=height,
+    )
+    acct["poh_tier"] = max(v2_poh_tier(acct.get("poh_tier")), awarded_tier)
+    acct["poh_status"] = POH_STATUS_ACTIVE
+    return rec
+
+
 
 def _async_cases(state: Json) -> Json:
     poh = _poh_root(state)
@@ -1004,6 +1041,22 @@ def apply_poh_tier_set(state: Json, tx: Json) -> None:
 
     acct = _require_registered_account(state, account_id)
     acct["poh_tier"] = tier
+    if tier > 0:
+        set_account_poh_status(
+            state,
+            account_id=account_id,
+            poh_tier=tier,
+            status=POH_STATUS_ACTIVE,
+            verified_at_height=int(state.get("height") or 0),
+            last_updated_height=int(state.get("height") or 0),
+        )
+    else:
+        revoke_account_poh_status(
+            state,
+            account_id=account_id,
+            reason="tier_set_zero",
+            last_updated_height=int(state.get("height") or 0),
+        )
 
 
 def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
@@ -1070,7 +1123,13 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
         if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
             raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-        acct["poh_tier"] = 2
+        _grant_active_poh_tier(
+            state,
+            account_id=account_id,
+            tier=2,
+            verified_at_height=current_height,
+            issuer_authority_id="poh_bootstrap_open",
+        )
         acct["poh_bootstrap_granted"] = True
         acct["poh_bootstrap_mode"] = "open"
         acct["poh_bootstrap_height"] = current_height
@@ -1126,7 +1185,13 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
     if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
         raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-    acct["poh_tier"] = 2
+    _grant_active_poh_tier(
+        state,
+        account_id=account_id,
+        tier=2,
+        verified_at_height=current_height,
+        issuer_authority_id="poh_bootstrap_allowlist",
+    )
     acct["poh_bootstrap_granted"] = True
     acct["poh_bootstrap_mode"] = "allowlist"
     acct["poh_bootstrap_height"] = current_height
@@ -2946,7 +3011,14 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
 
     token_id = ""
     if outcome == "pass":
-        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 2)
+        _grant_active_poh_tier(
+            state,
+            account_id=target_account,
+            tier=2,
+            verified_at_height=int(state.get("height") or 0),
+            proof_commitment=_as_str(case.get("video_commitment") or "").strip() or None,
+            issuer_authority_id="poh_tier2_finalize",
+        )
         token_id = _mint_poh_nft(
             state, owner=target_account, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
@@ -3587,7 +3659,14 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
 
     token_id = ""
     if outcome == "pass":
-        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 2)
+        _grant_active_poh_tier(
+            state,
+            account_id=target_account,
+            tier=2,
+            verified_at_height=int(state.get("height") or 0),
+            proof_commitment=_as_str(case.get("session_commitment") or "").strip() or None,
+            issuer_authority_id="poh_live_finalize",
+        )
         token_id = _mint_poh_nft(
             state, owner=target_account, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
