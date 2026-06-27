@@ -65,6 +65,36 @@ def test_prod_operator_ingress_rejects_unsigned_user_tx(tmp_path: Path, monkeypa
     assert submitted["error"] == "missing_sig"
 
 
+@pytest.mark.parametrize("context", ["http", "operator"])
+def test_explicit_public_ingress_rejects_malformed_modeled_payload_before_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, context: str
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_SIGVERIFY", "0")
+    ex = _executor(tmp_path, chain_id="explicit-ingress-schema")
+    state = ex.read_state()
+    state.setdefault("accounts", {})["@alice"] = {
+        "nonce": 0,
+        "poh_tier": 2,
+        "reputation_milli": 1_000_000,
+        "pubkey": "test-pubkey",
+    }
+
+    malformed_comment = {
+        "tx_type": "CONTENT_COMMENT_CREATE",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"post_id": "post-1"},
+        "chain_id": ex.chain_id,
+    }
+
+    verdict = admit_tx(malformed_comment, state, ex.tx_index, context=context)
+
+    assert verdict.ok is False
+    assert verdict.code == "invalid_payload"
+    assert verdict.reason == "schema_validation_failed"
+
+
 
 def test_prod_operator_ingress_rejects_bad_signature_and_accepts_valid_signed_registration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

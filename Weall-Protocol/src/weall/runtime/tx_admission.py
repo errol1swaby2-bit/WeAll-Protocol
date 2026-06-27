@@ -819,8 +819,12 @@ def admit_tx(
     if bad is not None:
         return bad
 
-    # Strict schema validation for modeled tx types (public-ish ingress + block validation).
-    if ctx in {"mempool", "gossip", "peer", "block"}:
+    # Strict schema validation for modeled tx types at every explicit external
+    # ingress boundary plus committed block validation.  Public API routes also
+    # validate before calling the executor, but executor-level validation keeps
+    # direct operator/http ingestion fail-closed if a caller bypasses the route
+    # layer.
+    if ctx in {"mempool", "gossip", "peer", "http", "operator", "block"}:
         try:
             if model_for_tx_type(env.tx_type.upper()) is not None:
                 raw = tx if isinstance(tx, dict) else env.to_json()
