@@ -368,6 +368,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     await loadRoomSidecars(sessionId);
   }
 
+  async function tryUpdatePresence(status: "joined" | "left" | "reconnect" | "heartbeat"): Promise<boolean> {
+    try {
+      await updatePresence(status);
+      return true;
+    } catch (e) {
+      const msg = prettyError(e);
+      setP2pError(`Room presence update failed: ${msg}`);
+      return false;
+    }
+  }
+
   function signalDedupeKey(signal: WeAllWebRTCSignal): string {
     const id = String(signal.signal_id || "").trim();
     if (id) return id;
@@ -513,7 +524,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     for (const peer of missingRemoteAccounts) {
       const remote = normalizeAccount(peer);
       if (!remote || !shouldCreateOffer(account, remote)) continue;
-      await createOfferForPeer(remote, { reason });
+      try {
+        await createOfferForPeer(remote, { reason });
+      } catch (e) {
+        const msg = prettyError(e);
+        rememberPeerState(remote, `offer deferred: ${msg}`);
+        setP2pError(`Live media offer to ${remote} is waiting for local media: ${msg}`);
+      }
     }
   }
 
@@ -526,7 +543,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     if (processedSignalsRef.current.size > 500) {
       processedSignalsRef.current = new Set(Array.from(processedSignalsRef.current).slice(-250));
     }
-    await ensureLocalP2PMedia();
     let pc = getOrCreatePeerConnection(from);
     try {
       if (signal.type === "hello") {
@@ -591,8 +607,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   async function ensureP2PRoomStarted(): Promise<void> {
     if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the live media room.");
     setP2pError("");
-    await ensureLocalP2PMedia();
     await updatePresence("joined");
+    setP2pStatus("room presence recorded; starting local media");
+    try {
+      await ensureLocalP2PMedia();
+    } catch (e) {
+      setP2pStatus("room presence recorded; local media unavailable");
+      throw e;
+    }
     setP2pRunning(true);
     setP2pStatus("live media signaling active");
     await sendWebRTCSignal({ type: "hello" });
@@ -699,7 +721,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       window.open(externalRoomUrl, "_blank", "noopener,noreferrer");
     }
     await runAction("Joining live review room…", async () => {
-      await updatePresence("joined");
       let reviewerState = myJuror;
       if (reviewerState && reviewerState.accepted !== true) {
         const acceptSkeleton = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
@@ -720,22 +741,25 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             reviewerState = await waitForLiveJurorState("Live room attendance", (juror) => juror?.accepted === true && juror?.attended === true);
           },
         );
-      } else if (!reviewerState) {
-        setNotice("Live room presence updated. Verification authority still requires signed juror attendance and verdicts.");
       }
+
+      const reviewerAttendanceReady = !!reviewerState && reviewerState.accepted === true && reviewerState.attended === true;
       if (!roomUrl) {
         try {
           await ensureP2PRoomStarted();
-          setNotice(reviewerState ? "Live review joined, attendance recorded, and live media started. Voting unlocks after the refreshed state shows attendance." : "Live room joined and live media started. Keep this page open while the other participant joins.");
+          setNotice(reviewerState ? "Live review joined, attendance recorded, and live media started. Voting unlocks from the refreshed on-chain attendance state." : "Live room presence recorded and live media started. Keep this page open while the other participant joins.");
         } catch (mediaError) {
           setP2pError(prettyError(mediaError));
-          setNotice(reviewerState ? "Live review acceptance and attendance were recorded. Use Retry live media when camera/microphone access is ready." : "Live room presence was recorded. Use Retry live media when camera/microphone access is ready.");
+          setNotice(reviewerAttendanceReady ? "Live review acceptance and attendance are recorded on-chain. Live media did not start; use Retry live media when camera/microphone access is ready." : "Live room check-in did not fully start. Verification authority still requires signed juror attendance and verdicts.");
         }
       }
       if (shouldEmbed) {
         setShowEmbeddedRoom(true);
       } else if (roomUrl) {
-        setNotice(reviewerState ? "Live review joined in a separate tab. Attendance is recorded on-chain; keep this page open for reviewer votes." : "Live room opened in a separate tab. Keep this page open for chain-recorded attendance and reviewer votes.");
+        const presenceUpdated = await tryUpdatePresence("joined");
+        setNotice(reviewerState
+          ? `Live review opened in a separate tab and attendance is recorded on-chain${presenceUpdated ? "; room presence is updated." : "; room presence could not be updated yet."}`
+          : `Live room opened in a separate tab${presenceUpdated ? "; room presence is updated." : "; room presence could not be updated yet."} Keep this page open for chain-recorded attendance and reviewer votes.`);
       }
     });
   }
