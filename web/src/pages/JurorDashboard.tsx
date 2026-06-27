@@ -367,7 +367,7 @@ export default function JurorDashboard(): JSX.Element {
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept live verification call", "Live verification call accepted. Opening the WebRTC room…");
+    await submitSkeletonTx(skel, "Join live verification review", "Live verification review joined. Opening the WebRTC room…");
     joinLiveRoom(caseId);
   }
 
@@ -752,7 +752,7 @@ export default function JurorDashboard(): JSX.Element {
                           Load details
                         </button>
                         <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Accept review and join call"}
+                          {signerSubmission.busy ? "Waiting…" : "Join live review"}
                         </button>
                         <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                           {signerSubmission.busy ? "Waiting…" : "Decline"}

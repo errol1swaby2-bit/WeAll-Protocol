@@ -1,8 +1,8 @@
 {
   "profile": "local-controlled-devnet-genesis",
-  "generated_at_ms": 1781398945676,
+  "generated_at_ms": 1782591336094,
   "account": "@devnet-genesis",
-  "pubkeyB64": "6ygKXnLkOw08c10J9Dko1c4ombCRKV0e8E7E7/DKyLM=",
+  "pubkeyB64": "YIDW6rfprFcNCOjnyrViPMQh+Dc7VuOBvP1EfIyqkYQ=",
   "apiBase": "/",
   "createAccount": false,
   "waitForAccountMs": 45000,
