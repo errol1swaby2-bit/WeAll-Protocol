@@ -1,3 +1,4 @@
+import copy
 import os
 from dataclasses import dataclass
 from typing import Any
@@ -59,6 +60,28 @@ def _as_str(v: Any) -> str:
 
 def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
+
+
+def _ledger_with_account_nonce(ledger: LedgerView, signer: str, nonce: int) -> LedgerView:
+    """Return a ledger view with only ``signer``'s nonce cursor adjusted.
+
+    Block admission first validates signer nonce sequencing across the candidate
+    block.  Per-tx admission is then run against the state that would exist just
+    before that tx, so same-signer nonce N and N+1 can both be admitted in one
+    block without weakening replay safety.
+    """
+
+    st = copy.deepcopy(ledger.to_ledger())
+    accounts = st.setdefault("accounts", {})
+    if not isinstance(accounts, dict):
+        accounts = {}
+        st["accounts"] = accounts
+    acct = accounts.get(signer)
+    if not isinstance(acct, dict):
+        acct = {}
+        accounts[signer] = acct
+    acct["nonce"] = max(0, int(nonce or 0))
+    return LedgerView.from_ledger(st)
 
 
 def _as_list(v: Any) -> list[Any]:
@@ -332,16 +355,6 @@ def admit_block_txs(
             )
             continue
 
-        verdict: TxVerdict = admit_tx(
-            ledger=ledger,
-            tx=env.to_json(),
-            canon=tx_index,
-            context="block" if bool(verify_signatures) else "local",
-        )
-        if not verdict.ok:
-            rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
-            continue
-
         tx_id = ""
         if chain_id:
             try:
@@ -366,6 +379,15 @@ def admit_block_txs(
                     reason="system_tx_nonce_must_be_zero",
                     details={"index": i, "signer": env.signer, "have": int(env.nonce)},
                 )
+                continue
+            verdict: TxVerdict = admit_tx(
+                ledger=ledger,
+                tx=env.to_json(),
+                canon=tx_index,
+                context="block" if bool(verify_signatures) else "local",
+            )
+            if not verdict.ok:
+                rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
             continue
 
         signer = env.signer
@@ -393,6 +415,17 @@ def admit_block_txs(
                     "chain_nonce": int(chain_nonce),
                 },
             )
+            continue
+
+        admission_ledger = _ledger_with_account_nonce(ledger, signer, int(env.nonce) - 1)
+        verdict: TxVerdict = admit_tx(
+            ledger=admission_ledger,
+            tx=env.to_json(),
+            canon=tx_index,
+            context="block" if bool(verify_signatures) else "local",
+        )
+        if not verdict.ok:
+            rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
             continue
 
         seen_signer_nonce.add(key)

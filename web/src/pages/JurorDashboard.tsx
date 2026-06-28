@@ -107,6 +107,64 @@ function statusTone(statusRaw: any): "done" | "active" | "todo" {
   return "todo";
 }
 
+
+function includesAccount(value: any, account: string): boolean {
+  const acct = normalizeAccount(account);
+  if (!acct || !Array.isArray(value)) return false;
+  return value.some((item) => normalizeAccount(item) === acct);
+}
+
+function caseJurorRecord(caseRecord: any, account: string): Record<string, any> {
+  const acct = normalizeAccount(account);
+  const jurors = asRecord(caseRecord?.jurors);
+  const direct = jurors[acct];
+  if (direct && typeof direct === "object" && !Array.isArray(direct)) return direct as Record<string, any>;
+  for (const [key, value] of Object.entries(jurors)) {
+    if (normalizeAccount(key) === acct && value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, any>;
+    }
+  }
+  return {};
+}
+
+function asyncCaseAcceptedBy(caseRecord: any, account: string): boolean {
+  const juror = caseJurorRecord(caseRecord, account);
+  return includesAccount(caseRecord?.accepted_jurors, account) || juror.accepted === true || String(juror.status || "").toLowerCase() === "accepted";
+}
+
+function asyncCaseDeclinedBy(caseRecord: any, account: string): boolean {
+  const juror = caseJurorRecord(caseRecord, account);
+  return includesAccount(caseRecord?.declined_jurors, account) || juror.accepted === false || String(juror.status || "").toLowerCase() === "declined";
+}
+
+function asyncCaseReviewedBy(caseRecord: any, account: string): boolean {
+  const acct = normalizeAccount(account);
+  const reviews = asRecord(caseRecord?.reviews);
+  if (!acct) return false;
+  if (reviews[acct]) return true;
+  return Object.keys(reviews).some((key) => normalizeAccount(key) === acct);
+}
+
+function liveCaseAcceptedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).accepted === true;
+}
+
+function liveCaseDeclinedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).accepted === false;
+}
+
+function liveCaseAttendedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).attended === true;
+}
+
+function liveCaseVerdictBy(caseRecord: any, account: string): string {
+  return String(caseJurorRecord(caseRecord, account).verdict || "").trim().toLowerCase();
+}
+
+function liveCaseInteractingReviewer(caseRecord: any, account: string): boolean {
+  return String(caseJurorRecord(caseRecord, account).role || "").trim().toLowerCase() === "interacting";
+}
+
 function reportStageNeedsReviewerAction(stageRaw: any): boolean {
   const stage = String(stageRaw || "open").trim().toLowerCase() || "open";
   return ["open", "assigned", "review", "juror_review", "voting", "in_review"].includes(stage);
@@ -696,6 +754,18 @@ export default function JurorDashboard(): JSX.Element {
               const sessionRec = tab === "live" ? sessionForCase(caseId) : null;
               const sessionId = String(sessionRec?.session_id || "");
               const sessionParticipants = sessionId ? participants[sessionId] || [] : [];
+              const asyncAccepted = asyncCaseAcceptedBy(evidence, account);
+              const asyncDeclined = asyncCaseDeclinedBy(evidence, account);
+              const asyncReviewed = asyncCaseReviewedBy(evidence, account);
+              const showAsyncAcceptControls = !asyncAccepted && !asyncDeclined && !asyncReviewed;
+              const showAsyncDecisionControls = asyncAccepted && !asyncDeclined && !asyncReviewed;
+              const liveAccepted = liveCaseAcceptedBy(evidence, account);
+              const liveDeclined = liveCaseDeclinedBy(evidence, account);
+              const liveAttended = liveCaseAttendedBy(evidence, account);
+              const liveVerdict = liveCaseVerdictBy(evidence, account);
+              const showLiveAcceptControls = !liveAccepted && !liveDeclined && !liveVerdict;
+              const showLiveCheckInControl = liveAccepted && !liveAttended && !liveVerdict;
+              const showLiveDecisionControls = liveAccepted && liveAttended && liveCaseInteractingReviewer(evidence, account) && !liveVerdict;
 
               return (
                 <article key={caseId || Math.random()} className="card">
@@ -729,46 +799,71 @@ export default function JurorDashboard(): JSX.Element {
                     </div>
 
                     {tab === "async" ? (
-                      <div className="buttonRow buttonRowWide">
-                        <button className="btn" onClick={() => void loadCase("async", caseId)} disabled={busy || !caseId}>
-                          Load details
-                        </button>
-                        <button className="btn" onClick={() => void asyncAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Accept"}
-                        </button>
-                        <button className="btn" onClick={() => void asyncDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Decline"}
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void asyncReview(caseId, "approve")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Approve"}
-                        </button>
-                        <button className="btn" onClick={() => void asyncReview(caseId, "reject")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Reject"}
-                        </button>
+                      <div className="formStack">
+                        <div className="buttonRow buttonRowWide">
+                          <button className="btn" onClick={() => void loadCase("async", caseId)} disabled={busy || !caseId}>
+                            Load details
+                          </button>
+                          {showAsyncAcceptControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void asyncAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Accept review"}
+                              </button>
+                              <button className="btn" onClick={() => void asyncDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Decline"}
+                              </button>
+                            </>
+                          ) : null}
+                          {showAsyncDecisionControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void asyncReview(caseId, "approve")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Approve"}
+                              </button>
+                              <button className="btn" onClick={() => void asyncReview(caseId, "reject")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Reject"}
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                        {!showAsyncAcceptControls && !showAsyncDecisionControls ? (
+                          <div className="miniMuted">{asyncDeclined ? "You declined this review." : asyncReviewed ? "Your review decision is already recorded." : "Decision controls appear after you accept the review assignment."}</div>
+                        ) : null}
                       </div>
                     ) : (
-                      <div className="buttonRow buttonRowWide">
-                        <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
-                          Load details
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Join live review"}
-                        </button>
-                        <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Decline"}
-                        </button>
-                        <button className="btn" onClick={() => void liveAttendance(caseId, true)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Mark attended"}
-                        </button>
-                        <button className="btn" onClick={() => void liveAttendance(caseId, false)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Mark absent"}
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Approve"}
-                        </button>
-                        <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Reject"}
-                        </button>
+                      <div className="formStack">
+                        <div className="buttonRow buttonRowWide">
+                          <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
+                            Load details
+                          </button>
+                          {showLiveAcceptControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Join live review"}
+                              </button>
+                              <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Decline"}
+                              </button>
+                            </>
+                          ) : null}
+                          {showLiveCheckInControl ? (
+                            <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                              Open WebRTC room to check in
+                            </button>
+                          ) : null}
+                          {showLiveDecisionControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Approve"}
+                              </button>
+                              <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Reject"}
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                        {!showLiveAcceptControls && !showLiveCheckInControl && !showLiveDecisionControls ? (
+                          <div className="miniMuted">{liveDeclined ? "You declined this live review." : liveVerdict ? "Your live-review verdict is already recorded." : "Verdict controls appear after you join the live review and attendance is recorded on-chain."}</div>
+                        ) : null}
                       </div>
                     )}
 

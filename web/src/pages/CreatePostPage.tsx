@@ -361,7 +361,7 @@ export default function CreatePostPage(): JSX.Element {
       return;
     }
 
-    const tierNow = Number(acctState?.state?.poh_tier ?? 0);
+    const tierNow = Number(snapshot.tier ?? 0);
     if (tierNow < POSTING_MIN_TIER) {
       setErr({
         msg: "Complete live verification before creating public posts.",

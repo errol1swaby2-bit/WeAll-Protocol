@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.storage_revalidation_scheduler import (
     storage_max_failed_challenges,
     storage_max_missed_challenges,
@@ -183,10 +184,11 @@ def responsibility_record(state: Mapping[str, Any], account_id: str, name: str) 
 def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> tuple[list[str], Json]:
     account = account_record(state, account_id)
     reasons: list[str] = []
+    effective_tier = effective_poh_tier(dict(state), account_id)
     details: Json = {
         "account_id": account_id,
         "poh_tier_required": 2,
-        "poh_tier_actual": _as_int(account.get("poh_tier"), 0),
+        "poh_tier_actual": effective_tier,
         "node_pubkey": node_pubkey,
         "duplicate_node_pubkeys": list(duplicate_node_keys_for_account(state, account_id)),
     }
@@ -197,7 +199,7 @@ def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pub
         _append_unique(reasons, "account_banned")
     if bool(account.get("locked", False)):
         _append_unique(reasons, "account_locked")
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_tier < 2:
         _append_unique(reasons, "poh_tier_insufficient")
     if not has_registered_node_key(state, account_id, node_pubkey=node_pubkey):
         _append_unique(reasons, "node_key_missing")

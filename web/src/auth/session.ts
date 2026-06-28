@@ -680,6 +680,24 @@ export async function syncNonceReservation(account: string, base?: string): Prom
   if (!acct) throw new Error("invalid_account");
 
   try {
+    const a: any = await weall.accountNonce(acct, base);
+    const nextNonce = Number(a?.next_nonce ?? 0);
+    const cursor = Number(a?.nonce_cursor ?? 0);
+    const chainNonce = Number(a?.chain_nonce ?? a?.nonce ?? 0);
+    const knownNonce = Number.isFinite(cursor) && cursor >= 0
+      ? Math.floor(cursor)
+      : Number.isFinite(nextNonce) && nextNonce > 0
+        ? Math.max(0, Math.floor(nextNonce) - 1)
+        : Number.isFinite(chainNonce) && chainNonce >= 0
+          ? Math.floor(chainNonce)
+          : 0;
+    setReservedNonce(acct, knownNonce);
+    return knownNonce;
+  } catch {
+    // fall back to the account read path for older nodes.
+  }
+
+  try {
     const a: any = await weall.account(acct, base);
     const onChain = Number(a?.state?.nonce ?? 0);
     if (Number.isFinite(onChain) && onChain >= 0) {
@@ -804,11 +822,21 @@ async function claimNextNonce(account: string, base?: string): Promise<NonceClai
 
   let chainNext = 1;
   try {
-    const a: any = await weall.account(acct, base);
-    const onChain = Number(a?.state?.nonce ?? 0);
-    if (Number.isFinite(onChain)) chainNext = Math.max(1, Math.floor(onChain) + 1);
+    const a: any = await weall.accountNonce(acct, base);
+    const next = Number(a?.next_nonce ?? 0);
+    const cursor = Number(a?.nonce_cursor ?? 0);
+    const chainNonce = Number(a?.chain_nonce ?? a?.nonce ?? 0);
+    if (Number.isFinite(next) && next > 0) chainNext = Math.max(1, Math.floor(next));
+    else if (Number.isFinite(cursor) && cursor >= 0) chainNext = Math.max(1, Math.floor(cursor) + 1);
+    else if (Number.isFinite(chainNonce)) chainNext = Math.max(1, Math.floor(chainNonce) + 1);
   } catch {
-    chainNext = 1;
+    try {
+      const a: any = await weall.account(acct, base);
+      const onChain = Number(a?.state?.nonce ?? 0);
+      if (Number.isFinite(onChain)) chainNext = Math.max(1, Math.floor(onChain) + 1);
+    } catch {
+      chainNext = 1;
+    }
   }
 
   const previousReserved = getReservedNonce(acct);

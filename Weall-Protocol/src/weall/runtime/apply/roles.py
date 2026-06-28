@@ -6,6 +6,7 @@ from typing import Any
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.validator_readiness_runner import (
     ValidatorReadinessError,
     validate_validator_readiness_payload,
@@ -261,7 +262,7 @@ def _require_role_activation_eligible(
     account = _account_for_activation(ledger, acct)
     if bool(account.get("banned", False)) or bool(account.get("locked", False)):
         raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct, "role": role})
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_poh_tier(ledger, acct) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct, "role": role})
     if _role_eligibility_revoked(ledger, acct, role):
         raise RolesApplyError("forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role})
@@ -418,7 +419,7 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
     if bool(account.get("banned", False)) or bool(account.get("locked", False)):
         raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_poh_tier(ledger, acct) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
 
     if not is_node_operator_active(ledger, acct):
@@ -478,7 +479,7 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
     if bool(account.get("banned", False)) or bool(account.get("locked", False)):
         raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_poh_tier(ledger, acct) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
 
     if not is_node_operator_active(ledger, acct):
@@ -532,7 +533,7 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
     if bool(account.get("banned", False)) or bool(account.get("locked", False)):
         raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct})
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_poh_tier(ledger, acct) < 2:
         raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct})
 
     if not is_node_operator_active(ledger, acct):

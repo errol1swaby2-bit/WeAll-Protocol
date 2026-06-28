@@ -816,15 +816,10 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          // Batch 408: node admission is still sequential-nonce based.  Do not
-          // report success after request-open alone, and do not submit nonce+1
-          // until this observer has reconciled the previous nonce into account
-          // state.  Otherwise the case can be opened while evidence declare/bind
-          // never reaches genesis, leaving the reviewer queue empty.
-          const openNonceVisible = await waitForAccountNonceAtLeast(acct, Number(open?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
-          if (!openNonceVisible) {
-            throw new Error("Async verification request was opened, but the observer has not reconciled the request-open nonce yet. Evidence was not submitted; keep the observer reconcile worker running and refresh status.");
-          }
+          // Submit the remaining same-signer verification txs immediately with
+          // contiguous nonces. Mempool admission now accepts nonce N+1 when nonce
+          // N is already pending for the same signer; block admission still
+          // enforces strict replay-safe ordering.
 
           const declare = await submitSignedTxInSequence({
             sequence,
@@ -848,11 +843,6 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: open?.result?.tx_id || null,
             base,
           });
-
-          const declareNonceVisible = await waitForAccountNonceAtLeast(acct, Number(declare?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
-          if (!declareNonceVisible) {
-            throw new Error("Async verification evidence was declared, but the observer has not reconciled the evidence-declare nonce yet. Evidence binding was not submitted; keep the observer reconcile worker running and refresh status.");
-          }
 
           // Evidence binding is the point where the async request becomes a
           // complete reviewable case.

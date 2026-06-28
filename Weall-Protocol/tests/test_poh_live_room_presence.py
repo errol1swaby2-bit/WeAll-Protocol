@@ -128,3 +128,66 @@ def test_live_room_presence_rejects_header_account_mismatch() -> None:
     )
     assert r.status_code == 403
     assert r.json()["error"]["message"] == "presence_account_header_mismatch"
+
+
+def test_live_attendance_skeleton_binds_case_session_commitment_without_server_error() -> None:
+    c = _client()
+
+    r = c.post(
+        "/v1/poh/live/tx/attendance",
+        json={"case_id": "case1", "juror_id": "@j1", "attended": True},
+    )
+
+    assert r.status_code == 200, r.text
+    tx = r.json()["tx"]
+    assert tx["tx_type"] == "POH_LIVE_ATTENDANCE_MARK"
+    assert tx["signer_hint"] == "@j1"
+    assert tx["payload"]["case_id"] == "case1"
+    assert tx["payload"]["juror_id"] == "@j1"
+    assert tx["payload"]["attended"] is True
+    assert tx["payload"]["session_commitment"] == "sc1"
+
+
+def test_live_attendance_skeleton_uses_session_record_fallback_for_migrated_state() -> None:
+    state = _state()
+    del state["poh"]["live_cases"]["case1"]["session_commitment"]
+    c = _client(state)
+
+    r = c.post(
+        "/v1/poh/live/tx/attendance",
+        json={"case_id": "case1", "juror_id": "@j1", "attended": True},
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["tx"]["payload"]["session_commitment"] == "sc1"
+
+
+def test_live_attendance_skeleton_fails_closed_when_session_commitment_missing() -> None:
+    state = _state()
+    del state["poh"]["live_cases"]["case1"]["session_commitment"]
+    del state["poh"]["live_sessions"]["session:case1"]["session_commitment"]
+    c = _client(state)
+
+    r = c.post(
+        "/v1/poh/live/tx/attendance",
+        json={"case_id": "case1", "juror_id": "@j1", "attended": True},
+    )
+
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "session_not_ready"
+
+
+def test_live_verdict_skeleton_binds_case_session_commitment_without_server_error() -> None:
+    c = _client()
+
+    r = c.post(
+        "/v1/poh/live/tx/verdict",
+        json={"case_id": "case1", "verdict": "pass"},
+    )
+
+    assert r.status_code == 200, r.text
+    tx = r.json()["tx"]
+    assert tx["tx_type"] == "POH_LIVE_VERDICT_SUBMIT"
+    assert tx["payload"]["case_id"] == "case1"
+    assert tx["payload"]["verdict"] == "pass"
+    assert tx["payload"]["session_commitment"] == "sc1"

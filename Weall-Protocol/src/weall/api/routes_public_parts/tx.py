@@ -553,6 +553,67 @@ def _tx_queue_counts(rows: list[Json]) -> Json:
     return counts
 
 
+def _tx_queue_pending_max_nonce_for_account(account: str) -> int:
+    signer = str(account or "").strip()
+    if not signer:
+        return 0
+    max_nonce = 0
+    for rec in _read_tx_queue_best_effort():
+        if not isinstance(rec, dict):
+            continue
+        status = str(rec.get("upstream_status") or rec.get("status") or "pending").strip() or "pending"
+        if status == "confirmed" and bool(rec.get("local_state_synced", False)):
+            continue
+        env = rec.get("envelope") if isinstance(rec.get("envelope"), dict) else {}
+        if str(env.get("signer") or "").strip() != signer:
+            continue
+        try:
+            nonce = int(env.get("nonce") or 0)
+        except Exception:
+            continue
+        if nonce > max_nonce:
+            max_nonce = nonce
+    return max_nonce
+
+
+def _mempool_pending_max_nonce_for_account(request: Request, account: str) -> int:
+    signer = str(account or "").strip()
+    if not signer:
+        return 0
+    try:
+        mp = _mempool(request)
+        fn = getattr(mp, "pending_max_nonce", None)
+        if callable(fn):
+            return max(0, int(fn(signer)))
+    except Exception:
+        return 0
+    return 0
+
+
+def _account_nonce_summary(request: Request, account: str) -> Json:
+    signer = str(account or "").strip()
+    st = _snapshot(request)
+    ledger = LedgerView.from_ledger(st)
+    acct = ledger.accounts.get(signer) if isinstance(ledger.accounts, dict) else None
+    try:
+        chain_nonce = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+    except Exception:
+        chain_nonce = 0
+    mempool_pending_max = _mempool_pending_max_nonce_for_account(request, signer)
+    observer_queue_pending_max = _tx_queue_pending_max_nonce_for_account(signer)
+    cursor = max(int(chain_nonce), int(mempool_pending_max), int(observer_queue_pending_max))
+    return {
+        "ok": True,
+        "account": signer,
+        "nonce": int(chain_nonce),
+        "chain_nonce": int(chain_nonce),
+        "mempool_pending_max_nonce": int(mempool_pending_max),
+        "observer_queue_pending_max_nonce": int(observer_queue_pending_max),
+        "nonce_cursor": int(cursor),
+        "next_nonce": int(cursor) + 1,
+    }
+
+
 def _compact_tx_queue_result(value: Any, *, _depth: int = 0) -> Json:
     """Return a bounded, non-recursive observer tx queue diagnostic result.
 
@@ -1694,6 +1755,19 @@ async def tx_submit(request: Request) -> Json:
         "gossip_propagation": {"attempted": gossip_attempted, "accepted": gossip_ok},
         "upstream_propagation": upstream,
     }
+
+
+@router.get("/accounts/{account}/nonce")
+def account_nonce_status(account: str, request: Request) -> Json:
+    """Return confirmed and pending-aware nonce cursors for client signing.
+
+    ``next_nonce`` includes confirmed chain state, live local mempool entries, and
+    observer-edge tx-queue records that may already be upstream accepted but not
+    yet reconciled into local observer state. It is advisory/client UX state;
+    consensus/block admission still enforces canonical sequential nonces.
+    """
+
+    return _account_nonce_summary(request, account)
 
 
 @router.get("/observer/edge/status")

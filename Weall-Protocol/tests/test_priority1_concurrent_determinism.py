@@ -99,14 +99,15 @@ def test_nonce_conflict_resolution_is_consistent(tmp_path: Path) -> None:
 
     r21 = _submit_result(ex2, "@z", 2)
     r22 = _submit_result(ex2, "@z", 1)
+    r23 = _submit_result(ex2, "@z", 2)
 
     assert r11.get("ok") is True
-    assert r12.get("ok") is False
-    assert r12.get("error") == "bad_nonce"
+    assert r12.get("ok") is True
 
     assert r21.get("ok") is False
     assert r21.get("error") == "bad_nonce"
     assert r22.get("ok") is True
+    assert r23.get("ok") is True
 
     while ex1.read_mempool():
         assert ex1.produce_block(max_txs=10).ok is True

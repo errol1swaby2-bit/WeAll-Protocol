@@ -217,10 +217,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nodeDevices: DeviceRecord[] = activeDevices.filter((rec) =>
     isNodeDevice(String(rec.deviceId || ""), rec),
   );
-  const nodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
+  const generatedNodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
+  const registeredNodePubkey = String(nodeDevices.find((rec) => String(rec.pubkey || "").trim())?.pubkey || "").trim();
+  const nodePubkey = generatedNodePubkey || registeredNodePubkey;
+  const operatorSetupRequested = typeof window !== "undefined" && /[?&]operator=1(?:&|$)/.test(String(window.location.hash || ""));
   const matchingNodeDevice =
     nodeDevices.find((rec) => !!nodePubkey && String(rec.pubkey || "") === nodePubkey) || null;
   const hasAnyNodeDevice = nodeDevices.length > 0;
+  const usingRegisteredNodePubkey = !generatedNodePubkey && !!registeredNodePubkey;
   const nodeOperatorBucket = asRecord(rolesState.node_operators);
   const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
   const nodeOperatorRecord = asRecord(nodeOperatorById[acct]);
@@ -261,6 +265,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const helperActive = helperTruth.active === true;
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
+  const shouldOpenOperatorPanel = isSelf && (operatorSetupRequested || nodeOperatorActive || nodeOperatorEnrolled || hasAnyNodeDevice);
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
   const configDeviceId =
     String(nodeDeviceId || `node:${acct}`).trim() || `node:${acct}`;
@@ -269,7 +274,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     `WEALL_ACCOUNT_ID=${acct}`,
     `WEALL_NODE_ID=${configDeviceId}`,
     `WEALL_PEER_ID=${configDeviceId}`,
-    `WEALL_NODE_PUBKEY=${nodePubkey || "<GENERATE_NODE_KEY_FIRST>"}`,
+    `WEALL_NODE_PUBKEY=${nodePubkey || "<GENERATE_OR_REGISTER_NODE_KEY_FIRST>"}`,
     `WEALL_NODE_PRIVKEY_FILE=/secure/path/${nodeKeyFile ? "weall-node.key" : "weall-node-key.json"}`,
     `WEALL_NET_REQUIRE_PEER_IDENTITY=1`,
     `# Optional but recommended`,
@@ -439,7 +444,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (signerBusy) throw new Error("signer_submission_busy");
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_account_signer");
-      if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
+      if (kind === "register" && !generatedNodePubkey) throw new Error("generate_node_key_first");
+      if ((kind === "validator" || kind === "storage" || kind === "helper") && !nodePubkey) throw new Error("registered_node_key_required");
       if ((kind === "validator" || kind === "storage" || kind === "helper") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
 
       const r = await tx.runTx({
@@ -473,7 +479,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 device_id: configDeviceId,
                 device_type: "node",
                 label: String(nodeLabel || "Primary node").trim() || "Primary node",
-                pubkey: nodePubkey,
+                pubkey: generatedNodePubkey,
               },
               base,
             });
@@ -774,7 +780,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <button className="btn" onClick={() => nav("/node")}>Open node controls</button>
               </div>
               {!nodeOperatorActive || !nodePubkey ? (
-                <div className="feedMediaMeta">Finish node setup in the advanced network helper section below before storage validation can be submitted.</div>
+                <div className="feedMediaMeta">Finish node setup in the advanced network helper section below before storage validation can be submitted. If this account already has a registered node device, the page will use that public key for signed opt-in transactions.</div>
               ) : null}
             </article>
           </div>
@@ -943,8 +949,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       {isSelf ? (
-        <details className="detailsPanel accountAdvancedOperatorPanel">
-          <summary>Advanced: Network helper setup</summary>
+        <details className="detailsPanel accountAdvancedOperatorPanel" open={shouldOpenOperatorPanel}>
+          <summary>Network service opt-ins: validator, storage, and helper setup</summary>
           <section className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -1083,7 +1089,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       Generate and download node key
                     </button>
                   </div>
-                  {nodePubkey ? <div className="feedMediaMeta mono">Node public key: {nodePubkey}</div> : null}
+                  {generatedNodePubkey ? <div className="feedMediaMeta mono">Generated node public key: {generatedNodePubkey}</div> : null}
+                  {usingRegisteredNodePubkey ? <div className="feedMediaMeta mono">Using registered node public key: {registeredNodePubkey}</div> : null}
                 </div>
                 <div className="buttonRow buttonRowWide">
                   <button

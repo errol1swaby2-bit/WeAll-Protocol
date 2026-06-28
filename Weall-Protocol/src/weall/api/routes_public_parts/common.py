@@ -10,6 +10,7 @@ from fastapi import Request
 from weall.api.errors import ApiError
 from weall.ledger.state import LedgerView
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
+from weall.runtime.poh.state import effective_poh_tier
 
 Json = dict[str, Any]
 
@@ -317,7 +318,8 @@ def _require_registered_signer_for_user_tx(
         "POST_UPDATE",
     }
     if tx_type in post_txs:
-        tier = int(acct.get("poh_tier", 0) or 0)
+        state = ledger.to_ledger()
+        tier = effective_poh_tier(state if isinstance(state, dict) else {}, signer)
         if tier < 2:
             raise ApiError.forbidden(
                 "insufficient_poh_tier",

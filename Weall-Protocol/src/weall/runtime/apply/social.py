@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.poh.state import effective_poh_tier
 
 Json = dict[str, Any]
 
@@ -97,10 +98,7 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
         raise SocialApplyError("forbidden", "account_banned", {"account": signer, "action": action})
     if bool(acct.get("locked", False)):
         raise SocialApplyError("forbidden", "account_locked", {"account": signer, "action": action})
-    try:
-        tier = int(acct.get("poh_tier", 0) or 0)
-    except Exception:
-        tier = 0
+    tier = effective_poh_tier(state, signer)
     if tier < int(min_tier):
         raise SocialApplyError(
             "forbidden",

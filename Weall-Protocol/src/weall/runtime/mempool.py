@@ -789,6 +789,81 @@ class PersistentMempool:
         except Exception:
             return 0
 
+    def pending_max_nonce(self, signer: str) -> int:
+        """Return the highest live pending nonce for ``signer``.
+
+        This is local mempool metadata, not consensus state. It is used by
+        admission/frontends to reserve sequential future nonces without
+        weakening block replay, which still enforces strict nonce order.
+        """
+
+        s = str(signer or "").strip()
+        if not s:
+            return 0
+        try:
+            with self.db.connection() as con:
+                row = con.execute(
+                    """
+                    SELECT MAX(nonce) AS max_nonce
+                    FROM mempool
+                    WHERE signer=?
+                      AND nonce IS NOT NULL
+                      AND expires_ms > ?;
+                    """,
+                    (s, int(_now_ms())),
+                ).fetchone()
+                if row is None or row["max_nonce"] is None:
+                    return 0
+                return max(0, int(row["max_nonce"]))
+        except Exception:
+            return 0
+
+    def contiguous_pending_nonce(self, signer: str, *, after_nonce: int) -> int:
+        """Return the highest contiguous pending nonce after ``after_nonce``.
+
+        If the chain account nonce is 5 and live mempool rows exist for nonces
+        6 and 7, this returns 7. If rows exist for 6 and 8, this returns 6.
+        The gap stays fail-closed and block admission remains authoritative.
+        """
+
+        s = str(signer or "").strip()
+        if not s:
+            return max(0, int(after_nonce or 0))
+        cursor = max(0, int(after_nonce or 0))
+        try:
+            with self.db.connection() as con:
+                rows = con.execute(
+                    """
+                    SELECT nonce
+                    FROM mempool
+                    WHERE signer=?
+                      AND nonce IS NOT NULL
+                      AND nonce > ?
+                      AND expires_ms > ?
+                    ORDER BY nonce ASC;
+                    """,
+                    (s, int(cursor), int(_now_ms())),
+                ).fetchall()
+        except Exception:
+            return cursor
+
+        seen: set[int] = set()
+        for row in rows or []:
+            try:
+                n = int(row["nonce"])
+            except Exception:
+                continue
+            if n in seen:
+                continue
+            seen.add(n)
+            if n == cursor + 1:
+                cursor = n
+                continue
+            if n <= cursor:
+                continue
+            break
+        return cursor
+
     def selection_policy(self) -> str:
         return str(self._selection_policy or "canonical")
 

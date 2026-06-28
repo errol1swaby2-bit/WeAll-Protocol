@@ -133,6 +133,7 @@ export default function NodeDashboard(): JSX.Element {
   const session = getSession();
   const account = session ? normalizeAccount(session.account) : "";
   const hasAccountSession = !!account;
+  const accountOperatorSetupHref = account ? `/account/${encodeURIComponent(account)}?operator=1` : "/login";
   const headers = account ? getAuthHeaders(account) : undefined;
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -329,7 +330,7 @@ export default function NodeDashboard(): JSX.Element {
             </button>
             <button className="btn" onClick={() => nav("/settings")}>Change backend URL</button>
             {hasAccountSession ? (
-              <button className="btn" onClick={() => nav("/profile")}>Manage account operator setup</button>
+              <button className="btn" onClick={() => nav(accountOperatorSetupHref)}>Manage validator/storage opt-ins</button>
             ) : (
               <button className="btn" onClick={() => nav("/login")}>Set up account operator path</button>
             )}
@@ -576,7 +577,7 @@ export default function NodeDashboard(): JSX.Element {
               </div>
               <div className="buttonRow">
                 {hasAccountSession ? (
-                  <button className="btn" onClick={() => nav("/profile")}>Open account operator setup</button>
+                  <button className="btn" onClick={() => nav(accountOperatorSetupHref)}>Open validator/storage opt-ins</button>
                 ) : (
                   <button className="btn" onClick={() => nav("/login")}>Set up account before operator actions</button>
                 )}

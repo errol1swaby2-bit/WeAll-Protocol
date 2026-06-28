@@ -612,6 +612,49 @@ def _live_session_participants_from_snapshot(st: Json) -> Json:
     return sp if isinstance(sp, dict) else {}
 
 
+def _case_session_commitment(st: Json, case_id: str) -> str:
+    """Return the canonical live-session commitment for a live PoH case.
+
+    Attendance and verdict skeletons must bind signed user txs to the same
+    session commitment consensus apply-time validation checks.  The live case
+    record is the canonical source after request/init, with live_sessions as a
+    migration/recovery fallback for older or partially initialized rehearsal
+    states.
+    """
+
+    cid = str(case_id or "").strip()
+    if not cid:
+        return ""
+
+    cases = _live_cases_from_snapshot(st)
+    case = cases.get(cid)
+    if not isinstance(case, dict):
+        raise ApiError.not_found("not_found", "live_case_not_found", {"case_id": cid})
+
+    direct = str(case.get("session_commitment") or "").strip()
+    if direct:
+        return direct
+
+    sessions = _live_sessions_from_snapshot(st)
+    expected_sid = f"session:{cid}"
+    session = sessions.get(expected_sid)
+    if isinstance(session, dict):
+        fallback = str(session.get("session_commitment") or "").strip()
+        if fallback:
+            return fallback
+
+    for raw in sessions.values():
+        if not isinstance(raw, dict):
+            continue
+        if str(raw.get("case_id") or "").strip() != cid:
+            continue
+        fallback = str(raw.get("session_commitment") or "").strip()
+        if fallback:
+            return fallback
+
+    return ""
+
+
 def _query_truthy(request: Request, key: str, default: bool = False) -> bool:
     raw = str(request.query_params.get(key) or "").strip().lower()
     if not raw:

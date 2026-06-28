@@ -28,6 +28,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.poh.state import effective_poh_tier
+
 Json = dict[str, Any]
 
 
@@ -284,14 +286,48 @@ def _active_role(bucket: Json, signer: str) -> bool:
     return _record_active(_record_for_identity(by_id, signer))
 
 
-def _account_has_tier(ledger: Json, signer: str, tier: int) -> bool:
-    acct = _account_record(ledger, signer)
-    return _tier_ok(acct, tier)
-
-
 def _account_record(ledger: Json, signer: str) -> Json:
     accounts = _as_dict(ledger.get("accounts"))
     return _record_for_identity(accounts, signer)
+
+
+def _canonical_poh_key_for_identity(ledger: Json, signer: str) -> str:
+    """Return the ledger key that should drive canonical PoH reads.
+
+    Gate expressions accept both bare and ``@``-prefixed account aliases. The
+    canonical PoH helper intentionally reads exact account ids, so the gate layer
+    must first resolve the signer to the key actually present in ledger state.
+    Prefer canonical account_status records so revocations/suspensions remain
+    fail-closed even when legacy ``accounts[*].poh_tier`` is stale. Fall back to
+    the matched account record only when no canonical record exists.
+    """
+
+    variants = _identity_variants(signer)
+    poh = _as_dict(ledger.get("poh"))
+    statuses = _as_dict(poh.get("account_status"))
+    for variant in variants:
+        if isinstance(statuses.get(variant), dict):
+            return variant
+
+    accounts = _as_dict(ledger.get("accounts"))
+    for variant in variants:
+        if isinstance(accounts.get(variant), dict):
+            return variant
+
+    return str(signer or "").strip()
+
+
+def _effective_poh_tier_for_identity(ledger: Json, signer: str) -> int:
+    key = _canonical_poh_key_for_identity(ledger, signer)
+    return effective_poh_tier(ledger, key)
+
+
+def _account_has_tier(ledger: Json, signer: str, tier: int) -> bool:
+    try:
+        return _effective_poh_tier_for_identity(ledger, signer) >= int(tier)
+    except Exception:
+        acct = _account_record(ledger, signer)
+        return _tier_ok(acct, tier)
 
 
 def _account_available_for_authority(ledger: Json, signer: str, *, min_tier: int = 2) -> bool:
@@ -302,7 +338,10 @@ def _account_available_for_authority(ledger: Json, signer: str, *, min_tier: int
         return False
     if _truthy(acct.get("banned")) or _truthy(acct.get("locked")) or _truthy(acct.get("suspended")):
         return False
-    return _tier_ok(acct, int(min_tier))
+    try:
+        return _effective_poh_tier_for_identity(ledger, signer) >= int(min_tier)
+    except Exception:
+        return _tier_ok(acct, int(min_tier))
 
 
 def _payload_scope_id(payload: Json, *keys: str) -> str:
@@ -765,8 +804,7 @@ def _eval_atom(atom: str, signer: str, ledger: Json, payload: Json) -> bool:
             n = int(atom[4:-1])
         except Exception:
             return False
-        acct = _account_record(ledger, signer)
-        return _tier_ok(acct, n)
+        return _account_has_tier(ledger, signer, n)
 
     if atom == "Validator":
         return _is_validator(ledger, signer)

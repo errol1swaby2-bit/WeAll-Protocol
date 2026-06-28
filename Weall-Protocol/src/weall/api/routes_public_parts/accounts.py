@@ -18,6 +18,7 @@ from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
+from weall.runtime.poh.state import effective_poh_tier, poh_tier_label
 from weall.runtime.reviewer_responsibilities import REVIEWER_LANES, reviewer_lane_active, reviewer_lane_record
 
 router = APIRouter()
@@ -140,6 +141,10 @@ def v1_account_get(account: str, request: Request):
         a or {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
         reveal_restricted=reveal_restricted,
     )
+    if isinstance(safe_state, dict):
+        tier = effective_poh_tier(st, account)
+        safe_state["poh_tier"] = tier
+        safe_state["poh_tier_label"] = poh_tier_label(tier)
     return {"ok": True, "account": account, "state": safe_state}
 
 
@@ -163,7 +168,7 @@ def v1_account_registered(account: str, request: Request):
     if not acct:
         return {"ok": True, "account": account, "registered": False}
 
-    tier = int(acct.get("poh_tier", 0) or 0)
+    tier = effective_poh_tier(st, account)
     banned = bool(acct.get("banned", False))
 
     registered = tier >= 2 and not banned
@@ -188,7 +193,7 @@ def v1_account_reviewer_status(account: str, request: Request):
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
     acct = ledger.accounts.get(account) if isinstance(ledger.accounts, dict) else None
-    tier = int(acct.get("poh_tier", 0) or 0) if isinstance(acct, dict) else 0
+    tier = effective_poh_tier(st, account) if isinstance(acct, dict) else 0
     banned = bool(acct.get("banned", False)) if isinstance(acct, dict) else False
     locked = bool(acct.get("locked", False)) if isinstance(acct, dict) else False
     eligibility_blockers: list[str] = []

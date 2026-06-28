@@ -21,12 +21,14 @@ def _submit_async_body() -> str:
 def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx() -> None:
     body = _submit_async_body()
 
-    assert "Batch 408: node admission is still sequential-nonce based" in body
-    assert "waitForAccountNonceAtLeast(acct, Number(open?.env?.nonce || 0)" in body
-    assert "waitForAccountNonceAtLeast(acct, Number(declare?.env?.nonce || 0)" in body
+    assert "beginNonceSequence(acct, base)" in body
+    assert "Submit the remaining same-signer verification txs immediately with" in body
+    assert "submitSignedTxInSequence" in body
+    assert "parent: open?.result?.tx_id || null" in body
+    assert "parent: declare?.result?.tx_id || null" in body
     assert body.index('tx_type: "POH_ASYNC_REQUEST_OPEN"') < body.index('tx_type: "POH_ASYNC_EVIDENCE_DECLARE"') < body.index('tx_type: "POH_ASYNC_EVIDENCE_BIND"')
-    assert "Evidence was not submitted" in body
-    assert "Evidence binding was not submitted" in body
+    assert "pendingReviewability" in body
+    assert "case is not reviewable yet" in body
 
 
 def test_async_success_requires_evidence_bound_reviewable_case() -> None:

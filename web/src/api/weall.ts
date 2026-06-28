@@ -602,7 +602,16 @@ export const weall = {
   },
 
   accountNonce(account: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers).then((r: any) => ({ ok: true, account, nonce: r?.state?.nonce ?? 0, next_nonce: r?.state?.nonce ?? 0 }));
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/nonce`, base, headers)
+      .catch(() => apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers)
+        .then((r: any) => ({
+          ok: true,
+          account,
+          nonce: r?.state?.nonce ?? 0,
+          chain_nonce: r?.state?.nonce ?? 0,
+          nonce_cursor: r?.state?.nonce ?? 0,
+          next_nonce: Number(r?.state?.nonce ?? 0) + 1,
+        })));
   },
 
   accountFeed(

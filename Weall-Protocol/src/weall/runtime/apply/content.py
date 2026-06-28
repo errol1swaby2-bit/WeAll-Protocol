@@ -41,6 +41,7 @@ from weall.runtime.reviewer_responsibilities import (
 )
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.poh.state import effective_poh_tier
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
@@ -532,7 +533,7 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
             "forbidden", "account_locked", {"account": signer, "action": action}
         )
 
-    tier = int(acct.get("poh_tier", 0) or 0)
+    tier = effective_poh_tier(state, signer)
     if tier < int(min_tier):
         raise ContentApplyError(
             "forbidden",

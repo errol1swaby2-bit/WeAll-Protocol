@@ -1218,6 +1218,36 @@ class WeAllExecutor:
         from weall.runtime import diagnostics as _impl
         return _impl.sqlite_maintenance_tick(self)
 
+    def _ledger_with_pending_nonce_cursor(self, *, signer: str, pending_nonce: int) -> LedgerView:
+        """Return a ledger view whose account nonce reflects contiguous mempool state.
+
+        This is only used for non-block admission. It lets the mempool accept
+        ``nonce N+1`` when ``nonce N`` is already pending for the same signer,
+        while consensus/block admission continues to replay against real chain
+        state and reject duplicate or gapped nonces deterministically.
+        """
+
+        st = copy.deepcopy(self.read_state())
+        accounts = st.setdefault("accounts", {})
+        if not isinstance(accounts, dict):
+            accounts = {}
+            st["accounts"] = accounts
+        acct = accounts.get(signer)
+        if not isinstance(acct, dict):
+            acct = {}
+            accounts[signer] = acct
+        acct["nonce"] = max(0, int(pending_nonce or 0))
+        return LedgerView.from_ledger(st)
+
+    def _pending_nonce_cursor_for_submit(self, *, signer: str, chain_nonce: int) -> int:
+        mp = getattr(self, "_mempool", None) or getattr(self, "mempool", None)
+        if mp is None or not callable(getattr(mp, "contiguous_pending_nonce", None)):
+            return max(0, int(chain_nonce or 0))
+        try:
+            return int(mp.contiguous_pending_nonce(signer, after_nonce=int(chain_nonce or 0)))
+        except Exception:
+            return max(0, int(chain_nonce or 0))
+
     def submit_tx(self, env: Json, *, ingress: str = "local_fixture") -> Json:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
@@ -1235,8 +1265,24 @@ class WeAllExecutor:
         if context == "peer":
             context = "gossip"
 
-        ledger = LedgerView.from_ledger(self.read_state())
+        state = self.read_state()
+        ledger = LedgerView.from_ledger(state)
         verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context=context)
+        if not verdict.ok and verdict.code == "bad_nonce" and context in {"mempool", "http", "gossip", "operator"}:
+            signer = str(env.get("signer") or "").strip()
+            try:
+                wanted_nonce = int(env.get("nonce") or 0)
+            except Exception:
+                wanted_nonce = 0
+            acct = (ledger.accounts or {}).get(signer) if signer else None
+            chain_nonce = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+            pending_cursor = self._pending_nonce_cursor_for_submit(signer=signer, chain_nonce=chain_nonce)
+            if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
+                pending_ledger = self._ledger_with_pending_nonce_cursor(
+                    signer=signer, pending_nonce=pending_cursor
+                )
+                verdict = admit_tx(tx=env, ledger=pending_ledger, canon=self.tx_index, context=context)
+
         if not verdict.ok:
             return {
                 "ok": False,

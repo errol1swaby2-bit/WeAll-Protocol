@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import FeedView from "../components/FeedView";
-import { getApiBaseUrl } from "../api/weall";
+import { getApiBaseUrl, weall } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
@@ -33,13 +33,39 @@ export default function Feed(): JSX.Element {
   const kp = acct ? getKeypair(acct) : null;
 
   const [tab, setTab] = useState<FeedTab>(acct ? "mine" : "global");
+  const [accountView, setAccountView] = useState<any | null>(null);
+  const [registrationView, setRegistrationView] = useState<any | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!acct) {
+      setAccountView(null);
+      setRegistrationView(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void Promise.all([
+      weall.account(acct, base).catch(() => null),
+      weall.accountRegistered(acct, base).catch(() => null),
+    ]).then(([nextAccountView, nextRegistrationView]) => {
+      if (cancelled) return;
+      setAccountView(nextAccountView);
+      setRegistrationView(nextRegistrationView);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [acct, base]);
 
   const snapshot = resolveOnboardingSnapshot({
     account: acct,
     session,
     keypair: kp,
-    accountView: null,
-    registrationView: null,
+    accountView,
+    registrationView,
   });
 
   const requirements = summarizeNextRequirements(snapshot);

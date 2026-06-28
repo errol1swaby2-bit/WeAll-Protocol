@@ -940,11 +940,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                     <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || myJuror.attended === true} onClick={checkIntoRoom}>{myJuror.attended ? "Attendance recorded" : "Join live review"}</button>
                     <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
                   </div>
-                  <div className="buttonRow">
-                    <button className="btn btnPrimary" disabled={!canVote || !!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                    <button className="btn" disabled={!canVote || !!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
-                  </div>
-                  {!canVote && !isFinal ? <p className="helpText">Voting unlocks only for an assigned interacting reviewer after the join action is reflected as accepted attendance on-chain.</p> : null}
+                  {canVote ? (
+                    <div className="buttonRow">
+                      <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
+                      <button className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                    </div>
+                  ) : null}
+                  {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}
                 </>
               )}
             </div> : null}
@@ -990,11 +992,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || myJuror.attended === true} onClick={checkIntoRoom}>{myJuror.attended ? "Attendance recorded" : "Join live review"}</button>
                   <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
                 </div>
-                <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canVote || !!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                  <button className="btn" disabled={!canVote || !!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
-                </div>
-                {!canVote && !isFinal ? <p className="helpText">To vote, you must be an interacting reviewer whose join action has been recorded as accepted attendance on-chain.</p> : null}
+                {canVote ? (
+                  <div className="buttonRow">
+                    <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
+                    <button className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                  </div>
+                ) : null}
+                {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}
               </>
             )}
           </div>

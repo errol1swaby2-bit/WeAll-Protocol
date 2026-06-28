@@ -23,8 +23,10 @@ def test_operator_config_uses_separate_node_key_file() -> None:
 def test_operator_registration_uses_generated_node_pubkey() -> None:
     account_page = read(ACCOUNT_PAGE)
 
-    assert "const nodePubkey" in account_page
-    assert "pubkey: nodePubkey" in account_page
+    assert "const generatedNodePubkey" in account_page
+    assert "const registeredNodePubkey" in account_page
+    assert "const nodePubkey = generatedNodePubkey || registeredNodePubkey" in account_page
+    assert "pubkey: generatedNodePubkey" in account_page
     assert "String(rec.pubkey || \"\") === nodePubkey" in account_page
     assert "Generate and download node key" in account_page
     assert "Separate node key" in account_page
