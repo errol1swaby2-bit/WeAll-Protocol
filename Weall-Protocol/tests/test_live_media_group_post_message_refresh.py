@@ -12,7 +12,7 @@ def test_live_room_check_in_starts_p2p_media_and_surfaces_remote_diagnostics() -
     page = _read("pages/LiveVerificationRoom.tsx")
 
     assert "async function ensureP2PRoomStarted" in page
-    assert "Join call, accept review, and start media" in page
+    assert "Accept review, check in, and enter live room" in page
     assert "await ensureP2PRoomStarted();" in page
     assert "Retry live media" in page
     assert "Start live media" not in page

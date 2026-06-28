@@ -763,6 +763,7 @@ export default function JurorDashboard(): JSX.Element {
               const liveDeclined = liveCaseDeclinedBy(evidence, account);
               const liveAttended = liveCaseAttendedBy(evidence, account);
               const liveVerdict = liveCaseVerdictBy(evidence, account);
+              const reviewerEvidenceUnlocked = tab === "async" ? asyncAccepted : liveAccepted;
               const showLiveAcceptControls = !liveAccepted && !liveDeclined && !liveVerdict;
               const showLiveCheckInControl = liveAccepted && !liveAttended && !liveVerdict;
               const showLiveDecisionControls = liveAccepted && liveAttended && liveCaseInteractingReviewer(evidence, account) && !liveVerdict;
@@ -867,8 +868,14 @@ export default function JurorDashboard(): JSX.Element {
                       </div>
                     )}
 
-                    {evidenceMedia.length ? (
-                      <MediaGallery base={apiBase} media={evidenceMedia} />
+                    {evidenceMedia.length && reviewerEvidenceUnlocked ? (
+                      <MediaGallery base={apiBase} media={evidenceMedia} title="Restricted reviewer evidence" restrictedPlayback />
+                    ) : null}
+                    {evidenceMedia.length && !reviewerEvidenceUnlocked ? (
+                      <div className="infoCard">
+                        <div className="feedMediaTitle">Evidence locked until acceptance</div>
+                        <p className="cardDesc">Accept this review assignment before the verifier evidence video is loaded. This prevents reviewers from inspecting protected PoH evidence and then declining without a chain-visible acceptance record.</p>
+                      </div>
                     ) : null}
 
                     {tab === "live" && sessionRec ? (

@@ -30,6 +30,8 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
     assert "showLiveCheckInControl" in page
     assert "showLiveDecisionControls" in page
     assert "Open WebRTC room to check in" in page
+    assert "Evidence locked until acceptance" in page
+    assert "restrictedPlayback" in page
     assert "Verdict controls appear after you join the live review and attendance is recorded on-chain." in page
     assert "Mark absent" not in page
 
@@ -43,7 +45,9 @@ def test_live_room_hides_verdict_buttons_until_can_vote() -> None:
     page = _read("pages/LiveVerificationRoom.tsx")
 
     assert "Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain" in page
-    assert page.count("{canVote ? (") >= 2
+    assert "Use the single live-room control above" in page
+    assert page.count("{canVote ? (") == 1
+    assert "Reviewer action" not in page
     assert "disabled={!canVote || !!busy}" not in page
 
 
@@ -61,3 +65,14 @@ def test_feed_finish_setup_keeps_signed_user_on_setup_path() -> None:
     verification_route_idx = onboarding.index('route: "/verification"', not_registered_idx)
     next_stage_idx = onboarding.index('stage = "tier0"')
     assert not_registered_idx < verification_route_idx < next_stage_idx
+
+
+def test_restricted_evidence_media_auto_locks_and_disclaims_screen_recording_limits() -> None:
+    media = _read("components/MediaGallery.tsx")
+
+    assert "restrictedPlayback" in media
+    assert "lockAfterMs = 5 * 60 * 1000" in media
+    assert "Rewatch once" in media
+    assert 'controlsList={restrictedVideo ? "nodownload noplaybackrate noremoteplayback" : undefined}' in media
+    assert "disablePictureInPicture" in media
+    assert "cannot reliably prevent screen recording" in media

@@ -60,6 +60,8 @@ def _session_state() -> dict[str, Any]:
                     "account_id": "@alice",
                     "status": "reviewable",
                     "assigned_jurors": ["@juror"],
+                    "accepted_jurors": ["@juror"],
+                    "jurors": {"@juror": {"accepted": True}},
                     "reviewer_restricted_evidence": {"video_cid": "restricted-cid-do-not-leak"},
                     "reviewable_evidence": {"commitment": "c" * 64},
                 }
@@ -156,6 +158,33 @@ def test_poh_sensitive_case_read_requires_session_and_redacts_unrelated_viewer(m
     assert juror.status_code == 200, juror.text
     assert juror.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
 
+
+
+def test_poh_sensitive_case_read_withholds_raw_evidence_until_reviewer_accepts(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    state = _session_state()
+    case = state["poh"]["async_cases"]["case-1"]
+    case["accepted_jurors"] = []
+    case["jurors"] = {"@juror": {"accepted": False}}
+    client = _client(state)
+
+    assigned_but_unaccepted = client.get(
+        "/v1/poh/async/case/case-1",
+        headers={"x-weall-account": "@juror", "x-weall-session-key": "juror-session"},
+    )
+    assert assigned_but_unaccepted.status_code == 200, assigned_but_unaccepted.text
+    body = assigned_but_unaccepted.json()
+    assert body["case"]["reviewer_restricted_evidence"] == {}
+    assert "restricted-cid-do-not-leak" not in str(body)
+
+    case["accepted_jurors"] = ["@juror"]
+    case["jurors"] = {"@juror": {"accepted": True}}
+    accepted = client.get(
+        "/v1/poh/async/case/case-1",
+        headers={"x-weall-account": "@juror", "x-weall-session-key": "juror-session"},
+    )
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
 
 def test_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")

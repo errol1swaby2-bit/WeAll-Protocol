@@ -382,7 +382,7 @@
       "http_status": 400,
       "sample_reason": "missing account",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 508
+      "source_lineno": 520
     },
     {
       "code": "bad_request",
@@ -598,7 +598,7 @@
       "http_status": 403,
       "sample_reason": "live_room_participant_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1183
+      "source_lineno": 1195
     },
     {
       "code": "forbidden",
@@ -1255,7 +1255,7 @@
       "http_status": null,
       "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 958
+      "source_lineno": 970
     },
     {
       "code": "locked",
@@ -1390,7 +1390,7 @@
       "http_status": 400,
       "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2484
+      "source_lineno": 2496
     },
     {
       "code": "missing_live_session_commitment",
@@ -1399,7 +1399,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2929
+      "source_lineno": 2941
     },
     {
       "code": "missing_sig",
@@ -1732,7 +1732,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3010
+      "source_lineno": 3022
     },
     {
       "code": "session_required",

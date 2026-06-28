@@ -907,7 +907,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
                 </div>
                 <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live media running" : "Rejoin live media") : (myJuror.accepted ? "Join call and record attendance" : "Join call, accept review, and start media")) : "Join call and start media"}</button>
+                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Check in and enter live room" : "Accept review, check in, and enter live room")) : "Enter live room"}</button>
+                  {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
                   {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop live media</button>
@@ -936,10 +937,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                     <div className="statusCard"><span>Your attendance</span><strong>{myJuror.attended ? "Recorded" : "Needed"}</strong></div>
                     <div className="statusCard"><span>Your vote</span><strong>{myJuror.verdict ? statusLabel(myJuror.verdict) : "Not cast"}</strong></div>
                   </div>
-                  <div className="buttonRow">
-                    <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || myJuror.attended === true} onClick={checkIntoRoom}>{myJuror.attended ? "Attendance recorded" : "Join live review"}</button>
-                    <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
-                  </div>
+                  <p className="helpText">Use the single live-room control above to accept the assignment, record chain attendance, and enter the room lobby. Media starts when peer connection and browser permissions are ready. Verdict controls appear here only after that chain-recorded check-in is visible.</p>
                   {canVote ? (
                     <div className="buttonRow">
                       <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
@@ -979,31 +977,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       </section>
 
       <section className="liveRoomGrid">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="eyebrow">Reviewer action</div>
-            <h2 className="cardTitle">In-call reviewer controls</h2>
-            {!myJuror ? (
-              <p className="cardDesc">You are not assigned as a reviewer for this case. You can join only if you are the verification subject or an assigned reviewer.</p>
-            ) : (
-              <>
-                <p className="cardDesc">Reviewer role: <strong>{myJuror.role || "juror"}</strong>. The join action records acceptance and attendance on-chain before verdict buttons unlock.</p>
-                <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || myJuror.attended === true} onClick={checkIntoRoom}>{myJuror.attended ? "Attendance recorded" : "Join live review"}</button>
-                  <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
-                </div>
-                {canVote ? (
-                  <div className="buttonRow">
-                    <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                    <button className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
-                  </div>
-                ) : null}
-                {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}
-              </>
-            )}
-          </div>
-        </article>
-
         <article className="card">
           <div className="cardBody formStack">
             <div className="eyebrow">Finalization</div>

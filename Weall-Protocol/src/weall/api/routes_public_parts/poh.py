@@ -464,14 +464,26 @@ def _require_poh_session_matches(request: Request, st: Json, *, expected: str, p
 def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
         return False
-    if str(raw.get("account_id") or "").strip() == account:
+    acct = str(account or "").strip()
+    if str(raw.get("account_id") or "").strip() == acct:
         return True
-    assigned = raw.get("assigned_jurors")
-    if isinstance(assigned, list) and account in [str(x) for x in assigned]:
+
+    # Reviewer evidence is intentionally withheld until the reviewer accepts the
+    # assignment.  Assignment alone should only reveal commitments/metadata so a
+    # reviewer cannot inspect raw PoH video and then decline without creating the
+    # chain-visible acceptance record.
+    accepted = raw.get("accepted_jurors")
+    if isinstance(accepted, list) and acct in [str(x or "").strip() for x in accepted]:
         return True
+
     jurors = raw.get("jurors")
-    if isinstance(jurors, dict) and account in jurors:
-        return True
+    if isinstance(jurors, dict):
+        direct = jurors.get(acct)
+        if isinstance(direct, dict) and direct.get("accepted") is True:
+            return True
+        for key, value in jurors.items():
+            if str(key or "").strip() == acct and isinstance(value, dict) and value.get("accepted") is True:
+                return True
     return False
 
 

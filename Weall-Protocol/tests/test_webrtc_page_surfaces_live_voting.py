@@ -34,12 +34,13 @@ def test_webrtc_join_action_accepts_attendance_and_waits_for_state() -> None:
     src = (WEB / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
     assert "waitForLiveJurorState" in src
-    assert "Join call, accept review, and start media" in src
+    assert "Accept review, check in, and enter live room" in src
     assert "Review acceptance" in src
     assert "Live room attendance" in src
     assert "accepted attendance on-chain" in src
     assert ">Accept review<" not in src
     assert ">Record attendance<" not in src
+    assert "Use the single live-room control above" in src
 
     accept_idx = src.index("pohLiveTxJurorAccept")
     attendance_idx = src.index("pohLiveTxAttendance")
