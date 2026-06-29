@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "accounts": 6,
+    "accounts": 8,
     "activity": 1,
     "consensus": 3,
     "content": 4,
@@ -38,9 +38,31 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 142,
+  "route_count": 144,
   "route_prefix": "/v1",
   "routes": [
+    {
+      "auth": "transaction_skeleton_only_owner_signature_required_for_submission",
+      "cache_policy": "no_store_transaction_skeleton",
+      "error_model": "standard_api_error_envelope_or_profile_update_tx_skeleton",
+      "function": "v1_account_tx_profile_update",
+      "idempotency": "safe_skeleton_generation_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "module": "accounts",
+      "path": "/v1/accounts/tx/profile-update",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "route_id": "ba60b12a012e2c60",
+      "route_path_without_v1_prefix": "/accounts/tx/profile-update",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 269,
+      "summary": "",
+      "tags": [
+        "accounts"
+      ],
+      "truth_boundary": "Builds an unsigned PROFILE_UPDATE transaction skeleton only. Profile metadata becomes public protocol state only after signed submission, consensus commit, and receipt/status inspection."
+    },
     {
       "auth": "route_specific_signed_or_local_authority",
       "cache_policy": "no_store_mutation_or_submission_route",
@@ -56,7 +78,7 @@
       "route_id": "d97016cc48d59435",
       "route_path_without_v1_prefix": "/accounts/tx/register",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 95,
+      "source_lineno": 242,
       "summary": "",
       "tags": [
         "accounts"
@@ -78,7 +100,7 @@
       "route_id": "5fa4f1cc935c6937",
       "route_path_without_v1_prefix": "/accounts/{account}",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 122,
+      "source_lineno": 332,
       "summary": "",
       "tags": [
         "accounts"
@@ -100,7 +122,7 @@
       "route_id": "137ab4909a8e8e1b",
       "route_path_without_v1_prefix": "/accounts/{account}/feed",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 264,
+      "source_lineno": 474,
       "summary": "",
       "tags": [
         "accounts"
@@ -144,12 +166,34 @@
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 248,
+      "source_lineno": 458,
       "summary": "",
       "tags": [
         "accounts"
       ],
       "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
+    },
+    {
+      "auth": "public_read_public_profile_and_activity_summary",
+      "cache_policy": "no_store_dynamic_public_profile_read_model",
+      "error_model": "standard_api_error_envelope_or_public_profile_payload",
+      "function": "v1_account_profile",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "accounts",
+      "path": "/v1/accounts/{account}/profile",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "route_id": "b555c287281dbb93",
+      "route_path_without_v1_prefix": "/accounts/{account}/profile",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 294,
+      "summary": "",
+      "tags": [
+        "accounts"
+      ],
+      "truth_boundary": "Public profile is a derived/indexed read model over committed public profile, content, and social state. It must not expose raw PoH identity evidence, session keys, device fingerprints, or recovery secrets."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -166,7 +210,7 @@
       "route_id": "85bb5981c233da2a",
       "route_path_without_v1_prefix": "/accounts/{account}/registered",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 152,
+      "source_lineno": 362,
       "summary": "",
       "tags": [
         "accounts"
@@ -188,7 +232,7 @@
       "route_id": "12b760a4427dc453",
       "route_path_without_v1_prefix": "/accounts/{account}/reviewer-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 184,
+      "source_lineno": 394,
       "summary": "",
       "tags": [
         "accounts"

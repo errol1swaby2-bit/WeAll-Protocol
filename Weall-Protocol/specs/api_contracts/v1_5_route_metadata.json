@@ -8,6 +8,14 @@
       "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
       "truth_boundary": "Account operator-status is a derived readiness/responsibility read model. It is not validator promotion, not proof of public validator readiness, and grants no authority."
     },
+    "GET /v1/accounts/{account}/profile": {
+      "auth": "public_read_public_profile_and_activity_summary",
+      "cache_policy": "no_store_dynamic_public_profile_read_model",
+      "error_model": "standard_api_error_envelope_or_public_profile_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Public profile is a derived/indexed read model over committed public profile, content, and social state. It must not expose raw PoH identity evidence, session keys, device fingerprints, or recovery secrets."
+    },
     "GET /v1/activity/notices": {
       "auth": "public_read_public_activity_notices",
       "cache_policy": "no_store_public_event_derived_read",
@@ -232,6 +240,14 @@
       "idempotency": "safe_read_no_state_mutation",
       "truth_boundary": "Testnet capability status is a launch-matrix-bound claim-control surface. It reports completed mechanisms and disabled high-risk capabilities but grants no validator, economic, helper, upgrade, legal, or public beta authority."
     },
+    "POST /v1/accounts/tx/profile-update": {
+      "auth": "transaction_skeleton_only_owner_signature_required_for_submission",
+      "cache_policy": "no_store_transaction_skeleton",
+      "error_model": "standard_api_error_envelope_or_profile_update_tx_skeleton",
+      "idempotency": "safe_skeleton_generation_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Builds an unsigned PROFILE_UPDATE transaction skeleton only. Profile metadata becomes public protocol state only after signed submission, consensus commit, and receipt/status inspection."
+    },
     "POST /v1/net/relay/ack": {
       "auth": "signed_recipient_or_nonprod_legacy_relay_ack",
       "cache_policy": "no_store_relay_transport_ack",
@@ -253,19 +269,19 @@
       "idempotency": "transport_queue_write_no_consensus_state_mutation",
       "truth_boundary": "Relay submit stores transport envelopes only. It does not submit chain transactions or grant consensus authority."
     },
-    "POST /v1/observer/edge/tx-queue/drain": {
-      "auth": "observer_edge_operator_required",
-      "cache_policy": "no_store_observer_edge_transport_queue",
-      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
-      "idempotency": "operator_transport_queue_drain_no_validator_authority",
-      "truth_boundary": "Observer tx queue drain is operator/observer transport handling and grants no block production or validation authority."
-    },
     "POST /v1/observer/edge/reconcile/{tx_id}": {
       "auth": "observer_edge_operator_required",
       "cache_policy": "no_store_observer_edge_reconcile",
       "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
       "idempotency": "observer_edge_reconcile_no_validator_authority",
       "truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority."
+    },
+    "POST /v1/observer/edge/tx-queue/drain": {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_transport_queue",
+      "error_model": "standard_api_error_envelope; operator token/observer edge route-specific failures",
+      "idempotency": "operator_transport_queue_drain_no_validator_authority",
+      "truth_boundary": "Observer tx queue drain is operator/observer transport handling and grants no block production or validation authority."
     },
     "POST /v1/poh/async/evidence/video/upload": {
       "auth": "node_local_poh_evidence_upload_env_gated_no_consensus_write",

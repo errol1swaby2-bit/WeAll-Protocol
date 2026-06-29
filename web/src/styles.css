@@ -521,6 +521,40 @@ code {
   flex: 0 0 auto;
 }
 
+
+.publicProfileCard {
+  overflow: hidden;
+}
+
+.profileIdentityRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profileAvatarPreview,
+.profileAvatarFallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.profileAvatarPreview {
+  object-fit: cover;
+  background: var(--panel-soft);
+}
+
+.profileAvatarFallback {
+  display: grid;
+  place-items: center;
+  color: var(--muted-strong);
+  font-weight: 800;
+  font-size: 1.3rem;
+  background: var(--accent-focus-ring);
+}
+
 .sectionHead,
 .stepHeader {
   display: flex;

@@ -78,6 +78,44 @@ function isNodeDevice(deviceId: string, rec: DeviceRecord): boolean {
   return deviceType === "node" || did.startsWith("node:") || label.startsWith("node");
 }
 
+type ProfileFormState = {
+  display_name: string;
+  bio: string;
+  avatar_cid: string;
+  website: string;
+  location: string;
+  tags_text: string;
+};
+
+function emptyProfileForm(): ProfileFormState {
+  return { display_name: "", bio: "", avatar_cid: "", website: "", location: "", tags_text: "" };
+}
+
+function profileFormFromPublicProfile(profile: Record<string, any>, account: string): ProfileFormState {
+  const tags = Array.isArray(profile.tags) ? profile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
+  return {
+    display_name: String(profile.display_name || account || "").trim(),
+    bio: String(profile.bio || ""),
+    avatar_cid: String(profile.avatar_cid || ""),
+    website: String(profile.website || ""),
+    location: String(profile.location || ""),
+    tags_text: tags.join(", "),
+  };
+}
+
+function splitProfileTags(value: string): string[] {
+  return String(value || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function optionalField(value: string): string | undefined {
+  const clean = String(value || "").trim();
+  return clean ? clean : undefined;
+}
+
 export default function Account({ account }: { account: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const acct = useMemo(() => normalizeAccount(account), [account]);
@@ -90,6 +128,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [poh, setPoh] = useState<any>(null);
   const [nonce, setNonce] = useState<any>(null);
   const [acctView, setAcctView] = useState<any>(null);
+  const [profileView, setProfileView] = useState<any>(null);
   const [operatorStatus, setOperatorStatus] = useState<any>(null);
   const [reviewerStatus, setReviewerStatus] = useState<any>(null);
   const [reputationMatrix, setReputationMatrix] = useState<any>(null);
@@ -100,7 +139,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
+  const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
+  const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -116,6 +158,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
       account: weall.account(acct, base),
+      profile: weall.accountProfile(acct, base, headers),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
@@ -139,6 +182,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
+    setProfileView(out.profile ?? null);
+    if (!profileDirty) {
+      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
+    }
     setOperatorStatus(out.operatorStatus ?? null);
     setReviewerStatus(out.reviewerStatus ?? null);
     setReputationMatrix(out.reputationMatrix ?? null);
@@ -157,6 +204,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   useEffect(() => {
+    setProfileDirty(false);
+    setProfileForm(emptyProfileForm());
     void load();
   }, [acct, isSelf]);
 
@@ -184,6 +233,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
   const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
+
+  const publicProfile = asRecord(profileView?.profile);
+  const publicActivity = asRecord(profileView?.public_activity);
+  const publicProfileName = String(publicProfile.display_name || acct);
+  const publicProfileBio = String(publicProfile.bio || "").trim();
+  const publicProfileTags = Array.isArray(publicProfile.tags) ? publicProfile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
+  const profileAvatarMedia = asRecord(publicProfile.avatar_media);
+  const profileAvatarPath = String(profileAvatarMedia.fetch_path || "");
 
   const reviewerTruth = asRecord(reviewerStatus?.reviewer);
   const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
@@ -292,6 +349,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const requirements = summarizeNextRequirements(snapshot);
 
+  function updateProfileForm<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]): void {
+    setProfileDirty(true);
+    setProfileForm((prev) => ({ ...prev, [key]: value }));
+  }
+
   const localOwnership = isSelf
     ? localKeypair
       ? "This browser holds the saved account key for this account."
@@ -307,6 +369,55 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nextUnlock = snapshot.next.label || "No immediate unlock action";
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
+
+  async function runProfileUpdate() {
+    if (!isSelf) return;
+
+    setBusy("profile");
+    setProfileErr(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (!localPubkey) throw new Error("missing_account_signer");
+
+      const skeleton = await weall.profileUpdateTx({
+        account_id: acct,
+        display_name: optionalField(profileForm.display_name),
+        bio: profileForm.bio,
+        avatar_cid: optionalField(profileForm.avatar_cid),
+        website: optionalField(profileForm.website),
+        location: optionalField(profileForm.location),
+        tags: splitProfileTags(profileForm.tags_text),
+      }, base, getAuthHeaders(acct));
+      const skeletonTx = skeleton?.tx || {};
+      if (!skeletonTx?.tx_type) throw new Error("profile_update_skeleton_missing_tx_type");
+
+      await tx.runTx({
+        title: "Update public profile",
+        pendingMessage: "Submitting public profile update…",
+        successMessage: "Profile update submitted. The public profile refreshes from committed chain state.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () =>
+          submitSignedTx({
+            account: acct,
+            tx_type: String(skeletonTx.tx_type),
+            payload: skeletonTx.payload || {},
+            parent: skeletonTx.parent ?? null,
+            base,
+          }),
+      });
+
+      setProfileDirty(false);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setProfileErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   function generateAndDownloadNodeKey(): void {
     const next = createNodeKeyFile({
@@ -631,6 +742,153 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
+
+      <section className="card publicProfileCard">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div className="profileIdentityRow">
+              {profileAvatarPath ? (
+                <img className="profileAvatarPreview" src={`${base}${profileAvatarPath}`} alt="Public profile avatar" loading="lazy" />
+              ) : (
+                <div className="profileAvatarFallback" aria-hidden="true">
+                  {publicProfileName.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="eyebrow">Public civic profile</div>
+                <h2 className="cardTitle">{publicProfileName}</h2>
+                <p className="cardDesc mono">{acct}</p>
+              </div>
+            </div>
+            <span className="statusPill ok">Public read model</span>
+          </div>
+
+          <p className="heroText">
+            {publicProfileBio || "This account has not published a bio yet."}
+          </p>
+
+          <div className="detailFocusStrip utilityFocusStrip">
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Posts</div>
+              <div className="detailFocusValue">{num(publicActivity.posts, 0)}</div>
+              <div className="detailFocusText">Public posts visible through chain-derived indexes.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Comments</div>
+              <div className="detailFocusValue">{num(publicActivity.comments, 0)}</div>
+              <div className="detailFocusText">Public comments visible through thread and profile surfaces.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Reposts</div>
+              <div className="detailFocusValue">{num(publicActivity.reposts, 0)}</div>
+              <div className="detailFocusText">Prepared from the existing public share primitive.</div>
+            </article>
+          </div>
+
+          {publicProfileTags.length ? (
+            <div className="buttonRow">
+              {publicProfileTags.map((tag: string) => (
+                <span key={tag} className="statusPill">{tag}</span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="calloutInfo">
+            <strong>Public-state boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              Profile edits are signed <span className="mono">PROFILE_UPDATE</span> transactions. They become public protocol metadata only after commit; raw PoH evidence, recovery secrets, and device secrets are not part of this profile contract. Receipts remain inspectable through <span className="mono">/v1/tx/status/&lbrace;tx_id&rbrace;</span>.
+            </div>
+          </div>
+
+          {isSelf ? (
+            <details className="detailsPanel" open={profileDirty}>
+              <summary>Edit public profile</summary>
+              <div className="formStack">
+                <ErrorBanner
+                  message={profileErr?.msg}
+                  details={profileErr?.details}
+                  onRetry={() => void runProfileUpdate()}
+                  onDismiss={() => setProfileErr(null)}
+                />
+                <label>
+                  <div className="eyebrow">Display name</div>
+                  <input
+                    value={profileForm.display_name}
+                    maxLength={80}
+                    onChange={(e) => updateProfileForm("display_name", e.target.value)}
+                    placeholder="Your public display name"
+                  />
+                </label>
+                <label>
+                  <div className="eyebrow">Bio</div>
+                  <textarea
+                    value={profileForm.bio}
+                    maxLength={500}
+                    onChange={(e) => updateProfileForm("bio", e.target.value)}
+                    placeholder="A short public bio"
+                  />
+                </label>
+                <div className="grid2">
+                  <label>
+                    <div className="eyebrow">Profile picture CID</div>
+                    <input
+                      value={profileForm.avatar_cid}
+                      onChange={(e) => updateProfileForm("avatar_cid", e.target.value)}
+                      placeholder="Public media CID"
+                    />
+                  </label>
+                  <label>
+                    <div className="eyebrow">Website</div>
+                    <input
+                      value={profileForm.website}
+                      onChange={(e) => updateProfileForm("website", e.target.value)}
+                      placeholder="https://example.org"
+                    />
+                  </label>
+                </div>
+                <div className="grid2">
+                  <label>
+                    <div className="eyebrow">Location</div>
+                    <input
+                      value={profileForm.location}
+                      onChange={(e) => updateProfileForm("location", e.target.value)}
+                      placeholder="Public location label"
+                    />
+                  </label>
+                  <label>
+                    <div className="eyebrow">Tags</div>
+                    <input
+                      value={profileForm.tags_text}
+                      onChange={(e) => updateProfileForm("tags_text", e.target.value)}
+                      placeholder="civic tech, local organizer"
+                    />
+                  </label>
+                </div>
+                <div className="buttonRow">
+                  <button
+                    className="btn btnPrimary"
+                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy}
+                    onClick={() => void runProfileUpdate()}
+                  >
+                    {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
+                  </button>
+                  <button
+                    className="btn"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setProfileDirty(false);
+                      setProfileErr(null);
+                      setProfileForm(profileFormFromPublicProfile(publicProfile, acct));
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </details>
+          ) : null}
+        </div>
+      </section>
 
       <section className="summaryCardGrid">
         <article className="summaryCard">

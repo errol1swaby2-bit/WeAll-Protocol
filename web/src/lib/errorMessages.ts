@@ -7,6 +7,7 @@ export type PlainErrorCode =
   | "needs_refresh"
   | "session_needs_attention"
   | "service_unavailable"
+  | "rate_limited"
   | "not_found"
   | "account_restricted"
   | "action_unavailable"

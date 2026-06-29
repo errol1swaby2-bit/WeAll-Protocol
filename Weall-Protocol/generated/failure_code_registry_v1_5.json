@@ -175,7 +175,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 290
+      "source_lineno": 500
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -328,7 +328,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 107
+      "source_lineno": 254
     },
     {
       "code": "bad_request",

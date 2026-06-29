@@ -305,6 +305,47 @@ export type FeedResponse = {
   next_cursor?: string | null;
 };
 
+export type PublicProfile = {
+  account_id?: string;
+  display_name?: string;
+  bio?: string;
+  avatar_cid?: string;
+  banner_cid?: string;
+  website?: string;
+  location?: string;
+  tags?: string[];
+  created_at_nonce?: number;
+  updated_at_nonce?: number;
+  public_links?: Array<{ label?: string; url?: string }>;
+  avatar_media?: { cid?: string; fetch_path?: string; kind?: string; source?: string } | null;
+  banner_media?: { cid?: string; fetch_path?: string; kind?: string; source?: string } | null;
+  pinned_post_id?: string;
+};
+
+export type PublicProfileResponse = {
+  ok?: boolean;
+  schema?: string;
+  account?: string;
+  exists?: boolean;
+  profile?: PublicProfile;
+  public_activity?: Record<string, unknown>;
+  capabilities?: Record<string, unknown>;
+  receipt_paths?: Record<string, string>;
+  truth_boundary?: string;
+  privacy_boundary?: string;
+};
+
+export type ProfileUpdateTxRequest = {
+  account_id: string;
+  display_name?: string;
+  bio?: string;
+  avatar_cid?: string;
+  banner_cid?: string;
+  website?: string;
+  location?: string;
+  tags?: string[];
+};
+
 
 export type SessionLoginResponse = {
   ok?: boolean;
@@ -557,6 +598,14 @@ export const weall = {
 
   getAccount(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers);
+  },
+
+  accountProfile(account: string, base?: string, headers?: HeadersInit): Promise<PublicProfileResponse> {
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/profile`, base, headers);
+  },
+
+  profileUpdateTx(payload: ProfileUpdateTxRequest, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost("/v1/accounts/tx/profile-update", payload, base, headers);
   },
 
   accountRegistered(account: string, base?: string, headers?: HeadersInit): Promise<any> {

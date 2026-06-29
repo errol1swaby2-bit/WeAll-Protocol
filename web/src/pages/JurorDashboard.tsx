@@ -762,11 +762,11 @@ export default function JurorDashboard(): JSX.Element {
               const liveAccepted = liveCaseAcceptedBy(evidence, account);
               const liveDeclined = liveCaseDeclinedBy(evidence, account);
               const liveAttended = liveCaseAttendedBy(evidence, account);
-              const liveVerdict = liveCaseVerdictBy(evidence, account);
+              const recordedLiveVerdict = liveCaseVerdictBy(evidence, account);
               const reviewerEvidenceUnlocked = tab === "async" ? asyncAccepted : liveAccepted;
-              const showLiveAcceptControls = !liveAccepted && !liveDeclined && !liveVerdict;
-              const showLiveCheckInControl = liveAccepted && !liveAttended && !liveVerdict;
-              const showLiveDecisionControls = liveAccepted && liveAttended && liveCaseInteractingReviewer(evidence, account) && !liveVerdict;
+              const showLiveAcceptControls = !liveAccepted && !liveDeclined && !recordedLiveVerdict;
+              const showLiveCheckInControl = liveAccepted && !liveAttended && !recordedLiveVerdict;
+              const showLiveDecisionControls = liveAccepted && liveAttended && liveCaseInteractingReviewer(evidence, account) && !recordedLiveVerdict;
 
               return (
                 <article key={caseId || Math.random()} className="card">
@@ -863,7 +863,7 @@ export default function JurorDashboard(): JSX.Element {
                           ) : null}
                         </div>
                         {!showLiveAcceptControls && !showLiveCheckInControl && !showLiveDecisionControls ? (
-                          <div className="miniMuted">{liveDeclined ? "You declined this live review." : liveVerdict ? "Your live-review verdict is already recorded." : "Verdict controls appear after you join the live review and attendance is recorded on-chain."}</div>
+                          <div className="miniMuted">{liveDeclined ? "You declined this live review." : recordedLiveVerdict ? "Your live-review verdict is already recorded." : "Verdict controls appear after you join the live review and attendance is recorded on-chain."}</div>
                         ) : null}
                       </div>
                     )}

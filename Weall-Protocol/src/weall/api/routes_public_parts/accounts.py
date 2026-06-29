@@ -91,6 +91,153 @@ class AccountRegisterTxRequest(BaseModel):
     parent: str | None = Field(default=None, max_length=256)
 
 
+class AccountProfileUpdateTxRequest(BaseModel):
+    account_id: str = Field(..., min_length=1, max_length=128)
+    display_name: str | None = Field(default=None, max_length=80)
+    bio: str | None = Field(default=None, max_length=500)
+    avatar_cid: str | None = Field(default=None, max_length=256)
+    banner_cid: str | None = Field(default=None, max_length=256)
+    website: str | None = Field(default=None, max_length=256)
+    location: str | None = Field(default=None, max_length=120)
+    tags: list[str] | None = Field(default=None, max_length=12)
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _clean_str(value: Any, *, max_len: int | None = None) -> str:
+    raw = str(value or "").strip()
+    if max_len is not None:
+        raw = raw[:max_len]
+    return raw
+
+
+def _clean_tags(value: Any) -> list[str]:
+    if isinstance(value, str):
+        raw = [part.strip() for part in value.split(",")]
+    elif isinstance(value, list):
+        raw = [str(part or "").strip() for part in value]
+    else:
+        raw = []
+    out: list[str] = []
+    for tag in raw:
+        if not tag or tag in out:
+            continue
+        out.append(tag[:40])
+        if len(out) >= 12:
+            break
+    return out
+
+
+def _media_profile_ref(cid: str, *, kind: str) -> dict[str, Any] | None:
+    clean = _clean_str(cid, max_len=256)
+    if not clean:
+        return None
+    return {
+        "cid": clean,
+        "kind": kind,
+        "source": "public_media_reference",
+        "load_policy": "viewport",
+        "fetch_path": f"/v1/media/proxy/{clean}",
+    }
+
+
+def _profile_record(st: dict[str, Any], account: str) -> dict[str, Any]:
+    social = _as_dict(st.get("social"))
+    profiles = _as_dict(social.get("profiles_by_id"))
+    raw = _as_dict(profiles.get(account))
+    avatar_cid = _clean_str(raw.get("avatar_cid"), max_len=256)
+    banner_cid = _clean_str(raw.get("banner_cid"), max_len=256)
+    website = _clean_str(raw.get("website"), max_len=256)
+
+    profile: dict[str, Any] = {
+        "account_id": account,
+        "display_name": _clean_str(raw.get("display_name"), max_len=80) or account,
+        "bio": _clean_str(raw.get("bio"), max_len=500),
+        "avatar_cid": avatar_cid,
+        "banner_cid": banner_cid,
+        "website": website,
+        "location": _clean_str(raw.get("location"), max_len=120),
+        "tags": _clean_tags(raw.get("tags")),
+        "created_at_nonce": _safe_int(raw.get("created_at_nonce"), 0),
+        "updated_at_nonce": _safe_int(raw.get("updated_at_nonce"), 0),
+        "public_links": ([{"label": "Website", "url": website}] if website else []),
+        "avatar_media": _media_profile_ref(avatar_cid, kind="profile_picture"),
+        "banner_media": _media_profile_ref(banner_cid, kind="profile_banner"),
+    }
+    # Pinned posts are intentionally read-only here.  The apply/schema path does
+    # not yet accept a pinned-post mutation, so this route exposes a stable
+    # contract slot without expanding consensus semantics.
+    pinned = _clean_str(raw.get("pinned_post_id"), max_len=256)
+    if pinned:
+        profile["pinned_post_id"] = pinned
+    return profile
+
+
+def _profile_activity_summary(st: dict[str, Any], account: str) -> dict[str, Any]:
+    content = _as_dict(st.get("content"))
+    posts = _as_dict(content.get("posts"))
+    comments = _as_dict(content.get("comments"))
+    social = _as_dict(st.get("social"))
+    shares = _as_dict(social.get("shares_by_id"))
+    follows = _as_dict(social.get("follows_by_edge"))
+
+    visible_posts = 0
+    visible_comments = 0
+    visible_shares = 0
+    following_count = 0
+
+    for pid, obj in posts.items():
+        if not isinstance(obj, dict):
+            continue
+        post_id = _clean_str(obj.get("post_id") or obj.get("id") or pid, max_len=256)
+        if obj.get("author") == account and not obj.get("deleted") and not _content_post_hidden_by_moderation(st, obj, post_id):
+            visible_posts += 1
+
+    for obj in comments.values():
+        if isinstance(obj, dict) and obj.get("author") == account and not obj.get("deleted"):
+            visibility = _clean_str(obj.get("visibility") or "public").lower()
+            if visibility in {"", "public"}:
+                visible_comments += 1
+
+    for obj in shares.values():
+        if isinstance(obj, dict) and (obj.get("by") == account or obj.get("author") == account):
+            visible_shares += 1
+
+    for obj in follows.values():
+        if isinstance(obj, dict) and obj.get("from") == account and obj.get("active", True):
+            following_count += 1
+
+    return {
+        "posts": visible_posts,
+        "comments": visible_comments,
+        "reposts": visible_shares,
+        "following": following_count,
+        "favorites": 0,
+        "truth_boundary": "public_derived_index_view",
+        "deferred": ["favorites_index", "profile_timeline", "pinned_post_mutation"],
+    }
+
+
+def _profile_payload_from_request(req: AccountProfileUpdateTxRequest) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key in ("display_name", "bio", "avatar_cid", "banner_cid", "website", "location"):
+        value = getattr(req, key)
+        if value is not None:
+            payload[key] = str(value).strip()
+    if req.tags is not None:
+        payload["tags"] = _clean_tags(req.tags)
+    return payload
+
+
 @router.post("/accounts/tx/register")
 def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
     """Return a canonical ACCOUNT_REGISTER tx skeleton.
@@ -115,6 +262,69 @@ def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
             "parent": parent,
             "payload": {"pubkey": pubkey},
         },
+    }
+
+
+@router.post("/accounts/tx/profile-update")
+def v1_account_tx_profile_update(req: AccountProfileUpdateTxRequest) -> dict[str, Any]:
+    """Return a canonical PROFILE_UPDATE tx skeleton.
+
+    This route does not update profile state.  The returned transaction still
+    has to be signed, submitted, committed, and inspected through the normal
+    receipt/status path.  Profile fields are public protocol-native metadata;
+    raw PoH/private identity evidence is intentionally not accepted here.
+    """
+    account_id = _clean_str(req.account_id, max_len=128)
+    if not account_id:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+    return {
+        "ok": True,
+        "tx": {
+            "tx_type": "PROFILE_UPDATE",
+            "signer_hint": account_id,
+            "parent": None,
+            "payload": _profile_payload_from_request(req),
+        },
+        "truth_boundary": "transaction_skeleton_only_sign_and_submit_via_v1_tx_submit",
+        "public_notice": "Profile metadata is public protocol state after the PROFILE_UPDATE transaction commits.",
+    }
+
+
+@router.get("/accounts/{account}/profile")
+def v1_account_profile(account: str, request: Request) -> dict[str, Any]:
+    """Return the public civic profile and activity summary for an account.
+
+    This is a public read model derived from canonical state. It intentionally
+    exposes only protocol-native public profile metadata and deterministic
+    activity counts. It is not a private identity/PoH evidence surface.
+    """
+    account_id = _clean_str(account, max_len=128)
+    st = _snapshot(request)
+    ledger = LedgerView.from_ledger(st)
+    acct_state = ledger.accounts.get(account_id)
+    exists = isinstance(acct_state, dict)
+    tier = effective_poh_tier(st, account_id) if exists else 0
+    banned = bool(acct_state.get("banned", False)) if isinstance(acct_state, dict) else False
+    locked = bool(acct_state.get("locked", False)) if isinstance(acct_state, dict) else False
+    return {
+        "ok": True,
+        "schema": "weall.public_profile.v1",
+        "account": account_id,
+        "exists": exists,
+        "profile": _profile_record(st, account_id),
+        "public_activity": _profile_activity_summary(st, account_id),
+        "capabilities": {
+            "profile_edit_tx_type": "PROFILE_UPDATE",
+            "profile_edit_requires_owner_signature": True,
+            "can_publish_posts": exists and tier >= 2 and not banned and not locked,
+            "can_comment": exists and tier >= 2 and not banned and not locked,
+        },
+        "receipt_paths": {
+            "submit": "/v1/tx/submit",
+            "status_template": "/v1/tx/status/{tx_id}",
+        },
+        "truth_boundary": "public_derived_index_view_of_chain_state",
+        "privacy_boundary": "raw_poh_identity_evidence_device_secrets_and_recovery_material_are_not_exposed",
     }
 
 
