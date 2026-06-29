@@ -195,7 +195,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const reviewerEligibilityBlockers = Array.isArray(reviewerTruth.eligibility_blockers) ? reviewerTruth.eligibility_blockers.map((x: any) => String(x)) : [];
   const contentReviewActive = reviewerLaneActive("content_review");
   const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).active);
-  const anyReviewerLanePaused = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).optedIn && !reviewerLaneStatus(row.lane).active);
+  const anyReviewerLanePaused = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).paused);
+  const anyReviewerLanePending = reviewerLaneLabels.some((row) => { const status = reviewerLaneStatus(row.lane); return status.optedIn && !status.active && !status.paused; });
 
   const rolesState = asRecord(state?.roles);
   const localKeypair = isSelf ? getKeypair(acct) : null;
@@ -699,7 +700,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 <div className="progressRow">
                   <span>Exact lane availability</span>
-                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : anyReviewerLanePaused ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Opted in, paused/inactive" : "No lane active"}</span>
+                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : (anyReviewerLanePaused || anyReviewerLanePending) ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Paused" : anyReviewerLanePending ? "Opted in, activation pending" : "No lane active"}</span>
                 </div>
                 <div className="progressRow">
                   <span>Reviewer truth source</span>

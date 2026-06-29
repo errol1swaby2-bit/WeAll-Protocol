@@ -712,6 +712,13 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_WEBRTC_SIGNAL_PEERS_JSON='[{"node_id":"@local-observer","url":"'"${NODE2_API}"'","chain_id":"weall-controlled-devnet","bridge_token":"'"${SYNC_TOKEN}"'"}]'
     export WEALL_WEBRTC_STUN_URLS="${WEALL_WEBRTC_STUN_URLS:-}"
     export WEALL_STATE_RAW_READ_TOKEN="${SYNC_TOKEN}"
+    # Local rehearsal has two frontends, a sync worker, an observer queue drain,
+    # and manual user clicks sharing localhost. Keep production rate limits
+    # intact while giving this controlled devnet explicit local headroom.
+    export WEALL_RL_WRITE_RATE_PER_SEC="${WEALL_RL_WRITE_RATE_PER_SEC:-80}"
+    export WEALL_RL_WRITE_BURST="${WEALL_RL_WRITE_BURST:-240}"
+    export WEALL_RL_READ_RATE_PER_SEC="${WEALL_RL_READ_RATE_PER_SEC:-160}"
+    export WEALL_RL_READ_BURST="${WEALL_RL_READ_BURST:-480}"
     export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE=1
     export WEALL_STATE_SYNC_APPLY_REQUIRE_OPERATOR_TOKEN=1
     export WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE=1
@@ -772,8 +779,8 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_TX_UPSTREAM_REQUIRE_MANIFEST=0
     export WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT=0
     export WEALL_TX_QUEUE_AUTODRAIN=1
-    export WEALL_TX_QUEUE_DRAIN_INTERVAL_S=1
-    export WEALL_TX_QUEUE_DRAIN_BATCH=25
+    export WEALL_TX_QUEUE_DRAIN_INTERVAL_S="${WEALL_TX_QUEUE_DRAIN_INTERVAL_S:-1}"
+    export WEALL_TX_QUEUE_DRAIN_BATCH="${WEALL_TX_QUEUE_DRAIN_BATCH:-25}"
     export WEALL_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
@@ -784,6 +791,13 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_WEBRTC_SIGNAL_PEERS_JSON='[{"node_id":"'"${GENESIS_ACCOUNT}"'","url":"'"${NODE1_API}"'","chain_id":"weall-controlled-devnet","bridge_token":"'"${SYNC_TOKEN}"'"}]'
     export WEALL_WEBRTC_STUN_URLS="${WEALL_WEBRTC_STUN_URLS:-}"
     export WEALL_STATE_RAW_READ_TOKEN="${SYNC_TOKEN}"
+    # Local rehearsal has two frontends, a sync worker, an observer queue drain,
+    # and manual user clicks sharing localhost. Keep production rate limits
+    # intact while giving this controlled devnet explicit local headroom.
+    export WEALL_RL_WRITE_RATE_PER_SEC="${WEALL_RL_WRITE_RATE_PER_SEC:-80}"
+    export WEALL_RL_WRITE_BURST="${WEALL_RL_WRITE_BURST:-240}"
+    export WEALL_RL_READ_RATE_PER_SEC="${WEALL_RL_READ_RATE_PER_SEC:-160}"
+    export WEALL_RL_READ_BURST="${WEALL_RL_READ_BURST:-480}"
     export WEALL_ENABLE_STATE_SYNC_HTTP_REQUEST_ROUTE=1
     export WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN=1
     export WEALL_ENABLE_DEVNET_SYNC_APPLY_ROUTE=1
@@ -826,7 +840,7 @@ if [[ -z "${RECONCILE_PID}" ]]; then
     export OBSERVER_API="${NODE2_API}"
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
-    export WEALL_RECONCILE_POLL_S=1
+    export WEALL_RECONCILE_POLL_S="${WEALL_RECONCILE_POLL_S:-1}"
     exec bash scripts/devnet_observer_tx_queue_reconcile_loop.sh
   ) >"${RECONCILE_LOG}" 2>&1 &
   RECONCILE_PID="$!"

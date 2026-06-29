@@ -230,15 +230,27 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
   const pushPending = useCallback((args: { title: string; message?: string }): string => {
     const id = uid();
+    const now = Date.now();
     const item: TxToastItem = {
       id,
       title: args.title,
       status: "validating",
       message: args.message,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
-    setItems((prev) => [item, ...prev].slice(0, 8));
+    setItems((prev) => {
+      const recentSame = prev.find((existing) =>
+        existing.title === item.title &&
+        existing.status === "failed" &&
+        String(existing.message || "") === String(item.message || "") &&
+        now - Number(existing.updatedAt || existing.createdAt || 0) < 3000,
+      );
+      if (recentSame) {
+        return prev.map((existing) => existing.id === recentSame.id ? { ...existing, updatedAt: now } : existing);
+      }
+      return [item, ...prev].slice(0, 8);
+    });
     return id;
   }, []);
 

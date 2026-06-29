@@ -405,8 +405,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         self._buckets: dict[str, tuple[int, int, int]] = {}
 
-        self._write = write_bucket or TokenBucket(rate_per_sec=4, burst=20)
-        self._read = read_bucket or TokenBucket(rate_per_sec=12, burst=40)
+        # Production defaults stay conservative, but controlled-devnet/local
+        # rehearsals can explicitly raise HTTP headroom without disabling rate
+        # limiting. This prevents local browser polling, observer tx draining, and
+        # state-sync workers from exhausting the same 127.0.0.1 bucket and
+        # surfacing repetitive 429 toasts during manual launch rehearsals.
+        self._write = write_bucket or TokenBucket(
+            rate_per_sec=_env_int("WEALL_RL_WRITE_RATE_PER_SEC", 4),
+            burst=_env_int("WEALL_RL_WRITE_BURST", 20),
+        )
+        self._read = read_bucket or TokenBucket(
+            rate_per_sec=_env_int("WEALL_RL_READ_RATE_PER_SEC", 12),
+            burst=_env_int("WEALL_RL_READ_BURST", 40),
+        )
         self._rules = rules
         self._exempt_prefixes = exempt_prefixes
 

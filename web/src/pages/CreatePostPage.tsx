@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
@@ -226,6 +226,7 @@ export default function CreatePostPage(): JSX.Element {
 
   const [busy, setBusy] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("");
+  const submitInFlightRef = useRef(false);
   const [last, setLast] = useState<any>(null);
   const [createdPostId, setCreatedPostId] = useState<string>("");
   const [uploadInfo, setUploadInfo] = useState<any | null>(null);
@@ -338,6 +339,14 @@ export default function CreatePostPage(): JSX.Element {
   }
 
   async function submit(): Promise<void> {
+    if (submitInFlightRef.current || busy || signerBusyElsewhere) {
+      setErr({
+        msg: "That publish action is already being saved. Let it finish before clicking again.",
+        details: { account: acct, pending_count: signerSubmission.pendingCount },
+      });
+      return;
+    }
+    submitInFlightRef.current = true;
     setErr(null);
     setLast(null);
     setCreatedPostId("");
@@ -743,6 +752,7 @@ export default function CreatePostPage(): JSX.Element {
       }
       setLast(e?.payload || e?.body || e?.data || e);
     } finally {
+      submitInFlightRef.current = false;
       setBusy(false);
     }
   }

@@ -1578,6 +1578,19 @@ class ReputationDeltaApplyPayload(_StrictModel):
     delta_milli: int | None = None
     delta_id: str | None = Field(default=None, min_length=1, )
     reason: str | None = None
+    # The apply path has long consumed these optional provenance fields when
+    # present. Include them in the strict schema so a committed deterministic
+    # SYSTEM reputation tx replays on observer/state-sync nodes instead of
+    # being rejected as invalid_payload.
+    event_code: str | None = None
+    source: str | None = None
+    source_flow: str | None = None
+    source_object_id: str | None = None
+    target_id: str | None = None
+    occurred_at_block: int | None = None
+    occurred_at_time: int | None = None
+    expires_at_optional: int | None = None
+    reversal_of_optional: str | None = None
 
     @model_validator(mode="after")
     def _validate_delta(self) -> "ReputationDeltaApplyPayload":

@@ -79,7 +79,8 @@ export function reviewLaneById(id: string): ReviewLane | undefined {
 export type ReviewLaneStatus = {
   active: boolean;
   optedIn: boolean;
-  label: "Active" | "Opted in, paused/inactive" | "Not opted in";
+  paused: boolean;
+  label: "Active" | "Paused" | "Opted in, activation pending" | "Not opted in";
   tone: "ok" | "warning" | "";
   canOptIn: boolean;
   canOptOut: boolean;
@@ -87,15 +88,20 @@ export type ReviewLaneStatus = {
 
 export function reviewLaneStatusFromTruth(raw: unknown): ReviewLaneStatus {
   const rec = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, any>) : {};
+  const statusText = String(rec.status || "").toLowerCase();
   const active = rec.active === true;
-  const optedIn = rec.opted_in === true || active || String(rec.status || "").toLowerCase().includes("opted_in");
+  const optedIn = rec.opted_in === true || active || statusText.includes("opted_in");
+  const paused = rec.paused === true || rec.suspended === true || rec.disabled === true || !!rec.paused_at_nonce || statusText === "paused" || statusText === "suspended";
   if (active) {
-    return { active: true, optedIn: true, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
+    return { active: true, optedIn: true, paused: false, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
+  }
+  if (optedIn && paused) {
+    return { active: false, optedIn: true, paused: true, label: "Paused", tone: "warning", canOptIn: false, canOptOut: true };
   }
   if (optedIn) {
-    return { active: false, optedIn: true, label: "Opted in, paused/inactive", tone: "warning", canOptIn: false, canOptOut: true };
+    return { active: false, optedIn: true, paused: false, label: "Opted in, activation pending", tone: "warning", canOptIn: false, canOptOut: true };
   }
-  return { active: false, optedIn: false, label: "Not opted in", tone: "", canOptIn: true, canOptOut: false };
+  return { active: false, optedIn: false, paused: false, label: "Not opted in", tone: "", canOptIn: true, canOptOut: false };
 }
 
 export function reviewLaneStatusPillClass(status: ReviewLaneStatus): string {

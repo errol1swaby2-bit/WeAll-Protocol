@@ -108,6 +108,16 @@ export function translateBackendError(error: unknown, fallback = "This action co
     };
   }
 
+  if (includesAny(needle, ["rate_limited", "too many requests", "429"])) {
+    return {
+      code: "rate_limited",
+      title: "Node is catching up",
+      message: "The local node is receiving actions too quickly. Wait a moment for the current action to settle before trying again.",
+      technicalMessage,
+    };
+  }
+
+
   if (includesAny(needle, ["duplicate_submission_blocked", "already submitting", "signer_submission_busy", "signed action", "busy"])) {
     return {
       code: "already_recorded",
