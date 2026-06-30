@@ -9,6 +9,7 @@ import copy
 from typing import Any
 
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
+from weall.runtime.bounded_rollback import run_with_bounded_rollback
 from weall.runtime.domain_dispatch import apply_tx as _apply_tx_internal
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -223,6 +224,41 @@ def apply_tx_atomic_meta(
     return meta
 
 
+
+def apply_tx_atomic_meta_bounded_rollback(
+    state: Json,
+    env: Any,
+    *,
+    consume_nonce_on_fail: bool = False,
+) -> Json | None:
+    """Apply a tx with a touched-key rollback journal instead of full deepcopy.
+
+    This is deliberately exported as an audit/equivalence candidate, not the
+    default consensus execution path. The default remains the proven full-state
+    deepcopy wrapper until every domain applier and helper/replay path is covered
+    by equivalence and adversarial tests.
+    """
+
+    env_norm: Any = env
+    if isinstance(env, dict):
+        env_norm = TxEnvelope.from_json(env)
+
+    _require_valid_signer_format(env_norm)
+
+    try:
+        meta, _journal_records = run_with_bounded_rollback(
+            state, lambda journaled_state: _apply_tx_internal(journaled_state, env_norm)
+        )
+    except ApplyError:
+        if consume_nonce_on_fail:
+            _consume_nonce_if_possible(state, env_norm)
+        raise
+
+    _enforce_nonce_convergence(state, env_norm)
+    _consume_nonce_if_possible(state, env_norm)
+
+    return meta
+
 def apply_tx(state: Json, env: Any) -> Json | None:
     """Apply a tx envelope with consensus-aligned nonce semantics.
 
@@ -246,5 +282,6 @@ __all__ = [
     "apply_tx",
     "apply_tx_atomic",
     "apply_tx_atomic_meta",
+    "apply_tx_atomic_meta_bounded_rollback",
     "Json",
 ]

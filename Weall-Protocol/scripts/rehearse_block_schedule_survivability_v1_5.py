@@ -70,7 +70,7 @@ class PhaseProbe:
 
 
 @contextmanager
-def _patched_block_builder_timing(executor: Any, probe: PhaseProbe):
+def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution_model: str = "deepcopy"):
     """Patch dependency-injection seams to time the exact leader code path.
 
     The runtime already routes extracted block-builder dependencies through
@@ -97,10 +97,15 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe):
     def timed_from_executor(ex: Any) -> Any:
         ctx = old_runtime_context_from_executor(ex)
         old_apply = ctx.tx_execution_set.apply_tx_atomic_meta
+        selected_apply = old_apply
+        if str(execution_model) == "bounded_rollback":
+            from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
+
+            selected_apply = apply_tx_atomic_meta_bounded_rollback
 
         def timed_apply(*args: Any, **kwargs: Any) -> Any:
             with probe.timed("execution_time_ns"):
-                return old_apply(*args, **kwargs)
+                return selected_apply(*args, **kwargs)
 
         tx_set = replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply)
         return replace(ctx, tx_execution_set=tx_set)
@@ -421,12 +426,12 @@ def _state_root(state: Json) -> str:
     return str(compute_state_root(state))
 
 
-def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int) -> Json:
+def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int, execution_model: str = "deepcopy") -> Json:
     probe = PhaseProbe()
     backlog_before = _mempool_size(executor)
     candidate_type_counts = _selected_type_counts(executor, max_txs=max_txs)
     start = time.perf_counter_ns()
-    with _patched_block_builder_timing(executor, probe):
+    with _patched_block_builder_timing(executor, probe, execution_model=execution_model):
         candidate_start = time.perf_counter_ns()
         block, new_state, applied_ids, invalid_ids, err = executor.build_block_candidate(max_txs=int(max_txs), allow_empty=False)
         candidate_ns = time.perf_counter_ns() - candidate_start
@@ -437,6 +442,7 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             "mempool_backlog_before": backlog_before,
             "mempool_backlog_after": _mempool_size(executor),
             "total_block_production_time_ms": _ms(time.perf_counter_ns() - start),
+            "execution_model": str(execution_model),
         }
     commit_start = time.perf_counter_ns()
     meta = executor.commit_block_candidate(block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids)
@@ -451,6 +457,7 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
     receipts = block.get("receipts") if isinstance(block.get("receipts"), list) else []
     return {
         "ok": bool(getattr(meta, "ok", False)),
+        "execution_model": str(execution_model),
         "error": str(getattr(meta, "error", "") or ""),
         "height": int(block.get("height") or 0),
         "block_id": str(block.get("block_id") or ""),
@@ -523,9 +530,10 @@ def _summary(blocks: list[Json]) -> Json:
     }
 
 
-def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool) -> Json:
-    tempdir = tempfile.mkdtemp(prefix=f"weall-block-schedule-{profile}-")
-    chain_id = f"block-schedule-survivability-{profile}"
+def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy") -> Json:
+    execution_model = str(execution_model or "deepcopy")
+    tempdir = tempfile.mkdtemp(prefix=f"weall-block-schedule-{profile}-{execution_model}-")
+    chain_id = f"block-schedule-survivability-{profile}-{execution_model}"
     users = [f"@load{i:03d}" for i in range(max(3, int(users_n)))]
     leader = _make_executor(str(Path(tempdir) / "leader.db"), node_id="@leader", chain_id=chain_id, helper_fast_path=helper_fast_path)
     follower = _make_executor(str(Path(tempdir) / "follower.db"), node_id="@follower", chain_id=chain_id, helper_fast_path=False)
@@ -557,7 +565,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
         for k, v in dict(submit_result.get("accepted_by_type") or {}).items():
             aggregate_submit["accepted_by_type"][k] = int(aggregate_submit["accepted_by_type"].get(k, 0)) + int(v)
 
-        measured = _produce_measured_block(leader, max_txs=max_txs_per_block, target_block_ms=target_block_ms)
+        measured = _produce_measured_block(leader, max_txs=max_txs_per_block, target_block_ms=target_block_ms, execution_model=execution_model)
         measured["block_index"] = block_i
         measured["txs_admitted_this_round"] = int(submit_result.get("admitted") or 0)
         measured["txs_rejected_this_round"] = int(submit_result.get("rejected") or 0)
@@ -601,6 +609,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
         "txs_per_block_feed": int(txs_per_block_feed),
         "target_block_interval_ms": int(target_block_ms),
         "helper_fast_path_requested": bool(helper_fast_path),
+        "execution_model": execution_model,
         "aggregate_submit": aggregate_submit,
         "block_measurements": blocks,
         "latency_summary": _summary(blocks),
@@ -627,31 +636,36 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--txs-per-block-feed", type=int, default=0)
     parser.add_argument("--target-block-ms", type=int, default=DEFAULT_TARGET_BLOCK_MS)
     parser.add_argument("--helper-fast-path", action="store_true")
+    parser.add_argument("--execution-model", choices=["deepcopy", "bounded_rollback", "compare"], default="deepcopy")
     parser.add_argument("--restart-during-load", action="store_true", default=True)
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)
 
     profiles = ["light", "active", "adversarial", "network"] if args.profile == "all" else [args.profile]
+    models = ["deepcopy", "bounded_rollback"] if args.execution_model == "compare" else [args.execution_model]
     results = []
     for profile in profiles:
         defaults = PROFILE_DEFAULTS[profile]
-        results.append(
-            run_profile(
-                profile,
-                users_n=args.users or defaults["users"],
-                blocks_n=args.blocks or defaults["blocks"],
-                max_txs_per_block=args.max_txs_per_block or defaults["max_txs_per_block"],
-                txs_per_block_feed=args.txs_per_block_feed or defaults["txs_per_block_feed"],
-                target_block_ms=args.target_block_ms,
-                helper_fast_path=args.helper_fast_path,
-                restart_during_load=bool(args.restart_during_load),
+        for model in models:
+            results.append(
+                run_profile(
+                    profile,
+                    users_n=args.users or defaults["users"],
+                    blocks_n=args.blocks or defaults["blocks"],
+                    max_txs_per_block=args.max_txs_per_block or defaults["max_txs_per_block"],
+                    txs_per_block_feed=args.txs_per_block_feed or defaults["txs_per_block_feed"],
+                    target_block_ms=args.target_block_ms,
+                    helper_fast_path=args.helper_fast_path,
+                    restart_during_load=bool(args.restart_during_load),
+                    execution_model=model,
+                )
             )
-        )
     artifact: Json = {
         "artifact": "block_schedule_survivability_rehearsal_evidence_v1_5",
         "generated_at_ms": _now_ms(),
         "repo_root": str(REPO_ROOT),
         "budget_artifact": "specs/block_schedule_survivability_budget_v1_5.json",
+        "execution_models": models,
         "profiles": results,
     }
     out = Path(args.out) if args.out else REPO_ROOT / "rehearsal-evidence" / f"block_schedule_survivability_{_now_ms()}.json"

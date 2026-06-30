@@ -28,6 +28,7 @@ from weall.runtime.executor import (
     compute_block_id,
     compute_helper_execution_root,
     compute_receipts_root,
+    compute_recent_block_anchor,
     compute_state_root,
     compute_tx_id,
     constitutional_procedure_height,
@@ -37,6 +38,7 @@ from weall.runtime.executor import (
     is_too_early,
     load_chain_manifest,
     make_block_header,
+    recent_block_ids_from_state,
     make_vrf_record,
     os,
     policy_from_manifest,
@@ -584,6 +586,10 @@ def build_block_candidate(
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)
 
+    recent_block_anchor = compute_recent_block_anchor(
+        block_ids=recent_block_ids_from_state(state=self.state)
+    )
+
     header = make_block_header(
         chain_id=self.chain_id,
         height=new_height,
@@ -594,6 +600,7 @@ def build_block_candidate(
         state_root=state_root,
         helper_execution_root=helper_execution_root or None,
         vrf=vrf,
+        recent_block_anchor=recent_block_anchor,
     )
     block: Json = {
         "block_id": block_id,

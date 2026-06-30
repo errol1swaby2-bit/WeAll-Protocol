@@ -32,10 +32,12 @@ from weall.runtime.executor import (
     compute_block_id,
     compute_helper_execution_root,
     compute_receipts_root,
+    compute_recent_block_anchor,
     compute_state_root,
     copy,
     effective_bft_enabled,
     ensure_block_hash,
+    recent_block_ids_from_state,
     runtime_mode,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
@@ -584,6 +586,19 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if state_root != have_sr:
         return ExecutorMeta(
             ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
+        )
+
+    expected_recent_anchor = compute_recent_block_anchor(
+        block_ids=recent_block_ids_from_state(state=self.state)
+    )
+    have_recent_anchor = str(header.get("recent_block_anchor") or "").strip()
+    if not have_recent_anchor:
+        return ExecutorMeta(
+            ok=False, error="bad_block:missing_recent_block_anchor", height=0, block_id=""
+        )
+    if have_recent_anchor != expected_recent_anchor:
+        return ExecutorMeta(
+            ok=False, error="bad_block:recent_block_anchor_mismatch", height=0, block_id=""
         )
 
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
