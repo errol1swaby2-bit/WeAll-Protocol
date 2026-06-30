@@ -1,0 +1,39 @@
+{
+  "artifact": "block_schedule_survivability_budget_v1_5",
+  "version": "1.0",
+  "chain_profile": "weall-v1.5-public-testnet-production-readiness",
+  "target_block_interval_ms": 20000,
+  "source_of_truth": [
+    "configs/prod.chain.json:block_interval_ms",
+    "src/weall/services/block_producer.py:_load_cfg",
+    "src/weall/runtime/block_loop.py:block_loop"
+  ],
+  "phase_budget_ms": {
+    "mempool_selection": 500,
+    "proposal_construction_and_canonicalization": 400,
+    "block_admission_validation": 800,
+    "transaction_execution": 10000,
+    "helper_planning_non_authoritative": 750,
+    "deterministic_merge": 250,
+    "state_root_and_receipts_root": 1500,
+    "persistence_commit": 1000,
+    "consensus_network_propagation": 4000,
+    "api_index_refresh": 500,
+    "safety_buffer": 300
+  },
+  "total_budget_ms": 20000,
+  "hard_rules": [
+    "Do not change consensus semantics to meet the budget.",
+    "Do not skip receipts, state roots, validation, replay protection, or persistence.",
+    "Helper execution is evidence/acceleration only; serial execution remains authoritative.",
+    "Backpressure must be deterministic and must use public failure codes.",
+    "Malformed transactions must be rejected before expensive execution paths."
+  ],
+  "public_testnet_initial_recommended_limits": {
+    "max_txs_per_block_until_measured_active_profile_passes": 250,
+    "max_pending_txs_default_current_code": 50000,
+    "max_pending_txs_per_signer_default_current_code": 2000,
+    "require_profile_specific_rehearsal_before_raising_max_txs_per_block": true,
+    "require_adversarial_valid_load_profile_before_public_unbounded_signup": true
+  }
+}
