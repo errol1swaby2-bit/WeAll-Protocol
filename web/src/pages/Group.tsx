@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl, weall } from "../api/weall";
+import { api, getApiBaseUrl, weall, type GroupGovernanceContract } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -43,6 +43,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [members, setMembers] = useState<any[]>([]);
   const [groupPosts, setGroupPosts] = useState<any[]>([]);
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
+  const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
@@ -88,6 +89,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembershipStatus(r || null);
     } catch {
       setMembershipStatus(null);
+      setGovernanceContract(null);
     }
   }
 
@@ -97,6 +99,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembers([]);
       setGroupPosts([]);
       setMembershipStatus(null);
+      setGovernanceContract(null);
       return;
     }
 
@@ -107,6 +110,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
 
       const m: any = await api.groups.members(selected, base).catch(() => ({ members: [] }));
       setMembers(Array.isArray(m?.members) ? m.members : []);
+      const contract: GroupGovernanceContract | null = await weall.groupGovernanceContract(selected, base).catch(() => null);
+      setGovernanceContract(contract);
       const feedHeaders = acct ? getAuthHeaders(acct) : undefined;
       const feedRes: any = await weall.groupFeed(selected, { limit: 6 }, base, feedHeaders).catch(() => ({ items: [] }));
       setGroupPosts(Array.isArray(feedRes?.items) ? feedRes.items.slice(0, 6) : []);
@@ -117,6 +122,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembers([]);
       setGroupPosts([]);
       setMembershipStatus(null);
+      setGovernanceContract(null);
     }
   }
 
@@ -291,6 +297,10 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const isMember =
     (!!acct && !!membershipStatus?.is_member) ||
     (!!acct && members.some((m: any) => String(m?.account || "").toLowerCase() === String(acct).toLowerCase()));
+  const groupGovernanceModel = String(governanceContract?.governance_model || "protocol_governance_scaled_to_group_scope");
+  const groupReadVisibility = String(governanceContract?.public_only_contract?.read_visibility || "public");
+  const adminShortcutsSupported = governanceContract?.authority_contract?.admin_shortcuts_supported === true;
+  const permissionSummary = governanceContract?.participation_permissions || {};
 
   return (
     <div className="pageStack groupDetailPage">
@@ -357,6 +367,44 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
         </div>
       </section>
+
+      <section className="card" aria-label="Group governance contract">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Group governance contract</div>
+              <h2 className="cardTitle">Protocol governance scaled to group scope</h2>
+              <div className="cardDesc">
+                This is a public derived read model. It does not grant authority; it explains how this group surface maps reads, membership, actions, and audit trails.
+              </div>
+            </div>
+          </div>
+          <div className="surfaceBoundaryList">
+            <span className="surfaceBoundaryTag">Model: {groupGovernanceModel.replace(/_/g, " ")}</span>
+            <span className="surfaceBoundaryTag">Reads: {groupReadVisibility}</span>
+            <span className="surfaceBoundaryTag">Admin shortcuts: {adminShortcutsSupported ? "unsupported contract violated" : "not exposed"}</span>
+            <span className="surfaceBoundaryTag">Frontend cache authority: never</span>
+          </div>
+          <div className="detailFocusStrip actionFocusStrip">
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Public-only rule</div>
+              <div className="detailFocusValue">Read access is public</div>
+              <div className="detailFocusText">Group membership may gate posting, commenting, voting, moderation, invitation, and administration, but not reading protocol-native group content.</div>
+            </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Participation gates</div>
+              <div className="detailFocusValue">{String(permissionSummary.post || "members")} posting</div>
+              <div className="detailFocusText">Comment: {String(permissionSummary.comment || "members")} · Vote: {String(permissionSummary.vote || "members")} · Moderate: {String(permissionSummary.moderate || "moderators")}.</div>
+            </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Audit trail</div>
+              <div className="detailFocusValue">Receipts inspectable</div>
+              <div className="detailFocusText">Membership changes are signed transactions; use transaction status and this group feed/members view to inspect the public result.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
 
       <section className="detailFocusStrip" aria-label="Group detail posture">
         <article className="detailFocusCard">

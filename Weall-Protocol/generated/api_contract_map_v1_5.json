@@ -8,7 +8,7 @@
     "disputes": 8,
     "economics": 5,
     "gov": 3,
-    "groups": 8,
+    "groups": 9,
     "health": 3,
     "helper_readiness": 1,
     "media": 6,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 144,
+  "route_count": 145,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -914,7 +914,7 @@
       "route_id": "29efd6a28c8692ed",
       "route_path_without_v1_prefix": "/groups",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 274,
+      "source_lineno": 390,
       "summary": "",
       "tags": [
         "groups"
@@ -936,7 +936,7 @@
       "route_id": "cdb02f51a1bac5b7",
       "route_path_without_v1_prefix": "/groups/join",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 392,
+      "source_lineno": 517,
       "summary": "",
       "tags": [
         "groups"
@@ -958,7 +958,7 @@
       "route_id": "88c87869abd7ebbd",
       "route_path_without_v1_prefix": "/groups/leave",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 422,
+      "source_lineno": 547,
       "summary": "",
       "tags": [
         "groups"
@@ -980,7 +980,7 @@
       "route_id": "d2252da524964f65",
       "route_path_without_v1_prefix": "/groups/{group_id}",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 312,
+      "source_lineno": 428,
       "summary": "",
       "tags": [
         "groups"
@@ -1002,7 +1002,7 @@
       "route_id": "e91c601cbde31684",
       "route_path_without_v1_prefix": "/groups/{group_id}/content",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 449,
+      "source_lineno": 574,
       "summary": "",
       "tags": [
         "groups"
@@ -1024,12 +1024,34 @@
       "route_id": "082e36186a8bca97",
       "route_path_without_v1_prefix": "/groups/{group_id}/feed",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 509,
+      "source_lineno": 634,
       "summary": "",
       "tags": [
         "groups"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_group_governance_contract",
+      "cache_policy": "no_store_dynamic_public_group_governance_read_model",
+      "error_model": "standard_api_error_envelope_or_group_governance_contract_payload",
+      "function": "v1_group_governance_contract",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "GET",
+      "module": "groups",
+      "path": "/v1/groups/{group_id}/governance-contract",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "route_id": "3b9f1f7e577020e3",
+      "route_path_without_v1_prefix": "/groups/{group_id}/governance-contract",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 444,
+      "summary": "",
+      "tags": [
+        "groups"
+      ],
+      "truth_boundary": "Group governance contract is a public derived/indexed read model over committed group state. It explains group-scope governance/public-read/action-gate boundaries and grants no authority."
     },
     {
       "auth": "public_read_redacted_snapshot",
@@ -1046,7 +1068,7 @@
       "route_id": "3b69ac9b201cc37e",
       "route_path_without_v1_prefix": "/groups/{group_id}/members",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 339,
+      "source_lineno": 464,
       "summary": "",
       "tags": [
         "groups"
@@ -1068,7 +1090,7 @@
       "route_id": "476f099dcce4f6d4",
       "route_path_without_v1_prefix": "/groups/{group_id}/membership",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 328,
+      "source_lineno": 453,
       "summary": "",
       "tags": [
         "groups"

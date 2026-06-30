@@ -184,7 +184,7 @@
       "http_status": 400,
       "sample_reason": "Group read visibility must be public.",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 463
+      "source_lineno": 588
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -355,7 +355,7 @@
       "http_status": 400,
       "sample_reason": "missing group_id",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 403
+      "source_lineno": 528
     },
     {
       "code": "bad_request",
@@ -1453,7 +1453,7 @@
       "http_status": 404,
       "sample_reason": "Group not found",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 343
+      "source_lineno": 448
     },
     {
       "code": "not_found",

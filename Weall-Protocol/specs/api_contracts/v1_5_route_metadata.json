@@ -37,6 +37,14 @@
       "idempotency": "safe_ranked_public_read_no_state_mutation",
       "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
     },
+    "GET /v1/groups/{group_id}/governance-contract": {
+      "auth": "public_read_group_governance_contract",
+      "cache_policy": "no_store_dynamic_public_group_governance_read_model",
+      "error_model": "standard_api_error_envelope_or_group_governance_contract_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Group governance contract is a public derived/indexed read model over committed group state. It explains group-scope governance/public-read/action-gate boundaries and grants no authority."
+    },
     "GET /v1/metrics": {
       "auth": "metrics_env_gated_public_when_enabled",
       "cache_policy": "no_store_metrics_snapshot",

@@ -190,6 +190,122 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
     }
 
 
+def _normalize_group_permission(value: Any, *, default: str) -> str:
+    raw = _str_param(value).strip().lower().replace("-", "_")
+    if raw in {"public", "anyone", "all", "open"}:
+        return "public"
+    if raw in {"member", "members", "member" + "s_only", "membership", "member_only"}:
+        return "members"
+    if raw in {"moderator", "moderators"}:
+        return "moderators"
+    if raw in {"admin", "admins", "administrator", "administrators"}:
+        return "admins"
+    return default
+
+
+def _as_public_list(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        return sorted([_str_param(k).strip() for k in value.keys() if _str_param(k).strip()])
+    if isinstance(value, list):
+        return sorted({_str_param(item).strip() for item in value if _str_param(item).strip()})
+    return []
+
+
+def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, group: dict[str, Any]) -> dict[str, Any]:
+    """Return the public product contract for group authority and reads.
+
+    This is a derived/indexed view only.  It does not grant authority and does
+    not mutate state.  It gives the UI a single backend source of truth for the
+    group-as-governance-scope explanation so the frontend does not invent role
+    semantics or accidentally describe group powers as private admin controls.
+    """
+
+    permissions = group.get("permissions") if isinstance(group.get("permissions"), dict) else {}
+    roles = group.get("roles") if isinstance(group.get("roles"), dict) else {}
+    members = group.get("members") if isinstance(group.get("members"), dict) else {}
+    membership_requests = group.get("membership_requests") if isinstance(group.get("membership_requests"), dict) else {}
+    signers = _as_public_list(group.get("signers") or roles.get("signers"))
+    moderators = _as_public_list(group.get("moderators") or roles.get("moderators"))
+    threshold = _int_param(group.get("threshold"), 0)
+    if threshold <= 0 and signers:
+        threshold = (len(signers) // 2) + 1
+
+    elections_root = st.get("group_emissary_elections")
+    active_elections: list[dict[str, Any]] = []
+    if isinstance(elections_root, dict):
+        for election_id, election in elections_root.items():
+            if not isinstance(election, dict):
+                continue
+            if _str_param(election.get("group_id")).strip() != group_id:
+                continue
+            if _str_param(election.get("status")).strip().lower() != "open":
+                continue
+            active_elections.append({
+                "election_id": _str_param(election.get("election_id") or election.get("id") or election_id).strip(),
+                "status": "open",
+                "candidate_count": len(election.get("candidates") if isinstance(election.get("candidates"), list) else []),
+            })
+
+    public_inspection_routes = {
+        "group": f"/v1/groups/{group_id}",
+        "membership": f"/v1/groups/{group_id}/membership",
+        "members": f"/v1/groups/{group_id}/members",
+        "feed": f"/v1/groups/{group_id}/feed",
+        "content": f"/v1/groups/{group_id}/content",
+        "tx_status": "/v1/tx/status/{tx_id}",
+    }
+
+    return {
+        "ok": True,
+        "group_id": group_id,
+        "object_classification": "public_derived_index_view",
+        "governance_model": "protocol_governance_scaled_to_group_scope",
+        "public_only_contract": {
+            "read_visibility": "public",
+            "content_read_gated_by_membership": False,
+            "membership_may_gate": ["posting", "commenting", "voting", "moderation", "invitation", "administration"],
+            "membership_must_not_gate": ["reading_protocol_native_group_content"],
+            "private_groups_supported": False,
+            "member_only_read_supported": False,
+            "encrypted_group_payloads_supported": False,
+        },
+        "authority_contract": {
+            "admin_shortcuts_supported": False,
+            "authority_source": "public_group_scope_transactions_and_public_group_governance_state",
+            "role_mutations_are_public": True,
+            "frontend_caches_are_authoritative": False,
+            "frontend_note": "Describe group authority as group-scope governance, not private admin power.",
+            "active_group_elections": active_elections,
+            "signer_threshold": threshold if threshold > 0 else None,
+            "signer_count": len(signers),
+            "moderator_count": len(moderators),
+        },
+        "participation_permissions": {
+            "read": "public",
+            "post": _normalize_group_permission(permissions.get("post"), default="members"),
+            "comment": _normalize_group_permission(permissions.get("comment"), default="members"),
+            "vote": _normalize_group_permission(permissions.get("vote"), default="members"),
+            "moderate": _normalize_group_permission(permissions.get("moderate"), default="moderators"),
+            "admin": _normalize_group_permission(permissions.get("admin"), default="admins"),
+        },
+        "counts": {
+            "members": len(members),
+            "membership_requests": len(membership_requests),
+            "signers": len(signers),
+            "moderators": len(moderators),
+            "active_elections": len(active_elections),
+        },
+        "tx_entrypoints": {
+            "request_membership": {"route": "/v1/groups/join", "tx_type": "GROUP_MEMBERSHIP_REQUEST", "state_effect": "public group membership/participation eligibility"},
+            "leave_membership": {"route": "/v1/groups/leave", "tx_type": "GROUP_MEMBERSHIP_REMOVE", "state_effect": "public group membership/participation eligibility"},
+            "create_group": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_CREATE", "state_effect": "public group charter"},
+            "group_election_create": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_ELECTION_CREATE", "state_effect": "public group-scope governance election"},
+            "group_ballot_cast": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_BALLOT_CAST", "state_effect": "public group-scope governance vote"},
+        },
+        "inspection_routes": public_inspection_routes,
+    }
+
+
 def _require_group_access(
     request: Request, st: dict[str, Any], *, group_id: str, group_meta: dict[str, Any]
 ) -> str:
@@ -322,6 +438,15 @@ def v1_group_get(group_id: str, request: Request):
         account = None
 
     return {"ok": True, "group": _redact_group_membership_maps(g), "membership": _membership_status(st, group_id=group_id, account=account)}
+
+
+@router.get("/groups/{group_id}/governance-contract")
+def v1_group_governance_contract(group_id: str, request: Request):
+    st = _snapshot(request)
+    g = _group_record(st, group_id)
+    if not isinstance(g, dict):
+        raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
+    return _public_group_governance_contract(st, group_id=group_id, group=g)
 
 
 @router.get("/groups/{group_id}/membership")

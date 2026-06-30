@@ -270,6 +270,37 @@ export type StatusResponse = {
   tip?: string;
 };
 
+export type GroupGovernanceContract = {
+  ok?: boolean;
+  group_id?: string;
+  object_classification?: string;
+  governance_model?: string;
+  public_only_contract?: {
+    read_visibility?: string;
+    content_read_gated_by_membership?: boolean;
+    membership_may_gate?: string[];
+    membership_must_not_gate?: string[];
+    private_groups_supported?: boolean;
+    member_only_read_supported?: boolean;
+    encrypted_group_payloads_supported?: boolean;
+  };
+  authority_contract?: {
+    admin_shortcuts_supported?: boolean;
+    authority_source?: string;
+    role_mutations_are_public?: boolean;
+    frontend_caches_are_authoritative?: boolean;
+    frontend_note?: string;
+    active_group_elections?: Array<Record<string, unknown>>;
+    signer_threshold?: number | null;
+    signer_count?: number;
+    moderator_count?: number;
+  };
+  participation_permissions?: Record<string, string>;
+  counts?: Record<string, number>;
+  tx_entrypoints?: Record<string, Record<string, string>>;
+  inspection_routes?: Record<string, string>;
+};
+
 export type FeedItem = {
   cid?: string;
   tx_id?: string;
@@ -835,6 +866,11 @@ export const weall = {
     );
   },
 
+  groupGovernanceContract(id: string, base?: string, headers?: HeadersInit): Promise<GroupGovernanceContract> {
+    return apiGet(`/v1/groups/${encodeURIComponent(id)}/governance-contract`, base, headers);
+  },
+
+
   socialFollowing(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/social/${encodeURIComponent(account)}/following`, base, headers);
   },
@@ -1028,6 +1064,9 @@ export const api = {
     },
     get(id: string, base?: string, headers?: HeadersInit) {
       return apiGet(`/v1/groups/${encodeURIComponent(id)}`, base, headers);
+    },
+    governanceContract(id: string, base?: string, headers?: HeadersInit) {
+      return apiGet(`/v1/groups/${encodeURIComponent(id)}/governance-contract`, base, headers);
     },
     members(id: string, base?: string, headers?: HeadersInit) {
       return apiGet(`/v1/groups/${encodeURIComponent(id)}/members`, base, headers);
