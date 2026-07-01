@@ -45,6 +45,24 @@ PROFILE_TIMING_FIELDS = [
     "evidence_write_wall_ms",
 ]
 
+TX_LOOP_MICROPHASE_FIELDS = [
+    "leader_tx_decode_or_normalize_wall_ms",
+    "leader_tx_id_or_hash_wall_ms",
+    "leader_domain_dispatch_wall_ms",
+    "leader_domain_apply_wall_ms",
+    "leader_rollback_tracking_wall_ms",
+    "follower_tx_decode_or_normalize_wall_ms",
+    "follower_tx_id_or_hash_wall_ms",
+    "follower_domain_dispatch_wall_ms",
+    "follower_domain_apply_wall_ms",
+    "follower_rollback_tracking_wall_ms",
+    "slow_observer_tx_decode_or_normalize_wall_ms",
+    "slow_observer_tx_id_or_hash_wall_ms",
+    "slow_observer_domain_dispatch_wall_ms",
+    "slow_observer_domain_apply_wall_ms",
+    "slow_observer_rollback_tracking_wall_ms",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -66,6 +84,7 @@ BLOCK_TIMING_FIELDS = [
     "block_decode_or_materialize_wall_ms",
     "replay_admission_wall_ms",
     "rollback_journal_snapshot_wall_ms",
+    *TX_LOOP_MICROPHASE_FIELDS,
 ]
 
 
@@ -127,6 +146,10 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     for field in BLOCK_TIMING_FIELDS:
         assert field in block
         _assert_non_negative_number(block[field])
+    assert block["leader_domain_apply_wall_ms"] >= 0
+    assert block["leader_domain_dispatch_wall_ms"] >= 0
+    assert block["follower_domain_apply_wall_ms"] >= 0
+    assert block["slow_observer_domain_apply_wall_ms"] >= 0
     assert "execution_time_ms" in block
     assert "state_root_time_ms" in block
     assert "persistence_time_ms" in block

@@ -86,6 +86,24 @@ MEMPOOL_SUBMIT_TIMING_FIELDS = [
     "tx_duplicate_check_wall_ms",
 ]
 
+TX_LOOP_MICROPHASE_FIELDS = [
+    "leader_tx_decode_or_normalize_wall_ms",
+    "leader_tx_id_or_hash_wall_ms",
+    "leader_domain_dispatch_wall_ms",
+    "leader_domain_apply_wall_ms",
+    "leader_rollback_tracking_wall_ms",
+    "follower_tx_decode_or_normalize_wall_ms",
+    "follower_tx_id_or_hash_wall_ms",
+    "follower_domain_dispatch_wall_ms",
+    "follower_domain_apply_wall_ms",
+    "follower_rollback_tracking_wall_ms",
+    "slow_observer_tx_decode_or_normalize_wall_ms",
+    "slow_observer_tx_id_or_hash_wall_ms",
+    "slow_observer_domain_dispatch_wall_ms",
+    "slow_observer_domain_apply_wall_ms",
+    "slow_observer_rollback_tracking_wall_ms",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -107,6 +125,7 @@ BLOCK_TIMING_FIELDS = [
     "block_decode_or_materialize_wall_ms",
     "replay_admission_wall_ms",
     "rollback_journal_snapshot_wall_ms",
+    *TX_LOOP_MICROPHASE_FIELDS,
 ]
 
 
@@ -155,6 +174,32 @@ def _top_bottleneck_phases(entries: list[tuple[str, Any]], *, limit: int = 5) ->
     return {"top_5": phases[: int(limit)]}
 
 
+def _domain_dispatch_ms(probe: PhaseProbe, prefix: str) -> float:
+    total = float(probe.ms(f"{prefix}_domain_dispatch_total_time_ns") or 0.0)
+    apply = float(probe.ms(f"{prefix}_domain_apply_time_ns") or 0.0)
+    return round(max(0.0, total - apply), 3)
+
+
+def _tx_loop_microphase_values(probe: PhaseProbe, prefix: str) -> Json:
+    return {
+        f"{prefix}_tx_decode_or_normalize_wall_ms": probe.ms(f"{prefix}_tx_decode_or_normalize_time_ns"),
+        f"{prefix}_tx_id_or_hash_wall_ms": probe.ms(f"{prefix}_tx_id_or_hash_time_ns"),
+        f"{prefix}_domain_dispatch_wall_ms": _domain_dispatch_ms(probe, prefix),
+        f"{prefix}_domain_apply_wall_ms": probe.ms(f"{prefix}_domain_apply_time_ns"),
+        f"{prefix}_rollback_tracking_wall_ms": probe.ms(f"{prefix}_rollback_tracking_time_ns"),
+    }
+
+
+def _zero_tx_loop_microphase_values(prefix: str) -> Json:
+    return {
+        f"{prefix}_tx_decode_or_normalize_wall_ms": 0.0,
+        f"{prefix}_tx_id_or_hash_wall_ms": 0.0,
+        f"{prefix}_domain_dispatch_wall_ms": 0.0,
+        f"{prefix}_domain_apply_wall_ms": 0.0,
+        f"{prefix}_rollback_tracking_wall_ms": 0.0,
+    }
+
+
 def _profile_bottleneck_summary(profile: Json) -> Json:
     entries: list[tuple[str, Any]] = []
     for field in PROFILE_TIMING_FIELDS:
@@ -182,6 +227,80 @@ def _artifact_bottleneck_summary(profiles: list[Json], *, evidence_write_wall_ms
 
 
 @contextmanager
+def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
+    """Measure tx-loop microphases inside domain apply without changing semantics.
+
+    The harness patches module-level dependency seams only while producing or
+    replaying one block.  It does not alter production routing or consensus
+    behavior; it records where the already-authoritative serial tx loop spends
+    time.
+    """
+
+    import weall.runtime.bounded_rollback as bounded_rollback
+    import weall.runtime.domain_apply as domain_apply
+    import weall.runtime.domain_dispatch as domain_dispatch
+
+    prefix = str(role or "leader")
+    old_apply_internal = domain_apply._apply_tx_internal
+    old_tx_envelope = domain_apply.TxEnvelope
+    old_resolve_applier = domain_dispatch.resolve_applier_for_tx_type
+    old_record_dict_key = bounded_rollback.RollbackJournal.record_dict_key
+    old_record_list_state = bounded_rollback.RollbackJournal.record_list_state
+
+    class TimedTxEnvelope:
+        @staticmethod
+        def from_json(*args: Any, **kwargs: Any) -> Any:
+            with probe.timed(f"{prefix}_tx_decode_or_normalize_time_ns"):
+                return old_tx_envelope.from_json(*args, **kwargs)
+
+    def timed_resolve_applier(tx_type: str) -> Any:
+        routed = old_resolve_applier(tx_type)
+        if routed is None:
+            return None
+
+        def timed_routed(state: Json, env: Any) -> Any:
+            with probe.timed(f"{prefix}_domain_apply_time_ns"):
+                return routed(state, env)
+
+        try:
+            timed_routed.__name__ = getattr(routed, "__name__", "timed_routed")
+        except Exception:
+            pass
+        return timed_routed
+
+    def timed_apply_internal(*args: Any, **kwargs: Any) -> Any:
+        # Time the full dispatch path.  The actual domain handler is timed
+        # separately by timed_resolve_applier; evidence reports dispatch as
+        # full-dispatch-minus-handler to avoid double-counting domain apply.
+        with probe.timed(f"{prefix}_domain_dispatch_total_time_ns"):
+            return old_apply_internal(*args, **kwargs)
+
+    def timed_record_dict_key(self: Any, *args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_rollback_tracking_time_ns"):
+            with probe.timed("rollback_journal_snapshot_time_ns"):
+                return old_record_dict_key(self, *args, **kwargs)
+
+    def timed_record_list_state(self: Any, *args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_rollback_tracking_time_ns"):
+            with probe.timed("rollback_journal_snapshot_time_ns"):
+                return old_record_list_state(self, *args, **kwargs)
+
+    domain_apply.TxEnvelope = TimedTxEnvelope
+    domain_apply._apply_tx_internal = timed_apply_internal
+    domain_dispatch.resolve_applier_for_tx_type = timed_resolve_applier
+    bounded_rollback.RollbackJournal.record_dict_key = timed_record_dict_key
+    bounded_rollback.RollbackJournal.record_list_state = timed_record_list_state
+    try:
+        yield
+    finally:
+        domain_apply.TxEnvelope = old_tx_envelope
+        domain_apply._apply_tx_internal = old_apply_internal
+        domain_dispatch.resolve_applier_for_tx_type = old_resolve_applier
+        bounded_rollback.RollbackJournal.record_dict_key = old_record_dict_key
+        bounded_rollback.RollbackJournal.record_list_state = old_record_list_state
+
+
+@contextmanager
 def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution_model: str = "deepcopy"):
     """Patch dependency-injection seams to time the exact leader code path.
 
@@ -196,6 +315,7 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
     old_compute_state_root = block_builder.compute_state_root
     old_admit_block_txs = block_builder.admit_block_txs
     old_compute_receipts_root = block_builder.compute_receipts_root
+    old_compute_tx_id = block_builder.compute_tx_id
     old_tx_envelope = block_builder.TxEnvelope
     old_runtime_context_from_executor = block_builder.RuntimeContext.from_executor
     old_runtime_context_module_from_executor = runtime_context.RuntimeContext.from_executor
@@ -214,11 +334,16 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
         with probe.timed("leader_receipt_build_time_ns"):
             return old_compute_receipts_root(*args, **kwargs)
 
+    def timed_compute_tx_id(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed("leader_tx_id_or_hash_time_ns"):
+            return old_compute_tx_id(*args, **kwargs)
+
     class TimedTxEnvelope:
         @staticmethod
         def from_json(*args: Any, **kwargs: Any) -> Any:
             with probe.timed("block_decode_or_materialize_time_ns"):
-                return old_tx_envelope.from_json(*args, **kwargs)
+                with probe.timed("leader_tx_decode_or_normalize_time_ns"):
+                    return old_tx_envelope.from_json(*args, **kwargs)
 
     def timed_from_executor(ex: Any) -> Any:
         ctx = old_runtime_context_from_executor(ex)
@@ -251,18 +376,23 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
     block_builder.compute_state_root = timed_compute_state_root
     block_builder.admit_block_txs = timed_admit_block_txs
     block_builder.compute_receipts_root = timed_compute_receipts_root
+    block_builder.compute_tx_id = timed_compute_tx_id
     block_builder.TxEnvelope = TimedTxEnvelope
     block_builder.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     # Keep runtime_context patched too for extracted callers that import it directly.
     runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     if old_helper_meta is not None:
         setattr(executor, "_build_helper_execution_metadata", timed_helper_meta)
+    domain_microphase_cm = _patched_domain_apply_microphase_timing(probe, role="leader")
+    domain_microphase_cm.__enter__()
     try:
         yield
     finally:
+        domain_microphase_cm.__exit__(None, None, None)
         block_builder.compute_state_root = old_compute_state_root
         block_builder.admit_block_txs = old_admit_block_txs
         block_builder.compute_receipts_root = old_compute_receipts_root
+        block_builder.compute_tx_id = old_compute_tx_id
         block_builder.TxEnvelope = old_tx_envelope
         block_builder.RuntimeContext.from_executor = old_runtime_context_from_executor
         runtime_context.RuntimeContext.from_executor = old_runtime_context_module_from_executor
@@ -301,7 +431,8 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
         @staticmethod
         def from_json(*args: Any, **kwargs: Any) -> Any:
             with probe.timed("block_decode_or_materialize_time_ns"):
-                return old_tx_envelope.from_json(*args, **kwargs)
+                with probe.timed(f"{prefix}_tx_decode_or_normalize_time_ns"):
+                    return old_tx_envelope.from_json(*args, **kwargs)
 
     def timed_from_executor(ex: Any) -> Any:
         ctx = old_runtime_context_from_executor(ex)
@@ -319,9 +450,12 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     block_replay.TxEnvelope = TimedTxEnvelope
     block_replay.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
+    domain_microphase_cm = _patched_domain_apply_microphase_timing(probe, role=prefix)
+    domain_microphase_cm.__enter__()
     try:
         yield
     finally:
+        domain_microphase_cm.__exit__(None, None, None)
         block_replay.compute_state_root = old_compute_state_root
         block_replay.admit_block_txs = old_admit_block_txs
         block_replay.compute_receipts_root = old_compute_receipts_root
@@ -715,6 +849,9 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
             "replay_admission_wall_ms": 0.0,
             "rollback_journal_snapshot_wall_ms": 0.0,
+            **_tx_loop_microphase_values(probe, "leader"),
+            **_zero_tx_loop_microphase_values("follower"),
+            **_zero_tx_loop_microphase_values("slow_observer"),
             **_tx_count_semantics(requested_limit=int(max_txs), selected_candidate_count=sum(int(v) for v in candidate_type_counts.values()), included_count=0),
             "total_block_production_time_ms": _ms(time.perf_counter_ns() - start),
             "execution_model": str(execution_model),
@@ -778,6 +915,9 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
         "replay_admission_wall_ms": 0.0,
         "rollback_journal_snapshot_wall_ms": 0.0,
+        **_tx_loop_microphase_values(probe, "leader"),
+        **_zero_tx_loop_microphase_values("follower"),
+        **_zero_tx_loop_microphase_values("slow_observer"),
         **tx_count_semantics,
         "proposal_construction_time_ms": max(
             0.0,
@@ -823,7 +963,20 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
         "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
         "replay_admission_wall_ms": probe.ms("replay_admission_time_ns"),
         "rollback_journal_snapshot_wall_ms": probe.ms("rollback_journal_snapshot_time_ns"),
+        "tx_decode_or_normalize_wall_ms": probe.ms(f"{role}_tx_decode_or_normalize_time_ns"),
+        "tx_id_or_hash_wall_ms": probe.ms(f"{role}_tx_id_or_hash_time_ns"),
+        "domain_dispatch_wall_ms": _domain_dispatch_ms(probe, role),
+        "domain_apply_wall_ms": probe.ms(f"{role}_domain_apply_time_ns"),
+        "rollback_tracking_wall_ms": probe.ms(f"{role}_rollback_tracking_time_ns"),
     }
+
+
+def _copy_replay_microphases(block: Json, replay_result: Json, *, prefix: str) -> None:
+    block[f"{prefix}_tx_decode_or_normalize_wall_ms"] = _phase_value_ms(replay_result.get("tx_decode_or_normalize_wall_ms"))
+    block[f"{prefix}_tx_id_or_hash_wall_ms"] = _phase_value_ms(replay_result.get("tx_id_or_hash_wall_ms"))
+    block[f"{prefix}_domain_dispatch_wall_ms"] = _phase_value_ms(replay_result.get("domain_dispatch_wall_ms"))
+    block[f"{prefix}_domain_apply_wall_ms"] = _phase_value_ms(replay_result.get("domain_apply_wall_ms"))
+    block[f"{prefix}_rollback_tracking_wall_ms"] = _phase_value_ms(replay_result.get("rollback_tracking_wall_ms"))
 
 
 def _summary(blocks: list[Json]) -> Json:
@@ -921,6 +1074,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             measured["block_decode_or_materialize_wall_ms"] = round(float(measured.get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(fr.get("block_decode_or_materialize_wall_ms")), 3)
             measured["replay_admission_wall_ms"] = round(float(measured.get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(fr.get("replay_admission_wall_ms")), 3)
             measured["rollback_journal_snapshot_wall_ms"] = round(float(measured.get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(fr.get("rollback_journal_snapshot_wall_ms")), 3)
+            _copy_replay_microphases(measured, fr, prefix="follower")
             follower_results.append(fr)
             slow_queue.append((block_i, block_obj))
             if len(slow_queue) >= 2:
@@ -935,6 +1089,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                     blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
                     blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
                     blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                    _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
 
             if restart_during_load and block_i == int(blocks_n) // 2:
                 with profile_probe.timed("restart_replay_wall_ns"):
@@ -954,6 +1109,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
                 blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
                 blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
     leader_root = _state_root(leader.read_state())
     follower_root = _state_root(follower.read_state())
     slow_root = _state_root(slow_observer.read_state())

@@ -214,11 +214,13 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     invalid_ids: list[str] = []
     receipts: list[Json] = []
     env_objs: list[TxEnvelope] = []
+    env_parse_ok: list[bool] = []
     tx_ids: list[str] = []
 
     for env in txs:
         if not isinstance(env, dict):
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
             tx_ids.append("")
             continue
 
@@ -226,8 +228,10 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         tx_ids.append(tx_id)
         try:
             env_objs.append(TxEnvelope.from_json(env))
+            env_parse_ok.append(True)
         except Exception:
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
 
     # Inclusion gates (fail-closed)
     ledger_for_block = LedgerView.from_ledger(working)
@@ -258,7 +262,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     post_ran = False
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
         if not post_ran and bool(getattr(env_obj, "system", False)):
             try:
                 payload = env.get("payload") if isinstance(env, dict) else None
@@ -382,7 +386,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False

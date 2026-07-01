@@ -285,11 +285,13 @@ def build_block_candidate(
 
     # Parse envelopes
     env_objs: list[TxEnvelope] = []
+    env_parse_ok: list[bool] = []
     tx_ids: list[str] = []
 
     for env in txs:
         if not isinstance(env, dict):
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
             tx_ids.append("")
             continue
 
@@ -298,8 +300,10 @@ def build_block_candidate(
 
         try:
             env_objs.append(TxEnvelope.from_json(env))
+            env_parse_ok.append(True)
         except Exception:
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
 
     # Block-level + per-tx admission for inclusion
     #
@@ -329,7 +333,7 @@ def build_block_candidate(
     # deterministically within this block.
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
         if not tx_id:
             invalid_ids.append(tx_id)
             continue
@@ -377,7 +381,7 @@ def build_block_candidate(
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
