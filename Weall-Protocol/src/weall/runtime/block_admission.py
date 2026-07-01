@@ -1,4 +1,3 @@
-import copy
 import os
 from dataclasses import dataclass
 from typing import Any
@@ -68,20 +67,11 @@ def _ledger_with_account_nonce(ledger: LedgerView, signer: str, nonce: int) -> L
     Block admission first validates signer nonce sequencing across the candidate
     block.  Per-tx admission is then run against the state that would exist just
     before that tx, so same-signer nonce N and N+1 can both be admitted in one
-    block without weakening replay safety.
+    block without weakening replay safety.  The override is a read-only overlay,
+    not a full-ledger clone.
     """
 
-    st = copy.deepcopy(ledger.to_ledger())
-    accounts = st.setdefault("accounts", {})
-    if not isinstance(accounts, dict):
-        accounts = {}
-        st["accounts"] = accounts
-    acct = accounts.get(signer)
-    if not isinstance(acct, dict):
-        acct = {}
-        accounts[signer] = acct
-    acct["nonce"] = max(0, int(nonce or 0))
-    return LedgerView.from_ledger(st)
+    return ledger.with_account_nonce(str(signer or ""), max(0, int(nonce or 0)))
 
 
 def _as_list(v: Any) -> list[Any]:
@@ -341,9 +331,9 @@ def admit_block_txs(
     seen_signer_nonce: set[tuple[str, int]] = set()
     seen_tx_ids: set[str] = set()
 
-    chain_id = _as_str(ledger.to_ledger().get("chain_id") or "")
+    chain_id = _as_str(getattr(ledger, "chain_id", "") or "")
     if not chain_id:
-        chain_id = _as_str(_as_dict(ledger.to_ledger().get("params")).get("chain_id") or "")
+        chain_id = _as_str(_as_dict(getattr(ledger, "params", {})).get("chain_id") or "")
 
     for i, env in enumerate(txs):
         # Fail closed but deterministic: if the element isn't a TxEnvelope, mark rejected.

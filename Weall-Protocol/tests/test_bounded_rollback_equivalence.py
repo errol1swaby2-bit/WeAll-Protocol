@@ -183,3 +183,53 @@ def test_legacy_deepcopy_oracle_remains_equivalent_to_new_default() -> None:
     assert default_receipts == deepcopy_receipts
     assert default_state == deepcopy_state
     assert compute_state_root(default_state) == compute_state_root(deepcopy_state)
+
+
+def test_ledgerview_from_ledger_is_read_only_reference_view_without_clone() -> None:
+    from weall.ledger.state import LedgerView
+
+    state = _base_state()
+    view = LedgerView.from_ledger(state)
+
+    assert view.accounts is state["accounts"]
+    assert view.roles is state["roles"]
+    assert view.params is state["params"]
+    assert view.get_nonce("@alice") == 0
+
+
+def test_ledgerview_nonce_overlay_does_not_mutate_base_accounts() -> None:
+    from weall.ledger.state import LedgerView
+
+    state = _base_state()
+    view = LedgerView.from_ledger(state)
+    overlaid = view.with_account_nonce("@alice", 41)
+
+    assert overlaid.get_nonce("@alice") == 41
+    assert overlaid.accounts.get("@alice", {}).get("nonce") == 41
+    assert view.get_nonce("@alice") == 0
+    assert state["accounts"]["@alice"]["nonce"] == 0
+    assert overlaid.get_active_keys("@alice") == view.get_active_keys("@alice")
+
+
+def test_block_admission_uses_nonce_overlay_for_same_signer_sequence() -> None:
+    from weall.ledger.state import LedgerView
+    from weall.runtime.block_admission import admit_block_txs
+    from weall.runtime.tx_admission import TxEnvelope
+    from weall.tx.canon import load_tx_index_json
+
+    state = _base_state()
+    ledger = LedgerView.from_ledger(state)
+    env1 = _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice 1"})
+    env2 = _tx("CONTENT_POST_CREATE", "@alice", 2, {"post_id": "post:overlay", "body": "hello"})
+
+    ok, block_reject, per_tx = admit_block_txs(
+        [TxEnvelope.from_json(env1), TxEnvelope.from_json(env2)],
+        ledger,
+        load_tx_index_json("generated/tx_index.json"),
+        verify_signatures=False,
+    )
+
+    assert ok is True
+    assert block_reject is None
+    assert per_tx == [None, None]
+    assert state["accounts"]["@alice"]["nonce"] == 0

@@ -1231,17 +1231,9 @@ class WeAllExecutor:
         state and reject duplicate or gapped nonces deterministically.
         """
 
-        st = copy.deepcopy(self.read_state())
-        accounts = st.setdefault("accounts", {})
-        if not isinstance(accounts, dict):
-            accounts = {}
-            st["accounts"] = accounts
-        acct = accounts.get(signer)
-        if not isinstance(acct, dict):
-            acct = {}
-            accounts[signer] = acct
-        acct["nonce"] = max(0, int(pending_nonce or 0))
-        return LedgerView.from_ledger(st)
+        return LedgerView.from_ledger(self.read_state()).with_account_nonce(
+            str(signer or ""), max(0, int(pending_nonce or 0))
+        )
 
     def _pending_nonce_cursor_for_submit(self, *, signer: str, chain_nonce: int) -> int:
         mp = getattr(self, "_mempool", None) or getattr(self, "mempool", None)
