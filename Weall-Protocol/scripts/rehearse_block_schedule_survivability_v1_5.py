@@ -115,6 +115,16 @@ ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
     "rollback_dict_snapshot_count",
 ]
 
+ROLLBACK_JOURNAL_HOTPATH_FIELDS = [
+    "rollback_top_snapshot_paths",
+    "rollback_top_snapshot_prefixes",
+    "rollback_top_snapshot_paths_by_estimated_bytes",
+    "rollback_top_dict_snapshot_paths",
+    "rollback_top_list_snapshot_paths",
+    "rollback_top_duplicate_snapshot_paths",
+    "rollback_snapshot_by_tx_kind",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -215,16 +225,58 @@ def _rollback_journal_diagnostic_values() -> Json:
     from weall.runtime.bounded_rollback import get_rollback_diagnostics
 
     raw = get_rollback_diagnostics()
-    return {field: int(raw.get(field, 0) or 0) for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+    out: Json = {field: int(raw.get(field, 0) or 0) for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+    for field in ROLLBACK_JOURNAL_HOTPATH_FIELDS:
+        value = raw.get(field)
+        if field == "rollback_snapshot_by_tx_kind":
+            out[field] = dict(value or {})
+        else:
+            out[field] = list(value or [])
+    return out
 
 
 def _zero_rollback_journal_diagnostic_values() -> Json:
-    return {field: 0 for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+    out: Json = {field: 0 for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+    for field in ROLLBACK_JOURNAL_HOTPATH_FIELDS:
+        out[field] = {} if field == "rollback_snapshot_by_tx_kind" else []
+    return out
+
+
+def _merge_hotpath_items(existing: Any, incoming: Any, *, value_key: str = "count") -> list[Json]:
+    merged: dict[str, int] = {}
+    for items in (existing or [], incoming or []):
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path") or "")
+            if not path:
+                continue
+            merged[path] = int(merged.get(path, 0)) + int(item.get(value_key, item.get("count", 0)) or 0)
+    sorted_items = sorted(merged.items(), key=lambda item: (-int(item[1]), str(item[0])))
+    return [{"path": path, value_key: int(value)} for path, value in sorted_items[:12]]
+
+
+def _merge_kind_counts(existing: Any, incoming: Any) -> Json:
+    merged: dict[str, int] = {}
+    for src in (existing or {}, incoming or {}):
+        if not isinstance(src, dict):
+            continue
+        for key, value in src.items():
+            merged[str(key)] = int(merged.get(str(key), 0)) + int(value or 0)
+    return dict(sorted(merged.items(), key=lambda item: (-int(item[1]), str(item[0]))))
 
 
 def _add_rollback_journal_diagnostics(target: Json, source: Json) -> None:
     for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS:
         target[field] = int(target.get(field, 0) or 0) + int(source.get(field, 0) or 0)
+    for field in ROLLBACK_JOURNAL_HOTPATH_FIELDS:
+        if field == "rollback_snapshot_by_tx_kind":
+            target[field] = _merge_kind_counts(target.get(field), source.get(field))
+        else:
+            value_key = "bytes_estimate" if field == "rollback_top_snapshot_paths_by_estimated_bytes" else "count"
+            target[field] = _merge_hotpath_items(target.get(field), source.get(field), value_key=value_key)
 
 
 def _profile_bottleneck_summary(profile: Json) -> Json:
@@ -274,6 +326,8 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
     old_record_dict_key = bounded_rollback.RollbackJournal.record_dict_key
     old_record_list_state = bounded_rollback.RollbackJournal.record_list_state
     old_record_list_append = bounded_rollback.RollbackJournal.record_list_append
+    old_set_tx_kind = getattr(bounded_rollback, "set_rollback_diagnostic_tx_kind", None)
+    old_reset_tx_kind = getattr(bounded_rollback, "reset_rollback_diagnostic_tx_kind", None)
 
     class TimedTxEnvelope:
         @staticmethod
@@ -300,8 +354,15 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
         # Time the full dispatch path.  The actual domain handler is timed
         # separately by timed_resolve_applier; evidence reports dispatch as
         # full-dispatch-minus-handler to avoid double-counting domain apply.
-        with probe.timed(f"{prefix}_domain_dispatch_total_time_ns"):
-            return old_apply_internal(*args, **kwargs)
+        env = args[1] if len(args) > 1 else kwargs.get("env")
+        tx_kind = str(getattr(env, "tx_type", "") or (env.get("tx_type") if isinstance(env, dict) else "") or "UNKNOWN")
+        token = old_set_tx_kind(tx_kind) if callable(old_set_tx_kind) else None
+        try:
+            with probe.timed(f"{prefix}_domain_dispatch_total_time_ns"):
+                return old_apply_internal(*args, **kwargs)
+        finally:
+            if token is not None and callable(old_reset_tx_kind):
+                old_reset_tx_kind(token)
 
     def timed_record_dict_key(self: Any, *args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_rollback_tracking_time_ns"):

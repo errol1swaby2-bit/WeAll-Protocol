@@ -323,3 +323,42 @@ def test_bounded_rollback_dict_key_insert_update_delete_restore_exactly() -> Non
         run_with_bounded_rollback(state, mutate_then_fail)
 
     assert state == original
+
+
+def test_bounded_rollback_diagnostics_report_hot_paths_and_tx_kind() -> None:
+    from weall.runtime.bounded_rollback import (
+        get_rollback_diagnostics,
+        reset_rollback_diagnostic_tx_kind,
+        reset_rollback_diagnostics,
+        run_with_bounded_rollback,
+        set_rollback_diagnostic_tx_kind,
+    )
+
+    state = {"accounts": {"@alice": {"nonce": 0, "tags": []}}, "events": []}
+    reset_rollback_diagnostics()
+    token = set_rollback_diagnostic_tx_kind("PROFILE_UPDATE")
+    try:
+        result, _records = run_with_bounded_rollback(
+            state,
+            lambda st: (
+                st["accounts"]["@alice"].__setitem__("nonce", 1),
+                st["accounts"]["@alice"]["tags"].append("builder"),
+                st["accounts"]["@alice"].__setitem__("nonce", 2),
+                "ok",
+            )[-1],
+        )
+    finally:
+        reset_rollback_diagnostic_tx_kind(token)
+
+    diagnostics = get_rollback_diagnostics()
+    assert result == "ok"
+    assert state["accounts"]["@alice"]["nonce"] == 2
+    assert diagnostics["rollback_top_snapshot_paths"]
+    assert diagnostics["rollback_top_snapshot_prefixes"]
+    assert diagnostics["rollback_top_duplicate_snapshot_paths"]
+    assert diagnostics["rollback_snapshot_by_tx_kind"].get("PROFILE_UPDATE", 0) >= 1
+    paths = {item["path"] for item in diagnostics["rollback_top_snapshot_paths"]}
+    assert "accounts.@alice.nonce" in paths
+    prefixes = {item["path"] for item in diagnostics["rollback_top_snapshot_prefixes"]}
+    assert "accounts" in prefixes
+    assert "accounts.@alice" in prefixes

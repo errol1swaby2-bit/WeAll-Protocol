@@ -74,6 +74,16 @@ ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
     "rollback_dict_snapshot_count",
 ]
 
+ROLLBACK_JOURNAL_HOTPATH_FIELDS = [
+    "rollback_top_snapshot_paths",
+    "rollback_top_snapshot_prefixes",
+    "rollback_top_snapshot_paths_by_estimated_bytes",
+    "rollback_top_dict_snapshot_paths",
+    "rollback_top_list_snapshot_paths",
+    "rollback_top_duplicate_snapshot_paths",
+    "rollback_snapshot_by_tx_kind",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -169,6 +179,21 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert block["rollback_snapshot_duplicate_path_count"] >= 0
     assert block["rollback_list_snapshot_count"] >= 0
     assert block["rollback_dict_snapshot_count"] >= 0
+    for field in ROLLBACK_JOURNAL_HOTPATH_FIELDS:
+        assert field in block
+    assert isinstance(block["rollback_top_snapshot_paths"], list)
+    assert isinstance(block["rollback_top_snapshot_prefixes"], list)
+    assert isinstance(block["rollback_top_snapshot_paths_by_estimated_bytes"], list)
+    assert isinstance(block["rollback_top_dict_snapshot_paths"], list)
+    assert isinstance(block["rollback_top_list_snapshot_paths"], list)
+    assert isinstance(block["rollback_top_duplicate_snapshot_paths"], list)
+    assert isinstance(block["rollback_snapshot_by_tx_kind"], dict)
+    assert len(block["rollback_top_snapshot_paths"]) <= 12
+    if block["rollback_top_snapshot_paths"]:
+        first = block["rollback_top_snapshot_paths"][0]
+        assert isinstance(first.get("path"), str)
+        assert isinstance(first.get("count"), int)
+        assert first["count"] >= 0
     assert "execution_time_ms" in block
     assert "state_root_time_ms" in block
     assert "persistence_time_ms" in block
