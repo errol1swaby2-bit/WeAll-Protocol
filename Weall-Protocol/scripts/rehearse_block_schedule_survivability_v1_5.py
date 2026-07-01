@@ -105,12 +105,17 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
 
     def timed_from_executor(ex: Any) -> Any:
         ctx = old_runtime_context_from_executor(ex)
-        old_apply = ctx.tx_execution_set.apply_tx_atomic_meta
-        selected_apply = old_apply
-        if str(execution_model) == "bounded_rollback":
-            from weall.runtime.domain_apply import apply_tx_atomic_meta_bounded_rollback
+        from weall.runtime.domain_apply import (
+            apply_tx_atomic_meta_bounded_rollback,
+            apply_tx_atomic_meta_deepcopy,
+        )
 
+        if str(execution_model) == "deepcopy":
+            selected_apply = apply_tx_atomic_meta_deepcopy
+        elif str(execution_model) == "bounded_rollback":
             selected_apply = apply_tx_atomic_meta_bounded_rollback
+        else:
+            selected_apply = ctx.tx_execution_set.apply_tx_atomic_meta
 
         def timed_apply(*args: Any, **kwargs: Any) -> Any:
             with probe.timed("execution_time_ns"):
@@ -759,7 +764,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--txs-per-block-feed", type=int, default=0)
     parser.add_argument("--target-block-ms", type=int, default=DEFAULT_TARGET_BLOCK_MS)
     parser.add_argument("--helper-fast-path", action="store_true")
-    parser.add_argument("--execution-model", choices=["deepcopy", "bounded_rollback", "compare"], default="deepcopy")
+    parser.add_argument("--execution-model", choices=["deepcopy", "bounded_rollback", "compare"], default="bounded_rollback")
     parser.add_argument("--restart-during-load", action="store_true", default=True)
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)

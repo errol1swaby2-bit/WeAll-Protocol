@@ -2,9 +2,9 @@ from __future__ import annotations
 
 """Deterministic bounded rollback journal for JSON-like state mutation.
 
-This module is intentionally not wired into consensus by default. It provides a
-candidate execution primitive and test harness surface for proving whether the
-current full-state deepcopy atomic wrapper can be replaced safely.
+This module provides the canonical bounded rollback primitive for transaction
+execution. The legacy full-state deepcopy wrapper remains available only as a
+regression/equivalence oracle.
 
 The journal mutates the provided target state directly and records only touched
 keys/lists. On failure, recorded mutations are restored in reverse order. On

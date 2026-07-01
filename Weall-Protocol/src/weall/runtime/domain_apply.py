@@ -134,13 +134,13 @@ def _require_valid_signer_format(env: Any) -> None:
         raise ApplyError("invalid_tx", "bad_signer_format", {"signer": signer})
 
 
-def apply_tx_atomic(
+def apply_tx_atomic_deepcopy(
     state: Json,
     env: Any,
     *,
     consume_nonce_on_fail: bool = False,
 ) -> Json:
-    """Apply a tx with fail-atomic semantics.
+    """Apply a tx with fail-atomic semantics using the legacy full-state deepcopy wrapper.
 
     On success:
       - state is updated as if apply_tx() ran directly.
@@ -184,13 +184,13 @@ def apply_tx_atomic(
     return state
 
 
-def apply_tx_atomic_meta(
+def apply_tx_atomic_meta_deepcopy(
     state: Json,
     env: Any,
     *,
     consume_nonce_on_fail: bool = False,
 ) -> Json | None:
-    """Apply a tx atomically and return apply metadata.
+    """Apply a tx atomically via legacy full-state deepcopy and return apply metadata.
 
     This is an executor-facing helper that preserves access to the apply-layer
     return value (if any) without breaking the long-standing test expectation
@@ -231,12 +231,11 @@ def apply_tx_atomic_meta_bounded_rollback(
     *,
     consume_nonce_on_fail: bool = False,
 ) -> Json | None:
-    """Apply a tx with a touched-key rollback journal instead of full deepcopy.
+    """Apply a tx with the canonical bounded rollback journal.
 
-    This is deliberately exported as an audit/equivalence candidate, not the
-    default consensus execution path. The default remains the proven full-state
-    deepcopy wrapper until every domain applier and helper/replay path is covered
-    by equivalence and adversarial tests.
+    This is the default consensus execution path. The legacy full-state deepcopy
+    wrapper remains exported only as a test/equivalence oracle and emergency
+    audit reference.
     """
 
     env_norm: Any = env
@@ -258,6 +257,41 @@ def apply_tx_atomic_meta_bounded_rollback(
     _consume_nonce_if_possible(state, env_norm)
 
     return meta
+
+
+def apply_tx_atomic_meta(
+    state: Json,
+    env: Any,
+    *,
+    consume_nonce_on_fail: bool = False,
+) -> Json | None:
+    """Apply a tx atomically and return apply metadata.
+
+    Canonical consensus execution uses the deterministic bounded rollback
+    journal. The full-state deepcopy implementation remains available as
+    ``apply_tx_atomic_meta_deepcopy`` for regression/equivalence harnesses only.
+    """
+
+    return apply_tx_atomic_meta_bounded_rollback(
+        state, env, consume_nonce_on_fail=consume_nonce_on_fail
+    )
+
+
+def apply_tx_atomic(
+    state: Json,
+    env: Any,
+    *,
+    consume_nonce_on_fail: bool = False,
+) -> Json:
+    """Apply a tx with fail-atomic bounded-rollback semantics.
+
+    On success, the provided state object is mutated in place and returned. On
+    ApplyError, all touched JSON-like state is restored before the error is
+    re-raised.
+    """
+
+    apply_tx_atomic_meta(state, env, consume_nonce_on_fail=consume_nonce_on_fail)
+    return state
 
 def apply_tx(state: Json, env: Any) -> Json | None:
     """Apply a tx envelope with consensus-aligned nonce semantics.
@@ -281,7 +315,9 @@ __all__ = [
     "NonceSideEffectError",
     "apply_tx",
     "apply_tx_atomic",
+    "apply_tx_atomic_deepcopy",
     "apply_tx_atomic_meta",
+    "apply_tx_atomic_meta_deepcopy",
     "apply_tx_atomic_meta_bounded_rollback",
     "Json",
 ]

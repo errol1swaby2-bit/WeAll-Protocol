@@ -1,10 +1,25 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
+
+
+def _subprocess_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "WEALL_API_BOOT_RUNTIME": "0",
+            "WEALL_MODE": "dev",
+            "WEALL_UNSAFE_DEV": "1",
+            "WEALL_SQLITE_ALLOW_NON_WAL": "1",
+            "WEALL_DISABLE_BLOCK_PRODUCER": "1",
+        }
+    )
+    return env
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -38,7 +53,7 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
         "--out",
         str(out),
     ]
-    result = subprocess.run(cmd, cwd=root, text=True, capture_output=True, timeout=60, check=False)
+    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=60, check=False)
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     profile = evidence["profiles"][0]
@@ -74,7 +89,7 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
         "--out",
         str(out),
     ]
-    result = subprocess.run(cmd, cwd=root, text=True, capture_output=True, timeout=90, check=False)
+    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=90, check=False)
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     assert evidence["execution_models"] == ["deepcopy", "bounded_rollback"]

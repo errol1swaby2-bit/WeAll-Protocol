@@ -9,6 +9,7 @@ from weall.runtime.domain_apply import (
     ApplyError,
     apply_tx_atomic_meta,
     apply_tx_atomic_meta_bounded_rollback,
+    apply_tx_atomic_meta_deepcopy,
 )
 from weall.runtime.state_hash import compute_state_root
 
@@ -105,7 +106,7 @@ def test_bounded_rollback_matches_full_deepcopy_for_mixed_success_and_failure_lo
     ]
 
     deepcopy_state, deepcopy_receipts = _run_sequence(
-        copy.deepcopy(_base_state()), apply_tx_atomic_meta, txs
+        copy.deepcopy(_base_state()), apply_tx_atomic_meta_deepcopy, txs
     )
     bounded_state, bounded_receipts = _run_sequence(
         copy.deepcopy(_base_state()), apply_tx_atomic_meta_bounded_rollback, txs
@@ -133,7 +134,7 @@ def test_bounded_rollback_restores_partial_writes_after_apply_error(
 
     env = _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice"})
 
-    for apply_fn in (apply_tx_atomic_meta, apply_tx_atomic_meta_bounded_rollback):
+    for apply_fn in (apply_tx_atomic_meta_deepcopy, apply_tx_atomic_meta_bounded_rollback, apply_tx_atomic_meta):
         state = copy.deepcopy(_base_state())
         monkeypatch.setattr(da, "_apply_tx_internal", mutates_then_rejects)
         with pytest.raises(ApplyError, match="forced_reject_after_touch"):
@@ -142,3 +143,43 @@ def test_bounded_rollback_restores_partial_writes_after_apply_error(
         assert state == _base_state()
 
     monkeypatch.setattr(da, "_apply_tx_internal", original)
+
+
+def test_default_atomic_meta_uses_bounded_rollback_entrypoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    from weall.runtime import domain_apply as da
+
+    original = da.run_with_bounded_rollback
+    calls = {"count": 0}
+
+    def counted_run_with_bounded_rollback(state: Json, fn: Callable[[Json], Any]) -> tuple[Any, int]:
+        calls["count"] += 1
+        return original(state, fn)
+
+    monkeypatch.setattr(da, "run_with_bounded_rollback", counted_run_with_bounded_rollback)
+
+    state = copy.deepcopy(_base_state())
+    meta = da.apply_tx_atomic_meta(
+        state,
+        _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice"}),
+        consume_nonce_on_fail=False,
+    )
+
+    assert calls["count"] == 1
+    assert meta is not None
+    assert state["accounts"]["@alice"]["nonce"] == 1
+
+
+def test_legacy_deepcopy_oracle_remains_equivalent_to_new_default() -> None:
+    txs = [
+        _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice"}),
+        _tx("CONTENT_POST_CREATE", "@alice", 2, {"post_id": "post:equiv", "body": "hello"}),
+        _tx("CONTENT_COMMENT_CREATE", "@bob", 1, {"comment_id": "comment:equiv", "post_id": "post:equiv", "body": "reply"}),
+        _tx("CONTENT_REACTION_SET", "@carol", 1, {"target_id": "post:equiv", "reaction": "like"}),
+    ]
+
+    default_state, default_receipts = _run_sequence(copy.deepcopy(_base_state()), apply_tx_atomic_meta, txs)
+    deepcopy_state, deepcopy_receipts = _run_sequence(copy.deepcopy(_base_state()), apply_tx_atomic_meta_deepcopy, txs)
+
+    assert default_receipts == deepcopy_receipts
+    assert default_state == deepcopy_state
+    assert compute_state_root(default_state) == compute_state_root(deepcopy_state)
