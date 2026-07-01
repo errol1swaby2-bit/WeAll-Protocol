@@ -86,8 +86,8 @@
     "qc_formed": true,
     "quorum_threshold": 3,
     "state_roots": {
-      "replay": "b5e4f6fc36a2f714cce4cc6708e7cd9f9764be68db351085dfb607ee098714a1",
-      "source": "b5e4f6fc36a2f714cce4cc6708e7cd9f9764be68db351085dfb607ee098714a1"
+      "replay": "67e8c142aea9a42301e7f2fc3ea820c19fa9e2abee8251cd3ff9cda38a44560d",
+      "source": "67e8c142aea9a42301e7f2fc3ea820c19fa9e2abee8251cd3ff9cda38a44560d"
     },
     "state_roots_match": true,
     "validator_count": 4,
@@ -142,7 +142,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "5143e6970c3e9a2c14f1744a736d910e6ef22ae1a6c806198a96b01a340f3f01",
+    "final_state_root": "81390888bc23821ab2e7dadc8ce9f1dd3223ccf59f87f7e380ea25fced8a3688",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,
