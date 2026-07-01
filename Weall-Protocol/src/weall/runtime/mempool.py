@@ -179,6 +179,32 @@ def _height_or_zero(value: int | None) -> int:
     except Exception:
         return 0
 
+
+def _elapsed_ms(start_ns: int) -> float:
+    return round(float(time.perf_counter_ns() - int(start_ns)) / 1_000_000.0, 3)
+
+
+def _empty_batch_timings() -> dict[str, float]:
+    return {
+        "tx_submit_total_wall_ms": 0.0,
+        "tx_signature_verify_wall_ms": 0.0,
+        "tx_canonicalize_or_hash_wall_ms": 0.0,
+        "tx_nonce_check_wall_ms": 0.0,
+        "tx_mempool_insert_wall_ms": 0.0,
+        "tx_reject_wall_ms": 0.0,
+        "tx_duplicate_check_wall_ms": 0.0,
+    }
+
+
+def _add_timing(timings: dict[str, float], key: str, start_ns: int) -> None:
+    timings[key] = round(float(timings.get(key, 0.0)) + _elapsed_ms(start_ns), 3)
+
+
+def _with_timings(result: Json, timings: dict[str, float] | None) -> Json:
+    if timings is not None:
+        result.setdefault("timings_ms", {k: round(float(v), 3) for k, v in timings.items()})
+    return result
+
 def _extract_nonce(env: Json) -> int | None:
     try:
         if not isinstance(env, dict):
@@ -750,6 +776,352 @@ class PersistentMempool:
             "admitted_at_height": admitted_at_height,
             "expires_at_height": protocol_expires_at_height,
         }
+
+    def add_many(
+        self,
+        envs: list[Json],
+        *,
+        current_height: int | None = None,
+        expires_at_height: int | None = None,
+        include_timings: bool = False,
+    ) -> list[Json]:
+        """Add many already-admitted envelopes using one deterministic DB transaction.
+
+        This is intentionally equivalent to calling ``add`` for each envelope in
+        order, but it avoids per-transaction SQLite write setup, repeated global
+        counts, and repeated ``MAX(received_ms)`` scans.  It does not perform
+        admission itself; callers must run the same admission policy they would
+        run before a serial ``add``.
+        """
+
+        if not isinstance(envs, list):
+            return [_with_timings({"ok": False, "error": "bad_envs:not_list"}, _empty_batch_timings() if include_timings else None)]
+
+        timings = _empty_batch_timings() if include_timings else None
+        total_start = time.perf_counter_ns()
+        results: list[Json | None] = [None for _ in envs]
+        prepared: list[tuple[int, Json, str, str, str, int | None, int, int, int]] = []
+        admitted_at_height = _height_or_zero(current_height)
+        default_protocol_expires_at_height = _height_or_zero(expires_at_height)
+
+        for idx, env in enumerate(envs):
+            if not isinstance(env, dict):
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:not_object"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            signer = str(env.get("signer") or "").strip()
+            if not signer:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:missing_signer"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            tx_type = str(env.get("tx_type") or "").strip()
+            if not tx_type:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:missing_tx_type"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            start = time.perf_counter_ns()
+            provided = str(env.get("tx_id") or "").strip()
+            tx_id = compute_tx_id(env, chain_id=self.chain_id)
+            nonce = _extract_nonce(env)
+            requested_received_ms = _now_ms()
+            expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
+            protocol_expires_at_height = default_protocol_expires_at_height
+            if protocol_expires_at_height <= 0:
+                protocol_expires_at_height = _extract_height_field(
+                    env,
+                    "mempool_expires_height",
+                    "valid_until_height",
+                    "expires_at_height",
+                    "expires_height",
+                )
+            if timings is not None:
+                _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+
+            if provided and provided != tx_id:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:tx_id_mismatch"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            prepared.append(
+                (
+                    idx,
+                    env,
+                    signer,
+                    tx_type,
+                    tx_id,
+                    nonce,
+                    int(requested_received_ms),
+                    int(expires_ms),
+                    int(protocol_expires_at_height),
+                )
+            )
+
+        with self.db.write_tx() as con:
+            now = _now_ms()
+            self._prune_expired_if_due(con=con, now_ms=int(now))
+
+            row_last = con.execute(
+                "SELECT MAX(received_ms) AS last_received_ms FROM mempool;"
+            ).fetchone()
+            last_received_ms = (
+                int(row_last["last_received_ms"])
+                if row_last is not None and row_last["last_received_ms"] is not None
+                else 0
+            )
+            next_received_ms = int(last_received_ms)
+
+            if self.max_items > 0:
+                total_count = self._count_total(con=con)
+            else:
+                total_count = 0
+            signer_counts: dict[str, int] = {}
+            tx_type_counts: dict[str, int] = {}
+
+            for idx, env, signer, tx_type, tx_id, nonce, requested_received_ms, expires_ms, protocol_expires_at_height in prepared:
+                if results[idx] is not None:
+                    continue
+
+                received_ms = int(requested_received_ms)
+                if received_ms <= next_received_ms:
+                    received_ms = int(next_received_ms) + 1
+                next_received_ms = int(received_ms)
+
+                env_persist: Json = dict(env)
+                env_persist["tx_id"] = tx_id
+                env_persist["received_ms"] = received_ms
+                env_persist["expires_ms"] = expires_ms
+                env_persist["mempool_admitted_height"] = admitted_at_height
+                env_persist["mempool_expires_height"] = protocol_expires_at_height
+
+                start = time.perf_counter_ns()
+                env_json = _canon_json(env_persist)
+                if timings is not None:
+                    _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+
+                if nonce is not None:
+                    start = time.perf_counter_ns()
+                    existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
+                    if timings is not None:
+                        _add_timing(timings, "tx_duplicate_check_wall_ms", start)
+                    if existing is not None:
+                        existing_tx_id, existing_env = existing
+                        start = time.perf_counter_ns()
+                        existing_base = _canon_json(_envelope_for_id(existing_env))
+                        incoming_base = _canon_json(_envelope_for_id(env))
+                        if timings is not None:
+                            _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+                        if existing_base == incoming_base:
+                            env["tx_id"] = existing_tx_id
+                            if "received_ms" in existing_env:
+                                env["received_ms"] = existing_env.get("received_ms")
+                            if "expires_ms" in existing_env:
+                                env["expires_ms"] = existing_env.get("expires_ms")
+                            if "mempool_admitted_height" in existing_env:
+                                env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                            if "mempool_expires_height" in existing_env:
+                                env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                            results[idx] = {
+                                "ok": True,
+                                "tx_id": existing_tx_id,
+                                "already_known": True,
+                                "received_ms": existing_env.get("received_ms"),
+                                "expires_ms": existing_env.get("expires_ms"),
+                                "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                                "expires_at_height": existing_env.get("mempool_expires_height", 0),
+                                "details": {
+                                    "signer": signer,
+                                    "nonce": int(nonce),
+                                    "existing_tx_id": existing_tx_id,
+                                },
+                            }
+                            continue
+                        start = time.perf_counter_ns()
+                        results[idx] = {
+                            "ok": False,
+                            "error": "mempool_signer_nonce_conflict",
+                            "details": {
+                                "signer": signer,
+                                "nonce": int(nonce),
+                                "existing_tx_id": existing_tx_id,
+                            },
+                        }
+                        if timings is not None:
+                            _add_timing(timings, "tx_reject_wall_ms", start)
+                        continue
+
+                if self.max_items > 0 and total_count >= self.max_items:
+                    if self.evict_on_full:
+                        need = (total_count - self.max_items) + 1
+                        self._evict_oldest(con=con, need=int(need))
+                        total_count = self._count_total(con=con)
+                        signer_counts.clear()
+                        tx_type_counts.clear()
+                        if total_count >= self.max_items:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+                    else:
+                        start = time.perf_counter_ns()
+                        results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                        if timings is not None:
+                            _add_timing(timings, "tx_reject_wall_ms", start)
+                        continue
+
+                if self.max_per_signer > 0:
+                    if signer not in signer_counts:
+                        signer_counts[signer] = self._count_signer(signer, con=con)
+                    if signer_counts[signer] >= self.max_per_signer:
+                        if self.evict_on_full:
+                            need = (signer_counts[signer] - self.max_per_signer) + 1
+                            self._evict_oldest(con=con, need=int(need), signer=signer)
+                            signer_counts[signer] = self._count_signer(signer, con=con)
+                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            if signer_counts[signer] >= self.max_per_signer:
+                                start = time.perf_counter_ns()
+                                results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                                if timings is not None:
+                                    _add_timing(timings, "tx_reject_wall_ms", start)
+                                continue
+                        else:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+
+                if self.max_per_tx_type > 0:
+                    if tx_type not in tx_type_counts:
+                        tx_type_counts[tx_type] = self._count_tx_type(tx_type, con=con)
+                    if tx_type_counts[tx_type] >= self.max_per_tx_type:
+                        if self.evict_on_full:
+                            need = (tx_type_counts[tx_type] - self.max_per_tx_type) + 1
+                            self._evict_oldest(con=con, need=int(need), tx_type=tx_type)
+                            tx_type_counts[tx_type] = self._count_tx_type(tx_type, con=con)
+                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            if tx_type_counts[tx_type] >= self.max_per_tx_type:
+                                start = time.perf_counter_ns()
+                                results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                                if timings is not None:
+                                    _add_timing(timings, "tx_reject_wall_ms", start)
+                                continue
+                        else:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+
+                start = time.perf_counter_ns()
+                con.execute(
+                    """
+                    INSERT OR IGNORE INTO mempool(
+                        tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms,
+                        admitted_at_height, expires_at_height
+                    )
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        tx_id,
+                        env_json,
+                        signer,
+                        tx_type,
+                        nonce,
+                        int(received_ms),
+                        int(expires_ms),
+                        int(admitted_at_height),
+                        int(protocol_expires_at_height),
+                    ),
+                )
+                if timings is not None:
+                    _add_timing(timings, "tx_mempool_insert_wall_ms", start)
+
+                start = time.perf_counter_ns()
+                row = con.execute(
+                    "SELECT envelope_json FROM mempool WHERE tx_id=? LIMIT 1;",
+                    (tx_id,),
+                ).fetchone()
+                if timings is not None:
+                    _add_timing(timings, "tx_duplicate_check_wall_ms", start)
+
+                if row is None:
+                    start = time.perf_counter_ns()
+                    results[idx] = {"ok": False, "error": "db_error:missing_after_insert"}
+                    if timings is not None:
+                        _add_timing(timings, "tx_reject_wall_ms", start)
+                    continue
+
+                if str(row["envelope_json"]) != env_json:
+                    try:
+                        existing_env = json.loads(str(row["envelope_json"]))
+                    except Exception:
+                        existing_env = {}
+                    start = time.perf_counter_ns()
+                    existing_base = _canon_json(_envelope_for_id(existing_env))
+                    incoming_base = _canon_json(_envelope_for_id(env))
+                    if timings is not None:
+                        _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+                    if existing_base == incoming_base:
+                        env["tx_id"] = tx_id
+                        if "received_ms" in existing_env:
+                            env["received_ms"] = existing_env.get("received_ms")
+                        if "expires_ms" in existing_env:
+                            env["expires_ms"] = existing_env.get("expires_ms")
+                        if "mempool_admitted_height" in existing_env:
+                            env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                        if "mempool_expires_height" in existing_env:
+                            env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                        results[idx] = {
+                            "ok": True,
+                            "tx_id": tx_id,
+                            "already_known": True,
+                            "received_ms": existing_env.get("received_ms"),
+                            "expires_ms": existing_env.get("expires_ms"),
+                            "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                            "expires_at_height": existing_env.get("mempool_expires_height", 0),
+                        }
+                        continue
+                    start = time.perf_counter_ns()
+                    results[idx] = {"ok": False, "error": "tx_id_conflict"}
+                    if timings is not None:
+                        _add_timing(timings, "tx_reject_wall_ms", start)
+                    continue
+
+                env["tx_id"] = tx_id
+                env["received_ms"] = received_ms
+                env["expires_ms"] = expires_ms
+                env["mempool_admitted_height"] = admitted_at_height
+                env["mempool_expires_height"] = protocol_expires_at_height
+                results[idx] = {
+                    "ok": True,
+                    "tx_id": tx_id,
+                    "received_ms": received_ms,
+                    "expires_ms": expires_ms,
+                    "admitted_at_height": admitted_at_height,
+                    "expires_at_height": protocol_expires_at_height,
+                }
+                total_count += 1
+                if self.max_per_signer > 0:
+                    signer_counts[signer] = int(signer_counts.get(signer, 0)) + 1
+                if self.max_per_tx_type > 0:
+                    tx_type_counts[tx_type] = int(tx_type_counts.get(tx_type, 0)) + 1
+
+        if timings is not None:
+            timings["tx_submit_total_wall_ms"] = _elapsed_ms(total_start)
+            return [_with_timings(dict(r or {"ok": False, "error": "internal_missing_result"}), timings) for r in results]
+        return [dict(r or {"ok": False, "error": "internal_missing_result"}) for r in results]
 
     def remove(self, env_or_tx_id: Any) -> Json:
         if isinstance(env_or_tx_id, str):

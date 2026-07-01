@@ -31,6 +31,13 @@ PROFILE_TIMING_FIELDS = [
     "user_prepare_wall_ms",
     "tx_generation_wall_ms",
     "mempool_submit_wall_ms",
+    "tx_submit_total_wall_ms",
+    "tx_signature_verify_wall_ms",
+    "tx_canonicalize_or_hash_wall_ms",
+    "tx_nonce_check_wall_ms",
+    "tx_mempool_insert_wall_ms",
+    "tx_reject_wall_ms",
+    "tx_duplicate_check_wall_ms",
     "block_loop_wall_ms",
     "follower_apply_wall_ms",
     "slow_observer_apply_wall_ms",
@@ -95,6 +102,9 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     for field in PROFILE_TIMING_FIELDS:
         assert field in profile
         _assert_non_negative_number(profile[field])
+    assert profile["tx_submit_total_wall_ms"] > 0
+    assert profile["tx_mempool_insert_wall_ms"] >= 0
+    assert profile["tx_duplicate_check_wall_ms"] >= 0
     assert "profile_bottleneck_summary" in profile
     assert len(profile["profile_bottleneck_summary"]["top_5"]) <= 5
     assert profile["block_measurements"], evidence

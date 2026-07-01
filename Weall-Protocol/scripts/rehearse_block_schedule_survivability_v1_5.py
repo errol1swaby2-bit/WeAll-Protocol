@@ -62,11 +62,28 @@ PROFILE_TIMING_FIELDS = [
     "user_prepare_wall_ms",
     "tx_generation_wall_ms",
     "mempool_submit_wall_ms",
+    "tx_submit_total_wall_ms",
+    "tx_signature_verify_wall_ms",
+    "tx_canonicalize_or_hash_wall_ms",
+    "tx_nonce_check_wall_ms",
+    "tx_mempool_insert_wall_ms",
+    "tx_reject_wall_ms",
+    "tx_duplicate_check_wall_ms",
     "block_loop_wall_ms",
     "follower_apply_wall_ms",
     "slow_observer_apply_wall_ms",
     "restart_replay_wall_ms",
     "evidence_write_wall_ms",
+]
+
+MEMPOOL_SUBMIT_TIMING_FIELDS = [
+    "tx_submit_total_wall_ms",
+    "tx_signature_verify_wall_ms",
+    "tx_canonicalize_or_hash_wall_ms",
+    "tx_nonce_check_wall_ms",
+    "tx_mempool_insert_wall_ms",
+    "tx_reject_wall_ms",
+    "tx_duplicate_check_wall_ms",
 ]
 
 BLOCK_TIMING_FIELDS = [
@@ -452,34 +469,63 @@ def _submit_profile_load(
     accepted_by_type: dict[str, int] = {}
     malformed_submitted = 0
     malformed_rejected = 0
-    for i in range(int(count)):
-        if profile == "adversarial" and i % 17 == 0:
-            with (phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext()):
+    txs: list[Json] = []
+    tx_kinds: list[str] = []
+    malformed_flags: list[bool] = []
+
+    with (phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext()):
+        for i in range(int(count)):
+            if profile == "adversarial" and i % 17 == 0:
                 malformed_submitted += 1
                 bad = {"tx_type": "CONTENT_POST_CREATE", "signer": "", "nonce": -1, "payload": {"body": "bad"}}
-            with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
-                result = executor.submit_tx(bad, ingress="local_fixture")
-            if not result.get("ok"):
-                malformed_rejected += 1
-                code = str(result.get("error") or result.get("reason") or "rejected")
-                rejected_by_code[code] = int(rejected_by_code.get(code, 0)) + 1
-            continue
-        with (phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext()):
+                txs.append(bad)
+                tx_kinds.append("CONTENT_POST_CREATE")
+                malformed_flags.append(True)
+                continue
             signer = users[i % len(users)]
             kind = mix[i % len(mix)]
             nonce = _next_nonce(next_nonces, signer)
             payload = _valid_payload_for(kind, signer, nonce, i, users, profile)
             submitted_by_type[kind] = int(submitted_by_type.get(kind, 0)) + 1
-            tx_obj = _tx(kind, signer, nonce, payload)
+            txs.append(_tx(kind, signer, nonce, payload))
+            tx_kinds.append(kind)
+            malformed_flags.append(False)
+
+    submit_batch = getattr(executor, "submit_txs_batch", None)
+    if callable(submit_batch):
         with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
-            result = executor.submit_tx(tx_obj, ingress="local_fixture")
-        if result.get("ok"):
+            results = submit_batch(txs, ingress="local_fixture", include_timings=phase_probe is not None)
+        if phase_probe is not None and results:
+            timings = None
+            for result in reversed(results):
+                if isinstance(result, dict) and isinstance(result.get("timings_ms"), dict):
+                    timings = result.get("timings_ms")
+                    break
+            if isinstance(timings, dict):
+                for field in MEMPOOL_SUBMIT_TIMING_FIELDS:
+                    phase_probe.add_ms(field.replace("_ms", "_ns"), _phase_value_ms(timings.get(field)))
+    else:
+        results = []
+        submit_start = time.perf_counter_ns()
+        for tx_obj in txs:
+            with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
+                results.append(executor.submit_tx(tx_obj, ingress="local_fixture"))
+        if phase_probe is not None:
+            phase_probe.add("tx_submit_total_wall_ns", time.perf_counter_ns() - submit_start)
+
+    for kind, malformed, result in zip(tx_kinds, malformed_flags, results):
+        if isinstance(result, dict) and result.get("ok"):
             admitted += 1
-            accepted_by_type[kind] = int(accepted_by_type.get(kind, 0)) + 1
+            if not malformed:
+                accepted_by_type[kind] = int(accepted_by_type.get(kind, 0)) + 1
+            continue
+        if malformed:
+            malformed_rejected += 1
         else:
             rejected += 1
-            code = str(result.get("error") or result.get("reason") or "rejected")
-            rejected_by_code[code] = int(rejected_by_code.get(code, 0)) + 1
+        code = str((result or {}).get("error") or (result or {}).get("reason") or "rejected") if isinstance(result, dict) else "rejected"
+        rejected_by_code[code] = int(rejected_by_code.get(code, 0)) + 1
+
     return {
         "admitted": admitted,
         "rejected": rejected,
@@ -759,6 +805,13 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
         "user_prepare_wall_ms": profile_probe.ms("user_prepare_wall_ns"),
         "tx_generation_wall_ms": profile_probe.ms("tx_generation_wall_ns"),
         "mempool_submit_wall_ms": profile_probe.ms("mempool_submit_wall_ns"),
+        "tx_submit_total_wall_ms": profile_probe.ms("tx_submit_total_wall_ns"),
+        "tx_signature_verify_wall_ms": profile_probe.ms("tx_signature_verify_wall_ns"),
+        "tx_canonicalize_or_hash_wall_ms": profile_probe.ms("tx_canonicalize_or_hash_wall_ns"),
+        "tx_nonce_check_wall_ms": profile_probe.ms("tx_nonce_check_wall_ns"),
+        "tx_mempool_insert_wall_ms": profile_probe.ms("tx_mempool_insert_wall_ns"),
+        "tx_reject_wall_ms": profile_probe.ms("tx_reject_wall_ns"),
+        "tx_duplicate_check_wall_ms": profile_probe.ms("tx_duplicate_check_wall_ns"),
         "block_loop_wall_ms": profile_probe.ms("block_loop_wall_ns"),
         "follower_apply_wall_ms": profile_probe.ms("follower_apply_wall_ns"),
         "slow_observer_apply_wall_ms": profile_probe.ms("slow_observer_apply_wall_ns"),
