@@ -18,6 +18,72 @@ from typing import Any
 Json = dict[str, Any]
 _MISSING = object()
 
+_ROLLBACK_DIAGNOSTICS_TEMPLATE: dict[str, int] = {
+    "rollback_snapshot_count": 0,
+    "rollback_snapshot_bytes_estimate": 0,
+    "rollback_snapshot_path_count": 0,
+    "rollback_snapshot_duplicate_path_count": 0,
+    "rollback_scalar_snapshot_count": 0,
+    "rollback_container_snapshot_count": 0,
+    "rollback_list_snapshot_count": 0,
+    "rollback_dict_snapshot_count": 0,
+}
+_ROLLBACK_DIAGNOSTICS: dict[str, int] = dict(_ROLLBACK_DIAGNOSTICS_TEMPLATE)
+
+
+def reset_rollback_diagnostics() -> None:
+    """Reset process-local rollback diagnostics used by audit harnesses.
+
+    This is intentionally observational.  Consensus execution does not read
+    these counters, and clearing them has no effect on rollback behavior.
+    """
+
+    _ROLLBACK_DIAGNOSTICS.clear()
+    _ROLLBACK_DIAGNOSTICS.update(_ROLLBACK_DIAGNOSTICS_TEMPLATE)
+
+
+def get_rollback_diagnostics() -> dict[str, int]:
+    """Return a copy of process-local rollback diagnostics."""
+
+    out = dict(_ROLLBACK_DIAGNOSTICS_TEMPLATE)
+    out.update(_ROLLBACK_DIAGNOSTICS)
+    return out
+
+
+def _diagnostic_add(key: str, value: int = 1) -> None:
+    _ROLLBACK_DIAGNOSTICS[key] = int(_ROLLBACK_DIAGNOSTICS.get(key, 0)) + int(value)
+
+
+def _snapshot_size_estimate(value: Any) -> int:
+    """Cheap deterministic size estimate for rollback diagnostics only."""
+
+    if value is _MISSING or value is None:
+        return 0
+    if isinstance(value, (str, bytes, bytearray)):
+        return len(value)
+    if isinstance(value, (int, float, bool)):
+        return len(repr(value))
+    if isinstance(value, dict):
+        # Avoid recursively walking large containers; the snapshot itself is
+        # already the expensive operation we are measuring.
+        return len(value)
+    if isinstance(value, (list, tuple, set)):
+        return len(value)
+    return len(repr(value))
+
+
+def _classify_snapshot(value: Any) -> None:
+    if isinstance(value, dict):
+        _diagnostic_add("rollback_dict_snapshot_count")
+        _diagnostic_add("rollback_container_snapshot_count")
+    elif isinstance(value, list):
+        _diagnostic_add("rollback_list_snapshot_count")
+        _diagnostic_add("rollback_container_snapshot_count")
+    elif isinstance(value, (set, tuple)):
+        _diagnostic_add("rollback_container_snapshot_count")
+    else:
+        _diagnostic_add("rollback_scalar_snapshot_count")
+
 
 def _unwrap(value: Any) -> Any:
     if isinstance(value, JournaledDict):
@@ -34,10 +100,33 @@ class RollbackJournalError(RuntimeError):
 class RollbackJournal:
     def __init__(self) -> None:
         self._records: list[Callable[[], None]] = []
+        self._dict_paths_seen: set[tuple[int, Any]] = set()
+        # list id -> "length" or "full".  A length snapshot is sufficient for
+        # append/extend-only mutations.  If a later mutation reorders, deletes,
+        # or overwrites list elements, a full snapshot is added after the length
+        # snapshot so reverse rollback restores the exact original list.
+        self._list_snapshot_mode: dict[int, str] = {}
+
+    def _record_snapshot(self, *, value: Any, path_key: object, duplicate: bool = False) -> None:
+        if duplicate:
+            _diagnostic_add("rollback_snapshot_duplicate_path_count")
+            return
+        _diagnostic_add("rollback_snapshot_count")
+        _diagnostic_add("rollback_snapshot_path_count")
+        _diagnostic_add("rollback_snapshot_bytes_estimate", _snapshot_size_estimate(value))
+        _classify_snapshot(value)
 
     def record_dict_key(self, target: dict[Any, Any], key: Any) -> None:
+        path = (id(target), key)
+        if path in self._dict_paths_seen:
+            self._record_snapshot(value=_MISSING, path_key=path, duplicate=True)
+            return
+        self._dict_paths_seen.add(path)
+
         existed = key in target
-        previous = copy.deepcopy(target.get(key, _MISSING)) if existed else _MISSING
+        raw_previous = target.get(key, _MISSING) if existed else _MISSING
+        self._record_snapshot(value=raw_previous, path_key=path)
+        previous = copy.deepcopy(raw_previous) if existed else _MISSING
 
         def undo() -> None:
             if previous is _MISSING:
@@ -48,10 +137,32 @@ class RollbackJournal:
         self._records.append(undo)
 
     def record_list_state(self, target: list[Any]) -> None:
+        list_id = id(target)
+        if self._list_snapshot_mode.get(list_id) == "full":
+            self._record_snapshot(value=_MISSING, path_key=(list_id, "list_full"), duplicate=True)
+            return
+
         previous = copy.deepcopy(target)
+        self._list_snapshot_mode[list_id] = "full"
+        self._record_snapshot(value=target, path_key=(list_id, "list_full"))
 
         def undo() -> None:
             target[:] = copy.deepcopy(previous)
+
+        self._records.append(undo)
+
+    def record_list_append(self, target: list[Any]) -> None:
+        list_id = id(target)
+        if list_id in self._list_snapshot_mode:
+            self._record_snapshot(value=_MISSING, path_key=(list_id, "list_append"), duplicate=True)
+            return
+
+        previous_len = len(target)
+        self._list_snapshot_mode[list_id] = "length"
+        self._record_snapshot(value=[], path_key=(list_id, "list_append"))
+
+        def undo() -> None:
+            del target[previous_len:]
 
         self._records.append(undo)
 
@@ -63,11 +174,15 @@ class RollbackJournal:
             except Exception as exc:  # pragma: no cover - fail-closed guard
                 errors.append(type(exc).__name__)
         self._records.clear()
+        self._dict_paths_seen.clear()
+        self._list_snapshot_mode.clear()
         if errors:
             raise RollbackJournalError("rollback_failed:" + ",".join(errors))
 
     def clear(self) -> None:
         self._records.clear()
+        self._dict_paths_seen.clear()
+        self._list_snapshot_mode.clear()
 
     @property
     def record_count(self) -> int:
@@ -207,11 +322,11 @@ class JournaledList(list):
         del self._target[index]
 
     def append(self, value: Any) -> None:  # type: ignore[override]
-        self._journal.record_list_state(self._target)
+        self._journal.record_list_append(self._target)
         self._target.append(_unwrap(value))
 
     def extend(self, values: Iterable[Any]) -> None:  # type: ignore[override]
-        self._journal.record_list_state(self._target)
+        self._journal.record_list_append(self._target)
         self._target.extend(_unwrap(v) for v in values)
 
     def insert(self, index: int, value: Any) -> None:  # type: ignore[override]
@@ -270,5 +385,7 @@ __all__ = [
     "JournaledList",
     "RollbackJournal",
     "RollbackJournalError",
+    "get_rollback_diagnostics",
+    "reset_rollback_diagnostics",
     "run_with_bounded_rollback",
 ]

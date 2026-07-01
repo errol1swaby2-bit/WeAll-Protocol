@@ -233,3 +233,93 @@ def test_block_admission_uses_nonce_overlay_for_same_signer_sequence() -> None:
     assert block_reject is None
     assert per_tx == [None, None]
     assert state["accounts"]["@alice"]["nonce"] == 0
+
+
+def test_bounded_rollback_path_level_journal_restores_nested_mutations() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {
+        "accounts": {"@alice": {"nonce": 7, "profile": {"name": "Alice"}}},
+        "events": [{"kind": "existing"}],
+    }
+    state = copy.deepcopy(original)
+
+    def mutate_then_fail(st: Json) -> None:
+        st["accounts"]["@alice"]["nonce"] = 8
+        st["accounts"]["@alice"]["profile"]["bio"] = "builder"
+        st["accounts"]["@alice"]["profile"]["name"] = "Alice Updated"
+        del st["accounts"]["@alice"]["profile"]["name"]
+        st["events"].append({"kind": "appended"})
+        st["events"].extend([{"kind": "extended"}])
+        raise ApplyError("probe", "forced_rollback", {})
+
+    with pytest.raises(ApplyError, match="forced_rollback"):
+        run_with_bounded_rollback(state, mutate_then_fail)
+
+    assert state == original
+
+
+def test_bounded_rollback_list_append_uses_length_rollback_but_full_snapshot_for_reorder() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {"items": ["b", "a"]}
+    state = copy.deepcopy(original)
+
+    def append_then_sort_then_fail(st: Json) -> None:
+        st["items"].append("c")
+        st["items"].sort()
+        raise ApplyError("probe", "forced_rollback", {})
+
+    with pytest.raises(ApplyError, match="forced_rollback"):
+        run_with_bounded_rollback(state, append_then_sort_then_fail)
+
+    assert state == original
+
+
+def test_bounded_rollback_repeated_path_snapshots_only_once() -> None:
+    from weall.runtime.bounded_rollback import (
+        get_rollback_diagnostics,
+        reset_rollback_diagnostics,
+        run_with_bounded_rollback,
+    )
+
+    state = {"account": {"nonce": 0}, "events": []}
+    reset_rollback_diagnostics()
+
+    result, record_count = run_with_bounded_rollback(
+        state,
+        lambda st: (
+            st["account"].__setitem__("nonce", 1),
+            st["account"].__setitem__("nonce", 2),
+            st["events"].append("a"),
+            st["events"].append("b"),
+            "ok",
+        )[-1],
+    )
+
+    diagnostics = get_rollback_diagnostics()
+    assert result == "ok"
+    assert state == {"account": {"nonce": 2}, "events": ["a", "b"]}
+    assert record_count == 2
+    assert diagnostics["rollback_snapshot_path_count"] == 2
+    assert diagnostics["rollback_snapshot_duplicate_path_count"] >= 2
+    assert diagnostics["rollback_scalar_snapshot_count"] >= 1
+    assert diagnostics["rollback_list_snapshot_count"] >= 1
+
+
+def test_bounded_rollback_dict_key_insert_update_delete_restore_exactly() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {"root": {"existing": {"value": 1}, "delete_me": "x"}}
+    state = copy.deepcopy(original)
+
+    def mutate_then_fail(st: Json) -> None:
+        st["root"]["inserted"] = {"value": 2}
+        st["root"]["existing"] = {"value": 3}
+        del st["root"]["delete_me"]
+        raise ApplyError("probe", "forced_rollback", {})
+
+    with pytest.raises(ApplyError, match="forced_rollback"):
+        run_with_bounded_rollback(state, mutate_then_fail)
+
+    assert state == original

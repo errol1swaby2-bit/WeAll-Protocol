@@ -104,6 +104,17 @@ TX_LOOP_MICROPHASE_FIELDS = [
     "slow_observer_rollback_tracking_wall_ms",
 ]
 
+ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
+    "rollback_snapshot_count",
+    "rollback_snapshot_bytes_estimate",
+    "rollback_snapshot_path_count",
+    "rollback_snapshot_duplicate_path_count",
+    "rollback_scalar_snapshot_count",
+    "rollback_container_snapshot_count",
+    "rollback_list_snapshot_count",
+    "rollback_dict_snapshot_count",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -200,6 +211,22 @@ def _zero_tx_loop_microphase_values(prefix: str) -> Json:
     }
 
 
+def _rollback_journal_diagnostic_values() -> Json:
+    from weall.runtime.bounded_rollback import get_rollback_diagnostics
+
+    raw = get_rollback_diagnostics()
+    return {field: int(raw.get(field, 0) or 0) for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+
+
+def _zero_rollback_journal_diagnostic_values() -> Json:
+    return {field: 0 for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS}
+
+
+def _add_rollback_journal_diagnostics(target: Json, source: Json) -> None:
+    for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS:
+        target[field] = int(target.get(field, 0) or 0) + int(source.get(field, 0) or 0)
+
+
 def _profile_bottleneck_summary(profile: Json) -> Json:
     entries: list[tuple[str, Any]] = []
     for field in PROFILE_TIMING_FIELDS:
@@ -246,6 +273,7 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
     old_resolve_applier = domain_dispatch.resolve_applier_for_tx_type
     old_record_dict_key = bounded_rollback.RollbackJournal.record_dict_key
     old_record_list_state = bounded_rollback.RollbackJournal.record_list_state
+    old_record_list_append = bounded_rollback.RollbackJournal.record_list_append
 
     class TimedTxEnvelope:
         @staticmethod
@@ -285,11 +313,17 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
             with probe.timed("rollback_journal_snapshot_time_ns"):
                 return old_record_list_state(self, *args, **kwargs)
 
+    def timed_record_list_append(self: Any, *args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_rollback_tracking_time_ns"):
+            with probe.timed("rollback_journal_snapshot_time_ns"):
+                return old_record_list_append(self, *args, **kwargs)
+
     domain_apply.TxEnvelope = TimedTxEnvelope
     domain_apply._apply_tx_internal = timed_apply_internal
     domain_dispatch.resolve_applier_for_tx_type = timed_resolve_applier
     bounded_rollback.RollbackJournal.record_dict_key = timed_record_dict_key
     bounded_rollback.RollbackJournal.record_list_state = timed_record_list_state
+    bounded_rollback.RollbackJournal.record_list_append = timed_record_list_append
     try:
         yield
     finally:
@@ -298,6 +332,7 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
         domain_dispatch.resolve_applier_for_tx_type = old_resolve_applier
         bounded_rollback.RollbackJournal.record_dict_key = old_record_dict_key
         bounded_rollback.RollbackJournal.record_list_state = old_record_list_state
+        bounded_rollback.RollbackJournal.record_list_append = old_record_list_append
 
 
 @contextmanager
@@ -813,6 +848,9 @@ def _state_root(state: Json) -> str:
 
 
 def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int, execution_model: str = "deepcopy") -> Json:
+    from weall.runtime.bounded_rollback import reset_rollback_diagnostics
+
+    reset_rollback_diagnostics()
     probe = PhaseProbe()
     backlog_before = _mempool_size(executor)
     candidate_selection_start = time.perf_counter_ns()
@@ -849,6 +887,7 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
             "replay_admission_wall_ms": 0.0,
             "rollback_journal_snapshot_wall_ms": 0.0,
+            **_zero_rollback_journal_diagnostic_values(),
             **_tx_loop_microphase_values(probe, "leader"),
             **_zero_tx_loop_microphase_values("follower"),
             **_zero_tx_loop_microphase_values("slow_observer"),
@@ -915,6 +954,7 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
         "replay_admission_wall_ms": 0.0,
         "rollback_journal_snapshot_wall_ms": 0.0,
+        **_rollback_journal_diagnostic_values(),
         **_tx_loop_microphase_values(probe, "leader"),
         **_zero_tx_loop_microphase_values("follower"),
         **_zero_tx_loop_microphase_values("slow_observer"),
@@ -941,6 +981,9 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
 
 
 def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") -> Json:
+    from weall.runtime.bounded_rollback import reset_rollback_diagnostics
+
+    reset_rollback_diagnostics()
     start = time.perf_counter_ns()
     probe = PhaseProbe()
     try:
@@ -968,6 +1011,7 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
         "domain_dispatch_wall_ms": _domain_dispatch_ms(probe, role),
         "domain_apply_wall_ms": probe.ms(f"{role}_domain_apply_time_ns"),
         "rollback_tracking_wall_ms": probe.ms(f"{role}_rollback_tracking_time_ns"),
+        **_rollback_journal_diagnostic_values(),
     }
 
 
@@ -1074,6 +1118,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             measured["block_decode_or_materialize_wall_ms"] = round(float(measured.get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(fr.get("block_decode_or_materialize_wall_ms")), 3)
             measured["replay_admission_wall_ms"] = round(float(measured.get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(fr.get("replay_admission_wall_ms")), 3)
             measured["rollback_journal_snapshot_wall_ms"] = round(float(measured.get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(fr.get("rollback_journal_snapshot_wall_ms")), 3)
+            _add_rollback_journal_diagnostics(measured, fr)
             _copy_replay_microphases(measured, fr, prefix="follower")
             follower_results.append(fr)
             slow_queue.append((block_i, block_obj))
@@ -1089,6 +1134,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                     blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
                     blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
                     blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                    _add_rollback_journal_diagnostics(blocks[slow_idx], sr)
                     _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
 
             if restart_during_load and block_i == int(blocks_n) // 2:
@@ -1109,6 +1155,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
                 blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
                 blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                _add_rollback_journal_diagnostics(blocks[slow_idx], sr)
                 _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
     leader_root = _state_root(leader.read_state())
     follower_root = _state_root(follower.read_state())

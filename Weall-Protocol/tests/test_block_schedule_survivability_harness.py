@@ -63,6 +63,17 @@ TX_LOOP_MICROPHASE_FIELDS = [
     "slow_observer_rollback_tracking_wall_ms",
 ]
 
+ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
+    "rollback_snapshot_count",
+    "rollback_snapshot_bytes_estimate",
+    "rollback_snapshot_path_count",
+    "rollback_snapshot_duplicate_path_count",
+    "rollback_scalar_snapshot_count",
+    "rollback_container_snapshot_count",
+    "rollback_list_snapshot_count",
+    "rollback_dict_snapshot_count",
+]
+
 BLOCK_TIMING_FIELDS = [
     "block_total_wall_ms",
     "candidate_selection_wall_ms",
@@ -146,10 +157,18 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     for field in BLOCK_TIMING_FIELDS:
         assert field in block
         _assert_non_negative_number(block[field])
+    for field in ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS:
+        assert field in block
+        assert isinstance(block[field], int)
+        assert block[field] >= 0
     assert block["leader_domain_apply_wall_ms"] >= 0
     assert block["leader_domain_dispatch_wall_ms"] >= 0
     assert block["follower_domain_apply_wall_ms"] >= 0
     assert block["slow_observer_domain_apply_wall_ms"] >= 0
+    assert block["rollback_snapshot_count"] >= block["rollback_snapshot_path_count"]
+    assert block["rollback_snapshot_duplicate_path_count"] >= 0
+    assert block["rollback_list_snapshot_count"] >= 0
+    assert block["rollback_dict_snapshot_count"] >= 0
     assert "execution_time_ms" in block
     assert "state_root_time_ms" in block
     assert "persistence_time_ms" in block
