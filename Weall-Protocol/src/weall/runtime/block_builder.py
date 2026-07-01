@@ -39,6 +39,7 @@ from weall.runtime.executor import (
     load_chain_manifest,
     make_block_header,
     recent_block_ids_from_state,
+    recent_block_anchor_required_for_height,
     make_vrf_record,
     os,
     policy_from_manifest,
@@ -586,8 +587,10 @@ def build_block_candidate(
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)
 
-    recent_block_anchor = compute_recent_block_anchor(
-        block_ids=recent_block_ids_from_state(state=self.state)
+    recent_block_anchor = (
+        compute_recent_block_anchor(block_ids=recent_block_ids_from_state(state=self.state))
+        if recent_block_anchor_required_for_height(state=self.state, height=int(new_height))
+        else ""
     )
 
     header = make_block_header(

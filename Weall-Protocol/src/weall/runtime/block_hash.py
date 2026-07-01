@@ -11,6 +11,39 @@ Json = dict[str, Any]
 
 RECENT_BLOCK_ANCHOR_VERSION = 1
 RECENT_BLOCK_ANCHOR_WINDOW = 3
+RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT = 1
+
+
+def _safe_positive_int(value: Any, default: int) -> int:
+    try:
+        n = int(value)
+    except Exception:
+        return int(default)
+    return n if n > 0 else 0
+
+
+def recent_block_anchor_activation_height(*, state: Json | None = None) -> int:
+    """Return the consensus-pinned height where recent anchors become required.
+
+    The value is read from ``state["meta"]["recent_block_anchor_activation_height"]``
+    when present, so a resettable pre-genesis/testnet chain can activate at
+    height 1 while any future migration can pin a later activation height in
+    the canonical state/config.  A value <= 0 disables the requirement only for
+    explicit migration/test fixtures; the default is height 1.
+    """
+
+    meta = state.get("meta") if isinstance(state, dict) else None
+    if isinstance(meta, dict) and "recent_block_anchor_activation_height" in meta:
+        return _safe_positive_int(
+            meta.get("recent_block_anchor_activation_height"),
+            RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT,
+        )
+    return int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT)
+
+
+def recent_block_anchor_required_for_height(*, state: Json | None, height: int) -> bool:
+    activation_height = recent_block_anchor_activation_height(state=state)
+    return bool(activation_height > 0 and int(height) >= int(activation_height))
 
 
 def compute_block_hash(*, header: Json) -> str:

@@ -120,3 +120,69 @@ def test_recent_block_anchor_distinguishes_forked_recent_history(tmp_path: Path)
     assert compute_recent_block_anchor(block_ids=[id2, id1]) == _anchor(
         _build_empty_block(base, ts_ms=3_000)[0]
     )
+
+
+def test_recent_block_anchor_activation_height_allows_legacy_pre_activation_blocks(
+    tmp_path: Path,
+) -> None:
+    leader = _make_executor(tmp_path, "leader-activation", chain_id="anchor-activation")
+    follower = _make_executor(tmp_path, "follower-activation", chain_id="anchor-activation")
+
+    for ex in (leader, follower):
+        st = ex.read_state()
+        st.setdefault("meta", {})["recent_block_anchor_activation_height"] = 3
+        ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
+        ex.state = copy.deepcopy(st)
+
+    block1 = _commit_empty_block(leader, ts_ms=1_000)
+    block2 = _commit_empty_block(leader, ts_ms=2_000)
+    block3 = _commit_empty_block(leader, ts_ms=3_000)
+
+    legacy1 = copy.deepcopy(block1)
+    legacy1["header"] = dict(legacy1["header"])
+    legacy1["header"].pop("recent_block_anchor", None)
+    legacy1["block_hash"] = ""
+
+    legacy2 = copy.deepcopy(block2)
+    legacy2["header"] = dict(legacy2["header"])
+    legacy2["header"].pop("recent_block_anchor", None)
+    legacy2["block_hash"] = ""
+
+    ok1 = follower.apply_block(legacy1)
+    assert ok1.ok is True
+    ok2 = follower.apply_block(legacy2)
+    assert ok2.ok is True
+
+    missing3 = copy.deepcopy(block3)
+    missing3["header"] = dict(missing3["header"])
+    missing3["header"].pop("recent_block_anchor", None)
+    missing3["block_hash"] = ""
+
+    bad3 = follower.apply_block(missing3)
+    assert bad3.ok is False
+    assert bad3.error == "bad_block:missing_recent_block_anchor"
+
+    ok3 = follower.apply_block(copy.deepcopy(block3))
+    assert ok3.ok is True
+
+
+def test_recent_block_anchor_pre_activation_rejects_wrong_optional_anchor(
+    tmp_path: Path,
+) -> None:
+    leader = _make_executor(tmp_path, "leader-pre", chain_id="anchor-pre")
+    follower = _make_executor(tmp_path, "follower-pre", chain_id="anchor-pre")
+    for ex in (leader, follower):
+        st = ex.read_state()
+        st.setdefault("meta", {})["recent_block_anchor_activation_height"] = 5
+        ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
+        ex.state = copy.deepcopy(st)
+
+    block1 = _commit_empty_block(leader, ts_ms=1_000)
+    wrong = copy.deepcopy(block1)
+    wrong["header"] = dict(wrong["header"])
+    wrong["header"]["recent_block_anchor"] = compute_recent_block_anchor(block_ids=["wrong"])
+    wrong["block_hash"] = ""
+
+    bad = follower.apply_block(wrong)
+    assert bad.ok is False
+    assert bad.error == "bad_block:recent_block_anchor_mismatch"

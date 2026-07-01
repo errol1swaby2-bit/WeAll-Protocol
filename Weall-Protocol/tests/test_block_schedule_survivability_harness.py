@@ -78,11 +78,16 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     assert evidence["execution_models"] == ["deepcopy", "bounded_rollback"]
+    assert evidence["compare_equivalence"]["ok"] is True
+    assert evidence["compare_equivalence"]["profiles"]["light"]["ok"] is True
     profiles = evidence["profiles"]
     assert [p["execution_model"] for p in profiles] == ["deepcopy", "bounded_rollback"]
+    assert len({p["chain_id"] for p in profiles}) == 1
     for profile in profiles:
         block = profile["block_measurements"][0]
         assert block["ok"] is True, block
         assert block["execution_model"] == profile["execution_model"]
         assert "execution_time_ms" in block
+        assert block["accepted_tx_ids"]
+        assert block["receipt_fingerprint"]
         assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]

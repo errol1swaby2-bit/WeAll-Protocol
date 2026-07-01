@@ -38,6 +38,7 @@ from weall.runtime.executor import (
     effective_bft_enabled,
     ensure_block_hash,
     recent_block_ids_from_state,
+    recent_block_anchor_required_for_height,
     runtime_mode,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
@@ -588,15 +589,19 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
         )
 
+    recent_anchor_required = recent_block_anchor_required_for_height(
+        state=self.state,
+        height=int(height),
+    )
     expected_recent_anchor = compute_recent_block_anchor(
         block_ids=recent_block_ids_from_state(state=self.state)
     )
     have_recent_anchor = str(header.get("recent_block_anchor") or "").strip()
-    if not have_recent_anchor:
+    if recent_anchor_required and not have_recent_anchor:
         return ExecutorMeta(
             ok=False, error="bad_block:missing_recent_block_anchor", height=0, block_id=""
         )
-    if have_recent_anchor != expected_recent_anchor:
+    if have_recent_anchor and have_recent_anchor != expected_recent_anchor:
         return ExecutorMeta(
             ok=False, error="bad_block:recent_block_anchor_mismatch", height=0, block_id=""
         )

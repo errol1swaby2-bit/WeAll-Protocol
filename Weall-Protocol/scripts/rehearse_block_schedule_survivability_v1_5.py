@@ -12,6 +12,7 @@ fast path is enabled; otherwise they are reported as zero/unmeasured.
 
 import argparse
 import copy
+import hashlib
 import json
 import os
 import statistics
@@ -29,6 +30,14 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 Json = dict[str, Any]
+
+
+def _canon_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _fingerprint(value: Any) -> str:
+    return hashlib.sha256(_canon_json(value).encode("utf-8")).hexdigest()
 
 DEFAULT_TARGET_BLOCK_MS = 20_000
 PROFILE_DEFAULTS: dict[str, dict[str, int]] = {
@@ -463,6 +472,10 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         "block_id": str(block.get("block_id") or ""),
         "txs_included": len(block.get("txs") if isinstance(block.get("txs"), list) else []),
         "receipts_emitted": len(receipts),
+        "accepted_tx_ids": [str(x) for x in applied_ids],
+        "invalid_tx_ids": [str(x) for x in invalid_ids],
+        "receipt_fingerprint": _fingerprint(receipts),
+        "receipts": copy.deepcopy(receipts),
         "tx_types_selected_before_block": candidate_type_counts,
         "tx_types_included": included_types,
         "mempool_backlog_before": backlog_before,
@@ -530,10 +543,10 @@ def _summary(blocks: list[Json]) -> Json:
     }
 
 
-def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy") -> Json:
+def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy", chain_id_override: str | None = None) -> Json:
     execution_model = str(execution_model or "deepcopy")
     tempdir = tempfile.mkdtemp(prefix=f"weall-block-schedule-{profile}-{execution_model}-")
-    chain_id = f"block-schedule-survivability-{profile}-{execution_model}"
+    chain_id = str(chain_id_override or f"block-schedule-survivability-{profile}-{execution_model}")
     users = [f"@load{i:03d}" for i in range(max(3, int(users_n)))]
     leader = _make_executor(str(Path(tempdir) / "leader.db"), node_id="@leader", chain_id=chain_id, helper_fast_path=helper_fast_path)
     follower = _make_executor(str(Path(tempdir) / "follower.db"), node_id="@follower", chain_id=chain_id, helper_fast_path=False)
@@ -621,11 +634,121 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             "leader_state_root": leader_root,
             "follower_state_root": follower_root,
             "slow_observer_state_root": slow_root,
+            "leader_state_fingerprint": _fingerprint(leader.read_state()),
+            "follower_state_fingerprint": _fingerprint(follower.read_state()),
+            "slow_observer_state_fingerprint": _fingerprint(slow_observer.read_state()),
             "all_nodes_converged": leader_root == follower_root == slow_root,
         },
         "restart_during_load": restart_result or {"performed": False},
     }
 
+
+
+def _project_block_for_equivalence(block: Json) -> Json:
+    return {
+        "ok": bool(block.get("ok")),
+        "error": str(block.get("error") or ""),
+        "height": int(block.get("height") or 0),
+        "block_id": str(block.get("block_id") or ""),
+        "txs_included": int(block.get("txs_included") or 0),
+        "receipts_emitted": int(block.get("receipts_emitted") or 0),
+        "accepted_tx_ids": list(block.get("accepted_tx_ids") or []),
+        "invalid_tx_ids": list(block.get("invalid_tx_ids") or []),
+        "receipt_fingerprint": str(block.get("receipt_fingerprint") or ""),
+        "receipts": copy.deepcopy(block.get("receipts") or []),
+        "tx_types_included": dict(block.get("tx_types_included") or {}),
+        "state_root": str(block.get("state_root") or ""),
+    }
+
+
+def _project_profile_for_equivalence(profile: Json) -> Json:
+    convergence = dict(profile.get("convergence") or {})
+    return {
+        "profile": str(profile.get("profile") or ""),
+        "chain_id": str(profile.get("chain_id") or ""),
+        "aggregate_submit": copy.deepcopy(profile.get("aggregate_submit") or {}),
+        "blocks": [
+            _project_block_for_equivalence(b)
+            for b in list(profile.get("block_measurements") or [])
+            if isinstance(b, dict)
+        ],
+        "follower_apply_results": [
+            {
+                "ok": bool(r.get("ok")),
+                "error": str(r.get("error") or ""),
+                "height": int(r.get("height") or 0),
+                "state_root": str(r.get("state_root") or ""),
+            }
+            for r in list(profile.get("follower_apply_results") or [])
+            if isinstance(r, dict)
+        ],
+        "convergence": {
+            "leader_height": int(convergence.get("leader_height") or 0),
+            "follower_height": int(convergence.get("follower_height") or 0),
+            "slow_observer_height": int(convergence.get("slow_observer_height") or 0),
+            "leader_state_root": str(convergence.get("leader_state_root") or ""),
+            "follower_state_root": str(convergence.get("follower_state_root") or ""),
+            "slow_observer_state_root": str(convergence.get("slow_observer_state_root") or ""),
+            "leader_state_fingerprint": str(convergence.get("leader_state_fingerprint") or ""),
+            "follower_state_fingerprint": str(convergence.get("follower_state_fingerprint") or ""),
+            "slow_observer_state_fingerprint": str(convergence.get("slow_observer_state_fingerprint") or ""),
+            "all_nodes_converged": bool(convergence.get("all_nodes_converged")),
+        },
+    }
+
+
+def _compare_execution_model_results(results: list[Json]) -> Json:
+    by_profile: dict[str, dict[str, Json]] = {}
+    for result in results:
+        profile = str(result.get("profile") or "")
+        model = str(result.get("execution_model") or "")
+        by_profile.setdefault(profile, {})[model] = result
+
+    profile_results: dict[str, Json] = {}
+    ok_all = True
+    for profile, models in sorted(by_profile.items()):
+        deepcopy_result = models.get("deepcopy")
+        rollback_result = models.get("bounded_rollback")
+        if not isinstance(deepcopy_result, dict) or not isinstance(rollback_result, dict):
+            ok_all = False
+            profile_results[profile] = {
+                "ok": False,
+                "reason": "missing_model_result",
+                "models_present": sorted(models.keys()),
+            }
+            continue
+        left = _project_profile_for_equivalence(deepcopy_result)
+        right = _project_profile_for_equivalence(rollback_result)
+        equal = left == right
+        if not equal:
+            ok_all = False
+        mismatched_sections: list[str] = []
+        for key in sorted(set(left.keys()) | set(right.keys())):
+            if left.get(key) != right.get(key):
+                mismatched_sections.append(key)
+        profile_results[profile] = {
+            "ok": bool(equal),
+            "deepcopy_fingerprint": _fingerprint(left),
+            "bounded_rollback_fingerprint": _fingerprint(right),
+            "mismatched_sections": mismatched_sections,
+        }
+    return {
+        "ok": bool(ok_all),
+        "profiles": profile_results,
+        "models_compared": ["deepcopy", "bounded_rollback"],
+        "comparison_fields": [
+            "chain_id",
+            "aggregate_submit",
+            "accepted_tx_ids",
+            "invalid_tx_ids",
+            "receipts",
+            "receipt_fingerprint",
+            "state_root",
+            "follower_apply_results",
+            "final_state_fingerprint",
+            "convergence",
+        ],
+    }
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -658,8 +781,18 @@ def main(argv: list[str] | None = None) -> int:
                     helper_fast_path=args.helper_fast_path,
                     restart_during_load=bool(args.restart_during_load),
                     execution_model=model,
+                    chain_id_override=(
+                        f"block-schedule-survivability-{profile}-compare"
+                        if args.execution_model == "compare"
+                        else None
+                    ),
                 )
             )
+    compare_equivalence = (
+        _compare_execution_model_results(results)
+        if args.execution_model == "compare"
+        else {"ok": True, "skipped": True}
+    )
     artifact: Json = {
         "artifact": "block_schedule_survivability_rehearsal_evidence_v1_5",
         "generated_at_ms": _now_ms(),
@@ -667,12 +800,16 @@ def main(argv: list[str] | None = None) -> int:
         "budget_artifact": "specs/block_schedule_survivability_budget_v1_5.json",
         "execution_models": models,
         "profiles": results,
+        "compare_equivalence": compare_equivalence,
     }
     out = Path(args.out) if args.out else REPO_ROOT / "rehearsal-evidence" / f"block_schedule_survivability_{_now_ms()}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(artifact, indent=2, sort_keys=True), encoding="utf-8")
     print(str(out))
-    # A non-zero exit is reserved for harness/runtime failure. Cadence misses are evidence.
+    if args.execution_model == "compare" and not bool(compare_equivalence.get("ok")):
+        print("ERROR: execution model equivalence mismatch", file=sys.stderr)
+        return 2
+    # A non-zero exit is reserved for harness/runtime/equivalence failure. Cadence misses are evidence.
     return 0
 
 

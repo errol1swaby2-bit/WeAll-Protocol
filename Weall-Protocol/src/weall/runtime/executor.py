@@ -51,7 +51,7 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.bft_journal import BftJournal
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block, admit_block_txs
 from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
-from weall.runtime.block_hash import compute_block_hash, compute_helper_execution_root, compute_receipts_root, compute_recent_block_anchor, ensure_block_hash, make_block_header, recent_block_ids_from_state
+from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT, compute_block_hash, compute_helper_execution_root, compute_receipts_root, compute_recent_block_anchor, ensure_block_hash, make_block_header, recent_block_ids_from_state, recent_block_anchor_required_for_height
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.chain_config import load_chain_config
 from weall.runtime.chain_manifest import load_chain_manifest
@@ -556,6 +556,7 @@ class WeAllExecutor:
         )
         st_helper_execution_profile_hash = str(meta.get("helper_execution_profile_hash") or "").strip()
         st_genesis_bootstrap_profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
+        st_recent_block_anchor_activation = _safe_int(meta.get("recent_block_anchor_activation_height"), 0)
         st_genesis_bootstrap_profile_hash = str(meta.get("genesis_bootstrap_profile_hash") or "").strip()
         runtime_mempool_selection_policy = _normalize_mempool_selection_policy(
             getattr(self._mempool, "selection_policy", lambda: "canonical")()
@@ -682,6 +683,7 @@ class WeAllExecutor:
         meta.setdefault("helper_execution_profile_hash", current_helper_execution_profile_hash)
         meta.setdefault("genesis_bootstrap_profile", current_genesis_bootstrap_profile)
         meta.setdefault("genesis_bootstrap_profile_hash", current_genesis_bootstrap_profile_hash)
+        meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
         meta["startup_clock_sanity_required"] = bool(
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
@@ -698,11 +700,13 @@ class WeAllExecutor:
             or not st_mempool_selection_policy
             or not st_helper_execution_profile_hash
             or not st_genesis_bootstrap_profile_hash
+            or not st_recent_block_anchor_activation
         ):
             meta["helper_execution_profile"] = current_helper_execution_profile
             meta["helper_execution_profile_hash"] = current_helper_execution_profile_hash
             meta["genesis_bootstrap_profile"] = current_genesis_bootstrap_profile
             meta["genesis_bootstrap_profile_hash"] = current_genesis_bootstrap_profile_hash
+            meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
