@@ -95,6 +95,18 @@ BLOCK_TIMING_FIELDS = [
     "slow_observer_apply_wall_ms",
     "state_root_wall_ms",
     "receipt_or_summary_wall_ms",
+    "leader_tx_loop_wall_ms",
+    "follower_tx_loop_wall_ms",
+    "slow_observer_tx_loop_wall_ms",
+    "leader_receipt_build_wall_ms",
+    "follower_receipt_build_wall_ms",
+    "slow_observer_receipt_build_wall_ms",
+    "leader_state_root_wall_ms",
+    "follower_state_root_wall_ms",
+    "slow_observer_state_root_wall_ms",
+    "block_decode_or_materialize_wall_ms",
+    "replay_admission_wall_ms",
+    "rollback_journal_snapshot_wall_ms",
 ]
 
 
@@ -183,16 +195,30 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
 
     old_compute_state_root = block_builder.compute_state_root
     old_admit_block_txs = block_builder.admit_block_txs
+    old_compute_receipts_root = block_builder.compute_receipts_root
+    old_tx_envelope = block_builder.TxEnvelope
     old_runtime_context_from_executor = block_builder.RuntimeContext.from_executor
+    old_runtime_context_module_from_executor = runtime_context.RuntimeContext.from_executor
     old_helper_meta = getattr(executor, "_build_helper_execution_metadata", None)
 
     def timed_compute_state_root(*args: Any, **kwargs: Any) -> Any:
         with probe.timed("state_root_time_ns"):
-            return old_compute_state_root(*args, **kwargs)
+            with probe.timed("leader_state_root_time_ns"):
+                return old_compute_state_root(*args, **kwargs)
 
     def timed_admit_block_txs(*args: Any, **kwargs: Any) -> Any:
         with probe.timed("block_admission_time_ns"):
             return old_admit_block_txs(*args, **kwargs)
+
+    def timed_compute_receipts_root(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed("leader_receipt_build_time_ns"):
+            return old_compute_receipts_root(*args, **kwargs)
+
+    class TimedTxEnvelope:
+        @staticmethod
+        def from_json(*args: Any, **kwargs: Any) -> Any:
+            with probe.timed("block_decode_or_materialize_time_ns"):
+                return old_tx_envelope.from_json(*args, **kwargs)
 
     def timed_from_executor(ex: Any) -> Any:
         ctx = old_runtime_context_from_executor(ex)
@@ -210,7 +236,8 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
 
         def timed_apply(*args: Any, **kwargs: Any) -> Any:
             with probe.timed("execution_time_ns"):
-                return selected_apply(*args, **kwargs)
+                with probe.timed("leader_tx_loop_time_ns"):
+                    return selected_apply(*args, **kwargs)
 
         tx_set = replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply)
         return replace(ctx, tx_execution_set=tx_set)
@@ -223,6 +250,8 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
 
     block_builder.compute_state_root = timed_compute_state_root
     block_builder.admit_block_txs = timed_admit_block_txs
+    block_builder.compute_receipts_root = timed_compute_receipts_root
+    block_builder.TxEnvelope = TimedTxEnvelope
     block_builder.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     # Keep runtime_context patched too for extracted callers that import it directly.
     runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
@@ -233,11 +262,72 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
     finally:
         block_builder.compute_state_root = old_compute_state_root
         block_builder.admit_block_txs = old_admit_block_txs
+        block_builder.compute_receipts_root = old_compute_receipts_root
+        block_builder.TxEnvelope = old_tx_envelope
         block_builder.RuntimeContext.from_executor = old_runtime_context_from_executor
-        runtime_context.RuntimeContext.from_executor = old_runtime_context_from_executor
+        runtime_context.RuntimeContext.from_executor = old_runtime_context_module_from_executor
         if old_helper_meta is not None:
             setattr(executor, "_build_helper_execution_metadata", old_helper_meta)
 
+
+@contextmanager
+def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str) -> Any:
+    """Measure follower/observer replay subphases without changing replay semantics."""
+
+    import weall.runtime.block_replay as block_replay
+    import weall.runtime.runtime_context as runtime_context
+
+    prefix = str(role or "follower")
+    old_compute_state_root = block_replay.compute_state_root
+    old_admit_block_txs = block_replay.admit_block_txs
+    old_compute_receipts_root = block_replay.compute_receipts_root
+    old_tx_envelope = block_replay.TxEnvelope
+    old_runtime_context_from_executor = block_replay.RuntimeContext.from_executor
+    old_runtime_context_module_from_executor = runtime_context.RuntimeContext.from_executor
+
+    def timed_compute_state_root(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_state_root_time_ns"):
+            return old_compute_state_root(*args, **kwargs)
+
+    def timed_admit_block_txs(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed("replay_admission_time_ns"):
+            return old_admit_block_txs(*args, **kwargs)
+
+    def timed_compute_receipts_root(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_receipt_build_time_ns"):
+            return old_compute_receipts_root(*args, **kwargs)
+
+    class TimedTxEnvelope:
+        @staticmethod
+        def from_json(*args: Any, **kwargs: Any) -> Any:
+            with probe.timed("block_decode_or_materialize_time_ns"):
+                return old_tx_envelope.from_json(*args, **kwargs)
+
+    def timed_from_executor(ex: Any) -> Any:
+        ctx = old_runtime_context_from_executor(ex)
+        original_apply = ctx.tx_execution_set.apply_tx_atomic_meta
+
+        def timed_apply(*args: Any, **kwargs: Any) -> Any:
+            with probe.timed(f"{prefix}_tx_loop_time_ns"):
+                return original_apply(*args, **kwargs)
+
+        return replace(ctx, tx_execution_set=replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply))
+
+    block_replay.compute_state_root = timed_compute_state_root
+    block_replay.admit_block_txs = timed_admit_block_txs
+    block_replay.compute_receipts_root = timed_compute_receipts_root
+    block_replay.TxEnvelope = TimedTxEnvelope
+    block_replay.RuntimeContext.from_executor = staticmethod(timed_from_executor)
+    runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
+    try:
+        yield
+    finally:
+        block_replay.compute_state_root = old_compute_state_root
+        block_replay.admit_block_txs = old_admit_block_txs
+        block_replay.compute_receipts_root = old_compute_receipts_root
+        block_replay.TxEnvelope = old_tx_envelope
+        block_replay.RuntimeContext.from_executor = old_runtime_context_from_executor
+        runtime_context.RuntimeContext.from_executor = old_runtime_context_module_from_executor
 
 def _make_executor(db_path: str, *, node_id: str, chain_id: str, helper_fast_path: bool = False) -> Any:
     from weall.runtime.executor import WeAllExecutor
@@ -567,6 +657,21 @@ def _selected_type_counts(executor: Any, *, max_txs: int) -> dict[str, int]:
     return out
 
 
+def _tx_count_semantics(*, requested_limit: int, selected_candidate_count: int, included_count: int) -> Json:
+    derived = max(0, int(included_count) - int(selected_candidate_count))
+    return {
+        "max_txs_per_block_semantics": "mempool_candidate_limit_excludes_system_or_derived_txs",
+        "requested_mempool_candidate_limit": int(requested_limit),
+        "selected_candidate_tx_count": int(selected_candidate_count),
+        "system_or_derived_txs_included": int(derived),
+        "tx_count_overage_explained": bool(
+            int(included_count) > int(requested_limit)
+            and int(selected_candidate_count) <= int(requested_limit)
+            and int(derived) > 0
+        ),
+    }
+
+
 def _state_root(state: Json) -> str:
     from weall.runtime.state_hash import compute_state_root
 
@@ -598,6 +703,19 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             "slow_observer_apply_wall_ms": 0.0,
             "state_root_wall_ms": probe.ms("state_root_time_ns"),
             "receipt_or_summary_wall_ms": 0.0,
+            "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns") or probe.ms("execution_time_ns"),
+            "follower_tx_loop_wall_ms": 0.0,
+            "slow_observer_tx_loop_wall_ms": 0.0,
+            "leader_receipt_build_wall_ms": probe.ms("leader_receipt_build_time_ns"),
+            "follower_receipt_build_wall_ms": 0.0,
+            "slow_observer_receipt_build_wall_ms": 0.0,
+            "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns") or probe.ms("state_root_time_ns"),
+            "follower_state_root_wall_ms": 0.0,
+            "slow_observer_state_root_wall_ms": 0.0,
+            "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
+            "replay_admission_wall_ms": 0.0,
+            "rollback_journal_snapshot_wall_ms": 0.0,
+            **_tx_count_semantics(requested_limit=int(max_txs), selected_candidate_count=sum(int(v) for v in candidate_type_counts.values()), included_count=0),
             "total_block_production_time_ms": _ms(time.perf_counter_ns() - start),
             "execution_model": str(execution_model),
         }
@@ -616,13 +734,21 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
     receipt_fingerprint = _fingerprint(receipts)
     receipt_copy = copy.deepcopy(receipts)
     receipt_summary_ns = time.perf_counter_ns() - receipt_summary_start
+    included_count = len(block.get("txs") if isinstance(block.get("txs"), list) else [])
+    selected_candidate_count = sum(int(v) for v in candidate_type_counts.values())
+    tx_count_semantics = _tx_count_semantics(
+        requested_limit=int(max_txs),
+        selected_candidate_count=int(selected_candidate_count),
+        included_count=int(included_count),
+    )
     return {
+        "_block_obj_for_replay": block,
         "ok": bool(getattr(meta, "ok", False)),
         "execution_model": str(execution_model),
         "error": str(getattr(meta, "error", "") or ""),
         "height": int(block.get("height") or 0),
         "block_id": str(block.get("block_id") or ""),
-        "txs_included": len(block.get("txs") if isinstance(block.get("txs"), list) else []),
+        "txs_included": included_count,
         "receipts_emitted": len(receipts),
         "accepted_tx_ids": [str(x) for x in applied_ids],
         "invalid_tx_ids": [str(x) for x in invalid_ids],
@@ -640,6 +766,19 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         "slow_observer_apply_wall_ms": 0.0,
         "state_root_wall_ms": probe.ms("state_root_time_ns"),
         "receipt_or_summary_wall_ms": _ms(receipt_summary_ns),
+        "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns") or probe.ms("execution_time_ns"),
+        "follower_tx_loop_wall_ms": 0.0,
+        "slow_observer_tx_loop_wall_ms": 0.0,
+        "leader_receipt_build_wall_ms": probe.ms("leader_receipt_build_time_ns"),
+        "follower_receipt_build_wall_ms": 0.0,
+        "slow_observer_receipt_build_wall_ms": 0.0,
+        "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns") or probe.ms("state_root_time_ns"),
+        "follower_state_root_wall_ms": 0.0,
+        "slow_observer_state_root_wall_ms": 0.0,
+        "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
+        "replay_admission_wall_ms": 0.0,
+        "rollback_journal_snapshot_wall_ms": 0.0,
+        **tx_count_semantics,
         "proposal_construction_time_ms": max(
             0.0,
             round(_ms(candidate_ns) - probe.ms("block_admission_time_ns") - probe.ms("execution_time_ns") - probe.ms("state_root_time_ns") - probe.ms("helper_planning_time_ns"), 3),
@@ -661,10 +800,12 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
     }
 
 
-def _apply_to_follower(follower: Any, block: Json) -> Json:
+def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") -> Json:
     start = time.perf_counter_ns()
+    probe = PhaseProbe()
     try:
-        meta = follower.apply_block(block)
+        with _patched_block_replay_timing(follower, probe, role=role):
+            meta = follower.apply_block(block)
         ok = bool(getattr(meta, "ok", False))
         err = str(getattr(meta, "error", "") or "")
     except Exception as exc:
@@ -676,6 +817,12 @@ def _apply_to_follower(follower: Any, block: Json) -> Json:
         "apply_time_ms": _ms(time.perf_counter_ns() - start),
         "height": int(follower.read_state().get("height") or 0),
         "state_root": _state_root(follower.read_state()),
+        "tx_loop_wall_ms": probe.ms(f"{role}_tx_loop_time_ns"),
+        "receipt_build_wall_ms": probe.ms(f"{role}_receipt_build_time_ns"),
+        "state_root_wall_ms": probe.ms(f"{role}_state_root_time_ns"),
+        "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
+        "replay_admission_wall_ms": probe.ms("replay_admission_time_ns"),
+        "rollback_journal_snapshot_wall_ms": probe.ms("rollback_journal_snapshot_time_ns"),
     }
 
 
@@ -752,9 +899,13 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             blocks.append(measured)
             if not measured.get("ok"):
                 continue
-            block_obj = leader.read_state().get("blocks", {}).get(str(measured.get("height")))
+            block_obj = measured.pop("_block_obj_for_replay", None)
             if not isinstance(block_obj, dict):
-                # The executor keeps the produced block in the return path only. Fall back to DB rows.
+                block_obj = leader.read_state().get("blocks", {}).get(str(measured.get("height")))
+            if not isinstance(block_obj, dict):
+                # Fallback only: optimized harnesses should use the in-memory block
+                # returned by _produce_measured_block to avoid JSON DB materialization
+                # in throughput diagnostics.
                 import sqlite3
                 con = sqlite3.connect(str(Path(tempdir) / "leader.db"))
                 con.row_factory = sqlite3.Row
@@ -762,16 +913,28 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 con.close()
                 block_obj = json.loads(row["block_json"]) if row else {}
             with profile_probe.timed("follower_apply_wall_ns"):
-                fr = _apply_to_follower(follower, block_obj)
+                fr = _apply_to_follower(follower, block_obj, role="follower")
             measured["follower_apply_wall_ms"] = _phase_value_ms(fr.get("apply_time_ms"))
+            measured["follower_tx_loop_wall_ms"] = _phase_value_ms(fr.get("tx_loop_wall_ms"))
+            measured["follower_receipt_build_wall_ms"] = _phase_value_ms(fr.get("receipt_build_wall_ms"))
+            measured["follower_state_root_wall_ms"] = _phase_value_ms(fr.get("state_root_wall_ms"))
+            measured["block_decode_or_materialize_wall_ms"] = round(float(measured.get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(fr.get("block_decode_or_materialize_wall_ms")), 3)
+            measured["replay_admission_wall_ms"] = round(float(measured.get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(fr.get("replay_admission_wall_ms")), 3)
+            measured["rollback_journal_snapshot_wall_ms"] = round(float(measured.get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(fr.get("rollback_journal_snapshot_wall_ms")), 3)
             follower_results.append(fr)
             slow_queue.append((block_i, block_obj))
             if len(slow_queue) >= 2:
                 slow_idx, slow_block_obj = slow_queue.pop(0)
                 with profile_probe.timed("slow_observer_apply_wall_ns"):
-                    sr = _apply_to_follower(slow_observer, slow_block_obj)
+                    sr = _apply_to_follower(slow_observer, slow_block_obj, role="slow_observer")
                 if 0 <= slow_idx < len(blocks):
                     blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(sr.get("apply_time_ms"))
+                    blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(sr.get("tx_loop_wall_ms"))
+                    blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(sr.get("receipt_build_wall_ms"))
+                    blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(sr.get("state_root_wall_ms"))
+                    blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
+                    blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
+                    blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
 
             if restart_during_load and block_i == int(blocks_n) // 2:
                 with profile_probe.timed("restart_replay_wall_ns"):
@@ -782,9 +945,15 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
 
         for slow_idx, block_obj in slow_queue:
             with profile_probe.timed("slow_observer_apply_wall_ns"):
-                sr = _apply_to_follower(slow_observer, block_obj)
+                sr = _apply_to_follower(slow_observer, block_obj, role="slow_observer")
             if 0 <= slow_idx < len(blocks):
                 blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(sr.get("apply_time_ms"))
+                blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(sr.get("tx_loop_wall_ms"))
+                blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(sr.get("receipt_build_wall_ms"))
+                blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(sr.get("state_root_wall_ms"))
+                blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
+                blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
+                blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
     leader_root = _state_root(leader.read_state())
     follower_root = _state_root(follower.read_state())
     slow_root = _state_root(slow_observer.read_state())

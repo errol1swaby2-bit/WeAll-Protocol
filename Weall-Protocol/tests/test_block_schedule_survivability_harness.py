@@ -54,6 +54,18 @@ BLOCK_TIMING_FIELDS = [
     "slow_observer_apply_wall_ms",
     "state_root_wall_ms",
     "receipt_or_summary_wall_ms",
+    "leader_tx_loop_wall_ms",
+    "follower_tx_loop_wall_ms",
+    "slow_observer_tx_loop_wall_ms",
+    "leader_receipt_build_wall_ms",
+    "follower_receipt_build_wall_ms",
+    "slow_observer_receipt_build_wall_ms",
+    "leader_state_root_wall_ms",
+    "follower_state_root_wall_ms",
+    "slow_observer_state_root_wall_ms",
+    "block_decode_or_materialize_wall_ms",
+    "replay_admission_wall_ms",
+    "rollback_journal_snapshot_wall_ms",
 ]
 
 
@@ -118,6 +130,11 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert "execution_time_ms" in block
     assert "state_root_time_ms" in block
     assert "persistence_time_ms" in block
+    assert block["max_txs_per_block_semantics"] == "mempool_candidate_limit_excludes_system_or_derived_txs"
+    assert block["requested_mempool_candidate_limit"] == 12
+    assert block["selected_candidate_tx_count"] <= block["requested_mempool_candidate_limit"]
+    assert block["system_or_derived_txs_included"] >= 0
+    assert isinstance(block["tx_count_overage_explained"], bool)
     assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
 
 
@@ -165,6 +182,10 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
             assert field in block
             _assert_non_negative_number(block[field])
         assert "execution_time_ms" in block
+        assert "leader_tx_loop_wall_ms" in block
+        assert "follower_tx_loop_wall_ms" in block
+        assert "slow_observer_tx_loop_wall_ms" in block
+        assert block["max_txs_per_block_semantics"] == "mempool_candidate_limit_excludes_system_or_derived_txs"
         assert block["accepted_tx_ids"]
         assert block["receipt_fingerprint"]
         assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
