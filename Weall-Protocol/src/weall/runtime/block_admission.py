@@ -372,7 +372,7 @@ def admit_block_txs(
                 continue
             verdict: TxVerdict = admit_tx(
                 ledger=ledger,
-                tx=env.to_json(),
+                tx=env,
                 canon=tx_index,
                 context="block" if bool(verify_signatures) else "local",
             )
@@ -410,7 +410,7 @@ def admit_block_txs(
         admission_ledger = _ledger_with_account_nonce(ledger, signer, int(env.nonce) - 1)
         verdict: TxVerdict = admit_tx(
             ledger=admission_ledger,
-            tx=env.to_json(),
+            tx=env,
             canon=tx_index,
             context="block" if bool(verify_signatures) else "local",
         )

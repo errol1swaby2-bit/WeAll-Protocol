@@ -120,6 +120,22 @@ def _snapshot_size_estimate(value: Any) -> int:
     return len(repr(value))
 
 
+def _rollback_copy(value: Any) -> Any:
+    """Copy a value for rollback, avoiding deepcopy for JSON scalars.
+
+    Bounded rollback only needs an isolated copy for mutable containers.  The
+    hot nonce/reputation/profile paths snapshot many scalar values; routing
+    those through ``copy.deepcopy`` adds measurable interpreter overhead without
+    improving rollback safety.
+    """
+
+    if value is _MISSING:
+        return _MISSING
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return copy.deepcopy(value)
+
+
 def _classify_snapshot(value: Any) -> None:
     if isinstance(value, dict):
         _diagnostic_add("rollback_dict_snapshot_count")
@@ -281,13 +297,13 @@ class RollbackJournal:
         existed = key in target
         raw_previous = target.get(key, _MISSING) if existed else _MISSING
         self._record_snapshot(value=raw_previous, path_key=path, semantic_path=semantic_path)
-        previous = copy.deepcopy(raw_previous) if existed else _MISSING
+        previous = _rollback_copy(raw_previous) if existed else _MISSING
 
         def undo() -> None:
             if previous is _MISSING:
                 target.pop(key, None)
             else:
-                target[key] = copy.deepcopy(previous)
+                target[key] = _rollback_copy(previous)
 
         self._records.append(undo)
 

@@ -758,7 +758,7 @@ def admit_tx(
     context: str = "mempool",
 ) -> AdmissionVerdict:
     lv = _as_ledgerview(ledger)
-    env = TxEnvelope.from_json(tx)
+    env = tx if isinstance(tx, TxEnvelope) else TxEnvelope.from_json(tx)
 
     if not env.tx_type:
         return _rej("invalid_tx", "missing_tx_type")
