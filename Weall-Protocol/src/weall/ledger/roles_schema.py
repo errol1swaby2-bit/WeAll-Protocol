@@ -63,20 +63,27 @@ def ensure_roles_schema(ledger: Json) -> Json:
     roles.setdefault("emissaries", {})
     roles.setdefault("gov_executor", {"current": "", "active": True})
 
-    # Normalize validator active_set to list[str]
+    # Normalize validator active_set to list[str]. Avoid no-op writes because
+    # consensus rollback journaling must not snapshot already-canonical lists.
     validators = roles.get("validators")
     if not isinstance(validators, dict):
         validators = {"active_set": []}
         roles["validators"] = validators
-    validators["active_set"] = canonicalize_account_set(validators.get("active_set"))
+    validator_active_set = validators.get("active_set")
+    canonical_validator_active_set = canonicalize_account_set(validator_active_set)
+    if list(_as_list(validator_active_set)) != canonical_validator_active_set:
+        validators["active_set"] = canonical_validator_active_set
 
-    # Normalize other active_set lists
+    # Normalize other active_set lists. Avoid no-op writes for the same reason.
     for key in ("jurors", "node_operators", "creators"):
         obj = roles.get(key)
         if not isinstance(obj, dict):
             obj = {"by_id": {}, "active_set": []}
             roles[key] = obj
-        obj["active_set"] = _uniq_str_list(obj.get("active_set"))
+        active_set = obj.get("active_set")
+        canonical_active_set = _uniq_str_list(active_set)
+        if list(_as_list(active_set)) != canonical_active_set:
+            obj["active_set"] = canonical_active_set
         if not isinstance(obj.get("by_id"), dict):
             obj["by_id"] = {}
 
@@ -101,8 +108,12 @@ def set_treasury_signers(
         obj = {}
         treasuries[tid] = obj
 
-    obj["signers"] = _uniq_str_list(signers)
-    obj["threshold"] = int(threshold) if int(threshold) > 0 else 1
+    canonical_signers = _uniq_str_list(signers)
+    canonical_threshold = int(threshold) if int(threshold) > 0 else 1
+    if list(_as_list(obj.get("signers"))) != canonical_signers:
+        obj["signers"] = canonical_signers
+    if obj.get("threshold") != canonical_threshold:
+        obj["threshold"] = canonical_threshold
 
 
 def set_group_signers(
@@ -123,8 +134,12 @@ def set_group_signers(
         obj = {}
         groups[gid] = obj
 
-    obj["signers"] = _uniq_str_list(signers)
-    obj["threshold"] = int(threshold) if int(threshold) > 0 else 1
+    canonical_signers = _uniq_str_list(signers)
+    canonical_threshold = int(threshold) if int(threshold) > 0 else 1
+    if list(_as_list(obj.get("signers"))) != canonical_signers:
+        obj["signers"] = canonical_signers
+    if obj.get("threshold") != canonical_threshold:
+        obj["threshold"] = canonical_threshold
 
 
 def set_group_moderators(ledger: Json, group_id: str, moderators: list[str]) -> None:
@@ -143,7 +158,9 @@ def set_group_moderators(ledger: Json, group_id: str, moderators: list[str]) -> 
         obj = {}
         groups[gid] = obj
 
-    obj["moderators"] = _uniq_str_list(moderators)
+    canonical_moderators = _uniq_str_list(moderators)
+    if list(_as_list(obj.get("moderators"))) != canonical_moderators:
+        obj["moderators"] = canonical_moderators
 
 
 def migrate_legacy_role_shapes(ledger: Json) -> tuple[int, list[str]]:

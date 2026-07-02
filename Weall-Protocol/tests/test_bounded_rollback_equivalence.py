@@ -362,3 +362,90 @@ def test_bounded_rollback_diagnostics_report_hot_paths_and_tx_kind() -> None:
     prefixes = {item["path"] for item in diagnostics["rollback_top_snapshot_prefixes"]}
     assert "accounts" in prefixes
     assert "accounts.@alice" in prefixes
+
+
+def test_rollback_helper_apis_restore_group_and_moderation_hot_paths() -> None:
+    from weall.runtime.bounded_rollback import (
+        journal_append_list,
+        journal_delete_dict_key,
+        journal_extend_list,
+        journal_set_dict_key,
+        journal_set_scalar,
+        run_with_bounded_rollback,
+    )
+
+    original = {
+        "roles": {"treasuries_by_id": {}, "groups_by_id": {}},
+        "treasury_wallets": {},
+        "content": {"moderation": {"receipts": [{"existing": True}]}},
+        "system_queue": [{"queue_id": "existing"}],
+        "accounts": {"@alice": {"nonce": 0}},
+    }
+    state = copy.deepcopy(original)
+
+    def mutate_then_fail(st: Json) -> None:
+        journal_set_dict_key(
+            st["roles"]["groups_by_id"],
+            "g:hot",
+            {"group_id": "g:hot"},
+            "roles.groups_by_id.g:hot",
+        )
+        journal_set_dict_key(
+            st["roles"]["treasuries_by_id"],
+            "TREASURY_GROUP::g:hot",
+            {"signers": ["@alice"], "threshold": 1},
+            "roles.treasuries_by_id.TREASURY_GROUP::g:hot",
+        )
+        journal_set_dict_key(
+            st["treasury_wallets"],
+            "TREASURY_GROUP::g:hot",
+            {"wallet_id": "TREASURY_GROUP::g:hot"},
+            "treasury_wallets.TREASURY_GROUP::g:hot",
+        )
+        journal_append_list(
+            st["content"]["moderation"]["receipts"],
+            {"tx_type": "CONTENT_FLAG"},
+            "content.moderation.receipts",
+        )
+        journal_extend_list(
+            st["system_queue"],
+            [{"queue_id": "q1"}, {"queue_id": "q2"}],
+            "system_queue",
+        )
+        journal_set_scalar(st["accounts"]["@alice"], "nonce", 1, "accounts.@alice.nonce")
+        journal_delete_dict_key(st["accounts"]["@alice"], "nonce", "accounts.@alice.nonce")
+        raise ApplyError("probe", "forced_hot_path_rollback", {})
+
+    with pytest.raises(ApplyError, match="forced_hot_path_rollback"):
+        run_with_bounded_rollback(state, mutate_then_fail)
+
+    assert state == original
+
+
+def test_roles_schema_avoids_noop_active_set_snapshots_when_already_canonical() -> None:
+    from weall.ledger.roles_schema import ensure_roles_schema
+    from weall.runtime.bounded_rollback import (
+        get_rollback_diagnostics,
+        reset_rollback_diagnostics,
+        run_with_bounded_rollback,
+    )
+
+    state = {
+        "roles": {
+            "treasuries_by_id": {},
+            "groups_by_id": {},
+            "validators": {"active_set": ["@validator"]},
+            "jurors": {"by_id": {}, "active_set": ["@alice", "@bob"]},
+            "node_operators": {"by_id": {}, "active_set": ["@node"]},
+            "creators": {"by_id": {}, "active_set": ["@creator"]},
+            "emissaries": {},
+            "gov_executor": {"current": "", "active": True},
+        }
+    }
+    reset_rollback_diagnostics()
+
+    run_with_bounded_rollback(state, ensure_roles_schema)
+    diagnostics = get_rollback_diagnostics()
+
+    assert diagnostics["rollback_snapshot_count"] == 0
+    assert diagnostics["rollback_top_snapshot_paths"] == []

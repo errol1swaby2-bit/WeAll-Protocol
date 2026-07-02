@@ -174,6 +174,69 @@ def _unwrap(value: Any) -> Any:
     return value
 
 
+def _path_tuple(path: str | tuple[Any, ...] | None) -> tuple[Any, ...] | None:
+    if path is None:
+        return None
+    if isinstance(path, tuple):
+        return path
+    return tuple(part for part in str(path).split('.') if part)
+
+
+def journal_set_dict_key(container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+    """Set one dict key through the active rollback journal when present.
+
+    This is a small semantic helper for hot domain paths.  It does not change
+    consensus behavior; it routes mechanically-safe dict key insert/update
+    mutations through the same path-level journal used by JournaledDict.
+    """
+
+    if isinstance(container, JournaledDict):
+        semantic_path = _path_tuple(path) or container._path + (_path_segment(key),)
+        container._journal.record_dict_key(container._target, key, semantic_path=semantic_path)
+        container._target[key] = _unwrap(value)
+        return
+    container[key] = _unwrap(value)
+
+
+def journal_delete_dict_key(container: dict[Any, Any], key: Any, path: str | tuple[Any, ...] | None = None) -> None:
+    """Delete one dict key through the active rollback journal when present."""
+
+    if isinstance(container, JournaledDict):
+        semantic_path = _path_tuple(path) or container._path + (_path_segment(key),)
+        container._journal.record_dict_key(container._target, key, semantic_path=semantic_path)
+        del container._target[key]
+        return
+    del container[key]
+
+
+def journal_set_scalar(container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+    """Set a scalar dict value through the active rollback journal when present."""
+
+    journal_set_dict_key(container, key, value, path)
+
+
+def journal_append_list(container: list[Any], value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+    """Append to a list using length-based rollback when a journal is active."""
+
+    if isinstance(container, JournaledList):
+        semantic_path = _path_tuple(path) or container._path
+        container._journal.record_list_append(container._target, semantic_path=semantic_path)
+        container._target.append(_unwrap(value))
+        return
+    container.append(_unwrap(value))
+
+
+def journal_extend_list(container: list[Any], values: Iterable[Any], path: str | tuple[Any, ...] | None = None) -> None:
+    """Extend a list using length-based rollback when a journal is active."""
+
+    if isinstance(container, JournaledList):
+        semantic_path = _path_tuple(path) or container._path
+        container._journal.record_list_append(container._target, semantic_path=semantic_path)
+        container._target.extend(_unwrap(v) for v in values)
+        return
+    container.extend(_unwrap(v) for v in values)
+
+
 class RollbackJournalError(RuntimeError):
     """Raised when journal rollback cannot be completed deterministically."""
 
@@ -486,6 +549,11 @@ __all__ = [
     "JournaledList",
     "RollbackJournal",
     "RollbackJournalError",
+    "journal_append_list",
+    "journal_delete_dict_key",
+    "journal_extend_list",
+    "journal_set_dict_key",
+    "journal_set_scalar",
     "get_rollback_diagnostics",
     "reset_rollback_diagnostics",
     "reset_rollback_diagnostic_tx_kind",

@@ -7,6 +7,7 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
+from weall.runtime.bounded_rollback import journal_set_dict_key
 from weall.runtime.group_treasury_scheduler import (
     maybe_enqueue_group_spend_execute,
     maybe_enqueue_group_spend_expire,
@@ -39,6 +40,10 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(v)
     except Exception:
         return int(default)
+
+
+def _same_journal_target(a: Any, b: Any) -> bool:
+    return getattr(a, "_target", a) is getattr(b, "_target", b)
 
 
 def _strict_positive_int_from_state(value: Any, *, field_name: str) -> int:
@@ -80,10 +85,12 @@ def _ensure_groups_root(state: Json) -> Json:
     gbid = roles.get("groups_by_id")
     if not isinstance(gbid, dict):
         gbid = {}
-        roles["groups_by_id"] = gbid
-        state["roles"] = roles
+        journal_set_dict_key(roles, "groups_by_id", gbid, "roles.groups_by_id")
+        gbid = roles.get("groups_by_id")
 
-    state["groups_by_id"] = gbid
+    existing = state.get("groups_by_id")
+    if not isinstance(existing, dict) or not _same_journal_target(existing, gbid):
+        journal_set_dict_key(state, "groups_by_id", gbid, "groups_by_id")
     return gbid
 
 
@@ -99,7 +106,8 @@ def _ensure_treasury_wallets(state: Json) -> Json:
     root = state.get("treasury_wallets")
     if not isinstance(root, dict):
         root = {}
-        state["treasury_wallets"] = root
+        journal_set_dict_key(state, "treasury_wallets", root, "treasury_wallets")
+        root = state.get("treasury_wallets")
     return root
 
 
@@ -462,7 +470,8 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
     treasuries_by_id = roles.get("treasuries_by_id")
     if not isinstance(treasuries_by_id, dict):
         treasuries_by_id = {}
-        roles["treasuries_by_id"] = treasuries_by_id
+        journal_set_dict_key(roles, "treasuries_by_id", treasuries_by_id, "roles.treasuries_by_id")
+        treasuries_by_id = roles.get("treasuries_by_id")
 
     treasury_id = _group_treasury_id(group_id)
     creator = _as_str(env.signer).strip()
@@ -478,42 +487,48 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
             obj.setdefault("require_emissary_signers", False)
             obj.setdefault("label", "group")
             obj.setdefault("group_id", group_id)
-            treasuries_by_id[treasury_id] = obj
-        roles["treasuries_by_id"] = treasuries_by_id
-        state["roles"] = roles
 
     wallets = _ensure_treasury_wallets(state)
     if treasury_id not in wallets:
-        wallets[treasury_id] = {
-            "wallet_id": treasury_id,
-            "kind": "group",
-            "group_id": group_id,
-            "created_by": creator,
-            "created_at_nonce": int(env.nonce),
-        }
-        state["treasury_wallets"] = wallets
+        journal_set_dict_key(
+            wallets,
+            treasury_id,
+            {
+                "wallet_id": treasury_id,
+                "kind": "group",
+                "group_id": group_id,
+                "created_by": creator,
+                "created_at_nonce": int(env.nonce),
+            },
+            ("treasury_wallets", treasury_id),
+        )
 
     public_meta = dict(payload)
     public_meta["read_visibility"] = "public"
     public_meta["visibility"] = "public"
     public_meta["public_only"] = True
 
-    groups[group_id] = {
-        "group_id": group_id,
-        "created_by": creator,
-        "charter": _as_str(payload.get("charter")).strip(),
-        "meta": public_meta,
-        "read_visibility": "public",
-        "visibility": "public",
-        "public_only": True,
-        "permissions": _group_permissions_from_payload(payload),
-        "treasury_id": treasury_id,
-        "signers": signers,
-        "threshold": int(threshold),
-        "moderators": [],
-        "emissaries": [],
-        "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
-    }
+    journal_set_dict_key(
+        groups,
+        group_id,
+        {
+            "group_id": group_id,
+            "created_by": creator,
+            "charter": _as_str(payload.get("charter")).strip(),
+            "meta": public_meta,
+            "read_visibility": "public",
+            "visibility": "public",
+            "public_only": True,
+            "permissions": _group_permissions_from_payload(payload),
+            "treasury_id": treasury_id,
+            "signers": signers,
+            "threshold": int(threshold),
+            "moderators": [],
+            "emissaries": [],
+            "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
+        },
+        ("groups_by_id", group_id),
+    )
     return {"applied": "GROUP_CREATE", "group_id": group_id, "treasury_id": treasury_id}
 
 

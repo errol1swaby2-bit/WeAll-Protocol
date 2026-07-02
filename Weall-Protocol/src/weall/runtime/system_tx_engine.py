@@ -17,6 +17,7 @@ from weall.ledger.issuance import (
     issuance_epoch_index_for_due_height,
 )
 from weall.ledger.roles_schema import ensure_roles_schema
+from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import TxIndex
@@ -367,7 +368,7 @@ def _queue_root(state: Json) -> list[Json]:
     root = state.get("system_queue")
     if not isinstance(root, list):
         root = []
-        state["system_queue"] = root
+        journal_set_dict_key(state, "system_queue", root, "system_queue")
     return root
 
 
@@ -441,7 +442,7 @@ def enqueue_system_tx(
     if qid in _queue_ids(state):
         return qid
 
-    _queue_root(state).append(base)
+    journal_append_list(_queue_root(state), base, "system_queue")
     return qid
 
 

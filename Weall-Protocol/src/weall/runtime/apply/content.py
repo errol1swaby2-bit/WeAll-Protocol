@@ -29,6 +29,7 @@ from typing import Any
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.reputation_accrual import (
     content_reputation_maturity_blocks,
     media_reputation_delta_milli,
@@ -565,15 +566,17 @@ def _touch_receipt(state: Json, env: TxEnvelope) -> None:
     receipts = mod.get("receipts")
     if not isinstance(receipts, list):
         receipts = []
-    receipts.append(
+        journal_set_dict_key(mod, "receipts", receipts, "content.moderation.receipts")
+    journal_append_list(
+        receipts,
         {
             "tx_type": str(env.tx_type or ""),
             "nonce": int(env.nonce),
             "signer": env.signer,
             "payload": payload,
-        }
+        },
+        "content.moderation.receipts",
     )
-    mod["receipts"] = receipts
 
 
 def _apply_mod_to_target(state: Json, *, target_id: str, changes: Json) -> None:
