@@ -114,7 +114,19 @@ REPLAY_WRAPPER_PHASES = [
     "pre_system_emitter_wall_ms",
     "post_scheduler_wall_ms",
     "post_system_emitter_wall_ms",
+    "post_system_emitter_scan_wall_ms",
+    "post_system_emitter_materialize_wall_ms",
+    "post_system_emitter_validate_wall_ms",
+    "post_system_emitter_enqueue_wall_ms",
+    "post_system_emitter_receipt_link_wall_ms",
+    "post_system_emitter_state_write_wall_ms",
     "system_queue_binding_wall_ms",
+    "system_queue_binding_scan_wall_ms",
+    "system_queue_binding_materialize_wall_ms",
+    "system_queue_binding_validate_wall_ms",
+    "system_queue_binding_dedupe_wall_ms",
+    "system_queue_binding_sort_wall_ms",
+    "system_queue_binding_state_write_wall_ms",
     "system_queue_prune_wall_ms",
     "receipts_root_wall_ms",
     "recent_anchor_wall_ms",
@@ -128,10 +140,26 @@ REPLAY_WRAPPER_PHASES = [
     "replay_unattributed_wall_ms",
 ]
 
+REPLAY_WRAPPER_COUNT_FIELDS = [
+    "system_queue_items_seen",
+    "system_queue_items_bound",
+    "post_system_emitter_items_seen",
+    "post_system_emitter_items_emitted",
+    "post_system_emitter_items_skipped",
+    "system_queue_duplicate_items",
+    "system_queue_noop_items",
+]
+
 REPLAY_WRAPPER_TIMING_FIELDS = [
     f"{prefix}_{field}"
     for prefix in ("follower", "slow_observer")
     for field in REPLAY_WRAPPER_PHASES
+]
+
+REPLAY_WRAPPER_COUNTER_FIELDS = [
+    f"{prefix}_{field}"
+    for prefix in ("follower", "slow_observer")
+    for field in REPLAY_WRAPPER_COUNT_FIELDS
 ]
 
 ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
@@ -178,18 +206,23 @@ BLOCK_TIMING_FIELDS = [
     "rollback_journal_snapshot_wall_ms",
     *TX_LOOP_MICROPHASE_FIELDS,
     *REPLAY_WRAPPER_TIMING_FIELDS,
+    *REPLAY_WRAPPER_COUNTER_FIELDS,
 ]
 
 
 class PhaseProbe:
     def __init__(self) -> None:
         self.values: dict[str, int] = {}
+        self.counters: dict[str, int] = {}
 
     def add(self, key: str, ns: int) -> None:
         self.values[key] = int(self.values.get(key, 0)) + int(ns)
 
     def add_ms(self, key: str, ms: float) -> None:
         self.add(key, int(float(ms) * 1_000_000.0))
+
+    def inc(self, key: str, amount: int = 1) -> None:
+        self.counters[key] = int(self.counters.get(key, 0)) + int(amount)
 
     @contextmanager
     def timed(self, key: str):
@@ -202,8 +235,12 @@ class PhaseProbe:
     def ms(self, key: str) -> float:
         return _ms(int(self.values.get(key, 0)))
 
+    def count(self, key: str) -> int:
+        return int(self.counters.get(key, 0) or 0)
+
     def reset(self) -> None:
         self.values.clear()
+        self.counters.clear()
 
 
 def _phase_value_ms(value: Any) -> float:
@@ -252,6 +289,46 @@ def _zero_tx_loop_microphase_values(prefix: str) -> Json:
     }
 
 
+
+def _system_queue_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, Any]) -> int:
+    state = args[0] if args else kwargs.get("state")
+    if not isinstance(state, dict):
+        return 0
+    q = state.get("system_queue")
+    return len(q) if isinstance(q, list) else 0
+
+
+def _system_queue_duplicate_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, Any]) -> int:
+    state = args[0] if args else kwargs.get("state")
+    if not isinstance(state, dict):
+        return 0
+    q = state.get("system_queue")
+    if not isinstance(q, list):
+        return 0
+    seen: set[str] = set()
+    duplicates = 0
+    for obj in q:
+        if not isinstance(obj, dict):
+            continue
+        qid = str(obj.get("queue_id") or "").strip()
+        if not qid:
+            continue
+        if qid in seen:
+            duplicates += 1
+        else:
+            seen.add(qid)
+    return duplicates
+
+
+def _system_queue_noop_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, Any]) -> int:
+    state = args[0] if args else kwargs.get("state")
+    if not isinstance(state, dict):
+        return 0
+    q = state.get("system_queue")
+    if not isinstance(q, list):
+        return 0
+    return sum(1 for obj in q if isinstance(obj, dict) and obj.get("emitted_height") is not None and bool(obj.get("once", True)))
+
 def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms: float = 0.0) -> Json:
     prefix = str(role or "follower")
     raw = {
@@ -264,7 +341,19 @@ def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms:
         "pre_system_emitter_wall_ms": probe.ms(f"{prefix}_pre_system_emitter_time_ns"),
         "post_scheduler_wall_ms": probe.ms(f"{prefix}_post_scheduler_time_ns"),
         "post_system_emitter_wall_ms": probe.ms(f"{prefix}_post_system_emitter_time_ns"),
+        "post_system_emitter_scan_wall_ms": probe.ms(f"{prefix}_post_system_emitter_scan_time_ns"),
+        "post_system_emitter_materialize_wall_ms": probe.ms(f"{prefix}_post_system_emitter_materialize_time_ns"),
+        "post_system_emitter_validate_wall_ms": probe.ms(f"{prefix}_post_system_emitter_validate_time_ns"),
+        "post_system_emitter_enqueue_wall_ms": probe.ms(f"{prefix}_post_system_emitter_enqueue_time_ns"),
+        "post_system_emitter_receipt_link_wall_ms": probe.ms(f"{prefix}_post_system_emitter_receipt_link_time_ns"),
+        "post_system_emitter_state_write_wall_ms": probe.ms(f"{prefix}_post_system_emitter_state_write_time_ns"),
         "system_queue_binding_wall_ms": probe.ms(f"{prefix}_system_queue_binding_time_ns"),
+        "system_queue_binding_scan_wall_ms": probe.ms(f"{prefix}_system_queue_binding_scan_time_ns"),
+        "system_queue_binding_materialize_wall_ms": probe.ms(f"{prefix}_system_queue_binding_materialize_time_ns"),
+        "system_queue_binding_validate_wall_ms": probe.ms(f"{prefix}_system_queue_binding_validate_time_ns"),
+        "system_queue_binding_dedupe_wall_ms": probe.ms(f"{prefix}_system_queue_binding_dedupe_time_ns"),
+        "system_queue_binding_sort_wall_ms": probe.ms(f"{prefix}_system_queue_binding_sort_time_ns"),
+        "system_queue_binding_state_write_wall_ms": probe.ms(f"{prefix}_system_queue_binding_state_write_time_ns"),
         "system_queue_prune_wall_ms": probe.ms(f"{prefix}_system_queue_prune_time_ns"),
         "receipts_root_wall_ms": probe.ms(f"{prefix}_receipt_build_time_ns"),
         "recent_anchor_wall_ms": probe.ms(f"{prefix}_recent_anchor_time_ns"),
@@ -312,8 +401,15 @@ def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms:
     return raw
 
 
+def _replay_wrapper_count_values(probe: PhaseProbe, *, role: str) -> Json:
+    prefix = str(role or "follower")
+    return {field: probe.count(f"{prefix}_{field}") for field in REPLAY_WRAPPER_COUNT_FIELDS}
+
+
 def _zero_replay_wrapper_phase_values(prefix: str) -> Json:
-    return {f"{prefix}_{field}": 0.0 for field in REPLAY_WRAPPER_PHASES}
+    out: Json = {f"{prefix}_{field}": 0.0 for field in REPLAY_WRAPPER_PHASES}
+    out.update({f"{prefix}_{field}": 0 for field in REPLAY_WRAPPER_COUNT_FIELDS})
+    return out
 
 
 def _rollback_journal_diagnostic_values() -> Json:
@@ -681,16 +777,37 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
             phase = str(args[3] or "")
         phase = str(kwargs.get("phase") or phase or "")
         field = f"{prefix}_post_system_emitter_time_ns" if phase == "post" else f"{prefix}_pre_system_emitter_time_ns"
+        if phase == "post":
+            seen = _system_queue_count_from_state_arg(args, kwargs)
+            probe.inc(f"{prefix}_post_system_emitter_items_seen", seen)
+            probe.inc(f"{prefix}_system_queue_noop_items", _system_queue_noop_count_from_state_arg(args, kwargs))
+            with probe.timed(field):
+                with probe.timed(f"{prefix}_post_system_emitter_materialize_time_ns"):
+                    result = old_emit_system_txs(*args, **kwargs)
+            emitted = len(result) if isinstance(result, list) else 0
+            probe.inc(f"{prefix}_post_system_emitter_items_emitted", emitted)
+            probe.inc(f"{prefix}_post_system_emitter_items_skipped", max(0, int(seen) - int(emitted)))
+            return result
         with probe.timed(field):
             return old_emit_system_txs(*args, **kwargs)
 
     def timed_queue_item_phase(*args: Any, **kwargs: Any) -> Any:
+        seen = _system_queue_count_from_state_arg(args, kwargs)
+        probe.inc(f"{prefix}_system_queue_items_seen", seen)
+        probe.inc(f"{prefix}_system_queue_duplicate_items", _system_queue_duplicate_count_from_state_arg(args, kwargs))
         with probe.timed(f"{prefix}_system_queue_binding_time_ns"):
-            return old_queue_item_phase(*args, **kwargs)
+            with probe.timed(f"{prefix}_system_queue_binding_scan_time_ns"):
+                return old_queue_item_phase(*args, **kwargs)
 
     def timed_validate_system_tx_queue_binding(*args: Any, **kwargs: Any) -> Any:
+        seen = _system_queue_count_from_state_arg(args, kwargs)
+        probe.inc(f"{prefix}_system_queue_items_seen", seen)
         with probe.timed(f"{prefix}_system_queue_binding_time_ns"):
-            return old_validate_system_tx_queue_binding(*args, **kwargs)
+            with probe.timed(f"{prefix}_system_queue_binding_validate_time_ns"):
+                result = old_validate_system_tx_queue_binding(*args, **kwargs)
+        if isinstance(result, tuple) and result and result[0] is True:
+            probe.inc(f"{prefix}_system_queue_items_bound", 1)
+        return result
 
     def timed_prune_emitted(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_system_queue_prune_time_ns"):
@@ -1352,6 +1469,7 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
         "domain_apply_wall_ms": probe.ms(f"{role}_domain_apply_time_ns"),
         "rollback_tracking_wall_ms": probe.ms(f"{role}_rollback_tracking_time_ns"),
         **_replay_wrapper_phase_values(probe, role=role, apply_time_ms=apply_time_ms),
+        **_replay_wrapper_count_values(probe, role=role),
         **_rollback_journal_diagnostic_values(),
     }
 
@@ -1364,6 +1482,11 @@ def _copy_replay_microphases(block: Json, replay_result: Json, *, prefix: str) -
     block[f"{prefix}_rollback_tracking_wall_ms"] = _phase_value_ms(replay_result.get("rollback_tracking_wall_ms"))
     for field in REPLAY_WRAPPER_PHASES:
         block[f"{prefix}_{field}"] = _phase_value_ms(replay_result.get(field))
+    for field in REPLAY_WRAPPER_COUNT_FIELDS:
+        try:
+            block[f"{prefix}_{field}"] = int(replay_result.get(field) or 0)
+        except Exception:
+            block[f"{prefix}_{field}"] = 0
 
 
 def _summary(blocks: list[Json]) -> Json:

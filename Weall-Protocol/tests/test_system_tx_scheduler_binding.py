@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
-from weall.runtime.system_tx_engine import system_tx_emitter, validate_system_tx_queue_binding
+from weall.runtime.system_tx_engine import build_system_queue_lookup, system_tx_emitter, validate_system_tx_queue_binding
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import TxIndex
 
@@ -98,3 +98,46 @@ def test_system_queue_binding_rejects_proposer_chosen_live_jurors() -> None:
 
     assert ok is False
     assert why == "system_queue_payload_mismatch"
+
+
+def test_system_queue_binding_accepts_lookup_validated_live_assignment() -> None:
+    state = _live_state()
+    canon = _tx_index()
+    assert schedule_poh_live_system_txs(state, next_height=23) == 1
+    emitted = system_tx_emitter(state, canon, next_height=23, phase="post")
+    lookup = build_system_queue_lookup(state)
+
+    ok, why = validate_system_tx_queue_binding(
+        state,
+        canon,
+        emitted[0],
+        next_height=23,
+        phase="post",
+        queue_objects_by_id=lookup,
+    )
+
+    assert ok is True
+    assert why == ""
+
+
+def test_system_queue_lookup_preserves_first_match_duplicate_semantics() -> None:
+    state = _live_state()
+    canon = _tx_index()
+    assert schedule_poh_live_system_txs(state, next_height=23) == 1
+    emitted = system_tx_emitter(state, canon, next_height=23, phase="post")
+    duplicate = dict(state["system_queue"][0])
+    duplicate["payload"] = {**duplicate["payload"], "jurors": ["@j1"]}
+    state["system_queue"].append(duplicate)
+    lookup = build_system_queue_lookup(state)
+
+    ok, why = validate_system_tx_queue_binding(
+        state,
+        canon,
+        emitted[0],
+        next_height=23,
+        phase="post",
+        queue_objects_by_id=lookup,
+    )
+
+    assert ok is True
+    assert why == ""

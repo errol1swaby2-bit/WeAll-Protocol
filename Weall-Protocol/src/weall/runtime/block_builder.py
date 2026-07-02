@@ -57,6 +57,7 @@ from weall.runtime.scheduler_pipeline import (
     run_leader_pre_schedulers,
     queue_item_phase,
 )
+from weall.runtime.system_tx_engine import build_system_queue_lookup
 
 
 
@@ -237,6 +238,29 @@ def build_block_candidate(
 
     next_height = int(height) + 1
 
+    queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
+
+    def _invalidate_queue_lookup() -> None:
+        nonlocal queue_lookup_cache
+        queue_lookup_cache = None
+
+    def _queue_lookup() -> dict[str, Json]:
+        nonlocal queue_lookup_cache
+        root = working.get("system_queue")
+        marker = (id(root), len(root) if isinstance(root, list) else -1)
+        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+            queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
+        return queue_lookup_cache[2]
+
+    def _queue_item_phase(queue_id: str) -> str:
+        qid = str(queue_id or "").strip()
+        if not qid:
+            return ""
+        obj = _queue_lookup().get(qid)
+        if isinstance(obj, dict):
+            return str(obj.get("phase") or "").strip().lower()
+        return queue_item_phase(working, queue_id)
+
     def _apply_system_env(env: TxEnvelope) -> None:
         try:
             meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
@@ -269,6 +293,7 @@ def build_block_candidate(
     # same way follower-side replay does.
     try:
         run_leader_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -277,6 +302,7 @@ def build_block_candidate(
     # must not be swallowed during local proposal construction in production.
     try:
         sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre", scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
         for env in sys_pre:
             _apply_system_env(env)
     except Exception as exc:
@@ -345,13 +371,14 @@ def build_block_candidate(
                 if isinstance(payload_for_phase, dict)
                 else ""
             )
-            phase_for_binding = queue_item_phase(working, qid_for_phase) or "post"
+            phase_for_binding = _queue_item_phase(qid_for_phase) or "post"
             ok_binding, why_binding = validate_system_tx_queue_binding(
                 working,
                 self.tx_index,
                 env_obj,
                 next_height=next_height,
                 phase=phase_for_binding,
+                queue_objects_by_id=_queue_lookup(),
             )
             if not ok_binding:
                 return (
@@ -422,6 +449,7 @@ def build_block_candidate(
     # side effects are consensus-adjacent and must fail closed.
     try:
         run_leader_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
@@ -429,6 +457,7 @@ def build_block_candidate(
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
         sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post", scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
         for env in sys_post:
             _apply_system_env(env)
     except Exception as exc:
@@ -449,6 +478,7 @@ def build_block_candidate(
     # when replaying later blocks from the durable committed state.
     try:
         prune_emitted(working, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"system_queue_prune_failed:{type(exc).__name__}"

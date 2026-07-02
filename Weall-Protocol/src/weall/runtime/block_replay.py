@@ -54,6 +54,7 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_post_schedulers,
     run_replay_pre_schedulers,
 )
+from weall.runtime.system_tx_engine import build_system_queue_lookup
 
 
 
@@ -173,19 +174,42 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     # system queue items (and confirm emission) which affect state_root.
     next_height = int(height)
 
+    queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
+
+    def _invalidate_queue_lookup() -> None:
+        nonlocal queue_lookup_cache
+        queue_lookup_cache = None
+
+    def _queue_lookup() -> dict[str, Json]:
+        nonlocal queue_lookup_cache
+        root = working.get("system_queue")
+        marker = (id(root), len(root) if isinstance(root, list) else -1)
+        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+            queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
+        return queue_lookup_cache[2]
+
     def _run_poh_schedulers() -> None:
         run_replay_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
 
     def _run_post_schedulers() -> None:
         run_replay_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
 
     def _run_system_emitter_side_effects(phase: str) -> None:
         # We discard envelopes; the block already contains the tx list.
         _ = emit_system_txs(
             working, self.tx_index, next_height=next_height, phase=str(phase), proposer="", scheduler_set=scheduler_set
         )
+        _invalidate_queue_lookup()
 
     def _queue_item_phase(queue_id: str) -> str:
+        qid = str(queue_id or "").strip()
+        if not qid:
+            return ""
+        obj = _queue_lookup().get(qid)
+        if isinstance(obj, dict):
+            return str(obj.get("phase") or "").strip().lower()
         return queue_item_phase(working, queue_id)
 
     # Production path: pre schedulers + pre emitter side-effects.
@@ -365,6 +389,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 env_obj,
                 next_height=next_height,
                 phase=phase_for_binding or "post",
+                queue_objects_by_id=_queue_lookup(),
             )
             if not ok_binding:
                 return ExecutorMeta(

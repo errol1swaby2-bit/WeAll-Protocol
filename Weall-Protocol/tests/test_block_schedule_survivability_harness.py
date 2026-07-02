@@ -73,7 +73,19 @@ REPLAY_WRAPPER_PHASES = [
     "pre_system_emitter_wall_ms",
     "post_scheduler_wall_ms",
     "post_system_emitter_wall_ms",
+    "post_system_emitter_scan_wall_ms",
+    "post_system_emitter_materialize_wall_ms",
+    "post_system_emitter_validate_wall_ms",
+    "post_system_emitter_enqueue_wall_ms",
+    "post_system_emitter_receipt_link_wall_ms",
+    "post_system_emitter_state_write_wall_ms",
     "system_queue_binding_wall_ms",
+    "system_queue_binding_scan_wall_ms",
+    "system_queue_binding_materialize_wall_ms",
+    "system_queue_binding_validate_wall_ms",
+    "system_queue_binding_dedupe_wall_ms",
+    "system_queue_binding_sort_wall_ms",
+    "system_queue_binding_state_write_wall_ms",
     "system_queue_prune_wall_ms",
     "receipts_root_wall_ms",
     "recent_anchor_wall_ms",
@@ -87,10 +99,26 @@ REPLAY_WRAPPER_PHASES = [
     "replay_unattributed_wall_ms",
 ]
 
+REPLAY_WRAPPER_COUNT_FIELDS = [
+    "system_queue_items_seen",
+    "system_queue_items_bound",
+    "post_system_emitter_items_seen",
+    "post_system_emitter_items_emitted",
+    "post_system_emitter_items_skipped",
+    "system_queue_duplicate_items",
+    "system_queue_noop_items",
+]
+
 REPLAY_WRAPPER_TIMING_FIELDS = [
     f"{prefix}_{field}"
     for prefix in ("follower", "slow_observer")
     for field in REPLAY_WRAPPER_PHASES
+]
+
+REPLAY_WRAPPER_COUNTER_FIELDS = [
+    f"{prefix}_{field}"
+    for prefix in ("follower", "slow_observer")
+    for field in REPLAY_WRAPPER_COUNT_FIELDS
 ]
 
 ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
@@ -137,6 +165,7 @@ BLOCK_TIMING_FIELDS = [
     "rollback_journal_snapshot_wall_ms",
     *TX_LOOP_MICROPHASE_FIELDS,
     *REPLAY_WRAPPER_TIMING_FIELDS,
+    *REPLAY_WRAPPER_COUNTER_FIELDS,
 ]
 
 
@@ -212,6 +241,10 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert block["slow_observer_commit_persistence_wall_ms"] >= 0
     assert block["follower_replay_unattributed_wall_ms"] >= 0
     assert block["slow_observer_replay_unattributed_wall_ms"] >= 0
+    for field in REPLAY_WRAPPER_COUNTER_FIELDS:
+        assert field in block
+        assert isinstance(block[field], int)
+        assert block[field] >= 0
     assert block["rollback_snapshot_count"] >= block["rollback_snapshot_path_count"]
     assert block["rollback_snapshot_duplicate_path_count"] >= 0
     assert block["rollback_list_snapshot_count"] >= 0
