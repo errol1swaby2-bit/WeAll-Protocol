@@ -157,6 +157,8 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert profile["tx_submit_total_wall_ms"] > 0
     assert profile["tx_mempool_insert_wall_ms"] >= 0
     assert profile["tx_duplicate_check_wall_ms"] >= 0
+    assert profile["sustain_load"] is False
+    assert profile["txs_per_block_feed_semantics"] == "per_block_initial_submit_count_not_candidate_guarantee"
     assert "profile_bottleneck_summary" in profile
     assert len(profile["profile_bottleneck_summary"]["top_5"]) <= 5
     assert profile["block_measurements"], evidence
@@ -202,6 +204,80 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert block["selected_candidate_tx_count"] <= block["requested_mempool_candidate_limit"]
     assert block["system_or_derived_txs_included"] >= 0
     assert isinstance(block["tx_count_overage_explained"], bool)
+    for field in [
+        "initial_pre_refill_mempool_size",
+        "pre_block_mempool_size",
+        "post_block_mempool_size",
+        "valid_candidate_count",
+        "admitted_before_block_count",
+        "rejected_before_block_count",
+        "per_block_refill_submitted",
+        "per_block_refill_admitted",
+        "per_block_refill_rejected",
+        "per_block_refill_attempts",
+    ]:
+        assert field in block
+        assert isinstance(block[field], int)
+        assert block[field] >= 0
+    assert block["sustain_load"] is False
+    assert block["per_block_refill_submitted"] == 0
+    assert block["per_block_refill_attempts"] == 0
+    assert block["per_block_target_met"] == (block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"])
+    assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
+
+
+def test_sustain_load_mode_refills_and_reports_per_block_targets(tmp_path: Path) -> None:
+    root = _repo_root()
+    out = tmp_path / "sustain-evidence.json"
+    cmd = [
+        sys.executable,
+        str(root / "scripts" / "rehearse_block_schedule_survivability_v1_5.py"),
+        "--profile",
+        "light",
+        "--users",
+        "10",
+        "--blocks",
+        "2",
+        "--max-txs-per-block",
+        "18",
+        "--txs-per-block-feed",
+        "6",
+        "--sustain-load",
+        "--out",
+        str(out),
+    ]
+    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=90, check=False)
+    assert result.returncode == 0, result.stderr + result.stdout
+    evidence = json.loads(out.read_text())
+    profile = evidence["profiles"][0]
+    assert profile["sustain_load"] is True
+    assert profile["txs_per_block_feed_semantics"] == "per_block_initial_submit_count_with_deterministic_candidate_top_up"
+    assert len(profile["block_measurements"]) == 2
+    for block in profile["block_measurements"]:
+        assert block["sustain_load"] is True
+        for field in [
+            "initial_pre_refill_mempool_size",
+            "pre_block_mempool_size",
+            "post_block_mempool_size",
+            "valid_candidate_count",
+            "admitted_before_block_count",
+            "rejected_before_block_count",
+            "per_block_refill_submitted",
+            "per_block_refill_admitted",
+            "per_block_refill_rejected",
+            "per_block_refill_attempts",
+        ]:
+            assert field in block
+            assert isinstance(block[field], int)
+            assert block[field] >= 0
+        assert block["per_block_refill_submitted"] >= 0
+        assert block["per_block_refill_admitted"] + block["per_block_refill_rejected"] <= block["per_block_refill_submitted"]
+        assert block["per_block_target_met"] == (block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"])
+        if block["per_block_target_met"]:
+            assert block["selected_candidate_tx_count"] >= min(block["requested_mempool_candidate_limit"], block["valid_candidate_count"])
+    assert profile["aggregate_submit"]["admitted"] >= sum(
+        int(block["admitted_before_block_count"]) for block in profile["block_measurements"]
+    )
     assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
 
 

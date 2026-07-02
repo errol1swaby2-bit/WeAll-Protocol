@@ -867,24 +867,49 @@ def _mempool_size(executor: Any) -> int:
     return 0
 
 
-def _selected_type_counts(executor: Any, *, max_txs: int) -> dict[str, int]:
+def _fetch_mempool_candidates(executor: Any, *, max_txs: int) -> list[Json]:
     st = executor.read_state()
     candidate_height = int(st.get("height") or 0) + 1
     mp = getattr(executor, "_mempool", None) or getattr(executor, "mempool", None)
     if mp is None:
-        return {}
+        return []
     try:
         policy = mp.selection_policy()
         rows = mp.fetch_for_block(limit=int(max_txs), policy=policy, candidate_height=candidate_height)
     except TypeError:
         rows = mp.fetch_for_block(limit=int(max_txs))
     except Exception:
-        return {}
+        return []
+    return [tx for tx in rows if isinstance(tx, dict)]
+
+
+def _selected_type_counts(executor: Any, *, max_txs: int) -> dict[str, int]:
     out: dict[str, int] = {}
-    for tx in rows:
+    for tx in _fetch_mempool_candidates(executor, max_txs=max_txs):
         t = str(tx.get("tx_type") or "UNKNOWN")
         out[t] = int(out.get(t, 0)) + 1
     return out
+
+
+def _valid_candidate_count(executor: Any, *, max_txs: int) -> int:
+    return len(_fetch_mempool_candidates(executor, max_txs=max_txs))
+
+
+def _merge_submit_totals(dst: Json, src: Json) -> None:
+    dst["admitted"] = int(dst.get("admitted") or 0) + int(src.get("admitted") or 0)
+    dst["rejected"] = int(dst.get("rejected") or 0) + int(src.get("rejected") or 0)
+    dst["malformed_submitted"] = int(dst.get("malformed_submitted") or 0) + int(src.get("malformed_submitted") or 0)
+    dst["malformed_rejected"] = int(dst.get("malformed_rejected") or 0) + int(src.get("malformed_rejected") or 0)
+    for k, v in dict(src.get("rejected_by_code") or {}).items():
+        rejected = dst.setdefault("rejected_by_code", {})
+        rejected[k] = int(rejected.get(k, 0)) + int(v)
+    for k, v in dict(src.get("accepted_by_type") or {}).items():
+        accepted = dst.setdefault("accepted_by_type", {})
+        accepted[k] = int(accepted.get(k, 0)) + int(v)
+
+
+def _submitted_count(result: Json) -> int:
+    return int(result.get("admitted") or 0) + int(result.get("rejected") or 0) + int(result.get("malformed_submitted") or 0)
 
 
 def _tx_count_semantics(*, requested_limit: int, selected_candidate_count: int, included_count: int) -> Json:
@@ -1108,7 +1133,7 @@ def _summary(blocks: list[Json]) -> Json:
     }
 
 
-def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy", chain_id_override: str | None = None) -> Json:
+def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy", chain_id_override: str | None = None, sustain_load: bool = False) -> Json:
     profile_start_ns = time.perf_counter_ns()
     profile_probe = PhaseProbe()
     execution_model = str(execution_model or "deepcopy")
@@ -1132,6 +1157,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
 
     with profile_probe.timed("block_loop_wall_ns"):
         for block_i in range(int(blocks_n)):
+            initial_pre_refill_mempool_size = _mempool_size(leader)
             submit_result = _submit_profile_load(
                 leader,
                 profile=profile,
@@ -1140,20 +1166,60 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 count=int(txs_per_block_feed),
                 phase_probe=profile_probe,
             )
-            aggregate_submit["admitted"] += int(submit_result.get("admitted") or 0)
-            aggregate_submit["rejected"] += int(submit_result.get("rejected") or 0)
-            aggregate_submit["malformed_submitted"] += int(submit_result.get("malformed_submitted") or 0)
-            aggregate_submit["malformed_rejected"] += int(submit_result.get("malformed_rejected") or 0)
-            for k, v in dict(submit_result.get("rejected_by_code") or {}).items():
-                aggregate_submit["rejected_by_code"][k] = int(aggregate_submit["rejected_by_code"].get(k, 0)) + int(v)
-            for k, v in dict(submit_result.get("accepted_by_type") or {}).items():
-                aggregate_submit["accepted_by_type"][k] = int(aggregate_submit["accepted_by_type"].get(k, 0)) + int(v)
+            block_submit_totals: Json = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}}
+            _merge_submit_totals(block_submit_totals, submit_result)
+            per_block_refill_submitted = 0
+            per_block_refill_admitted = 0
+            per_block_refill_rejected = 0
+            per_block_refill_attempts = 0
+
+            valid_candidate_count = _valid_candidate_count(leader, max_txs=max_txs_per_block)
+            if sustain_load:
+                # Existing mode submits txs_per_block_feed once per block.  Sustained mode
+                # keeps that behavior, then deterministically tops up until the block can
+                # actually select max_txs_per_block candidates, or the bounded attempt budget
+                # is exhausted.  This is load generation only; candidate selection and replay
+                # still use normal consensus paths.
+                max_attempts = max(2, int(blocks_n) + 4)
+                while valid_candidate_count < int(max_txs_per_block) and per_block_refill_attempts < max_attempts:
+                    deficit = int(max_txs_per_block) - int(valid_candidate_count)
+                    refill_count = max(deficit, max(1, int(max_txs_per_block) // 4))
+                    refill = _submit_profile_load(
+                        leader,
+                        profile=profile,
+                        users=users,
+                        next_nonces=next_nonces,
+                        count=int(refill_count),
+                        phase_probe=profile_probe,
+                    )
+                    per_block_refill_attempts += 1
+                    per_block_refill_submitted += _submitted_count(refill)
+                    per_block_refill_admitted += int(refill.get("admitted") or 0)
+                    per_block_refill_rejected += int(refill.get("rejected") or 0) + int(refill.get("malformed_rejected") or 0)
+                    _merge_submit_totals(block_submit_totals, refill)
+                    valid_candidate_count = _valid_candidate_count(leader, max_txs=max_txs_per_block)
+
+            _merge_submit_totals(aggregate_submit, block_submit_totals)
+            pre_block_mempool_size = _mempool_size(leader)
+            per_block_target_met = bool(valid_candidate_count >= int(max_txs_per_block))
 
             measured = _produce_measured_block(leader, max_txs=max_txs_per_block, target_block_ms=target_block_ms, execution_model=execution_model)
             measured["block_index"] = block_i
-            measured["txs_admitted_this_round"] = int(submit_result.get("admitted") or 0)
-            measured["txs_rejected_this_round"] = int(submit_result.get("rejected") or 0)
-            measured["rejected_by_code_this_round"] = submit_result.get("rejected_by_code") or {}
+            measured["initial_pre_refill_mempool_size"] = int(initial_pre_refill_mempool_size)
+            measured["pre_block_mempool_size"] = int(pre_block_mempool_size)
+            measured["post_block_mempool_size"] = int(measured.get("mempool_backlog_after") or _mempool_size(leader))
+            measured["valid_candidate_count"] = int(valid_candidate_count)
+            measured["admitted_before_block_count"] = int(block_submit_totals.get("admitted") or 0)
+            measured["rejected_before_block_count"] = int(block_submit_totals.get("rejected") or 0) + int(block_submit_totals.get("malformed_rejected") or 0)
+            measured["per_block_refill_submitted"] = int(per_block_refill_submitted)
+            measured["per_block_refill_admitted"] = int(per_block_refill_admitted)
+            measured["per_block_refill_rejected"] = int(per_block_refill_rejected)
+            measured["per_block_refill_attempts"] = int(per_block_refill_attempts)
+            measured["per_block_target_met"] = bool(per_block_target_met)
+            measured["sustain_load"] = bool(sustain_load)
+            measured["txs_admitted_this_round"] = int(block_submit_totals.get("admitted") or 0)
+            measured["txs_rejected_this_round"] = int(block_submit_totals.get("rejected") or 0)
+            measured["rejected_by_code_this_round"] = block_submit_totals.get("rejected_by_code") or {}
             blocks.append(measured)
             if not measured.get("ok"):
                 continue
@@ -1230,6 +1296,12 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
         "blocks_requested": int(blocks_n),
         "max_txs_per_block": int(max_txs_per_block),
         "txs_per_block_feed": int(txs_per_block_feed),
+        "txs_per_block_feed_semantics": (
+            "per_block_initial_submit_count_with_deterministic_candidate_top_up"
+            if bool(sustain_load)
+            else "per_block_initial_submit_count_not_candidate_guarantee"
+        ),
+        "sustain_load": bool(sustain_load),
         "target_block_interval_ms": int(target_block_ms),
         "helper_fast_path_requested": bool(helper_fast_path),
         "execution_model": execution_model,
@@ -1390,6 +1462,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--helper-fast-path", action="store_true")
     parser.add_argument("--execution-model", choices=["deepcopy", "bounded_rollback", "compare"], default="bounded_rollback")
     parser.add_argument("--restart-during-load", action="store_true", default=True)
+    parser.add_argument("--sustain-load", action="store_true", help="deterministically refill mempool before each block until candidate target is met")
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)
 
@@ -1410,6 +1483,7 @@ def main(argv: list[str] | None = None) -> int:
                     helper_fast_path=args.helper_fast_path,
                     restart_during_load=bool(args.restart_during_load),
                     execution_model=model,
+                    sustain_load=bool(args.sustain_load),
                     chain_id_override=(
                         f"block-schedule-survivability-{profile}-compare"
                         if args.execution_model == "compare"
