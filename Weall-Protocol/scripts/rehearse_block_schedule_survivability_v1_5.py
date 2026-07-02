@@ -104,6 +104,36 @@ TX_LOOP_MICROPHASE_FIELDS = [
     "slow_observer_rollback_tracking_wall_ms",
 ]
 
+REPLAY_WRAPPER_PHASES = [
+    "runtime_context_wall_ms",
+    "block_hash_validation_wall_ms",
+    "replay_admission_wall_ms",
+    "state_deepcopy_wall_ms",
+    "clock_policy_wall_ms",
+    "pre_scheduler_wall_ms",
+    "pre_system_emitter_wall_ms",
+    "post_scheduler_wall_ms",
+    "post_system_emitter_wall_ms",
+    "system_queue_binding_wall_ms",
+    "system_queue_prune_wall_ms",
+    "receipts_root_wall_ms",
+    "recent_anchor_wall_ms",
+    "vrf_validation_wall_ms",
+    "helper_validation_wall_ms",
+    "metadata_update_wall_ms",
+    "commit_persistence_wall_ms",
+    "commit_block_json_wall_ms",
+    "commit_state_json_wall_ms",
+    "commit_prune_wall_ms",
+    "replay_unattributed_wall_ms",
+]
+
+REPLAY_WRAPPER_TIMING_FIELDS = [
+    f"{prefix}_{field}"
+    for prefix in ("follower", "slow_observer")
+    for field in REPLAY_WRAPPER_PHASES
+]
+
 ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
     "rollback_snapshot_count",
     "rollback_snapshot_bytes_estimate",
@@ -147,6 +177,7 @@ BLOCK_TIMING_FIELDS = [
     "replay_admission_wall_ms",
     "rollback_journal_snapshot_wall_ms",
     *TX_LOOP_MICROPHASE_FIELDS,
+    *REPLAY_WRAPPER_TIMING_FIELDS,
 ]
 
 
@@ -219,6 +250,70 @@ def _zero_tx_loop_microphase_values(prefix: str) -> Json:
         f"{prefix}_domain_apply_wall_ms": 0.0,
         f"{prefix}_rollback_tracking_wall_ms": 0.0,
     }
+
+
+def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms: float = 0.0) -> Json:
+    prefix = str(role or "follower")
+    raw = {
+        "runtime_context_wall_ms": probe.ms(f"{prefix}_runtime_context_time_ns"),
+        "block_hash_validation_wall_ms": probe.ms(f"{prefix}_block_hash_validation_time_ns"),
+        "replay_admission_wall_ms": probe.ms(f"{prefix}_replay_admission_time_ns"),
+        "state_deepcopy_wall_ms": probe.ms(f"{prefix}_state_deepcopy_time_ns"),
+        "clock_policy_wall_ms": probe.ms(f"{prefix}_clock_policy_time_ns"),
+        "pre_scheduler_wall_ms": probe.ms(f"{prefix}_pre_scheduler_time_ns"),
+        "pre_system_emitter_wall_ms": probe.ms(f"{prefix}_pre_system_emitter_time_ns"),
+        "post_scheduler_wall_ms": probe.ms(f"{prefix}_post_scheduler_time_ns"),
+        "post_system_emitter_wall_ms": probe.ms(f"{prefix}_post_system_emitter_time_ns"),
+        "system_queue_binding_wall_ms": probe.ms(f"{prefix}_system_queue_binding_time_ns"),
+        "system_queue_prune_wall_ms": probe.ms(f"{prefix}_system_queue_prune_time_ns"),
+        "receipts_root_wall_ms": probe.ms(f"{prefix}_receipt_build_time_ns"),
+        "recent_anchor_wall_ms": probe.ms(f"{prefix}_recent_anchor_time_ns"),
+        "vrf_validation_wall_ms": probe.ms(f"{prefix}_vrf_validation_time_ns"),
+        "helper_validation_wall_ms": probe.ms(f"{prefix}_helper_validation_time_ns"),
+        "metadata_update_wall_ms": probe.ms(f"{prefix}_metadata_update_time_ns"),
+        "commit_persistence_wall_ms": probe.ms(f"{prefix}_commit_persistence_time_ns"),
+        "commit_block_json_wall_ms": probe.ms(f"{prefix}_commit_block_json_time_ns"),
+        "commit_state_json_wall_ms": probe.ms(f"{prefix}_commit_state_json_time_ns"),
+        "commit_prune_wall_ms": probe.ms(f"{prefix}_commit_prune_time_ns"),
+    }
+    attributed = sum(
+        float(raw.get(name) or 0.0)
+        for name in [
+            "runtime_context_wall_ms",
+            "block_hash_validation_wall_ms",
+            "replay_admission_wall_ms",
+            "state_deepcopy_wall_ms",
+            "clock_policy_wall_ms",
+            "pre_scheduler_wall_ms",
+            "pre_system_emitter_wall_ms",
+            "post_scheduler_wall_ms",
+            "post_system_emitter_wall_ms",
+            "system_queue_binding_wall_ms",
+            "system_queue_prune_wall_ms",
+            "receipts_root_wall_ms",
+            "recent_anchor_wall_ms",
+            "vrf_validation_wall_ms",
+            "helper_validation_wall_ms",
+            "metadata_update_wall_ms",
+            "commit_persistence_wall_ms",
+            "block_decode_or_materialize_wall_ms",
+            "tx_loop_wall_ms",
+            "state_root_wall_ms",
+        ]
+    )
+    # These four fields are already returned separately by _apply_to_follower but
+    # are included in the unattributed calculation because they are non-overlap
+    # replay phases.  Commit JSON/prune fields are subphases of commit_persistence
+    # and are therefore intentionally excluded from the attributed sum.
+    attributed += float(probe.ms("block_decode_or_materialize_time_ns") or 0.0)
+    attributed += float(probe.ms(f"{prefix}_tx_loop_time_ns") or 0.0)
+    attributed += float(probe.ms(f"{prefix}_state_root_time_ns") or 0.0)
+    raw["replay_unattributed_wall_ms"] = round(max(0.0, float(apply_time_ms or 0.0) - attributed), 3)
+    return raw
+
+
+def _zero_replay_wrapper_phase_values(prefix: str) -> Json:
+    return {f"{prefix}_{field}": 0.0 for field in REPLAY_WRAPPER_PHASES}
 
 
 def _rollback_journal_diagnostic_values() -> Json:
@@ -500,6 +595,7 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
 def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str) -> Any:
     """Measure follower/observer replay subphases without changing replay semantics."""
 
+    import weall.runtime.block_commit as block_commit
     import weall.runtime.block_replay as block_replay
     import weall.runtime.runtime_context as runtime_context
 
@@ -510,6 +606,23 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     old_tx_envelope = block_replay.TxEnvelope
     old_runtime_context_from_executor = block_replay.RuntimeContext.from_executor
     old_runtime_context_module_from_executor = runtime_context.RuntimeContext.from_executor
+    old_ensure_block_hash = block_replay.ensure_block_hash
+    old_deepcopy = block_replay.copy.deepcopy
+    old_runtime_block_clock_policy = block_replay.runtime_block_clock_policy
+    old_run_replay_pre_schedulers = block_replay.run_replay_pre_schedulers
+    old_run_replay_post_schedulers = block_replay.run_replay_post_schedulers
+    old_emit_system_txs = block_replay.emit_system_txs
+    old_queue_item_phase = block_replay.queue_item_phase
+    old_prune_emitted = block_replay.prune_emitted
+    old_validate_system_tx_queue_binding = block_replay.validate_system_tx_queue_binding
+    old_compute_recent_block_anchor = block_replay.compute_recent_block_anchor
+    old_recent_block_ids_from_state = block_replay.recent_block_ids_from_state
+    old_recent_block_anchor_required_for_height = block_replay.recent_block_anchor_required_for_height
+    old_compute_helper_execution_root = block_replay.compute_helper_execution_root
+    old_verify_vrf_record = block_replay.verify_vrf_record
+    old_compute_block_hash = block_replay.compute_block_hash
+    old_compute_block_id = block_replay.compute_block_id
+    old_commit_block_candidate = getattr(follower, "commit_block_candidate", None)
 
     def timed_compute_state_root(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_state_root_time_ns"):
@@ -517,7 +630,8 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
 
     def timed_admit_block_txs(*args: Any, **kwargs: Any) -> Any:
         with probe.timed("replay_admission_time_ns"):
-            return old_admit_block_txs(*args, **kwargs)
+            with probe.timed(f"{prefix}_replay_admission_time_ns"):
+                return old_admit_block_txs(*args, **kwargs)
 
     def timed_compute_receipts_root(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_receipt_build_time_ns"):
@@ -531,7 +645,8 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
                     return old_tx_envelope.from_json(*args, **kwargs)
 
     def timed_from_executor(ex: Any) -> Any:
-        ctx = old_runtime_context_from_executor(ex)
+        with probe.timed(f"{prefix}_runtime_context_time_ns"):
+            ctx = old_runtime_context_from_executor(ex)
         original_apply = ctx.tx_execution_set.apply_tx_atomic_meta
 
         def timed_apply(*args: Any, **kwargs: Any) -> Any:
@@ -540,12 +655,127 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
 
         return replace(ctx, tx_execution_set=replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply))
 
+    def timed_ensure_block_hash(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_block_hash_validation_time_ns"):
+            return old_ensure_block_hash(*args, **kwargs)
+
+    def timed_deepcopy(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_state_deepcopy_time_ns"):
+            return old_deepcopy(*args, **kwargs)
+
+    def timed_runtime_block_clock_policy(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_clock_policy_time_ns"):
+            return old_runtime_block_clock_policy(*args, **kwargs)
+
+    def timed_run_replay_pre_schedulers(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_pre_scheduler_time_ns"):
+            return old_run_replay_pre_schedulers(*args, **kwargs)
+
+    def timed_run_replay_post_schedulers(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_post_scheduler_time_ns"):
+            return old_run_replay_post_schedulers(*args, **kwargs)
+
+    def timed_emit_system_txs(*args: Any, **kwargs: Any) -> Any:
+        phase = ""
+        if len(args) >= 4:
+            phase = str(args[3] or "")
+        phase = str(kwargs.get("phase") or phase or "")
+        field = f"{prefix}_post_system_emitter_time_ns" if phase == "post" else f"{prefix}_pre_system_emitter_time_ns"
+        with probe.timed(field):
+            return old_emit_system_txs(*args, **kwargs)
+
+    def timed_queue_item_phase(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_system_queue_binding_time_ns"):
+            return old_queue_item_phase(*args, **kwargs)
+
+    def timed_validate_system_tx_queue_binding(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_system_queue_binding_time_ns"):
+            return old_validate_system_tx_queue_binding(*args, **kwargs)
+
+    def timed_prune_emitted(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_system_queue_prune_time_ns"):
+            return old_prune_emitted(*args, **kwargs)
+
+    def timed_recent_block_anchor_required_for_height(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_recent_anchor_time_ns"):
+            return old_recent_block_anchor_required_for_height(*args, **kwargs)
+
+    def timed_recent_block_ids_from_state(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_recent_anchor_time_ns"):
+            return old_recent_block_ids_from_state(*args, **kwargs)
+
+    def timed_compute_recent_block_anchor(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_recent_anchor_time_ns"):
+            return old_compute_recent_block_anchor(*args, **kwargs)
+
+    def timed_compute_helper_execution_root(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_helper_validation_time_ns"):
+            return old_compute_helper_execution_root(*args, **kwargs)
+
+    def timed_verify_vrf_record(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_vrf_validation_time_ns"):
+            return old_verify_vrf_record(*args, **kwargs)
+
+    def timed_compute_block_hash(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_block_hash_validation_time_ns"):
+            return old_compute_block_hash(*args, **kwargs)
+
+    def timed_compute_block_id(*args: Any, **kwargs: Any) -> Any:
+        with probe.timed(f"{prefix}_metadata_update_time_ns"):
+            return old_compute_block_id(*args, **kwargs)
+
+    def _commit_json_field(value: Any) -> str:
+        if isinstance(value, dict) and ("txs" in value or "header" in value or "block_id" in value):
+            return f"{prefix}_commit_block_json_time_ns"
+        if isinstance(value, dict) and ("accounts" in value or "height" in value or "tip" in value):
+            return f"{prefix}_commit_state_json_time_ns"
+        return f"{prefix}_metadata_update_time_ns"
+
+    def timed_commit_block_candidate(*args: Any, **kwargs: Any) -> Any:
+        old_commit_canon_json = block_commit._canon_json
+        old_commit_prune = block_commit.prune_emitted_system_queue
+
+        def timed_commit_canon_json(value: Any) -> str:
+            with probe.timed(_commit_json_field(value)):
+                return old_commit_canon_json(value)
+
+        def timed_commit_prune(*cargs: Any, **ckwargs: Any) -> Any:
+            with probe.timed(f"{prefix}_commit_prune_time_ns"):
+                return old_commit_prune(*cargs, **ckwargs)
+
+        block_commit._canon_json = timed_commit_canon_json
+        block_commit.prune_emitted_system_queue = timed_commit_prune
+        try:
+            with probe.timed(f"{prefix}_commit_persistence_time_ns"):
+                return old_commit_block_candidate(*args, **kwargs)
+        finally:
+            block_commit._canon_json = old_commit_canon_json
+            block_commit.prune_emitted_system_queue = old_commit_prune
+
     block_replay.compute_state_root = timed_compute_state_root
     block_replay.admit_block_txs = timed_admit_block_txs
     block_replay.compute_receipts_root = timed_compute_receipts_root
     block_replay.TxEnvelope = TimedTxEnvelope
     block_replay.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
+    block_replay.ensure_block_hash = timed_ensure_block_hash
+    block_replay.copy.deepcopy = timed_deepcopy
+    block_replay.runtime_block_clock_policy = timed_runtime_block_clock_policy
+    block_replay.run_replay_pre_schedulers = timed_run_replay_pre_schedulers
+    block_replay.run_replay_post_schedulers = timed_run_replay_post_schedulers
+    block_replay.emit_system_txs = timed_emit_system_txs
+    block_replay.queue_item_phase = timed_queue_item_phase
+    block_replay.prune_emitted = timed_prune_emitted
+    block_replay.validate_system_tx_queue_binding = timed_validate_system_tx_queue_binding
+    block_replay.compute_recent_block_anchor = timed_compute_recent_block_anchor
+    block_replay.recent_block_ids_from_state = timed_recent_block_ids_from_state
+    block_replay.recent_block_anchor_required_for_height = timed_recent_block_anchor_required_for_height
+    block_replay.compute_helper_execution_root = timed_compute_helper_execution_root
+    block_replay.verify_vrf_record = timed_verify_vrf_record
+    block_replay.compute_block_hash = timed_compute_block_hash
+    block_replay.compute_block_id = timed_compute_block_id
+    if callable(old_commit_block_candidate):
+        setattr(follower, "commit_block_candidate", timed_commit_block_candidate)
     domain_microphase_cm = _patched_domain_apply_microphase_timing(probe, role=prefix)
     domain_microphase_cm.__enter__()
     try:
@@ -558,6 +788,25 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
         block_replay.TxEnvelope = old_tx_envelope
         block_replay.RuntimeContext.from_executor = old_runtime_context_from_executor
         runtime_context.RuntimeContext.from_executor = old_runtime_context_module_from_executor
+        block_replay.ensure_block_hash = old_ensure_block_hash
+        block_replay.copy.deepcopy = old_deepcopy
+        block_replay.runtime_block_clock_policy = old_runtime_block_clock_policy
+        block_replay.run_replay_pre_schedulers = old_run_replay_pre_schedulers
+        block_replay.run_replay_post_schedulers = old_run_replay_post_schedulers
+        block_replay.emit_system_txs = old_emit_system_txs
+        block_replay.queue_item_phase = old_queue_item_phase
+        block_replay.prune_emitted = old_prune_emitted
+        block_replay.validate_system_tx_queue_binding = old_validate_system_tx_queue_binding
+        block_replay.compute_recent_block_anchor = old_compute_recent_block_anchor
+        block_replay.recent_block_ids_from_state = old_recent_block_ids_from_state
+        block_replay.recent_block_anchor_required_for_height = old_recent_block_anchor_required_for_height
+        block_replay.compute_helper_execution_root = old_compute_helper_execution_root
+        block_replay.verify_vrf_record = old_verify_vrf_record
+        block_replay.compute_block_hash = old_compute_block_hash
+        block_replay.compute_block_id = old_compute_block_id
+        if callable(old_commit_block_candidate):
+            setattr(follower, "commit_block_candidate", old_commit_block_candidate)
+
 
 def _make_executor(db_path: str, *, node_id: str, chain_id: str, helper_fast_path: bool = False) -> Any:
     from weall.runtime.executor import WeAllExecutor
@@ -977,6 +1226,8 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             **_tx_loop_microphase_values(probe, "leader"),
             **_zero_tx_loop_microphase_values("follower"),
             **_zero_tx_loop_microphase_values("slow_observer"),
+            **_zero_replay_wrapper_phase_values("follower"),
+            **_zero_replay_wrapper_phase_values("slow_observer"),
             **_tx_count_semantics(requested_limit=int(max_txs), selected_candidate_count=sum(int(v) for v in candidate_type_counts.values()), included_count=0),
             "total_block_production_time_ms": _ms(time.perf_counter_ns() - start),
             "execution_model": str(execution_model),
@@ -1044,6 +1295,8 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         **_tx_loop_microphase_values(probe, "leader"),
         **_zero_tx_loop_microphase_values("follower"),
         **_zero_tx_loop_microphase_values("slow_observer"),
+        **_zero_replay_wrapper_phase_values("follower"),
+        **_zero_replay_wrapper_phase_values("slow_observer"),
         **tx_count_semantics,
         "proposal_construction_time_ms": max(
             0.0,
@@ -1080,10 +1333,11 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
     except Exception as exc:
         ok = False
         err = str(exc)
+    apply_time_ms = _ms(time.perf_counter_ns() - start)
     return {
         "ok": ok,
         "error": err,
-        "apply_time_ms": _ms(time.perf_counter_ns() - start),
+        "apply_time_ms": apply_time_ms,
         "height": int(follower.read_state().get("height") or 0),
         "state_root": _state_root(follower.read_state()),
         "tx_loop_wall_ms": probe.ms(f"{role}_tx_loop_time_ns"),
@@ -1097,6 +1351,7 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
         "domain_dispatch_wall_ms": _domain_dispatch_ms(probe, role),
         "domain_apply_wall_ms": probe.ms(f"{role}_domain_apply_time_ns"),
         "rollback_tracking_wall_ms": probe.ms(f"{role}_rollback_tracking_time_ns"),
+        **_replay_wrapper_phase_values(probe, role=role, apply_time_ms=apply_time_ms),
         **_rollback_journal_diagnostic_values(),
     }
 
@@ -1107,6 +1362,8 @@ def _copy_replay_microphases(block: Json, replay_result: Json, *, prefix: str) -
     block[f"{prefix}_domain_dispatch_wall_ms"] = _phase_value_ms(replay_result.get("domain_dispatch_wall_ms"))
     block[f"{prefix}_domain_apply_wall_ms"] = _phase_value_ms(replay_result.get("domain_apply_wall_ms"))
     block[f"{prefix}_rollback_tracking_wall_ms"] = _phase_value_ms(replay_result.get("rollback_tracking_wall_ms"))
+    for field in REPLAY_WRAPPER_PHASES:
+        block[f"{prefix}_{field}"] = _phase_value_ms(replay_result.get(field))
 
 
 def _summary(blocks: list[Json]) -> Json:

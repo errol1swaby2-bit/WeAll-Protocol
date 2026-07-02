@@ -63,6 +63,36 @@ TX_LOOP_MICROPHASE_FIELDS = [
     "slow_observer_rollback_tracking_wall_ms",
 ]
 
+REPLAY_WRAPPER_PHASES = [
+    "runtime_context_wall_ms",
+    "block_hash_validation_wall_ms",
+    "replay_admission_wall_ms",
+    "state_deepcopy_wall_ms",
+    "clock_policy_wall_ms",
+    "pre_scheduler_wall_ms",
+    "pre_system_emitter_wall_ms",
+    "post_scheduler_wall_ms",
+    "post_system_emitter_wall_ms",
+    "system_queue_binding_wall_ms",
+    "system_queue_prune_wall_ms",
+    "receipts_root_wall_ms",
+    "recent_anchor_wall_ms",
+    "vrf_validation_wall_ms",
+    "helper_validation_wall_ms",
+    "metadata_update_wall_ms",
+    "commit_persistence_wall_ms",
+    "commit_block_json_wall_ms",
+    "commit_state_json_wall_ms",
+    "commit_prune_wall_ms",
+    "replay_unattributed_wall_ms",
+]
+
+REPLAY_WRAPPER_TIMING_FIELDS = [
+    f"{prefix}_{field}"
+    for prefix in ("follower", "slow_observer")
+    for field in REPLAY_WRAPPER_PHASES
+]
+
 ROLLBACK_JOURNAL_DIAGNOSTIC_FIELDS = [
     "rollback_snapshot_count",
     "rollback_snapshot_bytes_estimate",
@@ -106,6 +136,7 @@ BLOCK_TIMING_FIELDS = [
     "replay_admission_wall_ms",
     "rollback_journal_snapshot_wall_ms",
     *TX_LOOP_MICROPHASE_FIELDS,
+    *REPLAY_WRAPPER_TIMING_FIELDS,
 ]
 
 
@@ -177,6 +208,10 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert block["leader_domain_dispatch_wall_ms"] >= 0
     assert block["follower_domain_apply_wall_ms"] >= 0
     assert block["slow_observer_domain_apply_wall_ms"] >= 0
+    assert block["follower_commit_persistence_wall_ms"] >= 0
+    assert block["slow_observer_commit_persistence_wall_ms"] >= 0
+    assert block["follower_replay_unattributed_wall_ms"] >= 0
+    assert block["slow_observer_replay_unattributed_wall_ms"] >= 0
     assert block["rollback_snapshot_count"] >= block["rollback_snapshot_path_count"]
     assert block["rollback_snapshot_duplicate_path_count"] >= 0
     assert block["rollback_list_snapshot_count"] >= 0
