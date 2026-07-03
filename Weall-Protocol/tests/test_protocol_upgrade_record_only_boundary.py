@@ -4,8 +4,10 @@ from weall.runtime.apply.protocol import apply_protocol
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, nonce: int, payload: dict) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True)
+def _env(tx_type: str, nonce: int, payload: dict, *, parent: str | None = None) -> TxEnvelope:
+    if parent is None:
+        parent = "PROTOCOL_UPGRADE_DECLARE" if tx_type == "PROTOCOL_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
+    return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True, parent=parent)
 
 
 def test_protocol_upgrade_declare_records_but_does_not_auto_apply() -> None:

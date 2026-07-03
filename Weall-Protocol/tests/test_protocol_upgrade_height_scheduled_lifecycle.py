@@ -9,8 +9,10 @@ from weall.runtime.apply.protocol import ProtocolApplyError, apply_protocol
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, nonce: int, payload: dict, *, signer: str = "@system") -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=True)
+def _env(tx_type: str, nonce: int, payload: dict, *, signer: str = "@system", parent: str | None = None) -> TxEnvelope:
+    if parent is None:
+        parent = "PROTOCOL_UPGRADE_DECLARE" if tx_type == "PROTOCOL_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
+    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=True, parent=parent)
 
 
 def _state_hash(state: dict) -> str:
@@ -144,3 +146,55 @@ def test_upgrade_duplicate_activation_rejects_conflicting_boundary_and_returns_m
 
     assert exc.value.code == "conflict"
     assert exc.value.reason == "upgrade_duplicate_activation_conflict"
+
+
+def test_upgrade_domain_apply_requires_governance_parent_reference() -> None:
+    state = {"height": 3}
+
+    with pytest.raises(ProtocolApplyError) as exc:
+        apply_protocol(
+            state,
+            TxEnvelope(
+                tx_type="PROTOCOL_UPGRADE_DECLARE",
+                signer="@system",
+                nonce=1,
+                payload={"upgrade_id": "no-parent", "version": "v1.5.2"},
+                sig="",
+                system=True,
+            ),
+        )
+
+    assert exc.value.code == "forbidden"
+    assert exc.value.reason == "protocol_upgrade_requires_governance_parent"
+
+
+def test_upgrade_activation_cannot_smuggle_economics_activation() -> None:
+    state = {
+        "height": 30,
+        "economics": {"enabled": False, "stage": "genesis_locked"},
+    }
+    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "econ", "version": "v1.5.2"}))
+
+    out = apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            2,
+            {
+                "upgrade_id": "econ",
+                "version": "v1.5.2",
+                "enable_live_economics": True,
+                "activate_economics": True,
+                "enable_transfers": True,
+            },
+        ),
+    )
+
+    assert out is not None
+    boundary = out["record_only_boundary"]
+    assert {"enable_live_economics", "activate_economics", "enable_transfers"}.issubset(set(boundary["requested_execution_fields_ignored"]))
+    record = out["governance_activation_record"]
+    assert record["economics_activation_allowed"] is False
+    assert record["activation_pending"] is True
+    assert record["effective_now"] is False
+    assert state["economics"] == {"enabled": False, "stage": "genesis_locked"}

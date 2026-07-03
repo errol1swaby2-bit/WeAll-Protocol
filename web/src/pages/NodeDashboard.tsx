@@ -211,6 +211,10 @@ export default function NodeDashboard(): JSX.Element {
   const chainIdentity = asRecord(data.chainIdentity);
   const launchMatrix = asRecord(data.launchMatrix);
   const testnetCapabilities = asRecord(data.testnetCapabilities);
+  const protocolUpgradeLifecycle = asRecord(testnetCapabilities.protocol_upgrade_lifecycle);
+  const governanceLifecycle = asRecord(testnetCapabilities.governance_lifecycle);
+  const disputeLifecycle = asRecord(testnetCapabilities.dispute_lifecycle);
+  const minimumCivicLoop = asRecord(testnetCapabilities.minimum_reviewer_civic_loop);
   const helperReadiness = asRecord(data.helperReadiness);
   const netSelf = asRecord(data.netSelf);
   const nat = asRecord(netSelf.nat || asRecord(netSelf.net).nat);
@@ -640,9 +644,27 @@ export default function NodeDashboard(): JSX.Element {
               />
               <DetailRow
                 label="Protocol upgrade lifecycle"
-                value={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.activation_record_only === true ? "Public record-only, block-height scheduled" : "Record-only boundary not reported"}
-                ok={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.activation_record_only === true && data?.testnetCapabilities?.protocol_upgrade_lifecycle?.automatic_software_apply_enabled === false}
-                warn={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.automatic_software_apply_enabled === true}
+                value={protocolUpgradeLifecycle.activation_record_only === true ? "Public record-only, block-height scheduled, governance-parent bound" : "Record-only boundary not reported"}
+                ok={protocolUpgradeLifecycle.activation_record_only === true && protocolUpgradeLifecycle.automatic_software_apply_enabled === false}
+                warn={protocolUpgradeLifecycle.automatic_software_apply_enabled === true}
+              />
+              <DetailRow
+                label="Governance lifecycle clock"
+                value={governanceLifecycle.progression_clock === "block_height" ? "Block-height scheduler; no wall-clock protocol mutation" : "Lifecycle clock not reported"}
+                ok={governanceLifecycle.progression_clock === "block_height" && governanceLifecycle.manual_wall_clock_protocol_state_allowed === false}
+                warn={governanceLifecycle.manual_wall_clock_protocol_state_allowed === true}
+              />
+              <DetailRow
+                label="Dispute lifecycle clock"
+                value={disputeLifecycle.progression_clock === "block_height" ? "Block-height dispute/review windows; private identity evidence protected" : "Lifecycle clock not reported"}
+                ok={disputeLifecycle.progression_clock === "block_height" && disputeLifecycle.private_identity_evidence_publicly_exposed === false}
+                warn={disputeLifecycle.private_identity_evidence_publicly_exposed === true}
+              />
+              <DetailRow
+                label="Reviewer civic loop"
+                value={Array.isArray(minimumCivicLoop.steps) ? `${minimumCivicLoop.steps.length} public-only steps mapped` : "Reviewer loop map not reported"}
+                ok={minimumCivicLoop.public_only_visibility === true && minimumCivicLoop.economics_locked_by_default === true}
+                warn={minimumCivicLoop.economics_locked_by_default === false}
               />
             </div>
           ) : null}

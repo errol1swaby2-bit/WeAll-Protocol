@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "113d505fb1f6a7c2e1a4588b66f962d701fc9235ac492b2e2c2aecdb09514e43",
+  "artifact_digest": "907af4cf5be6d4dcebe00c596ce35bf13e30aa5cf020b8a9ca261440343df37e",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -102,7 +102,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "a49a83d0a806694851c840e2236bf6e7dfd237def891292f0508d6be64bdd4ea",
+      "file_sha256": "663f2fd885e5b6184c792098fa9867501206a79a2462db165c7d55bbf2b0212c",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "1e45baab9ee675d11a1dab314d15bedc3f946b9fb31d5a98a62acf0a9a8f6b4a",
+      "file_sha256": "eca17f59f82f97ee19a976c70a52cdfc1c7178736d268fb6165966922c113a1b",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

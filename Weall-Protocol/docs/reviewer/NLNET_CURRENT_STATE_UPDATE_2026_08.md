@@ -38,7 +38,7 @@ Reviewer evidence should be taken from the submitted commit, not from stale tran
 - public observer/testnet chain identity and seed-registry checks;
 - observer authority boundary checks;
 - governance and dispute lifecycle tests;
-- protocol upgrade record-only and scheduled-activation tests;
+- protocol upgrade record-only and scheduled-activation tests, including governance/system-queue parent provenance and no economics activation by upgrade payload;
 - economics locked-by-default tests and docs;
 - release hygiene, secret guard, generated artifact checks;
 - local sustained-load harness evidence when captured for the submitted commit.
@@ -75,7 +75,7 @@ Run the full backend and frontend suites where feasible and attach the full tran
 - Group membership is constrained to participation gating, not read visibility gating.
 - Economics remain locked/inactive unless a governed activation path satisfies its gates.
 - Public observer/testnet bootstrap artifacts and runbooks exist.
-- Protocol upgrade records are bounded: governance may schedule public upgrade metadata at a deterministic future block height, but automatic software apply/migration/rollback remains disabled.
+- Protocol upgrade records are bounded: governance may schedule public upgrade metadata at a deterministic future block height, but activation requires SYSTEM queue/receipt provenance and automatic software apply/migration/rollback/economics activation remains disabled.
 - Governance and dispute flows use deterministic block-height procedure where protocol state is affected.
 - Local performance harnessing has become part of the evidence path, with local-harness claims separated from public-network claims.
 
@@ -140,6 +140,7 @@ Key reviewer files include:
 - `generated/public_only_protocol_audit_v1_5.json`
 - `generated/release_evidence_manifest_v1_5.json`
 - `generated/public_beta_blocker_report_v1_5.json`
+- `GET /v1/status/testnet-capabilities` output for protocol-upgrade, governance, dispute, and minimum civic-loop status surfaces
 - sustained-load evidence files under `rehearsal-evidence/` if present for the submitted commit
 
 ## Performance wording boundary

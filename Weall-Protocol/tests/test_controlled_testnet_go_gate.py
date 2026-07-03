@@ -93,6 +93,11 @@ def test_launch_capability_surface_includes_mechanism_completion_artifact() -> N
     ):
         assert surface["capabilities"][cap]["enabled"] is False
         assert surface["capabilities"][cap]["blocked_by_launch_matrix"] is True
+    assert surface["governance_lifecycle"]["progression_clock"] == "block_height"
+    assert surface["governance_lifecycle"]["manual_wall_clock_protocol_state_allowed"] is False
+    assert surface["dispute_lifecycle"]["progression_clock"] == "block_height"
+    assert surface["dispute_lifecycle"]["private_identity_evidence_publicly_exposed"] is False
+    assert "protocol_upgrade_record_lifecycle" in surface["minimum_reviewer_civic_loop"]["steps"]
 
 
 def test_readiness_artifact_gate_includes_go_gate_manifest() -> None:

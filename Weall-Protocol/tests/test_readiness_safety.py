@@ -41,8 +41,10 @@ def _client(state: dict[str, Any]) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def _env(tx_type: str, nonce: int, payload: dict[str, Any]) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True)
+def _env(tx_type: str, nonce: int, payload: dict[str, Any], *, parent: str | None = None) -> TxEnvelope:
+    if parent is None:
+        parent = "PROTOCOL_UPGRADE_DECLARE" if tx_type == "PROTOCOL_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
+    return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True, parent=parent)
 
 
 def _session_state() -> dict[str, Any]:

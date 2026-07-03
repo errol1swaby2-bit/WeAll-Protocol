@@ -1133,7 +1133,64 @@
     },
     "controlled_mechanism_artifact_blockers": [],
     "controlled_testnet_mechanisms_complete": true,
+    "dispute_lifecycle": {
+      "deterministic_receipt_txs": [
+        "DISPUTE_JUROR_TIMEOUT",
+        "DISPUTE_FINAL_RECEIPT"
+      ],
+      "manual_wall_clock_protocol_state_allowed": false,
+      "private_identity_evidence_publicly_exposed": false,
+      "progression_clock": "block_height",
+      "public_record_state": true,
+      "reviewer_surface": "GET /v1/status/testnet-capabilities",
+      "scheduler": "tick_dispute_lifecycle",
+      "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+      "ui_time_estimates_only": true
+    },
+    "governance_lifecycle": {
+      "deterministic_receipt_txs": [
+        "GOV_STAGE_SET",
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE"
+      ],
+      "manual_wall_clock_protocol_state_allowed": false,
+      "progression_clock": "block_height",
+      "public_record_state": true,
+      "reviewer_surface": "GET /v1/status/testnet-capabilities",
+      "scheduler": "tick_governance_lifecycle",
+      "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+      "ui_time_estimates_only": true
+    },
     "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+    "minimum_reviewer_civic_loop": {
+      "economics_locked_by_default": true,
+      "frontend_entrypoints": {
+        "account": "/account/:account",
+        "disputes": "/disputes",
+        "economics": "/economics",
+        "feed": "/feed",
+        "governance": "/proposals",
+        "groups": "/groups",
+        "node_status": "/node",
+        "review_center": "/reviews"
+      },
+      "public_only_visibility": true,
+      "steps": [
+        "account_identity_state",
+        "human_verification_state",
+        "public_posting_or_social_activity",
+        "public_group_read_with_member_gated_participation",
+        "governance_create_vote_finalize",
+        "dispute_review_outcome_visibility",
+        "reputation_outcome_visibility",
+        "protocol_upgrade_record_lifecycle",
+        "observer_node_status",
+        "economics_locked_status"
+      ],
+      "truth_boundary": "This is a reviewer navigation map, not proof that public beta/mainnet gates are closed."
+    },
     "phase": "public_beta_candidate",
     "protocol_upgrade_lifecycle": {
       "activation_clock": "block_height",
@@ -1143,10 +1200,11 @@
       "economics_activation_enabled_by_upgrade": false,
       "migration_execution_enabled": false,
       "public_record_state": true,
+      "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
       "reviewer_surface": "GET /v1/status/testnet-capabilities",
       "rollback_execution_enabled": false,
       "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
-      "truth_boundary": "Upgrade records are public deterministic metadata. They do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+      "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
     },
     "public_beta_blocker_report": {
       "blocker_count": 14,

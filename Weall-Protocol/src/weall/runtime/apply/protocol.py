@@ -87,6 +87,25 @@ def _require_system_env(env: TxEnvelope) -> None:
         raise ProtocolApplyError("forbidden", "system_only", {"tx_type": env.tx_type})
 
 
+def _parent_ref(env: TxEnvelope) -> str:
+    payload = _as_dict(getattr(env, "payload", None))
+    return _as_str(getattr(env, "parent", None)).strip() or _as_str(payload.get("_parent_ref")).strip()
+
+
+def _require_parent_ref(env: TxEnvelope) -> str:
+    ref = _parent_ref(env)
+    if not ref:
+        raise ProtocolApplyError(
+            "forbidden",
+            "protocol_upgrade_requires_governance_parent",
+            {
+                "tx_type": env.tx_type,
+                "required_boundary": "SYSTEM queue / receipt-only parent reference",
+            },
+        )
+    return ref
+
+
 def _ensure_root_dict(state: Json, key: str) -> Json:
     cur = state.get(key)
     if not isinstance(cur, dict):
@@ -196,6 +215,18 @@ _EXECUTION_REQUEST_FIELDS = (
     "rollback",
     "rollback_steps",
     "restart_node",
+    # Explicit economics requests are recorded as ignored upgrade-execution
+    # requests. Protocol upgrades must not activate live economics, fees,
+    # rewards, or transfers through this record-only path.
+    "activate_economics",
+    "enable_economics",
+    "economics_activation",
+    "unlock_economics",
+    "activate_live_economics",
+    "enable_live_economics",
+    "enable_fees",
+    "enable_rewards",
+    "enable_transfers",
 )
 
 
@@ -237,6 +268,7 @@ def _infer_upgrade_id(payload: Json, env: TxEnvelope) -> str:
 
 def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
+    parent_ref = _require_parent_ref(env)
     payload = _as_dict(env.payload)
     uid = _infer_upgrade_id(payload, env)
 
@@ -274,6 +306,7 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
                 "deduped": True,
                 "target_support": dict(_as_dict(rec.get("target_support"))),
                 "record_only_boundary": dict(_as_dict(rec.get("record_only_boundary"))),
+                "governance_parent_ref": _as_str(rec.get("governance_parent_ref")).strip() or parent_ref,
             }
         raise ProtocolApplyError(
             "conflict",
@@ -296,7 +329,8 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "activation_height": None,
         "governance_approved_at_height": None,
         "governance_approved_at_nonce": None,
-        "parent": env.parent,
+        "parent": parent_ref,
+        "governance_parent_ref": parent_ref,
         "payload": payload,
         "target_support": target_support,
         "record_only_boundary": _record_only_boundary(payload),
@@ -310,11 +344,13 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "hash": hsh,
         "target_support": target_support,
         "record_only_boundary": _record_only_boundary(payload),
+        "governance_parent_ref": parent_ref,
     }
 
 
 def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
+    parent_ref = _require_parent_ref(env)
     payload = _as_dict(env.payload)
     uid = _infer_upgrade_id(payload, env)
 
@@ -360,6 +396,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
             "deduped": True,
             "governance_activation_record": activation_record,
             "record_only_boundary": boundary,
+            "governance_parent_ref": _as_str(rec.get("activation_parent_ref")).strip() or parent_ref,
         }
 
     declared_version = _as_str(rec.get("target_version") or rec.get("version")).strip()
@@ -384,6 +421,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     rec["governance_approved_at_height"] = int(_height_now(state))
     rec["governance_approved_at_nonce"] = int(env.nonce)
     rec["activate_payload"] = payload
+    rec["activation_parent_ref"] = parent_ref
     rec["target_version"] = version
     rec["target_support"] = target_support
     rec["record_only_boundary"] = _record_only_boundary(payload)
@@ -402,6 +440,10 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "governance_approved_at_height": int(_height_now(state)),
         "governance_approved_at_nonce": int(env.nonce),
         "record_only_boundary": boundary,
+        "activation_pending": True,
+        "effective_now": False,
+        "effective_at_height": int(activation_height),
+        "governance_parent_ref": parent_ref,
         "software_applied": False,
         "artifact_fetched": False,
         "migration_executed": False,
@@ -432,6 +474,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "activation_height": int(activation_height),
         "governance_activation_record": dict(activation_record),
         "record_only_boundary": boundary,
+        "governance_parent_ref": parent_ref,
     }
 
 

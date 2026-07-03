@@ -29,8 +29,10 @@ assertIncludes(router, `public: true,
     authRequired: false,
     requiresReady: false,`, "node dashboard is available before account setup");
 assertIncludes(router, `href: "/node", label: "Personal Node", description: "Local node health, readiness, and storage controls.", icon: "⬡", public: true`, "normal navigation exposes public node route");
-if (router.includes("/operator")) {
-  throw new Error("legacy /operator alias must not remain in router");
+for (const legacyOperatorAlias of ['href: "/operator"', 'path: "/operator"', `case "/operator":`]) {
+  if (router.includes(legacyOperatorAlias)) {
+    throw new Error(`legacy /operator alias must not remain in router: ${legacyOperatorAlias}`);
+  }
 }
 assertIncludes(prefetch, "../pages/NodeDashboard", "route prefetch includes node dashboard");
 
@@ -72,6 +74,12 @@ for (const needle of [
   "Set up account operator path",
   "Set up account before operator actions",
   "Validator promotion path",
+  "Governance lifecycle clock",
+  "Dispute lifecycle clock",
+  "Reviewer civic loop",
+  "governance-parent bound",
+  "no wall-clock protocol mutation",
+  "private identity evidence protected",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");
 }

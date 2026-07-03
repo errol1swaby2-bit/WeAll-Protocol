@@ -11,6 +11,7 @@ export type ProtocolUpgradeLifecycleSurface = {
   public_record_state?: boolean;
   declaration_tx?: string;
   scheduled_activation_tx?: string;
+  required_parent_boundary?: string;
   activation_clock?: string;
   activation_record_only?: boolean;
   automatic_software_apply_enabled?: boolean;
@@ -18,6 +19,26 @@ export type ProtocolUpgradeLifecycleSurface = {
   rollback_execution_enabled?: boolean;
   economics_activation_enabled_by_upgrade?: boolean;
   reviewer_surface?: string;
+  truth_boundary?: string;
+};
+
+export type DeterministicLifecycleSurface = {
+  public_record_state?: boolean;
+  progression_clock?: string;
+  scheduler?: string;
+  manual_wall_clock_protocol_state_allowed?: boolean;
+  ui_time_estimates_only?: boolean;
+  deterministic_receipt_txs?: string[];
+  private_identity_evidence_publicly_exposed?: boolean;
+  reviewer_surface?: string;
+  truth_boundary?: string;
+};
+
+export type MinimumReviewerCivicLoopSurface = {
+  public_only_visibility?: boolean;
+  economics_locked_by_default?: boolean;
+  steps?: string[];
+  frontend_entrypoints?: Record<string, string>;
   truth_boundary?: string;
 };
 
@@ -29,6 +50,9 @@ export type TestnetCapabilitySurface = {
   controlled_testnet_mechanisms_complete: boolean;
   public_beta_ready_claimed: boolean;
   protocol_upgrade_lifecycle?: ProtocolUpgradeLifecycleSurface;
+  governance_lifecycle?: DeterministicLifecycleSurface;
+  dispute_lifecycle?: DeterministicLifecycleSurface;
+  minimum_reviewer_civic_loop?: MinimumReviewerCivicLoopSurface;
   truth_boundaries: Record<string, boolean>;
 };
 

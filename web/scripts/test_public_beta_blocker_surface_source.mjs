@@ -11,6 +11,9 @@ const requiredDashboard = [
   'Public beta blocker snapshot',
   'Blocked capabilities',
   'Next allowed claim',
+  'Governance lifecycle clock',
+  'Dispute lifecycle clock',
+  'Reviewer civic loop',
 ];
 const requiredTransactions = [
   'lifecycleSteps',

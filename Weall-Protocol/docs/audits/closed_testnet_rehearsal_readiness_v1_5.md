@@ -104,12 +104,24 @@ pytest -q \
 Protocol-upgrade transactions remain record-only. A successful upgrade rehearsal should prove:
 
 - declaration is public protocol state;
+- declaration/activation receipts require SYSTEM queue or receipt-only parent provenance;
 - governance approval records a deterministic future `activation_height`;
 - unsupported targets are rejected when supported-target configuration is present;
-- activation records do not fetch artifacts, apply patches, run migrations, restart processes, roll back nodes, or activate economics;
+- activation records do not fetch artifacts, apply patches, run migrations, restart processes, roll back nodes, activate transfers, activate fees, activate rewards, or activate economics;
 - leader/follower/observer replay produces the same scheduled record.
 
 The rehearsal must not claim automatic upgrade delivery or software migration support.
+
+## Reviewer-facing lifecycle status surface
+
+`GET /v1/status/testnet-capabilities` now exposes a compact reviewer map for:
+
+- protocol-upgrade lifecycle: public record-only declaration and block-height scheduled activation, with governance/system-queue parent provenance and automatic software apply disabled;
+- governance lifecycle: block-height scheduler truth with UI wall-clock estimates treated as display-only;
+- dispute lifecycle: block-height review/appeal/timeout windows with private identity evidence protected;
+- minimum civic loop: frontend entrypoints for account state, feed, groups, governance, disputes, review center, node status, and economics lock status.
+
+This status surface is not itself a public-beta claim. It is a reviewer navigation and claim-boundary surface that should match the code and tests in the submitted commit.
 
 ## Performance evidence packaging
 

@@ -112,6 +112,12 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert upgrade["activation_record_only"] is True
     assert upgrade["automatic_software_apply_enabled"] is False
     assert upgrade["economics_activation_enabled_by_upgrade"] is False
+    assert "governance parent" in upgrade["truth_boundary"]
+    assert surface["governance_lifecycle"]["scheduler"] == "tick_governance_lifecycle"
+    assert surface["governance_lifecycle"]["manual_wall_clock_protocol_state_allowed"] is False
+    assert surface["dispute_lifecycle"]["scheduler"] == "tick_dispute_lifecycle"
+    assert surface["dispute_lifecycle"]["private_identity_evidence_publicly_exposed"] is False
+    assert surface["minimum_reviewer_civic_loop"]["economics_locked_by_default"] is True
 
 
 def test_controlled_go_gate_references_public_beta_blockers() -> None:

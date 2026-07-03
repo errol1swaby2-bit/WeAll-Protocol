@@ -66,6 +66,9 @@ def test_launch_matrix_capability_surface_blocks_high_risk_features() -> None:
         "production_helper_execution_enabled": False,
         "public_validator_enabled": False,
     }
+    assert surface["governance_lifecycle"]["progression_clock"] == "block_height"
+    assert surface["dispute_lifecycle"]["progression_clock"] == "block_height"
+    assert surface["minimum_reviewer_civic_loop"]["public_only_visibility"] is True
 
 
 def test_protocol_upgrade_signed_staging_verifies_without_execution() -> None:
