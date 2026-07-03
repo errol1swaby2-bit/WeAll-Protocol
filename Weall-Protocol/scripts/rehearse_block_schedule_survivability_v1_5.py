@@ -988,7 +988,7 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
     content.setdefault("reactions", {})
     content.setdefault("flags", {})
     st["content"] = content
-    st.setdefault("groups_by_id", {})["seed-group"] = {
+    seed_group = {
         "group_id": "seed-group",
         "created_by": users[0],
         "charter": "Seed public group for block cadence load.",
@@ -1003,13 +1003,23 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
         "read_visibility": "public",
         "visibility": "public",
     }
-    st.setdefault("proposals", {})["seed-prop"] = {
+    # Keep seed fixtures in the canonical roots used by the apply layer.  The
+    # top-level mirrors remain for API/read compatibility, but the consensus
+    # appliers read roles.groups_by_id and gov_proposals_by_id.
+    roles = dict(st.get("roles") or {})
+    groups_by_id = dict(roles.get("groups_by_id") or st.get("groups_by_id") or {})
+    groups_by_id["seed-group"] = seed_group
+    roles["groups_by_id"] = groups_by_id
+    st["roles"] = roles
+    st["groups_by_id"] = copy.deepcopy(groups_by_id)
+
+    seed_proposal = {
         "proposal_id": "seed-prop",
         "creator": users[0],
         "title": "Seed poll",
         "body": "Seed poll for block cadence load.",
         "stage": "poll",
-        "rules": {"start_stage": "poll", "auto_progress_enabled": False},
+        "rules": {"start_stage": "poll", "auto_progress_enabled": False, "auto_lifecycle": False, "auto": False},
         "actions": [],
         "poll_votes": {},
         "votes": {},
@@ -1022,6 +1032,8 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
         "current_version": 1,
         "updated_at_height": int(st.get("height") or 0),
     }
+    st.setdefault("gov_proposals_by_id", {})["seed-prop"] = seed_proposal
+    st.setdefault("proposals", {})["seed-prop"] = copy.deepcopy(seed_proposal)
     # Dispute vote validity is expensive and requires explicit juror assignment;
     # seed a standing dispute so adversarial valid load can include juror actions.
     st.setdefault("disputes_by_id", {})["seed-dispute"] = {
@@ -1040,6 +1052,7 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
     roles = dict(st.get("roles") or {})
     roles.setdefault("validators", {"active_set": users[: min(4, len(users))]})
     roles.setdefault("jurors", {"active_set": users[: min(12, len(users))]})
+    roles.setdefault("groups_by_id", groups_by_id)
     st["roles"] = roles
     executor._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
     try:
@@ -1067,6 +1080,127 @@ def _next_nonce(next_nonces: dict[str, int], signer: str) -> int:
     return nonce
 
 
+def _account_nonce_from_state(state: Json, signer: str) -> int:
+    accounts = state.get("accounts") if isinstance(state, dict) else None
+    account = accounts.get(signer) if isinstance(accounts, dict) else None
+    if not isinstance(account, dict):
+        return 0
+    try:
+        return max(0, int(account.get("nonce") or 0))
+    except Exception:
+        return 0
+
+
+def _next_expected_nonce_from_executor(executor: Any, signer: str) -> int:
+    state = executor.read_state() if callable(getattr(executor, "read_state", None)) else getattr(executor, "state", {})
+    chain_nonce = _account_nonce_from_state(state if isinstance(state, dict) else {}, signer)
+    pending_cursor = chain_nonce
+    cursor_fn = getattr(executor, "_pending_nonce_cursor_for_submit", None)
+    if callable(cursor_fn):
+        try:
+            pending_cursor = int(cursor_fn(signer=signer, chain_nonce=int(chain_nonce)))
+        except Exception:
+            pending_cursor = chain_nonce
+    return max(int(chain_nonce), int(pending_cursor)) + 1
+
+
+def _sync_next_nonce_cursors(executor: Any, users: list[str], next_nonces: dict[str, int]) -> int:
+    resets = 0
+    for signer in users:
+        expected = _next_expected_nonce_from_executor(executor, signer)
+        old = int(next_nonces.get(signer, expected))
+        if old != expected:
+            resets += 1
+        next_nonces[signer] = int(expected)
+    return int(resets)
+
+
+def _bad_nonce_bucket(result: Json, *, fallback_nonce: int) -> str:
+    details = result.get("details") if isinstance(result, dict) else None
+    details = details if isinstance(details, dict) else {}
+    reason = str((result or {}).get("reason") or "").lower() if isinstance(result, dict) else ""
+    try:
+        expected = int(details.get("expected", details.get("want")))
+    except Exception:
+        expected = 0
+    try:
+        got = int(details.get("got", details.get("have", fallback_nonce)))
+    except Exception:
+        got = int(fallback_nonce)
+    if "duplicate" in reason:
+        return "duplicate"
+    if expected > 0 and got < expected:
+        return "stale"
+    if expected > 0 and got > expected + 1:
+        return "gap"
+    if expected > 0 and got > expected:
+        return "future"
+    if "gap" in reason or "not_sequential" in reason:
+        return "gap"
+    return "future"
+
+
+def _tx_id_for_diagnostics(executor: Any, tx_obj: Json) -> str:
+    try:
+        from weall.runtime.tx_id import compute_tx_id_from_dict
+
+        return str(compute_tx_id_from_dict(str(getattr(executor, "chain_id", "") or ""), tx_obj))
+    except Exception:
+        return _fingerprint(tx_obj)
+
+
+def _empty_refill_diagnostics() -> Json:
+    return {
+        "refill_bad_nonce_stale_count": 0,
+        "refill_bad_nonce_future_count": 0,
+        "refill_bad_nonce_duplicate_count": 0,
+        "refill_bad_nonce_gap_count": 0,
+        "refill_unique_signers_attempted": 0,
+        "refill_unique_signers_admitted": 0,
+        "refill_tx_types_attempted": {},
+        "refill_tx_types_admitted": {},
+        "refill_tx_types_rejected_by_code": {},
+        "refill_nonce_cursor_resets": 0,
+        "refill_duplicate_tx_ids": 0,
+        "refill_duplicate_signer_nonce_pairs": 0,
+        "refill_attempt_target": 0,
+        "refill_attempt_shortfall": 0,
+        "refill_candidate_generation_wall_ms": 0.0,
+        "refill_admission_wall_ms": 0.0,
+    }
+
+
+def _merge_nested_counts(dst: Json, src: Json) -> None:
+    for key, value in src.items():
+        child = dst.setdefault(str(key), {})
+        if not isinstance(child, dict):
+            child = {}
+            dst[str(key)] = child
+        if isinstance(value, dict):
+            for code, count in value.items():
+                child[str(code)] = int(child.get(str(code), 0)) + int(count or 0)
+
+
+def _shortfall_by_reason(*, shortfall: int, stopped_reason: str, refill_diag: Json) -> Json:
+    if int(shortfall) <= 0:
+        return {}
+    reasons: Json = {str(stopped_reason or "candidate_top_up_stopped"): int(shortfall)}
+    for field, label in [
+        ("refill_bad_nonce_stale_count", "bad_nonce_stale"),
+        ("refill_bad_nonce_future_count", "bad_nonce_future"),
+        ("refill_bad_nonce_duplicate_count", "bad_nonce_duplicate"),
+        ("refill_bad_nonce_gap_count", "bad_nonce_gap"),
+        ("refill_duplicate_tx_ids", "duplicate_tx_ids"),
+        ("refill_duplicate_signer_nonce_pairs", "duplicate_signer_nonce_pairs"),
+    ]:
+        value = int(refill_diag.get(field, 0) or 0)
+        if value > 0:
+            reasons[label] = value
+    if int(refill_diag.get("refill_attempt_target", 0) or 0) <= 0:
+        reasons["no_refill_attempted"] = int(shortfall)
+    return reasons
+
+
 def _valid_payload_for(kind: str, signer: str, nonce: int, i: int, users: list[str], profile: str) -> Json:
     target = users[(users.index(signer) + 1) % len(users)] if signer in users and len(users) > 1 else users[0]
     if kind == "PROFILE_UPDATE":
@@ -1084,7 +1218,7 @@ def _valid_payload_for(kind: str, signer: str, nonce: int, i: int, users: list[s
     if kind == "GROUP_MEMBERSHIP_REQUEST":
         return {"group_id": "seed-group"}
     if kind == "GOV_PROPOSAL_CREATE":
-        return {"proposal_id": f"prop:{signer.strip('@')}:{nonce}", "title": f"Load proposal {i}", "body": "Measured public governance load.", "rules": {"start_stage": "poll", "auto_progress_enabled": False}, "actions": []}
+        return {"proposal_id": f"prop:{signer.strip('@')}:{nonce}", "title": f"Load proposal {i}", "body": "Measured public governance load.", "rules": {"start_stage": "poll", "auto_progress_enabled": False, "auto_lifecycle": False, "auto": False}, "actions": []}
     if kind == "GOV_PROPOSAL_COMMENT":
         return {"proposal_id": "seed-prop", "body": f"governance comment {i}"}
     if kind == "GOV_VOTE_CAST":
@@ -1153,11 +1287,13 @@ def _submit_profile_load(
     rejected_by_code: dict[str, int] = {}
     submitted_by_type: dict[str, int] = {}
     accepted_by_type: dict[str, int] = {}
+    rejected_by_type_code: dict[str, dict[str, int]] = {}
     malformed_submitted = 0
     malformed_rejected = 0
     txs: list[Json] = []
     tx_kinds: list[str] = []
     malformed_flags: list[bool] = []
+    generation_start_ns = time.perf_counter_ns()
 
     with (phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext()):
         for i in range(int(count)):
@@ -1177,7 +1313,41 @@ def _submit_profile_load(
             tx_kinds.append(kind)
             malformed_flags.append(False)
 
+    generation_wall_ms = _ms(time.perf_counter_ns() - generation_start_ns)
+    attempted_signers = {
+        str(tx.get("signer") or "").strip()
+        for tx, malformed in zip(txs, malformed_flags, strict=False)
+        if isinstance(tx, dict) and not malformed and str(tx.get("signer") or "").strip()
+    }
+    signer_nonce_pairs: list[str] = []
+    seen_signer_nonce_pairs: set[str] = set()
+    duplicate_signer_nonce_pairs = 0
+    tx_ids: list[str] = []
+    seen_tx_ids: set[str] = set()
+    duplicate_tx_ids = 0
+    for tx, malformed in zip(txs, malformed_flags, strict=False):
+        if not isinstance(tx, dict) or malformed:
+            continue
+        signer = str(tx.get("signer") or "").strip()
+        try:
+            nonce = int(tx.get("nonce") or 0)
+        except Exception:
+            nonce = 0
+        pair = f"{signer}\0{nonce}"
+        signer_nonce_pairs.append(pair)
+        if pair in seen_signer_nonce_pairs:
+            duplicate_signer_nonce_pairs += 1
+        else:
+            seen_signer_nonce_pairs.add(pair)
+        tx_id = _tx_id_for_diagnostics(executor, tx)
+        tx_ids.append(tx_id)
+        if tx_id in seen_tx_ids:
+            duplicate_tx_ids += 1
+        else:
+            seen_tx_ids.add(tx_id)
+
     submit_batch = getattr(executor, "submit_txs_batch", None)
+    admission_start_ns = time.perf_counter_ns()
     if callable(submit_batch):
         with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
             results = submit_batch(txs, ingress="local_fixture", include_timings=phase_probe is not None)
@@ -1198,12 +1368,21 @@ def _submit_profile_load(
                 results.append(executor.submit_tx(tx_obj, ingress="local_fixture"))
         if phase_probe is not None:
             phase_probe.add("tx_submit_total_wall_ns", time.perf_counter_ns() - submit_start)
+    admission_wall_ms = _ms(time.perf_counter_ns() - admission_start_ns)
 
-    for kind, malformed, result in zip(tx_kinds, malformed_flags, results):
+    admitted_signers: set[str] = set()
+    bad_nonce_stale = 0
+    bad_nonce_future = 0
+    bad_nonce_duplicate = 0
+    bad_nonce_gap = 0
+    for tx_obj, kind, malformed, result in zip(txs, tx_kinds, malformed_flags, results, strict=False):
         if isinstance(result, dict) and result.get("ok"):
             admitted += 1
             if not malformed:
                 accepted_by_type[kind] = int(accepted_by_type.get(kind, 0)) + 1
+                signer = str(tx_obj.get("signer") or "").strip() if isinstance(tx_obj, dict) else ""
+                if signer:
+                    admitted_signers.add(signer)
             continue
         if malformed:
             malformed_rejected += 1
@@ -1211,6 +1390,23 @@ def _submit_profile_load(
             rejected += 1
         code = str((result or {}).get("error") or (result or {}).get("reason") or "rejected") if isinstance(result, dict) else "rejected"
         rejected_by_code[code] = int(rejected_by_code.get(code, 0)) + 1
+        if not malformed:
+            child = rejected_by_type_code.setdefault(kind, {})
+            child[code] = int(child.get(code, 0)) + 1
+        if code == "bad_nonce":
+            try:
+                fallback_nonce = int(tx_obj.get("nonce") or 0) if isinstance(tx_obj, dict) else 0
+            except Exception:
+                fallback_nonce = 0
+            bucket = _bad_nonce_bucket(result if isinstance(result, dict) else {}, fallback_nonce=fallback_nonce)
+            if bucket == "stale":
+                bad_nonce_stale += 1
+            elif bucket == "duplicate":
+                bad_nonce_duplicate += 1
+            elif bucket == "gap":
+                bad_nonce_gap += 1
+            else:
+                bad_nonce_future += 1
 
     return {
         "admitted": admitted,
@@ -1218,10 +1414,24 @@ def _submit_profile_load(
         "rejected_by_code": rejected_by_code,
         "submitted_by_type": submitted_by_type,
         "accepted_by_type": accepted_by_type,
+        "rejected_by_type_code": rejected_by_type_code,
         "malformed_submitted": malformed_submitted,
         "malformed_rejected": malformed_rejected,
+        "generation_wall_ms": generation_wall_ms,
+        "admission_wall_ms": admission_wall_ms,
+        "unique_signers_attempted": len(attempted_signers),
+        "unique_signers_admitted": len(admitted_signers),
+        "_signers_attempted": sorted(attempted_signers),
+        "_signers_admitted": sorted(admitted_signers),
+        "_signer_nonce_pairs": signer_nonce_pairs,
+        "_tx_ids": tx_ids,
+        "duplicate_tx_ids": duplicate_tx_ids,
+        "duplicate_signer_nonce_pairs": duplicate_signer_nonce_pairs,
+        "bad_nonce_stale_count": bad_nonce_stale,
+        "bad_nonce_future_count": bad_nonce_future,
+        "bad_nonce_duplicate_count": bad_nonce_duplicate,
+        "bad_nonce_gap_count": bad_nonce_gap,
     }
-
 
 def _mempool_size(executor: Any) -> int:
     mp = getattr(executor, "_mempool", None) or getattr(executor, "mempool", None)
@@ -1272,6 +1482,10 @@ def _merge_submit_totals(dst: Json, src: Json) -> None:
     for k, v in dict(src.get("accepted_by_type") or {}).items():
         accepted = dst.setdefault("accepted_by_type", {})
         accepted[k] = int(accepted.get(k, 0)) + int(v)
+    for k, v in dict(src.get("submitted_by_type") or {}).items():
+        attempted = dst.setdefault("submitted_by_type", {})
+        attempted[k] = int(attempted.get(k, 0)) + int(v)
+    _merge_nested_counts(dst.setdefault("rejected_by_type_code", {}), dict(src.get("rejected_by_type_code") or {}))
 
 
 def _submitted_count(result: Json) -> int:
@@ -1533,11 +1747,18 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
     follower_results: list[Json] = []
     slow_queue: list[tuple[int, Json]] = []
     restart_result: Json = {}
-    aggregate_submit = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}}
+    aggregate_submit = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}, "submitted_by_type": {}, "rejected_by_type_code": {}}
 
     with profile_probe.timed("block_loop_wall_ns"):
         for block_i in range(int(blocks_n)):
             initial_pre_refill_mempool_size = _mempool_size(leader)
+            refill_diag: Json = _empty_refill_diagnostics()
+            refill_signers_attempted: set[str] = set()
+            refill_signers_admitted: set[str] = set()
+            refill_seen_pairs: set[str] = set()
+            refill_seen_tx_ids: set[str] = set()
+            candidate_top_up_stopped_reason = "sustain_load_disabled"
+            nonce_cursor_resets = _sync_next_nonce_cursors(leader, users, next_nonces)
             submit_result = _submit_profile_load(
                 leader,
                 profile=profile,
@@ -1546,7 +1767,7 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 count=int(txs_per_block_feed),
                 phase_probe=profile_probe,
             )
-            block_submit_totals: Json = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}}
+            block_submit_totals: Json = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}, "submitted_by_type": {}, "rejected_by_type_code": {}}
             _merge_submit_totals(block_submit_totals, submit_result)
             per_block_refill_submitted = 0
             per_block_refill_admitted = 0
@@ -1557,13 +1778,18 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             if sustain_load:
                 # Existing mode submits txs_per_block_feed once per block.  Sustained mode
                 # keeps that behavior, then deterministically tops up until the block can
-                # actually select max_txs_per_block candidates, or the bounded attempt budget
-                # is exhausted.  This is load generation only; candidate selection and replay
-                # still use normal consensus paths.
+                # actually select max_txs_per_block candidates.  Before each top-up, the
+                # harness resynchronizes its local nonce cursors to chain state plus
+                # contiguous pending mempool nonces.  That preserves strict nonce
+                # validation while preventing stale/future nonce retry storms after an
+                # earlier generated tx was not admitted.
+                candidate_top_up_stopped_reason = "target_met" if valid_candidate_count >= int(max_txs_per_block) else "max_refill_attempts_exhausted"
                 max_attempts = max(2, int(blocks_n) + 4)
                 while valid_candidate_count < int(max_txs_per_block) and per_block_refill_attempts < max_attempts:
+                    before_refill_candidate_count = int(valid_candidate_count)
                     deficit = int(max_txs_per_block) - int(valid_candidate_count)
                     refill_count = max(deficit, max(1, int(max_txs_per_block) // 4))
+                    nonce_cursor_resets += _sync_next_nonce_cursors(leader, users, next_nonces)
                     refill = _submit_profile_load(
                         leader,
                         profile=profile,
@@ -1573,15 +1799,56 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                         phase_probe=profile_probe,
                     )
                     per_block_refill_attempts += 1
+                    refill_diag["refill_attempt_target"] = int(refill_diag.get("refill_attempt_target", 0) or 0) + int(refill_count)
                     per_block_refill_submitted += _submitted_count(refill)
                     per_block_refill_admitted += int(refill.get("admitted") or 0)
                     per_block_refill_rejected += int(refill.get("rejected") or 0) + int(refill.get("malformed_rejected") or 0)
+                    refill_diag["refill_candidate_generation_wall_ms"] = round(float(refill_diag.get("refill_candidate_generation_wall_ms") or 0.0) + float(refill.get("generation_wall_ms") or 0.0), 3)
+                    refill_diag["refill_admission_wall_ms"] = round(float(refill_diag.get("refill_admission_wall_ms") or 0.0) + float(refill.get("admission_wall_ms") or 0.0), 3)
+                    refill_diag["refill_bad_nonce_stale_count"] = int(refill_diag.get("refill_bad_nonce_stale_count", 0) or 0) + int(refill.get("bad_nonce_stale_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_future_count"] = int(refill_diag.get("refill_bad_nonce_future_count", 0) or 0) + int(refill.get("bad_nonce_future_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_duplicate_count"] = int(refill_diag.get("refill_bad_nonce_duplicate_count", 0) or 0) + int(refill.get("bad_nonce_duplicate_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_gap_count"] = int(refill_diag.get("refill_bad_nonce_gap_count", 0) or 0) + int(refill.get("bad_nonce_gap_count", 0) or 0)
+                    for tx_type, count in dict(refill.get("submitted_by_type") or {}).items():
+                        attempted = refill_diag.setdefault("refill_tx_types_attempted", {})
+                        attempted[str(tx_type)] = int(attempted.get(str(tx_type), 0)) + int(count or 0)
+                    for tx_type, count in dict(refill.get("accepted_by_type") or {}).items():
+                        admitted_by_type = refill_diag.setdefault("refill_tx_types_admitted", {})
+                        admitted_by_type[str(tx_type)] = int(admitted_by_type.get(str(tx_type), 0)) + int(count or 0)
+                    _merge_nested_counts(refill_diag.setdefault("refill_tx_types_rejected_by_code", {}), dict(refill.get("rejected_by_type_code") or {}))
+                    refill_signers_attempted.update(str(x) for x in list(refill.get("_signers_attempted") or []))
+                    refill_signers_admitted.update(str(x) for x in list(refill.get("_signers_admitted") or []))
+                    for pair in list(refill.get("_signer_nonce_pairs") or []):
+                        pair_s = str(pair)
+                        if pair_s in refill_seen_pairs:
+                            refill_diag["refill_duplicate_signer_nonce_pairs"] = int(refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0) + 1
+                        refill_seen_pairs.add(pair_s)
+                    for tx_id in list(refill.get("_tx_ids") or []):
+                        tx_id_s = str(tx_id)
+                        if tx_id_s in refill_seen_tx_ids:
+                            refill_diag["refill_duplicate_tx_ids"] = int(refill_diag.get("refill_duplicate_tx_ids", 0) or 0) + 1
+                        refill_seen_tx_ids.add(tx_id_s)
+                    refill_diag["refill_duplicate_tx_ids"] = int(refill_diag.get("refill_duplicate_tx_ids", 0) or 0) + int(refill.get("duplicate_tx_ids", 0) or 0)
+                    refill_diag["refill_duplicate_signer_nonce_pairs"] = int(refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0) + int(refill.get("duplicate_signer_nonce_pairs", 0) or 0)
                     _merge_submit_totals(block_submit_totals, refill)
                     valid_candidate_count = _valid_candidate_count(leader, max_txs=max_txs_per_block)
+                    if valid_candidate_count >= int(max_txs_per_block):
+                        candidate_top_up_stopped_reason = "target_met"
+                        break
+                    if int(refill.get("admitted") or 0) <= 0 and int(valid_candidate_count) <= before_refill_candidate_count:
+                        candidate_top_up_stopped_reason = "no_refill_progress"
+                        break
+                if valid_candidate_count < int(max_txs_per_block) and candidate_top_up_stopped_reason == "target_met":
+                    candidate_top_up_stopped_reason = "max_refill_attempts_exhausted"
 
             _merge_submit_totals(aggregate_submit, block_submit_totals)
             pre_block_mempool_size = _mempool_size(leader)
             per_block_target_met = bool(valid_candidate_count >= int(max_txs_per_block))
+            refill_diag["refill_unique_signers_attempted"] = len(refill_signers_attempted)
+            refill_diag["refill_unique_signers_admitted"] = len(refill_signers_admitted)
+            refill_diag["refill_nonce_cursor_resets"] = int(nonce_cursor_resets)
+            target_shortfall = max(0, int(max_txs_per_block) - int(valid_candidate_count))
+            refill_diag["refill_attempt_shortfall"] = int(target_shortfall)
 
             measured = _produce_measured_block(leader, max_txs=max_txs_per_block, target_block_ms=target_block_ms, execution_model=execution_model)
             measured["block_index"] = block_i
@@ -1596,6 +1863,15 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             measured["per_block_refill_rejected"] = int(per_block_refill_rejected)
             measured["per_block_refill_attempts"] = int(per_block_refill_attempts)
             measured["per_block_target_met"] = bool(per_block_target_met)
+            measured["per_block_target_shortfall"] = int(target_shortfall)
+            measured["per_block_target_shortfall_by_reason"] = _shortfall_by_reason(
+                shortfall=int(target_shortfall),
+                stopped_reason=str(candidate_top_up_stopped_reason),
+                refill_diag=refill_diag,
+            )
+            measured["candidate_top_up_stopped_reason"] = str(candidate_top_up_stopped_reason)
+            for _field, _value in refill_diag.items():
+                measured[str(_field)] = copy.deepcopy(_value)
             measured["sustain_load"] = bool(sustain_load)
             measured["txs_admitted_this_round"] = int(block_submit_totals.get("admitted") or 0)
             measured["txs_rejected_this_round"] = int(block_submit_totals.get("rejected") or 0)

@@ -14,11 +14,14 @@ from weall.runtime.block_time_admission import (
 )
 from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
+from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.runtime.tx_id import compute_tx_id_from_envelope
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
+
+DEFAULT_MAX_BLOCK_TXS = 50_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,7 +292,7 @@ def admit_block_txs(
     ledger: LedgerView,
     tx_index: TxIndex,
     *,
-    max_block_txs: int = 50_000,
+    max_block_txs: int = DEFAULT_MAX_BLOCK_TXS,
     verify_signatures: bool = True,
 ) -> tuple[bool, BlockReject | None, list[TxReject | None]]:
     """
@@ -378,6 +381,8 @@ def admit_block_txs(
             )
             if not verdict.ok:
                 rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
+            else:
+                mark_public_protocol_policy_checked(env)
             continue
 
         signer = env.signer
@@ -418,6 +423,7 @@ def admit_block_txs(
             rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
             continue
 
+        mark_public_protocol_policy_checked(env)
         seen_signer_nonce.add(key)
         per_signer_next[signer] = int(expected) + 1
 

@@ -48,6 +48,7 @@ from weall.runtime.executor import (
     validate_system_tx_queue_binding,
 )
 
+from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
@@ -203,13 +204,13 @@ def build_block_candidate(
     if callable(fetch_for_block):
         txs = list(
             fetch_for_block(
-                limit=int(max_txs),
+                limit=min(int(max_txs), int(DEFAULT_MAX_BLOCK_TXS)),
                 policy=pinned_selection_policy,
                 candidate_height=int(next_height_for_clock),
             )
         )
     else:
-        txs = self._mempool.peek(limit=int(max_txs))
+        txs = self._mempool.peek(limit=min(int(max_txs), int(DEFAULT_MAX_BLOCK_TXS)))
     runtime_helper_execution_profile = self._requested_helper_execution_profile()
     pinned_helper_execution_profile = _pinned_helper_execution_profile(
         self.state,
@@ -237,6 +238,7 @@ def build_block_candidate(
     receipts: list[Json] = []
 
     next_height = int(height) + 1
+    final_block_tx_cap = int(DEFAULT_MAX_BLOCK_TXS)
 
     queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
 
@@ -347,6 +349,7 @@ def build_block_candidate(
         env_objs,
         ledger_for_block,
         self.tx_index,
+        max_block_txs=int(DEFAULT_MAX_BLOCK_TXS),
         verify_signatures=verify_candidate_signatures,
     )
     if (not ok) and block_reject is not None:
@@ -360,6 +363,8 @@ def build_block_candidate(
     blocked_signers_after_apply_reject: set[str] = set()
 
     for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
+        if len(applied_envs) >= final_block_tx_cap:
+            break
         if not tx_id:
             invalid_ids.append(tx_id)
             continue
@@ -502,6 +507,9 @@ def build_block_candidate(
     meta_root_working["helper_execution_profile_hash"] = _helper_execution_profile_hash(
         pinned_helper_execution_profile
     )
+
+    if len(applied_envs) > final_block_tx_cap:
+        return None, None, [], invalid_ids, "block_reject:too_large:block_txs_exceeds_limit"
 
     if not applied_envs and not bool(allow_empty):
         return None, None, [], invalid_ids, "no_applicable"

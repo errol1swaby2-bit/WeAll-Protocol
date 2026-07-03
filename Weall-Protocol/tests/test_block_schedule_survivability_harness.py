@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -23,6 +24,20 @@ def _subprocess_env() -> dict[str, str]:
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def _load_harness_module():
+    root = _repo_root()
+    spec = importlib.util.spec_from_file_location(
+        "weall_block_schedule_harness_under_test",
+        root / "scripts" / "rehearse_block_schedule_survivability_v1_5.py",
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 PROFILE_TIMING_FIELDS = [
@@ -166,6 +181,29 @@ BLOCK_TIMING_FIELDS = [
     *TX_LOOP_MICROPHASE_FIELDS,
     *REPLAY_WRAPPER_TIMING_FIELDS,
     *REPLAY_WRAPPER_COUNTER_FIELDS,
+]
+
+
+REFILL_DIAGNOSTIC_FIELDS = [
+    "refill_bad_nonce_stale_count",
+    "refill_bad_nonce_future_count",
+    "refill_bad_nonce_duplicate_count",
+    "refill_bad_nonce_gap_count",
+    "refill_unique_signers_attempted",
+    "refill_unique_signers_admitted",
+    "refill_tx_types_attempted",
+    "refill_tx_types_admitted",
+    "refill_tx_types_rejected_by_code",
+    "refill_nonce_cursor_resets",
+    "refill_duplicate_tx_ids",
+    "refill_duplicate_signer_nonce_pairs",
+    "refill_attempt_target",
+    "refill_attempt_shortfall",
+    "refill_candidate_generation_wall_ms",
+    "refill_admission_wall_ms",
+    "per_block_target_shortfall",
+    "per_block_target_shortfall_by_reason",
+    "candidate_top_up_stopped_reason",
 ]
 
 
@@ -341,8 +379,44 @@ def test_sustain_load_mode_refills_and_reports_per_block_targets(tmp_path: Path)
         assert block["per_block_refill_submitted"] >= 0
         assert block["per_block_refill_admitted"] + block["per_block_refill_rejected"] <= block["per_block_refill_submitted"]
         assert block["per_block_target_met"] == (block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"])
+        for field in REFILL_DIAGNOSTIC_FIELDS:
+            assert field in block
+        for field in [
+            "refill_bad_nonce_stale_count",
+            "refill_bad_nonce_future_count",
+            "refill_bad_nonce_duplicate_count",
+            "refill_bad_nonce_gap_count",
+            "refill_unique_signers_attempted",
+            "refill_unique_signers_admitted",
+            "refill_nonce_cursor_resets",
+            "refill_duplicate_tx_ids",
+            "refill_duplicate_signer_nonce_pairs",
+            "refill_attempt_target",
+            "refill_attempt_shortfall",
+            "per_block_target_shortfall",
+        ]:
+            assert isinstance(block[field], int)
+            assert block[field] >= 0
+        for field in [
+            "refill_candidate_generation_wall_ms",
+            "refill_admission_wall_ms",
+        ]:
+            _assert_non_negative_number(block[field])
+        for field in [
+            "refill_tx_types_attempted",
+            "refill_tx_types_admitted",
+            "refill_tx_types_rejected_by_code",
+            "per_block_target_shortfall_by_reason",
+        ]:
+            assert isinstance(block[field], dict)
+        assert isinstance(block["candidate_top_up_stopped_reason"], str)
+        assert block["per_block_target_shortfall"] == max(
+            0, block["requested_mempool_candidate_limit"] - block["valid_candidate_count"]
+        )
         if block["per_block_target_met"]:
             assert block["selected_candidate_tx_count"] >= min(block["requested_mempool_candidate_limit"], block["valid_candidate_count"])
+            assert block["candidate_top_up_stopped_reason"] == "target_met"
+            assert block["per_block_target_shortfall_by_reason"] == {}
     assert profile["aggregate_submit"]["admitted"] >= sum(
         int(block["admitted_before_block_count"]) for block in profile["block_measurements"]
     )
@@ -400,3 +474,139 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
         assert block["accepted_tx_ids"]
         assert block["receipt_fingerprint"]
         assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
+
+
+class _AcceptingExecutor:
+    chain_id = "block-schedule-harness-test"
+
+    def __init__(self) -> None:
+        self.submitted: list[dict[str, object]] = []
+
+    def submit_txs_batch(self, txs, **_kwargs):
+        self.submitted = list(txs)
+        return [{"ok": True, "tx_id": f"accepted-{idx}"} for idx, _tx in enumerate(txs)]
+
+
+def test_deterministic_top_up_generation_does_not_reuse_signer_nonce_pairs() -> None:
+    harness = _load_harness_module()
+    result = harness.run_profile(
+        "active",
+        users_n=30,
+        blocks_n=2,
+        max_txs_per_block=120,
+        txs_per_block_feed=40,
+        target_block_ms=20_000,
+        helper_fast_path=False,
+        restart_during_load=False,
+        execution_model="bounded_rollback",
+        chain_id_override="block-schedule-top-up-no-reuse-test",
+        sustain_load=True,
+    )
+
+    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    assert len(result["block_measurements"]) == 2
+    for block in result["block_measurements"]:
+        assert block["per_block_target_met"] is True, block
+        assert block["selected_candidate_tx_count"] == block["requested_mempool_candidate_limit"]
+        assert block["refill_duplicate_signer_nonce_pairs"] == 0
+        assert block["refill_duplicate_tx_ids"] == 0
+        assert block["refill_bad_nonce_stale_count"] == 0
+        assert block["refill_bad_nonce_future_count"] == 0
+        assert block["refill_bad_nonce_gap_count"] == 0
+
+
+def test_refill_generator_emits_valid_nonce_order_per_signer() -> None:
+    harness = _load_harness_module()
+    executor = _AcceptingExecutor()
+    users = [f"@load{i:03d}" for i in range(6)]
+    next_nonces = {user: 2 for user in users}
+
+    result = harness._submit_profile_load(
+        executor,
+        profile="active",
+        users=users,
+        next_nonces=next_nonces,
+        count=90,
+    )
+
+    assert result["admitted"] == 90
+    seen_by_signer: dict[str, list[int]] = {}
+    for pair in result["_signer_nonce_pairs"]:
+        signer, nonce_s = pair.split("\0")
+        seen_by_signer.setdefault(signer, []).append(int(nonce_s))
+
+    for signer, nonces in seen_by_signer.items():
+        assert nonces == sorted(nonces), (signer, nonces)
+        assert nonces == list(range(2, 2 + len(nonces))), (signer, nonces)
+    assert result["duplicate_signer_nonce_pairs"] == 0
+
+
+def test_refill_does_not_repeat_bad_nonce_retry_storms() -> None:
+    harness = _load_harness_module()
+    result = harness.run_profile(
+        "active",
+        users_n=30,
+        blocks_n=3,
+        max_txs_per_block=120,
+        txs_per_block_feed=40,
+        target_block_ms=20_000,
+        helper_fast_path=False,
+        restart_during_load=False,
+        execution_model="bounded_rollback",
+        chain_id_override="block-schedule-no-bad-nonce-storm-test",
+        sustain_load=True,
+    )
+
+    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    for block in result["block_measurements"]:
+        bad_nonce_total = (
+            int(block["refill_bad_nonce_stale_count"])
+            + int(block["refill_bad_nonce_future_count"])
+            + int(block["refill_bad_nonce_duplicate_count"])
+            + int(block["refill_bad_nonce_gap_count"])
+        )
+        assert bad_nonce_total == 0, block
+        assert block["rejected_by_code_this_round"].get("bad_nonce", 0) == 0
+        assert block["candidate_top_up_stopped_reason"] == "target_met"
+
+
+def test_block_one_and_two_fill_requested_target_when_valid_nonce_lanes_exist() -> None:
+    harness = _load_harness_module()
+    result = harness.run_profile(
+        "active",
+        users_n=30,
+        blocks_n=3,
+        max_txs_per_block=120,
+        txs_per_block_feed=40,
+        target_block_ms=20_000,
+        helper_fast_path=False,
+        restart_during_load=False,
+        execution_model="bounded_rollback",
+        chain_id_override="block-schedule-block-one-two-fill-test",
+        sustain_load=True,
+    )
+
+    assert result["convergence"]["all_nodes_converged"] is True, result["convergence"]
+    for block in result["block_measurements"]:
+        assert block["per_block_target_met"] is True, block
+        assert block["valid_candidate_count"] == block["requested_mempool_candidate_limit"]
+        assert block["selected_candidate_tx_count"] == block["requested_mempool_candidate_limit"]
+        assert block["candidate_top_up_stopped_reason"] == "target_met"
+
+
+def test_target_shortfall_diagnostics_report_reason_when_target_cannot_be_filled() -> None:
+    harness = _load_harness_module()
+    diag = harness._empty_refill_diagnostics()
+    diag["refill_attempt_target"] = 12
+    diag["refill_bad_nonce_gap_count"] = 3
+    diag["refill_duplicate_signer_nonce_pairs"] = 2
+
+    reasons = harness._shortfall_by_reason(
+        shortfall=5,
+        stopped_reason="no_refill_progress",
+        refill_diag=diag,
+    )
+
+    assert reasons["no_refill_progress"] == 5
+    assert reasons["bad_nonce_gap"] == 3
+    assert reasons["duplicate_signer_nonce_pairs"] == 2

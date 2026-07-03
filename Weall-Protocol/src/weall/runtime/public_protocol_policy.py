@@ -80,6 +80,30 @@ NON_PUBLIC_VISIBILITY_VALUES: set[str] = {
 
 PUBLIC_VISIBILITY_VALUES: set[str] = {"", "public", "open", "group"}
 
+# Process-local marker used only to avoid repeating the same public-only payload
+# scan across block admission and the immediately following deterministic
+# build/replay apply loop. It is intentionally omitted from TxEnvelope.to_json(),
+# block commitments, state roots, receipts, and every wire/disk representation.
+_PUBLIC_POLICY_CHECKED_ATTR = "_weall_public_policy_checked"
+
+
+def mark_public_protocol_policy_checked(env: Any) -> None:
+    try:
+        object.__setattr__(env, _PUBLIC_POLICY_CHECKED_ATTR, True)
+    except Exception:
+        try:
+            setattr(env, _PUBLIC_POLICY_CHECKED_ATTR, True)
+        except Exception:
+            pass
+
+
+def public_protocol_policy_checked(env: Any) -> bool:
+    try:
+        return bool(getattr(env, _PUBLIC_POLICY_CHECKED_ATTR, False))
+    except Exception:
+        return False
+
+
 PROTOCOL_CONTENT_TX_PREFIXES: tuple[str, ...] = (
     "CONTENT_",
     "GOV_",
@@ -128,7 +152,18 @@ def _tx_type(env: Any) -> str:
     return str(getattr(env, "tx_type", "") or "").strip().upper()
 
 
+def _format_path(parts: tuple[Any, ...]) -> str:
+    path = "payload"
+    for part in parts:
+        if isinstance(part, int):
+            path = f"{path}[{part}]"
+        else:
+            path = _path(path, part)
+    return path
+
+
 def _walk(value: Any, path: str = "payload"):
+    # Compatibility generator retained for tests/tools that import it indirectly.
     if isinstance(value, dict):
         for key, child in value.items():
             child_path = _path(path, key)
@@ -141,36 +176,43 @@ def _walk(value: Any, path: str = "payload"):
             yield from _walk(child, child_path)
 
 
-def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation | None:
-    """Return a deterministic violation for a protocol-native tx, if any."""
+def _scan_public_protocol_payload(
+    value: Any,
+    *,
+    tx_type: str,
+    path_parts: tuple[Any, ...] = (),
+) -> PublicProtocolPolicyViolation | None:
+    if isinstance(value, dict):
+        iterator = value.items()
+    elif isinstance(value, list):
+        iterator = enumerate(value)
+    else:
+        return None
 
-    t = _tx_type(env)
-    p = _payload(env)
-
-
-    for path, key, value in _walk(p):
+    for key, child in iterator:
         nk = _norm_key(key)
-        nv = _norm_value(value) if isinstance(value, (str, bool, int, float)) else ""
+        nv = _norm_value(child) if isinstance(child, (str, bool, int, float)) else ""
+        child_parts = (*path_parts, key)
 
         if nk in NON_INSPECTABLE_PROTOCOL_KEYS or _legacy_token("cipher", "text") in nk or _legacy_token("encr", "yption") in nk:
             return PublicProtocolPolicyViolation(
                 OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
                 "non_inspectable_protocol_payloads_are_unsupported",
-                {"tx_type": t, "field": nk, "path": path},
+                {"tx_type": tx_type, "field": nk, "path": _format_path(child_parts)},
             )
 
         if nk in NON_PUBLIC_GROUP_KEYS:
-            if isinstance(value, bool) and value is True:
+            if isinstance(child, bool) and child is True:
                 return PublicProtocolPolicyViolation(
                     NON_PUBLIC_GROUP_UNSUPPORTED,
                     "non_public_groups_are_unsupported",
-                    {"tx_type": t, "field": nk, "path": path},
+                    {"tx_type": tx_type, "field": nk, "path": _format_path(child_parts)},
                 )
             if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
                     PUBLIC_READ_VISIBILITY_REQUIRED,
                     "protocol_read_visibility_must_be_public",
-                    {"tx_type": t, "field": nk, "value": nv, "path": path},
+                    {"tx_type": tx_type, "field": nk, "value": nv, "path": _format_path(child_parts)},
                 )
 
         if nk in {"visibility", "read_visibility", _legacy_token("group", "_", "vis", "ibility"), "access", "audience"}:
@@ -178,20 +220,31 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
                 return PublicProtocolPolicyViolation(
                     PUBLIC_READ_VISIBILITY_REQUIRED,
                     "protocol_read_visibility_must_be_public",
-                    {"tx_type": t, "field": nk, "value": nv, "path": path},
+                    {"tx_type": tx_type, "field": nk, "value": nv, "path": _format_path(child_parts)},
                 )
 
-        if isinstance(value, str):
-            lowered = value.strip().lower()
+        if isinstance(child, str):
+            lowered = child.strip().lower()
             if "-----begin pgp message-----" in lowered or lowered.startswith("age-encryption.org/v1"):
                 return PublicProtocolPolicyViolation(
                     OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
                     "armored_non_inspectable_protocol_payloads_are_unsupported",
-                    {"tx_type": t, "field": nk, "path": path},
+                    {"tx_type": tx_type, "field": nk, "path": _format_path(child_parts)},
                 )
+
+        violation = _scan_public_protocol_payload(child, tx_type=tx_type, path_parts=child_parts)
+        if violation is not None:
+            return violation
 
     return None
 
+
+def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation | None:
+    """Return a deterministic violation for a protocol-native tx, if any."""
+
+    t = _tx_type(env)
+    p = _payload(env)
+    return _scan_public_protocol_payload(p, tx_type=t)
 
 def assert_public_protocol_tx(env: Any) -> None:
     violation = public_protocol_policy_violation(env)
@@ -204,6 +257,8 @@ __all__ = [
     "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
     "PUBLIC_READ_VISIBILITY_REQUIRED",
     "PublicProtocolPolicyViolation",
+    "mark_public_protocol_policy_checked",
+    "public_protocol_policy_checked",
     "public_protocol_policy_violation",
     "assert_public_protocol_tx",
 ]

@@ -788,7 +788,6 @@ def admit_tx(
             public_only_violation.reason,
             **public_only_violation.details,
         )
-
     if canon is None:
         spec = {}
     else:
