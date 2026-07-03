@@ -1165,16 +1165,35 @@
     },
     "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
     "minimum_reviewer_civic_loop": {
+      "canonical_route_boundary": {
+        "dispute_label": "Reports",
+        "dispute_route": "/reports",
+        "governance_label": "Decisions",
+        "governance_route": "/decisions",
+        "legacy_aliases_removed": [
+          "/proposals",
+          "/disputes"
+        ]
+      },
       "economics_locked_by_default": true,
       "frontend_entrypoints": {
-        "account": "/account/:account",
-        "disputes": "/disputes",
+        "account": "/profile",
+        "account_detail_template": "/account/:account",
+        "create_post": "/create",
+        "dispute_detail_template": "/reports/:id",
+        "disputes": "/reports",
         "economics": "/economics",
         "feed": "/feed",
-        "governance": "/proposals",
+        "governance": "/decisions",
+        "governance_create": "/decisions/create",
+        "governance_detail_template": "/decisions/:id",
+        "group_detail_template": "/groups/:id",
         "groups": "/groups",
+        "identity_verification": "/verification",
         "node_status": "/node",
-        "review_center": "/reviews"
+        "reputation_visibility": "/activity",
+        "review_center": "/reviews",
+        "review_detail_template": "/reviews/:id"
       },
       "public_only_visibility": true,
       "steps": [
@@ -1189,7 +1208,7 @@
         "observer_node_status",
         "economics_locked_status"
       ],
-      "truth_boundary": "This is a reviewer navigation map, not proof that public beta/mainnet gates are closed."
+      "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
     },
     "phase": "public_beta_candidate",
     "protocol_upgrade_lifecycle": {

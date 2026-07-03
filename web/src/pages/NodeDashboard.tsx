@@ -215,6 +215,8 @@ export default function NodeDashboard(): JSX.Element {
   const governanceLifecycle = asRecord(testnetCapabilities.governance_lifecycle);
   const disputeLifecycle = asRecord(testnetCapabilities.dispute_lifecycle);
   const minimumCivicLoop = asRecord(testnetCapabilities.minimum_reviewer_civic_loop);
+  const civicLoopEntrypoints = asRecord(minimumCivicLoop.frontend_entrypoints);
+  const civicLoopRouteBoundary = asRecord(minimumCivicLoop.canonical_route_boundary);
   const helperReadiness = asRecord(data.helperReadiness);
   const netSelf = asRecord(data.netSelf);
   const nat = asRecord(netSelf.nat || asRecord(netSelf.net).nat);
@@ -287,6 +289,18 @@ export default function NodeDashboard(): JSX.Element {
   const blockedCapabilities = asArray(testnetCapabilities.blocked_capabilities);
   const launchPhase = str(launchMatrix.phase || testnetCapabilities.phase || status.mode, "controlled/local");
   const publicBetaClaimed = testnetCapabilities.public_beta_ready_claimed === true || publicBetaBlockerReport.public_beta_ready === true;
+  const reviewerRouteRows = [
+    { key: "account", label: "Account / identity", href: str(civicLoopEntrypoints.account, "/profile") },
+    { key: "identity_verification", label: "Human verification", href: str(civicLoopEntrypoints.identity_verification, "/verification") },
+    { key: "feed", label: "Public feed", href: str(civicLoopEntrypoints.feed, "/feed") },
+    { key: "groups", label: "Public groups", href: str(civicLoopEntrypoints.groups, "/groups") },
+    { key: "governance", label: "Decisions / governance", href: str(civicLoopEntrypoints.governance, "/decisions") },
+    { key: "disputes", label: "Reports / disputes", href: str(civicLoopEntrypoints.disputes, "/reports") },
+    { key: "reviews", label: "Review center", href: str(civicLoopEntrypoints.review_center, "/reviews") },
+    { key: "reputation", label: "Reputation / activity", href: str(civicLoopEntrypoints.reputation_visibility, "/activity") },
+    { key: "node", label: "Observer / node status", href: str(civicLoopEntrypoints.node_status, "/node") },
+    { key: "economics", label: "Economics locked status", href: str(civicLoopEntrypoints.economics, "/economics") },
+  ].filter((row) => row.href.startsWith("/") && !row.href.includes(":"));
   const prefError = storagePreferenceError(pref);
   const browserStorageUsage = storageEstimate ? formatBytes(storageEstimate.usage) : "—";
   const browserStorageQuota = storageEstimate ? formatBytes(storageEstimate.quota) : "—";
@@ -666,6 +680,34 @@ export default function NodeDashboard(): JSX.Element {
                 ok={minimumCivicLoop.public_only_visibility === true && minimumCivicLoop.economics_locked_by_default === true}
                 warn={minimumCivicLoop.economics_locked_by_default === false}
               />
+              <DetailRow
+                label="Canonical governance route"
+                value={`${str(civicLoopRouteBoundary.governance_label, "Decisions")} (${str(civicLoopRouteBoundary.governance_route, "/decisions")})`}
+                ok={str(civicLoopRouteBoundary.governance_route, "/decisions") === "/decisions"}
+              />
+              <DetailRow
+                label="Canonical dispute route"
+                value={`${str(civicLoopRouteBoundary.dispute_label, "Reports")} (${str(civicLoopRouteBoundary.dispute_route, "/reports")})`}
+                ok={str(civicLoopRouteBoundary.dispute_route, "/reports") === "/reports"}
+              />
+            </div>
+          ) : null}
+          {reviewerRouteRows.length ? (
+            <div className="infoCard compact" aria-label="Reviewer civic loop route map">
+              <div className="infoCardHeader"><span className="statusPill ok">Reviewer route map</span><strong>Minimum civic loop entrypoints</strong></div>
+              <div className="infoCardText">
+                Use these canonical routes for the first-pass reviewer walkthrough. Decisions replace legacy proposal aliases; Reports replace legacy dispute aliases.
+              </div>
+              <div className="buttonRow buttonRowWide">
+                {reviewerRouteRows.map((row) => (
+                  <button key={row.key} className="btn" type="button" onClick={() => nav(row.href)}>
+                    {row.label}
+                  </button>
+                ))}
+              </div>
+              <div className="cardDesc">
+                Legacy /proposals and /disputes aliases remain removed; route templates such as /account/:account require a concrete public identifier.
+              </div>
             </div>
           ) : null}
           {incidentTimeline.length ? (

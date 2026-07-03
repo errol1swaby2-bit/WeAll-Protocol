@@ -15,6 +15,7 @@ const router = read("src/lib/router.ts");
 const prefetch = read("src/lib/routePrefetch.ts");
 const api = read("src/api/weall.ts");
 const node = read("src/pages/NodeDashboard.tsx");
+const capabilitySurface = read("../Weall-Protocol/src/weall/runtime/testnet_capabilities.py");
 const txPage = read("src/pages/TransactionsPage.tsx");
 const txTimeline = read("src/components/TxPropagationTimeline.tsx");
 const connectionPanel = read("src/components/NodeConnectionPanel.tsx");
@@ -77,11 +78,26 @@ for (const needle of [
   "Governance lifecycle clock",
   "Dispute lifecycle clock",
   "Reviewer civic loop",
+  "Reviewer route map",
+  "Minimum civic loop entrypoints",
+  "Decisions / governance",
+  "Reports / disputes",
+  "Legacy /proposals and /disputes aliases remain removed",
   "governance-parent bound",
   "no wall-clock protocol mutation",
   "private identity evidence protected",
 ]) {
   assertIncludes(node, needle, "node dashboard storage controls");
+}
+
+for (const needle of [
+  '"governance": "/decisions"',
+  '"governance_create": "/decisions/create"',
+  '"disputes": "/reports"',
+  '"canonical_route_boundary"',
+  '"legacy_aliases_removed": ["/proposals", "/disputes"]',
+]) {
+  assertIncludes(capabilitySurface, needle, "testnet capability surface canonical reviewer route map");
 }
 
 for (const needle of [

@@ -119,7 +119,9 @@ The rehearsal must not claim automatic upgrade delivery or software migration su
 - protocol-upgrade lifecycle: public record-only declaration and block-height scheduled activation, with governance/system-queue parent provenance and automatic software apply disabled;
 - governance lifecycle: block-height scheduler truth with UI wall-clock estimates treated as display-only;
 - dispute lifecycle: block-height review/appeal/timeout windows with private identity evidence protected;
-- minimum civic loop: frontend entrypoints for account state, feed, groups, governance, disputes, review center, node status, and economics lock status.
+- minimum civic loop: frontend entrypoints for account state (`/profile` or `/account/:account`), verification (`/verification`), feed (`/feed`), groups (`/groups`), governance/decisions (`/decisions`), disputes/reports (`/reports`), review center (`/reviews`), activity/reputation visibility (`/activity`), node status (`/node`), and economics lock status (`/economics`).
+
+Canonical reviewer route boundary: the current frontend uses **Decisions** at `/decisions` for governance proposal/vote/finalization surfaces and **Reports** at `/reports` for dispute/outcome surfaces. Legacy `/proposals` and `/disputes` aliases are intentionally not part of the reviewer route map.
 
 This status surface is not itself a public-beta claim. It is a reviewer navigation and claim-boundary surface that should match the code and tests in the submitted commit.
 

@@ -34,11 +34,20 @@ export type DeterministicLifecycleSurface = {
   truth_boundary?: string;
 };
 
+export type CanonicalRouteBoundarySurface = {
+  governance_label?: string;
+  governance_route?: string;
+  dispute_label?: string;
+  dispute_route?: string;
+  legacy_aliases_removed?: string[];
+};
+
 export type MinimumReviewerCivicLoopSurface = {
   public_only_visibility?: boolean;
   economics_locked_by_default?: boolean;
   steps?: string[];
   frontend_entrypoints?: Record<string, string>;
+  canonical_route_boundary?: CanonicalRouteBoundarySurface;
   truth_boundary?: string;
 };
 

@@ -198,3 +198,32 @@ def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
         check=False,
     )
     assert gate.returncode == 0, gate.stdout + gate.stderr
+
+
+def test_minimum_reviewer_civic_loop_uses_canonical_frontend_routes() -> None:
+    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    loop = surface["minimum_reviewer_civic_loop"]
+    entrypoints = loop["frontend_entrypoints"]
+    assert entrypoints["governance"] == "/decisions"
+    assert entrypoints["governance_create"] == "/decisions/create"
+    assert entrypoints["disputes"] == "/reports"
+    assert entrypoints["review_center"] == "/reviews"
+    assert entrypoints["node_status"] == "/node"
+    assert entrypoints["economics"] == "/economics"
+    assert "/proposals" not in entrypoints.values()
+    assert "/disputes" not in entrypoints.values()
+    assert loop["canonical_route_boundary"] == {
+        "governance_label": "Decisions",
+        "governance_route": "/decisions",
+        "dispute_label": "Reports",
+        "dispute_route": "/reports",
+        "legacy_aliases_removed": ["/proposals", "/disputes"],
+    }
+
+    router_src = (ROOT.parent / "web" / "src" / "lib" / "router.ts").read_text(encoding="utf-8")
+    for key, href in entrypoints.items():
+        if ":" in href:
+            continue
+        assert f'"{href}"' in router_src, f"{key} points to a route not present in router.ts: {href}"
+    assert '"/proposals"' not in router_src
+    assert '"/disputes"' not in router_src
