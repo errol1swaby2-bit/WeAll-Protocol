@@ -80,6 +80,9 @@ for (const needle of [
   "Reviewer civic loop",
   "Reviewer route map",
   "Minimum civic loop entrypoints",
+  "Reviewer API evidence map",
+  "Canonical API surfaces for the civic loop",
+  "Full API route coverage is checked against the generated v1.5 API contract map",
   "Decisions / governance",
   "Reports / disputes",
   "Legacy /proposals and /disputes aliases remain removed",
@@ -94,10 +97,22 @@ for (const needle of [
   '"governance": "/decisions"',
   '"governance_create": "/decisions/create"',
   '"disputes": "/reports"',
+  '"api_evidence_surfaces"',
+  '"GET /v1/status/testnet-capabilities"',
+  '"GET /v1/economics/status"',
   '"canonical_route_boundary"',
   '"legacy_aliases_removed": ["/proposals", "/disputes"]',
 ]) {
   assertIncludes(capabilitySurface, needle, "testnet capability surface canonical reviewer route map");
+}
+
+for (const duplicateKey of [
+  'primaryObject: "Report",\n      primaryObject: "Report"',
+  'blockingDependencies: ["Account session", "Live verification case", "Self-hosted room transport", "Signed attendance/verdict state"],\n      blockingDependencies:',
+]) {
+  if (router.includes(duplicateKey)) {
+    throw new Error(`router contract contains duplicate object key: ${duplicateKey}`);
+  }
 }
 
 for (const needle of [

@@ -47,6 +47,7 @@ export type MinimumReviewerCivicLoopSurface = {
   economics_locked_by_default?: boolean;
   steps?: string[];
   frontend_entrypoints?: Record<string, string>;
+  api_evidence_surfaces?: Record<string, string[]>;
   canonical_route_boundary?: CanonicalRouteBoundarySurface;
   truth_boundary?: string;
 };

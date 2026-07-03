@@ -119,9 +119,10 @@ The rehearsal must not claim automatic upgrade delivery or software migration su
 - protocol-upgrade lifecycle: public record-only declaration and block-height scheduled activation, with governance/system-queue parent provenance and automatic software apply disabled;
 - governance lifecycle: block-height scheduler truth with UI wall-clock estimates treated as display-only;
 - dispute lifecycle: block-height review/appeal/timeout windows with private identity evidence protected;
-- minimum civic loop: frontend entrypoints for account state (`/profile` or `/account/:account`), verification (`/verification`), feed (`/feed`), groups (`/groups`), governance/decisions (`/decisions`), disputes/reports (`/reports`), review center (`/reviews`), activity/reputation visibility (`/activity`), node status (`/node`), and economics lock status (`/economics`).
+- minimum civic loop: frontend entrypoints for account state (`/profile` or `/account/:account`), verification (`/verification`), feed (`/feed`), groups (`/groups`), governance/decisions (`/decisions`), disputes/reports (`/reports`), review center (`/reviews`), activity/reputation visibility (`/activity`), node status (`/node`), and economics lock status (`/economics`);
+- API evidence surfaces for each civic-loop step, checked against `generated/api_contract_map_v1_5.json`, so reviewer docs, frontend buttons, and backend route contracts drift together instead of separately.
 
-Canonical reviewer route boundary: the current frontend uses **Decisions** at `/decisions` for governance proposal/vote/finalization surfaces and **Reports** at `/reports` for dispute/outcome surfaces. Legacy `/proposals` and `/disputes` aliases are intentionally not part of the reviewer route map.
+Canonical reviewer route boundary: the current frontend uses **Decisions** at `/decisions` for governance proposal/vote/finalization surfaces and **Reports** at `/reports` for dispute/outcome surfaces. Legacy `/proposals` and `/disputes` aliases are intentionally not part of the reviewer route map. Backend protocol APIs may still use domain names such as `/v1/gov/proposals` and `/v1/disputes/*`; those are API evidence surfaces, not frontend route aliases.
 
 This status surface is not itself a public-beta claim. It is a reviewer navigation and claim-boundary surface that should match the code and tests in the submitted commit.
 

@@ -140,7 +140,7 @@ Key reviewer files include:
 - `generated/public_only_protocol_audit_v1_5.json`
 - `generated/release_evidence_manifest_v1_5.json`
 - `generated/public_beta_blocker_report_v1_5.json`
-- `GET /v1/status/testnet-capabilities` output for protocol-upgrade, governance, dispute, and minimum civic-loop status surfaces, including canonical frontend routes: `/profile`, `/verification`, `/feed`, `/groups`, `/decisions`, `/reports`, `/reviews`, `/activity`, `/node`, and `/economics`
+- `GET /v1/status/testnet-capabilities` output for protocol-upgrade, governance, dispute, and minimum civic-loop status surfaces, including canonical frontend routes: `/profile`, `/verification`, `/feed`, `/groups`, `/decisions`, `/reports`, `/reviews`, `/activity`, `/node`, and `/economics`, plus API evidence surfaces such as `/v1/feed`, `/v1/groups`, `/v1/gov/proposals`, `/v1/disputes`, `/v1/status/testnet-capabilities`, and `/v1/economics/status`
 - sustained-load evidence files under `rehearsal-evidence/` if present for the submitted commit
 
 ## Performance wording boundary

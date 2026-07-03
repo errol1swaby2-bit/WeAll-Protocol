@@ -227,3 +227,22 @@ def test_minimum_reviewer_civic_loop_uses_canonical_frontend_routes() -> None:
         assert f'"{href}"' in router_src, f"{key} points to a route not present in router.ts: {href}"
     assert '"/proposals"' not in router_src
     assert '"/disputes"' not in router_src
+
+
+def test_minimum_reviewer_civic_loop_api_evidence_surfaces_match_contract_map() -> None:
+    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    api_surfaces = surface["minimum_reviewer_civic_loop"]["api_evidence_surfaces"]
+    assert set(api_surfaces) == set(surface["minimum_reviewer_civic_loop"]["steps"])
+    assert "GET /v1/status/testnet-capabilities" in api_surfaces["protocol_upgrade_record_lifecycle"]
+    assert "GET /v1/economics/status" in api_surfaces["economics_locked_status"]
+    assert "POST /v1/tx/submit" in api_surfaces["governance_create_vote_finalize"]
+    assert "POST /v1/tx/submit" in api_surfaces["public_posting_or_social_activity"]
+
+    contract = json.loads((ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8"))
+    route_keys = {f"{row['method']} {row['path']}" for row in contract["routes"]}
+    missing: list[str] = []
+    for step, endpoints in api_surfaces.items():
+        for endpoint in endpoints:
+            if endpoint not in route_keys:
+                missing.append(f"{step}: {endpoint}")
+    assert not missing, "civic loop API evidence surface points at missing API contract routes: " + ", ".join(missing)

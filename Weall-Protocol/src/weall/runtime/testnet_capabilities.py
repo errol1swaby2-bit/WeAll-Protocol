@@ -212,6 +212,59 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
                 "node_status": "/node",
                 "economics": "/economics",
             },
+            "api_evidence_surfaces": {
+                "account_identity_state": [
+                    "GET /v1/session/me",
+                    "GET /v1/accounts/{account}/profile",
+                ],
+                "human_verification_state": [
+                    "GET /v1/poh/async/my-cases",
+                    "GET /v1/poh/live/my-cases",
+                ],
+                "public_posting_or_social_activity": [
+                    "GET /v1/feed",
+                    "POST /v1/tx/submit",
+                    "GET /v1/content/{content_id}",
+                ],
+                "public_group_read_with_member_gated_participation": [
+                    "GET /v1/groups",
+                    "GET /v1/groups/{group_id}",
+                    "GET /v1/groups/{group_id}/feed",
+                    "GET /v1/groups/{group_id}/governance-contract",
+                ],
+                "governance_create_vote_finalize": [
+                    "GET /v1/gov/proposals",
+                    "GET /v1/gov/proposals/{proposal_id}",
+                    "GET /v1/gov/proposals/{proposal_id}/votes",
+                    "POST /v1/tx/submit",
+                ],
+                "dispute_review_outcome_visibility": [
+                    "GET /v1/disputes",
+                    "GET /v1/disputes/current",
+                    "GET /v1/disputes/{dispute_id}",
+                    "GET /v1/disputes/{dispute_id}/votes",
+                ],
+                "reputation_outcome_visibility": [
+                    "GET /v1/reputation/{account}/eligibility",
+                    "GET /v1/activity/notices",
+                ],
+                "protocol_upgrade_record_lifecycle": [
+                    "POST /v1/tx/submit",
+                    "GET /v1/status/testnet-capabilities",
+                ],
+                "observer_node_status": [
+                    "GET /v1/status",
+                    "GET /v1/chain/identity",
+                    "GET /v1/nodes/seeds",
+                    "GET /v1/nodes/validators",
+                    "GET /v1/observer/edge/status",
+                ],
+                "economics_locked_status": [
+                    "GET /v1/economics/status",
+                    "GET /v1/treasury/status",
+                    "GET /v1/wallet/{account}",
+                ],
+            },
             "canonical_route_boundary": {
                 "governance_label": "Decisions",
                 "governance_route": "/decisions",

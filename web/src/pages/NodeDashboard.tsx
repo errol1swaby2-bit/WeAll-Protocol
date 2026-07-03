@@ -216,6 +216,7 @@ export default function NodeDashboard(): JSX.Element {
   const disputeLifecycle = asRecord(testnetCapabilities.dispute_lifecycle);
   const minimumCivicLoop = asRecord(testnetCapabilities.minimum_reviewer_civic_loop);
   const civicLoopEntrypoints = asRecord(minimumCivicLoop.frontend_entrypoints);
+  const civicLoopApiSurfaces = asRecord(minimumCivicLoop.api_evidence_surfaces);
   const civicLoopRouteBoundary = asRecord(minimumCivicLoop.canonical_route_boundary);
   const helperReadiness = asRecord(data.helperReadiness);
   const netSelf = asRecord(data.netSelf);
@@ -301,6 +302,21 @@ export default function NodeDashboard(): JSX.Element {
     { key: "node", label: "Observer / node status", href: str(civicLoopEntrypoints.node_status, "/node") },
     { key: "economics", label: "Economics locked status", href: str(civicLoopEntrypoints.economics, "/economics") },
   ].filter((row) => row.href.startsWith("/") && !row.href.includes(":"));
+  const reviewerApiRows = [
+    { key: "account_identity_state", label: "Account / identity API" },
+    { key: "human_verification_state", label: "Human verification API" },
+    { key: "public_posting_or_social_activity", label: "Public feed/social API" },
+    { key: "public_group_read_with_member_gated_participation", label: "Public groups API" },
+    { key: "governance_create_vote_finalize", label: "Decisions/governance API" },
+    { key: "dispute_review_outcome_visibility", label: "Reports/disputes API" },
+    { key: "reputation_outcome_visibility", label: "Reputation/activity API" },
+    { key: "protocol_upgrade_record_lifecycle", label: "Protocol-upgrade API" },
+    { key: "observer_node_status", label: "Observer/node API" },
+    { key: "economics_locked_status", label: "Economics-locked API" },
+  ].map((row) => ({
+    ...row,
+    endpoints: asArray(civicLoopApiSurfaces[row.key]).map((value) => String(value)),
+  })).filter((row) => row.endpoints.length > 0);
   const prefError = storagePreferenceError(pref);
   const browserStorageUsage = storageEstimate ? formatBytes(storageEstimate.usage) : "—";
   const browserStorageQuota = storageEstimate ? formatBytes(storageEstimate.quota) : "—";
@@ -707,6 +723,27 @@ export default function NodeDashboard(): JSX.Element {
               </div>
               <div className="cardDesc">
                 Legacy /proposals and /disputes aliases remain removed; route templates such as /account/:account require a concrete public identifier.
+              </div>
+            </div>
+          ) : null}
+          {reviewerApiRows.length ? (
+            <div className="infoCard compact" aria-label="Reviewer civic loop API evidence map">
+              <div className="infoCardHeader"><span className="statusPill ok">Reviewer API evidence map</span><strong>Canonical API surfaces for the civic loop</strong></div>
+              <div className="infoCardText">
+                These API surfaces back the reviewer walkthrough. They are evidence and read/action boundaries, not public beta or mainnet readiness claims.
+              </div>
+              <div className="progressList">
+                {reviewerApiRows.slice(0, 6).map((row) => (
+                  <DetailRow
+                    key={row.key}
+                    label={row.label}
+                    value={row.endpoints.slice(0, 3).join(" · ")}
+                    ok
+                  />
+                ))}
+              </div>
+              <div className="cardDesc">
+                Full API route coverage is checked against the generated v1.5 API contract map; protocol-upgrade records and economics status remain non-activating surfaces.
               </div>
             </div>
           ) : null}
