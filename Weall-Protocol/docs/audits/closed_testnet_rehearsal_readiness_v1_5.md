@@ -99,6 +99,15 @@ pytest -q \
   tests/test_dispute_height_lifecycle_boundaries.py
 ```
 
+Recommended rendered frontend rehearsal, from the repository `web/` directory after frontend dependencies are installed and a backend/dev-bootstrap manifest is configured:
+
+```bash
+npm run test:rendered-civic-loop-source
+npm run test:rendered-civic-loop
+```
+
+The rendered civic-loop check walks the current hash routes in order: `/profile`, `/verification`, `/feed`, `/groups`, `/decisions`, `/reports`, `/reviews`, `/activity`, `/node`, and `/economics`. It uses the configured Vite backend/proxy and seeded reviewer session when available; if the manifest is absent, the Playwright test skips rather than fabricating protocol state. Attach the skip/pass status honestly.
+
 ## Protocol upgrade rehearsal boundary
 
 Protocol-upgrade transactions remain record-only. A successful upgrade rehearsal should prove:
@@ -172,6 +181,6 @@ Add broader test output when available. If the full suite is skipped because of 
 - independent public observer cohort evidence;
 - deterministic upgrade artifact verification and migration vectors;
 - operator runbooks for incident response and rollback coordination;
-- frontend end-to-end rehearsal for the full civic loop;
+- frontend end-to-end rehearsal for the full civic loop against more than the seeded/dev-bootstrap account;
 - independent security/release review;
 - public network performance evidence separate from local harness throughput.

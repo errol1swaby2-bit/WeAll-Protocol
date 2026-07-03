@@ -221,7 +221,7 @@ def _ensure_live(cfg: Cfg, *, priv_hex: str) -> Json:
         payload={"account_id": cfg.account},
     )
     _wait_tx_confirmed(cfg, grant["tx_id"])
-    return _wait_account(cfg, cfg.account, tier_at_least=3)
+    return _wait_account(cfg, cfg.account, tier_at_least=2)
 
 
 def _ensure_fixture_post(cfg: Cfg, *, priv_hex: str) -> None:

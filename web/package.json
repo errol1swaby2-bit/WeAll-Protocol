@@ -23,7 +23,9 @@
     "test:public-observer-rendered": "playwright test tests/e2e/public_observer_dashboard.spec.ts",
     "test:public-only-protocol-source": "node scripts/test_public_only_protocol_source.mjs",
     "test:public-profile-source": "node scripts/test_public_profile_source.mjs",
-    "test:group-governance-source": "node scripts/test_group_governance_source.mjs"
+    "test:group-governance-source": "node scripts/test_group_governance_source.mjs",
+    "test:rendered-civic-loop": "playwright test tests/e2e/reviewer_civic_loop_rendered.spec.ts",
+    "test:rendered-civic-loop-source": "node scripts/test_rendered_civic_loop_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

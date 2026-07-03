@@ -66,7 +66,14 @@ pytest -q \
   tests/prod/test_observer_cannot_enable_validator_signing.py
 ```
 
-Run the full backend and frontend suites where feasible and attach the full transcript when claiming those results.
+Run the full backend and frontend suites where feasible and attach the full transcript when claiming those results. For rendered browser civic-loop evidence, run from `web/` after frontend dependencies are installed and the backend/dev-bootstrap manifest is configured:
+
+```bash
+npm run test:rendered-civic-loop-source
+npm run test:rendered-civic-loop
+```
+
+The rendered test is intentionally an evidence harness, not a fake-data demo: it walks the configured frontend against the configured backend/dev-bootstrap path and skips if no seeded reviewer session is available.
 
 ## What has been de-risked pre-grant
 
@@ -91,7 +98,7 @@ The next funded milestones should focus on:
 2. adversarial multi-node validation and public observer expansion beyond local/same-machine rehearsal;
 3. governance/dispute protocol procedure E2E evidence through API and UI;
 4. operator runbooks for seed registry rotation, validator promotion, incidents, recovery, and evidence capture;
-5. frontend UX coherence for the minimum civic loop;
+5. frontend UX coherence for the minimum civic loop, including rendered route rehearsal against a configured backend/dev-bootstrap path;
 6. accessibility and onboarding review;
 7. independent security/release review;
 8. performance evidence split into local harness, closed testnet, and public network categories.
@@ -141,6 +148,7 @@ Key reviewer files include:
 - `generated/release_evidence_manifest_v1_5.json`
 - `generated/public_beta_blocker_report_v1_5.json`
 - `GET /v1/status/testnet-capabilities` output for protocol-upgrade, governance, dispute, and minimum civic-loop status surfaces, including canonical frontend routes: `/profile`, `/verification`, `/feed`, `/groups`, `/decisions`, `/reports`, `/reviews`, `/activity`, `/node`, and `/economics`, plus API evidence surfaces such as `/v1/feed`, `/v1/groups`, `/v1/gov/proposals`, `/v1/disputes`, `/v1/status/testnet-capabilities`, and `/v1/economics/status`
+- `web/tests/e2e/reviewer_civic_loop_rendered.spec.ts` and `npm run test:rendered-civic-loop` output when frontend browser evidence is in scope
 - sustained-load evidence files under `rehearsal-evidence/` if present for the submitted commit
 
 ## Performance wording boundary
