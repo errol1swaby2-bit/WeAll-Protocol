@@ -16,6 +16,8 @@ import { voteForAccount } from "../lib/accountSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import {
+  governanceProposalOptionsOf,
+  governanceProposalResultOf,
   governanceProposalStageOf,
   normalizeGovernanceProposal,
   reconcileProposalEdit,
@@ -30,7 +32,7 @@ function prettyErr(e: any): { msg: string; details: any } {
 
 type Props = { id: string };
 
-type VoteMap = Record<string, { vote?: string; height?: number }>;
+type VoteMap = Record<string, { vote?: string; option_id?: string; height?: number }>;
 
 function asVoteMap(value: any): VoteMap {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -55,6 +57,41 @@ function countFromMap(votes: VoteMap): { yes: number; no: number; abstain: numbe
 function pct(part: number, whole: number): string {
   if (!whole) return "0%";
   return `${Math.round((part / whole) * 100)}%`;
+}
+
+function voteChoiceOf(rec: { vote?: string; option_id?: string } | null | undefined): string {
+  return String(rec?.option_id || rec?.vote || "").trim();
+}
+
+function choiceLabel(choice: string, options: Array<{ option_id: string; label: string }>): string {
+  const raw = String(choice || "").trim();
+  if (!raw) return "Not recorded";
+  const match = options.find((opt) => opt.option_id === raw);
+  if (match) return match.label;
+  return decisionVoteChoiceLabel(raw);
+}
+
+function optionCountsFromMap(
+  votes: VoteMap,
+  options: Array<{ option_id: string; label: string }>,
+): { optionCounts: Record<string, number>; abstain: number; total: number } {
+  const optionCounts: Record<string, number> = {};
+  for (const opt of options) optionCounts[opt.option_id] = 0;
+  let abstain = 0;
+  let total = 0;
+  for (const signer of Object.keys(votes).sort()) {
+    const choice = voteChoiceOf(votes[signer]).toLowerCase();
+    if (!choice) continue;
+    total += 1;
+    if (choice === "abstain") {
+      abstain += 1;
+    } else if (Object.prototype.hasOwnProperty.call(optionCounts, choice)) {
+      optionCounts[choice] += 1;
+    } else {
+      abstain += 1;
+    }
+  }
+  return { optionCounts, abstain, total };
 }
 
 function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" | "active" | "todo" }> {
@@ -98,11 +135,12 @@ function votingHelpText(params: {
   gateReason: string;
   canVote: boolean;
   currentChoice: string;
+  options: Array<{ option_id: string; label: string }>;
 }): string {
-  const { stage, gateOk, gateReason, canVote, currentChoice } = params;
+  const { stage, gateOk, gateReason, canVote, currentChoice, options } = params;
   if (!gateOk) return gateReason || "Complete live verification and keep this device signed in before voting.";
   if (canVote && currentChoice) {
-    return `Your current recorded vote is ${decisionVoteChoiceLabel(currentChoice)}. Each signed-in person has one recorded vote on this decision.`;
+    return `Your current recorded vote is ${choiceLabel(currentChoice, options)}. Each signed-in person has one recorded vote on this decision.`;
   }
   if (canVote) {
     return stage === "poll"
@@ -121,7 +159,7 @@ function votingHelpText(params: {
 }
 
 
-function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; height?: number }]> {
+function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; option_id?: string; height?: number }]> {
   return Object.entries(votes).sort((a, b) => a[0].localeCompare(b[0]));
 }
 
@@ -301,7 +339,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     }
   }
 
-  async function castVote(choice: "yes" | "no" | "abstain"): Promise<void> {
+  async function castVote(choice: string): Promise<void> {
     setVoteErr(null);
     setVoteRes(null);
 
@@ -309,23 +347,30 @@ export default function Proposal({ id }: Props): JSX.Element {
       if (!gate.ok) throw new Error(gate.reason || "gated");
       if (signerBusy) throw new Error("another_action_is_saving");
 
+      const normalizedChoice = String(choice || "").trim();
+      const multiOptionVote = proposalOptions.length > 0 && normalizedChoice !== "abstain";
+      const voteLabel = choiceLabel(normalizedChoice, proposalOptions);
+      const votePayload = multiOptionVote
+        ? { proposal_id: pid, option_id: normalizedChoice }
+        : { proposal_id: pid, choice: normalizedChoice };
+
       const r = await tx.runTx({
         title: "Cast vote",
-        pendingKey: txPendingKey(["proposal-vote", pid, acct, choice]),
-        pendingMessage: `Recording ${decisionVoteChoiceLabel(choice)} vote…`,
-        successMessage: `Vote recorded: ${decisionVoteChoiceLabel(choice)}.`,
+        pendingKey: txPendingKey(["proposal-vote", pid, acct, normalizedChoice]),
+        pendingMessage: `Recording ${voteLabel} vote…`,
+        successMessage: `Vote recorded: ${voteLabel}.`,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
           mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
-          reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice, base }),
+          reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice: normalizedChoice, base }),
         },
         task: async () =>
           submitSignedTx({
             account: acct!,
             tx_type: "GOV_VOTE_CAST",
-            payload: { proposal_id: pid, choice },
+            payload: votePayload,
             parent: null,
             base,
           }),
@@ -377,6 +422,9 @@ export default function Proposal({ id }: Props): JSX.Element {
 
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
   const finalVotes = asVoteMap(proposalVotes?.votes ?? proposal?.votes);
+  const proposalOptions = governanceProposalOptionsOf(proposal);
+  const proposalResult = governanceProposalResultOf(proposal);
+  const hasProposalOptions = proposalOptions.length > 0;
 
   const pollCount = countFromMap(pollVotes);
   const finalCount = countFromMap(finalVotes);
@@ -388,6 +436,8 @@ export default function Proposal({ id }: Props): JSX.Element {
         ? pollVotes
         : finalVotes;
   const activeCount = countFromMap(displayedVoteMap);
+  const activeOptionCounts = optionCountsFromMap(displayedVoteMap, proposalOptions);
+  const selectedOptionId = String(proposalResult?.selected_option_id || "").trim();
 
   const yesPct = pct(activeCount.yes, activeCount.total);
   const noPct = pct(activeCount.no, activeCount.total);
@@ -399,7 +449,7 @@ export default function Proposal({ id }: Props): JSX.Element {
   const voteWindowOpen = ["poll", "voting", "vote"].includes(stage);
   const activeVoteMap = stage === "poll" ? pollVotes : displayedVoteMap;
   const currentVoteRecord = acct ? (voteForAccount(activeVoteMap, acct) || voteForAccount(finalVotes, acct) || voteForAccount(pollVotes, acct)) : null;
-  const currentChoice = String(currentVoteRecord?.vote || "").trim().toLowerCase();
+  const currentChoice = voteChoiceOf(currentVoteRecord).trim().toLowerCase();
   const canVote = gate.ok && voteWindowOpen && !currentChoice;
   const isCreator = gate.ok && acct === String(proposal?.creator || "");
   const canEdit = isCreator && ["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage);
@@ -411,6 +461,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     gateReason: gate.reason || "",
     canVote,
     currentChoice,
+    options: proposalOptions,
   });
   const readiness = actionReadinessLabel({ stage, canVote, canEdit, canWithdraw });
   const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
@@ -438,7 +489,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="heroInfoTitle">Status</div>
               <div className="heroInfoList">
                 <span className={stageBadgeClass(stage)}>{stage}</span>
-                <span className="statusPill">Votes {activeCount.total}</span>
+                <span className="statusPill">Votes {hasProposalOptions ? activeOptionCounts.total : activeCount.total}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
                   {gate.ok ? "Trusted Verified Person" : "Live verification required"}
                 </span>
@@ -458,16 +509,16 @@ export default function Proposal({ id }: Props): JSX.Element {
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Yes</span>
-              <span className="statValue">{activeCount.yes}</span>
+              <span className="statLabel">{hasProposalOptions ? "Options" : "Yes"}</span>
+              <span className="statValue">{hasProposalOptions ? proposalOptions.length : activeCount.yes}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">No</span>
-              <span className="statValue">{activeCount.no}</span>
+              <span className="statLabel">{hasProposalOptions ? "Option votes" : "No"}</span>
+              <span className="statValue">{hasProposalOptions ? Math.max(0, activeOptionCounts.total - activeOptionCounts.abstain) : activeCount.no}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Abstain</span>
-              <span className="statValue">{activeCount.abstain}</span>
+              <span className="statValue">{hasProposalOptions ? activeOptionCounts.abstain : activeCount.abstain}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Decision id</span>
@@ -623,9 +674,9 @@ export default function Proposal({ id }: Props): JSX.Element {
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Voting model</div>
-          <div className="summaryCardValue">Direct civic voting only</div>
+          <div className="summaryCardValue">{hasProposalOptions ? "Multi-option civic voting" : "Direct civic voting"}</div>
           <div className="summaryCardText">
-            This decision uses direct voter records. Participation is personal and non-delegable.
+            {hasProposalOptions ? "Votes reference canonical option IDs, not mutable labels. Abstain remains explicit." : "This decision uses direct yes/no/abstain voter records. Participation is personal and non-delegable."}
           </div>
         </article>
         <article className="summaryCard">
@@ -646,7 +697,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             </div>
             <div className="statusSummary">
               <span className={`statusPill ${canVote ? "ok" : ""}`}>{voteModeLabel}</span>
-              {currentChoice ? <span className="statusPill">Current: {decisionVoteChoiceLabel(currentChoice)}</span> : null}
+              {currentChoice ? <span className="statusPill">Current: {choiceLabel(currentChoice, proposalOptions)}</span> : null}
             </div>
           </div>
 
@@ -665,25 +716,52 @@ export default function Proposal({ id }: Props): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Your vote</div>
-              <div className="summaryCardValue">{decisionVoteChoiceLabel(currentChoice)}</div>
+              <div className="summaryCardValue">{choiceLabel(currentChoice, proposalOptions)}</div>
               <div className="summaryCardText">Signer-keyed direct vote</div>
             </article>
           </div>
 
-          <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
-              Vote yes
-            </button>
-            <button className="btn" onClick={() => void castVote("no")} disabled={!canVote || signerBusy}>
-              Vote no
-            </button>
-            <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
-              Abstain
-            </button>
-            <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
-              Revoke vote
-            </button>
-          </div>
+          {hasProposalOptions ? (
+            <div className="pageStack">
+              <div className="summaryCardGrid">
+                {proposalOptions.map((opt) => (
+                  <article key={opt.option_id} className="summaryCard">
+                    <div className="summaryCardLabel mono">{opt.option_id}</div>
+                    <div className="summaryCardValue">{opt.label}</div>
+                    <div className="summaryCardText">Votes {activeOptionCounts.optionCounts[opt.option_id] || 0}{selectedOptionId === opt.option_id ? " · selected" : ""}</div>
+                  </article>
+                ))}
+              </div>
+              <div className="buttonRow">
+                {proposalOptions.map((opt, idx) => (
+                  <button key={opt.option_id} className={`btn ${idx === 0 ? "btnPrimary" : ""}`} onClick={() => void castVote(opt.option_id)} disabled={!canVote || signerBusy}>
+                    Vote: {opt.label}
+                  </button>
+                ))}
+                <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
+                  Abstain
+                </button>
+                <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
+                  Revoke vote
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="buttonRow">
+              <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
+                Vote yes
+              </button>
+              <button className="btn" onClick={() => void castVote("no")} disabled={!canVote || signerBusy}>
+                Vote no
+              </button>
+              <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
+                Abstain
+              </button>
+              <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
+                Revoke vote
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -827,7 +905,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 {sortedVoteEntries(stage === "poll" ? pollVotes : finalVotes).map(([signer, rec]) => (
                   <article key={signer} className="summaryCard">
                     <div className="summaryCardLabel mono">{signer}</div>
-                    <div className="summaryCardValue">{decisionVoteChoiceLabel(rec?.vote)}</div>
+                    <div className="summaryCardValue">{choiceLabel(voteChoiceOf(rec), proposalOptions)}</div>
                     <div className="summaryCardText">Record {Number(rec?.height || 0)}</div>
                   </article>
                 ))}

@@ -998,6 +998,66 @@
       ]
     },
     {
+      "authority_keys": [
+        "barrier:global"
+      ],
+      "barrier_class": "GLOBAL_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Governance",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": true,
+      "family": "UNKNOWN",
+      "has_global_barrier_authority": true,
+      "helper_eligible": false,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "unknown_tx_family",
+      "receipt_only": true,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+      "uses_placeholder_keys": false,
+      "write_keys": []
+    },
+    {
+      "authority_keys": [
+        "barrier:global"
+      ],
+      "barrier_class": "GLOBAL_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Governance",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": true,
+      "family": "UNKNOWN",
+      "has_global_barrier_authority": true,
+      "helper_eligible": false,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "unknown_tx_family",
+      "receipt_only": true,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+      "uses_placeholder_keys": false,
+      "write_keys": []
+    },
+    {
       "authority_keys": [],
       "barrier_class": "SUBJECT_BARRIER",
       "context": "mempool",
@@ -8134,7 +8194,7 @@
       "PARALLEL_ECONOMY": 12,
       "PARALLEL_IDENTITY": 39,
       "PARALLEL_SOCIAL": 3,
-      "SERIAL": 154
+      "SERIAL": 156
     },
     "family_counts": {
       "CASES": 3,
@@ -8156,7 +8216,8 @@
       "ROLES": 21,
       "SOCIAL": 5,
       "STORAGE": 13,
-      "TREASURY": 15
+      "TREASURY": 15,
+      "UNKNOWN": 2
     },
     "global_authority_parallel_count": 0,
     "helper_eligible_count": 80,
@@ -8168,9 +8229,10 @@
       "global_authority_placeholder": 28,
       "global_barrier": 18,
       "helper_parallel_allowed": 80,
-      "planner_serial": 82
+      "planner_serial": 82,
+      "unknown_tx_family": 2
     },
-    "tx_count": 234,
-    "unknown_family_count": 0
+    "tx_count": 236,
+    "unknown_family_count": 2
   }
 }

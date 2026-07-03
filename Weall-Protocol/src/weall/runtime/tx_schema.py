@@ -1061,6 +1061,9 @@ class GovProposalCreatePayload(_StrictModel):
     # Governance engine fields
     rules: Json | None = None
     actions: list[Json] | None = None
+    # Multi-option decisions are immutable option snapshots. Votes reference
+    # canonical option ids, never mutable labels.
+    options: list[Json | str] | None = None
 
     # Deterministic height hint (used in tests / internal scheduling)
     due_height: int | None = Field(default=None, ge=0, alias="_due_height")
@@ -1069,9 +1072,10 @@ class GovProposalCreatePayload(_StrictModel):
 class GovVoteCastPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
 
-    # Backward/forward compatibility: some clients use 'choice'.
+    # Backward/forward compatibility: clients may use vote, choice, or option_id.
     vote: str | None = None
     choice: str | None = None
+    option_id: str | None = None
 
 
 class GovProposalEditPayload(_StrictModel):
@@ -1080,6 +1084,7 @@ class GovProposalEditPayload(_StrictModel):
     body: str | None = None
     rules: Json | None = None
     actions: list[Json] | None = None
+    options: list[Json | str] | None = None
     reason: str | None = None
     revision_reason: str | None = None
     due_height: int | None = Field(default=None, ge=0, alias="_due_height")
@@ -1143,6 +1148,29 @@ class ProtocolUpgradeActivatePayload(_StrictModel):
     hash: str | None = None
     activation_height: int | None = Field(default=None, ge=1)
     activation_delay_blocks: int | None = Field(default=None, ge=1)
+
+
+class ConstitutionUpgradeDeclarePayload(_StrictModel):
+    constitution_id: str | None = Field(default=None, min_length=1)
+    upgrade_id: str | None = Field(default=None, min_length=1)
+    version: str | None = Field(default=None, min_length=1)
+    constitution_version: str | None = Field(default=None, min_length=1)
+    document_hash: str = Field(..., min_length=1)
+    traceability_hash: str = Field(..., min_length=1)
+    rights_floor_hash: str | None = None
+    due_height: int | None = Field(default=None, ge=0, alias="_due_height")
+
+
+class ConstitutionUpgradeActivatePayload(_StrictModel):
+    constitution_id: str | None = Field(default=None, min_length=1)
+    upgrade_id: str | None = Field(default=None, min_length=1)
+    version: str | None = Field(default=None, min_length=1)
+    constitution_version: str | None = Field(default=None, min_length=1)
+    document_hash: str | None = None
+    traceability_hash: str | None = None
+    activation_height: int | None = Field(default=None, ge=1)
+    activation_delay_blocks: int | None = Field(default=None, ge=1)
+    due_height: int | None = Field(default=None, ge=0, alias="_due_height")
 
 
 class GovVoteRevokePayload(_StrictModel):
@@ -2062,6 +2090,8 @@ TX_PAYLOADS: dict[str, Any] = {
     "GOV_EXECUTION_RECEIPT": GovExecutionReceiptPayload,
     "PROTOCOL_UPGRADE_DECLARE": ProtocolUpgradeDeclarePayload,
     "PROTOCOL_UPGRADE_ACTIVATE": ProtocolUpgradeActivatePayload,
+    "CONSTITUTION_UPGRADE_DECLARE": ConstitutionUpgradeDeclarePayload,
+    "CONSTITUTION_UPGRADE_ACTIVATE": ConstitutionUpgradeActivatePayload,
     "GOV_VOTE_REVOKE": GovVoteRevokePayload,
     "GOV_VOTING_CLOSE": GovVotingClosePayload,
     "GOV_TALLY_PUBLISH": GovTallyPublishPayload,

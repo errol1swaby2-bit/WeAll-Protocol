@@ -198,3 +198,27 @@ def test_upgrade_activation_cannot_smuggle_economics_activation() -> None:
     assert record["activation_pending"] is True
     assert record["effective_now"] is False
     assert state["economics"] == {"enabled": False, "stage": "genesis_locked"}
+
+
+def test_upgrade_activation_delay_uses_system_due_height_as_protocol_truth() -> None:
+    state = {"height": 10}
+    apply_protocol(
+        state,
+        _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "due-height", "version": "v1.5.2", "_due_height": 50}),
+    )
+
+    out = apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            2,
+            {"upgrade_id": "due-height", "version": "v1.5.2", "activation_delay_blocks": 7, "_due_height": 60},
+        ),
+    )
+
+    assert out is not None
+    assert out["activation_height"] == 67
+    rec = state["protocol"]["upgrades"]["due-height"]
+    assert rec["declared_at_height"] == 50
+    assert rec["governance_approved_at_height"] == 60
+    assert state["protocol"]["scheduled_upgrades"]["due-height"]["activation_height"] == 67

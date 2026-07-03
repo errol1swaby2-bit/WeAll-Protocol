@@ -599,6 +599,24 @@ txs:
   receipt_only: true
   parent: PROTOCOL_UPGRADE_DECLARE
   via_gov_execute: true
+- id: 412
+  name: CONSTITUTION_UPGRADE_DECLARE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 413
+  name: CONSTITUTION_UPGRADE_ACTIVATE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: CONSTITUTION_UPGRADE_DECLARE
+  via_gov_execute: true
 - id: 500
   name: TREASURY_WALLET_CREATE
   domain: Treasury

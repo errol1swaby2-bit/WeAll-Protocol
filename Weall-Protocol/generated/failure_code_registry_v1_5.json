@@ -481,7 +481,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 783
+      "source_lineno": 927
     },
     {
       "code": "conflict",
@@ -499,7 +499,7 @@
       "http_status": null,
       "sample_reason": "upgrade_already_scheduled",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 294
+      "source_lineno": 298
     },
     {
       "code": "conflict",
@@ -616,7 +616,7 @@
       "http_status": null,
       "sample_reason": "invalid_stage_transition",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 589
+      "source_lineno": 729
     },
     {
       "code": "forbidden",
@@ -884,9 +884,9 @@
       "domain": "runtime_apply",
       "family": "ApplyError",
       "http_status": null,
-      "sample_reason": "missing_stage",
+      "sample_reason": "proposal_options_require_at_least_two",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 582
+      "source_lineno": 117
     },
     {
       "code": "invalid_payload",
@@ -967,7 +967,7 @@
       "http_status": null,
       "sample_reason": "missing_upgrade_target_version",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 277
+      "source_lineno": 281
     },
     {
       "code": "invalid_payload",
@@ -1489,7 +1489,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 544
+      "source_lineno": 684
     },
     {
       "code": "not_found",
@@ -1561,7 +1561,7 @@
       "http_status": null,
       "sample_reason": "upgrade_not_declared",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 363
+      "source_lineno": 367
     },
     {
       "code": "not_found",

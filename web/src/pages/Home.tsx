@@ -150,6 +150,7 @@ export default function Home(): JSX.Element {
         <DirectoryCard eyebrow="Groups" title={`${groupCount} group${groupCount === 1 ? "" : "s"}`} body="Find communities, join the ones that fit, and see their latest activity." cta="Browse groups" href="/groups" />
         <DirectoryCard eyebrow="Decisions" title={`${pending.activeProposals} open`} body="Vote on community choices and review results in plain language." cta="Open decisions" href="/decisions" />
         <DirectoryCard eyebrow="Reviews" title={`${pending.availableDisputes} report${pending.availableDisputes === 1 ? "" : "s"}`} body="Help review community issues when you are selected and eligible." cta="Open Review Center" href="/reviews" />
+        <DirectoryCard eyebrow="Economics" title="Locked" body="WeCoin and fees stay locked by default during public observer / closed-testnet review." cta="Check economics status" href="/economics" />
       </section>
 
       <section className="card">
@@ -170,6 +171,7 @@ export default function Home(): JSX.Element {
             <HomeNotificationRow label="Open decisions" detail={pending.activeProposals ? `${pending.activeProposals} community decision${pending.activeProposals === 1 ? "" : "s"} may need votes.` : "No open decisions are surfaced right now."} href="/decisions" open={pending.activeProposals > 0} />
             <HomeNotificationRow label="Review work" detail={pending.assignedDisputes ? `${pending.assignedDisputes} review assignment${pending.assignedDisputes === 1 ? "" : "s"} appear tied to this account.` : pending.availableDisputes ? `${pending.availableDisputes} open report${pending.availableDisputes === 1 ? "" : "s"} are visible.` : "No active reports are visible right now."} href="/reviews" open={pending.assignedDisputes > 0} />
             <HomeNotificationRow label="Account and devices" detail={failedActions ? `${failedActions} recent action${failedActions === 1 ? "" : "s"} may need attention.` : pendingActions ? `${pendingActions} recent action${pendingActions === 1 ? "" : "s"} still finishing.` : "Your local action queue looks clear."} href="/session" open={failedActions > 0 || pendingActions > 0} />
+            <HomeNotificationRow label="Economics locked" detail="Public observer and closed-testnet flows do not activate live economics by default." href="/economics" />
           </div>
         </div>
       </section>

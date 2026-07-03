@@ -515,6 +515,38 @@
     {
       "claim_count": 1,
       "claim_handlers": [
+        "protocol"
+      ],
+      "context": "block",
+      "domain": "Governance",
+      "handler": "protocol",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "GovExecutor",
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "protocol"
+      ],
+      "context": "block",
+      "domain": "Governance",
+      "handler": "protocol",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "GovExecutor",
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
         "content"
       ],
       "context": "mempool",
@@ -4263,6 +4295,38 @@
       {
         "claim_count": 1,
         "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
           "content"
         ],
         "context": "mempool",
@@ -7493,9 +7557,9 @@
         "unsupported_code": ""
       }
     ],
-    "schema_covered_count": 234,
-    "single_claim_count": 234,
-    "tx_count": 234,
+    "schema_covered_count": 236,
+    "single_claim_count": 236,
+    "tx_count": 236,
     "unclaimed_count": 0
   }
 }

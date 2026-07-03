@@ -25,7 +25,8 @@
     "test:public-profile-source": "node scripts/test_public_profile_source.mjs",
     "test:group-governance-source": "node scripts/test_group_governance_source.mjs",
     "test:rendered-civic-loop": "playwright test tests/e2e/reviewer_civic_loop_rendered.spec.ts",
-    "test:rendered-civic-loop-source": "node scripts/test_rendered_civic_loop_source.mjs"
+    "test:rendered-civic-loop-source": "node scripts/test_rendered_civic_loop_source.mjs",
+    "test:launch-prep-governance-source": "node scripts/test_launch_prep_governance_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

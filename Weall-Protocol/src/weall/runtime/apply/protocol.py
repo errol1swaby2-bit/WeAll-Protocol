@@ -123,7 +123,11 @@ def _ensure_protocol(state: Json) -> Json:
     return p
 
 
-def _height_now(state: Json) -> int:
+def _height_now(state: Json, env: TxEnvelope | None = None) -> int:
+    payload = _as_dict(getattr(env, "payload", None)) if env is not None else {}
+    due_height = _as_int(payload.get("_due_height"), 0)
+    if due_height > 0:
+        return int(due_height)
     return _as_int(state.get("height"), 0) + 1
 
 
@@ -139,17 +143,17 @@ def _activation_delay_blocks(state: Json, payload: Json) -> int:
     return max(1, delay)
 
 
-def _requested_activation_height(state: Json, payload: Json) -> int:
-    current_height = _height_now(state)
+def _requested_activation_height(state: Json, payload: Json, env: TxEnvelope | None = None) -> int:
+    current_height = _height_now(state, env)
     explicit = _as_int(payload.get("activation_height"), 0)
     if explicit > 0:
         return explicit
     return current_height + _activation_delay_blocks(state, payload)
 
 
-def _validate_activation_height(state: Json, payload: Json, *, upgrade_id: str) -> int:
-    activation_height = _requested_activation_height(state, payload)
-    current_height = _height_now(state)
+def _validate_activation_height(state: Json, payload: Json, *, upgrade_id: str, env: TxEnvelope | None = None) -> int:
+    activation_height = _requested_activation_height(state, payload, env)
+    current_height = _height_now(state, env)
     if activation_height <= current_height:
         raise ProtocolApplyError(
             "forbidden",
@@ -324,7 +328,7 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "target_version": version,
         "hash": hsh,
         "status": "declared",
-        "declared_at_height": int(_height_now(state)),
+        "declared_at_height": int(_height_now(state, env)),
         "declared_at_nonce": int(env.nonce),
         "activation_height": None,
         "governance_approved_at_height": None,
@@ -414,11 +418,11 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
             {"upgrade_id": uid, "declared_target_version": declared_version, "activation_target_version": version},
         )
     target_support = _validate_target_supported(state, target_version=version, upgrade_id=uid)
-    activation_height = _validate_activation_height(state, payload, upgrade_id=uid)
+    activation_height = _validate_activation_height(state, payload, upgrade_id=uid, env=env)
 
     rec["status"] = "scheduled"
     rec["activation_height"] = int(activation_height)
-    rec["governance_approved_at_height"] = int(_height_now(state))
+    rec["governance_approved_at_height"] = int(_height_now(state, env))
     rec["governance_approved_at_nonce"] = int(env.nonce)
     rec["activate_payload"] = payload
     rec["activation_parent_ref"] = parent_ref
@@ -437,7 +441,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         "hash": hsh,
         "status": "scheduled",
         "activation_height": int(activation_height),
-        "governance_approved_at_height": int(_height_now(state)),
+        "governance_approved_at_height": int(_height_now(state, env)),
         "governance_approved_at_nonce": int(env.nonce),
         "record_only_boundary": boundary,
         "activation_pending": True,
@@ -478,7 +482,251 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     }
 
 
-PROTOCOL_TX_TYPES = {"PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE"}
+
+# ---------------------------------------------------------------------------
+# Constitution upgrade record-only governance path
+# ---------------------------------------------------------------------------
+
+_PRIVATE_IDENTITY_EVIDENCE_FIELDS = frozenset(
+    {
+        "raw_identity_evidence",
+        "raw_poh_evidence",
+        "face_video",
+        "video_evidence",
+        "government_id",
+        "government_identifier",
+        "device_fingerprint",
+        "liveness_secret",
+        "recovery_secret",
+        "private_key",
+    }
+)
+
+
+def _ensure_constitution(state: Json) -> Json:
+    c = _ensure_root_dict(state, "constitution")
+    if not isinstance(c.get("upgrades"), dict):
+        c["upgrades"] = {}
+    if not isinstance(c.get("scheduled_upgrades"), dict):
+        c["scheduled_upgrades"] = {}
+    return c
+
+
+def _constitution_id(payload: Json, env: TxEnvelope) -> str:
+    cid = _as_str(payload.get("constitution_id") or payload.get("upgrade_id") or payload.get("id")).strip()
+    if cid:
+        return cid
+    return f"constitution:{env.signer}:{int(env.nonce)}"
+
+
+def _target_constitution_version(payload: Json) -> str:
+    return _as_str(payload.get("constitution_version") or payload.get("version")).strip()
+
+
+def _hash_value(payload: Json, *keys: str) -> str:
+    for key in keys:
+        value = _as_str(payload.get(key)).strip()
+        if value:
+            return value
+    return ""
+
+
+def _validate_constitution_hash(value: str, *, field: str, constitution_id: str) -> str:
+    v = str(value or "").strip()
+    raw = v[7:] if v.startswith("sha256:") else v
+    if len(raw) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in raw):
+        raise ProtocolApplyError(
+            "invalid_payload",
+            "constitution_hash_must_be_sha256",
+            {"constitution_id": constitution_id, "field": field},
+        )
+    return "sha256:" + raw.lower()
+
+
+def _validate_constitution_payload_public(payload: Json, *, constitution_id: str) -> None:
+    present = sorted(k for k in payload.keys() if str(k) in _PRIVATE_IDENTITY_EVIDENCE_FIELDS)
+    if present:
+        raise ProtocolApplyError(
+            "forbidden",
+            "constitution_upgrade_contains_private_identity_evidence",
+            {"constitution_id": constitution_id, "fields": present},
+        )
+    bypass = []
+    for key in ("bypass_rights_floor", "disable_rights_floor", "weaken_rights_floor"):
+        if key in payload and payload.get(key) not in (None, False, "", 0):
+            bypass.append(key)
+    if bypass:
+        raise ProtocolApplyError(
+            "forbidden",
+            "constitution_upgrade_rights_floor_bypass_forbidden",
+            {"constitution_id": constitution_id, "fields": bypass},
+        )
+
+
+def _constitution_record_only_boundary(payload: Json) -> Json:
+    return {
+        "execution_model": "record_only_no_auto_apply",
+        "governance_activation_record_only": True,
+        "document_fetched": False,
+        "document_apply_enabled": False,
+        "rights_floor_bypass_allowed": False,
+        "private_identity_evidence_allowed": False,
+        "operator_action_required": True,
+        "automatic_constitution_apply_supported": False,
+        "truth_boundary": (
+            "Constitution upgrade txs record governance-approved version/hash metadata only. "
+            "They do not fetch documents, expose raw identity evidence, or bypass the rights floor."
+        ),
+    }
+
+
+def constitution_effective_view(state: Json, *, at_height: int | None = None) -> Json:
+    # Read model only: callers may render old/new constitution metadata at an
+    # arbitrary block height without mutating consensus state during inspection.
+    c = _as_dict(state.get("constitution"))
+    height = _as_int(at_height, _as_int(state.get("height"), 0))
+    scheduled = _as_dict(c.get("scheduled_upgrades"))
+    effective: list[Json] = []
+    pending: list[Json] = []
+    for _cid, rec_raw in sorted(scheduled.items(), key=lambda item: str(item[0])):
+        rec = _as_dict(rec_raw)
+        activation_height = _as_int(rec.get("activation_height"), 0)
+        if activation_height > 0 and height >= activation_height:
+            effective.append(rec)
+        else:
+            pending.append(rec)
+    active = effective[-1] if effective else _as_dict(c.get("active"))
+    return {
+        "current_height": int(height),
+        "active": dict(active),
+        "effective_scheduled_count": len(effective),
+        "pending_scheduled_count": len(pending),
+        "pending": list(pending),
+        "activation_model": "read_model_by_block_height_record_only",
+    }
+
+
+def _apply_constitution_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    parent_ref = _require_parent_ref(env)
+    payload = _as_dict(env.payload)
+    cid = _constitution_id(payload, env)
+    version = _target_constitution_version(payload)
+    if not version:
+        raise ProtocolApplyError("invalid_payload", "missing_constitution_version", {"constitution_id": cid})
+    _validate_constitution_payload_public(payload, constitution_id=cid)
+    document_hash = _validate_constitution_hash(_hash_value(payload, "document_hash", "hash"), field="document_hash", constitution_id=cid)
+    traceability_hash = _validate_constitution_hash(_hash_value(payload, "traceability_hash"), field="traceability_hash", constitution_id=cid)
+
+    constitution = _ensure_constitution(state)
+    upgrades = constitution["upgrades"]
+    assert isinstance(upgrades, dict)
+    existing = upgrades.get(cid)
+    if isinstance(existing, dict):
+        if _as_str(existing.get("status")).strip().lower() in {"scheduled", "effective", "activated"}:
+            raise ProtocolApplyError("conflict", "constitution_upgrade_already_scheduled", {"constitution_id": cid})
+        if (
+            _as_str(existing.get("version")).strip() == version
+            and _as_str(existing.get("document_hash")).strip() == document_hash
+            and _as_str(existing.get("traceability_hash")).strip() == traceability_hash
+        ):
+            return {
+                "applied": "CONSTITUTION_UPGRADE_DECLARE",
+                "constitution_id": cid,
+                "version": version,
+                "deduped": True,
+                "record_only_boundary": dict(_as_dict(existing.get("record_only_boundary"))),
+            }
+        raise ProtocolApplyError("conflict", "constitution_upgrade_already_declared", {"constitution_id": cid})
+
+    rec = {
+        "constitution_id": cid,
+        "version": version,
+        "document_hash": document_hash,
+        "traceability_hash": traceability_hash,
+        "rights_floor_hash": _as_str(payload.get("rights_floor_hash")).strip() or None,
+        "status": "declared",
+        "declared_at_height": int(_height_now(state, env)),
+        "declared_at_nonce": int(env.nonce),
+        "activation_height": None,
+        "governance_approved_at_height": None,
+        "governance_parent_ref": parent_ref,
+        "payload": payload,
+        "record_only_boundary": _constitution_record_only_boundary(payload),
+    }
+    upgrades[cid] = rec
+    return {"applied": "CONSTITUTION_UPGRADE_DECLARE", "constitution_id": cid, "version": version, "record_only_boundary": rec["record_only_boundary"]}
+
+
+def _apply_constitution_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    parent_ref = _require_parent_ref(env)
+    payload = _as_dict(env.payload)
+    cid = _constitution_id(payload, env)
+    _validate_constitution_payload_public(payload, constitution_id=cid)
+    constitution = _ensure_constitution(state)
+    upgrades = constitution["upgrades"]
+    assert isinstance(upgrades, dict)
+    rec = upgrades.get(cid)
+    if not isinstance(rec, dict):
+        raise ProtocolApplyError("not_found", "constitution_upgrade_not_declared", {"constitution_id": cid})
+    if _as_str(rec.get("status")).strip().lower() in {"scheduled", "effective", "activated"}:
+        requested_activation_height = _as_int(payload.get("activation_height"), 0)
+        existing_activation_height = _as_int(rec.get("activation_height"), 0)
+        if requested_activation_height > 0 and existing_activation_height > 0 and requested_activation_height != existing_activation_height:
+            raise ProtocolApplyError(
+                "conflict",
+                "constitution_duplicate_activation_conflict",
+                {"constitution_id": cid, "activation_height": existing_activation_height, "requested_activation_height": requested_activation_height},
+            )
+        return {
+            "applied": "CONSTITUTION_UPGRADE_ACTIVATE",
+            "constitution_id": cid,
+            "deduped": True,
+            "governance_activation_record": dict(_as_dict(_as_dict(constitution.get("scheduled_upgrades")).get(cid)) or rec),
+        }
+
+    version = _target_constitution_version(payload) or _as_str(rec.get("version")).strip()
+    if version != _as_str(rec.get("version")).strip():
+        raise ProtocolApplyError("conflict", "constitution_activation_version_mismatch", {"constitution_id": cid})
+    if payload.get("document_hash"):
+        requested_doc_hash = _validate_constitution_hash(_as_str(payload.get("document_hash")), field="document_hash", constitution_id=cid)
+        if requested_doc_hash != _as_str(rec.get("document_hash")).strip():
+            raise ProtocolApplyError("conflict", "constitution_activation_document_hash_mismatch", {"constitution_id": cid})
+    if payload.get("traceability_hash"):
+        requested_trace_hash = _validate_constitution_hash(_as_str(payload.get("traceability_hash")), field="traceability_hash", constitution_id=cid)
+        if requested_trace_hash != _as_str(rec.get("traceability_hash")).strip():
+            raise ProtocolApplyError("conflict", "constitution_activation_traceability_hash_mismatch", {"constitution_id": cid})
+
+    activation_height = _validate_activation_height(state, payload, upgrade_id=cid, env=env)
+    boundary = _constitution_record_only_boundary(payload)
+    activation_record = {
+        "constitution_id": cid,
+        "version": version,
+        "document_hash": _as_str(rec.get("document_hash")).strip(),
+        "traceability_hash": _as_str(rec.get("traceability_hash")).strip(),
+        "rights_floor_hash": rec.get("rights_floor_hash"),
+        "status": "scheduled",
+        "activation_height": int(activation_height),
+        "governance_approved_at_height": int(_height_now(state, env)),
+        "governance_approved_at_nonce": int(env.nonce),
+        "activation_pending": True,
+        "effective_now": False,
+        "effective_at_height": int(activation_height),
+        "governance_parent_ref": parent_ref,
+        "record_only_boundary": boundary,
+        "truth_boundary": boundary["truth_boundary"],
+    }
+    rec.update(activation_record)
+    rec["activate_payload"] = payload
+    upgrades[cid] = rec
+    constitution["scheduled_upgrades"] = dict(_as_dict(constitution.get("scheduled_upgrades")))
+    constitution["scheduled_upgrades"][cid] = dict(activation_record)
+    constitution["governance_activation_record"] = dict(activation_record)
+    return {"applied": "CONSTITUTION_UPGRADE_ACTIVATE", "constitution_id": cid, "activation_height": int(activation_height), "governance_activation_record": dict(activation_record), "record_only_boundary": boundary}
+
+
+PROTOCOL_TX_TYPES = {"PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE", "CONSTITUTION_UPGRADE_DECLARE", "CONSTITUTION_UPGRADE_ACTIVATE"}
 
 
 def apply_protocol(state: Json, env: TxEnvelope) -> Json | None:
@@ -490,8 +738,12 @@ def apply_protocol(state: Json, env: TxEnvelope) -> Json | None:
         return _apply_protocol_upgrade_declare(state, env)
     if t == "PROTOCOL_UPGRADE_ACTIVATE":
         return _apply_protocol_upgrade_activate(state, env)
+    if t == "CONSTITUTION_UPGRADE_DECLARE":
+        return _apply_constitution_upgrade_declare(state, env)
+    if t == "CONSTITUTION_UPGRADE_ACTIVATE":
+        return _apply_constitution_upgrade_activate(state, env)
 
     return None
 
 
-__all__ = ["ProtocolApplyError", "apply_protocol"]
+__all__ = ["ProtocolApplyError", "apply_protocol", "constitution_effective_view"]

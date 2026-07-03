@@ -7,6 +7,12 @@ export type GovernanceVoteCounts = {
   abstain: number;
 };
 
+export type GovernanceProposalOption = {
+  option_id: string;
+  label: string;
+  description?: string;
+};
+
 export type GovernanceProposalSummary = {
   total: number;
   active: number;
@@ -72,6 +78,33 @@ export function governanceProposalTitleOf(value: any): string {
 
 export function governanceProposalBodyOf(value: any): string {
   return String(value?.body || value?.description || "").trim();
+}
+
+export function governanceProposalOptionsOf(value: any): GovernanceProposalOption[] {
+  const raw = asRecord(value?.raw || value);
+  const source = Array.isArray(raw.options) ? raw.options : [];
+  const options = source
+    .map((item: any) => {
+      if (typeof item === "string") {
+        return { option_id: String(item).trim(), label: String(item).trim() };
+      }
+      const rec = asRecord(item);
+      const optionId = String(rec.option_id || rec.id || rec.key || "").trim();
+      const label = String(rec.label || rec.title || optionId).trim();
+      if (!optionId || !label) return null;
+      return {
+        option_id: optionId,
+        label,
+        ...(rec.description ? { description: String(rec.description) } : {}),
+      };
+    })
+    .filter(Boolean) as GovernanceProposalOption[];
+  return options.sort((a, b) => a.option_id.localeCompare(b.option_id));
+}
+
+export function governanceProposalResultOf(value: any): Record<string, any> {
+  const raw = asRecord(value?.raw || value);
+  return asRecord(raw.result);
 }
 
 export function governanceProposalCountsOf(value: any): GovernanceVoteCounts {
