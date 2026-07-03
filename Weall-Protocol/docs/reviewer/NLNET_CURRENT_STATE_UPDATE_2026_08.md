@@ -4,6 +4,16 @@ Status: late-stage pre-public-testnet / mainnet-readiness hardening path.
 
 This update is intentionally conservative. It describes the strongest current repository state without claiming public mainnet readiness, live economics, or completed public multi-validator BFT readiness.
 
+
+## Controlled-testnet go-gate status
+
+The controlled-testnet go-gate manifest is now allowed to be **ready to run** without claiming public beta readiness. This is a deliberate claim split:
+
+- `controlled_testnet_go_gate_ready_to_run=true` means the deterministic manifest, bounded proof artifacts, launch-disabled high-risk features, public-only audit, and release-evidence inventory are fresh enough to run the controlled rehearsal gate.
+- `public_beta_ready=false` remains mandatory until external validator/operator transcripts, storage/IPFS operator transcripts, public observer open-download evidence, rendered frontend journey evidence, and legal/compliance review are attached.
+
+The public beta blocker report classifies each blocker as closed artifact/docs, external evidence required, mainnet-readiness hardening, or UX/observability follow-up. Open blockers are not hidden; they are the funded hardening path.
+
 ## Current project status
 
 WeAll is an open-source deterministic civic coordination protocol. The repository now contains implementation-stage code, tests, generated artifacts, and operator/reviewer runbooks for public civic activity, governance, disputes, reputation, observer/testnet tooling, tokenomics scaffolding, and protocol-safety boundaries.

@@ -19,6 +19,8 @@
     "python scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py --check",
     "python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check",
     "python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+    "python scripts/gen_public_only_protocol_audit_v1_5.py --check",
+    "python scripts/gen_public_discovery_provider_independence_v1_5.py --check",
     "python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
     "python scripts/gen_release_evidence_manifest_v1_5.py --check"
   ],
@@ -42,7 +44,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "ok": false,
+      "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -66,10 +68,22 @@
       "schema": "weall.launch_disabled_matrix.v1_5"
     },
     "generated/public_beta_blocker_report_v1_5.json": {
-      "ok": false,
+      "ok": true,
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_beta_blocker_report"
+    },
+    "generated/public_discovery_provider_independence_v1_5.json": {
+      "ok": true,
+      "path": "generated/public_discovery_provider_independence_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_discovery_provider_independence"
+    },
+    "generated/public_only_protocol_audit_v1_5.json": {
+      "ok": true,
+      "path": "generated/public_only_protocol_audit_v1_5.json",
+      "present": true,
+      "schema": "weall.public_only_protocol_audit.v1_5"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
       "ok": true,
@@ -78,7 +92,7 @@
       "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
     },
     "generated/release_evidence_manifest_v1_5.json": {
-      "ok": false,
+      "ok": true,
       "path": "generated/release_evidence_manifest_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.release_evidence_manifest"
@@ -105,7 +119,7 @@
   "b587_b594_mechanism_completion_summary": {
     "controlled_testnet_mechanisms_complete": true,
     "controlled_testnet_ready_candidate": true,
-    "ok": false,
+    "ok": true,
     "present": true,
     "public_beta_ready": false,
     "unsafe_claims_false": true
@@ -139,8 +153,8 @@
     "public_validator_readiness",
     "protocol_private_activity"
   ],
-  "controlled_testnet_candidate": false,
-  "controlled_testnet_go_gate_ready_to_run": false,
+  "controlled_testnet_candidate": true,
+  "controlled_testnet_go_gate_ready_to_run": true,
   "controlled_testnet_ready_claimed_by_repo": false,
   "deterministic_tracked_manifest": true,
   "external_operator_transcript_requirements_summary": {
@@ -151,10 +165,7 @@
     "schema_count": 3
   },
   "launch_matrix_capability_snapshot": {
-    "artifact_blockers": [
-      "b587_b594_mechanism_completion",
-      "public_beta_blocker_report"
-    ],
+    "artifact_blockers": [],
     "blocked_capabilities": [
       "live_transfers",
       "live_rewards",
@@ -176,12 +187,12 @@
     }
   },
   "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
-  "ok": false,
+  "ok": true,
   "public_beta_blocker_report_summary": {
     "blocker_count": 14,
     "mainnet_ready": false,
     "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-    "ok": false,
+    "ok": true,
     "public_beta_ready": false,
     "remaining_blocker_count": 9
   },
@@ -194,7 +205,7 @@
   ],
   "release_evidence_manifest_summary": {
     "mainnet_ready": false,
-    "ok": false,
+    "ok": true,
     "public_beta_ready": false,
     "runtime_commit_binding_required": true,
     "schema": "weall.v1_5.release_evidence_manifest",

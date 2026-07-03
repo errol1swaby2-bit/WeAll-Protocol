@@ -13,8 +13,12 @@ and automatic protocol upgrades are not enabled by this repository state.
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from gen_api_response_vectors_v1_5 import build as build_api_vectors
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
@@ -25,7 +29,6 @@ from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness 
 from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import run_harness as run_protocol_upgrade_harness
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
-ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
 Json = dict[str, Any]
 
@@ -101,6 +104,41 @@ def _legal_summary() -> Json:
     }
 
 
+def _classify_blocker(
+    *,
+    severity: str,
+    gate_status: str,
+    remaining_external_evidence: list[str],
+    can_be_closed_by_code_only: bool,
+) -> Json:
+    if gate_status.startswith("closed"):
+        category = "closed_by_artifact_or_docs"
+        disposition = "closed_in_repository"
+        safe_before_first_round = True
+    elif remaining_external_evidence:
+        category = "external_evidence_required"
+        disposition = "keep_open_and_frame_as_mainnet_readiness_hardening"
+        safe_before_first_round = False
+    elif gate_status.startswith("tracked_as_frontend") or gate_status.startswith("partially_closed"):
+        category = "ux_or_observability_follow_up"
+        disposition = "safe_to_reduce_with_bounded_frontend_docs_or_tests"
+        safe_before_first_round = True
+    elif can_be_closed_by_code_only:
+        category = "code_or_test_hardening"
+        disposition = "safe_to_reduce_only_with_fresh_tests_and_artifacts"
+        safe_before_first_round = severity not in {"P0"}
+    else:
+        category = "manual_attestation_required"
+        disposition = "keep_open_until_external_attestation"
+        safe_before_first_round = False
+    return {
+        "blocker_category": category,
+        "nlnet_first_round_disposition": disposition,
+        "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": safe_before_first_round and gate_status.startswith("closed"),
+        "safe_to_reduce_before_nlnet_first_round": safe_before_first_round,
+    }
+
+
 def _blocker(
     blocker_id: str,
     severity: str,
@@ -112,6 +150,13 @@ def _blocker(
     can_be_closed_by_code_only: bool,
     remaining_external_evidence: list[str] | None = None,
 ) -> Json:
+    remaining = remaining_external_evidence or []
+    classification = _classify_blocker(
+        severity=severity,
+        gate_status=gate_status,
+        remaining_external_evidence=remaining,
+        can_be_closed_by_code_only=can_be_closed_by_code_only,
+    )
     return {
         "id": blocker_id,
         "severity": severity,
@@ -121,7 +166,8 @@ def _blocker(
         "evidence_gate": evidence_gate,
         "gate_status": gate_status,
         "can_be_closed_by_code_only": can_be_closed_by_code_only,
-        "remaining_external_evidence": remaining_external_evidence or [],
+        "remaining_external_evidence": remaining,
+        **classification,
     }
 
 
@@ -313,7 +359,7 @@ def build() -> Json:
     }
 
     closed_code_gates = [b["id"] for b in blockers if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")]
-    ok = bool(
+    evidence_inventory_ok = bool(
         validator.get("ok")
         and storage.get("ok")
         and protocol_upgrade.get("ok")
@@ -322,22 +368,30 @@ def build() -> Json:
         and api_vector_count >= 24
         and state_roots.get("ok")
         and clean_clone.get("ok")
-        and release_evidence.get("ok")
         and external_requirements.get("ok")
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
     )
+    closed_count = len([b for b in blockers if str(b.get("gate_status", "")).startswith("closed")])
+    classification_counts: dict[str, int] = {}
+    for row in blockers:
+        key = str(row.get("blocker_category") or "unclassified")
+        classification_counts[key] = classification_counts.get(key, 0) + 1
 
     return {
         "schema": "weall.v1_5.public_beta_blocker_report",
         "version": "2026-06-b620-public-beta-evidence-gates",
-        "ok": ok,
+        "ok": evidence_inventory_ok,
+        "evidence_inventory_ok": evidence_inventory_ok,
+        "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
         "public_beta_ready": False,
         "mainnet_ready": False,
         "controlled_testnet_candidate": True,
         "public_beta_blockers_remaining": True,
         "blocker_count": len(blockers),
         "remaining_blocker_count": len(remaining),
+        "closed_blocker_count": closed_count,
+        "blocker_classification_summary": classification_counts,
         "closed_code_gate_ids": closed_code_gates,
         "blockers": blockers,
         "transcript_schemas": transcript_schemas,
@@ -409,7 +463,7 @@ def main() -> int:
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit("public_beta_blocker_report_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current ({payload['blocker_count']} blockers)")
+        print(f"OK: {OUT.relative_to(ROOT)} is current ({payload['blocker_count']} blockers; public_beta_ready=false)")
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")

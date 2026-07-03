@@ -283,3 +283,11 @@ The following artifacts were added to keep the full-scope v1.5 audit aligned wit
 ### Batch 626 public observer discovery note
 
 Public observer launch evidence now requires the fail-closed seed registry flow documented in `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`, recovery guidance in `PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md`, and external transcript capture from `PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md`. A public observer can be open-download only after real public seed URLs and pinned commitments are configured; validator activation remains protocol-gated.
+
+## Controlled-testnet go-gate closure evidence
+
+- `generated/controlled_testnet_go_gate_v1_5.json` — deterministic controlled-testnet go-gate manifest. `controlled_testnet_go_gate_ready_to_run=true` is allowed only while `public_beta_ready=false`.
+- `generated/public_beta_blocker_report_v1_5.json` — classified blocker inventory. `ok=true` means the inventory is fresh and release-safe, not that public beta is ready.
+- `generated/public_only_protocol_audit_v1_5.json` — public-only protocol regression audit artifact.
+- `generated/public_discovery_provider_independence_v1_5.json` — provider-independence discovery evidence artifact.
+- `docs/audits/controlled_testnet_go_gate_closure_v1_5.md` — reviewer explanation for which blockers closed, which remain open, and why the go-gate can be ready to run without overclaiming public beta readiness.

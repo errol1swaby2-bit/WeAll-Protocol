@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
 from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import run_harness as run_upgrade_staging
@@ -15,7 +19,6 @@ from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_
 from rehearse_locked_economics_adversarial_expansion_b594_v1_5 import run_harness as run_locked_economics
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
-ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json"
 Json = dict[str, Any]
 

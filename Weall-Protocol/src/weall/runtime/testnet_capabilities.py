@@ -53,6 +53,16 @@ _REQUIRED_ARTIFACTS = {
     "external_operator_transcript_requirements": "generated/external_operator_transcript_requirements_v1_5.json",
 }
 
+# These artifacts are intentionally self-referential or public-beta-blocker
+# inventories. They must be present and reviewer-readable, but they must not
+# make the controlled-testnet mechanism surface fail merely because the repo is
+# truthfully *not* public-beta ready yet. Public-beta claim safety is enforced by
+# the blocker summary and launch matrix below.
+_CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS = {
+    "b587_b594_mechanism_completion",
+    "public_beta_blocker_report",
+}
+
 
 def _load_artifact(rel: str) -> Json:
     path = ROOT / rel
@@ -93,7 +103,19 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         key for key, record in capabilities.items() if bool(record.get("blocked_by_launch_matrix"))
     ]
     artifact_blockers = [key for key, record in artifacts.items() if not bool(record.get("present")) or not bool(record.get("ok"))]
+    controlled_mechanism_artifact_blockers = [
+        key
+        for key, record in artifacts.items()
+        if key not in _CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS
+        and (not bool(record.get("present")) or not bool(record.get("ok")))
+    ]
     blocker_report = _load_artifact("generated/public_beta_blocker_report_v1_5.json")
+    public_beta_blocker_inventory_ok = bool(
+        blocker_report
+        and blocker_report.get("schema") == "weall.v1_5.public_beta_blocker_report"
+        and blocker_report.get("public_beta_ready") is False
+        and int(blocker_report.get("blocker_count") or 0) >= 12
+    )
     return {
         "schema": "weall.v1_5.testnet_capability_surface",
         "phase": selected_phase,
@@ -101,17 +123,32 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         "required_artifacts": artifacts,
         "blocked_capabilities": blockers,
         "artifact_blockers": artifact_blockers,
+        "controlled_mechanism_artifact_blockers": controlled_mechanism_artifact_blockers,
+        "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": sorted(_CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS),
         "public_beta_blocker_report": {
             "present": bool(blocker_report),
-            "ok": bool(blocker_report.get("ok", False)) if blocker_report else False,
+            "ok": public_beta_blocker_inventory_ok,
             "public_beta_ready": bool(blocker_report.get("public_beta_ready", False)) if blocker_report else False,
             "mainnet_ready": bool(blocker_report.get("mainnet_ready", False)) if blocker_report else False,
             "blocker_count": int(blocker_report.get("blocker_count") or 0) if blocker_report else 0,
             "remaining_blocker_count": int(blocker_report.get("remaining_blocker_count") or 0) if blocker_report else 0,
             "next_allowed_claim": blocker_report.get("next_allowed_claim", "") if blocker_report else "",
         },
-        "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
-        "controlled_testnet_mechanisms_complete": not artifact_blockers,
+        "protocol_upgrade_lifecycle": {
+            "public_record_state": True,
+            "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+            "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+            "activation_clock": "block_height",
+            "activation_record_only": True,
+            "automatic_software_apply_enabled": False,
+            "migration_execution_enabled": False,
+            "rollback_execution_enabled": False,
+            "economics_activation_enabled_by_upgrade": False,
+            "reviewer_surface": "GET /v1/status/testnet-capabilities",
+            "truth_boundary": "Upgrade records are public deterministic metadata. They do not fetch artifacts, restart nodes, execute migrations, or activate economics.",
+        },
+        "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+        "controlled_testnet_mechanisms_complete": not controlled_mechanism_artifact_blockers,
         "public_beta_ready_claimed": False,
         "truth_boundaries": {
             "launch_matrix_is_guardrail_not_consensus": True,

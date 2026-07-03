@@ -24,6 +24,8 @@ RELEASE_ARTIFACTS = [
     Path("generated/b587_b594_testnet_mechanism_completion_v1_5.json"),
     Path("generated/controlled_testnet_go_gate_v1_5.json"),
     Path("generated/public_beta_blocker_report_v1_5.json"),
+    Path("generated/public_only_protocol_audit_v1_5.json"),
+    Path("generated/public_discovery_provider_independence_v1_5.json"),
     Path("generated/external_operator_transcript_requirements_v1_5.json"),
     Path("generated/public_observer_launch_evidence_requirements_v1_5.json"),
     Path("generated/public_seed_registry_signature_verification_v1_5.json"),
@@ -259,6 +261,38 @@ def _check_public_beta_blocker_report() -> list[str]:
             errors.append(f"public beta blocker report must keep {key}=false")
     return errors
 
+
+
+def _check_public_only_protocol_audit() -> list[str]:
+    errors: list[str] = []
+    from gen_public_only_protocol_audit_v1_5 import build_payload as build_public_only_protocol_audit
+
+    payload = _load_json(Path("generated/public_only_protocol_audit_v1_5.json"))
+    if payload != build_public_only_protocol_audit():
+        errors.append("public_only_protocol_audit_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.public_only_protocol_audit.v1_5":
+        errors.append("public-only protocol audit schema mismatch")
+    if payload.get("group_model", {}).get("read_visibility") != "public":
+        errors.append("public-only audit must preserve public group read visibility")
+    if payload.get("actionable_retired_communication_findings") != []:
+        errors.append("public-only audit has actionable retired communication findings")
+    return errors
+
+
+def _check_public_discovery_provider_independence() -> list[str]:
+    errors: list[str] = []
+    from gen_public_discovery_provider_independence_v1_5 import build as build_public_discovery_provider_independence
+
+    payload = _load_json(Path("generated/public_discovery_provider_independence_v1_5.json"))
+    if payload != build_public_discovery_provider_independence():
+        errors.append("public_discovery_provider_independence_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.public_discovery_provider_independence":
+        errors.append("public discovery provider independence schema mismatch")
+    if payload.get("provider_authority") is not False:
+        errors.append("public discovery provider independence must keep provider_authority=false")
+    if payload.get("checked_in_registry_fallback") is not True:
+        errors.append("public discovery provider independence must keep checked_in_registry_fallback=true")
+    return errors
 
 def _check_external_operator_transcript_requirements() -> list[str]:
     errors: list[str] = []
@@ -500,6 +534,8 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_api_response_vectors())
         errors.extend(_check_b587_b594_mechanisms())
         errors.extend(_check_public_beta_blocker_report())
+        errors.extend(_check_public_only_protocol_audit())
+        errors.extend(_check_public_discovery_provider_independence())
         errors.extend(_check_external_operator_transcript_requirements())
         errors.extend(_check_public_observer_launch_evidence_requirements())
         errors.extend(_check_public_observer_launch_transcripts())

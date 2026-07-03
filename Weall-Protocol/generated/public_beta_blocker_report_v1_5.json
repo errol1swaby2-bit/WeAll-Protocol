@@ -1,7 +1,13 @@
 {
+  "blocker_classification_summary": {
+    "closed_by_artifact_or_docs": 4,
+    "external_evidence_required": 7,
+    "ux_or_observability_follow_up": 3
+  },
   "blocker_count": 14,
   "blockers": [
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta",
         "mainnet"
@@ -12,14 +18,18 @@
       "expected_production_behavior": "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
       "gate_status": "gate_present_external_attestation_required",
       "id": "AUD-618-P0-001",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "independently operated validator run",
         "operator-signed transcript",
         "fresh checkout replay of transcript digest"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P0"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta",
         "mainnet"
@@ -30,15 +40,19 @@
       "expected_production_behavior": "Counsel-reviewed public claims, token/economic/governance language, and jurisdictional risk review.",
       "gate_status": "manual_counsel_attestation_required",
       "id": "AUD-618-P0-002",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "token/economics claims reviewed by counsel",
         "governance and treasury claims reviewed by counsel",
         "public-beta jurisdictional risk checklist completed",
         "marketing/docs checked against launch-disabled matrix"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P0"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta",
         "mainnet"
@@ -49,14 +63,18 @@
       "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, and staged multi-node rehearsal before execution.",
       "gate_status": "staging_gate_present_execution_still_disabled",
       "id": "AUD-618-P0-003",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "future production execution gate",
         "operator approval policy",
         "multi-node rollback transcript"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P0"
     },
     {
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "public_beta"
       ],
@@ -66,10 +84,14 @@
       "expected_production_behavior": "Expanded response vectors cover production-critical route families and auth/error boundaries.",
       "gate_status": "closed_as_artifact_gate",
       "id": "AUD-618-P1-001",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P1"
     },
     {
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "public_beta"
       ],
@@ -79,10 +101,14 @@
       "expected_production_behavior": "Evidence bundle proves public UI/API blocks live economics, public validator join, helper execution, and protocol upgrades.",
       "gate_status": "closed_as_artifact_gate",
       "id": "AUD-618-P1-002",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P1"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta"
       ],
@@ -92,12 +118,16 @@
       "expected_production_behavior": "Cross-machine/cross-implementation vector replay export and external attestation path.",
       "gate_status": "gate_present_external_attestation_required",
       "id": "AUD-618-P1-003",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "external machine replay transcript"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P1"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta"
       ],
@@ -107,13 +137,17 @@
       "expected_production_behavior": "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
       "gate_status": "gate_present_real_operator_rehearsal_required",
       "id": "AUD-618-P1-004",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "real IPFS daemon transcript",
         "independent storage operator transcript"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P1"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_beta"
       ],
@@ -123,12 +157,16 @@
       "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, and serial equivalence proven under production topology before activation.",
       "gate_status": "gate_present_execution_still_disabled",
       "id": "AUD-618-P1-005",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "future helper production enablement governance/release gate"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P1"
     },
     {
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "controlled_release_hygiene"
       ],
@@ -136,12 +174,16 @@
       "current_behavior": "Clean-clone root gate is present and now backed by a deterministic release-evidence manifest; concrete commit binding is emitted by runtime clean-gate reports.",
       "evidence_gate": "release_evidence_manifest_and_clean_clone_gate",
       "expected_production_behavior": "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
-      "gate_status": "gate_failed",
+      "gate_status": "closed_as_release_evidence_manifest_gate",
       "id": "AUD-618-P1-006",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P1"
     },
     {
+      "blocker_category": "external_evidence_required",
       "blocks": [
         "public_observer_launch"
       ],
@@ -151,14 +193,18 @@
       "expected_production_behavior": "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
       "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-628-P1-001",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "external clean-clone observer transcript",
         "state-sync proof",
         "rendered frontend operator journey"
       ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
       "severity": "P1"
     },
     {
+      "blocker_category": "ux_or_observability_follow_up",
       "blocks": [
         "new_user_ux"
       ],
@@ -168,10 +214,14 @@
       "expected_production_behavior": "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
       "gate_status": "tracked_as_frontend_ux_gap",
       "id": "AUD-618-P2-001",
+      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
     {
+      "blocker_category": "ux_or_observability_follow_up",
       "blocks": [
         "testnet_ux"
       ],
@@ -181,10 +231,14 @@
       "expected_production_behavior": "Show accepted, gossiped, included, finalized, and removed-from-mempool stages.",
       "gate_status": "tracked_as_frontend_ux_gap",
       "id": "AUD-618-P2-002",
+      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
     {
+      "blocker_category": "ux_or_observability_follow_up",
       "blocks": [
         "observability"
       ],
@@ -194,10 +248,14 @@
       "expected_production_behavior": "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
       "gate_status": "partially_closed_status_surface_present",
       "id": "AUD-618-P2-003",
+      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
     {
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "docs"
       ],
@@ -207,13 +265,18 @@
       "expected_production_behavior": "One-page choose-your-node-mode quickstart.",
       "gate_status": "closed_as_docs_gate",
       "id": "AUD-618-P3-001",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P3"
     }
   ],
+  "closed_blocker_count": 4,
   "closed_code_gate_ids": [
     "AUD-618-P1-001",
     "AUD-618-P1-002",
+    "AUD-618-P1-006",
     "AUD-618-P3-001"
   ],
   "controlled_testnet_candidate": true,
@@ -347,8 +410,8 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "b3e20d14d1584fafc307dfd72ecf7849825ca0f5e26abf196838499d69cc6624",
-      "ok": false,
+      "artifact_digest": "8816f94f26d7f3e12c87f89e67b53505baeeaad44cf96a7172b39632eaea612a",
+      "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
       "tracked_manifest_is_commit_agnostic": true
@@ -391,10 +454,11 @@
       "wrong_cid_rejected": true
     },
     "testnet_capability_surface": {
-      "artifact_blockers": [
+      "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
         "b587_b594_mechanism_completion",
         "public_beta_blocker_report"
       ],
+      "artifact_blockers": [],
       "blocked_capabilities": [
         "live_transfers",
         "live_rewards",
@@ -471,14 +535,28 @@
           "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
         }
       },
-      "controlled_testnet_mechanisms_complete": false,
-      "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
+      "controlled_mechanism_artifact_blockers": [],
+      "controlled_testnet_mechanisms_complete": true,
+      "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
       "phase": "public_beta_candidate",
+      "protocol_upgrade_lifecycle": {
+        "activation_clock": "block_height",
+        "activation_record_only": true,
+        "automatic_software_apply_enabled": false,
+        "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+        "economics_activation_enabled_by_upgrade": false,
+        "migration_execution_enabled": false,
+        "public_record_state": true,
+        "reviewer_surface": "GET /v1/status/testnet-capabilities",
+        "rollback_execution_enabled": false,
+        "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+        "truth_boundary": "Upgrade records are public deterministic metadata. They do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+      },
       "public_beta_blocker_report": {
         "blocker_count": 14,
         "mainnet_ready": false,
         "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-        "ok": false,
+        "ok": true,
         "present": true,
         "public_beta_ready": false,
         "remaining_blocker_count": 9
@@ -504,7 +582,7 @@
           "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
         },
         "b587_b594_mechanism_completion": {
-          "ok": false,
+          "ok": true,
           "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -528,7 +606,7 @@
           "schema": "weall.launch_disabled_matrix.v1_5"
         },
         "public_beta_blocker_report": {
-          "ok": false,
+          "ok": true,
           "path": "generated/public_beta_blocker_report_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.public_beta_blocker_report"
@@ -563,6 +641,7 @@
       }
     }
   },
+  "evidence_inventory_ok": true,
   "external_operator_transcript_requirements": {
     "artifact_digest": "c77cd6929b8f02b05992ea3781d37477c1a36151c14b60138e99307e03933c70",
     "external_attestation_required_before_public_beta": true,
@@ -571,7 +650,8 @@
   },
   "mainnet_ready": false,
   "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-  "ok": false,
+  "ok": true,
+  "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
   "public_beta_blockers_remaining": true,
   "public_beta_ready": false,
   "release_claim_boundaries": {

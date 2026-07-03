@@ -1,0 +1,141 @@
+{
+  "actionable_retired_communication_findings": [],
+  "adversarial_bypass_checks": [
+    "non-inspectable payload fields through generic transaction routes reject with OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
+    "restricted-read group state through legacy fields rejects with NON_PUBLIC_GROUP_UNSUPPORTED or PUBLIC_READ_VISIBILITY_REQUIRED",
+    "metadata-embedded opaque payload fields reject recursively",
+    "attachment references that include sealed or opaque payload fields reject recursively",
+    "frontend route removal is backed by backend replay enforcement",
+    "removed legacy communication tx names are absent from canon and reject as unknown",
+    "legacy restricted account-feed and scoped-content archives are not readable through owner-authenticated routes",
+    "media and dispute evidence CID fields must be valid public content-addressed references, never opaque URLs or local-only handles",
+    "permission probes use public-content share gates instead of removed communication payloads",
+    "helper contract artifacts expose no removed communication state subjects"
+  ],
+  "backend_enforcement_points": [
+    "src/weall/runtime/public_protocol_policy.py",
+    "src/weall/runtime/tx_admission.py",
+    "src/weall/runtime/domain_dispatch.py",
+    "src/weall/runtime/apply/groups.py",
+    "src/weall/runtime/apply/content.py",
+    "src/weall/runtime/apply/dispute.py",
+    "src/weall/runtime/tx_schema.py",
+    "src/weall/api/routes_public_parts/activity.py",
+    "src/weall/api/routes_public_parts/groups.py",
+    "src/weall/api/routes_public_parts/accounts.py"
+  ],
+  "group_model": {
+    "group_comments_readable_by": "everyone",
+    "group_posts_readable_by": "everyone",
+    "membership_may_gate": [
+      "posting",
+      "commenting",
+      "voting",
+      "moderation",
+      "administration"
+    ],
+    "membership_must_not_gate": [
+      "read_visibility",
+      "content_archives"
+    ],
+    "moderation_actions_readable_by": "everyone",
+    "read_visibility": "public"
+  },
+  "inventory": [
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/src/api/weall.ts"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 3,
+      "path": "docs/ARCHITECTURE_DECISIONS/0002-remove-protocol-native-private-messaging.md"
+    },
+    {
+      "category": "backend/api",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/api/routes_public_parts/groups.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_group_governance_contract.py"
+    }
+  ],
+  "inventory_classification": {
+    "expected_enforcement_literals": [
+      "public_protocol_policy denylist terms",
+      "tests that assert non-inspectable or restricted-read payload rejection",
+      "frontend guards that fail if removed communication modules return"
+    ],
+    "non_social_identity_evidence_terms": [
+      "reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social or non-public group surface"
+    ],
+    "non_social_transport_terms": [
+      "net/messages.py packet messages",
+      "helper receipt signing fields"
+    ],
+    "public_activity_terms": [
+      "/v1/activity/notices is public-event-derived"
+    ]
+  },
+  "inventory_hit_count": 4,
+  "public_activity_contract": {
+    "allowed_notice_types": [
+      "mention",
+      "reply",
+      "group_invitation",
+      "moderation_notice",
+      "dispute_assignment",
+      "governance_notice",
+      "validator_operator_alert"
+    ],
+    "forbidden_notice_types": [
+      "non_public_user_to_user_notice",
+      "restricted_notice_thread",
+      "opaque_notice"
+    ],
+    "route": "/v1/activity/notices",
+    "source": "public_protocol_events"
+  },
+  "public_only_rule": "All protocol-native social, civic, governance, moderation, dispute, group, reputation, and validator/operator activity must be publicly inspectable. Membership may gate participation but never read visibility.",
+  "remaining_non_social_boundaries": [
+    {
+      "classification": "not_protocol_native_social_or_group_read_scope_content",
+      "reason": "Raw identity-verification evidence is session scoped while public consensus surfaces expose commitments, receipts, status, and review outcomes. It must not create non-public groups, user-to-user hidden notes, or hidden social/governance/reputation meaning.",
+      "surface": "PoH restricted identity evidence"
+    },
+    {
+      "classification": "transaction_propagation_queue_not_user_notice_tx_queue",
+      "reason": "Observer tx queue rows are durable tx forwarding records and are not user-to-user communication threads.",
+      "surface": "observer tx queue"
+    },
+    {
+      "classification": "helper_receipt_signature_compatibility_not_social_payload_obfuscation",
+      "reason": "Legacy helper receipt verification signs helper receipts and does not hide protocol-native social content.",
+      "surface": "helper receipt signing compatibility"
+    }
+  ],
+  "removed_legacy_tx_names": [
+    "person_to_person_send",
+    "person_to_person_redact"
+  ],
+  "retired_communication_surfaces_removed": [
+    "Legacy person-to-person protocol communication tx names are no longer canonical.",
+    "Legacy thread read routes are unmounted; public notices use /v1/activity/notices.",
+    "Frontend communication pages, cryptographic communication helpers, and key bootstrappers are removed.",
+    "Group reads are forced public; restricted-read settings are rejected.",
+    "Account feed and scoped content compatibility reads do not expose owner-restricted or membership-restricted archives."
+  ],
+  "schema": "weall.public_only_protocol_audit.v1_5",
+  "stable_failure_codes": [
+    "NON_PUBLIC_GROUP_UNSUPPORTED",
+    "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
+    "PUBLIC_READ_VISIBILITY_REQUIRED"
+  ]
+}

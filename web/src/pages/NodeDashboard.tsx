@@ -638,6 +638,12 @@ export default function NodeDashboard(): JSX.Element {
                 value={str(publicBetaBlockerReport.next_allowed_claim, "controlled testnet candidate only")}
                 ok={!publicBetaClaimed}
               />
+              <DetailRow
+                label="Protocol upgrade lifecycle"
+                value={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.activation_record_only === true ? "Public record-only, block-height scheduled" : "Record-only boundary not reported"}
+                ok={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.activation_record_only === true && data?.testnetCapabilities?.protocol_upgrade_lifecycle?.automatic_software_apply_enabled === false}
+                warn={data?.testnetCapabilities?.protocol_upgrade_lifecycle?.automatic_software_apply_enabled === true}
+              />
             </div>
           ) : null}
           {incidentTimeline.length ? (

@@ -7,6 +7,20 @@ export type LaunchMatrixCapabilityRecord = {
   truth_boundary: string;
 };
 
+export type ProtocolUpgradeLifecycleSurface = {
+  public_record_state?: boolean;
+  declaration_tx?: string;
+  scheduled_activation_tx?: string;
+  activation_clock?: string;
+  activation_record_only?: boolean;
+  automatic_software_apply_enabled?: boolean;
+  migration_execution_enabled?: boolean;
+  rollback_execution_enabled?: boolean;
+  economics_activation_enabled_by_upgrade?: boolean;
+  reviewer_surface?: string;
+  truth_boundary?: string;
+};
+
 export type TestnetCapabilitySurface = {
   schema: string;
   phase: string;
@@ -14,6 +28,7 @@ export type TestnetCapabilitySurface = {
   blocked_capabilities: string[];
   controlled_testnet_mechanisms_complete: boolean;
   public_beta_ready_claimed: boolean;
+  protocol_upgrade_lifecycle?: ProtocolUpgradeLifecycleSurface;
   truth_boundaries: Record<string, boolean>;
 };
 

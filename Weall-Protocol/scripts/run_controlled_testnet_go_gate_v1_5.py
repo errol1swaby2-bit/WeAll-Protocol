@@ -9,6 +9,9 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
 from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
@@ -18,7 +21,6 @@ from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harne
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
-ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json"
 RUNTIME_OUT = ROOT / "generated" / "controlled_testnet_go_gate_runtime_v1_5.json"
 Json = dict[str, Any]
@@ -37,6 +39,8 @@ _REQUIRED_TRACKED_ARTIFACTS = [
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "generated/controlled_testnet_go_gate_v1_5.json",
     "generated/public_beta_blocker_report_v1_5.json",
+    "generated/public_only_protocol_audit_v1_5.json",
+    "generated/public_discovery_provider_independence_v1_5.json",
     "generated/external_operator_transcript_requirements_v1_5.json",
     "generated/release_evidence_manifest_v1_5.json",
 ]
@@ -51,6 +55,8 @@ _CHECK_COMMANDS = [
     ["python", "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py", "--check"],
     ["python", "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
     ["python", "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
+    ["python", "scripts/gen_public_only_protocol_audit_v1_5.py", "--check"],
+    ["python", "scripts/gen_public_discovery_provider_independence_v1_5.py", "--check"],
     ["python", "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"],
     ["python", "scripts/gen_release_evidence_manifest_v1_5.py", "--check"],
 ]

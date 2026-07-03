@@ -19,6 +19,11 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert report["mainnet_ready"] is False
     assert report["controlled_testnet_candidate"] is True
     assert report["blocker_count"] >= 13
+    assert report["public_beta_blockers_remaining"] is True
+    assert report["evidence_inventory_ok"] is True
+    assert "ok_meaning" in report
+    assert report["blocker_classification_summary"]["external_evidence_required"] >= 5
+    assert report["blocker_classification_summary"]["closed_by_artifact_or_docs"] >= 3
     ids = {row["id"] for row in report["blockers"]}
     assert {
         "AUD-618-P0-001",
@@ -48,6 +53,10 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert "public_validator_operator_transcript" in report["transcript_schemas"]
     assert "storage_ipfs_operator_transcript" in report["transcript_schemas"]
     assert "legal_attestation" in report["transcript_schemas"]
+    by_id = {row["id"]: row for row in report["blockers"]}
+    assert by_id["AUD-618-P0-003"]["blocker_category"] == "external_evidence_required"
+    assert by_id["AUD-618-P1-006"]["blocker_category"] == "closed_by_artifact_or_docs"
+    assert by_id["AUD-618-P2-001"]["blocker_category"] == "ux_or_observability_follow_up"
 
 
 def test_generated_public_beta_blocker_report_is_fresh() -> None:
@@ -97,6 +106,12 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert summary["blocker_count"] >= 13
     assert "public_validator_join" in surface["blocked_capabilities"]
     assert "production_helper_execution" in surface["blocked_capabilities"]
+    assert surface["controlled_mechanism_artifact_blockers"] == []
+    upgrade = surface["protocol_upgrade_lifecycle"]
+    assert upgrade["activation_clock"] == "block_height"
+    assert upgrade["activation_record_only"] is True
+    assert upgrade["automatic_software_apply_enabled"] is False
+    assert upgrade["economics_activation_enabled_by_upgrade"] is False
 
 
 def test_controlled_go_gate_references_public_beta_blockers() -> None:
@@ -115,3 +130,6 @@ def test_controlled_go_gate_references_public_beta_blockers() -> None:
     assert summary["public_beta_ready"] is False
     assert summary["mainnet_ready"] is False
     assert summary["blocker_count"] >= 13
+    assert payload["controlled_testnet_go_gate_ready_to_run"] is True
+    assert payload["controlled_testnet_candidate"] is True
+    assert payload["public_readiness_claim_requires_external_evidence"] is True

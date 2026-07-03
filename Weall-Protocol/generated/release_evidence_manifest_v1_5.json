@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "b3e20d14d1584fafc307dfd72ecf7849825ca0f5e26abf196838499d69cc6624",
+  "artifact_digest": "8816f94f26d7f3e12c87f89e67b53505baeeaad44cf96a7172b39632eaea612a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -14,7 +14,7 @@
   },
   "controlled_testnet_candidate": true,
   "mainnet_ready": false,
-  "ok": false,
+  "ok": true,
   "public_beta_ready": false,
   "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
     "generated/controlled_testnet_go_gate_v1_5.json",
@@ -102,8 +102,8 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "eb7ec5c525f0803b34e532c6f0d149978b8609a4b92d560a26d78b2aad21315a",
-      "ok": false,
+      "file_sha256": "a49a83d0a806694851c840e2236bf6e7dfd237def891292f0508d6be64bdd4ea",
+      "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -165,7 +165,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "27e33a04b733c0e37addcd5f95688c023abf78cc469eca9a684032706eb31ab5",
+      "file_sha256": "ca7f1a47f22bfec511fc1738f9733e098e90e4c25a16dfa0e1771b215c9f88b8",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

@@ -123,6 +123,8 @@ configs/local/
 !generated/controlled_testnet_go_gate_v1_5.json
 
 !generated/public_beta_blocker_report_v1_5.json
+!generated/public_only_protocol_audit_v1_5.json
+!generated/public_discovery_provider_independence_v1_5.json
 
 !generated/external_operator_transcript_requirements_v1_5.json
 !generated/public_observer_launch_evidence_requirements_v1_5.json
