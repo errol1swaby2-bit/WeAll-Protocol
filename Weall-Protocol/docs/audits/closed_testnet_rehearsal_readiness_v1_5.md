@@ -94,7 +94,9 @@ pytest -q \
   tests/test_group_governance_contract.py \
   tests/test_public_only_protocol_redesign.py \
   tests/test_protocol_upgrade_record_only_boundary.py \
-  tests/test_protocol_upgrade_height_scheduled_lifecycle.py
+  tests/test_protocol_upgrade_height_scheduled_lifecycle.py \
+  tests/test_governance_due_height_trust_boundary.py \
+  tests/test_dispute_height_lifecycle_boundaries.py
 ```
 
 ## Protocol upgrade rehearsal boundary
@@ -144,7 +146,7 @@ bash scripts/secret_guard.sh
 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 python3 -B -S scripts/check_tx_canon_artifacts.py
-pytest -q tests/test_protocol_upgrade_record_only_boundary.py tests/test_protocol_upgrade_height_scheduled_lifecycle.py
+pytest -q tests/test_protocol_upgrade_record_only_boundary.py tests/test_protocol_upgrade_height_scheduled_lifecycle.py tests/test_governance_due_height_trust_boundary.py tests/test_dispute_height_lifecycle_boundaries.py
 ```
 
 Add broader test output when available. If the full suite is skipped because of time or environment limits, state that directly.

@@ -254,11 +254,36 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
     upgrades = proto["upgrades"]
     assert isinstance(upgrades, dict)
 
-    # Idempotency: overwriting the same uid is allowed (canonical latest payload wins).
     rec = upgrades.get(uid)
-    if isinstance(rec, dict) and rec.get("status") in {"scheduled", "effective", "activated"}:
-        # Cannot re-declare an upgrade id after governance approval/scheduling.
-        raise ProtocolApplyError("conflict", "upgrade_already_scheduled", {"upgrade_id": uid})
+    if isinstance(rec, dict):
+        existing_status = _as_str(rec.get("status")).strip().lower()
+        if existing_status in {"scheduled", "effective", "activated"}:
+            # Cannot re-declare an upgrade id after governance approval/scheduling.
+            raise ProtocolApplyError("conflict", "upgrade_already_scheduled", {"upgrade_id": uid})
+        existing_version = _as_str(rec.get("target_version") or rec.get("version")).strip()
+        existing_hash = _as_str(rec.get("hash")).strip() or None
+        if existing_version == version and existing_hash == hsh:
+            # Exact replay/idempotency: do not rewrite the original declaration
+            # height, nonce, payload, or target-support proof.
+            return {
+                "applied": "PROTOCOL_UPGRADE_DECLARE",
+                "upgrade_id": uid,
+                "version": existing_version,
+                "target_version": existing_version,
+                "hash": existing_hash,
+                "deduped": True,
+                "target_support": dict(_as_dict(rec.get("target_support"))),
+                "record_only_boundary": dict(_as_dict(rec.get("record_only_boundary"))),
+            }
+        raise ProtocolApplyError(
+            "conflict",
+            "upgrade_already_declared",
+            {
+                "upgrade_id": uid,
+                "declared_target_version": existing_version,
+                "requested_target_version": version,
+            },
+        )
 
     upgrades[uid] = {
         "upgrade_id": uid,
@@ -302,13 +327,38 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         raise ProtocolApplyError("not_found", "upgrade_not_declared", {"upgrade_id": uid})
 
     if rec.get("status") in {"scheduled", "effective", "activated"}:
+        scheduled_record = _as_dict(_as_dict(proto.get("scheduled_upgrades")).get(uid))
+        activation_record = dict(scheduled_record or rec)
+        declared_version = _as_str(rec.get("target_version") or rec.get("version")).strip()
+        requested_version = _target_version(payload)
+        if requested_version and requested_version != declared_version:
+            raise ProtocolApplyError(
+                "conflict",
+                "upgrade_duplicate_activation_conflict",
+                {
+                    "upgrade_id": uid,
+                    "declared_target_version": declared_version,
+                    "requested_target_version": requested_version,
+                },
+            )
+        requested_activation_height = _as_int(payload.get("activation_height"), 0)
+        existing_activation_height = _as_int(rec.get("activation_height") or activation_record.get("activation_height"), 0)
+        if requested_activation_height > 0 and existing_activation_height > 0 and requested_activation_height != existing_activation_height:
+            raise ProtocolApplyError(
+                "conflict",
+                "upgrade_duplicate_activation_conflict",
+                {
+                    "upgrade_id": uid,
+                    "activation_height": int(existing_activation_height),
+                    "requested_activation_height": int(requested_activation_height),
+                },
+            )
         boundary = _record_only_boundary(_as_dict(rec.get("activate_payload") or rec.get("payload")))
-        active = _as_dict(proto.get("governance_activation_record") or proto.get("active"))
         return {
             "applied": "PROTOCOL_UPGRADE_ACTIVATE",
             "upgrade_id": uid,
             "deduped": True,
-            "governance_activation_record": dict(active) if active else {},
+            "governance_activation_record": activation_record,
             "record_only_boundary": boundary,
         }
 

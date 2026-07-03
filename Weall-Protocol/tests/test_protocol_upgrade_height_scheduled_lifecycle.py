@@ -108,3 +108,39 @@ def test_upgrade_lifecycle_replays_to_identical_state_roots() -> None:
     assert _state_hash(leader_state) == _state_hash(follower_state) == _state_hash(observer_state)
     assert leader_state["protocol"]["governance_activation_record"]["activation_height"] == 53
     assert leader_state["protocol"]["governance_activation_record"]["automatic_upgrade_supported"] is False
+
+
+def test_upgrade_duplicate_declare_is_idempotent_only_for_identical_record() -> None:
+    state = {"height": 12}
+    first = apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"}))
+    second = apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 2, {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"}))
+
+    assert first is not None and second is not None
+    assert second["deduped"] is True
+    assert state["protocol"]["upgrades"]["dup"]["declared_at_nonce"] == 1
+
+    with pytest.raises(ProtocolApplyError) as exc:
+        apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 3, {"upgrade_id": "dup", "version": "v1.5.3", "hash": "sha256:b"}))
+
+    assert exc.value.code == "conflict"
+    assert exc.value.reason == "upgrade_already_declared"
+
+
+def test_upgrade_duplicate_activation_rejects_conflicting_boundary_and_returns_matching_record() -> None:
+    state = {"height": 50}
+    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u1", "version": "v1.5.2"}))
+    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 2, {"upgrade_id": "u2", "version": "v1.5.3"}))
+    apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 3, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90}))
+    apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 4, {"upgrade_id": "u2", "version": "v1.5.3", "activation_height": 100}))
+
+    duplicate = apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 5, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90}))
+    assert duplicate is not None
+    assert duplicate["deduped"] is True
+    assert duplicate["governance_activation_record"]["upgrade_id"] == "u1"
+    assert duplicate["governance_activation_record"]["activation_height"] == 90
+
+    with pytest.raises(ProtocolApplyError) as exc:
+        apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 6, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 91}))
+
+    assert exc.value.code == "conflict"
+    assert exc.value.reason == "upgrade_duplicate_activation_conflict"

@@ -99,7 +99,11 @@ def scan() -> list[dict[str, object]]:
         for path in base.rglob("*"):
             if not path.is_file():
                 continue
-            if any(part in SKIP_DIRS or part.endswith(".egg-info") for part in path.parts):
+            try:
+                scan_parts = path.relative_to(base).parts
+            except ValueError:
+                scan_parts = path.parts
+            if any(part in SKIP_DIRS or part.endswith(".egg-info") for part in scan_parts):
                 continue
             if path == OUT:
                 continue

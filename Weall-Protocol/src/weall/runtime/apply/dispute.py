@@ -981,6 +981,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
 
     target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
     reported_by = _as_str(payload.get("reported_by") or payload.get("flagged_by") or payload.get("reporter") or "").strip()
+    opened_h = _current_height(state)
     disputes[dispute_id] = {
         "id": dispute_id,
         "stage": "open",
@@ -988,6 +989,8 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "reported_by": reported_by or None,
         "flagged_by": reported_by or None,
         "opened_at_nonce": int(env.nonce),
+        "opened_at_height": int(opened_h),
+        "stage_set_at_height": int(opened_h),
         "target_type": target_type,
         "target_id": target_id,
         "target_owner": target_owner or None,
@@ -1025,6 +1028,7 @@ def _apply_dispute_stage_set(state: Json, env: TxEnvelope) -> Json:
     d = _get_dispute(state, dispute_id)
     d["stage"] = stage
     d["stage_set_at_nonce"] = int(env.nonce)
+    d["stage_set_at_height"] = int(_current_height(state))
     return {"applied": "DISPUTE_STAGE_SET", "dispute_id": dispute_id, "stage": stage}
 
 
@@ -1103,7 +1107,8 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
         jurors = {}
     eligible_jurors = _dispute_eligible_juror_ids(state, d, juror)
     juror_key = _canonical_actor_key(eligible_jurors, juror, state)
-    jurors[juror_key] = {"status": "assigned", "assigned_at_nonce": int(env.nonce)}
+    now_h = _current_height(state)
+    jurors[juror_key] = {"status": "assigned", "assigned_at_nonce": int(env.nonce), "assigned_at_height": int(now_h)}
     d["jurors"] = jurors
     assigned = _normalized_str_list(list(_as_dict(d.get("jurors")).keys()))
     d["assigned_jurors"] = list(assigned)
@@ -1114,6 +1119,7 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
     if stage in {"", "open"}:
         d["stage"] = "juror_review"
         d["stage_set_at_nonce"] = int(env.nonce)
+        d["stage_set_at_height"] = int(now_h)
     return {"applied": "DISPUTE_JUROR_ASSIGN", "dispute_id": dispute_id, "juror": juror_key}
 
 

@@ -55,6 +55,12 @@
       "path": "docs/ARCHITECTURE_DECISIONS/0002-remove-protocol-native-private-messaging.md"
     },
     {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 4,
+      "path": "docs/audits/late_stage_nlnet_public_testnet_gap_inventory_v1_5.md"
+    },
+    {
       "category": "backend/api",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
@@ -84,7 +90,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 4,
+  "inventory_hit_count": 5,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

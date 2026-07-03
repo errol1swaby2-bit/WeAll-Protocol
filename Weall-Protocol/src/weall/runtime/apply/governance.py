@@ -55,10 +55,16 @@ def _execution_audit_root(state: Json) -> list[Json]:
 
 
 def _height_hint(state: Json, env: TxEnvelope) -> int:
-    p = _d(env.payload)
-    dh = p.get("_due_height")
-    if isinstance(dh, int) and dh > 0:
-        return int(dh)
+    # _due_height is a consensus/scheduler binding for SYSTEM follow-up txs.
+    # It must never be trusted from user-submitted governance payloads, because
+    # otherwise a proposer or voter could forge future/past lifecycle heights in
+    # committed protocol state. External txs use the next block height derived
+    # from canonical chain state.
+    if bool(getattr(env, "system", False)):
+        p = _d(env.payload)
+        dh = p.get("_due_height")
+        if isinstance(dh, int) and dh > 0:
+            return int(dh)
     return int(_i(state.get("height"), 0) + 1)
 
 

@@ -58,6 +58,8 @@ python3 -B -S scripts/check_tx_canon_artifacts.py
 pytest -q \
   tests/test_protocol_upgrade_record_only_boundary.py \
   tests/test_protocol_upgrade_height_scheduled_lifecycle.py \
+  tests/test_governance_due_height_trust_boundary.py \
+  tests/test_dispute_height_lifecycle_boundaries.py \
   tests/test_group_governance_contract.py \
   tests/test_public_only_protocol_redesign.py \
   tests/prod/test_public_observer_boot_and_evidence_scripts.py \
@@ -132,6 +134,7 @@ Key reviewer files include:
 - `docs/PUBLIC_ONLY_PROTOCOL.md`
 - `docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md`
 - `docs/audits/closed_testnet_rehearsal_readiness_v1_5.md`
+- `docs/audits/late_stage_nlnet_public_testnet_gap_inventory_v1_5.md`
 - `docs/REVIEWER_EVIDENCE_INDEX.md`
 - `docs/KNOWN_LIMITATIONS.md`
 - `generated/public_only_protocol_audit_v1_5.json`

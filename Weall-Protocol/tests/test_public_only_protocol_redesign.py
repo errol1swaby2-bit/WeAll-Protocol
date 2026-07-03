@@ -220,6 +220,22 @@ def test_api_contract_does_not_advertise_removed_communication_routes() -> None:
     assert "GET /v1/activity/notices" in route_keys
 
 
+
+
+def test_public_only_generator_scans_relative_paths_not_absolute_tmp_parts() -> None:
+    import importlib.util
+
+    script = ROOT / "scripts" / "gen_public_only_protocol_audit_v1_5.py"
+    spec = importlib.util.spec_from_file_location("gen_public_only_protocol_audit_v1_5", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    rows = module.scan()
+    paths = {str(row.get("path")) for row in rows}
+    assert "../web/src/api/weall.ts" in paths
+    assert "src/weall/api/routes_public_parts/groups.py" in paths
+
 def test_generated_artifact_reflects_public_only_rule() -> None:
     artifact = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
     assert artifact.is_file()
