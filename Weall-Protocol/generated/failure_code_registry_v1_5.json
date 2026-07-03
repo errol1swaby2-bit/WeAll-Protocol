@@ -3,7 +3,7 @@
     "api": 101,
     "launch_readiness": 25,
     "runtime": 7,
-    "runtime_apply": 68
+    "runtime_apply": 69
   },
   "codes": [
     {
@@ -193,7 +193,7 @@
       "http_status": null,
       "sample_reason": "protocol_read_visibility_must_be_public",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 276
+      "source_lineno": 277
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -301,7 +301,7 @@
       "http_status": null,
       "sample_reason": "group_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 459
+      "source_lineno": 467
     },
     {
       "code": "bad_payload",
@@ -310,7 +310,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 729
+      "source_lineno": 744
     },
     {
       "code": "bad_payload",
@@ -490,16 +490,16 @@
       "http_status": null,
       "sample_reason": "group_treasury_wallet_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 822
+      "source_lineno": 837
     },
     {
       "code": "conflict",
       "domain": "runtime_apply",
       "family": "ProtocolApplyError",
       "http_status": null,
-      "sample_reason": "upgrade_already_activated",
+      "sample_reason": "upgrade_already_scheduled",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 175
+      "source_lineno": 261
     },
     {
       "code": "conflict",
@@ -544,7 +544,7 @@
       "http_status": null,
       "sample_reason": "exception",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 327
+      "source_lineno": 328
     },
     {
       "code": "duplicate",
@@ -643,7 +643,7 @@
       "http_status": null,
       "sample_reason": "receipt_only_requires_parent",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 226
+      "source_lineno": 227
     },
     {
       "code": "forbidden",
@@ -670,7 +670,7 @@
       "http_status": null,
       "sample_reason": "group_post_authority_required",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 316
+      "source_lineno": 317
     },
     {
       "code": "forbidden",
@@ -697,7 +697,7 @@
       "http_status": null,
       "sample_reason": "group_emissary_election_open",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 742
+      "source_lineno": 757
     },
     {
       "code": "forbidden",
@@ -733,7 +733,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 81
+      "source_lineno": 87
     },
     {
       "code": "forbidden",
@@ -832,7 +832,7 @@
       "http_status": null,
       "sample_reason": "treasury_signer_sync_failed",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 772
+      "source_lineno": 787
     },
     {
       "code": "invalid_block",
@@ -904,7 +904,7 @@
       "http_status": null,
       "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 83
+      "source_lineno": 84
     },
     {
       "code": "invalid_payload",
@@ -931,7 +931,7 @@
       "http_status": null,
       "sample_reason": "missing_group_id",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 455
+      "source_lineno": 463
     },
     {
       "code": "invalid_payload",
@@ -959,6 +959,15 @@
       "sample_reason": "missing_topic",
       "source": "src/weall/runtime/apply/notifications.py",
       "source_lineno": 96
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "missing_upgrade_target_version",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 245
     },
     {
       "code": "invalid_payload",
@@ -1084,7 +1093,7 @@
       "http_status": null,
       "sample_reason": "state_param_not_integer",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 48
+      "source_lineno": 53
     },
     {
       "code": "invalid_state",
@@ -1156,7 +1165,7 @@
       "http_status": null,
       "sample_reason": "missing_signer",
       "source": "src/weall/runtime/domain_apply.py",
-      "source_lineno": 130
+      "source_lineno": 131
     },
     {
       "code": "invalid_tx",
@@ -1165,7 +1174,7 @@
       "http_status": null,
       "sample_reason": "noncanonical_tx_type",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 216
+      "source_lineno": 217
     },
     {
       "code": "invalid_tx",
@@ -1498,7 +1507,7 @@
       "http_status": null,
       "sample_reason": "group_not_found",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 312
+      "source_lineno": 313
     },
     {
       "code": "not_found",
@@ -1525,7 +1534,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 121
+      "source_lineno": 129
     },
     {
       "code": "not_found",
@@ -1552,7 +1561,7 @@
       "http_status": null,
       "sample_reason": "upgrade_not_declared",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 211
+      "source_lineno": 302
     },
     {
       "code": "not_found",
@@ -1816,7 +1825,7 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 201,
+  "entry_count": 202,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",

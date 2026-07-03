@@ -136,7 +136,7 @@
       "current_behavior": "Clean-clone root gate is present and now backed by a deterministic release-evidence manifest; concrete commit binding is emitted by runtime clean-gate reports.",
       "evidence_gate": "release_evidence_manifest_and_clean_clone_gate",
       "expected_production_behavior": "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
-      "gate_status": "closed_as_release_evidence_manifest_gate",
+      "gate_status": "gate_failed",
       "id": "AUD-618-P1-006",
       "remaining_external_evidence": [],
       "severity": "P1"
@@ -214,7 +214,6 @@
   "closed_code_gate_ids": [
     "AUD-618-P1-001",
     "AUD-618-P1-002",
-    "AUD-618-P1-006",
     "AUD-618-P3-001"
   ],
   "controlled_testnet_candidate": true,
@@ -348,8 +347,8 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "2fd44e93b22c39cabef3bb8ef495e61716f3d9e675d4239d5115a59cd8efee5f",
-      "ok": true,
+      "artifact_digest": "b3e20d14d1584fafc307dfd72ecf7849825ca0f5e26abf196838499d69cc6624",
+      "ok": false,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
       "tracked_manifest_is_commit_agnostic": true
@@ -392,7 +391,10 @@
       "wrong_cid_rejected": true
     },
     "testnet_capability_surface": {
-      "artifact_blockers": [],
+      "artifact_blockers": [
+        "b587_b594_mechanism_completion",
+        "public_beta_blocker_report"
+      ],
       "blocked_capabilities": [
         "live_transfers",
         "live_rewards",
@@ -469,14 +471,14 @@
           "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
         }
       },
-      "controlled_testnet_mechanisms_complete": true,
+      "controlled_testnet_mechanisms_complete": false,
       "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
       "phase": "public_beta_candidate",
       "public_beta_blocker_report": {
         "blocker_count": 14,
         "mainnet_ready": false,
         "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-        "ok": true,
+        "ok": false,
         "present": true,
         "public_beta_ready": false,
         "remaining_blocker_count": 9
@@ -502,7 +504,7 @@
           "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
         },
         "b587_b594_mechanism_completion": {
-          "ok": true,
+          "ok": false,
           "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -526,7 +528,7 @@
           "schema": "weall.launch_disabled_matrix.v1_5"
         },
         "public_beta_blocker_report": {
-          "ok": true,
+          "ok": false,
           "path": "generated/public_beta_blocker_report_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.public_beta_blocker_report"
@@ -569,7 +571,7 @@
   },
   "mainnet_ready": false,
   "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-  "ok": true,
+  "ok": false,
   "public_beta_blockers_remaining": true,
   "public_beta_ready": false,
   "release_claim_boundaries": {

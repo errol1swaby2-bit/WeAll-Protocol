@@ -1131,6 +1131,7 @@ class ProtocolUpgradeDeclarePayload(_StrictModel):
     upgrade_id: str | None = Field(default=None, min_length=1, )
     version: str | None = None
     target_version: str | None = None
+    rule_target: str | None = None
     hash: str | None = None
     commit: str | None = None
 
@@ -1138,7 +1139,10 @@ class ProtocolUpgradeDeclarePayload(_StrictModel):
 class ProtocolUpgradeActivatePayload(_StrictModel):
     upgrade_id: str | None = Field(default=None, min_length=1, )
     version: str | None = None
+    target_version: str | None = None
     hash: str | None = None
+    activation_height: int | None = Field(default=None, ge=1)
+    activation_delay_blocks: int | None = Field(default=None, ge=1)
 
 
 class GovVoteRevokePayload(_StrictModel):

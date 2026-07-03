@@ -1050,7 +1050,10 @@
     "tx_count": 4
   },
   "launch_matrix_capability_wiring": {
-    "artifact_blockers": [],
+    "artifact_blockers": [
+      "b587_b594_mechanism_completion",
+      "public_beta_blocker_report"
+    ],
     "blocked_capabilities": [
       "live_transfers",
       "live_rewards",
@@ -1127,14 +1130,14 @@
         "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
       }
     },
-    "controlled_testnet_mechanisms_complete": true,
+    "controlled_testnet_mechanisms_complete": false,
     "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates",
     "phase": "public_beta_candidate",
     "public_beta_blocker_report": {
       "blocker_count": 14,
       "mainnet_ready": false,
       "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
-      "ok": true,
+      "ok": false,
       "present": true,
       "public_beta_ready": false,
       "remaining_blocker_count": 9
@@ -1160,7 +1163,7 @@
         "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
       },
       "b587_b594_mechanism_completion": {
-        "ok": true,
+        "ok": false,
         "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -1184,7 +1187,7 @@
         "schema": "weall.launch_disabled_matrix.v1_5"
       },
       "public_beta_blocker_report": {
-        "ok": true,
+        "ok": false,
         "path": "generated/public_beta_blocker_report_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.public_beta_blocker_report"
@@ -1281,7 +1284,7 @@
     ],
     "wrong_cid_rejected": true
   },
-  "ok": true,
+  "ok": false,
   "protocol_upgrade_signed_staging": {
     "auto_apply_rejected": true,
     "automatic_protocol_upgrade_enabled": false,

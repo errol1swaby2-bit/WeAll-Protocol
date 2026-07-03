@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "2fd44e93b22c39cabef3bb8ef495e61716f3d9e675d4239d5115a59cd8efee5f",
+  "artifact_digest": "b3e20d14d1584fafc307dfd72ecf7849825ca0f5e26abf196838499d69cc6624",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -14,7 +14,7 @@
   },
   "controlled_testnet_candidate": true,
   "mainnet_ready": false,
-  "ok": true,
+  "ok": false,
   "public_beta_ready": false,
   "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
     "generated/controlled_testnet_go_gate_v1_5.json",
@@ -102,8 +102,8 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "49edadb415e2ca814c0f93266ff602556fccb469b8f69d1c0687526c94fc7637",
-      "ok": true,
+      "file_sha256": "eb7ec5c525f0803b34e532c6f0d149978b8609a4b92d560a26d78b2aad21315a",
+      "ok": false,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -116,7 +116,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "e668f285dffc0546b8772a14c8cb4376275ecd565b81e4f65f0a452a89af28e6",
+      "file_sha256": "b0068df293713e0834562e43241e76a9ae209a78d963a0d1bb500c000c550691",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
