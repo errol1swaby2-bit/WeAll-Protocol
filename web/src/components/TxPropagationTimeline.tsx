@@ -15,6 +15,7 @@ export default function TxPropagationTimeline({
 }): JSX.Element {
   return (
     <div className="progressList compact" aria-label={`Propagation lifecycle for ${title}; peer propagation timeline`}>
+      <div className="mutedText">Propagation lifecycle separates local submission, local acceptance, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, and removed from mempool. Unknown propagation remains Pending evidence.</div>
       {steps.map((step) => (
         <div key={step.label} className="progressRow">
           <span>

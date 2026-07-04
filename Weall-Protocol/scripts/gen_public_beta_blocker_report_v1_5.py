@@ -104,6 +104,108 @@ def _legal_summary() -> Json:
     }
 
 
+def _frontend_p2_ux_summary() -> Json:
+    frontend = ROOT.parent / "web"
+    files = {
+        "node_dashboard": frontend / "src" / "pages" / "NodeDashboard.tsx",
+        "operator_wizard": frontend / "src" / "components" / "OperatorCommandWizard.tsx",
+        "incident_timeline": frontend / "src" / "components" / "OperatorIncidentTimeline.tsx",
+        "tx_page": frontend / "src" / "pages" / "TransactionsPage.tsx",
+        "tx_timeline": frontend / "src" / "components" / "TxPropagationTimeline.tsx",
+        "source_test": frontend / "scripts" / "test_step9_p2_ux_source.mjs",
+        "node_dashboard_source_test": frontend / "scripts" / "test_node_dashboard_source.mjs",
+    }
+
+    def read(key: str) -> str:
+        path = files[key]
+        try:
+            return path.read_text(encoding="utf-8")
+        except Exception:
+            return ""
+
+    contents = {key: read(key) for key in files}
+    combined = "\n".join(contents.values())
+    checks = {
+        "operator_wizard_surface_present": all(
+            needle in contents["operator_wizard"]
+            for needle in (
+                "Safe guided commands",
+                "current node mode",
+                "observer, node operator, validator-candidate, and validator authority",
+                "script execution or copied commands never grant authority by themselves",
+                "diagnostic-only / read-only",
+                "local-only / diagnostic-only",
+                "observer-only / diagnostic-only",
+                "requires protocol state before use",
+            )
+        ) and "OperatorCommandWizard" in contents["node_dashboard"],
+        "tx_lifecycle_timeline_present": all(
+            needle in contents["tx_page"]
+            for needle in (
+                "Submitted",
+                "Locally accepted",
+                "Queued / pending",
+                "Forwarded / gossiped",
+                "Included in block",
+                "Finalized / confirmed",
+                "Rejected",
+                "Removed from mempool",
+                "not confirmed yet",
+                "unknown/unavailable",
+            )
+        ) and "Propagation lifecycle separates local submission" in contents["tx_timeline"],
+        "operator_incident_timeline_present": all(
+            needle in contents["incident_timeline"]
+            for needle in (
+                "Operator incident timeline",
+                "Unified diagnostics",
+                "Read-only diagnostics",
+                "node mode, chain identity, peer and seed status, mempool backlog, block/finalized height, BFT/validator authority, storage/helper/economics/protocol-upgrade blockers",
+                "build_operator_incident_report.py",
+            )
+        ) and "OperatorIncidentTimeline" in contents["node_dashboard"],
+        "source_contract_test_present": all(
+            needle in contents["source_test"]
+            for needle in (
+                "Step 9 P2 UX source checks passed",
+                "mempool acceptance is confirmed",
+                "Public beta ready",
+                "automatic protocol upgrades enabled",
+            )
+        ),
+        "node_dashboard_source_contract_updated": all(
+            needle in contents["node_dashboard_source_test"]
+            for needle in (
+                "Step 9 P2 UX surfaces",
+                "Step 9 operator wizard source contract",
+                "Step 9 operator incident timeline source contract",
+            )
+        ),
+    }
+    forbidden_phrases = [
+        "Public beta ready",
+        "Mainnet ready",
+        "public multi-validator BFT ready",
+        "live economics ready",
+        "automatic protocol upgrades enabled",
+        "script execution grants authority",
+        "copied commands grant authority",
+        "mempool acceptance is confirmed",
+        "local acceptance is confirmation",
+    ]
+    # The source test intentionally contains the forbidden strings as guard data; exclude it from product copy checks.
+    product_combined = "\n".join(value for key, value in contents.items() if key != "source_test")
+    checks["no_readiness_or_confirmation_overclaim_in_product_copy"] = not any(phrase in product_combined for phrase in forbidden_phrases)
+    ok = all(checks.values()) and all(path.exists() for path in files.values())
+    return {
+        "ok": ok,
+        "source_gate": "web/scripts/test_step9_p2_ux_source.mjs",
+        "node_dashboard_source_gate": "web/scripts/test_node_dashboard_source.mjs",
+        "checks": checks,
+        "artifact_digest": _digest({"checks": checks, "files": sorted(str(path.relative_to(ROOT.parent)) for path in files.values())}),
+    }
+
+
 def _classify_blocker(
     *,
     severity: str,
@@ -184,6 +286,7 @@ def build() -> Json:
     external_requirements = build_external_transcript_requirements()
     public_observer_launch = _artifact_summary("generated/public_observer_launch_evidence_requirements_v1_5.json")
     release_evidence = build_release_evidence_manifest()
+    frontend_p2_ux = _frontend_p2_ux_summary()
 
     high_risk_disabled = all(
         record.get("enabled") is False
@@ -304,30 +407,30 @@ def build() -> Json:
             "AUD-618-P2-001",
             "P2",
             ["new_user_ux"],
-            "Frontend has status panels; production switch remains script/preflight oriented.",
+            "Frontend node dashboard now includes a bounded operator wizard with role boundaries and safe copyable diagnostic command categories.",
             "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
             "frontend_operator_wizard_source_gate",
-            "tracked_as_frontend_ux_gap",
+            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("operator_wizard_surface_present") and frontend_p2_ux.get("checks", {}).get("source_contract_test_present") else "tracked_as_frontend_ux_gap",
             True,
         ),
         _blocker(
             "AUD-618-P2-002",
             "P2",
             ["testnet_ux"],
-            "Tx page shows local status; full propagation lifecycle remains partially implicit.",
-            "Show accepted, gossiped, included, finalized, and removed-from-mempool stages.",
+            "Transaction activity now shows submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool states with unknown propagation shown honestly.",
+            "Show submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool stages without treating mempool acceptance as confirmation.",
             "tx_propagation_timeline_source_gate",
-            "tracked_as_frontend_ux_gap",
+            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("tx_lifecycle_timeline_present") and frontend_p2_ux.get("checks", {}).get("source_contract_test_present") else "tracked_as_frontend_ux_gap",
             True,
         ),
         _blocker(
             "AUD-618-P2-003",
             "P2",
             ["observability"],
-            "Operator diagnostics exist but are distributed across surfaces.",
+            "Node dashboard now includes a read-only operator incident timeline that ties node mode, chain identity, peer/seed status, mempool, block height, validator/BFT authority, storage/helper/economics/protocol-upgrade blockers, and safe diagnostics.",
             "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
             "operator_incident_timeline_gate",
-            "partially_closed_status_surface_present",
+            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("operator_incident_timeline_present") and frontend_p2_ux.get("checks", {}).get("node_dashboard_source_contract_updated") else "partially_closed_status_surface_present",
             True,
         ),
         _blocker(
@@ -371,6 +474,7 @@ def build() -> Json:
         and external_requirements.get("ok")
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
+        and frontend_p2_ux.get("ok") is True
     )
     closed_count = len([b for b in blockers if str(b.get("gate_status", "")).startswith("closed")])
     classification_counts: dict[str, int] = {}
@@ -418,6 +522,7 @@ def build() -> Json:
                 "runtime_commit_binding_required": release_evidence.get("runtime_commit_binding_required"),
                 "artifact_digest": release_evidence.get("artifact_digest"),
             },
+            "frontend_p2_ux_observability": frontend_p2_ux,
             "legal_compliance": legal,
         },
         "release_claim_boundaries": {

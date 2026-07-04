@@ -1,8 +1,7 @@
 {
   "blocker_classification_summary": {
-    "closed_by_artifact_or_docs": 4,
-    "external_evidence_required": 7,
-    "ux_or_observability_follow_up": 3
+    "closed_by_artifact_or_docs": 7,
+    "external_evidence_required": 7
   },
   "blocker_count": 14,
   "blockers": [
@@ -204,53 +203,53 @@
       "severity": "P1"
     },
     {
-      "blocker_category": "ux_or_observability_follow_up",
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "new_user_ux"
       ],
       "can_be_closed_by_code_only": true,
-      "current_behavior": "Frontend has status panels; production switch remains script/preflight oriented.",
+      "current_behavior": "Frontend node dashboard now includes a bounded operator wizard with role boundaries and safe copyable diagnostic command categories.",
       "evidence_gate": "frontend_operator_wizard_source_gate",
       "expected_production_behavior": "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
-      "gate_status": "tracked_as_frontend_ux_gap",
+      "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-001",
-      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
       "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
     {
-      "blocker_category": "ux_or_observability_follow_up",
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "testnet_ux"
       ],
       "can_be_closed_by_code_only": true,
-      "current_behavior": "Tx page shows local status; full propagation lifecycle remains partially implicit.",
+      "current_behavior": "Transaction activity now shows submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool states with unknown propagation shown honestly.",
       "evidence_gate": "tx_propagation_timeline_source_gate",
-      "expected_production_behavior": "Show accepted, gossiped, included, finalized, and removed-from-mempool stages.",
-      "gate_status": "tracked_as_frontend_ux_gap",
+      "expected_production_behavior": "Show submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool stages without treating mempool acceptance as confirmation.",
+      "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-002",
-      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
       "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
     {
-      "blocker_category": "ux_or_observability_follow_up",
+      "blocker_category": "closed_by_artifact_or_docs",
       "blocks": [
         "observability"
       ],
       "can_be_closed_by_code_only": true,
-      "current_behavior": "Operator diagnostics exist but are distributed across surfaces.",
+      "current_behavior": "Node dashboard now includes a read-only operator incident timeline that ties node mode, chain identity, peer/seed status, mempool, block height, validator/BFT authority, storage/helper/economics/protocol-upgrade blockers, and safe diagnostics.",
       "evidence_gate": "operator_incident_timeline_gate",
       "expected_production_behavior": "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
-      "gate_status": "partially_closed_status_surface_present",
+      "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-003",
-      "nlnet_first_round_disposition": "safe_to_reduce_with_bounded_frontend_docs_or_tests",
+      "nlnet_first_round_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
       "safe_to_reduce_before_nlnet_first_round": true,
       "severity": "P2"
     },
@@ -272,11 +271,14 @@
       "severity": "P3"
     }
   ],
-  "closed_blocker_count": 4,
+  "closed_blocker_count": 7,
   "closed_code_gate_ids": [
     "AUD-618-P1-001",
     "AUD-618-P1-002",
     "AUD-618-P1-006",
+    "AUD-618-P2-001",
+    "AUD-618-P2-002",
+    "AUD-618-P2-003",
     "AUD-618-P3-001"
   ],
   "controlled_testnet_candidate": true,
@@ -295,6 +297,20 @@
       "root_gate_executable_in_this_checkout": true,
       "root_gate_path": "scripts/run_clean_clone_go_gate_v1_5.sh",
       "root_gate_present": true
+    },
+    "frontend_p2_ux_observability": {
+      "artifact_digest": "926b7ffa628915869fcb5dd25963eb829f21901db3e8aca217723ffb051430da",
+      "checks": {
+        "no_readiness_or_confirmation_overclaim_in_product_copy": true,
+        "node_dashboard_source_contract_updated": true,
+        "operator_incident_timeline_present": true,
+        "operator_wizard_surface_present": true,
+        "source_contract_test_present": true,
+        "tx_lifecycle_timeline_present": true
+      },
+      "node_dashboard_source_gate": "web/scripts/test_node_dashboard_source.mjs",
+      "ok": true,
+      "source_gate": "web/scripts/test_step9_p2_ux_source.mjs"
     },
     "helper_production_topology": {
       "batch": "593",
@@ -410,7 +426,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "4afab1c4f25fbfda515b4ace45ab3f6d0af1af9988ad879d2dc9ca6621d5065b",
+      "artifact_digest": "28de1584ddd028dca79fce1c6b1d1c9c056b5b34ff0d7fd5c0cc6f3a21a0bf91",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -689,7 +705,7 @@
         "ok": true,
         "present": true,
         "public_beta_ready": false,
-        "remaining_blocker_count": 9
+        "remaining_blocker_count": 7
       },
       "public_beta_ready_claimed": false,
       "required_artifacts": {
@@ -796,7 +812,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "remaining_blocker_count": 9,
+  "remaining_blocker_count": 7,
   "schema": "weall.v1_5.public_beta_blocker_report",
   "transcript_schemas": {
     "legal_attestation": {

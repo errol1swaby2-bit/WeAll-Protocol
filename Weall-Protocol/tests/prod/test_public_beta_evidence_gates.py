@@ -23,7 +23,7 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert report["evidence_inventory_ok"] is True
     assert "ok_meaning" in report
     assert report["blocker_classification_summary"]["external_evidence_required"] >= 5
-    assert report["blocker_classification_summary"]["closed_by_artifact_or_docs"] >= 3
+    assert report["blocker_classification_summary"]["closed_by_artifact_or_docs"] >= 6
     ids = {row["id"] for row in report["blockers"]}
     assert {
         "AUD-618-P0-001",
@@ -56,7 +56,10 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     by_id = {row["id"]: row for row in report["blockers"]}
     assert by_id["AUD-618-P0-003"]["blocker_category"] == "external_evidence_required"
     assert by_id["AUD-618-P1-006"]["blocker_category"] == "closed_by_artifact_or_docs"
-    assert by_id["AUD-618-P2-001"]["blocker_category"] == "ux_or_observability_follow_up"
+    assert by_id["AUD-618-P2-001"]["blocker_category"] == "closed_by_artifact_or_docs"
+    assert by_id["AUD-618-P2-002"]["gate_status"] == "closed_as_frontend_source_gate"
+    assert by_id["AUD-618-P2-003"]["gate_status"] == "closed_as_frontend_source_gate"
+    assert report["evidence_gate_summaries"]["frontend_p2_ux_observability"]["ok"] is True
 
 
 def test_generated_public_beta_blocker_report_is_fresh() -> None:

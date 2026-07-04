@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import NodeConnectionPanel from "../components/NodeConnectionPanel";
+import OperatorCommandWizard from "../components/OperatorCommandWizard";
+import OperatorIncidentTimeline, { type OperatorIncidentItem } from "../components/OperatorIncidentTimeline";
 import ValidatorReadinessWizard from "../components/ValidatorReadinessWizard";
 import { getAuthHeaders, getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -320,6 +322,56 @@ export default function NodeDashboard(): JSX.Element {
   const prefError = storagePreferenceError(pref);
   const browserStorageUsage = storageEstimate ? formatBytes(storageEstimate.usage) : "—";
   const browserStorageQuota = storageEstimate ? formatBytes(storageEstimate.quota) : "—";
+  const operatorModeLabel = validatorEffective
+    ? "Validator authority effective"
+    : validatorOptedIn
+      ? "Validator-candidate / readiness pending"
+      : asRecord(accountOperator.baseline).active === true
+        ? "Node operator"
+        : observerMode
+          ? "Observer"
+          : "Local node";
+  const safeStatusCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status | python -m json.tool`;
+  const safeMempoolCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status/mempool | python -m json.tool`;
+  const safeOperatorCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status/operator | python -m json.tool`;
+  const incidentItems: OperatorIncidentItem[] = [
+    {
+      label: "Node mode and chain identity",
+      status: chainId !== "—" && status.ok === true ? "ok" : "warn",
+      detail: `mode ${statusLabel(status.mode || operatorModeLabel)} · chain ${chainId}`,
+      command: safeStatusCurl,
+    },
+    {
+      label: "Peer, seed, and validator reachability",
+      status: peerCount > 0 || allValidatorsFresh || observerMode ? "ok" : "warn",
+      detail: `${peerCount} peer(s), ${seedNodes.length} seed record(s), ${verifiedFreshEndpointCount}/${activeValidatorCount} fresh validator endpoint(s)`,
+      command: `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/nodes/validators | python -m json.tool`,
+    },
+    {
+      label: "Mempool and tx propagation",
+      status: mempoolSize === 0 && observerQueued === 0 ? "ok" : "warn",
+      detail: `${mempoolSize} mempool tx, ${observerQueued} observer queue item(s), ${observerAccepted} upstream accepted, ${observerConfirmed} confirmed`,
+      command: safeMempoolCurl,
+    },
+    {
+      label: "Block and finalized-height progress",
+      status: height > 0 ? "ok" : "info",
+      detail: `height ${height || 0}; finalized status remains backend-derived and local browser time is not protocol authority`,
+      command: `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/chain/head | python -m json.tool`,
+    },
+    {
+      label: "BFT / validator authority",
+      status: validatorEffective ? "ok" : validatorOptedIn ? "warn" : "info",
+      detail: validatorEffective ? "validator authority effective in backend state" : validatorOptedIn ? "validator responsibility opted in, readiness or activation still pending" : "validator signing disabled or not active",
+      command: safeOperatorCurl,
+    },
+    {
+      label: "Storage, helper, economics, and protocol-upgrade blockers",
+      status: publicBetaClaimed ? "warn" : "ok",
+      detail: `storage ${storageOptedIn ? "opted-in" : "not opted-in"}; helper ${helperEffective ? "effective" : "disabled/gated"}; economics locked; automatic protocol upgrades disabled`,
+      command: `cd ~/WeAll-Protocol/Weall-Protocol && PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py`,
+    },
+  ];
 
   function updatePref(partial: Partial<StorageContributionPreference>): void {
     setPref((current) => ({ ...current, ...partial }));
@@ -435,6 +487,15 @@ export default function NodeDashboard(): JSX.Element {
         </article>
       </section>
 
+      <OperatorCommandWizard
+        nodeMode={operatorModeLabel}
+        chainId={chainId}
+        baseUrl={base}
+        observerMode={observerMode}
+        validatorEffective={validatorEffective}
+        validatorCandidate={validatorOptedIn}
+      />
+
       <ValidatorReadinessWizard
         steps={readinessSteps}
         observerMode={observerMode}
@@ -443,6 +504,9 @@ export default function NodeDashboard(): JSX.Element {
         chainId={chainId}
         baseUrl={base}
       />
+
+      <OperatorIncidentTimeline items={incidentItems} />
+
       <div className="calloutInfo">
         <strong>Validator promotion path:</strong> a fresh observer must sync, reach Tier 2 through protocol PoH, activate node-operator responsibility, explicitly opt into validation, pass validator readiness verification, and only then reboot with production validator service flags. This dashboard displays backend-derived blockers and never flips signing authority locally.
       </div>

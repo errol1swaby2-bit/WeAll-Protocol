@@ -79,16 +79,17 @@ function summarizeList(rows: TxCatalogSummaryRow[] | undefined, limit = 4): stri
 function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boolean; detail?: string }> {
   const status = item.status;
   const hasTxId = !!item.txId;
+  const locallyAccepted = ["recorded", "refreshing", "confirmed"].includes(status);
+  const backendObserved = ["refreshing", "confirmed"].includes(status);
   return [
-    { label: "Accepted locally", done: ["recorded", "refreshing", "confirmed", "failed"].includes(status), detail: hasTxId ? "tx id captured" : "waiting for tx id" },
-    { label: "Forwarded to verified upstream", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "public observers forward only to commitment-checked upstreams" },
-    { label: "Upstream validator accepted", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "upstream acceptance is distinct from local browser history" },
-    { label: "Gossiped / pending", done: ["recorded", "refreshing", "confirmed"].includes(status), detail: "peer propagation observed through backend status refresh" },
-    { label: "Pending in mempool", done: ["recorded", "refreshing"].includes(status), detail: status === "confirmed" ? "cleared after commit" : "awaiting block inclusion" },
-    { label: "Included in block", done: status === "confirmed", detail: "backend status reports confirmation" },
-    { label: "Local observer synced confirmed block", done: status === "confirmed", detail: "local observer has caught up to the confirmed chain state" },
-    { label: "Finalized", done: status === "confirmed", detail: "canonical chain accepted the tx" },
-    { label: "Removed from mempool", done: status === "confirmed", detail: "should be absent after commit/restart" },
+    { label: "Submitted", done: ["submitting", "recorded", "refreshing", "confirmed", "failed"].includes(status), detail: "browser attempted to send a signed envelope" },
+    { label: "Locally accepted", done: locallyAccepted, detail: hasTxId ? "tx id captured; not confirmed yet" : "waiting for tx id" },
+    { label: "Queued / pending", done: ["recorded", "refreshing"].includes(status), detail: status === "confirmed" ? "cleared after block inclusion" : "mempool or observer queue evidence may still be local-only" },
+    { label: "Forwarded / gossiped", done: backendObserved, detail: "shown only when later backend refresh evidence exists; otherwise unknown/unavailable" },
+    { label: "Included in block", done: status === "confirmed", detail: "backend tx status reports block inclusion" },
+    { label: "Finalized / confirmed", done: status === "confirmed", detail: "canonical chain state observed by this node" },
+    { label: "Rejected", done: status === "failed", detail: status === "failed" ? "backend or local validation rejected the tx" : "no rejection evidence" },
+    { label: "Removed from mempool", done: status === "confirmed", detail: "expected after commit/restart; do not infer from local acceptance" },
   ];
 }
 
@@ -299,7 +300,7 @@ export default function TransactionsPage(): JSX.Element {
               <strong>Canonical tx catalog:</strong> the backend now exposes transaction surface metadata so frontend work can be explicitly aligned to real protocol tx types, contexts, gate expectations, and concrete public HTTP entrypoints.
             </div>
             <div className="summaryCallout subtle">
-              <strong>Block confirmation:</strong> a transaction is not treated as a final public result until the backend reports block inclusion and the local observer has synced that confirmed state.
+              <strong>Block confirmation:</strong> a transaction is not treated as a final public result until the backend reports block inclusion and the local observer has synced that confirmed state. Upstream validator accepted is separate evidence from local acceptance and still is not final confirmation.
             </div>
           </div>
         </article>

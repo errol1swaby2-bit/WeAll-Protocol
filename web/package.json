@@ -27,7 +27,8 @@
     "test:rendered-civic-loop": "playwright test tests/e2e/reviewer_civic_loop_rendered.spec.ts",
     "test:rendered-civic-loop-source": "node scripts/test_rendered_civic_loop_source.mjs",
     "test:launch-prep-governance-source": "node scripts/test_launch_prep_governance_source.mjs",
-    "test:step2-ux-clarity-source": "node scripts/test_step2_ux_clarity_source.mjs"
+    "test:step2-ux-clarity-source": "node scripts/test_step2_ux_clarity_source.mjs",
+    "test:step9-p2-ux-source": "node scripts/test_step9_p2_ux_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

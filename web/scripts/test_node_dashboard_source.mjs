@@ -18,6 +18,8 @@ const node = read("src/pages/NodeDashboard.tsx");
 const capabilitySurface = read("../Weall-Protocol/src/weall/runtime/testnet_capabilities.py");
 const txPage = read("src/pages/TransactionsPage.tsx");
 const txTimeline = read("src/components/TxPropagationTimeline.tsx");
+const operatorWizard = read("src/components/OperatorCommandWizard.tsx");
+const incidentTimeline = read("src/components/OperatorIncidentTimeline.tsx");
 const connectionPanel = read("src/components/NodeConnectionPanel.tsx");
 const contract = read("scripts/contract_check.mjs");
 
@@ -94,6 +96,36 @@ for (const needle of [
 }
 
 for (const needle of [
+  "OperatorCommandWizard",
+  "OperatorIncidentTimeline",
+  "operatorModeLabel",
+  "incidentItems",
+]) {
+  assertIncludes(node, needle, "node dashboard wires Step 9 P2 UX surfaces");
+}
+
+for (const needle of [
+  "Safe guided commands",
+  "observer, node operator, validator-candidate, and validator authority",
+  "script execution or copied commands never grant authority by themselves",
+  "diagnostic-only / read-only",
+  "local-only / diagnostic-only",
+  "observer-only / diagnostic-only",
+  "requires protocol state before use",
+]) {
+  assertIncludes(operatorWizard, needle, "Step 9 operator wizard source contract");
+}
+
+for (const needle of [
+  "Unified diagnostics",
+  "Read-only diagnostics",
+  "node mode, chain identity, peer and seed status, mempool backlog, block/finalized height, BFT/validator authority, storage/helper/economics/protocol-upgrade blockers",
+  "build_operator_incident_report.py",
+]) {
+  assertIncludes(incidentTimeline, needle, "Step 9 operator incident timeline source contract");
+}
+
+for (const needle of [
   '"governance": "/decisions"',
   '"governance_create": "/decisions/create"',
   '"disputes": "/reports"',
@@ -126,19 +158,23 @@ for (const needle of [
 
 for (const needle of [
   "TxPropagationTimeline",
-  "Accepted locally",
-  "Forwarded to verified upstream",
-  "Upstream validator accepted",
-  "Gossiped / pending",
+  "Submitted",
+  "Locally accepted",
+  "Queued / pending",
+  "Forwarded / gossiped",
   "Included in block",
-  "Local observer synced confirmed block",
+  "Finalized / confirmed",
+  "Rejected",
   "Removed from mempool",
+  "not confirmed yet",
+  "unknown/unavailable",
 ]) {
   assertIncludes(txPage, needle, "transactions page propagation timeline");
 }
 
 for (const needle of [
   "Propagation lifecycle",
+  "Propagation lifecycle separates local submission, local acceptance, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, and removed from mempool",
   "Pending evidence",
   "Observed",
 ]) {
