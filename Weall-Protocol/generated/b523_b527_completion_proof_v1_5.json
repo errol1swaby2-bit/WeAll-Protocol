@@ -42,7 +42,7 @@
   },
   "full_lifecycle": {
     "batch": "525",
-    "final_state_root": "93f5535e19c0f486c86f243f1c8847ae65650179a75ae5d2178d0f4fcaa9c8b3",
+    "final_state_root": "9c24980b5cd43ce13a54b1cbbd576baf54bd82345a2b5119b5fb5bacdd903d72",
     "fresh_node_replay_sync": {
       "batch": "524",
       "corrupt_block_rejected": true,
@@ -149,10 +149,10 @@
     }
   },
   "locked_boundaries_preserved": {
-    "automatic_protocol_upgrades": true,
-    "live_economics": true,
-    "production_helpers": true,
-    "public_validators": true
+    "automatic_protocol_upgrades_disabled": true,
+    "live_economics_disabled": true,
+    "production_helpers_disabled": true,
+    "public_validators_disabled": true
   },
   "ok": true,
   "validator_process_rehearsal": {

@@ -50,10 +50,10 @@ def build() -> dict:
         "feed_ranking": feed,
         "api_access_model": api_access,
         "locked_boundaries_preserved": {
-            "public_validators": True,
-            "live_economics": True,
-            "automatic_protocol_upgrades": True,
-            "production_helpers": True,
+            "public_validators_disabled": True,
+            "live_economics_disabled": True,
+            "automatic_protocol_upgrades_disabled": True,
+            "production_helpers_disabled": True,
         },
     }
 

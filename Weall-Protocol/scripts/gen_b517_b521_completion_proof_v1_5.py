@@ -18,7 +18,7 @@ def build() -> dict:
     replay = run_replay_sync()
     lifecycle = run_lifecycle()
     feed_review = {"current_default": "created_at_nonce_desc", "complete_ranking": False, "new_optional_modes": ["recency", "engagement", "balanced"], "personalized_ranking": False, "notes": "Default feed remains deterministic recency for compatibility; optional ranking is deterministic and state-derived but not a full personalized/reputation feed."}
-    return {"version": 1, "batch": "517-521", "ok": bool(validator.get("ok") and replay.get("ok") and lifecycle.get("ok")), "public_claim_allowed": "private_rehearsal_only", "validator_network": validator, "fresh_node_replay_sync": replay, "full_lifecycle": lifecycle, "feed_ranking_review": feed_review, "locked_boundaries_preserved": {"public_validators": True, "live_economics": True, "automatic_protocol_upgrades": True, "production_helpers": True}}
+    return {"version": 1, "batch": "517-521", "ok": bool(validator.get("ok") and replay.get("ok") and lifecycle.get("ok")), "public_claim_allowed": "private_rehearsal_only", "validator_network": validator, "fresh_node_replay_sync": replay, "full_lifecycle": lifecycle, "feed_ranking_review": feed_review, "locked_boundaries_preserved": {"public_validators_disabled": True, "live_economics_disabled": True, "automatic_protocol_upgrades_disabled": True, "production_helpers_disabled": True}}
 
 
 def main() -> int:
